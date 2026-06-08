@@ -422,3 +422,26 @@ class TestTaskIdStamp:
         tid = conn.execute("SELECT task_id FROM observations LIMIT 1").fetchone()[0]
         conn.close()
         assert tid == "TASK-77"
+
+    def test_capture_works_without_task_id_column(self, tmp_path: Path, monkeypatch) -> None:
+        # Pre-v39 DBs lack observations.task_id; the dynamic-column INSERT must
+        # still capture (the False branch of _observations_has_task_id).
+        db = tmp_path / ".coding-os" / "coding-os.db"
+        db.parent.mkdir(parents=True)
+        init_db(db)
+        drop = sqlite3.connect(str(db))
+        drop.execute("ALTER TABLE observations DROP COLUMN task_id")  # simulate pre-v39
+        drop.commit()
+        drop.close()
+        panel = tmp_path / "panel"
+        panel.mkdir()
+        (panel / ".task-current").write_text("ses TASK-5")
+        monkeypatch.setenv("COS_PANEL_DIR", str(panel))
+        capture_observation(
+            {"tool_name": "Edit", "tool_input": {"file_path": str(tmp_path / "a.py")}},
+            db_path=db,
+        )
+        conn = sqlite3.connect(str(db))
+        count = conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
+        conn.close()
+        assert count == 1  # inserted despite the missing task_id column

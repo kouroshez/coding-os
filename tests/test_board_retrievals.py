@@ -43,3 +43,27 @@ def test_retrievals_backfill_carries_derived_rework(tmp_path, monkeypatch) -> No
     conn.close()
     assert outcome == "rework"  # derived from the reopen, not hardcoded success
     assert retr == "rework"  # back-fill carried the derived outcome, not a 2nd 'success'
+
+
+def test_retrievals_defaults_success_when_no_outcome_derived(tmp_path, monkeypatch) -> None:
+    # If record_outcome returns no outcome (e.g. db skipped/error), the back-fill
+    # must fall back to 'success' — not crash or write None.
+    import thinking_os.record_outcome as ro_mod
+
+    db = tmp_path / ".coding-os" / "coding-os.db"
+    db.parent.mkdir(parents=True)
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("COS_DB_PATH", str(db))
+    conn = init_db(db)
+    conn.execute(
+        "INSERT INTO retrievals (session_id, task_id, layer, query, source_table, source_id, outcome) "
+        "VALUES ('s', 'TASK-9', 'memory', 'q', 'observations', 1, NULL)"
+    )
+    conn.commit()
+    monkeypatch.setattr(ro_mod, "record_outcome", lambda **kw: {"status": "skipped"})
+
+    board_commands._record_brain_outcome_safe(conn, "TASK-9")
+
+    retr = conn.execute("SELECT outcome FROM retrievals WHERE task_id='TASK-9'").fetchone()[0]
+    conn.close()
+    assert retr == "success"  # fallback default — record_outcome returned no outcome

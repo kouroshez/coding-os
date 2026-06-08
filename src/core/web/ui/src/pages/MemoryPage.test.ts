@@ -35,4 +35,22 @@ describe('splitLesson', () => {
     expect(r.action).toBeNull();
     expect(r.situation).toBe('[Breakthrough] FTS5 external-content corrupts on rebuild');
   });
+
+  it('splits at the LAST arrow when several are present', () => {
+    const r = splitLesson('a → b → c');
+    expect(r.situation).toBe('a → b');
+    expect(r.action).toBe('c');
+  });
+
+  it('falls back to the un-stripped left when the prefix consumes everything', () => {
+    const r = splitLesson('Recurring completion gap (1 occurrence): → act now');
+    expect(r.action).toBe('act now');
+    expect(r.situation).toBe('Recurring completion gap (1 occurrence):'); // not empty
+  });
+
+  it('handles empty input', () => {
+    const r = splitLesson('');
+    expect(r.situation).toBe('');
+    expect(r.action).toBeNull();
+  });
 });

@@ -53,17 +53,31 @@ def test_every10_touches_shared_marker(project) -> None:
     assert outcomes_since_marker(db, marker) == 0
 
 
-def test_skips_when_marker_already_fresh(project) -> None:
+def test_skips_when_marker_already_fresh(project, monkeypatch) -> None:
+    # Discriminating: spy on learn_extract so we prove the MARKER gates the call,
+    # not that the empty corpus happens to mint nothing (the old tautology).
     tmp_path, db, conn = project
     from scheduled._state import touch_marker
+    import thinking_os.tools.learning as learning_mod
 
+    calls: list[int] = []
+    monkeypatch.setattr(learning_mod, "learn_extract", lambda c, **k: calls.append(1) or {"extracted": []})
     marker = state_dir(tmp_path) / ".last-extract"
     marker.parent.mkdir(parents=True, exist_ok=True)
-    touch_marker(marker)  # simulate another path having just extracted
-    # learned_patterns starts empty; with the marker fresh + no new outcomes,
-    # the every-10 path must NOT mint anything.
+    touch_marker(marker)  # fresh marker — all 10 outcomes predate it
+
     board_commands._record_brain_outcome_safe(conn, "TASK-9")
-    n = conn.execute(
-        "SELECT COUNT(*) FROM learned_patterns WHERE source = 'commit' OR source = 'friction'"
-    ).fetchone()[0]
-    assert n == 0  # skipped — no extraction because outcomes_since_marker == 0
+    assert calls == []  # extraction SKIPPED because outcomes_since_marker == 0
+
+
+def test_extracts_when_marker_stale(project, monkeypatch) -> None:
+    # Control for the above: with NO fresh marker, the same 10 outcomes ARE
+    # "since" → learn_extract is actually invoked. Proves the gate has two sides.
+    tmp_path, db, conn = project
+    import thinking_os.tools.learning as learning_mod
+
+    calls: list[int] = []
+    monkeypatch.setattr(learning_mod, "learn_extract", lambda c, **k: calls.append(1) or {"extracted": []})
+
+    board_commands._record_brain_outcome_safe(conn, "TASK-9")  # marker absent
+    assert calls == [1]  # extraction RAN because outcomes exist since the (absent) marker
