@@ -981,6 +981,157 @@ async def author_task(
     )
 
 
+# ---------------------------------------------------------------------------
+# Onboarding — docs-scoped session (TASK-246)
+# ---------------------------------------------------------------------------
+
+_ONBOARD_WRITE_TOOLS = frozenset({"Write", "Edit", "MultiEdit", "NotebookEdit"})
+_ONBOARD_ALLOWED_TOOLS = [
+    "mcp__coding-os__*",
+    "Write",
+    "Edit",
+    "MultiEdit",
+    "Read",
+    "Glob",
+    "Grep",
+    "TodoWrite",
+    "WebFetch",
+    "WebSearch",
+]
+
+
+def _is_path_under_docs(file_path: str, project_root: Path) -> bool:
+    """True when file_path resolves to <project_root>/docs (or below)."""
+    if not file_path:
+        return False
+    try:
+        p = Path(file_path)
+        if not p.is_absolute():
+            p = project_root / p
+        p = p.resolve()
+        docs = (project_root / "docs").resolve()
+        return p == docs or docs in p.parents
+    except (OSError, ValueError, RuntimeError):
+        return False
+
+
+def _onboard_write_allowed(tool_input: dict, project_root: Path) -> bool:
+    """Permission contract for the onboard session: a write tool may only target
+    a path under docs/. Non-dict input or a missing path denies (fail-closed)."""
+    if not isinstance(tool_input, dict):
+        return False
+    path = tool_input.get("file_path") or tool_input.get("path") or tool_input.get("notebook_path")
+    return _is_path_under_docs(str(path or ""), project_root)
+
+
+@router.post("/onboard")
+async def onboard(
+    body: dict = Body(...),
+    _rl=Depends(make_rate_limit_dep("cognition.onboard")),
+    _m=Depends(make_metrics_dep("cognition.onboard")),
+):
+    """Run the onboarder role with Write/Edit confined to docs/ (PreToolUse-gated). Claude-only."""
+    prompt = str(body.get("prompt") or "").strip()
+    if not prompt:
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {
+                        "category": "validation",
+                        "retryable": False,
+                        "message": "prompt must be non-empty",
+                    },
+                }
+            )
+        )
+    sdk = _claude_sdk()
+    if sdk is None:
+        return unwrap(_unavailable("claude_agent_sdk not installed"))
+
+    import secrets
+    import time as _time
+
+    model = body.get("model") or None
+    cwd = _project_cwd()
+    project_root = Path(cwd)
+    sid = f"ses-claude-onboard-{int(_time.time())}-{secrets.token_hex(3)}"
+    system_prompt = _role_system_prompt("onboarder") or {
+        "type": "preset",
+        "preset": "claude_code",
+    }
+
+    async def _deny_non_docs_write(input_data: dict, _tool_use_id, _ctx) -> dict:
+        # PreToolUse is evaluated FIRST and honored even under dontAsk (where
+        # can_use_tool is skipped) — the only reliable place to path-scope writes.
+        try:
+            if input_data.get("tool_name") in _ONBOARD_WRITE_TOOLS and not _onboard_write_allowed(
+                input_data.get("tool_input") or {}, project_root
+            ):
+                return {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": "onboard sessions may only write under docs/",
+                    }
+                }
+        except Exception as exc:  # never raise from a hook — would kill the stream
+            logger.debug("onboard PreToolUse gate error: %s", exc)
+        return {}
+
+    options = sdk.ClaudeAgentOptions(
+        cwd=cwd,
+        model=model,
+        permission_mode="dontAsk",
+        setting_sources=["project"],
+        session_id=sid,
+        allowed_tools=list(_ONBOARD_ALLOWED_TOOLS),
+        disallowed_tools=["Bash"],  # deny wins even over the allow-list
+        system_prompt=system_prompt,
+        hooks={
+            "PreToolUse": [
+                sdk.HookMatcher(
+                    matcher="Write|Edit|MultiEdit|NotebookEdit", hooks=[_deny_non_docs_write]
+                )
+            ]
+        },
+        max_turns=40,
+    )
+
+    async def event_gen():
+        yield _sse_chunk("started", {"session_id": sid, "prompt": prompt[:200], "model": model})
+        resolved_id = sid
+        emitted_session = False
+        try:
+            async for event in sdk.query(prompt=prompt, options=options):
+                if not emitted_session:
+                    real_id = getattr(event, "session_id", None)
+                    if real_id:
+                        resolved_id = str(real_id)
+                        yield _sse_chunk("session", {"session_id": resolved_id})
+                        emitted_session = True
+                kind = type(event).__name__.lower().replace("message", "") or "event"
+                yield _sse_chunk(kind, _safe_serialize(event))
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.exception("onboard stream failed")
+            yield _sse_chunk("error", {"message": str(exc)})
+        if not emitted_session:
+            yield _sse_chunk("session", {"session_id": resolved_id})
+        yield _sse_chunk("done", {"session_id": resolved_id})
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
 @router.post("/chat/{session_id}/send")
 async def chat_send(
     session_id: str,

@@ -253,6 +253,23 @@ Subagent inheritance warning: parent in `bypassPermissions`/`acceptEdits`/`auto`
 inherits to all children — cannot override per-subagent. Dispatcher uses
 `dontAsk` so this is moot for our tree.
 
+### 9.1 Docs-scoped sessions (the onboard endpoint)
+
+`POST /api/cognition/onboard` (TASK-246) runs the `onboarder` role with writes
+**confined to `docs/`**. Because `can_use_tool` is *skipped* under `dontAsk`
+(evaluation order above), path-scoping is enforced with a **PreToolUse hook**
+(evaluated first, mode-independent), not the callback:
+
+- `permission_mode="dontAsk"` + `allowed_tools=[mcp__coding-os__*, Write, Edit,
+  MultiEdit, Read, Glob, Grep, TodoWrite, WebFetch, WebSearch]` + `disallowed_tools=["Bash"]`.
+- a `PreToolUse` `HookMatcher(matcher="Write|Edit|MultiEdit|NotebookEdit")` that
+  resolves the target path and returns `permissionDecision: "deny"` when it is
+  not under `<project>/docs/` (the pure check is
+  `cognition._onboard_write_allowed`, unit-tested as the acceptance contract).
+
+A named endpoint keeps the docs-only permission set auditable in one place
+rather than scattered allow-rules.
+
 ## 10. Skills — frontmatter contract
 
 Per SDK docs §E.1:
