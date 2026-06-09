@@ -27,7 +27,7 @@ references:
 ## Read First
 - [.github/workflows/ci.yml](../../.github/workflows/ci.yml) — `ruff format --check` is enforced (lines 53-54), `ruff check` is informational `|| true`
 - [src/core/hooks/_helpers/branch_guard_check.py](../../src/core/hooks/_helpers/branch_guard_check.py) — 1 of 3 drift files
-- [src/core/web/routes/audits.py](../../src/core/web/routes/audits.py) — 1 of 3
+- src/core/web/routes/audits.py (removed 2026-06-09) — 1 of 3
 - [tests/test_branch_guard.py](../../tests/test_branch_guard.py) — 1 of 3
 
 ## Repro Steps

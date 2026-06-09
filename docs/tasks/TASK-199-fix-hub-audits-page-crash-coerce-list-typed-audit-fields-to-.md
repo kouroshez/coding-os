@@ -22,8 +22,8 @@ references: []
 
 ## Read First
 - [src/core/rules/api-contract-discipline.md](../../src/core/rules/api-contract-discipline.md) — producer is the source of truth for response shape
-- [src/core/web/routes/audits.py](../../src/core/web/routes/audits.py) — the producer
-- [src/core/web/ui/src/pages/AuditsPage.tsx](../../src/core/web/ui/src/pages/AuditsPage.tsx) — the crashing consumer
+- src/core/web/routes/audits.py (removed 2026-06-09) — the producer
+- src/core/web/ui/src/pages/AuditsPage.tsx (removed 2026-06-09) — the crashing consumer
 
 ## Repro Steps
 1. Open http://127.0.0.1:9188/p/coding-os/diagnostics/audits in the Hub UI.
