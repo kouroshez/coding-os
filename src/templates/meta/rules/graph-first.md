@@ -1,5 +1,5 @@
 ---
-description: Always-active rule when editing meta-repo authoring paths. Codifies the "graph before grep, graph before Read" discipline. Lists the 21 cos_graph_* tools and the structural questions that mandate each. Pairs with the graph-explorer skill which has the full decision ladder.
+description: Always-active rule when editing meta-repo authoring paths. Codifies the "graph before grep, graph before Read" discipline. Lists the 22 cos_graph_* tools and the structural questions that mandate each. Pairs with the graph-explorer skill which has the full decision ladder.
 globs: "src/core/**/*.py,src/cli/**/*.py,src/adapters/**/*.py,src/templates/**/stack.yaml,src/core/hooks/registry.yaml"
 alwaysApply: false
 ---
@@ -14,7 +14,7 @@ Decision ladder: [src/core/skills/graph-explorer/SKILL.md](../../../core/skills/
 > Read or grep. One graph envelope (~300 tok) replaces 5–10 file
 > reads (5–50K tok).
 
-## The 8 structural-question triggers
+## The 9 structural-question triggers
 
 | Trigger phrase / intent | Tool |
 |---|---|
@@ -24,6 +24,7 @@ Decision ladder: [src/core/skills/graph-explorer/SKILL.md](../../../core/skills/
 | API surface / all endpoints / all MCP tools | `cos_graph_contracts(kinds=[...])` |
 | how does data flow from X to Y / trace | `cos_graph_trace(entry_uid)` |
 | anything similar / near-duplicate / near-clone | `cos_graph_similar(uid, top_k=5)` |
+| find code by description / where is the code that does X | `cos_graph_search(query)` |
 | subsystems / clusters / map of | `cos_graph_communities()` |
 | context around this file / surrounding | `cos_graph_context(uid_or_path, depth=1)` |
 
