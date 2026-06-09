@@ -81,6 +81,17 @@ class TestLocal:
         plan = walk_local(tmp_path)
         assert any("golden_clone" in str(p) for p in plan.files)
 
+    def test_oversize_file_dropped_and_recorded(self, tmp_path):
+        """A file over max_file_bytes is skipped but recorded in metadata so
+        the drop is visible, not silent (TASK-293 logging-completeness)."""
+        (tmp_path / "small.py").write_text("x = 1")
+        (tmp_path / "huge.py").write_bytes(b"x = 1\n" * 1000)
+        plan = walk_local(tmp_path, max_file_bytes=100)
+        names = [p.name for p in plan.files]
+        assert "small.py" in names
+        assert "huge.py" not in names
+        assert plan.metadata.get("skipped_oversize") == ["huge.py"]
+
     def test_unknown_path_raises(self, tmp_path):
         with pytest.raises(IngestError):
             walk_local(tmp_path / "missing")

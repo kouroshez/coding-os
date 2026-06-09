@@ -565,6 +565,16 @@ def register(cli: click.Group) -> None:
         )
         plan = walk_local(target, max_files=max_files)
         click.echo(f"[graph-reindex] walking {target}; {len(plan.files)} files (force={force})")
+        # Surface oversized files dropped by the per-file byte cap — a skipped
+        # large source file is a coverage gap, not a no-op (TASK-293).
+        _oversize = plan.metadata.get("skipped_oversize") or []
+        if _oversize:
+            click.echo(
+                f"[graph-reindex] skipped {len(_oversize)} oversized file(s) "
+                f"(> COS_GRAPH_MAX_FILE_BYTES): {', '.join(_oversize[:5])}"
+                + (" …" if len(_oversize) > 5 else ""),
+                err=True,
+            )
         processed = skipped = errors = 0
         started = _time.monotonic()
 

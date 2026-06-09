@@ -197,6 +197,10 @@ def walk_local(
 
     total_bytes = 0
     collected: list[Path] = []
+    # Oversized files are dropped (not read into memory). Track them so the
+    # drop is visible — a silently-skipped large source file is a coverage
+    # gap, not a no-op (TASK-293 logging-completeness).
+    skipped_oversize: list[str] = []
     for dirpath, dirnames, filenames in os.walk(root_path):
         rel_dir = Path(dirpath).relative_to(root_path).as_posix()
         rel_dir = "" if rel_dir == "." else rel_dir
@@ -250,7 +254,14 @@ def walk_local(
             # Per-file cap: skip oversized single files (generated/minified
             # /vendored) instead of reading them whole into memory.
             if max_file_bytes and size > max_file_bytes:
-                logger.debug("skip oversized file %s (%d > %d bytes)", full, size, max_file_bytes)
+                rel_file = full.relative_to(root_path).as_posix()
+                logger.warning(
+                    "skip oversized file %s (%d > %d bytes) — not indexed",
+                    rel_file,
+                    size,
+                    max_file_bytes,
+                )
+                skipped_oversize.append(rel_file)
                 continue
             total_bytes += size
             if total_bytes > max_size_bytes:
@@ -264,7 +275,10 @@ def walk_local(
         root=root_path,
         files=collected,
         source="local",
-        metadata={"total_bytes": total_bytes},
+        metadata={
+            "total_bytes": total_bytes,
+            "skipped_oversize": skipped_oversize,
+        },
     )
 
 
