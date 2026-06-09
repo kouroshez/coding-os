@@ -9,6 +9,11 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+try:
+    import pathspec as _pathspec
+except Exception:  # pragma: no cover - optional dep; walk degrades to denylist
+    _pathspec = None
+
 logger = logging.getLogger("graph_os.ingest.base")
 
 
@@ -94,6 +99,34 @@ DEFAULT_EXCLUDE = (
 DEFAULT_EXCLUDE_PATHS = ("tests/golden",)
 
 
+def _gitignore_lines(path: Path) -> list[str]:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return []
+
+
+def _path_gitignored(rel_posix: str, specs: list[tuple[str, object]], *, is_dir: bool) -> bool:
+    # Ignored if ANY applicable .gitignore spec matches. Each spec's patterns
+    # are relative to the directory that declared it, so the path is re-based
+    # onto that directory before matching. Directories are probed with a
+    # trailing slash so dir-only patterns (`build/`) match the directory node.
+    for base, spec in specs:
+        if base:
+            if rel_posix == base or rel_posix.startswith(base + "/"):
+                sub = rel_posix[len(base) + 1 :]
+            else:
+                continue
+        else:
+            sub = rel_posix
+        if not sub:
+            continue
+        probe = sub + "/" if is_dir else sub
+        if spec.match_file(probe):
+            return True
+    return False
+
+
 def walk_local(
     root: str | Path,
     *,
@@ -133,23 +166,62 @@ def walk_local(
     # the feature cleanly.
     exclude_paths_set = {p.strip("/").replace(os.sep, "/") for p in exclude_paths if p}
 
+    # .gitignore-aware exclusion, additive over the static denylist. When
+    # pathspec is unavailable the feature is skipped and the denylist remains
+    # the backstop. Specs accumulate top-down: .git/info/exclude + the root
+    # .gitignore act at the repo root; a nested .gitignore applies only to
+    # its own subtree (re-based in _path_gitignored). This makes the walk
+    # exclude exactly what `git status` ignores — no more, no less.
+    gitignore_specs: list[tuple[str, object]] = []
+    use_gitignore = _pathspec is not None
+    if use_gitignore:
+        info_exclude = root_path / ".git" / "info" / "exclude"
+        if info_exclude.is_file():
+            lines = _gitignore_lines(info_exclude)
+            if lines:
+                gitignore_specs.append(("", _pathspec.GitIgnoreSpec.from_lines(lines)))
+
     total_bytes = 0
     collected: list[Path] = []
     for dirpath, dirnames, filenames in os.walk(root_path):
-        # Folder-name pruning (cheap, runs first).
-        dirnames[:] = [d for d in dirnames if d not in exclude_set]
+        rel_dir = Path(dirpath).relative_to(root_path).as_posix()
+        rel_dir = "" if rel_dir == "." else rel_dir
+
+        # Load a nested .gitignore declared here (top-down walk guarantees
+        # ancestors are already loaded before their children are visited).
+        if use_gitignore:
+            gi = Path(dirpath) / ".gitignore"
+            if gi.is_file():
+                lines = _gitignore_lines(gi)
+                if lines:
+                    gitignore_specs.append((rel_dir, _pathspec.GitIgnoreSpec.from_lines(lines)))
+
+        # Folder-name pruning (cheap, runs first), then .gitignore subtree
+        # pruning — skip whole ignored directories before descending.
+        pruned = [d for d in dirnames if d not in exclude_set]
+        if gitignore_specs:
+            pruned = [
+                d
+                for d in pruned
+                if not _path_gitignored(
+                    f"{rel_dir}/{d}" if rel_dir else d, gitignore_specs, is_dir=True
+                )
+            ]
+        dirnames[:] = pruned
+
         # Relative-path pruning — drop subtrees whose rel-path contains
-        # any configured segment sequence (e.g. tests/golden mirrors).
-        if exclude_paths_set:
-            rel = Path(dirpath).relative_to(root_path).as_posix()
-            # rel == "." at the root; segment substring match works for
-            # nested matches like "src/old/tests/golden/...". The "/"
-            # suffix avoids matching "tests/golden_clone" by accident.
-            if any(rel == p or rel.startswith(p + "/") for p in exclude_paths_set):
+        # any configured segment sequence (e.g. tests/golden mirrors). The
+        # "/" suffix avoids matching "tests/golden_clone" by accident.
+        if exclude_paths_set and rel_dir:
+            if any(rel_dir == p or rel_dir.startswith(p + "/") for p in exclude_paths_set):
                 dirnames.clear()
                 continue
         for name in filenames:
             if not any(fnmatch.fnmatchcase(name, pat) for pat in include_set):
+                continue
+            if gitignore_specs and _path_gitignored(
+                f"{rel_dir}/{name}" if rel_dir else name, gitignore_specs, is_dir=False
+            ):
                 continue
             full = Path(dirpath) / name
             # Skip symlinks — the target is indexed on its own pass, so a

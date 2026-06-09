@@ -86,6 +86,10 @@ graph_os = [
     # code_php@v1 mirrors code_go (tree-sitter primary + regex fallback).
     # Provides language_php() (handles <?php … ?> islands in mixed files).
     "tree-sitter-php>=0.23.0,<0.26.0",
+    # .gitignore-aware walk (ingest/base.py). GitIgnoreSpec (pathspec>=0.10)
+    # lets the file walk exclude exactly what git ignores; absence degrades
+    # to the static DEFAULT_EXCLUDE denylist.
+    "pathspec>=0.12.1",
 ]
 
 # board_os — Phase L Scrumban web viewer (cos board --web).

@@ -88,6 +88,30 @@ centrality (0.1); `cos_graph_similar(uid)` stays node-to-node. Accuracy is
 strong on BGE-M3: a doc-only query retrieves the source symbol at recall@1 ≈99%,
 recall@5 100%, MRR ≈0.99 (measured, 80-node sample).
 
+## What gets indexed (walk coverage)
+
+The file walk (`src/core/graph_os/ingest/base.py::walk_local`) decides
+which files reach the extractors:
+
+- **Include** — `DEFAULT_INCLUDE` extensions only (`.py .ts .tsx .js
+  .jsx .mjs .cjs .go .php .sh .yaml .yml .json .toml .md`).
+- **Exclude** — the union of two layers: the static `DEFAULT_EXCLUDE`
+  denylist (`node_modules`, `.venv`, `dist`, `build`, …) **and** the
+  repo's `.gitignore` (root + nested + `.git/info/exclude`), parsed via
+  `pathspec`. The walk therefore drops exactly what `git status`
+  ignores. If `pathspec` is unavailable the `.gitignore` layer is
+  skipped and the denylist remains the backstop (fail-open).
+- **Skipped** — symlinks (target indexed on its own pass) and files
+  over `COS_GRAPH_MAX_FILE_BYTES` (default 2 MB).
+
+Coverage is **not** guaranteed 100 %: a file can index without raising
+yet still have an extractor hit a parse error on part of it, dropping
+some symbols. That count is surfaced — see `files_with_parse_errors` in
+`cos_graph_doctor` and `parse_errors=` in the `cos graph-reindex`
+summary. `truncated == true` on a query is a *different* signal (budget
+cut, re-query); parse errors are *coverage* gaps (some symbols never
+extracted).
+
 ## Common failure modes
 
 - `fail("unavailable", ...)` with `retryable=true` — backend missing.

@@ -99,6 +99,76 @@ class TestLocal:
 
 
 # ---------------------------------------------------------------------------
+# .gitignore-aware walk (TASK-294)
+# ---------------------------------------------------------------------------
+
+
+class TestGitignore:
+    def test_excludes_dir_not_in_denylist(self, tmp_path):
+        """A custom output dir absent from DEFAULT_EXCLUDE but listed in
+        .gitignore must be pruned, just as git would ignore it."""
+        (tmp_path / ".gitignore").write_text("out/\n")
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "real.py").write_text("")
+        (tmp_path / "out").mkdir()
+        (tmp_path / "out" / "generated.py").write_text("")
+        plan = walk_local(tmp_path)
+        paths = [p.relative_to(tmp_path).as_posix() for p in plan.files]
+        assert "src/real.py" in paths
+        assert not any(p.startswith("out/") for p in paths), paths
+
+    def test_excludes_file_glob(self, tmp_path):
+        """A file glob in .gitignore (e.g. *.gen.py) excludes matching files."""
+        (tmp_path / ".gitignore").write_text("*.gen.py\n")
+        (tmp_path / "keep.py").write_text("")
+        (tmp_path / "schema.gen.py").write_text("")
+        plan = walk_local(tmp_path)
+        paths = [p.name for p in plan.files]
+        assert "keep.py" in paths
+        assert "schema.gen.py" not in paths
+
+    def test_nested_gitignore_scoped_to_subtree(self, tmp_path):
+        """A nested .gitignore applies only to its own subtree — a same-named
+        file outside that subtree is still collected."""
+        pkg = tmp_path / "pkg"
+        pkg.mkdir()
+        (pkg / ".gitignore").write_text("local.py\n")
+        (pkg / "local.py").write_text("")
+        (pkg / "keep.py").write_text("")
+        (tmp_path / "local.py").write_text("")  # outside pkg/ — kept
+        plan = walk_local(tmp_path)
+        paths = [p.relative_to(tmp_path).as_posix() for p in plan.files]
+        assert "local.py" in paths
+        assert "pkg/keep.py" in paths
+        assert "pkg/local.py" not in paths, paths
+
+    def test_denylist_backstops_when_no_gitignore(self, tmp_path):
+        """With no .gitignore at all, the static denylist still excludes
+        node_modules — the .gitignore layer is additive, never required."""
+        (tmp_path / "app.py").write_text("")
+        (tmp_path / "node_modules").mkdir()
+        (tmp_path / "node_modules" / "dep.py").write_text("")
+        plan = walk_local(tmp_path)
+        assert all("node_modules" not in str(p) for p in plan.files)
+
+    def test_falls_back_to_denylist_without_pathspec(self, tmp_path, monkeypatch):
+        """pathspec unavailable → walk degrades cleanly: .gitignore is
+        ignored but the denylist + normal collection still work (fail-open)."""
+        from graph_os.ingest import base as ingest_base
+
+        monkeypatch.setattr(ingest_base, "_pathspec", None)
+        (tmp_path / ".gitignore").write_text("out/\n")
+        (tmp_path / "out").mkdir()
+        (tmp_path / "out" / "generated.py").write_text("")
+        (tmp_path / "keep.py").write_text("")
+        plan = walk_local(tmp_path)
+        paths = [p.relative_to(tmp_path).as_posix() for p in plan.files]
+        assert "keep.py" in paths
+        # Without pathspec, out/ is NOT gitignore-pruned (denylist has no out/).
+        assert "out/generated.py" in paths
+
+
+# ---------------------------------------------------------------------------
 # GitHub clone (mocked runner)
 # ---------------------------------------------------------------------------
 
