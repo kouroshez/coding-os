@@ -566,23 +566,15 @@ def register(cli: click.Group) -> None:
         plan = walk_local(target, max_files=max_files)
         click.echo(f"[graph-reindex] walking {target}; {len(plan.files)} files (force={force})")
         processed = skipped = errors = 0
-        parse_err_files = parse_err_total = 0
         started = _time.monotonic()
 
         def _record(report: dict) -> None:
-            nonlocal processed, skipped, parse_err_files, parse_err_total
+            nonlocal processed, skipped
             cache = report.get("cache")
             if cache == "hit":
                 skipped += 1
             else:
                 processed += 1
-            # Count partial-extraction (some symbols dropped on a parse
-            # error) so the summary surfaces it — "errors" only counts hard
-            # exceptions, leaving partial coverage silent (TASK-293).
-            n_pe = len(report.get("parse_errors") or [])
-            if n_pe:
-                parse_err_files += 1
-                parse_err_total += n_pe
 
         # Live per-file progress bar — click.progressbar auto-hides when
         # stdout is not a TTY (pipes / CI), so non-interactive runs keep
@@ -633,6 +625,25 @@ def register(cli: click.Group) -> None:
                         click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
                     bar.update(1)
         duration = _time.monotonic() - started
+        # Surface partial-extraction coverage gaps (some symbols dropped on a
+        # parse error) — "errors" only counts hard exceptions, so this was
+        # silent (TASK-293). Read the cumulative truth from file_index_state,
+        # the same source cos_graph_doctor reports, so the two always agree.
+        parse_err_total = parse_err_files = 0
+        try:
+            from database import init_db, resolve_db_path  # type: ignore
+
+            _pe_conn = init_db(str(resolve_db_path(project_root)))
+            _pe_row = _pe_conn.execute(
+                "SELECT COALESCE(SUM(parse_errors_count), 0), COUNT(DISTINCT file_path) "
+                "FROM file_index_state WHERE parse_errors_count > 0"
+            ).fetchone()
+            parse_err_total = int(_pe_row[0] or 0)
+            parse_err_files = int(_pe_row[1] or 0)
+        except Exception as exc:  # fail-open — never block the summary
+            import logging
+
+            logging.getLogger("graph_os.cli").debug("parse-error summary probe skipped: %s", exc)
         click.echo(
             f"[graph-reindex] processed={processed} skipped={skipped} "
             f"errors={errors} parse_errors={parse_err_total} in {parse_err_files} files "
