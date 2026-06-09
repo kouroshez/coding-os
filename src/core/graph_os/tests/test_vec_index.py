@@ -31,9 +31,8 @@ def _seed(conn, vectors: dict[int, list[float]]) -> None:
 
 class TestVecIndex:
     def test_rebuild_and_knn_match_cosine_order(self, migrated_conn):
-        pytest.importorskip("sqlite_vec")
-        if not vec_index.is_vec_available():
-            pytest.skip("sqlite-vec not loadable in this sqlite build")
+        if not (vec_index.has_usearch() or vec_index.is_vec_available()):
+            pytest.skip("no ANN backend (usearch / sqlite-vec) available")
         _seed(
             migrated_conn,
             {
@@ -56,22 +55,28 @@ class TestVecIndex:
         assert sims[0] == pytest.approx(1.0, abs=1e-4)
 
     def test_knn_lazy_builds_when_missing(self, migrated_conn):
-        pytest.importorskip("sqlite_vec")
-        if not vec_index.is_vec_available():
-            pytest.skip("sqlite-vec not loadable")
+        if not (vec_index.has_usearch() or vec_index.is_vec_available()):
+            pytest.skip("no ANN backend available")
         _seed(migrated_conn, {1: [1, 0, 0, 0]})
         # no explicit rebuild — knn must build the index on first use
         out = vec_index.knn(migrated_conn, _unit_blob([1, 0, 0, 0]), k=1)
         assert out is not None and out[0][0] == 1
 
-    def test_knn_returns_none_when_unavailable(self, migrated_conn, monkeypatch):
-        # Extension absent → None signals the caller to use brute force.
+    def test_knn_returns_none_when_no_backend(self, migrated_conn, monkeypatch):
+        # Both ANN backends absent → None signals the caller to brute-force.
+        monkeypatch.setattr(vec_index, "has_usearch", lambda: False)
         monkeypatch.setattr(vec_index, "is_vec_available", lambda: False)
         assert vec_index.knn(migrated_conn, b"\x00\x00\x00\x00", k=5) is None
 
     def test_rebuild_empty_pool_is_safe(self, migrated_conn):
-        pytest.importorskip("sqlite_vec")
-        if not vec_index.is_vec_available():
-            pytest.skip("sqlite-vec not loadable")
+        if not (vec_index.has_usearch() or vec_index.is_vec_available()):
+            pytest.skip("no ANN backend available")
         rep = vec_index.rebuild(migrated_conn)
         assert rep["status"] == "empty" and rep["rows"] == 0
+
+    def test_usearch_is_preferred_backend(self, migrated_conn):
+        if not vec_index.has_usearch():
+            pytest.skip("usearch not installed")
+        _seed(migrated_conn, {1: [1, 0, 0, 0, 0, 0, 0, 0], 2: [0, 1, 0, 0, 0, 0, 0, 0]})
+        rep = vec_index.rebuild(migrated_conn)
+        assert rep.get("backend") == "usearch-hnsw" and rep["rows"] == 2

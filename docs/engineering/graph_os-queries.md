@@ -68,15 +68,25 @@ active marker; the dual-model bridge keeps search correct mid-migration).
 
 ### ANN index + `cos_graph_search` (free-text hybrid)
 
-For scale, the persisted path uses a **sqlite-vec `vec0` ANN index**
-(`graph_os/vec_index.py`) so kNN is sublinear (O(log N)) instead of an O(N)
-scan — vectors are unit-normalised, so vec0's L2 distance maps to cosine by
-`cos = 1 − d²/2` and kNN order is identical. The index is a derived cache over
-the `embeddings` table (rebuilt by `vec_index.rebuild`, lazily on first query);
-when sqlite-vec is absent it falls back to the brute-force scan (always correct).
+For scale, the persisted path uses an ANN index (`graph_os/vec_index.py`) with a
+three-tier fallback chain (each degrades cleanly to the next, same `knn()`
+contract):
+
+1. **usearch HNSW** — true sublinear O(log N) kNN. The scale answer: measured
+   query latency stays ~flat from 100k→1M vectors while a flat scan grows ~10×.
+   The index is a derived cache persisted next to the DB (`.graph-hnsw.usearch`),
+   rebuilt from the `embeddings` table.
+2. **sqlite-vec `vec0`** — SIMD-accelerated *exact* (flat) scan. Honest finding
+   (measured): vec0 in 0.1.x is **not** HNSW — it's ~5× faster than the numpy
+   scan by constant factor but still O(N). Vectors are unit-normalised, so its L2
+   distance maps to cosine by `cos = 1 − d²/2`.
+3. **brute force** — the caller's streaming numpy scan (`knn` returns None).
+
 `cos_graph_search(query)` answers "where is the code that does X?" by free text,
 blending semantic cosine (0.7) + FTS5 lexical presence (0.2) + in-degree
-centrality (0.1); `cos_graph_similar(uid)` stays node-to-node.
+centrality (0.1); `cos_graph_similar(uid)` stays node-to-node. Accuracy is
+strong on BGE-M3: a doc-only query retrieves the source symbol at recall@1 ≈99%,
+recall@5 100%, MRR ≈0.99 (measured, 80-node sample).
 
 ## Common failure modes
 

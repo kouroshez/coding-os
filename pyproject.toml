@@ -68,9 +68,11 @@ rag = [
 graph_os = [
     "sentence-transformers>=2.7.0",
     "numpy>=1.24.0,<3.0.0",
-    # sqlite-vec: vec0 ANN index for sublinear semantic kNN over graph_node
-    # embeddings (graph_os/vec_index.py). Optional at runtime — absence falls
-    # back to the brute-force scan.
+    # ANN indexes for semantic kNN over graph_node embeddings
+    # (graph_os/vec_index.py). usearch = true sublinear HNSW (the scale path);
+    # sqlite-vec = SIMD flat fallback. Both optional — absence degrades to the
+    # brute-force scan.
+    "usearch>=2.16",
     "sqlite-vec>=0.1.9",
     "tree-sitter>=0.25.0,<0.26.0",
     "tree-sitter-python>=0.25.0,<0.26.0",
