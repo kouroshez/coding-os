@@ -19,7 +19,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from database import init_db
 from tools.routing import (
     _data_confidence,
-    classify_query,
     recalculate_weights,
     route_model,
     route_skill,
@@ -106,46 +105,6 @@ class TestDataConfidence:
 
     def test_capped(self) -> None:
         assert _data_confidence(1000) <= 0.9
-
-
-# ---------------------------------------------------------------------------
-# classify_query (J.1)
-# ---------------------------------------------------------------------------
-
-
-class TestClassifyQuery:
-    def test_task_ref(self) -> None:
-        result = classify_query("please check TASK-016 status")
-        assert result["shape"] == "task_ref"
-        assert result["confidence"] >= 0.95
-
-    def test_behavioral(self) -> None:
-        result = classify_query("how should i move a task to ready?")
-        assert result["shape"] == "behavioral"
-        assert result["confidence"] >= 0.9
-
-    def test_identifier_by_call(self) -> None:
-        result = classify_query("where is parse_task(task_md) used?")
-        assert result["shape"] == "identifier"
-
-    def test_identifier_by_path(self) -> None:
-        result = classify_query("core/board_os/workflow.py transition rules")
-        assert result["shape"] == "identifier"
-
-    def test_past_pattern_en(self) -> None:
-        result = classify_query("have we done this before in this project?")
-        assert result["shape"] == "past_pattern"
-
-    def test_mixed_when_similar_confidence(self) -> None:
-        result = classify_query("how do i debug parse_task in core/workflow.py")
-        assert result["shape"] == "mixed"
-
-    def test_conceptual_long_query(self) -> None:
-        result = classify_query(
-            "explain the retrieval strategy across memory docs and tasks layers"
-        )
-        assert result["shape"] == "conceptual"
-        assert result["confidence"] >= 0.6
 
 
 # ---------------------------------------------------------------------------

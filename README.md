@@ -297,7 +297,7 @@ the 11 `/role-*` commands from [src/core/thinking_os/agents/](./src/core/thinkin
 | Tasks        | `cos_task_search` · `cos_task_board` · `cos_task_move` (+ 13 more) |
 | Graph        | `cos_graph_query` · `cos_graph_references` · `cos_graph_impact` · `cos_graph_rename_plan` · `cos_graph_cycles` · `cos_graph_test_gap` (21 total) |
 | Cognition    | `cos_analyze_task` · `cos_compose_chain` · `cos_supervise` · `cos_backtrack_log` |
-| Retrieval    | `cos_retrieve` (auto-router across all layers)                    |
+| Retrieval    | `cos_search` (memory) · `cos_doc_search` (docs) · `cos_graph_search` (code) |
 
 Per-tool docs + envelope spec: [docs/governance/mcp-tool-inventory.md](./docs/governance/mcp-tool-inventory.md).
 

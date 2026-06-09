@@ -298,7 +298,7 @@ for this query."
 
 | Workflow | Without graph | With graph | Saving |
 |---|---|---|---|
-| "Where is `cos_safe_tool` called?" | 6 grep variants + Read 4 hits = ~3920 tok | `cos_graph_references` ~280 tok | **93%** |
+| "Where is `safe_tool` called?" | 6 grep variants + Read 4 hits = ~3920 tok | `cos_graph_references` ~280 tok | **93%** |
 | Plan rename `foo` → `bar` | iterative grep + edit + re-grep × 3 cycles ≈ ~6000 tok | `cos_graph_rename_plan` ~450 tok | **92%** |
 | Audit MCP API surface | Read 12 register files × 1500 tok = ~18000 tok | `cos_graph_contracts(kinds=["mcp"])` ~700 tok | **96%** |
 | Onboard / find subsystems | Read 50 README+entry files = ~120K tok | `cos_graph_communities` + `cos_graph_export` ~3K tok | **97%** |

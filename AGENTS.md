@@ -113,7 +113,7 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 **MCP equivalents:** `cos_task_create` (`ready=True`), `cos_task_ready`, `cos_task_board`, `cos_task_move`, `cos_task_reclaim`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` (Codex MUST call the last one — no PostToolUse hook).
 **Slash commands:** packaged workflows invoked with `/` — `/board` · `/daily` · `/retro` · `/task` · `/classify` · `/verify` · `/review` · `/diagnose` · `/memory-search` · `/compose` · 11× `/role-*`. Sourced from [src/core/commands/](src/core/commands/) + [src/core/thinking_os/agents/](src/core/thinking_os/agents/); rendered per adapter into `<agent>/commands/`.
 **Deferred tool schemas (Claude only):** every `cos_*` tool is deferred — schemas are NOT loaded at session start. Call `ToolSearch("select:<tool>")` before the first invocation each session or you get `InputValidationError`. Schema traps (TaskSignals field types, envelope format, UID scheme): [docs/engineering/mcp-schema-traps.md](docs/engineering/mcp-schema-traps.md).
-**Meta retrieval (when unsure):** `cos_retrieve(query, hint="auto")` dispatches to memory/docs/tasks or returns a code-grep hint for identifier queries.
+**When unsure which layer:** default to the Knowledge Graph / code layer for any structural or "how does X work / who calls / what breaks" question — the `nudge-graph-os` hook (UserPromptSubmit) recommends the exact `cos_graph_*` tool. Fall to Agent Memory only for "have I solved this before". See the Four-Layer Retrieval table below.
 **Verify/log:** `make verify` · `make verify-hooks` · `make test-mcp` · `cos health` · `cos doctor` · `make log-{latest,write,search}`.
 **Web UI (visual exploration):** `cos hub start` boots the singleton FastAPI + React SPA at `http://127.0.0.1:9188`; one hub serves every registered project via `/api/p/<slug>/*`. `cos hub status` reports meta-repo path + symlink health. UI iteration: `make ui-dev` (HMR on :5173) or `make ui-build` (rebuild `dist/`). Full contract + propagation matrix: [docs/engineering/hub-architecture.md](docs/engineering/hub-architecture.md).
 
@@ -121,13 +121,14 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 
 ## Four-Layer Retrieval
 
+Ordered by default precedence — for structural and "how does X work" questions the graph/code layer wins; memory is the *last* resort, for cross-session recall only.
+
 | Layer | Question | Tools |
 |---|---|---|
-| Agent Memory | "Have I solved this before?" | `cos_search`, `cos_timeline`, `cos_details`, `cos_learn_suggest` |
+| Knowledge Graph / Code | "What is connected to what? Who calls X? How does this code work? What breaks?" | `cos_graph_*` family (+ `graph-explorer` / `codebase-explorer` skills) |
 | Doc KB | "What does the spec say?" | `cos_doc_search` |
 | Tasks + Board | "What's related / next / blocked?" | `cos_task_*` family |
-| Meta Router | "I am not sure which layer to use" | `cos_retrieve` |
-| Knowledge Graph | "What is connected to what?" | `cos_graph_*` family |
+| Agent Memory | "Have I solved this before? (cross-session patterns only)" | `cos_search`, `cos_timeline`, `cos_details`, `cos_learn_suggest` |
 
 Routing decisions, freshness contract, contracts audit, and the rename workflow: see [docs/engineering/graph_os-queries.md](docs/engineering/graph_os-queries.md) and [docs/engineering/graph-hallucination-cures.md](docs/engineering/graph-hallucination-cures.md).
 

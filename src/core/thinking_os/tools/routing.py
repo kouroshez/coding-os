@@ -13,9 +13,7 @@ and autonomous routing evolution:
 from __future__ import annotations
 
 import logging
-import re
 import sqlite3
-from typing import Literal, Optional, TypedDict
 
 logger = logging.getLogger("thinking_os.routing")
 
@@ -259,73 +257,6 @@ def route_skill(
 
 WEIGHT_USE_THRESHOLD = 20  # minimum samples before weights influence routing
 WEIGHT_STORE_THRESHOLD = 5  # minimum samples to store a weight
-
-
-class QueryClassification(TypedDict):
-    """J.1 query-shape output for retrieval routing."""
-
-    shape: Literal["identifier", "conceptual", "past_pattern", "task_ref", "behavioral", "mixed"]
-    confidence: float
-    reason: str
-
-
-_BEHAVIORAL_PREFIXES = (
-    "how should i",
-    "how do i",
-    "what's the rule for",
-    "whats the rule for",
-)
-_TASK_REF_RE = re.compile(r"\bTASK[-_]\d+\b", re.IGNORECASE)
-_IDENTIFIER_RE = re.compile(
-    r"([a-z_]{3,}\([a-z_]*\))|([A-Z][a-zA-Z0-9_]{2,})|(`[^`]+`)|\b(src/|core/|cli/|docs/|/)\S*",
-)
-_PAST_PATTERN_TOKENS = ("before", "had", "previously", "same as", "prior")
-
-
-def classify_query(query: str) -> QueryClassification:
-    """Classify a retrieval query shape using deterministic J.1 rules."""
-
-    raw = (query or "").strip()
-    normalized = raw.lower()
-    matches: list[tuple[str, float, str]] = []
-
-    if any(normalized.startswith(prefix) for prefix in _BEHAVIORAL_PREFIXES):
-        matches.append(("behavioral", 0.9, "behavioral prefix matched"))
-    if _TASK_REF_RE.search(raw):
-        matches.append(("task_ref", 0.95, "TASK reference token detected"))
-    if _IDENTIFIER_RE.search(raw):
-        matches.append(("identifier", 0.85, "identifier/path-like pattern detected"))
-    if any(token in normalized for token in _PAST_PATTERN_TOKENS):
-        matches.append(("past_pattern", 0.8, "past-pattern keyword matched"))
-
-    if len(matches) >= 2:
-        ranked = sorted(matches, key=lambda item: item[1], reverse=True)
-        if ranked[0][0] == "task_ref":
-            return {"shape": ranked[0][0], "confidence": ranked[0][1], "reason": ranked[0][2]}
-        if ranked[0][1] - ranked[1][1] <= 0.1:
-            shapes = ", ".join(m[0] for m in ranked[:2])
-            return {
-                "shape": "mixed",
-                "confidence": 0.7,
-                "reason": f"multiple rules fired with similar confidence: {shapes}",
-            }
-
-    if matches:
-        best = max(matches, key=lambda item: item[1])
-        return {"shape": best[0], "confidence": best[1], "reason": best[2]}
-
-    token_count = len(raw.split())
-    if token_count > 5:
-        return {
-            "shape": "conceptual",
-            "confidence": 0.6,
-            "reason": "fallback conceptual classification (query length > 5 tokens)",
-        }
-    return {
-        "shape": "conceptual",
-        "confidence": 0.4,
-        "reason": "short query with no strong structural signals",
-    }
 
 
 def recalculate_weights(conn: sqlite3.Connection) -> dict:

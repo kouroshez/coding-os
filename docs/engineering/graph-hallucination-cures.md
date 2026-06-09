@@ -97,7 +97,7 @@ Use file Read **only** for the 1–3 files the graph tells you matter.
 
 | Workflow | Without graph | With graph | Saving |
 |---|---|---|---|
-| "Where is `cos_safe_tool` called?" | 6 grep variants × ~120 tok output + Read 4 hits @ 800 tok = **~3920 tok** | `cos_graph_references` envelope ~280 tok | **93%** |
+| "Where is `safe_tool` called?" | 6 grep variants × ~120 tok output + Read 4 hits @ 800 tok = **~3920 tok** | `cos_graph_references` envelope ~280 tok | **93%** |
 | "Plan rename `foo` → `bar`" | Iterative: grep, edit, find missed test, grep again × 3 cycles ≈ **~6000 tok** | `cos_graph_rename_plan` returns full set in one envelope ~450 tok | **92%** |
 | "Audit MCP API surface" | Read 12 register files @ 1500 tok = **~18000 tok** | `cos_graph_contracts(kinds=["mcp"])` ~700 tok | **96%** |
 | "Onboard to repo / find subsystems" | Read 50 README+entry files = **~120K tok** | `cos_graph_communities` + `cos_graph_export` = ~3K tok | **97%** |
