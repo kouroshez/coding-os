@@ -393,7 +393,15 @@ A regression below these caps in CI blocks the PR.
 | B1 JSON extractor | shipped | 19 files, 138 nodes, 0 errors |
 | B2 TOML extractor | shipped | pyproject + Cargo handled |
 | C1 Go → ts-go | shipped | full AST + 9 frameworks of contracts; toolchain workspace open |
+| D1 Generic polyglot baseline | shipped | `code_generic` (TASK-296) — one table-driven extractor emits file+spine+function/class+contains for any grammar in `_LANG_SPEC` (rust/ruby ship; java/c/cpp/c_sharp code-ready). Calls/imports stay per-language. |
 | E1 Performance telemetry | open | duration_ms column landing alongside this cleanup |
+
+> **Generic vs hand-written precedence.** `code_generic` only owns the
+> extensions in `reindex_dispatch._EXT_MAP` that have no hand-written
+> extractor (`.rs .rb .java .c/.h .cc/.cpp/.cxx/.hpp/.hh .cs`). A
+> language graduates to its own extractor (calls, imports, type edges)
+> the same way Go did — `code_generic` is the floor that guarantees a
+> new language is never invisible, not the ceiling.
 
 ## See also
 

@@ -93,8 +93,14 @@ recall@5 100%, MRR ≈0.99 (measured, 80-node sample).
 The file walk (`src/core/graph_os/ingest/base.py::walk_local`) decides
 which files reach the extractors:
 
-- **Include** — `DEFAULT_INCLUDE` extensions only (`.py .ts .tsx .js
-  .jsx .mjs .cjs .go .php .sh .yaml .yml .json .toml .md`).
+- **Include** — `DEFAULT_INCLUDE` extensions only. First-class
+  hand-written extractors: `.py .ts .tsx .js .jsx .mjs .cjs .go .php
+  .sh .yaml .yml .json .toml .md`. Polyglot baseline via the
+  table-driven `code_generic` extractor: `.rs .rb .java .c .h .cc .cpp
+  .cxx .hpp .hh .cs` — symbols (functions/classes + `contains`) are
+  extracted only when that language's tree-sitter grammar is installed
+  (rust + ruby ship in the `graph_os` extra; the rest are code-ready,
+  install the grammar to activate). Calls/imports remain per-language.
 - **Exclude** — the union of two layers: the static `DEFAULT_EXCLUDE`
   denylist (`node_modules`, `.venv`, `dist`, `build`, …) **and** the
   repo's `.gitignore` (root + nested + `.git/info/exclude`), parsed via

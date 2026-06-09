@@ -90,6 +90,12 @@ graph_os = [
     # lets the file walk exclude exactly what git ignores; absence degrades
     # to the static DEFAULT_EXCLUDE denylist.
     "pathspec>=0.12.1",
+    # Polyglot baseline (extractors/code_generic.py). One table-driven
+    # extractor pulls functions/classes from any grammar in its node-type
+    # map; rust + ruby ship here as two distinct node-type styles. Java /
+    # C / C++ / C# are code-ready — install their grammar to activate.
+    "tree-sitter-rust>=0.23.0,<0.26.0",
+    "tree-sitter-ruby>=0.23.0,<0.26.0",
 ]
 
 # board_os — Phase L Scrumban web viewer (cos board --web).

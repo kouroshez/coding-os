@@ -180,7 +180,9 @@ class TestDispatch:
         # the doc is in-scope — either is acceptable.
 
     def test_unsupported_suffix_skipped(self, project, tmp_path):
-        src = _write(project / "core" / "a.rs", "fn main() {}")
+        # .rs is now routed to code_generic (TASK-296); use a suffix with no
+        # _EXT_MAP route to assert the skip path.
+        src = _write(project / "core" / "a.xyz", "nonsense")
         from graph_os.tools.reindex_dispatch import dispatch
 
         report = dispatch(src, project_root=project, db_path=str(tmp_path / "t.db"))
@@ -201,6 +203,20 @@ class TestDispatch:
 
         report = dispatch(src, project_root=project, db_path=str(tmp_path / "t.db"))
         assert report["layers"]["graph"]["chain"].startswith("markdown-task")
+
+    def test_rust_routes_to_code_generic(self, project, tmp_path):
+        # TASK-296: a .rs file is dispatched through code_generic and yields
+        # real nodes (proves _EXT_MAP route + extractor_map wiring).
+        import pytest
+
+        pytest.importorskip("tree_sitter_rust")
+        src = _write(project / "core" / "lib.rs", "struct P { x: i32 }\nfn main() {}\n")
+        from graph_os.tools.reindex_dispatch import dispatch
+
+        report = dispatch(src, project_root=project, db_path=str(tmp_path / "t.db"))
+        graph = report["layers"]["graph"]
+        assert graph["chain"].startswith("rust")
+        assert int(graph["nodes_written"]) > 0
 
     def test_duration_reported(self, project, tmp_path):
         src = _write(project / "core" / "a.py", "def x(): pass")

@@ -33,6 +33,22 @@ _EXT_MAP = {
     ".jsx": ("jsx", ["code_ts", "contracts"]),
     ".mjs": ("js", ["code_ts", "contracts"]),
     ".cjs": ("js", ["code_ts", "contracts"]),
+    # Polyglot baseline via the table-driven code_generic extractor. These
+    # extensions have no hand-written extractor; code_generic emits the
+    # file + folder spine + function/class nodes for any language whose
+    # grammar is installed (rust/ruby ship; others are code-ready). Hand-
+    # written extractors above always win — generic only owns these routes.
+    ".rs": ("rust", ["code_generic"]),
+    ".rb": ("ruby", ["code_generic"]),
+    ".java": ("java", ["code_generic"]),
+    ".c": ("c", ["code_generic"]),
+    ".h": ("c", ["code_generic"]),
+    ".cc": ("cpp", ["code_generic"]),
+    ".cpp": ("cpp", ["code_generic"]),
+    ".cxx": ("cpp", ["code_generic"]),
+    ".hpp": ("cpp", ["code_generic"]),
+    ".hh": ("cpp", ["code_generic"]),
+    ".cs": ("c_sharp", ["code_generic"]),
 }
 
 # Sentinel chain key stored on file_index_state for docs-only rows
@@ -524,6 +540,7 @@ def _reindex_graph(
 ) -> dict[str, Any]:
     from graph_os.backends.sqlite_backend import SqliteBackend
     from graph_os.extractors import (  # type: ignore
+        code_generic,
         code_go,
         code_json,
         code_php,
@@ -539,6 +556,7 @@ def _reindex_graph(
     from thinking_os.database import init_db, resolve_db_path  # type: ignore
 
     extractor_map = {
+        "code_generic": code_generic.extract,
         "code_go": code_go.extract,
         "code_json": code_json.extract,
         "code_php": code_php.extract,

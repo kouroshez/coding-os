@@ -34,7 +34,7 @@ def is_available() -> bool:
         return False
 
 
-@functools.lru_cache(maxsize=8)
+@functools.lru_cache(maxsize=32)
 def _load_language(language_id: str) -> Any | None:
     """Return a `tree_sitter.Language` for `language_id`, or None on miss.
 
@@ -102,6 +102,45 @@ def _load_go() -> Any:
     return m.language()
 
 
+# Polyglot baseline grammars (code_generic). Each is optional: a missing
+# package makes _load_language return None and the generic extractor degrades
+# to a file-node-only result with a dep_missing parse error.
+def _load_rust() -> Any:
+    import tree_sitter_rust as m
+
+    return m.language()
+
+
+def _load_ruby() -> Any:
+    import tree_sitter_ruby as m
+
+    return m.language()
+
+
+def _load_java() -> Any:
+    import tree_sitter_java as m
+
+    return m.language()
+
+
+def _load_c() -> Any:
+    import tree_sitter_c as m
+
+    return m.language()
+
+
+def _load_cpp() -> Any:
+    import tree_sitter_cpp as m
+
+    return m.language()
+
+
+def _load_c_sharp() -> Any:
+    import tree_sitter_c_sharp as m
+
+    return m.language()
+
+
 _LOADERS: dict[str, Callable[[], Any]] = {
     "python": _load_python,
     "typescript": _load_typescript,
@@ -109,6 +148,12 @@ _LOADERS: dict[str, Callable[[], Any]] = {
     "bash": _load_bash,
     "yaml": _load_yaml,
     "go": _load_go,
+    "rust": _load_rust,
+    "ruby": _load_ruby,
+    "java": _load_java,
+    "c": _load_c,
+    "cpp": _load_cpp,
+    "c_sharp": _load_c_sharp,
 }
 
 

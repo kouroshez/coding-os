@@ -56,6 +56,20 @@ DEFAULT_INCLUDE = (
     "*.jsx",
     "*.mjs",
     "*.cjs",
+    # Polyglot baseline (code_generic extractor). Routed in
+    # reindex_dispatch._EXT_MAP; symbols extracted only when the language's
+    # tree-sitter grammar is installed (rust/ruby ship by default).
+    "*.rs",
+    "*.rb",
+    "*.java",
+    "*.c",
+    "*.h",
+    "*.cc",
+    "*.cpp",
+    "*.cxx",
+    "*.hpp",
+    "*.hh",
+    "*.cs",
 )
 DEFAULT_EXCLUDE = (
     ".git",
