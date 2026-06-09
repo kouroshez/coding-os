@@ -31,26 +31,8 @@ When debugging one failure: `pytest path/to/test_file.py::TestClass::test_name -
 - Pre-merge / pre-release final gate
 - Cross-cutting refactor that touched ≥3 verification-matrix rows
 - User explicitly asked: "run all tests"
-- **Task class = audit_exhaustive** (see below)
 
 In those cases say so out loud before launching: "Running full sweep — expect ~6 min."
-
-## Per-task-class verification matrix (TASK-004 G9)
-
-The per-file matrix above answers "what changed?".  Some task CLASSES
-have additional verification obligations that fire regardless of which
-files changed — because the contract is about the work itself, not the
-files touched.
-
-| Task class | Triggered by | Mandatory verification |
-|---|---|---|
-| `audit_exhaustive` | intent.json::exhaustive=true OR preset `audit-exhaustive` matched | (1) full `pytest tests/ -q` · (2) `cos sync-doctor` returns clean · (3) `grep -rn '<each pattern from audit table>' src/ tests/ docs/` returns 0 · (4) `cos graph-doctor` returns clean · (5) `make docs-lint` clean · (6) reviewer subagent (G6 hint) returns PASS · (7) ExhaustiveEvidence submitted via cos_supervise_record_output |
-| `migration_exhaustive` | intent.matched_scope includes "migrate" + exhaustive | per-file matrix PLUS before/after state diff captured in audit Notes section |
-| `refactor_exhaustive` | intent.matched_scope includes "refactor" + exhaustive | per-file matrix PLUS `cos_graph_impact` re-run for every renamed symbol, comparison stored in audit Evidence column |
-
-For audit-class tasks the per-file matrix command alone is INSUFFICIENT —
-the completion guardian (G4) will refuse the Stop until the class-level
-checks above are recorded in the EvidenceBundle.
 
 ## Before writing any test/script/function/feature
 

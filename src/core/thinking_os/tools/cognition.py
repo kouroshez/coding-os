@@ -251,48 +251,29 @@ def register_cos_supervise_record_output(mcp, db_path):
         latency_ms: int = 0,
     ) -> str:
         # Validate formula_id before any use. A malformed value (e.g. an XML
-        # tool-call fragment leaking the arg boundary —
-        # `exhaustive_evidence</formula_id>...`) once landed verbatim in the
-        # typed column. Reject non-identifier values up
-        # front rather than persisting garbage.
+        # tool-call fragment leaking the arg boundary — `researcher</formula_id>...`)
+        # once landed verbatim in the typed column. Reject non-identifier values
+        # up front rather than persisting garbage.
         if not formula_id or not re.fullmatch(r"[a-z0-9_]+", formula_id):
             return fail("validation", "formula_id must match [a-z0-9_]+")
 
         bundle = _load_bundle(session_id, task_marker, persona_id)
-        schemas_mod = _schemas()
 
-        # Special path: exhaustive intent evidence. Validated
-        # by the completion guardian (Stop hook) against the predicate set
-        # in $COS_AGENT_DIR/.intent.json. Not a role — has its own field.
+        # Data-driven role → bundle-field + Pydantic class (frontmatter SSOT).
         error_detail: str | None = None
-        if formula_id == "exhaustive_evidence" and status == "ok":
+        field, cls = _resolve_role_persistence(formula_id)
+        if field and cls and status == "ok":
             try:
-                parsed_ee = schemas_mod.ExhaustiveEvidence.model_validate_json(output_json)
-                bundle.exhaustive_evidence = parsed_ee
+                parsed = cls.model_validate_json(output_json)
+                setattr(bundle, field, parsed)
             except Exception as exc:
-                logger.warning("Failed to parse exhaustive evidence: %s", exc)
+                logger.warning("Failed to parse %s output: %s", formula_id, exc)
                 bundle.degraded_formulas.append(formula_id)
                 status = "fail"
-                error_detail = (
-                    "exhaustive_evidence rejected: reviewer_check must be exactly "
-                    "'pending' | 'pass' | 'fail' — put any narrative in the "
-                    f"reviewer_notes field, not reviewer_check. (parse: {exc})"
-                )
-        else:
-            # Data-driven role → bundle-field + Pydantic class (frontmatter SSOT).
-            field, cls = _resolve_role_persistence(formula_id)
-            if field and cls and status == "ok":
-                try:
-                    parsed = cls.model_validate_json(output_json)
-                    setattr(bundle, field, parsed)
-                except Exception as exc:
-                    logger.warning("Failed to parse %s output: %s", formula_id, exc)
-                    bundle.degraded_formulas.append(formula_id)
-                    status = "fail"
-                    error_detail = f"{formula_id} parse: {exc}"
-            elif status == "timeout":
-                bundle.degraded_formulas.append(formula_id)
-                error_detail = "timeout"
+                error_detail = f"{formula_id} parse: {exc}"
+        elif status == "timeout":
+            bundle.degraded_formulas.append(formula_id)
+            error_detail = "timeout"
 
         # Caller-supplied non-ok status (not a parse failure) carries its reason
         # in output_json — keep a bounded slice so the failure stays diagnosable.

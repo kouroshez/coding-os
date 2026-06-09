@@ -142,7 +142,6 @@ if [[ "$SOURCE" == "startup" ]]; then
     "${COS_PANEL_DIR}/.abandoned-task-warned" \
     "${COS_PANEL_DIR}/.graph-empty-warning-shown" \
     "${COS_PANEL_DIR}/.last-discovery-reminder" \
-    "${COS_PANEL_DIR}/.intent.json" \
     "${COS_STATE_DIR}/.capture-errors.log"; do
     if [ -e "$STATE_FILE" ]; then
       rm -f "$STATE_FILE"
@@ -482,53 +481,6 @@ except Exception:
     SES_TAIL="${_CURRENT_SESSION: -8}"
   fi
 
-  # Active audits (status:in_progress in docs/tasks/audits/audit-*.md).
-  # One-line summary: count + last id. inject-resume-prompt.sh emits the
-  # full block on SessionStart; here we surface a per-turn ping.
-  AUDIT_ACTIVE=""
-  if [ -d "docs/tasks/audits" ]; then
-    # Match BOTH conventions: YAML frontmatter (template canonical:
-    # `^status: in_progress`) AND markdown bold (legacy/lenient:
-    # `**Status:** in_progress`). The audit-checklist-template.md mandates
-    # YAML, but historic audits use the markdown form — match both so the
-    # banner reflects reality, not template-purism.
-    # grep -l exits 1 when no matches → wrap with `|| true` so pipefail
-    # doesn't kill the whole hook.
-    # Pattern: YAML frontmatter requires `^status: in_progress` (line start);
-    # markdown bold `**Status:** in_progress` can appear mid-line (e.g.
-    # `**Task:** TASK-NNN · **Status:** in_progress`), so no `^` anchor on
-    # that alternative. `**Status:**` is distinctive enough to avoid false
-    # positives from prose mentioning `in_progress`.
-    AUDIT_ACTIVE=$({ grep -lE "(^status:[[:space:]]+in_progress|\*\*Status:\*\*[[:space:]]+in_progress)" docs/tasks/audits/audit-*.md 2>/dev/null || true; } \
-      | python3 -c '
-import os, sys, re
-files = [l.strip() for l in sys.stdin if l.strip()]
-if not files: sys.exit(0)
-last_id = ""
-unchecked_total = 0
-# audit-table data row: starts with "|" and contains "| no |" (Verified=no).
-# Same heuristic inject-resume-prompt.sh uses — surface actionable scope,
-# not just file count.
-ROW = re.compile(r"^\|.*\|\s*no\s*\|")
-for f in files:
-    try:
-        with open(f) as fh:
-            for line in fh:
-                if not last_id:
-                    m = re.match(r"audit_id:\s*(\S+)", line)
-                    if m: last_id = m.group(1)
-                if ROW.match(line):
-                    unchecked_total += 1
-    except OSError: pass
-    if not last_id:
-        last_id = os.path.basename(f).replace("audit-", "").replace(".md", "")
-tag = f"{len(files)}({last_id})"
-if unchecked_total:
-    tag += f"·{unchecked_total}-unchecked"
-print(tag)
-' 2>/dev/null | head -c 64 || true)
-  fi
-
   # Recent block events from the hook log (last ~5 min). Surfaces hook
   # activity so the operator sees what's happening behind the scenes —
   # mirrors the caveman-mode-tracker visibility pattern.
@@ -568,7 +520,6 @@ except OSError:
   [[ -n "$WIP_TOTAL" ]] && PARTS="${PARTS} wip=${WIP_TOTAL}"
   [[ -n "$SKILL_CUR" ]] && PARTS="${PARTS} skill=${SKILL_CUR}"
   [[ -n "$ROLES_LEAD" ]] && PARTS="${PARTS} roles=${ROLES_LEAD}"
-  [[ -n "$AUDIT_ACTIVE" ]] && PARTS="${PARTS} audit=${AUDIT_ACTIVE}"
   [[ -n "$BLK_RECENT" ]] && PARTS="${PARTS} blocks=${BLK_RECENT}"
 
   # Aggregated PostToolUse activity since the previous prompt — Claude Code
@@ -614,7 +565,7 @@ except OSError:
         USER_BANNER="🔔 ses=${SES_TAIL} · mode=${TASK_MODE}${WARN}"
         ;;
       *)
-        USER_BANNER="🔔 ses=${SES_TAIL} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--} · roles=${ROLES_LEAD:--} · audit=${AUDIT_ACTIVE:--}${WARN}"
+        USER_BANNER="🔔 ses=${SES_TAIL} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--} · roles=${ROLES_LEAD:--}${WARN}"
         ;;
     esac
   fi

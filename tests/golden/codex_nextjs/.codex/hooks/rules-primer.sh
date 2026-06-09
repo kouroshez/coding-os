@@ -8,7 +8,7 @@
 # cos task-show / cos_task_search (never ls/grep), gate via cos_classify_prompt,
 # and that cos_* tools are deferred (ToolSearch before first use).
 #
-# Mirrors intent-primer.sh (the established prime-card pattern): card text
+# Prime-card pattern: card text
 # lives in a sibling .txt to keep the bash heredoc out of $(...) (Rule 8
 # deadlock). Always exits 0 (informational, never blocks).
 #

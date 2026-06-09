@@ -261,14 +261,7 @@ def test_security_audit_parallel():
     assert "L5" in chain.parallel_roles
 
 
-def test_audit_exhaustive_only_fires_with_exhaustive_intent():
-    """audit-exhaustive must NOT shadow domain-specific audit presets — it is
-    gated on exhaustive intent. A plain audit picks the domain preset; the
-    same audit with exhaustive=True picks audit-exhaustive."""
+def test_security_audit_picks_domain_preset():
+    """A plain security audit picks the domain-specific preset."""
     plain = compose_chain(TaskSignals(action="audit", domain=["security"], complexity="COMPLEX"))
     assert plain.preset_id == "security-audit-full"
-
-    exhaustive = compose_chain(
-        TaskSignals(action="audit", domain=["security"], complexity="COMPLEX", exhaustive=True)
-    )
-    assert exhaustive.preset_id == "audit-exhaustive"
