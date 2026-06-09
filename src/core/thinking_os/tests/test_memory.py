@@ -268,6 +268,28 @@ class TestMemorySearch:
         obs = [r for r in result["results"] if r["source_table"] == "observations"]
         assert obs and obs[0]["re_verify_recommended"] is False
 
+    def test_dedups_identical_titles(self, conn: sqlite3.Connection) -> None:
+        # Wave 2 quality: auto-capture rows ("Modified <path>") recur once per
+        # edit — the same title appeared 3x in the measured benchmark. The
+        # title-dedup must collapse them to a single result.
+        for _ in range(4):
+            conn.execute(
+                "INSERT INTO observations (session_id, tool_name, title, narrative, "
+                "concepts, memory_type, impact_score) VALUES "
+                "('s','Edit','Modified intent vocabulary doc','edited the doc',"
+                "'[\"docs\"]','discovery',0.5)"
+            )
+        conn.execute(
+            "INSERT INTO observations (session_id, tool_name, title, narrative, "
+            "concepts, memory_type, impact_score) VALUES "
+            "('s','Edit','Distinct auth refactor work','reworked auth',"
+            "'[\"auth\"]','discovery',0.5)"
+        )
+        conn.commit()
+        result = memory_search(conn, query="intent vocabulary doc", limit=10)
+        titles = [r["title"] for r in result["results"]]
+        assert titles.count("Modified intent vocabulary doc") == 1
+
     def test_empty_db(self, conn: sqlite3.Connection) -> None:
         result = memory_search(conn, query="anything")
         assert result["count"] == 0

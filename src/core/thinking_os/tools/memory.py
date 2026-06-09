@@ -445,13 +445,23 @@ def memory_search(
     candidates.sort(key=lambda x: x["score"], reverse=True)
     results: list[dict] = []
     seen_keys: set[tuple] = set()
+    seen_titles: set[str] = set()
 
     for c in candidates:
+        # Exact-title dedup: auto-capture rows ("Modified <path>") recur once
+        # per edit, so an identical title can appear many times and crowd out
+        # distinct hits. Candidates are already score-sorted, so the first
+        # occurrence is the best — skip later duplicates of the same title.
+        title_key = (c.get("title") or "").strip().lower()
+        if title_key and title_key in seen_titles:
+            continue
         key = (c["memory_type"], c.get("domain", ""))
         if key in seen_keys and len(results) >= 2:
             continue  # diversity: allow first 2, then skip duplicates
         results.append(c)
         seen_keys.add(key)
+        if title_key:
+            seen_titles.add(title_key)
         if len(results) >= limit:
             break
 

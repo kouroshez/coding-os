@@ -382,3 +382,15 @@ ui-dev: ## Vite dev server with HMR → http://127.0.0.1:5173 (proxies /api to h
 ui-build: ## Production rebuild of the SPA — hub at :9188 serves the new bundle
 	@cd src/core/web/ui && npm run build
 	@echo "  SPA rebuilt → src/core/web/ui/dist/  (hub picks up automatically; hard-refresh browser)"
+
+.PHONY: migrate-embeddings
+migrate-embeddings: ## Cutover embeddings to BGE-M3 (vendor model + re-embed corpus + flip active marker)
+	@echo "Cutover: vendoring BGE-M3, re-embedding all source tables, flipping active model."
+	@echo "  Resumable + idempotent (text_hash + model_name check); safe to re-run."
+	@COS_EMBEDDING_MODEL=BAAI/bge-m3 COS_ALLOW_MODEL_DOWNLOAD=1 \
+	  PYTHONPATH=src/core/thinking_os uv run --extra rag python -c \
+	  "import embeddings as e; from database import init_db, resolve_db_path; \
+c=init_db(str(resolve_db_path())); print(e.reindex_all(c)); \
+st=e.migration_status(c,'BAAI/bge-m3'); print('status:', st); \
+e.set_active_model('BAAI/bge-m3') if st['complete'] else print('NOT complete — re-run until remaining=0 before cutover')"
+	@echo "  Done. Restart the MCP server / hub so processes load BGE-M3."

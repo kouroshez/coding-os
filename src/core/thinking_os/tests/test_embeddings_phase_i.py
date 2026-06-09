@@ -312,6 +312,30 @@ class TestMigratorEmbeddings:
         assert len(rows) == 2
         assert {r[1] for r in rows} == {1024}
 
+    def test_text_for_row_handles_graph_nodes(self, conn):
+        # Wave 2: the migrator must reconstruct text for graph_node embeddings
+        # (Wave 1) — otherwise it returns None and silently leaves the entire
+        # code graph un-migrated (the bug that stranded 8320 rows on MiniLM).
+        conn.execute(
+            "INSERT INTO graph_nodes (id, kind, label, uid, signature, doc_blob, "
+            "created_at, updated_at) VALUES (1, 'function', 'embed_text', "
+            "'code:function:e.py::embed_text', 'def embed_text(t)', "
+            "'Encode a string into a vector.', 0, 0)"
+        )
+        conn.execute(
+            "INSERT INTO embeddings (id, source_table, source_id, text_hash, "
+            "embedding, model_name) VALUES (1, 'graph_nodes', 1, 'h', "
+            "X'00000000', 'all-MiniLM-L6-v2')"
+        )
+        conn.commit()
+        row = conn.execute(
+            "SELECT id, source_table, source_id FROM embeddings WHERE id = 1"
+        ).fetchone()
+        text = migrator_embeddings._text_for_row(conn, row)
+        assert text is not None
+        assert "embed_text" in text
+        assert "Encode a string" in text
+
     def test_run_one_batch_resumes_from_checkpoint(self, conn, minilm_fake, bge_m3_fake, tmp_path):
         self._seed_rows(conn, n=6)
         checkpoint = tmp_path / ".cp.json"

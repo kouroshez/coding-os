@@ -1769,16 +1769,6 @@ def cos_graph_trace(
     )
 
 
-# Raw cosine and the legacy 0.7*emb+0.3*lex blended score live on different
-# scales: MiniLM cosine for genuine code-symbol twins tops out ~0.45 (measured),
-# so the legacy confidence_min default of 0.5 would suppress the persisted path
-# entirely. The persisted scorer therefore caps its floor at this value — a
-# caller may still LOWER the floor for more recall, but a legacy-calibrated high
-# default no longer kills the fast path (P6 adaptive threshold). BGE-M3 (Wave 2)
-# lifts this ceiling; revisit the cap then.
-_PERSISTED_COSINE_FLOOR = 0.25
-
-
 def _similar_from_persisted(
     be: Any,
     root: GraphNode,
@@ -1795,7 +1785,11 @@ def _similar_from_persisted(
     if conn is None:
         return None
     try:
-        from thinking_os.embeddings import is_available, search_similar
+        from thinking_os.embeddings import (
+            is_available,
+            persisted_similarity_floor,
+            search_similar,
+        )
     except ImportError:
         return None
     if not is_available():
@@ -1827,7 +1821,10 @@ def _similar_from_persisted(
     score_by_id = {h["source_id"]: h["score"] for h in hits}
     wanted = [id_to_uid[i] for i in ids if i in id_to_uid and id_to_uid[i] != root.uid]
     nodes_by_uid = be.get_nodes_bulk(wanted)
-    effective_floor = min(confidence_min, _PERSISTED_COSINE_FLOOR)
+    # Cap the floor at the model-calibrated value (MiniLM ~0.25, BGE-M3 ~0.6)
+    # so a legacy confidence_min default can't suppress the persisted path;
+    # raw cosine and the legacy blended score live on different scales (P6).
+    effective_floor = min(confidence_min, persisted_similarity_floor())
     scored: list[tuple[float, GraphNode]] = []
     for i in ids:  # ids are already score-descending from search_similar
         uid = id_to_uid.get(i)

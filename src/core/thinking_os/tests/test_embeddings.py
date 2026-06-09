@@ -335,6 +335,53 @@ class TestSearchSimilar:
         with patch.object(embeddings, "is_available", return_value=False):
             assert embeddings.search_similar(tmp_db, "anything") == []
 
+    @REQUIRES_RAG
+    def test_dual_model_bridge_surfaces_both_dims(
+        self, tmp_db: sqlite3.Connection
+    ) -> None:
+        # Wave 2 (M4): mid-migration the table holds vectors from two models
+        # at different dims. search_similar must encode the query with EVERY
+        # present model and surface rows from BOTH — the old single-model path
+        # silently dropped the other-dim cohort (dim_mismatch → score 0).
+        import numpy as np
+
+        def _const_encoder(dim: int):
+            class _E:
+                def encode(self, text, **kw):
+                    v = np.ones(dim, dtype=np.float32)
+                    return v / np.linalg.norm(v)
+
+            return _E()
+
+        def _blob(dim: int) -> bytes:
+            v = np.ones(dim, dtype=np.float32)
+            return (v / np.linalg.norm(v)).astype(np.float32).tobytes()
+
+        embeddings._override_model("m-a", _const_encoder(4))
+        embeddings._override_model("m-b", _const_encoder(6))
+        try:
+            tmp_db.execute(
+                "INSERT INTO embeddings (source_table, source_id, text_hash, "
+                "embedding, model_name, embedding_dim) VALUES "
+                "('observations', 1, 'h1', ?, 'm-a', 4)",
+                (_blob(4),),
+            )
+            tmp_db.execute(
+                "INSERT INTO embeddings (source_table, source_id, text_hash, "
+                "embedding, model_name, embedding_dim) VALUES "
+                "('observations', 2, 'h2', ?, 'm-b', 6)",
+                (_blob(6),),
+            )
+            tmp_db.commit()
+            hits = embeddings.search_similar(
+                tmp_db, "q", source_tables=["observations"], limit=10, threshold=0.5
+            )
+            ids = {h["source_id"] for h in hits}
+            assert ids == {1, 2}, f"both model cohorts must surface, got {ids}"
+        finally:
+            embeddings._override_model("m-a", None)
+            embeddings._override_model("m-b", None)
+
 
 # ---------------------------------------------------------------------------
 # reindex_all
@@ -400,6 +447,58 @@ class TestReindexAll:
 # ---------------------------------------------------------------------------
 # Text hash helper
 # ---------------------------------------------------------------------------
+
+
+class TestModelSSOTAndCutover:
+    """Wave 2 (M5 + cutover gate): single source of truth for the active model
+    and a gate that reports re-embedding completeness before a default flip."""
+
+    def test_env_wins_over_marker(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+        monkeypatch.setenv("COS_EMBEDDING_MODEL", "BAAI/bge-m3")
+        embeddings.set_active_model("all-MiniLM-L6-v2")  # marker says MiniLM
+        assert embeddings.active_model_name() == "BAAI/bge-m3"  # env still wins
+
+    def test_marker_used_when_env_absent(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+        monkeypatch.delenv("COS_EMBEDDING_MODEL", raising=False)
+        embeddings.set_active_model("BAAI/bge-m3")
+        assert embeddings.active_model_name() == "BAAI/bge-m3"
+
+    def test_default_when_neither_set(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+        monkeypatch.delenv("COS_EMBEDDING_MODEL", raising=False)
+        assert embeddings.active_model_name() == embeddings.DEFAULT_MODEL_NAME
+
+    def test_set_active_model_rejects_unknown(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+        with pytest.raises(ValueError):
+            embeddings.set_active_model("not-a-real-model")
+
+    def test_floor_is_model_calibrated(self) -> None:
+        assert embeddings.persisted_similarity_floor("all-MiniLM-L6-v2") == 0.25
+        assert embeddings.persisted_similarity_floor("BAAI/bge-m3") == 0.60
+
+    def test_migration_status_complete_only_when_fully_converted(
+        self, tmp_db: sqlite3.Connection
+    ) -> None:
+        target = "BAAI/bge-m3"
+        for sid, model in ((1, target), (2, "all-MiniLM-L6-v2")):
+            tmp_db.execute(
+                "INSERT INTO embeddings (source_table, source_id, text_hash, "
+                "embedding, model_name) VALUES ('observations', ?, ?, ?, ?)",
+                (sid, f"h{sid}", b"\x00\x00\x00\x00", model),
+            )
+        tmp_db.commit()
+        st = embeddings.migration_status(tmp_db, target)
+        assert st["complete"] is False and st["remaining"] == 1
+        # convert the laggard
+        tmp_db.execute(
+            "UPDATE embeddings SET model_name = ? WHERE source_id = 2", (target,)
+        )
+        tmp_db.commit()
+        st2 = embeddings.migration_status(tmp_db, target)
+        assert st2["complete"] is True and st2["remaining"] == 0
 
 
 class TestTextHash:

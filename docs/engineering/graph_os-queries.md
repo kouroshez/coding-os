@@ -57,11 +57,14 @@ per-candidate path). When no persisted vectors exist (or the embedding
 model is unavailable) it transparently falls back to the on-the-fly
 difflib baseline (`meta.scorer="bge-m3+difflib-blend"` /
 `"difflib-baseline"`). Raw cosine and the legacy blended score live on
-different scales, so the persisted path caps its floor at
-`_PERSISTED_COSINE_FLOOR` (0.25) — a `confidence_min` above that no longer
-suppresses the fast path; `meta.floor` reports the effective value. Run
-`cos brain --reindex` (or `python -m embeddings --reindex`) to populate
-the vectors after a bulk graph change.
+different scales, so the persisted path caps its floor at a
+**model-calibrated** value (`persisted_similarity_floor`: MiniLM 0.25,
+BGE-M3 0.60 — measured) so a legacy `confidence_min` default can't suppress
+the fast path; `meta.floor` reports the effective value. Run
+`cos brain --reindex` (or `python -m embeddings --reindex`) to populate the
+vectors after a bulk graph change, or `make migrate-embeddings` to cut the
+whole corpus over to BGE-M3 (re-embed + flip the `.coding-os/.embedding-model`
+active marker; the dual-model bridge keeps search correct mid-migration).
 
 ## Common failure modes
 

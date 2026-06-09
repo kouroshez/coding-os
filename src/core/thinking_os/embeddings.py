@@ -95,11 +95,80 @@ GRAPH_EMBED_KINDS: tuple[str, ...] = (
 )
 
 
-def active_model_name() -> str:
-    """Return the model the *current* process should encode with."""
-    import os
+def _active_model_marker_path():
+    from pathlib import Path
 
-    return os.environ.get("COS_EMBEDDING_MODEL", DEFAULT_MODEL_NAME).strip() or DEFAULT_MODEL_NAME
+    state = os.environ.get("COS_STATE_DIR") or str(
+        Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())) / ".coding-os"
+    )
+    return Path(state) / ".embedding-model"
+
+
+def active_model_name() -> str:
+    """Return the model the current process encodes with.
+
+    SSOT order (M5): COS_EMBEDDING_MODEL env > persisted cutover marker
+    (.coding-os/.embedding-model) > DEFAULT_MODEL_NAME. The marker lets the
+    cutover flip every process to the new model at once after the corpus is
+    fully re-embedded, instead of each process guessing from its own env.
+    """
+    env = os.environ.get("COS_EMBEDDING_MODEL", "").strip()
+    if env:
+        return env
+    try:
+        marker = _active_model_marker_path()
+        if marker.exists():
+            name = marker.read_text(encoding="utf-8").strip()
+            if name in MODEL_DIMS:
+                return name
+    except OSError as exc:
+        logger.debug("active-model marker read skipped: %s", exc)
+    return DEFAULT_MODEL_NAME
+
+
+def set_active_model(name: str) -> None:
+    """Persist the active-model cutover marker (atomic tmp+replace)."""
+    if name not in MODEL_DIMS:
+        raise ValueError(f"unknown model {name!r}; known: {sorted(MODEL_DIMS)}")
+    marker = _active_model_marker_path()
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    tmp = marker.with_suffix(".tmp")
+    tmp.write_text(name, encoding="utf-8")
+    tmp.replace(marker)
+
+
+# Calibrated similarity floors per model (measured 2026-06: BGE-M3 separates
+# related code-symbol cosine ~0.84 from unrelated ~0.55; MiniLM barely
+# separates 0.39 vs 0.35). The persisted-vector similar path caps its floor at
+# this value so a legacy confidence_min default cannot suppress the fast path.
+_PERSISTED_FLOORS: dict[str, float] = {
+    "all-MiniLM-L6-v2": 0.25,
+    "BAAI/bge-m3": 0.60,
+}
+
+
+def persisted_similarity_floor(model_name: str | None = None) -> float:
+    """Calibrated cosine floor for the persisted-embedding similar path."""
+    return _PERSISTED_FLOORS.get(model_name or active_model_name(), 0.25)
+
+
+def migration_status(conn: sqlite3.Connection, target_model: str | None = None) -> dict:
+    """Report re-embedding progress toward target_model (cutover-gate input)."""
+    target = target_model or active_model_name()
+    try:
+        total = conn.execute("SELECT COUNT(*) FROM embeddings").fetchone()[0]
+        remaining = conn.execute(
+            "SELECT COUNT(*) FROM embeddings WHERE model_name IS NULL OR model_name != ?",
+            (target,),
+        ).fetchone()[0]
+    except sqlite3.OperationalError:
+        return {"target": target, "total": 0, "remaining": 0, "complete": False}
+    return {
+        "target": target,
+        "total": int(total),
+        "remaining": int(remaining),
+        "complete": total > 0 and remaining == 0,
+    }
 
 
 def model_dim(model_name: str) -> int | None:
@@ -506,8 +575,27 @@ def search_similar(
     if not has_embeddings_data(conn):
         return []
 
-    query_vec = embed_text(query)
-    if query_vec is None:
+    # Dual-model bridge (M4): a DB mid-migration holds vectors from >1 model
+    # at different dims. Encode the query with EVERY model present in the
+    # target population, then score each candidate against the matching-dim
+    # query vector. Dim-aware cosine returns 0 for mismatched dims, so an
+    # element-wise max over the per-model score vectors collapses to "the
+    # score from the candidate's own model" — no row is ever silently
+    # invisible regardless of migration progress.
+    model_sql = "SELECT DISTINCT model_name FROM embeddings"
+    model_params: list[Any] = []
+    if source_tables:
+        ph = ",".join("?" * len(source_tables))
+        model_sql += f" WHERE source_table IN ({ph})"
+        model_params.extend(source_tables)
+    try:
+        present_models = [r[0] for r in conn.execute(model_sql, model_params).fetchall() if r[0]]
+    except sqlite3.OperationalError:
+        present_models = []
+    if not present_models:
+        present_models = [active_model_name()]
+    query_vecs = [v for v in (embed_text(query, model_name=m) for m in present_models) if v]
+    if not query_vecs:
         return []
 
     # Cap limit to prevent runaway queries
@@ -535,7 +623,12 @@ def search_similar(
         batch = cursor.fetchmany(_SEARCH_BATCH)
         if not batch:
             break
-        scores = cosine_similarity(query_vec, [r[2] for r in batch])
+        cand_vecs = [r[2] for r in batch]
+        if len(query_vecs) == 1:
+            scores = cosine_similarity(query_vecs[0], cand_vecs)
+        else:
+            per_model = [cosine_similarity(qv, cand_vecs) for qv in query_vecs]
+            scores = [max(col) for col in zip(*per_model)]
         for i, score in enumerate(scores):
             if score < threshold:
                 continue

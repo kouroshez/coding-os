@@ -125,6 +125,13 @@ def _text_for_row(conn: sqlite3.Connection, row: sqlite3.Row) -> str | None:
             "SELECT title, goal_text, requirements FROM tasks WHERE id = ?",
             ("title", "goal_text", "requirements"),
         ),
+        # graph_nodes embeddings (Wave 1) — without this the migrator silently
+        # skips every code-symbol vector (returns None → never re-embedded),
+        # leaving the graph half-migrated. Mirrors embeddings.reindex_all.
+        "graph_nodes": (
+            "SELECT label, signature, doc_blob FROM graph_nodes WHERE id = ?",
+            ("label", "signature", "doc_blob"),
+        ),
     }
     handler = queries.get(table)
     if handler is None:
