@@ -427,10 +427,12 @@ class SqliteBackend:
         """Prune nodes belonging to a single source file before reindex.
 
         HARD delete by design — the graph mirrors HEAD-of-tree, so a symbol
-        that left the file is gone, not historical (git is the forensic
-        record). Routine reindex calls this per changed file, so deletions
-        are logged at debug; a per-delete audit-log DB row would flood the
-        audit table with reindex churn. See the graph-os-authoring skill.
+        that left the file is gone, not historical (git is the record). This
+        runs on every per-file reindex (prune-before-reindex), so the graph
+        keeps no deletion ledger of its own — that would be pure churn. The
+        only deletion audit in the system is the doc_audit_trail row that
+        prune_deleted_path writes for a rare whole-.md-file delete; node
+        prune here is routine and logged at debug. See graph-os-authoring.
         """
         with self._write_lock:
             if not extractors:
