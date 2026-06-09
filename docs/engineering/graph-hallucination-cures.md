@@ -26,7 +26,7 @@ graph instead of grep + Read + guess.
 
 Use file Read **only** for the 1–3 files the graph tells you matter.
 
-## Hallucination → Cure matrix (21 tools)
+## Hallucination → Cure matrix (22 tools)
 
 > **Rule #0 — resolve before querying.** All `cos_graph_*` tools that accept a `uid` parameter
 > require a fully-qualified UID (`code:file:<path>`, `code:function:<path>::<name>`, etc.).
@@ -83,7 +83,8 @@ Use file Read **only** for the 1–3 files the graph tells you matter.
 | Pre-commit diff impact | `cos_graph_detect_changes` |
 | Forward execution walk | `cos_graph_trace` |
 | Shortest connecting path | `cos_graph_path` |
-| Find similar code | `cos_graph_similar` |
+| Find similar code (node→node) | `cos_graph_similar` |
+| Find code by free-text description | `cos_graph_search` (hybrid: semantic + FTS5 + centrality) |
 | API/contract surface | `cos_graph_contracts` |
 | Entry-point discovery | `cos_graph_entrypoints` |
 | Subsystem clusters | `cos_graph_communities` |

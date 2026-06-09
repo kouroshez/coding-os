@@ -86,7 +86,7 @@ immediately, via live symlinks for hooks/skills/rules).
 | Module | Purpose |
 |---|---|
 | `src/core/thinking_os/` | MCP server (FastMCP). Hippocampus — memory + learning + metrics. Roles, formula composer, dispatcher. |
-| `src/core/graph_os/` | Knowledge graph. Corpus callosum — SQLite backend, 21 `cos_graph_*` tools, per-language extractors (py · ts/tsx · go · sh · php · yaml · json · toml) + framework contracts (fastapi/django/fiber/gin/next.js/laravel/wordpress/whmcs). |
+| `src/core/graph_os/` | Knowledge graph. Corpus callosum — SQLite backend, 22 `cos_graph_*` tools, per-language extractors (py · ts/tsx · go · sh · php · yaml · json · toml) + framework contracts (fastapi/django/fiber/gin/next.js/laravel/wordpress/whmcs). |
 | `src/core/board_os/` | Scrumban planner. Prefrontal cortex — task lifecycle, swimlane sync, `TASK-NNN-*.md` ↔ DB. |
 | `src/core/hooks/` | 60+ shell hooks. Single registry (`registry.yaml`). |
 | `src/core/skills/` | Markdown skill contracts (graph-explorer, codebase-explorer, thinking_os, …). |
