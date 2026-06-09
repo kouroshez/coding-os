@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sqlite3
+import threading
 import time
 from pathlib import Path
 
@@ -243,6 +244,95 @@ def test_transition_optimistic_concurrency_accepts_match(conn: sqlite3.Connectio
         config=_make_config(in_progress=10),
     )
     assert result.ok is True
+
+
+def test_transition_restores_md_when_post_write_step_fails(
+    tmp_path: Path, conn: sqlite3.Connection
+):
+    # Finding A: a successful (atomic) frontmatter write followed by a failing
+    # later step must NOT leave the file ahead of the rolled-back DB. Drop
+    # task_status_history so the history INSERT raises AFTER the MD write, then
+    # assert the file is restored to its pre-transition status.
+    (tmp_path / "docs" / "tasks").mkdir(parents=True)
+    md = tmp_path / "docs" / "tasks" / "TASK-110-restore.md"
+    md.write_text(
+        "---\n"
+        "id: TASK-110\n"
+        'title: "restore"\n'
+        "swimlane: core\n"
+        "kind: chore\n"
+        "status: icebox\n"
+        "priority: P2\n"
+        'appetite: "30m"\n'
+        "labels: [ready]\n"
+        "---\n\n"
+        "# TASK-110: restore\n\n"
+        "**Outcome (one sentence):** file is restored on failure.\n",
+        encoding="utf-8",
+    )
+    sync_all(conn, project_root=tmp_path)
+    conn.execute("DROP TABLE task_status_history")
+    conn.commit()
+
+    with pytest.raises(sqlite3.OperationalError):
+        transition(
+            conn,
+            "TASK-110",
+            "in_progress",
+            config=_make_config(in_progress=5),
+            agent_session="ses-claude-test",
+            file_path=md,
+        )
+
+    assert "status: icebox" in md.read_text(encoding="utf-8")
+    row = conn.execute(
+        "SELECT status FROM tasks WHERE task_id = ?", ("TASK-110",)
+    ).fetchone()
+    assert row[0] == "icebox"
+
+
+def test_transition_two_real_connections_exactly_one_wins(tmp_path: Path):
+    # Real concurrency (not single-threaded drift simulation): two live
+    # connections both attempt icebox->in_progress at a barrier. BEGIN
+    # IMMEDIATE + the CAS UPDATE must let exactly one win.
+    db_path = tmp_path / "coding-os.db"
+    setup = db.init_db(db_path)
+    _insert_task(setup, "TASK-120", status="icebox")
+    setup.commit()
+    setup.close()
+
+    results: dict[str, object] = {}
+    barrier = threading.Barrier(2)
+
+    def claim(name: str) -> None:
+        c = db.get_connection(db_path)
+        try:
+            barrier.wait()
+            results[name] = transition(
+                c,
+                "TASK-120",
+                "in_progress",
+                config=_make_config(in_progress=10),
+                agent_session=f"ses-claude-{name}",
+            )
+        finally:
+            c.close()
+
+    threads = [threading.Thread(target=claim, args=(n,)) for n in ("a", "b")]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    winners = [r for r in results.values() if getattr(r, "ok", False)]
+    assert len(winners) == 1, results
+
+    final = db.get_connection(db_path)
+    status = final.execute(
+        "SELECT status FROM tasks WHERE task_id = ?", ("TASK-120",)
+    ).fetchone()[0]
+    final.close()
+    assert status == "in_progress"
 
 
 # ---------- WIP enforcement ----------

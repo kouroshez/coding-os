@@ -239,7 +239,7 @@ def _validate_dependencies_no_cycle_fallback(
             else:
                 import re as _re
 
-                parsed_deps = _re.findall(r"TASK-\d+", text)
+                parsed_deps = _re.findall(r"TASK-(?:[A-Z][A-Z0-9]*-)?\d+", text)
         deps_by_task[row[0]] = parsed_deps
     deps_by_task[task_id] = list(new_deps)
 
@@ -521,6 +521,7 @@ def transition(
             error_category="transient",
         )
 
+    md_backup: str | None = None
     try:
         # Re-verify status under the lock — gate validation did file I/O,
         # widening the read→write window; a peer may have moved it since.
@@ -603,9 +604,17 @@ def transition(
                 error_category="transient",
             )
 
-        # MD frontmatter write — inside the txn so a write failure rolls the
-        # DB back too, keeping the board SSOT consistent with the file.
+        # MD frontmatter write — inside the txn. The writer itself is atomic
+        # (tmp + os.replace), so its OWN failure leaves the original intact.
+        # We additionally snapshot the file first: if a LATER step (history
+        # INSERT / commit) raises, the outer except restores it — so a
+        # rolled-back transition changes neither the DB nor the file, instead
+        # of leaving the file's status ahead of the DB it just reverted.
         if target_file is not None:
+            try:
+                md_backup = target_file.read_text(encoding="utf-8")
+            except OSError:
+                md_backup = None
             try:
                 _write_status_to_frontmatter(
                     target_file, to_status, agent_session=agent_session
@@ -661,6 +670,13 @@ def transition(
         conn.commit()
     except Exception:
         conn.rollback()
+        # Undo a successful MD write whose transaction then failed, so the
+        # file never reports a status the DB rolled back (Finding A).
+        if md_backup is not None and target_file is not None:
+            try:
+                target_file.write_text(md_backup, encoding="utf-8")
+            except OSError as restore_exc:
+                logger.debug("MD restore after rollback failed: %s", restore_exc)
         raise
 
     return TransitionResult(
