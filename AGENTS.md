@@ -41,7 +41,7 @@ Cognitive layers under `src/core/` (all on one MCP server, [src/core/thinking_os
 
 ## Identity & Principles
 
-coding-os: agent-agnostic cognitive operating system for AI coding agents. Stack: Python + Shell + Markdown. Architecture: Hexagonal (core → adapters → templates).
+coding-os: agent-agnostic cognitive operating system that gives AI agents memory, structure, and discipline. Stack: Python + Shell + Markdown. Architecture: Hexagonal (core → adapters → templates).
 
 P1 SSOT-first · P2 Agent-agnostic (never hardcode `.claude/` in core; use `$COS_STATE_DIR` / `$COS_AGENT_DIR` / `$COS_PANEL_DIR` / `$COS_DB_PATH` — three-tier scope: shared per-project / shared per-agent / private per-panel-of-same-agent; see [docs/engineering/state-files.md](docs/engineering/state-files.md)) · P3 Minimal-context (3-10 files/task) · P4 Diff-first · P5 Dogfood · P6 Log-everything via `make` · P7 No-guessing (log unknowns to `docs/_meta/questions.md`) · P8 Adapter-SDK autonomy (each `src/adapters/<agent>/` self-contained; never import an adapter SDK from `src/core/**`).
 

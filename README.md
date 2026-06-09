@@ -6,9 +6,9 @@
 [![tests](https://img.shields.io/badge/tests-passing-green)](./tests/)
 [![cli](https://img.shields.io/badge/cli-cos-informational)](./docs/architecture/meta-project.md)
 
-> **Agent-agnostic cognitive operating system for AI coding agents.**
+> **Coding OS — the cognitive operating system that gives AI agents memory, structure, and discipline.**
 > Teaches AI agents *how to think* (thinking_os) and *how to code*
-> (workflow, hooks, skills, rules) — packaged so the same kernel
+> (workflow, hooks, skills, rules) — agent-agnostic so the same kernel
 > serves Claude Code, OpenAI Codex, and Cursor without rewriting.
 
 ---

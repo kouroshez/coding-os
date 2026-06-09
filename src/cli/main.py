@@ -686,7 +686,7 @@ def _resolve_cli_version() -> str:
 @click.group()
 @click.version_option(version=_resolve_cli_version(), prog_name="coding-os")
 def cli() -> None:
-    """Coding OS — Agent-agnostic cognitive operating system for AI coding agents."""
+    """Coding OS — the cognitive operating system that gives AI agents memory, structure, and discipline."""
     # Route every stdlib logger.error from doctor /
     # health / any cos command into logging_os so the CLI process is no longer
     # blind to its own failures. Idempotent — install_bridge() removes a prior

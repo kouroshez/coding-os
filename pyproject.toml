@@ -1,7 +1,7 @@
 [project]
 name = "coding-os"
 version = "0.3.0"
-description = "Agent-agnostic cognitive operating system for AI coding agents"
+description = "The cognitive operating system that gives AI agents memory, structure, and discipline"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
