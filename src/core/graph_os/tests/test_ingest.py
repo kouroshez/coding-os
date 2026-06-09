@@ -92,6 +92,22 @@ class TestLocal:
         assert "huge.py" not in names
         assert plan.metadata.get("skipped_oversize") == ["huge.py"]
 
+    def test_symlink_skipped_and_counted(self, tmp_path):
+        """Symlinks are skipped (target indexed on its own pass) but the count
+        is surfaced in metadata so it isn't silent (TASK-302)."""
+        (tmp_path / "real.py").write_text("x = 1")
+        link = tmp_path / "alias.py"
+        try:
+            link.symlink_to(tmp_path / "real.py")
+        except (OSError, NotImplementedError):
+            pytest.skip("symlinks not supported on this platform")
+        plan = walk_local(tmp_path)
+        names = [p.name for p in plan.files]
+        assert "real.py" in names
+        assert "alias.py" not in names
+        assert plan.metadata.get("skipped_symlink") == 1
+        assert "skipped_read_error" in plan.metadata
+
     def test_unknown_path_raises(self, tmp_path):
         with pytest.raises(IngestError):
             walk_local(tmp_path / "missing")

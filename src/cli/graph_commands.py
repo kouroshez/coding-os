@@ -575,6 +575,16 @@ def register(cli: click.Group) -> None:
                 + (" …" if len(_oversize) > 5 else ""),
                 err=True,
             )
+        # Symlink / unreadable skips — counts only, surfaced so they aren't
+        # silent (TASK-302). A symlink target is indexed on its own pass, so
+        # a non-zero symlink count is informational, not an error.
+        _sym = int(plan.metadata.get("skipped_symlink") or 0)
+        _rerr = int(plan.metadata.get("skipped_read_error") or 0)
+        if _sym or _rerr:
+            click.echo(
+                f"[graph-reindex] skipped {_sym} symlink(s), {_rerr} unreadable file(s)",
+                err=True,
+            )
         processed = skipped = errors = 0
         started = _time.monotonic()
 
@@ -635,6 +645,47 @@ def register(cli: click.Group) -> None:
                         click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
                     bar.update(1)
         duration = _time.monotonic() - started
+
+        # Reconcile the graph to the current walk BEFORE reporting: file_index_state
+        # rows (and their nodes/edges) for files no longer indexed — deleted from
+        # disk OR now excluded by .gitignore — are stale and make cos_graph_doctor
+        # over-count. GC them first so the parse-error summary below reads the
+        # reconciled (exact) state. ONLY on a full, uncapped repo walk
+        # (target == project_root); a --path sub-walk or a max_files-capped walk
+        # would wrongly flag every other file as stale (TASK-302).
+        if target == project_root and len(plan.files) < max_files:
+            try:
+                from database import init_db, resolve_db_path  # type: ignore
+
+                gc_conn = init_db(str(resolve_db_path(project_root)))
+                walked = {p.relative_to(project_root).as_posix() for p in plan.files}
+                stale = [
+                    r[0]
+                    for r in gc_conn.execute(
+                        "SELECT DISTINCT file_path FROM file_index_state"
+                    ).fetchall()
+                    if r[0] and r[0] not in walked
+                ]
+                gc_nodes = 0
+                for sp in stale:
+                    gc_conn.execute(
+                        "DELETE FROM graph_edges_v12 WHERE source_id IN "
+                        "(SELECT id FROM graph_nodes WHERE file_path=?) "
+                        "OR target_id IN (SELECT id FROM graph_nodes WHERE file_path=?)",
+                        (sp, sp),
+                    )
+                    cur = gc_conn.execute("DELETE FROM graph_nodes WHERE file_path=?", (sp,))
+                    gc_nodes += cur.rowcount or 0
+                    gc_conn.execute("DELETE FROM file_index_state WHERE file_path=?", (sp,))
+                if stale:
+                    gc_conn.commit()
+                    click.echo(
+                        f"[graph-reindex] reconcile: pruned {len(stale)} no-longer-indexed "
+                        f"file(s), {gc_nodes} node(s)"
+                    )
+            except Exception as exc:
+                click.echo(f"[graph-reindex] reconcile skipped: {exc}", err=True)
+
         # Surface partial-extraction coverage gaps (some symbols dropped on a
         # parse error) — "errors" only counts hard exceptions, so this was
         # silent (TASK-293). Read the cumulative truth from file_index_state,

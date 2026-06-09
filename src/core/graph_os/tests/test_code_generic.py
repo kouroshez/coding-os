@@ -85,6 +85,32 @@ def test_unsupported_extension_fails_open():
     assert any(p.kind == "lang_unsupported" for p in result.parse_errors)
 
 
+def test_lang_spec_node_types_exist_in_installed_grammars():
+    """Grammar-drift guard (TASK-302): every node type _LANG_SPEC relies on
+    must still appear when the installed grammar parses a sample exercising
+    it. Fails if a tree-sitter upgrade renames a node type — which would
+    otherwise make code_generic silently miss those symbols."""
+    from graph_os import tree_sitter_overlay as ov
+
+    samples = {
+        "rust": "fn f(){}\nstruct S{}\nenum E{A}\ntrait T{ fn m(&self); }\nmod m{}\n",
+        "ruby": "def m; end\nclass C\n  def self.x; end\nend\nmodule M; end\n",
+    }
+    for lang, src in samples.items():
+        spec = g._LANG_SPEC[lang]
+        parsed = ov.parse(lang, src)
+        assert parsed is not None, f"grammar {lang} not installed"
+        seen: set[str] = set()
+        stack = [parsed.root]
+        while stack:
+            node = stack.pop()
+            seen.add(node.type)
+            stack.extend(node.children)
+        expected = spec["func"] | spec["class"]
+        missing = expected - seen
+        assert not missing, f"{lang}: _LANG_SPEC node types absent from grammar (drift?): {missing}"
+
+
 def test_missing_grammar_fails_open(monkeypatch):
     """A supported language whose grammar fails to load → file node only +
     dep_missing parse error (the overlay returns None)."""

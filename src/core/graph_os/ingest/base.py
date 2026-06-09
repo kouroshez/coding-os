@@ -201,6 +201,12 @@ def walk_local(
     # drop is visible — a silently-skipped large source file is a coverage
     # gap, not a no-op (TASK-293 logging-completeness).
     skipped_oversize: list[str] = []
+    # Symlinks (target indexed on its own pass) and unreadable files are also
+    # skipped — count them so the summary can surface that they happened
+    # (TASK-302). Counts, not paths: symlinks can be numerous and the count
+    # is the actionable signal.
+    skipped_symlink = 0
+    skipped_read_error = 0
     for dirpath, dirnames, filenames in os.walk(root_path):
         rel_dir = Path(dirpath).relative_to(root_path).as_posix()
         rel_dir = "" if rel_dir == "." else rel_dir
@@ -246,10 +252,12 @@ def walk_local(
             # symlink node (e.g. CLAUDE.md -> AGENTS.md) would just be an
             # orphan duplicate that nothing links to.
             if full.is_symlink():
+                skipped_symlink += 1
                 continue
             try:
                 size = full.stat().st_size
             except OSError:
+                skipped_read_error += 1
                 continue
             # Per-file cap: skip oversized single files (generated/minified
             # /vendored) instead of reading them whole into memory.
@@ -278,6 +286,8 @@ def walk_local(
         metadata={
             "total_bytes": total_bytes,
             "skipped_oversize": skipped_oversize,
+            "skipped_symlink": skipped_symlink,
+            "skipped_read_error": skipped_read_error,
         },
     )
 
