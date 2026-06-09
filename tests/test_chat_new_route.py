@@ -237,3 +237,17 @@ def test_get_chat_missing_session_returns_404(client, monkeypatch):
     _patch_sdk(monkeypatch, FakeSDK())
     r = client.get("/api/cognition/chat/does-not-exist")
     assert r.status_code == 404
+
+
+def test_chat_send_streams_partial_and_skips_project_hooks(client, monkeypatch):
+    """Follow-up turns must ALSO stream token-by-token (include_partial_messages)
+    and skip the project hook suite (setting_sources=[]) — a silent regression
+    here makes resumed replies dump all at once / re-run the banner+governance."""
+    captured: dict = {}
+    _patch_sdk(monkeypatch, _make_fake_sdk([_Init("uuid-3")], captured_opts=captured))
+    with client.stream(
+        "POST", "/api/cognition/chat/some-session-id/send", json={"prompt": "more"}
+    ) as r:
+        "".join(r.iter_text())
+    assert captured.get("include_partial_messages") is True
+    assert captured.get("setting_sources") == []
