@@ -20,7 +20,7 @@ Every fact in the project lives in exactly **one** of these four layers. Putting
 | **Tasks** | `cos_task_*` | What's in flight / queued / blocked / done | Until archived |
 | **Agent memory** | `cos_search` / `cos_observation_record` / `cos_learn_*` | Cross-session patterns, breakthroughs, decisions, failure modes | Long-lived, decays |
 
-**Meta retrieval:** [`cos_retrieve(query, hint="auto")`](../../docs/engineering/retrieval-routing.md) routes a query to the right layer when unsure.
+**When unsure which layer:** default to the graph/code layer (`cos_graph_*`) for structural and "how does X work" questions; fall to memory only for cross-session recall. The four-layer table above is ordered by this precedence — code/graph first, memory last.
 
 ## When to write to agent memory (and when NOT to)
 
@@ -92,6 +92,5 @@ Don't conflate. An auth permission change goes to the audit log; a pattern about
 - [docs/governance/wrapper-derivation.md](../../docs/governance/wrapper-derivation.md) — SSOT for the four-layer model.
 - [docs/governance/docs-system.md](../../docs/governance/docs-system.md) — docs layer rules.
 - [docs/governance/agent-workflow.md](../../docs/governance/agent-workflow.md) — Core Loop integration.
-- [docs/engineering/retrieval-routing.md](../../docs/engineering/retrieval-routing.md) — `cos_retrieve` router contract.
 - [src/core/skills/thinking_os/SKILL.md](../skills/thinking_os/SKILL.md) — when to invoke memory during the Cognitive Cycle.
 - [src/core/skills/search/SKILL.md](../skills/search/SKILL.md) — `cos_search` vs `cos_doc_search` vs grep decision gate.

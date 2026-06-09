@@ -51,5 +51,4 @@ If a UI panel renders empty with no console error, or a CLI summary suddenly sho
 ## See also
 
 - [docs/engineering/mcp-error-envelope.md](../../docs/engineering/mcp-error-envelope.md) — `ok` / `fail` envelope contract
-- [docs/engineering/retrieval-routing.md](../../docs/engineering/retrieval-routing.md) — `cos_retrieve` shape
 - `cos_graph_contracts` MCP tool — list of HTTP/MCP/event handlers in the graph

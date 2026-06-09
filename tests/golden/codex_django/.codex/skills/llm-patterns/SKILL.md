@@ -240,7 +240,7 @@ Answer:"""
 
 The "say I don't know" instruction is critical — it's the primary hallucination guardrail.
 
-For the coding-os meta-repo specifically: `cos_doc_search` is the production retrieval layer. `cos_retrieve(query, hint="auto")` is the meta-router across memory/docs/tasks.
+For the coding-os meta-repo specifically: `cos_doc_search` is the production retrieval layer for specs; `cos_graph_*` is the structural/code layer (default for "how does X work / who calls / what breaks"); `cos_search` is cross-session agent memory. There is no single router tool — route by the four-layer table (graph/code first, memory last).
 
 ## Hallucination Mitigation — the four levers
 

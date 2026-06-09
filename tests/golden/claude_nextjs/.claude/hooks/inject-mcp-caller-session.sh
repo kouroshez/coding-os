@@ -27,15 +27,32 @@ INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
 # the per-panel session file, so two sibling tabs never cross.
 cos_panel_upgrade_from_payload "$INPUT" >/dev/null 2>&1 || true
 
-# jq is required to rewrite the JSON args safely; without it, fail open.
-command -v jq >/dev/null 2>&1 || exit 0
+# jq is required to rewrite the JSON args safely. We must NOT block the MCP
+# call (fail-open on the call), but the degradation must NOT be SILENT: without
+# injection, per-panel attribution is lost and the per-session WIP cap can
+# collapse across sibling panels. Warn once per session (debounced by a
+# persistent diagnostic marker) + log telemetry, then let the call proceed.
+if ! command -v jq >/dev/null 2>&1; then
+  _deg_marker="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.mcp-attribution-degraded"
+  if [[ ! -f "$_deg_marker" ]]; then
+    echo "warning: jq not found — MCP caller-session attribution is DISABLED; per-session WIP cap may collapse across sibling panels. Install jq to restore per-panel isolation." >&2
+    printf 'jq-missing\n' > "$_deg_marker" 2>/dev/null || true
+  fi
+  cos_log_hook inject-mcp-caller-session warn "reason=jq-missing" || true
+  exit 0
+fi
 
 SID="$(cos_current_session 2>/dev/null || true)"
 # Inject only a GENUINE coding-os session id (ses-<agent>-…). cos_current_session
 # falls back to the panel-id / ppid-hash when no session-id file exists yet;
 # injecting that as agent_session would corrupt attribution worse than the
-# status quo, so fail open on anything that is not a real session token.
-[[ "$SID" == ses-* ]] || exit 0
+# status quo, so do not inject on anything that is not a real session token.
+# This is benign-normal early in a session (before the session-id file exists),
+# so it stays quiet on stderr but is logged for observability (not silent).
+if [[ "$SID" != ses-* ]]; then
+  cos_log_hook inject-mcp-caller-session skip "reason=no-session-id" || true
+  exit 0
+fi
 
 # Inject only when the caller passed NO explicit agent_session; emit updatedInput
 # only when we actually add it (jq `empty` → no stdout → no-override path).

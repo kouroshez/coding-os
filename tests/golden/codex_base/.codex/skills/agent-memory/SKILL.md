@@ -30,7 +30,8 @@ Question                                  → Layer + Tool
 "Why did we choose approach Z?"           → memory   cos_search (memory_type=decision)
 "Which patterns apply to my task?"        → memory   cos_learn_suggest(domain=, complexity=)
 "What changed in the last N days?"        → memory   cos_timeline(days=N)
-"Not sure which layer"                    → router   cos_retrieve(query, hint="auto")
+"How does X work / who calls X / rename"  → graph    cos_graph_* (graph/code FIRST)
+"Not sure which layer"                    → default to graph/code; memory only for cross-session recall
 ```
 
 If the gate routes elsewhere, **stop reading this skill** and go to the right layer. Memory is expensive (decay + confidence ranking); over-use pollutes ranking for everyone.

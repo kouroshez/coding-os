@@ -196,6 +196,15 @@ COS_PANEL_ID="${COS_PANEL_ID:-$(_cos_resolve_panel_id)}"
 COS_PANEL_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR}/panels/${COS_PANEL_ID}}"
 COS_SESSION_FILE="${COS_PANEL_DIR}/session-id"
 
+# Classify how the panel id was derived so SessionStart can surface a collision
+# risk (cheap, no side effects — the loud warning lives in session-context.sh).
+# A ppid-* prefix means NO runtime session-id var was exported and we fell back
+# to a PPID hash; two panels sharing a PPID would then collide on one panel dir.
+case "$COS_PANEL_ID" in
+  ppid-*) export COS_PANEL_ID_SOURCE="ppid" ;;
+  *)      export COS_PANEL_ID_SOURCE="session" ;;
+esac
+
 # Per-panel state file allowlist (basenames). Single source of truth used by
 # cos_state_path / write-state.sh / check-state.sh to route a write to the
 # panel dir vs the shared per-agent dir. Adding a new per-panel marker:
