@@ -1,8 +1,12 @@
-<!-- domain:ARCH | layer:adr | ssot:true | updated:2026-05-12 -->
+<!-- domain:ARCH | layer:adr | ssot:true | updated:2026-06-08 -->
 
 # ADR-0003: Intent-enforcement layer for exhaustive vocabulary
 
-- **Status:** Accepted (2026-05-12)
+- **Status:** Superseded (2026-06-08) — the layer was removed. The board+task
+  system (with `warn-abandoned-task` for task-closure) is the single workflow;
+  the exhaustive-intent hooks, the `audit=` banner field, the audit-checklist
+  artifacts and the completion guardian were deleted as over-enforcement that
+  burned tokens without enough payoff. Kept as decision history.
 - **Deciders:** Kourosh Ebrahimzadeh
 - **Context tags:** workflow, completion-bias, agent-discipline
 
