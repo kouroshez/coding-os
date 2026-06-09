@@ -424,24 +424,33 @@ class SqliteBackend:
     def delete_nodes_for_file(
         self, file_path: str, *, extractors: Sequence[str] | None = None
     ) -> int:
-        """Prune nodes belonging to a single source file before reindex."""
+        """Prune nodes belonging to a single source file before reindex.
+
+        HARD delete by design — the graph mirrors HEAD-of-tree, so a symbol
+        that left the file is gone, not historical (git is the forensic
+        record). Routine reindex calls this per changed file, so deletions
+        are logged at debug; a per-delete audit-log DB row would flood the
+        audit table with reindex churn. See the graph-os-authoring skill.
+        """
         with self._write_lock:
             if not extractors:
                 cursor = self._conn.execute(
                     "DELETE FROM graph_nodes WHERE file_path=?", (file_path,)
                 )
-                self._conn.commit()
-                return int(cursor.rowcount or 0)
-            placeholders = " OR ".join(["metadata_json LIKE ?"] * len(extractors))
-            params: list[Any] = [file_path]
-            for ex in extractors:
-                params.append(f'%"extractor": "{ex}"%')
-            cursor = self._conn.execute(
-                f"DELETE FROM graph_nodes WHERE file_path=? AND ({placeholders})",
-                params,
-            )
+            else:
+                placeholders = " OR ".join(["metadata_json LIKE ?"] * len(extractors))
+                params: list[Any] = [file_path]
+                for ex in extractors:
+                    params.append(f'%"extractor": "{ex}"%')
+                cursor = self._conn.execute(
+                    f"DELETE FROM graph_nodes WHERE file_path=? AND ({placeholders})",
+                    params,
+                )
             self._conn.commit()
-            return int(cursor.rowcount or 0)
+            deleted = int(cursor.rowcount or 0)
+            if deleted:
+                logger.debug("hard-deleted %d node(s) for %s", deleted, file_path)
+            return deleted
 
     def link_external_stubs(self, *, file_path: str | None = None) -> int:
         with self._write_lock:

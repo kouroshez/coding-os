@@ -332,3 +332,54 @@ def test_confidence_out_of_range_rejected_at_construction():
             extractor="t",
             confidence=-0.1,
         )
+
+
+# ---------------------------------------------------------------------------
+# Hard-delete contract (TASK-295) — the graph mirrors HEAD-of-tree; removed
+# symbols are deleted, NOT tombstoned. These tests pin the doc to the code.
+# ---------------------------------------------------------------------------
+
+
+def _file_node(uid: str, file_path: str) -> GraphNode:
+    return GraphNode(
+        uid=uid,
+        kind="code:function",
+        label=uid.rsplit(":", 1)[-1],
+        file_path=file_path,
+        start_line=1,
+        end_line=2,
+        lang="py",
+    )
+
+
+def test_delete_nodes_for_file_hard_deletes(backend, migrated_conn):
+    backend.upsert_node(_file_node("code:function:foo.py::a", "foo.py"))
+    backend.upsert_node(_file_node("code:function:foo.py::b", "foo.py"))
+    backend.upsert_node(_file_node("code:function:bar.py::c", "bar.py"))
+
+    deleted = backend.delete_nodes_for_file("foo.py")
+    assert deleted == 2
+    # foo.py nodes are GONE (not soft-marked); bar.py untouched.
+    assert backend.get_node("code:function:foo.py::a") is None
+    assert backend.get_node("code:function:bar.py::c") is not None
+    # idempotent — a second delete removes nothing.
+    assert backend.delete_nodes_for_file("foo.py") == 0
+
+
+def test_graph_nodes_has_no_deleted_at_column(migrated_conn):
+    """No tombstone column exists — proves the hard-delete contract is real,
+    not the soft-delete the old skill doc claimed."""
+    cols = {row[1] for row in migrated_conn.execute("PRAGMA table_info(graph_nodes)").fetchall()}
+    assert "deleted_at" not in cols
+
+
+def test_skill_doc_matches_hard_delete_reality():
+    """The graph-os-authoring SSOT must not claim tombstoning (doc≠code drift
+    was the bug). It must state the hard-delete contract instead."""
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[4]
+    skill = repo_root / "src/templates/meta/skills/graph-os-authoring/SKILL.md"
+    text = skill.read_text(encoding="utf-8")
+    assert "tombstoned, not deleted" not in text
+    assert "HARD-deleted" in text

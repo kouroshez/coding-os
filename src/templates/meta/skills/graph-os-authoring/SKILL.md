@@ -69,7 +69,7 @@ def extract(file_path: Path) -> ExtractionResult:
 **Hard rules:**
 
 - **Upsert on uid**, never blind-insert.
-- **Removed symbols are tombstoned, not deleted** — if function `foo` disappears from a file, mark the node `deleted_at=now()` so historical references resolve. Compaction deletes tombstones older than 90 days.
+- **Removed symbols are HARD-deleted** — if function `foo` disappears from a file, `delete_nodes_for_file` removes its node before the file is re-extracted. The graph mirrors HEAD-of-tree, so a symbol that left the tree is *gone*, not historical; git is the forensic record of what used to exist. There is no `deleted_at` column and no tombstone compaction — they would accumulate millions of dead rows for a property (historical uid resolution) nothing in the system needs today. Routine reindex deletes are logged at `logger.debug` (a per-delete audit-log DB row would flood the audit table with reindex churn). If historical resolution is ever required, add tombstoning as a deliberate feature then — don't assume it exists.
 - **Edge confidence is part of the key idempotency** — re-extracting the same edge updates the confidence, doesn't append a duplicate.
 
 ### 3. Honest confidence scores
@@ -239,7 +239,7 @@ The PostToolUse path is fire-and-forget: it can't block the agent. Failures log 
 - **Reindex without content-hash check** — kills perf.
 - **Edge to a uid that doesn't exist** — dangling reference. Validate target uid exists or queue resolution.
 - **Mutable uid** — including line number, timestamp, hash in the uid breaks cross-rebuild stability.
-- **Deleting nodes instead of tombstoning** — breaks historical references.
+- **Deleting nodes without committing or while holding a stale edge** — leaves dangling edges; `delete_nodes_for_file` deletes + commits under the write lock, and `cos_graph_doctor` sweeps any survivors.
 - **Synchronous extraction in PostToolUse hook** — blocks the agent. Always fire-and-forget.
 
 ## Verification (after authoring)
