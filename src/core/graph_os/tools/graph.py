@@ -1786,6 +1786,7 @@ def _similar_from_persisted(
         return None
     try:
         from thinking_os.embeddings import (
+            embed_text,
             is_available,
             persisted_similarity_floor,
             search_similar,
@@ -1798,16 +1799,29 @@ def _similar_from_persisted(
     if not ref_text:
         return None
     # Over-fetch beyond top_k to absorb the root self-hit + any identifier /
-    # external rows, then trim. search_similar streams the whole persisted
-    # pool (no 200-sample window) and returns score-sorted hits.
+    # external rows, then trim.
     overfetch = max(top_k * 4, top_k + 20)
+    # ANN fast path: vec0 kNN is sublinear, so this stays fast as the graph
+    # grows orders of magnitude. Returns None when the extension is absent →
+    # fall through to the brute-force streaming scan (always correct, O(N)).
+    hits: list[dict[str, Any]] | None = None
     try:
-        hits = search_similar(
-            conn, ref_text, source_tables=["graph_nodes"], limit=overfetch, threshold=0.0
-        )
-    except Exception as exc:  # fail-open → caller falls back to difflib
-        logger.debug("similar persisted path skipped: %s", exc)
-        return None
+        from graph_os import vec_index
+
+        ref_blob = embed_text(ref_text)
+        ann = vec_index.knn(conn, ref_blob, overfetch) if ref_blob else None
+        if ann is not None:
+            hits = [{"source_id": sid, "score": cos} for sid, cos in ann]
+    except Exception as exc:
+        logger.debug("vec ann path skipped (%s); falling back to brute force", exc)
+    if hits is None:
+        try:
+            hits = search_similar(
+                conn, ref_text, source_tables=["graph_nodes"], limit=overfetch, threshold=0.0
+            )
+        except Exception as exc:  # fail-open → caller falls back to difflib
+            logger.debug("similar persisted path skipped: %s", exc)
+            return None
     if not hits:
         return None
     ids = [h["source_id"] for h in hits]
@@ -2045,6 +2059,124 @@ def cos_graph_similar(
             "top_k": top_k_eff,
             "result_truncated": total > top_k_eff,
             "resolved_from": resolved_from,
+        },
+    )
+
+
+def cos_graph_search(
+    query: str,
+    *,
+    top_k: int = 10,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Hybrid semantic + lexical search over indexed code symbols by free text.
+
+    Blends three signals: semantic cosine (ANN vec0 → cosine, brute-force
+    fallback), FTS5 lexical presence, and graph in-degree (centrality). Answers
+    "where is the code that does X?" without knowing a symbol name.
+    """
+    if not query or not query.strip():
+        return _fail("validation", "query must be non-empty")
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+    conn = getattr(be, "_conn", None)
+    if conn is None:
+        return _fail("unavailable", "backend has no SQLite connection", retryable=True)
+
+    top_k_eff = max(1, min(int(top_k), 50))
+    pool = top_k_eff * 5
+
+    # --- semantic signal (ANN → brute fallback) ---
+    sem_by_id: dict[int, float] = {}
+    try:
+        from thinking_os.embeddings import embed_text, is_available, search_similar
+
+        if is_available():
+            blob = embed_text(query)
+            if blob:
+                from graph_os import vec_index
+
+                ann = vec_index.knn(conn, blob, pool)
+                if ann is None:
+                    hits = search_similar(
+                        conn, query, source_tables=["graph_nodes"], limit=pool, threshold=0.0
+                    )
+                    ann = [(h["source_id"], h["score"]) for h in hits]
+                sem_by_id = {int(sid): float(cos) for sid, cos in ann}
+    except Exception as exc:
+        logger.debug("graph_search semantic signal skipped: %s", exc)
+
+    # --- lexical signal (FTS5 presence over graph_nodes_fts) ---
+    lex_ids: set[int] = set()
+    fts_q = _fts5_safe_query(query)
+    if fts_q:
+        try:
+            lex_ids = {
+                int(r[0])
+                for r in conn.execute(
+                    "SELECT rowid FROM graph_nodes_fts WHERE graph_nodes_fts MATCH ? LIMIT ?",
+                    (fts_q, pool),
+                ).fetchall()
+            }
+        except Exception as exc:
+            logger.debug("graph_search lexical signal skipped: %s", exc)
+
+    cand_ids = set(sem_by_id) | lex_ids
+    if not cand_ids:
+        return _ok(
+            {"query": query, "results": [], "total_count": 0},
+            meta={"backend": be.backend_id, "scorer": "hybrid", "top_k": top_k_eff},
+        )
+
+    # --- centrality signal (in-degree over the candidate set, normalised) ---
+    deg_by_id: dict[int, int] = {}
+    id_list = list(cand_ids)
+    ph = ",".join("?" * len(id_list))
+    try:
+        for r in conn.execute(
+            f"SELECT target_id, COUNT(*) FROM graph_edges_v12 "
+            f"WHERE target_id IN ({ph}) GROUP BY target_id",
+            id_list,
+        ).fetchall():
+            deg_by_id[int(r[0])] = int(r[1])
+    except Exception as exc:
+        logger.debug("graph_search centrality signal skipped: %s", exc)
+    max_deg = max(deg_by_id.values(), default=0)
+
+    # --- blend + resolve to nodes ---
+    id_to_uid = {
+        int(row[0]): row[1]
+        for row in conn.execute(
+            f"SELECT id, uid FROM graph_nodes WHERE id IN ({ph})", id_list
+        ).fetchall()
+    }
+    nodes_by_uid = be.get_nodes_bulk([u for u in id_to_uid.values()])
+    scored: list[tuple[float, GraphNode]] = []
+    for gid in cand_ids:
+        uid = id_to_uid.get(gid)
+        node = nodes_by_uid.get(uid) if uid else None
+        if node is None or node.kind == "identifier" or uid.startswith("code:external:"):
+            continue
+        sem = sem_by_id.get(gid, 0.0)
+        lex = 1.0 if gid in lex_ids else 0.0
+        deg = (deg_by_id.get(gid, 0) / max_deg) if max_deg else 0.0
+        score = 0.7 * sem + 0.2 * lex + 0.1 * deg
+        scored.append((score, node))
+    scored.sort(key=lambda p: p[0], reverse=True)
+    total = len(scored)
+    results = [
+        {**NodeSummary.from_node(n).to_dict(), "score": round(s, 4)}
+        for s, n in scored[:top_k_eff]
+    ]
+    return _ok(
+        {"query": query, "results": results, "total_count": total},
+        meta={
+            "backend": be.backend_id,
+            "scorer": "hybrid",
+            "top_k": top_k_eff,
+            "result_truncated": total > top_k_eff,
         },
     )
 

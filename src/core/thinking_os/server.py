@@ -2574,6 +2574,29 @@ if _GRAPH_TOOLS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_graph_search",
+        annotations={
+            "title": "Graph Hybrid Semantic Search",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_search_tool(
+        query: str,
+        top_k: int = 10,
+    ) -> str:
+        """Find code symbols by free text — hybrid semantic + lexical + centrality.
+
+        Args:
+            query: Natural-language or code-ish query (e.g. "validate jwt token").
+            top_k: Number of results to return (1–50).
+        """
+        return _graph_tools.cos_graph_search(query, top_k=int(top_k))
+
+    @mcp.tool(
         name="cos_graph_references",
         annotations={
             "title": "Graph Inbound References",
@@ -3086,6 +3109,7 @@ else:
         "cos_graph_detect_changes",
         "cos_graph_trace",
         "cos_graph_similar",
+        "cos_graph_search",
         "cos_graph_references",
         "cos_graph_path",
         "cos_graph_export",

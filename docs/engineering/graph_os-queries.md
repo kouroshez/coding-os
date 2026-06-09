@@ -66,6 +66,18 @@ vectors after a bulk graph change, or `make migrate-embeddings` to cut the
 whole corpus over to BGE-M3 (re-embed + flip the `.coding-os/.embedding-model`
 active marker; the dual-model bridge keeps search correct mid-migration).
 
+### ANN index + `cos_graph_search` (free-text hybrid)
+
+For scale, the persisted path uses a **sqlite-vec `vec0` ANN index**
+(`graph_os/vec_index.py`) so kNN is sublinear (O(log N)) instead of an O(N)
+scan — vectors are unit-normalised, so vec0's L2 distance maps to cosine by
+`cos = 1 − d²/2` and kNN order is identical. The index is a derived cache over
+the `embeddings` table (rebuilt by `vec_index.rebuild`, lazily on first query);
+when sqlite-vec is absent it falls back to the brute-force scan (always correct).
+`cos_graph_search(query)` answers "where is the code that does X?" by free text,
+blending semantic cosine (0.7) + FTS5 lexical presence (0.2) + in-degree
+centrality (0.1); `cos_graph_similar(uid)` stays node-to-node.
+
 ## Common failure modes
 
 - `fail("unavailable", ...)` with `retryable=true` — backend missing.

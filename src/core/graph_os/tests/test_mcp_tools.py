@@ -426,6 +426,66 @@ class TestSimilar:
         uids = [r["uid"] for r in data["results"]]
         assert "code:method:m.py::C.beta" in uids
 
+    def test_graph_search_hybrid_returns_relevant(self, migrated_conn, monkeypatch):
+        """Wave 3: cos_graph_search ranks code symbols by free text via the
+        hybrid semantic + lexical + centrality blend."""
+        pytest.importorskip("sentence_transformers")
+        import embeddings as emb  # type: ignore
+        from graph_os.backends.sqlite_backend import SqliteBackend
+
+        if not emb.is_available():
+            pytest.skip("embedding model not available")
+
+        be = SqliteBackend(conn=migrated_conn)
+        nodes = [
+            GraphNode(
+                uid="code:function:a.py::validate_jwt",
+                kind="function",
+                label="validate_jwt",
+                file_path="a.py",
+                start_line=1,
+                signature="def validate_jwt(token)",
+                doc_blob="Verify a JWT auth token signature and expiry.",
+            ),
+            GraphNode(
+                uid="code:function:a.py::render_chart",
+                kind="function",
+                label="render_chart",
+                file_path="a.py",
+                start_line=9,
+                signature="def render_chart(rows)",
+                doc_blob="Draw a bar chart from rows.",
+            ),
+        ]
+        be.bulk_upsert(nodes, [])
+        for n in nodes:
+            row = migrated_conn.execute(
+                "SELECT id, signature, doc_blob FROM graph_nodes WHERE uid = ?", (n.uid,)
+            ).fetchone()
+            emb.upsert_embedding(
+                migrated_conn,
+                "graph_nodes",
+                row[0],
+                " ".join(filter(None, [n.label, row[1], row[2]])),
+            )
+        migrated_conn.commit()
+
+        graph._BACKEND_SINGLETON = be
+        monkeypatch.setattr(graph, "_backend", lambda *, backend=None: be)
+        try:
+            res = graph.cos_graph_search("verify authentication token", top_k=5)
+        finally:
+            graph._BACKEND_SINGLETON = None
+
+        data = _assert_ok(res)
+        assert data["meta"]["scorer"] == "hybrid"
+        uids = [r["uid"] for r in data["results"]]
+        assert "code:function:a.py::validate_jwt" in uids
+        assert uids[0] == "code:function:a.py::validate_jwt"
+
+    def test_graph_search_rejects_empty_query(self, seeded_backend):
+        _assert_fail(graph.cos_graph_search(""), "validation")
+
     def test_persisted_embeddings_fast_path(self, migrated_conn, monkeypatch):
         """Wave 1: when graph_nodes carry persisted embeddings, cos_graph_similar
         ranks from stored vectors (scorer='persisted-embeddings') — one query
