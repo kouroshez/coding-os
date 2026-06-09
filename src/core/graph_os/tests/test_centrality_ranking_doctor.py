@@ -299,6 +299,47 @@ class TestDoctor:
         assert "self_loops" in categories
         graph._BACKEND_SINGLETON = None
 
+    def test_parse_errors_stats_zero_on_clean_graph(self, migrated_conn, monkeypatch):
+        """No file_index_state parse errors → stats report 0, no issue raised."""
+        from graph_os.backends.sqlite_backend import SqliteBackend
+
+        backend = SqliteBackend(conn=migrated_conn)
+        graph._BACKEND_SINGLETON = backend
+        monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
+        data = _ok(graph.cos_graph_doctor())
+        assert data["stats"]["files_with_parse_errors"] == 0
+        assert data["stats"]["parse_error_total"] == 0
+        assert "files_with_parse_errors" not in {i["category"] for i in data["issues"]}
+        graph._BACKEND_SINGLETON = None
+
+    def test_parse_errors_surfaced_as_informational(self, migrated_conn, monkeypatch):
+        """file_index_state rows with parse_errors_count > 0 surface visibly
+        but do NOT trip healthy=false (informational, TASK-293)."""
+        from graph_os.backends.sqlite_backend import SqliteBackend
+
+        backend = SqliteBackend(conn=migrated_conn)
+        graph._BACKEND_SINGLETON = backend
+        monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
+        for path, n_err in (("a.sh", 3), ("b.md", 2)):
+            migrated_conn.execute(
+                "INSERT INTO file_index_state (file_path, content_hash, extractor_chain, "
+                "nodes_written, edges_written, parse_errors_count, last_indexed_at) "
+                "VALUES (?, 'h', 'chain', 0, 0, ?, 0)",
+                (path, n_err),
+            )
+        migrated_conn.commit()
+        data = _ok(graph.cos_graph_doctor())
+        assert data["stats"]["files_with_parse_errors"] == 2
+        assert data["stats"]["parse_error_total"] == 5
+        pe = [i for i in data["issues"] if i["category"] == "files_with_parse_errors"]
+        assert len(pe) == 1
+        assert pe[0]["count"] == 2
+        assert pe[0]["parse_error_total"] == 5
+        assert pe[0]["severity"] == "info"
+        # informational — must not flip the overall verdict
+        assert data["healthy"] is True
+        graph._BACKEND_SINGLETON = None
+
     def _insert_dangling(self, conn, source_uid: str, source_label: str) -> None:
         """Insert a real source node + an edge to ghost target_id=9999.
 

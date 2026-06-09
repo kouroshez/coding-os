@@ -4957,6 +4957,48 @@ def cos_graph_doctor(
                         fixed_count += int(cur.rowcount or 0)
                     sqlite_conn.commit()
 
+            # 7. Files with parse errors — symbols silently dropped. A file
+            # can index "successfully" (no exception) yet have an extractor
+            # hit a syntax/parse error on part of it, so some functions /
+            # classes are missing. file_index_state.parse_errors_count
+            # records the per-file count; the reindex CLI's "errors=0" only
+            # counts hard exceptions, so partial extraction was previously
+            # invisible — a silent-incomplete-coverage bug. Informational
+            # (a few heredoc / markdown parse errors don't corrupt the
+            # graph) but MUST be visible so the agent knows node coverage
+            # is below 100%.
+            try:
+                pe_row = sqlite_conn.execute(
+                    "SELECT COALESCE(SUM(parse_errors_count), 0), "
+                    "COUNT(DISTINCT file_path) FROM file_index_state "
+                    "WHERE parse_errors_count > 0"
+                ).fetchone()
+                pe_total = int(pe_row[0] or 0)
+                pe_files = int(pe_row[1] or 0)
+            except Exception as exc:  # table absent on a fresh graph
+                logger.debug("parse-error probe suppressed: %s", exc)
+                pe_total = pe_files = 0
+            stats["parse_error_total"] = pe_total
+            stats["files_with_parse_errors"] = pe_files
+            if pe_files:
+                pe_sample = sqlite_conn.execute(
+                    "SELECT file_path, parse_errors_count FROM file_index_state "
+                    "WHERE parse_errors_count > 0 "
+                    "ORDER BY parse_errors_count DESC LIMIT 10"
+                ).fetchall()
+                issues.append(
+                    {
+                        "category": "files_with_parse_errors",
+                        "severity": "info",
+                        "count": pe_files,
+                        "parse_error_total": pe_total,
+                        "sample": [
+                            {"file_path": r[0], "parse_errors": int(r[1])}
+                            for r in pe_sample
+                        ],
+                    }
+                )
+
             stats["issue_count"] = len(issues)
             if fix:
                 stats["fixed_edge_count"] = fixed_count
@@ -4985,7 +5027,7 @@ def cos_graph_doctor(
 
     # W7.6 / R4-N9: informational categories (orphaned_external_unresolved)
     # do NOT trip healthy=false. Real issues = anything else.
-    _INFORMATIONAL_CATEGORIES = {"orphaned_external_unresolved"}
+    _INFORMATIONAL_CATEGORIES = {"orphaned_external_unresolved", "files_with_parse_errors"}
     real_issues = [i for i in issues if i.get("category") not in _INFORMATIONAL_CATEGORIES]
     healthy = len(real_issues) == 0
     return _ok(

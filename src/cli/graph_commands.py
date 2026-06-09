@@ -566,15 +566,23 @@ def register(cli: click.Group) -> None:
         plan = walk_local(target, max_files=max_files)
         click.echo(f"[graph-reindex] walking {target}; {len(plan.files)} files (force={force})")
         processed = skipped = errors = 0
+        parse_err_files = parse_err_total = 0
         started = _time.monotonic()
 
         def _record(report: dict) -> None:
-            nonlocal processed, skipped
+            nonlocal processed, skipped, parse_err_files, parse_err_total
             cache = report.get("cache")
             if cache == "hit":
                 skipped += 1
             else:
                 processed += 1
+            # Count partial-extraction (some symbols dropped on a parse
+            # error) so the summary surfaces it — "errors" only counts hard
+            # exceptions, leaving partial coverage silent (TASK-293).
+            n_pe = len(report.get("parse_errors") or [])
+            if n_pe:
+                parse_err_files += 1
+                parse_err_total += n_pe
 
         # Live per-file progress bar — click.progressbar auto-hides when
         # stdout is not a TTY (pipes / CI), so non-interactive runs keep
@@ -619,10 +627,7 @@ def register(cli: click.Group) -> None:
                             force=force,
                             link_stubs=False,  # global link after the walk
                         )
-                        if report.get("cache") == "hit":
-                            skipped += 1
-                        else:
-                            processed += 1
+                        _record(report)
                     except Exception as exc:
                         errors += 1
                         click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
@@ -630,7 +635,8 @@ def register(cli: click.Group) -> None:
         duration = _time.monotonic() - started
         click.echo(
             f"[graph-reindex] processed={processed} skipped={skipped} "
-            f"errors={errors} duration={duration:.2f}s"
+            f"errors={errors} parse_errors={parse_err_total} in {parse_err_files} files "
+            f"duration={duration:.2f}s"
         )
 
         # per-file linking during the walk cannot resolve a stub
