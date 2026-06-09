@@ -5,12 +5,12 @@ swimlane: core
 kind: refactor
 epic: hub-redesign
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-06-09
 started: 2026-06-08
-completed: null
+completed: 2026-06-08
 agent_session: ses-claude-618-2ab7
 depends_on: []
 blocked_by: []
@@ -32,3 +32,5 @@ references: []
 - **Given** the full suite + goldens, **When** verified, **Then** thinking_os + cli + golden-parity + UI tsc + docs-lint are all green.
 
 ## Work Log
+- 2026-06-09 [claude]: committed e0a17fbd: src/cli/cognition.py, src/core/board_os/mcp_tools.py, src/core/board_os/tests/test_reviewer_hint.py,
+- 2026-06-09 [claude]: Zero audit residue achieved. A: Audits hub page (route/page/nav/router) removed. B: exhaustive_evidence formula removed 
