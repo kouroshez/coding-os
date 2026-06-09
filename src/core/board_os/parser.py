@@ -29,7 +29,7 @@ _FRONTMATTER_RE = re.compile(
     r"^---\s*\n(?P<yaml>.*?)\n---\s*\n(?P<body>.*)$",
     re.DOTALL,
 )
-_H1_RE = re.compile(r"^#\s+(?P<task_id>TASK-\d+):\s*(?P<title>.+?)\s*$", re.MULTILINE)
+_H1_RE = re.compile(r"^#\s+(?P<task_id>TASK-(?:[A-Z][A-Z0-9]*-)?\d+):\s*(?P<title>.+?)\s*$", re.MULTILINE)
 _H2_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 _OUTCOME_RE = re.compile(
     r"\*\*Outcome[^*]*\*\*\s*(?:<!--[^>]*-->\s*)?(.+?)(?:\n\n|\n##|\Z)",
@@ -98,6 +98,19 @@ def _extract_body_sections(body: str) -> dict[str, str]:
 
 
 def _extract_outcome(body: str) -> str | None:
+    # Prefer the dedicated `## Outcome` H2 section. A blind whole-body regex
+    # mis-fires on any "**Outcome**" appearing earlier — the frontmatter title
+    # or the prose — so scope extraction to the section when it exists: strip an
+    # optional leading "**Outcome…**" marker, then take its first real line.
+    section = _extract_body_sections(body).get("Outcome")
+    if section is not None:
+        cleaned = re.sub(r"^\s*\*\*Outcome[^*]*\*\*\s*", "", section, count=1)
+        for line in cleaned.splitlines():
+            stripped = line.strip()
+            if stripped and not stripped.startswith("<!--"):
+                return stripped
+        return None
+    # Legacy fallback: tasks with an inline "**Outcome:**" outside any H2.
     m = _OUTCOME_RE.search(body)
     if not m:
         return None
@@ -235,9 +248,9 @@ def _parse_legacy_fallback(content: str, source_str: str | None) -> ParsedTask |
         return None
     raw_deps = getattr(result, "dependencies", "") or ""
     if isinstance(raw_deps, list):
-        deps = tuple(str(d) for d in raw_deps if re.match(r"^TASK-\d+$", str(d)))
+        deps = tuple(str(d) for d in raw_deps if re.match(r"^TASK-(?:[A-Z][A-Z0-9]*-)?\d+$", str(d)))
     elif isinstance(raw_deps, str):
-        deps = tuple(re.findall(r"TASK-\d+", raw_deps))
+        deps = tuple(re.findall(r"TASK-(?:[A-Z][A-Z0-9]*-)?\d+", raw_deps))
     else:
         deps = ()
     return ParsedTask(

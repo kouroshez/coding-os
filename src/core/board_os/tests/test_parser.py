@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from core.board_os.parser import (
     ParsedTask,
+    _extract_outcome,
     extract_frontmatter,
     is_lean_format,
     parse_task,
@@ -163,6 +164,34 @@ def test_parse_task_extracts_outcome():
     assert parsed is not None
     assert parsed.outcome is not None
     assert "SQLite fallback" in parsed.outcome
+
+
+def test_extract_outcome_plain_h2_section():
+    body = "## Outcome\n\nMake the gate read the section.\n\n## Repro Steps\n- x\n"
+    assert _extract_outcome(body) == "Make the gate read the section."
+
+
+def test_extract_outcome_inline_bold_marker_in_section():
+    body = "## Outcome\n\n**Outcome (one sentence):** Ship the fix.\n\n## Acceptance\n- y\n"
+    assert _extract_outcome(body) == "Ship the fix."
+
+
+def test_extract_outcome_ignores_stray_marker_before_section():
+    # Regression: a "**Outcome**" mention before the section (e.g. the task
+    # title in frontmatter) must not hijack extraction — section scoping wins.
+    body = (
+        "---\n"
+        'title: "Fix the **Outcome** bold marker"\n'
+        "---\n\n"
+        "## Outcome\n\nThe real outcome statement lives here.\n\n"
+        "## Repro Steps\n- z\n"
+    )
+    assert _extract_outcome(body) == "The real outcome statement lives here."
+
+
+def test_extract_outcome_legacy_inline_without_section():
+    body = "**Outcome (one sentence):** legacy inline outcome.\n\nbody...\n"
+    assert _extract_outcome(body) == "legacy inline outcome."
 
 
 def test_parse_task_extracts_read_first_paths():
