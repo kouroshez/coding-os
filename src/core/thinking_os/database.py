@@ -1875,6 +1875,30 @@ def _migrate_v39_observations_task_id(conn: sqlite3.Connection) -> None:
     logger.info("Migration v39 applied: observations.task_id added")
 
 
+def _migrate_v40_embedding_outbox(conn: sqlite3.Connection) -> None:
+    """Migration v40 — durable embedding_outbox so the capture hot path can defer
+    embedding off the interactive path (Wave 4). The PostToolUse capture skips
+    the model load (COS_CAPTURE_SKIP_EMBED) to keep Edits fast; without an outbox
+    those rows had NO embedding until a manual reindex that might never run. This
+    table records the backlog; a Stop-hook drains it. UNIQUE(source_table,
+    source_id) makes enqueue idempotent. Idempotent — skips if the table exists."""
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS embedding_outbox (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_table TEXT    NOT NULL,
+    source_id    INTEGER NOT NULL,
+    enqueued_at  INTEGER NOT NULL,
+    attempts     INTEGER NOT NULL DEFAULT 0,
+    last_error   TEXT,
+    UNIQUE(source_table, source_id)
+);
+CREATE INDEX IF NOT EXISTS idx_embedding_outbox_pending
+    ON embedding_outbox(attempts, enqueued_at);
+""")
+    conn.commit()
+    logger.info("Migration v40 applied: embedding_outbox table")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2191,6 +2215,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         39,
         "Add observations.task_id — per-task linkage so mid-task rework signals become derivable",
         _migrate_v39_observations_task_id,
+    ),
+    (
+        40,
+        "Add embedding_outbox — durable backlog so hot-path-skipped embeddings drain off the interactive path",
+        _migrate_v40_embedding_outbox,
     ),
 ]
 

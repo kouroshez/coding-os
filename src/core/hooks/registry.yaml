@@ -650,6 +650,22 @@ hooks:
         matcher: ""
         status_message: "🩹 Checking for tasks left in_progress..."
 
+  - id: drain-embedding-outbox
+    script: drain-embedding-outbox.sh
+    description: |
+      Stop hook — drains the embedding_outbox (Wave 4) off the interactive
+      path. The capture hot-path enqueues instead of embedding (so an Edit is
+      never blocked by a model load); this hook embeds the backlog at turn-end.
+      Fail-open, never blocks; the helper fast-paths out with zero model load
+      when the outbox is empty (the common case).
+    category: retrieval
+    phase: "0"
+    timeout: 30
+    events:
+      - event: Stop
+        matcher: ""
+        status_message: "🧮 Draining deferred embeddings..."
+
   - id: agent-presence
     script: agent-presence.sh
     description: 'Live per-session presence file (.coding-os/<agent>/sessions/<sid>.json). Powers 3-state active/present/offline on the board — uses PPID + PID liveness so "thinking" agents don''t appear offline between tool calls. Updated 2026-05-04 — also fires on SubagentStart/SubagentStop/PostToolUseFailure so parent-session activity stays accurate while sub-agents work. Updated 2026-05-22 — also fires on PostToolUse Bash so read-only sessions (verify/git/pytest, no Write/Edit) refresh last_tool_at and stay visible past the 300s TTL.'

@@ -77,6 +77,24 @@ class TestToolFiltering:
         assert result["status"] == "skipped"
 
 
+class TestHotPathOutbox:
+    def test_skip_embed_enqueues_outbox(self, db_path: Path, monkeypatch) -> None:
+        # Wave 4: on the hot path the embed is deferred to the durable outbox
+        # (no model load), not dropped. Plain INSERT — needs no rag deps.
+        import sqlite3
+
+        monkeypatch.setenv("COS_CAPTURE_SKIP_EMBED", "1")
+        result = capture_observation(
+            {"tool_name": "Write", "tool_input": {"file_path": "wave4_hotpath.py"}},
+            db_path=db_path,
+        )
+        assert result["status"] == "captured"
+        c = sqlite3.connect(db_path)
+        n = c.execute("SELECT COUNT(*) FROM embedding_outbox").fetchone()[0]
+        c.close()
+        assert n == 1
+
+
 class TestMemoryTypeDetection:
     def test_backend(self) -> None:
         assert _detect_memory_type("backend/apps/products/models.py") == "pattern"

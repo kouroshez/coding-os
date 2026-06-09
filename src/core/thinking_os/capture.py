@@ -410,18 +410,24 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
         except Exception:
             pass  # graph table may not exist (pre-v4 DB)
 
-        # Embed for semantic search (fire-and-forget). Skipped on
-        # the synchronous hook hot-path (COS_CAPTURE_SKIP_EMBED) so the model
-        # load never blocks an Edit; the FTS5 trigger already indexes the row
-        # on INSERT, so keyword recall works without the embedding.
-        if os.environ.get("COS_CAPTURE_SKIP_EMBED", "") not in ("1", "true"):
-            try:
+        # Embed for semantic search (fire-and-forget). On the synchronous hook
+        # hot-path (COS_CAPTURE_SKIP_EMBED) the model load would block the Edit,
+        # so instead enqueue to the durable outbox — a Stop-hook drains it off
+        # the interactive path (Wave 4). Off the hot path, embed inline. Either
+        # way the FTS5 trigger already indexes the row on INSERT for keyword
+        # recall, so semantic recall is the only thing deferred.
+        try:
+            if os.environ.get("COS_CAPTURE_SKIP_EMBED", "") in ("1", "true"):
+                from embeddings import enqueue_outbox
+
+                enqueue_outbox(conn, "observations", cursor.lastrowid)
+            else:
                 from embeddings import upsert_embedding
 
                 text_to_embed = " ".join(filter(None, [title, narrative, concepts]))
                 upsert_embedding(conn, "observations", cursor.lastrowid, text_to_embed)
-            except Exception:
-                pass  # embeddings module / table may not exist (pre-v5 or no rag extras)
+        except Exception:
+            pass  # embeddings module / table may not exist (pre-v5 or no rag extras)
 
         return {"status": "captured", "id": cursor.lastrowid}
     finally:

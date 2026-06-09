@@ -501,6 +501,49 @@ class TestModelSSOTAndCutover:
         assert st2["complete"] is True and st2["remaining"] == 0
 
 
+class TestEmbeddingOutbox:
+    """Wave 4: durable backfill of hot-path-skipped embeddings."""
+
+    @REQUIRES_RAG
+    def test_enqueue_idempotent_and_drain_embeds(self, tmp_db: sqlite3.Connection) -> None:
+        tmp_db.execute(
+            "INSERT INTO observations (id, session_id, title, narrative) "
+            "VALUES (1, 's', 'Auth bug', 'jwt refresh fails')"
+        )
+        tmp_db.commit()
+        assert embeddings.enqueue_outbox(tmp_db, "observations", 1) is True
+        embeddings.enqueue_outbox(tmp_db, "observations", 1)  # idempotent
+        assert tmp_db.execute("SELECT COUNT(*) FROM embedding_outbox").fetchone()[0] == 1
+
+        rep = embeddings.drain_outbox(tmp_db)
+        assert rep["drained"] == 1 and rep["remaining"] == 0
+        assert (
+            tmp_db.execute(
+                "SELECT COUNT(*) FROM embeddings "
+                "WHERE source_table='observations' AND source_id=1"
+            ).fetchone()[0]
+            == 1
+        )
+        assert tmp_db.execute("SELECT COUNT(*) FROM embedding_outbox").fetchone()[0] == 0
+
+    @REQUIRES_RAG
+    def test_drain_drops_gone_source(self, tmp_db: sqlite3.Connection) -> None:
+        # A row whose source observation no longer exists is dropped, not
+        # retried forever.
+        tmp_db.execute(
+            "INSERT INTO embedding_outbox (source_table, source_id, enqueued_at) "
+            "VALUES ('observations', 999, 0)"
+        )
+        tmp_db.commit()
+        embeddings.drain_outbox(tmp_db)
+        assert tmp_db.execute("SELECT COUNT(*) FROM embedding_outbox").fetchone()[0] == 0
+
+    def test_drain_unavailable_is_safe(self, tmp_db: sqlite3.Connection) -> None:
+        with patch.object(embeddings, "is_available", return_value=False):
+            rep = embeddings.drain_outbox(tmp_db)
+            assert rep["status"] == "unavailable"
+
+
 class TestTextHash:
     def test_hash_length_16(self) -> None:
         h = embeddings._compute_text_hash("any text")
