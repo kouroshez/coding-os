@@ -108,6 +108,16 @@ class TransitionError(ValueError):
 # ---------- Public API ----------
 
 
+def _is_shared_pid_session(session: str | None) -> bool:
+    # resolve_agent_session's last-resort synthetic is ses-<agent>-pid<PID>.
+    # For the long-lived MCP server that PID is shared by ALL panels, so a
+    # per-session cap keyed on it is NOT panel-isolated.
+    if not session or not session.startswith("ses-"):
+        return False
+    idx = session.rfind("-pid")
+    return idx != -1 and session[idx + len("-pid"):].isdigit()
+
+
 def check_wip(
     conn: sqlite3.Connection,
     config: ScrumbanConfig,
@@ -119,6 +129,16 @@ def check_wip(
     # tasks so concurrent sessions don't block each other on a global
     # cap. testing / emergency stay board-global (queue / SEV limits).
     per_session = bool(config.workflow_policy.per_session_wip and agent_session)
+    if per_session and _is_shared_pid_session(agent_session):
+        # Attribution fell back to the shared MCP-server PID synthetic — surface
+        # it rather than silently applying an in_progress cap that is shared
+        # across sibling panels instead of being per-panel.
+        logger.warning(
+            "per-session WIP cap degraded: agent_session %r is a shared "
+            "ses-<agent>-pid<PID> synthetic (panel attribution unresolved); "
+            "the in_progress cap is shared across sibling panels, not per-panel.",
+            agent_session,
+        )
     counts: dict[str, int] = {}
     for status in _WIP_COLUMN_MAP.values():
         if per_session and status == "in_progress":

@@ -56,9 +56,23 @@ cos_log_hook session-context fire "source=${SOURCE}"
 # per-agent shared, COS_PANEL_DIR for per-panel private.
 mkdir -p "$COS_STATE_DIR" "$COS_AGENT_DIR" "$COS_PANEL_DIR"
 
+# Loud, debounced collision diagnostic (TASK-288): when the panel id fell back
+# to a PPID hash (no runtime session-id var exported), two sibling panels that
+# share a PPID can collide on this one panel dir and clobber each other's
+# task/gate/skill state. Surface it ONCE per session — a silent collision is
+# the failure mode this converts into an observed, fail-safe event.
+if [[ "${COS_PANEL_ID_SOURCE:-}" == "ppid" ]]; then
+  _ppid_marker="${COS_PANEL_DIR}/.ppid-collision-warned"
+  if [[ ! -f "$_ppid_marker" ]]; then
+    echo "warning: coding-os panel id resolved via PPID fallback ('${COS_PANEL_ID}') — no runtime session-id var (CLAUDE_CODE_SESSION_ID / CURSOR_* / CODEX_SESSION_ID) exported. Sibling panels sharing this PPID may collide on one state dir and clobber task/gate/skill state. See docs/engineering/state-files.md." >&2
+    printf 'panel_id=%s reason=no-runtime-session-id\n' "$COS_PANEL_ID" > "$_ppid_marker" 2>/dev/null || true
+    cos_log_hook session-context warn "reason=ppid-fallback panel=${COS_PANEL_ID}" || true
+  fi
+fi
+
 # Refresh the .agent marker whenever cos-env.sh detected the runtime.
 # Stale markers (e.g. `cursor` left over after switching to Claude) mis-route
-# fallback paths in cos_retrieve / capture.py — rewrite on every session
+# fallback paths in capture.py — rewrite on every session
 # boundary so the *last* adapter to start is authoritative.
 if [[ -n "${COS_AGENT:-}" ]] && [[ "$COS_AGENT" != "unknown" ]]; then
   _AGENT_MARKER="$COS_STATE_DIR/.agent"
