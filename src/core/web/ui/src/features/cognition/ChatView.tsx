@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { Link } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
 import { consumeSse, streamDeltaText, streamToolName } from '@/lib/chat-stream';
+import { reportClientError } from '@/lib/client-logger';
 import { MarkdownBlock } from '@/components/MarkdownBlock';
 import { useScopedLink } from '@/lib/use-scoped-link';
 
@@ -237,7 +238,11 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
         );
       } catch (err) {
         if ((err as Error).name === 'AbortError') setStreamErr('cancelled');
-        else setStreamErr((err as Error).message ?? 'stream failed');
+        else {
+          const msg = (err as Error).message ?? 'stream failed';
+          setStreamErr(msg);
+          reportClientError('chat: follow-up stream failed', { message: msg, sessionId });
+        }
       } finally {
         setStreaming(false);
         abortRef.current = null;

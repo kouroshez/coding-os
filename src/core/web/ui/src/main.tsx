@@ -4,10 +4,15 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import { applyHubDirection } from './lib/direction';
+import { installGlobalErrorReporting } from './lib/client-logger';
 import './index.css';
 
 // App-level dir seam (TASK-251) — LTR default, RTL via VITE_HUB_DIR=rtl.
 applyHubDirection();
+
+// Capture every uncaught error / unhandled rejection → server log sink so
+// nothing in the SPA fails silently.
+installGlobalErrorReporting();
 
 // SPA entry point.
 // - BrowserRouter for client-side routing.

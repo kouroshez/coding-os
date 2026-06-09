@@ -1,6 +1,7 @@
 import { FormEvent, KeyboardEvent, useEffect, useState } from 'react';
 import { ArrowUp, Loader2 } from 'lucide-react';
 import { consumeSse, streamDeltaText, streamToolName } from '@/lib/chat-stream';
+import { reportClientError } from '@/lib/client-logger';
 import { MarkdownBlock } from '@/components/MarkdownBlock';
 import { useRoles } from './roles';
 import ModelPicker from './ModelPicker';
@@ -141,9 +142,11 @@ export default function NewChatForm({
     } catch (e2) {
       failed = true;
       setErr((e2 as Error).message ?? 'failed to start session');
-      // Never swallow — surface to the browser console so a broken stream is
-      // observable in devtools, not silent.
-      console.error('[hub-chat] first-turn stream failed:', e2, { capturedId });
+      // Never swallow — mirror to the console AND beacon to the server log sink.
+      reportClientError('chat: first-turn stream failed', {
+        message: (e2 as Error).message,
+        capturedId,
+      });
     } finally {
       setStreaming(false);
     }

@@ -14,7 +14,7 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query
 from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
@@ -33,6 +33,17 @@ _LEVEL_FLOOR: dict[str, int] = {
 }
 
 _DURATION_RE = re.compile(r"^\s*(\d+)\s*(ms|s|m|h|d)?\s*$", re.IGNORECASE)
+
+# Browser-side errors beacon here; logging_os bridges this stdlib logger into the
+# same cos.log.jsonl sink the GET readers serve, so client + server failures share
+# one timeline (nothing in the SPA fails silently).
+_client_logger = logging.getLogger("coding_os.web.client")
+_CLIENT_LEVELS: dict[str, int] = {
+    "debug": logging.DEBUG,
+    "info": logging.INFO,
+    "warn": logging.WARNING,
+    "error": logging.ERROR,
+}
 
 
 def _jsonl_log_path() -> Path:
@@ -117,6 +128,55 @@ def _read_tail_jsonl(path: Path, max_lines: int) -> list[dict[str, Any]]:
         if isinstance(obj, dict):
             parsed.append(obj)
     return parsed
+
+
+@router.post("/client")
+async def report_client_log(
+    body: dict = Body(...),
+    _rl=Depends(make_rate_limit_dep("logs.client")),
+    _m=Depends(make_metrics_dep("logs.client")),
+) -> Any:
+    """Record a browser-side log/error into the server log sink (logging_os)."""
+    message = str(body.get("message") or "").strip()
+    if not message:
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {
+                        "category": "validation",
+                        "retryable": False,
+                        "message": "message is required",
+                    },
+                }
+            )
+        )
+    log_level = _CLIENT_LEVELS.get(str(body.get("level") or "error").lower(), logging.ERROR)
+    # Bound every field — a client beacon must never bloat or break the sink.
+    message = message[:2000]
+    url = str(body.get("url") or "")[:500]
+    context_raw = body.get("context")
+    if context_raw is None:
+        context = "-"
+    elif isinstance(context_raw, (str, int, float, bool)):
+        context = str(context_raw)[:2000]
+    else:
+        try:
+            context = json.dumps(context_raw)[:2000]
+        except Exception:
+            context = str(context_raw)[:2000]
+    _client_logger.log(log_level, "client: %s | url=%s | context=%s", message, url or "-", context)
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "recorded": True,
+                    "meta": {"layer": "observability", "source": "client"},
+                },
+            }
+        )
+    )
 
 
 @router.get("/recent")
