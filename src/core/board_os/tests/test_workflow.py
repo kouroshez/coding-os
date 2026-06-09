@@ -13,6 +13,7 @@ import pytest
 from core.board_os.config import ScrumbanConfig, Swimlane, WipLimits
 from core.board_os.sync import sync_all
 from core.board_os.workflow import (
+    _is_shared_pid_session,
     check_wip,
     patch_task_frontmatter_scalars,
     transition,
@@ -386,6 +387,42 @@ def test_global_wip_when_per_session_disabled(conn: sqlite3.Connection):
     result = transition(conn, "TASK-GB", "in_progress", config=cfg, agent_session="ses-B")
     assert result.ok is False
     assert "WIP cap" in (result.error or "")
+
+
+# ---------- Shared-PID WIP degradation detection (TASK-287) ----------
+
+
+def test_is_shared_pid_session_detects_synthetic() -> None:
+    # The resolve_agent_session last-resort synthetic — shared by all panels
+    # of the long-lived MCP server — must be recognised.
+    assert _is_shared_pid_session("ses-claude-pid12345") is True
+    assert _is_shared_pid_session("ses-codex-pid7") is True
+    # Genuine per-panel session ids and non-sessions must NOT match.
+    assert _is_shared_pid_session("ses-claude-20260609-143642-c7c5") is False
+    assert _is_shared_pid_session("ses-claude-pid12-extra") is False
+    assert _is_shared_pid_session(None) is False
+    assert _is_shared_pid_session("") is False
+
+
+def test_shared_pid_session_warns_wip_degraded(conn: sqlite3.Connection, caplog) -> None:
+    # A per-session cap keyed on the shared ses-<agent>-pid<PID> synthetic must
+    # be surfaced (not silently applied as if it were panel-isolated).
+    _insert_task(conn, "TASK-SP", status="in_progress", agent_session="ses-claude-pid99999")
+    with caplog.at_level("WARNING"):
+        check_wip(conn, _make_config(in_progress=1), agent_session="ses-claude-pid99999")
+    assert "WIP cap degraded" in caplog.text
+    assert "ses-claude-pid99999" in caplog.text
+
+
+def test_real_session_no_wip_degraded_warning(conn: sqlite3.Connection, caplog) -> None:
+    _insert_task(
+        conn, "TASK-RS", status="in_progress", agent_session="ses-claude-20260609-143642-c7c5"
+    )
+    with caplog.at_level("WARNING"):
+        check_wip(
+            conn, _make_config(in_progress=1), agent_session="ses-claude-20260609-143642-c7c5"
+        )
+    assert "WIP cap degraded" not in caplog.text
 
 
 # ---------- Dependency cycle detection (R-L-29) ----------
