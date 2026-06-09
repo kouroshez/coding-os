@@ -6,7 +6,6 @@ import {
   Activity,
   Users,
   Settings,
-  ShieldCheck,
   Brain,
 } from 'lucide-react';
 import { SubNav, subNavTabClass } from '@/layout/HubPrimitives';
@@ -23,7 +22,6 @@ export default function DiagnosticsPage() {
     { path: 'logs', label: 'Logs', Icon: FileText },
     { path: 'observability', label: 'Observability', Icon: Activity },
     { path: 'sessions', label: 'Sessions', Icon: Users },
-    { path: 'audits', label: 'Audits', Icon: ShieldCheck },
     { path: 'memory', label: 'Memory', Icon: Brain },
     { path: 'settings', label: 'Settings', Icon: Settings },
   ];
