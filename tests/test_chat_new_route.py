@@ -6,6 +6,7 @@ deterministic guards (validation, unavailable) and the role-prompt resolver.
 
 from __future__ import annotations
 
+import dataclasses
 import sys
 from pathlib import Path
 
@@ -126,3 +127,113 @@ def test_chat_new_session_event_uses_sdk_resolved_id(client, monkeypatch):
     session_ids = _session_event_ids(body)
     assert session_ids == ["real-sdk-uuid-9999"], session_ids
     assert not any(sid.startswith("ses-claude-ui-") for sid in session_ids)
+
+
+# ---------------------------------------------------------------------------
+# Guardians for the "session vanished" + token-by-token streaming contracts.
+# These fail the instant a regression breaks the chat lifecycle (TASK chat-hardening).
+# ---------------------------------------------------------------------------
+
+
+def _event_ids(body: str, event_name: str) -> list[str]:
+    import json
+
+    ids: list[str] = []
+    for chunk in body.split("\n\n"):
+        lines = chunk.splitlines()
+        if not lines or lines[0].strip() != f"event: {event_name}":
+            continue
+        for ln in lines[1:]:
+            if ln.startswith("data:"):
+                data = json.loads(ln[len("data:") :].strip())
+                if "session_id" in data:
+                    ids.append(data["session_id"])
+    return ids
+
+
+def _make_fake_sdk(events, captured_opts=None):
+    class FakeSDK:
+        def ClaudeAgentOptions(self, **kwargs):  # noqa: N802 — mirrors SDK name
+            if captured_opts is not None:
+                captured_opts.update(kwargs)
+            return kwargs
+
+        async def query(self, prompt, options):
+            for ev in events:
+                yield ev
+
+    return FakeSDK()
+
+
+def _patch_sdk(monkeypatch, fake):
+    patched = False
+    for modname in ("web.routes.cognition", "core.web.routes.cognition"):
+        mod = sys.modules.get(modname)
+        if mod is not None:
+            monkeypatch.setattr(mod, "_claude_sdk", lambda: fake, raising=False)
+            patched = True
+    assert patched, "cognition module not loaded"
+
+
+@dataclasses.dataclass
+class _Init:
+    session_id: str
+    subtype: str = "init"
+
+
+@dataclasses.dataclass
+class _NoId:
+    subtype: str = "noise"
+
+
+def test_chat_new_session_and_done_ids_match(client, monkeypatch):
+    """Invariant: the `session` event id equals the `done` event id. A mismatch
+    strands the UI on an id that 404s on get_chat — the 'session vanished' bug."""
+    _patch_sdk(monkeypatch, _make_fake_sdk([_Init("real-uuid-1")]))
+    with client.stream("POST", "/api/cognition/chat", json={"prompt": "hi"}) as r:
+        body = "".join(r.iter_text())
+    session_ids = _event_ids(body, "session")
+    done_ids = _event_ids(body, "done")
+    assert session_ids and done_ids, (session_ids, done_ids)
+    assert session_ids[-1] == done_ids[-1] == "real-uuid-1"
+
+
+def test_chat_new_no_session_id_warns_and_falls_back(client, monkeypatch):
+    """When the SDK never yields a session_id the UI is handed the minted id
+    (which 404s). That MUST be logged at warning — never silent."""
+    warned: list[str] = []
+    for modname in ("web.routes.cognition", "core.web.routes.cognition"):
+        mod = sys.modules.get(modname)
+        if mod is not None:
+            monkeypatch.setattr(
+                mod.logger, "warning", lambda *a, **k: warned.append(a[0] if a else "")
+            )
+    _patch_sdk(monkeypatch, _make_fake_sdk([_NoId()]))
+    with client.stream("POST", "/api/cognition/chat", json={"prompt": "hi"}) as r:
+        body = "".join(r.iter_text())
+    done_ids = _event_ids(body, "done")
+    assert done_ids and done_ids[0].startswith("ses-claude-ui-"), done_ids
+    assert any("no SDK session_id" in str(m) for m in warned), warned
+
+
+def test_chat_new_enables_partial_streaming(client, monkeypatch):
+    """include_partial_messages must stay True — without it the SDK yields one
+    complete message and the reply stops streaming token-by-token."""
+    captured: dict = {}
+    _patch_sdk(monkeypatch, _make_fake_sdk([_Init("uuid-2")], captured_opts=captured))
+    with client.stream("POST", "/api/cognition/chat", json={"prompt": "hi"}) as r:
+        "".join(r.iter_text())
+    assert captured.get("include_partial_messages") is True
+
+
+def test_get_chat_missing_session_returns_404(client, monkeypatch):
+    """A missing session is a 404 (not a 500) so the UI can distinguish a flush
+    race (retry quietly) from a hard error."""
+
+    class FakeSDK:
+        def get_session_info(self, session_id, directory):
+            return None
+
+    _patch_sdk(monkeypatch, FakeSDK())
+    r = client.get("/api/cognition/chat/does-not-exist")
+    assert r.status_code == 404

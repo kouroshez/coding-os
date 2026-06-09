@@ -559,7 +559,8 @@ def _coerce_block(block: Any) -> dict:
                 if isinstance(inp, (dict, list, str, int, float, bool, type(None)))
                 else str(inp)
             )
-        except Exception:
+        except Exception as exc:
+            logger.debug("tool_use input coerce fallback: %s", exc)
             out["input"] = str(inp)[:2000]
     elif btype == "tool_result":
         out["tool_use_id"] = block.get("tool_use_id")
@@ -671,7 +672,9 @@ async def get_chat(
         info = sdk.get_session_info(session_id, directory=cwd)
     except Exception as exc:
         info = None
-        logger.debug("get_session_info(%s) failed: %s", session_id, exc)
+        # A user is actively viewing this id — a failure here IS the "session
+        # vanished" symptom, so log at warning (captured by logging_os), not debug.
+        logger.warning("get_session_info(%s) failed: %s", session_id, exc)
     if info is None:
         raise HTTPException(status_code=404, detail=f"chat session {session_id!r} not found")
     try:
@@ -889,6 +892,11 @@ async def chat_new(
                     real_id = getattr(event, "session_id", None)
                     if real_id:
                         resolved_id = str(real_id)
+                        logger.info(
+                            "chat_new resolved session id=%s (minted=%s)",
+                            resolved_id,
+                            new_session_id,
+                        )
                         yield _sse_chunk("session", {"session_id": resolved_id})
                         emitted_session = True
                 kind = type(event).__name__.lower().replace("message", "") or "event"
@@ -899,8 +907,14 @@ async def chat_new(
             logger.exception("chat_new stream failed")
             yield _sse_chunk("error", {"message": str(exc)})
         if not emitted_session:
-            # No event ever carried a session_id — fall back to the minted id
-            # so the UI still has a handle (best-effort).
+            # No event ever carried a session_id — the turn produced no resolvable
+            # session. Emitting the minted ses-claude-ui-* id strands the UI on an
+            # id that 404s on get_chat (the "session vanished" report), so log it
+            # loudly. The fallback id keeps the UI from hanging with no handle.
+            logger.warning(
+                "chat_new: stream produced no SDK session_id (minted=%s) — UI will 404 on this id",
+                new_session_id,
+            )
             yield _sse_chunk("session", {"session_id": resolved_id})
         yield _sse_chunk("done", {"session_id": resolved_id})
 

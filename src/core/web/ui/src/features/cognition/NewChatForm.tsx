@@ -141,15 +141,20 @@ export default function NewChatForm({
     } catch (e2) {
       failed = true;
       setErr((e2 as Error).message ?? 'failed to start session');
+      // Never swallow — surface to the browser console so a broken stream is
+      // observable in devtools, not silent.
+      console.error('[hub-chat] first-turn stream failed:', e2, { capturedId });
     } finally {
       setStreaming(false);
     }
-    if (!failed && capturedId && onComplete) {
-      // Turn done — hand off to the rich ChatView (persisted history + the
-      // follow-up composer) under the real session URL.
+    if (capturedId && onComplete) {
+      // The SDK minted a session — hand off to it even if the turn errored
+      // midway. A created session must never be abandoned/"vanish": ChatView
+      // shows whatever persisted and surfaces any error inline.
       onComplete(capturedId);
-    } else if (failed && !capturedId) {
-      // Never started (e.g. network/CSRF) — return to the composer to retry.
+    } else if (failed) {
+      // No session id ever arrived — the turn never really started (network /
+      // CSRF). Return to the composer so the user can retry; `err` stays visible.
       setSent(null);
       onActive?.(false);
     }
@@ -216,6 +221,11 @@ export default function NewChatForm({
   // ── Composer (before send) ──────────────────────────────────────────────
   return (
     <div className="flex w-full flex-col gap-3">
+      {err && (
+        <p role="alert" className="px-1 text-[12px] text-[#f85149]">
+          {err}
+        </p>
+      )}
       <form onSubmit={start}>
         <div className="rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)] p-4 shadow-sm transition focus-within:border-[var(--cos-accent)]/60 focus-within:ring-2 focus-within:ring-[var(--cos-accent)]/30">
           <textarea

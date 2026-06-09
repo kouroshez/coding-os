@@ -59,4 +59,34 @@ describe('NewChatForm in-place handoff', () => {
     rerender(<NewChatForm initialPrompt="second seed" />);
     expect(ta().value).toBe('second seed');
   });
+
+  it('hands off to the created session even when the stream errors after the session id', async () => {
+    const enc = new TextEncoder();
+    let call = 0;
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: async () => {
+            call += 1;
+            if (call === 1)
+              return {
+                value: enc.encode('event: session\ndata: {"session_id":"sdk-uuid-7"}\n\n'),
+                done: false,
+              };
+            throw new Error('connection reset mid-stream');
+          },
+        }),
+      },
+      text: async () => '',
+    })) as unknown as typeof fetch;
+
+    const onComplete = vi.fn();
+    render(<NewChatForm onComplete={onComplete} />);
+    fireEvent.change(screen.getByPlaceholderText(/describe a task/i), { target: { value: 'hi' } });
+    fireEvent.click(screen.getByRole('button', { name: /send/i }));
+    // A created session must NEVER be abandoned: the SDK already minted the id,
+    // so the form hands off to it even though the stream then threw.
+    await waitFor(() => expect(onComplete).toHaveBeenCalledWith('sdk-uuid-7'));
+  });
 });

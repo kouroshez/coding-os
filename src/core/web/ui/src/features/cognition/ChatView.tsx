@@ -149,6 +149,8 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
   const [liveText, setLiveText] = useState('');
   const [liveActivity, setLiveActivity] = useState('');
   const [streamErr, setStreamErr] = useState<string | null>(null);
+  // After a grace window a persistent 404 is a real miss (not a flush race).
+  const [slowSync, setSlowSync] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -168,6 +170,15 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [data?.count, liveEvents.length, liveText]);
+
+  // A just-minted session's transcript jsonl can lag the stream's session id by
+  // a beat; the 2s refetch catches it. Only after ~12s of a persistent 404 do we
+  // treat it as a genuine miss instead of an endless "syncing…".
+  useEffect(() => {
+    setSlowSync(false);
+    const t = setTimeout(() => setSlowSync(true), 12000);
+    return () => clearTimeout(t);
+  }, [sessionId]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
@@ -254,13 +265,28 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
     return session.custom_title ?? session.summary ?? sessionId;
   }, [session, sessionId]);
 
-  if (isLoading) return <p className="p-4 text-sm text-[var(--cos-muted)]">loading transcript…</p>;
-  if (error)
+  if (isLoading && !data) return <p className="p-4 text-sm text-[var(--cos-muted)]">loading transcript…</p>;
+  // Show an error screen ONLY when there is no transcript to display. A 404 right
+  // after navigating to a freshly-minted session = the SDK jsonl isn't queryable
+  // yet; the 2s refetch catches it, so show "syncing…" rather than a hard error
+  // that reads as "the session vanished". A transient refetch error while data IS
+  // present keeps the data on screen. A 404 past the grace window is a real miss.
+  if (error && !data) {
+    const status = (error as { status?: number }).status;
+    if (status === 404 && !slowSync) {
+      return (
+        <p className="p-4 text-sm text-[var(--cos-muted)]">
+          syncing this session…{' '}
+          <span className="text-[var(--cos-faint)]">(just created — one moment)</span>
+        </p>
+      );
+    }
     return (
       <p role="alert" className="p-4 text-sm text-[var(--cos-err)]">
-        {error.message}
+        {status === 404 ? `chat session not found: ${sessionId}` : error.message}
       </p>
     );
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
