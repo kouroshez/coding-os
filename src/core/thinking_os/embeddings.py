@@ -81,6 +81,19 @@ DEFAULT_SOURCE_TABLES = (
     "tasks",
 )
 
+# graph_node kinds worth embedding for semantic code search. Identifiers,
+# imports, and external stubs are excluded — they are similarity noise (G21)
+# and carry no meaningful label+signature+docstring text. Stored kinds are
+# the canonical short forms (migration v16); see graph_os.types.NodeKind.
+GRAPH_EMBED_KINDS: tuple[str, ...] = (
+    "function",
+    "method",
+    "class",
+    "route",
+    "mcp_tool",
+    "doc_heading",
+)
+
 
 def active_model_name() -> str:
     """Return the model the *current* process should encode with."""
@@ -594,6 +607,13 @@ def reindex_all(conn: sqlite3.Connection) -> dict:
             "document_chunks",
             "SELECT id, heading_path, content FROM document_chunks",
             lambda r: " ".join(filter(None, [r["heading_path"], r["content"]])),
+        ),
+        (
+            "graph_nodes",
+            "SELECT id, label, signature, doc_blob FROM graph_nodes WHERE kind IN ("
+            + ",".join(f"'{k}'" for k in GRAPH_EMBED_KINDS)
+            + ")",
+            lambda r: " ".join(filter(None, [r["label"], r["signature"], r["doc_blob"]])),
         ),
     ]
 

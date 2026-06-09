@@ -1769,6 +1769,101 @@ def cos_graph_trace(
     )
 
 
+# Raw cosine and the legacy 0.7*emb+0.3*lex blended score live on different
+# scales: MiniLM cosine for genuine code-symbol twins tops out ~0.45 (measured),
+# so the legacy confidence_min default of 0.5 would suppress the persisted path
+# entirely. The persisted scorer therefore caps its floor at this value — a
+# caller may still LOWER the floor for more recall, but a legacy-calibrated high
+# default no longer kills the fast path (P6 adaptive threshold). BGE-M3 (Wave 2)
+# lifts this ceiling; revisit the cap then.
+_PERSISTED_COSINE_FLOOR = 0.25
+
+
+def _similar_from_persisted(
+    be: Any,
+    root: GraphNode,
+    *,
+    top_k: int,
+    confidence_min: float,
+    resolved_from: str,
+) -> dict[str, Any] | None:
+    """Rank similar nodes from persisted graph_node embeddings (one encode,
+    full pool). Returns the _ok envelope when persisted vectors are usable,
+    else None so the caller falls back to the on-the-fly difflib path.
+    """
+    conn = getattr(be, "_conn", None)
+    if conn is None:
+        return None
+    try:
+        from thinking_os.embeddings import is_available, search_similar
+    except ImportError:
+        return None
+    if not is_available():
+        return None
+    ref_text = f"{root.label or ''} {root.signature or ''} {root.doc_blob or ''}".strip()
+    if not ref_text:
+        return None
+    # Over-fetch beyond top_k to absorb the root self-hit + any identifier /
+    # external rows, then trim. search_similar streams the whole persisted
+    # pool (no 200-sample window) and returns score-sorted hits.
+    overfetch = max(top_k * 4, top_k + 20)
+    try:
+        hits = search_similar(
+            conn, ref_text, source_tables=["graph_nodes"], limit=overfetch, threshold=0.0
+        )
+    except Exception as exc:  # fail-open → caller falls back to difflib
+        logger.debug("similar persisted path skipped: %s", exc)
+        return None
+    if not hits:
+        return None
+    ids = [h["source_id"] for h in hits]
+    placeholders = ",".join("?" * len(ids))
+    id_to_uid = {
+        row[0]: row[1]
+        for row in conn.execute(
+            f"SELECT id, uid FROM graph_nodes WHERE id IN ({placeholders})", ids
+        ).fetchall()
+    }
+    score_by_id = {h["source_id"]: h["score"] for h in hits}
+    wanted = [id_to_uid[i] for i in ids if i in id_to_uid and id_to_uid[i] != root.uid]
+    nodes_by_uid = be.get_nodes_bulk(wanted)
+    effective_floor = min(confidence_min, _PERSISTED_COSINE_FLOOR)
+    scored: list[tuple[float, GraphNode]] = []
+    for i in ids:  # ids are already score-descending from search_similar
+        uid = id_to_uid.get(i)
+        if uid is None or uid == root.uid:
+            continue
+        node = nodes_by_uid.get(uid)
+        if node is None or node.kind == "identifier" or uid.startswith("code:external:"):
+            continue
+        sim = score_by_id.get(i, 0.0)
+        if sim >= effective_floor:
+            scored.append((sim, node))
+    if not scored:
+        return None
+    total = len(scored)
+    top_k_eff = max(1, top_k)
+    results = [
+        {**NodeSummary.from_node(n).to_dict(), "similarity": round(r, 4)}
+        for r, n in scored[:top_k_eff]
+    ]
+    return _ok(
+        {
+            "root": NodeSummary.from_node(root).to_dict(),
+            "results": results,
+            "total_count": total,
+        },
+        meta={
+            "backend": be.backend_id,
+            "scorer": "persisted-embeddings",
+            "top_k": top_k_eff,
+            "floor": round(effective_floor, 3),
+            "result_truncated": total > top_k_eff,
+            "resolved_from": resolved_from,
+        },
+    )
+
+
 def cos_graph_similar(
     uid: str,
     *,
@@ -1791,6 +1886,16 @@ def cos_graph_similar(
     root, tried_uids, resolved_from = _resolve_uid(be, uid)
     if root is None:
         return _fail_uid_not_found(uid, tried_uids)
+
+    # I.1: fast path — rank from persisted graph_node embeddings (one encode,
+    # full pool, ~10ms) instead of encoding ~200 candidates on the fly
+    # (~1800ms measured). Returns None when no persisted vectors exist (or
+    # embeddings unavailable), falling through to the difflib baseline below.
+    fast = _similar_from_persisted(
+        be, root, top_k=top_k, confidence_min=confidence_min, resolved_from=resolved_from
+    )
+    if fast is not None:
+        return fast
 
     # B13: use sample_nodes for a breadth candidate pool. NOTE: sample_nodes
     # draws ORDER BY id ASC LIMIT — a fixed prefix of the kind, not a uniform

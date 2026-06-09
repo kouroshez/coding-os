@@ -361,6 +361,41 @@ class TestReindexAll:
             result = embeddings.reindex_all(tmp_db)
             assert result.get("status") == "skipped"
 
+    @REQUIRES_RAG
+    def test_reindex_embeds_allowlisted_graph_nodes_only(
+        self, tmp_db: sqlite3.Connection
+    ) -> None:
+        # Wave 1: reindex_all must embed meaningful graph_node kinds and skip
+        # noise kinds (identifier/import_/module) that pollute similarity.
+        now = 0
+        rows = [
+            ("function", "embed_text", "def embed_text(text)", "Embed one string."),
+            ("class", "SqliteBackend", "class SqliteBackend", "Graph storage backend."),
+            ("mcp_tool", "cos_graph_query", "def cos_graph_query(q)", "Query the graph."),
+            ("identifier", "unresolved:str", None, None),  # must be SKIPPED
+            ("import_", "os", None, None),  # must be SKIPPED
+        ]
+        for i, (kind, label, sig, doc) in enumerate(rows, start=1):
+            tmp_db.execute(
+                "INSERT INTO graph_nodes (kind, label, uid, signature, doc_blob, "
+                "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (kind, label, f"code:{kind}:t.py::{label}", sig, doc, now, now),
+            )
+        tmp_db.commit()
+
+        report = embeddings.reindex_all(tmp_db)
+
+        assert report["graph_nodes"]["processed"] == 3  # only allowlisted kinds
+        assert report["graph_nodes"]["inserted"] == 3
+        embedded_kinds = {
+            r[0]
+            for r in tmp_db.execute(
+                "SELECT n.kind FROM embeddings e JOIN graph_nodes n "
+                "ON n.id = e.source_id WHERE e.source_table = 'graph_nodes'"
+            ).fetchall()
+        }
+        assert embedded_kinds == {"function", "class", "mcp_tool"}
+
 
 # ---------------------------------------------------------------------------
 # Text hash helper

@@ -46,6 +46,23 @@
 Each envelope carries `data.meta.layer` so consumers can audit which
 layer answered.
 
+### `cos_graph_similar` — persisted-embedding fast path
+
+`cos_graph_similar` prefers persisted graph_node vectors when available:
+`reindex_all` embeds the meaningful kinds (function · method · class ·
+route · mcp_tool · doc_heading) into `embeddings(source_table='graph_nodes')`,
+and the tool ranks the **full pool** with a single query encode
+(`meta.scorer="persisted-embeddings"`, ~25 ms vs ~1800 ms for the legacy
+per-candidate path). When no persisted vectors exist (or the embedding
+model is unavailable) it transparently falls back to the on-the-fly
+difflib baseline (`meta.scorer="bge-m3+difflib-blend"` /
+`"difflib-baseline"`). Raw cosine and the legacy blended score live on
+different scales, so the persisted path caps its floor at
+`_PERSISTED_COSINE_FLOOR` (0.25) — a `confidence_min` above that no longer
+suppresses the fast path; `meta.floor` reports the effective value. Run
+`cos brain --reindex` (or `python -m embeddings --reindex`) to populate
+the vectors after a bulk graph change.
+
 ## Common failure modes
 
 - `fail("unavailable", ...)` with `retryable=true` — backend missing.

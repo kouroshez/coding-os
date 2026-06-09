@@ -426,6 +426,75 @@ class TestSimilar:
         uids = [r["uid"] for r in data["results"]]
         assert "code:method:m.py::C.beta" in uids
 
+    def test_persisted_embeddings_fast_path(self, migrated_conn, monkeypatch):
+        """Wave 1: when graph_nodes carry persisted embeddings, cos_graph_similar
+        ranks from stored vectors (scorer='persisted-embeddings') — one query
+        encode over the full pool, no per-candidate on-the-fly encoding."""
+        pytest.importorskip("sentence_transformers")
+        import embeddings as emb  # type: ignore
+        from graph_os.backends.sqlite_backend import SqliteBackend
+
+        if not emb.is_available():
+            pytest.skip("embedding model not available")
+
+        be = SqliteBackend(conn=migrated_conn)
+        nodes = [
+            GraphNode(
+                uid="code:function:e.py::embed_text",
+                kind="function",
+                label="embed_text",
+                file_path="e.py",
+                start_line=1,
+                signature="def embed_text(text: str) -> bytes",
+                doc_blob="Encode a single string into a vector embedding.",
+            ),
+            GraphNode(
+                uid="code:function:e.py::embed_texts",
+                kind="function",
+                label="embed_texts",
+                file_path="e.py",
+                start_line=10,
+                signature="def embed_texts(texts: list) -> list",
+                doc_blob="Batch-encode many strings into vector embeddings.",
+            ),
+            GraphNode(
+                uid="code:function:e.py::render_table",
+                kind="function",
+                label="render_table",
+                file_path="e.py",
+                start_line=20,
+                signature="def render_table(rows) -> str",
+                doc_blob="Render rows as an ASCII table for the terminal.",
+            ),
+        ]
+        be.bulk_upsert(nodes, [])
+
+        # Persist an embedding for every seeded node (keyed on graph_nodes.id).
+        for n in nodes:
+            row = migrated_conn.execute(
+                "SELECT id, signature, doc_blob FROM graph_nodes WHERE uid = ?", (n.uid,)
+            ).fetchone()
+            text = " ".join(filter(None, [n.label, row[1], row[2]]))
+            emb.upsert_embedding(migrated_conn, "graph_nodes", row[0], text)
+        migrated_conn.commit()
+
+        graph._BACKEND_SINGLETON = be
+        monkeypatch.setattr(graph, "_backend", lambda *, backend=None: be)
+        try:
+            res = graph.cos_graph_similar(
+                "code:function:e.py::embed_text", confidence_min=0.0, top_k=5
+            )
+        finally:
+            graph._BACKEND_SINGLETON = None
+
+        data = _assert_ok(res)
+        assert data["meta"]["scorer"] == "persisted-embeddings"
+        uids = [r["uid"] for r in data["results"]]
+        # root excluded; the near-twin (embed_texts) ranks above the unrelated one.
+        assert "code:function:e.py::embed_text" not in uids
+        assert "code:function:e.py::embed_texts" in uids
+        assert uids[0] == "code:function:e.py::embed_texts"
+
 
 class TestGrepStringLiterals:
     def test_finds_quoted_name(self, monkeypatch, tmp_path):
