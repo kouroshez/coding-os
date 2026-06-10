@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [hub-ui, graph, audit-2026-06-09, ready]
-status: icebox
+status: testing
 priority: P3
 appetite: 1d
 created: 2026-06-10
-started: null
+started: 2026-06-10
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-323: Hub: graph refactor panel — surface rename-plan / impact / contracts routes (zero UI today)
 
 **Outcome (one sentence):** The graph page gains a refactor-planning panel: pick a symbol, see rename-plan touchpoints, impact tiers, and contract surface from the existing /api/graph/{rename-plan,impact,contracts} routes — blast-radius becomes visual for humans before approving agent refactors.
@@ -38,3 +37,4 @@ references: []
 - **Then** shared fetch/render logic is reused — no third copy of panel plumbing
 
 ## Work Log
+- 2026-06-10 [claude]: Shipped (score 9/10). Discovery: ImpactPanel/ContextPanel were ORPHANED (zero consumers since the hub redesign — the gra

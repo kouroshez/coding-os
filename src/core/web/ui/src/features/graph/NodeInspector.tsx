@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { useApiGet } from '@/lib/hooks';
 import { kindColor } from '@/lib/node-colors';
+import ImpactPanel from '@/features/graph/ImpactPanel';
+import RefactorPanel from '@/features/graph/RefactorPanel';
 
 interface Neighbour {
   uid: string;
@@ -28,7 +31,11 @@ interface ContextPayload {
 // Right-pane node inspector. Calls /api/graph/context and renders the
 // key fields plus an "Open in Editor" vscode:// link when file_path
 // is known.
+const INSPECTOR_TABS = ['context', 'impact', 'refactor'] as const;
+type InspectorTab = (typeof INSPECTOR_TABS)[number];
+
 export default function NodeInspector({ uid }: { uid: string }) {
+  const [tab, setTab] = useState<InspectorTab>('context');
   const { data, isLoading, error } = useApiGet<ContextPayload>(
     ['graph-context', uid],
     `/api/graph/context/${encodeURIComponent(uid)}`,
@@ -76,6 +83,30 @@ export default function NodeInspector({ uid }: { uid: string }) {
         <p className="font-mono text-xs text-[var(--cos-muted)]">{node.uid}</p>
       </header>
 
+      <div role="tablist" aria-label="Inspector views" className="mb-3 flex gap-1">
+        {INSPECTOR_TABS.map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => setTab(t)}
+            className={[
+              'rounded px-2 py-1 font-mono text-xs focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]',
+              tab === t
+                ? 'bg-[var(--cos-accent)]/15 text-[var(--cos-accent)]'
+                : 'text-[var(--cos-muted)] hover:text-[var(--cos-text)]',
+            ].join(' ')}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'impact' && <ImpactPanel uid={uid} />}
+      {tab === 'refactor' && <RefactorPanel uid={uid} />}
+      {tab === 'context' && (
+        <>
       {data.spine && data.spine.length > 0 && (
         <section className="mb-3 text-xs">
           <h3 className="mb-1 font-semibold uppercase tracking-wide text-[var(--cos-muted)]">
@@ -161,6 +192,8 @@ export default function NodeInspector({ uid }: { uid: string }) {
             ))}
           </ul>
         </section>
+      )}
+        </>
       )}
     </div>
   );
