@@ -31,3 +31,4 @@ references: []
 - **Given** the existing UI suite, **When** `npx vitest run` executes, **Then** all tests pass.
 
 ## Work Log
+- 2026-06-10 [claude]: committed 5931c037: src/core/board_os/mcp_tools.py, src/core/board_os/tests/test_mcp_tools.py, src/core/skills/task-driv
