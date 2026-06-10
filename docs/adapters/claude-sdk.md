@@ -176,16 +176,24 @@ Why each line:
 | `cwd` | str\|None | project root for the sub-session. |
 | `model` | str\|None | (NEW) model id. None = SDK default. |
 
-**Model resolution at request build** (`_build_dispatch_request`): the
-optional `model` argument of `cos_dispatch_formula_run` /
-`cos_dispatch_parallel_run` wins outright; otherwise the role
-frontmatter's `model_pref` map is consulted with the caller-supplied
-`complexity` argument lowercased as the key (`model_pref: {complicated:
-sonnet, complex: opus}` — see `agents/README.md`); no match → `None`
-(SDK default). Aliases pass through verbatim — the adapter, not the
-kernel, owns alias→id mapping (Rule 11). The caller passes `complexity`
-explicitly because the Cynefin gate is per-panel filesystem state the
-long-lived MCP server cannot attribute to a panel.
+**Model resolution at request build** (`_build_dispatch_request`) —
+precedence, first match wins; the decision source is logged
+(`dispatch model resolved … via <source>` in `.mcp.log`):
+
+| tier | source | key |
+|---|---|---|
+| 1 | explicit `model` argument on the run tools | verbatim |
+| 2 | active preset's `roles_adapter_hints[<role>].model_pref` (presets/registry.yaml; the session's composed preset is read back from `persona_selections`) | `complexity` lowercased |
+| 3 | role frontmatter `model_pref` (`agents/README.md`) | `complexity` lowercased |
+| 4 | `cos_route_model` empirical recommendation — only when real outcome history exists (`data_points > 0`), never the cold-start static default | `complexity` |
+| 5 | `None` → SDK default | — |
+
+Aliases pass through verbatim — the adapter, not the kernel, owns
+alias→id mapping (Rule 11). The caller passes `complexity` explicitly
+because the Cynefin gate is per-panel filesystem state the long-lived
+MCP server cannot attribute to a panel. `cos_supervise` mirrors tiers
+2–3 by attaching `model_hints` to every `dispatch` action so the main
+agent can pick before calling the run tool.
 
 **Output** — `DispatchResult`:
 

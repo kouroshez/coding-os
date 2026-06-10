@@ -5,18 +5,17 @@ swimlane: "thinking_os"
 kind: feature
 epic: null
 labels: [delegation, model-routing, audit-2026-06-09, ready]
-status: icebox
+status: testing
 priority: P2
 appetite: 1d
 created: 2026-06-10
-started: null
+started: 2026-06-10
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: [TASK-308, TASK-317]
 blocked_by: []
 references: []
 ---
-
 # TASK-321: Supervisor model/adapter branching — preset roles_adapter_hints in registry.yaml consulted at dispatch build
 
 **Outcome (one sentence):** Preset chains accept optional per-role adapter/model hints; `_build_dispatch_request` resolves the model via precedence explicit-arg > preset hint > role model_pref > cos_route_model empirical > None — all data-driven config, zero code-level model literals; cos_supervise surfaces the suggestion in its dispatch action.
@@ -39,3 +38,4 @@ references: []
 - **Then** no hardcoded model/adapter literals in cognition.py — registry/settings only
 
 ## Work Log
+- 2026-06-10 [claude]: Shipped (score 9/10): full model precedence at dispatch build — explicit > preset roles_adapter_hints (read back via per

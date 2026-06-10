@@ -205,6 +205,16 @@ def register_cos_supervise(mcp, db_path):  # db_path reserved for future warm-hi
 
             swallow_safe("thinking_os.cognition", "supervise output trace emit failed", exc=exc)
 
+        # Mirror the dispatch-time model precedence (claude-sdk.md §7.3
+        # tiers 2-3) so the main agent can pick a model BEFORE the run tool.
+        model_hints: dict = {}
+        if action.action in ("dispatch", "dispatch_parallel") and action.formula:
+            role_meta = cog.load_agent_registry().get(action.formula) or {}
+            model_hints = {
+                "preset_hint": _preset_role_hint(session_id, action.formula, db_path),
+                "role_pref": role_meta.get("model_pref") or {},
+            }
+
         return ok(
             {
                 "action": action.action,
@@ -213,6 +223,7 @@ def register_cos_supervise(mcp, db_path):  # db_path reserved for future warm-hi
                 "agent_file": action.agent_file,
                 "reason": action.reason,
                 "advisory": action.advisory,
+                "model_hints": model_hints,
                 "state": {
                     "phase": state.phase,
                     "dispatched": state.dispatched,
@@ -1151,6 +1162,88 @@ def _emit_dispatch_metrics_safe(
         logger.debug("dispatch metric emit failed: %s", exc)
 
 
+def _preset_role_hint(session_id: str, formula_id: str, db_path) -> dict:
+    # Tier-2 lookup (claude-sdk.md §7.3): the session's composed preset is
+    # read back from persona_selections (preset_id lives in its task_marker
+    # column — see register_cos_compose_chain's INSERT), then that preset's
+    # roles_adapter_hints[formula_id]. Fail-open: hints are advisory.
+    if not db_path:
+        return {}
+    try:
+        import sqlite3 as _sqlite3
+
+        conn = _sqlite3.connect(db_path)
+        try:
+            row = conn.execute(
+                "SELECT task_marker FROM persona_selections WHERE session_id = ? "
+                "ORDER BY rowid DESC LIMIT 1",
+                (session_id,),
+            ).fetchone()
+        finally:
+            conn.close()
+        preset_id = row[0] if row and row[0] else ""
+        if not preset_id:
+            return {}
+        import formula_composer
+
+        presets, _version = formula_composer.load_presets()
+        preset = next((p for p in presets if p.get("id") == preset_id), {})
+        hint = (preset.get("roles_adapter_hints") or {}).get(formula_id) or {}
+        return hint if isinstance(hint, dict) else {}
+    except Exception as exc:
+        logger.debug("preset hint lookup failed: %s", exc)
+        return {}
+
+
+def _empirical_model(complexity: str, db_path) -> str:
+    # Tier-4: cos_route_model's recommendation, only when real outcome
+    # history backs it (cold-start static defaults must not override the
+    # SDK default for every dispatch).
+    if not db_path or not complexity.strip():
+        return ""
+    try:
+        import sqlite3 as _sqlite3
+
+        from tools.routing import route_model
+
+        conn = _sqlite3.connect(db_path)
+        try:
+            result = route_model(conn, complexity=complexity.strip().upper())
+        finally:
+            conn.close()
+        if int(result.get("data_points") or 0) > 0:
+            return str(result.get("recommended_model") or "")
+        return ""
+    except Exception as exc:
+        logger.debug("empirical model lookup failed: %s", exc)
+        return ""
+
+
+def _resolve_dispatch_model(
+    formula_id: str,
+    session_id: str,
+    meta: dict,
+    model: str,
+    complexity: str,
+    db_path,
+) -> str:
+    level = complexity.strip().lower()
+    hint_pref = _preset_role_hint(session_id, formula_id, db_path).get("model_pref") or {}
+    role_pref = meta.get("model_pref") or {}
+    for candidate, source in (
+        (model.strip(), "explicit"),
+        (hint_pref.get(level, ""), "preset_hint"),
+        (role_pref.get(level, ""), "role_pref"),
+        (_empirical_model(complexity, db_path), "empirical"),
+    ):
+        if candidate:
+            logger.info(
+                "dispatch model resolved for %s: %s via %s", formula_id, candidate, source
+            )
+            return candidate
+    return ""
+
+
 def _build_dispatch_request(
     formula_id: str,
     session_id: str,
@@ -1160,6 +1253,7 @@ def _build_dispatch_request(
     timeout_s: float | None,
     model: str = "",
     complexity: str = "",
+    db_path=None,
 ):
     """Build a DispatchRequest from session state (shared by run-one and run-parallel)."""
     from thinking_os import dispatcher as _disp  # lazy: avoid circular at import time
@@ -1175,10 +1269,9 @@ def _build_dispatch_request(
     input_slice = cog.build_input_slice(formula_id, bundle)
     input_slice["intensity_steps"] = cog._intensity_steps(formula_id, intensity)
 
-    # Model resolution (claude-sdk.md §7.3): explicit arg > role frontmatter
-    # model_pref keyed by the caller-supplied gate complexity > SDK default.
-    model_pref = meta.get("model_pref") or {}
-    resolved_model = model.strip() or model_pref.get(complexity.strip().lower(), "")
+    resolved_model = _resolve_dispatch_model(
+        formula_id, session_id, meta, model, complexity, db_path
+    )
 
     return _disp.DispatchRequest(
         formula_id=formula_id,
@@ -1239,6 +1332,7 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                 timeout_s,
                 model,
                 complexity,
+                db_path,
             )
         except Exception as exc:
             return fail("validation", f"failed to build request: {exc}")
@@ -1400,6 +1494,7 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
                     timeout_s,
                     model,
                     complexity,
+                    db_path,
                 )
                 for fid in formula_ids
             ]

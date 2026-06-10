@@ -8,6 +8,13 @@
 # NOTE: this file is hashed (sha256) on load and the hash is stamped into
 # every session's ComposedChain.preset_version (N.5-C preset versioning)
 # so mid-session edits don't change an in-flight chain.
+#
+# Optional per-preset key `roles_adapter_hints` (claude-sdk.md §7.3 tier 2):
+#   roles_adapter_hints:
+#     reviewer: { adapter: claude, model_pref: { complex: opus } }
+# Consulted by _build_dispatch_request between the explicit model argument
+# and the role frontmatter model_pref. Data only — no preset is required
+# to declare hints.
 
 presets:
   - id: greenfield-backend-api

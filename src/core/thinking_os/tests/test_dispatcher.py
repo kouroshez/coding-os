@@ -494,3 +494,96 @@ def test_matching_adapter_hint_stays_silent(monkeypatch, caplog):
         get_dispatcher(agent="cursor", request=req)
 
     assert not [r for r in caplog.records if "adapter hint" in r.getMessage()]
+
+
+# ---------------------------------------------------------------------------
+# Preset hints + empirical fallback (claude-sdk.md §7.3 tiers 2 and 4)
+# ---------------------------------------------------------------------------
+
+
+def _resolution_env(monkeypatch, tmp_path):
+    import sys
+
+    if str(_CORE_TOS) not in sys.path:
+        sys.path.insert(0, str(_CORE_TOS))
+    monkeypatch.setenv("COS_AGENT_DIR", str(tmp_path))
+    from database import init_db
+
+    db_path = str(tmp_path / "test.db")
+    conn = init_db(db_path)
+    conn.close()
+    return db_path
+
+
+def test_preset_hint_beats_role_pref(monkeypatch, tmp_path):
+    db_path = _resolution_env(monkeypatch, tmp_path)
+    import sqlite3
+
+    import formula_composer
+    from tools.cognition import _build_dispatch_request
+
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "INSERT INTO persona_selections "
+        "(session_id, task_marker, persona_id, confidence, reason, intensity) "
+        "VALUES ('ses-hint', 'test-preset', 'reviewer', 1.0, 'preset', 'default')"
+    )
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setattr(
+        formula_composer,
+        "load_presets",
+        lambda: (
+            [
+                {
+                    "id": "test-preset",
+                    "chain": ["reviewer"],
+                    "roles_adapter_hints": {"reviewer": {"model_pref": {"complex": "haiku"}}},
+                }
+            ],
+            "v-test",
+        ),
+    )
+
+    # reviewer.md role_pref says complex→opus; the preset hint must win.
+    req = _build_dispatch_request(
+        "reviewer", "ses-hint", "TASK-T", "dev", "standard", None, "", "COMPLEX", db_path
+    )
+    assert req.model == "haiku"
+
+
+def test_empirical_fallback_used_when_history_exists(monkeypatch, tmp_path):
+    db_path = _resolution_env(monkeypatch, tmp_path)
+    from tools import routing
+    from tools.cognition import _build_dispatch_request
+
+    monkeypatch.setattr(
+        routing,
+        "route_model",
+        lambda conn, **kw: {"recommended_model": "empirical-model", "data_points": 12},
+    )
+
+    # documenter has no model_pref in frontmatter and no preset row exists →
+    # tier 4 empirical must fire.
+    req = _build_dispatch_request(
+        "documenter", "ses-emp", "TASK-T", "dev", "standard", None, "", "COMPLEX", db_path
+    )
+    assert req.model == "empirical-model"
+
+
+def test_cold_start_empirical_is_ignored(monkeypatch, tmp_path):
+    db_path = _resolution_env(monkeypatch, tmp_path)
+    from tools import routing
+    from tools.cognition import _build_dispatch_request
+
+    monkeypatch.setattr(
+        routing,
+        "route_model",
+        lambda conn, **kw: {"recommended_model": "static-default", "data_points": 0},
+    )
+
+    req = _build_dispatch_request(
+        "documenter", "ses-cold", "TASK-T", "dev", "standard", None, "", "COMPLEX", db_path
+    )
+    assert req.model is None
