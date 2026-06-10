@@ -5,18 +5,17 @@ swimlane: "board_os"
 kind: feature
 epic: test-governance
 labels: [test-governance, ledger, ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-10
-started: null
-completed: null
-agent_session: null
+started: 2026-06-09
+completed: 2026-06-09
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: [TASK-327]
 blocked_by: []
 references: []
 ---
-
 # TASK-328: Test-governance P1: commit-keyed verify ledger — git_head/dirty_digest/agent in .last-verify.json, freshness = tree match + TTL
 
 **Outcome (one sentence):** verify_suites_cli check treats a PASS as fresh ONLY when git_head+dirty_digest match the current tree AND age<=max_age; record-verify.sh writes the new fields; entries missing the keys = stale (backward compatible).
@@ -34,3 +33,4 @@ references: []
 - **Then** check reports the suite stale; unchanged tree within TTL stays fresh; legacy entries without keys are stale; board_os matrix suite green
 
 ## Work Log
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
