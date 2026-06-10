@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -26,6 +28,42 @@ def _read_changed_paths() -> list[str]:
     return [line.strip() for line in raw.splitlines() if line.strip()]
 
 
+# Paths whose churn must NOT invalidate a recorded suite PASS: work-log
+# appends land in docs/tasks/** on every code edit, and .coding-os/** is
+# live agent state — neither can change pytest outcomes.
+_DIGEST_EXCLUDES = ("docs/tasks/", ".coding-os/")
+
+
+def _tree_state(repo_root: Path | None = None) -> dict[str, str]:
+    cwd = str(repo_root or Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())))
+
+    def _git(*git_args: str) -> bytes:
+        try:
+            proc = subprocess.run(
+                ["git", *git_args], capture_output=True, cwd=cwd, timeout=10
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return b""
+        return proc.stdout if proc.returncode == 0 else b""
+
+    head = _git("rev-parse", "HEAD").decode("utf-8", "replace").strip()
+    if not head:
+        return {"git_head": "", "dirty_digest": ""}
+    exclude_specs = [f":(exclude){p.rstrip('/')}" for p in _DIGEST_EXCLUDES]
+    diff = _git("diff", "HEAD", "--", ".", *exclude_specs)
+    untracked = sorted(
+        p
+        for p in _git("ls-files", "--others", "--exclude-standard")
+        .decode("utf-8", "replace")
+        .splitlines()
+        if p and not p.startswith(_DIGEST_EXCLUDES)
+    )
+    if not diff and not untracked:
+        return {"git_head": head, "dirty_digest": "clean"}
+    payload = diff + b"\x00" + "\n".join(untracked).encode("utf-8")
+    return {"git_head": head, "dirty_digest": hashlib.sha1(payload).hexdigest()}
+
+
 def _check_suites(required: list[str], verify_file: Path) -> tuple[list[str], list[str]]:
     """Return (missing_or_stale, ok_suites)."""
     if not verify_file.exists():
@@ -38,6 +76,7 @@ def _check_suites(required: list[str], verify_file: Path) -> tuple[list[str], li
     now = int(time.time())
     cfg = load_verify_suites()
     default_age = int(cfg.defaults.get("max_age_seconds", 1800))
+    tree = _tree_state()
 
     missing: list[str] = []
     ok: list[str] = []
@@ -48,7 +87,18 @@ def _check_suites(required: list[str], verify_file: Path) -> tuple[list[str], li
         status = entry.get("status")
         ts = entry.get("ts", 0)
         age = now - int(ts) if isinstance(ts, int) else max_age + 1
-        if status == "PASS" and age <= max_age:
+        if tree["git_head"]:
+            # Commit-keyed freshness: a PASS recorded on a different tree
+            # (other HEAD, or other dirty content) proves nothing about this
+            # one. v1 entries lack the keys and are therefore always stale.
+            tree_match = (
+                entry.get("git_head") == tree["git_head"]
+                and entry.get("dirty_digest") == tree["dirty_digest"]
+            )
+        else:
+            # No git available — degrade to v1 time-only freshness (fail-open).
+            tree_match = True
+        if status == "PASS" and age <= max_age and tree_match:
             ok.append(suite)
         else:
             missing.append(suite)
@@ -121,6 +171,83 @@ def cmd_check(args: argparse.Namespace) -> int:
     return 2
 
 
+def cmd_tree_state(args: argparse.Namespace) -> int:
+    print(json.dumps(_tree_state()))
+    return 0
+
+
+def _command_paths(cmd: str) -> set[str]:
+    return {
+        tok.rstrip("/")
+        for tok in cmd.split()
+        if "/" in tok and not tok.startswith("-")
+    }
+
+
+def _match_suite_command(cmd: str, cfg) -> str | None:
+    """Map a shell command to the suite it executes, or None."""
+    norm = " ".join(cmd.split())
+    cmd_paths = _command_paths(norm)
+    for name, rule in cfg.suites.items():
+        rule_cmd = " ".join(rule.command.split())
+        if rule_cmd.startswith("make "):
+            if rule_cmd in norm:
+                return name
+            continue
+        rule_paths = _command_paths(rule_cmd)
+        if rule_paths and "pytest" in norm and rule_paths <= cmd_paths:
+            return name
+    return None
+
+
+def _is_full_sweep(cmd: str) -> bool:
+    """True for pytest invocations that would run (nearly) everything."""
+    norm = " ".join(cmd.split())
+    tokens = norm.split()
+    if "pytest" not in tokens:
+        return False
+    if "--collect-only" in tokens or "--co" in tokens:
+        return False
+    after = tokens[tokens.index("pytest") + 1 :]
+    paths = [t for t in after if not t.startswith("-") and ("/" in t or t == "tests")]
+    if not paths:
+        return True  # bare pytest → testpaths = the whole repo
+    if any(p.rstrip("/") == "tests" for p in paths):
+        return True  # the 1,316-test integration root
+    test_roots = {p.rstrip("/") for p in paths if p.rstrip("/").endswith("tests")}
+    return len(test_roots) >= 3
+
+
+def cmd_match_command(args: argparse.Namespace) -> int:
+    try:
+        cfg = load_verify_suites()
+    except VerifySuitesError:
+        print(json.dumps({"suite": None, "full_sweep": False, "fresh": False}))
+        return 0
+    command = args.command
+    suite = _match_suite_command(command, cfg)
+    out: dict = {
+        "suite": suite,
+        "full_sweep": _is_full_sweep(command),
+        "fresh": False,
+    }
+    verify_file = Path(args.verify_file)
+    if suite and verify_file.exists():
+        missing, fresh_ok = _check_suites([suite], verify_file)
+        out["fresh"] = suite in fresh_ok
+        if out["fresh"]:
+            try:
+                entry = json.loads(verify_file.read_text(encoding="utf-8")).get(suite, {})
+            except (OSError, json.JSONDecodeError):
+                entry = {}
+            out["recorded_by"] = entry.get("agent") or "unknown"
+            out["session_tail"] = entry.get("session_tail", "")
+            ts = entry.get("ts", 0)
+            out["age_min"] = max(0, int((time.time() - ts) / 60)) if isinstance(ts, int) else 0
+    print(json.dumps(out))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="verify_suites_cli",
@@ -134,6 +261,23 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_check.add_argument("--verbose", action="store_true")
     p_check.set_defaults(fn=cmd_check)
+
+    p_tree = sub.add_parser(
+        "tree-state",
+        help="Print {git_head, dirty_digest} JSON for the current worktree.",
+    )
+    p_tree.set_defaults(fn=cmd_tree_state)
+
+    p_match = sub.add_parser(
+        "match-command",
+        help="Map a shell command to its suite + full-sweep/freshness verdict (JSON).",
+    )
+    p_match.add_argument("--command", required=True)
+    p_match.add_argument(
+        "--verify-file",
+        default=os.path.join(os.environ.get("COS_STATE_DIR", ".coding-os"), ".last-verify.json"),
+    )
+    p_match.set_defaults(fn=cmd_match_command)
 
     args = parser.parse_args(argv)
     return args.fn(args)
