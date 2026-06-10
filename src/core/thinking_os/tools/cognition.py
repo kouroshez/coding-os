@@ -1158,6 +1158,8 @@ def _build_dispatch_request(
     persona_id: str,
     intensity: str,
     timeout_s: float | None,
+    model: str = "",
+    complexity: str = "",
 ):
     """Build a DispatchRequest from session state (shared by run-one and run-parallel)."""
     from thinking_os import dispatcher as _disp  # lazy: avoid circular at import time
@@ -1173,6 +1175,11 @@ def _build_dispatch_request(
     input_slice = cog.build_input_slice(formula_id, bundle)
     input_slice["intensity_steps"] = cog._intensity_steps(formula_id, intensity)
 
+    # Model resolution (claude-sdk.md §7.3): explicit arg > role frontmatter
+    # model_pref keyed by the caller-supplied gate complexity > SDK default.
+    model_pref = meta.get("model_pref") or {}
+    resolved_model = model.strip() or model_pref.get(complexity.strip().lower(), "")
+
     return _disp.DispatchRequest(
         formula_id=formula_id,
         agent_file=str(agent_path if agent_path.exists() else agent_file_rel),
@@ -1183,6 +1190,7 @@ def _build_dispatch_request(
         timeout_s=float(timeout_s) if timeout_s else float(meta.get("timeout_s", 300)),
         session_id=session_id,
         long_context=bool(meta.get("long_context", False)),
+        model=resolved_model or None,
     )
 
 
@@ -1210,6 +1218,8 @@ def register_cos_dispatch_formula_run(mcp, db_path):
         persona_id: str,
         intensity: str = "standard",
         timeout_s: float | None = None,
+        model: str = "",
+        complexity: str = "",
     ) -> str:
         import asyncio as _asyncio
 
@@ -1227,6 +1237,8 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                 persona_id,
                 intensity,
                 timeout_s,
+                model,
+                complexity,
             )
         except Exception as exc:
             return fail("validation", f"failed to build request: {exc}")
@@ -1363,6 +1375,8 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
         persona_id: str,
         intensity: str = "standard",
         timeout_s: float | None = None,
+        model: str = "",
+        complexity: str = "",
     ) -> str:
         import asyncio as _asyncio
 
@@ -1384,6 +1398,8 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
                     persona_id,
                     intensity,
                     timeout_s,
+                    model,
+                    complexity,
                 )
                 for fid in formula_ids
             ]

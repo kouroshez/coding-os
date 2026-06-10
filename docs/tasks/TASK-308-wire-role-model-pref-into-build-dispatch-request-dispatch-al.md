@@ -5,18 +5,17 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [ready, model-routing, spec-drift, audit-2026-06-09]
-status: icebox
+status: testing
 priority: P1
 appetite: 1d
 created: 2026-06-10
-started: null
+started: 2026-06-09
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-308: Wire role model_pref into _build_dispatch_request — dispatch always sends model=None (dead spec)
 
 **Outcome (one sentence):** A role whose frontmatter declares `model_pref` (e.g. reviewer: complicated→sonnet, complex→opus) actually dispatches with `DispatchRequest.model` derived from model_pref × current gate complexity, and `cos_dispatch_formula_run` accepts an explicit `model` override.
@@ -42,3 +41,4 @@ Actual: model=None always — model_pref is parsed and returned by cos_dispatch_
 - **Then** the explicit argument overrides model_pref; covered by a thinking_os pytest
 
 ## Work Log
+- 2026-06-10 [claude]: Shipped (score 9.5/10): _build_dispatch_request resolves model = explicit arg > role model_pref[complexity] > SDK defaul

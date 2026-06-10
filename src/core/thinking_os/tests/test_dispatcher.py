@@ -412,3 +412,49 @@ def test_codex_sdk_dispatcher_nonzero_rc(monkeypatch, tmp_path):
     result = asyncio.run(d.dispatch(req))
     assert result.status == "error"
     assert "rc=1" in (result.error or "")
+
+
+# ---------------------------------------------------------------------------
+# Model resolution at request build (claude-sdk.md §7.3 — model_pref × gate)
+# ---------------------------------------------------------------------------
+
+
+def _build_request(monkeypatch, tmp_path, **kwargs):
+    import sys
+
+    if str(_CORE_TOS) not in sys.path:
+        sys.path.insert(0, str(_CORE_TOS))
+    monkeypatch.setenv("COS_AGENT_DIR", str(tmp_path))
+    from tools.cognition import _build_dispatch_request
+
+    return _build_dispatch_request(
+        kwargs.pop("formula_id", "reviewer"),
+        "test-session-model-res",
+        "TASK-TEST",
+        "developer",
+        "standard",
+        None,
+        **kwargs,
+    )
+
+
+def test_model_pref_resolves_from_complexity(monkeypatch, tmp_path):
+    # reviewer.md frontmatter declares model_pref {complicated: sonnet, complex: opus}.
+    req = _build_request(monkeypatch, tmp_path, complexity="COMPLEX")
+    assert req.model == "opus"
+
+    req = _build_request(monkeypatch, tmp_path, complexity="complicated")
+    assert req.model == "sonnet"
+
+
+def test_explicit_model_overrides_model_pref(monkeypatch, tmp_path):
+    req = _build_request(monkeypatch, tmp_path, model="haiku", complexity="COMPLEX")
+    assert req.model == "haiku"
+
+
+def test_no_complexity_and_no_pref_leaves_sdk_default(monkeypatch, tmp_path):
+    req = _build_request(monkeypatch, tmp_path)
+    assert req.model is None
+
+    req = _build_request(monkeypatch, tmp_path, complexity="CLEAR")
+    assert req.model is None

@@ -176,6 +176,17 @@ Why each line:
 | `cwd` | str\|None | project root for the sub-session. |
 | `model` | str\|None | (NEW) model id. None = SDK default. |
 
+**Model resolution at request build** (`_build_dispatch_request`): the
+optional `model` argument of `cos_dispatch_formula_run` /
+`cos_dispatch_parallel_run` wins outright; otherwise the role
+frontmatter's `model_pref` map is consulted with the caller-supplied
+`complexity` argument lowercased as the key (`model_pref: {complicated:
+sonnet, complex: opus}` — see `agents/README.md`); no match → `None`
+(SDK default). Aliases pass through verbatim — the adapter, not the
+kernel, owns alias→id mapping (Rule 11). The caller passes `complexity`
+explicitly because the Cynefin gate is per-panel filesystem state the
+long-lived MCP server cannot attribute to a panel.
+
 **Output** — `DispatchResult`:
 
 | field | type |
