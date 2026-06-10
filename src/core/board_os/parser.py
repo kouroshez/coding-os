@@ -62,6 +62,9 @@ class ParsedTask:
     depends_on: tuple[str, ...] = field(default_factory=tuple)
     blocked_by: tuple[str, ...] = field(default_factory=tuple)
     references: tuple[str, ...] = field(default_factory=tuple)
+    # Optional bidirectional link to a forge issue/PR (e.g. "github#42"). Metadata
+    # only — never the task's canonical id (ADR adr-task-id-allocator-seam).
+    external_ref: str | None = None
     outcome: str | None = None
     read_first: tuple[str, ...] = field(default_factory=tuple)
     work_log_lines: tuple[str, ...] = field(default_factory=tuple)
@@ -85,6 +88,32 @@ def extract_frontmatter(content: str) -> dict[str, Any] | None:
         logger.debug("frontmatter YAML parse error: %s", exc)
         return None
     return data if isinstance(data, dict) else None
+
+
+def detect_duplicate_frontmatter(content: str) -> str | None:
+    """Flag a second task-shaped frontmatter block in the body — two blocks
+    with conflicting `status:` silently skew board counts (the parser only
+    ever reads the first; observed on TASK-116)."""
+    m = _FRONTMATTER_RE.match(content)
+    if not m:
+        return None
+    body = m.group("body")
+    m2 = re.search(r"(?:^|\n)---\s*\n(?P<yaml>.*?)\n---\s*\n", body, re.DOTALL)
+    if not m2:
+        return None
+    try:
+        dup = yaml.safe_load(m2.group("yaml"))
+    except yaml.YAMLError:
+        return None
+    # Only a dict carrying id+status is a duplicate FRONTMATTER — a plain
+    # `---` horizontal rule or a yaml snippet in the body must not flag.
+    if not isinstance(dup, dict) or "id" not in dup or "status" not in dup:
+        return None
+    first = extract_frontmatter(content) or {}
+    return (
+        f"duplicate frontmatter block: first status={first.get('status')!r}, "
+        f"second status={dup.get('status')!r} — merge to ONE block"
+    )
 
 
 def _extract_body_sections(body: str) -> dict[str, str]:
@@ -218,6 +247,7 @@ def parse_task(content: str, *, path: Path | None = None) -> ParsedTask | None:
         depends_on=_normalize_str_list(fm.get("depends_on")),
         blocked_by=_normalize_str_list(fm.get("blocked_by")),
         references=_normalize_str_list(fm.get("references")),
+        external_ref=(str(fm["external_ref"]) if fm.get("external_ref") else None),
         outcome=_extract_outcome(body),
         read_first=_extract_read_first_paths(body),
         work_log_lines=_extract_work_log_lines(body),

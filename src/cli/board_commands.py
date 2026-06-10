@@ -975,7 +975,7 @@ def task_validate_cmd(task_id, for_status, as_json):
 
 
 def _task_validate_lint_all() -> None:
-    from board_os.parser import parse_task
+    from board_os.parser import detect_duplicate_frontmatter, parse_task
 
     root = _project_root()
     tasks_dir = root / "docs" / "tasks"
@@ -986,6 +986,11 @@ def _task_validate_lint_all() -> None:
     warnings = 0
     for p in sorted(tasks_dir.glob("TASK-*.md")):
         content = p.read_text(encoding="utf-8")
+        duplicate = detect_duplicate_frontmatter(content)
+        if duplicate:
+            click.echo(f"  ✗ {p.name}: {duplicate}", err=True)
+            errors += 1
+            continue
         parsed = parse_task(content, path=p)
         if parsed is None:
             click.echo(f"  ✗ {p.name}: unparseable", err=True)
@@ -1138,11 +1143,30 @@ def board_config_cmd(init, stack):
 
 
 # ---------------------------------------------------------------------------
+@click.command(
+    "task-link",
+    help="Link a task to a forge issue/PR — sets external_ref (e.g. github#42). "
+    "Forge auto-detected from origin. REF accepts 42, github#42, or an issue URL.",
+)
+@click.argument("task_id")
+@click.argument("ref")
+def task_link_cmd(task_id, ref):
+    from board_os import mcp_tools
+
+    conn = _db_conn()
+    try:
+        envelope = mcp_tools.cos_task_link(conn, task_id=task_id, ref=ref)
+    finally:
+        conn.close()
+    sys.exit(_print_envelope(envelope))
+
+
 # Commands bundle — register via cli.add_command(each)
 # ---------------------------------------------------------------------------
 
 
 BOARD_COMMANDS = [
+    task_link_cmd,
     board_cmd,
     task_create_cmd,
     task_move_cmd,

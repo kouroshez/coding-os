@@ -5,18 +5,17 @@ swimlane: "board_os"
 kind: bug
 epic: null
 labels: [ready, data-integrity, audit-2026-06-09]
-status: icebox
+status: testing
 priority: P2
 appetite: 1d
 created: 2026-06-10
-started: null
+started: 2026-06-10
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-310: Repair TASK-116 duplicate YAML frontmatter (conflicting status) + task-validate guard for dup frontmatter blocks
 
 **Outcome (one sentence):** TASK-116's file carries exactly one frontmatter block with its true status (icebox), and `cos task-validate` FAILS loudly on any task file containing two YAML frontmatter blocks so this corruption class can never silently skew board counts again.
@@ -41,3 +40,4 @@ Actual: passes silently; board sees `complete` while intended state is `icebox` 
 - **Then** it shows a single status `icebox` and the file has exactly one frontmatter block (repair via semantic ops / parser-aware fixer, not a status hand-edit)
 
 ## Work Log
+- 2026-06-10 [claude]: Shipped (score 9/10). Ground truth correction: TASK-116's true status is COMPLETE, not icebox — both work-log commits (c

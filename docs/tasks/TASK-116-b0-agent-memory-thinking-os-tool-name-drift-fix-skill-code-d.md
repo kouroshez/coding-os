@@ -18,27 +18,6 @@ references: []
 ---
 # TASK-116: B0: agent-memory + thinking_os tool-name drift fix + skill↔code drift-guard test
 
----
-id: TASK-116
-title: "B0: agent-memory + thinking_os tool-name drift fix + skill↔code drift-guard test"
-swimlane: core
-kind: bug
-epic: skills-enterprise-hardening
-labels: [skills, drift-guard, meta-authoring, audit, epic:skills-enterprise-hardening, ready]
-status: icebox
-priority: P1
-appetite: "1d"
-created: 2026-06-05
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-116: B0: agent-memory + thinking_os tool-name drift fix + skill↔code drift-guard test
-
 **Outcome (one sentence):** agent-memory + thinking_os document the REAL cos_* signatures (no invented kwargs/tool names); a CI drift-guard test imports the live server and asserts every skill-documented kwarg/category/import/tool-name exists, so meta-authoring skills cannot silently re-rot.
 
 ## Read First

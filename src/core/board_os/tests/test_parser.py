@@ -318,3 +318,46 @@ priority: P2
     assert parsed.title == "پیاده‌سازی بک‌اند"
     assert parsed.outcome is not None
     assert "کاربر" in parsed.outcome
+
+
+# ---------- duplicate frontmatter detection (TASK-310, observed on TASK-116) ----------
+
+
+def _task_doc(status: str, body: str = "") -> str:
+    return (
+        "---\n"
+        "id: TASK-999\n"
+        'title: "dup guard"\n'
+        "swimlane: core\n"
+        "kind: bug\n"
+        f"status: {status}\n"
+        "---\n"
+        f"# TASK-999: dup guard\n{body}"
+    )
+
+
+def test_detects_conflicting_duplicate_frontmatter():
+    from board_os.parser import detect_duplicate_frontmatter
+
+    doubled = _task_doc("complete") + "\n" + _task_doc("icebox")
+    msg = detect_duplicate_frontmatter(doubled)
+    assert msg is not None
+    assert "'complete'" in msg and "'icebox'" in msg
+
+
+def test_horizontal_rule_and_yaml_snippet_do_not_flag():
+    from board_os.parser import detect_duplicate_frontmatter
+
+    with_hr = _task_doc("complete", body="\nintro\n\n---\n\nmore prose\n\n---\n\nend\n")
+    assert detect_duplicate_frontmatter(with_hr) is None
+
+    with_yamlish = _task_doc(
+        "complete", body="\n---\nkey: value\nother: thing\n---\nprose\n"
+    )
+    assert detect_duplicate_frontmatter(with_yamlish) is None
+
+
+def test_single_frontmatter_clean():
+    from board_os.parser import detect_duplicate_frontmatter
+
+    assert detect_duplicate_frontmatter(_task_doc("icebox")) is None
