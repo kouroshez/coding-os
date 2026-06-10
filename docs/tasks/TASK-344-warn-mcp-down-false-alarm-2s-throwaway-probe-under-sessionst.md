@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1h
 created: 2026-06-10
 started: 2026-06-10
-completed: null
+completed: 2026-06-10
 agent_session: ses-claude-20260610-112852-603a
 depends_on: []
 blocked_by: []
@@ -38,3 +38,6 @@ Actual: the throwaway probe (`perl alarm 2` despite the 5s comment) raced Sessio
 - 2026-06-10 [claude]: Edit warn-mcp-down.sh
 - 2026-06-10 [claude]: Edit warn-mcp-down.sh
 - 2026-06-10 [claude]: commit b84c2b9c0e — fix(cli): board attribution prefers fresh .active-session over the frozen session-id fossil
+- 2026-06-10 [claude]: committed 5f7a57a0: src/core/hooks/warn-mcp-down.sh
+- 2026-06-10 [claude]: commit f825b55b12 — chore(docs): frontmatter headers on 5 audit docs + review-sweep task records (342/343/345)
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.

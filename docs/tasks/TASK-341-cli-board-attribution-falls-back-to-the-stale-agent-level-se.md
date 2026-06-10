@@ -5,12 +5,12 @@ swimlane: cli
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2h
 created: 2026-06-10
 started: 2026-06-10
-completed: null
+completed: 2026-06-10
 agent_session: ses-claude-20260610-112852-603a
 depends_on: []
 blocked_by: []
@@ -43,3 +43,5 @@ Actual: agent_session = the 2026-05-27 fossil (TASK-337..340 all carry it) — `
 - 2026-06-10 [claude]: Edit board_commands.py
 - 2026-06-10 [claude]: Edit mcp_time_probe.py
 - 2026-06-10 [claude]: Edit TASK-344-warn-mcp-down-false-alarm-2s-throwaway-probe-under-sessionst.md
+- 2026-06-10 [claude]: committed b84c2b9c: src/cli/board_commands.py, tests/test_board_commands_agent_detect.py
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
