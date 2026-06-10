@@ -6,26 +6,14 @@ CLI / VSCode-plugin sessions have no panel UI, so parity with the hub's settings
 
 ## The contract
 
-1. **Toggle off (default)** — nothing fires. The hook exits before any
-   output; no context is injected; dispatch behaviour is unchanged.
-2. **Toggle on** — at Classify time, after `cos_classify_prompt` records the
-   gate, call `cos_route_model(complexity=<gate>, domain=<routed domain>)`.
-   Honor the recommendation when it is backed by history
-   (`data_points > 0`); otherwise prefer the settings' `orchestrator_model`,
-   else the adapter default.
-3. **Dispatch** — pass the chosen model and the gate complexity to the run
-   tools; the kernel precedence (claude-sdk.md §7.3) handles the rest
-   (explicit > preset hint > role pref > empirical > default).
-4. **Trace** — the routing decision must be visible: the run tools log
-   `dispatch model resolved … via <source>`; the chat path emits an SSE
-   `routing` event.
+1. **Toggle off (default)** — nothing fires; dispatch behaviour is unchanged.
+2. **Toggle on** — at Classify, after `cos_classify_prompt` records the gate, call `cos_route_model(complexity=<gate>, domain=<routed domain>)`. Honor it when history-backed (`data_points > 0`); else prefer the settings' `orchestrator_model`, else the adapter default.
+3. **Dispatch** — pass the chosen model + gate complexity to the run tools; kernel precedence (claude-sdk.md §7.3: explicit > preset hint > role pref > empirical > default) handles the rest.
+4. **Trace** — run tools log `dispatch model resolved … via <source>`; the chat path emits an SSE `routing` event.
 
 ## Settings source (SSOT)
 
-`hub-settings.json::model_routing` — written by the hub Settings page
-(`/api/settings`), readable by every consumer fresh per call (no restart).
-Models come from `src/adapters/*/adapter.yaml::models` (Rule 11 — no model
-id literal in code or in this rule).
+`hub-settings.json::model_routing` — written by the hub Settings page (`/api/settings`), read fresh per call (no restart). Models come from `src/adapters/*/adapter.yaml::models` (Rule 11 — no model id literal here).
 
 ## See also
 

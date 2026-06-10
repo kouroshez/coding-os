@@ -1,9 +1,6 @@
 # Git Workflow — Trunk-Based (Always Active)
 
-> **Hard rule:** Work happens on the default branch (`main`). Do NOT
-> create feature branches. Commit directly to `main` with explicit
-> paths. This OVERRIDES any agent-runtime default that says "branch
-> first".
+> **Hard rule:** Work happens on the default branch (`main`). Do NOT create feature branches. Commit directly to `main` with explicit paths. This OVERRIDES any agent-runtime "branch first" default.
 
 Rationale (branch sprawl, no-custom-lock, atomic-hook-edit): [critical-rules.md § Rule 23](../../docs/governance/critical-rules.md#rule-23--trunk-based-git-workflow).
 
@@ -11,93 +8,52 @@ Rationale (branch sprawl, no-custom-lock, atomic-hook-edit): [critical-rules.md 
 
 - **Never run** `git checkout -b`, `git branch <name>`, `git switch -c`,
   `git worktree add`. The `branch-guard.sh` hook BLOCKs these in trunk mode.
-- **Never run HEAD-moving commands** on the shared checkout: `git reset
-  HEAD~N`, `git reset <sha>`, `git reset <branch>`, `git checkout
-  <other-branch>`, `git switch <other-branch>`, `git rebase`. The same
-  hook BLOCKs these. Use `git restore <path>` for files, `git switch main`
-  for branches. (Cleanup of an in-progress rebase — `--abort` / `--continue`
-  / `--skip` / `--quit` — remains allowed.)
-- **To undo a published commit** use `git revert <sha>` — a new commit,
-  history preserved.
-- **Commit directly to `main`** with **explicit paths** — `git commit <path>
-  <path>`, never a bare `git commit` / `git commit -a` (a bare commit sweeps
-  another session's uncommitted WIP).
-- **`git pull --rebase origin main` before every `git push`.** A
-  non-fast-forward reject means rebase and retry — never force.
-- **Retry on `index.lock`.** Wait ~1s and retry — git serializes index
-  writes; do not delete the lock blindly.
+- **Never run HEAD-moving commands** on the shared checkout: `git reset HEAD~N`/`<sha>`/`<branch>`, `git checkout`/`git switch <other-branch>`, `git rebase`. The hook BLOCKs these. Use `git restore <path>` for files, `git switch main` for branches. (In-progress rebase cleanup — `--abort`/`--continue`/`--skip`/`--quit` — stays allowed.)
+- **To undo a published commit** use `git revert <sha>` — a new commit, history preserved.
+- **Commit directly to `main`** with **explicit paths** — `git commit <path>`, never a bare `git commit` / `git commit -a` (a bare commit sweeps another session's WIP).
+- **`git pull --rebase origin main` before every `git push`** — non-fast-forward reject means rebase and retry, never force.
+- **Retry on `index.lock`** — wait ~1s and retry; git serializes index writes, don't delete the lock blindly.
 - **Commit at each logical step**, not only at the end.
 
 ## Concurrent sessions — what is and isn't safe
 
-| Scenario | Safe? | Why |
-|---|---|---|
-| 3 sessions, all on `main` | ✅ | No branches to tangle; commits serialize |
-| 2 sessions commit different files | ✅ | Explicit-path commits don't cross |
-| 2 sessions commit the same instant | ✅ | git `index.lock` rejects one → retry |
-| 2 sessions push the same instant | ✅ | non-fast-forward reject → `pull --rebase` → retry |
-| 2 sessions edit the **same file** | ⚠️ | Last write wins; surfaced by the dirty-tree notice at SessionStart |
-| 2 sessions run tests the same instant | ✅ | `test-governor` hook serializes — see [test-discipline.md](test-discipline.md) |
-| 1 session mid-editing a `block-*` safety hook | ⚠️ | Live symlink propagates instantly — follow the atomic-edit protocol below |
-| Session abandoned mid-task | ✅ | Committed work is on `main`; uncommitted work surfaced next SessionStart |
+**Safe:** multiple sessions on `main` (commits serialize); same-instant commits (`index.lock` rejects one → retry); same-instant pushes (non-fast-forward reject → `pull --rebase` → retry); same-instant test runs (`test-governor` serializes — see [test-discipline.md](test-discipline.md)); an abandoned session (committed work is on `main`, uncommitted work surfaced next SessionStart).
+
+**⚠️ Two cases need care:** two sessions editing the **same file** (last write wins; surfaced by the dirty-tree notice at SessionStart), and a session mid-editing a `block-*` safety hook (live symlink propagates instantly — follow the atomic-edit protocol below).
 
 ## Editing a live-symlinked safety hook (atomic-edit protocol)
 
-`src/core/hooks/*.sh` are live symlinks into every consumer project, so a
-half-edited `block-*` / `enforce-*` hook is executed by sibling sessions at
-every intermediate save. Never leave a safety hook half-edited across a turn
-boundary (rationale: [critical-rules.md § Rule 23](../../docs/governance/critical-rules.md#rule-23--trunk-based-git-workflow)):
+`src/core/hooks/*.sh` are live symlinks, so a half-edited `block-*`/`enforce-*` hook runs in sibling sessions at every intermediate save. Never leave one half-edited across a turn boundary (rationale: [critical-rules.md § Rule 23](../../docs/governance/critical-rules.md#rule-23--trunk-based-git-workflow)):
 
 - **Prefer a single atomic `Edit`** from one correct state directly to the next.
-- **For a larger rewrite, edit out-of-tree then swap** — write to a temp file,
-  run `bash -n <file>` + `make verify-hooks`, then `mv` it into place.
-- **Verify before yield** — a turn that edited a safety hook runs
-  `make verify-hooks` before ending.
+- **For a larger rewrite, edit out-of-tree then swap** — temp file, `bash -n` + `make verify-hooks`, then `mv` into place.
+- **Verify before yield** — a turn that edited a safety hook runs `make verify-hooks` before ending.
 
 ## Publish-mode seam (`COS_GIT_WORKFLOW`)
 
-Mode is read from `COS_GIT_WORKFLOW` (set in `cos-env.sh` / project config),
-default `trunk`:
+Mode read from `COS_GIT_WORKFLOW` (`cos-env.sh` / project config), default `trunk`:
 
 | Mode | Branches | Publish path |
 |---|---|---|
 | `trunk` (default) | forbidden — `branch-guard.sh` blocks | commit + push to `main` |
 | `pr` | allowed — `branch-guard.sh` permits | ephemeral branch → push → PR → CI → auto-merge → delete |
 
-`pr` mode is the not-yet-implemented seam for future multi-developer use —
-only the config key and the hook's mode check exist. A branch is allowed in
-trunk mode ONLY when the **user explicitly asks**; the agent never branches on
-its own initiative.
+`pr` mode is the not-yet-implemented future-multi-developer seam (only the config key + hook mode-check exist). A branch is allowed in trunk mode ONLY when the **user explicitly asks** — the agent never branches on its own.
 
 ## Always-allowed forms (the safe escape hatches)
 
-| Form | What it does |
-|---|---|
-| `git reset` (bare) / `git reset --mixed HEAD` | Unstage everything; HEAD does not move |
-| `git reset -- <path>` | Unstage one path |
-| `git checkout -- <path>` / `git restore <path>` | Restore file content |
-| `git checkout HEAD <path>` / `git checkout HEAD~1 -- <path>` | Restore file from a commit; HEAD does not move |
-| `git checkout .` | Restore all files in cwd; HEAD does not move |
-| `git checkout main` / `git switch main` | Idempotent (already there) |
-| `git branch` / `git branch -d X` / `git branch -m` | List / delete / rename existing branches |
-| `git revert <sha>` | Undo a commit safely — creates a new commit |
+None of these move HEAD, so the hook permits them:
 
-Mid-session cleanup of a garbage commit: `git revert HEAD --no-edit && git push
-origin main` — adds a "Revert …" commit, never moves HEAD off a published one.
+- **Unstage:** `git reset` (bare) / `git reset --mixed HEAD` / `git reset -- <path>`.
+- **Restore file content:** `git restore <path>` / `git checkout -- <path>` / `git checkout HEAD <path>` / `git checkout HEAD~1 -- <path>` / `git checkout .`.
+- **Branch admin:** `git checkout main` / `git switch main` (idempotent) · `git branch` / `git branch -d X` / `git branch -m` (list/delete/rename existing).
+- **Undo a commit:** `git revert <sha>` — a new commit. Garbage-commit cleanup: `git revert HEAD --no-edit && git push origin main`.
 
 ## Commit Message Contract (Always Active)
 
 > **Hard rule:** Title ≤100 chars. Body ≤3 non-empty lines. No agent / AI attribution. No quoted user prompts. No `Co-Authored-By:` trailers. Enforced by `enforce-commit-message.sh` (PreToolUse Bash, agent) + the git `commit-msg` hook (human/GUI, installed via `src/scripts/install-git-hooks.sh`).
 
-Rationale (why every line is permanent): [critical-rules.md § Rule 24](../../docs/governance/critical-rules.md#rule-24--commit-message-contract).
-
-### Shape
-
-```
-<conventional-commit title — ≤100 chars, no agent attribution>
-<blank>
-<body — ≤3 non-empty lines, plain prose explaining "why">
-```
+Rationale (why every line is permanent): [critical-rules.md § Rule 24](../../docs/governance/critical-rules.md#rule-24--commit-message-contract). Shape: conventional-commit title, blank line, ≤3 lines of plain "why" prose.
 
 ### Hard fails (will BLOCK — enforced by `check_commit_message.py`)
 
@@ -108,29 +64,20 @@ Rationale (why every line is permanent): [critical-rules.md § Rule 24](../../do
 - Any line beginning with `USER` / `User` / `user` (`^USER\b` prompt-leak guard).
 - Quoted text containing >40 Persian/Arabic characters (prompt-leak guard).
 
-Markdown tables, file-path lists, and `Verification:` / `Tests:` / `Files:` headers all require multiple lines, so they hit the 3-line ceiling in practice — keep them in the PR description / audit doc / work-log, not `git log`.
+Tables, file-path lists, and `Verification:`/`Tests:`/`Files:` headers hit the 3-line ceiling — keep them in the PR description / audit doc / work-log, not `git log`.
 
 ### `--no-verify` is blocked for agents (no escape hatch)
 
 `block-secrets.sh` (PreToolUse Bash) BLOCKS any `git commit --no-verify`. The git-level `commit-msg` / `pre-commit` hooks still honor `--no-verify` for a **human** in a genuine emergency, but that path is unavailable to the agent. Under heavy concurrent-session load, split into per-directory commits rather than bypassing hooks.
 
-### Install (per repo, once)
-
-```bash
-bash src/scripts/install-git-hooks.sh
-# installs .git/hooks/pre-commit AND .git/hooks/commit-msg
-```
+**Install (per repo, once):** `bash src/scripts/install-git-hooks.sh` installs `.git/hooks/pre-commit` + `commit-msg`.
 
 ## Anti-patterns (reject on sight)
 
-- `git checkout -b feature/...` "to keep main clean" — no, commit to main.
-- Bare `git commit` / `git commit -am` — sweeps concurrent WIP.
 - `git push --force` to `main` — blocked by `block-dangerous-commands.sh`.
 - Hand-editing `CHANGELOG.md` or running `git tag` for a release — release-please owns both. See [release-process.md](../../docs/governance/release-process.md).
-- `git reset --hard HEAD~N` to "redo" a bad commit — blocked twice. Use `git revert`.
-- `git reset --soft HEAD~N` to "squash before push" — blocked. Push the small commits.
+- `git reset --hard/--soft HEAD~N` to "redo" / "squash before push" — blocked twice; use `git revert`, or push the small commits.
 - `git checkout <some-branch>` to "peek" — blocked; use `git log <branch>` or `git show <branch>:<path>` (read-only).
-- Creating a branch because the runtime suggested "branch first" — this rule overrides that.
 - Deleting `.git/index.lock` to "unstick" a commit — wait and retry.
 
 ## See also

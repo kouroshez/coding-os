@@ -1,32 +1,26 @@
----
-description: Anti-hallucination rule — verify response field names against the backend SSOT before writing or editing any API consumer (UI fetcher, CLI parser, script, test).
-globs: "**/*"
-alwaysApply: true
----
-
 # API Contract Discipline — Don't Guess Field Names
 
 > **Source of truth for field names is the producer, not the consumer.**
 > Frontend components, CLI parsers, dashboards, and tests are consumers — they MUST verify every field they read against the producer's actual response, not against memory, naming intuition, or another consumer.
 
-Drift between the producer's response shape and the consumer's expectation is a silent bug: TypeScript reads `undefined` for a renamed field, Python returns `None`, `JSON.parse` never fails — the agent only notices when a human says "the page is empty." Hooks can't catch it; the agent must be disciplined. Canonical example: `cos_graph_export` emits edges with `source_uid`/`target_uid`, but the Hub Graph tab read `e.source`/`e.target` → every edge silently dropped, empty canvas, zero console errors (TASK-117).
+Drift between producer shape and consumer expectation is a silent bug: TS reads `undefined`, Python returns `None`, `JSON.parse` never fails — the agent only notices when a human says "the page is empty." Hooks can't catch it. Canonical example: `cos_graph_export` emits `source_uid`/`target_uid`, but the Hub Graph tab read `e.source`/`e.target` → every edge silently dropped, empty canvas, zero errors (TASK-117).
 
 ## Rule (mandatory before Write/Edit on any API consumer)
 
 Before authoring or editing **any** code that reads an API / MCP / RPC / CLI response, perform ONE of the following two checks and quote the result in your reasoning before producing the diff:
 
-1. **Read the producer.** Open the server-side handler / Pydantic model / dataclass / SSOT type that emits the response and copy the exact field names. For coding-os, the canonical types live in `src/core/graph_os/types.py`, `src/core/board_os/types.py`, `src/core/thinking_os/tools/_shared.py`. The MCP tool docstring and `cos_graph_contracts` are NOT a substitute — read the actual emit site.
-2. **Hit the live endpoint.** Run a single request (`curl`, `cos ...`, `mcp tool`) and pretty-print one item: `python3 -c "import json,sys; d=json.load(open('/dev/stdin')); print(list(d.get('data',{}).get('items',[{}])[0].keys()))"`. Use this when no SSOT type exists or you suspect the producer wraps/renames at the route layer.
+1. **Read the producer.** Open the handler / Pydantic model / dataclass / SSOT type that emits the response and copy the exact field names. Canonical types: `src/core/graph_os/types.py`, `src/core/board_os/types.py`, `src/core/thinking_os/tools/_shared.py`. The tool docstring and `cos_graph_contracts` are NOT a substitute — read the emit site.
+2. **Hit the live endpoint.** Run one request (`curl`/`cos`/`mcp tool`) and pretty-print one item's `.keys()`. Use when no SSOT type exists or the route layer wraps/renames.
 
 Both checks are cheap. Either one alone is sufficient. **Skipping both is a critical error** — equivalent to writing code from imagination.
 
 ## Anti-patterns (reject in review, fix on sight)
 
-- "I'll call the field `source` because that's the natural name." → No. The field is whatever the producer emits.
-- Copy-pasting an interface from another project / another file in the same project as the basis for a new consumer. → That sibling consumer might be wrong. Verify against the producer.
-- Inferring shape from a TypeScript / Python type alias on the consumer side. → The alias is the consumer's *expectation*, not a contract. Producers can drift.
-- "The API used to return X." → Re-verify. Schema changes do not page the consumer.
-- Adding a `?` / `| null` to silence a TypeScript error without checking what the producer actually emits. → That hides the drift instead of fixing it.
+- Naming a field by intuition ("`source` is natural") — it's whatever the producer emits.
+- Copy-pasting an interface from a sibling consumer — that consumer might be wrong; verify against the producer.
+- Inferring shape from a consumer-side type alias — the alias is the *expectation*, not the contract.
+- "The API used to return X" — re-verify; schema changes don't page the consumer.
+- Adding `?` / `| null` to silence a TS error without checking the producer — that hides drift instead of fixing it.
 
 ## Where this rule applies
 
@@ -38,9 +32,7 @@ Both checks are cheap. Either one alone is sufficient. **Skipping both is a crit
 | `src/adapters/<agent>/**` writing presence / state files | the reader hook in `src/core/hooks/` |
 | External integration glue (webhooks, Slack, GitHub) | the third-party docs / a real captured payload, not your memory |
 
-## How to spot drift after the fact
-
-If a UI panel renders empty with no console error, or a CLI summary suddenly shows zeros, or a test passes after a backend rename — suspect contract drift first. Run the producer-side check above and diff field names. Don't add fallbacks until you've confirmed the producer's current shape.
+**Spotting drift after the fact:** a UI panel empty with no console error, a CLI summary suddenly showing zeros, or a test passing after a backend rename → suspect contract drift first. Run the producer check and diff field names; don't add fallbacks until you've confirmed the producer's current shape.
 
 ## See also
 

@@ -8,11 +8,11 @@ The suite is ~4,110 test functions across 289 files; the matrix suites alone sum
 
 Three mechanisms back this rule (spec: [test-governance.md](../../docs/engineering/test-governance.md)):
 
-1. **Dedup** — every suite run is auto-recorded to `$COS_STATE_DIR/.last-verify.json` with `{git_head, dirty_digest, agent, session_tail}` (`record-verify-auto` hook). Re-running a suite already green **on the same tree** within TTL is BLOCKed — reuse the sibling session's result. Genuinely need a re-run: `COS_TEST_FORCE=1 <command>`.
-2. **Run lock** — one heavy pytest run per machine at a time (`$COS_STATE_DIR/.test-run.lock`, TTL + liveness). A concurrent attempt is BLOCKed naming the holder; retry when it finishes.
+1. **Dedup** — suite runs auto-record to `$COS_STATE_DIR/.last-verify.json` (keyed on git_head + dirty_digest). Re-running a suite already green on the same tree within TTL is BLOCKed; force with `COS_TEST_FORCE=1 <command>`.
+2. **Run lock** — one heavy pytest run per machine (`$COS_STATE_DIR/.test-run.lock`, TTL + liveness); a concurrent attempt is BLOCKed naming the holder.
 3. **Full-sweep gate** — bare `pytest`, `pytest tests/`, or ≥3 test roots is BLOCKed unless `COS_FULL_SWEEP_OK=1 COS_OVERRIDE_REASON='...≥15 chars'` (audited). Prefix heavy runs with `nice -n 19`.
 
-A tree change (new commit, or edits outside `docs/tasks/` / `.coding-os/`) automatically invalidates recorded passes — no manual cache-busting. Slow-marked tests (`test_background.py`, scaffold sandboxes — 314 tests) run via `make test-slow` pre-merge, not mid-task.
+A tree change auto-invalidates recorded passes. Slow-marked tests (314: `test_background.py`, scaffold sandboxes) run via `make test-slow` pre-merge, not mid-task.
 
 ## Match changed files → command (single source: AGENTS.md Verification Matrix)
 
@@ -48,13 +48,7 @@ COS_FULL_SWEEP_OK=1 COS_OVERRIDE_REASON='pre-merge final gate' nice -n 19 uv run
 
 ## Before writing any test/script/function/feature
 
-P1 SSOT — check existing first:
-
-1. `cos_graph_context` / `cos_search` for related code
-2. `cos_doc_search` for spec
-3. `grep` / `find` for the symbol
-
-Found it? Reuse. Not found? Add and index — don't duplicate.
+P1 SSOT — check existing first (`cos_graph_context`/`cos_search` for code, `cos_doc_search` for spec, grep/find for the symbol). Found it? Reuse. See [anti-overengineering.md](anti-overengineering.md) § Reuse-First.
 
 ## Anti-patterns (do not)
 

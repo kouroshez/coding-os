@@ -17,68 +17,28 @@ Every fact in the project lives in exactly **one** of these four layers. Putting
 
 ## When to write to agent memory (and when NOT to)
 
-Use `cos_observation_record` / `cos_learn_extract` for:
+Use `cos_observation_record` / `cos_learn_extract` for: **breakthroughs** (non-obvious insight that speeds a future session), **failure modes** (bug → root cause → fix, especially recurring), **decisions** (trade-off + reasoning when the alternative was non-obvious), **cross-session context** (a project fact not obvious from the code, e.g. "perf budget is set by the SLA, not preference").
 
-- **Breakthroughs:** non-obvious insight discovered this session that would speed up a future session ("schema migration X needed a backfill before the NOT NULL constraint").
-- **Failure modes:** specific bug → root cause → fix pattern, especially recurring ones.
-- **Decisions:** trade-off + reasoning when the alternative was non-obvious.
-- **Cross-session context:** a fact about the project that won't be obvious from reading the code (e.g., "the perf budget is set by the SLA contract, not by team preference").
-
-**Do NOT save to memory** (it pollutes ranking + wastes tokens):
-
-- Anything already in the code → use `cos_graph_*` / `Read`.
-- Anything already in docs → use `cos_doc_search`.
-- Anything in `git log` / `git blame` → use those.
-- Current-session task state → use `cos_task_*` and `.task-current`.
-- "I just did X" recap — that's the work log, not memory.
+**Do NOT save** (it pollutes ranking + wastes tokens): anything already in code (`cos_graph_*`/`Read`), docs (`cos_doc_search`), `git log`/`git blame`, current-session task state (`cos_task_*`/`.task-current`), or "I just did X" recaps (that's the work log).
 
 ## When to read from agent memory
 
-In the **Orient** phase of the Core Loop, after Classify but before Plan:
-
-```
-cos_search("query about past patterns / similar work", min_confidence=0.3, since_days=90)
-cos_learn_suggest(domain="...", complexity="...")   # ranked patterns for the task context
-cos_timeline(days=14)                                # what changed recently
-```
-
-If `cos_search` returns 0 hits with min_confidence=0.3 + since_days=90, the memory layer has no signal — fall through to docs (`cos_doc_search`) or code (`cos_graph_*`).
+In the **Orient** phase (after Classify, before Plan): `cos_search(query, min_confidence=0.3, since_days=90)`, `cos_learn_suggest(domain, complexity)` for ranked patterns, `cos_timeline(days=14)` for recent change. 0 hits at those thresholds = no signal → fall through to docs (`cos_doc_search`) or code (`cos_graph_*`).
 
 ## Memory hygiene rules
 
-1. **Every observation has a confidence + impact score.** Default confidence 0.5; raise to 0.8+ only after a second confirming session. Inflated confidence = ranking pollution.
-2. **Decay is automatic.** Old low-confidence patterns are deprioritized in ranking — don't manually delete unless wrong-and-actively-misleading.
-3. **Use `cos_search` with `min_confidence=0.3`** when you want only high-trust patterns.
-4. **Use `since_days=90`** when the question implies "recent" (e.g., "how have we handled X lately").
-5. **Tag with `domain` + `swimlane`** when known — narrows future retrieval.
+1. **Confidence + impact score per observation.** Default 0.5; raise to 0.8+ only after a second confirming session (inflated confidence pollutes ranking).
+2. **Decay is automatic** — old low-confidence patterns deprioritize; don't manually delete unless wrong-and-actively-misleading.
+3. **`min_confidence=0.3`** for high-trust patterns only; **`since_days=90`** when the question implies "recent".
+4. **Tag `domain` + `swimlane`** when known — narrows future retrieval.
 
-## Cross-session reasoning (the killer feature)
+## Cross-session reasoning, conflicts, audit, privacy
 
-Memory's value is **N-th session > 1st session**: record the observation in session 1, and `cos_search` finds it in session 4. If similar problems aren't getting faster, the write step is being skipped — audit via `cos_metric_trend(metric="time_to_solution", since_days=30)`.
-
-## When code-vs-memory conflicts
-
-**Always trust current code over memory.** Memory is frozen at write time. Code evolves. If recall says "function `foo` does X" but `Read` shows it doesn't, the memory is stale — update or delete the observation, then trust the code.
-
-The `cos_search` response always includes the timestamp of the underlying record. If memory is older than the file's last-modified, re-verify.
-
-## Audit log vs operational memory
-
-- **Operational memory** (`cos_observation_record`) — what an agent learned. Decay applies. Confidence varies.
-- **Audit log** (`cos_audit_log_record`) — who did what to which object when, immutable. No decay. Required for compliance.
-
-Don't conflate. An auth permission change goes to the audit log; a pattern about how auth permissions are typically reviewed goes to operational memory.
-
-## Privacy + compliance
-
-- **Never** record PII in memory observations (emails, names, customer-identifying strings). Hash if needed.
-- **Never** record secrets, even masked. Memory is a long-lived artifact.
-- Sensitive design decisions (e.g., security-incident root cause) → record metadata + link to the postmortem doc, don't inline the sensitive details.
+- **Cross-session is the killer feature** — record in session 1, `cos_search` finds it in session 4. If similar problems aren't getting faster, the write step is being skipped (audit: `cos_metric_trend(metric="time_to_solution", since_days=30)`).
+- **Code wins over memory.** Memory is frozen at write time; code evolves. If recall and `Read` disagree, the memory is stale — update or delete it, trust the code. `cos_search` returns each record's timestamp; older than the file's mtime → re-verify.
+- **Audit log ≠ operational memory.** `cos_audit_log_record` is immutable who-did-what-when (no decay, compliance); `cos_observation_record` is what an agent learned (decay + confidence). A permission *change* → audit log; a *pattern* about reviewing permissions → memory.
+- **Privacy:** never record PII or secrets (memory is long-lived). Sensitive decisions (e.g. incident root cause) → record metadata + link the postmortem doc, don't inline.
 
 ## See also
 
-- [docs/governance/wrapper-derivation.md](../../docs/governance/wrapper-derivation.md) — SSOT for the four-layer model.
-- [docs/governance/docs-system.md](../../docs/governance/docs-system.md) — docs layer rules.
-- [docs/governance/agent-workflow.md](../../docs/governance/agent-workflow.md) — Core Loop integration.
-- [src/core/skills/thinking_os/SKILL.md](../skills/thinking_os/SKILL.md) — when to invoke memory during the Cognitive Cycle.
-- [src/core/skills/search/SKILL.md](../skills/search/SKILL.md) — `cos_search` vs `cos_doc_search` vs grep decision gate.
+[wrapper-derivation.md](../../docs/governance/wrapper-derivation.md) (four-layer SSOT) · [docs-system.md](../../docs/governance/docs-system.md) (docs layer) · [agent-workflow.md](../../docs/governance/agent-workflow.md) (Core Loop) · [thinking_os SKILL](../skills/thinking_os/SKILL.md) (when to invoke in the Cycle) · [search SKILL](../skills/search/SKILL.md) (`cos_search` vs `cos_doc_search` vs grep).
