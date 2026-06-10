@@ -5,18 +5,17 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [ready]
-status: icebox
+status: testing
 priority: P3
 appetite: 2h
 created: 2026-06-10
-started: null
+started: 2026-06-10
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-112852-603a
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-338: Hub UI: agentForSession hardcodes claude/codex/cursor — derive agent ids from the adapter manifest (/api/board/list agent_states keys)
 
 **Outcome (one sentence):** useBoardStream.agentForSession (and its kindColors consumers) resolve agent ids data-driven from the adapter manifest instead of a hardcoded string-sniff list, so a new adapter shows correctly on the board feed with zero UI edits.
@@ -32,3 +31,4 @@ references: []
 
 ## Work Log
 - 2026-06-10 [claude]: committed 5931c037: src/core/board_os/mcp_tools.py, src/core/board_os/tests/test_mcp_tools.py, src/core/skills/task-driv
+- 2026-06-10 [claude]: agentForSession now takes manifest agent ids (from /api/board/list agent_manifest) and scans the session against them (l

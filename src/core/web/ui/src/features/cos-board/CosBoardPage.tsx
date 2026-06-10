@@ -289,7 +289,6 @@ function AgentPip({ agentId, title, size = 18 }: { agentId?: string | null; titl
 export default function CosBoardPage() {
   const qc = useQueryClient();
   const { tweaks, setTweaks } = useBoardTheme();
-  const { bump, connected, events: streamEvents, pushHumanEvent } = useBoardStream();
 
   const { data: list, isLoading, error } = useApiGet<BoardListPayload>(
     ['board-list'],
@@ -297,6 +296,20 @@ export default function CosBoardPage() {
     { limit: 400, include_archive: true },
   );
   const { data: cfg } = useApiGet<BoardConfigPayload>(['board-config'], '/api/board/config');
+
+  // Single source of truth for "which agents exist": the live manifest from
+  // /api/board/list, falling back to the static list only on an older Hub.
+  // Both the stream (agentForSession) and the live-agents strip read it.
+  const agentCatalog = useMemo(
+    () =>
+      list?.agent_manifest && list.agent_manifest.length > 0
+        ? list.agent_manifest
+        : FALLBACK_AGENT_MANIFEST,
+    [list?.agent_manifest],
+  );
+  const agentIds = useMemo(() => agentCatalog.map((a) => a.id), [agentCatalog]);
+
+  const { bump, connected, events: streamEvents, pushHumanEvent } = useBoardStream(agentIds);
 
   // Per-column "load more" for the keyset-paged columns (complete/archive).
   // The first page arrives in `list`; each extra page is fetched on demand and
@@ -570,19 +583,6 @@ export default function CosBoardPage() {
   };
 
   const clampZoom = (v: number) => Math.min(1.5, Math.max(0.5, Math.round(v * 100) / 100));
-
-  // Rules-of-Hooks: every hook MUST execute before any conditional return,
-  // otherwise the second render adds a hook the first did not call and
-  // React throws "Rendered more hooks than during the previous render."
-  // (#310). agentCatalog used to live after the loading/error guards;
-  // moved up to keep the call count stable across renders.
-  const agentCatalog = useMemo(
-    () =>
-      list?.agent_manifest && list.agent_manifest.length > 0
-        ? list.agent_manifest
-        : FALLBACK_AGENT_MANIFEST,
-    [list?.agent_manifest],
-  );
 
   // ---------- render ----------
   if (isLoading) {
@@ -1507,6 +1507,7 @@ function TaskStickyCard({
 }) {
   const kind = kindStyle(task.kind);
   const cozy = density === 'cozy';
+  const agentCatalog = useAgentCatalog();
 
   let isHighlighted = !highlight;
   if (highlight) {
@@ -1524,7 +1525,9 @@ function TaskStickyCard({
     ? 'linear-gradient(155deg, var(--board) 0%, var(--col-bg) 100%)'
     : `linear-gradient(155deg, ${alpha(laneColor, 0.16)} 0%, ${alpha(laneColor, 0.07)} 100%)`;
 
-  const agentId = task.agent_session ? agentForSession(task.agent_session) : null;
+  const agentId = task.agent_session
+    ? agentForSession(task.agent_session, agentCatalog.map((a) => a.id))
+    : null;
 
   return (
     <div

@@ -35,7 +35,11 @@ export interface BoardEvent {
   t: string; // HH:MM:SS in local time
   kind: BoardEventKind;
   taskId: string | null;
-  agent: 'claude' | 'codex' | 'cursor' | 'human';
+  /** A manifest agent id (the `id` field of `/api/board/list` `agent_manifest`,
+   *  e.g. 'claude', 'codex', 'cursor', a future 'gemini', or 'human').
+   *  Resolved from `agent_session` via `agentForSession` against the live
+   *  manifest — never a hardcoded literal list. */
+  agent: string;
   message: string;
   /** Status the task holds in the DB AT THIS MOMENT — useful so the UI
    *  can surface "→ now: complete" when the transition is historical
@@ -114,13 +118,25 @@ function newId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export function agentForSession(session: string | null | undefined): 'claude' | 'codex' | 'cursor' | 'human' {
+/** Resolve an `agent_session` string to a manifest agent id.
+ *
+ * Data-driven: scans the session against `agentIds` (the `id`s from
+ * `/api/board/list` `agent_manifest`) so a future adapter is attributed
+ * correctly with zero edits here. Session ids embed the agent name
+ * (shape `ses-<agent>-...`). Longest matching id wins, so a future id
+ * that is a superstring of another (`claude-sdk` vs `claude`) is not
+ * shadowed. No match → 'human'. Pure — `agentIds` is injected, not read
+ * from a context, so the function is trivially testable. */
+export function agentForSession(
+  session: string | null | undefined,
+  agentIds: readonly string[],
+): string {
   if (!session) return 'human';
   const s = session.toLowerCase();
-  if (s.includes('claude')) return 'claude';
-  if (s.includes('codex')) return 'codex';
-  if (s.includes('cursor')) return 'cursor';
-  return 'human';
+  const match = [...agentIds]
+    .filter((id) => id !== 'human' && s.includes(id.toLowerCase()))
+    .sort((a, b) => b.length - a.length)[0];
+  return match ?? 'human';
 }
 
 // Board-event cache keyed by pathname.  Backed by sessionStorage so it
@@ -148,7 +164,7 @@ function writeCache(pathname: string, events: BoardEvent[]): void {
   }
 }
 
-export function useBoardStream(): UseBoardStreamReturn {
+export function useBoardStream(agentIds: readonly string[]): UseBoardStreamReturn {
   const { pathname } = useLocation();
   const [bump, setBump] = useState<number>(0);
   const [connected, setConnected] = useState<boolean>(false);
@@ -202,7 +218,7 @@ export function useBoardStream(): UseBoardStreamReturn {
               t: hmsFromEpoch(e.transitioned_at),
               kind: (isCreate ? 'task-created' : 'task-updated') as BoardEventKind,
               taskId: e.task_id || null,
-              agent: agentForSession(e.agent_session),
+              agent: agentForSession(e.agent_session, agentIds),
               message: isCreate
                 ? `created in ${e.new_status ?? '?'}${e.reason ? ` (${e.reason})` : ''}`
                 : `${e.old_status ?? '?'} -> ${e.new_status ?? '?'}${e.reason ? ` (${e.reason})` : ''}`,
@@ -226,7 +242,7 @@ export function useBoardStream(): UseBoardStreamReturn {
     return () => {
       cancelled = true;
     };
-  }, [pathname]);
+  }, [pathname, agentIds]);
 
   useEffect(() => {
     let cancelled = false;
@@ -324,7 +340,7 @@ export function useBoardStream(): UseBoardStreamReturn {
           t: hmsFromEpoch(data.ts),
           kind: isCreate ? 'task-created' : 'task-updated',
           taskId: data.task_id || null,
-          agent: agentForSession(data.agent_session),
+          agent: agentForSession(data.agent_session, agentIds),
           message: `${core}${suffix}`,
           currentStatus: data.current_status ?? data.status ?? null,
           newStatus: data.new_status ?? data.status ?? null,
@@ -363,7 +379,7 @@ export function useBoardStream(): UseBoardStreamReturn {
     // clings to its original URL (/api/p/<old-slug>/stream/events), so
     // switching projects without this dep would leak cross-project
     // events into the new panel.
-  }, [push, pathname]);
+  }, [push, pathname, agentIds]);
 
   const pushHumanEvent = useCallback<UseBoardStreamReturn['pushHumanEvent']>(
     (kind, opts) => {
