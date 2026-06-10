@@ -141,6 +141,24 @@ def _load_c_sharp() -> Any:
     return m.language()
 
 
+def _load_scala() -> Any:
+    import tree_sitter_scala as m
+
+    return m.language()
+
+
+def _load_kotlin() -> Any:
+    import tree_sitter_kotlin as m
+
+    return m.language()
+
+
+def _load_lua() -> Any:
+    import tree_sitter_lua as m
+
+    return m.language()
+
+
 _LOADERS: dict[str, Callable[[], Any]] = {
     "python": _load_python,
     "typescript": _load_typescript,
@@ -154,6 +172,9 @@ _LOADERS: dict[str, Callable[[], Any]] = {
     "c": _load_c,
     "cpp": _load_cpp,
     "c_sharp": _load_c_sharp,
+    "scala": _load_scala,
+    "kotlin": _load_kotlin,
+    "lua": _load_lua,
 }
 
 

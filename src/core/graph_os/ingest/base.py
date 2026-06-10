@@ -70,6 +70,10 @@ DEFAULT_INCLUDE = (
     "*.hpp",
     "*.hh",
     "*.cs",
+    "*.scala",
+    "*.kt",
+    "*.kts",
+    "*.lua",
 )
 DEFAULT_EXCLUDE = (
     ".git",

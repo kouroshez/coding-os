@@ -49,6 +49,10 @@ _EXT_MAP = {
     ".hpp": ("cpp", ["code_generic"]),
     ".hh": ("cpp", ["code_generic"]),
     ".cs": ("c_sharp", ["code_generic"]),
+    ".scala": ("scala", ["code_generic"]),
+    ".kt": ("kotlin", ["code_generic"]),
+    ".kts": ("kotlin", ["code_generic"]),
+    ".lua": ("lua", ["code_generic"]),
 }
 
 # Sentinel chain key stored on file_index_state for docs-only rows

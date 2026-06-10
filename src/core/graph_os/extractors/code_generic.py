@@ -57,6 +57,10 @@ EXT_TO_LANG: dict[str, str] = {
     ".hpp": "cpp",
     ".hh": "cpp",
     ".cs": "c_sharp",
+    ".scala": "scala",
+    ".kt": "kotlin",
+    ".kts": "kotlin",
+    ".lua": "lua",
 }
 
 # Per-language tree-sitter node types that denote a function-like or
@@ -110,6 +114,19 @@ _LANG_SPEC: dict[str, dict[str, frozenset[str]]] = {
             }
         ),
     },
+    "scala": {
+        "func": frozenset({"function_definition"}),
+        "class": frozenset({"class_definition", "object_definition", "trait_definition"}),
+    },
+    "kotlin": {
+        "func": frozenset({"function_declaration"}),
+        "class": frozenset({"class_declaration", "object_declaration"}),
+    },
+    "lua": {
+        # Lua has no classes — functions only (tables are runtime constructs).
+        "func": frozenset({"function_declaration"}),
+        "class": frozenset(),
+    },
 }
 
 _NAME_NODE_TYPES = ("identifier", "type_identifier", "constant", "name", "field_identifier")
@@ -126,18 +143,49 @@ def _node_text(node: Any, content_bytes: bytes) -> str:
         return ""
 
 
+_DECLARATOR_NAME_TYPES = (
+    "identifier",
+    "field_identifier",
+    "type_identifier",
+    "qualified_identifier",
+    "destructor_name",
+    "operator_name",
+)
+
+
+def _name_via_declarator(node: Any, content_bytes: bytes) -> str:
+    # C / C++ keep the function name inside a nested `declarator` chain
+    # (function_definition → function_declarator → identifier), NOT a `name`
+    # field. Descend the declarator field to the leaf identifier so we get
+    # `main`, not the return type `int`.
+    cur = node
+    for _ in range(6):
+        nxt = cur.child_by_field_name("declarator")
+        if nxt is None:
+            break
+        cur = nxt
+    if cur is not None and cur.type in _DECLARATOR_NAME_TYPES:
+        return _node_text(cur, content_bytes).strip()
+    return ""
+
+
 def _node_name(node: Any, content_bytes: bytes) -> str:
-    # Most grammars expose the symbol name as the "name" field; rust's
-    # impl_item carries the type under "type" instead.
-    for field in ("name", "type"):
-        try:
-            named = node.child_by_field_name(field)
-        except Exception:
-            named = None
-        if named is not None:
-            text = _node_text(named, content_bytes).strip()
-            if text:
-                return text
+    # Most grammars expose the symbol name as the "name" field.
+    named = node.child_by_field_name("name")
+    if named is not None:
+        text = _node_text(named, content_bytes).strip()
+        if text:
+            return text
+    # C / C++ : name lives inside the declarator subtree, not a field.
+    via_decl = _name_via_declarator(node, content_bytes)
+    if via_decl:
+        return via_decl
+    # Rust impl_item carries the type under "type" instead of a name.
+    typ = node.child_by_field_name("type")
+    if typ is not None:
+        text = _node_text(typ, content_bytes).strip()
+        if text:
+            return text
     for child in node.children:
         if child.type in _NAME_NODE_TYPES:
             text = _node_text(child, content_bytes).strip()

@@ -92,10 +92,18 @@ graph_os = [
     "pathspec>=0.12.1",
     # Polyglot baseline (extractors/code_generic.py). One table-driven
     # extractor pulls functions/classes from any grammar in its node-type
-    # map; rust + ruby ship here as two distinct node-type styles. Java /
-    # C / C++ / C# are code-ready — install their grammar to activate.
+    # map. Each language below is verified to load with the pinned core and
+    # has a _LANG_SPEC row + an EXT_MAP route. (SQL is intentionally absent:
+    # its DDL symbols don't fit the function/class model — see TASK-304.)
     "tree-sitter-rust>=0.23.0,<0.26.0",
     "tree-sitter-ruby>=0.23.0,<0.26.0",
+    "tree-sitter-java>=0.23.0,<0.26.0",
+    "tree-sitter-c>=0.23.0,<0.26.0",
+    "tree-sitter-cpp>=0.23.0,<0.26.0",
+    "tree-sitter-c-sharp>=0.23.0,<0.26.0",
+    "tree-sitter-scala>=0.23.0,<0.26.0",
+    "tree-sitter-kotlin>=1.0.0",
+    "tree-sitter-lua>=0.4.0",
 ]
 
 # board_os — Phase L Scrumban web viewer (cos board --web).

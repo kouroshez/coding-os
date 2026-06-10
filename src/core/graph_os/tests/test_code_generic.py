@@ -111,6 +111,34 @@ def test_lang_spec_node_types_exist_in_installed_grammars():
         assert not missing, f"{lang}: _LANG_SPEC node types absent from grammar (drift?): {missing}"
 
 
+_POLYGLOT_CASES = [
+    ("java", "tree_sitter_java", "A.java", "class C { void m(){} } interface I{}",
+     {"code:class:A.java::C", "code:function:A.java::m", "code:class:A.java::I"}),
+    ("c", "tree_sitter_c", "a.c", "struct S{int x;}; int main(){return 0;}",
+     {"code:class:a.c::S", "code:function:a.c::main"}),
+    ("cpp", "tree_sitter_cpp", "a.cpp", "class C{ void run(){} };",
+     {"code:class:a.cpp::C", "code:function:a.cpp::run"}),
+    ("c_sharp", "tree_sitter_c_sharp", "A.cs", "class C{ void M(){} } interface I{}",
+     {"code:class:A.cs::C", "code:function:A.cs::M", "code:class:A.cs::I"}),
+    ("scala", "tree_sitter_scala", "a.scala", "class C{ def m()={} }\nobject O{}\ntrait T{}",
+     {"code:class:a.scala::C", "code:function:a.scala::m", "code:class:a.scala::O", "code:class:a.scala::T"}),
+    ("kotlin", "tree_sitter_kotlin", "a.kt", "class C { fun m() {} }\nfun top() {}",
+     {"code:class:a.kt::C", "code:function:a.kt::m", "code:function:a.kt::top"}),
+    ("lua", "tree_sitter_lua", "a.lua", "function f() end\nlocal function gg() end",
+     {"code:function:a.lua::f", "code:function:a.lua::gg"}),
+]
+
+
+@pytest.mark.parametrize("lang,grammar,fname,src,expected", _POLYGLOT_CASES)
+def test_polyglot_language_extracts_symbols(lang, grammar, fname, src, expected):
+    """Each broadened language (TASK-304) yields the expected function/class
+    uids via the installed grammar — node types verified, names correct
+    (incl. the C/C++ declarator-name fix)."""
+    pytest.importorskip(grammar)
+    result = g.extract(fname, src)
+    assert expected <= set(_syms(result)), f"{lang}: missing {expected - set(_syms(result))}"
+
+
 def test_missing_grammar_fails_open(monkeypatch):
     """A supported language whose grammar fails to load → file node only +
     dep_missing parse error (the overlay returns None)."""

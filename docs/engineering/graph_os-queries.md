@@ -97,10 +97,13 @@ which files reach the extractors:
   hand-written extractors: `.py .ts .tsx .js .jsx .mjs .cjs .go .php
   .sh .yaml .yml .json .toml .md`. Polyglot baseline via the
   table-driven `code_generic` extractor: `.rs .rb .java .c .h .cc .cpp
-  .cxx .hpp .hh .cs` — symbols (functions/classes + `contains`) are
-  extracted only when that language's tree-sitter grammar is installed
-  (rust + ruby ship in the `graph_os` extra; the rest are code-ready,
-  install the grammar to activate). Calls/imports remain per-language.
+  .cxx .hpp .hh .cs .scala .kt .kts .lua` — functions/classes +
+  `contains`, extracted when that language's tree-sitter grammar is
+  installed. The `graph_os` extra ships grammars for rust, ruby, java,
+  c, c++, c#, scala, kotlin and lua; any other extension with a
+  `_LANG_SPEC` row activates once its grammar is installed. SQL is
+  intentionally excluded (its DDL symbols don't fit the function/class
+  model). Calls/imports/type edges remain per-language (e.g. code_go).
 - **Exclude** — the union of two layers: the static `DEFAULT_EXCLUDE`
   denylist (`node_modules`, `.venv`, `dist`, `build`, …) **and** the
   repo's `.gitignore` (root + nested + `.git/info/exclude`), parsed via
