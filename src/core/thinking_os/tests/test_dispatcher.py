@@ -458,3 +458,39 @@ def test_no_complexity_and_no_pref_leaves_sdk_default(monkeypatch, tmp_path):
 
     req = _build_request(monkeypatch, tmp_path, complexity="CLEAR")
     assert req.model is None
+
+
+# ---------------------------------------------------------------------------
+# Adapter hint carrier (dispatcher-contract.md rule 6)
+# ---------------------------------------------------------------------------
+
+
+def test_new_adapter_fields_default_none():
+    req = DispatchRequest(formula_id="implementer", agent_file="/tmp/x.md", prompt="p")
+    assert req.adapter is None
+    assert req.adapter_budget_usd is None
+
+
+def test_adapter_hint_mismatch_warns_and_proceeds(monkeypatch, caplog):
+    monkeypatch.delenv("COS_FORCE_DEFAULT_DISPATCHER", raising=False)
+    req = DispatchRequest(
+        formula_id="reviewer", agent_file="/tmp/x.md", prompt="p", adapter="codex"
+    )
+    with caplog.at_level("WARNING", logger="coding_os.dispatcher"):
+        dispatcher = get_dispatcher(agent="cursor", request=req)
+
+    assert dispatcher is not None
+    record = next(r for r in caplog.records if "adapter hint" in r.getMessage())
+    assert "'codex'" in record.getMessage()
+    assert "'cursor'" in record.getMessage()
+
+
+def test_matching_adapter_hint_stays_silent(monkeypatch, caplog):
+    monkeypatch.delenv("COS_FORCE_DEFAULT_DISPATCHER", raising=False)
+    req = DispatchRequest(
+        formula_id="reviewer", agent_file="/tmp/x.md", prompt="p", adapter="cursor"
+    )
+    with caplog.at_level("WARNING", logger="coding_os.dispatcher"):
+        get_dispatcher(agent="cursor", request=req)
+
+    assert not [r for r in caplog.records if "adapter hint" in r.getMessage()]

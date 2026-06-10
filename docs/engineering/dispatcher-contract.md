@@ -45,6 +45,11 @@ class DispatchRequest(BaseModel):
     timeout_s: float
     session_id: str | None
     cwd: str | None
+    model: str | None          # forwarded to the adapter; None = adapter default
+    max_budget_usd: float | None
+    long_context: bool
+    adapter: str | None        # target-runtime HINT (e.g. "codex"); see below
+    adapter_budget_usd: float | None  # reserved per-adapter quota; carrier only
 
 class DispatchResult(BaseModel):
     formula_id: str
@@ -119,6 +124,16 @@ async generator vs. subprocess vs. nothing). Hexagonal here gives us:
 
 The loader is `importlib.util.spec_from_file_location` so `src/core/` never has
 a static import on `src/adapters/`.
+
+6. **Adapter hint, not adapter switch.** `DispatchRequest.adapter` is a HINT:
+   when set and different from the session's resolved adapter,
+   `get_dispatcher(request=…)` logs a warning naming both and proceeds on the
+   session adapter — one adapter per session remains the invariant. The field
+   exists so supervisor decisions (preset `roles_adapter_hints`, TASK-321) have
+   a typed carrier today; honoring the hint with a real cross-adapter dispatch
+   is the explicit follow-up seam, not implied behaviour.
+   `adapter_budget_usd` is the matching quota carrier — adapters that cannot
+   enforce it MUST log, never silently drop (same rule as `max_budget_usd`).
 
 ## Parity rules
 

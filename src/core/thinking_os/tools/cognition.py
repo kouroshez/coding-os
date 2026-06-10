@@ -1243,7 +1243,7 @@ def register_cos_dispatch_formula_run(mcp, db_path):
         except Exception as exc:
             return fail("validation", f"failed to build request: {exc}")
 
-        d = _disp.get_dispatcher()
+        d = _disp.get_dispatcher(request=req)
 
         # Trace event — visible in cos cognition trace replay so the
         # flowchart shows the actual sub-agent execution span.

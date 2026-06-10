@@ -43,6 +43,12 @@ class DispatchRequest(BaseModel):
     # Long-context opt-in. Adapters that support a
     # 1M-token context beta should expand the budget when True.
     long_context: bool = False
+    # Target-runtime HINT (e.g. "codex"). One adapter per session stays the
+    # invariant: a mismatch logs a warning in get_dispatcher and dispatch
+    # proceeds on the session adapter (dispatcher-contract.md rule 6).
+    adapter: str | None = None
+    # Reserved per-adapter quota carrier — enforce or log, never drop silently.
+    adapter_budget_usd: float | None = None
 
     @field_validator("formula_id")
     @classmethod
@@ -152,13 +158,25 @@ def _try_load_claude_sdk_dispatcher() -> AgentDispatcher | None:
     return _try_load_adapter_dispatcher("claude")
 
 
-def get_dispatcher(agent: str | None = None) -> AgentDispatcher:
+def get_dispatcher(
+    agent: str | None = None,
+    request: DispatchRequest | None = None,
+) -> AgentDispatcher:
     if os.environ.get("COS_FORCE_DEFAULT_DISPATCHER") == "1":
         from thinking_os.dispatchers.default import DefaultDispatcher
 
         return DefaultDispatcher()
 
     agent = agent or _detect_agent()
+
+    if request is not None and request.adapter and request.adapter != agent:
+        logger.warning(
+            "adapter hint %r differs from session adapter %r — proceeding on %r "
+            "(one adapter per session; dispatcher-contract.md rule 6)",
+            request.adapter,
+            agent,
+            agent,
+        )
 
     if agent in _known_agents():
         sdk = _try_load_adapter_dispatcher(agent)

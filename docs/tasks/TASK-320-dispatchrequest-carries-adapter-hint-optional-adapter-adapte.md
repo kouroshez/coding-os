@@ -5,18 +5,17 @@ swimlane: "thinking_os"
 kind: feature
 epic: null
 labels: [delegation, audit-2026-06-09, ready]
-status: icebox
+status: testing
 priority: P2
 appetite: 1d
 created: 2026-06-10
-started: null
+started: 2026-06-09
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: [TASK-308]
 blocked_by: []
 references: []
 ---
-
 # TASK-320: DispatchRequest carries adapter hint — optional adapter/adapter_budget_usd fields, factory mismatch warning
 
 **Outcome (one sentence):** DispatchRequest gains optional `adapter` + `adapter_budget_usd` fields (backward-compatible, None default) so supervisor decisions can name a target runtime; `get_dispatcher` logs a clear mismatch warning when request.adapter differs from the session adapter — the single-adapter-per-session constraint stays, the data pathway opens.
@@ -38,3 +37,4 @@ references: []
 - **Then** the doc section for the new fields precedes the code change in the commit history
 
 ## Work Log
+- 2026-06-10 [claude]: Shipped (score 9/10): DispatchRequest gains optional adapter + adapter_budget_usd (None defaults, backward-compatible); 
