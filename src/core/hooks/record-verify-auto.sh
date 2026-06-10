@@ -25,6 +25,13 @@ case "$COMMAND" in
 esac
 
 EXIT_CODE=$(echo "$INPUT" | jq -r '.tool_response.exit_code // .tool_response.exitCode // 0' 2>/dev/null || echo 0)
+# TASK-335: on PostToolUseFailure the payload may carry no exit_code at all —
+# the event itself IS the failure signal; never let the `// 0` default record
+# a phantom PASS.
+EVENT_NAME=$(echo "$INPUT" | jq -r '.hook_event_name // empty' 2>/dev/null || echo "")
+if [[ "$EVENT_NAME" == "PostToolUseFailure" ]]; then
+  EXIT_CODE=1
+fi
 
 PROJECT_ROOT="${COS_PROJECT_ROOT:-$(pwd)}"
 if command -v uv >/dev/null 2>&1; then

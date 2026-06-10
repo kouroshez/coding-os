@@ -10,11 +10,16 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import time
 from pathlib import Path
 
 import pytest
+
+pytestmark = pytest.mark.skipif(
+    shutil.which("uv") is None, reason="hooks resolve match-command via uv run"
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOKS = REPO_ROOT / "src" / "core" / "hooks"
@@ -200,6 +205,24 @@ class TestRunLock:
         lock = json.loads((state_dir / ".test-run.lock").read_text(encoding="utf-8"))
         assert lock["suite"] == "test-board_os"
 
+    def test_own_session_lock_is_reclaimed(self, state_dir: Path) -> None:
+        # A failed run whose PostToolUse cleanup never fired must not
+        # self-block the same panel for the grace window (TASK-335).
+        lock = {
+            "suite": "test-board_os",
+            "agent": "claude",
+            "session_tail": "cafe1234",
+            "started_ts": int(time.time()),
+        }
+        (state_dir / ".test-run.lock").write_text(json.dumps(lock), encoding="utf-8")
+        code, _ = _run_hook(
+            GOVERNOR,
+            {"tool_input": {"command": BOARD_SUITE_CMD}},
+            state_dir,
+            COS_PANEL_ID="panel-cafe1234",
+        )
+        assert code == 0
+
 
 class TestInlineOverrides:
     """Env assignments inside the command string never reach the hook's own
@@ -281,6 +304,19 @@ class TestAutoRecord:
         payload = {
             "tool_input": {"command": BOARD_SUITE_CMD},
             "tool_response": {"exit_code": 1},
+        }
+        code, _ = _run_hook(AUTO_RECORD, payload, state_dir)
+        assert code == 0
+        ledger = json.loads((state_dir / ".last-verify.json").read_text(encoding="utf-8"))
+        assert ledger["test-board_os"]["status"] == "FAIL"
+
+    def test_failure_event_records_fail_without_exit_code(self, state_dir: Path) -> None:
+        # PostToolUseFailure may carry no exit_code — the event itself is the
+        # failure signal; the `// 0` default must not record a phantom PASS.
+        payload = {
+            "hook_event_name": "PostToolUseFailure",
+            "tool_input": {"command": BOARD_SUITE_CMD},
+            "tool_response": {},
         }
         code, _ = _run_hook(AUTO_RECORD, payload, state_dir)
         assert code == 0

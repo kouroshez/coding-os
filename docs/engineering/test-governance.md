@@ -208,6 +208,13 @@ the command string, not the hook's env — the governor honors both forms;
 (3) commands that merely *mention* pytest no longer write or clear the run lock
 (`pytest_invocation` field).
 
+Post-review hardening (TASK-335): enforce-verify strips leading env assignments
+(an inline `COS_VERIFY_OVERRIDE=1` prefix used to make the whole gate silently
+skip) and honors inline override forms; record-verify-auto also fires on
+PostToolUseFailure (event = failure signal — no phantom PASS from a missing
+exit_code) so a failed suite frees the run lock immediately; the governor
+reclaims a lock carrying its own session tail instead of self-blocking.
+
 ## See also
 
 - [src/core/board_os/verify-suites.yaml](../../src/core/board_os/verify-suites.yaml)

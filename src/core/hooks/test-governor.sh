@@ -99,6 +99,9 @@ LOCK_GRACE=120
 NOW=$(date +%s)
 if [[ -f "$LOCK_FILE" ]]; then
   STARTED=$(jq -r '.started_ts // 0' "$LOCK_FILE" 2>/dev/null || echo 0)
+  H_TAIL=$(jq -r '.session_tail // ""' "$LOCK_FILE" 2>/dev/null || echo "")
+  OUR_TAIL="${COS_PANEL_ID:-}"
+  OUR_TAIL="${OUR_TAIL: -8}"
   AGE=$(( NOW - STARTED ))
   HELD=false
   if [[ "$AGE" -lt "$LOCK_GRACE" ]]; then
@@ -106,9 +109,14 @@ if [[ -f "$LOCK_FILE" ]]; then
   elif [[ "$AGE" -lt "$LOCK_TTL" ]] && pgrep -f pytest >/dev/null 2>&1; then
     HELD=true
   fi
+  # TASK-335: a panel issues Bash serially — a lock carrying OUR session tail
+  # is a finished/failed run whose PostToolUse cleanup never fired. Reclaim it
+  # instead of self-blocking for the grace window.
+  if [[ -n "$OUR_TAIL" && "$H_TAIL" == "$OUR_TAIL" ]]; then
+    HELD=false
+  fi
   if $HELD; then
     H_AGENT=$(jq -r '.agent // "unknown"' "$LOCK_FILE" 2>/dev/null || echo unknown)
-    H_TAIL=$(jq -r '.session_tail // ""' "$LOCK_FILE" 2>/dev/null || echo "")
     H_SUITE=$(jq -r '.suite // "a test run"' "$LOCK_FILE" 2>/dev/null || echo "a test run")
     cos_log_hook test-governor block "lock-held by=$H_AGENT" 2>/dev/null || true
     {

@@ -455,6 +455,29 @@
         ]
       }
     ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/record-verify-auto.sh",
+            "statusMessage": "🧾 Recording failed suite result...",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/capture-tool-failure.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "matcher": "startup",
@@ -692,23 +715,6 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/nudge-learn-narrative.sh",
             "statusMessage": "🧠 Checking if a lesson is worth recording...",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/capture-tool-failure.sh",
             "timeout": 5
           }
         ]
