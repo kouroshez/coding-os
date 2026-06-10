@@ -85,9 +85,11 @@ root="${COS_PROJECT_ROOT:-$PWD}"
 if [[ -z "$sha" ]]; then
     # Output was piped/filtered (e.g. `git commit … | tail -1`) so the
     # "[branch sha]" line is gone. Safe fallback: the single commit minted
-    # in the last 20s. Two or more candidates = a sibling session is also
-    # committing — skip rather than guess (a missing link beats a wrong one).
-    mapfile -t _recent < <(git -C "$root" log --format='%h' --since='20 seconds ago' -n 2 2>/dev/null || true)
+    # recently — 5 min because this repo's pre/post-commit hook suite can
+    # hold the Bash call for minutes after the object lands. Two or more
+    # candidates = a sibling session is also committing — skip rather than
+    # guess (a missing link beats a wrong one).
+    mapfile -t _recent < <(git -C "$root" log --format='%h' --since='5 minutes ago' -n 2 2>/dev/null || true)
     [[ ${#_recent[@]} -eq 1 && -n "${_recent[0]:-}" ]] || exit 0
     sha="${_recent[0]}"
 fi
