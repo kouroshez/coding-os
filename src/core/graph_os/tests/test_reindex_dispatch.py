@@ -325,3 +325,27 @@ class TestPureHelpers:
         assert _is_task_path("docs/tickets/T-1.md")
         # Default fragments no longer apply once overridden.
         assert not _is_task_path("docs/tasks/TASK-1.md")
+
+
+class TestDurationPersisted:
+    def test_duration_ms_lands_in_file_index_state(self, project, tmp_path):
+        # Polyglot roadmap E1.1 (migration v28): the per-file timing must be
+        # PERSISTED, not just reported — cos_graph_doctor's
+        # slowest_extractions category reads it back from the DB.
+        import sqlite3
+
+        src = _write(project / "core" / "timed.py", "def t(): pass")
+        from graph_os.tools.reindex_dispatch import dispatch
+
+        db = str(tmp_path / "t.db")
+        dispatch(src, project_root=project, db_path=db)
+
+        conn = sqlite3.connect(db)
+        try:
+            row = conn.execute(
+                "SELECT duration_ms FROM file_index_state "
+                "WHERE file_path LIKE '%timed.py' AND duration_ms IS NOT NULL"
+            ).fetchone()
+        finally:
+            conn.close()
+        assert row is not None and int(row[0]) >= 0

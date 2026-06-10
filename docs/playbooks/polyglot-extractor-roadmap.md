@@ -326,7 +326,7 @@ stack for `cos init` is OUT of scope here (separate task).
 ### Epic E — Cross-cutting infrastructure
 
 - [ ] **E1 Performance budget** [4h]
-  - [ ] E1.1 Per-extractor timing in `file_index_state` (new column `duration_ms`)
+  - [x] E1.1 Per-extractor timing in `file_index_state` (`duration_ms`, migration v28) — surfaced by `cos_graph_doctor` as the informational `slowest_extractions` category (top-10 by duration; TASK-325)
   - [ ] E1.2 Hub panel pie chart by extractor cost
 
 ## 6. Edge-case catalog (the "" the user asked about)
@@ -436,7 +436,7 @@ Known upstream limitation (pinned by test, fail-open + surfaced):
 tree-sitter-kotlin 1.1.0 mis-parses a single-line class body with
 members when it follows another declaration; multiline bodies (the
 normal Kotlin style) are unaffected.
-| E1 Performance telemetry | open | duration_ms column landing alongside this cleanup |
+| E1 Performance telemetry | E1.1 shipped (TASK-325) | duration_ms persisted (v28) + doctor `slowest_extractions`; E1.2 hub pie chart still open |
 
 > **Generic vs hand-written precedence.** `code_generic` only owns the
 > extensions in `reindex_dispatch._EXT_MAP` that have no hand-written

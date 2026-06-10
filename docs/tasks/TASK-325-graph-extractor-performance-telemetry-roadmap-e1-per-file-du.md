@@ -5,18 +5,17 @@ swimlane: "graph_os"
 kind: feature
 epic: null
 labels: [graph, observability, audit-2026-06-09, ready]
-status: icebox
+status: testing
 priority: P3
 appetite: 1d
 created: 2026-06-10
-started: null
+started: 2026-06-10
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-325: Graph extractor performance telemetry (roadmap E1) — per-file duration_ms in file_index_state + doctor/hub surface
 
 **Outcome (one sentence):** Each reindex records per-extractor duration_ms into file_index_state (append-only migration, Rule 9), cos_graph_doctor reports the slowest extractors/files, and the polyglot roadmap E1 row flips to shipped — budget data exists before the next monorepo-scale consumer hits a slow wall.
@@ -39,3 +38,4 @@ references: []
 - **Then** green, including a new timing-capture test
 
 ## Work Log
+- 2026-06-10 [claude]: Shipped (score 9/10). Rule-18 reconcile mid-task: E1.1 (duration_ms column, migration v28 + write site) was ALREADY ship

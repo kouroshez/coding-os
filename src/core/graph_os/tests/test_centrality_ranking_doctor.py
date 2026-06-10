@@ -725,3 +725,34 @@ class TestPhantomOrphan:
 
     def test_inrepo_module_with_path_is_not_phantom(self):
         assert not graph._is_phantom_orphan("module", "src/core/x.py", "code:module:core.x")
+
+
+class TestDoctorSlowestExtractions:
+    def test_slowest_extractions_surface_as_info(self, seeded, migrated_conn):
+        # E1 (polyglot roadmap): duration_ms telemetry must be readable back
+        # via doctor as an informational category that never trips healthy.
+        migrated_conn.execute(
+            "INSERT OR REPLACE INTO file_index_state "
+            "(file_path, content_hash, extractor_chain, nodes_written, "
+            " edges_written, parse_errors_count, last_indexed_at, duration_ms) "
+            "VALUES ('slow/one.py', 'h1', 'python', 1, 0, 0, 0, 950), "
+            "       ('slow/two.py', 'h2', 'python', 1, 0, 0, 0, 120)"
+        )
+        migrated_conn.commit()
+        data = _ok(graph.cos_graph_doctor())
+        slow = next(i for i in data["issues"] if i["category"] == "slowest_extractions")
+        assert slow["severity"] == "info"
+        assert slow["sample"][0]["file_path"] == "slow/one.py"
+        assert slow["sample"][0]["duration_ms"] == 950
+
+    def test_no_duration_rows_no_category(self, migrated_conn, monkeypatch):
+        from graph_os.backends.sqlite_backend import SqliteBackend
+
+        backend = SqliteBackend(conn=migrated_conn)
+        graph._BACKEND_SINGLETON = backend
+        monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
+        data = _ok(graph.cos_graph_doctor())
+        categories = {i["category"] for i in data["issues"]}
+        assert "slowest_extractions" not in categories
+        assert data["healthy"] is True
+        graph._BACKEND_SINGLETON = None

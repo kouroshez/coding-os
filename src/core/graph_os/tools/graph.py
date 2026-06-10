@@ -4999,6 +4999,35 @@ def cos_graph_doctor(
                     }
                 )
 
+            # 8. Slowest extractions — per-file duration_ms telemetry
+            # (polyglot roadmap E1, migration v28). Informational: budget
+            # data for monorepo-scale consumers, never a health failure.
+            try:
+                slow_rows = sqlite_conn.execute(
+                    "SELECT file_path, extractor_chain, duration_ms "
+                    "FROM file_index_state WHERE duration_ms IS NOT NULL "
+                    "ORDER BY duration_ms DESC LIMIT 10"
+                ).fetchall()
+            except Exception as exc:  # column absent on a pre-v28 DB
+                logger.debug("slowest-extraction probe suppressed: %s", exc)
+                slow_rows = []
+            if slow_rows:
+                issues.append(
+                    {
+                        "category": "slowest_extractions",
+                        "severity": "info",
+                        "count": len(slow_rows),
+                        "sample": [
+                            {
+                                "file_path": r[0],
+                                "extractor_chain": r[1],
+                                "duration_ms": int(r[2]),
+                            }
+                            for r in slow_rows
+                        ],
+                    }
+                )
+
             stats["issue_count"] = len(issues)
             if fix:
                 stats["fixed_edge_count"] = fixed_count
@@ -5027,7 +5056,11 @@ def cos_graph_doctor(
 
     # W7.6 / R4-N9: informational categories (orphaned_external_unresolved)
     # do NOT trip healthy=false. Real issues = anything else.
-    _INFORMATIONAL_CATEGORIES = {"orphaned_external_unresolved", "files_with_parse_errors"}
+    _INFORMATIONAL_CATEGORIES = {
+        "orphaned_external_unresolved",
+        "files_with_parse_errors",
+        "slowest_extractions",
+    }
     real_issues = [i for i in issues if i.get("category") not in _INFORMATIONAL_CATEGORIES]
     healthy = len(real_issues) == 0
     return _ok(
