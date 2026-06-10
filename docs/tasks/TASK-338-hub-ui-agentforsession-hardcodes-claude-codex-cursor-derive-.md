@@ -4,7 +4,7 @@ title: "Hub UI: agentForSession hardcodes claude/codex/cursor \u2014 derive agen
 swimlane: core
 kind: refactor
 epic: null
-labels: []
+labels: [ready]
 status: icebox
 priority: P3
 appetite: 2h
@@ -22,11 +22,12 @@ references: []
 **Outcome (one sentence):** useBoardStream.agentForSession (and its kindColors consumers) resolve agent ids data-driven from the adapter manifest instead of a hardcoded string-sniff list, so a new adapter shows correctly on the board feed with zero UI edits.
 
 ## Read First
+- src/core/web/ui/src/features/cos-board/useBoardStream.ts
 - src/core/board_os/hub_adapter_manifest.py
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
-- **Given** ...
-- **When** ...
-- **Then** ...
+- **Given** the adapter manifest lists the installed agents, **When** the board feed renders an event whose `agent_session` contains any manifest agent id, **Then** the agent chip/color comes from manifest data — `agentForSession` holds no literal agent-name list.
+- **Given** a hypothetical new adapter id (e.g. `gemini`) present in the manifest, **When** its session emits a board event, **Then** the feed attributes it to that agent (not `human`) with zero UI code edits — covered by a unit test that injects a fake manifest id.
+- **Given** the existing UI suite, **When** `npx vitest run` executes, **Then** all tests pass.
 
 ## Work Log

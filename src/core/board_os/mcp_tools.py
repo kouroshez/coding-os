@@ -860,6 +860,21 @@ def cos_task_create(
                 exc_stamp,
             )
 
+    # Create-time DoR echo — the same validator the ready/start gates run,
+    # surfaced NOW so a placeholder create is never silently "fine" and only
+    # discovered turns later at task-start. Warn-only: lean capture into
+    # icebox stays allowed; the gaps just ride the envelope.
+    dor_gaps, _ = _ready_dor_check(file_path, agent_session)
+    is_ready = READY_LABEL in labels
+    dor = {"ready": is_ready, "gaps": dor_gaps}
+    if dor_gaps or not is_ready:
+        fixes = []
+        if dor_gaps:
+            fixes.append("fill the flagged sections (outcome=/acceptance=/read_first=)")
+        if not is_ready:
+            fixes.append(f"mark pullable: cos task-ready {task_id} (or create with ready=True)")
+        dor["fix"] = "; ".join(fixes)
+
     return ok(
         {
             "task_id": task_id,
@@ -867,6 +882,7 @@ def cos_task_create(
             "swimlane": swimlane,
             "kind": kind,
             "status": status,
+            "dor": dor,
             "next_steps": _next_steps_for_kind(kind),
         },
         meta={"layer": "tasks", "source": "board_os.cos_task_create"},

@@ -248,6 +248,55 @@ def test_create_task_testing_does_not_stamp_started(project: Path, conn: sqlite3
     assert "agent_session: null" in content
 
 
+def test_create_skeleton_surfaces_dor_gaps_in_envelope(
+    project: Path, conn: sqlite3.Connection
+):
+    """A lean create (no acceptance, not ready) must succeed but announce its
+    own incompleteness — dor.gaps lists the placeholder codes and dor.fix
+    tells the agent the exact next moves (TASK-339)."""
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Skeleton capture",
+            swimlane="core",
+            kind="feature",
+            outcome="Some outcome sentence that is long enough.",
+        )
+    )
+    assert env["ok"] is True
+    dor = env["data"]["dor"]
+    assert dor["ready"] is False
+    codes = {g["code"] for g in dor["gaps"]}
+    assert any(c.startswith("DOR_ACCEPTANCE") for c in codes)
+    assert "task-ready" in dor["fix"]
+
+
+def test_create_one_shot_reports_clean_dor(project: Path, conn: sqlite3.Connection):
+    """A fully-formed one-shot create (outcome + acceptance + ready) reports
+    dor.ready=true with zero gaps and no fix hint."""
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Fully groomed task",
+            swimlane="core",
+            kind="feature",
+            outcome="Board renders agent chips from manifest data end to end.",
+            acceptance=(
+                "- **Given** a manifest agent, **When** it emits an event, "
+                "**Then** the chip uses manifest data.\n"
+                "- **Given** the suite, **When** run, **Then** green."
+            ),
+            read_first=["docs/tasks"],
+            ready=True,
+        )
+    )
+    assert env["ok"] is True
+    dor = env["data"]["dor"]
+    assert dor["ready"] is True
+    assert dor["gaps"] == []
+    assert "fix" not in dor
+
+
 def test_create_in_progress_blocks_without_dor(project: Path, conn: sqlite3.Connection):
     """Creating directly into in_progress runs the DoR gate (parity with the
     icebox→in_progress transition). A feature with a placeholder body must be
