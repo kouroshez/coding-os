@@ -5,12 +5,12 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P3
 appetite: 2h
 created: 2026-06-10
 started: 2026-06-10
-completed: null
+completed: 2026-06-10
 agent_session: ses-claude-20260610-112852-603a
 depends_on: []
 blocked_by: []
@@ -32,3 +32,5 @@ references: []
 ## Work Log
 - 2026-06-10 [claude]: committed 5931c037: src/core/board_os/mcp_tools.py, src/core/board_os/tests/test_mcp_tools.py, src/core/skills/task-driv
 - 2026-06-10 [claude]: agentForSession now takes manifest agent ids (from /api/board/list agent_manifest) and scans the session against them (l
+- 2026-06-10 [claude]: committed 3e2c9ff7: src/core/web/ui/src/features/cos-board/CosBoardPage.tsx, src/core/web/ui/src/features/cos-board/useB
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
