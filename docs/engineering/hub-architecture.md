@@ -107,6 +107,26 @@ path; **Graph** and **Cognition** are project-scoped only. The Doctor page reads
 
 Chart primitives (`Sparkline`, `BarList`, `Gauge`, `StatTile`) live in [src/core/web/ui/src/lib/charts.tsx](../../src/core/web/ui/src/lib/charts.tsx) — hand-rolled inline SVG, no chart library dependency. Prometheus text parser at [src/core/web/ui/src/lib/prometheus-parse.ts](../../src/core/web/ui/src/lib/prometheus-parse.ts).
 
+## Hub settings contract (`/api/settings` ↔ `hub-settings.json`)
+
+`GET/PATCH /api/settings` round-trips `$COS_STATE_DIR/hub-settings.json`
+section-by-section; defaults live in `routes/settings.py::_DEFAULTS` and
+unknown keys in the file survive untouched. Sections:
+
+| Section | Keys | Consumers |
+|---|---|---|
+| `budget_cap` | `enabled`, `cap_usd` | dispatch budget gate |
+| `trace_rotation` | `gzip_age_days`, `delete_age_days` | `auto-trace-rotate` hook |
+| `task_closure` | `mode` | board closure enforcement |
+| `model_routing` | `enabled` (default **false**), `orchestrator_model` | chat Auto picker (TASK-318) · agent-side routing hook (TASK-319) |
+
+`model_routing.enabled=false` keeps the auto-routing feature fully inert
+everywhere — no UI option, no injected context, no dispatch change. The
+`orchestrator_model` value MUST be one of the ids the adapter→models SSOT
+exposes (`/api/config/adapters`, sourced from `src/adapters/*/adapter.yaml::models`
+— Rule 11: no model id literal lives in code). Kernel-side consumers read the
+JSON file directly per call, so a settings change needs no server restart.
+
 ## Ports
 
 | Port | Service | Lifetime |

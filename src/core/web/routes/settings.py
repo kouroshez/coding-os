@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 _DEFAULTS: dict = {
     "budget_cap": {"enabled": False, "cap_usd": 5.0},
     "trace_rotation": {"gzip_age_days": 3, "delete_age_days": 30},
+    "model_routing": {"enabled": False, "orchestrator_model": ""},
 }
 
 
@@ -72,9 +73,15 @@ class _TraceRotationIn(BaseModel):
     delete_age_days: int
 
 
+class _ModelRoutingIn(BaseModel):
+    enabled: bool
+    orchestrator_model: str = ""
+
+
 class _PatchBody(BaseModel):
     budget_cap: _BudgetCapIn | None = None
     trace_rotation: _TraceRotationIn | None = None
+    model_routing: _ModelRoutingIn | None = None
 
 
 @router.patch("")
@@ -84,5 +91,7 @@ async def patch_settings(body: _PatchBody):
         current["budget_cap"] = body.budget_cap.model_dump()
     if body.trace_rotation is not None:
         current["trace_rotation"] = body.trace_rotation.model_dump()
+    if body.model_routing is not None:
+        current["model_routing"] = body.model_routing.model_dump()
     _save(current)
     return {"data": {"settings": current, "env_overrides": _env_overrides()}}

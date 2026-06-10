@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import { apiPatch, apiPost } from '@/lib/api-client';
+import type { Adapter } from '@/features/cognition/ModelPicker';
 
 interface BudgetCap {
   enabled: boolean;
@@ -14,9 +15,15 @@ interface TraceRotation {
   delete_age_days: number;
 }
 
+interface ModelRouting {
+  enabled: boolean;
+  orchestrator_model: string;
+}
+
 interface Settings {
   budget_cap: BudgetCap;
   trace_rotation: TraceRotation;
+  model_routing: ModelRouting;
 }
 
 interface SettingsPayload {
@@ -385,6 +392,69 @@ function ScheduledMaintenanceSection() {
   );
 }
 
+function ModelRoutingSection({
+  routing,
+  onChange,
+}: {
+  routing: ModelRouting;
+  onChange: (next: ModelRouting) => void;
+}) {
+  // Producer: /api/config/adapters (adapter.yaml::models SSOT) — same payload
+  // the chat ModelPicker consumes; field names verified against config.py.
+  const { data } = useApiGet<{ adapters: Adapter[]; default_model: string; count: number }>(
+    ['config-adapters'],
+    '/api/config/adapters',
+  );
+  const availableAdapters = (data?.adapters ?? []).filter((a) => a.available && a.models.length > 0);
+
+  return (
+    <section className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] p-5">
+      <SectionHeader
+        title="Model Routing (Auto)"
+        desc="When enabled, the chat model picker offers an Auto option: the orchestrator model classifies each prompt and hands the session to the routed model. Disabled keeps the feature fully inert — no Auto option, no injected context, no dispatch change. Default: OFF."
+      />
+      <div className="divide-y divide-[var(--cos-border)]">
+        <FieldRow label="Enable auto routing">
+          <Toggle
+            checked={routing.enabled}
+            onChange={(v) => onChange({ ...routing, enabled: v })}
+            label={routing.enabled ? 'Enabled' : 'Disabled'}
+          />
+        </FieldRow>
+        <FieldRow label="Orchestrator model">
+          <select
+            value={routing.orchestrator_model}
+            onChange={(e) => onChange({ ...routing, orchestrator_model: e.target.value })}
+            disabled={!routing.enabled}
+            className="rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1.5 font-mono text-xs text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="">adapter default</option>
+            {availableAdapters.map((adapter) => (
+              <optgroup key={adapter.id} label={adapter.label}>
+                {adapter.models.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          {routing.enabled && availableAdapters.length === 0 && (
+            <span className="text-[10px] text-[var(--cos-warn)]">
+              no adapter models found — check /api/config/adapters
+            </span>
+          )}
+        </FieldRow>
+      </div>
+      <p className="mt-3 text-[10px] leading-relaxed text-[var(--cos-muted)]">
+        Models come from each adapter&apos;s <code>adapter.yaml::models</code>{' '}
+        registry — adding a model is a yaml edit, never a UI or code change.
+        CLI/VSCode sessions honor the same toggle via the routing hook.
+      </p>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const qc = useQueryClient();
   const { data, isLoading, error } = useApiGet<SettingsPayload>(
@@ -399,11 +469,13 @@ export default function SettingsPage() {
   // Local draft state — mirrors server; hydrated from API response
   const [budget, setBudget] = useState<BudgetCap | null>(null);
   const [trace, setTrace] = useState<TraceRotation | null>(null);
+  const [routing, setRouting] = useState<ModelRouting | null>(null);
 
   // Sync draft with server data on first load (not on every refetch)
   const serverSettings = data?.settings;
   const localBudget: BudgetCap = budget ?? serverSettings?.budget_cap ?? { enabled: false, cap_usd: 5.0 };
   const localTrace: TraceRotation = trace ?? serverSettings?.trace_rotation ?? { gzip_age_days: 3, delete_age_days: 30 };
+  const localRouting: ModelRouting = routing ?? serverSettings?.model_routing ?? { enabled: false, orchestrator_model: '' };
   const envOverrides = data?.env_overrides ?? {};
 
   const save = useCallback(async () => {
@@ -414,17 +486,19 @@ export default function SettingsPage() {
       const [result] = await apiPatch<SettingsPayload>('/api/settings', {
         budget_cap: localBudget,
         trace_rotation: localTrace,
+        model_routing: localRouting,
       });
       await invalidateApiQueries(qc, '/api/settings');
       setBudget(result.settings.budget_cap);
       setTrace(result.settings.trace_rotation);
+      setRouting(result.settings.model_routing);
       setSaveNote('Settings saved.');
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'save failed');
     } finally {
       setSaving(false);
     }
-  }, [localBudget, localTrace, qc]);
+  }, [localBudget, localTrace, localRouting, qc]);
 
   if (isLoading) {
     return (
@@ -569,6 +643,9 @@ export default function SettingsPage() {
           </p>
         </section>
 
+        {/* Model Routing (Auto) */}
+        <ModelRoutingSection routing={localRouting} onChange={setRouting} />
+
         {/* Scheduled Maintenance (per-project cron + responsive learning) */}
         <ScheduledMaintenanceSection />
 
@@ -591,6 +668,7 @@ export default function SettingsPage() {
             onClick={() => {
               setBudget(serverSettings?.budget_cap ?? null);
               setTrace(serverSettings?.trace_rotation ?? null);
+              setRouting(serverSettings?.model_routing ?? null);
               setSaveNote(null);
               setSaveError(null);
             }}

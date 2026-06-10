@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [model-routing, settings, audit-2026-06-09, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 1d
 created: 2026-06-10
-started: null
+started: 2026-06-09
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: [TASK-308]
 blocked_by: []
 references: []
 ---
-
 # TASK-317: Model-routing settings SSOT — enabled toggle + orchestrator model + data-driven model registry, zero hardcoded ids
 
 **Outcome (one sentence):** A single data-driven settings section (`model_routing: {enabled: false, orchestrator_model, registry}`) governs the whole auto-routing feature — OFF by default keeps it fully out of play everywhere (hub, CLI, hooks); editable from hub Settings; models discovered from adapter yaml/registry, no hardcoded id anywhere (Rule 11).
@@ -40,3 +39,4 @@ references: []
 - **Then** zero hardcoded model/adapter ids — registry only
 
 ## Work Log
+- 2026-06-10 [claude]: Shipped (score 9/10): model_routing section in hub settings (enabled=false default, orchestrator_model) via routes/setti
