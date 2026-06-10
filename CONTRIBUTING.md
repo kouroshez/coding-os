@@ -66,8 +66,22 @@ cd coding-os
 uv tool install --editable .          # installs the `cos` CLI globally
 uv sync --extra rag                   # installs Python deps incl. semantic search
 make sync                             # wire THIS repo: render every adapter (.claude/ .codex/ .cursor/ + .mcp.json)
+bash src/scripts/install-git-hooks.sh # install the git-side commit hooks (see below)
 cd src/core/web/ui && npm install     # optional, only for Hub UI work
 ```
+
+> **Why `install-git-hooks.sh`?** It installs four `.git/hooks/` so a
+> human (or non-Claude) committer gets the same guardrails an agent does:
+> - `prepare-commit-msg` — stamps the active task id `(TASK-NNN)` into the
+>   subject so the board links the commit to its task automatically.
+> - `commit-msg` — enforces the message contract (≤100-char Conventional-Commit
+>   title, ≤3 non-empty body lines, no agent attribution).
+> - `pre-commit` — bad-pattern / task-frontmatter / migration-conflict checks.
+> - `post-commit` — appends committed code files + sha to the task's Work Log.
+>
+> Skipping it just means those checks run in CI instead of locally (slower
+> feedback). It is safe to re-run; uninstall with
+> `rm .git/hooks/{prepare-commit-msg,pre-commit,commit-msg,post-commit}`.
 
 > **Why `make sync`?** coding-os is itself a coding-os project (P5
 > Dogfood). The adapter dirs (`.claude/`, `.codex/`, `.cursor/`) — hooks,
@@ -109,6 +123,23 @@ only the Hub demo — `cos init` and the adapter wire-up still need
 the native path above. Use Docker when you want to inspect the UI
 without installing Python locally.
 
+### If you'll create tasks: set a task-id namespace
+
+Task ids are allocated locally (`TASK-NNN`). With multiple contributors
+working from un-synced clones, two people both compute the next `TASK-NNN`
+and **collide at PR merge**. To avoid that, enable the per-contributor
+namespaced scheme in `.coding-os/scrumban-config.yaml`:
+
+```yaml
+task_id_scheme: namespaced
+task_id_prefix: KO        # 2–8 chars, uppercase; omit to derive from git user.email
+```
+
+Your tasks then mint as `TASK-KO-NNN`, independent of every other prefix —
+`TASK-KO-280` and a teammate's `TASK-JD-280` never clash. Single-owner forks
+can leave the default (`sequential`) and keep plain `TASK-NNN`. Full rationale:
+[docs/governance/task-lifecycle.md § Task ID Scheme](docs/governance/task-lifecycle.md).
+
 ## The Contribution Loop
 
 We use a five-phase loop adapted from John Boyd's OODA: **Classify →
@@ -119,7 +150,10 @@ Practically:
 1. **Find or create an issue.** Don't open a large PR without a
    matching issue — it's easier to align on scope upfront.
 2. **Branch.** Naming: `<kind>/<short-slug>` — e.g. `feat/add-redis-template`,
-   `fix/hook-deadlock`. Branch from `main`.
+   `fix/hook-deadlock`. Branch from `main`. (Plain-git humans branch freely.
+   If you contribute *through an AI agent session*, export
+   `COS_GIT_WORKFLOW=pr` first — the repo defaults to trunk-based and the
+   `branch-guard` hook otherwise blocks branch creation in an agent shell.)
 3. **Make focused changes.** One PR = one concern. Refactors get
    their own PR even if they touch the same area.
 4. **Run the matrix-targeted test for what changed.** See
@@ -146,9 +180,9 @@ We use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
 with project-specific scopes. Format:
 
 ```
-<type>(<scope>): <subject>
+<type>(<scope>): <subject — ≤100 chars, may end with (TASK-NNN)>
 
-<body — optional, wrap at 72 chars>
+<body — optional, ≤3 non-empty lines, explain why>
 
 <footer — optional: BREAKING CHANGE, Refs #issue, etc.>
 ```
@@ -175,17 +209,23 @@ Suggested `<scope>` for this repo:
 
 Subject line:
 
-- ≤ 72 characters.
+- ≤ 100 characters (the `commit-msg` hook hard-fails longer titles).
 - Imperative mood (`add`, not `added` or `adds`).
 - No period at the end.
 - Start with lowercase letter.
+- May end with the task id, e.g. `… (TASK-280)`, to link the commit to its
+  board task. If you installed the git hooks, `prepare-commit-msg` stamps the
+  active task's id for you when it's missing.
 
 Body (when needed):
 
-- Explain **why**, not what — the diff already shows what.
+- **At most 3 non-empty lines** — the contract keeps `git log` lean; richer
+  context belongs in the PR description, not the commit. Explain **why**, not
+  what — the diff already shows what.
 - Reference issues (`Refs #42`, `Closes #42`) at the end.
-- For BREAKING changes, include `BREAKING CHANGE:` paragraph with
-  migration notes.
+- **No agent / AI attribution** and **no `Co-Authored-By:` trailers** — these
+  are rejected by the `commit-msg` hook. For BREAKING changes, include a
+  `BREAKING CHANGE:` paragraph with migration notes (counts toward the 3 lines).
 
 Good examples (drawn from the actual history):
 

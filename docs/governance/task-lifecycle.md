@@ -77,6 +77,17 @@ Optional sections:
 | `created`, `started`, `completed` | auto | written by the CLI on transitions |
 | `agent_session` | auto | fingerprint of the agent that started the task |
 
+## Task ID Scheme
+
+The `id` is allocated by [`_next_task_id`](../../src/core/board_os/mcp_tools.py). Two schemes, set in `.coding-os/scrumban-config.yaml`:
+
+| `task_id_scheme` | Format | Use |
+|---|---|---|
+| `sequential` (default) | `TASK-NNN` | Single-owner projects — readable, sortable, zero config. |
+| `namespaced` | `TASK-<NS>-NNN` | Multi-contributor projects — a per-contributor `NS` keeps each person's counter independent, so two un-synced contributors never compute the same id (the OSS fork/PR collision). |
+
+Under `namespaced`, `NS` comes from `task_id_prefix` (2–8 chars, uppercase, letter-first — e.g. `KO`) when set; otherwise it is derived stably from `git config user.email`. The counter is `max(ids with this NS) + 1`, so `KO-…` and `JD-…` sequences never cross. Every task-id-aware site (parser, frontmatter validation, `.task-current`, commit-linking, `git log --grep`) matches both `TASK-NNN` and `TASK-<NS>-NNN` via one backward-compatible regex, so a project can switch schemes without breaking existing ids. Rationale + the options considered (incl. a future GitHub-issue allocator): [adr-task-id-collision-resistance.md](adr-task-id-collision-resistance.md).
+
 ## CLI and MCP Surface
 
 | Action | CLI | MCP |

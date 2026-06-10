@@ -1,7 +1,18 @@
 # ADR — Task ID Collision Resistance for OSS Multi-Contributor Flow
 
-**Status:** Proposed (2026-05-23) · **Decision needed from:** project owner
+**Status:** Accepted (2026-06-09) — implemented as a per-contributor namespaced scheme (TASK-298). Originally Proposed 2026-05-23.
 **Context:** User report — "if many contributors fork the repo and create tasks in parallel, all of them compute `TASK-016` independently, then collide at PR merge."
+
+## Decision (implemented, TASK-298)
+
+A config-driven, opt-in **per-contributor namespace** — a refinement of Option 2 that DOES solve the cross-fork collision (Option 2's per-*project* prefix did not). `.coding-os/scrumban-config.yaml`:
+
+- `task_id_scheme: sequential` (default) → `TASK-NNN`, unchanged. Single-owner projects pay nothing.
+- `task_id_scheme: namespaced` → `TASK-<NS>-NNN`, where `NS` is `task_id_prefix` (e.g. `KO`) or derived from `git config user.email`. The counter is per-`NS`, so `KO-280` and `JD-280` are distinct — two un-synced contributors cannot collide.
+
+It is offline-first (no allocator/server), keeps the readable+sortable id shape, and is backward-compatible: one broadened regex matches both `TASK-NNN` and `TASK-<NS>-NNN` across every task-id-aware site (parser, frontmatter, `.task-current`, commit-linking, `git log --grep`), so a project switches schemes without rewriting existing ids. The GitHub-issue allocator (Option 3) remains a future enhancement layered on top, not a prerequisite.
+
+Why per-contributor rather than the originally-recommended GitHub-issue path first: the namespace solves the stated problem with **zero new dependency** (no `gh` auth, works offline), which the owner prioritised over the bi-directional issue UX.
 
 ## Current state
 
