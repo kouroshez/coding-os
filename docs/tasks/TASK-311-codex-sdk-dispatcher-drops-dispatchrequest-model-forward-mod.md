@@ -5,12 +5,12 @@ swimlane: adapters
 kind: bug
 epic: null
 labels: [ready, adapter-parity, audit-2026-06-09]
-status: testing
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-10
 started: 2026-06-10
-completed: null
+completed: 2026-06-10
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -41,3 +41,5 @@ Actual: field is dropped; codex always runs its CLI-default model.
 
 ## Work Log
 - 2026-06-10 [claude]: Shipped (score 9/10): codex sdk_dispatcher forwards request.model as --model argv (verbatim ids, no alias mapping — Rule
+- 2026-06-10 [claude]: committed f0d7b88c: src/adapters/codex/sdk_dispatcher.py, src/core/thinking_os/tests/test_dispatcher.py, tests/test_adap
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.

@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [hub-ui, audit-2026-06-09, ready]
-status: testing
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-10
 started: 2026-06-10
-completed: null
+completed: 2026-06-10
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -37,4 +37,6 @@ references: []
 - **Then** field names are verified against board.py's actual emit (no drift), with a component test
 
 ## Work Log
-- 2026-06-10 [claude]: Shipped (score 9/10): board header gains "suggest next" — lazy GET /api/board/pick (producer shape verified at the emit 
+- 2026-06-10 [claude]: Shipped (score 9/10): board header gains "suggest next" — lazy GET /api/board/pick (producer shape verified at the emit
+- 2026-06-10 [claude]: committed c47d94a3: src/core/web/ui/src/features/cos-board/CosBoardPage.tsx, src/core/web/ui/src/features/cos-board/Sugg
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.

@@ -5,18 +5,17 @@ swimlane: "board_os"
 kind: bug
 epic: null
 labels: [ready]
-status: icebox
+status: blocked
 priority: P2
 appetite: 1d
 created: 2026-06-10
-started: null
+started: 2026-06-10
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-336: cos_task_retro returns unshrinkable 178k envelope — paginate or summarize within the 32k budget
 
 **Outcome (one sentence):** `cos_task_retro` (and the `cos retro` CLI) returns a digest that fits the 32k envelope budget — aggregated counts + top-N highlights with a cursor for the long tail — instead of dumping every completed card (observed 178,284 chars > 32,000 on 2026-06-10 after ~270 completions; safe_tool flagged it `envelope_unshrinkable`).
@@ -41,3 +40,4 @@ Actual: every completed card serialized whole; the envelope trimmer cannot shrin
 - **Then** it reuses the keyset-cursor approach from cos_task_board (no second pagination scheme), covered by a board_os test asserting envelope size on a seeded 300-task DB
 
 ## Work Log
+- 2026-06-10 [claude]: Implementation designed and dry-fitted, then cleanly reverted: cos_task_retro → whole-window aggregates via slim project

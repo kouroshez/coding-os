@@ -5,12 +5,12 @@ swimlane: "board_os"
 kind: bug
 epic: null
 labels: [ready, data-integrity, audit-2026-06-09]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-10
 started: 2026-06-10
-completed: null
+completed: 2026-06-10
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -41,3 +41,4 @@ Actual: passes silently; board sees `complete` while intended state is `icebox` 
 
 ## Work Log
 - 2026-06-10 [claude]: Shipped (score 9/10). Ground truth correction: TASK-116's true status is COMPLETE, not icebox — both work-log commits (c
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.

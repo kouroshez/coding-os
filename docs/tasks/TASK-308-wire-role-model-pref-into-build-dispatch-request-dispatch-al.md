@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [ready, model-routing, spec-drift, audit-2026-06-09]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-10
 started: 2026-06-09
-completed: null
+completed: 2026-06-09
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -42,3 +42,5 @@ Actual: model=None always — model_pref is parsed and returned by cos_dispatch_
 
 ## Work Log
 - 2026-06-10 [claude]: Shipped (score 9.5/10): _build_dispatch_request resolves model = explicit arg > role model_pref[complexity] > SDK defaul
+- 2026-06-10 [claude]: committed cfd4673b: docs/adapters/claude-sdk.md, src/core/thinking_os/tests/test_dispatcher.py, src/core/thinking_os/too
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.

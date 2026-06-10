@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [hub-ui, spec-drift, audit-2026-06-09, ready]
-status: testing
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-10
 started: 2026-06-10
-completed: null
+completed: 2026-06-10
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -39,3 +39,5 @@ references: []
 
 ## Work Log
 - 2026-06-10 [claude]: Shipped (score 9/10): dashboard Live-agents rows now show ctx N% from /api/presence/agents (producer fields agent/sessio
+- 2026-06-10 [claude]: committed 85d85eba: docs/engineering/hub-architecture.md, src/core/web/ui/src/pages/ContextPctBadge.test.tsx, src/core/w
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.

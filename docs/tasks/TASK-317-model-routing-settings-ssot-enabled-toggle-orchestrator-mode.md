@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [model-routing, settings, audit-2026-06-09, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-10
 started: 2026-06-09
-completed: null
+completed: 2026-06-09
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: [TASK-308]
 blocked_by: []
@@ -40,3 +40,5 @@ references: []
 
 ## Work Log
 - 2026-06-10 [claude]: Shipped (score 9/10): model_routing section in hub settings (enabled=false default, orchestrator_model) via routes/setti
+- 2026-06-10 [claude]: committed 10e757b6: docs/engineering/hub-architecture.md, src/core/web/routes/settings.py, src/core/web/ui/src/pages/Set
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.

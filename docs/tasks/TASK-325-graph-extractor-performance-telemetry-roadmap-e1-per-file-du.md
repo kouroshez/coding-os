@@ -5,12 +5,12 @@ swimlane: "graph_os"
 kind: feature
 epic: null
 labels: [graph, observability, audit-2026-06-09, ready]
-status: testing
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-10
 started: 2026-06-10
-completed: null
+completed: 2026-06-10
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -39,3 +39,5 @@ references: []
 
 ## Work Log
 - 2026-06-10 [claude]: Shipped (score 9/10). Rule-18 reconcile mid-task: E1.1 (duration_ms column, migration v28 + write site) was ALREADY ship
+- 2026-06-10 [claude]: committed a7c0f0ef: docs/playbooks/polyglot-extractor-roadmap.md, src/core/graph_os/tests/test_centrality_ranking_doctor
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.

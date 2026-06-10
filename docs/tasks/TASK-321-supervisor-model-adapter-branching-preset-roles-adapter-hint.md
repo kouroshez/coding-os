@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: feature
 epic: null
 labels: [delegation, model-routing, audit-2026-06-09, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-10
 started: 2026-06-10
-completed: null
+completed: 2026-06-10
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: [TASK-308, TASK-317]
 blocked_by: []
@@ -39,3 +39,5 @@ references: []
 
 ## Work Log
 - 2026-06-10 [claude]: Shipped (score 9/10): full model precedence at dispatch build — explicit > preset roles_adapter_hints (read back via per
+- 2026-06-10 [claude]: committed 884b5267: docs/adapters/claude-sdk.md, src/core/thinking_os/presets/registry.yaml, src/core/thinking_os/tests/
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.

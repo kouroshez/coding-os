@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: feature
 epic: null
 labels: [delegation, audit-2026-06-09, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-10
 started: 2026-06-09
-completed: null
+completed: 2026-06-10
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: [TASK-308]
 blocked_by: []
@@ -37,4 +37,6 @@ references: []
 - **Then** the doc section for the new fields precedes the code change in the commit history
 
 ## Work Log
-- 2026-06-10 [claude]: Shipped (score 9/10): DispatchRequest gains optional adapter + adapter_budget_usd (None defaults, backward-compatible); 
+- 2026-06-10 [claude]: Shipped (score 9/10): DispatchRequest gains optional adapter + adapter_budget_usd (None defaults, backward-compatible);
+- 2026-06-10 [claude]: committed f97bbe50: docs/engineering/dispatcher-contract.md, src/core/thinking_os/dispatcher.py, src/core/thinking_os/te
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
