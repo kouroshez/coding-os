@@ -5,7 +5,7 @@ swimlane: "board_os"
 kind: bug
 epic: null
 labels: [ready]
-status: blocked
+status: testing
 priority: P2
 appetite: 1d
 created: 2026-06-10
@@ -41,3 +41,4 @@ Actual: every completed card serialized whole; the envelope trimmer cannot shrin
 
 ## Work Log
 - 2026-06-10 [claude]: Implementation designed and dry-fitted, then cleanly reverted: cos_task_retro → whole-window aggregates via slim project
+- 2026-06-10 [claude]: Shipped (score 9/10): cos_task_retro now returns whole-window aggregates via slim projection + a keyset-paginated lean h

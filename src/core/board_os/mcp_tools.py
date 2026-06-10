@@ -2129,24 +2129,33 @@ def cos_task_daily(
 
 
 @safe_tool
-def cos_task_retro(conn: sqlite3.Connection, *, since: str = "7d") -> str:
+def cos_task_retro(
+    conn: sqlite3.Connection,
+    *,
+    since: str = "7d",
+    page_size: int = 25,
+    cursor: str = "",
+) -> str:
     hours = _parse_since(since)
     threshold = int(time.time() - hours * 3600)
 
-    completed = conn.execute(
-        f"{_BOARD_SELECT} WHERE status = 'complete' AND completed_at >= ? "
-        "ORDER BY completed_at DESC LIMIT 1000",
+    # Aggregates over the WHOLE window via a slim projection — serializing
+    # every full card blew the 32k envelope budget at ~270 completions
+    # (observed 178k, envelope_unshrinkable).
+    window_rows = conn.execute(
+        "SELECT swimlane, started_at, completed_at FROM tasks "
+        "WHERE status = 'complete' AND completed_at >= ?",
         (threshold,),
     ).fetchall()
-    cards = [_task_card(r) for r in completed]
 
-    cycle_times_min = []
-    for r in completed:
-        started = r[11]
-        done = r[12]
-        if started and done:
-            cycle_times_min.append((done - started) / 60.0)
+    cycle_times_min = [
+        (done - started) / 60.0 for _, started, done in window_rows if started and done
+    ]
     avg_cycle = (sum(cycle_times_min) / len(cycle_times_min)) if cycle_times_min else None
+
+    per_lane: dict[str, int] = {}
+    for lane, _, _ in window_rows:
+        per_lane[lane or "(none)"] = per_lane.get(lane or "(none)", 0) + 1
 
     emergency_count = conn.execute(
         "SELECT COUNT(*) FROM task_status_history "
@@ -2154,19 +2163,34 @@ def cos_task_retro(conn: sqlite3.Connection, *, since: str = "7d") -> str:
         (threshold,),
     ).fetchone()[0]
 
-    per_lane: dict[str, int] = {}
-    for c in cards:
-        per_lane[c["swimlane"] or "(none)"] = per_lane.get(c["swimlane"] or "(none)", 0) + 1
+    # Highlights page — same keyset machinery as the board's complete column,
+    # trimmed to digest fields (the long tail rides the cursor).
+    cards, next_cursor, total = _keyset_column_page(
+        conn,
+        "complete",
+        ["completed_at >= ?"],
+        [threshold],
+        cursor or None,
+        page_size,
+        _current_config(),
+    )
+    digest_fields = ("id", "title", "swimlane", "kind", "priority", "completed_at")
+    completed = [{k: c.get(k) for k in digest_fields} for c in cards]
 
     return ok(
         {
-            "completed": cards,
-            "completed_count": len(cards),
+            "completed": completed,
+            "completed_count": total,
             "cycle_time_avg_minutes": avg_cycle,
             "emergency_count": emergency_count,
             "swimlane_throughput": per_lane,
+            "next_cursor": next_cursor,
         },
-        meta={"layer": "tasks", "source": "board_os.cos_task_retro"},
+        meta={
+            "layer": "tasks",
+            "source": "board_os.cos_task_retro",
+            "truncated": bool(next_cursor),
+        },
     )
 
 

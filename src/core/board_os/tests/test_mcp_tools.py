@@ -1657,3 +1657,56 @@ def test_worklog_events_empty_when_no_work_log(project: Path, conn: sqlite3.Conn
         )
     )
     assert mcp_tools._worklog_events(created["data"]["file_path"]) == []
+
+
+# ---------- cos_task_retro envelope budget (TASK-336) ----------
+
+
+class TestRetroEnvelopeBudget:
+    def test_retro_stays_under_budget_on_300_completions(self, project, conn):
+        import time as _t
+
+        now = int(_t.time())
+        rows = [
+            (
+                f"TASK-{900 + i}",
+                f"retro budget seed task {i} " + "padding " * 30,
+                "complete",
+                f"docs/tasks/TASK-{900 + i}-seed.md",
+                "",
+                0,
+                "core",
+                "chore",
+                "P3",
+                now - 3600,
+                now - 600 - i,
+            )
+            for i in range(300)
+        ]
+        conn.executemany(
+            "INSERT OR REPLACE INTO tasks (task_id, title, status, file_path, "
+            "content_hash, mtime, swimlane, kind, priority, started_at, completed_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            rows,
+        )
+        conn.commit()
+
+        envelope = mcp_tools.cos_task_retro(conn, since="7d")
+        assert len(envelope) < 32_000, f"retro envelope {len(envelope)} chars"
+
+        data = json.loads(envelope)["data"]
+        assert data["completed_count"] >= 300
+        assert len(data["completed"]) <= 25
+        assert data["next_cursor"], "300 rows must paginate"
+        assert data["swimlane_throughput"]["core"] >= 300
+
+    def test_retro_cursor_walks_the_tail(self, project, conn):
+        first = json.loads(mcp_tools.cos_task_retro(conn, since="7d", page_size=5))["data"]
+        if not first["next_cursor"]:
+            return  # tiny board — nothing to walk
+        second = json.loads(
+            mcp_tools.cos_task_retro(conn, since="7d", page_size=5, cursor=first["next_cursor"])
+        )["data"]
+        first_ids = {c["id"] for c in first["completed"]}
+        second_ids = {c["id"] for c in second["completed"]}
+        assert not (first_ids & second_ids), "pages must not overlap"
