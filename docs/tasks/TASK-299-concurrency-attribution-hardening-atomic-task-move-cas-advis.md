@@ -35,3 +35,6 @@ references: []
 **Given** a deterministic hook-block recurs,
 **When** the learning miner runs,
 **Then** confidence no longer wastefully saturates from raw count beyond the cap and the block is recorded as a structured signal, not only regex-parsed from the text log — covered by a learning test.
+
+## Work Log
+- 2026-06-10 [claude]: committed f8c3ea94: docs/governance/adr-task-id-allocator-seam.md, docs/governance/mcp-tool-inventory.md, docs/governanc
