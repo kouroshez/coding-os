@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-10
 started: 2026-06-10
-completed: null
+completed: 2026-06-10
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -39,3 +39,4 @@ Actual: tabs hang on load / panel freezes — browser's 6-per-origin HTTP/1.1 co
 - **Given** the existing web + UI test suites, **When** run, **Then** they pass.
 
 ## Work Log
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
