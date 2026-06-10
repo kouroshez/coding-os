@@ -154,14 +154,17 @@ def _agent_session_id() -> str | None:
     runtime = _detect_agent_runtime()
     if runtime is None:
         return None
-    p = _project_root() / ".coding-os" / runtime / "session-id"
-    if not p.exists():
-        return None
-    try:
-        raw = p.read_text(encoding="utf-8", errors="ignore").strip()
-    except OSError:
-        return None
-    return raw or None
+    # Plain shells (no COS_* env) land here. Mirror the env'd branch above:
+    # `.active-session` is refreshed every prompt by session-context.sh,
+    # while the flat `session-id` is a legacy fossil frozen at its last
+    # SessionStart — trusting it first mis-attributed weeks-old session ids
+    # to fresh CLI mutations (TASK-341).
+    runtime_dir = _project_root() / ".coding-os" / runtime
+    for _fname in (".active-session", "session-id"):
+        raw = _first(runtime_dir / _fname)
+        if raw:
+            return raw
+    return None
 
 
 def _parse_envelope(envelope: str) -> dict:
@@ -345,7 +348,12 @@ def _render_board_ascii(envelope: str) -> None:
     help="Acceptance G/W/T markdown (e.g. '- **Given** ...\\n- **When** ...\\n- **Then** ...'). "
     "Required to start feature/bug/refactor/test/security tasks.",
 )
-@click.option("--read-first", default="", help="Comma-separated doc paths for the Read First section.")
+@click.option(
+    "--read-first",
+    multiple=True,
+    help="Doc path(s) for the Read First section — repeatable and/or comma-separated. "
+    "(Was a single comma-only flag; repeating it silently kept only the last value.)",
+)
 @click.option("--depends-on", default="", help="Comma-separated TASK-IDs")
 @click.option("--ready", is_flag=True, default=False, help="Mark the task pullable in one shot.")
 def task_create_cmd(
@@ -366,7 +374,8 @@ def task_create_cmd(
             labels=[l.strip() for l in labels.split(",") if l.strip()],
             outcome=outcome,
             acceptance=acceptance,
-            read_first=[p.strip() for p in read_first.split(",") if p.strip()] or None,
+            read_first=[p.strip() for chunk in read_first for p in chunk.split(",") if p.strip()]
+            or None,
             depends_on=[d.strip() for d in depends_on.split(",") if d.strip()],
             ready=ready,
             agent_session=_agent_session_id(),

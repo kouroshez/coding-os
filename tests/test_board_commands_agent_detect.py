@@ -10,6 +10,8 @@ from cli import board_commands
 
 _ENV_KEYS = [
     "COS_AGENT",
+    "COS_AGENT_DIR",
+    "COS_PANEL_DIR",
     "COS_AGENT_SESSION_ID",
     "COS_PROJECT_ROOT",
     "CURSOR_AGENT",
@@ -125,3 +127,19 @@ def test_agent_session_id_returns_none_when_no_runtime(
 ) -> None:
     monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
     assert board_commands._agent_session_id() is None
+
+
+def test_agent_session_id_prefers_active_session_over_fossil(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The flat session-id freezes at its last SessionStart; .active-session
+    is refreshed every prompt and must win in the no-env fallback (TASK-341 —
+    weeks-old fossils were attributed to fresh CLI board mutations)."""
+    _write_session(tmp_path, "claude", "ses-claude-20260527-fossil")
+    (tmp_path / ".coding-os" / "claude" / ".active-session").write_text(
+        "ses-claude-20260610-fresh\n", encoding="utf-8"
+    )
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("CLAUDECODE", "1")
+    assert board_commands._agent_session_id() == "ses-claude-20260610-fresh"
