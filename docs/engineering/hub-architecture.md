@@ -62,6 +62,11 @@ token count is stored, never transcript content — so it works without the opt-
 value is **honest-null** (not fabricated) when no usage signal exists, e.g. for
 non-Claude adapters.
 
+Consumed by the dashboard's Live-agents card (TASK-324): each session row
+renders a `ctx N%` badge (`DashboardPage.tsx::ContextPctBadge`, green/amber/red
+at 60/85%), with an explicit `ctx ?` state when the value is honest-null —
+never a fabricated 0%.
+
 ## Per-project backend keying (graph + DB)
 
 One uvicorn process serves every registered project. To prevent the first project's SQLite handle from leaking into another project's response, every layer that opens a database now keys its singleton by the **resolved DB path**, not by a process-global slot.

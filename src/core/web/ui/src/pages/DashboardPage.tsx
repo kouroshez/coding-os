@@ -39,6 +39,19 @@ interface PresencePayload {
   current_chat_uuid: string | null;
 }
 
+// Producer: /api/presence/agents (presence.py::presence_agents) — the
+// context-window fill the hub-architecture spec documents (TASK-324).
+interface ContextAgent {
+  agent: string;
+  session_id?: string | null;
+  context_pct: number | null;
+  used_tokens?: number | null;
+  context_window?: number | null;
+}
+interface ContextAgentsPayload {
+  agents: ContextAgent[];
+}
+
 interface ActiveSession {
   agent: string;
   session_id: string;
@@ -194,11 +207,43 @@ function compactSession(sid?: string | null): string {
 // Dashboard root
 // ─────────────────────────────────────────────────────────────────────────
 
+export function ContextPctBadge({ row }: { row?: ContextAgent }) {
+  // Explicit unknown state — never 0%, never blank (TASK-324 acceptance).
+  if (!row || row.context_pct === null || row.context_pct === undefined) {
+    return (
+      <span
+        className="font-mono text-[10px] text-[var(--cos-faint)]"
+        title="context fill unknown — no usage signal for this session yet"
+      >
+        ctx ?
+      </span>
+    );
+  }
+  const pct = Math.round(row.context_pct);
+  const tone =
+    pct >= 85 ? 'var(--cos-err)' : pct >= 60 ? 'var(--cos-warn)' : 'var(--cos-ok)';
+  const detail =
+    row.used_tokens && row.context_window
+      ? `${row.used_tokens.toLocaleString()} / ${row.context_window.toLocaleString()} tokens`
+      : 'context window fill';
+  return (
+    <span className="font-mono text-[10px]" style={{ color: tone }} title={detail}>
+      ctx {pct}%
+    </span>
+  );
+}
+
 export default function DashboardPage() {
   const { scopedLink } = useScopedLink();
   const presence = useApiGet<PresencePayload>(
     ['presence-now'],
     '/api/presence/now',
+    undefined,
+    { refetchIntervalMs: 4000 },
+  );
+  const contextAgents = useApiGet<ContextAgentsPayload>(
+    ['presence-agents-dash'],
+    '/api/presence/agents',
     undefined,
     { refetchIntervalMs: 4000 },
   );
@@ -398,6 +443,11 @@ export default function DashboardPage() {
                           {s.model}
                         </span>
                       )}
+                      <ContextPctBadge
+                        row={contextAgents.data?.agents.find(
+                          (a) => a.session_id === s.session_id || a.agent === s.agent,
+                        )}
+                      />
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-2 font-mono text-[10px] text-[var(--cos-muted)]">
                       <span className="truncate">{s.session_id}</span>

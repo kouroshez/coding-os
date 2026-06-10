@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [hub-ui, spec-drift, audit-2026-06-09, ready]
-status: icebox
+status: testing
 priority: P3
 appetite: 1d
 created: 2026-06-10
-started: null
+started: 2026-06-10
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-324: Hub: live-agent context_pct on dashboard — consume /api/presence/agents per hub-architecture spec
 
 **Outcome (one sentence):** The dashboard shows each live agent's context-window fill (context_pct) from the already-implemented /api/presence/agents route — closing the documented spec-vs-reality gap (hub-architecture.md specs it, presence.py computes it, no UI consumes it).
@@ -39,3 +38,4 @@ references: []
 - **Then** the spec row flips to implemented (doc and code stay in sync — Rule 19)
 
 ## Work Log
+- 2026-06-10 [claude]: Shipped (score 9/10): dashboard Live-agents rows now show ctx N% from /api/presence/agents (producer fields agent/sessio
