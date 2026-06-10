@@ -251,10 +251,10 @@ def _check_index_synced(report, project: Path) -> None:
         return
 
     index_text = index.read_text(encoding="utf-8")
-    indexed_ids = set(re.findall(r"TASK-\d+", index_text))
+    indexed_ids = set(re.findall(r"TASK-(?:[A-Z][A-Z0-9]*-)?\d+", index_text))
     file_ids: set[str] = set()
     for p in tasks_dir.glob("TASK-*.md"):
-        m = re.match(r"(TASK-\d+)", p.name)
+        m = re.match(r"(TASK-(?:[A-Z][A-Z0-9]*-)?\d+)", p.name)
         if m:
             file_ids.add(m.group(1))
     missing_from_index = file_ids - indexed_ids

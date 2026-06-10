@@ -471,6 +471,17 @@ hooks:
         matcher: Write|Edit|MultiEdit
         status_message: "📝 Appending Work Log entry..."
 
+  - id: link-commit-to-task
+    script: link-commit-to-task.sh
+    description: After a real `git commit`, appends the new HEAD sha + subject to the active task's Work Log so cos_task_history links the code commits, not just commits that touched the task .md. Dedup by sha; fire-and-forget.
+    category: observability
+    phase: L
+    timeout: 10
+    events:
+      - event: PostToolUse
+        matcher: Bash
+        status_message: "🔗 Linking commit to task..."
+
   - id: auto-task-sync
     script: auto-task-sync.sh
     description: Re-syncs single task file into DB cache on Write/Edit. Fire-and-forget; keeps the board fresh within one hook latency.

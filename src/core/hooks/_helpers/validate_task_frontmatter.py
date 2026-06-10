@@ -52,7 +52,7 @@ if fm is None:
     sys.exit(2)
 
 # id matches filename
-expected_id_match = re.search(r"(TASK-\d+)", os.path.basename(file_path))
+expected_id_match = re.search(r"(TASK-(?:[A-Z][A-Z0-9]*-)?\d+)", os.path.basename(file_path))
 if expected_id_match and fm.get("id") and fm["id"] != expected_id_match.group(1):
     errors.append(
         f"frontmatter id {fm['id']!r} does not match filename id {expected_id_match.group(1)!r}"

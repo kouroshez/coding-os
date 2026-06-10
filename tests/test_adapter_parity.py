@@ -46,6 +46,11 @@ CLAUDE_ONLY_WHITELIST: set[str] = {
     "detect-exhaustive-intent.sh",
     "verify-completion-claim.sh",
     "prevent-premature-done.sh",
+    # Work-log append hooks are Claude-only: Codex lacks reliable PostToolUse
+    # delivery and records work/commits via explicit cos_work_log_append
+    # (AGENTS.md). The git post-commit hook (TASK-175) still covers Codex
+    # commits that bundle the task .md, adapter-agnostically.
+    "link-commit-to-task.sh",
 }
 
 

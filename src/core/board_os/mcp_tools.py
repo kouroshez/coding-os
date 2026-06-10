@@ -73,43 +73,96 @@ def _slugify(title: str, *, max_len: int = 60) -> str:
     return slug[:max_len] or "untitled"
 
 
+def _derive_ns_from_git(project_root: Path) -> str:
+    # Stable, low-collision uppercase NS from git user.email — the zero-config
+    # fallback for the namespaced scheme. 4 base36 chars of a sha1: readable
+    # enough as a namespace, collision-rare; docs recommend an explicit prefix.
+    import hashlib
+    import string
+    import subprocess
+
+    try:
+        email = subprocess.run(
+            ["git", "-C", str(project_root), "config", "user.email"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        email = ""
+    if not email:
+        return ""
+    alphabet = string.ascii_uppercase + string.digits
+    n = int(hashlib.sha1(email.encode()).hexdigest()[:12], 16)
+    out = ""
+    for _ in range(4):
+        out += alphabet[n % len(alphabet)]
+        n //= len(alphabet)
+    return ("T" + out[1:]) if not out[0].isalpha() else out
+
+
+def _resolve_task_id_prefix(project_root: Path) -> str:
+    """Resolve the id-prefix segment: '' for sequential (TASK-NNN), or '<NS>-'
+    for namespaced (TASK-<NS>-NNN). NS = configured task_id_prefix, else derived
+    from git user.email. Fail-safe to sequential on any config error."""
+    try:
+        from board_os.config import load_config
+
+        cfg = load_config(project_root)
+    except Exception as exc:
+        logger.debug("task_id scheme resolve fell back to sequential: %s", exc)
+        return ""
+    if getattr(cfg, "task_id_scheme", "sequential") != "namespaced":
+        return ""
+    ns = (getattr(cfg, "task_id_prefix", "") or "").strip().upper()
+    if not ns:
+        ns = _derive_ns_from_git(project_root)
+    if not re.match(r"^[A-Z][A-Z0-9]{1,7}$", ns):
+        return ""
+    return f"{ns}-"
+
+
 def _next_task_id(conn: sqlite3.Connection, project_root: Path) -> str:
-    # Allocate the next TASK-NNN atomically. The old code read SELECT MAX
-    # then returned — two concurrent creators read the same max before
-    # either wrote, producing a duplicate id. Here a single INSERT…SELECT
-    # computes max(db, filesystem)+1 AND reserves the row in one
-    # statement, so SQLite's write lock serializes contenders: the loser
-    # blocks (busy_timeout=5s), then reads the winner's reserved row and
-    # picks the next integer. sync_one's upsert later overwrites the stub
-    # (title/file_path/content_hash/mtime) with the real task fields.
+    # Allocate the next id atomically. A single INSERT…SELECT computes
+    # max(db, filesystem)+1 for THIS id-prefix AND reserves the row in one
+    # statement, so SQLite's write lock serializes concurrent local creators.
+    # id_prefix is "TASK-" (sequential → TASK-NNN) or "TASK-<NS>-" (namespaced →
+    # TASK-<NS>-NNN); the per-prefix max keeps each contributor's namespace an
+    # independent sequence so un-synced contributors never collide.
+    id_prefix = "TASK-" + _resolve_task_id_prefix(project_root)  # safe chars only
+    substr_start = len(id_prefix) + 1  # 1-indexed SQL SUBSTR past the prefix
+    like_pat = id_prefix + "%"
+
     tasks_dir = project_root / "docs" / "tasks"
+    num_re = re.compile(re.escape(id_prefix) + r"(\d+)")
     fs_max = 0
     if tasks_dir.exists():
-        for p in tasks_dir.glob("TASK-*.md"):
-            m = re.match(r"TASK-(\d+)", p.name)
+        for p in tasks_dir.glob(f"{id_prefix}*.md"):
+            m = num_re.match(p.name)
             if m:
                 fs_max = max(fs_max, int(m.group(1)))
 
     import time as _t
 
+    # id_prefix is validated to safe chars (TASK- + uppercase NS + dash), so it
+    # is interpolated into the printf format / SUBSTR offset; values stay bound.
+    sql = f"""
+        INSERT INTO tasks (task_id, title, status, file_path, content_hash, mtime)
+        SELECT printf('{id_prefix}%03d', MAX(n) + 1),
+               '(reserving)', 'icebox',
+               printf('docs/tasks/.reserve-{id_prefix}%d.tmp', MAX(n) + 1), '', 0
+        FROM (
+            SELECT COALESCE(MAX(CAST(SUBSTR(task_id, {substr_start}) AS INTEGER)), 0) AS n
+            FROM tasks
+            WHERE task_id LIKE ? AND SUBSTR(task_id, {substr_start}) GLOB '[0-9]*'
+            UNION ALL SELECT ? AS n
+        )
+    """
+
     last_exc: Exception | None = None
     for attempt in range(8):
         try:
-            cur = conn.execute(
-                """
-                INSERT INTO tasks (task_id, title, status, file_path, content_hash, mtime)
-                SELECT printf('TASK-%03d', MAX(n) + 1),
-                       '(reserving)', 'icebox',
-                       printf('docs/tasks/.reserve-%d.tmp', MAX(n) + 1), '', 0
-                FROM (
-                    SELECT COALESCE(MAX(CAST(SUBSTR(task_id, 6) AS INTEGER)), 0) AS n
-                    FROM tasks
-                    WHERE task_id LIKE 'TASK-%' AND SUBSTR(task_id, 6) GLOB '[0-9]*'
-                    UNION ALL SELECT ? AS n
-                )
-                """,
-                (fs_max,),
-            )
+            cur = conn.execute(sql, (like_pat, fs_max))
             conn.commit()
             row = conn.execute(
                 "SELECT task_id FROM tasks WHERE rowid = ?", (cur.lastrowid,)
@@ -2160,6 +2213,57 @@ def _git_commits_for_path(rel_path: str, *, limit: int = 50) -> list[dict]:
     return commits
 
 
+def _git_commits_by_task_id(task_id: str, *, exclude: set[str], limit: int = 50) -> list[dict]:
+    """Commits whose MESSAGE references the task id (`git log --all --grep`).
+
+    The actor-agnostic, retroactive link: it finds the commits that did a task's
+    work whether they were made from the Hub, a terminal, or by a human, and
+    without depending on session state, the work log, or the commit touching the
+    task .md. The `([^0-9]|$)` guard stops TASK-5 matching TASK-50. Fail-open."""
+    import subprocess
+
+    if not task_id:
+        return []
+    root = _project_root()
+    try:
+        out = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(root),
+                "log",
+                "--all",
+                "-E",
+                f"-n{limit}",
+                "--grep",
+                f"{task_id}([^0-9]|$)",
+                "--format=%H%x1f%ct%x1f%s",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=8,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.debug("git log --grep failed for %s: %s", task_id, exc)
+        return []
+    if out.returncode != 0:
+        return []
+    commits: list[dict] = []
+    for raw in out.stdout.splitlines():
+        parts = raw.split("\x1f")
+        if len(parts) != 3:
+            continue
+        sha, ct, subject = parts
+        if sha[:10] in exclude:
+            continue
+        try:
+            at = int(ct)
+        except ValueError:
+            at = 0
+        commits.append({"sha": sha[:10], "subject": subject, "at": at})
+    return commits
+
+
 def _git_commits_from_worklog(rel_path: str, *, exclude: set[str], limit: int = 50) -> list[dict]:
     """Commits referenced by 7-40 hex SHA in a task's Work Log — surfaces the code
     commits that did the work but never touched the md file, so the History links
@@ -2360,6 +2464,14 @@ def cos_task_history(
         # did the work but never touched the md file) so they link WITHOUT a task
         # id in the commit message — the file-path link only catches md touches.
         for c in _git_commits_from_worklog(row[0], exclude=seen_shas, limit=limit):
+            seen_shas.add(c["sha"])
+            events.append(
+                {"type": "commit", "sha": c["sha"], "subject": c["subject"], "at": c["at"]}
+            )
+        # The robust, retroactive, actor-agnostic source: commits whose MESSAGE
+        # names this task id (git log --all --grep). Catches Hub/terminal/human
+        # commits the path + work-log sources miss when the id is in the subject.
+        for c in _git_commits_by_task_id(task_id, exclude=seen_shas, limit=limit):
             events.append(
                 {"type": "commit", "sha": c["sha"], "subject": c["subject"], "at": c["at"]}
             )

@@ -46,7 +46,7 @@ fi
 ACTIVE_TASK=""
 _TASK_CURRENT="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current"  # panel-first
 if [ -f "$_TASK_CURRENT" ]; then
-  ACTIVE_TASK=$(grep -oE 'TASK-[0-9]+' "$_TASK_CURRENT" 2>/dev/null | head -1 || true)
+  ACTIVE_TASK=$(grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' "$_TASK_CURRENT" 2>/dev/null | head -1 || true)
 fi
 
 run_bounded_python() {

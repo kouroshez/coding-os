@@ -392,6 +392,12 @@
           },
           {
             "type": "command",
+            "command": ".claude/hooks/link-commit-to-task.sh",
+            "statusMessage": "🔗 Linking commit to task...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/agent-presence.sh",
             "timeout": 5
           },
@@ -624,6 +630,12 @@
       {
         "matcher": "",
         "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/drain-embedding-outbox.sh",
+            "statusMessage": "🧮 Draining deferred embeddings...",
+            "timeout": 30
+          },
           {
             "type": "command",
             "command": ".claude/hooks/session-end.sh",

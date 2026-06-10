@@ -188,6 +188,11 @@ class ScrumbanConfig:
     wip_limits: WipLimits = field(default_factory=WipLimits)
     label_families: tuple[LabelFamily, ...] = field(default_factory=tuple)
     workflow_policy: WorkflowPolicy = field(default_factory=WorkflowPolicy)
+    # Task-id allocation. "sequential" → TASK-NNN (default, single-owner).
+    # "namespaced" → TASK-<NS>-NNN so un-synced contributors never collide
+    # (multi-contributor). NS comes from task_id_prefix, else git user.email.
+    task_id_scheme: str = "sequential"
+    task_id_prefix: str = ""
     source_path: Path | None = None
 
     @property
@@ -347,6 +352,25 @@ def parse_config(data: dict[str, Any], source_path: Path | None = None) -> Scrum
                 policy_kwargs[knob] = v
     workflow_policy = WorkflowPolicy(**policy_kwargs)
 
+    # Task-id scheme (optional). namespaced needs a valid NS prefix shape when
+    # given explicitly; an empty prefix under namespaced is derived at runtime.
+    task_id_scheme = data.get("task_id_scheme", "sequential")
+    if task_id_scheme not in ("sequential", "namespaced"):
+        errors.append(
+            f"task_id_scheme={task_id_scheme!r} must be 'sequential' or 'namespaced'"
+        )
+        task_id_scheme = "sequential"
+    task_id_prefix = data.get("task_id_prefix", "") or ""
+    if not isinstance(task_id_prefix, str):
+        errors.append("task_id_prefix must be a string")
+        task_id_prefix = ""
+    if task_id_prefix and not re.match(r"^[A-Z][A-Z0-9]{1,7}$", task_id_prefix):
+        errors.append(
+            f"task_id_prefix={task_id_prefix!r} must be 2-8 chars, uppercase, "
+            "starting with a letter (e.g. 'KO')"
+        )
+        task_id_prefix = ""
+
     if errors:
         raise ConfigValidationError(errors, path=source_path)
 
@@ -355,6 +379,8 @@ def parse_config(data: dict[str, Any], source_path: Path | None = None) -> Scrum
         wip_limits=wip_limits,
         label_families=tuple(label_families),
         workflow_policy=workflow_policy,
+        task_id_scheme=task_id_scheme,
+        task_id_prefix=task_id_prefix,
         source_path=source_path,
     )
 

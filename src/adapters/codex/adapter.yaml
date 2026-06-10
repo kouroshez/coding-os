@@ -144,6 +144,7 @@ hook_dispatchers:
       - check-capture-worked.sh
       - auto-trace-rotate.sh
       - snapshot-transcript.sh
+      - drain-embedding-outbox.sh
       - agent-presence.sh
   - event: PostToolUse
     matcher: Bash

@@ -90,6 +90,23 @@ def _dangling(link: Path) -> bool:
         return True
 
 
+def _prune_dangling(paths: list[str]) -> int:
+    """Remove symlinks still dangling AFTER a fresh install — they point at a
+    source the current registry no longer ships (a removed hook/rule), so a
+    re-install can never re-link them; they are obsolete cruft. Only unlinks
+    real broken symlinks, never a regular file. Returns the count removed."""
+    removed = 0
+    for raw in paths:
+        link = Path(raw)
+        try:
+            if link.is_symlink() and not link.exists():
+                link.unlink()
+                removed += 1
+        except OSError:
+            continue
+    return removed
+
+
 def _apply_migrations(project: Path) -> tuple[bool, str]:
     """Run init_db on the project's coding-os.db.  Returns (ok, msg)."""
     db_path = project / ".coding-os" / "coding-os.db"
@@ -256,7 +273,15 @@ def sync_doctor_cmd(slug: str | None, repair: bool, fmt: str) -> None:
                 for note in _re_run_installs(path, agents, templates, dry_run=False):
                     if fmt == "text":
                         click.echo(f"    {note}")
-                # Re-scan.
+                # Re-scan after install re-links what the current registry ships.
+                links = _iter_symlinks(path)
+                dangling = [str(link) for link in links if _dangling(link)]
+                # Whatever is STILL dangling points at a removed source — a
+                # fossil install.sh can't re-link. Prune it so it stops being
+                # reported as "broken" forever.
+                pruned = _prune_dangling(dangling)
+                if pruned and fmt == "text":
+                    click.echo(f"    🧹 pruned {pruned} obsolete (fossil) symlink(s)")
                 links = _iter_symlinks(path)
                 dangling = [str(link) for link in links if _dangling(link)]
                 repaired = True

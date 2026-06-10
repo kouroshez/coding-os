@@ -851,7 +851,7 @@ def task_show_cmd(task_id):
                 value = " ".join(tokens[1:]) if len(tokens) >= 2 else content
                 import re as _re
 
-                match = _re.search(r"TASK-\d+", value, _re.IGNORECASE)
+                match = _re.search(r"TASK-(?:[A-Z][A-Z0-9]*-)?\d+", value, _re.IGNORECASE)
                 if match:
                     task_id = match.group(0).upper()
         if not task_id:

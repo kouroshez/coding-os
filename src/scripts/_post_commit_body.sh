@@ -17,14 +17,14 @@ FILES="$(git show --name-only --format= HEAD 2>/dev/null || true)"
 [ -n "$FILES" ] || exit 0
 
 # The task this commit belongs to = the committed task file (first one wins).
-TASK_FILE="$(printf '%s\n' "$FILES" | grep -oE 'docs/tasks/TASK-[0-9]+-[^/]*\.md' | head -1 || true)"
+TASK_FILE="$(printf '%s\n' "$FILES" | grep -oE 'docs/tasks/TASK-([A-Z][A-Z0-9]*-)?[0-9]+-[^/]*\.md' | head -1 || true)"
 [ -n "$TASK_FILE" ] || exit 0
-TASK_ID="$(printf '%s' "$TASK_FILE" | grep -oE 'TASK-[0-9]+' | head -1 || true)"
+TASK_ID="$(printf '%s' "$TASK_FILE" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || true)"
 [ -n "$TASK_ID" ] || exit 0
 
 # Code files = committed files that are NOT task markdown. No code → nothing to
 # log (also breaks the self-referential loop when only the work-log line lands).
-CODE_FILES="$(printf '%s\n' "$FILES" | sed '/^$/d' | grep -vE 'docs/tasks/TASK-[0-9]+-[^/]*\.md' || true)"
+CODE_FILES="$(printf '%s\n' "$FILES" | sed '/^$/d' | grep -vE 'docs/tasks/TASK-([A-Z][A-Z0-9]*-)?[0-9]+-[^/]*\.md' || true)"
 [ -n "$CODE_FILES" ] || exit 0
 
 # Idempotent: skip if this sha is already recorded in the task body.

@@ -33,13 +33,15 @@ install_hook() {
   echo "Installed: ${dst}"
 }
 
+install_hook prepare-commit-msg "${REPO_ROOT}/src/scripts/_prepare_commit_msg_body.sh"
 install_hook pre-commit  "${REPO_ROOT}/src/scripts/_pre_commit_body.sh"
 install_hook commit-msg  "${REPO_ROOT}/src/scripts/_commit_msg_body.sh"
 install_hook post-commit "${REPO_ROOT}/src/scripts/_post_commit_body.sh"
 
 echo ""
 echo "Coverage:"
+echo "  prepare-commit-msg → stamp the active task id (TASK-NNN) into the subject so history links the commit"
 echo "  pre-commit  → block-bad-patterns, validate-task-frontmatter, block-migration-conflict"
 echo "  commit-msg  → title ≤100 chars · body ≤3 lines · no attribution / USER / Persian quotes"
 echo "  post-commit → append committed code files + sha to the task's Work Log"
-echo "Uninstall: rm ${REPO_ROOT}/.git/hooks/{pre-commit,commit-msg,post-commit}"
+echo "Uninstall: rm ${REPO_ROOT}/.git/hooks/{prepare-commit-msg,pre-commit,commit-msg,post-commit}"

@@ -38,7 +38,7 @@ task_current="$(tr -d ' \n' < "$task_current_file" 2>/dev/null)"
 
 # Extract TASK-NNN if the marker contains one, else skip (marker may be
 # a slug like "phase-l-implementation" which doesn't map to a task file).
-task_id="$(echo "$task_current" | grep -oE 'TASK-[0-9]+' | head -1 || true)"
+task_id="$(echo "$task_current" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || true)"
 [[ -n "$task_id" ]] || exit 0
 
 # Derive summary from the tool call.

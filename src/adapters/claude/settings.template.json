@@ -392,6 +392,12 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/link-commit-to-task.sh",
+            "statusMessage": "🔗 Linking commit to task...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/agent-presence.sh",
             "timeout": 5
           },
