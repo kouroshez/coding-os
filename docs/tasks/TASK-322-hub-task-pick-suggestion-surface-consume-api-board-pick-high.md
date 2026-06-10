@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [hub-ui, audit-2026-06-09, ready]
-status: icebox
+status: testing
 priority: P3
 appetite: 1d
 created: 2026-06-10
-started: null
+started: 2026-06-10
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-322: Hub: task-pick suggestion surface — consume /api/board/pick (highest-impact next task) in the board UI
 
 **Outcome (one sentence):** The board page offers a "Suggest next task" action that calls the existing /api/board/pick route and presents the ranked suggestion with its reason — today the route has zero UI consumers.
@@ -38,3 +37,4 @@ references: []
 - **Then** field names are verified against board.py's actual emit (no drift), with a component test
 
 ## Work Log
+- 2026-06-10 [claude]: Shipped (score 9/10): board header gains "suggest next" — lazy GET /api/board/pick (producer shape verified at the emit 

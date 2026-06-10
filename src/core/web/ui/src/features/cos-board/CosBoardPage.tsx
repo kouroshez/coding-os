@@ -629,6 +629,7 @@ export default function CosBoardPage() {
         onToggleSwimlanes={() => setTweaks((t) => ({ ...t, showSwimlanes: !t.showSwimlanes }))}
         onToggleTweaks={() => setTweaksOpen((v) => !v)}
         onCreate={() => setCreateOpen(true)}
+        onOpenTask={setDetailTask}
       />
 
       {actionError && (
@@ -1152,6 +1153,7 @@ function TopBar({
   onToggleSwimlanes,
   onToggleTweaks,
   onCreate,
+  onOpenTask,
 }: {
   taskCount: number;
   connected: boolean;
@@ -1168,6 +1170,7 @@ function TopBar({
   onToggleSwimlanes: () => void;
   onToggleTweaks: () => void;
   onCreate: () => void;
+  onOpenTask: (card: BoardListCard) => void;
 }) {
   const agentRows = useAgentCatalog();
   return (
@@ -1253,6 +1256,7 @@ function TopBar({
           ＋ new
         </button>
 
+        <SuggestNextButton onOpenTask={onOpenTask} />
         <TopBtn onClick={onToggleLegend} active={legendOpen}>⁂ legend</TopBtn>
         <TopBtn onClick={onToggleStream} active={streamOpen}>⎌ stream</TopBtn>
         <TopBtn onClick={onToggleSwimlanes} active={showSwimlanes}>
@@ -1263,6 +1267,104 @@ function TopBar({
         </TopBtn>
         <TopBtn onClick={onToggleTweaks}>⚙ tweaks</TopBtn>
       </div>
+    </div>
+  );
+}
+
+export function SuggestNextButton({ onOpenTask }: { onOpenTask: (card: BoardListCard) => void }) {
+  // Producer: GET /api/board/pick → {candidates: BoardListCard[], count}
+  // (board.py::board_pick wrapping cos_task_pick — emergency first, then
+  // ready icebox by priority). Zero UI consumers before TASK-322.
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<BoardListCard[] | null>(null);
+
+  const fetchPick = async () => {
+    setOpen(true);
+    setLoading(true);
+    setError(null);
+    try {
+      const [data] = await apiGet<{ candidates: BoardListCard[]; count: number }>(
+        '/api/board/pick?max_candidates=5',
+      );
+      setCandidates(data.candidates);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'pick failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <TopBtn onClick={() => (open ? setOpen(false) : void fetchPick())} active={open}>
+        ◎ suggest next
+      </TopBtn>
+      {open && (
+        <div
+          role="listbox"
+          aria-label="Suggested next tasks"
+          style={{
+            position: 'absolute',
+            top: '110%',
+            right: 0,
+            zIndex: 60,
+            width: 340,
+            maxHeight: 320,
+            overflow: 'auto',
+            background: 'var(--board)',
+            border: '1px solid var(--col-border)',
+            borderRadius: 6,
+            boxShadow: '0 8px 24px rgba(0,0,0,.35)',
+            padding: 6,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 11,
+          }}
+        >
+          {loading && <div style={{ padding: 8, color: 'var(--ink-faint)' }}>picking…</div>}
+          {error && <div style={{ padding: 8, color: 'var(--cos-err)' }}>{error}</div>}
+          {!loading && !error && candidates !== null && candidates.length === 0 && (
+            <div style={{ padding: 8, color: 'var(--ink-faint)' }}>
+              no pullable task — nothing in emergency or ready icebox
+            </div>
+          )}
+          {!loading &&
+            !error &&
+            (candidates ?? []).map((card) => (
+              <button
+                key={card.id}
+                type="button"
+                role="option"
+                aria-selected={false}
+                onClick={() => {
+                  setOpen(false);
+                  onOpenTask(card);
+                }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '7px 8px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  color: 'var(--ink)',
+                }}
+              >
+                <span style={{ fontWeight: 700 }}>{card.id}</span>{' '}
+                <span style={{ color: 'var(--ink-faint)' }}>
+                  {card.priority}
+                  {card.status === 'emergency' ? ' · emergency' : ' · ready'}
+                </span>
+                <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {card.title}
+                </div>
+              </button>
+            ))}
+        </div>
+      )}
     </div>
   );
 }
