@@ -181,8 +181,11 @@ keys, lock still serializes the heavy runs intentionally (one suite at a time pe
 
 Sum of matrix suites ≈ **28.4 min** — the "6-minute full sweep" figure in
 test-discipline.md predates the suite's 4× growth. `tests/` root collects 2,551
-(+2 pre-existing collection errors: `test_intent_classifier.py`,
-`test_route_audits.py` — ImportError under the default extras). The dominant
+(2 collection errors resolved in TASK-334: `test_intent_classifier.py` and
+`test_route_audits.py` tested modules deliberately deleted in 2a43a661/0f386e9b —
+orphan test files removed; the baseline test-cli FAIL `test_idempotent_init`
+passes in isolation — transient, caused by a concurrent session mid-editing
+cli/board_os files while the baseline ran). The dominant
 costs are (a) `test_background.py` polling loops in thinking_os, (b) per-test
 `cos init` scaffolds in test-cli / test-template-scaffold / test-adapters —
 (a) addressed by the slow split below; (b) governed by the dedup/lock layer,

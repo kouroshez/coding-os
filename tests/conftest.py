@@ -20,7 +20,7 @@ import pytest
 
 # --- Shared path bootstrap -------------------------------------------------
 # Flat-module imports (cognition_schemas, database, capture, formula_composer,
-# task_analyzer — all under thinking_os/; extract_intent under hooks/_helpers/)
+# task_analyzer — all under thinking_os/; misc helpers under hooks/_helpers/)
 # are imported with no package prefix. conftest.py loads before collection, so
 # inserting the dirs here covers every test file.
 #
