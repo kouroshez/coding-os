@@ -5,12 +5,12 @@ swimlane: "board_os"
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-10
 started: 2026-06-10
-completed: null
+completed: 2026-06-10
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -42,3 +42,5 @@ Actual: every completed card serialized whole; the envelope trimmer cannot shrin
 ## Work Log
 - 2026-06-10 [claude]: Implementation designed and dry-fitted, then cleanly reverted: cos_task_retro → whole-window aggregates via slim project
 - 2026-06-10 [claude]: Shipped (score 9/10): cos_task_retro now returns whole-window aggregates via slim projection + a keyset-paginated lean h
+- 2026-06-10 [claude]: committed 2421b203: src/core/board_os/mcp_tools.py, src/core/board_os/tests/test_mcp_tools.py
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
