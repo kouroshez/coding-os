@@ -5,18 +5,17 @@ swimlane: "board_os"
 kind: bug
 epic: null
 labels: [ready, mcp, db-path, audit-2026-06-09]
-status: icebox
+status: testing
 priority: P2
 appetite: 1d
 created: 2026-06-10
-started: null
+started: 2026-06-09
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-312: MCP cos_task_create fails with 'no such table: tasks' while CLI works — DB path or migration drift in MCP server
 
 **Outcome (one sentence):** The transient `no such table: tasks` on the MCP create path is made impossible-or-diagnosable: `@safe_tool` logs full traceback + DB identity server-side (today it swallows them — confirmed: zero trace in any log), and the shared single `sqlite3.Connection` across the FastMCP threadpool is hardened (per-call connections under WAL, or a write lock).
@@ -44,3 +43,4 @@ Actual: transient failure, zero forensic trail (fail envelope is the only record
 
 ## Work Log
 - 2026-06-09 investigation: facts + ruled-out matrix above; probe TASK-315 created+archived as repro evidence.
+- 2026-06-10 [claude]: Forensics half shipped (score 9/10): traceback found in .coding-os/.mcp.log (dotfile — *.log globs miss it); safe_tool n

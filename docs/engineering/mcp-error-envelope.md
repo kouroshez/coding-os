@@ -163,6 +163,33 @@ def cos_example(task_id: str) -> str:
     return ok({"task_id": task_id, "status": row["status"]})
 ```
 
+## Internal-error forensics (server-side log contract)
+
+The envelope deliberately hides internals from the caller (`fail("internal",
+"OperationalError: …")` is all the agent sees). The full forensic record
+lives server-side, written by `@safe_tool` to the root logger — which
+`server.py` attaches to `$COS_STATE_DIR/.mcp.log` (note the leading dot;
+`*.log` globs miss it). Because EVERY concurrently-running MCP server
+process appends to that same file, each `@safe_tool` exception log line
+MUST carry enough identity to attribute the failure:
+
+- full traceback (`logger.exception`),
+- the tool name,
+- the **process id** and **thread name** (multiple panels = multiple server
+  processes; FastMCP runs sync tools on a threadpool),
+- for `sqlite3.Error` only: a best-effort `PRAGMA database_list` snapshot
+  taken from the failing connection (first positional arg when it is a
+  `sqlite3.Connection`), so "which DB file was this connection actually
+  attached to?" is answerable post-mortem.
+
+Connection discipline for board mutators: the server-side wrappers obtain a
+**per-thread pooled connection** (`database.get_pooled_conn`, spec:
+`docs/phase-n-role-based-routing-plan.md` §7a-A) instead of sharing the
+module-level startup connection across threadpool threads — cross-thread
+interleaving on one `sqlite3.Connection` is undefined behaviour territory
+(observed 2026-06-09: transient `no such table: tasks` under parallel tool
+calls; forensics in TASK-312).
+
 ## Testing
 
 Assertions must drill through the envelope:

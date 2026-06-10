@@ -29,6 +29,9 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import sqlite3
+import threading
 from collections.abc import Callable
 from functools import wraps
 from typing import Any, Literal
@@ -751,6 +754,32 @@ def clamp_int(value: int, *, min_v: int, max_v: int) -> tuple[int, bool]:
     return clamped, clamped != value
 
 
+def _sqlite_db_identity(args: tuple[Any, ...]) -> str:
+    # Multi-process forensics (mcp-error-envelope.md § Internal-error
+    # forensics): every server process appends to the same .mcp.log, so a
+    # sqlite failure must name the DB file its connection was attached to.
+    conn = args[0] if args and isinstance(args[0], sqlite3.Connection) else None
+    if conn is None:
+        return ""
+    try:
+        rows = conn.execute("PRAGMA database_list").fetchall()
+        return " db=" + ";".join(str(row[2]) for row in rows)
+    except sqlite3.Error:
+        return " db=<database_list unavailable>"
+
+
+def _log_tool_failure(tool_name: str, exc: Exception, args: tuple[Any, ...]) -> None:
+    db_identity = _sqlite_db_identity(args) if isinstance(exc, sqlite3.Error) else ""
+    logger.exception(
+        "tool %s raised %s [pid=%d thread=%s]%s",
+        tool_name,
+        type(exc).__name__,
+        os.getpid(),
+        threading.current_thread().name,
+        db_identity,
+    )
+
+
 def safe_tool(fn: Callable[..., str]) -> Callable[..., str]:
     """Decorator: convert unhandled exceptions inside a tool to `fail()`.
 
@@ -769,22 +798,22 @@ def safe_tool(fn: Callable[..., str]) -> Callable[..., str]:
         try:
             result = fn(*args, **kwargs)
         except PermissionError as exc:
-            logger.exception("tool %s raised PermissionError", fn.__name__)
+            _log_tool_failure(fn.__name__, exc, args)
             return fail("permission", str(exc) or "permission denied", retryable=False)
         except FileNotFoundError as exc:
-            logger.exception("tool %s raised FileNotFoundError", fn.__name__)
+            _log_tool_failure(fn.__name__, exc, args)
             return fail("not_found", str(exc) or "resource not found", retryable=False)
         except (TimeoutError, ConnectionError) as exc:
-            logger.exception("tool %s raised transient error", fn.__name__)
+            _log_tool_failure(fn.__name__, exc, args)
             return fail("transient", str(exc) or type(exc).__name__, retryable=True)
         except ValueError as exc:
-            logger.exception("tool %s raised ValueError", fn.__name__)
+            _log_tool_failure(fn.__name__, exc, args)
             return fail("validation", str(exc) or "invalid input", retryable=False)
         except ImportError as exc:
-            logger.exception("tool %s raised ImportError", fn.__name__)
+            _log_tool_failure(fn.__name__, exc, args)
             return fail("unavailable", str(exc) or "optional dependency missing", retryable=True)
         except Exception as exc:
-            logger.exception("tool %s raised unexpected %s", fn.__name__, type(exc).__name__)
+            _log_tool_failure(fn.__name__, exc, args)
             return fail("internal", f"{type(exc).__name__}: {exc}", retryable=False)
 
         # Name the offending tool when ok() flagged the envelope unshrinkable.

@@ -906,6 +906,48 @@ def test_concurrent_create_yields_unique_ids(project: Path, conn: sqlite3.Connec
     assert len(set(results)) == 12, f"duplicate ids allocated: {sorted(results)}"
 
 
+def test_pooled_conn_threads_create_safely(project: Path, conn: sqlite3.Connection):
+    """N threads each obtain a per-thread pooled connection (the machinery the
+    MCP server wrappers use instead of sharing one module-level connection
+    across the FastMCP threadpool) and create concurrently — every create
+    succeeds with a unique id and no cross-thread interleaving error."""
+    import threading
+
+    from database import get_pooled_conn
+
+    db_path = project / "coding-os.db"
+    results: list[str] = []
+    errors: list[dict] = []
+    lock = threading.Lock()
+    barrier = threading.Barrier(8)
+
+    def worker(i: int) -> None:
+        pooled = get_pooled_conn(db_path)
+        barrier.wait()
+        env = json.loads(
+            mcp_tools.cos_task_create(
+                pooled,
+                title=f"pooled concurrent {i}",
+                swimlane="core",
+                kind="chore",
+                outcome="pooled per-thread connection regression guard outcome.",
+            )
+        )
+        with lock:
+            (results if env["ok"] else errors).append(
+                env["data"]["task_id"] if env["ok"] else env
+            )
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not errors, errors
+    assert len(set(results)) == 8, f"expected 8 unique ids: {sorted(results)}"
+
+
 # ---------- cos_task_reclaim (zombie recovery, TASK-089) ----------
 
 

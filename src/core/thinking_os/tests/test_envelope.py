@@ -555,6 +555,42 @@ class TestSafeTool:
         assert envelope["error"]["category"] == "unavailable"
         assert envelope["error"]["retryable"] is True
 
+    def test_failure_log_carries_pid_thread_and_db_identity(self, caplog) -> None:
+        # Forensics contract (mcp-error-envelope.md § Internal-error
+        # forensics): multi-process .mcp.log attribution needs pid + thread,
+        # and sqlite errors must name the DB the connection was attached to.
+        import os
+        import sqlite3
+        import threading
+
+        conn = sqlite3.connect(":memory:")
+
+        @safe_tool
+        def hits_missing_table(db: sqlite3.Connection) -> str:
+            db.execute("INSERT INTO tasks (task_id) VALUES ('x')")
+            return ok({})
+
+        with caplog.at_level("ERROR", logger="coding_os.tools._shared"):
+            envelope = json.loads(hits_missing_table(conn))
+
+        assert envelope["error"]["category"] == "internal"
+        record = next(r for r in caplog.records if "hits_missing_table" in r.getMessage())
+        assert f"pid={os.getpid()}" in record.getMessage()
+        assert f"thread={threading.current_thread().name}" in record.getMessage()
+        assert "db=" in record.getMessage()
+
+    def test_failure_log_skips_db_identity_for_non_sqlite_errors(self, caplog) -> None:
+        @safe_tool
+        def plain_boom() -> str:
+            raise RuntimeError("kaboom")
+
+        with caplog.at_level("ERROR", logger="coding_os.tools._shared"):
+            json.loads(plain_boom())
+
+        record = next(r for r in caplog.records if "plain_boom" in r.getMessage())
+        assert "db=" not in record.getMessage()
+        assert "pid=" in record.getMessage()
+
 
 class TestSafeToolNamesUnshrinkable:
     """TASK-209 — safe_tool must NAME the tool when ok() flags the envelope
