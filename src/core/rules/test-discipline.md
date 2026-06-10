@@ -2,9 +2,7 @@
 
 > **Hard rule:** Run only the Verification Matrix command for what changed. Never `pytest tests/ -q` mid-task — the `test-governor` hook BLOCKs it without an audited override.
 
-## Why
-
-The suite is **4,110 test functions / ~5,640 collected across 289 files** (measured 2026-06-09 — [test-governance.md](../../docs/engineering/test-governance.md)). `tests/` alone collects 2,551 integration tests; the matrix suites sum to ~28 min wall-clock (test-cli 12:41, test-template-scaffold 6:58 — each test scaffolds a full `cos init` sandbox). A full sweep mid-task melts a laptop running concurrent agent sessions.
+The suite is ~4,110 test functions across 289 files; the matrix suites alone sum to ~28 min wall-clock, so a full sweep mid-task melts a laptop running concurrent sessions. Measurements + spec: [test-governance.md](../../docs/engineering/test-governance.md).
 
 ## Enforcement + the verify ledger (no longer convention-only)
 

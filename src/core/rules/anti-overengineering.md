@@ -4,21 +4,7 @@
 
 This rule is cross-cutting — it applies to every artifact, not just code: docs, hooks, skills, templates, tests, CLI, configs. Every "should I add this?" question goes through this filter first.
 
-Full rationale + numbered index: [docs/governance/critical-rules.md § Rule 22](../../docs/governance/critical-rules.md#rule-22--anti-overengineering).
-
-## Why
-
-Over-engineering shows up in every layer: a new helper for something that already exists; a config flag for a hypothetical future user; a 3-layer abstraction for a function called from one place; a re-implementation because the existing version "doesn't quite fit"; a refactor bundled with a bug fix; a new doc for a topic already covered in another doc.
-
-Each instance feels harmless on its own. Cumulatively they:
-
-- Grow surface area — every new abstraction is another contract to maintain.
-- Hide intent — callers traverse layers to find the actual logic.
-- Slow review — more diff to read, more places to break, more guesses to verify.
-- Train future agents that this is the house pattern (cascade — the next agent copies the bloat).
-- Increase coupling — duplicated logic drifts; one site gets fixed, the other doesn't.
-
-In an enterprise codebase, the cost of *every line that exists* is paid forever. Cheaper to not write it.
+Why (cumulative cost of every line): [critical-rules.md § Rule 22](../../docs/governance/critical-rules.md#rule-22--anti-overengineering).
 
 ## The five sub-rules
 

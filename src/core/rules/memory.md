@@ -1,13 +1,6 @@
----
-description: Memory vs SSOT boundary policy — when to use agent memory, when to use docs, when to use code.
-globs: "**/*"
-alwaysApply: true
-last_reviewed: "2026-05-11"
----
-
 # Memory Policy
 
-> Source of truth for the canonical layering: [docs/governance/wrapper-derivation.md](../../docs/governance/wrapper-derivation.md). This rule states the operational policy in one place; the SSOT explains the *why*.
+> Canonical layering SSOT (the *why*): [docs/governance/wrapper-derivation.md](../../docs/governance/wrapper-derivation.md). This rule is the operational policy.
 
 ## The Four Layers (mandatory mental model)
 
@@ -61,12 +54,7 @@ If `cos_search` returns 0 hits with min_confidence=0.3 + since_days=90, the memo
 
 ## Cross-session reasoning (the killer feature)
 
-Agent memory's value is **N-th session > 1st session**. Pattern:
-
-- Session 1: encounter problem, solve it, record observation.
-- Session 4: similar problem appears → `cos_search` finds the prior solution → 10× faster.
-
-If sessions aren't getting faster on similar problems, the memory write step is being skipped. Audit via `cos_metric_trend(metric="time_to_solution", since_days=30)`.
+Memory's value is **N-th session > 1st session**: record the observation in session 1, and `cos_search` finds it in session 4. If similar problems aren't getting faster, the write step is being skipped — audit via `cos_metric_trend(metric="time_to_solution", since_days=30)`.
 
 ## When code-vs-memory conflicts
 

@@ -2,14 +2,7 @@
 
 > **Rule:** When `model_routing.enabled` is on in `$COS_STATE_DIR/hub-settings.json`, the agent consults the kernel router before heavy work: call `cos_route_model` with the recorded gate complexity during Classify, and honor the result at every formula dispatch (`cos_dispatch_formula_run` / `cos_dispatch_parallel_run` accept `model` + `complexity`). When the toggle is off, this rule is inert — zero behavioral or token-cost difference.
 
-## Why
-
-The hub chat panel gets an "Auto" model option (settings-gated) that routes
-each session server-side. CLI / VSCode-plugin sessions have no panel UI, so
-parity comes from this rule + the `nudge-model-routing` UserPromptSubmit hook:
-the hook injects a one-line directive (once per session, only while the toggle
-is on) and this rule carries the full contract every adapter inherits via
-`cos update`.
+CLI / VSCode-plugin sessions have no panel UI, so parity with the hub's settings-gated "Auto" model option comes from this rule plus the `nudge-model-routing` UserPromptSubmit hook (a once-per-session directive, only while the toggle is on).
 
 ## The contract
 

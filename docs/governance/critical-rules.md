@@ -210,6 +210,19 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 - **How:** `branch-guard.sh` (PreToolUse:Bash) BLOCKs `git checkout -b`, `git branch <name>`, `git switch -c`, and `git worktree add` in trunk mode. `session-context.sh` surfaces a dirty working tree at session startup so an abandoned session's WIP is not blind-committed.
 - **Where:** `src/core/rules/git-workflow.md`. Hook: `src/core/hooks/branch-guard.sh`.
 
+### Trunk-based mechanics (rationale)
+
+- **HEAD-moving on the shared checkout is blocked.** `git reset HEAD~N`, `git reset <sha>`, `git checkout <other-branch>`, `git switch <other-branch>`, and `git rebase` move HEAD off a published commit — that clobbers a peer session's work and orphans commits. Undo a published commit with `git revert <sha>` (a new commit, history preserved). For integration before push use `git pull --rebase origin main` — a `pull` subcommand, so only your *local* commits move.
+- **Why no custom write-lock hook.** Git's own `index.lock` plus explicit-path commits cover the real collisions; a custom lock would reinvent `index.lock` and add a crash-deadlock failure mode. Two commits the same instant → `index.lock` rejects one → wait ~1s and retry. Two pushes the same instant → non-fast-forward reject → `pull --rebase` → retry.
+- **Live-symlinked safety hooks need atomic edits.** `src/core/hooks/*.sh` are live symlinks into every consumer project, so a half-written `block-*`/`enforce-*` hook is executed by sibling sessions at every intermediate save. Prefer a single atomic `Edit`; for a larger rewrite, edit out-of-tree then `mv` into place after `bash -n` + `make verify-hooks`. Snapshot isolation is deferred — it removes the hazard but breaks the instant-propagation property that makes the symlink design valuable.
+
+## Rule 24 — Commit message contract
+
+- **Rule:** Title ≤100 chars, Conventional Commit shape (`<type>(scope)?!: subject`, type ∈ feat/fix/docs/perf/refactor/build/ci/test/chore/style/revert). Body ≤3 non-empty lines of plain "why" prose. No `Co-Authored-By:` trailers, no agent/AI attribution (`🤖`, `Generated with [Claude`, `noreply@anthropic.com`, `claude.com/claude-code`, `@anthropic.com`), no prompt leaks (lines beginning `USER`, or quoted text >40 Persian/Arabic chars).
+- **Why:** Every line in a commit message exists forever. Verbose bodies (audit tables, file lists, verification blocks) bloat `git log`, leak ephemeral context into permanent history, and inflate token cost for every future agent that runs `git log`. Enterprise convention (Linux kernel, Chromium, Google) is title + tight 2–3 line "why". release-please parses the title to derive the version bump — an unparseable type silently drops the change from `CHANGELOG.md`. Verbose content belongs in the PR description, the audit doc, or the work-log.
+- **How:** `enforce-commit-message.sh` (PreToolUse Bash) blocks the agent before `git commit`; the git-level `commit-msg` hook (installed via `src/scripts/install-git-hooks.sh`) blocks human-direct + Codex-GUI commits. Both call `check_commit_message.py`. `--no-verify` is blocked for agents by `block-secrets.sh` (no escape hatch); a human running git directly may still use it in a genuine emergency.
+- **Where:** `src/core/rules/git-workflow.md § Commit Message Contract`. Hook: `src/core/hooks/enforce-commit-message.sh`.
+
 ---
 
 ## Rule 25 — Cognitive-state mutations go through semantic ops, never hand-edit

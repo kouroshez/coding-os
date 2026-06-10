@@ -9,13 +9,7 @@ alwaysApply: true
 > **Source of truth for field names is the producer, not the consumer.**
 > Frontend components, CLI parsers, dashboards, and tests are consumers — they MUST verify every field they read against the producer's actual response, not against memory, naming intuition, or another consumer.
 
-## Why this rule exists
-
-A class of silent bugs comes from drift between the API response shape and the consumer's expectation. TypeScript happily reads `undefined` for a renamed field; Python silently returns `None`; JSON.parse never fails. The agent only notices when a human says "the page is empty." Examples already seen in this repo:
-
-- Hub Graph tab: `cos_graph_export` returns edges with `source_uid` / `target_uid`. Frontend `graph-adapter.ts` and `ContainsTree.tsx` read `e.source` / `e.target` → every edge silently dropped → empty tree, empty canvas, zero console errors. (TASK-117)
-
-A consumer that loosely-typed-against-undefined fails the user, not the test suite. Hooks cannot catch this. The agent must be disciplined.
+Drift between the producer's response shape and the consumer's expectation is a silent bug: TypeScript reads `undefined` for a renamed field, Python returns `None`, `JSON.parse` never fails — the agent only notices when a human says "the page is empty." Hooks can't catch it; the agent must be disciplined. Canonical example: `cos_graph_export` emits edges with `source_uid`/`target_uid`, but the Hub Graph tab read `e.source`/`e.target` → every edge silently dropped, empty canvas, zero console errors (TASK-117).
 
 ## Rule (mandatory before Write/Edit on any API consumer)
 
