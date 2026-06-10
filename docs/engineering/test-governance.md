@@ -157,6 +157,20 @@ keys, lock still serializes the heavy runs intentionally (one suite at a time pe
 - `pytest-xdist` deliberately NOT adopted locally (raises peak load) — TASK-333 spike
   evaluates CI-only.
 
+### xdist spike verdict (TASK-333 — measured 2026-06-10, `--with pytest-xdist -n 2`)
+
+| Suite | Serial | `-n 2` | Verdict |
+|---|---|---|---|
+| test-graph_os | 23 s | 51 s | **2.2× slower** — per-worker tree-sitter/import startup dominates |
+| test-board_os | 31 s | 12 s | **2.5× faster** — I/O-bound (sqlite + file ops) parallelizes well |
+
+Verdict: parallelism pays **per-suite**, not globally. Local default stays serial
+(governor lock assumes one heavy run per host; mixed wins don't justify the peak-load
+risk). For CI: enable selectively where measured (board_os now; the subprocess-bound
+scaffold suites test-cli/test-template-scaffold are the promising candidates — measure
+in CI before adopting). No dependency added to pyproject — `uv run --with pytest-xdist`
+is the opt-in form.
+
 ## Env vars introduced
 
 | Var | Consumer | Meaning |
