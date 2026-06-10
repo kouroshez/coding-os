@@ -8,7 +8,7 @@
 
 > Nav: [Adapters Index](./00-index.md) | [Docs Index](../00-index.md)
 
-> SDK floor: `claude-agent-sdk>=0.1.73,<0.2.0`. CLI floor: `@anthropic-ai/claude-code>=2.1.119` (stable). Renamed 2026-05-04 from "Claude-SDK Dispatcher" to full adapter reference.
+> SDK floor: `claude-agent-sdk>=0.2.95,<0.3.0` (bundles Claude CLI 2.1.170). CLI floor: `@anthropic-ai/claude-code>=2.1.119` (stable). Renamed 2026-05-04 from "Claude-SDK Dispatcher" to full adapter reference.
 
 ## 1. The mRNA layer — what this adapter is
 
@@ -27,14 +27,14 @@ Three jobs:
 2. **Dispatch** — spawn formula-agent sub-sessions via `claude-agent-sdk` ([sdk_dispatcher.py](../../src/adapters/claude/sdk_dispatcher.py)).
 3. **Declare capabilities** — tell the kernel which `{event, matcher}` pairs Claude's CLI can actually fire ([adapter.yaml](../../src/adapters/claude/adapter.yaml)).
 
-## 2. SDK + tooling versions (audit 2026-05-04)
+## 2. SDK + tooling versions (audit 2026-06-09)
 
 | Component | Floor | Latest | Notes |
 |---|---|---|---|
-| `claude-agent-sdk` (PyPI) | `>=0.1.73,<0.2.0` | 0.1.73 (2026-05-04) | Pinned in `pyproject.toml::optional-dependencies.claude-sdk`. |
+| `claude-agent-sdk` (PyPI) | `>=0.2.95,<0.3.0` | 0.2.95 (2026-06-09) | Pinned in `pyproject.toml::dependencies`. 0.2.87→0.2.95 = bundled-CLI bumps (2.1.150→2.1.170) + a trio session-store fix; no new Python API. |
 | `mcp` (PyPI) | `>=1.27.0` | 1.27.0 (2026-04-02) | Used by central FastMCP server. |
-| `@anthropic-ai/claude-code` (npm CLI) | 2.1.119 stable | 2.1.128 latest | User-installed; `brew install claude-code` or `npm i -g @anthropic-ai/claude-code`. |
-| `@anthropic-ai/claude-agent-sdk` (npm) | n/a (Py only) | 0.2.128 | Reference only — coding-os uses the Py SDK exclusively. |
+| `@anthropic-ai/claude-code` (npm CLI) | 2.1.119 stable | 2.1.170 (bundled) | The SDK bundles its own CLI; a user-installed CLI is optional. |
+| `@anthropic-ai/claude-agent-sdk` (npm) | n/a (Py only) | reference | Reference only — coding-os uses the Py SDK exclusively. |
 
 Verify:
 
@@ -141,7 +141,7 @@ ClaudeAgentOptions(
     permission_mode="dontAsk",                  # headless; no prompts
     setting_sources=["project"],                # isolate from ~/.claude/
     model=request.model,
-    effort="max" if request.model in OPUS_47_IDS else None,
+    effort="xhigh" if request.model.startswith(XHIGH_MODEL_PREFIXES) else None,
     skills=role_skills,                         # from agent frontmatter
     cwd=request.cwd,
 )
@@ -156,7 +156,7 @@ Why each line:
 | `permission_mode="dontAsk"` | Headless — never prompt the user. Allow-list is the contract; unmatched tools deny silently. |
 | `setting_sources=["project"]` | Sub-sessions must be reproducible across machines. Default loads `user`+`project`+`local` — `~/.claude/` would silently change behavior. |
 | `allowed_tools` includes `mcp__coding-os__*` | `acceptEdits` does NOT auto-approve MCP. Always inject the wildcard alongside caller-provided allow-list. |
-| `effort="max"` on Opus 4.7 | Py SDK 0.1.73 caps at `"max"` (no `"xhigh"` yet — TS-only as of 2026-05-04). |
+| `effort="xhigh"` on high-tier models | Fable 5 / Opus 4.8 / 4.7 get `"xhigh"` — the best level for coding/agentic and the Claude Code default. Available in the Py SDK since 0.1.74 (was TS-only before); falls back to `"high"` on models that don't support it. Other models use the SDK default. |
 | `skills=role_skills` | Sub-sessions don't inherit parent skills. Each role's `skills:` frontmatter declares dependencies (e.g. implementer → `["clean-code"]`). |
 
 ### 7.3 Contract

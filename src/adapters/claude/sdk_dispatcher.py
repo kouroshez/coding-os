@@ -16,9 +16,16 @@ from thinking_os.dispatcher_helpers import extract_json_block, load_agent_prompt
 
 logger = logging.getLogger("coding_os.dispatcher.claude_sdk")
 
-# Models that require special effort handling. Opus 4.7 needs the highest
-# effort level available; Py SDK 0.1.73 caps at "max" (no "xhigh" yet).
-_OPUS_47_MODEL_IDS = ("claude-opus-4-7", "claude-opus-4-7-20260101")
+# High-tier reasoning models (Fable 5, Opus 4.8/4.7) take the "xhigh"
+# effort level — the best setting for coding/agentic work and the Claude
+# Code default. "xhigh" is available in the Py SDK since 0.1.74 (it was
+# TS-only before) and falls back to "high" on models that don't support
+# it. Prefix-matched so dated snapshots (…-20260101) are covered too.
+_XHIGH_EFFORT_MODEL_PREFIXES = (
+    "claude-fable-5",
+    "claude-opus-4-8",
+    "claude-opus-4-7",
+)
 
 # Default MCP allow-list pattern. coding-os exposes ~60 cos_* tools via
 # the central FastMCP server registered at .mcp.json::mcpServers.coding-os.
@@ -257,12 +264,11 @@ class ClaudeSDKDispatcher:
         if not any(item.startswith("mcp__coding-os") for item in allow_list):
             allow_list.append(_DEFAULT_COS_MCP_ALLOW)
 
-        # Opus 4.7 needs the top effort level available. Py SDK 0.1.73
-        # tops out at "max"; "xhigh" exists only on the TS side as of
-        # 2026-05-04. Re-evaluate when SDK lifts the cap.
+        # High-tier models get "xhigh"; everything else uses the SDK
+        # default (None → "high"). See _XHIGH_EFFORT_MODEL_PREFIXES.
         effort: str | None = None
-        if request.model in _OPUS_47_MODEL_IDS:
-            effort = "max"
+        if request.model and request.model.startswith(_XHIGH_EFFORT_MODEL_PREFIXES):
+            effort = "xhigh"
 
         # Structured output (T1) — opt-in per role via
         # `structured_output: true` frontmatter. SDK enforces the

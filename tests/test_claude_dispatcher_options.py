@@ -131,6 +131,42 @@ def test_dispatcher_import_failure_path() -> None:
             sys.modules["claude_agent_sdk"] = old
 
 
+def test_effort_level_supports_xhigh() -> None:
+    """High-tier dispatch routes Fable 5 / Opus 4.8 / 4.7 to the SDK's
+    "xhigh" effort level (Py SDK ≥0.1.74). Guard a future bump dropping it."""
+    sdk_types = pytest.importorskip("claude_agent_sdk.types")
+    hints = typing.get_type_hints(sdk_types.ClaudeAgentOptions)
+    values = _literal_strings(hints["effort"])
+    assert "xhigh" in values, f"effort literal lost 'xhigh'; got: {sorted(values)}"
+
+
+def test_xhigh_effort_model_prefixes() -> None:
+    """Dispatcher maps high-tier models to xhigh; sonnet/haiku fall through."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "_test_dispatcher_effort",
+        "src/adapters/claude/sdk_dispatcher.py",
+    )
+    if spec is None:
+        pytest.skip("sdk_dispatcher.py not found from test cwd")
+    mod = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    except Exception:
+        pytest.skip("sdk_dispatcher.py failed to exec — likely missing deps")
+    prefixes = mod._XHIGH_EFFORT_MODEL_PREFIXES
+    for model in (
+        "claude-fable-5",
+        "claude-opus-4-8",
+        "claude-opus-4-7",
+        "claude-opus-4-7-20260101",
+    ):
+        assert model.startswith(prefixes), f"{model} should map to xhigh"
+    for model in ("claude-sonnet-4-6", "claude-haiku-4-5"):
+        assert not model.startswith(prefixes), f"{model} should use SDK default"
+
+
 def test_system_prompt_preset_shape() -> None:
     sdk_types = pytest.importorskip("claude_agent_sdk.types")
     preset = sdk_types.SystemPromptPreset
