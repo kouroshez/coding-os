@@ -1,3 +1,4 @@
+<!-- domain:ALL | layer:engineering | ssot:false | updated:2026-05-23 -->
 # Audit — Roles Dispatch Dead Path (2026-05-23)
 
 Forensic root-cause for the 11-semantic-role chain never firing in real sessions: `formula_dispatches=2` lifetime, `persona_selections=1`. User has never observed a role execute.

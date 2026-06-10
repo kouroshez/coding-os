@@ -1,3 +1,4 @@
+<!-- domain:ALL | layer:engineering | ssot:false | updated:2026-05-23 -->
 # Audit — Memory Capture Pipeline Dead (2026-05-23)
 
 Forensic root-cause for the `observations` table sitting at 2 stale rows from 2026-05-17 despite live session activity.

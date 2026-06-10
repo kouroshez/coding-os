@@ -1,3 +1,4 @@
+<!-- domain:ALL | layer:engineering | ssot:false | updated:2026-05-23 -->
 # Audit — Doctor / Diagnostics Sweep (2026-05-23, TASK-024)
 
 User asked: (1) why does sqlite tab show `metrics/patterns/audit_log` as absent? (2) what are the 48 self-loops? (3) are the Health & charts numbers real or mock? (4) sweep every Diagnostics panel for mock data.

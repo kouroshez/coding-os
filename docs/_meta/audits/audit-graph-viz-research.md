@@ -1,3 +1,4 @@
+<!-- domain:ALL | layer:engineering | ssot:false | updated:2026-05-23 -->
 # Audit — Code-Knowledge-Graph Visualization Research (2024-2026 SOTA)
 
 Date: 2026-05-23

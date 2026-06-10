@@ -1,3 +1,4 @@
+<!-- domain:ALL | layer:engineering | ssot:false | updated:2026-05-23 -->
 # Audit — graph_os Health Issues (2026-05-23)
 
 Forensic root-cause for the three doctor-reported categories: `dangling_source: 20495`, `orphaned_nodes: 1542`, `self_loops: 48`. Total: `node_count=42869`, `edge_count=98622`. 20.8 % of edges are dangling.
