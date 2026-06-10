@@ -34,3 +34,4 @@ references: []
 
 ## Work Log
 - 2026-06-10 [claude]: Added per-language edge hooks in code_generic (decision: hooks over separate modules — shared node baseline, only edge g
+- 2026-06-10 [claude]: committed 28339df3: docs/engineering/graph_os-queries.md, docs/playbooks/polyglot-extractor-roadmap.md, src/core/graph_o

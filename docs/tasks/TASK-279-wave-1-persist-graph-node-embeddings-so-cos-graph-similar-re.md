@@ -33,3 +33,4 @@ references: []
 ## Work Log
 - 2026-06-09 [claude]: DONE. Persisted graph_node embeddings (reindex_all now embeds function/method/class/route/mcp_tool/doc_heading kinds; 83
 - 2026-06-09 [claude]: committed 4fdf0d72: docs/engineering/graph_os-queries.md, src/core/graph_os/tests/test_mcp_tools.py, src/core/graph_os/t
+- 2026-06-09 [claude]: committed e2e912c2: src/adapters/claude/settings.template.json, src/core/hooks/_helpers/drain_embedding_outbox.py, src/c

@@ -33,3 +33,4 @@ references: []
 
 ## Work Log
 - 2026-06-10 [claude]: Shipped grammars for java/c/cpp/c#/scala/kotlin/lua (all verified to load with core 0.25); added overlay loaders + _LANG
+- 2026-06-10 [claude]: committed ec1550e1: docs/engineering/graph_os-queries.md, docs/playbooks/polyglot-extractor-roadmap.md, pyproject.toml, 
