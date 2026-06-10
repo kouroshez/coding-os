@@ -32,3 +32,4 @@ references: []
 
 ## Work Log
 - 2026-06-08 [claude]: Added test_task_show_returns_full_field_contract + test_task_show_not_found_returns_fail_envelope to board_os/tests/test
+- 2026-06-08 [claude]: committed a4c8f5c8: src/core/board_os/tests/test_mcp_tools.py

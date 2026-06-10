@@ -22,3 +22,4 @@ references: []
 
 ## Work Log
 - 2026-06-08 [claude]: cos_task_show now selects + returns epic, labels (parsed from labels_json), agent_session, started_at, completed_at — th
+- 2026-06-08 [claude]: committed fcb8c2a2: src/core/board_os/mcp_tools.py

@@ -31,3 +31,4 @@ references: []
 
 ## Work Log
 - 2026-06-08 [claude]: AgentTaskModal gutted from a bespoke textarea+model-select+`<pre>` composer to a thin shell that mounts NewChatForm (the
+- 2026-06-08 [claude]: committed be5ab689: src/core/web/ui/src/features/cos-board/CosBoardPage.tsx

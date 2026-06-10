@@ -20,6 +20,7 @@ references: []
 
 **Outcome (one sentence):** The task drawer shows ONE chronological timeline — created, status moves, edits, work-log notes, and commits interleaved — and the duplicate "## Work Log" section is dropped from the rendered body so nothing appears twice.
 - 2026-06-08 [claude]: cos_task_history now emits `worklog` events parsed from the task body's Work Log bullets (date→epoch +i for same-day ord
+- 2026-06-08 [claude]: committed 817a0e45: src/core/board_os/mcp_tools.py, src/core/web/ui/src/features/cos-board/CosBoardPage.tsx
 
 ## Read First
 - src/core/board_os/mcp_tools.py — cos_task_history (~2274), _git_commits_* helpers

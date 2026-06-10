@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: panel-state-isolation
 labels: [board, dx, parser, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-09
 started: 2026-06-09
-completed: null
+completed: 2026-06-09
 agent_session: ses-claude-20260609-163314-6565
 depends_on: []
 blocked_by: []
@@ -38,3 +38,7 @@ references: []
 **Given** a task whose Outcome is a plain H2 section (no inline bold marker), or whose prose mentions a bold token,
 **When** the Outcome is extracted for the DOR gate,
 **Then** the section's own text is returned (section-scoped, not a blind whole-body search) and the gate passes — while the existing inline bold-marker form keeps working, both proven by unit tests.
+
+## Work Log
+- 2026-06-09 [claude]: committed 933c22d3: src/core/board_os/parser.py, src/core/board_os/tests/test_parser.py
+- 2026-06-09 [claude]: _extract_outcome now scopes to the ## Outcome H2 section (strips an optional leading bold marker, else first real line),

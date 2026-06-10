@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: panel-state-isolation
 labels: [concurrency, board, tests, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-09
 started: 2026-06-09
-completed: null
+completed: 2026-06-09
 agent_session: ses-claude-20260609-163314-6565
 depends_on: []
 blocked_by: []
@@ -43,3 +43,7 @@ references: []
 **Given** two real SQLite connections to the same board both attempt `icebox→in_progress` on the same task concurrently,
 **When** both run through `transition()`,
 **Then** exactly one returns ok=True and the other returns ok=False with a transient / CAS-miss error — proven by a two-connection regression test.
+
+## Work Log
+- 2026-06-09 [claude]: committed 1ca577a6: src/core/board_os/tests/test_workflow.py, src/core/board_os/workflow.py
+- 2026-06-09 [claude]: Finding A: snapshot MD before frontmatter write, restore in outer except so a post-write history/commit failure leaves n

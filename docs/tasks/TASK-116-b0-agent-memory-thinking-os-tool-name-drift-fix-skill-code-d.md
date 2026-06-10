@@ -44,3 +44,4 @@ Actual: all memory/learning recipes use invented kwargs; agent following them fa
 ## Work Log
 - 2026-06-05 [claude]: B0a done (commit c021649): agent-memory rewritten to real cos_* signatures (edit-derived capture, system-computed confid
 - 2026-06-05 [claude]: B0 complete. B0a c021649 (agent-memory real signatures), B0b 00cf2fe (thinking_os cos_search/cos_details + .claude/ lite
+- 2026-06-10 [claude]: committed 759c4d15: src/cli/board_commands.py, src/core/board_os/parser.py, src/core/board_os/tests/test_parser.py

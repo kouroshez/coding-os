@@ -33,3 +33,4 @@ references: []
 
 ## Work Log
 - 2026-06-08 [claude]: Added 4 regression tests: _read_first_missing_paths (flags only dead repo paths; skips URL/glob/real/prose) + dead-link-
+- 2026-06-08 [claude]: committed d73d6378: src/core/board_os/tests/test_mcp_tools.py, src/core/board_os/tests/test_transition_gates_validator.p

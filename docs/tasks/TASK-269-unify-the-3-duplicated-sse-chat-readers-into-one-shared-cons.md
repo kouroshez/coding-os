@@ -32,3 +32,4 @@ references: []
 
 ## Work Log
 - 2026-06-08 [claude]: Added src/lib/chat-stream.ts::consumeSse (typed SseFramePayload, no `any`) as the single SSE frame-reader. Refactored Ne
+- 2026-06-08 [claude]: committed 067776d5: src/core/web/ui/src/features/cognition/ChatView.tsx, src/core/web/ui/src/features/cognition/NewChatF

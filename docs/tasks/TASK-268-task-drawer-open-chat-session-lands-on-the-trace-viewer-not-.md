@@ -36,3 +36,4 @@ Actual: lands on the cognition trace viewer (CognitionPage) — dead-ends the "c
 
 ## Work Log
 - 2026-06-08 [claude]: TaskChatLink now opens /p/<slug>/workspace/chat/<sdk_uuid> (ChatLanding → ChatView + follow-up composer) instead of /cog
+- 2026-06-08 [claude]: committed 6c9f39f1: src/core/web/ui/src/features/cos-board/CosBoardPage.tsx

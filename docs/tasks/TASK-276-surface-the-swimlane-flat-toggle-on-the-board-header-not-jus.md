@@ -21,3 +21,4 @@ references: []
 **Outcome (one sentence):** The board header gets a visible swimlanes/flat toggle next to the archive button, so the flat-columns view is discoverable without opening the Tweaks panel.
 
 ## Work Log
+- 2026-06-08 [claude]: committed ad151c5a: src/core/web/ui/src/features/cos-board/CosBoardPage.tsx

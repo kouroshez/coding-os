@@ -21,4 +21,5 @@ references: []
 **Outcome (one sentence):** Completed tasks idle >30 days auto-archive (reversible, keep/parked-exempt) on cos daily + nightly, so the COMPLETE column self-bounds to recent work instead of growing without limit; icebox stays manual.
 
 ## Work Log
-- 2026-06-08 [claude]: Set complete_auto_archive_days default 0→30 in config.py and the _base scaffold scrumban-config (icebox stays 0 — never 
+- 2026-06-08 [claude]: Set complete_auto_archive_days default 0→30 in config.py and the _base scaffold scrumban-config (icebox stays 0 — never
+- 2026-06-08 [claude]: committed 13e7d8e2: src/core/board_os/config.py, src/templates/_base/scaffold/.coding-os/scrumban-config.yaml

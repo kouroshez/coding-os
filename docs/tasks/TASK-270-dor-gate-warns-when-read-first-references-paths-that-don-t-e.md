@@ -32,3 +32,4 @@ references: []
 
 ## Work Log
 - 2026-06-08 [claude]: DoR gate gained a Read First dead-link check: _read_first_missing_paths stats repo-path-shaped bullets (markdown link ta
+- 2026-06-08 [claude]: committed 8f82aed0: src/core/board_os/transition_gates_validator.py, src/core/board_os/workflow.py
