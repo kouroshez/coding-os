@@ -5,7 +5,7 @@ swimlane: "board_os"
 kind: bug
 epic: null
 labels: [ready, mcp, db-path, audit-2026-06-09]
-status: blocked
+status: testing
 priority: P2
 appetite: 1d
 created: 2026-06-10
@@ -45,3 +45,4 @@ Actual: transient failure, zero forensic trail (fail envelope is the only record
 - 2026-06-09 investigation: facts + ruled-out matrix above; probe TASK-315 created+archived as repro evidence.
 - 2026-06-10 [claude]: Forensics half shipped (score 9/10): traceback found in .coding-os/.mcp.log (dotfile — *.log globs miss it); safe_tool n
 - 2026-06-10 [claude]: committed 9cb318ca: docs/engineering/mcp-error-envelope.md, src/core/board_os/tests/test_mcp_tools.py, src/core/thinking
+- 2026-06-10 [claude]: Second half shipped (score 9/10): all 16 board tool wrappers in server.py now obtain per-thread pooled connections (data

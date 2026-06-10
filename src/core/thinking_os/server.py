@@ -18,7 +18,7 @@ import os
 import sys
 from pathlib import Path
 
-from database import get_db_stats, init_db
+from database import get_db_stats, get_pooled_conn, init_db
 from mcp.server.fastmcp import FastMCP
 from tools._shared import fail, ok, safe_tool
 
@@ -1671,7 +1671,7 @@ if _BOARD_OS_AVAILABLE:
         """
         resolved_session = agent_session or _detect_agent_session_default() or None
         return _board_mcp.cos_task_create(
-            _db_conn,
+            get_pooled_conn(),
             title=title,
             swimlane=swimlane,
             kind=kind,
@@ -1709,7 +1709,7 @@ if _BOARD_OS_AVAILABLE:
     ) -> str:
         """Return the board state grouped by (swimlane, status) with WIP info. Complete/archive columns are keyset-paginated (pass cursor + status_filter to load more)."""
         return _board_mcp.cos_task_board(
-            _db_conn,
+            get_pooled_conn(),
             swimlane=swimlane or None,
             kind=kind or None,
             epic=epic or None,
@@ -1733,7 +1733,7 @@ if _BOARD_OS_AVAILABLE:
     def cos_task_show(task_id: str, include_body: bool = True) -> str:
         """Show a single task's frontmatter fields and full markdown body — in-session alternative to raw ls/grep/Read on docs/tasks."""
         return _board_mcp.cos_task_show(
-            _db_conn,
+            get_pooled_conn(),
             task_id=task_id,
             include_body=include_body,
         )
@@ -1751,7 +1751,7 @@ if _BOARD_OS_AVAILABLE:
     def cos_task_history(task_id: str, include_commits: bool = True, limit: int = 200) -> str:
         """Full actor-attributed task history — creation, status transitions, field edits, and git commits."""
         return _board_mcp.cos_task_history(
-            _db_conn,
+            get_pooled_conn(),
             task_id=task_id,
             include_commits=include_commits,
             limit=limit,
@@ -1782,7 +1782,7 @@ if _BOARD_OS_AVAILABLE:
     ) -> str:
         """Edit a task's frontmatter fields and/or body; each change is recorded to the actor-attributed edit history."""
         return _board_mcp.cos_task_edit(
-            _db_conn,
+            get_pooled_conn(),
             task_id=task_id,
             title=title or None,
             priority=priority or None,
@@ -1808,7 +1808,7 @@ if _BOARD_OS_AVAILABLE:
     )
     def cos_task_link(task_id: str, ref: str) -> str:
         """Set a task's optional external_ref (e.g. github#42) — forge auto-detected; metadata only, never the id."""
-        return _board_mcp.cos_task_link(_db_conn, task_id=task_id, ref=ref)
+        return _board_mcp.cos_task_link(get_pooled_conn(), task_id=task_id, ref=ref)
 
     @mcp.tool(
         name="cos_presence_query",
@@ -1902,7 +1902,7 @@ if _BOARD_OS_AVAILABLE:
         """Transition a task through the Scrumban state machine."""
         resolved_session = agent_session or _detect_agent_session_default() or None
         return _board_mcp.cos_task_move(
-            _db_conn,
+            get_pooled_conn(),
             task_id=task_id,
             to=to,
             reason=reason or None,
@@ -1931,7 +1931,7 @@ if _BOARD_OS_AVAILABLE:
         """Update Scrumban status and/or swimlane (MD frontmatter + sync)."""
         resolved_session = agent_session or _detect_agent_session_default() or None
         return _board_mcp.cos_task_reposition(
-            _db_conn,
+            get_pooled_conn(),
             task_id=task_id,
             swimlane=swimlane or None,
             to=to or None,
@@ -1958,7 +1958,7 @@ if _BOARD_OS_AVAILABLE:
         """Add or remove the 'ready' label that gates icebox→in_progress."""
         resolved_session = agent_session or _detect_agent_session_default() or None
         return _board_mcp.cos_task_ready(
-            _db_conn,
+            get_pooled_conn(),
             task_id=task_id,
             ready=ready,
             agent_session=resolved_session,
@@ -1982,7 +1982,7 @@ if _BOARD_OS_AVAILABLE:
         """Reclaim zombie in_progress tasks (idle + owner session inactive) to icebox+ready."""
         resolved_session = agent_session or _detect_agent_session_default() or None
         return _board_mcp.cos_task_reclaim(
-            _db_conn,
+            get_pooled_conn(),
             idle_hours=idle_hours or None,
             dry_run=dry_run,
             agent_session=resolved_session,
@@ -2000,7 +2000,7 @@ if _BOARD_OS_AVAILABLE:
     )
     def cos_task_reconcile(include_active: bool = False) -> str:
         """Triage stranded in_progress/testing tasks with completion evidence + a review recommendation (read-only)."""
-        return _board_mcp.cos_task_reconcile(_db_conn, include_active=include_active)
+        return _board_mcp.cos_task_reconcile(get_pooled_conn(), include_active=include_active)
 
     @mcp.tool(
         name="cos_task_pick",
@@ -2019,7 +2019,7 @@ if _BOARD_OS_AVAILABLE:
     ) -> str:
         """Return top candidate tasks to start next, ranked by priority."""
         return _board_mcp.cos_task_pick(
-            _db_conn,
+            get_pooled_conn(),
             swimlane=swimlane or None,
             priority_min=priority_min,
             max_candidates=max_candidates,
@@ -2038,7 +2038,7 @@ if _BOARD_OS_AVAILABLE:
     def cos_task_daily(since: str = "24h", agent_session: str = "") -> str:
         """Produce the daily standup summary."""
         return _board_mcp.cos_task_daily(
-            _db_conn,
+            get_pooled_conn(),
             since=since,
             agent_session=agent_session or None,
         )
@@ -2055,7 +2055,7 @@ if _BOARD_OS_AVAILABLE:
     )
     def cos_task_retro(since: str = "7d") -> str:
         """Weekly retro metrics (cycle time, throughput, emergency count)."""
-        return _board_mcp.cos_task_retro(_db_conn, since=since)
+        return _board_mcp.cos_task_retro(get_pooled_conn(), since=since)
 
     @mcp.tool(
         name="cos_task_wip_check",
@@ -2069,7 +2069,7 @@ if _BOARD_OS_AVAILABLE:
     )
     def cos_task_wip_check() -> str:
         """Lightweight check of current WIP counts vs. configured caps."""
-        return _board_mcp.cos_task_wip_check(_db_conn)
+        return _board_mcp.cos_task_wip_check(get_pooled_conn())
 
     @mcp.tool(
         name="cos_work_log_append",
@@ -2090,7 +2090,7 @@ if _BOARD_OS_AVAILABLE:
         """Append one Work Log line to a task. Critical for Codex sessions."""
         resolved_session = agent_session or _detect_agent_session_default() or None
         return _board_mcp.cos_work_log_append(
-            _db_conn,
+            get_pooled_conn(),
             task_id=task_id,
             summary=summary,
             agent_session=resolved_session,
