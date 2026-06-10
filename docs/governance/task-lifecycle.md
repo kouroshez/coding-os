@@ -74,6 +74,7 @@ Optional sections:
 | `epic`, `labels` | no | grouping helpers |
 | `depends_on`, `blocked_by` | no | task IDs |
 | `references` | no | doc paths the task points at |
+| `external_ref` | no | optional forge issue/PR link (e.g. `github#42`), set via `cos task-link TASK-NNN <issue>`; forge auto-detected from `git remote`, metadata only — never the canonical id ([adr-task-id-allocator-seam.md](adr-task-id-allocator-seam.md)) |
 | `created`, `started`, `completed` | auto | written by the CLI on transitions |
 | `agent_session` | auto | fingerprint of the agent that started the task |
 

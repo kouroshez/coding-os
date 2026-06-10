@@ -1797,6 +1797,20 @@ if _BOARD_OS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_task_link",
+        annotations={
+            "title": "Link a Task to a Forge Issue/PR (external_ref)",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_link(task_id: str, ref: str) -> str:
+        """Set a task's optional external_ref (e.g. github#42) — forge auto-detected; metadata only, never the id."""
+        return _board_mcp.cos_task_link(_db_conn, task_id=task_id, ref=ref)
+
+    @mcp.tool(
         name="cos_presence_query",
         annotations={
             "title": "Live Agent Presence (sessions + states)",

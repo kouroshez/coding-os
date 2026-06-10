@@ -101,18 +101,16 @@ def _derive_ns_from_git(project_root: Path) -> str:
     return ("T" + out[1:]) if not out[0].isalpha() else out
 
 
-def _resolve_task_id_prefix(project_root: Path) -> str:
-    """Resolve the id-prefix segment: '' for sequential (TASK-NNN), or '<NS>-'
-    for namespaced (TASK-<NS>-NNN). NS = configured task_id_prefix, else derived
-    from git user.email. Fail-safe to sequential on any config error."""
+def _namespace_segment(project_root: Path) -> str:
+    """The '<NS>-' id segment for the namespaced allocator: configured
+    task_id_prefix, else derived from git user.email; '' when no valid namespace
+    (degrades to TASK-NNN). The scheme gate lives in the dispatcher, not here."""
     try:
         from board_os.config import load_config
 
         cfg = load_config(project_root)
     except Exception as exc:
-        logger.debug("task_id scheme resolve fell back to sequential: %s", exc)
-        return ""
-    if getattr(cfg, "task_id_scheme", "sequential") != "namespaced":
+        logger.debug("namespace segment resolve failed: %s", exc)
         return ""
     ns = (getattr(cfg, "task_id_prefix", "") or "").strip().upper()
     if not ns:
@@ -122,14 +120,14 @@ def _resolve_task_id_prefix(project_root: Path) -> str:
     return f"{ns}-"
 
 
-def _next_task_id(conn: sqlite3.Connection, project_root: Path) -> str:
-    # Allocate the next id atomically. A single INSERT…SELECT computes
-    # max(db, filesystem)+1 for THIS id-prefix AND reserves the row in one
-    # statement, so SQLite's write lock serializes concurrent local creators.
-    # id_prefix is "TASK-" (sequential → TASK-NNN) or "TASK-<NS>-" (namespaced →
-    # TASK-<NS>-NNN); the per-prefix max keeps each contributor's namespace an
-    # independent sequence so un-synced contributors never collide.
-    id_prefix = "TASK-" + _resolve_task_id_prefix(project_root)  # safe chars only
+def _allocate_with_prefix(
+    conn: sqlite3.Connection, project_root: Path, id_prefix: str
+) -> str:
+    # Atomic per-prefix counter: one INSERT…SELECT computes max(db, fs)+1 for
+    # THIS id_prefix AND reserves the row, so SQLite's write lock serializes
+    # concurrent local creators. The per-prefix max keeps each namespace an
+    # independent sequence (un-synced contributors never collide). id_prefix is
+    # validated safe chars (TASK- + uppercase NS + dash) → safe to interpolate.
     substr_start = len(id_prefix) + 1  # 1-indexed SQL SUBSTR past the prefix
     like_pat = id_prefix + "%"
 
@@ -144,8 +142,6 @@ def _next_task_id(conn: sqlite3.Connection, project_root: Path) -> str:
 
     import time as _t
 
-    # id_prefix is validated to safe chars (TASK- + uppercase NS + dash), so it
-    # is interpolated into the printf format / SUBSTR offset; values stay bound.
     sql = f"""
         INSERT INTO tasks (task_id, title, status, file_path, content_hash, mtime)
         SELECT printf('{id_prefix}%03d', MAX(n) + 1),
@@ -179,6 +175,121 @@ def _next_task_id(conn: sqlite3.Connection, project_root: Path) -> str:
     raise last_exc or sqlite3.OperationalError("task id allocation failed")
 
 
+# Task-id allocator seam (ADR adr-task-id-allocator-seam). Each allocator mints
+# the next id behind one interface; the id format stays TASK-<token>, so a future
+# `forge` / `service` allocator drops in via the registry with zero migration and
+# zero caller change. local + namespaced are offline; both reuse the atomic
+# per-prefix counter, differing only in the prefix.
+class _LocalAllocator:
+    def allocate(self, conn: sqlite3.Connection, project_root: Path) -> str:
+        return _allocate_with_prefix(conn, project_root, "TASK-")
+
+
+class _NamespacedAllocator:
+    def allocate(self, conn: sqlite3.Connection, project_root: Path) -> str:
+        return _allocate_with_prefix(
+            conn, project_root, "TASK-" + _namespace_segment(project_root)
+        )
+
+
+_TASK_ID_ALLOCATORS: dict[str, object] = {
+    "sequential": _LocalAllocator(),
+    "local": _LocalAllocator(),
+    "namespaced": _NamespacedAllocator(),
+}
+
+
+def _resolve_task_id_allocator(project_root: Path):
+    try:
+        from board_os.config import load_config
+
+        scheme = getattr(load_config(project_root), "task_id_scheme", "sequential")
+    except Exception as exc:
+        logger.debug("allocator resolve fell back to local: %s", exc)
+        scheme = "sequential"
+    return _TASK_ID_ALLOCATORS.get(scheme, _TASK_ID_ALLOCATORS["sequential"])
+
+
+def _next_task_id(conn: sqlite3.Connection, project_root: Path) -> str:
+    return _resolve_task_id_allocator(project_root).allocate(conn, project_root)
+
+
+# external_ref — optional bidirectional link to a forge issue/PR. Metadata only;
+# never the task's canonical id (ADR adr-task-id-allocator-seam). Host is detected
+# from the origin remote, so the kernel hardcodes no forge (P2).
+def _detect_forge(project_root: Path) -> str:
+    import subprocess
+
+    try:
+        url = (
+            subprocess.run(
+                ["git", "-C", str(project_root), "remote", "get-url", "origin"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            ).stdout.strip().lower()
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    if "github.com" in url:
+        return "github"
+    if "gitlab" in url:
+        return "gitlab"
+    if "bitbucket" in url:
+        return "bitbucket"
+    return ""
+
+
+def _normalize_external_ref(raw: str, project_root: Path) -> str | None:
+    # Accepts a bare number, '#42', 'github#42', or a full issue/PR URL → returns
+    # '<forge>#<n>' ('!' for a merge/pull request). Forge is taken from the ref
+    # when explicit, else detected from origin; None when unparseable.
+    import re as _re
+
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    m = _re.search(
+        r"(github|gitlab|bitbucket)\.[^/]+/.+?/(?:issues|pull|-/issues|-/merge_requests|merge_requests)/(\d+)",
+        raw,
+    )
+    if m:
+        sep = "!" if "merge_request" in raw or "/pull/" in raw else "#"
+        return f"{m.group(1)}{sep}{m.group(2)}"
+    m = _re.match(r"^(github|gitlab|bitbucket)\s*([#!])\s*(\d+)$", raw, _re.IGNORECASE)
+    if m:
+        return f"{m.group(1).lower()}{m.group(2)}{m.group(3)}"
+    m = _re.match(r"^([#!]?)(\d+)$", raw)
+    if m:
+        forge = _detect_forge(project_root)
+        if not forge:
+            return None
+        sep = "!" if m.group(1) == "!" else "#"
+        return f"{forge}{sep}{m.group(2)}"
+    return None
+
+
+def cos_task_link(conn: sqlite3.Connection, task_id: str, ref: str) -> dict:
+    """Link a task to a forge issue/PR via the optional external_ref field."""
+    row = conn.execute(
+        "SELECT file_path FROM tasks WHERE task_id = ?", (task_id,)
+    ).fetchone()
+    if not row:
+        return fail("not_found", f"task {task_id} not found")
+    project_root = _project_root()
+    file_path = project_root / row[0]
+    if not file_path.exists():
+        return fail("not_found", f"file missing: {file_path}")
+    normalized = _normalize_external_ref(ref, project_root)
+    if not normalized:
+        return fail(
+            "validation",
+            f"could not parse a forge ref from {ref!r} — use e.g. 42, github#42, or an issue URL",
+        )
+    patch_task_frontmatter_scalars(file_path, {"external_ref": normalized})
+    return ok({"task_id": task_id, "external_ref": normalized, "meta": {"layer": "tasks"}})
+
+
 def _render_lean_frontmatter(fields: dict) -> str:
     # Stable key order matches the template.
     order = [
@@ -198,6 +309,7 @@ def _render_lean_frontmatter(fields: dict) -> str:
         "depends_on",
         "blocked_by",
         "references",
+        "external_ref",
     ]
     lines = ["---"]
     for key in order:
