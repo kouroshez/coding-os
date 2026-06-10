@@ -284,6 +284,7 @@ class TestTaskSearchSemantic:
     """Semantic path — requires rag extras."""
 
     @REQUIRES_RAG
+    @pytest.mark.real_embeddings
     def test_semantic_finds_related_task(self, seeded_db: sqlite3.Connection) -> None:
         """Query with no exact word overlap should still find the payment task."""
         results = task_search(seeded_db, "multi vendor marketplace revenue sharing")

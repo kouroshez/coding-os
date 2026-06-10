@@ -181,10 +181,32 @@ keys, lock still serializes the heavy runs intentionally (one suite at a time pe
 
 Sum of matrix suites ≈ **28.4 min** — the "6-minute full sweep" figure in
 test-discipline.md predates the suite's 4× growth. `tests/` root collects 2,551
-(+2 collection errors). The dominant costs are (a) `test_background.py` polling
-loops in thinking_os, (b) per-test `cos init` scaffolds in test-cli /
-test-template-scaffold / test-adapters — both addressed by slow-marker splits
-(TASK-331), scaffold session-scoping filed separately.
+(+2 pre-existing collection errors: `test_intent_classifier.py`,
+`test_route_audits.py` — ImportError under the default extras). The dominant
+costs are (a) `test_background.py` polling loops in thinking_os, (b) per-test
+`cos init` scaffolds in test-cli / test-template-scaffold / test-adapters —
+(a) addressed by the slow split below; (b) governed by the dedup/lock layer,
+scaffold session-scoping deferred.
+
+## Post-hygiene results (TASK-331 — measured 2026-06-10)
+
+| Metric | Baseline | After | Δ |
+|---|---|---|---|
+| test-thinking_os wall-clock | 322 s | **61 s** (1,427 passed, 27 deselected) | **−81%** |
+| test-thinking_os peak RSS | ~700 MB | ~487 MB | −30% |
+
+Mechanism: `test_background.py` module-marked `slow` (runs via `make test-slow`,
+314 tests across thinking_os + tests/); autouse conftest stub replaces
+SentenceTransformer with a deterministic token-hash encoder (4 true-semantic
+tests carry `@pytest.mark.real_embeddings` and keep the real model;
+`COS_TEST_REAL_EMBEDDINGS=1` restores it everywhere).
+
+Dogfood catches during rollout (fixed + regression-tested): (1) a quoted suite
+string inside a heredoc was auto-recorded as a PASS — matching is now
+segment-anchored (`_pytest_segments`); (2) inline `COS_*=1` prefixes live in
+the command string, not the hook's env — the governor honors both forms;
+(3) commands that merely *mention* pytest no longer write or clear the run lock
+(`pytest_invocation` field).
 
 ## See also
 

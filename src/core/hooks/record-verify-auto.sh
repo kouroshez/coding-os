@@ -34,10 +34,14 @@ else
 fi
 MATCH=$(cd "$PROJECT_ROOT" && "${PYRUN[@]}" -m core.board_os.verify_suites_cli match-command --command "$COMMAND" 2>/dev/null) || MATCH='{}'
 SUITE=$(echo "$MATCH" | jq -r '.suite // empty' 2>/dev/null || echo "")
+IS_PYTEST=$(echo "$MATCH" | jq -r '.pytest_invocation // false' 2>/dev/null || echo false)
 
-# Any completed pytest run frees the host — clear the governor's lockfile
-# even when the command matched no suite.
-rm -f "${COS_STATE_DIR}/.test-run.lock" 2>/dev/null || true
+# A completed pytest run frees the host — clear the governor's lockfile.
+# Commands that merely MENTION pytest (echo/heredoc payloads) must NOT
+# clear a sibling session's live lock.
+if [[ "$IS_PYTEST" == "true" ]]; then
+  rm -f "${COS_STATE_DIR}/.test-run.lock" 2>/dev/null || true
+fi
 
 [[ -n "$SUITE" ]] || exit 0
 

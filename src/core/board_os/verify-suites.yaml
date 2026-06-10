@@ -17,7 +17,9 @@ suites:
   test-thinking_os:
     paths:
       - "src/core/thinking_os/**/*.py"
-    command: "uv run --extra rag pytest src/core/thinking_os/tests/ -q"
+    # -m 'not slow' skips test_background.py (74% of suite wall-clock,
+    # measured 2026-06-09); slow set runs via `make test-slow` pre-merge.
+    command: "uv run --extra rag pytest src/core/thinking_os/tests/ -q -m 'not slow'"
 
   test-board_os:
     paths:

@@ -133,6 +133,12 @@ bench: ## Run pytest-benchmark micro-benchmarks for hot-path primitives
 	@uv run --extra rag --with pytest-benchmark pytest tests/bench/ \
 	    -m bench --benchmark-only --benchmark-columns=min,mean,max,rounds -q
 
+.PHONY: test-slow
+test-slow: ## Run slow-marked tests (background loops, scaffold sandboxes) — pre-merge / CI, not mid-task
+	@echo "Running slow-marked tests (expect minutes)..."
+	@uv run --extra rag --extra graph_os --with aiohttp --with pytest-asyncio pytest \
+	    src/core/thinking_os/tests/ tests/ -m slow -q
+
 .PHONY: eval-operational eval-sandboxes eval-clean
 eval-operational: ## Full operational evaluation — scaffolds sandboxes, runs all checks, writes .build/
 	@uv run python src/scripts/operational_eval.py all

@@ -40,11 +40,30 @@ MATCH=$(cd "$PROJECT_ROOT" && "${PYRUN[@]}" -m core.board_os.verify_suites_cli m
 FULL_SWEEP=$(echo "$MATCH" | jq -r '.full_sweep // false' 2>/dev/null || echo false)
 SUITE=$(echo "$MATCH" | jq -r '.suite // empty' 2>/dev/null || echo "")
 FRESH=$(echo "$MATCH" | jq -r '.fresh // false' 2>/dev/null || echo false)
+IS_PYTEST=$(echo "$MATCH" | jq -r '.pytest_invocation // false' 2>/dev/null || echo false)
+
+# Command merely MENTIONS pytest (echo/jq/heredoc payload) — not a run.
+# When the matcher itself was unavailable (MATCH={}), stay fail-open but
+# never write a lock for a non-verdict.
+if [[ "$IS_PYTEST" != "true" ]]; then
+  exit 0
+fi
+
+# Inline overrides: an agent writes `COS_TEST_FORCE=1 pytest …` as ONE Bash
+# command — the assignment lives in the command STRING, never in this hook's
+# environment. Honor both forms.
+INLINE_FORCE=false
+[[ "$COMMAND" == *"COS_TEST_FORCE=1"* ]] && INLINE_FORCE=true
+INLINE_SWEEP_OK=false
+[[ "$COMMAND" == *"COS_FULL_SWEEP_OK=1"* ]] && INLINE_SWEEP_OK=true
+INLINE_REASON=$(echo "$COMMAND" | { grep -oE "COS_OVERRIDE_REASON=('[^']*'|\"[^\"]*\")" || true; } | head -1 | sed -E "s/^COS_OVERRIDE_REASON=//; s/^['\"]//; s/['\"]$//")
 
 # ── 1. Full-sweep gate (fail-closed, audited override) ──────────────
 if [[ "$FULL_SWEEP" == "true" ]]; then
-  REASON="${COS_OVERRIDE_REASON:-}"
-  if [[ "${COS_FULL_SWEEP_OK:-}" == "1" && "${#REASON}" -ge 15 ]]; then
+  REASON="${COS_OVERRIDE_REASON:-$INLINE_REASON}"
+  SWEEP_OK="${COS_FULL_SWEEP_OK:-}"
+  $INLINE_SWEEP_OK && SWEEP_OK=1
+  if [[ "$SWEEP_OK" == "1" && "${#REASON}" -ge 15 ]]; then
     cos_log_hook test-governor override "full-sweep reason=$REASON" 2>/dev/null || true
   else
     cos_log_hook test-governor block "full-sweep" 2>/dev/null || true
@@ -60,7 +79,7 @@ if [[ "$FULL_SWEEP" == "true" ]]; then
 fi
 
 # ── 2. Dedup — suite already green on this exact tree ────────────────
-if [[ -n "$SUITE" && "$FRESH" == "true" && "${COS_TEST_FORCE:-}" != "1" ]]; then
+if [[ -n "$SUITE" && "$FRESH" == "true" && "${COS_TEST_FORCE:-}" != "1" ]] && ! $INLINE_FORCE; then
   BY=$(echo "$MATCH" | jq -r '.recorded_by // "unknown"' 2>/dev/null || echo unknown)
   TAIL=$(echo "$MATCH" | jq -r '.session_tail // ""' 2>/dev/null || echo "")
   AGE=$(echo "$MATCH" | jq -r '.age_min // 0' 2>/dev/null || echo 0)

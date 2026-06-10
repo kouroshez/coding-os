@@ -23,6 +23,11 @@ from typing import Optional
 
 import pytest
 
+# Wall-clock heavyweight: real tick/poll loops dominate the whole thinking_os
+# suite (237 s of 322 s measured 2026-06-09 — docs/engineering/test-governance.md).
+# Runs via `make test-slow` / pre-merge, excluded from the mid-task matrix command.
+pytestmark = pytest.mark.slow
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import background

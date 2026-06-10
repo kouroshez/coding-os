@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -184,38 +185,83 @@ def _command_paths(cmd: str) -> set[str]:
     }
 
 
+_WRAPPER_TOKENS = ("nice", "time", "/usr/bin/time", "caffeinate")
+
+
+def _command_segments(cmd: str) -> list[list[str]]:
+    """Split a shell command into logical segments, wrappers stripped.
+
+    Segment-anchored matching keeps a quoted suite command (heredoc body,
+    commit message, doc edit) from being mistaken for an actual run.
+    """
+    segments: list[list[str]] = []
+    for part in re.split(r"&&|\|\||[;|\n]", cmd):
+        toks = part.split()
+        while toks:
+            head = toks[0]
+            if "=" in head and not head.startswith("-"):
+                toks = toks[1:]  # leading env assignment
+            elif head in _WRAPPER_TOKENS:
+                toks = toks[1:]
+                while toks and toks[0].startswith("-"):
+                    takes_value = toks[0] == "-n" and len(toks) > 1
+                    toks = toks[2:] if takes_value else toks[1:]
+            else:
+                break
+        if toks:
+            segments.append(toks)
+    return segments
+
+
+def _pytest_segments(cmd: str) -> list[list[str]]:
+    """Segments that genuinely invoke pytest (not merely mention it)."""
+    out = []
+    for seg in _command_segments(cmd):
+        head = seg[0]
+        is_pytest = head == "pytest" or head.endswith("/pytest")
+        is_uv = head == "uv" or head.endswith("/uv")
+        if is_pytest or (is_uv and "pytest" in seg):
+            out.append(seg)
+        elif head in ("python", "python3") and "-m" in seg and "pytest" in seg:
+            out.append(seg)
+    return out
+
+
 def _match_suite_command(cmd: str, cfg) -> str | None:
     """Map a shell command to the suite it executes, or None."""
-    norm = " ".join(cmd.split())
-    cmd_paths = _command_paths(norm)
+    pytest_segs = _pytest_segments(cmd)
+    make_segs = [s for s in _command_segments(cmd) if s[0] == "make"]
     for name, rule in cfg.suites.items():
         rule_cmd = " ".join(rule.command.split())
         if rule_cmd.startswith("make "):
-            if rule_cmd in norm:
+            target = rule_cmd.split()[1]
+            if any(target in seg for seg in make_segs):
                 return name
             continue
         rule_paths = _command_paths(rule_cmd)
-        if rule_paths and "pytest" in norm and rule_paths <= cmd_paths:
-            return name
+        if not rule_paths:
+            continue
+        for seg in pytest_segs:
+            if rule_paths <= _command_paths(" ".join(seg)):
+                return name
     return None
 
 
 def _is_full_sweep(cmd: str) -> bool:
     """True for pytest invocations that would run (nearly) everything."""
-    norm = " ".join(cmd.split())
-    tokens = norm.split()
-    if "pytest" not in tokens:
-        return False
-    if "--collect-only" in tokens or "--co" in tokens:
-        return False
-    after = tokens[tokens.index("pytest") + 1 :]
-    paths = [t for t in after if not t.startswith("-") and ("/" in t or t == "tests")]
-    if not paths:
-        return True  # bare pytest → testpaths = the whole repo
-    if any(p.rstrip("/") == "tests" for p in paths):
-        return True  # the 1,316-test integration root
-    test_roots = {p.rstrip("/") for p in paths if p.rstrip("/").endswith("tests")}
-    return len(test_roots) >= 3
+    for seg in _pytest_segments(cmd):
+        if "--collect-only" in seg or "--co" in seg:
+            continue
+        after = seg[seg.index("pytest") + 1 :]
+        paths = [t for t in after if not t.startswith("-") and ("/" in t or t == "tests")]
+        if not paths:
+            return True  # bare pytest → testpaths = the whole repo
+        if any(p.rstrip("/") == "tests" for p in paths):
+            return True  # the 1,316-test integration root
+        test_roots = {p.rstrip("/") for p in paths if p.rstrip("/").endswith("tests")}
+        if len(test_roots) >= 3:
+            return True
+    return False
 
 
 def cmd_match_command(args: argparse.Namespace) -> int:
@@ -229,6 +275,7 @@ def cmd_match_command(args: argparse.Namespace) -> int:
     out: dict = {
         "suite": suite,
         "full_sweep": _is_full_sweep(command),
+        "pytest_invocation": bool(_pytest_segments(command)),
         "fresh": False,
     }
     verify_file = Path(args.verify_file)

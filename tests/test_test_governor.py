@@ -201,6 +201,47 @@ class TestRunLock:
         assert lock["suite"] == "test-board_os"
 
 
+class TestInlineOverrides:
+    """Env assignments inside the command string never reach the hook's own
+    environment — the governor must honor the inline form it advertises."""
+
+    def test_inline_force_overrides_dedup(self, state_dir: Path) -> None:
+        _write_fresh_pass(state_dir, "test-board_os")
+        code, _ = _run_hook(
+            GOVERNOR,
+            {"tool_input": {"command": f"COS_TEST_FORCE=1 {BOARD_SUITE_CMD}"}},
+            state_dir,
+        )
+        assert code == 0
+
+    def test_inline_sweep_override_allows(self, state_dir: Path) -> None:
+        cmd = (
+            "COS_FULL_SWEEP_OK=1 COS_OVERRIDE_REASON='pre-merge final gate today' "
+            "uv run pytest tests/ -q"
+        )
+        code, _ = _run_hook(GOVERNOR, {"tool_input": {"command": cmd}}, state_dir)
+        assert code == 0
+
+    def test_pytest_mention_is_not_governed_and_writes_no_lock(self, state_dir: Path) -> None:
+        code, _ = _run_hook(
+            GOVERNOR,
+            {"tool_input": {"command": 'echo "pytest src/core/board_os/tests/"'}},
+            state_dir,
+        )
+        assert code == 0
+        assert not (state_dir / ".test-run.lock").exists()
+
+    def test_pytest_mention_does_not_clear_live_lock(self, state_dir: Path) -> None:
+        (state_dir / ".test-run.lock").write_text("{}", encoding="utf-8")
+        payload = {
+            "tool_input": {"command": 'echo "pytest is mentioned here"'},
+            "tool_response": {"exit_code": 0},
+        }
+        code, _ = _run_hook(AUTO_RECORD, payload, state_dir)
+        assert code == 0
+        assert (state_dir / ".test-run.lock").exists()
+
+
 class TestFailOpen:
     def test_non_pytest_command_passes_through(self, state_dir: Path) -> None:
         code, _ = _run_hook(

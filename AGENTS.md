@@ -97,7 +97,7 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 
 | Changed | Required | Command |
 |---|---|---|
-| `src/core/thinking_os/*.py` | pytest + MCP self-test | `uv run --extra rag pytest src/core/thinking_os/tests/ -q` and `python src/core/thinking_os/server.py --test` |
+| `src/core/thinking_os/*.py` | pytest + MCP self-test | `uv run --extra rag pytest src/core/thinking_os/tests/ -q -m 'not slow'` and `python src/core/thinking_os/server.py --test` (slow set: `make test-slow` pre-merge) |
 | `src/core/thinking_os/database.py` | migration tests | `uv run --extra rag pytest src/core/thinking_os/tests/test_db.py -q` |
 | `src/core/graph_os/**` | parity + extractor tests | `uv run --extra graph_os pytest src/core/graph_os/tests/ -q` |
 | `src/core/board_os/**` | board_os tests | `uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q` |

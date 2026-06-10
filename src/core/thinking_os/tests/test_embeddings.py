@@ -167,6 +167,7 @@ class TestCosineSimilarity:
         assert scores[0] < 0.7  # they should not be near-identical
 
     @REQUIRES_RAG
+    @pytest.mark.real_embeddings
     def test_batch_returns_score_per_candidate(self) -> None:
         query = embeddings.embed_text("authentication")
         candidates = [
@@ -267,6 +268,7 @@ class TestHasEmbeddingsData:
 
 class TestSearchSimilar:
     @REQUIRES_RAG
+    @pytest.mark.real_embeddings
     def test_finds_synonym(self, tmp_db: sqlite3.Connection) -> None:
         """The whole point of RAG: 'authentication problem' should rank a JWT
         observation above an unrelated color one. all-MiniLM-L6-v2 produces

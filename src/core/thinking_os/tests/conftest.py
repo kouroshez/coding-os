@@ -41,3 +41,59 @@ def _isolate_durable_log_db(
     tmp_root = tmp_path_factory.mktemp("log_isolate", numbered=True)
     monkeypatch.setenv("COS_STATE_DIR", str(tmp_root / ".coding-os"))
     monkeypatch.setenv("COS_DB_PATH", str(tmp_root / ".coding-os" / "coding-os.db"))
+
+
+class _StubEncoder:
+    """Deterministic token-hash encoder — keeps coarse cosine ranking
+    (shared tokens → higher similarity) without loading torch/MiniLM."""
+
+    def __init__(self, dim: int) -> None:
+        self.dim = dim
+
+    def encode(self, texts, **_kwargs):
+        import zlib
+
+        import numpy as np
+
+        single = isinstance(texts, str)
+        items = [texts] if single else list(texts)
+        out = []
+        for text in items:
+            vec = np.zeros(self.dim, dtype=np.float32)
+            for token in str(text).lower().split():
+                vec[zlib.crc32(token.encode("utf-8")) % self.dim] += 1.0
+            norm = float(np.linalg.norm(vec))
+            if norm:
+                vec /= norm
+            out.append(vec)
+        return out[0] if single else np.stack(out)
+
+
+@pytest.fixture(autouse=True)
+def _stub_embedding_models(request: pytest.FixtureRequest):
+    """Replace SentenceTransformer loads with a cheap deterministic stub.
+
+    The real model import chain (torch + sentence-transformers) costs seconds
+    of load and hundreds of MB RSS per pytest process — multiplied across
+    concurrent agent sessions (TASK-331, docs/engineering/test-governance.md).
+    Tests that assert true semantic behaviour (synonyms, near-duplicate
+    consolidation) opt out with @pytest.mark.real_embeddings; set
+    COS_TEST_REAL_EMBEDDINGS=1 to exercise the real models everywhere.
+    """
+    import os as _os
+
+    if (
+        _os.environ.get("COS_TEST_REAL_EMBEDDINGS") == "1"
+        or request.node.get_closest_marker("real_embeddings") is not None
+    ):
+        yield
+        return
+    import embeddings
+
+    names = set(embeddings.MODEL_DIMS) | {embeddings.active_model_name()}
+    for name in names:
+        dim = embeddings.MODEL_DIMS.get(name, embeddings.EMBEDDING_DIM)
+        embeddings._override_model(name, _StubEncoder(dim))
+    yield
+    for name in names:
+        embeddings._override_model(name, None)

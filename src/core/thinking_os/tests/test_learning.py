@@ -1201,6 +1201,7 @@ class TestSemanticConsolidation:
         assert _consolidate_semantic_duplicates(conn) == 0
 
     @REQUIRES_RAG
+    @pytest.mark.real_embeddings
     def test_merges_near_duplicates(self, conn: sqlite3.Connection) -> None:
         from tools.learning import _consolidate_semantic_duplicates
 

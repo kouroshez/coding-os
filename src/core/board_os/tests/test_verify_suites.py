@@ -231,6 +231,51 @@ class TestCommitKeyedFreshness:
         assert missing == []
 
 
+class TestCommandMatching:
+    """Segment-anchored matching — a QUOTED suite command must not count as a run."""
+
+    THINKING_CMD = "uv run --extra rag pytest src/core/thinking_os/tests/ -q -m 'not slow'"
+
+    def test_real_invocation_matches(self) -> None:
+        cfg = load_verify_suites()
+        assert (
+            verify_suites_cli._match_suite_command(self.THINKING_CMD, cfg)
+            == "test-thinking_os"
+        )
+
+    def test_wrapped_invocation_matches(self) -> None:
+        cfg = load_verify_suites()
+        cmd = f"/usr/bin/time -l nice -n 19 {self.THINKING_CMD} 2>&1 | tail -12"
+        assert verify_suites_cli._match_suite_command(cmd, cfg) == "test-thinking_os"
+
+    def test_quoted_command_in_heredoc_does_not_match(self) -> None:
+        # Regression: a python3-heredoc doc edit embedding the suite string got
+        # auto-recorded as a PASS, then the governor dedup-blocked the real run.
+        cfg = load_verify_suites()
+        cmd = (
+            "python3 - <<'EOF'\n"
+            'old = "| `uv run --extra rag pytest src/core/thinking_os/tests/ -q` |"\n'
+            "EOF"
+        )
+        assert verify_suites_cli._match_suite_command(cmd, cfg) is None
+
+    def test_make_suite_matches_only_make_segment(self) -> None:
+        cfg = load_verify_suites()
+        assert verify_suites_cli._match_suite_command("make verify-hooks", cfg) == "verify-hooks"
+        assert verify_suites_cli._match_suite_command("echo make verify-hooks", cfg) is None
+
+    def test_full_sweep_detection(self) -> None:
+        assert verify_suites_cli._is_full_sweep("uv run pytest tests/ -q")
+        assert verify_suites_cli._is_full_sweep("uv run pytest -q")
+        assert verify_suites_cli._is_full_sweep(
+            "pytest src/core/thinking_os/tests src/core/graph_os/tests src/core/board_os/tests"
+        )
+        assert not verify_suites_cli._is_full_sweep("uv run pytest tests/test_cli.py -q")
+        assert not verify_suites_cli._is_full_sweep("uv run pytest tests/ --collect-only -q")
+        assert not verify_suites_cli._is_full_sweep('echo "uv run pytest tests/ -q"')
+        assert not verify_suites_cli._is_full_sweep(self.THINKING_CMD)
+
+
 class TestTreeState:
     @staticmethod
     def _git(cwd: Path, *args: str) -> None:

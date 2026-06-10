@@ -271,6 +271,7 @@ web = ["ui/**"]
 testpaths = ["src/core/thinking_os/tests", "src/core/graph_os/tests", "src/core/board_os/tests", "src/core/logging_os/tests", "tests"]
 markers = [
     "slow: tests that scaffold sandboxes or regenerate the manifest (~30s+)",
+    "real_embeddings: tests that need the real SentenceTransformer model (exempt from the conftest stub)",
     "sdk_e2e: real claude-agent-sdk dispatch tests — require ANTHROPIC_API_KEY (nightly only)",
     "bench: pytest-benchmark micro-benchmarks (run via `make bench`, excluded from normal sweeps)",
 ]
