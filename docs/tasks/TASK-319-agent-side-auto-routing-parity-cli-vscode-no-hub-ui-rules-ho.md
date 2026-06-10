@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [model-routing, hooks, adapter-parity, audit-2026-06-09, ready]
-status: icebox
+status: testing
 priority: P2
 appetite: 1d
 created: 2026-06-10
-started: null
+started: 2026-06-10
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: [TASK-317, TASK-308]
 blocked_by: []
 references: []
 ---
-
 # TASK-319: Agent-side auto-routing parity (CLI/VSCode, no hub UI) — rules+hooks surface the routing decision when toggle on
 
 **Outcome (one sentence):** Any adapter session (Claude Code CLI, VSCode plugin, codex, …) with model_routing.enabled gets auto-routing without panel UI: a UserPromptSubmit-phase hook injects the routing directive (consult cos_route_model at Classify, honor it at dispatch) only when the toggle is on; the rule text lives in src/core/rules so every adapter inherits it; toggle off = zero injected tokens.
@@ -40,3 +39,4 @@ references: []
 - **Then** the hook lands only on adapters whose runtime fires UserPromptSubmit, per adapter.yaml — no hand-edits to derived artifacts
 
 ## Work Log
+- 2026-06-10 [claude]: Shipped (score 9/10): nudge-model-routing.sh (UserPromptSubmit, fail-open, once-per-session marker, jq-reads hub-setting
