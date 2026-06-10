@@ -82,7 +82,13 @@ class CodexSDKDispatcher:
             f"```json ... ``` block at the end of your response."
         )
 
-        cmd = [self._binary, "--no-interactive", self._CODEX_JSON_FLAG, user_message]
+        cmd = [self._binary, "--no-interactive", self._CODEX_JSON_FLAG]
+        # Dispatcher-contract parity: forward request.model instead of
+        # silently running the CLI default. Codex accepts its own model ids
+        # verbatim (the kernel never maps aliases — Rule 11).
+        if request.model:
+            cmd += ["--model", request.model]
+        cmd.append(user_message)
         cwd = request.cwd or os.getcwd()
         timeout = max(10.0, float(request.timeout_s))
 

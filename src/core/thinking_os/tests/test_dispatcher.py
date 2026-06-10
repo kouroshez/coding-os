@@ -587,3 +587,50 @@ def test_cold_start_empirical_is_ignored(monkeypatch, tmp_path):
         "documenter", "ses-cold", "TASK-T", "dev", "standard", None, "", "COMPLEX", db_path
     )
     assert req.model is None
+
+
+# ---------------------------------------------------------------------------
+# Codex dispatcher forwards request.model (dispatcher-contract parity)
+# ---------------------------------------------------------------------------
+
+
+def _codex_dispatch_argv(monkeypatch, tmp_path, model):
+    import shutil
+    import subprocess
+
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/codex" if name == "codex" else None)
+    mod = _import_codex_sdk_dispatcher_module()
+    dispatcher = mod.CodexSDKDispatcher()
+
+    captured: dict = {}
+
+    class FakeResult:
+        returncode = 0
+        stdout = '{"answer": 1}'
+        stderr = ""
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        return FakeResult()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    agent_file = tmp_path / "F_model.md"
+    agent_file.write_text("---\nid: F\n---\n\nModel forward formula.")
+    req = DispatchRequest(
+        formula_id="documenter", agent_file=str(agent_file), prompt="go", model=model
+    )
+    asyncio.run(dispatcher.dispatch(req))
+    return captured["cmd"]
+
+
+def test_codex_forwards_model_flag(monkeypatch, tmp_path):
+    cmd = _codex_dispatch_argv(monkeypatch, tmp_path, model="gpt-5-codex")
+    flag_at = cmd.index("--model")
+    assert cmd[flag_at + 1] == "gpt-5-codex"
+    assert cmd[-1].startswith("---") or len(cmd[-1]) > 20  # prompt stays last
+
+
+def test_codex_omits_model_flag_when_unset(monkeypatch, tmp_path):
+    cmd = _codex_dispatch_argv(monkeypatch, tmp_path, model=None)
+    assert "--model" not in cmd

@@ -5,18 +5,17 @@ swimlane: adapters
 kind: bug
 epic: null
 labels: [ready, adapter-parity, audit-2026-06-09]
-status: icebox
+status: testing
 priority: P3
 appetite: 1d
 created: 2026-06-10
-started: null
+started: 2026-06-10
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-311: Codex sdk_dispatcher drops DispatchRequest.model — forward --model to codex CLI per dispatcher contract
 
 **Outcome (one sentence):** `src/adapters/codex/sdk_dispatcher.py` forwards `request.model` to the codex subprocess invocation (`--model <id>`) when set, restoring dispatcher-contract parity instead of silently ignoring the field.
@@ -41,3 +40,4 @@ Actual: field is dropped; codex always runs its CLI-default model.
 - **Then** no `--model` flag is added; both covered by tests/test_adapters.py cases (no live codex binary needed — assert argv construction)
 
 ## Work Log
+- 2026-06-10 [claude]: Shipped (score 9/10): codex sdk_dispatcher forwards request.model as --model argv (verbatim ids, no alias mapping — Rule
