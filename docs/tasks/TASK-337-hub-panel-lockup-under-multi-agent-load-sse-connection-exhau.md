@@ -40,3 +40,4 @@ Actual: tabs hang on load / panel freezes — browser's 6-per-origin HTTP/1.1 co
 
 ## Work Log
 - 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-10 [claude]: commit 35304d9b56 — fix(hub): panel lockup under multi-agent load — shared SSE pool + threadpool routes

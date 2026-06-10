@@ -60,14 +60,11 @@ except Exception:
 ' 2>/dev/null || echo "")"
 [[ -n "$summary" ]] || exit 0
 
-# Serialize via flock on per-agent lock.
-lock_dir="${COS_AGENT_DIR:-.coding-os/claude}/locks"
-mkdir -p "$lock_dir" 2>/dev/null || exit 0
-lock_file="$lock_dir/${task_id}.lock"
-
 # Background fire-and-forget. bash 5.3.9 deadlocks `python3 - <<HEREDOC`;
 # extracted to _helpers/work_log_append.py. task_id and summary pass via
-# argv (avoids triple-quote escaping fragility too).
+# argv (avoids triple-quote escaping fragility too). Serialization lives
+# INSIDE the helper (fcntl) — the old bash-side `flock -w 2` died silently
+# on macOS, where flock(1) does not exist, dropping every append (TASK-340).
 _src="${BASH_SOURCE[0]}"
 while [ -L "$_src" ]; do
   _dir="$(cd -P "$(dirname "$_src")" && pwd)"
@@ -78,13 +75,8 @@ HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
 unset _src _dir
 HELPER="${HSRC}/_helpers/work_log_append.py"
 if [[ -f "$HELPER" ]]; then
-  (
-    exec 9>"$lock_file"
-    if flock -w 2 9; then
-      COS_PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}" \
-        python3 "$HELPER" "$task_id" "$summary" >/dev/null 2>&1
-    fi
-  ) &
+  COS_PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}" \
+    python3 "$HELPER" "$task_id" "$summary" >/dev/null 2>&1 &
 fi
 
 cos_log_hook "capture-work-log" "spawned" 2>/dev/null || true

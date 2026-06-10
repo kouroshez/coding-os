@@ -22,3 +22,4 @@ references: []
 
 ## Work Log
 - 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-10 [claude]: commit 5931c037f9 — feat(board): task-create envelope echoes DoR state — gaps + ready + fix hint
