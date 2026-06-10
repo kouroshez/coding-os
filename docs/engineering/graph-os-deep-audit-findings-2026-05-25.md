@@ -1,3 +1,4 @@
+<!-- domain:META | layer:engineering | ssot:false | updated:2026-05-25 -->
 # Graph-OS Deep Audit Findings (2026-05-25)
 
 Companion to [docs/tasks/audits/audit-graph-os-deep-2026-05-25.md](../tasks/audits/audit-graph-os-deep-2026-05-25.md). Detailed defect register; pointer doc held under the 3K-token lint cap.

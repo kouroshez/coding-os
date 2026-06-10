@@ -1,4 +1,4 @@
-<!-- domain:OPS | layer:postmortem | ssot:true | updated:{{DATE}} -->
+<!-- domain:OPS | layer:postmortem | ssot:true | updated:2026-05-21 -->
 # Post-Mortem — <YYYY-MM-DD> <Incident Title>
 
 Purpose: Blameless retrospective for <incident>. Records what happened, why, and what changes prevent recurrence.

@@ -1,3 +1,4 @@
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-05 -->
 # logging_os — Central Log Helpers
 
 > One producer API. One schema. Three renders. Four sinks. Auto-detected context.

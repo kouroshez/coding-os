@@ -1,4 +1,4 @@
-<!-- domain:OPS | layer:runbook | ssot:true | updated:{{DATE}} -->
+<!-- domain:OPS | layer:runbook | ssot:true | updated:2026-05-22 -->
 # Runbook — <Alert / Incident Type>
 
 Purpose: Step-by-step remediation when <trigger> fires. Optimized for an on-call engineer at 3am, not a leisurely read.

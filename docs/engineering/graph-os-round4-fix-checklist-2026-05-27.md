@@ -1,3 +1,4 @@
+<!-- domain:META | layer:checklist | ssot:false | updated:2026-05-28 -->
 # Graph-OS Round 4 Fix Checklist — Wave 7 (2026-05-27)
 
 Companion to [graph-os-round4-audit-findings-2026-05-27.md](graph-os-round4-audit-findings-2026-05-27.md). 34 new defects (R4-01..R4-26 + R4-N5..R4-N12); triaged against Rule 22 (anti-overengineering). One fix → one commit (Rule 24). Apply top-down.

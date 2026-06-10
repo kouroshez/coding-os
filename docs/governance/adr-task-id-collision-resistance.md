@@ -1,3 +1,4 @@
+<!-- domain:META | layer:adr | ssot:true | updated:2026-06-09 -->
 # ADR — Task ID Collision Resistance for OSS Multi-Contributor Flow
 
 **Status:** Accepted (2026-06-09) — implemented as a per-contributor namespaced scheme (TASK-298). Originally Proposed 2026-05-23.

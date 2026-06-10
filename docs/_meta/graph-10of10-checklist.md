@@ -1,3 +1,4 @@
+<!-- domain:META | layer:checklist | ssot:false | updated:2026-06-03 -->
 # Graph → 10/10 — Execution Checklist (autonomous, self-executed)
 
 Goal: close the genuine gaps to 10/10 without over-engineering. Each group: doc-first (inventory) → implement → unit test → matrix (`graph_os` pytest) → MCP self-test → live output check → commit (explicit paths). Extractor groups also: reindex + doctor verify. NO over-engineering — each item is a user-approved, bounded, enterprise capability.

@@ -1,3 +1,4 @@
+<!-- domain:META | layer:engineering | ssot:false | updated:2026-05-27 -->
 # Graph-OS Round 3 Audit Findings (2026-05-26)
 
 Companion to [docs/tasks/audits/audit-graph-os-deep-2026-05-25.md](../tasks/audits/audit-graph-os-deep-2026-05-25.md). Full Round 3 defect register; pointer kept under the 3K-token lint cap.

@@ -1,4 +1,4 @@
-<!-- domain:SECURITY | layer:checklist | ssot:ref | updated:{{DATE}} -->
+<!-- domain:SECURITY | layer:checklist | ssot:ref | updated:2026-05-21 -->
 # Security Review — <Feature / Change Title>
 
 Purpose: Per-change security checklist mapped to OWASP Top-10 (2025) + project-specific risks. Filed alongside the PR/ADR for traceability.

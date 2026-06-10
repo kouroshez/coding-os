@@ -1,3 +1,4 @@
+<!-- domain:META | layer:reference | ssot:true | updated:2026-05-19 -->
 # Doctor Checks — Reference
 
 > Complete list of every `cos doctor` check, grouped by category. Each entry: ID, intent, severity-when-failing, fix hint. IDs are the SSOT — changing one is a breaking change for any consumer parsing JSON output.

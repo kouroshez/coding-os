@@ -1,3 +1,4 @@
+<!-- domain:INFRA | layer:spec | ssot:true | updated:2026-06-05 -->
 ---
 title: Agent Token-Economy & Identity Roadmap
 domain: INFRA

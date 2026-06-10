@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:reference | ssot:true | updated:{{DATE}} -->
+<!-- domain:DOCS | layer:reference | ssot:true | updated:2026-06-05 -->
 # Doc Cheat Sheet — Decide Structure Before Writing
 
 Purpose: Single decision guide an agent reads BEFORE creating any new documentation file. Maps task intent → layer → directory → template → token budget.

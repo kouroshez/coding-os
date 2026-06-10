@@ -1,3 +1,4 @@
+<!-- domain:OPS | layer:policy | ssot:true | updated:2026-06-07 -->
 # Release Process (SSOT)
 
 > **Model:** Releases are **data-driven** — Conventional Commits decide the

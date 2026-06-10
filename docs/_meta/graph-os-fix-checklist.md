@@ -1,3 +1,4 @@
+<!-- domain:META | layer:checklist | ssot:false | updated:2026-06-02 -->
 # graph_os Audit — Implementation Checklist (self-executed)
 
 Source: deep audit 2026-06-02 (7-dimension adversarially-verified workflow). This file IS the doc-anchor spec for the fixes below. Execute top-down, matrix-test + commit per group. No Scrumban task — direct trunk commits.

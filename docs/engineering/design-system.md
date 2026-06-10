@@ -1,3 +1,4 @@
+<!-- domain:FRONTEND | layer:reference | ssot:true | updated:2026-06-05 -->
 <!-- doc-header
 title: Cortex Design System — Hub UI palette, tokens, typography
 purpose: SSOT for the coding-os Hub UI visual language (colors, type, spacing, motion, a11y).

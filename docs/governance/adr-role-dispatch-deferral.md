@@ -1,3 +1,4 @@
+<!-- domain:INFRA | layer:adr | ssot:true | updated:2026-06-05 -->
 ---
 title: "ADR: Role dispatch stays opt-in; role chain is single-agent guidance"
 domain: INFRA

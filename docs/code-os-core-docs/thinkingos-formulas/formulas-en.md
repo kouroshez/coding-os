@@ -1,3 +1,4 @@
+<!-- domain:DOCS | layer:reference | ssot:ref | updated:2026-04-19 -->
 # Zero-to-Production Problem Decomposition Formulas
 
 > This document contains 11 structured, spec-level formulas covering the full lifecycle of any software project:

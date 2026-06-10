@@ -1,3 +1,4 @@
+<!-- domain:META | layer:engineering | ssot:false | updated:2026-05-28 -->
 # Graph-OS Round 4 — Full Defect Register (2026-05-27)
 
 Companion to [docs/tasks/audits/audit-graph-os-round4-2026-05-27.md](../tasks/audits/audit-graph-os-round4-2026-05-27.md). Full Round 4 defect register; pointer kept under 3K-token lint cap.

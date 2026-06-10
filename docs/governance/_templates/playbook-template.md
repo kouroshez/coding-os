@@ -1,4 +1,4 @@
-<!-- domain:XXX | layer:playbook | ssot:true | updated:{{DATE}} -->
+<!-- domain:XXX | layer:playbook | ssot:true | updated:2026-05-21 -->
 # Playbook — <Workflow Name>
 
 Purpose: Repeatable procedure for <task>. Optimized so a competent agent or engineer can execute end-to-end without reading sibling docs.

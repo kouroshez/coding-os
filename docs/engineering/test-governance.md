@@ -1,3 +1,4 @@
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-10 -->
 # Test Governance — Multi-Agent-Safe, Laptop-Safe Suite Execution
 
 > SSOT for the verify-ledger schema, the auto-record + test-governor hooks, and the

@@ -1,3 +1,4 @@
+<!-- domain:META | layer:checklist | ssot:false | updated:2026-05-25 -->
 # Graph-OS Deep Audit — Fix Checklist by Priority (2026-05-25)
 
 Companion to [graph-os-deep-audit-findings-2026-05-25.md](graph-os-deep-audit-findings-2026-05-25.md). 63 defects → 4 priority tiers. Smallest correct change per Rule 22. One fix → one commit (Rule 24).

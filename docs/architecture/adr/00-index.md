@@ -1,3 +1,4 @@
+<!-- domain:ARCH | layer:index | ssot:true | updated:2026-06-10 -->
 
 
 <!-- BEGIN auto-index -->

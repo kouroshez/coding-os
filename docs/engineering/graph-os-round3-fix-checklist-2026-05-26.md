@@ -1,3 +1,4 @@
+<!-- domain:META | layer:checklist | ssot:false | updated:2026-05-28 -->
 # Graph-OS Round 3 Fix Checklist (2026-05-26)
 
 Companion to [graph-os-round3-audit-findings-2026-05-26.md](graph-os-round3-audit-findings-2026-05-26.md). Each defect triaged against Rule 22 (anti-overengineering) → KEEP / MERGE / DROP. One fix → one commit (Rule 24). Apply top-down.

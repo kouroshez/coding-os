@@ -55,7 +55,8 @@ if [ "$CHANGED" -eq 1 ] && [ ${#TARGETS[@]} -eq 0 ]; then
     [ -n "$f" ] && [ -f "$f" ] && TARGETS+=("$f")
   done < <(git diff --name-only --diff-filter=ACMR "$base" -- "$DOCS_DIR" 2>/dev/null \
     | grep -E '\.md$' \
-    | grep -vE '/(governance/archive|products-assets|code-os-core-docs|tasks)/' || true)
+    | grep -vE '/(governance/archive|products-assets|code-os-core-docs|tasks)/' \
+    | grep -vF 'docs/governance/_templates/task-detail.md' || true)
   if [ ${#TARGETS[@]} -eq 0 ]; then
     [ "$QUIET" -eq 0 ] && ok "docs-lint --changed: no changed docs/*.md to lint" >&2
     exit 0
@@ -74,6 +75,7 @@ if [ ${#TARGETS[@]} -eq 0 ]; then
     -not -path "*/governance/archive/*" \
     -not -path "*/products-assets/*" \
     -not -path "*/code-os-core-docs/*" \
+    -not -path "*/_templates/task-detail.md" \
     -not -path "*/tasks/*" | sort)
 fi
 

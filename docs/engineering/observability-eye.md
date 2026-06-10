@@ -1,3 +1,4 @@
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-07 -->
 # Observability Eye — Enterprise Error & Log Pipeline
 
 > Nothing breaks unseen. Every error is captured, made durable, kept queryable, and — when it recurs — auto-filed as a board bug the agent can pull and fix.
