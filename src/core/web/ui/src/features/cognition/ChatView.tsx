@@ -72,6 +72,15 @@ type Turn =
       toolResults: Map<string, ContentBlock>;  // keyed by tool_use_id
     };
 
+// A resumed terminal session bakes the transparency banner (the `🔔 ses=…`
+// line) into its transcript, and the model echoes it on resume despite the
+// Hub system prompt asking it not to (the few-shot history outweighs the
+// instruction). Strip a leading banner line from assistant prose so the Hub
+// chat stays clean (TASK-283). Assistant-scoped — human messages are untouched.
+function stripLeadingBanner(text: string): string {
+  return text.replace(/^\s*🔔[^\n]*\n+/, '');
+}
+
 function isToolResultOnly(m: ChatMessage): boolean {
   return (
     m.role === 'user' &&
@@ -117,7 +126,10 @@ function buildTurns(messages: ChatMessage[]): Turn[] {
       }
       continue;
     }
-    // Unknown role — render as raw assistant for visibility.
+    // Unknown role with no renderable blocks — system/result transcript
+    // entries that would otherwise render as an empty assistant bubble
+    // (TASK-283). Skip them; keep any that DO carry content for visibility.
+    if (!m.blocks || m.blocks.length === 0) continue;
     turns.push({
       kind: 'assistant',
       uuid: m.uuid ?? `u-${turns.length}`,
@@ -135,15 +147,19 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
   // (it writes to ~/.claude/projects/<key>/<uuid>.jsonl as the agent
   // turns; we just tail).  refetchIntervalMs flows through to TanStack
   // Query's refetchInterval — paused automatically on tab/window blur.
+  const [streaming, setStreaming] = useState(false);
   const { data, isLoading, error, refetch } = useApiGet<ChatPayload>(
     ['chat-messages', sessionId],
     `/api/cognition/chat/${encodeURIComponent(sessionId)}`,
     { limit: 1000 },
-    { refetchIntervalMs: 2000 },
+    // Pause the 2s transcript poll while a reply streams: the SDK persists the
+    // just-sent user turn immediately, so a mid-stream refetch rendered it
+    // alongside the live pending-user echo → the message showed twice
+    // (TASK-283). The live SSE covers updates; finally{} does one refetch after.
+    { refetchIntervalMs: streaming ? 0 : 2000 },
   );
   const [draft, setDraft] = useState('');
   const [fork, setFork] = useState(false);
-  const [streaming, setStreaming] = useState(false);
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
   // Assistant reply painted token-by-token from StreamEvent deltas (the trailing
   // complete AssistantMessage is then skipped to avoid a double render).
@@ -313,6 +329,11 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-auto px-4 py-3 cos-scroll">
+        {/* Centered, width-capped column: an uncapped chat stretched bubbles to
+            ~88% of a 3440px monitor (unreadable line length) and a wide tool
+            output with no min-w-0 forced the whole message wider on expand
+            (CSS min-width:auto > max-width). max-w-4xl + min-w-0 fix both. */}
+        <div className="mx-auto flex w-full min-w-0 max-w-4xl flex-col">
         {turns.map((t) =>
           t.kind === 'human' ? (
             <HumanTurn key={t.uuid} blocks={t.blocks} />
@@ -343,6 +364,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
             {streamErr}
           </p>
         )}
+        </div>
       </div>
 
       <form onSubmit={send} className="shrink-0 border-t border-[var(--cos-border)]/40 bg-[var(--cos-panel)]/90 backdrop-blur-md p-4">
@@ -403,7 +425,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
 
 function HumanTurn({ blocks }: { blocks: ContentBlock[] }) {
   return (
-    <div className="mb-4 flex flex-col items-end gap-1.5">
+    <div className="mb-4 flex min-w-0 flex-col items-end gap-1.5">
       <div className="text-[10px] uppercase tracking-wider text-[var(--cos-muted)] pr-1 font-mono">you</div>
       <div className="max-w-[88%] rounded-2xl border border-[var(--cos-accent)] bg-gradient-to-br from-[var(--cos-brand-tint)] via-[var(--cos-brand-tint)] to-transparent dark:from-[var(--cos-brand-tint)] dark:via-[var(--cos-brand-tint)] dark:to-transparent backdrop-blur-md px-4 py-3 text-sm text-[var(--cos-text)] shadow-lg ">
         {blocks.map((b, i) => (
@@ -428,6 +450,10 @@ function AssistantTurn({
     [messages],
   );
 
+  // A coalesced turn with zero renderable blocks (content-less system/result
+  // messages) renders nothing rather than an empty bubble (TASK-283).
+  if (allBlocks.length === 0) return null;
+
   // Pick the most informative header model — usually the last message.
   const lastWithModel = [...messages].reverse().find((m) => m.model);
   const totalOutputTokens = messages.reduce(
@@ -447,7 +473,7 @@ function AssistantTurn({
   const toolUseCount = allBlocks.filter((b) => b.type === 'tool_use').length;
 
   return (
-    <div className="mb-5 flex flex-col items-start gap-1.5">
+    <div className="mb-5 flex min-w-0 flex-col items-start gap-1.5">
       <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wider text-[var(--cos-muted)] pl-1 font-mono">
         <span>assistant</span>
         {lastWithModel?.model && <span className="opacity-80">· {lastWithModel.model}</span>}
@@ -458,13 +484,11 @@ function AssistantTurn({
           <span className="opacity-80">· {toolUseCount} tool call{toolUseCount === 1 ? '' : 's'}</span>
         )}
       </div>
-      <div className="max-w-[88%] space-y-1.5 rounded-2xl border border-[var(--cos-border)]/40 bg-[var(--cos-panel)]/80 backdrop-blur-md px-4 py-3 text-sm text-[var(--cos-text)] shadow-md shadow-black/10">
-        {allBlocks.length === 0 && (
-          <p className="text-xs text-[var(--cos-muted)]">(empty message)</p>
-        )}
+      <div className="min-w-0 max-w-[88%] space-y-1.5 rounded-2xl border border-[var(--cos-border)]/40 bg-[var(--cos-panel)]/80 backdrop-blur-md px-4 py-3 text-sm text-[var(--cos-text)] shadow-md shadow-black/10">
         {allBlocks.map((b, i) => {
           if (b.type === 'text' || b.type === 'thinking') {
-            return <TextOrImage key={`b-${i}`} block={b} />;
+            const blk = b.type === 'text' && b.text ? { ...b, text: stripLeadingBanner(b.text) } : b;
+            return <TextOrImage key={`b-${i}`} block={blk} />;
           }
           if (b.type === 'tool_use') {
             return (
@@ -633,12 +657,12 @@ function LiveAssistant({
   streaming: boolean;
 }) {
   return (
-    <div className="mb-5 flex flex-col items-start gap-1.5">
+    <div className="mb-5 flex min-w-0 flex-col items-start gap-1.5">
       <div className="pl-1 font-mono text-[10px] uppercase tracking-wider text-[var(--cos-accent)]">
         assistant · live
       </div>
-      <div className="max-w-[88%] space-y-1.5 rounded-2xl border border-[var(--cos-border)]/40 bg-[var(--cos-panel)]/80 px-4 py-3 text-sm text-[var(--cos-text)] shadow-md shadow-black/10">
-        {text && <MarkdownBlock source={text} />}
+      <div className="min-w-0 max-w-[88%] space-y-1.5 rounded-2xl border border-[var(--cos-border)]/40 bg-[var(--cos-panel)]/80 px-4 py-3 text-sm text-[var(--cos-text)] shadow-md shadow-black/10">
+        {text && <MarkdownBlock source={stripLeadingBanner(text)} />}
         {streaming && (
           <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--cos-faint)]">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--cos-accent)]" aria-hidden />
@@ -730,7 +754,10 @@ function LiveEventRow({ event }: { event: LiveEvent }) {
           {Array.isArray(content) && content.length > 0 ? (
             content.map((c, i) => {
               const b = c as ContentBlock;
-              if (b.type === 'text' || b.type === 'thinking') return <TextOrImage key={i} block={b} />;
+              if (b.type === 'text' || b.type === 'thinking') {
+                const blk = b.type === 'text' && b.text ? { ...b, text: stripLeadingBanner(b.text) } : b;
+                return <TextOrImage key={i} block={blk} />;
+              }
               if (b.type === 'tool_use') return <ToolCall key={i} toolUse={b} />;
               return null;
             })

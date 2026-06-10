@@ -175,9 +175,16 @@ body,
  * hljs-string, …) sometimes lose colour to the surrounding markdown
  * styling.  These selectors lock in the dark-theme palette regardless
  * of the page theme. */
+/* Theme-independent dark surface for code blocks. The token palette
+ * below is locked to github-dark, so in light theme a token-derived
+ * wrapper bg rendered light-on-light (unreadable). Pin the shell dark
+ * in both themes so the forced palette keeps AA contrast (TASK-283). */
+.cos-code-shell { background: #0c0e12; border-color: #2c313a; }
+.cos-code-shell .cos-code-bar { background: #0c0e12; border-color: #2c313a; }
 .cos-code-block,
 .cos-code-block code,
 .cos-code-block code.hljs {
+  background: #0c0e12;
   color: #e5e7eb;
 }
 .cos-code-block .hljs-keyword,

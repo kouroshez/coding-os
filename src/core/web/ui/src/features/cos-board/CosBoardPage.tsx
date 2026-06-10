@@ -3717,8 +3717,8 @@ function DiffView({ diff }: { diff: string }) {
     >
       {diff.split('\n').map((ln, i) => {
         let color = 'var(--ink-soft)';
-        if (ln.startsWith('+') && !ln.startsWith('+++')) color = '#3fb950';
-        else if (ln.startsWith('-') && !ln.startsWith('---')) color = '#f85149';
+        if (ln.startsWith('+') && !ln.startsWith('+++')) color = 'var(--green)';
+        else if (ln.startsWith('-') && !ln.startsWith('---')) color = 'var(--red)';
         else if (ln.startsWith('@@')) color = 'var(--accent)';
         return (
           <div key={i} style={{ color, whiteSpace: 'pre' }}>
@@ -3746,8 +3746,8 @@ function FileDiffRow({ sha, file }: { sha: string; file: CommitFileDTO }) {
         style={{ ...linkBtn, fontFamily: mono, fontSize: 10.5, color: 'var(--ink)' }}
       >
         <span style={{ color: 'var(--ink-faint)' }}>{open ? '▾' : '▸'}</span> {file.path}
-        {file.added != null && <span style={{ color: '#3fb950', marginLeft: 6 }}>+{file.added}</span>}
-        {file.removed != null && <span style={{ color: '#f85149', marginLeft: 4 }}>−{file.removed}</span>}
+        {file.added != null && <span style={{ color: 'var(--green)', marginLeft: 6 }}>+{file.added}</span>}
+        {file.removed != null && <span style={{ color: 'var(--red)', marginLeft: 4 }}>−{file.removed}</span>}
       </button>
       {open &&
         (isLoading ? (

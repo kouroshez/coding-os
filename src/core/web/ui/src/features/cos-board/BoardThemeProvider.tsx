@@ -20,11 +20,43 @@ const BoardThemeContext = createContext<{
   setTweaks: React.Dispatch<React.SetStateAction<BoardTweaks>>;
 } | null>(null);
 
+// Board view-layout toggles persist across reloads (like cos-zoom /
+// cos-collapsed-lanes in CosBoardPage). Without this, switching to flat and
+// refreshing reverted to swimlanes — DEFAULT_TWEAKS won on every mount.
+const VIEW_PREFS_KEY = 'cos-board-view';
+
+function loadViewPrefs(): Partial<Pick<BoardTweaks, 'showSwimlanes' | 'showArchive'>> {
+  try {
+    const raw = localStorage.getItem(VIEW_PREFS_KEY);
+    if (!raw) return {};
+    const p = JSON.parse(raw) as Record<string, unknown>;
+    const out: Partial<Pick<BoardTweaks, 'showSwimlanes' | 'showArchive'>> = {};
+    if (typeof p.showSwimlanes === 'boolean') out.showSwimlanes = p.showSwimlanes;
+    if (typeof p.showArchive === 'boolean') out.showArchive = p.showArchive;
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 export function BoardThemeProvider({ children }: { children: ReactNode }) {
   const [tweaks, setTweaks] = useState<BoardTweaks>(() => ({
     ...DEFAULT_TWEAKS,
     theme: useThemeStore.getState().theme,
+    ...loadViewPrefs(),
   }));
+
+  // Persist the view-layout toggles whenever they change.
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        VIEW_PREFS_KEY,
+        JSON.stringify({ showSwimlanes: tweaks.showSwimlanes, showArchive: tweaks.showArchive }),
+      );
+    } catch {
+      // storage disabled/full — non-fatal; the toggle just won't persist.
+    }
+  }, [tweaks.showSwimlanes, tweaks.showArchive]);
 
   // Mirror the global theme-store so the board theme follows the header
   // toggle (the Theme tweak below writes back to the store) — no divergence.

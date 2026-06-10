@@ -214,7 +214,7 @@ export default function NewChatForm({
                 {status}…
               </span>
             )}
-            {err && <p className="mt-2 text-[12px] text-[#f85149]">{err}</p>}
+            {err && <p className="mt-2 text-[12px] text-[var(--cos-err)]">{err}</p>}
           </div>
         </div>
       </div>
@@ -225,7 +225,7 @@ export default function NewChatForm({
   return (
     <div className="flex w-full flex-col gap-3">
       {err && (
-        <p role="alert" className="px-1 text-[12px] text-[#f85149]">
+        <p role="alert" className="px-1 text-[12px] text-[var(--cos-err)]">
           {err}
         </p>
       )}

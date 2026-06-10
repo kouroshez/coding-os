@@ -936,7 +936,9 @@ _CHAT_SYSTEM = (
     "and skip any cognitive-state / gate / work-log ceremony — that protocol is for "
     "terminal sessions, not Hub chat; just answer. You MAY use the cos_* tools "
     "(memory, graph, docs, board) to ground an answer when it genuinely helps, but "
-    "keep replies focused and readable rather than running a full work protocol."
+    "keep replies focused and readable rather than running a full work protocol. "
+    "When you commit code for a specific task, include its id like `(TASK-NNN)` in "
+    "the commit subject so the board links the commit to that task."
 )
 
 
@@ -1296,6 +1298,10 @@ async def chat_send(
         cwd=cwd,
         fork_session=fork,
         model=model,
+        # Headless resume has no interactive approver, so a write tool under the
+        # default permission mode errors with "requested permissions … but you
+        # haven't granted it yet". Match chat_new / onboard so Write/Edit/Bash run.
+        permission_mode="dontAsk",
         # Follow-up turns must be as clean + fast as the first: no project hook
         # suite / CLAUDE.md governance (that caused the banner, "No response
         # requested", and tool-permission errors on resume).

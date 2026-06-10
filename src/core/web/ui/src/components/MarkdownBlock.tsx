@@ -62,10 +62,10 @@ function CodeBlock({
   return (
     <div
       dir="ltr"
-      className="group relative my-2 overflow-hidden rounded-lg border border-[var(--cos-border)] bg-[var(--cos-inset)] text-[var(--cos-text)]"
+      className="cos-code-shell group relative my-2 overflow-hidden rounded-lg border"
     >
-      <div className="flex items-center justify-between border-b border-[var(--cos-border)] bg-[var(--cos-inset)] px-3 py-1">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
+      <div className="cos-code-bar flex items-center justify-between border-b px-3 py-1">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
           {language ?? 'code'}
         </span>
         <button
@@ -77,7 +77,7 @@ function CodeBlock({
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]',
             copied
               ? 'bg-[var(--cos-ok-tint)] text-[var(--cos-ok)]'
-              : 'text-[var(--cos-muted)] hover:bg-[var(--cos-panel)] hover:text-[var(--cos-text)]',
+              : 'text-zinc-400 hover:bg-white/10 hover:text-zinc-100',
           ].join(' ')}
         >
           {copied ? '✓ copied' : 'copy'}
