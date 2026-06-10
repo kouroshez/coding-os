@@ -103,7 +103,9 @@ which files reach the extractors:
   c, c++, c#, scala, kotlin and lua; any other extension with a
   `_LANG_SPEC` row activates once its grammar is installed. SQL is
   intentionally excluded (its DDL symbols don't fit the function/class
-  model). Calls/imports/type edges remain per-language (e.g. code_go).
+  model). Rust and Ruby also get calls/imports/inherits edges (per-language
+  hooks in code_generic); the other generic languages stay node+contains
+  until a hook is added for them.
 - **Exclude** — the union of two layers: the static `DEFAULT_EXCLUDE`
   denylist (`node_modules`, `.venv`, `dist`, `build`, …) **and** the
   repo's `.gitignore` (root + nested + `.git/info/exclude`), parsed via

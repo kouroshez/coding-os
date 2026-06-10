@@ -139,6 +139,58 @@ def test_polyglot_language_extracts_symbols(lang, grammar, fname, src, expected)
     assert expected <= set(_syms(result)), f"{lang}: missing {expected - set(_syms(result))}"
 
 
+def _edges(result):
+    return [(e.edge_type, e.source_uid, e.target_uid, e.confidence) for e in result.edges]
+
+
+def test_rust_imports_calls_implements():
+    """TASK-305: Rust gains use-imports, calls (tiered), impl-of-trait."""
+    src = (
+        "use std::fmt;\n"
+        "fn caller(){ helper(); other::thing(); self.run(); }\n"
+        "fn helper(){}\n"
+        "struct Point;\n"
+        "impl Display for Point {}\n"
+    )
+    e = _edges(g.extract("a.rs", src))
+    assert ("imports", "code:file:a.rs", "code:external:std::fmt", 1.0) in e
+    # same-file call resolves to the real uid at high confidence
+    assert ("calls", "code:function:a.rs::caller", "code:function:a.rs::helper", 0.9) in e
+    # cross-file call → linkable stub, mid confidence
+    assert ("calls", "code:function:a.rs::caller", "code:external:thing", 0.5) in e
+    # dynamic dispatch (self.run) → unresolved stub, low confidence
+    assert ("calls", "code:function:a.rs::caller", "code:external:unresolved:run", 0.3) in e
+    # impl Display for Point → Point implements Display
+    assert ("implements", "code:class:a.rs::Point", "code:external:Display", 1.0) in e
+
+
+def test_ruby_imports_calls_inherits_includes():
+    """TASK-305: Ruby gains require-imports, calls, superclass + include."""
+    src = (
+        'require "set"\n'
+        'require_relative "x"\n'
+        "class C < Base\n"
+        "  include Mod\n"
+        "  def m; obj.call; foo(1); end\n"
+        "end\n"
+    )
+    e = _edges(g.extract("a.rb", src))
+    assert ("imports", "code:file:a.rb", "code:external:set", 1.0) in e
+    assert ("inherits", "code:class:a.rb::C", "code:external:Base", 1.0) in e
+    assert ("includes", "code:class:a.rb::C", "code:external:Mod", 1.0) in e
+    # receiver.method → dynamic, low confidence; bare foo(1) → linkable stub
+    assert ("calls", "code:function:a.rb::m", "code:external:unresolved:call", 0.3) in e
+    assert ("calls", "code:function:a.rb::m", "code:external:foo", 0.5) in e
+
+
+def test_edge_targets_have_stub_nodes():
+    """Every external edge target gets a promoted stub node (no dangling)."""
+    result = g.extract("a.rs", "use std::fmt;\nfn f(){ g(); }\n")
+    node_uids = {n.uid for n in result.nodes}
+    for e in result.edges:
+        assert e.target_uid in node_uids, f"dangling edge target: {e.target_uid}"
+
+
 def test_missing_grammar_fails_open(monkeypatch):
     """A supported language whose grammar fails to load → file node only +
     dep_missing parse error (the overlay returns None)."""

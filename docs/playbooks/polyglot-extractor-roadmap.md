@@ -395,6 +395,7 @@ A regression below these caps in CI blocks the PR.
 | C1 Go → ts-go | shipped | full AST + 9 frameworks of contracts; toolchain workspace open |
 | D1 Generic polyglot baseline | shipped | `code_generic` (TASK-296) — one table-driven extractor emits file+spine+function/class+contains for any grammar in `_LANG_SPEC`. Calls/imports stay per-language. |
 | D2 Broadened grammars | shipped | TASK-304 — grammars now ship for rust, ruby, java, c, c++, c#, scala, kotlin, lua (+ C/C++ declarator-name fix). SQL deferred (DDL doesn't fit func/class). |
+| D3 Rust/Ruby edges | shipped | TASK-305 — per-language hooks in code_generic add imports + calls (tiered 0.9 same-file / 0.5 cross-file / 0.3 dynamic) + inherits/implements/includes for rust & ruby (Go-grade). Other generic langs stay node+contains until their hook is added. |
 | E1 Performance telemetry | open | duration_ms column landing alongside this cleanup |
 
 > **Generic vs hand-written precedence.** `code_generic` only owns the
