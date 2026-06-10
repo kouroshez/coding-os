@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { apiGet, resolveApiUrl } from '@/lib/api-client';
+import { acquireEventSource, type SharedEventSource } from '@/lib/shared-event-source';
 
 /**
  * Live board activity stream.
@@ -229,23 +230,30 @@ export function useBoardStream(): UseBoardStreamReturn {
 
   useEffect(() => {
     let cancelled = false;
-    let source: EventSource | null = null;
+    let shared: SharedEventSource | null = null;
     try {
-      source = new EventSource(resolveApiUrl('/api/stream/events'));
+      shared = acquireEventSource(resolveApiUrl('/api/stream/events'));
     } catch {
       return () => undefined;
     }
+    const source = shared.source;
     sourceRef.current = source;
 
     // Native `open` fires once the HTTP connection is established —
     // this is the authoritative "we're online" signal. The custom
     // `connected` event from the backend is kept only for logging.
-    source.onopen = () => {
+    // The shared source may already be OPEN (a sibling consumer like
+    // AttentionBell connected first) — `open` won't re-fire then.
+    if (source.readyState === EventSource.OPEN) {
+      setConnected(true);
+    }
+    const onOpen = () => {
       if (cancelled) return;
       setConnected(true);
     };
+    source.addEventListener('open', onOpen);
 
-    source.addEventListener('connected', () => {
+    const onBackendConnected = () => {
       if (cancelled) return;
       setConnected(true);
       // De-dupe the "SSE online" row — every CosBoardPage remount opens
@@ -270,15 +278,17 @@ export function useBoardStream(): UseBoardStreamReturn {
         writeCache(pathname, next);
         return next;
       });
-    });
+    };
+    source.addEventListener('connected', onBackendConnected);
 
     // P1 — presence-updated bumps the board-list query so the live-agents
     // pill reflects state transitions without waiting for a task move.
     // Payload is informational; the bump+invalidate path does the work.
-    source.addEventListener('presence-updated', () => {
+    const onPresenceUpdated = () => {
       if (cancelled) return;
       setBump((b) => b + 1);
-    });
+    };
+    source.addEventListener('presence-updated', onPresenceUpdated);
 
     // NOTE: `agent-activity` events still arrive over SSE but they are
     // NOT pushed into the Board panel — that surface is task-only.
@@ -286,12 +296,13 @@ export function useBoardStream(): UseBoardStreamReturn {
     // so the Board feed stays a clean kanban-transition audit log.
     // Listeners that needed the bump (presence pill) keep getting it
     // via `presence-updated` above.
-    source.addEventListener('agent-activity', () => {
+    const onAgentActivity = () => {
       if (cancelled) return;
       setBump((b) => b + 1);
-    });
+    };
+    source.addEventListener('agent-activity', onAgentActivity);
 
-    source.addEventListener('task-updated', (evt) => {
+    const onTaskUpdated = (evt: Event) => {
       if (cancelled) return;
       setBump((b) => b + 1);
       try {
@@ -322,22 +333,30 @@ export function useBoardStream(): UseBoardStreamReturn {
       } catch {
         /* ignore malformed payload */
       }
-    });
+    };
+    source.addEventListener('task-updated', onTaskUpdated);
 
     // EventSource fires `error` on every normal auto-reconnect attempt
     // (not just real failures). Only flip to offline when the browser
     // has actually given up (readyState === CLOSED). While CONNECTING
     // we stay in the last-known state so the UI doesn't flash.
-    source.addEventListener('error', () => {
+    const onError = () => {
       if (cancelled) return;
-      if (source && source.readyState === EventSource.CLOSED) {
+      if (source.readyState === EventSource.CLOSED) {
         setConnected(false);
       }
-    });
+    };
+    source.addEventListener('error', onError);
 
     return () => {
       cancelled = true;
-      source?.close();
+      source.removeEventListener('open', onOpen);
+      source.removeEventListener('connected', onBackendConnected);
+      source.removeEventListener('presence-updated', onPresenceUpdated);
+      source.removeEventListener('agent-activity', onAgentActivity);
+      source.removeEventListener('task-updated', onTaskUpdated);
+      source.removeEventListener('error', onError);
+      shared?.release();
       sourceRef.current = null;
     };
     // pathname change must tear down the old connection — EventSource

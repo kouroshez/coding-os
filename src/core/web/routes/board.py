@@ -393,7 +393,7 @@ def board_list(
 
 
 @router.post("/create")
-async def board_create(
+def board_create(
     title: str = Body(...),
     swimlane: str = Body(...),
     kind: str = Body(...),
@@ -445,7 +445,7 @@ async def board_create(
 
 
 @router.post("/move")
-async def board_move(
+def board_move(
     task_id: str = Body(...),
     to: str = Body(...),
     reason: str | None = Body(None),
@@ -476,7 +476,7 @@ async def board_move(
 
 
 @router.patch("/task/{task_id}")
-async def board_task_edit(
+def board_task_edit(
     task_id: str,
     title: str | None = Body(None),
     priority: str | None = Body(None),
@@ -517,7 +517,7 @@ async def board_task_edit(
 
 
 @router.post("/task/{task_id}/ready")
-async def board_task_ready(
+def board_task_ready(
     task_id: str,
     ready: bool = Body(True, embed=True),
     _rl=Depends(make_rate_limit_dep("board.task.ready")),
@@ -583,7 +583,7 @@ def _run_git(args: list[str], cwd: Path, timeout: float = 8.0) -> tuple[int, str
 
 
 @router.get("/commit/{sha}")
-async def board_commit(
+def board_commit(
     sha: str,
     for_task: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("board.commit")),
@@ -643,7 +643,7 @@ async def board_commit(
 
 
 @router.get("/diff")
-async def board_diff(
+def board_diff(
     sha: str = Query(...),
     file: str = Query(...),
     _rl=Depends(make_rate_limit_dep("board.diff")),
@@ -694,7 +694,7 @@ async def board_diff(
 
 
 @router.get("/task/{task_id}/chat-ref")
-async def board_task_chat_ref(
+def board_task_chat_ref(
     task_id: str,
     _rl=Depends(make_rate_limit_dep("board.task.chatref")),
     _m=Depends(make_metrics_dep("board.task.chatref")),
@@ -762,7 +762,7 @@ async def board_task_chat_ref(
 
 
 @router.get("/config")
-async def board_config(
+def board_config(
     _rl=Depends(make_rate_limit_dep("board.config")),
     _m=Depends(make_metrics_dep("board.config")),
 ):
@@ -818,7 +818,7 @@ async def board_config(
 
 
 @router.post("/reposition")
-async def board_reposition(
+def board_reposition(
     task_id: str = Body(...),
     swimlane: str | None = Body(None),
     to: str | None = Body(None),
@@ -851,7 +851,7 @@ async def board_reposition(
 
 
 @router.get("/daily")
-async def board_daily(
+def board_daily(
     since: str = Query("24h"),
     agent_session: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("board.daily")),
@@ -870,7 +870,7 @@ async def board_daily(
 
 
 @router.get("/retro")
-async def board_retro(
+def board_retro(
     since: str = Query("7d"),
     _rl=Depends(make_rate_limit_dep("board.retro")),
     _m=Depends(make_metrics_dep("board.retro")),
@@ -888,7 +888,7 @@ async def board_retro(
 
 
 @router.get("/wip")
-async def board_wip(
+def board_wip(
     _rl=Depends(make_rate_limit_dep("board.wip")),
     _m=Depends(make_metrics_dep("board.wip")),
 ):
@@ -905,7 +905,7 @@ async def board_wip(
 
 
 @router.get("/pick")
-async def board_pick(
+def board_pick(
     swimlane: str | None = Query(None),
     priority_min: str = Query("P2"),
     max_candidates: int = Query(5),

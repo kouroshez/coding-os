@@ -16,7 +16,7 @@ router = APIRouter(tags=["metrics"])
 
 
 @router.get("/metrics", response_class=PlainTextResponse)
-async def prometheus_metrics():
+def prometheus_metrics():
     """Render collected metrics in Prometheus text format."""
     try:
         from graph_os.enterprise import metrics  # type: ignore

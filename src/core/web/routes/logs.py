@@ -19,6 +19,7 @@ from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import ENVELOPE_ERROR_RESPONSES, unwrap
+from ._bounded_read import DEFAULT_WINDOW, tail_lines
 
 logger = logging.getLogger("coding_os.web.logs")
 router = APIRouter(prefix="/api/logs", tags=["logs"], responses=ENVELOPE_ERROR_RESPONSES)
@@ -109,13 +110,10 @@ def _event_passes(
 def _read_tail_jsonl(path: Path, max_lines: int) -> list[dict[str, Any]]:
     if not path.exists():
         return []
-    try:
-        with path.open("r", encoding="utf-8", errors="ignore") as handle:
-            lines = handle.readlines()
-    except OSError as exc:
-        logger.warning("logs tail read failed: %s", exc)
-        return []
-    tail = lines[-max_lines:] if len(lines) > max_lines else lines
+    # Bounded tail (never readlines() the whole sink — it grows unbounded
+    # under multi-agent load). ~512 B/line budget keeps max_lines reachable.
+    window = max(DEFAULT_WINDOW, max_lines * 512)
+    tail, _ = tail_lines(path, max_lines=max_lines, max_bytes=window)
     parsed: list[dict[str, Any]] = []
     for raw in tail:
         line = raw.strip()
@@ -131,7 +129,7 @@ def _read_tail_jsonl(path: Path, max_lines: int) -> list[dict[str, Any]]:
 
 
 @router.post("/client")
-async def report_client_log(
+def report_client_log(
     body: dict = Body(...),
     _rl=Depends(make_rate_limit_dep("logs.client")),
     _m=Depends(make_metrics_dep("logs.client")),
@@ -180,7 +178,7 @@ async def report_client_log(
 
 
 @router.get("/recent")
-async def recent_logs(
+def recent_logs(
     limit: int = Query(200, ge=1, le=2000),
     level: str = Query("debug", description="floor — events at or above this level"),
     scope: str | None = Query(None, description="fnmatch glob, e.g. hook.* or core.thinking_os.*"),
@@ -231,7 +229,7 @@ async def recent_logs(
 
 
 @router.get("/summary")
-async def logs_summary(
+def logs_summary(
     since: str | None = Query("1h", description="relative duration window: 30s, 10m, 1h, 2d"),
     _rl=Depends(make_rate_limit_dep("logs.summary")),
     _m=Depends(make_metrics_dep("logs.summary")),
@@ -292,40 +290,51 @@ async def stream_logs(
     poll_secs = float(os.environ.get("COS_LOG_STREAM_POLL_MS", "750")) / 1000.0
     heartbeat_secs = 15.0
 
+    def _drain_log(pos: int) -> tuple[list[dict[str, Any]], int]:
+        # Blocking stat + read — runs on a worker thread so a burst of log
+        # lines never stalls the event loop (hub-architecture.md § Concurrency).
+        if not path.exists():
+            return [], pos
+        size = path.stat().st_size
+        if size < pos:
+            pos = 0
+        if size <= pos:
+            return [], pos
+        with path.open("r", encoding="utf-8", errors="ignore") as fh:
+            fh.seek(pos)
+            chunk = fh.read()
+            pos = fh.tell()
+        matched: list[dict[str, Any]] = []
+        for raw in chunk.splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            try:
+                evt = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(evt, dict):
+                continue
+            if not _event_passes(
+                evt,
+                level_floor=level_floor,
+                scope_pattern=scope,
+                earliest_epoch=None,
+                search_lower=search_lower,
+            ):
+                continue
+            matched.append(evt)
+        return matched, pos
+
     async def gen() -> AsyncGenerator[bytes, None]:
         yield f"event: connected\ndata: {json.dumps({'log_path': str(path)})}\n\n".encode()
-        pos = path.stat().st_size if path.exists() else 0
+        pos = await asyncio.to_thread(lambda: path.stat().st_size if path.exists() else 0)
         last_beat = time.monotonic()
         try:
             while True:
-                if path.exists():
-                    size = path.stat().st_size
-                    if size < pos:
-                        pos = 0
-                    if size > pos:
-                        with path.open("r", encoding="utf-8", errors="ignore") as fh:
-                            fh.seek(pos)
-                            chunk = fh.read()
-                            pos = fh.tell()
-                        for raw in chunk.splitlines():
-                            line = raw.strip()
-                            if not line:
-                                continue
-                            try:
-                                evt = json.loads(line)
-                            except json.JSONDecodeError:
-                                continue
-                            if not isinstance(evt, dict):
-                                continue
-                            if not _event_passes(
-                                evt,
-                                level_floor=level_floor,
-                                scope_pattern=scope,
-                                earliest_epoch=None,
-                                search_lower=search_lower,
-                            ):
-                                continue
-                            yield f"event: log\ndata: {json.dumps(evt, ensure_ascii=False)}\n\n".encode()
+                log_events, pos = await asyncio.to_thread(_drain_log, pos)
+                for evt in log_events:
+                    yield f"event: log\ndata: {json.dumps(evt, ensure_ascii=False)}\n\n".encode()
                 if time.monotonic() - last_beat > heartbeat_secs:
                     yield f"event: heartbeat\ndata: {json.dumps({'ts': int(time.time())})}\n\n".encode()
                     last_beat = time.monotonic()

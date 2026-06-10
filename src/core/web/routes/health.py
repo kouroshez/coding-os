@@ -69,13 +69,13 @@ def _health_payload() -> dict:
 
 
 @router.get("/health")
-async def health():
+def health():
     """Legacy hub-wide health endpoint (kept for back-compat)."""
     return _health_payload()
 
 
 @router.get("/api/health")
-async def api_health():
+def api_health():
     """Project-scoped health endpoint — rewritten by ProjectScopeMiddleware."""
     return _health_payload()
 
@@ -101,7 +101,7 @@ _DB_TABLES_OF_INTEREST = (
 
 
 @router.get("/api/health/db")
-async def api_health_db():
+def api_health_db():
     """Per-project sqlite row counts grouped by table.
 
     Returns the project's coding-os.db row counts for the tables the

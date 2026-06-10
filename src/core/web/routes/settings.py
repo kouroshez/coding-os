@@ -59,7 +59,7 @@ def _env_overrides() -> dict:
 
 
 @router.get("")
-async def get_settings():
+def get_settings():
     return {"data": {"settings": _load(), "env_overrides": _env_overrides()}}
 
 
@@ -85,7 +85,7 @@ class _PatchBody(BaseModel):
 
 
 @router.patch("")
-async def patch_settings(body: _PatchBody):
+def patch_settings(body: _PatchBody):
     current = _load()
     if body.budget_cap is not None:
         current["budget_cap"] = body.budget_cap.model_dump()

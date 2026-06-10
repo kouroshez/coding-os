@@ -236,7 +236,7 @@ def _dispatch_available() -> bool:
 
 
 @router.get("")
-async def list_roles(
+def list_roles(
     _rl=Depends(make_rate_limit_dep("roles.list")),
     _m=Depends(make_metrics_dep("roles.list")),
 ):
@@ -295,7 +295,7 @@ def resolve_chain(state: Path, agent: str) -> tuple[list[str], str | None]:
 
 
 @router.get("/chain")
-async def current_chain(
+def current_chain(
     agent: str = Query("claude"),
     _rl=Depends(make_rate_limit_dep("roles.chain")),
     _m=Depends(make_metrics_dep("roles.chain")),
@@ -318,7 +318,7 @@ async def current_chain(
 
 
 @router.get("/{formula_id}/outputs")
-async def formula_outputs(
+def formula_outputs(
     formula_id: str,
     agent: str | None = Query(None),
     limit: int = Query(20, ge=1, le=100),

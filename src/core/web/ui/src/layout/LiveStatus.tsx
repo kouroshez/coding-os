@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
 import { resolveApiUrl } from '@/lib/api-client';
+import { acquireEventSource } from '@/lib/shared-event-source';
 import { useScopedLink } from '@/lib/use-scoped-link';
 
 interface AgentRuntime {
@@ -86,20 +87,21 @@ export default function LiveStatus() {
   // independent of the 4s polling interval. Reconnect on URL changes
   // (per-project scope) via the resolveApiUrl indirection.
   useEffect(() => {
-    const url = resolveApiUrl('/api/hooks/stream');
-    const es = new EventSource(url);
-    es.addEventListener('hook', (ev) => {
+    const shared = acquireEventSource(resolveApiUrl('/api/hooks/stream'));
+    const es = shared.source;
+    const onHook = (ev: Event) => {
       try {
         const payload = JSON.parse((ev as MessageEvent).data);
         setLiveHook(payload);
       } catch {
         // Malformed payload — skip silently; next event will recover.
       }
-    });
-    es.onerror = () => {
-      // Browser auto-reconnects with backoff; nothing for us to do.
     };
-    return () => es.close();
+    es.addEventListener('hook', onHook);
+    return () => {
+      es.removeEventListener('hook', onHook);
+      shared.release();
+    };
   }, []);
 
   // Click-outside to close popover.

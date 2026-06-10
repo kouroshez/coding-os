@@ -305,7 +305,7 @@ def _read_cognition_events(state: Path, session_id: str | None, limit: int) -> l
 
 
 @router.get("/sessions")
-async def list_sessions(
+def list_sessions(
     agent: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("observability.sessions")),
     _m=Depends(make_metrics_dep("observability.sessions")),
@@ -329,7 +329,7 @@ async def list_sessions(
 
 
 @router.get("/timeline")
-async def timeline(
+def timeline(
     session_id: str | None = Query(None),
     sources: str = Query("hook,cognition"),
     limit: int = Query(200, ge=1, le=2000),

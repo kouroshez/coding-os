@@ -195,7 +195,7 @@ def _canonical_agents() -> list[str]:
 
 
 @router.get("/now")
-async def presence_now(
+def presence_now(
     _rl=Depends(make_rate_limit_dep("presence.now")),
     _m=Depends(make_metrics_dep("presence.now")),
 ):
@@ -316,7 +316,7 @@ def _latest_transcript_usage(transcript_path: Path) -> dict | None:
 
 
 @router.get("/agents")
-async def presence_agents(
+def presence_agents(
     _rl=Depends(make_rate_limit_dep("presence.agents")),
     _m=Depends(make_metrics_dep("presence.agents")),
 ):

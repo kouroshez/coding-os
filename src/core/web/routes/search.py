@@ -42,7 +42,7 @@ def _unavailable(msg: str = "search tools unavailable") -> str:
 
 
 @router.get("/memory")
-async def memory_search(
+def memory_search(
     query: str = Query(..., description="Natural-language search query"),
     limit: int = Query(5),
     memory_type: str | None = Query(None),
@@ -100,7 +100,7 @@ async def memory_search(
 
 
 @router.get("/docs")
-async def doc_search(
+def doc_search(
     query: str = Query(..., description="Natural-language search query"),
     source_types: str | None = Query(None, description="Comma-separated source types"),
     limit: int = Query(5),
@@ -144,7 +144,7 @@ async def doc_search(
 
 
 @router.get("/tasks")
-async def task_search(
+def task_search(
     query: str = Query(..., description="Natural-language search query"),
     status: str | None = Query(None, description="open/wip/done/blocked"),
     domain: str | None = Query(None, description="BACKEND/FRONTEND/DOCS/INFRA/..."),

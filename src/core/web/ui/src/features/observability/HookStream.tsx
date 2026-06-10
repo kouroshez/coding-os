@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApiGet } from '@/lib/hooks';
 import { resolveApiUrl } from '@/lib/api-client';
+import { acquireEventSource } from '@/lib/shared-event-source';
 
 export interface HookEvent {
   iso_ts: string;
@@ -67,10 +68,11 @@ export default function HookStream() {
 
   // Live SSE — prepend new events; clamp the list at MAX_EVENTS.
   useEffect(() => {
-    const es = new EventSource(resolveApiUrl('/api/hooks/stream'));
-    es.addEventListener('connected', () => setConnected(true));
-    es.addEventListener('heartbeat', () => setConnected(true));
-    es.addEventListener('hook', (ev) => {
+    const shared = acquireEventSource(resolveApiUrl('/api/hooks/stream'));
+    const es = shared.source;
+    if (es.readyState === EventSource.OPEN) setConnected(true);
+    const onLive = () => setConnected(true);
+    const onHook = (ev: Event) => {
       try {
         const payload = JSON.parse((ev as MessageEvent).data) as HookEvent;
         if (paused) return;
@@ -81,10 +83,20 @@ export default function HookStream() {
       } catch {
         // Malformed payload — ignore one event.
       }
-    });
-    es.onerror = () => setConnected(false);
+    };
+    const onError = () => setConnected(false);
+    es.addEventListener('open', onLive);
+    es.addEventListener('connected', onLive);
+    es.addEventListener('heartbeat', onLive);
+    es.addEventListener('hook', onHook);
+    es.addEventListener('error', onError);
     return () => {
-      es.close();
+      es.removeEventListener('open', onLive);
+      es.removeEventListener('connected', onLive);
+      es.removeEventListener('heartbeat', onLive);
+      es.removeEventListener('hook', onHook);
+      es.removeEventListener('error', onError);
+      shared.release();
       if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
     };
   }, [paused]);

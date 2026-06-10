@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApiGet } from '@/lib/hooks';
 import { resolveApiUrl } from '@/lib/api-client';
+import { acquireEventSource, type SharedEventSource } from '@/lib/shared-event-source';
 import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
 
 interface LogEvent {
@@ -93,7 +94,7 @@ export default function LogsPage() {
   const [liveTail, setLiveTail] = useState(false);
   const [liveEvents, setLiveEvents] = useState<LogEvent[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Record<number, boolean>>({});
-  const sourceRef = useRef<EventSource | null>(null);
+  const sourceRef = useRef<SharedEventSource | null>(null);
 
   const params = useMemo(() => {
     const p: Record<string, unknown> = { level, limit };
@@ -112,7 +113,7 @@ export default function LogsPage() {
 
   useEffect(() => {
     if (!liveTail) {
-      sourceRef.current?.close();
+      sourceRef.current?.release();
       sourceRef.current = null;
       return;
     }
@@ -121,9 +122,10 @@ export default function LogsPage() {
     if (scope) streamParams.scope = scope;
     if (search) streamParams.search = search;
     const url = resolveApiUrl('/api/logs/stream', streamParams);
-    const source = new EventSource(url);
-    sourceRef.current = source;
-    source.addEventListener('log', (ev) => {
+    const shared = acquireEventSource(url);
+    const source = shared.source;
+    sourceRef.current = shared;
+    const onLog = (ev: Event) => {
       try {
         const parsed: LogEvent = JSON.parse((ev as MessageEvent).data);
         setLiveEvents((prev) => {
@@ -133,12 +135,11 @@ export default function LogsPage() {
       } catch {
         // ignore malformed payload
       }
-    });
-    source.onerror = () => {
-      // EventSource auto-reconnects on transient errors; no toast spam.
     };
+    source.addEventListener('log', onLog);
     return () => {
-      source.close();
+      source.removeEventListener('log', onLog);
+      shared.release();
       sourceRef.current = null;
     };
   }, [liveTail, level, scope, search]);

@@ -36,6 +36,7 @@ class MockEventSource {
   open() {
     this.readyState = 1;
     this.onopen?.();
+    (this.listeners.open ?? []).forEach((f) => f({}));
   }
 
   emit(type: string, data?: unknown) {

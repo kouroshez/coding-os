@@ -109,7 +109,7 @@ def _load_presence_for_agent(agent_dir: Path, agent: str, now: int) -> list[dict
 
 
 @router.get("/active")
-async def list_active_sessions():
+def list_active_sessions():
     """Return all known agent presence records grouped by lifecycle state.
 
     State values:

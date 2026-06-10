@@ -165,73 +165,78 @@ def _snapshot_presence() -> dict[str, str]:
     return snap
 
 
-async def _event_generator() -> AsyncGenerator[str, None]:
-    """Poll docs/tasks/ and yield SSE events."""
-    tasks_dir = _tasks_dir()
-    poll = _poll_interval_secs()
-    last_mtimes: dict[str, float] = {}
-    last_history_id = 0
-    last_dispatch_id = 0  # T8.6: track formula_dispatches.id watermark
-    last_heartbeat = time.monotonic()
-    last_presence: dict[str, str] = _snapshot_presence()
-    last_activity: dict[str, dict[str, int | str | None]] = _snapshot_activity()
+class _StreamState:
+    """Per-connection poll watermarks, mutated only inside _poll_tick."""
 
+    def __init__(self) -> None:
+        self.tasks_dir = _tasks_dir()
+        self.last_mtimes: dict[str, float] = {}
+        self.last_history_id = 0
+        self.last_dispatch_id = 0  # T8.6: track formula_dispatches.id watermark
+        self.last_presence: dict[str, str] = {}
+        self.last_activity: dict[str, dict[str, int | str | None]] = {}
+
+
+def _init_stream_state() -> _StreamState:
+    state = _StreamState()
+    state.last_presence = _snapshot_presence()
+    state.last_activity = _snapshot_activity()
     try:
         conn = _db_conn()
         try:
             row = conn.execute("SELECT COALESCE(MAX(id), 0) FROM task_status_history").fetchone()
-            last_history_id = int(row[0]) if row and row[0] is not None else 0
+            state.last_history_id = int(row[0]) if row and row[0] is not None else 0
             row = conn.execute("SELECT COALESCE(MAX(id), 0) FROM formula_dispatches").fetchone()
-            last_dispatch_id = int(row[0]) if row and row[0] is not None else 0
+            state.last_dispatch_id = int(row[0]) if row and row[0] is not None else 0
         finally:
             conn.close()
     except sqlite3.Error:
-        last_history_id = 0
-        last_dispatch_id = 0
+        state.last_history_id = 0
+        state.last_dispatch_id = 0
+    return state
 
-    yield await _sse_event(
-        "connected", {"message": "SSE stream connected", "poll_ms": int(poll * 1000)}
-    )
 
-    while True:
-        await asyncio.sleep(poll)
+def _poll_tick(state: _StreamState) -> list[tuple[str, dict]]:
+    """One poll iteration's blocking work (DB + presence + file watch).
 
-        now = time.monotonic()
-        if now - last_heartbeat >= _HEARTBEAT_INTERVAL:
-            yield await _sse_event("heartbeat", {"ts": int(time.time())})
-            last_heartbeat = now
+    Runs on a worker thread via asyncio.to_thread — a locked SQLite DB or a
+    large docs/tasks/ glob must never stall the shared uvicorn event loop
+    (hub-architecture.md § Concurrency model).
+    """
+    events: list[tuple[str, dict]] = []
 
-        # ----- Canonical DB transitions (authoritative; emitted first) -----
+    # ----- Canonical DB transitions (authoritative; emitted first) -----
+    try:
+        conn = _db_conn()
         try:
-            conn = _db_conn()
-            try:
-                rows = conn.execute(
-                    """
-                    SELECT h.id, h.task_id, h.old_status, h.new_status,
-                           h.agent_session, h.transitioned_at, h.reason,
-                           t.status
-                    FROM task_status_history h
-                    LEFT JOIN tasks t ON t.task_id = h.task_id
-                    WHERE h.id > ?
-                    ORDER BY h.id ASC
-                    LIMIT 200
-                    """,
-                    (last_history_id,),
-                ).fetchall()
-            finally:
-                conn.close()
-        except sqlite3.Error as exc:
-            logger.debug("stream history fetch failed: %s", exc)
-            rows = []
+            rows = conn.execute(
+                """
+                SELECT h.id, h.task_id, h.old_status, h.new_status,
+                       h.agent_session, h.transitioned_at, h.reason,
+                       t.status
+                FROM task_status_history h
+                LEFT JOIN tasks t ON t.task_id = h.task_id
+                WHERE h.id > ?
+                ORDER BY h.id ASC
+                LIMIT 200
+                """,
+                (state.last_history_id,),
+            ).fetchall()
+        finally:
+            conn.close()
+    except sqlite3.Error as exc:
+        logger.debug("stream history fetch failed: %s", exc)
+        rows = []
 
-        emitted_recent: dict[str, float] = {}  # task_id -> transitioned_at
-        for r in rows:
-            row_id = int(r[0])
-            last_history_id = max(last_history_id, row_id)
-            task_id = r[1]
-            ts = float(r[5]) if r[5] is not None else float(time.time())
-            emitted_recent[task_id] = ts
-            yield await _sse_event(
+    emitted_recent: dict[str, float] = {}  # task_id -> transitioned_at
+    for r in rows:
+        row_id = int(r[0])
+        state.last_history_id = max(state.last_history_id, row_id)
+        task_id = r[1]
+        ts = float(r[5]) if r[5] is not None else float(time.time())
+        emitted_recent[task_id] = ts
+        events.append(
+            (
                 "task-updated",
                 {
                     "task_id": task_id,
@@ -250,23 +255,25 @@ async def _event_generator() -> AsyncGenerator[str, None]:
                     "current_status": r[7],
                 },
             )
+        )
 
-        # ----- Presence diff (P1) — push when an agent transitions
-        # active/working/present/offline. The board's React Query cache
-        # only refetches /api/board/list on `bump`, so without this loop
-        # the live-agents pill stays stale until the next task move.
-        try:
-            cur_presence = _snapshot_presence()
-        except Exception as exc:
-            logger.debug("presence snapshot raised: %s", exc)
-            cur_presence = last_presence
-        if cur_presence != last_presence:
-            changes = {
-                a: cur_presence.get(a)
-                for a in set(cur_presence) | set(last_presence)
-                if cur_presence.get(a) != last_presence.get(a)
-            }
-            yield await _sse_event(
+    # ----- Presence diff (P1) — push when an agent transitions
+    # active/working/present/offline. The board's React Query cache
+    # only refetches /api/board/list on `bump`, so without this loop
+    # the live-agents pill stays stale until the next task move.
+    try:
+        cur_presence = _snapshot_presence()
+    except Exception as exc:
+        logger.debug("presence snapshot raised: %s", exc)
+        cur_presence = state.last_presence
+    if cur_presence != state.last_presence:
+        changes = {
+            a: cur_presence.get(a)
+            for a in set(cur_presence) | set(state.last_presence)
+            if cur_presence.get(a) != state.last_presence.get(a)
+        }
+        events.append(
+            (
                 "presence-updated",
                 {
                     "states": cur_presence,
@@ -274,35 +281,37 @@ async def _event_generator() -> AsyncGenerator[str, None]:
                     "ts": int(time.time()),
                 },
             )
-            last_presence = cur_presence
+        )
+        state.last_presence = cur_presence
 
-        # ----- Agent activity (P7) — emit on tool/prompt timestamp
-        # advance so the stream panel shows real-time agent fires, not
-        # just task transitions.  Per-agent debounce already lives in
-        # the timestamp granularity (1s); we additionally suppress
-        # repeats where the *kind* and *sid* didn't change AND ts
-        # advanced <2 s, which collapses bursty tool chains.
-        try:
-            cur_activity = _snapshot_activity()
-        except Exception as exc:
-            logger.debug("activity snapshot raised: %s", exc)
-            cur_activity = last_activity
-        for agent, cur in cur_activity.items():
-            prev = last_activity.get(agent)
-            cur_ts_raw = cur.get("ts")
-            prev_ts_raw = prev.get("ts") if prev else 0
-            cur_ts = cur_ts_raw if isinstance(cur_ts_raw, int) else 0
-            prev_ts = prev_ts_raw if isinstance(prev_ts_raw, int) else 0
-            if cur_ts <= prev_ts:
-                continue
-            if (
-                prev is not None
-                and prev.get("kind") == cur.get("kind")
-                and prev.get("sid") == cur.get("sid")
-                and cur_ts - prev_ts < 2
-            ):
-                continue
-            yield await _sse_event(
+    # ----- Agent activity (P7) — emit on tool/prompt timestamp
+    # advance so the stream panel shows real-time agent fires, not
+    # just task transitions.  Per-agent debounce already lives in
+    # the timestamp granularity (1s); we additionally suppress
+    # repeats where the *kind* and *sid* didn't change AND ts
+    # advanced <2 s, which collapses bursty tool chains.
+    try:
+        cur_activity = _snapshot_activity()
+    except Exception as exc:
+        logger.debug("activity snapshot raised: %s", exc)
+        cur_activity = state.last_activity
+    for agent, cur in cur_activity.items():
+        prev = state.last_activity.get(agent)
+        cur_ts_raw = cur.get("ts")
+        prev_ts_raw = prev.get("ts") if prev else 0
+        cur_ts = cur_ts_raw if isinstance(cur_ts_raw, int) else 0
+        prev_ts = prev_ts_raw if isinstance(prev_ts_raw, int) else 0
+        if cur_ts <= prev_ts:
+            continue
+        if (
+            prev is not None
+            and prev.get("kind") == cur.get("kind")
+            and prev.get("sid") == cur.get("sid")
+            and cur_ts - prev_ts < 2
+        ):
+            continue
+        events.append(
+            (
                 "agent-activity",
                 {
                     "agent": agent,
@@ -311,32 +320,34 @@ async def _event_generator() -> AsyncGenerator[str, None]:
                     "ts": cur_ts,
                 },
             )
-        last_activity = cur_activity
+        )
+    state.last_activity = cur_activity
 
-        # ----- Dispatch events (T8.6) -----
+    # ----- Dispatch events (T8.6) -----
+    try:
+        conn = _db_conn()
         try:
-            conn = _db_conn()
-            try:
-                d_rows = conn.execute(
-                    """
-                    SELECT id, session_id, formula_id, status, latency_ms,
-                           cost_usd, sub_session_id, model, ts
-                    FROM formula_dispatches
-                    WHERE id > ?
-                    ORDER BY id ASC
-                    LIMIT 100
-                    """,
-                    (last_dispatch_id,),
-                ).fetchall()
-            finally:
-                conn.close()
-        except sqlite3.Error as exc:
-            logger.debug("stream dispatch fetch failed: %s", exc)
-            d_rows = []
+            d_rows = conn.execute(
+                """
+                SELECT id, session_id, formula_id, status, latency_ms,
+                       cost_usd, sub_session_id, model, ts
+                FROM formula_dispatches
+                WHERE id > ?
+                ORDER BY id ASC
+                LIMIT 100
+                """,
+                (state.last_dispatch_id,),
+            ).fetchall()
+        finally:
+            conn.close()
+    except sqlite3.Error as exc:
+        logger.debug("stream dispatch fetch failed: %s", exc)
+        d_rows = []
 
-        for d in d_rows:
-            last_dispatch_id = max(last_dispatch_id, int(d[0]))
-            yield await _sse_event(
+    for d in d_rows:
+        state.last_dispatch_id = max(state.last_dispatch_id, int(d[0]))
+        events.append(
+            (
                 "dispatch-completed",
                 {
                     "dispatch_id": int(d[0]),
@@ -350,43 +361,45 @@ async def _event_generator() -> AsyncGenerator[str, None]:
                     "ts": d[8],
                 },
             )
+        )
 
-        # ----- File-watch promotion (human edits not backed by a DB row) ---
-        if not tasks_dir.exists():
-            tasks = []
-        else:
-            tasks = list(tasks_dir.glob("TASK-*.md"))
+    # ----- File-watch promotion (human edits not backed by a DB row) ---
+    if not state.tasks_dir.exists():
+        tasks = []
+    else:
+        tasks = list(state.tasks_dir.glob("TASK-*.md"))
 
-        for md_file in tasks:
-            try:
-                mtime = md_file.stat().st_mtime
-            except OSError:
-                continue
+    for md_file in tasks:
+        try:
+            mtime = md_file.stat().st_mtime
+        except OSError:
+            continue
 
-            fname = md_file.name
-            prev_mtime = last_mtimes.get(fname)
+        fname = md_file.name
+        prev_mtime = state.last_mtimes.get(fname)
 
-            if prev_mtime is None:
-                last_mtimes[fname] = mtime
-                continue
-            if mtime == prev_mtime:
-                continue
+        if prev_mtime is None:
+            state.last_mtimes[fname] = mtime
+            continue
+        if mtime == prev_mtime:
+            continue
 
-            last_mtimes[fname] = mtime
-            m = _TASK_RE.match(fname)
-            task_id = f"TASK-{m.group(1)}" if m else fname.replace(".md", "")
+        state.last_mtimes[fname] = mtime
+        m = _TASK_RE.match(fname)
+        task_id = f"TASK-{m.group(1)}" if m else fname.replace(".md", "")
 
-            # If we just emitted a DB event for this task close to the
-            # file mtime, the file change is the same event — skip.
-            recent_ts = emitted_recent.get(task_id)
-            if recent_ts is not None and abs(mtime - recent_ts) <= _TRANSITION_ALIGN_SECS:
-                continue
+        # If we just emitted a DB event for this task close to the
+        # file mtime, the file change is the same event — skip.
+        recent_ts = emitted_recent.get(task_id)
+        if recent_ts is not None and abs(mtime - recent_ts) <= _TRANSITION_ALIGN_SECS:
+            continue
 
-            meta = _read_task_meta(md_file)
-            # A file edit without an accompanying DB transition is a raw
-            # human edit — frontmatter agent_session would be the LAST
-            # author (stale), so treat it as human (null).
-            yield await _sse_event(
+        meta = _read_task_meta(md_file)
+        # A file edit without an accompanying DB transition is a raw
+        # human edit — frontmatter agent_session would be the LAST
+        # author (stale), so treat it as human (null).
+        events.append(
+            (
                 "task-updated",
                 {
                     "task_id": task_id,
@@ -399,6 +412,30 @@ async def _event_generator() -> AsyncGenerator[str, None]:
                     "source": "file",
                 },
             )
+        )
+    return events
+
+
+async def _event_generator() -> AsyncGenerator[str, None]:
+    """Poll docs/tasks/ and yield SSE events (blocking work off-loop)."""
+    poll = _poll_interval_secs()
+    last_heartbeat = time.monotonic()
+    state = await asyncio.to_thread(_init_stream_state)
+
+    yield await _sse_event(
+        "connected", {"message": "SSE stream connected", "poll_ms": int(poll * 1000)}
+    )
+
+    while True:
+        await asyncio.sleep(poll)
+
+        now = time.monotonic()
+        if now - last_heartbeat >= _HEARTBEAT_INTERVAL:
+            yield await _sse_event("heartbeat", {"ts": int(time.time())})
+            last_heartbeat = now
+
+        for event_type, payload in await asyncio.to_thread(_poll_tick, state):
+            yield await _sse_event(event_type, payload)
 
 
 @router.get("/events")
@@ -420,7 +457,7 @@ async def sse_events():
 
 
 @router.get("/history")
-async def stream_history(
+def stream_history(
     limit: int = Query(20),
     _rl=Depends(make_rate_limit_dep("stream.history")),
     _m=Depends(make_metrics_dep("stream.history")),

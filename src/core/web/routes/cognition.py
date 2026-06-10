@@ -165,7 +165,7 @@ def _enrich_trace_row(row: dict) -> dict:
 
 
 @router.get("/traces")
-async def list_traces(
+def list_traces(
     agent: str | None = Query(None, description="Agent name (e.g. 'claude')"),
     _rl=Depends(make_rate_limit_dep("cognition.traces")),
     _m=Depends(make_metrics_dep("cognition.traces")),
@@ -256,7 +256,7 @@ def _find_session_meta(
 
 
 @router.get("/trace/{session_id}")
-async def get_trace(
+def get_trace(
     session_id: str,
     agent: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("cognition.trace")),
@@ -334,7 +334,7 @@ def _db_path() -> str | None:
 
 
 @router.get("/cost")
-async def dispatcher_cost_summary(
+def dispatcher_cost_summary(
     formula_id: str | None = Query(None, description="Filter to one formula"),
     limit: int = Query(50, ge=1, le=500),
     _rl=Depends(make_rate_limit_dep("cognition.cost")),
@@ -403,7 +403,7 @@ async def dispatcher_cost_summary(
 
 
 @router.get("/dispatchers")
-async def list_dispatchers(
+def list_dispatchers(
     limit: int = Query(100, ge=1, le=1000),
     status: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("cognition.dispatchers")),
@@ -461,7 +461,7 @@ async def list_dispatchers(
 
 
 @router.get("/dispatchers/{session_id}/tools")
-async def dispatcher_tools(
+def dispatcher_tools(
     session_id: str,
     _rl=Depends(make_rate_limit_dep("cognition.dispatcher_tools")),
     _m=Depends(make_metrics_dep("cognition.dispatcher_tools")),
@@ -514,7 +514,7 @@ async def dispatcher_tools(
 
 
 @router.get("/analyze")
-async def cognition_analyze(
+def cognition_analyze(
     task_description: str = Query(...),
     complexity_hint: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("cognition.analyze")),
@@ -652,7 +652,7 @@ def _serialize_message(msg: Any) -> dict:
 
 
 @router.get("/chats")
-async def list_chats(
+def list_chats(
     limit: int = Query(50, ge=1, le=500),
     _rl=Depends(make_rate_limit_dep("cognition.chats")),
     _m=Depends(make_metrics_dep("cognition.chats")),
@@ -694,7 +694,7 @@ async def list_chats(
 
 
 @router.get("/chat/{session_id}")
-async def get_chat(
+def get_chat(
     session_id: str,
     limit: int = Query(500, ge=1, le=5000),
     offset: int = Query(0, ge=0),
@@ -831,7 +831,7 @@ def _role_names(agents_dir: Path) -> list[str]:
 
 
 @router.get("/roles")
-async def list_roles(
+def list_roles(
     _rl=Depends(make_rate_limit_dep("cognition.roles")),
     _m=Depends(make_metrics_dep("cognition.roles")),
 ):
@@ -1192,7 +1192,7 @@ def _onboarding_state(project_root: Path, state_dir: Path) -> dict:
 
 
 @router.get("/onboarding-status")
-async def onboarding_status(
+def onboarding_status(
     _rl=Depends(make_rate_limit_dep("cognition.onboarding_status")),
     _m=Depends(make_metrics_dep("cognition.onboarding_status")),
 ):

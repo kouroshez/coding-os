@@ -46,7 +46,7 @@ def _unavailable():
 
 
 @router.get("/query")
-async def graph_query(
+def graph_query(
     q: str = Query(..., description="Natural-language query"),
     kinds: str | None = Query(None, description="Comma-separated node kinds"),
     limit: int = Query(10),
@@ -73,7 +73,7 @@ async def graph_query(
 
 
 @router.get("/context/{uid_or_name:path}")
-async def graph_context(
+def graph_context(
     uid_or_name: str,
     direction: str = Query("both"),
     depth: int = Query(1),
@@ -99,7 +99,7 @@ async def graph_context(
 
 
 @router.get("/impact/{uid:path}")
-async def graph_impact(
+def graph_impact(
     uid: str,
     direction: str = Query("downstream"),
     depth: int = Query(3),
@@ -123,7 +123,7 @@ async def graph_impact(
 
 
 @router.get("/detect-changes")
-async def graph_detect_changes(
+def graph_detect_changes(
     files: str | None = Query(None, description="Comma-separated file paths"),
     scope: str = Query("working"),
     analyze_downstream: bool = Query(True),
@@ -142,7 +142,7 @@ async def graph_detect_changes(
 
 
 @router.get("/trace/{entry_uid:path}")
-async def graph_trace(
+def graph_trace(
     entry_uid: str,
     terminals: str = Query("return,exception"),
     max_steps: int = Query(50),
@@ -159,7 +159,7 @@ async def graph_trace(
 
 
 @router.get("/similar/{uid:path}")
-async def graph_similar(
+def graph_similar(
     uid: str,
     top_k: int = Query(5),
     confidence_min: float = Query(0.5),
@@ -175,7 +175,7 @@ async def graph_similar(
 
 
 @router.get("/references/{uid:path}")
-async def graph_references(
+def graph_references(
     uid: str,
     kinds: str = Query("calls,accesses_field,imports,references_doc"),
     limit: int = Query(100),
@@ -192,7 +192,7 @@ async def graph_references(
 
 
 @router.get("/path")
-async def graph_path(
+def graph_path(
     source_uid: str = Query(...),
     target_uid: str = Query(...),
     max_hops: int = Query(5),
@@ -208,7 +208,7 @@ async def graph_path(
 
 
 @router.get("/export")
-async def graph_export(
+def graph_export(
     format: str = Query("json"),
     root_uid: str | None = Query(None),
     edge_types: str | None = Query(None),
@@ -288,7 +288,7 @@ async def graph_export(
 
 
 @router.get("/rename-plan/{uid:path}")
-async def graph_rename_plan(
+def graph_rename_plan(
     uid: str,
     new_name: str = Query(...),
     check_strings: bool = Query(True),
@@ -304,7 +304,7 @@ async def graph_rename_plan(
 
 
 @router.get("/contracts")
-async def graph_contracts(
+def graph_contracts(
     scope: str = Query("all"),
     kinds: str = Query("http,mcp,grpc,event,websocket"),
     _rl=Depends(make_rate_limit_dep("graph.contracts")),
@@ -320,7 +320,7 @@ async def graph_contracts(
 
 
 @router.get("/communities")
-async def graph_communities(
+def graph_communities(
     top: int = Query(50, ge=1, le=200),
     min_size: int = Query(2, ge=1, le=100),
     _rl=Depends(make_rate_limit_dep("graph.communities")),
@@ -334,7 +334,7 @@ async def graph_communities(
 
 
 @router.get("/entrypoints")
-async def graph_entrypoints(
+def graph_entrypoints(
     top: int = Query(20, ge=1, le=200),
     kind: str = Query(""),
     min_score: float = Query(0.05, ge=0.0, le=1.0),
@@ -354,7 +354,7 @@ async def graph_entrypoints(
 
 
 @router.get("/doctor")
-async def graph_doctor(
+def graph_doctor(
     _rl=Depends(make_rate_limit_dep("graph.doctor")),
     _m=Depends(make_metrics_dep("graph.doctor")),
 ):

@@ -38,7 +38,7 @@ def _db_conn() -> sqlite3.Connection:
 
 
 @router.get("")
-async def list_patterns(
+def list_patterns(
     limit: int = Query(100, ge=1, le=500),
     trust_tier: str | None = Query(None, description="Filter by trust tier"),
     _rl=Depends(make_rate_limit_dep("patterns.list")),
@@ -105,7 +105,7 @@ def _roi_trend(sessions: list[dict]) -> tuple[str, float]:
 
 
 @router.get("/roi")
-async def learning_roi(
+def learning_roi(
     limit: int = Query(20, ge=2, le=100),
     _rl=Depends(make_rate_limit_dep("patterns.roi")),
     _m=Depends(make_metrics_dep("patterns.roi")),
@@ -154,7 +154,7 @@ async def learning_roi(
 
 
 @router.post("/{pattern_id}/validate")
-async def validate_pattern(
+def validate_pattern(
     pattern_id: int,
     was_helpful: bool = Body(..., embed=True),
     _rl=Depends(make_rate_limit_dep("patterns.validate")),

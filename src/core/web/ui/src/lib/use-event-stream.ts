@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { resolveApiUrl } from '@/lib/api-client';
+import { acquireEventSource } from '@/lib/shared-event-source';
 
 /**
  * Subscribe to the project-scoped SSE feed (/api/stream/events) and expose a
@@ -34,16 +35,20 @@ export function useEventStream(
   const typesKey = eventTypes.join(',');
 
   useEffect(() => {
-    let source: EventSource | null = null;
+    let shared: ReturnType<typeof acquireEventSource> | null = null;
     try {
-      source = new EventSource(resolveApiUrl(path));
+      shared = acquireEventSource(resolveApiUrl(path));
     } catch {
       setStatus('closed');
       return undefined;
     }
+    const source: EventSource = shared.source;
 
-    setStatus('connecting');
-    source.onopen = () => setStatus('live');
+    // A sibling consumer may have connected first — the shared source can
+    // already be OPEN when we attach, in which case `open` never re-fires.
+    setStatus(source.readyState === EventSource.OPEN ? 'live' : 'connecting');
+    const onOpen = () => setStatus('live');
+    source.addEventListener('open', onOpen);
 
     const types = typesKey.split(',').filter(Boolean);
     const listeners: Array<[string, (e: Event) => void]> = [];
@@ -68,15 +73,15 @@ export function useEventStream(
     // real failure: CLOSED means the browser gave up; otherwise it is mid-
     // reconnect and the last data is now stale.
     const onError = () => {
-      if (!source) return;
       setStatus(source.readyState === EventSource.CLOSED ? 'closed' : 'reconnecting');
     };
     source.addEventListener('error', onError);
 
     return () => {
-      for (const [type, fn] of listeners) source?.removeEventListener(type, fn);
-      source?.removeEventListener('error', onError);
-      source?.close();
+      for (const [type, fn] of listeners) source.removeEventListener(type, fn);
+      source.removeEventListener('error', onError);
+      source.removeEventListener('open', onOpen);
+      shared?.release();
     };
   }, [path, typesKey, pathname]);
 

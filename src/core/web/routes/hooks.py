@@ -18,6 +18,7 @@ from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import ENVELOPE_ERROR_RESPONSES, unwrap
+from ._bounded_read import DEFAULT_WINDOW, tail_lines
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(_REPO_ROOT) not in sys.path:
@@ -66,7 +67,7 @@ def _parse_hook_line(line: str) -> dict[str, Any] | None:
 
 
 @router.get("/list")
-async def list_hooks(
+def list_hooks(
     adapter: str | None = Query(
         None, description="Filter by adapter_scope (claude / codex / cursor)"
     ),
@@ -162,7 +163,7 @@ async def list_hooks(
 
 
 @router.get("/recent")
-async def recent_hook_fires(
+def recent_hook_fires(
     limit: int = Query(50, ge=1, le=500),
     session_id: str | None = Query(None),
     agent: str | None = Query(None),
@@ -185,17 +186,11 @@ async def recent_hook_fires(
                 }
             )
         )
-    try:
-        lines = log.read_text(encoding="utf-8", errors="ignore").splitlines()
-    except OSError as exc:
-        return unwrap(
-            json.dumps(
-                {
-                    "ok": False,
-                    "error": {"category": "unavailable", "retryable": True, "message": str(exc)},
-                }
-            )
-        )
+    # Bounded tail — the hook log grows with every tool call across all
+    # agents; never load it whole. ~256 B/line budget keeps `limit` reachable
+    # even with the session/agent filters skipping non-matching lines.
+    window = max(DEFAULT_WINDOW, limit * 4 * 256)
+    lines, _ = tail_lines(log, max_bytes=window)
     parsed: list[dict[str, Any]] = []
     for line in reversed(lines):
         evt = _parse_hook_line(line)
@@ -236,30 +231,41 @@ async def stream_hooks(
     poll_secs = float(os.environ.get("COS_HOOK_STREAM_POLL_MS", "750")) / 1000.0
     heartbeat_secs = 15.0
 
+    def _drain_log(pos: int) -> tuple[list[dict[str, Any]], int]:
+        # Blocking stat + read — runs on a worker thread so a burst of hook
+        # lines never stalls the event loop (hub-architecture.md § Concurrency).
+        if not log.exists():
+            return [], pos
+        size = log.stat().st_size
+        if size < pos:
+            pos = 0  # log rotated
+        if size <= pos:
+            return [], pos
+        with log.open("r", encoding="utf-8", errors="ignore") as fh:
+            fh.seek(pos)
+            chunk = fh.read()
+            pos = fh.tell()
+        parsed: list[dict[str, Any]] = []
+        for line in chunk.splitlines():
+            evt = _parse_hook_line(line)
+            if evt is None:
+                continue
+            if session_id and evt["session_id"] != session_id:
+                continue
+            if agent and evt["agent"] != agent:
+                continue
+            parsed.append(evt)
+        return parsed, pos
+
     async def gen() -> AsyncGenerator[bytes, None]:
         yield f"event: connected\ndata: {json.dumps({'log_path': str(log)})}\n\n".encode()
-        pos = log.stat().st_size if log.exists() else 0
+        pos = await asyncio.to_thread(lambda: log.stat().st_size if log.exists() else 0)
         last_beat = time.monotonic()
         try:
             while True:
-                if log.exists():
-                    size = log.stat().st_size
-                    if size < pos:
-                        pos = 0  # log rotated
-                    if size > pos:
-                        with log.open("r", encoding="utf-8", errors="ignore") as fh:
-                            fh.seek(pos)
-                            chunk = fh.read()
-                            pos = fh.tell()
-                        for line in chunk.splitlines():
-                            evt = _parse_hook_line(line)
-                            if evt is None:
-                                continue
-                            if session_id and evt["session_id"] != session_id:
-                                continue
-                            if agent and evt["agent"] != agent:
-                                continue
-                            yield f"event: hook\ndata: {json.dumps(evt, ensure_ascii=False)}\n\n".encode()
+                hook_events, pos = await asyncio.to_thread(_drain_log, pos)
+                for evt in hook_events:
+                    yield f"event: hook\ndata: {json.dumps(evt, ensure_ascii=False)}\n\n".encode()
                 if time.monotonic() - last_beat > heartbeat_secs:
                     yield f"event: heartbeat\ndata: {json.dumps({'ts': int(time.time())})}\n\n".encode()
                     last_beat = time.monotonic()

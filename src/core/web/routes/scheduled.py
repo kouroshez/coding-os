@@ -87,7 +87,7 @@ class ScheduledStatus(BaseModel):
 
 
 @router.get("/status", response_model=ScheduledStatus)
-async def scheduled_status() -> ScheduledStatus:
+def scheduled_status() -> ScheduledStatus:
     """Return nightly cron status + per-project last_run.json contents."""
     projects_data = []
     for proj in read_registry():
@@ -127,7 +127,7 @@ async def scheduled_status() -> ScheduledStatus:
 
 
 @router.get("/project/{slug}")
-async def project_scheduled_status(slug: str):
+def project_scheduled_status(slug: str):
     """Return last_run.json for a single project."""
     for proj in read_registry():
         if proj.get("slug") == slug:
@@ -177,7 +177,7 @@ class ScheduledConfigUpdate(BaseModel):
 
 
 @router.get("/config/{slug}")
-async def get_scheduled_config(slug: str):
+def get_scheduled_config(slug: str):
     """Return the editable scheduled-maintenance config for one project."""
     root = _root_for_slug(slug)
     if root is None:
@@ -186,7 +186,7 @@ async def get_scheduled_config(slug: str):
 
 
 @router.patch("/config/{slug}")
-async def patch_scheduled_config(slug: str, update: ScheduledConfigUpdate):
+def patch_scheduled_config(slug: str, update: ScheduledConfigUpdate):
     """Persist edited scheduled config (cadence + responsive thresholds)."""
     root = _root_for_slug(slug)
     if root is None:

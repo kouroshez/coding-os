@@ -143,6 +143,34 @@ JSON file directly per call, so a settings change needs no server restart.
 single-homed. No conflict between the two — they serve different
 purposes and you rarely run both at once.
 
+## Concurrency model — never block the loop, never exhaust the pool
+
+The hub is ONE uvicorn process with ONE asyncio event loop, serving every
+project and every browser tab, while agent sessions concurrently write to
+`coding-os.db` and the presence/log files the hub reads. Two hard rules keep
+the panel responsive under that load (TASK-337 — multi-agent lockup):
+
+**Server rule — `async def` only for truly-async work.** A handler that does
+synchronous work (sqlite3, file reads, `subprocess.run` git calls, board_os /
+graph_os tool calls) MUST be a plain `def` — Starlette runs it on the
+threadpool, so a 5s locked-DB wait or an 8s git timeout stalls one worker
+thread, not the event loop. `async def` is reserved for handlers that
+genuinely await (Claude SDK chat streams, SSE generators). Inside SSE
+generators, each poll tick's blocking work (DB watermark queries, task-file
+glob/stat, presence snapshots, log tailing) runs via `asyncio.to_thread(...)`
+— the async generator only sleeps, formats, and yields.
+
+**Client rule — one shared `EventSource` per stream URL per tab.** Browsers
+cap HTTP/1.1 at ~6 connections per origin, shared across ALL tabs; every SSE
+connection holds one for its lifetime. UI consumers therefore never construct
+`new EventSource(...)` directly — they acquire the ref-counted shared
+connection from `src/lib/shared-event-source.ts` (keyed by resolved URL, so
+per-project scopes and per-filter log streams get their own). Consumers
+attach with `addEventListener` only (never `source.onopen = ...` — assignment
+clobbers sibling consumers) and must handle attaching to an already-OPEN
+source by checking `readyState`. A board tab holds 2 SSE connections
+(`/api/stream/events` + `/api/hooks/stream`), not 4.
+
 ## Command palette (Cmd/Ctrl+K)
 
 `CommandPalette` (mounted in `AppShell`, built on the shared `Modal`) reserves
