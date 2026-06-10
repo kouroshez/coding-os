@@ -11,6 +11,15 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cos_read_stdin_bounded 2)"
+
+# Fast-path: this hook only validates `git commit` messages. If the raw payload
+# never mentions "git commit" there is nothing to check — bail before any jq
+# spawn (this hook fires on EVERY Bash command).
+case "$INPUT" in
+  *"git commit"*) ;;
+  *) exit 0 ;;
+esac
+
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 [[ "$TOOL" != "Bash" ]] && exit 0
 

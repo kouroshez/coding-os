@@ -18,6 +18,15 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 
 INPUT="$(cos_read_stdin_bounded 2)"
+
+# Fast-path: this gate only fires on task-completion commands (task-done /
+# task-move --to complete). If the raw payload mentions neither there is
+# nothing to gate — bail before any jq spawn (fires on EVERY Bash command).
+case "$INPUT" in
+  *task-done*|*task-move*) ;;
+  *) exit 0 ;;
+esac
+
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 
 if [[ "$TOOL" != "Bash" ]]; then

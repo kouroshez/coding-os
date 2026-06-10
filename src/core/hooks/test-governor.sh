@@ -18,6 +18,15 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cos_read_stdin_bounded 2)"
+
+# Fast-path: this governor only acts on pytest invocations. If the raw payload
+# never mentions "pytest" there is nothing to gate — bail before any jq spawn
+# (fires on EVERY Bash command).
+case "$INPUT" in
+  *pytest*) ;;
+  *) exit 0 ;;
+esac
+
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
 [[ -n "$COMMAND" ]] || exit 0
 

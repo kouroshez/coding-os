@@ -21,6 +21,15 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cos_read_stdin_bounded 2)"
+
+# Fast-path: this reminder only fires on task-completion (task-done / task-move
+# --to complete). If the raw payload mentions neither there is nothing to do —
+# bail before any jq spawn (fires on EVERY Bash tool call).
+case "$INPUT" in
+  *task-done*|*task-move*) ;;
+  *) exit 0 ;;
+esac
+
 COS_HOOK_RUNTIME_MODEL="$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)"
 export COS_HOOK_RUNTIME_MODEL
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")

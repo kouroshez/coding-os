@@ -15,6 +15,16 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cos_read_stdin_bounded 2)"
+
+# Fast-path: this fan-out only acts on task transitions — the cos_task_move
+# tool or a Bash `cos task-start|task-move|task-done`. Every trigger contains
+# the literal "task". If the raw payload has no "task" there is nothing to sync;
+# bail before the panel-upgrade + jq spawns (fires on EVERY Bash tool call).
+case "$INPUT" in
+  *task*) ;;
+  *) exit 0 ;;
+esac
+
 # Upgrade panel id from stdin session_id so the write-state.sh
 # subprocess below resolves THIS panel's dir, not a stale ppid-derived one.
 command -v cos_panel_upgrade_from_payload >/dev/null 2>&1 && cos_panel_upgrade_from_payload "$INPUT" 2>/dev/null || true
