@@ -88,6 +88,14 @@ centrality (0.1); `cos_graph_similar(uid)` stays node-to-node. Accuracy is
 strong on BGE-M3: a doc-only query retrieves the source symbol at recall@1 ≈99%,
 recall@5 100%, MRR ≈0.99 (measured, 80-node sample).
 
+> **Wave numbering note (for auditors).** The 2026-06 embedding epic shipped
+> as TASK-279 (wave 1: persisted node embeddings), TASK-280 (wave 3:
+> sqlite-vec ANN + hybrid search), TASK-281 (wave 4: durable embedding
+> outbox), TASK-282 (wave 5: usearch HNSW). There is **no wave-2 task** —
+> that slot (BGE-M3 dual-model bridge + cutover) landed directly via commit
+> `99236e19` without its own TASK id. A missing "wave 2" in the board is a
+> numbering artifact, not lost work.
+
 ## What gets indexed (walk coverage)
 
 The file walk (`src/core/graph_os/ingest/base.py::walk_local`) decides
