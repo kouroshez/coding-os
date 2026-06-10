@@ -183,6 +183,97 @@ def test_ruby_imports_calls_inherits_includes():
     assert ("calls", "code:function:a.rb::m", "code:external:foo", 0.5) in e
 
 
+_EDGE_CASES = [
+    (
+        "tree_sitter_java",
+        "A.java",
+        "import java.util.List;\nclass C extends Base implements I {\n"
+        "  void m(){ helper(); obj.run(); }\n  void helper(){}\n}",
+        [
+            ("imports", "code:file:A.java", "code:external:java.util.List", 1.0),
+            ("inherits", "code:class:A.java::C", "code:external:Base", 1.0),
+            ("implements", "code:class:A.java::C", "code:external:I", 1.0),
+            ("calls", "code:function:A.java::m", "code:function:A.java::helper", 0.9),
+            ("calls", "code:function:A.java::m", "code:external:unresolved:run", 0.3),
+        ],
+    ),
+    (
+        "tree_sitter_c",
+        "a.c",
+        '#include <stdio.h>\nvoid helper(void){}\nint main(){ helper(); printf("x"); }',
+        [
+            ("imports", "code:file:a.c", "code:external:stdio.h", 1.0),
+            ("calls", "code:function:a.c::main", "code:function:a.c::helper", 0.9),
+            ("calls", "code:function:a.c::main", "code:external:printf", 0.5),
+        ],
+    ),
+    (
+        "tree_sitter_cpp",
+        "a.cpp",
+        "#include <vector>\nclass C : public Base {\n  void m(){ o->run(); }\n};",
+        [
+            ("imports", "code:file:a.cpp", "code:external:vector", 1.0),
+            ("inherits", "code:class:a.cpp::C", "code:external:Base", 1.0),
+            ("calls", "code:function:a.cpp::m", "code:external:unresolved:run", 0.3),
+        ],
+    ),
+    (
+        "tree_sitter_c_sharp",
+        "A.cs",
+        "using System;\nclass C : Base {\n  void M(){ Helper(); }\n  void Helper(){}\n}",
+        [
+            ("imports", "code:file:A.cs", "code:external:System", 1.0),
+            ("inherits", "code:class:A.cs::C", "code:external:Base", 0.9),
+            ("calls", "code:function:A.cs::M", "code:function:A.cs::Helper", 0.9),
+        ],
+    ),
+    (
+        "tree_sitter_scala",
+        "a.scala",
+        "import scala.util.Try\nclass C extends Base with T {\n  def m() = { helper() }\n  def helper() = {}\n}",
+        [
+            ("imports", "code:file:a.scala", "code:external:scala.util.Try", 1.0),
+            ("inherits", "code:class:a.scala::C", "code:external:Base", 1.0),
+            ("includes", "code:class:a.scala::C", "code:external:T", 1.0),
+            ("calls", "code:function:a.scala::m", "code:function:a.scala::helper", 0.9),
+        ],
+    ),
+    (
+        "tree_sitter_kotlin",
+        "a.kt",
+        "import kotlin.math.abs\nclass C : Base(), I {\n  fun m(){ helper(); obj.run() }\n  fun helper(){}\n}",
+        [
+            ("imports", "code:file:a.kt", "code:external:kotlin.math.abs", 1.0),
+            ("inherits", "code:class:a.kt::C", "code:external:Base", 1.0),
+            ("implements", "code:class:a.kt::C", "code:external:I", 1.0),
+            ("calls", "code:function:a.kt::m", "code:function:a.kt::helper", 0.9),
+            ("calls", "code:function:a.kt::m", "code:external:unresolved:run", 0.3),
+        ],
+    ),
+    (
+        "tree_sitter_lua",
+        "a.lua",
+        'local m = require("mod")\nfunction f() g(); m.run(); h() end\nfunction h() end',
+        [
+            ("imports", "code:file:a.lua", "code:external:mod", 1.0),
+            ("calls", "code:function:a.lua::f", "code:external:g", 0.5),
+            ("calls", "code:function:a.lua::f", "code:external:unresolved:run", 0.3),
+            ("calls", "code:function:a.lua::f", "code:function:a.lua::h", 0.9),
+        ],
+    ),
+]
+
+
+@pytest.mark.parametrize("grammar,fname,src,expected", _EDGE_CASES)
+def test_polyglot_language_edges(grammar, fname, src, expected):
+    """TASK-313: every broadened language emits imports + tiered calls +
+    inherits/implements/includes, verified against the real grammar."""
+    pytest.importorskip(grammar)
+    e = _edges(g.extract(fname, src))
+    for want in expected:
+        assert want in e, f"{fname}: missing edge {want}\n got: {sorted(e)}"
+
+
 def test_edge_targets_have_stub_nodes():
     """Every external edge target gets a promoted stub node (no dangling)."""
     result = g.extract("a.rs", "use std::fmt;\nfn f(){ g(); }\n")

@@ -38,6 +38,26 @@ _REFERENCE_KEYS = {
 }
 
 
+def _key_preserving_loader():
+    # YAML 1.1 implicit booleans turn the KEY `on` into True — which mangles
+    # the hottest key in GitHub workflow files (`on: push` → `True=push`).
+    # This SafeLoader subclass keeps bool-tagged mapping KEYS as their raw
+    # text while leaving VALUES with normal semantics (enabled: yes → True).
+    # pyyaml is imported lazily (extract() guards dep_missing) — same here.
+    import yaml
+
+    class _Loader(yaml.SafeLoader):
+        def construct_mapping(self, node, deep=False):
+            # Retag bool-looking KEYS to str before stock construction so the
+            # standard machinery (merge keys, deep passes) stays untouched.
+            for key_node, _value_node in node.value:
+                if getattr(key_node, "tag", "") == "tag:yaml.org,2002:bool":
+                    key_node.tag = "tag:yaml.org,2002:str"
+            return super().construct_mapping(node, deep)
+
+    return _Loader
+
+
 def file_uid(path: str) -> str:
     return f"code:file:{_normalize_path(path)}"
 
@@ -95,7 +115,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         return result
 
     try:
-        data = yaml.safe_load(content)
+        data = yaml.load(content, Loader=_key_preserving_loader())  # noqa: S506 - SafeLoader subclass
     except Exception as exc:
         result.parse_errors.append(ParseError(kind="yaml_parse_error", detail=str(exc)))
         emit_contains_spine(

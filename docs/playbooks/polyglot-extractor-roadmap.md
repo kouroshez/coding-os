@@ -395,7 +395,47 @@ A regression below these caps in CI blocks the PR.
 | C1 Go → ts-go | shipped | full AST + 9 frameworks of contracts; toolchain workspace open |
 | D1 Generic polyglot baseline | shipped | `code_generic` (TASK-296) — one table-driven extractor emits file+spine+function/class+contains for any grammar in `_LANG_SPEC`. Calls/imports stay per-language. |
 | D2 Broadened grammars | shipped | TASK-304 — grammars now ship for rust, ruby, java, c, c++, c#, scala, kotlin, lua (+ C/C++ declarator-name fix). SQL deferred (DDL doesn't fit func/class). |
-| D3 Rust/Ruby edges | shipped | TASK-305 — per-language hooks in code_generic add imports + calls (tiered 0.9 same-file / 0.5 cross-file / 0.3 dynamic) + inherits/implements/includes for rust & ruby (Go-grade). Other generic langs stay node+contains until their hook is added. |
+| D3 Rust/Ruby edges | shipped | TASK-305 — per-language hooks in code_generic add imports + calls (tiered 0.9 same-file / 0.5 cross-file / 0.3 dynamic) + inherits/implements/includes for rust & ruby (Go-grade). |
+| D4 All-language edges + measured quality | shipped | TASK-313 — edge hooks for java/c/cpp/c#/scala/kotlin/lua (one table-driven walker), ruby bare-call resolution (0.7 heuristic tier), YAML-1.1 bool-key fix (`on: push` no longer mangles to `True=push`). Quality benchmark below. |
+
+## 10. Measured quality scorecard (TASK-313 — `test_polyglot_quality.py`)
+
+Ground-truth corpora × 3 scenarios per language (simple / nested /
+real-world-with-decoys), measured on every run — these are ASSERTED
+thresholds, not judgments. A regression turns the suite red.
+
+| lang | sym recall | precision | edge recall | median ms | peak KB |
+|---|---|---|---|---|---|
+| rust | 1.00 | 1.00 | 1.00 | 0.31 | 30 |
+| ruby | 1.00 | 1.00 | 1.00 | 0.25 | 24 |
+| java | 1.00 | 1.00 | 1.00 | 0.35 | 27 |
+| c | 1.00 | 1.00 | 1.00 | 0.32 | 30 |
+| cpp | 1.00 | 1.00 | 1.00 | 0.27 | 25 |
+| c_sharp | 1.00 | 1.00 | 1.00 | 0.31 | 28 |
+| scala | 1.00 | 1.00 | 1.00 | 0.35 | 32 |
+| kotlin | 1.00 | 1.00 | 1.00 | 0.34 | 31 |
+| lua | 1.00 | 1.00 | 1.00 | 0.21 | 22 |
+| python | 1.00 | 1.00 | 1.00 | 0.34 | 26 |
+| go | 1.00 | 1.00 | 1.00 | 0.37 | 29 |
+| typescript | 1.00 | 1.00 | 1.00 | 0.79 | 25 |
+| php | 1.00 | 1.00 | 1.00 | 0.39 | 32 |
+| shell | 1.00 | 1.00 | 1.00 | 0.23 | 15 |
+| yaml | 1.00 | 1.00 | n/a | 0.75 | 17 |
+| json | 1.00 | 1.00 | n/a | 0.08 | 7 |
+| toml | 1.00 | 1.00 | n/a | 0.09 | 5 |
+
+Methodology: recall = every human-visible function/class (or config
+key/dependency) extracted; precision = no phantom symbols, decoy code
+inside comments/strings never extracted; edge recall = expected
+imports/calls/inherits found; calibration gate = every `calls` edge at
+conf ≥ 0.9 must resolve to a real same-file uid; speed/memory = median
+of 5 runs per scenario via perf_counter + tracemalloc. Asserted floors:
+recall ≥ 0.90, precision ≥ 0.95, edge recall ≥ 0.80, ≤ 25 ms, ≤ 6 MB.
+
+Known upstream limitation (pinned by test, fail-open + surfaced):
+tree-sitter-kotlin 1.1.0 mis-parses a single-line class body with
+members when it follows another declaration; multiline bodies (the
+normal Kotlin style) are unaffected.
 | E1 Performance telemetry | open | duration_ms column landing alongside this cleanup |
 
 > **Generic vs hand-written precedence.** `code_generic` only owns the
