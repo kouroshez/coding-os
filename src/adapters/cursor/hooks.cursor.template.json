@@ -34,6 +34,15 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/remind-learn-validate.sh"
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
@@ -74,15 +83,6 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/cursor-posttool-write-dispatch.sh",
             "statusMessage": "📎 Post-write observability + reminders..."
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/remind-learn-validate.sh"
           }
         ]
       },

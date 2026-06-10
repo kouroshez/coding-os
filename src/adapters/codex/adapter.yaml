@@ -97,6 +97,7 @@ hook_dispatchers:
       - enforce-commit-message.sh
       - block-uv-heredoc.sh
       - enforce-verify.sh
+      - test-governor.sh
       - search-enforce-inventory.sh
       - nudge-task-discovery.sh
       - agent-presence.sh
@@ -151,6 +152,7 @@ hook_dispatchers:
     script: codex-posttool-dispatch.sh
     delegates:
       - remind-learn-validate.sh
+      - record-verify-auto.sh
       - auto-reindex-shell-ops.sh
       - auto-prune-deleted-files.sh
       - search-verify-remaining.sh

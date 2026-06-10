@@ -183,6 +183,28 @@ hooks:
         matcher: Bash
         status_message: "✅ Verifying suites before task-done..."
 
+  - id: test-governor
+    script: test-governor.sh
+    description: PreToolUse Bash — governs pytest invocations for multi-agent laptop safety (TASK-330). BLOCKs full sweeps without audited override (Rule 20), BLOCKs re-runs of a suite already green on the same tree (commit-keyed ledger, COS_TEST_FORCE=1 re-runs), and BLOCKs concurrent heavy runs via a TTL+liveness lockfile. Sweep gate fail-closed; rest fail-open. Spec at docs/engineering/test-governance.md.
+    category: enforcement
+    phase: "0"
+    timeout: 15
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "🧪 Test-governor: dedup/lock/sweep check..."
+
+  - id: record-verify-auto
+    script: record-verify-auto.sh
+    description: PostToolUse Bash — auto-records completed verify-suite commands (data-driven match against verify-suites.yaml) as PASS/FAIL with commit keys into .last-verify.json, and clears the test-run lockfile (TASK-329). Fail-open, always exit 0.
+    category: observability
+    phase: O
+    timeout: 15
+    events:
+      - event: PostToolUse
+        matcher: Bash
+        status_message: "🧾 Recording verify-suite result..."
+
   - id: enforce-template
     script: enforce-template.sh
     description: Requires structured task / ADR / PRD / insight documents to follow the template.

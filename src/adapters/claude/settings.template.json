@@ -42,6 +42,12 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/test-governor.sh",
+            "statusMessage": "🧪 Test-governor: dedup/lock/sweep check...",
+            "timeout": 15
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/search-enforce-inventory.sh",
             "statusMessage": "🔎 Running search inventory before bulk replace...",
             "timeout": 30
@@ -249,6 +255,63 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/search-verify-remaining.sh",
+            "statusMessage": "✅ Verifying 0 matches remain after replace...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/advance-role.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/sync-task-current.sh",
+            "statusMessage": "📌 Syncing .task-current...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/auto-reindex-shell-ops.sh",
+            "statusMessage": "🔁 Bulk shell op detected — scheduling graph reindex...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/auto-prune-deleted-files.sh",
+            "statusMessage": "🧹 Pruning graph + docs RAG state for deleted files...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/record-verify-auto.sh",
+            "statusMessage": "🧾 Recording verify-suite result...",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/link-commit-to-task.sh",
+            "statusMessage": "🔗 Linking commit to task...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/remind-learn-validate.sh",
+            "statusMessage": "💡 Checking if learn-validate reminder is due...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
@@ -354,57 +417,6 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/remind-dogfood.sh",
             "statusMessage": "🧬 Checking if meta-project dogfood refresh is needed...",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/search-verify-remaining.sh",
-            "statusMessage": "✅ Verifying 0 matches remain after replace...",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/advance-role.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/sync-task-current.sh",
-            "statusMessage": "📌 Syncing .task-current...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/auto-reindex-shell-ops.sh",
-            "statusMessage": "🔁 Bulk shell op detected — scheduling graph reindex...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/auto-prune-deleted-files.sh",
-            "statusMessage": "🧹 Pruning graph + docs RAG state for deleted files...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/link-commit-to-task.sh",
-            "statusMessage": "🔗 Linking commit to task...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/remind-learn-validate.sh",
-            "statusMessage": "💡 Checking if learn-validate reminder is due...",
             "timeout": 5
           }
         ]
