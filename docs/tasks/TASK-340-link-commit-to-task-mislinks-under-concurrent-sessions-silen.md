@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2h
 created: 2026-06-10
 started: 2026-06-10
-completed: null
+completed: 2026-06-10
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -40,3 +40,7 @@ Actual: cross-linked shas in the hook log, nothing on disk, panel history shows 
 
 ## Work Log
 - 2026-06-10 [claude]: Edit capture-work-log.sh
+- 2026-06-10 [claude]: Edit link-commit-to-task.sh
+- 2026-06-10 [claude]: commit 3a28a783 — fix(hooks): commit-to-task links survive macOS + concurrent sessions
+- 2026-06-10 [claude]: commit dac4509de1 — fix(hooks): widen commit-link fallback window to 5min — slow pre/post-commit hooks outlive 20s
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
