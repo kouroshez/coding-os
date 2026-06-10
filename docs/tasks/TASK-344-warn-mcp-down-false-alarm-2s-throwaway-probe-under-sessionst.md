@@ -41,3 +41,4 @@ Actual: the throwaway probe (`perl alarm 2` despite the 5s comment) raced Sessio
 - 2026-06-10 [claude]: committed 5f7a57a0: src/core/hooks/warn-mcp-down.sh
 - 2026-06-10 [claude]: commit f825b55b12 — chore(docs): frontmatter headers on 5 audit docs + review-sweep task records (342/343/345)
 - 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-10 [claude]: commit 4049091db1 — chore(board): TASK-341 + TASK-344 lifecycle close
