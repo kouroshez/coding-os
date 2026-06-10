@@ -42,13 +42,20 @@ export default function ModelPicker({
   onChange: (modelId: string) => void;
 }) {
   const { data } = useApiGet<AdaptersPayload>(['config-adapters'], '/api/config/adapters');
+  // Auto option exists ONLY while settings.model_routing.enabled (TASK-318) —
+  // producer: routes/settings.py _DEFAULTS (hub-architecture.md § settings contract).
+  const { data: settingsData } = useApiGet<{
+    settings: { model_routing?: { enabled: boolean; orchestrator_model: string } };
+  }>(['settings'], '/api/settings');
+  const autoEnabled = settingsData?.settings?.model_routing?.enabled === true;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const adapters = data?.adapters ?? [];
   const allModels = adapters.flatMap((a) => a.models);
   const defaultModel = allModels.find((m) => m.default);
-  const effectiveId = value || defaultModel?.id || '';
+  const effectiveId = value === 'auto' && !autoEnabled ? '' : value || defaultModel?.id || '';
+  const isAuto = autoEnabled && effectiveId === 'auto';
   const selected = allModels.find((m) => m.id === effectiveId);
   const activeAdapter = adapters.find((a) => a.models.some((m) => m.id === effectiveId));
 
@@ -90,7 +97,7 @@ export default function ModelPicker({
             {activeAdapter.glyph}
           </span>
         )}
-        <span className="font-medium">{selected?.label ?? 'default'}</span>
+        <span className="font-medium">{isAuto ? 'Auto' : (selected?.label ?? 'default')}</span>
         <ChevronDown size={12} aria-hidden className="text-[var(--cos-muted)]" />
       </button>
 
@@ -100,6 +107,21 @@ export default function ModelPicker({
           aria-label="Select chat model"
           className="absolute bottom-full z-50 mb-1 max-h-80 w-64 overflow-auto rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] p-1 shadow-xl"
         >
+          {autoEnabled && (
+            <button
+              type="button"
+              role="option"
+              aria-selected={isAuto}
+              onClick={() => pick('auto')}
+              className="mb-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[var(--cos-text)] hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
+            >
+              <span className="font-medium">Auto</span>
+              <span className="ml-auto text-[10px] text-[var(--cos-muted)]">
+                routed per prompt
+              </span>
+              {isAuto && <span className="text-[10px] text-[var(--cos-accent)]">✓</span>}
+            </button>
+          )}
           {adapters.map((a) => (
             <div key={a.id} className="mb-1 last:mb-0">
               <div className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-semibold tracking-wide text-[var(--cos-muted)] uppercase">

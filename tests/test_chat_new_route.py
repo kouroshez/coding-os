@@ -251,3 +251,61 @@ def test_chat_send_streams_partial_and_skips_project_hooks(client, monkeypatch):
         "".join(r.iter_text())
     assert captured.get("include_partial_messages") is True
     assert captured.get("setting_sources") == []
+
+
+# ---------------------------------------------------------------------------
+# Auto model routing (TASK-318 — hub-architecture.md § Hub settings contract)
+# ---------------------------------------------------------------------------
+
+
+def _cognition_mod():
+    for modname in ("web.routes.cognition", "core.web.routes.cognition"):
+        mod = sys.modules.get(modname)
+        if mod is not None:
+            return mod
+    raise AssertionError("cognition route module not loaded")
+
+
+def _enable_routing(client, orchestrator=""):
+    body = {"model_routing": {"enabled": True, "orchestrator_model": orchestrator}}
+    assert client.patch("/api/settings", json=body).status_code == 200
+
+
+def test_auto_rejected_when_routing_disabled(client):
+    r = client.post("/api/cognition/chat", json={"prompt": "hello", "model": "auto"})
+    assert r.json()["error"]["category"] == "validation"
+    assert "model_routing.enabled" in r.json()["error"]["message"]
+
+
+def test_auto_cold_start_uses_orchestrator_model(client, monkeypatch):
+    _enable_routing(client, orchestrator="claude-haiku-4-5")
+    mod = _cognition_mod()
+
+    import tools.routing as routing_mod
+
+    monkeypatch.setattr(
+        routing_mod,
+        "route_model",
+        lambda conn, **kw: {"recommended_model": "static-cold", "data_points": 0},
+    )
+    decision = mod._auto_route_model("design a backend api integration")
+    assert decision["model"] == "claude-haiku-4-5"
+    assert decision["source"] == "orchestrator_default"
+    assert decision["complexity"] == "COMPLICATED"
+
+
+def test_auto_prefers_empirical_when_history_exists(client, monkeypatch):
+    _enable_routing(client, orchestrator="claude-haiku-4-5")
+    mod = _cognition_mod()
+
+    import tools.routing as routing_mod
+
+    monkeypatch.setattr(
+        routing_mod,
+        "route_model",
+        lambda conn, **kw: {"recommended_model": "claude-opus-4-8", "data_points": 25},
+    )
+    decision = mod._auto_route_model("fix the broken outage now")
+    assert decision["model"] == "claude-opus-4-8"
+    assert decision["source"] == "empirical"
+    assert decision["complexity"] == "CHAOTIC"

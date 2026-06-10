@@ -1588,6 +1588,99 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
     return cos_dispatch_parallel_run
 
 
+def classify_prompt_heuristic(prompt: str) -> dict:
+    """Deterministic Cynefin + dimensions heuristic — shared by the
+    cos_classify_prompt tool and the hub chat auto-router (no LLM call)."""
+    import re as _re
+
+    text = (prompt or "").strip().lower()
+    if not text:
+        return {
+            "complexity": "CLEAR",
+            "dimensions": 1,
+            "signals": [],
+            "hit_domains": [],
+            "reasoning": "empty prompt",
+        }
+
+    signals: list[str] = []
+    complexity = "CLEAR"
+
+    chaotic_re = _re.compile(
+        r"\b(p0|p1|outage|down|broken|crashed?|emergency|urgent|"
+        r"fire|on[- ]call|paged|rollback (?:now|asap))\b"
+    )
+    if chaotic_re.search(text):
+        complexity = "CHAOTIC"
+        signals.append("incident-language")
+
+    complex_re = _re.compile(
+        r"\b(best way|explore|experiment|optimi[sz]e|research|novel|"
+        r"investigate|figure out|prototype|spike|trade[- ]off|benchmark)\b"
+    )
+    if complexity == "CLEAR" and complex_re.search(text):
+        complexity = "COMPLEX"
+        signals.append("exploratory-language")
+
+    complicated_re = _re.compile(
+        r"\b(design|architect|integrate|refactor|implement|build|migrat\w*|"
+        r"split|merge|extract|generali[sz]e|extend|orchestrat\w*|"
+        r"normali[sz]e|denormali[sz]e)\b"
+    )
+    if complexity == "CLEAR" and complicated_re.search(text):
+        complexity = "COMPLICATED"
+        signals.append("design-language")
+
+    word_count = len(text.split())
+    if complexity == "CLEAR" and word_count > 60:
+        complexity = "COMPLICATED"
+        signals.append(f"prompt-length={word_count}")
+
+    domain_patterns = {
+        "backend": r"\b(api|backend|server|django|fastapi|fiber|endpoint|router|service)\b",
+        "frontend": r"\b(frontend|react|next\.?js|nextjs|component|ui|client|page|jsx|tsx)\b",
+        "mobile": r"\b(mobile|ios|android|react native|expo|swift|kotlin)\b",
+        "ai": r"\b(llm|ai|prompt|embedding|rag|model|completion|token)\b",
+        "security": r"\b(security|auth|permission|csrf|xss|sql injection|jwt|oauth|tls|encryption|secret)\b",
+        "ops": r"\b(deploy|ci/cd|docker|kubernetes|k8s|infra|monitoring|alert|runbook|sre)\b",
+        "docs": r"\b(doc|documentation|readme|spec|playbook|adr)\b",
+        "db": r"\b(database|sql|sqlite|postgres|mysql|migration|schema|index|query)\b",
+        "graph": r"\b(graph|neo4j|kuzu|node|edge|traversal)\b",
+        "test": r"\b(test|testing|pytest|jest|coverage|fixture|mock)\b",
+    }
+    hit_domains: list[str] = []
+    for name, pat in domain_patterns.items():
+        if _re.search(pat, text):
+            hit_domains.append(name)
+    dimensions = max(1, len(hit_domains))
+    if dimensions >= 5 and complexity == "CLEAR":
+        complexity = "COMPLICATED"
+        signals.append(f"multi-dimension={dimensions}")
+
+    trivial_re = _re.compile(r"^(fix typo|update doc(?:string)?|tweak (?:wording|comment))\b")
+    if (
+        trivial_re.search(text)
+        and word_count < 15
+        and len(hit_domains) <= 1
+        and complexity != "CHAOTIC"
+    ):
+        complexity = "CLEAR"
+        dimensions = 1
+        signals = ["trivial-edit-shortcut"]
+
+    reasoning = (
+        f"Cynefin: {complexity} ({', '.join(signals) or 'no escalating signals'}); "
+        f"dims={dimensions} from domains: {', '.join(hit_domains) or 'none'}"
+    )
+    return {
+        "complexity": complexity,
+        "dimensions": dimensions,
+        "signals": signals,
+        "hit_domains": hit_domains,
+        "reasoning": reasoning,
+    }
+
+
 def register_cos_classify_prompt(mcp, db_path):
     """Register cos_classify_prompt — heuristic Cynefin + dimensions classifier.
 
@@ -1613,10 +1706,8 @@ def register_cos_classify_prompt(mcp, db_path):
         agent_dir: str = "",
     ) -> str:
         import os as _os
-        import re as _re
 
-        text = (prompt or "").strip().lower()
-        if not text:
+        if not (prompt or "").strip():
             return ok(
                 {
                     "complexity": "CLEAR",
@@ -1628,83 +1719,12 @@ def register_cos_classify_prompt(mcp, db_path):
                 meta={"layer": "routing"},
             )
 
-        signals: list[str] = []
-        complexity = "CLEAR"
-
-        # CHAOTIC — production fire / urgent intervention
-        chaotic_re = _re.compile(
-            r"\b(p0|p1|outage|down|broken|crashed?|emergency|urgent|"
-            r"fire|on[- ]call|paged|rollback (?:now|asap))\b"
-        )
-        if chaotic_re.search(text):
-            complexity = "CHAOTIC"
-            signals.append("incident-language")
-
-        # COMPLEX — exploratory / unknown answer
-        complex_re = _re.compile(
-            r"\b(best way|explore|experiment|optimi[sz]e|research|novel|"
-            r"investigate|figure out|prototype|spike|trade[- ]off|benchmark)\b"
-        )
-        if complexity == "CLEAR" and complex_re.search(text):
-            complexity = "COMPLEX"
-            signals.append("exploratory-language")
-
-        # COMPLICATED — design / architect / integrate / multi-step
-        complicated_re = _re.compile(
-            r"\b(design|architect|integrate|refactor|implement|build|migrat\w*|"
-            r"split|merge|extract|generali[sz]e|extend|orchestrat\w*|"
-            r"normali[sz]e|denormali[sz]e)\b"
-        )
-        if complexity == "CLEAR" and complicated_re.search(text):
-            complexity = "COMPLICATED"
-            signals.append("design-language")
-
-        # Promotion: long prompt without trivial keywords ⇒ at least COMPLICATED
-        word_count = len(text.split())
-        if complexity == "CLEAR" and word_count > 60:
-            complexity = "COMPLICATED"
-            signals.append(f"prompt-length={word_count}")
-
-        # Dimensions — count distinct domains touched
-        domain_patterns = {
-            "backend": r"\b(api|backend|server|django|fastapi|fiber|endpoint|router|service)\b",
-            "frontend": r"\b(frontend|react|next\.?js|nextjs|component|ui|client|page|jsx|tsx)\b",
-            "mobile": r"\b(mobile|ios|android|react native|expo|swift|kotlin)\b",
-            "ai": r"\b(llm|ai|prompt|embedding|rag|model|completion|token)\b",
-            "security": r"\b(security|auth|permission|csrf|xss|sql injection|jwt|oauth|tls|encryption|secret)\b",
-            "ops": r"\b(deploy|ci/cd|docker|kubernetes|k8s|infra|monitoring|alert|runbook|sre)\b",
-            "docs": r"\b(doc|documentation|readme|spec|playbook|adr)\b",
-            "db": r"\b(database|sql|sqlite|postgres|mysql|migration|schema|index|query)\b",
-            "graph": r"\b(graph|neo4j|kuzu|node|edge|traversal)\b",
-            "test": r"\b(test|testing|pytest|jest|coverage|fixture|mock)\b",
-        }
-        hit_domains: list[str] = []
-        for name, pat in domain_patterns.items():
-            if _re.search(pat, text):
-                hit_domains.append(name)
-        dimensions = max(1, len(hit_domains))
-        if dimensions >= 5 and complexity == "CLEAR":
-            complexity = "COMPLICATED"
-            signals.append(f"multi-dimension={dimensions}")
-
-        # Trivial-fix shortcut: VERY short prompt + obvious one-shot keyword,
-        # AND no multi-domain signal. Conservative — ambiguous prompts must
-        # NOT silently degrade to CLEAR (the gate exists to prevent that).
-        trivial_re = _re.compile(r"^(fix typo|update doc(?:string)?|tweak (?:wording|comment))\b")
-        if (
-            trivial_re.search(text)
-            and word_count < 15
-            and len(hit_domains) <= 1
-            and complexity != "CHAOTIC"
-        ):
-            complexity = "CLEAR"
-            dimensions = 1
-            signals = ["trivial-edit-shortcut"]
-
-        reasoning = (
-            f"Cynefin: {complexity} ({', '.join(signals) or 'no escalating signals'}); "
-            f"dims={dimensions} from domains: {', '.join(hit_domains) or 'none'}"
-        )
+        heuristic = classify_prompt_heuristic(prompt)
+        complexity = heuristic["complexity"]
+        dimensions = heuristic["dimensions"]
+        signals = heuristic["signals"]
+        hit_domains = heuristic["hit_domains"]
+        reasoning = heuristic["reasoning"]
 
         # Record the gate so enforce-task-start.sh passes — but ONLY when a
         # panel session is resolvable. The MCP server has no per-call panel

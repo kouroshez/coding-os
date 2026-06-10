@@ -71,6 +71,44 @@ def _unavailable(msg: str = "cognition tools not available"):
     )
 
 
+def _auto_route_model(prompt: str) -> dict:
+    """Deterministic Auto-model triage (hub-architecture.md § Hub settings
+    contract): classify the prompt, prefer cos_route_model's empirical pick
+    when history exists, else the settings' orchestrator_model."""
+    from .settings import _load as _load_hub_settings
+
+    routing_cfg = _load_hub_settings().get("model_routing") or {}
+    if not routing_cfg.get("enabled"):
+        return {"error": "model 'auto' requires settings.model_routing.enabled"}
+
+    cog = _cognition_module()
+    complexity = "COMPLICATED"
+    if cog is not None and hasattr(cog, "classify_prompt_heuristic"):
+        complexity = cog.classify_prompt_heuristic(prompt)["complexity"]
+
+    routed = ""
+    source = "orchestrator_default"
+    try:
+        from thinking_os.database import resolve_db_path  # type: ignore
+        from tools.routing import route_model  # type: ignore
+
+        conn = sqlite3.connect(str(resolve_db_path()))
+        try:
+            recommendation = route_model(conn, complexity=complexity)
+        finally:
+            conn.close()
+        if int(recommendation.get("data_points") or 0) > 0:
+            routed = str(recommendation.get("recommended_model") or "")
+            source = "empirical"
+    except Exception as exc:
+        logger.debug("auto-route empirical lookup failed: %s", exc)
+
+    if not routed:
+        routed = str(routing_cfg.get("orchestrator_model") or "")
+        source = "orchestrator_default"
+    return {"model": routed, "complexity": complexity, "source": source}
+
+
 def _enrich_trace_row(row: dict) -> dict:
     """Augment a session row with cheap trace stats (event_count, first_kind).
 
@@ -844,6 +882,23 @@ async def chat_new(
     import time as _time
 
     model = body.get("model") or None
+    routing_decision: dict | None = None
+    if model == "auto":
+        routing_decision = _auto_route_model(prompt)
+        if "error" in routing_decision:
+            return unwrap(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "error": {
+                            "category": "validation",
+                            "retryable": False,
+                            "message": routing_decision["error"],
+                        },
+                    }
+                )
+            )
+        model = routing_decision["model"] or None
     role = (str(body.get("role") or "")).strip() or None
     effort = (str(body.get("effort") or "")).strip() or None
     if effort not in (None, "low", "medium", "high", "xhigh", "max"):
@@ -879,6 +934,8 @@ async def chat_new(
             "started",
             {"session_id": new_session_id, "prompt": prompt[:200], "model": model, "role": role},
         )
+        if routing_decision is not None:
+            yield _sse_chunk("routing", routing_decision)
         # The Claude SDK rekeys the minted ses-claude-ui-* id to its OWN
         # transcript uuid, so the minted id 404s on get_session_info and never
         # appears in list_sessions. Emit the SDK-resolved id the moment the
