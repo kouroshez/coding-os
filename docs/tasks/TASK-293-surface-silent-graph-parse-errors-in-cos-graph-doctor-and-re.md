@@ -33,3 +33,4 @@ references: []
 
 ## Work Log
 - 2026-06-09 [claude]: Added files_with_parse_errors check to cos_graph_doctor (informational, with per-file sample + parse_error_total stat) a
+- 2026-06-09 [claude]: committed 30570b66: src/cli/graph_commands.py, src/core/graph_os/tests/test_centrality_ranking_doctor.py, src/core/graph

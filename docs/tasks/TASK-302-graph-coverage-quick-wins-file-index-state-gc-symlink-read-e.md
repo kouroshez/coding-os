@@ -34,3 +34,4 @@ references: []
 
 ## Work Log
 - 2026-06-09 [claude]: file_index_state+nodes+edges reconciled to the current full walk (pruned 33 stale now-gitignored/deleted files, 247 node
+- 2026-06-09 [claude]: committed d3a5d638: src/cli/graph_commands.py, src/core/graph_os/ingest/base.py, src/core/graph_os/tests/test_code_gener

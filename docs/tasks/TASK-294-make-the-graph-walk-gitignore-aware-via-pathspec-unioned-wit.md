@@ -31,3 +31,4 @@ references: []
 
 ## Work Log
 - 2026-06-09 [claude]: walk_local now unions DEFAULT_EXCLUDE with .gitignore (root + nested + .git/info/exclude) via pathspec GitIgnoreSpec; fa
+- 2026-06-09 [claude]: committed 1f85abd6: docs/engineering/graph_os-queries.md, pyproject.toml, src/core/graph_os/ingest/base.py, src/core/gra

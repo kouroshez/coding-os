@@ -34,3 +34,4 @@ references: []
 ## Work Log
 - 2026-06-09 [claude]: Diverged from the draft "audit row on delete" acceptance — node prune is a per-reindex hot path; chose logger.debug + doc alignment (Rule 22). Skill SSOT + rendered .claude copy updated; 3 hard-delete tests.
 - 2026-06-09 [claude]: Corrected imprecise "audit_log table" wording in skill/backend/task — the real deletion audit is doc_audit_trail (doc-scoped, via prune_deleted_path); the graph keeps no node-deletion ledger. Distinct from the removed exhaustive-intent governance audit.
+- 2026-06-09 [claude]: committed 1a3468af: src/core/graph_os/backends/sqlite_backend.py, src/templates/meta/skills/graph-os-authoring/SKILL.md

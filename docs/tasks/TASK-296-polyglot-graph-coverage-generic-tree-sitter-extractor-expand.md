@@ -33,3 +33,4 @@ references: []
 
 ## Work Log
 - 2026-06-09 [claude]: Added code_generic: one table-driven tree-sitter extractor emitting file+folder-spine+function/class+contains for any gr
+- 2026-06-09 [claude]: committed 720feb0f: docs/engineering/graph_os-queries.md, docs/playbooks/polyglot-extractor-roadmap.md, pyproject.toml, 

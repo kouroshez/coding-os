@@ -37,3 +37,4 @@ references: []
 
 ## Work Log
 - 2026-06-10 [claude]: Root-caused 44 parse errors → 3 classes: (1) 28 shell `dynamic` unresolved-source = misclassification (now logger.debug,
+- 2026-06-10 [claude]: committed bd20fd21: src/core/graph_os/extractors/code_shell.py, src/core/graph_os/extractors/contracts.py, src/core/grap
