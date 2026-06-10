@@ -111,6 +111,13 @@ class TestRegexFallback:
         r = _extract(". ./cos-env.sh\n")
         assert any(e.edge_type == "imports" for e in r.edges)
 
+    def test_dynamic_source_is_not_a_parse_error(self, regex_mode):
+        # TASK-303: a `source "$VAR/x.sh"` is parsed fine but unresolvable —
+        # it must NOT be recorded as a parse error (was inflating shell counts).
+        r = _extract('source "$HOOK_DIR/cos-env.sh"\n')
+        assert r.parse_errors == []
+        assert not any(e.edge_type == "imports" for e in r.edges)
+
     def test_call_script_emits_calls(self, regex_mode):
         r = _extract("bash scripts/deploy.sh\n", path="src/core/hooks/x.sh")
         assert any(e.edge_type == "calls" for e in r.edges)
@@ -146,9 +153,11 @@ class TestRegexFallback:
             e.edge_type == "calls" and e.target_uid.endswith("sample.sh") for e in r.edges
         )
 
-    def test_dynamic_source_records_parse_error(self, regex_mode):
+    def test_dynamic_source_is_not_a_parse_error(self, regex_mode):
+        # TASK-303: an unresolvable dynamic source is expected, not a parse
+        # error (was kind="dynamic" in parse_errors, inflating shell counts).
         r = _extract("source $SOME_DIR/x.sh\n")
-        assert any(pe.kind == "dynamic" for pe in r.parse_errors)
+        assert not any(pe.kind == "dynamic" for pe in r.parse_errors)
 
     def test_local_function_call_edge(self, regex_mode):
         # Parity with the tree-sitter path: a same-file function invoked as

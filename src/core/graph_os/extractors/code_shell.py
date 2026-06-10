@@ -170,13 +170,11 @@ def _emit_source_edge(
 ) -> None:
     resolved = _resolve_script_target(path, raw_target)
     if not resolved:
-        result.parse_errors.append(
-            ParseError(
-                kind="dynamic",
-                detail=f"dynamic source path: {raw_target}",
-                line=line,
-            )
-        )
+        # A `source "$VAR/x.sh"` whose path is built from a runtime variable
+        # is expected and successfully parsed — just not statically
+        # resolvable. That is NOT a parse error (it was wrongly inflating the
+        # shell parse-error count ~14x); log at debug and move on (TASK-303).
+        logger.debug("unresolved dynamic source in %s: %s", normalised, raw_target)
         return
     result.edges.append(
         GraphEdge(

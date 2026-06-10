@@ -457,6 +457,18 @@ def _record_state_safe(
                 int(duration_ms) if duration_ms is not None else None,
             ),
         )
+        # Self-heal stale graph-chain rows: when a file's routing changes
+        # (e.g. an audit .md that used to go through task_deps,md_links now
+        # routes to plain md_links), the old chain's row lingers with its old
+        # parse_errors_count and inflates cos_graph_doctor. On a graph-layer
+        # write, drop sibling graph rows for this path (keep the docs:md row,
+        # which legitimately coexists). TASK-303.
+        if chain_key != _DOCS_CHAIN_KEY:
+            conn.execute(
+                "DELETE FROM file_index_state WHERE file_path = ? "
+                "AND extractor_chain != ? AND extractor_chain != ?",
+                (rel_path, chain_key, _DOCS_CHAIN_KEY),
+            )
         conn.commit()
     except Exception as exc:
         logger.debug("state record failed for %s: %s", rel_path, exc)

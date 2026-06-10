@@ -204,6 +204,44 @@ class TestDispatch:
         report = dispatch(src, project_root=project, db_path=str(tmp_path / "t.db"))
         assert report["layers"]["graph"]["chain"].startswith("markdown-task")
 
+    def test_stale_graph_chain_self_heals(self, project, tmp_path):
+        # TASK-303: when a file's routing changes (task_deps,md_links → md_links),
+        # recording the new graph chain drops the stale one but keeps docs:md.
+        import sqlite3
+
+        from graph_os.tools.reindex_dispatch import _record_state_safe
+
+        db = str(tmp_path / "t.db")
+        rel = "docs/tasks/audits/audit-x.md"
+        common = dict(
+            content_hash="h",
+            nodes_written=0,
+            edges_written=0,
+            last_error=None,
+            project_root=project,
+            db_path=db,
+            advance_hash=True,
+        )
+        # old graph chain with a stale parse error + the legit docs row
+        _record_state_safe(rel, chain_key="task_deps,md_links", parse_errors_count=1, **common)
+        _record_state_safe(rel, chain_key="docs:md", parse_errors_count=0, **common)
+        # new graph chain — must evict the stale graph row, keep docs:md
+        _record_state_safe(rel, chain_key="md_links", parse_errors_count=0, **common)
+
+        con = sqlite3.connect(db)
+        chains = {
+            r[0]
+            for r in con.execute(
+                "SELECT extractor_chain FROM file_index_state WHERE file_path=?", (rel,)
+            ).fetchall()
+        }
+        assert chains == {"md_links", "docs:md"}
+        total_pe = con.execute(
+            "SELECT COALESCE(SUM(parse_errors_count),0) FROM file_index_state WHERE file_path=?",
+            (rel,),
+        ).fetchone()[0]
+        assert total_pe == 0  # the stale parse error is gone
+
     def test_rust_routes_to_code_generic(self, project, tmp_path):
         # TASK-296: a .rs file is dispatched through code_generic and yields
         # real nodes (proves _EXT_MAP route + extractor_map wiring).

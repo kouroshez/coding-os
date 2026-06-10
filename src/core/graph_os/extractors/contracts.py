@@ -315,12 +315,11 @@ def extract(path: str, content: str) -> ExtractionResult:
         result.parse_errors.append(ParseError(kind="fatal", detail=str(exc)))
 
     if _DYNAMIC_FETCH_RE.search(content):
-        result.parse_errors.append(
-            ParseError(
-                kind="opaque_route",
-                detail="fetch() uses a template literal — target route is opaque",
-            )
-        )
+        # A fetch() with a template-literal route is parsed fine — its target
+        # is just not statically resolvable. That is NOT a parse error (it was
+        # wrongly inflating the count, same class as shell `dynamic`); note it
+        # at debug instead (TASK-303).
+        logger.debug("opaque fetch route (template literal) in %s", normalised)
 
     for hit in matches:
         _emit(file_node.uid, hit, normalised=normalised, result=result)

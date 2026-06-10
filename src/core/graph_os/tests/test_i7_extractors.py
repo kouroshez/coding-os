@@ -81,12 +81,14 @@ class TestShellExtractor:
         edges = [e for e in r.edges if e.edge_type == "handles_tool"]
         assert any(e.target_uid == "cos:hook:my-hook" for e in edges)
 
-    def test_dynamic_hint_recorded(self):
+    def test_dynamic_source_not_recorded_as_parse_error(self):
+        # TASK-303: an unresolvable dynamic source is expected and parsed
+        # cleanly — it must not appear as a parse error.
         r = code_shell.extract(
             "core/hooks/x.sh",
             'source "$(find_script)"\n',
         )
-        assert any(p.kind == "dynamic" for p in r.parse_errors)
+        assert not any(p.kind == "dynamic" for p in r.parse_errors)
 
     def test_script_call_not_duplicated_as_import(self):
         r = code_shell.extract(
@@ -284,10 +286,12 @@ class TestContractsNextjs:
         path = routes[0].metadata.get("path", "")
         assert "**" in path or "{" in path
 
-    def test_dynamic_fetch_flagged(self):
+    def test_dynamic_fetch_not_a_parse_error(self):
+        # TASK-303: a template-literal fetch route is parsed fine, just not
+        # statically resolvable — it must not be counted as a parse error.
         src = "const r = await fetch(`/api/${id}`);\n"
         r = contracts.extract("frontend/src/client.ts", src)
-        assert any(p.kind == "opaque_route" for p in r.parse_errors)
+        assert not any(p.kind == "opaque_route" for p in r.parse_errors)
 
     def test_pages_router_api_handler(self):
         # pages-router API: default-export handler → /api/users (method any).
