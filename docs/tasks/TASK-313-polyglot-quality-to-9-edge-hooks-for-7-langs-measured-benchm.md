@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: graph-coverage-hardening
 labels: [ready]
-status: "in_progress"
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-10
 started: 2026-06-09
-completed: null
-agent_session: ses-claude-20260608-203030-6c0f
+completed: 2026-06-09
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-313: Polyglot quality to 9: edge hooks for 7 langs + measured benchmark (coverage/precision/speed/memory)
 
 **Outcome (one sentence):** The 7 generic languages (java/c/cpp/c#/scala/kotlin/lua) sit at completeness 5 (node+contains only) and all sub-9 scores rest on judgment, not measurement; add calls/imports/inherits edge hooks for all 7 and build a real quality benchmark (ground-truth corpora × scenarios measuring coverage/precision/speed/memory/confidence calibration) so every language's score ≥9 is backed by measured data.
@@ -64,3 +63,5 @@ Thresholds asserted in tests: symbol recall ≥ 0.9 · precision ≥ 0.95 · edg
 - 2026-06-10 [claude]: Probed all 7 grammars live; recorded exact node types + field structures in the plan above before writing any code.
 - 2026-06-10 [claude]: Edge hooks shipped for java/c/cpp/c#/scala/kotlin/lua via one table-driven walker (probed node types, tiered 0.9/0.5/0.3
 - 2026-06-10 [claude]: Edge hooks shipped for java/c/cpp/c#/scala/kotlin/lua via one table-driven walker (probed node types, tiered 0.9/0.5/0.3
+- 2026-06-10 [claude]: committed 93a8594c: docs/playbooks/polyglot-extractor-roadmap.md, src/core/graph_os/extractors/code_generic.py, src/core
+- 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
