@@ -1,10 +1,20 @@
 # Test Discipline (Always Active)
 
-> **Hard rule:** Run only the Verification Matrix command for what changed. Never `pytest tests/ -q` mid-task.
+> **Hard rule:** Run only the Verification Matrix command for what changed. Never `pytest tests/ -q` mid-task — the `test-governor` hook BLOCKs it without an audited override.
 
 ## Why
 
-`pytest tests/ -q` runs 743 broad integration tests (~6 minutes — scaffold cos init, install symlinks, real DB ops). The matrix commands run 15s–90s each. Six minutes per change × N iterations = the user waits, productivity dies, hooks rot.
+The suite is **4,110 test functions / ~5,640 collected across 289 files** (measured 2026-06-09 — [test-governance.md](../../docs/engineering/test-governance.md)). `tests/` alone collects 2,551 integration tests; the matrix suites sum to ~28 min wall-clock (test-cli 12:41, test-template-scaffold 6:58 — each test scaffolds a full `cos init` sandbox). A full sweep mid-task melts a laptop running concurrent agent sessions.
+
+## Enforcement + the verify ledger (no longer convention-only)
+
+Three mechanisms back this rule (spec: [test-governance.md](../../docs/engineering/test-governance.md)):
+
+1. **Dedup** — every suite run is auto-recorded to `$COS_STATE_DIR/.last-verify.json` with `{git_head, dirty_digest, agent, session_tail}` (`record-verify-auto` hook). Re-running a suite already green **on the same tree** within TTL is BLOCKed — reuse the sibling session's result. Genuinely need a re-run: `COS_TEST_FORCE=1 <command>`.
+2. **Run lock** — one heavy pytest run per machine at a time (`$COS_STATE_DIR/.test-run.lock`, TTL + liveness). A concurrent attempt is BLOCKed naming the holder; retry when it finishes.
+3. **Full-sweep gate** — bare `pytest`, `pytest tests/`, or ≥3 test roots is BLOCKed unless `COS_FULL_SWEEP_OK=1 COS_OVERRIDE_REASON='...≥15 chars'` (audited). Prefix heavy runs with `nice -n 19`.
+
+A tree change (new commit, or edits outside `docs/tasks/` / `.coding-os/`) automatically invalidates recorded passes — no manual cache-busting. Slow-marked tests (`test_background.py`, scaffold sandboxes — 314 tests) run via `make test-slow` pre-merge, not mid-task.
 
 ## Match changed files → command (single source: AGENTS.md Verification Matrix)
 
@@ -32,7 +42,11 @@ When debugging one failure: `pytest path/to/test_file.py::TestClass::test_name -
 - Cross-cutting refactor that touched ≥3 verification-matrix rows
 - User explicitly asked: "run all tests"
 
-In those cases say so out loud before launching: "Running full sweep — expect ~6 min."
+In those cases say so out loud before launching ("Running full sweep — expect ~30 min") and run it with the audited override under `nice`:
+
+```bash
+COS_FULL_SWEEP_OK=1 COS_OVERRIDE_REASON='pre-merge final gate' nice -n 19 uv run pytest tests/ -q
+```
 
 ## Before writing any test/script/function/feature
 

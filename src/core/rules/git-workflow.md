@@ -66,6 +66,7 @@ correct and simpler.
 | 2 sessions commit the same instant | ✅ | git `index.lock` rejects one → retry |
 | 2 sessions push the same instant | ✅ | non-fast-forward reject → `pull --rebase` → retry |
 | 2 sessions edit the **same file** | ⚠️ | Last write wins. Rare for one user; surfaced by the dirty-tree notice at SessionStart |
+| 2 sessions run tests the same instant | ✅ | `test-governor` hook: one heavy pytest run per machine (`.test-run.lock`, TTL + liveness), and a suite already green on the same tree is deduped via the commit-keyed `.last-verify.json` ledger — see [test-discipline.md](test-discipline.md) |
 | 1 session mid-editing a `block-*` safety hook | ⚠️ | Hooks are live symlinks — a half-written hook propagates instantly to every session. Follow the atomic-edit protocol below |
 | Session abandoned mid-task | ✅ | Committed work is on `main`; uncommitted work stays in the tree and is surfaced next SessionStart |
 

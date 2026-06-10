@@ -62,6 +62,8 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 | `enforce-memory-check` | Write/Edit | `$COS_PANEL_DIR/.memory-check` records a recent `cos_search` for past patterns, per-panel |
 | `enforce-template` | Write on specific markdown paths | proper template bootstrap ran (see [template-enforcement.md](template-enforcement.md)) |
 | `enforce-verify` | `cos task-done` | Verification Matrix commands passed for the changed domain |
+| `test-governor` | PreToolUse Bash (pytest invocations) | no duplicate suite run on the same tree (commit-keyed ledger), one heavy run per machine (`.test-run.lock`), full sweeps need `COS_FULL_SWEEP_OK=1` + reason — spec: [test-governance.md](test-governance.md) |
+| `record-verify-auto` | PostToolUse Bash (suite commands) | auto-records PASS/FAIL + `{git_head, dirty_digest, agent}` to `.last-verify.json`; clears the run lock |
 
 ### Observability (6 hooks) — SILENT log-only
 
