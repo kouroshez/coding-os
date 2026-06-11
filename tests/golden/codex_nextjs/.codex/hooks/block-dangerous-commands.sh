@@ -11,6 +11,17 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 cos_require_parser block-dangerous-commands
 
 INPUT="$(cos_read_stdin_bounded 2)"
+
+# Fast-path: this gate fires on EVERY Bash command. The common case (no
+# dangerous verb anywhere in the payload) must cost zero jq/python spawns.
+# Every block below keys on one of these literals; if the raw payload mentions
+# none of them there is nothing to deny — bail before parsing. (`rm`/`mv` etc.
+# are still parsed properly downstream; this only short-circuits the no-match.)
+case "$INPUT" in
+  *"git push"*|*"git reset"*|*"git clean"*|*rm*|*migrate*|*DROP*|*Drop*|*drop*) ;;
+  *) exit 0 ;;
+esac
+
 TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 
 if [[ "$TOOL" != "Bash" ]]; then
@@ -59,6 +70,18 @@ fi
 # Block recursive rm of a critical path (root / cwd / parent / glob / project
 # dirs / top-level absolute). Delegated to a shlex-correct helper so flag-order
 # (-fr, -r -f) and bare /·.·..·* targets can't slip past a regex word-boundary.
+# Skip the python helper spawn entirely when COMMAND has no `rm` token — the
+# helper would return `allow` for a command with no rm, so this is a pure
+# fast-path (saves a ~50ms python3 startup on every non-rm git/sql command).
+case "$COMMAND" in
+  *rm*) ;;
+  *)
+    # No rm at all → nothing for the helper to deny; fall through past the
+    # rm gate to the remaining (migrate / reset / clean) checks.
+    RM_VERDICT="allow"
+    ;;
+esac
+if [ "${RM_VERDICT:-}" != "allow" ]; then
 # Resolve the helper through the file's PHYSICAL location so it works through
 # the .claude/hooks/ symlink — `$(dirname "$0")/_helpers` does NOT (the symlink
 # points at the .sh only, not the _helpers tree). Same readlink dance as
@@ -73,6 +96,7 @@ RM_HELPER="$(cd -P "$(dirname "$_rm_src")" && pwd)/_helpers/check_dangerous_rm.p
 unset _rm_src _rm_dir
 
 RM_VERDICT=$(printf '%s' "$INPUT" | python3 "$RM_HELPER" 2>/dev/null || echo error)
+fi
 # Fail-closed but SCOPED: a helper crash/absence (RM_VERDICT=error) blocks
 # only when the command actually contains a recursive rm we could not verify —
 # never brick unrelated commands (observability-eye I8/A2).

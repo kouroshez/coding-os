@@ -24,6 +24,19 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 cos_require_parser block-uv-heredoc
 
 INPUT="$(cos_read_stdin_bounded 2)"
+
+# Fast-path: the only thing this gate blocks is `uv run … <<heredoc`. If the
+# raw payload lacks either "uv" or a "<<" heredoc operator there is nothing to
+# deny — bail before any jq spawn (this hook fires on EVERY Bash command).
+case "$INPUT" in
+  *uv*) ;;
+  *) exit 0 ;;
+esac
+case "$INPUT" in
+  *'<<'*) ;;
+  *) exit 0 ;;
+esac
+
 TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 if [[ "$TOOL" != "Bash" ]]; then
   exit 0

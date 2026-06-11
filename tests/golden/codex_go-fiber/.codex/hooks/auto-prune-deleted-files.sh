@@ -23,6 +23,16 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 
 INPUT="$(cos_read_stdin_bounded 4)"
+
+# Fast-path: this hook only prunes graph rows after an `rm`/`mv` of a tracked
+# file. If the raw payload mentions neither verb there is nothing to prune —
+# bail before any jq spawn (fires on EVERY Bash tool call). The precise
+# `*rm * | *mv *` case + path filter below still gate the actual work.
+case "$INPUT" in
+  *rm*|*mv*) ;;
+  *) exit 0 ;;
+esac
+
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 [[ "$TOOL" != "Bash" ]] && exit 0
 

@@ -36,6 +36,7 @@ run_delegate() {
 # + auto-prune-deleted-files keep the codex graph fresh after shell mv/rm.
 for delegate in \
   remind-learn-validate.sh \
+  record-verify-auto.sh \
   auto-reindex-shell-ops.sh \
   auto-prune-deleted-files.sh \
   search-verify-remaining.sh \

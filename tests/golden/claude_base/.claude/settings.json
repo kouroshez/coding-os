@@ -42,6 +42,12 @@
           },
           {
             "type": "command",
+            "command": ".claude/hooks/test-governor.sh",
+            "statusMessage": "🧪 Test-governor: dedup/lock/sweep check...",
+            "timeout": 15
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/search-enforce-inventory.sh",
             "statusMessage": "🔎 Running search inventory before bulk replace...",
             "timeout": 30
@@ -249,6 +255,63 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/search-verify-remaining.sh",
+            "statusMessage": "✅ Verifying 0 matches remain after replace...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/advance-role.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/sync-task-current.sh",
+            "statusMessage": "📌 Syncing .task-current...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/auto-reindex-shell-ops.sh",
+            "statusMessage": "🔁 Bulk shell op detected — scheduling graph reindex...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/auto-prune-deleted-files.sh",
+            "statusMessage": "🧹 Pruning graph + docs RAG state for deleted files...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/record-verify-auto.sh",
+            "statusMessage": "🧾 Recording verify-suite result...",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/link-commit-to-task.sh",
+            "statusMessage": "🔗 Linking commit to task...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/agent-presence.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/remind-learn-validate.sh",
+            "statusMessage": "💡 Checking if learn-validate reminder is due...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
@@ -359,57 +422,6 @@
         ]
       },
       {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": ".claude/hooks/search-verify-remaining.sh",
-            "statusMessage": "✅ Verifying 0 matches remain after replace...",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/advance-role.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/sync-task-current.sh",
-            "statusMessage": "📌 Syncing .task-current...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/auto-reindex-shell-ops.sh",
-            "statusMessage": "🔁 Bulk shell op detected — scheduling graph reindex...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/auto-prune-deleted-files.sh",
-            "statusMessage": "🧹 Pruning graph + docs RAG state for deleted files...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/link-commit-to-task.sh",
-            "statusMessage": "🔗 Linking commit to task...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/agent-presence.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/remind-learn-validate.sh",
-            "statusMessage": "💡 Checking if learn-validate reminder is due...",
-            "timeout": 5
-          }
-        ]
-      },
-      {
         "matcher": "Edit",
         "hooks": [
           {
@@ -438,6 +450,29 @@
             "type": "command",
             "command": ".claude/hooks/track-backtrack.sh",
             "statusMessage": "↩️ Backtrack counter updated...",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/record-verify-auto.sh",
+            "statusMessage": "🧾 Recording failed suite result...",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/agent-presence.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/capture-tool-failure.sh",
             "timeout": 5
           }
         ]
@@ -604,6 +639,11 @@
           },
           {
             "type": "command",
+            "command": ".claude/hooks/nudge-model-routing.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/nudge-task-discovery.sh",
             "timeout": 10
           },
@@ -675,23 +715,6 @@
             "type": "command",
             "command": ".claude/hooks/nudge-learn-narrative.sh",
             "statusMessage": "🧠 Checking if a lesson is worth recording...",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": ".claude/hooks/agent-presence.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/capture-tool-failure.sh",
             "timeout": 5
           }
         ]

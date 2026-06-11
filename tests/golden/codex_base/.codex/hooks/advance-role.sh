@@ -12,6 +12,14 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
+
+# Fast-path: this hook only advances the active role when a composed chain
+# exists (the .roles marker). No chain → nothing to advance; bail before any
+# jq spawn (fires on EVERY Write/Edit/Bash tool call). Check first because it
+# is a single stat() vs three jq process spawns.
+TARGET_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-claude}}}"
+[[ -f "${TARGET_DIR}/.roles" ]] || exit 0
+
 TOOL="$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)"
 [[ -n "$TOOL" ]] || exit 0
 case "$TOOL" in
@@ -20,10 +28,6 @@ case "$TOOL" in
 esac
 CMD="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
 FILE_PATH="$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || true)"
-
-# Only act when a chain exists (panel-first, matching the writer scope).
-TARGET_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-claude}}}"
-[[ -f "${TARGET_DIR}/.roles" ]] || exit 0
 
 # Resolve the helper through the hook symlink.
 _src="${BASH_SOURCE[0]}"

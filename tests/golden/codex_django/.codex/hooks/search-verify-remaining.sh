@@ -25,6 +25,14 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 PAYLOAD="$(cat 2>/dev/null || true)"
 [[ -z "$PAYLOAD" ]] && exit 0
 
+# Fast-path: this hook only verifies after a bulk replace (sed -i / xargs
+# sed|python). If the raw payload mentions neither verb there is nothing to
+# verify — bail before the python3 parse (fires on EVERY Bash tool call).
+case "$PAYLOAD" in
+  *sed*|*xargs*) ;;
+  *) exit 0 ;;
+esac
+
 CMD="$(printf '%s' "$PAYLOAD" | python3 -c '
 import sys, json
 try:

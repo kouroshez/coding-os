@@ -11,6 +11,18 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 cos_require_parser block-secrets
 
 INPUT="$(cos_read_stdin_bounded 2)"
+
+# Fast-path: this gate fires on EVERY Bash command. The Bash leg only ever
+# blocks `git add` of a secret file or `git commit --no-verify`; if the raw
+# payload mentions neither AND is not a Write/Edit (whose content we must
+# scan), there is nothing to deny — bail before any jq spawn. Write/Edit
+# payloads always carry "new_string"/"content", so they never match the
+# Bash-only short-circuit.
+case "$INPUT" in
+  *"git add"*|*"git commit"*|*new_string*|*'"content"'*) ;;
+  *) exit 0 ;;
+esac
+
 TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 
 # For Bash tool: block git add of sensitive files

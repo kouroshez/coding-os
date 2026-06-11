@@ -58,13 +58,19 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 # `cos_read_stdin_bounded` uses perl alarm — bounded read, never hangs.
 INPUT="$(cos_read_stdin_bounded 2)"
 
+# Parse all four payload fields in ONE jq spawn (was four separate jq calls,
+# each a ~30ms process startup; this hook fires on EVERY tool call + lifecycle
+# event). Tab-separated so a missing field stays an empty column. jq -r on an
+# array with @tsv keeps null → "".
+_PRES_FIELDS=""
+if [[ -n "$INPUT" ]]; then
+  _PRES_FIELDS=$(printf '%s' "$INPUT" | jq -r '[.hook_event_name, .model, .session_id, .transcript_path] | map(. // "") | @tsv' 2>/dev/null || true)
+fi
+IFS=$'\t' read -r EVENT_RAW HOOK_MODEL HOOK_SDK_UUID HOOK_TRANSCRIPT <<< "$_PRES_FIELDS"
+
 # Derive the logical event.  Prefer the explicit hook_event_name field
 # Claude Code sends; fall back to `$1` so the script stays testable
 # from the CLI (e.g. `bash agent-presence.sh start`).
-EVENT_RAW=""
-if [[ -n "$INPUT" ]]; then
-  EVENT_RAW=$(printf '%s' "$INPUT" | jq -r '.hook_event_name // empty' 2>/dev/null || true)
-fi
 if [[ -z "$EVENT_RAW" ]]; then
   EVENT_RAW="${1:-}"
 fi
@@ -130,21 +136,11 @@ COS_HOOK_SRC_DIR="$(cd -P "$(dirname "$_src")" && pwd)"
 unset _src _dir
 
 PRESENCE_HELPER="${COS_HOOK_SRC_DIR}/_helpers/presence_write.py"
-# Extract runtime model from the hook payload (Claude Code 2.x ships
-# `.model` on every stop/tool event).  Empty string falls through —
-# helper preserves the previously-stored value.
-HOOK_MODEL=""
-# The host runtime's own session id (the SDK transcript uuid) — the bridge from
-# our coding-os SESSION_ID to the chat transcript.
-HOOK_SDK_UUID=""
-# Live transcript path (Claude Stop payload) — presence_write tails it on the
-# stop event to stamp aggregate context-window tokens (TASK-255).
-HOOK_TRANSCRIPT=""
-if [[ -n "$INPUT" ]]; then
-  HOOK_MODEL=$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)
-  HOOK_SDK_UUID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
-  HOOK_TRANSCRIPT=$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || true)
-fi
+# HOOK_MODEL / HOOK_SDK_UUID / HOOK_TRANSCRIPT were already parsed (with
+# hook_event_name) in the single jq spawn near the top. model = Claude Code 2.x
+# `.model`; sdk_uuid = host runtime `.session_id` (bridge to the chat
+# transcript); transcript = the Stop payload's live transcript path (TASK-255).
+# Empty values fall through — the helper preserves previously-stored fields.
 if [[ -f "$PRESENCE_HELPER" ]]; then
   python3 "$PRESENCE_HELPER" \
     "$PRESENCE_FILE" "$COS_AGENT" "$SESSION_ID" "$AGENT_PID" "$EVENT" "$NOW" \

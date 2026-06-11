@@ -18,11 +18,19 @@ You are in task-management mode. Apply these rules mechanically.
    - an explicit task id (`TASK-###`), or
    - an existing open/in_progress/testing task in the same area.
 2. **If a matching task exists:** use it (do not create a duplicate).
-3. **If no matching task exists and work is non-trivial:** create one immediately.
-4. **Before `in_progress`: fill the task body gate.** Ensure the task has:
-   - Outcome (one measurable sentence),
-   - Read First (minimal links),
-   - Acceptance (G/W/T).
+3. **If no matching task exists and work is non-trivial: create it fully
+   formed in ONE call.** When you already know the scope (you almost always
+   do — you just analyzed the work), the SAME `cos_task_create` call carries
+   `outcome=`, `acceptance=`, `read_first=` **and** `ready=True` (`--ready`).
+   Creating a skeleton "to fill in later" is a defect, not a shortcut: the
+   create envelope echoes `data.dor` — a non-empty `gaps` list or
+   `ready: false` you did not intend is YOUR bug; fix it before proceeding.
+   CLI flag trap: `--read-first` / `--labels` are **comma-separated single
+   flags** — repeating the flag silently keeps only the last value.
+4. **Before `in_progress`: the task body gate must already hold.** Outcome
+   (one measurable sentence), Read First (minimal links), Acceptance (G/W/T).
+   Step 3 done right makes this a no-op; the icebox→in_progress gate blocks
+   placeholders regardless.
 5. **Then execute through statuses:** `in_progress` → `testing` → `complete`.
 6. **If blocked at any time:** move to `blocked` and record the concrete blocker.
 

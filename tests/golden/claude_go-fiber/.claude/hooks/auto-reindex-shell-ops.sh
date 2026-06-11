@@ -23,6 +23,17 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cat 2>/dev/null || true)"
+
+# Fast-path: this hook only schedules a reindex after a file-mutating shell
+# verb (mv/cp/rm/git mv|checkout|restore|reset|stash/find -delete). If the raw
+# payload mentions none of those tokens there is nothing to reindex — bail
+# before any jq spawn (fires on EVERY Bash tool call). The precise verb+path
+# regex below still gates the actual work.
+case "$INPUT" in
+  *mv*|*cp*|*rm*|*git*|*find*) ;;
+  *) exit 0 ;;
+esac
+
 TOOL="$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")"
 if [[ "$TOOL" != "Bash" ]]; then
   exit 0

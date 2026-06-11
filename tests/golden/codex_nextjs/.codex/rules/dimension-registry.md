@@ -47,6 +47,11 @@ phase to build your Read List.
 - **i18n** (M) → `docs/engineering/i18n-policy.md`
 - **Accessibility** (M) → `docs/engineering/accessibility-web.md`
 
+## python
+
+- **Python module / API** (M) → `docs/playbooks/python-library.md`, `docs/engineering/python-rules.md`
+- **CLI command** (M) → `docs/playbooks/python-library.md`
+
 ## react-native
 
 - **RN screen** (M) → `docs/playbooks/mobile-app.md`, `docs/engineering/mobile-rules.md`

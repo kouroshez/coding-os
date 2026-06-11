@@ -15,6 +15,16 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cos_read_stdin_bounded 2)"
+
+# Fast-path: this fan-out only acts on task transitions — the cos_task_move
+# tool or a Bash `cos task-start|task-move|task-done`. Every trigger contains
+# the literal "task". If the raw payload has no "task" there is nothing to sync;
+# bail before the panel-upgrade + jq spawns (fires on EVERY Bash tool call).
+case "$INPUT" in
+  *task*) ;;
+  *) exit 0 ;;
+esac
+
 # Upgrade panel id from stdin session_id so the write-state.sh
 # subprocess below resolves THIS panel's dir, not a stale ppid-derived one.
 command -v cos_panel_upgrade_from_payload >/dev/null 2>&1 && cos_panel_upgrade_from_payload "$INPUT" 2>/dev/null || true
@@ -42,14 +52,14 @@ case "$TOOL" in
     ;;
   Bash)
     CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
-    if printf '%s' "$CMD" | grep -qE 'cos +task-start +TASK-[0-9]+' 2>/dev/null; then
-      TASK_ID=$(printf '%s' "$CMD" | grep -oE 'TASK-[0-9]+' | head -1 || echo "")
-    elif printf '%s' "$CMD" | grep -qE 'cos +task-move +TASK-[0-9]+.*--to +in_progress' 2>/dev/null; then
-      TASK_ID=$(printf '%s' "$CMD" | grep -oE 'TASK-[0-9]+' | head -1 || echo "")
-    elif printf '%s' "$CMD" | grep -qE 'cos +task-done +TASK-[0-9]+' 2>/dev/null; then
-      CLEAR_FOR=$(printf '%s' "$CMD" | grep -oE 'TASK-[0-9]+' | head -1 || echo "")
-    elif printf '%s' "$CMD" | grep -qE "cos +task-move +TASK-[0-9]+.*--to +(${_CLEAR_STATES})" 2>/dev/null; then
-      CLEAR_FOR=$(printf '%s' "$CMD" | grep -oE 'TASK-[0-9]+' | head -1 || echo "")
+    if printf '%s' "$CMD" | grep -qE 'cos +task-start +TASK-([A-Z][A-Z0-9]*-)?[0-9]+' 2>/dev/null; then
+      TASK_ID=$(printf '%s' "$CMD" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || echo "")
+    elif printf '%s' "$CMD" | grep -qE 'cos +task-move +TASK-([A-Z][A-Z0-9]*-)?[0-9]+.*--to +in_progress' 2>/dev/null; then
+      TASK_ID=$(printf '%s' "$CMD" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || echo "")
+    elif printf '%s' "$CMD" | grep -qE 'cos +task-done +TASK-([A-Z][A-Z0-9]*-)?[0-9]+' 2>/dev/null; then
+      CLEAR_FOR=$(printf '%s' "$CMD" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || echo "")
+    elif printf '%s' "$CMD" | grep -qE "cos +task-move +TASK-([A-Z][A-Z0-9]*-)?[0-9]+.*--to +(${_CLEAR_STATES})" 2>/dev/null; then
+      CLEAR_FOR=$(printf '%s' "$CMD" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || echo "")
     fi
     ;;
   *) exit 0 ;;

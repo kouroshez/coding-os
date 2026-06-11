@@ -313,7 +313,7 @@ cos_current_task() {
 
   # Prefer explicit TASK-### anywhere in the marker — shortest agent-useful form.
   local match
-  match="$(echo "$raw" | grep -oE 'TASK-[0-9]+' | head -1 || true)"
+  match="$(echo "$raw" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || true)"
   if [[ -n "$match" ]]; then
     echo "$match"
     return

@@ -17,6 +17,16 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cos_read_stdin_bounded 2)"
+
+# Fast-path: every leg keys on either a "docs/tasks" path (Bash/Read) or the
+# word "task" in a prompt (UserPromptSubmit task-reference intent). If the raw
+# payload contains neither there is nothing to nudge — bail before any jq spawn
+# (fires on EVERY Bash command and every prompt). Superset of all real triggers.
+case "$INPUT" in
+  *docs/tasks*|*task*) ;;
+  *) exit 0 ;;
+esac
+
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 
 MARKER_DIR="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-nudge"  # panel-first: cleared at panel scope each SessionStart

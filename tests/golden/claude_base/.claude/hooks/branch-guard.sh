@@ -25,6 +25,15 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 cos_require_parser branch-guard
 
 INPUT="$(cos_read_stdin_bounded 2)"
+
+# Fast-path: every branch/HEAD-move this guard blocks is a `git` command. If
+# the raw payload has no "git" substring at all there is nothing to deny —
+# bail before any jq spawn (this gate fires on EVERY Bash command).
+case "$INPUT" in
+  *git*) ;;
+  *) exit 0 ;;
+esac
+
 TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 if [[ "$TOOL" != "Bash" ]]; then
   exit 0

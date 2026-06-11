@@ -102,25 +102,28 @@ if [[ -z "$LAUNCH" ]]; then
 fi
 
 # Probe with a real initialize handshake. Any response containing
-# `"jsonrpc"` + `"result"` within 2 seconds means the server is live.
-# Capped at 2s to avoid blocking SessionStart on a sluggish MCP — banner
-# false-negatives self-resolve on the next session start.
+# `"jsonrpc"` + `"result"` means the server is live. 6s alarm + one retry:
+# the old 2s single-shot raced the SessionStart burst (hub boot + 20 hooks
+# + uv resolve) and branded a healthy server DOWN for the whole session,
+# pushing the agent off MCP retrieval into raw-read token burn (TASK-344).
 HANDSHAKE='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"warn-mcp-down","version":"1"}}}'
 
-RESULT=$(
-  cd "$PROJECT_ROOT" || exit 0
-  # perl has a portable timeout alarm on macOS where `timeout` is absent.
-  (echo "$HANDSHAKE" | perl -e 'alarm 2; exec @ARGV' sh -c "$LAUNCH" 2>/dev/null) | head -c 4096
-) || true
-
-if echo "$RESULT" | command grep -q '"jsonrpc"' && echo "$RESULT" | command grep -q '"result"'; then
-  # Server is live — silent success. Stamp the probe marker so the next
-  # compact/resume within COS_MCP_PROBE_TTL skips the heavy re-spawn.
-  mkdir -p "$(dirname "$_PROBE_MARKER")" 2>/dev/null || true
-  : > "$_PROBE_MARKER" 2>/dev/null || true
-  cos_log_hook warn-mcp-down ok
-  exit 0
-fi
+for _attempt in 1 2; do
+  RESULT=$(
+    cd "$PROJECT_ROOT" || exit 0
+    # perl has a portable timeout alarm on macOS where `timeout` is absent.
+    (echo "$HANDSHAKE" | perl -e 'alarm 6; exec @ARGV' sh -c "$LAUNCH" 2>/dev/null) | head -c 4096
+  ) || true
+  if echo "$RESULT" | command grep -q '"jsonrpc"' && echo "$RESULT" | command grep -q '"result"'; then
+    # Server is live — silent success. Stamp the probe marker so the next
+    # compact/resume within COS_MCP_PROBE_TTL skips the heavy re-spawn.
+    mkdir -p "$(dirname "$_PROBE_MARKER")" 2>/dev/null || true
+    : > "$_PROBE_MARKER" 2>/dev/null || true
+    cos_log_hook warn-mcp-down ok
+    exit 0
+  fi
+  [[ "$_attempt" == "1" ]] && sleep 2
+done
 
 # Server is down → print a loud banner to stderr (visible to human in
 # Claude Code) AND stdout (which SessionStart hooks inject into agent
@@ -130,9 +133,14 @@ fi
   echo "⚠️  ================================================================"
   echo "⚠️  MCP coding-os is DOWN this session"
   echo "⚠️  ================================================================"
-  echo "⚠️  Memory, learning, task-sync, doc-search are ALL unavailable."
+  echo "⚠️  Memory, learning, task-sync, doc-search are LIKELY unavailable."
   echo "⚠️  The agent's cos_search / cos_task_* / cos_doc_search tools"
-  echo "⚠️  will error or return empty. Observations won't be persisted."
+  echo "⚠️  may error or return empty. Observations may not be persisted."
+  echo "⚠️"
+  echo "⚠️  AGENT: this probe spawns a THROWAWAY server and can false-negative"
+  echo "⚠️  under SessionStart load — your session's own MCP connection may be"
+  echo "⚠️  fine. VERIFY with one real call (ToolSearch select:cos_health →"
+  echo "⚠️  cos_health) before treating MCP as down for the session."
   echo "⚠️"
   echo "⚠️  Diagnose:  cos doctor         (check C15 mcp_actually_launches)"
   echo "⚠️  Repair:"
