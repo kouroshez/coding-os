@@ -4795,6 +4795,21 @@ def cos_graph_doctor(
                         ],
                     }
                 )
+                if fix:
+                    # A stub exists only to anchor edges; zero edges = dead
+                    # (its source file was deleted — stubs carry
+                    # file_path=NULL, so no path-keyed prune ever reaches
+                    # them). Re-extraction re-mints any still referenced.
+                    s_uids = [r[0] for r in stub_orphans]
+                    chunk = 500
+                    for i in range(0, len(s_uids), chunk):
+                        batch = s_uids[i : i + chunk]
+                        cur = sqlite_conn.execute(
+                            f"DELETE FROM graph_nodes WHERE uid IN ({','.join('?' * len(batch))})",
+                            batch,
+                        )
+                        fixed_count += int(cur.rowcount or 0)
+                    sqlite_conn.commit()
 
             # 5. Self-loop edges (source_id == target_id — extractor bugs)
             self_loop_count = sqlite_conn.execute(
@@ -5065,7 +5080,6 @@ def cos_graph_doctor(
                     }
                 )
 
-            stats["issue_count"] = len(issues)
             if fix:
                 stats["fixed_edge_count"] = fixed_count
 
@@ -5089,7 +5103,6 @@ def cos_graph_doctor(
         if missing:
             issues.append({"category": "dangling_endpoints", "count": missing, "sample": []})
         stats["edge_count"] = len(edge_list)
-        stats["issue_count"] = len(issues)
 
     # W7.6 / R4-N9: informational categories (orphaned_external_unresolved)
     # do NOT trip healthy=false. Real issues = anything else.
@@ -5100,6 +5113,11 @@ def cos_graph_doctor(
     }
     real_issues = [i for i in issues if i.get("category") not in _INFORMATIONAL_CATEGORIES]
     healthy = len(real_issues) == 0
+    # issue_count drives the Hub ISSUES badge — count what `healthy` counts
+    # (real categories), so badge and health never disagree; the
+    # all-inclusive number stays available as issue_count_total.
+    stats["issue_count"] = len(real_issues)
+    stats["issue_count_total"] = len(issues)
     return _ok(
         {"healthy": healthy, "issues": issues, "stats": stats},
         meta={
@@ -5107,8 +5125,8 @@ def cos_graph_doctor(
             "fix_applied": fix and fixed_count > 0,
             "fixed_count": fixed_count,
             # W7.6 / R4-13: list what fix=true actually deletes today.
-            # orphaned_external_unresolved is informational (extractor
-            # stub surfacing — not a fixable bug).
+            # orphaned_external_unresolved deletes its zero-edge (dead)
+            # stubs only — re-extraction re-mints live references.
             "fixable_categories": [
                 "stale_paths",
                 "malformed_uid_path",
@@ -5116,6 +5134,7 @@ def cos_graph_doctor(
                 "dangling_target",
                 "duplicate_contains",
                 "orphaned_phantom",
+                "orphaned_external_unresolved",
             ],
             "informational_categories": list(_INFORMATIONAL_CATEGORIES),
             # F5: warn when the running server is older than graph.py on disk.

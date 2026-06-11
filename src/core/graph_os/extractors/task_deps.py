@@ -16,6 +16,7 @@ from .md_links import (
     ParseError,
     _normalize_path,
     _promote_stubs,
+    _resolve_through_symlink,
     emit_contains_spine,
     file_uid as doc_file_uid,
 )
@@ -310,7 +311,16 @@ def _extract_doc_paths(bullets: list[str], origin_path: str = "") -> list[str]:
             # cwd == project root like md_links' checks).
             if not Path(candidate).is_file():
                 continue
-            paths.append(candidate)
+            # Symlink ref (CLAUDE.md → AGENTS.md) lands on the real file —
+            # walk_local never owns symlink paths (roadmap §6).
+            resolved = _resolve_through_symlink(candidate)
+            if not resolved:
+                continue
+            if resolved != candidate:
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+            paths.append(resolved)
     return paths
 
 

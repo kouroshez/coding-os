@@ -106,6 +106,9 @@ def _resolve_read_target(path: str, target_path: str) -> str | None:
             # Same existence gate as _resolve_link (roadmap §6) — a
             # repo-rooted read_next target that is gone mints a stale stub.
             return None
+        normalised = _resolve_through_symlink(normalised)
+        if not normalised:
+            return None
         return f"doc:file:{normalised}"
     # Bare relative name — anchor against the source doc's directory.
     resolved = _resolve_link(path, target_path)
@@ -255,6 +258,20 @@ _ASSET_SUFFIXES = frozenset(
 )
 
 
+def _resolve_through_symlink(normalised: str) -> str:
+    # In-repo symlink target (CLAUDE.md → AGENTS.md): land the edge on the
+    # real file — walk_local skips symlinks, so a symlink-path node has no
+    # owner and doctor flags it malformed (roadmap §6). A symlink escaping
+    # the repo root resolves to "" (caller drops it).
+    path = Path(normalised)
+    if not normalised or not path.is_symlink():
+        return normalised
+    try:
+        return path.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except (OSError, ValueError):
+        return ""
+
+
 def _resolve_link(origin_path: str, target: str) -> str:
     """Resolve a link (possibly relative) to an absolute repo-rooted path.
 
@@ -302,6 +319,9 @@ def _resolve_link(origin_path: str, target: str) -> str:
         bare = path_part.lstrip("./")
         if bare and bare != normalised and Path(bare).is_file():
             normalised = bare
+    normalised = _resolve_through_symlink(normalised)
+    if not normalised:
+        return ""
     # Markdown links can target any artefact in the repo; route them to
     # the right uid namespace by extension so a `.md → .py` link does
     # not create a ghost `doc:file` stub that duplicates the real

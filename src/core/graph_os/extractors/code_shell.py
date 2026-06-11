@@ -12,9 +12,11 @@ spurious "dynamic content present" hint that flagged 96% of shell files.
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import logging
 import re
+import subprocess
 from pathlib import PurePosixPath
 
 from ..types import EvidenceSignal, GraphEdge, GraphNode
@@ -482,12 +484,25 @@ def extract(path: str, content: str) -> ExtractionResult:
                 result,
             )
             if err_count:
-                result.parse_errors.append(
-                    ParseError(
-                        kind="tree_sitter_error",
-                        detail=f"tree-sitter recorded {err_count} ERROR node(s)",
+                if _bash_syntax_ok(content):
+                    # Valid bash that tree-sitter's grammar cannot parse
+                    # ($((10#…)), ${V:+ (…$V…)}, concatenated quoted+glob
+                    # case patterns) — a grammar gap, not a file error
+                    # (roadmap §6): symbols near the gap may be missing,
+                    # but parse_errors_count must reflect FILE errors only.
+                    # GraphNode is frozen — swap in a patched module node.
+                    patched = dataclasses.replace(
+                        mod,
+                        metadata={**mod.metadata, "grammar_gaps": err_count},
                     )
-                )
+                    result.nodes[result.nodes.index(mod)] = patched
+                else:
+                    result.parse_errors.append(
+                        ParseError(
+                            kind="tree_sitter_error",
+                            detail=f"tree-sitter recorded {err_count} ERROR node(s)",
+                        )
+                    )
 
     if not used_tree_sitter:
         _walk_regex(content, path, normalised, mod.uid, result)
@@ -501,6 +516,23 @@ def extract(path: str, content: str) -> ExtractionResult:
 
     _promote_stubs(result)
     return result
+
+
+def _bash_syntax_ok(content: str) -> bool:
+    # Read-only syntax probe (bash -n on stdin) — runs only when
+    # tree-sitter reported ERROR nodes, so the subprocess cost is rare.
+    # Fail-closed: no bash / timeout → treat the ERROR as a real parse
+    # error rather than silently suppressing coverage gaps.
+    try:
+        probe = subprocess.run(
+            ["bash", "-n"],
+            input=content.encode("utf-8", errors="replace"),
+            capture_output=True,
+            timeout=5,
+        )
+        return probe.returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
 
 
 __all__ = ["EXTRACTOR_ID", "extract", "file_uid", "module_uid"]

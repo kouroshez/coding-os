@@ -90,6 +90,18 @@ def _open_backend():
 # ---------------------------------------------------------------------------
 
 
+def _report_failure_reason(report: dict) -> str | None:
+    graph_layer = (report.get("layers") or {}).get("graph") or {}
+    if report.get("status") == "error" or graph_layer.get("status") == "error":
+        return str(graph_layer.get("reason") or report.get("reason") or "unknown")
+    return None
+
+
+def _is_lock_shaped(reason: str) -> bool:
+    lowered = reason.lower()
+    return "locked" in lowered or "busy" in lowered
+
+
 def _parallel_dispatch(
     file_path: str,
     project_root: str,
@@ -585,16 +597,42 @@ def register(cli: click.Group) -> None:
                 f"[graph-reindex] skipped {_sym} symlink(s), {_rerr} unreadable file(s)",
                 err=True,
             )
-        processed = skipped = errors = 0
+        processed = skipped = errors = lock_streak = 0
+        failed_paths: list[str] = []
         started = _time.monotonic()
+        # Circuit breaker: a write lock held by another process makes EVERY
+        # file fail after its bounded busy-wait (~5s × 3 retries). Without
+        # this, an 800-file walk grinds silently for an hour — the per-file
+        # failure used to land only in layers.graph.status, which this loop
+        # counted as PROCESSED (2026-06-11 stall, TASK-394/395). The streak
+        # resets on any success so a transient start-of-walk lock storm
+        # (workers warming up alongside hub/MCP writers) doesn't abort a
+        # run that is actually progressing.
+        _LOCK_STREAK_ABORT = 10
 
         def _record(report: dict) -> None:
-            nonlocal processed, skipped
+            nonlocal processed, skipped, errors, lock_streak
             cache = report.get("cache")
             if cache == "hit":
                 skipped += 1
-            else:
-                processed += 1
+                return
+            processed += 1
+            reason = _report_failure_reason(report)
+            if reason is None:
+                lock_streak = 0
+                return
+            errors += 1
+            failed_paths.append(str(report.get("path") or ""))
+            if errors <= 5:
+                click.echo(f"[graph-reindex]   ! {report.get('path')}: {reason}", err=True)
+            if _is_lock_shaped(reason):
+                lock_streak += 1
+            if lock_streak >= _LOCK_STREAK_ABORT:
+                raise click.ClickException(
+                    f"aborting: {lock_streak} consecutive lock-shaped graph write "
+                    "failures — another process is holding the DB write lock; "
+                    "close it and re-run"
+                )
 
         # Live per-file progress bar — click.progressbar auto-hides when
         # stdout is not a TTY (pipes / CI), so non-interactive runs keep
@@ -624,8 +662,15 @@ def register(cli: click.Group) -> None:
                     try:
                         report = fut.result()
                         _record(report)
+                    except click.ClickException:
+                        # Circuit breaker tripped — drop queued work NOW;
+                        # the context manager's shutdown(wait=True) would
+                        # otherwise grind through every pending future.
+                        pool.shutdown(wait=False, cancel_futures=True)
+                        raise
                     except Exception as exc:
                         errors += 1
+                        failed_paths.append(str(file_path))
                         click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
                     bar.update(1)
         else:
@@ -640,10 +685,37 @@ def register(cli: click.Group) -> None:
                             link_stubs=False,  # global link after the walk
                         )
                         _record(report)
+                    except click.ClickException:
+                        raise
                     except Exception as exc:
                         errors += 1
+                        failed_paths.append(str(file_path))
                         click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
                     bar.update(1)
+
+        # Writers serialize in SQLite, so parallel workers can drop a few
+        # files to lock contention (their hash is NOT advanced). Retry the
+        # casualties sequentially — no sibling contention — so a parallel
+        # walk converges to the same zero-error result as a sequential one.
+        if failed_paths:
+            recovered = 0
+            for rel in [p for p in failed_paths if p]:
+                try:
+                    report = dispatch(
+                        project_root / rel,
+                        project_root=project_root,
+                        include_docs=not no_docs,
+                        force=force,
+                        link_stubs=False,
+                    )
+                    if _report_failure_reason(report) is None:
+                        recovered += 1
+                except Exception as exc:
+                    click.echo(f"[graph-reindex]   ! retry {rel}: {exc}", err=True)
+            errors -= recovered
+            click.echo(
+                f"[graph-reindex] retry pass: {recovered}/{len(failed_paths)} recovered"
+            )
         duration = _time.monotonic() - started
 
         # Reconcile the graph to the current walk BEFORE reporting: file_index_state

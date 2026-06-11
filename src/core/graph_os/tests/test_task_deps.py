@@ -334,6 +334,12 @@ class TestExtractDocPaths:
         out = task_deps._extract_doc_paths(["see docs/ghost.md"], origin_path="docs/tasks/T.md")
         assert out == []
 
+    def test_symlink_ref_resolves_to_real_target(self, tmp_path):
+        (tmp_path / "AGENTS.md").write_text("# agents\n")
+        (tmp_path / "CLAUDE.md").symlink_to(tmp_path / "AGENTS.md")
+        out = task_deps._extract_doc_paths(["read CLAUDE.md"], origin_path="docs/tasks/T.md")
+        assert out == ["AGENTS.md"]
+
 
 class TestExtractScopePaths:
     def test_pulls_code_paths_and_dedups(self):

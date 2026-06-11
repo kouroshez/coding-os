@@ -5,18 +5,17 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [graph-os, reindex, concurrency, ready]
-status: icebox
+status: complete
 priority: P3
 appetite: 4h
 created: 2026-06-11
-started: null
-completed: null
-agent_session: null
+started: 2026-06-11
+completed: 2026-06-11
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-394: graph-reindex -j N stalls with zero file_index_state writes under a live MCP server
 
 ---
@@ -58,3 +57,5 @@ Actual: silent indefinite stall; run had to be killed (single-file dispatch thro
 - **Given** the root cause is identified, **When** the fix lands, **Then** a regression test (or documented manual probe) covers the parallel-writer + long-lived-reader scenario.
 
 ## Work Log
+- 2026-06-11 [claude]: Root-caused under TASK-395. Three stacked mechanisms: (1) CLI counted per-file graph-layer write failures as PROCESSED (
+- 2026-06-11 [claude]: Status transitioned to complete via cos task-done.

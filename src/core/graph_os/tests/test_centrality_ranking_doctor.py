@@ -322,6 +322,51 @@ class TestDoctor:
         assert remaining == 0
         graph._BACKEND_SINGLETON = None
 
+    def test_doctor_fix_gc_dead_external_stub(self, migrated_conn, monkeypatch):
+        """Zero-edge code:external stub (deleted source file) is GC'd by fix=True."""
+        from graph_os.backends.sqlite_backend import SqliteBackend
+
+        backend = SqliteBackend(conn=migrated_conn)
+        graph._BACKEND_SINGLETON = backend
+        monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
+        migrated_conn.execute(
+            "INSERT INTO graph_nodes (uid, kind, label, file_path, metadata_json, created_at, updated_at) "
+            "VALUES ('code:external:unresolved:setAudits', 'identifier', 'unresolved:setAudits', "
+            "NULL, '{}', 0, 0)"
+        )
+        migrated_conn.commit()
+        data = _ok(graph.cos_graph_doctor())
+        stub_issue = next(
+            i for i in data["issues"] if i["category"] == "orphaned_external_unresolved"
+        )
+        assert stub_issue["severity"] == "info"
+        assert "orphaned_external_unresolved" in data["meta"]["fixable_categories"]
+        _ok(graph.cos_graph_doctor(fix=True))
+        remaining = migrated_conn.execute(
+            "SELECT COUNT(*) FROM graph_nodes WHERE uid='code:external:unresolved:setAudits'"
+        ).fetchone()[0]
+        assert remaining == 0
+        graph._BACKEND_SINGLETON = None
+
+    def test_issue_count_counts_real_categories_only(self, migrated_conn, monkeypatch):
+        """Info categories never inflate stats.issue_count (Hub badge honesty)."""
+        from graph_os.backends.sqlite_backend import SqliteBackend
+
+        backend = SqliteBackend(conn=migrated_conn)
+        graph._BACKEND_SINGLETON = backend
+        monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
+        migrated_conn.execute(
+            "INSERT INTO graph_nodes (uid, kind, label, file_path, metadata_json, created_at, updated_at) "
+            "VALUES ('code:external:unresolved:onlyStub', 'identifier', 'unresolved:onlyStub', "
+            "NULL, '{}', 0, 0)"
+        )
+        migrated_conn.commit()
+        data = _ok(graph.cos_graph_doctor())
+        assert data["healthy"] is True
+        assert data["stats"]["issue_count"] == 0
+        assert data["stats"]["issue_count_total"] >= 1
+        graph._BACKEND_SINGLETON = None
+
     def test_parse_errors_stats_zero_on_clean_graph(self, migrated_conn, monkeypatch):
         """No file_index_state parse errors → stats report 0, no issue raised."""
         from graph_os.backends.sqlite_backend import SqliteBackend

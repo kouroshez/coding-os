@@ -196,3 +196,37 @@ class TestDeterminism:
         assert [(e.source_uid, e.target_uid, e.edge_type) for e in a.edges] == [
             (e.source_uid, e.target_uid, e.edge_type) for e in b.edges
         ]
+
+
+# ---------------------------------------------------------------------------
+# tree-sitter grammar gaps vs real parse errors (roadmap §6, TASK-395)
+# ---------------------------------------------------------------------------
+
+
+class TestGrammarGapReclassification:
+    def test_valid_bash_grammar_gap_not_a_parse_error(self):
+        if not code_shell._TS_AVAILABLE:
+            pytest.skip("tree-sitter-bash not installed")
+        # `$((10#$x))` is valid bash that tree-sitter-bash cannot parse.
+        src = (
+            "#!/usr/bin/env bash\n"
+            "calc() {\n"
+            "  local t0_us=$((10#$1 * 1000000 + 10#$2))\n"
+            "  echo \"$t0_us\"\n"
+            "}\n"
+        )
+        r = code_shell.extract("src/core/hooks/gap.sh", src)
+        assert r.parse_errors == []
+        mod = next(n for n in r.nodes if n.uid.startswith("code:module:"))
+        assert mod.metadata.get("grammar_gaps", 0) >= 1
+
+    def test_real_syntax_error_still_counts(self):
+        if not code_shell._TS_AVAILABLE:
+            pytest.skip("tree-sitter-bash not installed")
+        src = "#!/usr/bin/env bash\nif [ ; then fi(((\n"
+        r = code_shell.extract("src/core/hooks/broken.sh", src)
+        assert any(p.kind == "tree_sitter_error" for p in r.parse_errors)
+
+    def test_bash_syntax_ok_helper(self):
+        assert code_shell._bash_syntax_ok("echo hi\n")
+        assert not code_shell._bash_syntax_ok("if [ ; then fi(((\n")

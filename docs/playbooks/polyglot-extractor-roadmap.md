@@ -379,6 +379,23 @@ stack for `cos init` is OUT of scope here (separate task).
   gone) or when its recorded extractor id is no longer registered (extractor
   renames — `code_ts_ts@v1` → `code_ts@v1`, `code_shell@v1` → `@v2` — strand
   rows that the extractor-scoped prune-before-reindex can never match).
+- **Symlink targets resolve to the real file (TASK-395).** A link whose
+  target is an in-repo symlink (`CLAUDE.md` → `AGENTS.md`) lands on the
+  resolved target's uid; the symlink path itself is never minted (walk_local
+  already skips symlinks, so a symlink-path node has no owner and doctor
+  flags it malformed). A symlink escaping the repo root is dropped.
+- **Dead external stubs are GC-able (TASK-395).** `code:external:*` /
+  `cos:identifier:*` stubs exist only to anchor edges; when a source file is
+  deleted its stubs keep `file_path=NULL` so no per-file prune or full-walk
+  reconcile ever removes them. Zero-edge external stubs are therefore listed
+  informationally AND deleted by `cos_graph_doctor(fix=True)` — re-extraction
+  re-mints any that are still referenced.
+- **tree-sitter grammar gaps are not file errors (TASK-395).** When the shell
+  extractor sees tree-sitter ERROR nodes but `bash -n` accepts the file, the
+  count is recorded as `grammar_gaps` metadata, not `parse_errors_count` —
+  known gaps: `$((10#$x))` base-prefix arithmetic, `${VAR:+ (…$VAR…)}`
+  parenthesised expansions, concatenated quoted+glob `case` patterns. Real
+  syntax errors (bash -n fails) still count.
 
 ## 7. Performance budget per language
 

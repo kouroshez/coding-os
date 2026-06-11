@@ -44,6 +44,12 @@ def fictional_repo(tmp_path, monkeypatch):
         target = tmp_path / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text("# stub\n")
+    # In-repo symlinks (CLAUDE.md → AGENTS.md mirror) for the symlink-
+    # resolution tests; an out-of-repo symlink for the escape test.
+    (tmp_path / "AGENTS.md").write_text("# agents\n")
+    (tmp_path / "CLAUDE.md").symlink_to(tmp_path / "AGENTS.md")
+    (tmp_path / "docs" / "LINK.md").symlink_to(tmp_path / "docs" / "other.md")
+    (tmp_path / "docs" / "ESCAPE.md").symlink_to("/etc/hosts")
     monkeypatch.chdir(tmp_path)
 
 
@@ -421,6 +427,29 @@ class TestExistenceGate:
         reads = {e.target_uid for e in r.edges if e.edge_type == "read_next"}
         assert "doc:file:docs/other.md" in links
         assert "doc:file:docs/real.md" in reads
+
+
+class TestSymlinkResolution:
+    # Roadmap §6 — a link to an in-repo symlink lands on the resolved
+    # target; the symlink path is never minted (walk_local skips symlinks,
+    # so a symlink-path node has no owner and doctor flags it malformed).
+    def test_inline_link_to_symlink_lands_on_real_target(self):
+        r = _extract("[rules](../CLAUDE.md)")
+        links = {e.target_uid for e in r.edges if e.edge_type == "links_to"}
+        assert "doc:file:AGENTS.md" in links
+        assert not any("CLAUDE.md" in u for u in links)
+        assert not any(n.uid == "doc:file:CLAUDE.md" for n in r.nodes)
+
+    def test_repo_rooted_read_next_symlink_resolves(self):
+        r = _extract("# H\n\nRead next: docs/LINK.md\n")
+        reads = {e.target_uid for e in r.edges if e.edge_type == "read_next"}
+        assert "doc:file:docs/other.md" in reads
+        assert "doc:file:docs/LINK.md" not in reads
+
+    def test_symlink_escaping_repo_root_dropped(self):
+        r = _extract("[bad](ESCAPE.md)")
+        assert not any("ESCAPE" in e.target_uid for e in r.edges)
+        assert not any("etc/hosts" in (e.target_uid or "") for e in r.edges)
 
 
 # ---------------------------------------------------------------------------

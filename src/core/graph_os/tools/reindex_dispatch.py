@@ -10,6 +10,7 @@ import hashlib
 import logging
 import os
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -396,13 +397,6 @@ def _lookup_cache(
                 }
     except Exception as exc:
         logger.debug("cache lookup failed: %s", exc)
-    finally:
-        try:
-            conn.close()
-        except Exception as close_exc:
-            from core.logging_os import swallow_safe
-
-            swallow_safe("graph_os.reindex", "connection close failed", exc=close_exc)
     return hits
 
 
@@ -476,20 +470,52 @@ def _record_state_safe(
         conn.commit()
     except Exception as exc:
         logger.debug("state record failed for %s: %s", rel_path, exc)
-    finally:
-        try:
-            conn.close()
-        except Exception as close_exc:
-            from core.logging_os import swallow_safe
 
-            swallow_safe("graph_os.reindex", "connection close failed", exc=close_exc)
+
+_CONN_LOCAL = threading.local()
 
 
 def _open_conn(*, project_root: Path, db_path: str | None):
+    # Per-thread connection cache. init_db re-runs the whole
+    # CREATE-IF-NOT-EXISTS migration ladder — each run takes the SQLite
+    # write lock even when a no-op, and dispatch used to open THREE fresh
+    # connections per file (cache lookup, graph write, state record). Under
+    # `graph-reindex -j N` that thundering herd starves workers past their
+    # busy_timeout and the whole walk grinds (TASK-394/395 stall). One
+    # connection per thread per DB removes the churn; callers MUST NOT
+    # close what this returns.
     from thinking_os.database import init_db, resolve_db_path  # type: ignore
 
     effective_db = db_path or str(resolve_db_path(project_root))
-    return init_db(effective_db)
+    cache = getattr(_CONN_LOCAL, "by_db", None)
+    if cache is None:
+        cache = {}
+        _CONN_LOCAL.by_db = cache
+    conn = cache.get(effective_db)
+    if conn is not None:
+        try:
+            conn.execute("SELECT 1")
+        except Exception:
+            conn = None
+    if conn is None:
+        conn = init_db(effective_db)
+        try:
+            # Writers serialize in SQLite — under `-j N` plus the hub/MCP
+            # background writers, init_db's 5s default surfaces as
+            # "database is locked" drops (70/1843 on a full -j4 walk).
+            # A bounded 30s wait turns those into short queues; the CLI
+            # lock-streak breaker still catches a lock held forever.
+            conn.execute("PRAGMA busy_timeout = 30000")
+            # Python's legacy deferred transactions upgrade read→write
+            # mid-tx; under concurrent writers that upgrade fails with an
+            # IMMEDIATE "database is locked" that IGNORES busy_timeout
+            # (SQLITE_BUSY_SNAPSHOT). BEGIN IMMEDIATE from the start makes
+            # the lock wait happen at BEGIN, where busy_timeout applies.
+            conn.isolation_level = "IMMEDIATE"
+        except Exception as exc:
+            logger.debug("dispatch conn tuning skipped: %s", exc)
+        cache[effective_db] = conn
+    return conn
 
 
 def _has_state_table(conn) -> bool:
@@ -569,7 +595,6 @@ def _reindex_graph(
         md_links,
         task_deps,
     )
-    from thinking_os.database import init_db, resolve_db_path  # type: ignore
 
     extractor_map = {
         "code_generic": code_generic.extract,
@@ -585,9 +610,7 @@ def _reindex_graph(
         "md_links": md_links.extract,
         "task_deps": task_deps.extract,
     }
-
-    effective_db = db_path or str(resolve_db_path(project_root))
-    conn = init_db(effective_db)
+    conn = _open_conn(project_root=project_root, db_path=db_path)
     nodes_written = edges_written = nodes_pruned = 0
     parse_errors: list[dict[str, Any]] = []
     try:
@@ -640,7 +663,8 @@ def _reindex_graph(
             except Exception as exc:
                 logger.debug("stub linking suppressed for %s: %s", rel_path, exc)
     finally:
-        conn.close()
+        # Connection is the thread-cached one from _open_conn — never close.
+        pass
     return {
         "status": "ok",
         "nodes_written": nodes_written,
