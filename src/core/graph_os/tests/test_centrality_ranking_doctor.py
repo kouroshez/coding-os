@@ -867,3 +867,24 @@ class TestDoctorSlowestExtractions:
         assert "slowest_extractions" not in categories
         assert data["healthy"] is True
         graph._BACKEND_SINGLETON = None
+
+    def test_within_budget_durations_stay_out_of_issues(self, migrated_conn, monkeypatch):
+        """Below the 500ms floor: telemetry in stats only, no issue card (TASK-396)."""
+        from graph_os.backends.sqlite_backend import SqliteBackend
+
+        backend = SqliteBackend(conn=migrated_conn)
+        graph._BACKEND_SINGLETON = backend
+        monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
+        migrated_conn.execute(
+            "INSERT OR REPLACE INTO file_index_state "
+            "(file_path, content_hash, extractor_chain, nodes_written, "
+            " edges_written, parse_errors_count, last_indexed_at, duration_ms) "
+            "VALUES ('fast/one.py', 'h1', 'python', 1, 0, 0, 0, 356), "
+            "       ('fast/two.py', 'h2', 'python', 1, 0, 0, 0, 120)"
+        )
+        migrated_conn.commit()
+        data = _ok(graph.cos_graph_doctor())
+        categories = {i["category"] for i in data["issues"]}
+        assert "slowest_extractions" not in categories
+        assert data["stats"]["slowest_extraction_ms"] == 356
+        graph._BACKEND_SINGLETON = None

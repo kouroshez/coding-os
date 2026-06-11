@@ -4458,6 +4458,11 @@ def cos_graph_ranking(
     )
 
 
+# Worst per-language P95 extraction budget (roadmap §7) — the doctor lists
+# slowest_extractions as an issue card only above this.
+_SLOW_EXTRACTION_FLOOR_MS = 500
+
+
 @lru_cache(maxsize=1)
 def _current_extractor_ids() -> frozenset[str]:
     try:
@@ -5064,11 +5069,17 @@ def cos_graph_doctor(
                 logger.debug("slowest-extraction probe suppressed: %s", exc)
                 slow_rows = []
             if slow_rows:
+                stats["slowest_extraction_ms"] = int(slow_rows[0][2])
+            # Surface as an issue card only past the worst per-language P95
+            # budget (roadmap §7) — a within-budget top-10 is telemetry, not
+            # a finding, and a permanent card reads as a problem.
+            if slow_rows and int(slow_rows[0][2]) >= _SLOW_EXTRACTION_FLOOR_MS:
                 issues.append(
                     {
                         "category": "slowest_extractions",
                         "severity": "info",
                         "count": len(slow_rows),
+                        "budget_floor_ms": _SLOW_EXTRACTION_FLOOR_MS,
                         "sample": [
                             {
                                 "file_path": r[0],

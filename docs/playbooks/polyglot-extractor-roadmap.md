@@ -399,6 +399,11 @@ stack for `cos init` is OUT of scope here (separate task).
 
 ## 7. Performance budget per language
 
+> Doctor surfacing (TASK-396): `cos_graph_doctor` lists `slowest_extractions`
+> in `issues[]` only when the slowest file exceeds the 500 ms floor (the
+> worst P95 target below); `stats.slowest_extraction_ms` always carries the
+> max so the telemetry stays queryable. Within-budget runs add zero cards.
+
 | Lang | Median target | P95 target | Cache hit-rate target |
 |---|---|---|---|
 | Python | < 80 ms | < 400 ms | > 80% on incremental edits |
