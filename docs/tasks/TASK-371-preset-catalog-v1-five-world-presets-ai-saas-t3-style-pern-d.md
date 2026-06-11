@@ -5,18 +5,17 @@ swimlane: templates
 kind: feature
 epic: D-catalog
 labels: [wave-4, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P2
 appetite: 1d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-356, TASK-367, TASK-368]
 blocked_by: []
 references: []
 ---
-
 # TASK-371: Preset catalog v1 — five world presets (AI-SaaS, T3-style, PERN, Django+Next, RN+API)
 
 **Outcome (one sentence):** Five curated preset.yaml files composed only from installed stacks (AI-SaaS = fastapi+nextjs, T3-style = nextjs+typescript, PERN = node-express+react, Django+Next, RN+fastapi backend) each scaffold green via wizard and CLI and appear in the onboarding preset step with descriptions.

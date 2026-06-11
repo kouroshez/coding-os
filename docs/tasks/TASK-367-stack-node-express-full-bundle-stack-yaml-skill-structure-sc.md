@@ -5,12 +5,12 @@ swimlane: templates
 kind: feature
 epic: D-catalog
 labels: [wave-4, onboarding-program, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-361]
 blocked_by: []
@@ -37,3 +37,4 @@ references: []
 - 2026-06-11 [claude]: Edit SKILL.md
 - 2026-06-11 [claude]: commit 08dc53b794 — feat(templates): node-express full stack bundle (TASK-367)
 - 2026-06-11 [claude]: IMPL DONE (parked, batch 7 #1) — complete node-express bundle, first real consumer of the TASK-361 factory: stack.yaml (
+- 2026-06-11 [claude]: CLOSED on batch-7 suite: cli+scaffold 175 passed (34m56s; the single failure was vue-nuxt's, not this bundle). Commit 08

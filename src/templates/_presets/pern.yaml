@@ -1,0 +1,9 @@
+version: 1
+id: pern
+label: "PERN (Postgres + Express + React + Node)"
+description: >-
+  The classic JavaScript split: Express/TypeScript API with a React
+  frontend (Next.js as the modern React harness) over Postgres.
+  sql-authoring and db-design cover the relational core.
+stacks: [node-express, nextjs]
+skills: [sql-authoring, db-design]

@@ -1,0 +1,8 @@
+version: 1
+id: django-next
+label: "Django + Next.js"
+description: >-
+  Batteries-included Python backend with a modern React frontend — the
+  most common enterprise migration shape (Django REST + Next.js app).
+stacks: [django, nextjs]
+skills: [api-design]

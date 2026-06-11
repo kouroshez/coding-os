@@ -1,0 +1,9 @@
+version: 1
+id: ai-saas
+label: "AI SaaS (Next.js + FastAPI)"
+description: >-
+  The dominant AI-product shape: Next.js web app with a Python FastAPI
+  backend serving model endpoints. Ships llm-patterns and observability
+  skills so token costs and latency are first-class from day one.
+stacks: [nextjs, fastapi]
+skills: [llm-patterns, observability]

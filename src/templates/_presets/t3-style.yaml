@@ -1,0 +1,9 @@
+version: 1
+id: t3-style
+label: "T3-style (full-stack TypeScript Next.js)"
+description: >-
+  Single-app full-stack TypeScript in the T3 spirit: one Next.js codebase
+  owning UI and API routes, typed end to end. db-design and api-design
+  skills cover the Prisma/tRPC-shaped decisions.
+stacks: [nextjs, typescript-plain]
+skills: [db-design, api-design]

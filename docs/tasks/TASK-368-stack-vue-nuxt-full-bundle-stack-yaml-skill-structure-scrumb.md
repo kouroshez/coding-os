@@ -5,12 +5,12 @@ swimlane: templates
 kind: feature
 epic: D-catalog
 labels: [wave-4, onboarding-program, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-361]
 blocked_by: []
@@ -36,3 +36,5 @@ references: []
 - 2026-06-11 [claude]: Edit stack.yaml
 - 2026-06-11 [claude]: commit c55ed43163 — feat(templates): vue-nuxt full stack bundle (TASK-368)
 - 2026-06-11 [claude]: IMPL DONE (parked, batch 7 #2) — complete vue-nuxt bundle on the factory pattern: stack.yaml (language=typescript, front
+- 2026-06-11 [claude]: commit 1eb584ce76 — fix(templates): vue-nuxt a11y dimension referenced a doc only nextjs ships (TASK-368)
+- 2026-06-11 [claude]: CLOSED — batch-7 suite 175 passed surfaced ONE real defect in this bundle: the Accessibility dimension referenced docs/e

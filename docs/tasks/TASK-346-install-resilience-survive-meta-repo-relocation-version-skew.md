@@ -286,3 +286,4 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: committed 76ad8897: src/cli/aggregator.py, src/cli/main.py, src/cli/preset_commands.py, src/cli/preset_registry.py, src/
 - 2026-06-11 [claude]: committed 08dc53b7: src/core/rules/dimension-registry.md, src/core/rules/skill-enforcement.md, src/core/scaffold_manifes
 - 2026-06-11 [claude]: committed c55ed431: src/cli/main.py, src/core/rules/dimension-registry.md, src/core/rules/skill-enforcement.md, src/core
+- 2026-06-11 [claude]: committed 1eb584ce: src/core/rules/dimension-registry.md, src/templates/vue-nuxt/scaffold/docs/engineering/nuxt-rules.md

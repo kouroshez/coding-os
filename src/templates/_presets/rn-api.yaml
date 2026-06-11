@@ -1,0 +1,8 @@
+version: 1
+id: rn-api
+label: "Mobile app + API (React Native + FastAPI)"
+description: >-
+  Mobile-first product: React Native app with a Python FastAPI backend —
+  contracts in src/shared/contracts are the single client/server boundary.
+stacks: [react-native, fastapi]
+skills: [api-design]

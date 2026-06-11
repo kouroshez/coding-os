@@ -1831,3 +1831,68 @@ class TestFlagshipHexagonalPreset:
             assert service in agents_md  # verify matrix covers every service
         config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
         assert config["extra_skills"] == ["hexagonal-architecture", "api-design"]
+
+
+# ---------------------------------------------------------------------------
+# Preset catalog v1 — TASK-371
+# ---------------------------------------------------------------------------
+
+
+class TestPresetCatalogV1:
+    CATALOG = {
+        "ai-saas": ["nextjs", "fastapi"],
+        "t3-style": ["nextjs", "typescript-plain"],
+        "pern": ["node-express", "nextjs"],
+        "django-next": ["django", "nextjs"],
+        "rn-api": ["react-native", "fastapi"],
+    }
+
+    def test_all_five_discoverable_with_descriptions(self, runner: CliRunner) -> None:
+        result = runner.invoke(cli, ["list-stacks", "--format", "json"])
+        assert result.exit_code == 0
+        payload = json.loads(result.output)
+        by_id = {p["id"]: p for p in payload["presets"]}
+        for preset_id, stacks in self.CATALOG.items():
+            assert preset_id in by_id, preset_id
+            assert by_id[preset_id]["stacks"] == stacks
+            assert len(by_id[preset_id]["description"]) > 40  # real description, not filler
+
+    @pytest.mark.parametrize("preset_id", sorted(CATALOG))
+    def test_each_preset_scaffolds_green(
+        self, runner: CliRunner, tmp_path: Path, preset_id: str
+    ) -> None:
+        import yaml as _yaml
+
+        project = tmp_path / preset_id.replace("-", "")
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init", "--agent", "claude", "-d", str(project),
+                "--preset", preset_id, "--yes", "--no-index", "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert config["preset"] == preset_id
+        assert config["templates"] == self.CATALOG[preset_id]
+        # Union-merged board config exists and carries more than base lanes.
+        scrumban = _yaml.safe_load(
+            (project / ".coding-os" / "scrumban-config.yaml").read_text(encoding="utf-8")
+        )
+        assert len(scrumban["swimlanes"]) >= 4
+
+    def test_missing_stack_preset_excluded_with_reason(self, tmp_path, monkeypatch) -> None:
+        from cli._resources import templates_dir
+        from cli.preset_registry import load_preset_registry
+        from cli.stack_registry import load_stack_registry
+
+        monkeypatch.setenv("COS_USER_PRESETS_DIR", str(tmp_path))
+        (tmp_path / "ghost-combo.yaml").write_text(
+            "version: 1\nid: ghost-combo\nlabel: Ghost\nstacks: [unreleased-stack]\n",
+            encoding="utf-8",
+        )
+        known = set(load_stack_registry(templates_dir()).keys())
+        registry = load_preset_registry(templates_dir(), known_stacks=known)
+        assert "ghost-combo" not in registry
+        assert any("unreleased-stack" in w for w in registry.warnings)  # logged reason
