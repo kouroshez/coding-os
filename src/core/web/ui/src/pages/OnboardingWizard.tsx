@@ -32,6 +32,23 @@ interface ValidatePayload {
   templates: string[]; swimlanes: string[]; conflicts: string[];
 }
 
+interface JobProgress {
+  jobId: string;
+  phase: string;
+  log: string[];
+  status: 'running' | 'succeeded' | 'failed' | 'cancelled';
+  error: string;
+}
+
+const PHASE_LABELS: Record<string, string> = {
+  validate: 'Validating your choices',
+  scaffold: 'Scaffolding the project tree',
+  adapters: 'Installing agent adapters',
+  'docs-seed': 'Agent is processing your description & docs',
+  register: 'Registering with the hub',
+  done: 'Done',
+};
+
 type StepId =
   | 'mode' | 'stacks' | 'agent' | 'skills' | 'extra'
   | 'swimlanes' | 'name' | 'description' | 'review';
@@ -207,26 +224,71 @@ export default function OnboardingWizard({
     }
   }, [step, state, validation]);
 
+  const [job, setJob] = useState<JobProgress | null>(null);
+
   const create = useCallback(async () => {
     setBusy(true);
     setError(null);
     try {
-      const [created] = await apiPost<{ slug: string }>('/api/hub/registry/init', {
-        name: state.skipName ? '' : slugifyProjectName(state.name),
-        parent_dir: state.parentDir.trim(),
-        stacks: state.mode === 'custom' ? state.stacks : [],
-        preset: state.mode === 'preset' ? state.preset : '',
-        agent: state.agent,
-        description: state.description,
-        extra_skills: state.extraSkills,
-      });
-      onCreated(created.slug);
+      const [started] = await apiPost<{ job_id: string; name: string }>(
+        '/api/hub/registry/init',
+        {
+          name: state.skipName ? '' : slugifyProjectName(state.name),
+          parent_dir: state.parentDir.trim(),
+          stacks: state.mode === 'custom' ? state.stacks : [],
+          preset: state.mode === 'preset' ? state.preset : '',
+          agent: state.agent,
+          description: state.description,
+          extra_skills: state.extraSkills,
+          background: true,
+        },
+      );
+      setJob({ jobId: started.job_id, phase: 'validate', log: [], status: 'running', error: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'create failed');
-    } finally {
       setBusy(false);
     }
-  }, [state, onCreated]);
+  }, [state]);
+
+  // Job progress stream (TASK-362): replay + follow; reconnects after refresh
+  // because the job lives in the server process keyed by job_id.
+  useEffect(() => {
+    if (!job || job.status !== 'running') return;
+    const source = new EventSource(`/api/hub/init-jobs/${encodeURIComponent(job.jobId)}/events`);
+    const append = (line: string) =>
+      setJob((j) => (j ? { ...j, log: [...j.log.slice(-199), line] } : j));
+    source.addEventListener('log', (e) => append((JSON.parse((e as MessageEvent).data) as { line: string }).line));
+    source.addEventListener('phase', (e) =>
+      setJob((j) => (j ? { ...j, phase: (JSON.parse((e as MessageEvent).data) as { phase: string }).phase } : j)));
+    const terminal = (status: JobProgress['status']) => (e: Event) => {
+      const payload = JSON.parse((e as MessageEvent).data) as {
+        error?: string; result?: { slug?: string };
+      };
+      source.close();
+      setBusy(false);
+      if (status === 'succeeded') {
+        onCreated(payload.result?.slug ?? '');
+        return;
+      }
+      setJob((j) => (j ? { ...j, status, error: payload.error ?? '' } : j));
+      if (status === 'failed') setError(payload.error || 'init failed');
+    };
+    source.addEventListener('succeeded', terminal('succeeded'));
+    source.addEventListener('failed', terminal('failed'));
+    source.addEventListener('cancelled', terminal('cancelled'));
+    source.onerror = () => { /* EventSource auto-reconnects; job state is server-side */ };
+    return () => source.close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.jobId, job?.status]);
+
+  const cancelJob = useCallback(async () => {
+    if (!job) return;
+    try {
+      await apiPost(`/api/hub/init-jobs/${encodeURIComponent(job.jobId)}/cancel`, {});
+    } catch {
+      // terminal event (or 404) resolves the UI state either way
+    }
+  }, [job]);
 
   const toggle = (list: string[], id: string) =>
     list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
@@ -239,6 +301,84 @@ export default function OnboardingWizard({
       (s) => s.provenance === 'core' && !installed.has(s.name),
     );
   }, [catalogData, skillGroups]);
+
+  if (job) {
+    const phaseIndex = ['validate', 'scaffold', 'adapters', 'docs-seed', 'register', 'done'];
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Creating project"
+        className="fixed inset-0 z-50 flex flex-col bg-[var(--cos-bg)]"
+      >
+        <header className="border-b border-[var(--cos-border)] px-6 py-4">
+          <h1 className="text-sm font-semibold text-[var(--cos-text)]">
+            {job.status === 'running' ? 'Creating your project…' : `Create ${job.status}`}
+          </h1>
+        </header>
+        <main className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="mx-auto max-w-2xl space-y-4">
+            <ol className="space-y-1.5" data-testid="job-phases">
+              {phaseIndex.map((p) => {
+                const reached = phaseIndex.indexOf(p) <= phaseIndex.indexOf(job.phase);
+                const current = p === job.phase && job.status === 'running';
+                return (
+                  <li
+                    key={p}
+                    aria-current={current ? 'step' : undefined}
+                    className={[
+                      'flex items-center gap-2 text-xs',
+                      reached ? 'text-[var(--cos-text)]' : 'text-[var(--cos-faint)]',
+                    ].join(' ')}
+                  >
+                    <span aria-hidden="true">{reached ? (current ? '◌' : '●') : '○'}</span>
+                    {PHASE_LABELS[p] ?? p}
+                  </li>
+                );
+              })}
+            </ol>
+            <pre
+              data-testid="job-log"
+              className="max-h-64 overflow-y-auto rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] p-2 font-mono text-[10px] text-[var(--cos-muted)]"
+            >
+              {job.log.join('\n') || '…'}
+            </pre>
+            {job.status === 'cancelled' && (
+              <p className="text-xs text-[var(--cos-muted)]">
+                Cancelled — the partial scaffold was removed. Nothing was created.
+              </p>
+            )}
+            {error && (
+              <p role="alert" className="rounded border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-400">
+                {error}
+              </p>
+            )}
+          </div>
+        </main>
+        <footer className="flex items-center justify-between border-t border-[var(--cos-border)] px-6 py-4">
+          {job.status === 'running' ? (
+            <button
+              type="button"
+              data-testid="job-cancel"
+              onClick={() => void cancelJob()}
+              className="rounded border border-[var(--cos-border)] px-3 py-1.5 text-xs text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              type="button"
+              data-testid="job-back"
+              onClick={() => { setJob(null); setError(null); }}
+              className="rounded border border-[var(--cos-border)] px-3 py-1.5 text-xs text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
+            >
+              Back to review
+            </button>
+          )}
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div

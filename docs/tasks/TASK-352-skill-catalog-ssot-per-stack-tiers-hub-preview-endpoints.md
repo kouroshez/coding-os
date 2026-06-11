@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: E-skills
 labels: [wave-1, onboarding-program, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-348]
 blocked_by: []
@@ -34,3 +34,4 @@ references: []
 
 ## Work Log
 - 2026-06-11 [claude]: IMPL DONE (parked in testing per batch cadence) — collect_stack_skill_groups + collect_skill_catalog in skills_list.py a
+- 2026-06-11 [claude]: CLOSED on batched suite: tests/test_cli.py 94 passed (14m09s) + earlier light greens (TestSkillCatalog 5/5, hub 12/12). 

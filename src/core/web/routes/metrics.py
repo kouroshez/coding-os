@@ -15,19 +15,29 @@ if str(_CORE_DIR) not in sys.path:
 router = APIRouter(tags=["metrics"])
 
 
+def _init_job_funnel() -> str:
+    """Init-job funnel counters (TASK-362); empty string when unavailable."""
+    try:
+        from web.init_jobs import render_counters  # type: ignore
+
+        return render_counters()
+    except Exception:
+        return ""
+
+
 @router.get("/metrics", response_class=PlainTextResponse)
 def prometheus_metrics():
     """Render collected metrics in Prometheus text format."""
     try:
         from graph_os.enterprise import metrics  # type: ignore
 
-        return PlainTextResponse(content=metrics().render(), media_type="text/plain")
+        body = metrics().render()
     except ImportError:
         # Enterprise not available — return a stub with a note.
-        stub = (
+        body = (
             "# TYPE cos_web_available gauge\n"
             "cos_web_available 1\n"
             "# TYPE cos_enterprise_available gauge\n"
             "cos_enterprise_available 0\n"
         )
-        return PlainTextResponse(content=stub, media_type="text/plain")
+    return PlainTextResponse(content=body + _init_job_funnel(), media_type="text/plain")

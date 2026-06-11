@@ -214,3 +214,19 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: Edit new-project.md
 - 2026-06-11 [claude]: Edit test_cli.py
 - 2026-06-11 [claude]: Edit test_hub_init_route.py
+- 2026-06-11 [claude]: committed cce496ac: src/cli/main.py, src/core/commands/new-project.md, src/core/web/routes/hub.py, tests/test_cli.py, te
+- 2026-06-11 [claude]: Edit init_jobs.py
+- 2026-06-11 [claude]: Edit init_jobs.py
+- 2026-06-11 [claude]: Edit init_jobs.py
+- 2026-06-11 [claude]: Edit hub.py
+- 2026-06-11 [claude]: Edit hub.py
+- 2026-06-11 [claude]: Edit hub.py
+- 2026-06-11 [claude]: Edit metrics.py
+- 2026-06-11 [claude]: Edit test_init_jobs.py
+- 2026-06-11 [claude]: Edit test_init_jobs.py
+- 2026-06-11 [claude]: Edit test_hub_init_route.py
+- 2026-06-11 [claude]: Edit OnboardingWizard.tsx
+- 2026-06-11 [claude]: Edit OnboardingWizard.tsx
+- 2026-06-11 [claude]: Edit OnboardingWizard.tsx
+- 2026-06-11 [claude]: Edit OnboardingWizard.test.tsx
+- 2026-06-11 [claude]: Edit OnboardingWizard.test.tsx

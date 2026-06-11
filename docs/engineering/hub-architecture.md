@@ -271,6 +271,17 @@ hub-global endpoints back the **New Project** wizard on `HubHome`:
   clean exit; a failed init leaves nothing (the partial target dir is removed).
 - `PATCH /api/hub/registry/{slug}` — slug rename (temp slug → real name; path
   untouched), backed by `cli.registry.rename_project`.
+- **Job-based create (TASK-362):** `POST /registry/init` with
+  `background: true` returns `{job_id}` immediately; the job
+  (`src/core/web/init_jobs.py`, in-process + thread-safe) streams ordered
+  phases (`validate → scaffold → adapters → docs-seed → register`) and a
+  bounded log over `GET /api/hub/init-jobs/{id}/events` (SSE — replay then
+  follow, so a browser refresh reattaches), with
+  `GET /api/hub/init-jobs/{id}` snapshots and
+  `POST /api/hub/init-jobs/{id}/cancel` (terminates the subprocess and
+  removes the partial scaffold, reported as `cleanup.removed_dir`). Funnel
+  counters (`cos_init_jobs_total{status=…}`) render into `/metrics`. The
+  sync (non-background) form stays for programmatic callers.
 
 The full-screen step-wise wizard (`OnboardingWizard.tsx`, TASK-358 —
 preset-or-custom → agent → skills preview → extra skills → swimlanes →

@@ -317,3 +317,85 @@ class TestRegistryRename:
             dup = client.patch("/api/hub/registry/one", json={"new_slug": "two"})
         assert missing.status_code == 404
         assert dup.status_code == 409
+
+
+# ---------------------------------------------------------------------------
+# Job-based create + SSE — TASK-362
+# ---------------------------------------------------------------------------
+
+
+class TestInitJobRoutes:
+    def _start_fake_job(self, tmp_path, script="print('Initializing coding-os in /x')"):
+        from web import init_jobs
+
+        return init_jobs.start_job(
+            [sys.executable, "-u", "-c", script], tmp_path / "jobproj", str(tmp_path), lambda _: {}
+        )
+
+    def test_background_create_returns_job_id(self, hub_env, monkeypatch):
+        import web.routes.hub as hub_routes
+        from web import init_jobs
+
+        captured: dict = {}
+
+        def _fake_start(cmd, target, cwd, parse):
+            captured["cmd"] = cmd
+            job = init_jobs.InitJob(job_id="job-test123456", target=target)
+            job.status = "running"
+            init_jobs._JOBS[job.job_id] = job
+            return job
+
+        monkeypatch.setattr(init_jobs, "start_job", _fake_start)
+        with _client() as client:
+            resp = client.post(
+                "/api/hub/registry/init",
+                json={
+                    "name": "bgproj",
+                    "parent_dir": str(hub_env),
+                    "stacks": ["python"],
+                    "background": True,
+                },
+            )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert data["job_id"] == "job-test123456"
+        assert "--template" in captured["cmd"] and "python" in captured["cmd"]
+
+    def test_job_snapshot_and_unknown_404(self, hub_env, tmp_path):
+        import time
+
+        job = self._start_fake_job(tmp_path)
+        deadline = time.time() + 10
+        while job.snapshot()["status"] == "running" and time.time() < deadline:
+            time.sleep(0.05)
+        with _client() as client:
+            ok_resp = client.get(f"/api/hub/init-jobs/{job.job_id}")
+            missing = client.get("/api/hub/init-jobs/job-ghost")
+        assert ok_resp.status_code == 200
+        assert ok_resp.json()["data"]["status"] == "succeeded"
+        assert missing.status_code == 404
+
+    def test_job_events_stream_replays_to_terminal(self, hub_env, tmp_path):
+        import time
+
+        job = self._start_fake_job(tmp_path, script="print('hello-log-line')")
+        deadline = time.time() + 10
+        while job.snapshot()["status"] == "running" and time.time() < deadline:
+            time.sleep(0.05)
+        with _client() as client:
+            resp = client.get(f"/api/hub/init-jobs/{job.job_id}/events")
+        assert resp.status_code == 200
+        body = resp.text
+        assert "event: log" in body and "hello-log-line" in body
+        assert "event: succeeded" in body  # terminal frame closes the stream
+
+    def test_cancel_route_unknown_404(self, hub_env):
+        with _client() as client:
+            resp = client.post("/api/hub/init-jobs/job-ghost/cancel")
+        assert resp.status_code == 404
+
+    def test_metrics_exposes_funnel_counters(self, hub_env):
+        with _client() as client:
+            resp = client.get("/metrics")
+        assert resp.status_code == 200
+        assert 'cos_init_jobs_total{status="started"}' in resp.text

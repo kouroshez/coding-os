@@ -5,12 +5,12 @@ swimlane: cli
 kind: feature
 epic: B-onboarding
 labels: [wave-2, onboarding-program, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-356]
 blocked_by: []
@@ -33,3 +33,4 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_cli.py -q` runs, **Then** green with parity + non-TTY tests.
 
 ## Work Log
+- 2026-06-11 [claude]: DONE — --skills (validated against skill registry, fail-fast on unknown) + --summary (seeds docs/_meta/project-descripti

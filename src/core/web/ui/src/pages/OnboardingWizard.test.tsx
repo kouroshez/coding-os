@@ -57,11 +57,40 @@ const VALIDATE_OK = {
   conflicts: [],
 };
 
+class FakeEventSource {
+  static instances: FakeEventSource[] = [];
+
+  listeners: Record<string, ((e: MessageEvent) => void)[]> = {};
+
+  url: string;
+
+  onerror: (() => void) | null = null;
+
+  constructor(url: string) {
+    this.url = url;
+    FakeEventSource.instances.push(this);
+  }
+
+  addEventListener(type: string, handler: (e: MessageEvent) => void) {
+    (this.listeners[type] ??= []).push(handler);
+  }
+
+  emit(type: string, data: unknown) {
+    for (const handler of this.listeners[type] ?? []) {
+      handler({ data: JSON.stringify(data) } as MessageEvent);
+    }
+  }
+
+  close() {}
+}
+
 beforeEach(() => {
   apiGet.mockReset().mockResolvedValue([
     { stack: 'fastapi', groups: { required: [], recommended: [], optional: [] } },
   ]);
   apiPost.mockReset().mockResolvedValue([VALIDATE_OK]);
+  FakeEventSource.instances = [];
+  vi.stubGlobal('EventSource', FakeEventSource as unknown as typeof EventSource);
 });
 
 describe('slugifyProjectName (kept after dialog→wizard migration)', () => {
@@ -114,10 +143,10 @@ describe('OnboardingWizard (TASK-358)', () => {
     expect(screen.getByText('Codex CLI')).toBeInTheDocument();
   });
 
-  it('walks preset flow to review and creates with the chosen composition', async () => {
+  it('walks preset flow to review, starts a job and reports progress to created (TASK-362)', async () => {
     const onCreated = vi.fn();
     apiPost.mockImplementation(async (path: string) =>
-      path.endsWith('/init') ? [{ slug: 'proj-abc123' }] : [VALIDATE_OK]);
+      path.endsWith('/init') ? [{ job_id: 'job-xyz', name: 'proj-abc123' }] : [VALIDATE_OK]);
     renderWizard(onCreated);
 
     fireEvent.click(screen.getByTestId('mode-preset'));
@@ -137,6 +166,19 @@ describe('OnboardingWizard (TASK-358)', () => {
     await clickNext(); // review
     await waitFor(() => expect(screen.getByTestId('wizard-create')).toBeEnabled());
     fireEvent.click(screen.getByTestId('wizard-create'));
+
+    // Progress screen attaches an EventSource to the job stream.
+    await waitFor(() => expect(FakeEventSource.instances.length).toBe(1));
+    const stream = FakeEventSource.instances[0];
+    expect(stream.url).toContain('/api/hub/init-jobs/job-xyz/events');
+    stream.emit('log', { line: 'Installing claude adapter...' });
+    stream.emit('phase', { phase: 'docs-seed' });
+    await waitFor(() =>
+      expect(screen.getByTestId('job-log')).toHaveTextContent('Installing claude adapter'),
+    );
+    expect(screen.getByText('Agent is processing your description & docs')).toBeInTheDocument();
+
+    stream.emit('succeeded', { status: 'succeeded', result: { slug: 'proj-abc123' } });
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith('proj-abc123'));
 
     const createCall = apiPost.mock.calls.find(([p]) => String(p).endsWith('/init'));
@@ -146,7 +188,37 @@ describe('OnboardingWizard (TASK-358)', () => {
       agent: 'codex',
       name: '',
       description: 'A product for testing wizards.',
+      background: true,
     });
+  });
+
+  it('cancel during a running job returns the UI to an actionable state', async () => {
+    apiPost.mockImplementation(async (path: string) =>
+      path.endsWith('/init') ? [{ job_id: 'job-c1', name: 'proj-x' }] : [VALIDATE_OK]);
+    renderWizard();
+    fireEvent.click(screen.getByTestId('mode-preset'));
+    fireEvent.click(screen.getByText('Next.js + FastAPI full-stack'));
+    for (let i = 0; i < 4; i += 1) await clickNext(); // agent→skills→extra→swimlanes
+    await clickNext(); // name
+    fireEvent.click(screen.getByTestId('skip-name'));
+    await clickNext(); // description
+    await clickNext(); // review
+    await waitFor(() => expect(screen.getByTestId('wizard-create')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('wizard-create'));
+    await waitFor(() => expect(FakeEventSource.instances.length).toBe(1));
+
+    fireEvent.click(screen.getByTestId('job-cancel'));
+    const cancelCall = apiPost.mock.calls.find(([p]) => String(p).includes('/cancel'));
+    expect(cancelCall?.[0]).toContain('/api/hub/init-jobs/job-c1/cancel');
+
+    FakeEventSource.instances[0].emit('cancelled', {
+      status: 'cancelled', cleanup: { removed_dir: '/code/proj-x' },
+    });
+    await waitFor(() =>
+      expect(screen.getByText(/partial scaffold was removed/i)).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByTestId('job-back')); // actionable: back to review
+    expect(screen.getByTestId('wizard-create')).toBeInTheDocument();
   });
 
   it('back navigation preserves chosen state', async () => {

@@ -507,7 +507,7 @@ def hub_registry_validate_init(
     }
 
 
-def _run_cos_init(
+def _build_cos_init_cmd(
     name: str,
     parent_dir: str,
     stacks: list[str],
@@ -515,13 +515,8 @@ def _run_cos_init(
     preset: str = "",
     description: str = "",
     extra_skills: list[str] | None = None,
-    timeout: int = 180,
-):
-    """Run `cos init` in a subprocess → (ok, payload, error).
-
-    Module-level so a test can monkeypatch it without a real scaffold.
-    Description/extra-skills ride the CLI flags (--summary/--skills) so the
-    wizard and a hand-typed `cos init` produce byte-identical projects."""
+) -> list[str]:
+    """One argv builder for sync AND job-based init (parity stays in the CLI)."""
     cmd = _cos_init_command() + [
         "init",
         "--name",
@@ -543,6 +538,33 @@ def _run_cos_init(
         cmd += ["--summary", description.strip()]
     if extra_skills:
         cmd += ["--skills", ",".join(extra_skills)]
+    return cmd
+
+
+def _run_cos_init(
+    name: str,
+    parent_dir: str,
+    stacks: list[str],
+    agent: str,
+    preset: str = "",
+    description: str = "",
+    extra_skills: list[str] | None = None,
+    timeout: int = 180,
+):
+    """Run `cos init` in a subprocess → (ok, payload, error).
+
+    Module-level so a test can monkeypatch it without a real scaffold.
+    Description/extra-skills ride the CLI flags (--summary/--skills) so the
+    wizard and a hand-typed `cos init` produce byte-identical projects."""
+    cmd = _build_cos_init_cmd(
+        name,
+        parent_dir,
+        stacks,
+        agent,
+        preset=preset,
+        description=description,
+        extra_skills=extra_skills,
+    )
     try:
         proc = subprocess.run(  # noqa: S603 — fixed argv list, never shell=True
             cmd, capture_output=True, text=True, timeout=timeout, cwd=parent_dir
@@ -565,6 +587,18 @@ def _run_cos_init(
     return True, payload, ""
 
 
+def _parse_init_payload(stdout_lines: list[str]) -> dict:
+    """Last JSON object in init's stdout (init --format json emits it on success)."""
+    for line in reversed(stdout_lines):
+        candidate = line.strip()
+        if candidate.startswith("{"):
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                continue
+    return {}
+
+
 @router.post("/registry/init")
 def hub_registry_init(
     name: str = Body("", embed=True),
@@ -575,13 +609,38 @@ def hub_registry_init(
     agent: str = Body("claude", embed=True),
     description: str = Body("", embed=True),
     extra_skills: list[str] = Body(default_factory=list, embed=True),
+    background: bool = Body(False, embed=True),
 ):
-    """Scaffold a NEW project via `cos init` and register it (security-gated, TASK-249/358)."""
+    """Scaffold a NEW project via `cos init` and register it (security-gated, TASK-249/358/362)."""
     all_stacks = [s for s in ((stacks or []) + ([stack] if stack else [])) if s]
     error, info = _validate_init_inputs(name, parent_dir, all_stacks, preset, agent or "claude")
     if error is not None:
         return error
     target: Path = info["target"]
+    if background:
+        # Job-based create (TASK-362): returns a job_id immediately; phases +
+        # log stream over GET /api/hub/init-jobs/{id}/events.
+        from web import init_jobs  # type: ignore
+
+        cmd = _build_cos_init_cmd(
+            info["name"],
+            str(info["parent"]),
+            all_stacks,
+            agent or "claude",
+            preset=preset,
+            description=description or "",
+            extra_skills=extra_skills or [],
+        )
+        job = init_jobs.start_job(cmd, target, str(info["parent"]), _parse_init_payload)
+        return {
+            "data": {
+                "job_id": job.job_id,
+                "name": info["name"],
+                "auto_named": info["auto_named"],
+                "target": str(target),
+            },
+            "meta": {"layer": "hub", "source": "hub.registry_init_job"},
+        }
     ok, payload, err = _run_cos_init(
         info["name"],
         str(info["parent"]),
@@ -608,6 +667,81 @@ def hub_registry_init(
         },
         "meta": {"layer": "hub", "source": "hub.registry_init"},
     }
+
+
+@router.get("/init-jobs/{job_id}")
+def hub_init_job_snapshot(job_id: str):
+    """Current phase + status + log tail for a tracked init job (TASK-362)."""
+    from web import init_jobs  # type: ignore
+
+    job = init_jobs.get_job(job_id)
+    if job is None:
+        return _err("not_found", f"no init job {job_id!r}", status=404)
+    return {"data": job.snapshot(), "meta": {"layer": "hub", "source": "hub.init_job"}}
+
+
+@router.post("/init-jobs/{job_id}/cancel")
+def hub_init_job_cancel(job_id: str):
+    """Cancel a running init job; the partial scaffold is cleaned up (TASK-362)."""
+    from web import init_jobs  # type: ignore
+
+    job = init_jobs.cancel_job(job_id)
+    if job is None:
+        return _err("not_found", f"no init job {job_id!r}", status=404)
+    return {
+        "data": {"job_id": job.job_id, "status": job.snapshot()["status"]},
+        "meta": {"layer": "hub", "source": "hub.init_job_cancel"},
+    }
+
+
+@router.get("/init-jobs/{job_id}/events")
+async def hub_init_job_events(job_id: str):
+    """SSE: buffered log replay then live phase/log events until terminal.
+
+    Reconnect-safe — a browser refresh re-attaches with the same job_id and
+    replays the buffered log before following (TASK-362)."""
+    import asyncio
+
+    from fastapi.responses import StreamingResponse
+
+    from web import init_jobs  # type: ignore
+
+    job = init_jobs.get_job(job_id)
+    if job is None:
+        return _err("not_found", f"no init job {job_id!r}", status=404)
+
+    def _frame(event: str, payload: dict) -> bytes:
+        return f"event: {event}\ndata: {json.dumps(payload)}\n\n".encode("utf-8")
+
+    async def _gen():
+        offset = 0
+        last_phase = None
+        while True:
+            snap = job.snapshot(log_tail=0)
+            lines, offset = await asyncio.to_thread(job.log_slice, offset)
+            for line in lines:
+                yield _frame("log", {"line": line})
+            if snap["phase"] != last_phase:
+                last_phase = snap["phase"]
+                yield _frame("phase", {"phase": last_phase, "phases": snap["phases"]})
+            if snap["status"] != "running":
+                yield _frame(
+                    snap["status"],
+                    {
+                        "status": snap["status"],
+                        "error": snap["error"],
+                        "result": snap["result"],
+                        "cleanup": snap["cleanup"],
+                    },
+                )
+                return
+            await asyncio.sleep(0.25)
+
+    return StreamingResponse(
+        _gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.patch("/registry/{slug}")

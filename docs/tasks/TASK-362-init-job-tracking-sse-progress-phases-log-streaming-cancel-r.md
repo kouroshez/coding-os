@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: B-onboarding
 labels: [wave-2, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P0
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: [TASK-358]
 blocked_by: []
 references: []
 ---
-
 # TASK-362: Init job tracking — SSE progress phases, log streaming, cancel, rollback report, funnel metrics
 
 **Outcome (one sentence):** POST /api/hub/registry/init becomes job-based: returns job_id, streams phase progress + live init log over SSE (including an "agent is processing your description" phase), supports cancel, reports rollback/cleanup on partial failure, and emits funnel counters to /api/metrics.

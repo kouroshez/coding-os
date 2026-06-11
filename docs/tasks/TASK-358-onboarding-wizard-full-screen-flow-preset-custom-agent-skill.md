@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: B-onboarding
 labels: [wave-2, onboarding-program, ready]
-status: testing
+status: complete
 priority: P0
 appetite: 3d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-356, TASK-352]
 blocked_by: []
@@ -35,3 +35,4 @@ references: []
 
 ## Work Log
 - 2026-06-11 [claude]: IMPL DONE (parked in testing per batch cadence) — full-screen OnboardingWizard.tsx (preset/custom → agent → skills previ
+- 2026-06-11 [claude]: CLOSED on batched suite: test_cli.py 94 passed (14m09s) + hub routes 21/21 + wizard component 7/7 + pages 26/26 + ui-bui
