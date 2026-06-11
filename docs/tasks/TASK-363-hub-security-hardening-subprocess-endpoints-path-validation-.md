@@ -5,12 +5,12 @@ swimlane: core
 kind: security
 epic: B-onboarding
 labels: [wave-2, onboarding-program, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-358]
 blocked_by: []
@@ -35,3 +35,4 @@ Attack surface: localhost-bound FastAPI that spawns `cos init` subprocesses and 
 - **Given** the threat-model doc, **When** docs-lint runs, **Then** green and the doc cross-links hub-architecture.md.
 
 ## Work Log
+- 2026-06-11 [claude]: DONE — COS_HUB_TOKEN bearer mode in SecurityGateMiddleware (401 on mutating /api without token, constant-time compare, f

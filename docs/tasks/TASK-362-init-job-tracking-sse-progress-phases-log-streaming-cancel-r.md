@@ -5,13 +5,13 @@ swimlane: core
 kind: feature
 epic: B-onboarding
 labels: [wave-2, onboarding-program, ready]
-status: testing
+status: complete
 priority: P0
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
-agent_session: ses-claude-20260527-151803-0b9f
+completed: 2026-06-11
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-358]
 blocked_by: []
 references: []
@@ -34,3 +34,4 @@ references: []
 
 ## Work Log
 - 2026-06-11 [claude]: IMPL DONE (parked in testing, batch 2) — src/core/web/init_jobs.py: thread-safe in-process job registry wrapping the cos
+- 2026-06-11 [claude]: CLOSED — web-layer matrix fully green: init_jobs 7/7, hub routes 31/31, wizard 8/8, ui-build clean (no src/cli change → 

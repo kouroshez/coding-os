@@ -231,3 +231,11 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: Edit OnboardingWizard.test.tsx
 - 2026-06-11 [claude]: Edit OnboardingWizard.test.tsx
 - 2026-06-11 [claude]: committed 9a7f9679: docs/engineering/hub-architecture.md, src/core/web/init_jobs.py, src/core/web/routes/hub.py, src/cor
+- 2026-06-11 [claude]: committed 5be36cb5: docs/engineering/hub-architecture.md, docs/engineering/hub-threat-model.md, src/core/web/routes/hub.
+- 2026-06-11 [claude]: Edit setup.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit 00-index.md
+- 2026-06-11 [claude]: Edit cognition.py
+- 2026-06-11 [claude]: Edit cognition.py
+- 2026-06-11 [claude]: Edit test_cli.py

@@ -903,8 +903,9 @@ async def chat_new(
     effort = (str(body.get("effort") or "")).strip() or None
     if effort not in (None, "low", "medium", "high", "xhigh", "max"):
         effort = None  # ignore unknown levels rather than failing the turn
-    system_prompt = _role_system_prompt(role) or _chat_system_prompt(model)
     cwd = _project_cwd()
+    system_prompt = _role_system_prompt(role) or _chat_system_prompt(model)
+    system_prompt = _prime_with_project_description(system_prompt, cwd)
     new_session_id = f"ses-claude-ui-{int(_time.time())}-{secrets.token_hex(3)}"
     opts_kwargs: dict = dict(
         cwd=cwd,
@@ -997,6 +998,27 @@ _CHAT_SYSTEM = (
     "When you commit code for a specific task, include its id like `(TASK-NNN)` in "
     "the commit subject so the board links the commit to that task."
 )
+
+
+def _prime_with_project_description(system_prompt: dict, cwd: str) -> dict:
+    """Append the onboarding intake (docs/_meta/project-description.md) to the
+    chat system prompt so the first session knows what the project IS (TASK-364).
+    Fail-open: missing/unreadable intake leaves the prompt untouched."""
+    try:
+        intake = Path(cwd) / "docs" / "_meta" / "project-description.md"
+        if not intake.is_file():
+            return system_prompt
+        text = intake.read_text(encoding="utf-8").strip()[:2000]
+        if not text or not isinstance(system_prompt, dict) or "append" not in system_prompt:
+            return system_prompt
+        return {
+            **system_prompt,
+            "append": system_prompt["append"]
+            + "\n\n## Project context (onboarding intake)\n"
+            + text,
+        }
+    except OSError:
+        return system_prompt
 
 
 def _chat_system_prompt(model: str | None) -> dict:

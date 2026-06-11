@@ -1322,3 +1322,80 @@ class TestDoctorBootstrap:
         payload = json.loads(result.output)
         reported_ids = {check["id"] for check in payload["checks"]}
         assert set(self._ALL_CHECK_IDS) <= reported_ids
+
+
+# ---------------------------------------------------------------------------
+# Description→PRD seeding — TASK-364
+# ---------------------------------------------------------------------------
+
+
+class TestDescriptionSeeding:
+    def test_summary_renders_placeholder_and_seeds_verbatim_vision(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Plain prose: placeholder rendered + degrade path writes the vision doc."""
+        project = tmp_path / "seeded"
+        project.mkdir()
+        summary = "An invoice automation product for small agencies in MENA."
+        result = runner.invoke(
+            cli,
+            [
+                "init", "--agent", "claude", "-d", str(project),
+                "--summary", summary, "--yes", "--no-index", "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        index_doc = (project / "docs" / "00-index.md").read_text(encoding="utf-8")
+        assert summary in index_doc
+        assert "{{PROJECT_DESCRIPTION}}" not in index_doc
+        vision = project / "docs" / "prd" / "01-snapshot-vision.md"
+        assert summary in vision.read_text(encoding="utf-8")
+
+    def test_structured_summary_routes_sections_by_keyword(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        project = tmp_path / "routed"
+        project.mkdir()
+        summary = (
+            "## Vision\nAutomate invoices end to end.\n\n"
+            "## Goals\nReach 1000 paying agencies in year one.\n"
+        )
+        result = runner.invoke(
+            cli,
+            [
+                "init", "--agent", "claude", "-d", str(project),
+                "--summary", summary, "--yes", "--no-index", "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        prd = project / "docs" / "prd"
+        assert "Automate invoices" in (prd / "01-snapshot-vision.md").read_text(encoding="utf-8")
+        assert "1000 paying agencies" in (prd / "02-goals-kpis.md").read_text(encoding="utf-8")
+
+    def test_no_summary_renders_generic_default(self, runner: CliRunner, tmp_path: Path) -> None:
+        project = tmp_path / "plain"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            ["init", "--agent", "claude", "-d", str(project), "--yes", "--no-index", "--no-register"],
+        )
+        assert result.exit_code == 0, result.output
+        index_doc = (project / "docs" / "00-index.md").read_text(encoding="utf-8")
+        assert "A software project managed by coding-os" in index_doc
+        # Without a summary the scaffold's authoring TEMPLATE lands (TODO
+        # blocks) — the seeded variant only wins when a description exists.
+        vision = (project / "docs" / "prd" / "01-snapshot-vision.md").read_text(encoding="utf-8")
+        assert "_TODO: write the elevator pitch._" in vision
+        assert "onboarding intake" not in vision
+
+    def test_seed_prd_is_idempotent(self, tmp_path: Path) -> None:
+        from cli.setup import seed_prd_from_text
+
+        project = tmp_path / "p"
+        project.mkdir()
+        first = seed_prd_from_text(project, "Just a plain description.")
+        second = seed_prd_from_text(project, "Different text — must NOT overwrite.")
+        assert first == ["docs/prd/01-snapshot-vision.md"]
+        assert second == []
+        content = (project / "docs" / "prd" / "01-snapshot-vision.md").read_text(encoding="utf-8")
+        assert "Just a plain description." in content

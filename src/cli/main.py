@@ -1455,6 +1455,14 @@ def _run_scaffold_phase(
             encoding="utf-8",
         )
         click.echo("  Seeded docs/_meta/project-description.md")
+        # Docs-module gate: preset/wizard module toggles are stored in config
+        # (behavior SSOT lands with TASK-349); docs defaults ON.
+        if (config.get("modules") or {}).get("docs", True):
+            from cli.setup import seed_prd_from_text
+
+            seeded = seed_prd_from_text(project, project_summary, date=today)
+            if seeded:
+                click.echo(f"  Seeded {len(seeded)} PRD doc(s): {', '.join(seeded)}")
     click.echo(f"  Generated {CONFIG_FILE}")
 
     # 4. Run adapter install for each agent
@@ -1484,6 +1492,13 @@ def _run_scaffold_phase(
     for msg in world.conflicts:
         click.echo(f"  WARN: {msg}", err=True)
     substitutions = world.substitutions
+    if project_summary and project_summary.strip():
+        # The user's own words replace the generic default everywhere the
+        # {{PROJECT_DESCRIPTION}} placeholder appears (TASK-364).
+        substitutions = {
+            **substitutions,
+            "PROJECT_DESCRIPTION": " ".join(project_summary.split()),
+        }
 
     # 6b. Patch .coding-os.yaml.verify with derived commands.
     # step 3 wrote an empty dict because the world is only available here.

@@ -265,6 +265,49 @@ def _build_prd_file_content(date: str, target: str, grouped: list[tuple[str, str
     return "\n".join(parts) + "\n"
 
 
+def seed_prd_from_text(project: Path, text: str, *, date: str | None = None) -> list[str]:
+    """Seed docs/prd/ from a free-text onboarding description (TASK-364).
+
+    Same keyword-routed pipeline as import-prd when the text carries H2
+    sections; plain prose takes the verbatim degrade path into
+    01-snapshot-vision.md. No LLM involved on either path. Idempotent:
+    existing PRD files are never overwritten. Returns written rel-paths."""
+    text = (text or "").strip()
+    if not text:
+        return []
+    date = date or _dt.date.today().isoformat()
+    prd_dir = project / "docs" / "prd"
+    prd_dir.mkdir(parents=True, exist_ok=True)
+    written: list[str] = []
+
+    sections = _parse_markdown_sections(text)
+    if sections:
+        grouped: dict[str, list[tuple[str, str]]] = {}
+        for title, body in sections:
+            grouped.setdefault(_classify_section(title), []).append((title, body))
+        for target, rows in sorted(grouped.items()):
+            out = prd_dir / target
+            if out.exists():
+                continue
+            out.write_text(_build_prd_file_content(date, target, rows), encoding="utf-8")
+            written.append(f"docs/prd/{target}")
+        return written
+
+    # Degrade path: verbatim description as the snapshot vision.
+    out = prd_dir / "01-snapshot-vision.md"
+    if not out.exists():
+        out.write_text(
+            _build_prd_file_content(
+                date,
+                "01-snapshot-vision.md",
+                [("Vision (onboarding intake)", text + "\n")],
+            ),
+            encoding="utf-8",
+        )
+        written.append("docs/prd/01-snapshot-vision.md")
+    return written
+
+
 def _run_import_prd(project: Path, source: Path, yes: bool) -> int:
     if not source.exists():
         raise click.ClickException(f"Source PRD not found: {source}")
