@@ -102,6 +102,29 @@ The hook reads [src/core/rules/skill-enforcement.md](../../src/core/rules/skill-
 
 Once `backend-fundamentals` and `frontend-fundamentals` ship, the `stack.yaml` files should declare them as additional secondaries (or the stack skills declare `depends_on:` and the hook resolves transitively). This keeps [skill-enforcement.md](../../src/core/rules/skill-enforcement.md) readable while the full dependency graph is computed by the hook.
 
+## Per-stack skill groups — onboarding SSOT (TASK-352)
+
+The onboarding wizard ("which skills will this stack install?") and the Config
+tab need a *per-stack* grouping that is distinct from the taxonomy `tier:` in
+SKILL.md frontmatter. The grouping is **derived, never duplicated** — there is
+no extra data file:
+
+| Group | Derivation (all from `stack.yaml` + SKILL.md frontmatter) |
+|---|---|
+| `required` | `primary_skill` + `skills:` (what the stack explicitly declares) |
+| `recommended` | union of `skill_enforcement[].secondary` minus required |
+| `optional` | remaining core skills (universal catalog) |
+
+Single SSOT function: `cli.skills_list.collect_stack_skill_groups(stack_id)` —
+consumed by BOTH `cos skills-list --stack <id>` and the hub endpoints
+`GET /api/hub/stacks/{id}/skills` (grouped) / `GET /api/hub/skills`
+(global core+stack catalog with `provenance: core|stack:<id>` and schema
+`validated` flag). Each entry carries `{name, tier, domain, description,
+provenance, validated}`; a skill a stack references but no skills dir ships
+yet appears with `validated: false` and an empty description — visible, not
+silently dropped. Skill profile resolution order: the stack's own
+`src/templates/<id>/skills/` first, then `src/core/skills/`.
+
 ## Path-scoped rules (distinct from skills)
 
 A skill is invoked on demand (`Skill skill: "python-django"`); a **rule** loads automatically based on file path. For universal policies (e.g., all Python uses `ruff`), prefer a rule in `src/core/rules/` with `paths: ["**/*.py"]` frontmatter over a skill load. The exam guide's TS 3.3 favors path-scoped rules for "conventions that span multiple directories regardless of stack" — rules < skills in context cost, so pick rules when the policy is tiny and universal.
