@@ -4,7 +4,7 @@ title: "Stack: flutter \u2014 full bundle via factory (new dart/flutter skill)"
 swimlane: templates
 kind: feature
 epic: D-catalog
-labels: [backlog, onboarding-program]
+labels: [backlog, onboarding-program, ready]
 status: icebox
 priority: P2
 appetite: 2d
@@ -23,11 +23,13 @@ references: []
 
 ## Read First
 - docs/playbooks/template-authoring.md
-- src/templates/react-native/stack.yaml
+- src/templates/react-native/stack.yaml (mobile-category shape)
+- docs/engineering/project-anatomy.md
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
-- **Given** ...
-- **When** ...
-- **Then** ...
+- **Given** the factory contract, **When** `cos init --template flutter --yes --no-index --no-register` runs in a sandbox, **Then** scaffold lands under structure.root `src/mobile` with placeholders resolved and the boundary aggregated.
+- **Given** stack.yaml (language=dart, category=mobile), **When** schema validation + `make regen-rules` run, **Then** valid; the flutter skill declares `mobile-fundamentals` + `a11y` as secondaries (reuse-first).
+- **Given** the new dart/flutter SKILL.md, **When** the skill registry loads, **Then** schema-valid frontmatter with no warnings.
+- **Given** the matrix, **When** `uv run pytest tests/test_template_scaffold.py tests/test_anatomy_contract.py -q` runs, **Then** green including the golden fixture.
 
 ## Work Log

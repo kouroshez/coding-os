@@ -4,7 +4,7 @@ title: "Materialize stack makefile_targets into consumer projects \u2014 render_
 swimlane: infra
 kind: bug
 epic: J-anatomy
-labels: [onboarding-program, backlog]
+labels: [onboarding-program, backlog, ready]
 status: icebox
 priority: P2
 appetite: 1d

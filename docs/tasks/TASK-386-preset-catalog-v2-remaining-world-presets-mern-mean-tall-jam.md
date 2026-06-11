@@ -4,7 +4,7 @@ title: "Preset catalog v2 \u2014 remaining world presets (MERN, MEAN, TALL, JAMs
 swimlane: templates
 kind: feature
 epic: D-catalog
-labels: [backlog, onboarding-program]
+labels: [backlog, onboarding-program, ready]
 status: icebox
 priority: P3
 appetite: 2d
@@ -22,12 +22,14 @@ references: []
 **Outcome (one sentence):** Remaining world presets composed from the grown stack catalog (MERN/MEAN need their stacks first); each scaffolds green and appears in onboarding with descriptions.
 
 ## Read First
-- src/templates/
-- docs/playbooks/template-authoring.md
+- src/templates/_presets/ (TASK-356 model)
+- src/cli/preset_registry.py
+- docs/engineering/config-composition.md § Presets
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
-- **Given** ...
-- **When** ...
-- **Then** ...
+- **Given** the stacks shipped by the D-catalog tasks (373–383), **When** each new `_presets/<id>.yaml` is added, **Then** `load_preset_registry` validates it against the live stack registry (a preset whose stacks are not yet shipped stays out of this task's scope — depends_on the stack task).
+- **Given** each preset, **When** `cos init --preset <id> --dry-config` runs, **Then** the merged config preview succeeds with every conflict reported (none silent).
+- **Given** discovery, **When** `cos list-stacks --format json` and `GET /api/hub/presets` run, **Then** every new preset is listed with a non-empty description.
+- **Given** the matrix, **When** `uv run pytest tests/test_cli.py::TestPresets -q` (extended) runs, **Then** green.
 
 ## Work Log

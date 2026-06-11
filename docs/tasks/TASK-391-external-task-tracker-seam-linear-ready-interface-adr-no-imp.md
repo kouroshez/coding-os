@@ -4,7 +4,7 @@ title: "External task-tracker seam \u2014 Linear-ready interface ADR (no impleme
 swimlane: "board_os"
 kind: docs
 epic: G-modularity
-labels: [backlog, onboarding-program]
+labels: [backlog, onboarding-program, ready]
 status: icebox
 priority: P3
 appetite: 1d

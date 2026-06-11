@@ -4,7 +4,7 @@ title: "Stack: astro \u2014 full bundle via factory (JAMstack/content sites)"
 swimlane: templates
 kind: feature
 epic: D-catalog
-labels: [backlog, onboarding-program]
+labels: [backlog, onboarding-program, ready]
 status: icebox
 priority: P3
 appetite: 2d
@@ -24,10 +24,11 @@ references: []
 ## Read First
 - docs/playbooks/template-authoring.md
 - src/templates/nextjs/scaffold/docs/playbooks/content-seo.md
+- docs/engineering/project-anatomy.md
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
-- **Given** ...
-- **When** ...
-- **Then** ...
+- **Given** the factory contract, **When** `cos init --template astro --yes --no-index --no-register` runs in a sandbox, **Then** scaffold lands under structure.root `src/frontend` with placeholders resolved and the boundary aggregated.
+- **Given** stack.yaml (language=typescript, category=frontend), **When** schema validation + `make regen-rules` run, **Then** valid; content/SEO dimension routes to the shared content-seo playbook (reuse, no duplicate doc).
+- **Given** the matrix, **When** `uv run pytest tests/test_template_scaffold.py tests/test_anatomy_contract.py -q` runs, **Then** green including the golden fixture.
 
 ## Work Log

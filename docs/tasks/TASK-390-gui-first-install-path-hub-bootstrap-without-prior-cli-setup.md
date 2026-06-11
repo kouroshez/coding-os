@@ -4,7 +4,7 @@ title: "GUI-first install path \u2014 Hub bootstrap without prior CLI setup (ins
 swimlane: infra
 kind: feature
 epic: B-onboarding
-labels: [backlog, onboarding-program]
+labels: [backlog, onboarding-program, ready]
 status: icebox
 priority: P3
 appetite: 2d
@@ -22,12 +22,14 @@ references: []
 **Outcome (one sentence):** A user with no cos CLI can boot the Hub via a single installer/Docker command and reach the onboarding wizard; ADR records the trust/path trade-offs.
 
 ## Read First
-- README.md
+- README.md (current install quickstart)
 - docs/engineering/hub-architecture.md
+- src/cli/hub.py
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
-- **Given** ...
-- **When** ...
-- **Then** ...
+- **Given** a machine with only Docker (or bash+curl for the installer script), **When** the documented one-liner runs, **Then** the Hub boots on :9188 and the onboarding wizard is reachable without any prior `uv tool install` step.
+- **Given** the installer script, **When** `bash -n` + shellcheck run in CI, **Then** clean; the script verifies prerequisites via `cos doctor --bootstrap` semantics before claiming success.
+- **Given** the ADR, **When** `make docs-lint` runs, **Then** green; the ADR records path/trust trade-offs (where the meta-repo lives, how projects mount, auth posture from TASK-363).
+- **Given** the matrix, **When** the targeted install-path test (script smoke, mocked network) runs, **Then** green.
 
 ## Work Log

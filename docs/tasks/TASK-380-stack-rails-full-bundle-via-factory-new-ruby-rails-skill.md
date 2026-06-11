@@ -4,7 +4,7 @@ title: "Stack: rails \u2014 full bundle via factory (new ruby/rails skill)"
 swimlane: templates
 kind: feature
 epic: D-catalog
-labels: [backlog, onboarding-program]
+labels: [backlog, onboarding-program, ready]
 status: icebox
 priority: P3
 appetite: 2d
@@ -23,11 +23,13 @@ references: []
 
 ## Read First
 - docs/playbooks/template-authoring.md
-- src/templates/django/stack.yaml
+- src/templates/django/stack.yaml (batteries-included backend shape)
+- docs/engineering/project-anatomy.md
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
-- **Given** ...
-- **When** ...
-- **Then** ...
+- **Given** the factory contract, **When** `cos init --template rails --yes --no-index --no-register` runs in a sandbox, **Then** scaffold lands under structure.root `src/backend` with placeholders resolved and the boundary aggregated.
+- **Given** stack.yaml (language=ruby, category=backend), **When** schema validation + `make regen-rules` run, **Then** valid with rails skill-enforcement rows.
+- **Given** the new ruby/rails SKILL.md, **When** the skill registry loads, **Then** schema-valid frontmatter with no warnings.
+- **Given** the matrix, **When** `uv run pytest tests/test_template_scaffold.py tests/test_anatomy_contract.py -q` runs, **Then** green including the golden fixture.
 
 ## Work Log
