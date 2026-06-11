@@ -5,18 +5,17 @@ swimlane: infra
 kind: refactor
 epic: J-anatomy
 labels: [wave-1, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P0
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-10
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-351]
 blocked_by: []
 references: []
 ---
-
 # TASK-355: Regen-chain parameterization — services/&lt;name&gt; globs through skill-enforcement/dimension-registry/boundary
 
 **Outcome (one sentence):** Stack glob sources support service-scoped parameterization (src/services/&lt;name&gt;/**) and propagate through `make regen-rules` (skill-enforcement.md, dimension-registry.md), enforce-skill.sh, enforce-scaffold-boundary.sh, adapter template regen and golden tests — no hand-edited derived artifact.

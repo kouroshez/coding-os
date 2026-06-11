@@ -157,6 +157,29 @@ def _derive_substitutions(
         if parts:
             derived[field_name] = "\n".join(parts)
 
+    # Verify-matrix keys render ONE row per category in AGENTS.md
+    # (verification-matrix.md.tmpl). Plain merge is last-wins, which silently
+    # drops a suite when two relocated same-category stacks coexist
+    # (project-anatomy.md § Glob/verify propagation) — join with dedupe instead.
+    for field_name in (
+        "VERIFY_BACKEND_GLOB",
+        "VERIFY_BACKEND_SUITES",
+        "VERIFY_BACKEND",
+        "VERIFY_FRONTEND_GLOB",
+        "VERIFY_FRONTEND_SUITES",
+        "VERIFY_FRONTEND",
+        "VERIFY_MOBILE_GLOB",
+        "VERIFY_MOBILE_SUITES",
+        "VERIFY_MOBILE",
+    ):
+        parts = list(
+            dict.fromkeys(
+                s.substitutions[field_name] for s in stacks if field_name in s.substitutions
+            )
+        )
+        if parts:
+            derived[field_name] = " | ".join(parts)
+
     derived["INSTALLED_SKILLS"] = ", ".join(f"`{s}`" for s in all_skills)
 
     return derived

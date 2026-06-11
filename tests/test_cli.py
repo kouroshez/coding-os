@@ -886,6 +886,155 @@ class TestProjectAnatomy:
 
 
 # ---------------------------------------------------------------------------
+# Regen-chain parameterization — TASK-355 (service-scoped glob propagation)
+# ---------------------------------------------------------------------------
+
+
+class TestRegenChainRelocation:
+    """project-anatomy.md § Glob/verify propagation for relocated services."""
+
+    @pytest.fixture(scope="class")
+    def composed_world(self):
+        return main_module._build_world(
+            "claude", ("go-fiber", "fastapi"), Path("/virtual/twosvc")
+        )
+
+    @pytest.fixture(scope="class")
+    def composed_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        """One shared two-backend consumer — init is the expensive step."""
+        project = tmp_path_factory.mktemp("regen-chain") / "twosvc"
+        project.mkdir()
+        result = CliRunner().invoke(
+            cli,
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project),
+                "--template",
+                "go-fiber",
+                "--template",
+                "fastapi",
+                "--no-index",
+                "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, f"init failed: {result.output}"
+        return project
+
+    def test_registry_tables_are_service_scoped(self, composed_world) -> None:
+        from cli.renderer import render_dimension_registry, render_skill_enforcement
+
+        enforcement = render_skill_enforcement(composed_world)
+        assert "`src/services/fastapi/**/*.py`" in enforcement
+        assert "`src/services/go-fiber/**/*.go`" in enforcement
+        assert "src/backend" not in enforcement
+        registry = render_dimension_registry(composed_world)
+        assert "## fastapi" in registry and "## go-fiber" in registry
+
+    def test_single_stack_world_passthrough(self) -> None:
+        """Backward compatibility: no collision → emitted globs unchanged."""
+        from cli.renderer import render_skill_enforcement
+
+        world = main_module._build_world("claude", ("fastapi",), Path("/virtual/solo"))
+        enforcement = render_skill_enforcement(world)
+        assert "`src/backend/**/*.py`" in enforcement
+        assert "src/services/" not in enforcement
+        names = [t.name for t in world.makefile_targets]
+        assert "lint-backend" in names
+        assert not any(n.endswith("-fastapi") for n in names)
+        assert world.substitutions["VERIFY_BACKEND_SUITES"] == "lint-backend + test-backend"
+
+    def test_makefile_targets_do_not_dedupe_collide(self, composed_world) -> None:
+        """Both stacks declare lint-backend/test-backend; unsuffixed names
+        would dedupe-by-name and silently drop one stack's suite."""
+        cmds = {t.name: t.cmd for t in composed_world.makefile_targets}
+        assert "lint-backend-go-fiber" in cmds and "lint-backend-fastapi" in cmds
+        assert "test-backend-go-fiber" in cmds and "test-backend-fastapi" in cmds
+        assert "lint-backend" not in cmds and "test-backend" not in cmds
+        assert "src/services/fastapi" in cmds["lint-backend-fastapi"]
+        assert "src/services/go-fiber" in cmds["test-backend-go-fiber"]
+
+    def test_verify_substitutions_join_both_services(self, composed_world) -> None:
+        substitutions = composed_world.substitutions
+        assert "src/services/go-fiber" in substitutions["VERIFY_BACKEND_GLOB"]
+        assert "src/services/fastapi" in substitutions["VERIFY_BACKEND_GLOB"]
+        assert "lint-backend-go-fiber" in substitutions["VERIFY_BACKEND_SUITES"]
+        assert "lint-backend-fastapi" in substitutions["VERIFY_BACKEND_SUITES"]
+
+    def test_init_artifacts_service_scoped(self, composed_project: Path) -> None:
+        import yaml
+
+        agents_md = (composed_project / "AGENTS.md").read_text(encoding="utf-8")
+        assert "src/services/go-fiber" in agents_md
+        assert "src/services/fastapi" in agents_md
+        # Stack makefile targets are not materialized into the consumer
+        # Makefile by init (pre-existing gap, all stacks — TASK-392); the
+        # renamed suites reach the consumer through AGENTS.md text.
+        assert "lint-backend-go-fiber" in agents_md
+        assert "lint-backend-fastapi" in agents_md
+
+        boundary = yaml.safe_load(
+            (composed_project / ".coding-os" / "scaffold-boundary.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+        forbids = {e["stack"]: e["forbids_writing_in"] for e in boundary["stacks"]}
+        assert "src/services/fastapi/" in forbids["go-fiber"]
+        assert "src/services/go-fiber/" in forbids["fastapi"]
+        assert "src/services/go-fiber/" not in forbids["go-fiber"]
+
+    def test_cross_service_write_blocked_by_boundary_delegate(
+        self, composed_project: Path
+    ) -> None:
+        """Acceptance: a write crossing another service's subtree is flagged
+        using the parameterized boundary data (exit 2 from the delegate)."""
+        import subprocess
+
+        repo_root = Path(__file__).resolve().parent.parent
+        delegate = repo_root / "src" / "core" / "hooks" / "_enforce_scaffold_boundary.py"
+        boundary_file = composed_project / ".coding-os" / "scaffold-boundary.yaml"
+
+        def _verdict(rel_path: str) -> int:
+            return subprocess.run(
+                [sys.executable, str(delegate), str(boundary_file), rel_path, str(composed_project)],
+                capture_output=True,
+                timeout=10,
+            ).returncode
+
+        # Unowned cross-service write (a .go file inside the fastapi service).
+        assert _verdict("src/services/fastapi/rogue.go") == 2
+        # Owned writes inside each service stay allowed.
+        assert _verdict("src/services/fastapi/app/api.py") == 0
+        assert _verdict("src/services/go-fiber/internal/handler.go") == 0
+
+    def test_skill_primer_remaps_relocated_globs(self, composed_project: Path) -> None:
+        import importlib.util
+
+        repo_root = Path(__file__).resolve().parent.parent
+        helper = repo_root / "src" / "core" / "hooks" / "_helpers" / "skill_primer.py"
+        spec = importlib.util.spec_from_file_location("skill_primer_t355", helper)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        stacks = [
+            (stack_id, module._load_stack(repo_root, stack_id))
+            for stack_id in ("go-fiber", "fastapi")
+        ]
+        state_dir = composed_project / ".coding-os"
+        overrides = module._service_root_overrides(state_dir, stacks)
+        assert overrides == {
+            "go-fiber": ("src/backend", "src/services/go-fiber"),
+            "fastapi": ("src/backend", "src/services/fastapi"),
+        }
+        card = module._format_card(stacks, overrides)
+        assert "src/services/go-fiber/**/*.go" in card
+        assert "src/services/fastapi/**/*.py" in card
+        assert "src/backend" not in card
+
+
+# ---------------------------------------------------------------------------
 # doctor --bootstrap — TASK-347 (preflight prerequisite checks)
 # ---------------------------------------------------------------------------
 

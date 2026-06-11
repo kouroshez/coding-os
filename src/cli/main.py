@@ -55,7 +55,12 @@ from cli.list_adapters import list_adapters as list_adapters_cmd
 from cli.list_stacks import list_stacks as list_stacks_cmd
 from cli.setup import setup as setup_cmd
 from cli.skills_list import skills_list as skills_list_cmd
-from cli.stack_registry import load_base_profile, load_stack_registry
+from cli.stack_registry import (
+    load_base_profile,
+    load_stack_registry,
+    resolve_relocated_profiles,
+    service_relocations,
+)
 from cli.tail_command import tail_cmd
 from cli.update import update as update_cmd
 
@@ -160,13 +165,15 @@ def _build_world(
         raise click.ClickException(f"adapter '{agent}' not found in {ADAPTERS_DIR}")
     adapter_profile = adapter_registry[agent]
 
-    stack_profiles = []
     for t in templates:
         if t not in stack_registry:
             raise click.ClickException(
                 f"stack '{t}' not found — available: {sorted(stack_registry.keys())}"
             )
-        stack_profiles.append(stack_registry[t])
+    # Colliding structure.roots are relocated to src/services/<id> BEFORE
+    # aggregation so every derived artifact is service-scoped
+    # (project-anatomy.md § Glob/verify propagation, TASK-355).
+    stack_profiles = resolve_relocated_profiles(stack_registry, templates)
 
     return aggregate(
         base,
@@ -521,25 +528,10 @@ def _resolve_placeholders(text: str, substitutions: dict[str, str]) -> str:
 def _service_relocations(templates: tuple[str, ...]) -> dict[str, str]:
     """stack-id → relocated root for stacks whose structure.root collides.
 
-    Anatomy contract (project-anatomy.md § Multi-backend relocation rule):
-    when two or more selected stacks declare the same structure.root, each
-    colliding stack's scaffold subtree moves to src/services/<stack-id>/.
-    Single-owner roots are untouched.
+    Thin wrapper over the SSOT in cli.stack_registry (shared with
+    cli.update._aggregate_world); see project-anatomy.md.
     """
-    registry = _get_stack_registry()
-    owners: dict[str, list[str]] = {}
-    for name in templates:
-        profile = registry[name] if name in registry.keys() else None
-        root = (profile.structure or {}).get("root") if profile else None
-        if root:
-            owners.setdefault(root.rstrip("/"), []).append(name)
-    relocations: dict[str, str] = {}
-    for root, stack_ids in owners.items():
-        if len(stack_ids) < 2:
-            continue
-        for stack_id in stack_ids:
-            relocations[stack_id] = f"src/services/{stack_id}"
-    return relocations
+    return service_relocations(_get_stack_registry(), templates)
 
 
 def _overlay_scaffold(
@@ -670,6 +662,16 @@ def _aggregate_scaffold_boundaries(
 
             entry["roots"] = [_remap(r) for r in entry["roots"]]
             entry["file_patterns"] = [_remap(p) for p in entry["file_patterns"]]
+
+        # Cross-service walls: each relocated root becomes forbidden to every
+        # OTHER stack, so an unowned write into a sibling service is flagged
+        # (project-anatomy.md § Glob/verify propagation — parameterized, never
+        # hand-listed in any stack's scaffold-boundary.yaml).
+        for entry in stacks_data:
+            for other_id, other_root in relocations.items():
+                wall = other_root.rstrip("/") + "/"
+                if other_id != entry["stack"] and wall not in entry["forbids_writing_in"]:
+                    entry["forbids_writing_in"].append(wall)
 
     # Invariant 1: no two installed stacks may share a root.
     seen: dict[str, str] = {}

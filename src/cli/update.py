@@ -30,7 +30,11 @@ from cli._resources import adapters_dir, core_dir, data_root, templates_dir
 from cli.adapter_registry import load_adapter_registry
 from cli.aggregator import aggregate, today_iso
 from cli.core_version import current_core_version, read_stamped_version, stamp_core_version
-from cli.stack_registry import load_base_profile, load_stack_registry
+from cli.stack_registry import (
+    load_base_profile,
+    load_stack_registry,
+    resolve_relocated_profiles,
+)
 from cli.sync_all import _dangling, _iter_symlinks, _prune_dangling
 
 # Resolved via importlib (TASK-219) so update works under both a src-layout
@@ -75,7 +79,9 @@ def _aggregate_world(agent: str, templates: tuple[str, ...], project: Path):
     adapter_registry = load_adapter_registry(ADAPTERS_DIR)
     if agent not in adapter_registry:
         raise click.ClickException(f"adapter '{agent}' not found in {ADAPTERS_DIR}")
-    stacks = [stack_registry[t] for t in templates if t in stack_registry]
+    # Same relocation step as cli.main._build_world — `cos update` must not
+    # regress a relocated project back to colliding src/backend globs.
+    stacks = resolve_relocated_profiles(stack_registry, templates)
     return aggregate(base, stacks, adapter_registry[agent], project.name, today=today_iso())
 
 

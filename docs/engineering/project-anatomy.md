@@ -39,12 +39,46 @@ relocates each colliding stack's scaffold subtree to
 `src/services/<stack-id>/`. Single-owner roots stay exactly where they are —
 existing single-backend projects are untouched.
 
-The relocation is purely path-prefix rewriting at scaffold-copy time; the
-stack's inner tree (declared in `structure.tree`) is preserved beneath the
-new root. Glob/verify/boundary propagation for relocated services is
-TASK-355 (regen-chain parameterization) — until it lands, relocated services
-get scaffolding but the enforcement globs still reference the declared root
-(documented coupling, tracked on the board).
+The relocation is path-prefix rewriting; the stack's inner tree (declared
+in `structure.tree`) is preserved beneath the new root. It applies in two
+places: scaffold copy + boundary aggregation (TASK-351), and profile
+aggregation for every derived artifact (TASK-355, next section).
+
+## Glob/verify propagation for relocated services (regen chain)
+
+`cli.stack_registry.relocate_profile(profile, new_root)` is the single
+remap primitive. Both world builders (`cli.main._build_world` for `cos init`,
+`cli.update._aggregate_world` for `cos update`) compute
+`cli.stack_registry.service_relocations(registry, templates)` and swap each
+colliding profile for its relocated copy **before** `aggregate()` — so every
+derived artifact downstream is service-scoped with no per-artifact special
+cases:
+
+| Profile field | Remap |
+|---|---|
+| `skill_enforcement[].globs`, `rules[].globs`, `dimensions[].read_files` | path-prefix: `src/backend/**` → `src/services/<id>/**` |
+| `verify[].glob/cmd`, `substitutions` values, `structure.root/tree` | boundary-aware text swap of the declared root |
+| `makefile_targets[].name` | suffixed `-<stack-id>` (two relocated stacks both declare `lint-backend`; aggregate dedupes by name, so unsuffixed names silently drop one stack's suite) |
+| `verify[].suites` + suite names inside substitutions | same `-<stack-id>` rename so the Verification Matrix points at real targets |
+| `VERIFY_{BACKEND,FRONTEND,MOBILE}{,_GLOB,_SUITES}` joined | aggregator joins distinct per-stack values with " \| " (plain merge was last-wins — one relocated stack's suite silently vanished from AGENTS.md) |
+
+Invariants:
+
+- **Single-owner stays byte-identical.** No collision → `service_relocations`
+  is empty → profiles pass through untouched (golden parity guards this).
+- **Meta-repo regen never relocates.** `src/scripts/regen_rules.py` aggregates
+  ALL stacks for the global registry tables and intentionally skips
+  relocation — collisions across the whole catalog are expected there.
+- **Cross-service walls are generated.** Boundary aggregation appends each
+  relocated root to every *other* stack's `forbids_writing_in`, so
+  `enforce-scaffold-boundary.sh` flags an unowned write that crosses into a
+  sibling service — no stack ever hand-lists a sibling's subtree.
+- **Session primer follows the boundary file.** `skill_primer.py` derives
+  `declared root → relocated root` per stack from the aggregated
+  `$COS_STATE_DIR/scaffold-boundary.yaml` (no new state file) and remaps the
+  per-glob card; enforcement hooks (`enforce-skill.sh` generic branches,
+  `enforce-scaffold-boundary.sh`) are path-agnostic / boundary-driven and
+  need no change.
 
 ## Per-stack `structure` declaration
 

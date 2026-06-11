@@ -79,7 +79,48 @@ def _load_stack(cos_root: Path, stack_id: str) -> dict | None:
         return None
 
 
-def _format_card(stacks: list[tuple[str, dict]]) -> str:
+def _service_root_overrides(
+    state_dir: Path, stacks: list[tuple[str, dict]]
+) -> dict[str, tuple[str, str]]:
+    """stack_id → (declared_root, relocated_root) for service-relocated stacks.
+
+    Derived from the aggregated $COS_STATE_DIR/scaffold-boundary.yaml (already
+    relocation-remapped at init); no extra state file. Contract:
+    project-anatomy.md § Glob/verify propagation for relocated services.
+    """
+    boundary = state_dir / "scaffold-boundary.yaml"
+    if not boundary.exists():
+        return {}
+    try:
+        data = yaml.safe_load(boundary.read_text()) or {}
+    except (yaml.YAMLError, OSError) as exc:
+        logger.debug("boundary read failed: %s", exc)
+        return {}
+    roots_by_stack: dict[str, list[str]] = {}
+    for entry in data.get("stacks") or []:
+        if isinstance(entry, dict):
+            roots_by_stack[str(entry.get("stack"))] = [
+                str(r).rstrip("/") for r in (entry.get("roots") or [])
+            ]
+    overrides: dict[str, tuple[str, str]] = {}
+    for stack_id, stack in stacks:
+        declared = ((stack.get("structure") or {}).get("root") or "").rstrip("/")
+        relocated = f"src/services/{stack_id}"
+        if declared and declared != relocated and relocated in roots_by_stack.get(stack_id, []):
+            overrides[stack_id] = (declared, relocated)
+    return overrides
+
+
+def _remap_glob(glob: str, declared: str, relocated: str) -> str:
+    if glob == declared or glob.startswith(declared + "/"):
+        return relocated + glob[len(declared) :]
+    return glob
+
+
+def _format_card(
+    stacks: list[tuple[str, dict]],
+    service_overrides: dict[str, tuple[str, str]] | None = None,
+) -> str:
     lines: list[str] = []
     lines.append(
         "[Skill Primer] PreToolUse Write/Edit BLOCKS without a matching domain skill loaded this session."
@@ -102,12 +143,15 @@ def _format_card(stacks: list[tuple[str, dict]]) -> str:
             lines.append(f"  Primary: {primary}")
 
         enforcement = stack.get("skill_enforcement") or []
+        override = (service_overrides or {}).get(stack_id)
         if enforcement:
             lines.append("  Per-glob enforcement (PreToolUse Write/Edit BLOCKS):")
             seen_primary: set[str] = set()
             for row in enforcement:
                 row_primary = row.get("primary")
                 globs = row.get("globs") or []
+                if override:
+                    globs = [_remap_glob(g, override[0], override[1]) for g in globs]
                 if not row_primary or not globs:
                     continue
                 if row_primary in seen_primary:
@@ -149,7 +193,7 @@ def main() -> int:
     if not stacks:
         return 0
 
-    sys.stdout.write(_format_card(stacks))
+    sys.stdout.write(_format_card(stacks, _service_root_overrides(state_dir, stacks)))
     return 0
 
 
