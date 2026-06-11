@@ -551,3 +551,92 @@ class TestTagDrivenDocs:
         assert "task hint" not in disabled
         _, enabled = _apply_doc_conditions(block, set(), set())
         assert "task hint" in enabled
+
+
+# ---------------------------------------------------------------------------
+# Stack bundle factory contract — TASK-361
+# ---------------------------------------------------------------------------
+
+
+class TestStackBundleLint:
+    def test_all_shipped_stacks_pass_hard_rules(self):
+        """CI gate: a new stack missing a bundle artifact fails before merge."""
+        from cli.stack_lint import lint_all
+
+        reports = lint_all()
+        assert len(reports) >= 10
+        failing = {sid: r.hard for sid, r in reports.items() if not r.passed}
+        assert not failing, f"factory-contract hard failures: {failing}"
+
+    def test_known_gaps_are_reported_not_hidden(self):
+        from cli.stack_lint import lint_all
+
+        reports = lint_all()
+        # Honest completeness: stacks without golden sections say so.
+        assert any("golden" in gap for gap in reports["fastapi"].soft)
+        # django ships goldens → no golden gap for it.
+        assert not any("golden" in gap for gap in reports["django"].soft)
+
+    def test_broken_fixture_stack_fails_with_named_artifacts(self, tmp_path):
+        import shutil as _shutil
+
+        from cli.stack_lint import lint_all
+
+        fixtures = tmp_path / "templates"
+        fixtures.mkdir()
+        _shutil.copytree(
+            Path("src/templates/_base"), fixtures / "_base", symlinks=True
+        )
+        broken = fixtures / "brokenstack"
+        broken.mkdir()
+        (broken / "stack.yaml").write_text(
+            "version: 1\n"
+            "id: brokenstack\n"
+            "label: Broken\n"
+            "category: backend\n"
+            "language: go\n"
+            "structure: {root: src/backend, tree: 'src/backend/'}\n"
+            "primary_skill: ghost-skill\n"
+            "skills: []\n"
+            "substitutions: {}\n",
+            encoding="utf-8",
+        )
+        reports = lint_all(registry_dir=fixtures, golden_root=tmp_path / "no-goldens")
+        # Layer 1 — schema-invalid stack is rejected by the loader; the lint
+        # surfaces that rejection with the named missing properties.
+        report = reports["brokenstack"]
+        assert report.passed is False
+        joined = " | ".join(report.hard)
+        assert "VERIFY_BACKEND_GLOB" in joined
+        assert "DOMAIN_ROUTES" in joined and "QUICK_ROUTING" in joined
+
+        # Layer 2 — schema-valid stack with a ghost skill loads but fails lint.
+        ghost = fixtures / "ghoststack"
+        ghost.mkdir()
+        (ghost / "stack.yaml").write_text(
+            "version: 1\n"
+            "id: ghoststack\n"
+            "label: Ghost\n"
+            "category: backend\n"
+            "language: go\n"
+            "structure: {root: src/backend, tree: 'src/backend/'}\n"
+            "primary_skill: ghost-skill\n"
+            "skills: []\n"
+            "substitutions:\n"
+            "  DOMAIN_ROUTES: x\n  SKILL_ROUTES: x\n  ENGINEERING_RULE_ROUTING: x\n"
+            "  TOOL_ROUTING_IMPL: x\n  QUICK_ROUTING: x\n  STACK_REF_CODES: ''\n"
+            "  VERIFY_BACKEND_GLOB: x\n  VERIFY_BACKEND_SUITES: x\n  VERIFY_BACKEND: x\n",
+            encoding="utf-8",
+        )
+        reports = lint_all(registry_dir=fixtures, golden_root=tmp_path / "no-goldens")
+        ghost_report = reports["ghoststack"]
+        assert ghost_report.passed is False
+        assert any("ghost-skill" in issue for issue in ghost_report.hard)
+
+    def test_plain_and_library_stacks_exempt_from_work_surfaces(self):
+        from cli.stack_lint import lint_all
+
+        reports = lint_all()
+        for stack_id in ("go-plain", "typescript-plain", "python", "meta"):
+            assert reports[stack_id].passed, reports[stack_id].hard
+            assert not any("dimensions" in gap for gap in reports[stack_id].soft)

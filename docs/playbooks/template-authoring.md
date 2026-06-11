@@ -48,6 +48,33 @@ OR a framework**: choosing a bare language selects its plain stack.
 8. **Regenerate manifest.** `make manifest-regen` updates `src/core/scaffold_manifest.json` so `cos init` picks up the new stack.
 9. **Run the cross-stack tests.** `uv run pytest tests/test_template_scaffold.py tests/test_adapter_parity.py -q`. Both must be green.
 
+## Stack bundle standard — the factory contract (TASK-361)
+
+A stack is COMPLETE only when every row below exists. `cos stack-lint <id>`
+(all stacks: `cos stack-lint`) checks the machine-checkable rows; the CI test
+`tests/test_template_scaffold.py::TestStackBundleLint` fails the suite when a
+shipped stack violates a hard rule.
+
+| # | Artifact | Path convention | Lint |
+|---|---|---|---|
+| 1 | Manifest, schema-valid | `src/templates/<id>/stack.yaml` (version, id=dirname, label, category, **language**, **structure.root/tree**) | hard |
+| 2 | Verify wiring | `VERIFY_<CATEGORY>_GLOB` substitution for backend/frontend/mobile (the matrix fragment's source); `verify:` per-glob rows are the newer mechanism — their absence is a GAP | hard / soft |
+| 3 | Primary skill resolvable | `primary_skill` found under `src/templates/<id>/skills/` or `src/core/skills/` (plain stacks may declare `null`) | hard |
+| 4 | Routing surface | non-empty `substitutions.DOMAIN_ROUTES` + `QUICK_ROUTING` | hard |
+| 5 | Dimensions | `dimensions:` rows with read_files (plain/library stacks exempt) | soft |
+| 6 | Skill enforcement | `skill_enforcement:` globs (plain/library stacks exempt) | soft |
+| 7 | Scaffold boundary | `scaffold-boundary.yaml` for code-writing categories | soft |
+| 8 | Scrumban delta | `scaffold/.coding-os/scrumban-config.yaml` (board lanes for the stack's work) | soft |
+| 9 | Docs | ≥1 playbook/engineering doc under `scaffold/docs/` or routed via `_base` docs | soft |
+| 10 | Golden coverage | a `tests/golden/<agent>_<id>` section (capture with `make golden-capture SECTION=…`) | soft |
+| 11 | Regen chain run | `make regen-rules` + `make manifest-regen` + `make regen-adapter-templates` after edits (Rule 10) | manual |
+| 12 | Adapter capability note | hooks needing non-Bash matchers documented against `adapter.yaml::hook_capabilities` | manual |
+
+Hard rows fail `cos stack-lint` (exit 1) and CI; soft rows are reported as
+GAP lines so a stack's completeness is visible without blocking iteration.
+Plain-language stacks (`<lang>-plain`) and `category: library` are exempt
+from rows 5–8 by design — they ship skeletons, not work surfaces.
+
 ## Steps to modify an existing stack
 
 1. **Locate the SSOT.** Behavior change → `stack.yaml`. New scaffold file → `scaffold/`. New entity recipe → `skills/<skill>/references/anatomy.md`.

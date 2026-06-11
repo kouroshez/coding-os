@@ -5,12 +5,12 @@ swimlane: templates
 kind: feature
 epic: F-docs
 labels: [wave-3, onboarding-program, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-349, TASK-356]
 blocked_by: []
@@ -33,3 +33,5 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_template_scaffold.py -q` + `make docs-lint` run, **Then** green.
 
 ## Work Log
+- 2026-06-11 [claude]: IMPL DONE (parked, batch 5 #2) — _apply_doc_conditions in the overlay path: file-level module:<id> header tags (PRD tree
+- 2026-06-11 [claude]: CLOSED on batch-5 suite: tests/test_cli.py 117 passed (23m15s) + scaffold 44/44 + golden 6/6 + docs-lint. Self-score 9/1

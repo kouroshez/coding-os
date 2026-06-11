@@ -5,18 +5,17 @@ swimlane: templates
 kind: feature
 epic: D-catalog
 labels: [wave-4, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 1d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-348, TASK-351, TASK-355]
 blocked_by: []
 references: []
 ---
-
 # TASK-361: Stack bundle standard — the factory contract (checklist + lint for new stacks)
 
 **Outcome (one sentence):** A documented + lint-enforced definition of a complete stack bundle (stack.yaml w/ language+structure, stack skill, scrumban-config, >=1 playbook, engineering-rules, verify-matrix row, adapter-parity coverage, golden test) so every future stack is a mechanical 1-task job.
@@ -34,3 +33,7 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_template_scaffold.py -q` + `make docs-lint` run, **Then** green.
 
 ## Work Log
+- 2026-06-11 [claude]: Edit stack_lint.py
+- 2026-06-11 [claude]: Edit stack_lint.py
+- 2026-06-11 [claude]: Edit template-authoring.md
+- 2026-06-11 [claude]: Edit stack_lint.py

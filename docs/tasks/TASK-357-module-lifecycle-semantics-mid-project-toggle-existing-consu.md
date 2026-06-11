@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: G-modularity
 labels: [wave-3, onboarding-program, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-353, TASK-354]
 blocked_by: []
@@ -33,3 +33,4 @@ references: []
 
 ## Work Log
 - 2026-06-11 [claude]: IMPL DONE (parked, batch 5 #1) — gaps over the 354 toggle machinery closed: (1) cos update migrates pre-module consumers
+- 2026-06-11 [claude]: CLOSED on batch-5 suite: tests/test_cli.py 117 passed (23m15s). Commit 602e74c7. Self-score 9.5/10: all four acceptance 
