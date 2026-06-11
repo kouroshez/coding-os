@@ -1,5 +1,7 @@
 ---
 name: claude-sdk-integration
+tier: stack
+domain: [infra]
 description: Use when authoring code that uses Anthropic's Claude SDK or the claude-agent-sdk inside the meta-repo — primarily src/adapters/claude/sdk_dispatcher.py and the formula composer pipeline that spawns Claude Code sub-sessions. Covers prompt caching, tool-use loop, model selection (Opus 4.7, Sonnet 4.6, Haiku 4.5), session lifecycle, error handling, and the dispatcher protocol contract every adapter must satisfy. Pairs with python-meta-server, meta-engineering, and the claude-api skill (when working on raw API).
 last_reviewed: "2026-05-11"
 

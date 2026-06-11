@@ -1123,6 +1123,67 @@ class TestPresets:
 
 
 # ---------------------------------------------------------------------------
+# Skill catalog SSOT — TASK-352 (skill-architecture.md § Per-stack skill groups)
+# ---------------------------------------------------------------------------
+
+
+class TestSkillCatalog:
+    def test_stack_groups_derive_from_stack_yaml(self) -> None:
+        from cli.skills_list import collect_stack_skill_groups
+
+        payload = collect_stack_skill_groups("fastapi")
+        groups = payload["groups"]
+        required = {e["name"] for e in groups["required"]}
+        recommended = {e["name"] for e in groups["recommended"]}
+        optional = {e["name"] for e in groups["optional"]}
+        assert "python-fastapi" in required  # primary_skill
+        assert "clean-code" in recommended and "api-design" in recommended  # enforcement secondaries
+        assert required.isdisjoint(recommended) and required.isdisjoint(optional)
+        assert recommended.isdisjoint(optional)
+
+    def test_stack_skill_resolves_with_provenance_and_validation(self) -> None:
+        from cli.skills_list import collect_stack_skill_groups
+
+        payload = collect_stack_skill_groups("fastapi")
+        primary = payload["groups"]["required"][0]
+        assert primary == {
+            "name": "python-fastapi",
+            "tier": "stack",
+            "domain": ["backend"],
+            "description": primary["description"],
+            "provenance": "stack:fastapi",
+            "validated": True,
+        }
+        assert primary["description"]  # sourced from frontmatter, non-empty
+        assert payload["warnings"] == []
+
+    def test_unknown_stack_raises_keyerror(self) -> None:
+        from cli.skills_list import collect_stack_skill_groups
+
+        with pytest.raises(KeyError):
+            collect_stack_skill_groups("no-such-stack")
+
+    def test_cli_stack_flag_matches_ssot_payload(self, runner: CliRunner) -> None:
+        """Acceptance: CLI output and endpoint payload share the same SSOT function."""
+        from cli.skills_list import collect_stack_skill_groups
+
+        result = runner.invoke(main_module.cli, ["skills-list", "--stack", "meta", "--format", "json"])
+        assert result.exit_code == 0, result.output
+        assert json.loads(result.output) == collect_stack_skill_groups("meta")
+
+    def test_global_catalog_has_provenance_and_zero_warnings(self) -> None:
+        from cli.skills_list import collect_skill_catalog
+
+        catalog = collect_skill_catalog()
+        provenances = {e["provenance"] for e in catalog["skills"]}
+        assert "core" in provenances
+        assert any(p.startswith("stack:") for p in provenances)
+        assert catalog["count"] == len(catalog["skills"]) > 30
+        assert catalog["warnings"] == []  # every stack SKILL.md is schema-valid
+        assert all(e["validated"] for e in catalog["skills"])
+
+
+# ---------------------------------------------------------------------------
 # doctor --bootstrap — TASK-347 (preflight prerequisite checks)
 # ---------------------------------------------------------------------------
 

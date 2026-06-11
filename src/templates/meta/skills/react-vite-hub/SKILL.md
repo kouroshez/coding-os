@@ -1,5 +1,7 @@
 ---
 name: react-vite-hub
+tier: stack
+domain: [frontend]
 description: Use when authoring or modifying the meta-repo's Hub UI in src/core/web/ui/ — React 18 + Vite + TypeScript + Sigma.js graph canvas + zustand state. Covers the contract between FastAPI routes (src/core/web/routes/) and the SPA, env vars (VITE_*), build pipeline, hot-reload dev mode, and how the Hub UI proxies into per-project /api/p/<slug>/* endpoints. Pairs with frontend-fundamentals, a11y, and graph-explorer (when touching graph visualization).
 last_reviewed: "2026-05-11"
 

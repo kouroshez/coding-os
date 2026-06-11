@@ -1,5 +1,7 @@
 ---
 name: python-fastapi
+tier: stack
+domain: [backend]
 description: Use when creating or modifying Python files under src/backend/ — FastAPI routes, Pydantic models, SQLAlchemy ORM, dependency-injected services, async handlers, and pytest tests. Triggers on any .py file change under src/backend/. Covers route organization, dependency injection, error handling, and async patterns specific to FastAPI.
 globs: "src/backend/**/*.py"
 depends_on:

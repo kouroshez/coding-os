@@ -1,5 +1,7 @@
 ---
 name: react-native-mobile
+tier: stack
+domain: [mobile]
 description: Use when creating or modifying React Native screens, components, hooks, or native bridges in the mobile app. Triggers on any .ts/.tsx file change under src/mobile/. Covers Hermes + Reanimated worklet constraints, three-state async UI, offline-first sync queues, navigation patterns, and a11y for VoiceOver / TalkBack.
 globs: "src/mobile/**/*.{ts,tsx}"
 depends_on:

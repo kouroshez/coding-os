@@ -1,5 +1,7 @@
 ---
 name: python-django
+tier: stack
+domain: [backend]
 description: Use when creating or modifying Python files in the src/backend/ directory — Django models, DRF views, serializers, services, selectors, Celery tasks, migrations, or tests. Triggers on any .py file change under src/backend/. Covers architecture patterns (services + selectors), exception hierarchy, error envelope, file upload validation, and testing standards specific to this Django/DRF codebase.
 globs: "src/backend/**/*.py"
 depends_on:

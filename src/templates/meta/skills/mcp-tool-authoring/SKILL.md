@@ -1,5 +1,7 @@
 ---
 name: mcp-tool-authoring
+tier: stack
+domain: [architecture]
 description: Author production-grade MCP (Model Context Protocol) tools for the coding-os meta-repo. Use when adding a new `cos_*` tool to `src/core/thinking_os/tools/`, `src/core/graph_os/tools/`, `src/core/board_os/mcp_tools.py`, or `src/core/web/routes/` — the four canonical authoring surfaces. Enforces the @safe_tool envelope (Rule 13), name prefix `cos_` (Rule 2), append-only schema migrations (Rule 9), single-line docstring (Rule 12), deferred-tool schema discipline. Pairs with python-meta-server, graph-explorer (load before edits), and clean-code.
 last_reviewed: "2026-05-11"
 ---

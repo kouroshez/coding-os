@@ -173,3 +173,10 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: Edit skill-architecture.md
 - 2026-06-11 [claude]: commit 8276154cc5 — docs(skills): per-stack skill-group SSOT contract for onboarding (TASK-352 groundwork)
 - 2026-06-11 [claude]: Edit test-cadence-batch-heavy-suites.md
+- 2026-06-11 [claude]: commit 257e6d0b2f — chore(board): DoR review sweep — fill 18 backlog acceptances, all 41 icebox tasks validated+ready
+- 2026-06-11 [claude]: Edit skills_list.py
+- 2026-06-11 [claude]: Edit skills_list.py
+- 2026-06-11 [claude]: Edit hub.py
+- 2026-06-11 [claude]: Edit t352_fix_frontmatter.py
+- 2026-06-11 [claude]: Edit test_cli.py
+- 2026-06-11 [claude]: Edit test_hub_init_route.py

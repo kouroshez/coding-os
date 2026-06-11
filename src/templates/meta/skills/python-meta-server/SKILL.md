@@ -1,5 +1,7 @@
 ---
 name: python-meta-server
+tier: stack
+domain: [architecture]
 description: Use when authoring or modifying Python code in the meta-repo's server / kernel — MCP tools (src/core/thinking_os/), graph extractors (src/core/graph_os/), board engine (src/core/board_os/), hooks helpers (src/core/hooks/_helpers/), and CLI (cli/). Codifies the FastMCP envelope contract, type-hint discipline, async patterns, exception hierarchy, and the regen pipelines specific to this codebase. Pairs with graph-explorer (always primary), meta-engineering, and clean-code.
 last_reviewed: "2026-05-11"
 

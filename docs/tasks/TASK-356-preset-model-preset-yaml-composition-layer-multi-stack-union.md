@@ -5,12 +5,12 @@ swimlane: templates
 kind: feature
 epic: C-data-model
 labels: [wave-1, onboarding-program, ready]
-status: testing
+status: complete
 priority: P0
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-10
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-348, TASK-351]
 blocked_by: []
@@ -35,3 +35,4 @@ references: []
 
 ## Work Log
 - 2026-06-11 [claude]: committed 78e26f45: docs/engineering/config-composition.md, src/cli/config_composer.py, src/cli/list_stacks.py, src/cli/
+- 2026-06-11 [claude]: DONE — preset model: src/templates/_presets/<id>.yaml + preset.schema.json + fail-soft loader (preset_registry.py); cos 

@@ -322,6 +322,32 @@ def hub_presets() -> dict:
     }
 
 
+@router.get("/skills")
+def hub_skills() -> dict:
+    """Global core+stack skill catalog with provenance + validation status."""
+    try:
+        from cli.skills_list import collect_skill_catalog  # type: ignore
+
+        catalog = collect_skill_catalog()
+    except Exception as exc:
+        return _err("unavailable", f"skill catalog unavailable: {exc}", status=503)
+    return {"data": catalog, "meta": {"layer": "hub", "source": "hub.skills"}}
+
+
+@router.get("/stacks/{stack_id}/skills")
+def hub_stack_skills(stack_id: str) -> dict:
+    """Required/recommended/optional skill groups for one stack (onboarding preview)."""
+    try:
+        from cli.skills_list import collect_stack_skill_groups  # type: ignore
+
+        payload = collect_stack_skill_groups(stack_id)
+    except KeyError:
+        return _err("not_found", f"stack '{stack_id}' not found", status=404)
+    except Exception as exc:
+        return _err("unavailable", f"skill groups unavailable: {exc}", status=503)
+    return {"data": payload, "meta": {"layer": "hub", "source": "hub.stack_skills"}}
+
+
 def _cos_init_command() -> list[str]:
     """Resolve how to invoke `cos` — the installed bin, else `python -m cli.main`."""
     found = shutil.which("cos")

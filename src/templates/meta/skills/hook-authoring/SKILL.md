@@ -1,5 +1,7 @@
 ---
 name: hook-authoring
+tier: stack
+domain: [governance]
 description: Author production-grade hooks for the coding-os meta-repo — Bash scripts under src/core/hooks/ and Python helpers under src/core/hooks/_helpers/. Enforces SSOT registration in registry.yaml (Rule 10), source cos-env.sh (Rule 3), agent-agnostic env vars not hardcoded .claude/ (Rule 1, P2), proper event/matcher declaration, adapter capability filtering, and the regen pipeline. Pairs with meta-engineering, clean-code, and thinking_os.
 last_reviewed: "2026-05-11"
 ---

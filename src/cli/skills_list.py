@@ -71,6 +71,115 @@ def _collect_skills(include_stacks: bool) -> list[SkillProfile]:
     return out
 
 
+def _profile_entry(profile: SkillProfile, provenance: str) -> dict:
+    return {
+        "name": profile.name,
+        "tier": profile.tier,
+        "domain": list(profile.domain),
+        "description": profile.description,
+        "provenance": provenance,
+        "validated": True,
+    }
+
+
+def _missing_entry(name: str) -> dict:
+    # Referenced by a stack but no SKILL.md ships yet — visible, not dropped
+    # (skill-architecture.md § Per-stack skill groups).
+    return {
+        "name": name,
+        "tier": None,
+        "domain": [],
+        "description": "",
+        "provenance": "missing",
+        "validated": False,
+    }
+
+
+def collect_skill_catalog() -> dict:
+    """Global core+stack catalog with provenance — SSOT for GET /api/hub/skills."""
+    entries: list[dict] = []
+    warnings: list[str] = []
+
+    core_reg = load_skill_registry(CORE_SKILLS_DIR)
+    entries.extend(_profile_entry(p, "core") for p in core_reg.values())
+    warnings.extend(core_reg.warnings)
+
+    if TEMPLATES_DIR.is_dir():
+        for stack_dir in sorted(TEMPLATES_DIR.iterdir()):
+            stack_skills = stack_dir / "skills"
+            if not stack_dir.is_dir() or not stack_skills.is_dir():
+                continue
+            stack_reg = load_skill_registry(stack_skills)
+            entries.extend(_profile_entry(p, f"stack:{stack_dir.name}") for p in stack_reg.values())
+            warnings.extend(f"[stack {stack_dir.name}] {w}" for w in stack_reg.warnings)
+
+    entries.sort(key=lambda e: (e["provenance"] != "core", e["name"]))
+    return {"skills": entries, "count": len(entries), "warnings": warnings}
+
+
+def collect_stack_skill_groups(stack_id: str) -> dict:
+    """Per-stack required/recommended/optional groups — SSOT for the onboarding
+    preview, consumed by `cos skills-list --stack` AND GET /api/hub/stacks/{id}/skills
+    (skill-architecture.md § Per-stack skill groups). Raises KeyError on unknown stack."""
+    from cli.stack_registry import load_stack_registry
+
+    stacks = load_stack_registry(TEMPLATES_DIR)
+    if stack_id not in stacks:
+        raise KeyError(stack_id)
+    stack = stacks[stack_id]
+
+    core_reg = load_skill_registry(CORE_SKILLS_DIR)
+    stack_skills_dir = TEMPLATES_DIR / stack_id / "skills"
+    stack_reg = load_skill_registry(stack_skills_dir) if stack_skills_dir.is_dir() else None
+    warnings = list(core_reg.warnings)
+    if stack_reg:
+        warnings.extend(f"[stack {stack_id}] {w}" for w in stack_reg.warnings)
+
+    def _entry(name: str) -> dict:
+        if stack_reg and name in stack_reg:
+            return _profile_entry(stack_reg[name], f"stack:{stack_id}")
+        if name in core_reg:
+            return _profile_entry(core_reg[name], "core")
+        return _missing_entry(name)
+
+    required: list[str] = []
+    if stack.primary_skill:
+        required.append(stack.primary_skill)
+    for name in stack.skills:
+        if name not in required:
+            required.append(name)
+
+    recommended: list[str] = []
+    for row in stack.skill_enforcement:
+        for name in row.secondary:
+            if name not in required and name not in recommended:
+                recommended.append(name)
+
+    grouped = {*required, *recommended}
+    optional = [p.name for p in sorted(core_reg.values(), key=lambda p: p.name) if p.name not in grouped]
+
+    return {
+        "stack": stack_id,
+        "groups": {
+            "required": [_entry(n) for n in required],
+            "recommended": [_entry(n) for n in recommended],
+            "optional": [_entry(n) for n in optional],
+        },
+        "warnings": warnings,
+    }
+
+
+def _render_groups_text(payload: dict) -> str:
+    lines = [f"Skill groups for stack: {payload['stack']}"]
+    for group in ("required", "recommended", "optional"):
+        entries = payload["groups"][group]
+        lines.append(f"\n[{group}] ({len(entries)})")
+        for e in entries:
+            flag = "" if e["validated"] else "  (MISSING SKILL.md)"
+            lines.append(f"  {e['name']:<32} tier={e['tier'] or '—':<14} {e['provenance']}{flag}")
+    return "\n".join(lines)
+
+
 def _render_text(skills: list[SkillProfile], by: str) -> str:
     if not skills:
         return "(no skills found)"
@@ -172,12 +281,19 @@ def _render_json(skills: list[SkillProfile]) -> str:
     default=False,
     help="Also load src/templates/<stack>/skills/ (default: core only).",
 )
+@click.option(
+    "--stack",
+    "stack_id",
+    default=None,
+    help="Show the required/recommended/optional skill groups for one stack (onboarding SSOT view).",
+)
 @click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text")
 def skills_list(
     by: str,
     tier_filter: str | None,
     domain_filter: str | None,
     include_stacks: bool,
+    stack_id: str | None,
     output_format: str,
 ) -> None:
     """List all skills, grouped by tier (default) or domain.
@@ -185,6 +301,17 @@ def skills_list(
     Reads SKILL.md frontmatter from src/core/skills/ (and optionally
     src/templates/<stack>/skills/). Shows tier, domain(s), description.
     """
+    if stack_id:
+        try:
+            payload = collect_stack_skill_groups(stack_id)
+        except KeyError:
+            click.echo(f"ERROR: stack '{stack_id}' not found.", err=True)
+            sys.exit(2)
+        click.echo(
+            json.dumps(payload, indent=2) if output_format == "json" else _render_groups_text(payload)
+        )
+        return
+
     skills = _collect_skills(include_stacks)
     if tier_filter:
         skills = [s for s in skills if s.tier == tier_filter]

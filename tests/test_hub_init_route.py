@@ -71,6 +71,30 @@ class TestPresetsEndpoint:
             assert p["label"] and p["id"] and p["stacks"]
 
 
+class TestSkillCatalogEndpoints:
+    def test_global_skill_catalog(self, hub_env):
+        with _client() as client:
+            resp = client.get("/api/hub/skills")
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert data["count"] == len(data["skills"]) > 0
+        assert {e["provenance"] for e in data["skills"]} >= {"core"}
+
+    def test_stack_skill_groups(self, hub_env):
+        with _client() as client:
+            resp = client.get("/api/hub/stacks/fastapi/skills")
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert data["stack"] == "fastapi"
+        assert set(data["groups"]) == {"required", "recommended", "optional"}
+        assert data["groups"]["required"][0]["name"] == "python-fastapi"
+
+    def test_unknown_stack_404(self, hub_env):
+        with _client() as client:
+            resp = client.get("/api/hub/stacks/no-such/skills")
+        assert resp.status_code == 404
+
+
 class TestInitRouteValidation:
     def test_bad_name_rejected(self, hub_env):
         with _client() as client:

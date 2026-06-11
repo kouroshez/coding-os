@@ -1,5 +1,7 @@
 ---
 name: graph-os-authoring
+tier: stack
+domain: [architecture]
 description: Author the graph_os knowledge-graph internals — extractors, backends, indexers, queries. Use when adding a new node/edge type, writing a new extractor (Python AST, doc-headings, etc.), evolving the SQLite backend, or modifying the reindex dispatcher. Enforces idempotency on uid, append-only file_index_state, backend-agnostic tool layer, confidence-scoring discipline. Pairs with graph-explorer (which queries the graph this skill builds), python-meta-server, and mcp-tool-authoring (for `cos_graph_*` tools).
 last_reviewed: "2026-05-11"
 ---

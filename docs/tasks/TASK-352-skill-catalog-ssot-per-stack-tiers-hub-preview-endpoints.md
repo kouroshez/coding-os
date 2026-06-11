@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: E-skills
 labels: [wave-1, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 1d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-348]
 blocked_by: []
 references: []
 ---
-
 # TASK-352: Skill catalog SSOT — per-stack tiers + hub preview endpoints
 
 **Outcome (one sentence):** Skill registry (existing skill_registry.py + skill.schema.json) exposes required/recommended/optional tiers per stack; GET /api/hub/skills and GET /api/hub/stacks/{id}/skills serve the onboarding preview; CLI skill listing consumes the same SSOT.

@@ -1,5 +1,7 @@
 ---
 name: meta-engineering
+tier: stack
+domain: [governance]
 description: Use when authoring inside coding-os itself — core/, cli/, adapters/, templates/, or src/core/hooks/. Enforces three-layer mental model (DNA → mRNA → phenotype), graph-first edit discipline, regen pipelines, dogfood verification, and the contract that meta-repo changes propagate to every consumer project. Pairs with graph-explorer (always primary), clean-code, and thinking_os.
 last_reviewed: "2026-05-11"
 
