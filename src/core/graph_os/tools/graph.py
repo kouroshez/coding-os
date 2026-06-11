@@ -947,6 +947,7 @@ def _walk_bfs(
     confidence_min: float,
     edge_types: Sequence[str] | None,
     visit_limit: int = 500,
+    exclude_kinds: frozenset[str] = frozenset(),
 ) -> tuple[list[GraphNode], list[GraphEdge]]:
     """BFS traversal — shared by context / impact / trace.
 
@@ -1021,6 +1022,12 @@ def _walk_bfs(
             for edge, next_uid in zip(frontier_edges, frontier_uids):
                 node = fetched.get(next_uid)
                 if node is None:
+                    continue
+                # TASK-403: skip excluded (noise) kinds DURING the walk so
+                # they never consume the visit budget — the export used to
+                # over-fetch 4× to compensate post-hoc, which quadrupled
+                # rooted-walk latency.
+                if exclude_kinds and (node.kind or "") in exclude_kinds:
                     continue
                 edges_out.append(edge)
                 if next_uid in visited_uids:
@@ -2587,6 +2594,9 @@ def cos_graph_export(
     # spent on VISIBLE nodes — the old fetch-then-filter order burned the
     # budget on doc_heading/frontmatter rows that the filter dropped a few
     # lines later (the spine sidebar got 306 of 400 folders at a 30k ask).
+    # TASK-403: only the BLEND path needs the over-fetch — the rooted walk
+    # filters noise kinds DURING the BFS, so its budget already counts
+    # visible nodes and a 4× walk would just quadruple latency.
     fetch_budget = min(max_nodes * 4, 150_000) if excluded else max_nodes
     if root_uid is not None:
         # Hub Graph tab "depth=all" sent max_nodes=10000 but the walk
@@ -2601,7 +2611,8 @@ def cos_graph_export(
             max_hops=effective_hops,
             confidence_min=0.0,
             edge_types=parsed_edge_types,
-            visit_limit=fetch_budget,
+            visit_limit=max_nodes,
+            exclude_kinds=excluded,
         )
     elif mode == "processes":
         nodes, edges = _export_processes(be, max_nodes=max_nodes)
@@ -2732,7 +2743,9 @@ def _export_blend(
     for e in edges:
         node_uids.add(e.source_uid)
         node_uids.add(e.target_uid)
-    nodes = [n for n in (be.get_node(u) for u in node_uids) if n is not None]
+    # TASK-403: batched hydration — one get_node per uid was ~30k round
+    # trips on a spine export.
+    nodes = list(_bulk_nodes(be, list(node_uids)).values())
 
     # Spine connectivity: walk every node up the ancestor chain so the
     # SPA's tree builder sees a connected forest. Without this, budget-
@@ -2746,17 +2759,27 @@ def _export_blend(
     if node_uids and contains_in_scope:
         existing_pairs = {(e.source_uid, e.target_uid, e.edge_type) for e in edges}
         nodes_by_uid = {n.uid: n for n in nodes}
-        for uid in list(node_uids):
-            ancestors, spine_edges = _contains_ancestors(be, leaf_uid=uid)
-            for a in ancestors:
-                if a.uid not in nodes_by_uid:
-                    nodes_by_uid[a.uid] = a
-                    node_uids.add(a.uid)
-            for se in spine_edges:
-                key = (se.source_uid, se.target_uid, se.edge_type)
-                if key not in existing_pairs:
-                    edges.append(se)
-                    existing_pairs.add(key)
+        # TASK-403: set-wise closure (one query per tree level in the
+        # backend) — the previous per-node `_contains_ancestors` loop was
+        # ~30k upward walks and dominated the export latency.
+        closure_fn = getattr(be, "contains_ancestors_bulk", None)
+        if callable(closure_fn):
+            ancestors, spine_edges = closure_fn(list(node_uids))
+        else:  # non-SQLite backend — per-leaf fallback
+            ancestors, spine_edges = [], []
+            for uid in list(node_uids):
+                leaf_nodes, leaf_edges = _contains_ancestors(be, leaf_uid=uid)
+                ancestors.extend(leaf_nodes)
+                spine_edges.extend(leaf_edges)
+        for a in ancestors:
+            if a.uid not in nodes_by_uid:
+                nodes_by_uid[a.uid] = a
+                node_uids.add(a.uid)
+        for se in spine_edges:
+            key = (se.source_uid, se.target_uid, se.edge_type)
+            if key not in existing_pairs:
+                edges.append(se)
+                existing_pairs.add(key)
         nodes = list(nodes_by_uid.values())
 
     return nodes, edges

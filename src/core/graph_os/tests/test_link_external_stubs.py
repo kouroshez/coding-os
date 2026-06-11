@@ -446,3 +446,73 @@ def test_import_binding_file_scoped():
     out_of_scope = _import_node("other.py", "helper", "pkg.mod")
     backend.bulk_upsert([real, in_scope, out_of_scope], [])
     assert backend.link_import_bindings(file_path="app.py") == 1
+
+
+# ---------------------------------------------------------------------------
+# contains_ancestors_bulk — set-wise spine closure (TASK-403)
+# ---------------------------------------------------------------------------
+
+
+def _spine_fixture(backend: SqliteBackend) -> None:
+    nodes = [
+        GraphNode(uid="folder:src", kind="folder", label="src", file_path="src"),
+        GraphNode(uid="folder:src/core", kind="folder", label="core", file_path="src/core"),
+        GraphNode(
+            uid="code:file:src/core/a.py", kind="code:file", label="a.py",
+            file_path="src/core/a.py",
+        ),
+        GraphNode(
+            uid="code:function:src/core/a.py::f", kind="code:function", label="f",
+            file_path="src/core/a.py",
+        ),
+        GraphNode(
+            uid="doc:file:docs/x.md", kind="doc:file", label="x.md", file_path="docs/x.md",
+        ),
+        GraphNode(uid="folder:docs", kind="folder", label="docs", file_path="docs"),
+    ]
+    edges = [
+        GraphEdge(source_uid="folder:src", target_uid="folder:src/core",
+                  edge_type="contains", extractor="t", confidence=1.0),
+        GraphEdge(source_uid="folder:src/core", target_uid="code:file:src/core/a.py",
+                  edge_type="contains", extractor="t", confidence=1.0),
+        GraphEdge(source_uid="code:file:src/core/a.py",
+                  target_uid="code:function:src/core/a.py::f",
+                  edge_type="contains", extractor="t", confidence=1.0),
+        GraphEdge(source_uid="folder:docs", target_uid="doc:file:docs/x.md",
+                  edge_type="contains", extractor="t", confidence=1.0),
+    ]
+    backend.bulk_upsert(nodes, edges)
+
+
+def test_bulk_closure_returns_full_ancestor_chain():
+    conn = _migrated_conn()
+    backend = SqliteBackend(conn=conn)
+    _spine_fixture(backend)
+    ancestors, spine_edges = backend.contains_ancestors_bulk(
+        ["code:function:src/core/a.py::f"]
+    )
+    ancestor_uids = {n.uid for n in ancestors}
+    assert ancestor_uids == {"folder:src", "folder:src/core", "code:file:src/core/a.py"}
+    pairs = {(e.source_uid, e.target_uid) for e in spine_edges}
+    assert ("folder:src", "folder:src/core") in pairs
+    assert ("code:file:src/core/a.py", "code:function:src/core/a.py::f") in pairs
+
+
+def test_bulk_closure_multi_leaf_no_duplicates():
+    conn = _migrated_conn()
+    backend = SqliteBackend(conn=conn)
+    _spine_fixture(backend)
+    ancestors, _ = backend.contains_ancestors_bulk(
+        ["code:function:src/core/a.py::f", "code:file:src/core/a.py", "doc:file:docs/x.md"]
+    )
+    ancestor_uids = [n.uid for n in ancestors]
+    assert len(ancestor_uids) == len(set(ancestor_uids))
+    assert "folder:docs" in ancestor_uids
+    # inputs are never echoed back as ancestors
+    assert "doc:file:docs/x.md" not in ancestor_uids
+
+
+def test_bulk_closure_empty_input():
+    conn = _migrated_conn()
+    backend = SqliteBackend(conn=conn)
+    assert backend.contains_ancestors_bulk([]) == ([], [])

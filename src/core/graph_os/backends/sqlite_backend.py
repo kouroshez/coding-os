@@ -571,6 +571,79 @@ class SqliteBackend:
             self._conn.commit()
             return rewrites
 
+    def contains_ancestors_bulk(
+        self, uids: Sequence[str]
+    ) -> tuple[list[GraphNode], list[GraphEdge]]:
+        """Ancestor closure over ``contains`` for a uid SET — one query per
+        tree level instead of one walk per node (TASK-403: the per-node
+        loop cost ~12 s on a 30k-uid spine export).
+        """
+        if not uids:
+            return [], []
+        chunk = 500
+        id_to_uid: dict[int, str] = {}
+
+        def _map_ids(ids: Iterable[int]) -> None:
+            pending = [i for i in ids if i not in id_to_uid]
+            for start in range(0, len(pending), chunk):
+                batch = pending[start : start + chunk]
+                for row_id, row_uid in self._conn.execute(
+                    f"SELECT id, uid FROM graph_nodes WHERE id IN ({','.join('?' * len(batch))})",
+                    batch,
+                ).fetchall():
+                    id_to_uid[int(row_id)] = str(row_uid)
+
+        frontier: set[int] = set()
+        uid_list = list(dict.fromkeys(uids))
+        for start in range(0, len(uid_list), chunk):
+            batch = uid_list[start : start + chunk]
+            for row_id, row_uid in self._conn.execute(
+                f"SELECT id, uid FROM graph_nodes WHERE uid IN ({','.join('?' * len(batch))})",
+                batch,
+            ).fetchall():
+                id_to_uid[int(row_id)] = str(row_uid)
+                frontier.add(int(row_id))
+
+        seen: set[int] = set(frontier)
+        new_ids: set[int] = set()
+        edge_rows: list[tuple[int, int, float]] = []
+        for _ in range(32):  # spine depth ceiling — real trees are ≤ ~12
+            if not frontier:
+                break
+            level_parents: set[int] = set()
+            frontier_list = list(frontier)
+            for start in range(0, len(frontier_list), chunk):
+                batch = frontier_list[start : start + chunk]
+                for src, tgt, conf in self._conn.execute(
+                    "SELECT source_id, target_id, confidence FROM graph_edges_v12 "
+                    f"WHERE edge_type='contains' AND target_id IN ({','.join('?' * len(batch))})",
+                    batch,
+                ).fetchall():
+                    edge_rows.append((int(src), int(tgt), float(conf or 1.0)))
+                    if int(src) not in seen:
+                        level_parents.add(int(src))
+            seen |= level_parents
+            new_ids |= level_parents
+            frontier = level_parents
+
+        ancestor_nodes: list[GraphNode] = []
+        if new_ids:
+            _map_ids(new_ids)
+            hydrated = self.get_nodes_bulk([id_to_uid[i] for i in new_ids if i in id_to_uid])
+            ancestor_nodes = list(hydrated.values())
+        spine_edges = [
+            GraphEdge(
+                source_uid=id_to_uid[src],
+                target_uid=id_to_uid[tgt],
+                edge_type="contains",
+                extractor="spine_closure",
+                confidence=conf,
+            )
+            for src, tgt, conf in edge_rows
+            if src in id_to_uid and tgt in id_to_uid
+        ]
+        return ancestor_nodes, spine_edges
+
     def link_import_bindings(self, *, file_path: str | None = None) -> int:
         """Bind ``import_`` nodes to the symbol they import (TASK-402).
 

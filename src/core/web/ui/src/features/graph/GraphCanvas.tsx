@@ -103,9 +103,16 @@ export default function GraphCanvas() {
       {isLoading && (
         <div
           role="status"
-          className="absolute left-3 top-3 rounded bg-[var(--cos-panel)] px-2 py-1 text-xs"
+          aria-live="polite"
+          className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--cos-panel)]/60 backdrop-blur-[2px]"
         >
-          loading…
+          <div className="flex items-center gap-3 rounded-xl border border-[var(--cos-border)] bg-[var(--cos-panel)] px-4 py-3 text-sm text-[var(--cos-text)] shadow-xl">
+            <span
+              aria-hidden="true"
+              className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--cos-accent)] border-t-transparent"
+            />
+            loading graph…
+          </div>
         </div>
       )}
       {isLayoutRunning && !isLoading && (
