@@ -5,13 +5,13 @@ swimlane: "board_os"
 kind: docs
 epic: null
 labels: [docs-update, governance, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
-agent_session: ses-claude-20260611-120804-a06f
+completed: 2026-06-11
+agent_session: ses-claude-20260611-002926-83d4
 depends_on: []
 blocked_by: []
 references: []
@@ -75,3 +75,5 @@ references: []
 - 2026-06-11 [claude]: Edit test_hooks_phase_f.py
 - 2026-06-11 [claude]: Edit 0003-intent-enforcement-layer.md
 - 2026-06-11 [claude]: Edit test_centrality_ranking_doctor.py
+- 2026-06-11 [claude]: commit 9a67789fd5 — refactor(governance): retire task-audit subsystem — folder, refs, hooks, prompts (TASK-397)
+- 2026-06-11 [claude]: Status transitioned to complete via cos task-done.

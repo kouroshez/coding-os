@@ -96,3 +96,4 @@ references: []
 - 2026-05-17 [claude]: G14 done: `cos cognition trace-replay --audit-mode <session_id>` extended — when intent.json shows exhaustive, asserts E
 - 2026-05-17 [claude]: G15 done: src/core/rules/auto-mode-vs-exhaustive.md — always-active rule resolving the tension between auto-mode (reward
 - 2026-05-17 [claude]: CLOSING: ExhaustiveEvidence submitted (counts_after all 0, reviewer_check=pass, confidence=1.0). Reviewer subagent spot-
+- 2026-06-11 [claude]: committed 9a67789f: AGENTS.md, docs/_meta/00-index.md, docs/_meta/historical-task-ids.md, docs/api/openapi.json, docs/ar
