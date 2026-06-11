@@ -1,0 +1,10 @@
+# Seed preset proving the model end-to-end (TASK-356). The famous-combo
+# catalog (T3, MERN-style, the flagship hexagonal, …) lands in TASK-371/365.
+version: 1
+id: nextjs-fastapi
+label: "Next.js + FastAPI full-stack"
+description: >-
+  TypeScript web frontend with a Python API backend — the most common
+  two-language starter. Frontend and backend own separate roots, so no
+  service relocation is triggered.
+stacks: [nextjs, fastapi]

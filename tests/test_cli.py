@@ -1035,6 +1035,94 @@ class TestRegenChainRelocation:
 
 
 # ---------------------------------------------------------------------------
+# Presets + dry-config — TASK-356 (config-composition.md § Presets)
+# ---------------------------------------------------------------------------
+
+
+class TestPresets:
+    def test_init_with_preset_scaffolds_declared_composition(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        import yaml
+
+        project = tmp_path / "from-preset"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project),
+                "--preset",
+                "nextjs-fastapi",
+                "--yes",
+                "--no-index",
+                "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "Preset 'nextjs-fastapi'" in result.output
+        config = yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert config["templates"] == ["nextjs", "fastapi"]
+        assert config["preset"] == "nextjs-fastapi"
+
+    def test_preset_and_template_are_mutually_exclusive(self, runner: CliRunner) -> None:
+        result = runner.invoke(
+            cli,
+            ["init", "--agent", "claude", "--preset", "nextjs-fastapi", "--template", "go", "--yes"],
+        )
+        assert result.exit_code == 2
+        assert "mutually exclusive" in result.output
+
+    def test_unknown_preset_errors_listing_available(self, runner: CliRunner) -> None:
+        result = runner.invoke(
+            cli, ["init", "--agent", "claude", "--preset", "no-such-preset", "--yes"]
+        )
+        assert result.exit_code == 2
+        assert "no-such-preset" in result.output
+        assert "nextjs-fastapi" in result.output  # available presets listed
+
+    def test_dry_config_previews_union_and_conflicts_without_writing(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("PWD", str(tmp_path))
+        result = runner.invoke(
+            cli,
+            ["init", "--template", "go-fiber", "--template", "fastapi", "--dry-config", "--yes"],
+        )
+        assert result.exit_code == 0, result.output
+        assert "Merge preview for stacks: go-fiber, fastapi" in result.output
+        assert "swimlanes:" in result.output and "handlers" in result.output
+        assert "conflicts (" in result.output and "later wins" in result.output
+        assert "nothing written" in result.output
+        assert list(tmp_path.iterdir()) == []  # zero filesystem effects
+
+    def test_dry_config_json_shape(self, runner: CliRunner, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("PWD", str(tmp_path))
+        result = runner.invoke(
+            cli, ["init", "--template", "nextjs", "--dry-config", "--yes", "--format", "json"]
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["stacks"] == ["nextjs"]
+        assert "scrumban-config.yaml" in payload["configs"]
+        assert payload["conflicts"] == []  # single stack never conflicts
+
+    def test_list_stacks_shows_presets(self, runner: CliRunner) -> None:
+        result = runner.invoke(cli, ["list-stacks", "--format", "json"])
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        by_id = {p["id"]: p for p in payload["presets"]}
+        assert by_id["nextjs-fastapi"]["stacks"] == ["nextjs", "fastapi"]
+        text = runner.invoke(cli, ["list-stacks"])
+        assert "Presets (cos init --preset <id>):" in text.output
+
+
+# ---------------------------------------------------------------------------
 # doctor --bootstrap — TASK-347 (preflight prerequisite checks)
 # ---------------------------------------------------------------------------
 

@@ -71,6 +71,41 @@ Strategy vocabulary (spec values): `union_by:<key>` · `union_list` · `dict_mer
 | `rag-config.yaml` | `src/core/thinking_os/doc_indexer.py::load_rag_config` / `walk_sources` | `sources[].{path,type,chunk_size,chunk_overlap,priority,exclude}`, `exclude` |
 | `domain-config.json` | Bash scripts + skills (config chain, Rule 4) | `refs_by_tag`, `domain_map`, `playbook_map`, `default_*` |
 
+## Presets — named stack compositions (TASK-356)
+
+A preset is a named, validated stack list the user can pick instead of
+composing stacks by hand. Data model:
+
+- **One file per preset:** `src/templates/_presets/<id>.yaml` — the `_presets`
+  dir has no `stack.yaml`, so the stack loader ignores it. Schema:
+  `src/core/schemas/preset.schema.json` (required: `version: 1`, `id` =
+  filename stem, `label`, `stacks[]` minItems 1; optional `description`,
+  `skills[]` extra skills, `modules` subsystem toggles, `notes`).
+- **Loader:** `src/cli/preset_registry.py::load_preset_registry(templates_dir)`
+  → `{presets, warnings}`. A preset referencing an unknown stack id is skipped
+  with a WARN (fail-soft, same posture as the stack loader). `skills` /
+  `modules` are stored into the project's `.coding-os.yaml` verbatim — linking
+  extra skills is TASK-370, subsystem toggle behavior is TASK-349.
+- **CLI:** `cos init --preset <id>` (mutually exclusive with `--template`)
+  expands to the preset's stack list and then follows the normal init flow —
+  relocation, composition, and every derived artifact behave exactly as if
+  the stacks were passed by hand. Discovery: `cos list-stacks` prints a
+  Presets section (and a `presets` key in `--format json`);
+  the hub exposes `GET /api/hub/presets`.
+
+## Merge preview + conflict surfacing (TASK-356)
+
+- **`cos init --dry-config`** computes the composed `.coding-os/*` configs for
+  the requested stacks/preset, prints the merged summary (swimlane union +
+  per-file conflict list) and exits **without writing anything** — the
+  wizard's preview source.
+- **Conflicts are reported, never silent.** `compose()` records every
+  same-key/different-value collision (`union_by` row replacement and scalar
+  override alike) as `<file>: <key>[<id>]: <old> → <new> (winner: <source>)`.
+  `cos init` echoes them as WARN lines; `--dry-config` lists them in the
+  preview. Later-wins stays the resolution rule — the report makes the
+  resolution visible, it does not change it.
+
 ## Anti-patterns
 
 - Re-adding a `.coding-os/*` config to the overlay copy path — it will silently

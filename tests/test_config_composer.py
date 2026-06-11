@@ -224,3 +224,86 @@ def test_malformed_config_raises_clear_error(tmp_path: Path) -> None:
     with pytest.raises(click.ClickException) as exc_info:
         compose_coding_os_configs(tmp_path / "proj", state, [], templates_dir=tdir)
     assert "not valid YAML" in str(exc_info.value)  # clear message, not a raw traceback
+
+
+# ---------------------------------------------------------------------------
+# Conflict surfacing + dry-config preview — TASK-356
+# (config-composition.md § Merge preview + conflict surfacing)
+# ---------------------------------------------------------------------------
+
+
+def test_conflicts_recorded_between_overlays_with_winner() -> None:
+    base = {"swimlanes": [{"id": "docs", "label": "Docs"}]}
+    first = {"swimlanes": [{"id": "shared", "label": "Shared / Pkg"}]}
+    second = {"swimlanes": [{"id": "shared", "label": "Shared / Schemas"}]}
+    conflicts: list[str] = []
+    out = compose(
+        base,
+        [first, second],
+        SCRUMBAN_SPEC,
+        overlay_names=["go-fiber", "fastapi"],
+        conflicts=conflicts,
+    )
+    assert len(conflicts) == 1
+    assert "swimlanes[shared]" in conflicts[0]
+    assert "(winner: fastapi)" in conflicts[0]
+    by_id = {s["id"]: s["label"] for s in out["swimlanes"]}
+    assert by_id["shared"] == "Shared / Schemas"  # later-wins resolution unchanged
+
+
+def test_base_delta_is_not_a_conflict() -> None:
+    """A single stack overriding the BASE default is the designed contract."""
+    base = {"swimlanes": [{"id": "backend", "label": "Backend"}], "wip_limits": {"wip": 1}}
+    overlay = {"swimlanes": [{"id": "backend", "label": "Django"}], "wip_limits": {"wip": 3}}
+    conflicts: list[str] = []
+    compose(base, [overlay], SCRUMBAN_SPEC, overlay_names=["django"], conflicts=conflicts)
+    assert conflicts == []
+
+
+def test_nested_dict_merge_conflict_has_dotted_path() -> None:
+    base: dict = {}
+    first = {"wip_limits": {"in_progress": 1}}
+    second = {"wip_limits": {"in_progress": 2}}
+    conflicts: list[str] = []
+    compose(
+        base,
+        [first, second],
+        SCRUMBAN_SPEC,
+        overlay_names=["a", "b"],
+        conflicts=conflicts,
+    )
+    assert conflicts == ["wip_limits.in_progress: 1 → 2 (winner: b)"]
+
+
+def test_identical_overlay_values_do_not_conflict() -> None:
+    first = {"swimlanes": [{"id": "api", "label": "API"}]}
+    conflicts: list[str] = []
+    compose({}, [first, dict(first)], SCRUMBAN_SPEC, conflicts=conflicts)
+    assert conflicts == []
+
+
+def test_preview_returns_merged_and_conflicts_without_writing(tmp_path: Path) -> None:
+    from cli.config_composer import preview_coding_os_configs
+
+    tdir = tmp_path / "templates"
+    base = tdir / "_base" / "scaffold" / ".coding-os"
+    base.mkdir(parents=True)
+    (base / "scrumban-config.yaml").write_text(
+        yaml.safe_dump({"swimlanes": [{"id": "docs", "label": "Docs"}]}), encoding="utf-8"
+    )
+    for stack, label in (("alpha", "A"), ("beta", "B")):
+        overlay_dir = tdir / stack / "scaffold" / ".coding-os"
+        overlay_dir.mkdir(parents=True)
+        (overlay_dir / "scrumban-config.yaml").write_text(
+            yaml.safe_dump({"swimlanes": [{"id": "shared", "label": label}]}), encoding="utf-8"
+        )
+    merged, conflicts = preview_coding_os_configs(["alpha", "beta"], templates_dir=tdir)
+    assert "scrumban-config.yaml" in merged
+    lane_ids = [s["id"] for s in merged["scrumban-config.yaml"]["swimlanes"]]
+    assert lane_ids == ["docs", "shared"]
+    assert conflicts == [
+        'scrumban-config.yaml: swimlanes[shared]: {"id": "shared", "label": "A"} → '
+        '{"id": "shared", "label": "B"} (winner: beta)'
+    ]
+    assert not list((tmp_path / "templates").rglob("*.generated"))  # nothing written anywhere
+    assert not (tmp_path / ".coding-os").exists()

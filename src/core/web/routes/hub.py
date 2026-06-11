@@ -295,6 +295,33 @@ def hub_stacks() -> dict:
     }
 
 
+@router.get("/presets")
+def hub_presets() -> dict:
+    """List project presets (data-driven from src/templates/_presets/*.yaml)."""
+    try:
+        from cli.list_stacks import TEMPLATES_DIR  # type: ignore
+        from cli.preset_registry import load_preset_registry  # type: ignore
+        from cli.stack_registry import load_stack_registry  # type: ignore
+
+        known = set(load_stack_registry(TEMPLATES_DIR).keys())
+        registry = load_preset_registry(TEMPLATES_DIR, known_stacks=known)
+    except Exception as exc:
+        return _err("unavailable", f"preset registry unavailable: {exc}", status=503)
+    presets = [
+        {
+            "id": p.id,
+            "label": p.label,
+            "description": p.description,
+            "stacks": list(p.stacks),
+        }
+        for p in sorted(registry.values(), key=lambda p: p.id)
+    ]
+    return {
+        "data": {"presets": presets, "count": len(presets)},
+        "meta": {"layer": "hub", "source": "hub.presets"},
+    }
+
+
 def _cos_init_command() -> list[str]:
     """Resolve how to invoke `cos` — the installed bin, else `python -m cli.main`."""
     found = shutil.which("cos")

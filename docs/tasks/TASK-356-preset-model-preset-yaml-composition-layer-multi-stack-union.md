@@ -5,18 +5,17 @@ swimlane: templates
 kind: feature
 epic: C-data-model
 labels: [wave-1, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P0
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-10
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-348, TASK-351]
 blocked_by: []
 references: []
 ---
-
 # TASK-356: Preset model — preset.yaml composition layer + multi-stack union merge
 
 **Outcome (one sentence):** preset.yaml schema (stacks[] + modules[] + skills[] + infra options) with `cos init --preset`; multi-stack init produces a union-merged scrumban/rag/domain config (replacing silent last-one-wins) and the merged result is surfaced for preview.

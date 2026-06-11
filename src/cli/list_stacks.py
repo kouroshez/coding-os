@@ -45,7 +45,16 @@ def _render_text(registry, warnings: tuple[str, ...]) -> str:
     return body + warn_block
 
 
-def _render_json(registry, warnings: tuple[str, ...]) -> str:
+def _render_presets_text(presets) -> str:
+    if not presets.presets:
+        return ""
+    lines = ["", "Presets (cos init --preset <id>):"]
+    for preset in sorted(presets.values(), key=lambda p: p.id):
+        lines.append(f"  {preset.id}  →  {' + '.join(preset.stacks)}  ({preset.label})")
+    return "\n".join(lines)
+
+
+def _render_json(registry, warnings: tuple[str, ...], presets) -> str:
     payload = {
         "stacks": [
             {
@@ -57,7 +66,16 @@ def _render_json(registry, warnings: tuple[str, ...]) -> str:
             }
             for s in sorted(registry.values(), key=lambda s: s.id)
         ],
-        "warnings": list(warnings),
+        "presets": [
+            {
+                "id": p.id,
+                "label": p.label,
+                "description": p.description,
+                "stacks": list(p.stacks),
+            }
+            for p in sorted(presets.values(), key=lambda p: p.id)
+        ],
+        "warnings": list(warnings) + list(presets.warnings),
     }
     return json.dumps(payload, indent=2)
 
@@ -72,11 +90,14 @@ def _render_json(registry, warnings: tuple[str, ...]) -> str:
 )
 def list_stacks(output_format: str) -> None:
     """List all available stacks discovered from templates/*/stack.yaml."""
+    from cli.preset_registry import load_preset_registry
+
     registry = load_stack_registry(TEMPLATES_DIR)
+    presets = load_preset_registry(TEMPLATES_DIR, known_stacks=set(registry.keys()))
     if output_format == "json":
-        click.echo(_render_json(registry, registry.warnings))
+        click.echo(_render_json(registry, registry.warnings, presets))
     else:
-        click.echo(_render_text(registry, registry.warnings))
+        click.echo(_render_text(registry, registry.warnings) + _render_presets_text(presets))
     # Non-zero exit only when there are hard load errors (warnings present
     # AND zero stacks loaded) so scripts can detect a fully-broken registry.
     if not registry.stacks and registry.warnings:

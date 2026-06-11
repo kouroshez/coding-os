@@ -525,6 +525,37 @@ def _resolve_placeholders(text: str, substitutions: dict[str, str]) -> str:
     return result
 
 
+def _dry_config_preview(templates: tuple[str, ...], output_format: str) -> None:
+    """`cos init --dry-config` — merged .coding-os preview, zero writes."""
+    from cli.config_composer import preview_coding_os_configs
+
+    merged, conflicts = preview_coding_os_configs(list(templates), templates_dir=TEMPLATES_DIR)
+    if output_format == "json":
+        click.echo(
+            json.dumps(
+                {"stacks": list(templates), "configs": merged, "conflicts": conflicts},
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+        return
+    scrumban = merged.get("scrumban-config.yaml") or {}
+    lanes = [
+        lane.get("id") for lane in scrumban.get("swimlanes") or [] if isinstance(lane, dict)
+    ]
+    click.echo(f"Merge preview for stacks: {', '.join(templates) or '(base only)'}")
+    click.echo(f"  swimlanes: {', '.join(lanes) or '(none)'}")
+    for filename in merged:
+        click.echo(f"  composed: {filename}")
+    if conflicts:
+        click.echo(f"  conflicts ({len(conflicts)} — later wins):")
+        for line in conflicts:
+            click.echo(f"    WARN: {line}")
+    else:
+        click.echo("  conflicts: none")
+    click.echo("(dry-config — nothing written)")
+
+
 def _service_relocations(templates: tuple[str, ...]) -> dict[str, str]:
     """stack-id → relocated root for stacks whose structure.root collides.
 
@@ -973,6 +1004,18 @@ def _refuse_coding_os_self_init(project: Path) -> None:
 )
 @click.option("--template", "-t", multiple=True, help="Stack template(s) to apply")
 @click.option(
+    "--preset",
+    "preset_id",
+    default=None,
+    help="Named stack composition from templates/_presets/ (mutually exclusive with --template). Discover with `cos list-stacks`.",
+)
+@click.option(
+    "--dry-config",
+    is_flag=True,
+    default=False,
+    help="Print the merged .coding-os config preview (swimlane union + conflicts) for the requested stacks/preset and exit without writing anything.",
+)
+@click.option(
     "--project-dir",
     "-d",
     default=None,
@@ -1036,6 +1079,8 @@ def _refuse_coding_os_self_init(project: Path) -> None:
 def init(
     agent: str | None,
     template: tuple[str, ...],
+    preset_id: str | None,
+    dry_config: bool,
     project_dir: str | None,
     name: str | None,
     debug: bool,
@@ -1055,6 +1100,35 @@ def init(
     """
     shell_cwd_raw = os.environ.get("PWD") or os.getcwd()
     shell_cwd = Path(shell_cwd_raw).resolve()
+
+    # --preset expands to its stack list before anything else touches
+    # `template` (config-composition.md § Presets).
+    active_preset = None
+    if preset_id:
+        if template:
+            click.echo("ERROR: --preset and --template are mutually exclusive.", err=True)
+            sys.exit(2)
+        from cli.preset_registry import load_preset_registry
+
+        presets = load_preset_registry(
+            TEMPLATES_DIR, known_stacks=set(_get_stack_registry().keys())
+        )
+        for warning in presets.warnings:
+            click.echo(f"  WARN: {warning}", err=True)
+        if preset_id not in presets:
+            click.echo(
+                f"ERROR: preset '{preset_id}' not found — available: "
+                f"{sorted(presets.keys()) or '(none)'}",
+                err=True,
+            )
+            sys.exit(2)
+        active_preset = presets[preset_id]
+        template = active_preset.stacks
+        click.echo(f"Preset '{preset_id}' → stacks: {', '.join(template)}")
+
+    if dry_config:
+        _dry_config_preview(template, output_format)
+        return
 
     # Idempotent detection: existing install → offer sync instead of re-init.
     existing = _detect_existing_install(shell_cwd) if not name and not project_dir else None
@@ -1148,6 +1222,7 @@ def init(
             today=today_override,
             no_register=no_register,
             do_index=do_index,
+            active_preset=active_preset,
         )
 
     git_result = maybe_git_init(target, enabled=git)
@@ -1244,6 +1319,7 @@ def _run_scaffold_phase(
     today: str | None = None,
     no_register: bool = False,
     do_index: bool = True,
+    active_preset=None,
 ) -> None:
     """Original scaffolding body — extracted so it can be redirected in JSON mode.
 
@@ -1303,6 +1379,14 @@ def _run_scaffold_phase(
         "verify": {},
         "protected_files": [],
     }
+    if active_preset is not None:
+        # Provenance + pass-through for later layers: extra-skill linking is
+        # TASK-370, module toggle behavior is TASK-349.
+        config["preset"] = active_preset.id
+        if active_preset.skills:
+            config["extra_skills"] = list(active_preset.skills)
+        if active_preset.modules:
+            config["modules"] = dict(active_preset.modules)
     _save_config(project, config)
     click.echo(f"  Generated {CONFIG_FILE}")
 
@@ -1353,11 +1437,14 @@ def _run_scaffold_phase(
     # 7b. Compose .coding-os/ configs (rag/scrumban/domain) from base + every
     # installed stack — deep-merged, multi-stack-correct. The overlay (step 7)
     # deliberately skips these. SSOT: docs/engineering/config-composition.md.
+    config_conflicts: list[str] = []
     composed = compose_coding_os_configs(
-        project, state, list(template), templates_dir=TEMPLATES_DIR
+        project, state, list(template), templates_dir=TEMPLATES_DIR, conflicts=config_conflicts
     )
     if composed:
         click.echo(f"  Composed {len(composed)} .coding-os config(s): {', '.join(composed)}")
+    for line in config_conflicts:
+        click.echo(f"  WARN: config conflict (later wins) — {line}", err=True)
 
     # 8. Copy thinking_os reference doc from src/core/docs/
     _copy_workflow_docs(project)

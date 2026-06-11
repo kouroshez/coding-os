@@ -58,6 +58,19 @@ class TestStacksEndpoint:
             assert s["label"] and s["id"]
 
 
+class TestPresetsEndpoint:
+    def test_lists_data_driven_presets(self, hub_env):
+        with _client() as client:
+            resp = client.get("/api/hub/presets")
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert data["count"] == len(data["presets"]) > 0
+        by_id = {p["id"]: p for p in data["presets"]}
+        assert by_id["nextjs-fastapi"]["stacks"] == ["nextjs", "fastapi"]
+        for p in data["presets"]:
+            assert p["label"] and p["id"] and p["stacks"]
+
+
 class TestInitRouteValidation:
     def test_bad_name_rejected(self, hub_env):
         with _client() as client:

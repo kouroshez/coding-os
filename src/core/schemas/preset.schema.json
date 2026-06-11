@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coding-os.dev/schemas/preset.schema.json",
+  "title": "Coding-OS Project Preset",
+  "description": "Schema for templates/_presets/<id>.yaml. A preset is a named stack composition the user can pick at init instead of listing stacks by hand (docs/engineering/config-composition.md § Presets, TASK-356). Distinct from thinking_os role-chain presets.",
+  "type": "object",
+  "required": ["version", "id", "label", "stacks"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema version. Currently fixed at 1."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "description": "Lowercase identifier. Must match the filename stem under templates/_presets/."
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable name shown in discovery (CLI list, hub, wizard)."
+    },
+    "description": {
+      "type": "string",
+      "description": "One-to-three sentences on what this composition is for."
+    },
+    "stacks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"},
+      "description": "Stack ids to install, in order. Each must exist in templates/<id>/stack.yaml; an unknown id skips the preset with a WARN."
+    },
+    "skills": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"},
+      "description": "Extra skills beyond what the stacks declare. Stored in .coding-os.yaml; linking is TASK-370."
+    },
+    "modules": {
+      "type": "object",
+      "additionalProperties": {"type": "boolean"},
+      "description": "Subsystem toggles (docs, tasks, …). Stored in .coding-os.yaml; toggle behavior is TASK-349."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Authoring caveats; not shown in discovery."
+    }
+  }
+}

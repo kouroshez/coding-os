@@ -65,12 +65,31 @@ def _union_list(base: list[Any], overlay: list[Any]) -> list[Any]:
     return out
 
 
-def _union_by_key(base: list[Any], overlay: list[Any], key: str) -> list[Any]:
+class _ConflictLog:
+    """Same-key/different-value collisions, reported instead of silently
+    resolved (config-composition.md § Merge preview + conflict surfacing).
+    Later-wins stays the resolution rule — this only makes it visible."""
+
+    def __init__(self) -> None:
+        self.entries: list[str] = []
+        self.source = "?"
+
+    def record(self, path: str, old: Any, new: Any) -> None:
+        old_s, new_s = json.dumps(old, sort_keys=True), json.dumps(new, sort_keys=True)
+        self.entries.append(f"{path}: {old_s} → {new_s} (winner: {self.source})")
+
+
+def _union_by_key(
+    base: list[Any], overlay: list[Any], key: str, log: _ConflictLog, path: str
+) -> list[Any]:
     out = [copy.deepcopy(item) for item in base]
     index = {item.get(key): i for i, item in enumerate(out) if isinstance(item, dict)}
     for item in overlay:
         if isinstance(item, dict) and item.get(key) in index:
-            out[index[item[key]]] = copy.deepcopy(item)  # later wins on collision
+            slot = index[item[key]]
+            if out[slot] != item:
+                log.record(f"{path}[{item[key]}]", out[slot], item)
+            out[slot] = copy.deepcopy(item)  # later wins on collision
         else:
             if isinstance(item, dict):
                 index[item.get(key)] = len(out)
@@ -78,41 +97,79 @@ def _union_by_key(base: list[Any], overlay: list[Any], key: str) -> list[Any]:
     return out
 
 
-def _deep_merge(base: Any, overlay: Any) -> Any:
+def _deep_merge(base: Any, overlay: Any, log: _ConflictLog, path: str) -> Any:
     if isinstance(base, dict) and isinstance(overlay, dict):
         out = copy.deepcopy(base)
         for k, v in overlay.items():
-            out[k] = _deep_merge(out[k], v) if k in out else copy.deepcopy(v)
+            out[k] = (
+                _deep_merge(out[k], v, log, f"{path}.{k}") if k in out else copy.deepcopy(v)
+            )
         return out
     if isinstance(base, list) and isinstance(overlay, list):
         return _union_list(base, overlay)
+    if base is not None and base != overlay:
+        log.record(path, base, overlay)
     return copy.deepcopy(overlay)
 
 
-def _merge_value(base_val: Any, overlay_val: Any, strategy: str) -> Any:
+def _merge_value(
+    base_val: Any, overlay_val: Any, strategy: str, log: _ConflictLog, path: str
+) -> Any:
     if overlay_val is None:
         return base_val
     if strategy == "union_list":
         return _union_list(base_val or [], overlay_val or [])
     if strategy == "override":
+        if base_val is not None and base_val != overlay_val:
+            log.record(path, base_val, overlay_val)
         return copy.deepcopy(overlay_val)
     if strategy == "dict_merge":
-        return _deep_merge(base_val or {}, overlay_val)
+        return _deep_merge(base_val or {}, overlay_val, log, path)
     if strategy.startswith("union_by:"):
-        return _union_by_key(base_val or [], overlay_val or [], strategy.split(":", 1)[1])
+        return _union_by_key(
+            base_val or [], overlay_val or [], strategy.split(":", 1)[1], log, path
+        )
     raise ValueError(f"unknown merge strategy: {strategy!r}")
 
 
-def compose(base: dict[str, Any], overlays: list[dict[str, Any]], spec: dict[str, str]) -> dict[str, Any]:
-    """Deep-merge `base` with each overlay in order per the strategy `spec`."""
+def compose(
+    base: dict[str, Any],
+    overlays: list[dict[str, Any]],
+    spec: dict[str, str],
+    *,
+    overlay_names: list[str] | None = None,
+    conflicts: list[str] | None = None,
+) -> dict[str, Any]:
+    """Deep-merge `base` with each overlay in order per the strategy `spec`.
+
+    When `conflicts` is passed, every same-key/different-value collision is
+    appended as "<key>[id]: old → new (winner: <overlay_name>)". A stack's
+    delta overriding the BASE default is the designed contract, not a
+    conflict — only overlay-vs-overlay collisions (second overlay onward)
+    are recorded, so a single-stack init never reports any.
+    """
+    log = _ConflictLog()
     result = copy.deepcopy(base)
-    for overlay in overlays:
+    for position, overlay in enumerate(overlays):
         if not isinstance(overlay, dict):
             continue
+        log.source = (
+            overlay_names[position]
+            if overlay_names and position < len(overlay_names)
+            else f"overlay[{position}]"
+        )
+        record_this_pass = conflicts is not None and position > 0
         for key in [*spec, *(k for k in overlay if k not in spec)]:
             if key not in overlay:
                 continue
-            result[key] = _merge_value(result.get(key), overlay[key], spec.get(key, "override"))
+            before = len(log.entries)
+            result[key] = _merge_value(
+                result.get(key), overlay[key], spec.get(key, "override"), log, key
+            )
+            if not record_this_pass:
+                del log.entries[before:]
+    if conflicts is not None:
+        conflicts.extend(log.entries)
     return result
 
 
@@ -141,33 +198,71 @@ def _dump(data: dict[str, Any], fmt: str) -> str:
     return _YAML_HEADER + body
 
 
+def _compose_one(
+    filename: str,
+    spec: dict[str, str],
+    fmt: str,
+    templates: list[str],
+    templates_dir: Path,
+    conflicts: list[str] | None,
+) -> dict[str, Any] | None:
+    base = _load(templates_dir / "_base" / "scaffold" / ".coding-os" / filename, fmt)
+    overlays: list[dict[str, Any]] = []
+    overlay_names: list[str] = []
+    for stack_id in templates:
+        overlay = _load(templates_dir / stack_id / "scaffold" / ".coding-os" / filename, fmt)
+        if overlay is not None:
+            overlays.append(overlay)
+            overlay_names.append(stack_id)
+    if base is None and not overlays:
+        return None
+    file_conflicts: list[str] = []
+    merged = compose(
+        base or {}, overlays, spec, overlay_names=overlay_names, conflicts=file_conflicts
+    )
+    if conflicts is not None:
+        conflicts.extend(f"{filename}: {entry}" for entry in file_conflicts)
+    return merged
+
+
 def compose_coding_os_configs(
     project: Path,
     state: Path,
     templates: list[str],
     *,
     templates_dir: Path,
+    conflicts: list[str] | None = None,
 ) -> list[str]:
     """Compose `.coding-os/` configs from base + installed stacks. Returns written names."""
     written: list[str] = []
-    base_dir = templates_dir / "_base" / "scaffold" / ".coding-os"
     for filename, spec, fmt in _COMPOSED:
         target = state / filename
         if target.exists():
             continue  # idempotent — never clobber a user / prior-run file
-        base = _load(base_dir / filename, fmt)
-        overlays: list[dict[str, Any]] = []
-        for stack_id in templates:
-            overlay = _load(templates_dir / stack_id / "scaffold" / ".coding-os" / filename, fmt)
-            if overlay is not None:
-                overlays.append(overlay)
-        if base is None and not overlays:
+        merged = _compose_one(filename, spec, fmt, templates, templates_dir, conflicts)
+        if merged is None:
             continue
-        merged = compose(base or {}, overlays, spec)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(_dump(merged, fmt), encoding="utf-8")
         written.append(filename)
     return written
+
+
+def preview_coding_os_configs(
+    templates: list[str],
+    *,
+    templates_dir: Path,
+) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    """Compute the composed configs WITHOUT writing — `cos init --dry-config`.
+
+    Returns ({filename: merged}, conflicts). The wizard's merge-preview source."""
+    merged_by_file: dict[str, dict[str, Any]] = {}
+    conflicts: list[str] = []
+    for filename, spec, fmt in _COMPOSED:
+        merged = _compose_one(filename, spec, fmt, templates, templates_dir, conflicts)
+        if merged is not None:
+            merged_by_file[filename] = merged
+    return merged_by_file, conflicts
 
 
 def recompose_for_added_stack(
