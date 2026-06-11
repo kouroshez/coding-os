@@ -230,3 +230,4 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: Edit OnboardingWizard.tsx
 - 2026-06-11 [claude]: Edit OnboardingWizard.test.tsx
 - 2026-06-11 [claude]: Edit OnboardingWizard.test.tsx
+- 2026-06-11 [claude]: committed 9a7f9679: docs/engineering/hub-architecture.md, src/core/web/init_jobs.py, src/core/web/routes/hub.py, src/cor

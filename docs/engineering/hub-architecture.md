@@ -290,6 +290,9 @@ name-or-skip → description → review) replaced the single-form dialog on
 
 ## Localhost security gate (Origin/Host allowlist + CSRF)
 
+> Full threat → control matrix (incl. the optional `COS_HUB_TOKEN` bearer
+> mode and the init-argv allowlist): [hub-threat-model.md](hub-threat-model.md).
+
 The hub binds `127.0.0.1` but is **unauthenticated** — any page the user's
 browser visits can issue requests at `127.0.0.1:9188`. Once mutation routes
 exist (registry add/scan/gc, and the filesystem-scaffolding `init` route),

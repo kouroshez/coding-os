@@ -399,3 +399,69 @@ class TestInitJobRoutes:
             resp = client.get("/metrics")
         assert resp.status_code == 200
         assert 'cos_init_jobs_total{status="started"}' in resp.text
+
+
+# ---------------------------------------------------------------------------
+# Security hardening regressions — TASK-363 (hub-threat-model.md)
+# ---------------------------------------------------------------------------
+
+
+class TestSecurityHardening:
+    def test_traversal_names_rejected_with_no_fs_effect(self, hub_env):
+        before = sorted(p.name for p in hub_env.iterdir())
+        with _client() as client:
+            for bad in ("../evil", "a/b", "..", ".hidden", "a\\b"):
+                resp = client.post(
+                    "/api/hub/registry/init",
+                    json={"name": bad, "parent_dir": str(hub_env)},
+                )
+                assert resp.status_code == 400, f"{bad!r} → {resp.status_code}"
+        assert sorted(p.name for p in hub_env.iterdir()) == before
+
+    def test_rename_traversal_slug_rejected(self, hub_env):
+        with _client() as client:
+            resp = client.patch("/api/hub/registry/whatever", json={"new_slug": "../etc"})
+        assert resp.status_code == 400
+
+    def test_unknown_extra_skill_rejected_before_argv(self, hub_env, monkeypatch):
+        called = []
+        _patch_init(monkeypatch, lambda *a, **k: called.append(1) or (True, {}, ""))
+        with _client() as client:
+            resp = client.post(
+                "/api/hub/registry/init",
+                json={
+                    "name": "p1",
+                    "parent_dir": str(hub_env),
+                    "extra_skills": ["redis", "$(rm -rf /)"],
+                },
+            )
+        assert resp.status_code == 400
+        assert "unknown skill" in resp.json()["error"]["message"]
+        assert called == []  # subprocess never spawned
+
+    def test_token_mode_blocks_unauthenticated_mutations(self, hub_env, monkeypatch):
+        monkeypatch.setenv("COS_HUB_TOKEN", "sekret-token")
+        with _client() as client:
+            no_auth = client.post(
+                "/api/hub/registry/init", json={"name": "p1", "parent_dir": str(hub_env)}
+            )
+            wrong = client.post(
+                "/api/hub/registry/init",
+                json={"name": "p1", "parent_dir": str(hub_env)},
+                headers={"Authorization": "Bearer wrong"},
+            )
+            read_ok = client.get("/api/hub/stacks")
+        assert no_auth.status_code == 401
+        assert wrong.status_code == 401
+        assert read_ok.status_code == 200  # reads stay open
+
+    def test_token_mode_allows_bearer_holder(self, hub_env, monkeypatch):
+        monkeypatch.setenv("COS_HUB_TOKEN", "sekret-token")
+        _patch_init(monkeypatch, lambda *a, **k: (True, {"slug": "p1"}, ""))
+        with _client() as client:
+            resp = client.post(
+                "/api/hub/registry/init",
+                json={"name": "p1", "parent_dir": str(hub_env), "stacks": ["python"]},
+                headers={"Authorization": "Bearer sekret-token"},
+            )
+        assert resp.status_code == 200, resp.text

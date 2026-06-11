@@ -33,3 +33,4 @@ references: []
 - **Given** /api/metrics, **When** jobs run, **Then** counters for started/succeeded/failed/cancelled increment (funnel observability) and route tests cover all terminal paths.
 
 ## Work Log
+- 2026-06-11 [claude]: IMPL DONE (parked in testing, batch 2) — src/core/web/init_jobs.py: thread-safe in-process job registry wrapping the cos

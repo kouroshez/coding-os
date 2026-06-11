@@ -62,10 +62,39 @@ def _forbidden(message: str) -> JSONResponse:
     )
 
 
+def _unauthorized(message: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=401,
+        content={
+            "ok": False,
+            "error": {"category": "unauthorized", "message": message, "retryable": False},
+        },
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def _hub_token() -> str:
+    return os.environ.get("COS_HUB_TOKEN", "").strip()
+
+
 class SecurityGateMiddleware(BaseHTTPMiddleware):
     """Reject cross-origin / DNS-rebinding / CSRF requests on the local hub."""
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        # Optional bearer token (TASK-363): when COS_HUB_TOKEN is set, every
+        # state-changing API request must carry it — including non-browser
+        # clients, and regardless of the CORS dev escape (fail-closed).
+        # Reads stay open; default (unset) keeps open-localhost behavior.
+        token = _hub_token()
+        if (
+            token
+            and request.method.upper() in _MUTATING_METHODS
+            and request.url.path.startswith("/api/")
+        ):
+            supplied = request.headers.get("authorization", "")
+            if not secrets.compare_digest(supplied, f"Bearer {token}"):
+                return _unauthorized("COS_HUB_TOKEN is set — pass Authorization: Bearer <token>")
+
         if _cors_allow_all():
             return await call_next(request)
 

@@ -5,18 +5,17 @@ swimlane: core
 kind: security
 epic: B-onboarding
 labels: [wave-2, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 1d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-358]
 blocked_by: []
 references: []
 ---
-
 # TASK-363: Hub security hardening — subprocess endpoints, path validation, optional auth token
 
 **Outcome (one sentence):** /api/hub/registry/* and job endpoints validate paths against traversal, allowlist init arguments, optionally require a bearer token, and a short threat-model doc records the localhost-bind trust boundary.

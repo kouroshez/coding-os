@@ -380,6 +380,7 @@ def _validate_init_inputs(
     stacks: list[str],
     preset: str,
     agent: str,
+    extra_skills: list[str] | None = None,
 ) -> tuple[JSONResponse | dict | None, dict]:
     """Shared dry-run validation for validate-init AND registry/init (SSOT).
 
@@ -462,6 +463,20 @@ def _validate_init_inputs(
             {},
         )
 
+    # Argv allowlist (TASK-363): every value that reaches the subprocess argv
+    # is validated against a registry — skills included.
+    if extra_skills:
+        try:
+            from cli.skill_registry import load_skill_registry  # type: ignore
+            from cli.skills_list import CORE_SKILLS_DIR  # type: ignore
+
+            known_skills = set(load_skill_registry(CORE_SKILLS_DIR).skills.keys())
+        except Exception as exc:
+            return _err("unavailable", f"skill registry unavailable: {exc}", status=503), {}
+        unknown_skills = [s for s in extra_skills if s not in known_skills]
+        if unknown_skills:
+            return _err("validation", f"unknown skill(s): {unknown_skills}"), {}
+
     info["parent"], info["target"] = parent, target
     return None, info
 
@@ -473,9 +488,12 @@ def hub_registry_validate_init(
     stacks: list[str] = Body(default_factory=list, embed=True),
     preset: str = Body("", embed=True),
     agent: str = Body("claude", embed=True),
+    extra_skills: list[str] = Body(default_factory=list, embed=True),
 ):
     """Dry-run validation + merged-config preview for the onboarding wizard (TASK-358)."""
-    error, info = _validate_init_inputs(name, parent_dir, stacks, preset, agent)
+    error, info = _validate_init_inputs(
+        name, parent_dir, stacks, preset, agent, extra_skills=extra_skills
+    )
     if error is not None:
         return error
     swimlanes: list[str] = []
@@ -613,7 +631,9 @@ def hub_registry_init(
 ):
     """Scaffold a NEW project via `cos init` and register it (security-gated, TASK-249/358/362)."""
     all_stacks = [s for s in ((stacks or []) + ([stack] if stack else [])) if s]
-    error, info = _validate_init_inputs(name, parent_dir, all_stacks, preset, agent or "claude")
+    error, info = _validate_init_inputs(
+        name, parent_dir, all_stacks, preset, agent or "claude", extra_skills=extra_skills
+    )
     if error is not None:
         return error
     target: Path = info["target"]
