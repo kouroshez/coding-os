@@ -343,9 +343,9 @@ export default function CosBoardPage() {
 
   useEffect(() => {
     if (bump > 0) {
-      // A fresh first page would otherwise duplicate accumulated load-more
-      // rows — drop the extra pages and let the user re-expand.
-      setExtra({});
+      // Keep accumulated load-more pages across SSE bumps (TASK-399) — the
+      // card merge dedups by id with the fresh first page winning, so a
+      // refetch can't duplicate rows and the user's expansion survives.
       // queryKey prefix is ['cos-scope', slug, path, ...] — a plain-path
       // queryKey no longer matches.  `invalidateApiQueries` uses a
       // predicate so both scoped and unscoped entries with the given

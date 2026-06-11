@@ -71,7 +71,6 @@ interface TaskUpdatedPayload {
   task_id?: string;
   old_status?: string | null;
   new_status?: string | null;
-  status?: string;
   agent_session?: string | null;
   reason?: string | null;
   source?: 'db' | 'file' | null;
@@ -327,11 +326,14 @@ export function useBoardStream(agentIds: readonly string[]): UseBoardStreamRetur
           && data.new_status != null
           && data.source === 'db';
         const hasTransition = data.old_status || data.new_status;
+        // Contract (TASK-399): every task-updated payload carries
+        // `new_status` — no legacy `status` fallback. A missing field is a
+        // backend contract break and should be visible, not papered over.
         const core = isCreate
           ? `created in ${data.new_status ?? '?'}`
           : hasTransition
-            ? `${data.old_status ?? '?'} -> ${data.new_status ?? data.status ?? '?'}`
-            : `file changed -> status=${data.status ?? '?'}`;
+            ? `${data.old_status ?? '?'} -> ${data.new_status ?? '?'}`
+            : `file changed -> status=${data.new_status ?? '?'}`;
         const suffix = data.reason && data.reason !== 'file edit' ? ` (${data.reason})` : '';
         push({
           id: newId(),
@@ -342,12 +344,13 @@ export function useBoardStream(agentIds: readonly string[]): UseBoardStreamRetur
           taskId: data.task_id || null,
           agent: agentForSession(data.agent_session, agentIds),
           message: `${core}${suffix}`,
-          currentStatus: data.current_status ?? data.status ?? null,
-          newStatus: data.new_status ?? data.status ?? null,
+          currentStatus: data.current_status ?? null,
+          newStatus: data.new_status ?? null,
           transitionedAt: data.ts,
         });
-      } catch {
-        /* ignore malformed payload */
+      } catch (err) {
+        // Malformed payloads degrade gracefully but must stay observable.
+        console.error('[board-stream] unparseable task-updated payload', err);
       }
     };
     source.addEventListener('task-updated', onTaskUpdated);

@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [task-system-review, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-11
-started: null
-completed: null
-agent_session: null
+started: 2026-06-11
+completed: 2026-06-11
+agent_session: ses-claude-20260611-002926-83d4
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-399: board API/UI contract hardening — versioned keyset cursor, SSE status field normalization, list error envelope
 
 **Outcome (one sentence):** Three contract-drift risks closed: _keyset_column_page stops positional row[12]/row[0] indexing (named row factory + cursor version prefix), stream.py file-watch events emit new_status (not bare status) so useBoardStream drops its silent ?? fallbacks, and /api/board/list returns a proper unwrap() error envelope instead of a 400 with partially-enriched data; load-more pagination state survives an SSE bump.
@@ -41,3 +40,14 @@ Actual: positional indexing, dual field names hidden by ?? fallbacks, inconsiste
 - **Given** a failing board list call, **When** the route errors, **Then** the response is the standard fail envelope via unwrap() and the UI handles it; load-more state survives an SSE bump.
 
 ## Work Log
+- 2026-06-11 [claude]: Edit mcp_tools.py
+- 2026-06-11 [claude]: Edit mcp_tools.py
+- 2026-06-11 [claude]: Edit stream.py
+- 2026-06-11 [claude]: Edit stream.py
+- 2026-06-11 [claude]: Edit useBoardStream.ts
+- 2026-06-11 [claude]: Edit useBoardStream.ts
+- 2026-06-11 [claude]: Edit board.py
+- 2026-06-11 [claude]: Edit board.py
+- 2026-06-11 [claude]: Edit CosBoardPage.tsx
+- 2026-06-11 [claude]: Edit test_task_create_robustness.py
+- 2026-06-11 [claude]: Status transitioned to complete via cos task-done.

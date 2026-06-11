@@ -244,7 +244,6 @@ def _poll_tick(state: _StreamState) -> list[tuple[str, dict]]:
                     # endpoint for the full rationale).
                     "old_status": r[2] if r[2] else None,
                     "new_status": r[3],
-                    "status": r[3],
                     "agent_session": r[4],
                     "reason": r[6],
                     "ts": int(ts),
@@ -405,11 +404,11 @@ def _poll_tick(state: _StreamState) -> list[tuple[str, dict]]:
                     "task_id": task_id,
                     "old_status": None,
                     "new_status": meta["status"],
-                    "status": meta["status"],
                     "agent_session": None,
                     "reason": "file edit",
                     "ts": int(time.time()),
                     "source": "file",
+                    "current_status": meta["status"],
                 },
             )
         )

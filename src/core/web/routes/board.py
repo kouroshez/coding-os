@@ -315,6 +315,10 @@ def board_list(
         conn.close()
 
     env = json.loads(result)
+    if not env.get("ok"):
+        # Standard error envelope + category-mapped status code (TASK-399) —
+        # never a 400 wrapping a partially-enriched raw envelope.
+        return unwrap(env)
     if env.get("ok"):
         # agent_states is the new, richer shape: {agent: "active"|"present"|"offline"}.
         # active_agents preserves the v0.5 contract ("list of ids that are not
@@ -389,7 +393,7 @@ def board_list(
         if cm is not None:
             env["data"]["cursor_model"] = cm
 
-    return JSONResponse(status_code=200 if env.get("ok") else 400, content=env)
+    return JSONResponse(status_code=200, content=env)
 
 
 @router.post("/create")

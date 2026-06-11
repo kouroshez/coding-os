@@ -982,9 +982,15 @@ _ACTIVE_COLUMN_HARD_MAX = 2000
 _PAGE_SIZE_HARD_MAX = 200
 
 
+# Cursor schema version — bump when the keyset key changes. A versioned
+# cursor from an older schema decodes to None (page 1) instead of silently
+# slicing the wrong key (TASK-399).
+_BOARD_CURSOR_VERSION = "v1"
+
+
 def _encode_board_cursor(completed_at: int | None, task_id: str) -> str:
-    """Opaque keyset cursor over (completed_at, task_id)."""
-    raw = json.dumps([completed_at, task_id]).encode("utf-8")
+    """Opaque, versioned keyset cursor over (completed_at, task_id)."""
+    raw = json.dumps([_BOARD_CURSOR_VERSION, completed_at, task_id]).encode("utf-8")
     return base64.urlsafe_b64encode(raw).decode("ascii")
 
 
@@ -992,7 +998,11 @@ def _decode_board_cursor(cursor: str | None) -> tuple[int | None, str] | None:
     if not cursor:
         return None
     try:
-        completed_at, task_id = json.loads(base64.urlsafe_b64decode(cursor.encode("ascii")))
+        version, completed_at, task_id = json.loads(
+            base64.urlsafe_b64decode(cursor.encode("ascii"))
+        )
+        if version != _BOARD_CURSOR_VERSION:
+            return None
         return completed_at, str(task_id)
     except Exception:
         return None
@@ -1046,12 +1056,12 @@ def _keyset_column_page(
     cards = [_flag_stale(_task_card(r), config) for r in rows]
 
     next_cursor = None
-    if has_more and rows:
-        last = rows[-1]
-        # Positional access (completed_at=row[12], task_id=row[0]) — the web
-        # _db_conn() opens the DB without row_factory=sqlite3.Row, so rows are
-        # plain tuples here; string-key access raised TypeError. Mirrors _task_card.
-        next_cursor = _encode_board_cursor(last[12], last[0])
+    if has_more and cards:
+        # Read the keyset key from the shaped card (named fields) instead of
+        # positional row indexes — a _BOARD_SELECT column shuffle can no
+        # longer silently corrupt pagination.
+        last = cards[-1]
+        next_cursor = _encode_board_cursor(last.get("completed_at"), last["id"])
     return cards, next_cursor, total
 
 

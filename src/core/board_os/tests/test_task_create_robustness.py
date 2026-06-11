@@ -147,6 +147,24 @@ class TestParserTaskIdNormalization:
         assert "garbage" in joined and "TASK2" in joined
 
 
+class TestBoardCursorVersioning:
+    def test_roundtrip(self) -> None:
+        cur = mcp_tools._encode_board_cursor(123, "TASK-009")
+        assert mcp_tools._decode_board_cursor(cur) == (123, "TASK-009")
+
+    def test_unversioned_legacy_cursor_rejected(self) -> None:
+        import base64
+
+        legacy = base64.urlsafe_b64encode(json.dumps([123, "TASK-009"]).encode()).decode()
+        assert mcp_tools._decode_board_cursor(legacy) is None
+
+    def test_wrong_version_rejected(self) -> None:
+        import base64
+
+        v999 = base64.urlsafe_b64encode(json.dumps(["v999", 123, "TASK-009"]).encode()).decode()
+        assert mcp_tools._decode_board_cursor(v999) is None
+
+
 class TestDuplicateFrontmatterRejection:
     def test_sync_rejects_double_frontmatter(self, conn, project, caplog) -> None:
         card = (

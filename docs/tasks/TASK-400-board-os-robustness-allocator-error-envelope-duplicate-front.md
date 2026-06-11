@@ -51,3 +51,4 @@ references: []
 - 2026-06-11 [claude]: Edit sync.py
 - 2026-06-11 [claude]: Edit test_task_create_robustness.py
 - 2026-06-11 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-11 [claude]: commit 3d0a17dea4 — fix(board_os): create/parse robustness — allocator envelope, honest DoR, id validation (TASK-400)
