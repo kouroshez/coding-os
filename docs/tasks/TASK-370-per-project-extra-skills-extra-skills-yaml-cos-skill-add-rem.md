@@ -5,18 +5,17 @@ swimlane: cli
 kind: feature
 epic: E-skills
 labels: [wave-4, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 1d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-352]
 blocked_by: []
 references: []
 ---
-
 # TASK-370: Per-project extra-skills — extra-skills.yaml, cos skill add/remove/list, Config-tab management
 
 **Outcome (one sentence):** .coding-os/extra-skills.yaml lets a consumer add skills beyond the stack list; `cos skill add/remove/list` manages it and re-renders adapter skill links; the existing Hub Config tab lists and manages extra skills (no new UI section).
@@ -34,3 +33,8 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_cli.py -q` + web-route test run, **Then** green.
 
 ## Work Log
+- 2026-06-11 [claude]: Edit config.py
+- 2026-06-11 [claude]: Edit config.py
+- 2026-06-11 [claude]: Edit ConfigPage.tsx
+- 2026-06-11 [claude]: Edit skill-architecture.md
+- 2026-06-11 [claude]: Edit ConfigPage.tsx

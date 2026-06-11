@@ -332,3 +332,157 @@ def skill_consent(name: str) -> None:
     data["consented_at"] = _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
     provenance_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     click.echo(f"consent recorded — '{name}' scripts may now execute")
+
+
+# --- Per-project extra skills (TASK-370) ---------------------------------
+# SSOT is `.coding-os.yaml::extra_skills` (written by init/wizard since
+# TASK-356/359) — no second YAML file. enable/disable mutate that list and
+# (for community skills) maintain symlinks in every installed adapter's
+# skills dir; core/stack skills are already wholesale-linked by the adapter.
+
+
+def _project_config_path(project_root: Path) -> Path:
+    return project_root / ".coding-os.yaml"
+
+
+def _find_project_root() -> Path:
+    current = Path.cwd().resolve()
+    for candidate in (current, *current.parents):
+        if (candidate / ".coding-os.yaml").is_file():
+            return candidate
+    raise click.ClickException("not inside a coding-os project (.coding-os.yaml not found)")
+
+
+def _load_project_config(project_root: Path) -> dict:
+    import yaml
+
+    return yaml.safe_load(_project_config_path(project_root).read_text(encoding="utf-8")) or {}
+
+
+def _save_project_config(project_root: Path, config: dict) -> None:
+    import yaml
+
+    _project_config_path(project_root).write_text(
+        yaml.dump(config, sort_keys=False, allow_unicode=True), encoding="utf-8"
+    )
+
+
+def _installed_adapter_skills_dirs(project_root: Path) -> list[Path]:
+    from cli._resources import adapters_dir
+    from cli.adapter_registry import load_adapter_registry
+
+    dirs: list[Path] = []
+    for adapter in load_adapter_registry(adapters_dir()).values():
+        if not adapter.skills_dir:
+            continue
+        agent_dir = project_root / adapter.skills_dir
+        if agent_dir.parent.is_dir():
+            dirs.append(agent_dir)
+    return dirs
+
+
+def _known_skill_provenance(name: str) -> str | None:
+    """'core' | 'stack' | 'community' | None — where this skill name resolves."""
+    if (core_dir("skills") / name / "SKILL.md").is_file():
+        return "core"
+    for stack_dir in templates_dir().iterdir():
+        if (stack_dir / "skills" / name / "SKILL.md").is_file():
+            return "stack"
+    if (user_skills_dir() / name / "SKILL.md").is_file():
+        return "community"
+    return None
+
+
+def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
+    """Shared CLI/web mutator: toggle a project extra skill. Returns summary."""
+    provenance = _known_skill_provenance(name)
+    if provenance is None:
+        raise click.ClickException(
+            f"unknown skill '{name}' — not in core, stack, or imported community skills"
+        )
+    config = _load_project_config(project_root)
+    extras = list(config.get("extra_skills") or [])
+    stack_skills: set[str] = set()
+    from cli.skills_list import collect_stack_skill_groups
+
+    for stack_id in config.get("templates") or []:
+        try:
+            groups = collect_stack_skill_groups(stack_id)
+        except Exception:
+            continue
+        stack_skills |= {entry["name"] for entry in groups.get("required", [])}
+
+    if enabled:
+        if name in stack_skills:
+            return {"name": name, "provenance": provenance, "changed": False,
+                    "note": "already provided by an installed stack"}
+        if name in extras:
+            return {"name": name, "provenance": provenance, "changed": False,
+                    "note": "already enabled"}
+        extras.append(name)
+    else:
+        if name not in extras:
+            raise click.ClickException(
+                f"'{name}' is not an extra skill of this project"
+                + (" (it comes from a stack — disable is not applicable)" if name in stack_skills else "")
+            )
+        extras.remove(name)
+
+    config["extra_skills"] = extras
+    _save_project_config(project_root, config)
+
+    links_touched = 0
+    if provenance == "community":
+        source = user_skills_dir() / name
+        for skills_root in _installed_adapter_skills_dirs(project_root):
+            link = skills_root / name
+            if enabled:
+                skills_root.mkdir(parents=True, exist_ok=True)
+                if not link.exists():
+                    link.symlink_to(source)
+                    links_touched += 1
+            elif link.is_symlink():
+                link.unlink()
+                links_touched += 1
+
+    return {"name": name, "provenance": provenance, "changed": True, "links": links_touched}
+
+
+@skill_group.command("enable")
+@click.argument("name")
+def skill_enable(name: str) -> None:
+    """Add a skill to this project's extras (links community skills into adapters)."""
+    outcome = set_project_skill(_find_project_root(), name, enabled=True)
+    if not outcome["changed"]:
+        click.echo(f"{name}: no change — {outcome['note']}")
+        return
+    suffix = f" ({outcome['links']} adapter link(s))" if outcome["links"] else ""
+    click.echo(f"enabled {name} [{outcome['provenance']}]{suffix}")
+
+
+@skill_group.command("disable")
+@click.argument("name")
+def skill_disable(name: str) -> None:
+    """Remove a skill from this project's extras (unlinks community symlinks)."""
+    outcome = set_project_skill(_find_project_root(), name, enabled=False)
+    suffix = f" ({outcome['links']} adapter link(s) removed)" if outcome["links"] else ""
+    click.echo(f"disabled {name}{suffix}")
+
+
+@skill_group.command("project")
+def skill_project_list() -> None:
+    """Show this project's skills: stack-provided vs extras (with provenance)."""
+    project_root = _find_project_root()
+    config = _load_project_config(project_root)
+    from cli.skills_list import collect_stack_skill_groups
+
+    for stack_id in config.get("templates") or []:
+        try:
+            groups = collect_stack_skill_groups(stack_id)
+        except Exception:
+            continue
+        required = ", ".join(entry["name"] for entry in groups.get("required", []))
+        if required:
+            click.echo(f"  stack:{stack_id:<16} {required}")
+    for name in config.get("extra_skills") or []:
+        click.echo(f"  extra ({_known_skill_provenance(name) or 'missing!'}): {name}")

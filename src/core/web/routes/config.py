@@ -20,7 +20,8 @@ import logging
 from pathlib import Path
 
 import yaml
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
+from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/config", tags=["config"])
@@ -70,10 +71,25 @@ def config_stacks() -> dict:
     return {"installed": installed, "available": available, "count": len(available)}
 
 
+def _project_extra_skills() -> list[str]:
+    try:
+        import yaml
+
+        config_path = _project_root() / ".coding-os.yaml"
+        if not config_path.is_file():
+            return []
+        config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+        return list(config.get("extra_skills") or [])
+    except Exception as exc:
+        logger.debug("extra_skills read failed: %s", exc)
+        return []
+
+
 @router.get("/skills")
 def config_skills() -> dict:
-    """List the core skill registry (name, tier, domain, globs, phase)."""
+    """List the core skill registry (name, tier, domain, globs, phase) + project extras."""
     skills: list[dict] = []
+    extras = set(_project_extra_skills())
     try:
         from cli.skill_registry import load_skill_registry
         from cli.skills_list import CORE_SKILLS_DIR
@@ -88,12 +104,37 @@ def config_skills() -> dict:
                     "domain": list(s.domain),
                     "globs": s.globs,
                     "phase": s.phase,
+                    "extra": s.name in extras,
                 }
             )
     except Exception as exc:
         logger.debug("load_skill_registry failed: %s", exc)
 
-    return {"skills": skills, "count": len(skills)}
+    return {"skills": skills, "count": len(skills), "extra_skills": sorted(extras)}
+
+
+@router.patch("/skills/{skill_name}")
+def config_skill_toggle(skill_name: str, body: dict = Body(...)) -> JSONResponse:
+    """Enable/disable a project extra skill — round-trips to .coding-os.yaml."""
+    enabled = body.get("enabled")
+    if not isinstance(enabled, bool):
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": {"category": "validation",
+                                            "message": "body must be {'enabled': bool}"}},
+        )
+    try:
+        import click as _click
+
+        from cli.skill_commands import set_project_skill
+
+        outcome = set_project_skill(_project_root(), skill_name, enabled=enabled)
+    except _click.ClickException as exc:
+        return JSONResponse(
+            status_code=404 if "unknown skill" in exc.message else 400,
+            content={"ok": False, "error": {"category": "validation", "message": exc.message}},
+        )
+    return JSONResponse(content={"ok": True, "data": outcome})
 
 
 @router.get("/mcp")

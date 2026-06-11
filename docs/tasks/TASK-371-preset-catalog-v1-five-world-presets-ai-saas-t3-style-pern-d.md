@@ -5,12 +5,12 @@ swimlane: templates
 kind: feature
 epic: D-catalog
 labels: [wave-4, onboarding-program, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-356, TASK-367, TASK-368]
 blocked_by: []
@@ -34,3 +34,4 @@ references: []
 ## Work Log
 - 2026-06-11 [claude]: commit e849760ef7 — feat(templates): preset catalog v1 — five world presets (TASK-371)
 - 2026-06-11 [claude]: IMPL DONE (parked, batch 8 #1) — five world presets per the acceptance compositions: ai-saas (nextjs+fastapi, llm-patter
+- 2026-06-11 [claude]: CLOSED on batch-8 suite: tests/test_cli.py 134 passed (14m00s). Commit e849760e. Self-score 9.5/10: pure-data delivery o

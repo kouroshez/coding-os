@@ -140,6 +140,17 @@ through the SAME loader the runtime uses (schema + enum checks), so lint-pass
 
 A community skill may never shadow a core or stack skill name.
 
+**Per-project extras (TASK-370)** — `.coding-os.yaml::extra_skills` is the
+SSOT (written by init/wizard; no second file). `cos skill enable|disable
+<name>` mutates it and, for community skills, maintains symlinks in every
+installed adapter's skills dir (core/stack skills are already wholesale-linked
+by the adapter install). `cos skill project` lists stack-provided vs extra
+with provenance. The Hub Config → Skills tab toggles the same list via
+`PATCH /api/config/skills/{name}` — one shared mutator
+(`cli.skill_commands.set_project_skill`) backs both. `cos update` never prunes
+a symlinked skill dir: it's an enable-managed link, and descending through it
+would delete the user's source files.
+
 ## Per-stack skill groups — onboarding SSOT (TASK-352)
 
 The onboarding wizard ("which skills will this stack install?") and the Config

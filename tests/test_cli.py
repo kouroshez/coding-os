@@ -2019,3 +2019,112 @@ class TestSkillStandard:
         assert provenance["scripts_consent"] is True and provenance["consented_at"]
         relisting = runner.invoke(cli, ["skill", "list"])
         assert "scripts=allowed" in relisting.output
+
+
+class TestGraphReindexFailureClassification:
+    # TASK-395: per-file graph-layer failures must be classified (and lock-
+    # shaped ones counted toward the circuit breaker), never absorbed as
+    # "processed" — the 2026-06-11 silent-stall root cause.
+    def test_graph_layer_error_surfaces_reason(self):
+        from cli.graph_commands import _report_failure_reason
+
+        report = {
+            "status": "ok",
+            "path": "docs/tasks/T.md",
+            "layers": {"graph": {"status": "error", "reason": "database is locked"}},
+        }
+        assert _report_failure_reason(report) == "database is locked"
+
+    def test_top_level_error_surfaces_reason(self):
+        from cli.graph_commands import _report_failure_reason
+
+        report = {"status": "error", "reason": "read_failed: boom", "layers": {}}
+        assert _report_failure_reason(report) == "read_failed: boom"
+
+    def test_clean_report_returns_none(self):
+        from cli.graph_commands import _report_failure_reason
+
+        report = {"status": "ok", "layers": {"graph": {"status": "ok"}}}
+        assert _report_failure_reason(report) is None
+
+    def test_lock_shape_detection(self):
+        from cli.graph_commands import _is_lock_shaped
+
+        assert _is_lock_shaped("database is locked")
+        assert _is_lock_shaped("SQLITE_BUSY: db busy")
+        assert not _is_lock_shaped("read_failed: missing")
+
+
+# ---------------------------------------------------------------------------
+# Per-project extra skills — TASK-370
+# ---------------------------------------------------------------------------
+
+
+class TestProjectExtraSkills:
+    def _make_project(self, runner: CliRunner, tmp_path: Path) -> Path:
+        project = tmp_path / "proj"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            ["init", "--agent", "claude", "-d", str(project), "--yes", "--no-index", "--no-register"],
+        )
+        assert result.exit_code == 0, result.output
+        return project
+
+    def test_enable_disable_round_trip_core_skill(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import yaml as _yaml
+
+        project = self._make_project(runner, tmp_path)
+        monkeypatch.chdir(project)
+        enabled = runner.invoke(cli, ["skill", "enable", "redis"])
+        assert enabled.exit_code == 0 and "[core]" in enabled.output
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert "redis" in config["extra_skills"]
+
+        listing = runner.invoke(cli, ["skill", "project"])
+        assert "extra (core): redis" in listing.output
+
+        disabled = runner.invoke(cli, ["skill", "disable", "redis"])
+        assert disabled.exit_code == 0
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert "redis" not in (config.get("extra_skills") or [])
+
+    def test_unknown_and_not_extra_rejected(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        project = self._make_project(runner, tmp_path)
+        monkeypatch.chdir(project)
+        unknown = runner.invoke(cli, ["skill", "enable", "no-such-skill"])
+        assert unknown.exit_code != 0 and "unknown skill" in unknown.output
+        not_extra = runner.invoke(cli, ["skill", "disable", "redis"])
+        assert not_extra.exit_code != 0 and "not an extra skill" in not_extra.output
+
+    def test_community_skill_links_into_adapter_and_survives_update(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("COS_USER_SKILLS_DIR", str(tmp_path / "community"))
+        source = tmp_path / "src-skill" / "team-style"
+        source.mkdir(parents=True)
+        (source / "SKILL.md").write_text(
+            "---\nname: team-style\ndescription: House review conventions imported from a teammate.\n---\nbody\n",
+            encoding="utf-8",
+        )
+        assert runner.invoke(cli, ["skill", "add", str(source), "--yes"]).exit_code == 0
+
+        project = self._make_project(runner, tmp_path)
+        monkeypatch.chdir(project)
+        enabled = runner.invoke(cli, ["skill", "enable", "team-style"])
+        assert enabled.exit_code == 0, enabled.output
+        link = project / ".claude" / "skills" / "team-style"
+        assert link.is_symlink() and (link / "SKILL.md").is_file()
+
+        # cos update must not clobber the community link (it relinks core only).
+        updated = runner.invoke(cli, ["update", "-d", str(project), "--yes"])
+        assert updated.exit_code == 0, updated.output
+        assert link.is_symlink() and (link / "SKILL.md").is_file()
+
+        disabled = runner.invoke(cli, ["skill", "disable", "team-style"])
+        assert disabled.exit_code == 0
+        assert not link.exists()

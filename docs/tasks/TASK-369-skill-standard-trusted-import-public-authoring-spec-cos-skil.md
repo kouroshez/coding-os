@@ -5,12 +5,12 @@ swimlane: cli
 kind: feature
 epic: E-skills
 labels: [wave-4, onboarding-program, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-352]
 blocked_by: []
@@ -36,3 +36,6 @@ references: []
 ## Work Log
 - 2026-06-11 [claude]: Edit skill-architecture.md
 - 2026-06-11 [claude]: Edit skill_commands.py
+- 2026-06-11 [claude]: commit d286f3615f — feat(cli): public skill standard + trusted import gate (TASK-369)
+- 2026-06-11 [claude]: IMPL DONE (parked, batch 8 #2) — § Public skill standard in skill-architecture.md (three trust tiers, authoring fields,
+- 2026-06-11 [claude]: CLOSED on batch-8 suite: tests/test_cli.py 134 passed (14m00s). Commit d286f361. Self-score 9/10: full authoring+import+

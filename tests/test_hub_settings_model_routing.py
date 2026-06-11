@@ -111,3 +111,43 @@ def test_unknown_module_404_and_bad_body_400(module_client):
     assert client.patch(
         "/api/settings/modules/memory", json={"enabled": "yes"}
     ).status_code == 400
+
+
+class TestConfigSkillsExtras:
+    def test_skills_listing_carries_extra_flag_and_patch_round_trips(
+        self, module_client, tmp_path, monkeypatch
+    ):
+        client, project = module_client
+        (project / ".coding-os.yaml").write_text(
+            "version: 1\ntemplates: []\nextra_skills: []\n", encoding="utf-8"
+        )
+        listing = client.get("/api/config/skills")
+        assert listing.status_code == 200
+        payload = listing.json()
+        assert all("extra" in row for row in payload["skills"]) or payload["skills"] == []
+
+        patched = client.patch("/api/config/skills/redis", json={"enabled": True})
+        assert patched.status_code == 200, patched.text
+        assert patched.json()["data"]["provenance"] == "core"
+        import yaml as _yaml
+
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert "redis" in config["extra_skills"]
+
+        relisted = client.get("/api/config/skills").json()
+        assert "redis" in relisted["extra_skills"]
+
+        removed = client.patch("/api/config/skills/redis", json={"enabled": False})
+        assert removed.status_code == 200
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert "redis" not in (config.get("extra_skills") or [])
+
+    def test_patch_validation_and_unknown_skill(self, module_client):
+        client, project = module_client
+        (project / ".coding-os.yaml").write_text(
+            "version: 1\ntemplates: []\nextra_skills: []\n", encoding="utf-8"
+        )
+        bad_body = client.patch("/api/config/skills/redis", json={"enabled": "yes"})
+        assert bad_body.status_code == 400
+        unknown = client.patch("/api/config/skills/no-such", json={"enabled": True})
+        assert unknown.status_code == 404

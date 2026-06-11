@@ -150,23 +150,50 @@ interface SkillRow {
   domain: string[];
   globs: string | null;
   description?: string;
+  extra?: boolean;
 }
 
 function SkillsTab() {
+  const queryClient = useQueryClient();
   const { data, isLoading, error } = useApiGet<{ skills: SkillRow[] }>(['config-skills'], '/api/config/skills');
+  const [pending, setPending] = useState<string | null>(null);
   if (isLoading) return <StateRow>Loading skills…</StateRow>;
   if (error) return <StateRow>Could not load skills: {error.message}</StateRow>;
   const rows = data?.skills ?? [];
+  const toggleExtra = async (skill: SkillRow) => {
+    setPending(skill.name);
+    try {
+      await apiPatch(`/api/config/skills/${skill.name}`, { enabled: !skill.extra });
+      await invalidateApiQueries(queryClient, 'config-skills');
+    } finally {
+      setPending(null);
+    }
+  };
   return (
     <>
-      <TabIntro>Skills the agent can load. They are glob-gated — the agent loads one automatically before editing matching files.</TabIntro>
-      <Table head={['Skill', 'Tier', 'Domain', 'Triggers on']}>
+      <TabIntro>Skills the agent can load. They are glob-gated — the agent loads one automatically before editing matching files. “Extra” marks skills added to this project beyond its stacks.</TabIntro>
+      <Table head={['Skill', 'Tier', 'Domain', 'Triggers on', 'Extra']}>
         {rows.map((s) => (
           <tr key={s.name} className="border-b border-[var(--cos-border)] last:border-0 hover:bg-white/[0.02]">
             <td className="px-3 py-2 font-medium text-[var(--cos-text)]">{s.name}</td>
             <td className="px-3 py-2 text-[var(--cos-muted)]">{s.tier}</td>
             <td className="px-3 py-2 text-[var(--cos-muted)]">{s.domain.join(', ') || '—'}</td>
             <td className="px-3 py-2 font-mono text-[10px] text-[var(--cos-faint)]">{s.globs ?? '—'}</td>
+            <td className="px-3 py-2">
+              <button
+                type="button"
+                disabled={pending === s.name}
+                onClick={() => void toggleExtra(s)}
+                aria-label={`${s.extra ? 'Remove' : 'Add'} ${s.name} as project extra skill`}
+                className={`rounded px-2 py-0.5 text-[10px] focus-visible:ring-2 ${
+                  s.extra
+                    ? 'bg-emerald-500/15 text-emerald-300'
+                    : 'bg-white/5 text-[var(--cos-faint)] hover:text-[var(--cos-muted)]'
+                }`}
+              >
+                {pending === s.name ? '…' : s.extra ? 'extra ✓' : 'add'}
+              </button>
+            </td>
           </tr>
         ))}
       </Table>

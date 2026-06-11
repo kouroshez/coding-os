@@ -19,11 +19,14 @@ from __future__ import annotations
 
 import datetime as _dt
 import json
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import click
 import yaml
+
+logger = logging.getLogger(__name__)
 
 from cli._init_helpers import ensure_agents_md
 from cli._resources import adapters_dir, core_dir, data_root, templates_dir
@@ -329,13 +332,19 @@ def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
         base = project / base_rel
         for name in names:
             if cat == "skills":
-                skill_md = base / name / "SKILL.md"
+                entry = base / name
+                if entry.is_symlink():
+                    # A symlinked skill dir is a community/extra link managed
+                    # by `cos skill enable` — descending through it would
+                    # delete the user's source files. Not update's to prune.
+                    continue
+                skill_md = entry / "SKILL.md"
                 if skill_md.is_symlink() or skill_md.exists():
                     skill_md.unlink()
                 try:
-                    (base / name).rmdir()
-                except OSError:
-                    pass
+                    entry.rmdir()
+                except OSError as exc:
+                    logger.debug("orphan skill dir kept (non-empty): %s", exc)
             else:
                 entry = base / name
                 if entry.is_symlink() or entry.exists():
