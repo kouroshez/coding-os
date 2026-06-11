@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# branch-guard.sh — enforce trunk-based git integrity.
+#
+# PreToolUse:Bash hook. In trunk mode (default) it BLOCKs commands that
+# either (a) create a branch / worktree or (b) rewrite shared HEAD —
+# both classes can clobber a peer session's commits or scatter work
+# across phantom branches. The coding-os workflow commits directly to
+# main (see src/core/rules/git-workflow.md). Set COS_GIT_WORKFLOW=pr to
+# allow branches / HEAD-moves (future multi-developer mode).
+#
+# The actual parsing lives in _helpers/branch_guard_check.py — it
+# handles whitespace normalization, `git -C` / `git -c` global options,
+# nested `sh -c "..."` / `bash -c "..."`, command-segment splitting,
+# and `shlex` quoting (so literal `git reset HEAD~1` inside an `echo`
+# or `grep` arg does NOT trigger). This script is a thin wrapper:
+# fast-skip when "git" isn't in the command, otherwise dispatch to the
+# helper and act on its JSON verdict.
+set -euo pipefail
+
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+
+# Fail-closed: a branch/HEAD-move guard that cannot read the command must DENY
+# (observability-eye I8). python3 fallback keeps it working without jq.
+cos_require_parser branch-guard
+
+INPUT="$(cos_read_stdin_bounded 2)"
+
+# Fast-path: every branch/HEAD-move this guard blocks is a `git` command. If
+# the raw payload has no "git" substring at all there is nothing to deny —
+# bail before any jq spawn (this gate fires on EVERY Bash command).
+case "$INPUT" in
+  *git*) ;;
+  *) exit 0 ;;
+esac
+
+TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
+if [[ "$TOOL" != "Bash" ]]; then
+  exit 0
+fi
+
+# pr mode = branches + HEAD-moves allowed; the seam for future team workflows.
+if [[ "${COS_GIT_WORKFLOW:-trunk}" == "pr" ]]; then
+  exit 0
+fi
+
+COMMAND=$(printf '%s' "$INPUT" | cos_json_field tool_input.command)
+[[ -z "$COMMAND" ]] && exit 0
+
+# Fast-skip: no "git" substring → no risk; skip the python startup cost.
+if [[ "$COMMAND" != *git* ]]; then
+  exit 0
+fi
+
+cos_log_hook branch-guard fire "tool=Bash"
+
+# Resolve the helper through the file's physical location — works through
+# the .claude/hooks/ symlinks that consumer projects install.
+_src="${BASH_SOURCE[0]}"
+while [ -L "$_src" ]; do
+  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+  _src="$(readlink "$_src")"
+  [[ "$_src" != /* ]] && _src="${_dir}/${_src}"
+done
+HOOKS_PHYS_DIR="$(cd -P "$(dirname "$_src")" && pwd)"
+unset _src _dir
+HELPER="${HOOKS_PHYS_DIR}/_helpers/branch_guard_check.py"
+
+if [[ ! -f "$HELPER" ]]; then
+  # Fail-CLOSED: we are past the fast-skip, so the command IS git-related.
+  # A missing helper (dangling symlink / broken install) means we cannot
+  # verify it — deny rather than silently allow (observability-eye I8/A2).
+  cos_say error hook.branch_guard "branch-guard helper missing — failing closed on git command" 2>/dev/null || true
+  cos_log_hook branch-guard block "rule=helper-missing"
+  echo "BLOCKED: branch-guard helper missing ($HELPER) — cannot verify this git command; failing closed." >&2
+  echo "  Restore src/core/hooks/_helpers/branch_guard_check.py, or set COS_GIT_WORKFLOW=pr to bypass branch-guard." >&2
+  exit 2
+fi
+
+# Run the helper, capturing BOTH stdout (verdict) and stderr (crash detail).
+# We are past the fast-skip, so the command IS git-related: a guard that
+# cannot evaluate it must NOT silently allow (the old `2>/dev/null || allow`
+# was a fail-OPEN security inversion — the guard silently stopped guarding,
+# crash recorded nowhere). On helper failure we fail CLOSED and surface the
+# crash to the eye. No non-git blast radius: non-git Bash exited at the fast-skip.
+HELPER_ERR=$(mktemp)
+HELPER_RC=0
+VERDICT_JSON=$(printf '%s' "$INPUT" | python3 "$HELPER" 2>"$HELPER_ERR") || HELPER_RC=$?
+HELPER_STDERR=$(cat "$HELPER_ERR" 2>/dev/null || true); rm -f "$HELPER_ERR"
+
+if [[ "$HELPER_RC" -ne 0 || -z "$VERDICT_JSON" ]]; then
+  cos_say error hook.branch_guard "branch-guard helper failed (rc=${HELPER_RC}) — failing closed on git command" detail="${HELPER_STDERR:0:200}" 2>/dev/null || true
+  cos_log_hook branch-guard block "rule=helper-crash rc=${HELPER_RC}" || true
+  echo "BLOCKED: branch-guard helper failed (rc=${HELPER_RC}) — cannot verify this git command; failing closed." >&2
+  echo "  Fix src/core/hooks/_helpers/branch_guard_check.py, or set COS_GIT_WORKFLOW=pr to bypass branch-guard." >&2
+  [[ -n "$HELPER_STDERR" ]] && echo "  helper stderr: ${HELPER_STDERR}" >&2
+  exit 2
+fi
+
+VERDICT=$(echo "$VERDICT_JSON" | jq -r '.verdict // "block"' 2>/dev/null || echo "block")
+
+if [[ "$VERDICT" != "block" ]]; then
+  cos_log_hook branch-guard ok || true
+  exit 0
+fi
+
+REASON=$(echo "$VERDICT_JSON" | jq -r '.reason // "branch-guard-block"' 2>/dev/null)
+MESSAGE=$(echo "$VERDICT_JSON" | jq -r '.message // ""' 2>/dev/null)
+
+cos_log_hook branch-guard block "rule=${REASON}"
+bash "$(dirname "$0")/../scripts/log-write.sh" \
+  --type "hook-block" --msg "branch-guard" --what "$REASON" 2>/dev/null || true
+
+if [[ -n "$MESSAGE" ]]; then
+  printf '%s\n' "$MESSAGE" >&2
+else
+  echo "BLOCKED: coding-os trunk-based git workflow forbids this command." >&2
+  echo "  See src/core/rules/git-workflow.md. Override: COS_GIT_WORKFLOW=pr." >&2
+fi
+exit 2

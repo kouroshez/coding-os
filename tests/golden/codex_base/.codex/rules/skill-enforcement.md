@@ -35,5 +35,8 @@ invoke the matching skill via the `Skill` tool.
 | `src/frontend/**/*.{ts,tsx}` | `nextjs-react` | clean-code, frontend-design, frontend-fundamentals, a11y, performance, testing-strategy | nextjs |
 | `src/frontend/**/components/**/*.{ts,tsx}`, `src/frontend/**/app/**/page.tsx`, `src/frontend/**/app/**/layout.tsx` | `nextjs-react` | clean-code, frontend-design, frontend-fundamentals, a11y | nextjs |
 | `src/frontend/**/store/**/*.ts`, `src/frontend/**/stores/**/*.ts`, `src/frontend/**/hooks/use*.ts` | `nextjs-react` | state-management, clean-code, frontend-fundamentals | nextjs |
+| `src/backend/**/*.ts` | `node-express` | clean-code, backend-fundamentals, api-design, auth-patterns, security-web, testing-strategy, observability | node-express |
+| `src/backend/**/repositories/**/*.ts`, `src/backend/**/db/**/*.ts` | `node-express` | clean-code, db-design, backend-fundamentals | node-express |
+| `src/backend/**/middleware/auth*.ts`, `src/backend/**/auth*.ts` | `node-express` | auth-patterns, security-web, clean-code | node-express |
 | `src/mobile/**/*.{ts,tsx}` | `react-native-mobile` | clean-code, frontend-fundamentals, mobile-fundamentals, a11y | react-native |
 | `src/mobile/**/components/**/*.{ts,tsx}`, `src/mobile/**/screens/**/*.{ts,tsx}` | `react-native-patterns` | clean-code, react-native-mobile, state-management, performance | react-native |

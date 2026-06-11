@@ -1,0 +1,16 @@
+version: '1.0'
+agents:
+- claude
+templates:
+- node-express
+state_dir: .coding-os
+code_extensions:
+- py
+- ts
+- tsx
+- js
+- jsx
+verify:
+  backend: cd src/backend && npm run lint && npm test
+  docs: make docs-lint
+protected_files: []

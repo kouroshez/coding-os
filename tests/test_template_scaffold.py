@@ -640,3 +640,77 @@ class TestStackBundleLint:
         for stack_id in ("go-plain", "typescript-plain", "python", "meta"):
             assert reports[stack_id].passed, reports[stack_id].hard
             assert not any("dimensions" in gap for gap in reports[stack_id].soft)
+
+
+# ---------------------------------------------------------------------------
+# node-express stack bundle — TASK-367
+# ---------------------------------------------------------------------------
+
+
+class TestNodeExpressStack:
+    def test_factory_lint_passes_with_golden(self):
+        from cli.stack_lint import lint_all
+
+        report = lint_all()["node-express"]
+        assert report.passed, report.hard
+        assert not any("golden" in gap for gap in report.soft)  # golden shipped
+
+    def test_scaffold_structure_and_skill_routing(self, tmp_path):
+        import yaml as _yaml
+        from click.testing import CliRunner
+
+        from cli.main import cli
+
+        project = tmp_path / "expressapp"
+        project.mkdir()
+        result = CliRunner().invoke(
+            cli,
+            [
+                "init", "--agent", "claude", "-d", str(project),
+                "--template", "node-express", "--yes", "--no-index", "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        backend = project / "src" / "backend"
+        for piece in ("package.json", "tsconfig.json", "src/index.ts",
+                      "src/routes/health.ts", "src/middleware/error-handler.ts"):
+            assert (backend / piece).is_file(), piece
+        assert "{{PROJECT_NAME}}" not in (backend / "package.json").read_text(encoding="utf-8")
+
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        # Producer shape: domain → raw command (main._derive_verify_from_world).
+        assert config["verify"]["backend"] == "cd src/backend && npm run lint && npm test"
+        agents_md = (project / "AGENTS.md").read_text(encoding="utf-8")
+        assert "express-service.md" in agents_md  # playbook routed
+
+    def test_scaffold_typechecks_pre_install(self, tmp_path):
+        import shutil as _shutil
+        import subprocess
+
+        tsc = Path("src/core/web/ui/node_modules/.bin/tsc").resolve()
+        if not tsc.exists():
+            pytest.skip("workspace tsc unavailable")
+        from click.testing import CliRunner
+
+        from cli.main import cli
+
+        project = tmp_path / "tscheck"
+        project.mkdir()
+        assert CliRunner().invoke(
+            cli,
+            [
+                "init", "--agent", "claude", "-d", str(project),
+                "--template", "node-express", "--yes", "--no-index", "--no-register",
+            ],
+        ).exit_code == 0
+        proc = subprocess.run(
+            [str(tsc), "--noEmit"], cwd=project / "src" / "backend",
+            capture_output=True, text=True, timeout=120,
+        )
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+
+    def test_regen_registries_include_node_express(self):
+        registry_text = Path("src/core/rules/skill-enforcement.md").read_text(encoding="utf-8")
+        assert "node-express" in registry_text
+        dimensions_text = Path("src/core/rules/dimension-registry.md").read_text(encoding="utf-8")
+        assert "Express route" in dimensions_text

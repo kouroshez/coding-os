@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# PreToolUse hook: BLOCK Write/Edit on code files for COMPLICATED/COMPLEX tasks
+# unless a Zoom checkpoint (Problem Framing) has been recorded.
+# Session-scoped: only accepts checkpoints from the CURRENT session.
+set -euo pipefail
+
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+
+INPUT="$(cos_read_stdin_bounded 2)"
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+
+if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
+  exit 0
+fi
+
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
+
+# Only enforce for code files
+if [[ "$FILE_PATH" != *.py ]] && [[ "$FILE_PATH" != *.ts ]] && [[ "$FILE_PATH" != *.tsx ]]; then
+  exit 0
+fi
+
+# Skip test files, migrations, generated files, config files, hook scripts
+if [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *spec* ]] || [[ "$FILE_PATH" == *migrations* ]] || [[ "$FILE_PATH" == *node_modules* ]] || [[ "$FILE_PATH" == *__pycache__* ]] || [[ "$FILE_PATH" == *.claude/* ]] || [[ "$FILE_PATH" == *.codex/* ]] || [[ "$FILE_PATH" == *.cursor/* ]] || [[ "$FILE_PATH" == *.coding-os/* ]]; then
+  exit 0
+fi
+
+# Persona-aware skip — see classify-task-mode.sh + docs/engineering/task-mode-matrix.md
+MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first
+[[ -f "$MODE_FILE" ]] || MODE_FILE="${COS_AGENT_DIR}/.task-mode"
+if [[ -f "$MODE_FILE" ]]; then
+  TASK_MODE=$(tr -d '\n\r' < "$MODE_FILE" 2>/dev/null | head -c 24)
+  case "$TASK_MODE" in
+    query|adhoc|chore|system) exit 0 ;;
+  esac
+fi
+
+# Panel-first: these are per-panel markers written by
+# write-state.sh to $COS_PANEL_DIR; reading $COS_AGENT_DIR missed them and
+# blocked COMPLEX edits. Mirror the other gate readers (thinking_os-gate.sh,
+# enforce-task-start.sh, enforce-skill.sh).
+GATE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate"
+ZOOM_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.zoom-checkpoint"
+
+# Only enforce for COMPLICATED and COMPLEX
+source "$(dirname "$0")/check-state.sh"
+check_state "$GATE_FILE" 7200
+
+if [[ "$STATE_VALID" != "true" ]]; then
+  exit 0  # No gate = thinking_os-gate.sh will handle it
+fi
+
+CLASSIFICATION=$(echo "$STATE_VALUE" | awk '{print $1}')
+
+if [[ "$CLASSIFICATION" == "CLEAR" ]] || [[ "$CLASSIFICATION" == "CHAOTIC" ]]; then
+  exit 0
+fi
+
+# COMPLICATED or COMPLEX: require zoom checkpoint (session-scoped)
+check_state "$ZOOM_FILE" 7200
+
+if [[ "$STATE_VALID" != "true" ]]; then
+  echo "BLOCKED: Task classified as $CLASSIFICATION but no Plan checkpoint for this session." >&2
+  echo "Reason: $STATE_REASON" >&2
+  echo "Record checkpoint: bash \".${COS_AGENT}/hooks/write-state.sh\" .zoom-checkpoint \"PROBLEM_FRAMED\"" >&2
+  exit 2
+fi
+
+exit 0

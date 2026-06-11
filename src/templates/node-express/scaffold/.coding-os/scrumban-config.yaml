@@ -1,0 +1,18 @@
+# node-express delta — merged onto base by the config composer.
+swimlanes:
+  - id: api
+    label: "API / Routes"
+    color: "#3b82f6"
+    description: "Express routers, request/response shapes"
+  - id: middleware
+    label: "Middleware"
+    color: "#f59e0b"
+    description: "Auth, validation, error handling, observability"
+  - id: services
+    label: "Services"
+    color: "#8b5cf6"
+    description: "Business logic, framework-free"
+  - id: db
+    label: "Data / Repositories"
+    color: "#10b981"
+    description: "Repositories, migrations, query performance"

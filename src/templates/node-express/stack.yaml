@@ -1,0 +1,63 @@
+version: 1
+id: node-express
+language: typescript
+label: "Node.js + Express + TypeScript"
+category: backend
+
+structure:
+  root: src/backend
+  tree: |
+    src/backend/
+    ├── package.json
+    ├── tsconfig.json
+    └── src/
+        ├── index.ts         # app bootstrap (no logic)
+        ├── routes/          # one router per resource, thin handlers
+        ├── middleware/      # auth, validation, error handler (order matters)
+        ├── services/        # business logic — the only layer that thinks
+        └── repositories/    # data access, one per aggregate
+  notes: "routes thin, services own logic; central error handler is the ONLY place that shapes error responses"
+primary_skill: node-express
+skills: [node-express]
+
+substitutions:
+  DOMAIN_ROUTES: "Backend→`docs/playbooks/express-service.md`"
+  SKILL_ROUTES: "Backend→`node-express`"
+  ENGINEERING_RULE_ROUTING: "Backend→`docs/engineering/express-rules.md`, Error format→`docs/api-contracts/error-format.md`"
+  TOOL_ROUTING_IMPL: "`lint-backend`, `test-backend`"
+  VERIFY_BACKEND_GLOB: "`src/backend/`"
+  VERIFY_BACKEND_SUITES: "lint-backend + test-backend"
+  VERIFY_BACKEND: "`cd src/backend && npm run lint && npm test`"
+  QUICK_ROUTING: |-
+    - Express route / middleware task → [Express Service Playbook](./playbooks/express-service.md)
+    - Auth / validation middleware → [Express Service Playbook](./playbooks/express-service.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-EXPRESS` → `./playbooks/express-service.md`
+    - `REF:EXPRESS-RULES` → `./engineering/express-rules.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-EXPRESS", path: "./playbooks/express-service.md", desc: "Express service playbook"}
+  - {code: "REF:EXPRESS-RULES",    path: "./engineering/express-rules.md", desc: "Express engineering rules"}
+
+routing_entries:
+  - "Express route / middleware task → [Express Service Playbook](./playbooks/express-service.md)"
+
+rules:
+  - {file: rules/backend.md, globs: ["src/backend/**/*.ts"]}
+
+makefile_targets:
+  - {name: lint-backend, cmd: "cd src/backend && npm run lint"}
+  - {name: test-backend, cmd: "cd src/backend && npm test"}
+
+verify:
+  - {glob: "src/backend/**/*.ts", suites: "lint-backend + test-backend", cmd: "cd src/backend && npm run lint && npm test"}
+
+dimensions:
+  - {name: "Express route",       read_files: ["docs/playbooks/express-service.md", "docs/engineering/express-rules.md"]}
+  - {name: "Middleware / auth",   read_files: ["docs/engineering/express-rules.md"]}
+  - {name: "Request validation / DTO", read_files: ["docs/engineering/express-rules.md", "docs/api-contracts/error-format.md"]}
+
+skill_enforcement:
+  - {globs: ["src/backend/**/*.ts"], primary: node-express, secondary: [clean-code, backend-fundamentals, api-design, auth-patterns, security-web, testing-strategy, observability]}
+  - {globs: ["src/backend/**/repositories/**/*.ts", "src/backend/**/db/**/*.ts"], primary: node-express, secondary: [clean-code, db-design, backend-fundamentals]}
+  - {globs: ["src/backend/**/middleware/auth*.ts", "src/backend/**/auth*.ts"], primary: node-express, secondary: [auth-patterns, security-web, clean-code]}

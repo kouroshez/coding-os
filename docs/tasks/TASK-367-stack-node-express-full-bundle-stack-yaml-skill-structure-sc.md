@@ -5,18 +5,17 @@ swimlane: templates
 kind: feature
 epic: D-catalog
 labels: [wave-4, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-361]
 blocked_by: []
 references: []
 ---
-
 # TASK-367: Stack: node-express — full bundle (stack.yaml, skill, structure, scrumban, playbook, rules, verify, golden)
 
 **Outcome (one sentence):** A complete node-express stack (language=typescript, extends typescript-plain) passes the bundle lint: stack skill (express patterns, reuses core node-backend), structure spec, scrumban swimlanes, backend-api playbook + engineering rules, verify-matrix row, golden scaffold test — proving the factory on the world's most-used backend.
@@ -34,3 +33,5 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_template_scaffold.py -q` runs, **Then** green including the new golden.
 
 ## Work Log
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit SKILL.md

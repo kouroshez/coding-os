@@ -47,6 +47,12 @@ phase to build your Read List.
 - **i18n** (M) → `docs/engineering/i18n-policy.md`
 - **Accessibility** (M) → `docs/engineering/accessibility-web.md`
 
+## node-express
+
+- **Express route** (M) → `docs/playbooks/express-service.md`, `docs/engineering/express-rules.md`
+- **Middleware / auth** (M) → `docs/engineering/express-rules.md`
+- **Request validation / DTO** (M) → `docs/engineering/express-rules.md`, `docs/api-contracts/error-format.md`
+
 ## python
 
 - **Python module / API** (M) → `docs/playbooks/python-library.md`, `docs/engineering/python-rules.md`

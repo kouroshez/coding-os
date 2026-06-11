@@ -5,12 +5,12 @@ swimlane: templates
 kind: feature
 epic: D-catalog
 labels: [wave-4, onboarding-program, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-356, TASK-361]
 blocked_by: []
@@ -38,3 +38,6 @@ references: []
 - 2026-06-11 [claude]: Edit preset_registry.py
 - 2026-06-11 [claude]: Edit preset_commands.py
 - 2026-06-11 [claude]: Edit hexagonal-product.yaml
+- 2026-06-11 [claude]: commit 76ad8897da — feat(templates): flagship hexagonal preset + cos preset authoring (TASK-365)
+- 2026-06-11 [claude]: IMPL DONE (parked, batch 6 #2) — cos preset list/create/export/import with ~/.coding-os/presets ($COS_USER_PRESETS_DIR)
+- 2026-06-11 [claude]: CLOSED on batch-6 suite: test_cli + test_template_scaffold 169 passed (28m36s). Commit 76ad8897. Self-score 9.5/10: the 

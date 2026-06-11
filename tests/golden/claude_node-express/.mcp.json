@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "coding-os": {
+      "command": "cos",
+      "args": [
+        "server-start"
+      ]
+    }
+  }
+}
