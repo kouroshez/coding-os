@@ -1,0 +1,39 @@
+version: 1
+id: go-plain
+language: go
+label: "Go (plain — stdlib only, no framework)"
+category: library
+primary_skill: null
+skills: []
+
+# Plain-language stack (template-authoring.md § Language layer): picked when
+# the user chooses "go" without a framework. Ships a runnable module skeleton
+# and the verify wiring; framework stacks (go, go-fiber) extend the language
+# with their own conventions.
+
+substitutions:
+  DOMAIN_ROUTES: "Go module / CLI task → AGENTS.md critical rules"
+  SKILL_ROUTES: "Go → `clean-code` (generic) + `thinking_os` (kernel)"
+  ENGINEERING_RULE_ROUTING: "Go → AGENTS.md critical rules + `docs/governance/`"
+  TOOL_ROUTING_IMPL: "`lint-go`, `test-go`"
+  QUICK_ROUTING: |-
+    - Go module / package task → see AGENTS.md critical rules
+  STACK_REF_CODES: ""
+
+ref_codes: []
+
+routing_entries:
+  - "Go module / CLI task → see AGENTS.md critical rules"
+
+rules: []
+
+makefile_targets:
+  - {name: lint-go, cmd: "cd src/backend && go vet ./..."}
+  - {name: test-go, cmd: "cd src/backend && go test ./..."}
+
+verify:
+  - {glob: "src/backend/**/*.go", suites: "lint-go + test-go", cmd: "cd src/backend && go vet ./... && go test ./..."}
+
+dimensions: []
+
+skill_enforcement: []

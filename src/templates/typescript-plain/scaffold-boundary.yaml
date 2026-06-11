@@ -1,0 +1,22 @@
+# Scaffold boundary for the typescript-plain stack (library / CLI).
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: typescript-plain
+
+roots:
+  - src/
+
+file_patterns:
+  - "src/**/*.ts"
+  - "tsconfig.json"
+
+imports_from:
+  - src/shared/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/mobile/
+
+notes:
+  - "Plain TypeScript library layout — src/index.ts entry, strict tsconfig. Framework stacks (nextjs, react-native) replace this layout."

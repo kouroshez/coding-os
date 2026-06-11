@@ -1,5 +1,6 @@
 version: 1
 id: python
+language: python
 label: "Python library / CLI / MCP server"
 category: library
 primary_skill: null
@@ -15,31 +16,31 @@ skills: []
 # stack, see docs/governance/critical-rules.md as the entry point.
 
 substitutions:
-  DOMAIN_ROUTES: "Python module / CLI / MCP tool → see project CLAUDE.md / AGENTS.md critical rules"
-  SKILL_ROUTES: "Python → `clean-code` (generic) + `thinking_os` (kernel)"
-  ENGINEERING_RULE_ROUTING: "Python → AGENTS.md critical rules + `docs/governance/`"
+  DOMAIN_ROUTES: "Python module / CLI / MCP tool → `docs/playbooks/python-library.md`"
+  SKILL_ROUTES: "Python → `clean-code` + `testing-strategy` + `shell-scripting` + `sql-authoring` (core skills)"
+  ENGINEERING_RULE_ROUTING: "Python → `docs/engineering/python-rules.md` + `docs/governance/`"
   TOOL_ROUTING_IMPL: "`pytest` (lint/format opt-in: ruff/mypy not enforced by default)"
   QUICK_ROUTING: |-
-    - Python module / package task → see AGENTS.md critical rules
-    - MCP tool / CLI command task → see AGENTS.md critical rules
+    - Python module / package task → [Python Library Playbook](./playbooks/python-library.md)
+    - MCP tool / CLI command task → [Python Library Playbook](./playbooks/python-library.md)
     - Test / fixture task → `tests/` + `pytest`
-  STACK_REF_CODES: ""
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-PY` → `./playbooks/python-library.md`
+    - `REF:PY-RULES` → `./engineering/python-rules.md`
 
-# No ref_codes — this stack is intentionally minimal. The meta-repo uses
-# CLAUDE.md as SSOT; consumer libraries can add refs in their own AGENTS.md.
-ref_codes: []
+ref_codes:
+  - {code: "REF:PLAYBOOK-PY", path: "./playbooks/python-library.md", desc: "Python library/CLI playbook"}
+  - {code: "REF:PY-RULES",    path: "./engineering/python-rules.md", desc: "Python engineering rules"}
 
 routing_entries:
-  - "Python module / CLI / MCP tool task → see AGENTS.md critical rules"
+  - "Python module / CLI / MCP tool task → [Python Library Playbook](./docs/playbooks/python-library.md)"
 
 # No stack-specific rules. CLAUDE.md (or consumer AGENTS.md) carries them.
 rules: []
 
-# No dimension entries here. The meta-repo's CLAUDE.md rules 0–23 enumerate
-# the actual editing surfaces (MCP tool, hook script, CLI command, adapter,
-# extractor, FastAPI route, React SPA, migration, governance doc). Consumer
-# Python libraries add their own dimensions if they grow beyond a script.
-dimensions: []
+dimensions:
+  - {name: "Python module / API", read_files: ["docs/playbooks/python-library.md", "docs/engineering/python-rules.md"]}
+  - {name: "CLI command", read_files: ["docs/playbooks/python-library.md"]}
 
 # No skill_enforcement globs. Generic clean-code applies to all Python via
 # the global skill list in base.yaml. Stack-specific globs would either

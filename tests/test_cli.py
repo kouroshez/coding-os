@@ -722,6 +722,117 @@ class TestInstallResilience:
 
 
 # ---------------------------------------------------------------------------
+# language layer — TASK-348 (language field, extends, plain stacks)
+# ---------------------------------------------------------------------------
+
+
+class TestLanguageLayer:
+    def _registry(self):
+        from cli._resources import templates_dir
+        from cli.stack_registry import load_stack_registry
+
+        return load_stack_registry(templates_dir())
+
+    def test_every_stack_declares_language_and_validates(self) -> None:
+        result = self._registry()
+        assert list(result.warnings) == []
+        for stack_id in result.keys():
+            assert result[stack_id].language, f"{stack_id} missing language"
+
+    def test_discovery_groups_by_language(self) -> None:
+        from cli.stack_registry import group_stacks_by_language
+
+        result = self._registry()
+        profiles = {sid: result[sid] for sid in result.keys()}
+        groups = group_stacks_by_language(profiles)
+        go_ids = [p.id for p in groups["go"]]
+        assert "go-plain" in go_ids and "go-fiber" in go_ids
+
+    def test_bare_language_resolves_to_plain_stack_deterministically(self) -> None:
+        from cli.stack_registry import plain_stack_by_language
+
+        result = self._registry()
+        profiles = {sid: result[sid] for sid in result.keys()}
+        plain = plain_stack_by_language(profiles)
+        assert plain["go"] == "go-plain"  # explicit -plain wins over the chi 'go' stack
+        assert plain["python"] == "python"  # pre-convention fallback
+        assert plain["typescript"] == "typescript-plain"
+
+    @staticmethod
+    def _write_stack(root: Path, stack_id: str, body: str) -> None:
+        d = root / stack_id
+        d.mkdir()
+        (d / "stack.yaml").write_text(body, encoding="utf-8")
+
+    def test_extends_merges_parent_substitutions(self, tmp_path: Path) -> None:
+        from cli.stack_registry import load_stack_registry
+
+        self._write_stack(
+            tmp_path,
+            "parent",
+            "version: 1\nid: parent\nlanguage: go\nlabel: P\ncategory: library\n"
+            "substitutions: {A: from-parent, B: from-parent}\nskills: [s-parent]\n",
+        )
+        self._write_stack(
+            tmp_path,
+            "child",
+            "version: 1\nid: child\nlanguage: go\nlabel: C\ncategory: library\n"
+            "extends: parent\nsubstitutions: {B: from-child}\nskills: [s-child]\n",
+        )
+        result = load_stack_registry(tmp_path)
+        child = result["child"]
+        assert child.substitutions == {"A": "from-parent", "B": "from-child"}
+        assert child.skills == ("s-parent", "s-child")
+
+    def test_extends_cycle_skips_with_warning(self, tmp_path: Path) -> None:
+        from cli.stack_registry import load_stack_registry
+
+        self._write_stack(
+            tmp_path,
+            "alpha",
+            "version: 1\nid: alpha\nlanguage: go\nlabel: A\ncategory: library\nextends: beta\n",
+        )
+        self._write_stack(
+            tmp_path,
+            "beta",
+            "version: 1\nid: beta\nlanguage: go\nlabel: B\ncategory: library\nextends: alpha\n",
+        )
+        result = load_stack_registry(tmp_path)
+        assert "alpha" not in result.keys() and "beta" not in result.keys()
+        assert any("cycle" in w for w in result.warnings)
+
+    def test_plain_stacks_scaffold_runnable_skeletons(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        project = tmp_path / "plainproj"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project),
+                "--template",
+                "go-plain",
+                "--template",
+                "typescript-plain",
+                "--no-index",
+                "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        go_mod = project / "src" / "backend" / "go.mod"
+        assert go_mod.exists()
+        assert "module plainproj" in go_mod.read_text()
+        assert (project / "tsconfig.json").exists()
+        index_ts = project / "src" / "index.ts"
+        assert index_ts.exists()
+        assert "{{PROJECT_NAME}}" not in index_ts.read_text()
+
+
+# ---------------------------------------------------------------------------
 # doctor --bootstrap — TASK-347 (preflight prerequisite checks)
 # ---------------------------------------------------------------------------
 

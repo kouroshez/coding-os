@@ -1,5 +1,6 @@
 version: 1
 id: go
+language: go
 label: "Go (stdlib + chi)"
 category: backend
 primary_skill: go-patterns

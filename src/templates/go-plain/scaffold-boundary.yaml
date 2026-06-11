@@ -1,0 +1,22 @@
+# Scaffold boundary for the go-plain stack (stdlib only).
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: go-plain
+
+roots:
+  - src/backend/
+
+file_patterns:
+  - "src/backend/**/*.go"
+
+imports_from:
+  - src/shared/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/frontend/
+  - src/mobile/
+
+notes:
+  - "Plain Go module — go.mod lives in src/backend/. Framework stacks (go, go-fiber) replace this layout."

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -46,7 +46,10 @@ STACK_MANIFEST_NAME = "stack.yaml"
 BASE_MANIFEST_NAME = "base.yaml"
 SUPPORTED_VERSION = 1
 
-_SCHEMA_DIR = Path(__file__).resolve().parent.parent.parent / "src" / "core" / "schemas"
+from cli._resources import core_dir as _core_dir
+
+# Resolved via importlib (TASK-219) — survives wheel installs and meta-repo moves.
+_SCHEMA_DIR = _core_dir("schemas")
 _STACK_SCHEMA_PATH = _SCHEMA_DIR / "stack.schema.json"
 
 
@@ -359,7 +362,106 @@ def _build_stack(data: dict, manifest_path: Path) -> StackProfile:
         ),
         hooks=_parse_hooks(data.get("hooks"), manifest_path),
         source_dir=source_dir,
+        language=str(data.get("language") or ""),
+        extends=(str(data["extends"]) if data.get("extends") else None),
     )
+
+
+def _merge_extended(parent: StackProfile, child: StackProfile) -> StackProfile:
+    """Compose child on parent: scalars child-wins, substitutions merge
+    parent-first, list fields concatenate parent+child with stable dedup
+    (template-authoring.md § Language layer & composition)."""
+
+    def _concat(parent_items: tuple, child_items: tuple) -> tuple:
+        seen: set[str] = set()
+        merged: list = []
+        for item in (*parent_items, *child_items):
+            key = repr(item)
+            if key not in seen:
+                seen.add(key)
+                merged.append(item)
+        return tuple(merged)
+
+    return replace(
+        child,
+        substitutions={**parent.substitutions, **child.substitutions},
+        skills=_concat(parent.skills, child.skills),
+        verify=_concat(parent.verify, child.verify),
+        routing_entries=_concat(parent.routing_entries, child.routing_entries),
+        ref_codes=_concat(parent.ref_codes, child.ref_codes),
+        makefile_targets=_concat(parent.makefile_targets, child.makefile_targets),
+        rules=_concat(parent.rules, child.rules),
+        dimensions=_concat(parent.dimensions, child.dimensions),
+        skill_enforcement=_concat(parent.skill_enforcement, child.skill_enforcement),
+        hooks=_concat(parent.hooks, child.hooks),
+    )
+
+
+def _resolve_extends(
+    stacks: dict[str, StackProfile], warnings: list[str]
+) -> dict[str, StackProfile]:
+    resolved: dict[str, StackProfile] = {}
+
+    def _resolve(stack_id: str, chain: tuple[str, ...]) -> StackProfile:
+        if stack_id in resolved:
+            return resolved[stack_id]
+        profile = stacks[stack_id]
+        parent_id = profile.extends
+        if parent_id:
+            if parent_id in chain or parent_id == stack_id:
+                raise StackManifestError(
+                    f"extends cycle: {' -> '.join((*chain, stack_id, parent_id))}"
+                )
+            if parent_id not in stacks:
+                raise StackManifestError(f"extends unknown stack '{parent_id}'")
+            parent = _resolve(parent_id, (*chain, stack_id))
+            profile = _merge_extended(parent, profile)
+        resolved[stack_id] = profile
+        return profile
+
+    out: dict[str, StackProfile] = {}
+    for stack_id in stacks:
+        try:
+            out[stack_id] = _resolve(stack_id, ())
+        except StackManifestError as exc:
+            msg = f"skipping stack {stack_id}: {exc}"
+            warnings.append(msg)
+            logger.warning(msg)
+    return out
+
+
+def group_stacks_by_language(
+    stacks: dict[str, StackProfile],
+) -> dict[str, list[StackProfile]]:
+    """Language → stacks (plain stack first, then alphabetical) for discovery."""
+    groups: dict[str, list[StackProfile]] = {}
+    for profile in stacks.values():
+        groups.setdefault(profile.language or "other", []).append(profile)
+    for language, members in groups.items():
+        members.sort(key=lambda p: (not _is_plain_stack(p), p.id))
+    return dict(sorted(groups.items()))
+
+
+def _is_plain_stack(profile: StackProfile) -> bool:
+    return profile.id in (f"{profile.language}-plain", profile.language)
+
+
+def plain_stack_by_language(stacks: dict[str, StackProfile]) -> dict[str, str]:
+    """language → id of its plain stack, for bare-language picks at init.
+
+    An explicit '<language>-plain' stack always wins; a stack whose id equals
+    its language (the pre-convention `python`) only fills the gap — order of
+    registry iteration must never decide the winner."""
+    plain: dict[str, str] = {}
+    fallback: dict[str, str] = {}
+    for profile in stacks.values():
+        if not profile.language:
+            continue
+        if profile.id == f"{profile.language}-plain":
+            plain[profile.language] = profile.id
+        elif profile.id == profile.language:
+            fallback[profile.language] = profile.id
+    return {**fallback, **plain}
 
 
 def load_stack_registry(templates_dir: Path) -> StackLoadResult:
@@ -398,6 +500,7 @@ def load_stack_registry(templates_dir: Path) -> StackLoadResult:
             continue
         stacks[profile.id] = profile
 
+    stacks = _resolve_extends(stacks, warnings)
     return StackLoadResult(stacks=stacks, warnings=tuple(warnings))
 
 

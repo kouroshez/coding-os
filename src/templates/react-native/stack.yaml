@@ -1,5 +1,6 @@
 version: 1
 id: react-native
+language: typescript
 label: "React Native + Expo + TypeScript"
 category: mobile
 primary_skill: react-native-mobile

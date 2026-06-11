@@ -1,5 +1,6 @@
 version: 1
 id: django
+language: python
 label: "Django + DRF + PostgreSQL"
 category: backend
 primary_skill: python-django

@@ -1,5 +1,6 @@
 version: 1
 id: nextjs
+language: typescript
 label: "Next.js + React + TypeScript"
 category: frontend
 primary_skill: nextjs-react

@@ -4,7 +4,7 @@
   "title": "Coding-OS Stack Manifest",
   "description": "Schema for templates/<id>/stack.yaml. Defines a stack module — metadata, contributed substitutions, ref codes, routing, rules, dimensions, skill enforcement, Makefile targets, and Jinja fragments.",
   "type": "object",
-  "required": ["version", "id", "label", "category"],
+  "required": ["version", "id", "label", "category", "language"],
   "additionalProperties": false,
   "properties": {
     "version": {
@@ -16,6 +16,16 @@
       "type": "string",
       "pattern": "^[a-z][a-z0-9_-]*$",
       "description": "Lowercase identifier. Must match the directory name under templates/."
+    },
+    "language": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "description": "Base programming language (python, typescript, go, …). Drives language-grouped discovery; picking a bare language resolves to the '<language>-plain' stack (TASK-348)."
+    },
+    "extends": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "description": "Optional parent stack id. Child wins on scalars; substitutions merge parent-first; list fields concatenate with dedup. Cycles/unknown parents skip the stack with a WARN."
     },
     "label": {
       "type": "string",

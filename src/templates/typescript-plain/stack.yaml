@@ -1,0 +1,37 @@
+version: 1
+id: typescript-plain
+language: typescript
+label: "TypeScript (plain — library / CLI, no framework)"
+category: library
+primary_skill: null
+skills: []
+
+# Plain-language stack (template-authoring.md § Language layer): picked when
+# the user chooses "typescript" without a framework. Ships a strict tsconfig
+# skeleton; framework stacks (nextjs, react-native) carry their own layouts.
+
+substitutions:
+  DOMAIN_ROUTES: "TypeScript module / CLI task → AGENTS.md critical rules"
+  SKILL_ROUTES: "TypeScript → `typescript` + `clean-code` (core skills)"
+  ENGINEERING_RULE_ROUTING: "TypeScript → AGENTS.md critical rules + `docs/governance/`"
+  TOOL_ROUTING_IMPL: "`lint-ts` (tsc --noEmit)"
+  QUICK_ROUTING: |-
+    - TypeScript module / package task → see AGENTS.md critical rules
+  STACK_REF_CODES: ""
+
+ref_codes: []
+
+routing_entries:
+  - "TypeScript module / CLI task → see AGENTS.md critical rules"
+
+rules: []
+
+makefile_targets:
+  - {name: lint-ts, cmd: "npx --yes tsc --noEmit"}
+
+verify:
+  - {glob: "src/**/*.ts", suites: "lint-ts", cmd: "npx --yes tsc --noEmit"}
+
+dimensions: []
+
+skill_enforcement: []

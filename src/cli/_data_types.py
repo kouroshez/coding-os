@@ -131,6 +131,8 @@ class StackProfile:
     agents_md_sections: tuple[AgentsMdSection, ...]
     hooks: tuple[HookEntry, ...]
     source_dir: Path
+    language: str = ""
+    extends: str | None = None
 
 
 @dataclass(frozen=True)

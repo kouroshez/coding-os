@@ -1,5 +1,6 @@
 version: 1
 id: go-fiber
+language: go
 label: "Go + Fiber (gofiber/fiber v2) + PostgreSQL"
 category: backend
 primary_skill: go-fiber

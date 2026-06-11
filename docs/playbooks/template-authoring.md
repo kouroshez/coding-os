@@ -18,6 +18,24 @@ Three contracts every stack template must satisfy:
 2. **`scaffold/`** is the file tree the consumer gets after `cos init`. Anything here is copied once at project creation; it never re-syncs. Use it for files the consumer is expected to edit.
 3. **`skills/<skill_id>/`** ships agent-loadable skill packages — `SKILL.md`, `references/anatomy.md`, optional `src/scripts/`. Lazy-loaded forever; safe to evolve without reinstalling consumers.
 
+## Language layer & composition (TASK-348)
+
+Every stack declares its base **`language`** (`python`, `typescript`, `go`,
+…) in `stack.yaml` — required by the schema. The init discovery (CLI prompt
+and hub catalog) groups stacks by language so a user can pick **a language
+OR a framework**: choosing a bare language selects its plain stack.
+
+- **Plain-language stacks** are named `<language>-plain` (`go-plain`,
+  `typescript-plain`), `category: library`, minimal scaffold (a runnable
+  module / tsconfig skeleton), no framework skill. `python` predates the
+  convention and acts as python's plain stack.
+- **`extends: <stack-id>`** (optional) composes a stack on top of another:
+  scalars are child-wins, dict fields (`substitutions`) merge parent-first
+  then child, list fields concatenate parent + child with order-preserving
+  dedup. Cycles and unknown parents fail the load with a WARN (the stack is
+  skipped, never a crash). One level of nesting is supported; deeper chains
+  resolve recursively but keep them shallow.
+
 ## Steps to add a new stack
 
 1. **Pick the id.** Lowercase, kebab-case, no version suffix. `nextjs`, `go-fiber`, `react-native`. Match the framework's most-used display name.

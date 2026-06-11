@@ -1,5 +1,6 @@
 version: 1
 id: meta
+language: python
 label: "Coding OS Meta-Project (DNA)"
 category: library
 primary_skill: graph-explorer

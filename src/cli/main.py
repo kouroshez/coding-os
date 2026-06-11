@@ -238,18 +238,31 @@ def _sync_missing(project: Path, *, output_format: str = "text") -> None:
 
 
 def _prompt_templates() -> tuple[str, ...]:
-    """Ask the user which stack templates to apply. Returns a tuple of IDs."""
+    """Ask the user which stack templates to apply. Returns a tuple of IDs.
+
+    Stacks render grouped by language (template-authoring.md § Language
+    layer): the user can answer with a stack id, a number, OR a bare
+    language name — the latter resolves to that language's plain stack.
+    """
+    from cli.stack_registry import group_stacks_by_language, plain_stack_by_language
+
     registry = _get_stack_registry()
-    available = sorted(registry.keys())
-    if not available:
+    if not registry.keys():
         return ()
-    click.echo("\nAvailable stacks:")
-    for idx, sid in enumerate(available, start=1):
-        profile = registry[sid]
-        click.echo(f"  {idx}. {sid:10s} — {profile.label}")
+    profiles = {sid: registry[sid] for sid in registry.keys()}
+    groups = group_stacks_by_language(profiles)
+    language_to_plain = plain_stack_by_language(profiles)
+
+    available: list[str] = []
+    click.echo("\nAvailable stacks (a bare language name picks its plain stack):")
+    for language, members in groups.items():
+        click.echo(f"  [{language}]")
+        for profile in members:
+            available.append(profile.id)
+            click.echo(f"  {len(available)}. {profile.id:17s} — {profile.label}")
     click.echo("  0. none")
     raw = click.prompt(
-        "Select stacks (comma-separated numbers or names, e.g. '1,4' or 'django,nextjs')",
+        "Select stacks (numbers, names, or a language — e.g. '1,4', 'django,nextjs', 'go')",
         default="0",
         show_default=False,
     )
@@ -264,6 +277,8 @@ def _prompt_templates() -> tuple[str, ...]:
                 chosen.append(available[i])
         elif tok in registry:
             chosen.append(tok)
+        elif tok in language_to_plain:
+            chosen.append(language_to_plain[tok])
     # Deduplicate while preserving order.
     seen = set()
     result: list[str] = []
@@ -488,6 +503,13 @@ def _apply_template(
 # src/cli/aggregator.py::aggregate() for the data-driven replacement.
 
 
+# Scaffold text files whose {{KEY}} placeholders are resolved at copy time.
+# Unknown keys are always left intact, so files with no placeholders are
+# byte-identical after the pass (plain-stack code skeletons need this —
+# go.mod / main.go / index.ts carry {{PROJECT_NAME}}; TASK-348).
+_PLACEHOLDER_SUFFIXES = {".md", ".go", ".mod", ".ts", ".tsx", ".json"}
+
+
 def _resolve_placeholders(text: str, substitutions: dict[str, str]) -> str:
     """Replace `{{KEY}}` placeholders. Unknown keys are left intact for later overlay."""
     result = text
@@ -541,7 +563,7 @@ def _overlay_scaffold(
                 continue
 
             dest.parent.mkdir(parents=True, exist_ok=True)
-            if src_file.suffix == ".md":
+            if src_file.suffix in _PLACEHOLDER_SUFFIXES:
                 content = src_file.read_text(encoding="utf-8")
                 content = _resolve_placeholders(content, substitutions)
                 dest.write_text(content, encoding="utf-8")

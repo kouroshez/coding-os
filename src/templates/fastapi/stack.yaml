@@ -1,5 +1,6 @@
 version: 1
 id: fastapi
+language: python
 label: "FastAPI + Pydantic + PostgreSQL"
 category: backend
 primary_skill: python-fastapi
