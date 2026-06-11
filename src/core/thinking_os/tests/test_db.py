@@ -451,20 +451,28 @@ class TestMigrationV6Tasks:
             "content_hash",
             "mtime",
             "goal_text",
-            "scope_in",
-            "scope_out",
-            "requirements",
             "dependencies",
-            "source_of_truth",
-            "read_first",
-            "open_questions",
-            "rabbit_holes",
-            "verification",
+            "blocked_by_json",
+            "references_json",
+            "external_ref",
             "created_at",
             "updated_at",
         }
         missing = expected - cols
         assert not missing, f"tasks table missing columns: {missing}"
+        # v41 dropped the v6-era columns nothing read or wrote after the
+        # legacy task_sync retirement (TASK-398).
+        dropped = {
+            "scope_in",
+            "scope_out",
+            "requirements",
+            "source_of_truth",
+            "open_questions",
+            "rabbit_holes",
+            "verification",
+            "read_first",
+        }
+        assert not (dropped & cols), f"v41 should have dropped: {dropped & cols}"
 
     def test_tasks_primary_key_is_task_id(self, migrated_conn: sqlite3.Connection) -> None:
         """task_id should be the PRIMARY KEY — inserting a duplicate raises."""

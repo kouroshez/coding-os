@@ -369,7 +369,8 @@ def _migrate_v6_tasks(conn: sqlite3.Connection) -> None:
 
     Mirrors the structure of `docs/tasks/TASK-###-slug.md` files as a
     queryable index. Files remain SSOT — the table is a derived cache
-    populated by `task_sync.py`. Dependencies are stored as a JSON-encoded
+    populated by `board_os/sync.py` (sole writer since TASK-398).
+    Dependencies are stored as a JSON-encoded
     list so we can do `LIKE '%"TASK-195"%'` lookups for `cos_task_dependents`
     without false-positive substring matches (TASK-19 vs TASK-195).
     """
@@ -1650,7 +1651,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_swimlane_status_priority
     # 2. task_dependencies junction. PK(task_id, depends_on) indexes the
     #    dependencies() direction; idx on depends_on indexes dependents().
     #    Triggers derive it from the tasks.dependencies JSON column so EVERY
-    #    writer (board_os sync, legacy task_sync, orphan-delete) keeps it in
+    #    writer (board_os sync, orphan-delete) keeps it in
     #    step with zero per-writer code. json_each is built into SQLite 3.38+
     #    (the repo already floors at 3.27+ for FTS5 remove_diacritics 2).
     conn.executescript(
@@ -1897,6 +1898,40 @@ CREATE INDEX IF NOT EXISTS idx_embedding_outbox_pending
 """)
     conn.commit()
     logger.info("Migration v40 applied: embedding_outbox table")
+
+
+def _migrate_v41_tasks_lean_columns(conn: sqlite3.Connection) -> None:
+    """Migration v41 — tasks table catches up with the lean card contract
+    (TASK-398): adds blocked_by_json / references_json / external_ref
+    (parsed since the Scrumban migration but never persisted) and drops the
+    eight v6-era columns with no reader or writer after the legacy
+    task_sync retirement. domain / goal_text / dependencies stay — the
+    cos_task_* tools read them. Idempotent — guarded per column; DROP
+    COLUMN is best-effort so a pre-3.35 SQLite degrades to harmless
+    residue instead of a blocked init."""
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(tasks)")}
+    for name in ("blocked_by_json", "references_json", "external_ref"):
+        if name not in cols:
+            conn.execute(f"ALTER TABLE tasks ADD COLUMN {name} TEXT")
+    dead = (
+        "scope_in",
+        "scope_out",
+        "requirements",
+        "source_of_truth",
+        "open_questions",
+        "rabbit_holes",
+        "verification",
+        "read_first",
+    )
+    for name in dead:
+        if name not in cols:
+            continue
+        try:
+            conn.execute(f"ALTER TABLE tasks DROP COLUMN {name}")
+        except sqlite3.OperationalError as exc:
+            logger.warning("Migration v41: could not drop tasks.%s (%s) — leaving in place", name, exc)
+    conn.commit()
+    logger.info("Migration v41 applied: lean task columns added, v6 dead columns dropped")
 
 
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
@@ -2220,6 +2255,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         40,
         "Add embedding_outbox — durable backlog so hot-path-skipped embeddings drain off the interactive path",
         _migrate_v40_embedding_outbox,
+    ),
+    (
+        41,
+        "Tasks lean columns — add blocked_by/references/external_ref, drop dead v6 columns (TASK-398)",
+        _migrate_v41_tasks_lean_columns,
     ),
 ]
 

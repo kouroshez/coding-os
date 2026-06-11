@@ -47,64 +47,80 @@ def tmp_db(tmp_path: Path) -> sqlite3.Connection:
     conn.close()
 
 
+def _lean_card(
+    task_id: str,
+    title: str,
+    *,
+    swimlane: str,
+    status: str,
+    outcome: str,
+    depends_on: tuple[str, ...] = (),
+) -> str:
+    deps = "[" + ", ".join(depends_on) + "]"
+    return (
+        "---\n"
+        f"id: {task_id}\n"
+        f'title: "{title}"\n'
+        f"swimlane: {swimlane}\n"
+        "kind: feature\n"
+        "labels: []\n"
+        f"status: {status}\n"
+        "priority: P2\n"
+        "appetite: 1d\n"
+        "created: 2026-06-01\n"
+        f"depends_on: {deps}\n"
+        "---\n"
+        f"# {task_id}: {title}\n\n"
+        f"**Outcome (one sentence):** {outcome}\n"
+    )
+
+
 @pytest.fixture
 def seeded_db(tmp_db: sqlite3.Connection, tmp_path: Path) -> sqlite3.Connection:
     """Populate the tasks table with a realistic dependency graph.
 
     Graph:
-        TASK-001 (DOCS, done)       — no deps
-        TASK-002 (BACKEND, wip)     — depends on TASK-001
-        TASK-003 (BACKEND, open)    — depends on TASK-002
-        TASK-019 (DOCS, done)       — no deps (used for substring-false-positive check)
-        TASK-195 (BACKEND, open)    — depends on TASK-001
-        TASK-199 (BACKEND, open)    — depends on TASK-195
-                                      (used for the "TASK-19 vs TASK-195" safety test)
+        TASK-001 (DOCS, complete)         — no deps
+        TASK-002 (BACKEND, in_progress)   — depends on TASK-001
+        TASK-003 (BACKEND, icebox)        — depends on TASK-002
+        TASK-019 (DOCS, complete)         — no deps (substring-false-positive check)
+        TASK-195 (BACKEND, icebox)        — depends on TASK-001
+        TASK-199 (BACKEND, icebox)        — depends on TASK-195
+                                            (the "TASK-19 vs TASK-195" safety test)
     """
     project = tmp_path / "project"
     tasks_dir = project / "docs" / "tasks"
     tasks_dir.mkdir(parents=True)
 
     task_files = {
-        "TASK-001-foundation.md": (
-            "# TASK-001: [DOCS] Foundation\n\n## Goal\n\nDocumentation setup.\n\n"
-            "## Dependencies\n\n- None.\n"
+        "TASK-001-foundation.md": _lean_card(
+            "TASK-001", "Foundation", swimlane="docs", status="complete",
+            outcome="Documentation setup.",
         ),
-        "TASK-002-backend.md": (
-            "# TASK-002: [BACKEND] Backend scaffold\n\n## Goal\n\nDjango apps.\n\n"
-            "## Dependencies\n\n- TASK-001 — foundation\n"
+        "TASK-002-backend.md": _lean_card(
+            "TASK-002", "Backend scaffold", swimlane="backend", status="in_progress",
+            outcome="Django apps.", depends_on=("TASK-001",),
         ),
-        "TASK-003-auth.md": (
-            "# TASK-003: [BACKEND] Auth flow\n\n## Goal\n\nJWT authentication.\n\n"
-            "## Dependencies\n\n- TASK-002 — backend must exist\n"
+        "TASK-003-auth.md": _lean_card(
+            "TASK-003", "Auth flow", swimlane="backend", status="icebox",
+            outcome="JWT authentication.", depends_on=("TASK-002",),
         ),
-        "TASK-019-small.md": (
-            "# TASK-019: [DOCS] Small task\n\n## Goal\n\nDoc cleanup.\n\n"
-            "## Dependencies\n\n- None.\n"
+        "TASK-019-small.md": _lean_card(
+            "TASK-019", "Small task", swimlane="docs", status="complete",
+            outcome="Doc cleanup.",
         ),
-        "TASK-195-seller-crud.md": (
-            "# TASK-195: [BACKEND] Seller product CRUD\n\n## Goal\n\n"
-            "CRUD endpoints for sellers.\n\n"
-            "## Dependencies\n\n- TASK-001 — foundation\n"
+        "TASK-195-seller-crud.md": _lean_card(
+            "TASK-195", "Seller product CRUD", swimlane="backend", status="icebox",
+            outcome="CRUD endpoints for sellers.", depends_on=("TASK-001",),
         ),
-        "TASK-199-commission.md": (
-            "# TASK-199: [BACKEND] Commission model\n\n## Goal\n\n"
-            "Commission calculation at checkout for payment splitting between sellers.\n\n"
-            "## Dependencies\n\n- TASK-195 — seller CRUD\n"
+        "TASK-199-commission.md": _lean_card(
+            "TASK-199", "Commission model", swimlane="backend", status="icebox",
+            outcome="Commission calculation at checkout for payment splitting between sellers.",
+            depends_on=("TASK-195",),
         ),
     }
     for filename, content in task_files.items():
         (tasks_dir / filename).write_text(content, encoding="utf-8")
-
-    (project / "docs" / "tasks.md").write_text(
-        "# Tasks\n\n"
-        "- [x] TASK-001: [DOCS] Foundation\n"
-        "- [/] TASK-002: [BACKEND] Backend scaffold\n"
-        "- [ ] TASK-003: [BACKEND] Auth flow\n"
-        "- [x] TASK-019: [DOCS] Small task\n"
-        "- [ ] TASK-195: [BACKEND] Seller product CRUD\n"
-        "- [ ] TASK-199: [BACKEND] Commission model\n",
-        encoding="utf-8",
-    )
 
     sync_tasks(tmp_db, project_root=project)
     return tmp_db
@@ -121,18 +137,18 @@ class TestTaskByFilter:
         assert len(results) == 6
 
     def test_filter_by_status_open(self, seeded_db: sqlite3.Connection) -> None:
-        results = task_by_filter(seeded_db, status="open")
+        results = task_by_filter(seeded_db, status="icebox")
         assert len(results) == 3
-        assert all(r["status"] == "open" for r in results)
+        assert all(r["status"] == "icebox" for r in results)
 
     def test_filter_by_status_done(self, seeded_db: sqlite3.Connection) -> None:
-        results = task_by_filter(seeded_db, status="done")
+        results = task_by_filter(seeded_db, status="complete")
         assert len(results) == 2
         ids = {r["task_id"] for r in results}
         assert ids == {"TASK-001", "TASK-019"}
 
     def test_filter_by_status_wip(self, seeded_db: sqlite3.Connection) -> None:
-        results = task_by_filter(seeded_db, status="wip")
+        results = task_by_filter(seeded_db, status="in_progress")
         assert len(results) == 1
         assert results[0]["task_id"] == "TASK-002"
 
@@ -142,9 +158,9 @@ class TestTaskByFilter:
         assert all(r["domain"] == "BACKEND" for r in results)
 
     def test_filter_by_status_and_domain(self, seeded_db: sqlite3.Connection) -> None:
-        results = task_by_filter(seeded_db, status="open", domain="BACKEND")
+        results = task_by_filter(seeded_db, status="icebox", domain="BACKEND")
         assert len(results) == 3
-        assert all(r["status"] == "open" and r["domain"] == "BACKEND" for r in results)
+        assert all(r["status"] == "icebox" and r["domain"] == "BACKEND" for r in results)
 
     def test_limit_respected(self, seeded_db: sqlite3.Connection) -> None:
         results = task_by_filter(seeded_db, limit=2)
@@ -265,7 +281,7 @@ class TestTaskSearchLikeFallback:
     def test_like_respects_status_filter(self, seeded_db: sqlite3.Connection, monkeypatch) -> None:
         monkeypatch.setattr(embeddings, "is_available", lambda: False)
         # "scaffold" matches TASK-002 which is status=wip
-        results = task_search(seeded_db, "Django", status="done")
+        results = task_search(seeded_db, "Django", status="complete")
         # Django doesn't appear in done tasks
         assert results == []
 
@@ -295,8 +311,8 @@ class TestTaskSearchSemantic:
 
     @REQUIRES_RAG
     def test_semantic_honors_status_filter(self, seeded_db: sqlite3.Connection) -> None:
-        results = task_search(seeded_db, "backend implementation", status="open")
-        assert all(r["status"] == "open" for r in results)
+        results = task_search(seeded_db, "backend implementation", status="icebox")
+        assert all(r["status"] == "icebox" for r in results)
 
     @REQUIRES_RAG
     def test_semantic_honors_domain_filter(self, seeded_db: sqlite3.Connection) -> None:
