@@ -1634,3 +1634,83 @@ class TestModuleCli:
         result = runner.invoke(cli, ["module", "list"])
         assert result.exit_code != 0
         assert "not a coding-os project" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Module lifecycle — TASK-357 (data preservation, migration, rollback)
+# ---------------------------------------------------------------------------
+
+
+class TestModuleLifecycle:
+    def _init(self, runner: CliRunner, tmp_path: Path) -> Path:
+        project = tmp_path / "lifeproj"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            ["init", "--agent", "claude", "-d", str(project), "--yes", "--no-index", "--no-register"],
+        )
+        assert result.exit_code == 0, result.output
+        return project
+
+    def test_disable_reenable_preserves_all_task_data(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        project = self._init(runner, tmp_path)
+        monkeypatch.chdir(project)
+        tasks_dir = project / "docs" / "tasks"
+        tasks_dir.mkdir(parents=True, exist_ok=True)
+        seeded = {}
+        for i in (1, 2, 3):
+            f = tasks_dir / f"TASK-00{i}-seed.md"
+            f.write_text(f"---\nid: TASK-00{i}\nstatus: icebox\n---\n# seed {i}\n", encoding="utf-8")
+            seeded[f.name] = f.read_text(encoding="utf-8")
+        db = project / ".coding-os" / "coding-os.db"
+        db_size_before = db.stat().st_size
+
+        assert runner.invoke(cli, ["module", "disable", "tasks"]).exit_code == 0
+        assert runner.invoke(cli, ["module", "enable", "tasks"]).exit_code == 0
+
+        for name, content in seeded.items():
+            assert (tasks_dir / name).read_text(encoding="utf-8") == content  # untouched
+        assert db.exists() and db.stat().st_size == db_size_before  # no DB row purge
+
+    def test_update_migrates_pre_module_consumer_with_zero_behavior_change(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        project = self._init(runner, tmp_path)
+        state_file = project / ".coding-os" / "subsystems-state.json"
+        assert not state_file.exists()  # lazy default — pre-module shape
+        agents_before = (project / "AGENTS.md").read_text(encoding="utf-8")
+
+        result = runner.invoke(cli, ["update", "-d", str(project)])
+        assert result.exit_code == 0, result.output
+        assert "Migrated to module registry" in result.output
+        assert json.loads(state_file.read_text(encoding="utf-8")) == {
+            "version": 1,
+            "disabled": [],
+        }
+        assert (project / "AGENTS.md").read_text(encoding="utf-8") == agents_before
+
+        rerun = runner.invoke(cli, ["update", "-d", str(project)])
+        assert rerun.exit_code == 0
+        assert "Migrated to module registry" not in rerun.output  # idempotent
+
+    def test_regen_failure_rolls_back_module_state(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.module_commands as module_commands
+
+        project = self._init(runner, tmp_path)
+        monkeypatch.chdir(project)
+
+        def _boom(_project: Path) -> list[str]:
+            raise OSError("disk full")
+
+        monkeypatch.setattr(module_commands, "regen_after_toggle", _boom)
+        result = runner.invoke(cli, ["module", "disable", "memory"])
+        assert result.exit_code != 0
+        assert "rolled back" in result.output
+
+        from cli.subsystems import module_state
+
+        assert module_state(project)["memory"] is True  # state flip reverted

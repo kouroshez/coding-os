@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: G-modularity
 labels: [wave-3, onboarding-program, ready]
-status: testing
+status: complete
 priority: P0
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-349]
 blocked_by: []
@@ -34,4 +34,5 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_cli.py tests/test_adapters.py -q` runs, **Then** green including the new conditional-render tests.
 
 ## Work Log
-- 2026-06-11 [claude]: IMPL DONE (parked, batch 4 #1) — AgentsMdSection.requires:[module] (schema + parser + renderer section-skip); fragments 
+- 2026-06-11 [claude]: IMPL DONE (parked, batch 4 #1) — AgentsMdSection.requires:[module] (schema + parser + renderer section-skip); fragments
+- 2026-06-11 [claude]: CLOSED on batch-4 suite: tests/test_cli.py 114 passed (25m29s) on top of TestConditionalRendering 5/5, adapters 48/48, g

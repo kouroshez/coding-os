@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: G-modularity
 labels: [wave-3, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 1d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-353, TASK-354]
 blocked_by: []
 references: []
 ---
-
 # TASK-357: Module lifecycle semantics — mid-project toggle + existing-consumer migration
 
 **Outcome (one sentence):** Disabling a module mid-project gates its tools/hooks but preserves all data (docs/tasks/graph index); re-enable restores cleanly; `cos update` migrates existing consumer projects to the module registry with default-all-on and zero behavior change.

@@ -487,6 +487,18 @@ def update(
             click.echo("  Removed legacy .codex/instructions.md (Codex reads AGENTS.md)")
             overall_changes = True
 
+        # Module-registry migration (TASK-357): pre-module consumers gain an
+        # explicit all-on state file. All-on ≡ the lazy default, so rendered
+        # artifacts stay byte-identical — the file only makes the project's
+        # module posture visible to the Config tab / cos module list.
+        module_state_file = project / STATE_DIR / "subsystems-state.json"
+        if not module_state_file.exists():
+            module_state_file.parent.mkdir(parents=True, exist_ok=True)
+            module_state_file.write_text(
+                json.dumps({"version": 1, "disabled": []}, indent=2) + "\n", encoding="utf-8"
+            )
+            click.echo("  Migrated to module registry (all modules on)")
+
         # Fill the AGENTS.md gap for projects that predate the
         # render_agents_md path (pre-v0.2.0). Never overwrites an
         # existing file — `ensure_agents_md` has an idempotent guard.

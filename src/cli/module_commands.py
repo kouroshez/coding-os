@@ -66,9 +66,25 @@ def regen_after_toggle(project: Path) -> list[str]:
 
 
 def toggle_and_regen(project: Path, module_id: str, enabled: bool) -> tuple[ToggleResult, list[str]]:
-    """Single entry point shared by the CLI and the hub settings route."""
+    """Single entry point shared by the CLI and the hub settings route.
+
+    Atomic: a regen failure rolls the state flip back, so the project never
+    lands in a half state (state says disabled, artifacts say enabled)."""
     result = set_module_enabled(project, module_id, enabled)
-    notes = regen_after_toggle(project) if result.ok else []
+    if not result.ok:
+        return result, []
+    try:
+        notes = regen_after_toggle(project)
+    except Exception as exc:
+        set_module_enabled(project, module_id, not enabled)
+        return (
+            ToggleResult(
+                ok=False,
+                module_id=module_id,
+                reason=f"regen failed ({exc}) — module state rolled back, nothing changed",
+            ),
+            [],
+        )
     return result, notes
 
 
