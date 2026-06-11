@@ -133,21 +133,19 @@ hooks:
   - id: enforce-task-transition
     script: enforce-task-transition.sh
     description: |
-      Blocks hand-edits that mutate a task/audit STATUS transition
-      (status: / **Status:** / checkbox [ ]->[x]) on docs/tasks/**/*.md —
-      INCLUDING audits/audit-*.md. Status changes must route through
-      cos_task_move / cos task-done / cos_supervise_record_output so the
-      board DB, WIP caps, DoD gates, and the Stop completion guardian stay
-      consistent; a raw Edit bypasses them and a hand-ticked audit box
-      defeats the guardian. Allow-list: governance/docs-update/template-update
-      active task, or COS_ALLOW_TASK_EDIT=1.
+      Blocks hand-edits that mutate a task STATUS transition
+      (status: / **Status:** / checkbox [ ]->[x]) on docs/tasks/**/*.md.
+      Status changes must route through cos_task_move / cos task-done so the
+      board DB, WIP caps, and DoD gates stay consistent; a raw Edit bypasses
+      them. Allow-list: governance/docs-update/template-update active task,
+      or COS_ALLOW_TASK_EDIT=1.
     category: safety
     phase: "0"
     timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
-        status_message: "🚦 Checking task/audit status transition..."
+        status_message: "🚦 Checking task status transition..."
 
   - id: block-migration-conflict
     script: block-migration-conflict.sh
@@ -1138,7 +1136,7 @@ hooks:
       skills reactively after the first block. Fires on startup AND on
       compact|resume — in a multi-hour session a compaction can outlive
       the 120-min .active-skill marker, so the card must re-prime after
-      context loss (mirrors intent-primer / rules-primer). SessionStart
+      context loss (mirrors rules-primer). SessionStart
       fires once per boundary, so no debounce is needed. Always exits 0.
     category: cognition
     phase: P
@@ -1156,12 +1154,12 @@ hooks:
     description: |
       SessionStart prime card — injects a ~200-token workflow-integrity card
       at every session boundary (startup, compact, resume) so the agent enters
-      turn-1 knowing Critical Rule 25: task/audit status changes go through
-      cos_task_move / cos task-done / cos_supervise_record_output (never a
-      hand-Edit; enforce-task-transition BLOCKs it), task lookup via
+      turn-1 knowing Critical Rule 25: task status changes go through
+      cos_task_move / cos task-done (never a hand-Edit;
+      enforce-task-transition BLOCKs it), task lookup via
       cos task-show / cos_task_search (never ls/grep on docs/tasks), gate via
       cos_classify_prompt, and that cos_* tools are deferred (ToolSearch first).
-      Mirrors intent-primer. Full contract: critical-rules.md § Rule 25.
+      Full contract: critical-rules.md § Rule 25.
       Always exits 0.
     category: cognition
     phase: P

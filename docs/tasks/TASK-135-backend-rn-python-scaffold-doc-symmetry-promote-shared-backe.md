@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** No stack persona starts from a blank doc tree: stack-agnostic backend docs (naming-conventions, logging-standards, glossary, secrets-rotation-runbook) are promoted so fastapi/go/go-fiber match django (D2-F5); react-native gets a design/ tokens + screens-content-spec mirror like nextjs (D2-F6); python + meta stacks get a minimal scaffold/docs (python-rules: typing/packaging/public-API) instead of empty (D2-F8).
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/templates/django/scaffold/docs/
 - src/templates/nextjs/scaffold/docs/design/
 - src/templates/python/

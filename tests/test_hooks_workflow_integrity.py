@@ -4,7 +4,7 @@ Covers the three new hooks behaviourally (subprocess + synthetic stdin),
 including the allow-list / override paths that were only manually smoke-tested
 during implementation:
   - enforce-task-transition.sh — BLOCKs status/checkbox transitions on
-    docs/tasks/** (incl. audits/), allow-listed for governance tasks and
+    docs/tasks/**, allow-listed for governance tasks and
     COS_ALLOW_TASK_EDIT=1.
   - sync-task-current.sh — auto-writes .task-current on task -> in_progress.
   - nudge-task-discovery.sh — warns on raw docs/tasks reads, emits prompt nudge.
@@ -73,16 +73,16 @@ class TestEnforceTaskTransition:
         assert rc == 2
         assert "BLOCKED" in err
 
-    def test_blocks_audit_checkbox_tick(self, tmp_path):
+    def test_blocks_checkbox_tick(self, tmp_path):
         panel = _panel(tmp_path, task_current="TASK-1")
         rc, _, _ = _run(
             self.H,
             {
                 "tool_name": "Edit",
                 "tool_input": {
-                    "file_path": "docs/tasks/audits/audit-x.md",
-                    "old_string": "- [ ] EvidenceBundle",
-                    "new_string": "- [x] EvidenceBundle",
+                    "file_path": "docs/tasks/TASK-1-x.md",
+                    "old_string": "- [ ] acceptance item",
+                    "new_string": "- [x] acceptance item",
                 },
             },
             panel,
@@ -153,45 +153,6 @@ class TestEnforceTaskTransition:
             panel,
         )
         assert rc == 0
-
-    def test_governance_task_still_blocks_audit_evidence_tick(self, tmp_path):
-        # A1: the governance allow-list must NOT exempt audit
-        # EvidenceBundle ticks — that is evidence forgery, BLOCK regardless.
-        panel = _panel(tmp_path, task_current="governance-docs-update")
-        rc, _, err = _run(
-            self.H,
-            {
-                "tool_name": "Edit",
-                "tool_input": {
-                    "file_path": "docs/tasks/audits/audit-x.md",
-                    "old_string": "- [ ] EvidenceBundle",
-                    "new_string": "- [x] EvidenceBundle",
-                },
-            },
-            panel,
-        )
-        assert rc == 2
-        assert "BLOCKED" in err
-
-    def test_audit_override_env_still_bypasses(self, tmp_path):
-        # COS_ALLOW_TASK_EDIT=1 remains the explicit one-shot escape hatch
-        # even for audit files (rare legitimate large audit-doc refactor).
-        panel = _panel(tmp_path, task_current="governance-docs-update")
-        rc, _, _ = _run(
-            self.H,
-            {
-                "tool_name": "Edit",
-                "tool_input": {
-                    "file_path": "docs/tasks/audits/audit-x.md",
-                    "old_string": "- [ ] EvidenceBundle",
-                    "new_string": "- [x] EvidenceBundle",
-                },
-            },
-            panel,
-            env={"COS_ALLOW_TASK_EDIT": "1"},
-        )
-        assert rc == 0
-
 
 class TestSyncTaskCurrent:
     H = "sync-task-current.sh"

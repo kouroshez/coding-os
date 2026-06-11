@@ -18,10 +18,9 @@ references: []
 ---
 # TASK-227: board_os + CLI bounded queries & git batching (daily/retro/pick/reclaim/reconcile/doctor/history)
 
-**Outcome (one sentence):** No board/CLI path loads or git-scans unboundedly at 100K tasks/1M commits: cos_task_daily/retro/pick return counts + top-N (LIMIT), not full card lists; cos_task_reclaim/reconcile batch task-ids into ONE git log --all --grep (not per-task subprocess) and cap concurrency (ProcessPoolExecutor); cos_task_history + _commits_referencing bound git with --max-count; cos doctor replaces full-tree rglob with find -prune. Verified by a 100K-task/100K-commit fixture staying bounded in time + memory. See audit-enterprise-scale-2026-06-07.md (board_os + cli findings).
+**Outcome (one sentence):** No board/CLI path loads or git-scans unboundedly at 100K tasks/1M commits: cos_task_daily/retro/pick return counts + top-N (LIMIT), not full card lists; cos_task_reclaim/reconcile batch task-ids into ONE git log --all --grep (not per-task subprocess) and cap concurrency (ProcessPoolExecutor); cos_task_history + _commits_referencing bound git with --max-count; cos doctor replaces full-tree rglob with find -prune. Verified by a 100K-task/100K-commit fixture staying bounded in time + memory.
 
 ## Read First
-- docs/tasks/audits/audit-enterprise-scale-2026-06-07.md
 - src/core/board_os/mcp_tools.py
 - src/cli/doctor.py
 

@@ -33,7 +33,7 @@ references: []
 3. No Stop hook blocks the abandonment (guardian is exhaustive-intent-only); `cos task-reclaim` + `warn-abandoned-task` are `in_progress`-only so a `testing` zombie is invisible; `SessionEnd` has zero hooks so a hard kill runs nothing.
 
 Expected: a started task reaches a terminal state or is auto-reclaimed within the configured idle window; rot is visible on every board surface.
-Actual: TASK-100 sat in `testing` ~9 days under a dead session; 40/41 tasks rot in `icebox`; closure is enforced by nothing for ordinary tasks. (Audit: docs/tasks/audits/audit-task-lifecycle-integrity-2026-06-05.md)
+Actual: TASK-100 sat in `testing` ~9 days under a dead session; 40/41 tasks rot in `icebox`; closure is enforced by nothing for ordinary tasks.
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 - **Given** a stale `testing`/`in_progress` task owned by an inactive session, **When** the reclaim sweep runs (SessionStart or nightly), **Then** it is reclaimed within the per-status idle window (testing→in_progress+ready, in_progress→icebox+ready) and surfaced in `cos daily`.
@@ -43,5 +43,4 @@ Actual: TASK-100 sat in `testing` ~9 days under a dead session; 40/41 tasks rot 
 - **Then** matrix verification is green for every changed layer AND the audit reviewer subagent re-grep returns 0.
 
 ## Work Log
-- 2026-06-06 [claude]: committed 8152c349: docs/tasks/audits/audit-task-lifecycle-integrity-2026-06-05.md
 - 2026-06-06 [claude]: Status transitioned to complete via cos task-done.

@@ -701,7 +701,7 @@ class TestTransparencyBanner:
     the line `transparency-banner.md` requires the agent to echo as the
     first line of every visible reply. Covers: mode-driven verbosity,
     suppression, session-id ownership, WIP/task-current inconsistency
-    warning, audit unchecked-row count."""
+    warning."""
 
     SESSION_ID = "ses-claude-20990101-000000-abcd"
 
@@ -793,42 +793,6 @@ class TestTransparencyBanner:
         banner = ctx.split("USER_BANNER", 1)[1]
         assert "task=none" in banner
         assert "TASK-Y" not in banner
-
-    def test_audit_unchecked_row_count_surfaces(self, tmp_path: Path) -> None:
-        agent_dir, env = self._setup(tmp_path, mode="formal")
-        audits = tmp_path / "docs" / "tasks" / "audits"
-        audits.mkdir(parents=True)
-        (audits / "audit-banner-test.md").write_text(
-            "---\n"
-            "audit_id: banner-test\n"
-            "status: in_progress\n"
-            "---\n"
-            "| cat | hits | fix | verified |\n"
-            "|---|---|---|---|\n"
-            "| A | 1 | x | no |\n"
-            "| B | 1 | y | no |\n"
-            "| C | 1 | z | yes |\n"
-        )
-        ctx = self._emit(tmp_path, env)
-        banner = ctx.split("USER_BANNER", 1)[1]
-        assert "audit=1(banner-test)·2-unchecked" in banner
-
-    def test_audit_matches_both_yaml_and_markdown_bold(self, tmp_path: Path) -> None:
-        agent_dir, env = self._setup(tmp_path, mode="formal")
-        audits = tmp_path / "docs" / "tasks" / "audits"
-        audits.mkdir(parents=True)
-        # legacy markdown bold form (no YAML frontmatter)
-        (audits / "audit-legacy.md").write_text(
-            "# Audit\n\n**Task:** TASK-X · **Status:** in_progress\n"
-        )
-        # canonical YAML form
-        (audits / "audit-canonical.md").write_text(
-            "---\naudit_id: canonical\nstatus: in_progress\n---\n# Audit\n"
-        )
-        ctx = self._emit(tmp_path, env)
-        banner = ctx.split("USER_BANNER", 1)[1]
-        # Both files counted
-        assert "audit=2(" in banner
 
     def test_wip_without_task_emits_warn_marker(self, tmp_path: Path) -> None:
         agent_dir, env = self._setup(tmp_path, mode="formal")

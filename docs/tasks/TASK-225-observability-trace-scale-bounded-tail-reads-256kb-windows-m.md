@@ -18,10 +18,9 @@ references: []
 ---
 # TASK-225: Observability/trace scale: bounded tail-reads (256KB windows, max-N files by mtime) — no full-dir glob or whole-file load
 
-**Outcome (one sentence):** The observability/cognition endpoints never read 100% of a log/trace or glob all trace files: _read_hook_events/_read_cognition_events/get_trace/_scan_sessions tail-read bounded windows (e.g. last 256KB, last N files by mtime) with offset/cursor pagination; no whole-file load (1GB jsonl must not OOM). Verified by a 1GB trace + 10K-session dir returning bounded, fast responses. See audit-enterprise-scale-2026-06-07.md (web_routes findings, observability.py:259-265, cognition.py get_trace).
+**Outcome (one sentence):** The observability/cognition endpoints never read 100% of a log/trace or glob all trace files: _read_hook_events/_read_cognition_events/get_trace/_scan_sessions tail-read bounded windows (e.g. last 256KB, last N files by mtime) with offset/cursor pagination; no whole-file load (1GB jsonl must not OOM). Verified by a 1GB trace + 10K-session dir returning bounded, fast responses.
 
 ## Read First
-- docs/tasks/audits/audit-enterprise-scale-2026-06-07.md
 - src/core/web/routes/observability.py
 - src/core/web/routes/cognition.py
 

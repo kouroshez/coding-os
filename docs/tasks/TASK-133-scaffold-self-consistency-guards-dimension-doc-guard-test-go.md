@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** A stack can no longer ship a Read List pointing at a non-existent doc, nor silently overwrite another stack's doc: a test asserts every stack's dimensions[].read_files resolves in that stack+_base scaffold (D2-F1), go-fiber's dangling docs/playbooks/security-review.md ref is fixed (D2-F2), and the colliding accessibility-checklist.md is namespaced per platform (accessibility-web / accessibility-mobile) with a collision test (D2-F4).
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/templates/go-fiber/stack.yaml
 - tests/test_template_scaffold.py
 

@@ -17,7 +17,6 @@ const FEATURE_LABELS: Record<string, string> = {
   graph: 'Graph',
   search: 'Search',
   cognition: 'Cognition',
-  audits: 'Audits',
 };
 
 export default function NeedProjectPage({ feature }: { feature: string }) {

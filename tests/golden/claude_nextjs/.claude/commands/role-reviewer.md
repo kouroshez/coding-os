@@ -78,7 +78,7 @@ repo state before you start the procedure:
 |---|---|
 | `task_id` | `cos_task_board(status_filter=["in_progress"])`, narrow by `$ARGUMENTS` if present |
 | `scope` | `git diff <base>...HEAD` (base = first `$ARGUMENTS` token if it looks like a ref, else `main`) |
-| `scenarios` | active `docs/tasks/audits/audit-*.md` category table OR the task's `## Acceptance` section |
+| `scenarios` | the task's `## Acceptance` section |
 | `contracts` | `cos_graph_contracts` filtered to changed files |
 | `stack` | `src/templates/<id>/stack.yaml` of the enabled template (one stack per repo) |
 | `nfr_targets` | `docs/_meta/nfr.yaml` if present, else `"none configured"` |

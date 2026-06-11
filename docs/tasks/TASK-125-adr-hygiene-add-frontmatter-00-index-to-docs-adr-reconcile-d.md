@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** All 6 ADRs carry the canonical frontmatter header (domain | layer:adr | ssot:true | updated), docs/adr/ gets a 00-index hub, and docs-system.md is reconciled with the actual docs/adr/ location + ADR-NNNN-slug naming — so ADRs are header-routable, indexable (pairs with the rag adr-path fix), and stop violating the doc system's own rules.
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - docs/adr/
 - docs/governance/docs-system.md
 

@@ -37,8 +37,7 @@ references: []
 - **When** no `--all`/`--verbose` flag is passed
 - **Then** only decision-states (fire/block/warn/paths/reminded/full/debounced/skip) are shown; lifecycle rows (enter/ok) are hidden behind `--all`.
 
-Audit artifact: docs/tasks/audits/audit-hook-fail-closed-hardening.md
 
 ## Work Log
 - 2026-06-06 [claude]: Hardened 9 PreToolUse gates to fail-closed (cos_require_parser+cos_json_field; helper-missing→exit2), added dt= latency
-- 2026-06-06 [claude]: committed 2f193480: docs/engineering/observability-eye.md, docs/tasks/audits/audit-hook-fail-closed-hardening.md, src/cl
+- 2026-06-06 [claude]: committed 2f193480: docs/engineering/observability-eye.md, src/cl

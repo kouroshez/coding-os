@@ -57,7 +57,6 @@ repo state before starting the procedure:
 | `stack` | `src/templates/<id>/stack.yaml` of the enabled template |
 | `domain` | `cos_doc_headers_by(domain=...)` or the active task's frontmatter |
 | `nfr_targets` | `docs/_meta/nfr.yaml` if present, else `"none configured"` |
-| `audit_scope` | active `docs/tasks/audits/audit-*.md` table (if any) |
 
 Echo your detected inputs in a short opening paragraph so the user can correct
 you before you spend tokens on the procedure.

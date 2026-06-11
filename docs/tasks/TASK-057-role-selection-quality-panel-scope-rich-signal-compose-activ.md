@@ -21,8 +21,6 @@ references: []
 **Outcome (one sentence):** Roles compose from real prompt signals (not always analyst), the active role advances with work phase, and .roles/.role are panel-scoped per TASK-035 so concurrent panels never collide.
 
 ## Read First
-- docs/tasks/audits/audit-roles-selection-panelscope.md
-- docs/tasks/audits/audit-cognition-autotrigger.md
 - src/core/thinking_os/formula_composer.py
 
 ## Repro Steps

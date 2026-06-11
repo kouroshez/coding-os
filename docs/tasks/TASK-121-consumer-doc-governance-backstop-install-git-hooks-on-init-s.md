@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** Every cos init consumer gets git pre-commit/commit-msg installed (idempotent), a minimal docs-lint CI workflow in scaffold/.github/, a docs-staleness-check that audits the CONSUMER's docs not the meta-repo internals (D6-F6), and a docs/00-index.md without the retired ./tasks.md dead link (D6-F2) — so human/Codex-GUI doc edits are governed from day one (D5-F6, D7-F7).
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/cli/_init_helpers.py
 - src/scripts/install-git-hooks.sh
 - src/templates/_base/scaffold/docs/00-index.md

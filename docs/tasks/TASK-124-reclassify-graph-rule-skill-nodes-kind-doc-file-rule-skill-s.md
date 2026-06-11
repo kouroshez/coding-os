@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** Rule/skill nodes classify to their governance kind (not doc_file) deterministically across re-index — verified already-correct in the live graph (git-workflow=rule, clean-code=skill via cos_graph_query, so no migration is needed) and guarded by a determinism test; and the doc indexer surfaces the count of indexed files with a body but no parseable frontmatter (was a silent logger.debug) so Stage-1 metadata gaps are visible in the index summary.
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/core/graph_os/extractors/md_links.py
 - src/core/thinking_os/doc_indexer.py
 

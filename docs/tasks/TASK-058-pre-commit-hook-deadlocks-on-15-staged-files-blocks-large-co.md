@@ -24,7 +24,6 @@ references: []
 - src/core/hooks/_helpers/pre_commit_batch.py
 - src/scripts/install-git-hooks.sh
 - src/core/hooks/cos-env.sh
-- docs/tasks/audits/audit-roles-selection-panelscope.md
 
 ## Repro Steps
 1. Stage 15+ files in one commit (e.g. a regen that touches many golden fixtures + adapter templates): `git commit <18 paths> -m "…"`.

@@ -231,6 +231,103 @@
         "title": "Body_board_reposition_api_board_reposition_post",
         "type": "object"
       },
+      "Body_board_task_edit_api_board_task__task_id__patch": {
+        "properties": {
+          "appetite": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appetite"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "epic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Epic"
+          },
+          "labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labels"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "swimlane": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Swimlane"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "Body_board_task_edit_api_board_task__task_id__patch",
+        "type": "object"
+      },
+      "Body_board_task_ready_api_board_task__task_id__ready_post": {
+        "properties": {
+          "ready": {
+            "default": true,
+            "title": "Ready",
+            "type": "boolean"
+          }
+        },
+        "title": "Body_board_task_ready_api_board_task__task_id__ready_post",
+        "type": "object"
+      },
       "Body_hub_registry_add_api_hub_registry_add_post": {
         "properties": {
           "path": {
@@ -266,6 +363,76 @@
         "title": "Body_hub_registry_gc_api_hub_registry_gc_post",
         "type": "object"
       },
+      "Body_hub_registry_init_api_hub_registry_init_post": {
+        "properties": {
+          "agent": {
+            "default": "claude",
+            "title": "Agent",
+            "type": "string"
+          },
+          "background": {
+            "default": false,
+            "title": "Background",
+            "type": "boolean"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "extra_skills": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Extra Skills",
+            "type": "array"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_dir": {
+            "title": "Parent Dir",
+            "type": "string"
+          },
+          "preset": {
+            "default": "",
+            "title": "Preset",
+            "type": "string"
+          },
+          "stack": {
+            "default": "",
+            "title": "Stack",
+            "type": "string"
+          },
+          "stacks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Stacks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "parent_dir"
+        ],
+        "title": "Body_hub_registry_init_api_hub_registry_init_post",
+        "type": "object"
+      },
+      "Body_hub_registry_rename_api_hub_registry__slug__patch": {
+        "properties": {
+          "new_slug": {
+            "title": "New Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "new_slug"
+        ],
+        "title": "Body_hub_registry_rename_api_hub_registry__slug__patch",
+        "type": "object"
+      },
       "Body_hub_registry_scan_api_hub_registry_scan_post": {
         "properties": {
           "limit": {
@@ -287,6 +454,111 @@
           "root"
         ],
         "title": "Body_hub_registry_scan_api_hub_registry_scan_post",
+        "type": "object"
+      },
+      "Body_hub_registry_validate_init_api_hub_registry_validate_init_post": {
+        "properties": {
+          "agent": {
+            "default": "claude",
+            "title": "Agent",
+            "type": "string"
+          },
+          "extra_skills": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Extra Skills",
+            "type": "array"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_dir": {
+            "title": "Parent Dir",
+            "type": "string"
+          },
+          "preset": {
+            "default": "",
+            "title": "Preset",
+            "type": "string"
+          },
+          "stacks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Stacks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "parent_dir"
+        ],
+        "title": "Body_hub_registry_validate_init_api_hub_registry_validate_init_post",
+        "type": "object"
+      },
+      "Body_validate_pattern_api_patterns__pattern_id__validate_post": {
+        "properties": {
+          "was_helpful": {
+            "title": "Was Helpful",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "was_helpful"
+        ],
+        "title": "Body_validate_pattern_api_patterns__pattern_id__validate_post",
+        "type": "object"
+      },
+      "CronStatus": {
+        "properties": {
+          "installed": {
+            "title": "Installed",
+            "type": "boolean"
+          },
+          "last_run_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run At"
+          },
+          "loaded": {
+            "title": "Loaded",
+            "type": "boolean"
+          },
+          "log_dir": {
+            "title": "Log Dir",
+            "type": "string"
+          },
+          "next_run_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Run At"
+          },
+          "plist_path": {
+            "title": "Plist Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "installed",
+          "loaded",
+          "plist_path",
+          "log_dir"
+        ],
+        "title": "CronStatus",
         "type": "object"
       },
       "ErrorBody": {
@@ -339,6 +611,200 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ProjectScheduled": {
+        "properties": {
+          "consecutive_failures": {
+            "default": 0,
+            "title": "Consecutive Failures",
+            "type": "integer"
+          },
+          "disabled_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disabled Reason"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_run_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run At"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
+          "tasks": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Tasks",
+            "type": "object"
+          }
+        },
+        "title": "ProjectScheduled",
+        "type": "object"
+      },
+      "RunResult": {
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ran": {
+            "title": "Ran",
+            "type": "boolean"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          }
+        },
+        "required": [
+          "slug",
+          "ran"
+        ],
+        "title": "RunResult",
+        "type": "object"
+      },
+      "ScheduledConfigUpdate": {
+        "properties": {
+          "decay_throttle_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decay Throttle Days"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "hour": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hour"
+          },
+          "learn_extract_min_outcomes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Learn Extract Min Outcomes"
+          },
+          "responsive_extract_threshold": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Responsive Extract Threshold"
+          }
+        },
+        "title": "ScheduledConfigUpdate",
+        "type": "object"
+      },
+      "ScheduledStatus": {
+        "properties": {
+          "cron_a": {
+            "$ref": "#/components/schemas/CronStatus"
+          },
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectScheduled"
+            },
+            "title": "Projects",
+            "type": "array"
+          }
+        },
+        "required": [
+          "cron_a",
+          "projects"
+        ],
+        "title": "ScheduledStatus",
         "type": "object"
       },
       "ValidationError": {
@@ -399,12 +865,40 @@
         "title": "_BudgetCapIn",
         "type": "object"
       },
+      "_ModelRoutingIn": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "orchestrator_model": {
+            "default": "",
+            "title": "Orchestrator Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "_ModelRoutingIn",
+        "type": "object"
+      },
       "_PatchBody": {
         "properties": {
           "budget_cap": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/_BudgetCapIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_routing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/_ModelRoutingIn"
               },
               {
                 "type": "null"
@@ -452,64 +946,34 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/api/audits": {
+    "/api/board/commit/{sha}": {
       "get": {
-        "description": "List all audit artifacts with their progress state.\n\nOptional `status` filter narrows to e.g. status=in_progress.",
-        "operationId": "list_audits_api_audits_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Status",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Audits Api Audits Get",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "List Audits",
-        "tags": [
-          "audits"
-        ]
-      }
-    },
-    "/api/audits/{audit_id}": {
-      "get": {
-        "description": "Full markdown body for one audit_id.",
-        "operationId": "get_audit_api_audits__audit_id__get",
+        "description": "List the files changed in one commit (numstat) — read-only.",
+        "operationId": "board_commit_api_board_commit__sha__get",
         "parameters": [
           {
             "in": "path",
-            "name": "audit_id",
+            "name": "sha",
             "required": true,
             "schema": {
-              "title": "Audit Id",
+              "title": "Sha",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "for_task",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "For Task"
             }
           }
         ],
@@ -517,14 +981,30 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Audit Api Audits  Audit Id  Get",
-                  "type": "object"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
           },
           "422": {
             "content": {
@@ -535,11 +1015,31 @@
               }
             },
             "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
           }
         },
-        "summary": "Get Audit",
+        "summary": "Board Commit",
         "tags": [
-          "audits"
+          "board"
         ]
       }
     },
@@ -781,9 +1281,99 @@
         ]
       }
     },
+    "/api/board/diff": {
+      "get": {
+        "description": "Unified diff for one file at one commit — read-only, repo-sandboxed.",
+        "operationId": "board_diff_api_board_diff_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sha",
+            "required": true,
+            "schema": {
+              "title": "Sha",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "title": "File",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Diff",
+        "tags": [
+          "board"
+        ]
+      }
+    },
     "/api/board/list": {
       "get": {
-        "description": "Return the board state grouped by (swimlane, status).",
+        "description": "Return the board state grouped by (swimlane, status).\n\nActive columns return in full (capped); complete/archive are keyset-paged.\nA per-column \"load more\" passes `status=<complete|archive>&cursor=<next>`\nto fetch that column's next page (TASK-223).",
         "operationId": "board_list_api_board_list_get",
         "parameters": [
           {
@@ -849,9 +1439,51 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "default": 50,
+              "default": 500,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
             }
           }
         ],
@@ -1350,6 +1982,356 @@
         "tags": [
           "board"
         ]
+      },
+      "patch": {
+        "description": "Edit a task's frontmatter fields and/or body from the panel (human actor).",
+        "operationId": "board_task_edit_api_board_task__task_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_board_task_edit_api_board_task__task_id__patch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Task Edit",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/task/{task_id}/chat-ref": {
+      "get": {
+        "description": "Resolve a task's originating chat: live SDK uuid + snapshot availability.",
+        "operationId": "board_task_chat_ref_api_board_task__task_id__chat_ref_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Task Chat Ref",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/task/{task_id}/history": {
+      "get": {
+        "description": "Return the actor-attributed history (create + status + edits + commits) for a task.",
+        "operationId": "board_task_history_api_board_task__task_id__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_commits",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Include Commits",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Task History",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/task/{task_id}/ready": {
+      "post": {
+        "description": "Toggle the 'ready' label on a task from the panel (human actor).",
+        "operationId": "board_task_ready_api_board_task__task_id__ready_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_board_task_ready_api_board_task__task_id__ready_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Task Ready",
+        "tags": [
+          "board"
+        ]
       }
     },
     "/api/board/wip": {
@@ -1504,6 +2486,170 @@
           }
         },
         "summary": "Cognition Analyze",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/cognition/author-task": {
+      "post": {
+        "description": "Headless research+author session that creates one task via cos_task_create. Claude-only.",
+        "operationId": "author_task_api_cognition_author_task_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Author Task",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/cognition/chat": {
+      "post": {
+        "description": "Start a FRESH Claude session from a prompt (no resume); stream SSE.\n\nBody: ``{\"prompt\": str, \"model\": str|null, \"role\": str|null}``. Emits a\n``session`` event carrying the SDK-resolved session id so the UI can open\nthe chat under the id that get_session_info / list_sessions actually use.\nClaude-only — returns an ``unavailable`` envelope without the SDK.",
+        "operationId": "chat_new_api_cognition_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Chat New",
         "tags": [
           "cognition"
         ]
@@ -2073,6 +3219,208 @@
         ]
       }
     },
+    "/api/cognition/onboard": {
+      "post": {
+        "description": "Run the onboarder role with Write/Edit confined to docs/ (PreToolUse-gated). Claude-only.",
+        "operationId": "onboard_api_cognition_onboard_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Onboard",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/cognition/onboarding-status": {
+      "get": {
+        "description": "Whether the project still needs onboarding (placeholder-scan first, onboarding.json override).",
+        "operationId": "onboarding_status_api_cognition_onboarding_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Onboarding Status",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/cognition/roles": {
+      "get": {
+        "description": "List the semantic roles a chat session can adopt (producer: thinking_os/agents/*.md).",
+        "operationId": "list_roles_api_cognition_roles_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "List Roles",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
     "/api/cognition/trace/{session_id}": {
       "get": {
         "description": "Read trace events for a session; fall back to session metadata when no jsonl yet.",
@@ -2257,6 +3605,155 @@
         "summary": "List Traces",
         "tags": [
           "cognition"
+        ]
+      }
+    },
+    "/api/config/adapters": {
+      "get": {
+        "description": "List agent adapters and the chat models each declares (adapter→models SSOT).",
+        "operationId": "config_adapters_api_config_adapters_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Config Adapters Api Config Adapters Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Config Adapters",
+        "tags": [
+          "config"
+        ]
+      }
+    },
+    "/api/config/mcp": {
+      "get": {
+        "description": "List MCP servers configured in the project's .mcp.json.",
+        "operationId": "config_mcp_api_config_mcp_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Config Mcp Api Config Mcp Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Config Mcp",
+        "tags": [
+          "config"
+        ]
+      }
+    },
+    "/api/config/skills": {
+      "get": {
+        "description": "List the core skill registry (name, tier, domain, globs, phase) + project extras.",
+        "operationId": "config_skills_api_config_skills_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Config Skills Api Config Skills Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Config Skills",
+        "tags": [
+          "config"
+        ]
+      }
+    },
+    "/api/config/skills/{skill_name}": {
+      "patch": {
+        "description": "Enable/disable a project extra skill — round-trips to .coding-os.yaml.",
+        "operationId": "config_skill_toggle_api_config_skills__skill_name__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "skill_name",
+            "required": true,
+            "schema": {
+              "title": "Skill Name",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Config Skill Toggle",
+        "tags": [
+          "config"
+        ]
+      }
+    },
+    "/api/config/stacks": {
+      "get": {
+        "description": "List installed (.coding-os.yaml) + available (registry) tech stacks.",
+        "operationId": "config_stacks_api_config_stacks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Config Stacks Api Config Stacks Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Config Stacks",
+        "tags": [
+          "config"
         ]
       }
     },
@@ -4168,6 +5665,177 @@
         ]
       }
     },
+    "/api/hub/adapters": {
+      "get": {
+        "description": "List installable agent adapters (data-driven from src/adapters/*/adapter.yaml).",
+        "operationId": "hub_adapters_api_hub_adapters_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Hub Adapters Api Hub Adapters Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Hub Adapters",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/init-jobs/{job_id}": {
+      "get": {
+        "description": "Current phase + status + log tail for a tracked init job (TASK-362).",
+        "operationId": "hub_init_job_snapshot_api_hub_init_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hub Init Job Snapshot",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/init-jobs/{job_id}/cancel": {
+      "post": {
+        "description": "Cancel a running init job; the partial scaffold is cleaned up (TASK-362).",
+        "operationId": "hub_init_job_cancel_api_hub_init_jobs__job_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hub Init Job Cancel",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/init-jobs/{job_id}/events": {
+      "get": {
+        "description": "SSE: buffered log replay then live phase/log events until terminal.\n\nReconnect-safe — a browser refresh re-attaches with the same job_id and\nreplays the buffered log before following (TASK-362).",
+        "operationId": "hub_init_job_events_api_hub_init_jobs__job_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hub Init Job Events",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/presets": {
+      "get": {
+        "description": "List project presets (data-driven from src/templates/_presets/*.yaml).",
+        "operationId": "hub_presets_api_hub_presets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Hub Presets Api Hub Presets Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Hub Presets",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
     "/api/hub/projects": {
       "get": {
         "description": "List every registered coding-os project whose directory still exists.",
@@ -4271,6 +5939,46 @@
         ]
       }
     },
+    "/api/hub/registry/init": {
+      "post": {
+        "description": "Scaffold a NEW project via `cos init` and register it (security-gated, TASK-249/358/362).",
+        "operationId": "hub_registry_init_api_hub_registry_init_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_hub_registry_init_api_hub_registry_init_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hub Registry Init",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
     "/api/hub/registry/scan": {
       "post": {
         "description": "Walk a filesystem root and return every `.coding-os/` project found.",
@@ -4306,6 +6014,46 @@
           }
         },
         "summary": "Hub Registry Scan",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/registry/validate-init": {
+      "post": {
+        "description": "Dry-run validation + merged-config preview for the onboarding wizard (TASK-358).",
+        "operationId": "hub_registry_validate_init_api_hub_registry_validate_init_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_hub_registry_validate_init_api_hub_registry_validate_init_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hub Registry Validate Init",
         "tags": [
           "hub"
         ]
@@ -4350,6 +6098,148 @@
         "tags": [
           "hub"
         ]
+      },
+      "patch": {
+        "description": "Rename a project's slug (temp-slug → real name; path untouched).",
+        "operationId": "hub_registry_rename_api_hub_registry__slug__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_hub_registry_rename_api_hub_registry__slug__patch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hub Registry Rename",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/skills": {
+      "get": {
+        "description": "Global core+stack skill catalog with provenance + validation status.",
+        "operationId": "hub_skills_api_hub_skills_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Hub Skills Api Hub Skills Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Hub Skills",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/stacks": {
+      "get": {
+        "description": "List installable stack templates (data-driven from src/templates/*/stack.yaml).",
+        "operationId": "hub_stacks_api_hub_stacks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Hub Stacks Api Hub Stacks Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Hub Stacks",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/stacks/{stack_id}/skills": {
+      "get": {
+        "description": "Required/recommended/optional skill groups for one stack (onboarding preview).",
+        "operationId": "hub_stack_skills_api_hub_stacks__stack_id__skills_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "stack_id",
+            "required": true,
+            "schema": {
+              "title": "Stack Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Hub Stack Skills Api Hub Stacks  Stack Id  Skills Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hub Stack Skills",
+        "tags": [
+          "hub"
+        ]
       }
     },
     "/api/hub/suggest-roots": {
@@ -4391,6 +6281,90 @@
         "summary": "Hub Suggest Roots",
         "tags": [
           "hub"
+        ]
+      }
+    },
+    "/api/logs/client": {
+      "post": {
+        "description": "Record a browser-side log/error into the server log sink (logging_os).",
+        "operationId": "report_client_log_api_logs_client_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Report Client Log Api Logs Client Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Report Client Log",
+        "tags": [
+          "logs"
         ]
       }
     },
@@ -4658,6 +6632,97 @@
         ]
       }
     },
+    "/api/logs/summary": {
+      "get": {
+        "description": "Counts-by-level + top error scopes over the recent log feed — the 'what is broken now' rollup.",
+        "operationId": "logs_summary_api_logs_summary_get",
+        "parameters": [
+          {
+            "description": "relative duration window: 30s, 10m, 1h, 2d",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "1h",
+              "description": "relative duration window: 30s, 10m, 1h, 2d",
+              "title": "Since"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Logs Summary",
+        "tags": [
+          "logs"
+        ]
+      }
+    },
     "/api/observability/sessions": {
       "get": {
         "operationId": "list_sessions_api_observability_sessions_get",
@@ -4854,6 +6919,303 @@
         ]
       }
     },
+    "/api/patterns": {
+      "get": {
+        "description": "List learned patterns with their confidence / trust / decay weights.",
+        "operationId": "list_patterns_api_patterns_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Filter by trust tier",
+            "in": "query",
+            "name": "trust_tier",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by trust tier",
+              "title": "Trust Tier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "List Patterns",
+        "tags": [
+          "patterns"
+        ]
+      }
+    },
+    "/api/patterns/roi": {
+      "get": {
+        "description": "Per-session friction rate over recent sessions — does friction trend down (learning works)?",
+        "operationId": "learning_roi_api_patterns_roi_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 2,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Learning Roi",
+        "tags": [
+          "patterns"
+        ]
+      }
+    },
+    "/api/patterns/{pattern_id}/validate": {
+      "post": {
+        "description": "Record a user's 👍/👎 on a learned pattern — closes the validation loop (cos_learn_validate).",
+        "operationId": "validate_pattern_api_patterns__pattern_id__validate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pattern_id",
+            "required": true,
+            "schema": {
+              "title": "Pattern Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_validate_pattern_api_patterns__pattern_id__validate_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Validate Pattern",
+        "tags": [
+          "patterns"
+        ]
+      }
+    },
+    "/api/presence/agents": {
+      "get": {
+        "description": "Unified per-agent live snapshot — model+gate+task+skill+role+chain+lifecycle+sdk_uuid in ONE call.",
+        "operationId": "presence_agents_api_presence_agents_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Presence Agents",
+        "tags": [
+          "presence"
+        ]
+      }
+    },
     "/api/presence/now": {
       "get": {
         "description": "Compact 'who is running, doing what, last hook fire' for the AppShell HUD.",
@@ -5002,6 +7364,96 @@
         ]
       }
     },
+    "/api/scheduled/config/{slug}": {
+      "get": {
+        "description": "Return the editable scheduled-maintenance config for one project.",
+        "operationId": "get_scheduled_config_api_scheduled_config__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Scheduled Config",
+        "tags": [
+          "scheduled"
+        ]
+      },
+      "patch": {
+        "description": "Persist edited scheduled config (cadence + responsive thresholds).",
+        "operationId": "patch_scheduled_config_api_scheduled_config__slug__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduledConfigUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Scheduled Config",
+        "tags": [
+          "scheduled"
+        ]
+      }
+    },
     "/api/scheduled/project/{slug}": {
       "get": {
         "description": "Return last_run.json for a single project.",
@@ -5043,6 +7495,49 @@
         ]
       }
     },
+    "/api/scheduled/run/{slug}": {
+      "post": {
+        "description": "Manually trigger the nightly maintenance loop (decay + learn-extract + reindex) for one project.",
+        "operationId": "run_scheduled_now_api_scheduled_run__slug__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Scheduled Now",
+        "tags": [
+          "scheduled"
+        ]
+      }
+    },
     "/api/scheduled/status": {
       "get": {
         "description": "Return nightly cron status + per-project last_run.json contents.",
@@ -5051,7 +7546,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledStatus"
+                }
               }
             },
             "description": "Successful Response"
@@ -5493,6 +7990,79 @@
           }
         },
         "summary": "Patch Settings",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/settings/modules": {
+      "get": {
+        "description": "Per-module subsystem state for the Config tab (TASK-354).",
+        "operationId": "get_modules_api_settings_modules_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Modules",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/settings/modules/{module_id}": {
+      "patch": {
+        "description": "Toggle a non-kernel module; regenerates dependent artifacts (TASK-354).",
+        "operationId": "patch_module_api_settings_modules__module_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "module_id",
+            "required": true,
+            "schema": {
+              "title": "Module Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Module",
         "tags": [
           "settings"
         ]

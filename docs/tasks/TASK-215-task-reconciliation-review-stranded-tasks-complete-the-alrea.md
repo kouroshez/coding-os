@@ -22,7 +22,6 @@ references: []
 
 ## Read First
 - src/core/board_os/mcp_tools.py
-- docs/tasks/audits/audit-task-lifecycle-integrity-2026-06-05.md
 - src/core/hooks/reclaim-sweep.sh
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*

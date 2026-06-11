@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** Deleting a doc is no longer a silent, unaudited hard-erase: the rm-prune path writes an action='deleted' doc_audit_trail row (D5-F2), and reindex_dispatch's read_error short-circuit no longer skips graph prune for a file that no longer exists (D7-F1) so deleted files don't leave orphan graph nodes. (Over-built parts deferred: D5-F9 cos-doctor orphan-chunk reconciliation sweep and D5-F10 periodic CI reconciliation are diminishing-returns — the prune paths already keep state consistent.)
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/core/graph_os/tools/reindex_dispatch.py
 - src/scripts/prune_deleted_path.py
 

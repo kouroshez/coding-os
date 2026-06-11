@@ -22,13 +22,6 @@ if [[ "$file_path" != *"docs/tasks/"*.md ]]; then
     exit 0
 fi
 
-# Audit artifacts live under docs/tasks/audits/audit-*.md but are NOT
-# task cards — they record per-prompt evidence for exhaustive intent
-# (see docs/engineering/intent-vocabulary.md). Skip WIP gate for them.
-case "$file_path" in
-  *docs/tasks/audits/*) exit 0 ;;
-esac
-
 # bash 5.3.9 deadlocks `python3 - <<HEREDOC`; helper file is the safe form.
 _src="${BASH_SOURCE[0]}"
 while [ -L "$_src" ]; do

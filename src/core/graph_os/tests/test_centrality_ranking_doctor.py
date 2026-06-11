@@ -774,7 +774,7 @@ class TestPhantomOrphan:
     def test_task_with_source_line_anchor_is_phantom(self):
         # Code-line ref mis-noded as a task → prunable garbage.
         assert graph._is_phantom_orphan(
-            "task", None, "task:file:docs/tasks/audits/src/core/x/graph.py#L2787"
+            "task", None, "task:file:docs/tasks/notes/src/core/x/graph.py#L2787"
         )
 
     def test_real_task_uid_is_not_phantom(self):

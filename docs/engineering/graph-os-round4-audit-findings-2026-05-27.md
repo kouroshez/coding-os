@@ -1,7 +1,7 @@
 <!-- domain:META | layer:engineering | ssot:false | updated:2026-05-28 -->
 # Graph-OS Round 4 — Full Defect Register (2026-05-27)
 
-Companion to [docs/tasks/audits/audit-graph-os-round4-2026-05-27.md](../tasks/audits/audit-graph-os-round4-2026-05-27.md). Full Round 4 defect register; pointer kept under 3K-token lint cap.
+Full Round 4 defect register (TASK-037).
 
 **Task:** TASK-037
 **Trigger:** user exhaustive intent — "", " mcp server", "", "", community: UID click error, 954/339 orphan/stale figures from Hub UI.
@@ -209,7 +209,7 @@ Meta-repo only (consumer projects under `/tmp` and `tests/golden/` excluded from
 
 ### Stale_paths (339)
 
-> **Correction (2026-05-28, TASK-038):** this table analysed the 339-count baseline. After reindex/prune the moved/deleted rows cleared; the *residual* ~93 are dominated by rendered-location relative-link FALSE POSITIVES (source docs under `src/core/{rules,skills,commands}/` + `src/templates/**` whose `../../docs/…` links resolve correctly only post-render). See [audit-graph-os-round4 § Stale-paths correction](../tasks/audits/audit-graph-os-round4-2026-05-27.md#stale-paths-correction-2026-05-28--task-038). Do NOT sweep these as doc-debt.
+> **Correction (2026-05-28, TASK-038):** this table analysed the 339-count baseline. After reindex/prune the moved/deleted rows cleared; the *residual* ~93 are dominated by rendered-location relative-link FALSE POSITIVES (source docs under `src/core/{rules,skills,commands}/` + `src/templates/**` whose `../../docs/…` links resolve correctly only post-render). Do NOT sweep these as doc-debt.
 
 | Category | Count | Assessment | Action |
 |---|---|---|---|
@@ -300,7 +300,6 @@ Total ~5-8 hours to reach genuinely-healthy doctor state with no noise.
 
 ## See also
 
-- [audit-graph-os-round4-2026-05-27.md](../tasks/audits/audit-graph-os-round4-2026-05-27.md) — pointer doc
 - [graph-os-round3-audit-findings-2026-05-26.md](graph-os-round3-audit-findings-2026-05-26.md) — R3 register (60 defects, mostly fixed)
 - [graph-os-round3-fix-checklist-2026-05-26.md](graph-os-round3-fix-checklist-2026-05-26.md) — W6.1-W6.20
 - [graph-explorer skill](../../src/core/skills/graph-explorer/SKILL.md) — coverage/truncation discipline

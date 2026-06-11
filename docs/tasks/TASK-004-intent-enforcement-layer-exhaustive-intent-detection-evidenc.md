@@ -43,7 +43,7 @@ references: []
 **Wave 1 — Compaction Resilience**
 - **Given** intent.json exists with exhaustive=true
 - **When** agent attempts Edit/Write
-- **Then** enforce-audit-artifact.sh blocks unless `docs/tasks/audits/audit-<slug>.md` exists with mandatory header row
+- **Then** enforce-audit-artifact.sh blocks unless `audit-<slug>.md` exists with mandatory header row
 
 **Wave 2 — Evidence Required**
 - **Given** task with detected exhaustive intent

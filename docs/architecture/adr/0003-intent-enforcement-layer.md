@@ -37,9 +37,8 @@ Build an enforcement layer (G0–G14) that:
   `docs/engineering/intent-vocabulary.md`).
 - **Materializes the contract** as `.coding-os/<agent>/.intent.json`
   with predicates the agent must satisfy (G3).
-- **Requires an audit artifact** at `docs/tasks/audits/audit-<slug>.md`
-  before code edits can proceed (G12, PreToolUse Write/Edit hook
-  blocks).
+- **Requires a per-task audit artifact** before code edits can
+  proceed (G12, PreToolUse Write/Edit hook blocks).
 - **Refuses the Stop signal** when predicates aren't satisfied (G4,
   Stop hook). The agent gets a structured gap-list back as context.
 - **Forces a reviewer subagent** before "done" claims on

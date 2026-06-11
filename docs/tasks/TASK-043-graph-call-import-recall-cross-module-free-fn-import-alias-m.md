@@ -18,10 +18,9 @@ references: []
 ---
 # TASK-043: graph call/import recall: cross-module free-fn import-alias + module-uid dedup (recall 11-17%)
 
-**Outcome (one sentence):** cos_graph_references/impact/rename_plan find ALL callers, not 11-17%: canonicalize module uids (one node per physical file) and normalize import aliases (tools.X / thinking_os.tools.X / core.thinking_os.tools.X → one uid) so bare-name cross-module calls (ok()/fail() 11/63) and importers (0/6) resolve. Pairs with TASK-041 (instance-method receiver inference). Evidence: audit-graph-live-round5-2026-05-29.md.
+**Outcome (one sentence):** cos_graph_references/impact/rename_plan find ALL callers, not 11-17%: canonicalize module uids (one node per physical file) and normalize import aliases (tools.X / thinking_os.tools.X / core.thinking_os.tools.X → one uid) so bare-name cross-module calls (ok()/fail() 11/63) and importers (0/6) resolve. Pairs with TASK-041 (instance-method receiver inference).
 
 ## Read First
-- docs/tasks/audits/audit-graph-live-round5-2026-05-29.md
 - src/core/graph_os/extractors/code_python.py
 
 ## Repro Steps

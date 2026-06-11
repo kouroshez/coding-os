@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** The header+taxonomy contract docs-system.md advertises is actually enforced where docs are produced: (1) CI runs docs-lint in strict mode on git-changed docs only (D5-F1), (2) the git pre-commit batch gains a doc-header check for changed docs/**/*.md (D5-F7), (3) a PreToolUse Write WARN fires when a new freeform doc lacks a valid header, pointing at doc-cheat-sheet (D5-F4). Legacy backlog stays advisory; only new/changed docs gate.
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/core/scripts/docs-lint.sh
 - src/core/hooks/_helpers/pre_commit_batch.py
 - src/core/hooks/enforce-template.sh

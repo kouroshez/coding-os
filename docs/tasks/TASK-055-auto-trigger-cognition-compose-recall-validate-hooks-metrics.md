@@ -21,8 +21,6 @@ references: []
 **Outcome (one sentence):** The cognition read-arcs fire mechanically: roles auto-compose+surface on COMPLICATED+, recall injects in Orient, validate closes on task-done, metrics carry variance, learned patterns visible in Hub.
 
 ## Read First
-- docs/tasks/audits/audit-cognition-loops.md
-- docs/tasks/audits/audit-cognition-autotrigger.md
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 - **Given** a session with a COMPLICATED/COMPLEX `.thinking_os-gate`, **When** the next prompt fires `auto-compose-roles.sh`, **Then** `.roles`/`.role` are stamped and the composed lead role appears in the session banner (`roles=`).

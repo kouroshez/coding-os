@@ -14,7 +14,7 @@ completed: 2026-05-22
 agent_session: ses-claude-20260522-1151
 depends_on: []
 blocked_by: []
-references: [docs/tasks/audits/audit-tests-suite-hardening.md]
+references: []
 ---
 # TASK-008: Harden tests/ suite — 14-item audit loop
 
@@ -23,7 +23,6 @@ standard — no failing tests, slow tests marked, shared fixtures, and the
 brittle/vacuous-assertion patterns from the audit removed.
 
 ## Read First
-- docs/tasks/audits/audit-tests-suite-hardening.md — the 14-item checklist + triage.
 - docs/governance/critical-rules.md — Rule 11 (no hardcoded stack/adapter
   literals), Rule 20 (test discipline), Rule 13 (MCP envelope).
 - src/core/rules/test-discipline.md — matrix-targeted verification.
@@ -38,4 +37,4 @@ brittle/vacuous-assertion patterns from the audit removed.
 
 ## Work Log
 - L1a–L1e + composer fix: ~30 baseline reds resolved. See audit Evidence Log.
-- 2026-05-22 [claude]: Closed: audit-tests-suite-hardening.md status→complete, 14 category rows resolved (11 done, 3 deferred per Rule 22 — L5/
+- 2026-05-22 [claude]: Closed: status→complete, 14 category rows resolved (11 done, 3 deferred per Rule 22 — L5/

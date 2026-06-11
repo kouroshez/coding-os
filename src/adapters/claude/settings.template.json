@@ -84,7 +84,7 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-task-transition.sh",
-            "statusMessage": "🚦 Checking task/audit status transition...",
+            "statusMessage": "🚦 Checking task status transition...",
             "timeout": 5
           },
           {

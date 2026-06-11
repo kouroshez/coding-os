@@ -18,10 +18,9 @@ references: []
 ---
 # TASK-045: graph rename_plan: wire real string-literal scan + doc_references (check_strings silent no-op)
 
-**Outcome (one sentence):** cos_graph_rename_plan.string_literals returns real ripgrep hits (currently a permanent [] stub via the MCP path — check_strings=true silently misses runtime-breaking string refs) and doc_references reflects actual doc mentions (currently 0 with result_truncated=false = false 'docs covered'). Evidence: audit-graph-live-round5-2026-05-29.md.
+**Outcome (one sentence):** cos_graph_rename_plan.string_literals returns real ripgrep hits (currently a permanent [] stub via the MCP path — check_strings=true silently misses runtime-breaking string refs) and doc_references reflects actual doc mentions (currently 0 with result_truncated=false = false 'docs covered').
 
 ## Read First
-- docs/tasks/audits/audit-graph-live-round5-2026-05-29.md
 - src/core/graph_os/tools/graph.py
 
 ## Repro Steps

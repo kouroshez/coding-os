@@ -30,7 +30,7 @@ references: []
 2. Page crashes with the React error overlay.
 Expected: audits table renders; Predicates column joins the list with ", ".
 Actual: `TypeError: (e.predicates ?? []).join is not a function` — the whole page is blank.
-Root cause: audit-hook-system-remediation-2026-06-05.md writes `predicates:` as a free-form prose scalar; the naive line parser stores it as a string and `or []` only catches None/empty, so the route emits a string for a field the UI joins as an array.
+Root cause: a retired audit artifact wrote `predicates:` as a free-form prose scalar; the naive line parser stores it as a string and `or []` only catches None/empty, so the route emits a string for a field the UI joins as an array.
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 - **Given** an audit-*.md whose `predicates:` (or `matched_*`) frontmatter is a free-form scalar string, not a YAML list

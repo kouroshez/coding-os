@@ -1,20 +1,15 @@
 #!/usr/bin/env bash
 # enforce-task-transition.sh — PreToolUse Write|Edit.
 #
-# BLOCKS hand-edits that mutate a task/audit STATUS transition
-# (status: / **Status:** / checkbox [ ]->[x]) on docs/tasks/**/*.md —
-# INCLUDING docs/tasks/audits/audit-*.md (unlike validate-task-frontmatter,
-# which skips audits). Status transitions must route through cos_task_move /
-# cos task-done / cos_supervise_record_output so the board DB, WIP caps, DoD
-# gates, and the completion guardian stay consistent; a raw Edit bypasses all
-# of them, and hand-ticking an audit evidence box defeats the Stop guardian.
+# BLOCKS hand-edits that mutate a task STATUS transition
+# (status: / **Status:** / checkbox [ ]->[x]) on docs/tasks/**/*.md.
+# Status transitions must route through cos_task_move / cos task-done so the
+# board DB, WIP caps, and DoD gates stay consistent; a raw Edit bypasses all
+# of them.
 #
 # Allow-list: governance/docs-update/template-update active task, or
-# COS_ALLOW_TASK_EDIT=1. EXCEPTION: docs/tasks/audits/audit-*.md is exempt
-# from the governance allow-list — a hand-ticked EvidenceBundle checkbox is
-# evidence forgery and must BLOCK even under a governance marker (only the
-# explicit COS_ALLOW_TASK_EDIT=1 bypasses it). Fail-open if jq/helper/python
-# missing.
+# COS_ALLOW_TASK_EDIT=1. Fail-closed when the detection helper is missing
+# (COS_ALLOW_TASK_EDIT=1 escapes).
 set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
@@ -32,29 +27,18 @@ payload="$(cos_read_stdin_bounded 5)"
 
 file_path="$(printf '%s' "$payload" | cos_json_field tool_input.file_path)"
 
-# Scope: only task/audit markdown (INCLUDES docs/tasks/audits/).
+# Scope: only task markdown under docs/tasks/.
 if [[ -z "$file_path" ]] || [[ "$file_path" != *"docs/tasks/"*.md ]]; then
     exit 0
 fi
 
-# Audit evidence files (docs/tasks/audits/audit-*.md) are EXEMPT from the
-# governance allow-list: ticking an EvidenceBundle / cos_supervise_record_output
-# checkbox by hand forges the attestation the Stop guardian trusts, so it must
-# BLOCK even under a governance/docs-update marker. Only COS_ALLOW_TASK_EDIT=1
-# (the explicit one-shot above) bypasses it. Non-audit task docs keep the
-# governance allow-list for legit large refactors.
-is_audit=0
-[[ "$file_path" == *"docs/tasks/audits/audit-"*.md ]] && is_audit=1
-
 # Governance allow-list — panel-scoped, session+freshness aware.
-if [[ "$is_audit" -eq 0 ]]; then
-    source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
-    if type check_state >/dev/null 2>&1; then
-        check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current" 28800 2>/dev/null || true
-        case "${STATE_VALUE:-}" in
-            *governance*|*docs-update*|*template-update*) exit 0 ;;
-        esac
-    fi
+source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
+if type check_state >/dev/null 2>&1; then
+    check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current" 28800 2>/dev/null || true
+    case "${STATE_VALUE:-}" in
+        *governance*|*docs-update*|*template-update*) exit 0 ;;
+    esac
 fi
 
 # Mutation detection — delegate to helper (Rule 8: no python heredoc).

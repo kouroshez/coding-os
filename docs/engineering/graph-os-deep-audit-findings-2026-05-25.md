@@ -1,12 +1,12 @@
 <!-- domain:META | layer:engineering | ssot:false | updated:2026-05-25 -->
 # Graph-OS Deep Audit Findings (2026-05-25)
 
-Companion to [docs/tasks/audits/audit-graph-os-deep-2026-05-25.md](../tasks/audits/audit-graph-os-deep-2026-05-25.md). Detailed defect register; pointer doc held under the 3K-token lint cap.
+Detailed defect register for the TASK-032 deep audit (2026-05-25).
 
 **Task:** TASK-032
 **Trigger:** user exhaustive intent — " graph", "", "", ""
 **Scope:** post-TASK-029 verification + deepening — all 17 `cos_graph_*` MCP tools + extractors + SQLite backend + reindex dispatch + envelope contract + perf bench + new defect surface
-**Prior audit:** [audit-graph-os-exhaustive-2026-05-24.md](../tasks/audits/audit-graph-os-exhaustive-2026-05-24.md) — 19 findings, 14 fixes landed.
+**Prior audit:** the 2026-05-24 exhaustive review (TASK-029) — 19 findings, 14 fixes landed.
 
 ## Baseline snapshot (2026-05-25 pre-audit)
 
@@ -140,8 +140,6 @@ In-process direct calls, 30-100 runs per tool, `reset_backend()` before each bat
 
 ## See also
 
-- [TASK-029 audit](../tasks/audits/audit-graph-os-exhaustive-2026-05-24.md) — predecessor with the 19 founding findings.
-- [TASK-029 fix-checklist](../tasks/audits/audit-graph-os-fix-checklist-2026-05-24.md) — what F1–F14 did.
 - [mcp-schema-traps.md](mcp-schema-traps.md) — G3 schema trap doc (existed but not followed by graph_os tools).
 - [mcp-error-envelope.md](mcp-error-envelope.md) — envelope contract.
 - [graph-explorer skill](../../src/core/skills/graph-explorer/SKILL.md) — coverage contract; the truncation rules the tools must honor.

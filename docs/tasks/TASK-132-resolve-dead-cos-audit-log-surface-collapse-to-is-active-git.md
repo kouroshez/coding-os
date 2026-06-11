@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** No half-built version-history infra: collapse the unread cos_audit_log_query/timeline tools + value-less per-doc-edit auto-capture to just the is_active mechanism cos_doc_search actually uses, and serve version history via cos doc-history (D4-F3); fix the doc-cheat-sheet decision tree's references to template files that don't exist by adding the missing api-contract/adr templates or correcting the refs (D4-F5, D6-F7).
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/core/thinking_os/tools/audit.py
 - src/core/hooks/capture-audit.sh
 - docs/governance/_templates/doc-cheat-sheet.md

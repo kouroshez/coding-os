@@ -28,7 +28,7 @@ references: []
 - docs/governance/critical-rules.md
 
 ## Repro Steps
-1. With a governance/docs-update task marker active, hand-Edit a `docs/tasks/audits/audit-*.md` to mark the audit complete and tick its EvidenceBundle attestation line (the one naming cos_supervise_record_output).
+1. With a governance/docs-update task marker active, hand-Edit a `audit-*.md` to mark the audit complete and tick its EvidenceBundle attestation line (the one naming cos_supervise_record_output).
 2. Look a task up via raw `ls docs/tasks/ | grep -i NNN` + raw Read instead of `cos task-show`.
 Expected: the audit-evidence tick is BLOCKED; a runtime-independent guardian flags the forged completion; a WARN nudges the raw lookup.
 Actual: the governance allow-list lets the tick through; the guardian only cross-checks under intent.exhaustive; the nudge is Bash-only/once-per-session and never sees the raw Read.
@@ -40,5 +40,5 @@ Actual: the governance allow-list lets the tick through; the guardian only cross
 - **Given** the changes, **When** `make verify-hooks` + targeted guardian pytest run, **Then** all green.
 
 ## Work Log
-- 2026-06-02 [claude]: A1: enforce-task-transition.sh exempts docs/tasks/audits/audit-*.md from the governance allow-list so a hand-ticked Evid
+- 2026-06-02 [claude]: A1: enforce-task-transition.sh exempts audit-*.md from the governance allow-list so a hand-ticked Evid
 - 2026-06-02 [claude]: A1/A2/A3 committed 1701f1e + golden 62d0d92.. (per-stack). 50 tests green (43 guardian/workflow + 7 golden). Blocked-the

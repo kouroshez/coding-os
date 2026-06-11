@@ -84,7 +84,7 @@
           {
             "type": "command",
             "command": ".claude/hooks/enforce-task-transition.sh",
-            "statusMessage": "🚦 Checking task/audit status transition...",
+            "statusMessage": "🚦 Checking task status transition...",
             "timeout": 5
           },
           {

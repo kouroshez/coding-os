@@ -18,10 +18,9 @@ references: []
 ---
 # TASK-226: DB scale foundation: indexes + FTS5 search + task_dependents junction table (kills LIKE O(n^2))
 
-**Outcome (one sentence):** The DB carries the indexes every keyset query needs at 100K+ rows (append-only migrations, Rule 9): (status, completed_at) and (swimlane, status, priority) on tasks; (task_id, transitioned_at) on task_status_history; FTS5 on tasks(title, goal/body) so cos_task_search stops full-scanning; a task_dependencies junction table replacing the depends_on LIKE scan (O(n^2) -> indexed). This is the foundation pulled first by board pagination (TASK-223) + bounded queries (TASK-227). Verified by EXPLAIN QUERY PLAN showing index use + migration tests green. See audit-enterprise-scale-2026-06-07.md.
+**Outcome (one sentence):** The DB carries the indexes every keyset query needs at 100K+ rows (append-only migrations, Rule 9): (status, completed_at) and (swimlane, status, priority) on tasks; (task_id, transitioned_at) on task_status_history; FTS5 on tasks(title, goal/body) so cos_task_search stops full-scanning; a task_dependencies junction table replacing the depends_on LIKE scan (O(n^2) -> indexed). This is the foundation pulled first by board pagination (TASK-223) + bounded queries (TASK-227). Verified by EXPLAIN QUERY PLAN showing index use + migration tests green.
 
 ## Read First
-- docs/tasks/audits/audit-enterprise-scale-2026-06-07.md
 - src/core/thinking_os/database.py
 - src/core/board_os/mcp_tools.py
 

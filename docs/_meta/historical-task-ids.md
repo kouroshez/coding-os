@@ -39,7 +39,7 @@ not.
 | ---------------------------------- | --------------------------------------------------------------- |
 | `(TASK-001..004)`                  | `docs/tasks/TASK-00{1,2,3,4}-*.md` — these still exist.         |
 | `(TASK-005..200)`                  | The task file is archived. Read the commit body for context.    |
-| `audit-<slug>.md` in commit body   | `docs/tasks/audits/audit-<slug>.md` — these were retained.      |
+| `audit-<slug>.md` in commit body   | Audit artifacts were retired (2026-06-11). Read the commit body / `git show <sha>` for context. |
 
 For any historical TASK id, you can also dig the archive locally:
 

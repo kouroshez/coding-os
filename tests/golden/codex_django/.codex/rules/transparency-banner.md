@@ -2,7 +2,7 @@
 
 > **Rule:** Every agent reply MUST begin with the `USER_BANNER` line emitted by `session-context.sh` (UserPromptSubmit `additionalContext`). One line, first thing the user sees, every turn.
 
-The pulse block is agent-only (the chat UI hides `<system-reminder>` tags), so the banner is the user's only view of the cognitive signals — task, gate, skill, audit — that decide what the agent does this turn. The user can't redirect what they can't see.
+The pulse block is agent-only (the chat UI hides `<system-reminder>` tags), so the banner is the user's only view of the cognitive signals — task, gate, skill, roles — that decide what the agent does this turn. The user can't redirect what they can't see.
 
 ## The contract
 
@@ -17,7 +17,7 @@ The pulse block is agent-only (the chat UI hides `<system-reminder>` tags), so t
 **Formal work** (`mode ∈ {formal, gov-required, propose-formal}` or unset):
 
 ```
-🔔 ses=<tail> · mode=<mode> · task=<T> · gate=<G> · skill=<S> · roles=<R> · audit=<A>
+🔔 ses=<tail> · mode=<mode> · task=<T> · gate=<G> · skill=<S> · roles=<R>
 ```
 
 `roles=<R>` shows the active role + its chain position (e.g. `reviewer 2/3`) when a chain is composed for a COMPLICATED/COMPLEX gate; `-` otherwise. It advances by work phase via `advance-role.sh`, only to a role already in the chain.
@@ -29,13 +29,13 @@ Inconsistency markers (`⚠️ wip=N but task=none — cos task-start <ID>`) are
 The agent's response MUST start with the rendered banner line exactly as emitted — no reformatting, translation, or abbreviation. Then a blank line. Then the normal reply. Example formal-work banner (the `⚠️` form forces the agent to surface unbound WIP before continuing):
 
 ```
-🔔 ses=648-639f · mode=formal · task=TASK-033 · gate=COMPLICATED 4 · skill=hook-authoring clean-code · roles=analyst+2 · audit=1(graph-os-deep-2026-05-25)·3-unchecked
-🔔 ses=648-639f · mode=formal · task=none · gate=unset · skill=- · roles=- · audit=- ⚠️ wip=1 but task=none — cos task-start <ID>
+🔔 ses=648-639f · mode=formal · task=TASK-033 · gate=COMPLICATED 4 · skill=hook-authoring clean-code · roles=analyst+2
+🔔 ses=648-639f · mode=formal · task=none · gate=unset · skill=- · roles=- ⚠️ wip=1 but task=none — cos task-start <ID>
 ```
 
 ## Reply body — lean by default (the line after the banner)
 
-After the banner + blank line, default to the **minimum that fully answers** — result first, then only the reasoning the user needs to act on (measured: median ~36 tokens, p90 ~128). Casual modes (`query`/`adhoc`/`chore`): a sentence or two, no preamble or "here's what I did" recap. Formal work: decision first, then the why; push verbose tables / file lists / verification logs to the task work-log, audit doc, or PR body. Deliberate reports (the user asked for the full analysis): be as thorough as the request demands — never trade a wanted report for brevity. Convention, not a hook (a Stop hook fires after the reply is billed).
+After the banner + blank line, default to the **minimum that fully answers** — result first, then only the reasoning the user needs to act on (measured: median ~36 tokens, p90 ~128). Casual modes (`query`/`adhoc`/`chore`): a sentence or two, no preamble or "here's what I did" recap. Formal work: decision first, then the why; push verbose tables / file lists / verification logs to the task work-log or PR body. Deliberate reports (the user asked for the full analysis): be as thorough as the request demands — never trade a wanted report for brevity. Convention, not a hook (a Stop hook fires after the reply is billed).
 
 ## When the banner is missing
 
@@ -59,4 +59,4 @@ Accurate per panel: each panel writes its own `$COS_PANEL_DIR`, and the reader i
 
 ## See also
 
-[session-context.sh](../hooks/session-context.sh) (emits `USER_BANNER`) · [write-state.sh](../hooks/write-state.sh) (atomic writer) · [inject-resume-prompt.sh](../hooks/inject-resume-prompt.sh) (audit-resume) · [thinking_os.md](thinking_os.md) (gate semantics) · [state-files.md](../../docs/engineering/state-files.md) (ownership + concurrency matrix).
+[session-context.sh](../hooks/session-context.sh) (emits `USER_BANNER`) · [write-state.sh](../hooks/write-state.sh) (atomic writer) · [thinking_os.md](thinking_os.md) (gate semantics) · [state-files.md](../../docs/engineering/state-files.md) (ownership + concurrency matrix).

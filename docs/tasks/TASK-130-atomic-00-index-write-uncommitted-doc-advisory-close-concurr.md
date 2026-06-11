@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** regen_doc_index.py writes atomically (tmp + os.replace) so concurrent agents in the same docs dir cannot tear/clobber the 00-index (D5-F8, D7-F2); the generator also emits the > Nav: line its own rules require (D1-F5) and sorts deterministically before truncating (D1-F8); and a Stop/SessionEnd advisory surfaces uncommitted doc edits so the audit trail can't record truth the repo never saw (D5-F11).
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/scripts/regen_doc_index.py
 - src/core/hooks/auto-regen-doc-index.sh
 

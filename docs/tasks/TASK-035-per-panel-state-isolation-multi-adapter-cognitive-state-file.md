@@ -39,7 +39,7 @@ references: []
 - **Given** `make verify` after edits, **When** `uv run pytest tests/test_panel_isolation.py tests/test_cos_env_panel_resolution.py tests/test_session.py -q` and `make verify-hooks` run, **Then** all green; manual 3-panel smoke (open 3 Claude panels, each records different gate value, banner shows correct per-panel state) confirmed.
 
 ## Work Log
-- 2026-05-26: TASK created. Initial audit in `docs/tasks/audits/audit-per-panel-state-isolation-2026-05-26.md`. Decisions: hybrid panel-id (stdin → ppid fallback), files for hot state + DB rollup on end, worktree workaround removed.
+- 2026-05-26: TASK created. Decisions: hybrid panel-id (stdin → ppid fallback), files for hot state + DB rollup on end, worktree workaround removed.
 - 2026-05-26: Groups A-F implemented + tested.
   - **A1-A3 (Foundation, DNA + mRNA)**: `cos-env.sh` gained `_cos_resolve_panel_id`, `COS_PANEL_ID`, `COS_PANEL_DIR`, `COS_PER_PANEL_FILES` allowlist, helpers `cos_state_path` and `cos_panel_upgrade_from_payload`. Adapter manifests gained `runtime_session_marker` block (claude/codex/cursor) + schema entry in `adapter.schema.json`. Data-driven per Rule 11 — adding gemini = adapter dir + yaml block, zero core change.
   - **B1-B5 (Writer/Reader protocol)**: `write-state.sh` routes per basename via `cos_state_path` + creates parent dir on demand. `check-state.sh` reads panel-first with one-cycle legacy AGENT_DIR fallback during migration window. 8 cognitive files + 5 dedupe markers + 3 override markers + `session-id` route to `$COS_PANEL_DIR`. `.task-mode`/`.model`/`.swimlane`/`.last-verify`/`.last-decay`/`.turn-activity.log`/`.hooks.log` stay shared.

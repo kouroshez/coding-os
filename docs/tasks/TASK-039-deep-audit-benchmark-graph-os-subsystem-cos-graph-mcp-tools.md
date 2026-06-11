@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** Exhaustively validate graph_os node/edge accuracy and every `cos_graph_*` MCP tool against the live repo, recording all findings + root causes + fix sites in the audit artifact.
 
 ## Read First
-- docs/tasks/audits/audit-graph-system-deep-2026-05-28.md — the audit artifact (findings register + coverage table)
 - src/core/graph_os/backends/sqlite_backend.py — upsert_node merge logic (lines 185-272)
 - src/core/graph_os/extractors/md_links.py — _promote_stubs / _stub_for_uid
 - src/core/graph_os/ingest/base.py — walk filter SSOT

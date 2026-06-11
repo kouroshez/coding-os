@@ -18,10 +18,9 @@ references: []
 ---
 # TASK-047: graph DB-path resolution: stop nested-cwd walk-up creating stray .coding-os DBs (defeats TASK-117)
 
-**Outcome (one sentence):** resolve_db_path/_find_project_root_from_cwd stop anchoring on a stray nested .coding-os when invoked from a subdir — walk up to the registered project root. Prevents the 3 stray partial-index DBs (3780/2281/0 nodes) created by subdir invocations. Cleanup: user removes existing strays (rm docs/.coding-os src/cli/.coding-os src/core/thinking_os/.coding-os). Evidence: audit-graph-live-round5-2026-05-29.md.
+**Outcome (one sentence):** resolve_db_path/_find_project_root_from_cwd stop anchoring on a stray nested .coding-os when invoked from a subdir — walk up to the registered project root. Prevents the 3 stray partial-index DBs (3780/2281/0 nodes) created by subdir invocations. Cleanup: user removes existing strays (rm docs/.coding-os src/cli/.coding-os src/core/thinking_os/.coding-os).
 
 ## Read First
-- docs/tasks/audits/audit-graph-live-round5-2026-05-29.md
 - src/core/thinking_os/database.py
 
 ## Repro Steps

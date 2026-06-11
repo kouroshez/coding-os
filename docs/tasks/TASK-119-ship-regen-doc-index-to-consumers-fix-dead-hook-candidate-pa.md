@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** auto-regen-doc-index.sh resolves its generator inside a consumer project (preferably by calling a shipped CLI surface e.g. cos docs-index --regen-nav <dir> rather than scaffolding a loose script), so docs/<dir>/00-index.md freshness works in every organism, not just the meta-repo dogfood path. Also fixes the relative-path exit-127 invocation breakage and the omitted Nav line.
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/core/hooks/auto-regen-doc-index.sh
 - src/scripts/regen_doc_index.py
 - src/core/scaffold_manifest.json

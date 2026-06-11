@@ -1,8 +1,7 @@
 [Coding OS — Workflow Integrity Card] (Critical Rule 25 + Core Loop). Read once; applies every turn.
 
-TASK / BOARD / AUDIT STATE — semantic ops ONLY, never a raw Edit/Write:
+TASK / BOARD STATE — semantic ops ONLY, never a raw Edit/Write:
   - status change  -> cos_task_move(task_id, to=...)  /  cos task-done   (a hand-Edit of a status:/**Status:**/checkbox on docs/tasks/** is BLOCKED by enforce-task-transition)
-  - audit evidence -> cos_supervise_record_output      (NEVER hand-tick an audit-*.md checkbox — the Stop guardian verifies the real formula_dispatches row, not the file)
   - task lookup    -> cos task-show TASK-NNN / cos_task_search / cos_task_show (MCP)   — never ls/grep/cat/Read on docs/tasks/
 
 COGNITIVE STATE — set via the op, not raw write-state.sh:

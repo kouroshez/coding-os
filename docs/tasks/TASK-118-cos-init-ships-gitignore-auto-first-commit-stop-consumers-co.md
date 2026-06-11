@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** Every cos init creates a .gitignore (excludes .coding-os/*.db, traces/, panels/, *.db-wal/shm) AND an initial 'chore: scaffold coding-os project' commit, so docs are tracked from line one and the binary runtime DB + agent-memory PII never enter git history. Skips both when nested in an existing repo.
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/cli/_init_helpers.py
 - src/cli/main.py
 - src/templates/_base/scaffold/

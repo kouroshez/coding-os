@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** Superseded specs stop being served as current — a `superseded_by` frontmatter key flips is_active=0 on (re)index so cos_doc_search hides the old era by default (D7-F9); and the doc-cheat-sheet's create-time routing targets exist in the base scaffold so a new doc lands somewhere real (D6-F5). (D6-F4 add-stack nav regen of 00-index/foundation-map is deferred — it needs a dedicated stack-aware index renderer, substantial new code beyond this era-correctness fix.)
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/core/thinking_os/doc_indexer.py
 - src/templates/_base/scaffold/docs/
 

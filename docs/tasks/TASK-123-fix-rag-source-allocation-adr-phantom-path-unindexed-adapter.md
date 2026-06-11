@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** rag-config.yaml (base scaffold + meta) indexes the docs that actually exist: docs/adr/ instead of the phantom docs/architecture/adr/ (6 ADRs currently unindexed everywhere), docs/adapters/, and the design/ + pages-content-spec/ sources moved into base so nextjs design tokens + content spec are retrievable via cos_doc_search; the drift-prone react-native override is removed. Golden fixtures regenerated.
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/templates/_base/scaffold/.coding-os/rag-config.yaml
 - src/core/thinking_os/doc_indexer.py
 - docs/adr/

@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** The highest-demand missing persona can run cos init: add src/templates/<id>/ (supabase OR wordpress — confirm at start) with stack.yaml + scaffold/docs mirroring the matching skill (supabase: RLS-policy/auth/realtime/edge-function docs; wordpress: cms-plugin/wp-hooks/php-security). Reuse skill content as the doc source. Flutter/dart + IoT explicitly DEFERRED to follow-up tasks (anti-overengineering — no speculative build of all 5). Closes D2-F3.
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/templates/nextjs/stack.yaml
 - src/core/skills/supabase/
 - src/core/skills/wordpress/

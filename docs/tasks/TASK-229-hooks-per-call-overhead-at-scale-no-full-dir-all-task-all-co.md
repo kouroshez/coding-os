@@ -18,10 +18,9 @@ references: []
 ---
 # TASK-229: Hooks per-call overhead at scale: no full-dir/all-task/all-commit scan on every tool call
 
-**Outcome (one sentence):** No PreToolUse/PostToolUse hook does an O(all-tasks)/O(all-commits)/full-tree scan on every agent tool call (which at 100K tasks adds seconds of latency per edit): audit every registered hook for ls docs/tasks/*, git log, rglob, or full-table DB reads on the hot path and replace with cached/indexed/debounced lookups. Verified by per-tool-call hook latency staying flat as task count grows. See audit-enterprise-scale-2026-06-07.md (hooks findings).
+**Outcome (one sentence):** No PreToolUse/PostToolUse hook does an O(all-tasks)/O(all-commits)/full-tree scan on every agent tool call (which at 100K tasks adds seconds of latency per edit): audit every registered hook for ls docs/tasks/*, git log, rglob, or full-table DB reads on the hot path and replace with cached/indexed/debounced lookups. Verified by per-tool-call hook latency staying flat as task count grows.
 
 ## Read First
-- docs/tasks/audits/audit-enterprise-scale-2026-06-07.md
 - src/core/hooks/registry.yaml
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*

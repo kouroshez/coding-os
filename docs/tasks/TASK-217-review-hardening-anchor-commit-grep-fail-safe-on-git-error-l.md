@@ -22,7 +22,6 @@ references: []
 
 ## Read First
 - src/core/board_os/mcp_tools.py
-- docs/tasks/audits/audit-task-lifecycle-integrity-2026-06-05.md
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 - **Given** a commit referencing TASK-2155, **When** `_commits_referencing("TASK-215", ...)` runs, **Then** it does NOT count that commit (anchored grep, trailing non-digit boundary).

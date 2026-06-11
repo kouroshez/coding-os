@@ -22,4 +22,3 @@ references: []
 
 ## Work Log
 - 2026-06-07 [claude]: Completion review (reclaimed zombie): 7/8 batches verified real — greenwash gates (test-mcp now exit-gated), stale src/
-- 2026-06-07 [claude]: committed c30a593d: docs/tasks/audits/audit-output-quality.md

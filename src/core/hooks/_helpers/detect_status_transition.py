@@ -1,14 +1,12 @@
-"""Detect a task/audit status TRANSITION in a Write/Edit payload.
+"""Detect a task status TRANSITION in a Write/Edit payload.
 
 Exit 2 (BLOCK) when the diff mutates a `status:` frontmatter value, a
 `**Status:**` body line, or ticks a previously-empty checkbox `[ ] -> [x]`.
 Exit 0 otherwise. Fail-open on any parse error (never block on a bug).
 
 A transition is a workflow action that must route through cos_task_move /
-cos task-done / cos_supervise_record_output so the board DB, WIP caps,
-DoD gates, and the completion guardian stay consistent. A raw hand-Edit
-silently desyncs them — and on an audit-*.md, ticking the evidence box by
-hand defeats the completion guardian (it trusts the file it reads).
+cos task-done so the board DB, WIP caps, and DoD gates stay consistent.
+A raw hand-Edit silently desyncs them.
 """
 
 from __future__ import annotations
@@ -22,7 +20,7 @@ STATUS_FM = re.compile(r"^\s*status:\s*(\S+)", re.M)
 STATUS_MD = re.compile(r"^\s*\*\*Status:\*\*\s*(.+?)\s*$", re.M)
 CHECKED = re.compile(r"-\s*\[[xX]\]")
 
-BLOCK_MSG = """BLOCKED: task/audit status is a workflow transition — do not hand-edit it.
+BLOCK_MSG = """BLOCKED: task status is a workflow transition — do not hand-edit it.
   File: {file_path}
   Detected: a status:/**Status:**/checkbox change in the diff.
 
@@ -30,8 +28,6 @@ BLOCK_MSG = """BLOCKED: task/audit status is a workflow transition — do not ha
     - Move state:  cos_task_move(task_id="TASK-NNN", to="testing"|"blocked"|...)
                    (CLI: cos task-move TASK-NNN --to testing)
     - Mark done:   cos task-done TASK-NNN   (or cos_task_move ... to="complete")
-    - Audit rows:  cos_supervise_record_output(...) ticks the EvidenceBundle —
-                   never tick an audit checkbox by hand (the Stop guardian trusts it).
 
   Escape hatches (rare, legitimate):
     - Governance task in flight: write-state.sh .task-current "docs-update-<slug>"

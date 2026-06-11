@@ -1,7 +1,7 @@
 <!-- domain:META | layer:engineering | ssot:false | updated:2026-05-27 -->
 # Graph-OS Round 3 Audit Findings (2026-05-26)
 
-Companion to [docs/tasks/audits/audit-graph-os-deep-2026-05-25.md](../tasks/audits/audit-graph-os-deep-2026-05-25.md). Full Round 3 defect register; pointer kept under the 3K-token lint cap.
+Full Round 3 defect register (TASK-037).
 
 **Task:** TASK-037
 **Trigger:** user exhaustive intent — " graph ", "", "", "", "".
@@ -188,7 +188,6 @@ Companion to [docs/tasks/audits/audit-graph-os-deep-2026-05-25.md](../tasks/audi
 
 ## See also
 
-- [audit-graph-os-deep-2026-05-25.md](../tasks/audits/audit-graph-os-deep-2026-05-25.md) — pointer doc.
 - [graph-os-deep-audit-findings-2026-05-25.md](graph-os-deep-audit-findings-2026-05-25.md) — Round 2 register (63 defects, mostly fixed).
 - [graph-os-deep-audit-fix-checklist-2026-05-25.md](graph-os-deep-audit-fix-checklist-2026-05-25.md) — what landed.
 - [mcp-error-envelope.md](mcp-error-envelope.md) — envelope contract (B1/B2 violate).

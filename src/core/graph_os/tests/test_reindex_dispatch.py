@@ -212,7 +212,7 @@ class TestDispatch:
         from graph_os.tools.reindex_dispatch import _record_state_safe
 
         db = str(tmp_path / "t.db")
-        rel = "docs/tasks/audits/audit-x.md"
+        rel = "docs/engineering/sample-note.md"
         common = dict(
             content_hash="h",
             nodes_written=0,
@@ -306,12 +306,6 @@ class TestPureHelpers:
 
         assert _is_task_path("docs/tasks/TASK-001.md")
         assert _is_task_path("repo/tasks/ticket.md")
-
-    def test_task_path_excludes_audits(self):
-        from graph_os.tools.reindex_dispatch import _is_task_path
-
-        # Audit artifacts live under docs/tasks/audits/ — NOT task files.
-        assert not _is_task_path("docs/tasks/audits/audit-x.md")
 
     def test_task_path_non_task_is_false(self):
         from graph_os.tools.reindex_dispatch import _is_task_path

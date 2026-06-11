@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** Three thin CLI surfaces so doc lifecycle is tool-driven not hand-copied: cos doc-new --layer L --path P scaffolds correct frontmatter+opening-block+nav from the template (D4-F1); cos doc-history <path> shells git log --follow + show to answer 'show me prior versions of this doc' (D4-F2); cos doc-lint <path> validates one doc via the existing docs-lint single-file arg (D4-F4). Reuse docs-lint.sh + templates; no new parsers.
 
 ## Read First
-- docs/tasks/audits/audit-doc-system-2026-06-05.md
 - src/cli/main.py
 - src/core/scripts/docs-lint.sh
 - docs/governance/_templates/doc-cheat-sheet.md

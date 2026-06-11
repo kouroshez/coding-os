@@ -24,7 +24,6 @@ references: []
 - src/core/docs/task-lifecycle.md
 - src/core/docs/agent-workflow.md
 - src/core/board_os/
-- docs/tasks/audits/audit-slash-command-refs.md
 
 ## Work Log
 - 2026-05-22 [claude]: Status transitioned to complete via cos task-done.
