@@ -34,3 +34,4 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_cli.py tests/test_template_scaffold.py -q` runs, **Then** green with preset + merge tests (incl. golden union-merge fixture).
 
 ## Work Log
+- 2026-06-11 [claude]: committed 78e26f45: docs/engineering/config-composition.md, src/cli/config_composer.py, src/cli/list_stacks.py, src/cli/

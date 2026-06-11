@@ -147,3 +147,26 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: Edit test_cli.py
 - 2026-06-11 [claude]: Edit test_cli.py
 - 2026-06-11 [claude]: commit d509eb3d88 — chore(golden): recapture fixtures after hook/rule drift (test-governor, model-routing, token-diet)
+- 2026-06-11 [claude]: Edit config-composition.md
+- 2026-06-11 [claude]: Edit preset.schema.json
+- 2026-06-11 [claude]: Edit nextjs-fastapi.yaml
+- 2026-06-11 [claude]: Edit preset_registry.py
+- 2026-06-11 [claude]: Edit t356_loader_sanity.py
+- 2026-06-11 [claude]: Edit t356_loader_sanity.py
+- 2026-06-11 [claude]: Edit config_composer.py
+- 2026-06-11 [claude]: Edit config_composer.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit list_stacks.py
+- 2026-06-11 [claude]: Edit list_stacks.py
+- 2026-06-11 [claude]: Edit hub.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit test_cli.py
+- 2026-06-11 [claude]: Edit test_cli.py
+- 2026-06-11 [claude]: Edit test_hub_init_route.py
+- 2026-06-11 [claude]: commit 78e26f4578 — feat(cli): preset model — init --preset/--dry-config + merge conflict surfacing (TASK-356)

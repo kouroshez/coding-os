@@ -5,12 +5,12 @@ swimlane: infra
 kind: refactor
 epic: J-anatomy
 labels: [wave-1, onboarding-program, ready]
-status: testing
+status: complete
 priority: P0
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-10
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-351]
 blocked_by: []
@@ -39,3 +39,4 @@ Globs in stack.yaml are static strings (src/backend/**), so a service-scoped ins
 
 ## Work Log
 - 2026-06-11 [claude]: committed 8138ccc1: docs/engineering/project-anatomy.md, src/cli/aggregator.py, src/cli/main.py, src/cli/stack_registry.
+- 2026-06-11 [claude]: DONE — relocate_profile SSOT in stack_registry (path remap + boundary-aware text swap + -<id> target rename), applied pr
