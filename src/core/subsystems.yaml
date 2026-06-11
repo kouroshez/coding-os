@@ -1,0 +1,63 @@
+# Subsystem (module) registry — TASK-349. VSCode-style modularity: the kernel
+# is always on; optional modules toggle per project via the state API
+# (cli/subsystems.py → $COS_STATE_DIR/subsystems-state.json).
+#
+# Every hook id below MUST exist in src/core/hooks/registry.yaml
+# (tests/test_cli.py::TestSubsystems cross-validates). Safety-category hooks
+# are non-disableable regardless of module membership (TASK-256 layer);
+# `kernel: true` additionally pins the whole module.
+version: 1
+modules:
+  - id: kernel
+    label: "Kernel — state, env, session lifecycle"
+    kernel: true
+    hooks: [session-context, session-end, classify-task-mode, agent-presence, track-skill, inject-mcp-caller-session]
+    rules: []
+    tools: []
+    doc_tags: []
+    depends_on: []
+
+  - id: docs
+    label: "Docs system — SSOT docs, doc search, doc hygiene"
+    kernel: false
+    hooks: [enforce-doc-anchor, enforce-doc-sync, nudge-docs-first, check-doc-size, auto-regen-doc-index, auto-reindex-docs]
+    rules: []
+    tools: [cos_doc_search, cos_doc_header, cos_doc_headers_by]
+    doc_tags: [docs]
+    depends_on: []
+
+  - id: tasks
+    label: "Task system — Scrumban board, lifecycle, work logs"
+    kernel: false
+    hooks: [enforce-task-start, enforce-task-body, nudge-task-discovery, warn-abandoned-task, remind-daily, auto-task-sync, sync-task-current, link-commit-to-task, reclaim-sweep]
+    rules: []
+    tools: [cos_task_board, cos_task_create, cos_task_move, cos_task_show, cos_task_search, cos_task_ready, cos_task_pick, cos_task_daily, cos_task_retro, cos_task_wip_check, cos_work_log_append]
+    doc_tags: [tasks]
+    depends_on: [docs]
+
+  - id: graph
+    label: "Knowledge graph — code/doc graph, structural queries"
+    kernel: false
+    hooks: [enforce-graph-context, enforce-graph-first-read, enforce-rename-plan, nudge-graph-os, warn-graph-empty, verify-rename-callers, auto-reindex-shell-ops, auto-prune-deleted-files]
+    rules: []
+    tools: [cos_graph_query, cos_graph_context, cos_graph_references, cos_graph_impact, cos_graph_search, cos_graph_resolve]
+    doc_tags: []
+    depends_on: []
+
+  - id: memory
+    label: "Agent memory — observations, learning, recall"
+    kernel: false
+    hooks: [enforce-memory-check, capture-observation, jit-recall, nudge-learn-narrative, remind-learn-validate, auto-brain-decay, drain-embedding-outbox, check-capture-worked]
+    rules: []
+    tools: [cos_search, cos_observation_record, cos_timeline, cos_details, cos_learn_suggest, cos_learn_extract, cos_learn_validate]
+    doc_tags: []
+    depends_on: []
+
+  - id: hub-extras
+    label: "Hub extras — web UI conveniences beyond the API core"
+    kernel: false
+    hooks: [ensure-hub-up, warn-mcp-down]
+    rules: []
+    tools: []
+    doc_tags: []
+    depends_on: []

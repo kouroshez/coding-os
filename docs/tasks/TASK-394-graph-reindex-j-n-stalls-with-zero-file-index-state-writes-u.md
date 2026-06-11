@@ -4,7 +4,7 @@ title: "graph-reindex -j N stalls with zero file_index_state writes under a live
 swimlane: "graph_os"
 kind: bug
 epic: null
-labels: [graph-os, reindex, concurrency]
+labels: [graph-os, reindex, concurrency, ready]
 status: icebox
 priority: P3
 appetite: 4h

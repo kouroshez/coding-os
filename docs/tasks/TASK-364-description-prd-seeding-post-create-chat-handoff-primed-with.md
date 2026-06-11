@@ -33,3 +33,4 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_cli.py -q` + web-route tests run, **Then** green.
 
 ## Work Log
+- 2026-06-11 [claude]: IMPL DONE (parked in testing, batch 3 #1) — --summary/wizard description now: (1) overrides PROJECT_DESCRIPTION substitu

@@ -239,3 +239,7 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: Edit cognition.py
 - 2026-06-11 [claude]: Edit cognition.py
 - 2026-06-11 [claude]: Edit test_cli.py
+- 2026-06-11 [claude]: committed 2f794837: src/cli/main.py, src/cli/setup.py, src/core/web/routes/cognition.py, src/templates/_base/scaffold/do
+- 2026-06-11 [claude]: Edit subsystems.yaml
+- 2026-06-11 [claude]: Edit subsystems.py
+- 2026-06-11 [claude]: Edit state-files.md

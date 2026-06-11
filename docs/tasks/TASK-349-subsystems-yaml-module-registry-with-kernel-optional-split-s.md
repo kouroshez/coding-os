@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: G-modularity
 labels: [wave-3, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P0
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-349: subsystems.yaml — module registry with kernel/optional split + state API
 
 **Outcome (one sentence):** Data-driven src/core/subsystems.yaml declares toggleable modules (docs, tasks/board, graph, memory, hub-extras) with dependency declarations; loader API + per-project toggle state in $COS_STATE_DIR; safety hooks and kernel non-disableable by construction (extends TASK-256 override layer).

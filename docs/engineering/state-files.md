@@ -20,6 +20,8 @@ Read when: Adding a new session-scoped marker · debugging a "session mismatch" 
 ├── domain-config.json                      project config (routing, paths)
 ├── rag-config.yaml                         doc indexer config
 ├── installed-manifest.json                 what `cos init` installed
+├── subsystems-state.json                   module toggles {"disabled": [...]} — absent = all on,
+│                                           created lazily by cli/subsystems.py (TASK-349)
 ├── Makefile.base                           inherited make targets
 │
 ├── claude/                              ← AGENT-PRIVATE  ($COS_AGENT_DIR for Claude)
