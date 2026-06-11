@@ -5,18 +5,17 @@ swimlane: templates
 kind: feature
 epic: F-docs
 labels: [wave-3, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-349, TASK-356]
 blocked_by: []
 references: []
 ---
-
 # TASK-360: Tag-driven docs composition + conditional scaffold templating
 
 **Outcome (one sentence):** Scaffold docs carry tags (module/stack/option); init copies only docs whose tags match active modules+stacks+options; conditional sections replace raw string-replace so stack-specific guidance renders only when relevant.

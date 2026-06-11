@@ -30,8 +30,10 @@ Read next: The relevant playbook or domain doc below.
 - [Workflow Guide](./workflow/workflow-guide.md)
 
 ## Product and Content
+<!-- if-module:docs -->
 
 - [PRD Index](./prd/00-index.md)
+<!-- end-if -->
 <!-- Add when nextjs/web template installed: - [Content Specs Index](./pages-content-spec/00-index.md) -->
 
 ## API Contracts

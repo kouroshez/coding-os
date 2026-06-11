@@ -273,3 +273,10 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: committed e5c6a50c: docs/engineering/mcp-error-envelope.md, src/cli/main.py, src/cli/module_commands.py, src/core/subsys
 - 2026-06-11 [claude]: Edit update.py
 - 2026-06-11 [claude]: Edit module_commands.py
+- 2026-06-11 [claude]: committed 602e74c7: src/cli/module_commands.py, src/cli/update.py, tests/test_cli.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit 00-index.md

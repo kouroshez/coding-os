@@ -32,3 +32,4 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_cli.py -q` runs, **Then** green.
 
 ## Work Log
+- 2026-06-11 [claude]: IMPL DONE (parked, batch 5 #1) — gaps over the 354 toggle machinery closed: (1) cos update migrates pre-module consumers

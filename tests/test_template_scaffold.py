@@ -459,3 +459,95 @@ def test_no_engineering_doc_filename_collision_across_stacks() -> None:
     assert not collisions, (
         "Colliding engineering doc filenames across stacks:\n" + "\n".join(collisions)
     )
+
+
+# ---------------------------------------------------------------------------
+# Tag-driven docs composition — TASK-360
+# ---------------------------------------------------------------------------
+
+
+class TestTagDrivenDocs:
+    def test_default_scaffold_strips_tags_and_keeps_everything(self, tmp_path):
+        from click.testing import CliRunner
+
+        from cli.main import cli
+
+        project = tmp_path / "alltags"
+        project.mkdir()
+        result = CliRunner().invoke(
+            cli,
+            ["init", "--agent", "claude", "-d", str(project), "--yes", "--no-index", "--no-register"],
+        )
+        assert result.exit_code == 0, result.output
+        vision = (project / "docs" / "prd" / "01-snapshot-vision.md").read_text(encoding="utf-8")
+        index = (project / "docs" / "00-index.md").read_text(encoding="utf-8")
+        lifecycle = (project / "docs" / "governance" / "task-lifecycle.md").read_text(
+            encoding="utf-8"
+        )
+        assert "[PRD Index](./prd/00-index.md)" in index  # gated link present by default
+        for rendered in (vision, index, lifecycle):
+            assert "module:" not in rendered.split("\n")[0]  # tag stripped from header
+            assert "if-module" not in rendered and "end-if" not in rendered  # markers stripped
+
+    def test_docs_module_disabled_drops_tagged_tree_and_index_link(self, tmp_path, monkeypatch):
+        from click.testing import CliRunner
+
+        import cli.subsystems as subsystems_module
+        from cli.main import cli
+        from cli.subsystems import load_subsystems
+
+        # Docs (and its dependent tasks) disabled before the scaffold copy —
+        # the wizard/preset path writes this state pre-overlay.
+        def _docs_off(project_root, modules=None):
+            modules = modules or load_subsystems()
+            return {mid: mid not in {"docs", "tasks"} for mid in modules}
+
+        monkeypatch.setattr(subsystems_module, "module_state", _docs_off)
+
+        project = tmp_path / "nodocs"
+        project.mkdir()
+        result = CliRunner().invoke(
+            cli,
+            ["init", "--agent", "claude", "-d", str(project), "--yes", "--no-index", "--no-register"],
+        )
+        assert result.exit_code == 0, result.output
+        assert not (project / "docs" / "prd" / "01-snapshot-vision.md").exists()
+        assert not (project / "docs" / "prd" / "00-index.md").exists()
+        assert not (project / "docs" / "governance" / "task-lifecycle.md").exists()
+        index = (project / "docs" / "00-index.md").read_text(encoding="utf-8")
+        assert "[PRD Index]" not in index  # no dangling link
+        assert "[Risk Register]" in index  # untagged kernel docs remain
+
+    def test_stack_conditional_blocks_render_both_branches(self):
+        from cli.main import _apply_doc_conditions
+
+        doc = (
+            "<!-- domain:X | layer:y | updated:1 -->\n"
+            "intro\n"
+            "<!-- if-stack:go-fiber,fastapi -->\n"
+            "backend guidance\n"
+            "<!-- end-if -->\n"
+            "outro\n"
+        )
+        skip, with_stack = _apply_doc_conditions(doc, set(), {"go-fiber"})
+        assert skip is False
+        assert "backend guidance" in with_stack and "if-stack" not in with_stack
+
+        skip, without_stack = _apply_doc_conditions(doc, set(), {"nextjs"})
+        assert skip is False
+        assert "backend guidance" not in without_stack
+        assert "intro" in without_stack and "outro" in without_stack
+
+    def test_module_block_and_file_tag_semantics(self):
+        from cli.main import _apply_doc_conditions
+
+        tagged = "<!-- domain:X | module:docs -->\nbody\n"
+        assert _apply_doc_conditions(tagged, {"docs"}, set()) == (True, "")
+        skip, kept = _apply_doc_conditions(tagged, set(), set())
+        assert skip is False and "module:docs" not in kept and "body" in kept
+
+        block = "head\n<!-- if-module:tasks -->\ntask hint\n<!-- end-if -->\ntail\n"
+        _, disabled = _apply_doc_conditions(block, {"tasks"}, set())
+        assert "task hint" not in disabled
+        _, enabled = _apply_doc_conditions(block, set(), set())
+        assert "task hint" in enabled

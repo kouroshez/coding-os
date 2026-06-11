@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-05-08 -->
+<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-05-08 | module:tasks -->
 # Task Lifecycle Policy
 
 > P: Canonical lifecycle for creating, executing, and closing tasks under the Scrumban model (`src/core/board_os/`).

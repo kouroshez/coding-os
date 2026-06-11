@@ -1,4 +1,4 @@
-<!-- domain:PRODUCT | layer:index | ssot:true | updated:{{DATE}} -->
+<!-- domain:PRODUCT | layer:index | ssot:true | updated:{{DATE}} | module:docs -->
 # Product Requirements — Index
 
 Purpose: Navigation hub for the Product Requirements Document (PRD).

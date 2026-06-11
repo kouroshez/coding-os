@@ -15,6 +15,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -525,6 +526,53 @@ def _resolve_placeholders(text: str, substitutions: dict[str, str]) -> str:
     return result
 
 
+# Tag-driven docs composition (TASK-360):
+#  - file-level: a `module:<id>` token in the first-line header comment skips
+#    the whole doc when that module is disabled;
+#  - block-level: `<!-- if-stack:a,b -->` / `<!-- if-module:docs -->` ...
+#    `<!-- end-if -->` keep the block only when ANY listed stack is installed /
+#    the module is enabled. Markers and tags are stripped from the copy, so a
+#    fully-default project's output is byte-identical to untagged sources.
+_DOC_MODULE_TAG_RE = re.compile(r"\s*\|\s*module:([a-z][a-z0-9_-]*)")
+_DOC_IF_RE = re.compile(r"^<!--\s*if-(stack|module):([a-z0-9_,-]+)\s*-->\s*$")
+_DOC_ENDIF_RE = re.compile(r"^<!--\s*end-if\s*-->\s*$")
+
+
+def _apply_doc_conditions(
+    text: str, disabled_modules: set[str], active_stacks: set[str]
+) -> tuple[bool, str]:
+    """(skip_file, transformed_text) — see the marker contract above."""
+    lines = text.split("\n")
+    if lines:
+        tag = _DOC_MODULE_TAG_RE.search(lines[0])
+        if tag and lines[0].lstrip().startswith("<!--"):
+            if tag.group(1) in disabled_modules:
+                return True, ""
+            lines[0] = _DOC_MODULE_TAG_RE.sub("", lines[0], count=1)
+
+    out: list[str] = []
+    keeping = True
+    in_block = False
+    for line in lines:
+        opener = _DOC_IF_RE.match(line)
+        if opener and not in_block:
+            in_block = True
+            kind, raw_ids = opener.group(1), opener.group(2)
+            wanted = {x for x in raw_ids.split(",") if x}
+            if kind == "stack":
+                keeping = bool(wanted & active_stacks)
+            else:
+                keeping = not (wanted & disabled_modules)
+            continue
+        if _DOC_ENDIF_RE.match(line) and in_block:
+            in_block = False
+            keeping = True
+            continue
+        if keeping:
+            out.append(line)
+    return False, "\n".join(out)
+
+
 def _dry_config_preview(templates: tuple[str, ...], output_format: str) -> None:
     """`cos init --dry-config` — merged .coding-os preview, zero writes."""
     from cli.config_composer import preview_coding_os_configs
@@ -588,6 +636,13 @@ def _overlay_scaffold(
     relocations = _service_relocations(templates)
     registry = _get_stack_registry()
 
+    from cli.subsystems import module_state
+
+    disabled_modules = {
+        module_id for module_id, enabled in module_state(project).items() if not enabled
+    }
+    active_stacks = set(templates)
+
     copied = 0
     for src_root, stack_id in sources:
         if not src_root.exists():
@@ -625,6 +680,12 @@ def _overlay_scaffold(
             if src_file.suffix in _PLACEHOLDER_SUFFIXES:
                 content = src_file.read_text(encoding="utf-8")
                 content = _resolve_placeholders(content, substitutions)
+                if src_file.suffix == ".md":
+                    skip_file, content = _apply_doc_conditions(
+                        content, disabled_modules, active_stacks
+                    )
+                    if skip_file:
+                        continue
                 dest.write_text(content, encoding="utf-8")
             else:
                 shutil.copy2(src_file, dest)
@@ -1450,6 +1511,32 @@ def _run_scaffold_phase(
             dict.fromkeys([*(config.get("extra_skills") or []), *extra_skills])
         )
     _save_config(project, config)
+    # Preset/wizard module toggles land in project state BEFORE the scaffold
+    # copy so tag-driven docs composition sees them (TASK-360). Disable order:
+    # dependents first (the registry refuses chains, e.g. docs before tasks).
+    module_toggles = {k: v for k, v in (config.get("modules") or {}).items() if v is False}
+    if module_toggles:
+        from cli.subsystems import load_subsystems, set_module_enabled
+
+        registry_modules = load_subsystems()
+
+        def _dependents_being_disabled(module_id: str) -> int:
+            # Dependents disable BEFORE their dependencies (the registry
+            # refuses e.g. docs-off while tasks is still enabled).
+            return sum(
+                1
+                for other in module_toggles
+                if other in registry_modules
+                and module_id in registry_modules[other].depends_on
+            )
+
+        ordered = sorted(module_toggles, key=_dependents_being_disabled)
+        for module_id in ordered:
+            toggle = set_module_enabled(project, module_id, False)
+            if not toggle.ok:
+                click.echo(f"  WARN: module '{module_id}': {toggle.reason}", err=True)
+            else:
+                click.echo(f"  Module disabled per preset: {module_id}")
     if project_summary and project_summary.strip():
         # Onboarding intake — consumed by the description→PRD pipeline (TASK-364).
         meta_dir = project / "docs" / "_meta"

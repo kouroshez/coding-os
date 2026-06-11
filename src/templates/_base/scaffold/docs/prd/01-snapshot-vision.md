@@ -1,4 +1,4 @@
-<!-- domain:PRODUCT | layer:spec | ssot:true | updated:{{DATE}} -->
+<!-- domain:PRODUCT | layer:spec | ssot:true | updated:{{DATE}} | module:docs -->
 # 01 — Snapshot & Vision
 
 > P: Elevator pitch + 3-year vision for {{PROJECT_NAME}}. Authoritative one-paragraph product summary.
