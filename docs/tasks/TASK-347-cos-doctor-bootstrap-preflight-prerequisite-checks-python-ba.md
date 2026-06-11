@@ -5,18 +5,17 @@ swimlane: cli
 kind: feature
 epic: A-install
 labels: [wave-0, onboarding-program, ready]
-status: icebox
+status: complete
 priority: P0
 appetite: 1d
 created: 2026-06-11
-started: null
-completed: null
-agent_session: null
+started: 2026-06-10
+completed: 2026-06-10
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-347: cos doctor --bootstrap — preflight prerequisite checks (python/bash/git/uv/sed)
 
 **Outcome (one sentence):** `cos doctor --bootstrap` validates python>=3.10, bash>=4, git, uv presence and BSD/GNU sed compatibility with per-check pass/fail + fix hints; README quickstart and `cos init` reference it; non-TTY safe.
@@ -33,3 +32,4 @@ references: []
 - **Given** a CI/non-TTY environment, **When** the command runs, **Then** output is plain text with no prompts and tests in tests/test_cli.py cover pass/fail/sed-flavor paths.
 
 ## Work Log
+- 2026-06-11 [claude]: Shipped --bootstrap probe-and-exit mode (commit 7a501d89): 5 bootstrap.* checks (python>=3.10, bash>=4 w/ brew hint, git

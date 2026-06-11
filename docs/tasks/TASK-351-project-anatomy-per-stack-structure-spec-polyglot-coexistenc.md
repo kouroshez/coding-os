@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: J-anatomy
 labels: [wave-1, onboarding-program, ready]
-status: icebox
+status: complete
 priority: P0
 appetite: 2d
 created: 2026-06-11
-started: null
-completed: null
-agent_session: null
+started: 2026-06-10
+completed: 2026-06-10
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-348]
 blocked_by: []
 references: []
 ---
-
 # TASK-351: Project anatomy — per-stack structure spec + polyglot coexistence contract
 
 **Outcome (one sentence):** Every stack.yaml declares a canonical `structure:` tree (Go internal/-centric hexagonal, FastAPI routers/schemas/services, Next.js app/, RN screens/); a top-level anatomy contract defines src/{backend|services/&lt;name&gt;|frontend|mobile|shared(+contracts)} so multi-backend stacks coexist; django/fastapi and go/go-fiber glob collisions resolved.
@@ -35,3 +34,4 @@ references: []
 - **Given** docs changes, **When** `make docs-lint` and `uv run pytest tests/test_template_scaffold.py -q` run, **Then** both are green with new structure-spec tests.
 
 ## Work Log
+- 2026-06-11 [claude]: Shipped anatomy contract (commit bcded442): docs/engineering/project-anatomy.md (top-level tree, shared/contracts cross-

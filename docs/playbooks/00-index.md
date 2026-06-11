@@ -21,6 +21,10 @@ Read next: any of the entries below.
 - [Playbook — Authoring a Hook in `src/core/hooks/`](hook-authoring.md) — `ssot:true` · updated 2026-05-13
 - [Playbook — Authoring a Rich Skill in `src/core/skills/` and `src/templates/<stack>/skills/`](skill-authoring.md) — `ssot:true` · updated 2026-06-04
 
+### Reference (1)
+
+- [Doctor Checks — Reference](doctor-checks.md) — `ssot:true` · updated 2026-05-19
+
 ### Playbooks (1)
 
 - [Polyglot Extractor Roadmap — Python-Grade Coverage for Every Language](polyglot-extractor-roadmap.md) — `ssot:true` · updated 2026-05-12

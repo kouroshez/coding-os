@@ -37,3 +37,4 @@ references: []
 - 2026-06-10 [claude]: Edit thinking_os.md
 - 2026-06-10 [claude]: Edit anti-overengineering.md
 - 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-10 [claude]: committed e7b69127: docs/code-os-core-docs/00-index.md, docs/code-os-core-docs/scrumban/00-index.md, docs/code-os-core-d

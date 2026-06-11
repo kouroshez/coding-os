@@ -38,3 +38,4 @@ Globs in stack.yaml are static strings (src/backend/**), so a service-scoped ins
 - **Given** the matrix, **When** `make verify-hooks` + `uv run pytest tests/test_template_scaffold.py -q` + golden tests run, **Then** all green.
 
 ## Work Log
+- 2026-06-11 [claude]: committed 8138ccc1: docs/engineering/project-anatomy.md, src/cli/aggregator.py, src/cli/main.py, src/cli/stack_registry.

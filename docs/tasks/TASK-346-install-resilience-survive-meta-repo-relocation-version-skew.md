@@ -5,18 +5,17 @@ swimlane: cli
 kind: bug
 epic: A-install
 labels: [wave-0, onboarding-program, ready]
-status: icebox
+status: complete
 priority: P0
 appetite: 2d
 created: 2026-06-11
-started: null
-completed: null
-agent_session: null
+started: 2026-06-10
+completed: 2026-06-10
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-346: Install resilience — survive meta-repo relocation, version skew, recovery-hint errors
 
 **Outcome (one sentence):** cos survives meta-repo relocation (resilient root resolution + auto `sync-doctor --repair` path), `cos update` warns on core-version skew, and every install/init failure path (missing extras, registry write, doc-index) prints an actionable recovery hint.
@@ -43,3 +42,108 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - **Given** the existing test suite, **When** `uv run pytest tests/test_cli.py -q` runs, **Then** new regression tests for root-resolution + skew-warning + recovery-hints pass and no existing test breaks.
 
 ## Work Log
+- 2026-06-11 [claude]: Edit hub-architecture.md
+- 2026-06-11 [claude]: Edit update.py
+- 2026-06-11 [claude]: Edit update.py
+- 2026-06-11 [claude]: Edit update.py
+- 2026-06-11 [claude]: Edit update.py
+- 2026-06-11 [claude]: Edit sync_all.py
+- 2026-06-11 [claude]: Edit sync_all.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit test_cli.py
+- 2026-06-11 [claude]: Edit test_cli.py
+- 2026-06-11 [claude]: commit 7f8aae0dfc — fix(cli): install resilience — importlib roots, dangling-link nudge+prune, skew warn (TASK-346)
+- 2026-06-11 [claude]: Implemented 3 resilience layers (commit 7f8aae0d): update/sync_all roots via cli._resources importlib (wheel+move safe);
+- 2026-06-11 [claude]: Edit doctor-checks.md
+- 2026-06-11 [claude]: Edit doctor-checks.md
+- 2026-06-11 [claude]: Edit README.md
+- 2026-06-11 [claude]: Edit doctor.py
+- 2026-06-11 [claude]: Edit doctor.py
+- 2026-06-11 [claude]: Edit doctor.py
+- 2026-06-11 [claude]: Edit doctor.py
+- 2026-06-11 [claude]: Edit doctor.py
+- 2026-06-11 [claude]: Edit doctor.py
+- 2026-06-11 [claude]: Edit doctor.py
+- 2026-06-11 [claude]: Edit doctor.py
+- 2026-06-11 [claude]: Edit doctor.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit test_cli.py
+- 2026-06-11 [claude]: commit 7a501d8905 — feat(cli): cos doctor --bootstrap preflight checks + importlib roots in doctor (TASK-347)
+- 2026-06-11 [claude]: Edit template-authoring.md
+- 2026-06-11 [claude]: Edit stack.schema.json
+- 2026-06-11 [claude]: Edit _data_types.py
+- 2026-06-11 [claude]: Edit stack_registry.py
+- 2026-06-11 [claude]: Edit stack_registry.py
+- 2026-06-11 [claude]: Edit stack_registry.py
+- 2026-06-11 [claude]: Edit stack_registry.py
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit go.mod
+- 2026-06-11 [claude]: Edit main.go
+- 2026-06-11 [claude]: Edit scaffold-boundary.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit tsconfig.json
+- 2026-06-11 [claude]: Edit index.ts
+- 2026-06-11 [claude]: Edit scaffold-boundary.yaml
+- 2026-06-11 [claude]: Edit python-library.md
+- 2026-06-11 [claude]: Edit python-rules.md
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit stack_registry.py
+- 2026-06-11 [claude]: Edit test_cli.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: commit b22614232c — feat(templates): language layer — language/extends schema, plain stacks, grouped picker (TASK-348)
+- 2026-06-11 [claude]: Edit project-anatomy.md
+- 2026-06-11 [claude]: Edit stack.schema.json
+- 2026-06-11 [claude]: Edit _data_types.py
+- 2026-06-11 [claude]: Edit stack_registry.py
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit test_cli.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: commit bcded442fa — feat(core): project anatomy — structure spec per stack + multi-backend service relocation (TASK-351)
+- 2026-06-11 [claude]: Edit project-anatomy.md
+- 2026-06-11 [claude]: Edit stack_registry.py
+- 2026-06-11 [claude]: Edit stack_registry.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit update.py
+- 2026-06-11 [claude]: Edit update.py
+- 2026-06-11 [claude]: Edit skill_primer.py
+- 2026-06-11 [claude]: Edit skill_primer.py
+- 2026-06-11 [claude]: Edit skill_primer.py
+- 2026-06-11 [claude]: Edit t355_sanity.py
+- 2026-06-11 [claude]: Edit aggregator.py
+- 2026-06-11 [claude]: Edit project-anatomy.md
+- 2026-06-11 [claude]: Edit project-anatomy.md
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit test_cli.py
+- 2026-06-11 [claude]: Edit test_cli.py
+- 2026-06-11 [claude]: Edit test_cli.py
+- 2026-06-11 [claude]: commit d509eb3d88 — chore(golden): recapture fixtures after hook/rule drift (test-governor, model-routing, token-diet)

@@ -5,18 +5,17 @@ swimlane: templates
 kind: feature
 epic: C-data-model
 labels: [wave-1, onboarding-program, ready]
-status: icebox
+status: complete
 priority: P0
 appetite: 2d
 created: 2026-06-11
-started: null
-completed: null
-agent_session: null
+started: 2026-06-10
+completed: 2026-06-10
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-348: Stack model — language layer, extends composition, plain-language stacks
 
 **Outcome (one sentence):** stack.schema.json gains `language` + `extends` composition; CLI/GUI discovery groups stacks by language (pick language OR framework); go-plain and typescript-plain stacks exist; python stack filled to baseline (skills + minimal docs).
@@ -36,3 +35,4 @@ references: []
 - **Given** the matrix commands, **When** `uv run pytest tests/test_cli.py tests/test_template_scaffold.py -q` runs, **Then** new tests for language grouping, extends resolution and plain-stack scaffolds pass with the suite green.
 
 ## Work Log
+- 2026-06-11 [claude]: Shipped language layer (commit b2261423): stack.schema.json requires `language` + optional `extends`; loader resolves ex
