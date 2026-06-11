@@ -112,7 +112,7 @@ arbitrary mid-size cap has no consumer (anti-overengineering).
 {
   "ok": false,
   "error": {
-    "category": "transient" | "validation" | "permission" | "not_found" | "unavailable" | "internal",
+    "category": "transient" | "validation" | "permission" | "not_found" | "unavailable" | "internal" | "module_disabled",
     "retryable": true | false,
     "message": "<human-readable>"
   }
@@ -129,6 +129,7 @@ arbitrary mid-size cap has no consumer (anti-overengineering).
 | `not_found` | Requested entity does not exist (task_id, pattern_id) | `false` |
 | `unavailable` | Optional dependency missing (embeddings not installed, FTS5 off) | `true` — user can install and retry |
 | `internal` | Anything else — unexpected exception bubbled up | `false` |
+| `module_disabled` | The tool's subsystem module is disabled in this project (subsystems-state.json); message names the module + `cos module enable <id>`. Emitted by the `safe_tool` gate, never by tool bodies | `false` |
 
 If the default is wrong for a specific call, pass `retryable=` explicitly to
 `fail()`.

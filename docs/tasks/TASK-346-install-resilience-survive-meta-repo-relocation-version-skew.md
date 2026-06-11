@@ -250,3 +250,23 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: Edit tool-routing.md.tmpl
 - 2026-06-11 [claude]: Edit subsystems.py
 - 2026-06-11 [claude]: Edit project_overrides.py
+- 2026-06-11 [claude]: committed 94d5f94c: src/cli/_data_types.py, src/cli/_init_helpers.py, src/cli/add_stack.py, src/cli/project_overrides.py
+- 2026-06-11 [claude]: Edit _shared.py
+- 2026-06-11 [claude]: Edit _shared.py
+- 2026-06-11 [claude]: Edit _shared.py
+- 2026-06-11 [claude]: Edit subsystems.yaml
+- 2026-06-11 [claude]: Edit subsystems.yaml
+- 2026-06-11 [claude]: Edit subsystems.yaml
+- 2026-06-11 [claude]: Edit subsystems.yaml
+- 2026-06-11 [claude]: Edit module_commands.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit settings.py
+- 2026-06-11 [claude]: Edit settings.py
+- 2026-06-11 [claude]: Edit ConfigPage.tsx
+- 2026-06-11 [claude]: Edit ConfigPage.tsx
+- 2026-06-11 [claude]: Edit ConfigPage.tsx
+- 2026-06-11 [claude]: Edit settings.py
+- 2026-06-11 [claude]: Edit ConfigPage.tsx
+- 2026-06-11 [claude]: Edit mcp-error-envelope.md
+- 2026-06-11 [claude]: Edit mcp-error-envelope.md
+- 2026-06-11 [claude]: Edit test_module_gating.py

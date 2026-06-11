@@ -5,18 +5,17 @@ swimlane: "thinking_os"
 kind: feature
 epic: G-modularity
 labels: [wave-3, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-349]
 blocked_by: []
 references: []
 ---
-
 # TASK-354: MCP tool gating + Config-tab module toggles + `cos module` CLI
 
 **Outcome (one sentence):** Tools of a disabled module return fail('module_disabled') with an enable hint instead of tool-not-found; Hub Config tab gains module toggle UI wired to settings API; `cos module enable/disable/list` regenerates dependent artifacts.

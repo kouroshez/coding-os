@@ -45,6 +45,7 @@ ErrorCategory = Literal[
     "not_found",
     "unavailable",
     "internal",
+    "module_disabled",
 ]
 
 _RETRYABLE_BY_DEFAULT: frozenset[str] = frozenset({"transient", "unavailable"})
@@ -780,6 +781,70 @@ def _log_tool_failure(tool_name: str, exc: Exception, args: tuple[Any, ...]) -> 
     )
 
 
+# ---------------------------------------------------------------------------
+# Module gating (TASK-354) — tools owned by a disabled subsystem module fail
+# with category=module_disabled instead of behaving as if the tool vanished.
+# Reads src/core/subsystems.yaml (tool entries may end in '*' for a prefix
+# family) + $COS_STATE_DIR/subsystems-state.json. Fail-open: any read error
+# means no gating.
+
+_MODULE_GATE_CACHE: dict[str, Any] = {"map": None}
+
+
+def _tool_module_map() -> list[tuple[str, str]]:
+    """[(tool_name_or_prefix*, module_id)] from subsystems.yaml, cached."""
+    if _MODULE_GATE_CACHE["map"] is not None:
+        return _MODULE_GATE_CACHE["map"]
+    pairs: list[tuple[str, str]] = []
+    try:
+        from pathlib import Path
+
+        import yaml
+
+        manifest = Path(__file__).resolve().parents[2] / "subsystems.yaml"
+        data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+        for module in data.get("modules") or []:
+            if module.get("kernel"):
+                continue
+            for tool in module.get("tools") or []:
+                pairs.append((str(tool), str(module["id"])))
+    except Exception as exc:
+        logger.debug("module gate map unavailable: %s", exc)
+    _MODULE_GATE_CACHE["map"] = pairs
+    return pairs
+
+
+def _disabled_modules() -> set[str]:
+    try:
+        from pathlib import Path
+
+        state_dir = Path(os.environ.get("COS_STATE_DIR") or ".coding-os")
+        state_file = state_dir / "subsystems-state.json"
+        if not state_file.is_file():
+            return set()
+        data = json.loads(state_file.read_text(encoding="utf-8"))
+        return {str(x) for x in data.get("disabled") or []}
+    except Exception as exc:
+        logger.debug("subsystems state unreadable (%s) — gating off", exc)
+        return set()
+
+
+def _gated_module(tool_name: str) -> str | None:
+    """Module id that disables `tool_name`, or None when the tool may run."""
+    disabled = _disabled_modules()
+    if not disabled:
+        return None
+    for pattern, module_id in _tool_module_map():
+        if module_id not in disabled:
+            continue
+        if pattern.endswith("*"):
+            if tool_name.startswith(pattern[:-1]):
+                return module_id
+        elif tool_name == pattern:
+            return module_id
+    return None
+
+
 def safe_tool(fn: Callable[..., str]) -> Callable[..., str]:
     """Decorator: convert unhandled exceptions inside a tool to `fail()`.
 
@@ -795,6 +860,14 @@ def safe_tool(fn: Callable[..., str]) -> Callable[..., str]:
 
     @wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> str:
+        gated_by = _gated_module(fn.__name__)
+        if gated_by:
+            return fail(
+                "module_disabled",
+                f"tool '{fn.__name__}' belongs to the disabled '{gated_by}' module — "
+                f"enable it with `cos module enable {gated_by}`",
+                retryable=False,
+            )
         try:
             result = fn(*args, **kwargs)
         except PermissionError as exc:

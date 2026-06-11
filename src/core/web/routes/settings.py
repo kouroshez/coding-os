@@ -7,7 +7,8 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 logger = logging.getLogger("coding_os.web.settings")
@@ -61,6 +62,51 @@ def _env_overrides() -> dict:
 @router.get("")
 def get_settings():
     return {"data": {"settings": _load(), "env_overrides": _env_overrides()}}
+
+
+def _module_error(status: int, category: str, message: str, retryable: bool) -> JSONResponse:
+    return JSONResponse(
+        status_code=status,
+        content={
+            "ok": False,
+            "error": {"category": category, "message": message, "retryable": retryable},
+        },
+    )
+
+
+@router.get("/modules")
+def get_modules():
+    """Per-module subsystem state for the Config tab (TASK-354)."""
+    try:
+        from cli.module_commands import module_state_payload
+        from web._project_context import current_project_root
+
+        payload = module_state_payload(current_project_root())
+    except Exception as exc:
+        return _module_error(503, "unavailable", f"module registry unavailable: {exc}", True)
+    return {"data": payload, "meta": {"layer": "settings", "source": "settings.modules"}}
+
+
+@router.patch("/modules/{module_id}")
+def patch_module(module_id: str, body: dict = Body(...)):
+    """Toggle a non-kernel module; regenerates dependent artifacts (TASK-354)."""
+    enabled = body.get("enabled")
+    if not isinstance(enabled, bool):
+        return _module_error(400, "validation", "body must carry {'enabled': true|false}", False)
+    try:
+        from cli.module_commands import toggle_and_regen
+        from web._project_context import current_project_root
+
+        result, notes = toggle_and_regen(current_project_root(), module_id, enabled)
+    except Exception as exc:
+        return _module_error(503, "unavailable", f"module toggle unavailable: {exc}", True)
+    if not result.ok:
+        status = 404 if "unknown module" in result.reason else 400
+        return _module_error(status, "validation", result.reason, False)
+    return {
+        "data": {"module": module_id, "enabled": enabled, "regenerated": notes},
+        "meta": {"layer": "settings", "source": "settings.module_toggle"},
+    }
 
 
 class _BudgetCapIn(BaseModel):

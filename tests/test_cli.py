@@ -1568,3 +1568,69 @@ class TestConditionalRendering:
                 continue
             overlap = safety & set(module.hooks)
             assert not overlap, f"toggleable module '{module.id}' owns safety hook(s): {overlap}"
+
+
+# ---------------------------------------------------------------------------
+# cos module CLI — TASK-354
+# ---------------------------------------------------------------------------
+
+
+class TestModuleCli:
+    def _init(self, runner: CliRunner, tmp_path: Path) -> Path:
+        project = tmp_path / "modproj"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            ["init", "--agent", "claude", "-d", str(project), "--yes", "--no-index", "--no-register"],
+        )
+        assert result.exit_code == 0, result.output
+        return project
+
+    def test_list_shows_kernel_locked_and_dependencies(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        project = self._init(runner, tmp_path)
+        monkeypatch.chdir(project)
+        result = runner.invoke(cli, ["module", "list"])
+        assert result.exit_code == 0, result.output
+        assert "kernel (always on)" in result.output
+        assert "needs: docs" in result.output  # tasks → docs dependency surfaced
+
+    def test_disable_refusal_propagates_dependency_chain(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        project = self._init(runner, tmp_path)
+        monkeypatch.chdir(project)
+        result = runner.invoke(cli, ["module", "disable", "docs"])
+        assert result.exit_code != 0
+        assert "tasks → docs" in result.output
+
+    def test_disable_regenerates_agents_md_and_allowlist(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        project = self._init(runner, tmp_path)
+        monkeypatch.chdir(project)
+        baseline = (project / "AGENTS.md").read_text(encoding="utf-8")
+        assert "Scrumban board" in baseline
+
+        result = runner.invoke(cli, ["module", "disable", "tasks"])
+        assert result.exit_code == 0, result.output
+        regenerated = (project / "AGENTS.md").read_text(encoding="utf-8")
+        assert "Scrumban board" not in regenerated
+        assert (project / "AGENTS.md.bak").exists()  # diff-safe backup
+        allowlist = project / ".coding-os" / "disabled-hook-scripts"
+        assert allowlist.exists()
+        assert "auto-task-sync" in allowlist.read_text(encoding="utf-8")
+
+        restore = runner.invoke(cli, ["module", "enable", "tasks"])
+        assert restore.exit_code == 0, restore.output
+        assert (project / "AGENTS.md").read_text(encoding="utf-8") == baseline
+        assert allowlist.read_text(encoding="utf-8").strip() == ""
+
+    def test_outside_project_fails_fast(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(cli, ["module", "list"])
+        assert result.exit_code != 0
+        assert "not a coding-os project" in result.output

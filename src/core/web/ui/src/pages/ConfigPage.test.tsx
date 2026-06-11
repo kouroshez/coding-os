@@ -12,9 +12,25 @@ vi.mock('@/lib/hooks', () => ({
       '/api/config/skills': { skills: [{ name: 'clean-code', tier: 'universal', domain: ['all'], globs: '**/*' }] },
       '/api/config/mcp': { servers: [{ name: 'coding-os', command: 'cos', args: ['server-start'], managed: true }] },
       '/api/hooks/list': { hooks: [{ name: 'branch-guard', event: 'PreToolUse', category: 'safety', phase: '1' }] },
+      '/api/settings/modules': {
+        modules: [
+          { id: 'kernel', label: 'Kernel', kernel: true, enabled: true, depends_on: [], hooks: 6, tools: 0 },
+          { id: 'tasks', label: 'Task system', kernel: false, enabled: true, depends_on: ['docs'], hooks: 9, tools: 2 },
+        ],
+      },
     };
     return { data: map[path] ?? null, isLoading: false, error: null };
   },
+  invalidateApiQueries: vi.fn(),
+}));
+
+const apiPatch = vi.fn().mockResolvedValue([{}]);
+vi.mock('@/lib/api-client', () => ({
+  apiPatch: (...args: unknown[]) => apiPatch(...args),
+}));
+
+vi.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({}),
 }));
 
 import ConfigPage from './ConfigPage';
@@ -44,5 +60,17 @@ describe('ConfigPage', () => {
   it('opens directly to the Hooks tab from ?tab=hooks', () => {
     renderConfig('/p/demo/config?tab=hooks');
     expect(screen.getByText('branch-guard')).toBeInTheDocument();
+  });
+});
+
+
+describe('ModulesTab (TASK-354)', () => {
+  it('kernel renders locked without a toggle; non-kernel toggles via PATCH', async () => {
+    renderConfig('/p/demo/config?tab=modules');
+    expect(screen.getByText('kernel · locked')).toBeInTheDocument();
+    expect(screen.queryByTestId('module-toggle-kernel')).toBeNull();
+    const toggle = screen.getByTestId('module-toggle-tasks');
+    fireEvent.click(toggle);
+    expect(apiPatch).toHaveBeenCalledWith('/api/settings/modules/tasks', { enabled: false });
   });
 });

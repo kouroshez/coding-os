@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useApiGet } from '@/lib/hooks';
+import { useQueryClient } from '@tanstack/react-query';
+import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
+import { apiPatch } from '@/lib/api-client';
 import { SubNav, subNavTabClass } from '@/layout/HubPrimitives';
 
 /**
@@ -11,13 +14,14 @@ import { SubNav, subNavTabClass } from '@/layout/HubPrimitives';
  * registry), so toggles are intentionally absent here.
  */
 
-type Tab = 'stacks' | 'skills' | 'mcp' | 'hooks';
-const TABS: Tab[] = ['stacks', 'skills', 'mcp', 'hooks'];
+type Tab = 'stacks' | 'skills' | 'mcp' | 'hooks' | 'modules';
+const TABS: Tab[] = ['stacks', 'skills', 'mcp', 'hooks', 'modules'];
 const TAB_LABEL: Record<Tab, string> = {
   stacks: 'Stacks',
   skills: 'Skills',
   mcp: 'MCP Servers',
   hooks: 'Hooks',
+  modules: 'Modules',
 };
 
 export default function ConfigPage() {
@@ -57,6 +61,7 @@ export default function ConfigPage() {
           {tab === 'skills' && <SkillsTab />}
           {tab === 'mcp' && <McpTab />}
           {tab === 'hooks' && <HooksTab />}
+          {tab === 'modules' && <ModulesTab />}
         </div>
       </div>
     </div>
@@ -228,6 +233,95 @@ function HooksTab() {
             <td className="px-3 py-2 text-[var(--cos-muted)]">{h.event}</td>
             <td className="px-3 py-2 text-[var(--cos-muted)]">{h.category}</td>
             <td className="px-3 py-2 text-[var(--cos-faint)]">{h.phase ?? '—'}</td>
+          </tr>
+        ))}
+      </Table>
+    </>
+  );
+}
+
+interface ModuleRow {
+  id: string;
+  label: string;
+  kernel: boolean;
+  enabled: boolean;
+  depends_on: string[];
+  hooks: number;
+  tools: number;
+}
+
+function ModulesTab() {
+  const qc = useQueryClient();
+  const { data, isLoading, error } = useApiGet<{ modules: ModuleRow[] }>(
+    ['settings-modules'],
+    '/api/settings/modules',
+  );
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
+
+  if (isLoading) return <StateRow>Loading modules…</StateRow>;
+  if (error) return <StateRow>Could not load modules: {error.message}</StateRow>;
+  const rows = data?.modules ?? [];
+
+  const toggle = async (row: ModuleRow) => {
+    setBusyId(row.id);
+    setToggleError(null);
+    try {
+      await apiPatch(`/api/settings/modules/${encodeURIComponent(row.id)}`, {
+        enabled: !row.enabled,
+      });
+      await invalidateApiQueries(qc, '/api/settings/modules');
+    } catch (err) {
+      setToggleError(err instanceof Error ? err.message : 'toggle failed');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <>
+      <TabIntro>
+        Subsystem modules for this project. The kernel is always on; disabling a module gates its
+        MCP tools, hooks and AGENTS.md sections (re-enable any time — state lives in
+        .coding-os/subsystems-state.json).
+      </TabIntro>
+      {toggleError && (
+        <p role="alert" className="mb-3 rounded border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-400">
+          {toggleError}
+        </p>
+      )}
+      <Table head={['Module', 'State', 'Owns', 'Depends on', '']}>
+        {rows.map((m) => (
+          <tr key={m.id} className="border-b border-[var(--cos-border)] last:border-0 hover:bg-white/[0.02]">
+            <td className="px-3 py-2">
+              <div className="font-medium text-[var(--cos-text)]">{m.id}</div>
+              <div className="text-[10px] text-[var(--cos-faint)]">{m.label}</div>
+            </td>
+            <td className="px-3 py-2">
+              {m.kernel ? (
+                <Pill tone="muted">kernel · locked</Pill>
+              ) : (
+                <Pill tone={m.enabled ? 'ok' : 'muted'}>{m.enabled ? 'enabled' : 'disabled'}</Pill>
+              )}
+            </td>
+            <td className="px-3 py-2 text-[var(--cos-muted)]">
+              {m.hooks} hooks · {m.tools} tools
+            </td>
+            <td className="px-3 py-2 text-[var(--cos-faint)]">{m.depends_on.join(', ') || '—'}</td>
+            <td className="px-3 py-2 text-right">
+              {!m.kernel && (
+                <button
+                  type="button"
+                  data-testid={`module-toggle-${m.id}`}
+                  onClick={() => void toggle(m)}
+                  disabled={busyId !== null}
+                  aria-pressed={m.enabled}
+                  className="rounded border border-[var(--cos-border)] px-2.5 py-1 text-[11px] text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] disabled:opacity-40"
+                >
+                  {busyId === m.id ? '…' : m.enabled ? 'Disable' : 'Enable'}
+                </button>
+              )}
+            </td>
           </tr>
         ))}
       </Table>

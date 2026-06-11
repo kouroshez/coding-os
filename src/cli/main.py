@@ -862,6 +862,10 @@ cli.add_command(eject_file_cmd)
 cli.add_command(tail_cmd)
 cli.add_command(skills_list_cmd)
 
+from cli.module_commands import module_group as module_group_cmd  # noqa: E402
+
+cli.add_command(module_group_cmd)
+
 # Durable error/log query CLI (cos errors / cos logs).
 try:
     from cli.logs_commands import errors_cmd as _errors_cmd

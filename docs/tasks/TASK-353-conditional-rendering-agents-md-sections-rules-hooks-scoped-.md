@@ -34,3 +34,4 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_cli.py tests/test_adapters.py -q` runs, **Then** green including the new conditional-render tests.
 
 ## Work Log
+- 2026-06-11 [claude]: IMPL DONE (parked, batch 4 #1) — AgentsMdSection.requires:[module] (schema + parser + renderer section-skip); fragments 
