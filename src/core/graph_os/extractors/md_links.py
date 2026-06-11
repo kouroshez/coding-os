@@ -101,7 +101,12 @@ def _resolve_read_target(path: str, target_path: str) -> str | None:
         resolved = _resolve_link(path, target_path)
         return resolved or None
     if target_path.startswith(_REPO_ROOT_PREFIXES):
-        return f"doc:file:{_normalize_path(target_path)}"
+        normalised = _normalize_path(target_path)
+        if normalised.endswith((".md", ".mdx")) and not Path(normalised).is_file():
+            # Same existence gate as _resolve_link (roadmap §6) — a
+            # repo-rooted read_next target that is gone mints a stale stub.
+            return None
+        return f"doc:file:{normalised}"
     # Bare relative name — anchor against the source doc's directory.
     resolved = _resolve_link(path, target_path)
     return resolved or None
@@ -314,6 +319,11 @@ def _resolve_link(origin_path: str, target: str) -> str:
         # placeholder / prose fragment ('relative/path', 'docs/_meta/path',
         # unicode-ellipsis truncations) — minting a node for it created
         # permanent stale/orphan junk invisible to the doctor.
+        return ""
+    if suffix in {".md", ".mdx"} and not Path(normalised).is_file():
+        # Broken doc link (target moved/deleted/consumer-only) — same drop
+        # policy as the extensionless placeholders above; minting a stub
+        # here is permanent stale_paths churn (existence gate: roadmap §6).
         return ""
     if suffix in {".md", ".mdx", ""}:
         base = f"doc:file:{normalised}"

@@ -79,6 +79,21 @@ class TestCanonicalIds:
 
 
 class TestExtract:
+    @pytest.fixture(autouse=True)
+    def fictional_repo(self, tmp_path, monkeypatch):
+        # Existence gate (roadmap §6): referenced docs must be on disk or
+        # the extractor drops them — materialise TASK_042's references.
+        for rel in (
+            "docs/engineering/backend-rules.md",
+            "docs/playbooks/backend-api.md",
+            "docs/architecture.md",
+            "docs/api-contracts/error-format.md",
+        ):
+            target = tmp_path / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("# stub\n")
+        monkeypatch.chdir(tmp_path)
+
     def _extract(self, content: str = TASK_042, path: str = "docs/tasks/TASK-042-example.md"):
         return task_deps.extract(path, content)
 
@@ -282,6 +297,14 @@ class TestResolveDocRef:
 
 
 class TestExtractDocPaths:
+    @pytest.fixture(autouse=True)
+    def fictional_repo(self, tmp_path, monkeypatch):
+        for rel in ("docs/a.md", "docs/b.md"):
+            target = tmp_path / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("# stub\n")
+        monkeypatch.chdir(tmp_path)
+
     def test_pulls_and_dedups_md_paths(self):
         out = task_deps._extract_doc_paths(
             ["see docs/a.md and docs/b.md", "docs/a.md again"],
@@ -291,6 +314,24 @@ class TestExtractDocPaths:
 
     def test_drops_root_escaping_ref(self):
         out = task_deps._extract_doc_paths(["../../../../outside.md"], origin_path="docs/T.md")
+        assert out == []
+
+    def test_bare_name_dropped(self):
+        # `SKILL.md` with no directory part is ambiguous prose, not a ref.
+        out = task_deps._extract_doc_paths(["read SKILL.md first"], origin_path="docs/tasks/T.md")
+        assert out == []
+
+    def test_url_tail_dropped(self):
+        # `:` is outside _DOC_PATH_RE's class — the capture starts after the
+        # scheme (`//github.com/...`) and must not survive the existence gate.
+        out = task_deps._extract_doc_paths(
+            ["- https://github.com/openai/codex/blob/main/docs/api-reference.md"],
+            origin_path="docs/tasks/T.md",
+        )
+        assert out == []
+
+    def test_nonexistent_repo_rooted_ref_dropped(self):
+        out = task_deps._extract_doc_paths(["see docs/ghost.md"], origin_path="docs/tasks/T.md")
         assert out == []
 
 

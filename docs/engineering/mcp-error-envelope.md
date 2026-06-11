@@ -232,54 +232,28 @@ sometimes a `path_count`. Categories:
 | `dangling_target` | real | Edge with `target_id` pointing to a deleted node row | yes |
 | `duplicate_edges` | real | More than one row sharing `(source_id, target_id, edge_type, extractor)` | no — schema fix needed |
 | `self_loops` | real | Edge with `source_id == target_id` (extractor bug) | no — fix the extractor |
-| `orphaned_inrepo` | real | Node with no edges that is NOT a stub or external reference. Real bug — most likely the symbol it referenced was deleted, or extractor over-emitted. | no — fix via reindex or by removing the dead reference |
+| `orphaned_inrepo` | real | Node with no edges that is NOT a stub, external reference, or phantom. Real bug — most likely the symbol it referenced was deleted, or extractor over-emitted. | no — fix via reindex or by removing the dead reference |
+| `orphaned_phantom` | real | Zero-edge junk the doctor can safely prune: line-anchored `task:file:` uids, `metadata.stub=true` link-target stubs whose minting edge is gone, rows whose recorded extractor id is no longer registered (extractor renames strand them — the extractor-scoped prune can never match), module/doc_external stubs with no on-disk path, extensionless file phantoms. Re-extraction re-mints any that are still referenced. | yes |
 | `orphaned_external_unresolved` | **info** | `code:external:*` and `cos:identifier:*` stub surfacing — expected noise (stdlib refs, skill/adapter identifiers that don't get inbound edges by design). Never trips `healthy=false`. | no — by design |
 | `malformed_uid_path` | real | Node whose `file_path` or `uid` contains `../`, backtick, or whitespace — extractor over-captured (X7 root cause: markdown link regex pulling in backticked prose). | yes |
 | `stale_paths` | real | Node whose `file_path` is non-malformed but no longer exists on disk. Accumulates from file moves / deletes that idempotent-upsert reindex preserves. | yes |
 
 The `healthy` boolean is computed by `len([i for i in issues if i.category not in informational_categories]) == 0`. So a graph with 1000 `orphaned_external_unresolved` and zero other issues reports `healthy=True`.
 
-## EvidenceBundle + ExhaustiveEvidence (TASK-004 G3)
+## EvidenceBundle (TASK-004 G3)
 
 The `cos_supervise_record_output` tool persists per-formula-agent outputs
 into a session-scoped `EvidenceBundle` (`cognition_schemas.EvidenceBundle`)
 serialized as JSON under `$COS_AGENT_DIR/evidence_bundle_<session>.json`.
-The bundle has one slot per role (researcher, analyst, …) plus a separate
-`exhaustive_evidence: ExhaustiveEvidence | None` slot used by the
-completion guardian (Stop hook) when the user's prompt matched an
-exhaustive-scope intent (`docs/engineering/intent-vocabulary.md`).
+The bundle has one slot per role (researcher, analyst, …) plus
+`backtracks`, `discoveries`, and `degraded_formulas` accumulators — see
+the bundle-field registry in `cognition_schemas.py` for the
+role_id → output_class mapping.
 
-Shape of `ExhaustiveEvidence`:
-
-```python
-class ExhaustiveEvidence(BaseModel):
-    categories_declared: list[str]           # categories agent committed to cover
-    categories_covered: list[str]            # categories the agent did cover
-    counts_before: dict[str, int]            # grep count per category before fix
-    counts_after: dict[str, int]             # grep count per category after fix
-    files_searched: list[str]
-    tests_run: list[str]
-    gaps_remaining: list[str]
-    confidence: float
-    reviewer_check: Literal["pending","pass","fail"]
-    audit_artifact_path: str | None
-```
-
-Submit via:
-
-```
-cos_supervise_record_output(
-    session_id, task_marker, persona_id,
-    formula_id="exhaustive_evidence",
-    output_json='{"categories_declared":[...], ...}',
-)
-```
-
-`cognition_schemas.validate_exhaustive_evidence(evidence, intent_predicates)`
-evaluates the 6 predicates from intent-vocabulary.md and returns a list
-of gap reasons; empty list = predicates satisfied. The Stop hook
-`verify-completion-claim.sh` (G4) refuses a "done" claim while this
-returns a non-empty list.
+The former `exhaustive_evidence: ExhaustiveEvidence` slot, its
+`validate_exhaustive_evidence` predicate check, and the completion-guardian
+Stop hook were removed with the intent-enforcement layer
+(ADR-0003, superseded 2026-06-08).
 
 ## Non-goals
 

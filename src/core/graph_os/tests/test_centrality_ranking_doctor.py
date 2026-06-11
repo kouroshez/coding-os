@@ -299,6 +299,29 @@ class TestDoctor:
         assert "self_loops" in categories
         graph._BACKEND_SINGLETON = None
 
+    def test_doctor_fix_prunes_stub_orphan(self, migrated_conn, monkeypatch):
+        """Zero-edge stub:true row classifies as orphaned_phantom and fix=True deletes it."""
+        from graph_os.backends.sqlite_backend import SqliteBackend
+
+        backend = SqliteBackend(conn=migrated_conn)
+        graph._BACKEND_SINGLETON = backend
+        monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
+        migrated_conn.execute(
+            "INSERT INTO graph_nodes (uid, kind, label, file_path, metadata_json, created_at, updated_at) "
+            "VALUES ('doc:file:tests/golden/x/AGENTS.md', 'doc_file', 'AGENTS.md', "
+            "'tests/golden/x/AGENTS.md', '{\"extractor\": \"md_links@v1\", \"stub\": true}', 0, 0)"
+        )
+        migrated_conn.commit()
+        data = _ok(graph.cos_graph_doctor())
+        phantom = next(i for i in data["issues"] if i["category"] == "orphaned_phantom")
+        assert any(s["uid"] == "doc:file:tests/golden/x/AGENTS.md" for s in phantom["sample"])
+        _ok(graph.cos_graph_doctor(fix=True))
+        remaining = migrated_conn.execute(
+            "SELECT COUNT(*) FROM graph_nodes WHERE uid='doc:file:tests/golden/x/AGENTS.md'"
+        ).fetchone()[0]
+        assert remaining == 0
+        graph._BACKEND_SINGLETON = None
+
     def test_parse_errors_stats_zero_on_clean_graph(self, migrated_conn, monkeypatch):
         """No file_index_state parse errors → stats report 0, no issue raised."""
         from graph_os.backends.sqlite_backend import SqliteBackend
@@ -725,6 +748,49 @@ class TestPhantomOrphan:
 
     def test_inrepo_module_with_path_is_not_phantom(self):
         assert not graph._is_phantom_orphan("module", "src/core/x.py", "code:module:core.x")
+
+    def test_zero_edge_stub_metadata_is_phantom(self):
+        # Link-target stub whose minting edge is gone (e.g. golden-tree purge).
+        assert graph._is_phantom_orphan(
+            "doc_file",
+            "tests/golden/claude_base/AGENTS.md",
+            "doc:file:tests/golden/claude_base/AGENTS.md",
+            '{"extractor": "md_links@v1", "stub": true}',
+        )
+
+    def test_legacy_extractor_id_is_phantom(self):
+        # `code_ts_ts@v1` was renamed to `code_ts@v1`; the extractor-scoped
+        # prune-before-reindex can never match its rows again.
+        assert graph._is_phantom_orphan(
+            "function",
+            "src/core/web/ui/src/features/cos-board/CosBoardPage.tsx",
+            "code:function:src/core/web/ui/src/features/cos-board/CosBoardPage.tsx::StatCell",
+            '{"component": true, "extractor": "code_ts_ts@v1"}',
+        )
+
+    def test_current_extractor_id_is_not_phantom(self):
+        assert not graph._is_phantom_orphan(
+            "function",
+            "src/x.py",
+            "code:function:src/x.py::f",
+            '{"extractor": "code_python@v1"}',
+        )
+
+    def test_empty_registry_skips_legacy_rule(self, monkeypatch):
+        # Registry unknown (import failure) must fail closed — never treat
+        # every id as legacy and mass-delete.
+        monkeypatch.setattr(graph, "_current_extractor_ids", lambda: frozenset())
+        assert not graph._is_phantom_orphan(
+            "function",
+            "src/x.py",
+            "code:function:src/x.py::f",
+            '{"extractor": "code_ts_ts@v1"}',
+        )
+
+    def test_unreadable_metadata_is_not_phantom(self):
+        assert not graph._is_phantom_orphan(
+            "function", "src/x.py", "code:function:src/x.py::f", "{not json"
+        )
 
 
 class TestDoctorSlowestExtractions:

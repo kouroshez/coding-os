@@ -361,6 +361,25 @@ stack for `cos init` is OUT of scope here (separate task).
 - JSX namespaces / fragments — `<></>` ≠ identifier.
 - Decorators (legacy + new TC39) — emit two-way edge.
 
+### Markdown / task refs — stub-minting hygiene (TASK-393)
+- **Existence gate on doc-link targets.** A `.md`/`.mdx` link target that does
+  not exist on disk (cwd = project root, same convention as md_links' other
+  `Path(...)` checks) is dropped — no `doc:file:` stub is minted. Same drop
+  policy as extensionless placeholders. Applies to `md_links._resolve_link`
+  and `task_deps._extract_doc_paths` (`references_doc` is a *read* — a
+  nonexistent path is noise, not a contract). `_extract_scope_paths`
+  (`produces_doc`) keeps minting: scope-out paths name files a task will
+  create.
+- **Greedy `.md`-token capture in task bullets** (`_DOC_PATH_RE`) catches bare
+  names (`SKILL.md`), URL tails (`https://…/x.md` → `//…/x.md` since `:` is
+  outside the class), and prose junk — all killed by the existence gate, not
+  by tightening the regex.
+- **Doctor phantom rules.** A zero-edge orphan is a fixable phantom when its
+  metadata says `"stub": true` (a link-target stub whose minting edge is
+  gone) or when its recorded extractor id is no longer registered (extractor
+  renames — `code_ts_ts@v1` → `code_ts@v1`, `code_shell@v1` → `@v2` — strand
+  rows that the extractor-scoped prune-before-reindex can never match).
+
 ## 7. Performance budget per language
 
 | Lang | Median target | P95 target | Cache hit-rate target |

@@ -302,6 +302,14 @@ def _extract_doc_paths(bullets: list[str], origin_path: str = "") -> list[str]:
             if candidate is None or candidate in seen:
                 continue
             seen.add(candidate)
+            # References are reads — a path not on disk is noise, not a
+            # contract. The greedy regex also captures bare names
+            # (`SKILL.md`) and URL tails (`//github.com/...` — `:` is
+            # outside its class so the scheme is cut); minting those makes
+            # permanent stale doc:file stubs (existence gate: roadmap §6,
+            # cwd == project root like md_links' checks).
+            if not Path(candidate).is_file():
+                continue
             paths.append(candidate)
     return paths
 

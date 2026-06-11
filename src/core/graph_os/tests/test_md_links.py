@@ -14,6 +14,39 @@ import pytest
 
 from graph_os.extractors import md_links
 
+# Existence gate (roadmap §6): a .md link target missing on disk is dropped,
+# so every fictional target these tests resolve must be materialised. Targets
+# whose ABSENCE a test asserts (bad.md, not-a-real-doc.md) are materialised
+# too — their absence must stay attributable to fence-stripping, not the gate.
+_FICTIONAL_TARGETS = (
+    "docs/a.md",
+    "docs/b.md",
+    "docs/c.md",
+    "docs/other.md",
+    "docs/other/y.md",
+    "docs/architecture.md",
+    "docs/real.md",
+    "docs/not-a-real-doc.md",
+    "docs/good.md",
+    "docs/bad.md",
+    "docs/wiki.md",
+    "docs/next.md",
+    "getting-started.md",
+    "other.md",
+    "x.md",
+    "src/core/skills/sibling.md",
+)
+
+
+@pytest.fixture(autouse=True)
+def fictional_repo(tmp_path, monkeypatch):
+    for rel in _FICTIONAL_TARGETS:
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("# stub\n")
+    monkeypatch.chdir(tmp_path)
+
+
 # ---------------------------------------------------------------------------
 # slugify + _resolve_link helpers
 # ---------------------------------------------------------------------------
@@ -361,6 +394,35 @@ class TestWikiLinks:
         assert any(e.target_uid == "doc:file:docs/other.md" for e in links)
 
 
+class TestExistenceGate:
+    # Roadmap §6 — a .md target missing on disk mints nothing: no edge, no
+    # stub node (the permanent-stale_paths churn the doctor could only
+    # paper over).
+    def test_missing_inline_target_dropped(self):
+        r = _extract("[see](ghost.md)")
+        assert not any(e.target_uid == "doc:file:docs/ghost.md" for e in r.edges)
+        assert not any(n.uid == "doc:file:docs/ghost.md" for n in r.nodes)
+
+    def test_missing_target_with_anchor_dropped(self):
+        r = _extract("[see](ghost.md#section)")
+        assert not any("ghost.md" in e.target_uid for e in r.edges)
+
+    def test_missing_repo_rooted_read_next_dropped(self):
+        r = _extract("# H\n\nRead next: docs/ghost.md\n")
+        assert not any(
+            e.target_uid == "doc:file:docs/ghost.md"
+            for e in r.edges
+            if e.edge_type == "read_next"
+        )
+
+    def test_existing_target_still_minted(self):
+        r = _extract("[see](other.md) and\n\nRead next: docs/real.md\n")
+        links = {e.target_uid for e in r.edges if e.edge_type == "links_to"}
+        reads = {e.target_uid for e in r.edges if e.edge_type == "read_next"}
+        assert "doc:file:docs/other.md" in links
+        assert "doc:file:docs/real.md" in reads
+
+
 # ---------------------------------------------------------------------------
 # Pipeline invariants
 # ---------------------------------------------------------------------------
@@ -369,6 +431,7 @@ class TestWikiLinks:
 class TestPipelineInvariants:
     def test_extractor_is_pure(self, tmp_path):
         """No filesystem side-effects — extract() takes content, returns data."""
+        before = set(tmp_path.rglob("*"))
         r = _extract("# a")
         # Post-S3 the extractor also emits Folder→File spine nodes whose
         # file_path points at the parent directory (``docs`` etc.) or
@@ -376,8 +439,8 @@ class TestPipelineInvariants:
         # nodes reference the source file.
         doc_nodes = [n for n in r.nodes if n.kind != "folder"]
         assert all(n.file_path == "docs/demo.md" for n in doc_nodes)
-        # tmp_path must remain empty — we never wrote to disk.
-        assert list(tmp_path.iterdir()) == []
+        # extract() reads the fixture tree (existence gate) but never writes.
+        assert set(tmp_path.rglob("*")) == before
 
     def test_deterministic_across_runs(self):
         content = (
