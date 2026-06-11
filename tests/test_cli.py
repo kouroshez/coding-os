@@ -1714,3 +1714,120 @@ class TestModuleLifecycle:
         from cli.subsystems import module_state
 
         assert module_state(project)["memory"] is True  # state flip reverted
+
+
+# ---------------------------------------------------------------------------
+# Custom preset authoring + flagship hexagonal preset — TASK-365
+# ---------------------------------------------------------------------------
+
+
+class TestPresetAuthoring:
+    def test_create_list_export_import_round_trip(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("COS_USER_PRESETS_DIR", str(tmp_path / "userpresets"))
+        created = runner.invoke(
+            cli,
+            [
+                "preset", "create", "--id", "my-combo", "--label", "My Combo",
+                "--stacks", "nextjs,fastapi", "--skills", "redis",
+                "--description", "personal favorite",
+            ],
+        )
+        assert created.exit_code == 0, created.output
+        assert (tmp_path / "userpresets" / "my-combo.yaml").exists()
+
+        listing = runner.invoke(cli, ["preset", "list"])
+        assert "my-combo" in listing.output and "user" in listing.output
+        assert "hexagonal-product" in listing.output  # shipped presets visible too
+
+        monkeypatch.chdir(tmp_path)
+        exported = runner.invoke(cli, ["preset", "export", "my-combo"])
+        assert exported.exit_code == 0, exported.output
+        shared_file = tmp_path / "my-combo.yaml"
+        assert shared_file.exists()
+
+        # Re-import into a FRESH user dir (another machine) — clean round trip.
+        monkeypatch.setenv("COS_USER_PRESETS_DIR", str(tmp_path / "other-machine"))
+        imported = runner.invoke(cli, ["preset", "import", str(shared_file)])
+        assert imported.exit_code == 0, imported.output
+        relisted = runner.invoke(cli, ["preset", "list"])
+        assert "my-combo" in relisted.output
+
+    def test_create_rejects_unknown_stack_and_duplicate_id(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("COS_USER_PRESETS_DIR", str(tmp_path / "p"))
+        bad = runner.invoke(
+            cli, ["preset", "create", "--id", "x1", "--label", "X", "--stacks", "no-such"]
+        )
+        assert bad.exit_code != 0 and "no-such" in bad.output
+        dup = runner.invoke(
+            cli,
+            ["preset", "create", "--id", "hexagonal-product", "--label", "X", "--stacks", "go"],
+        )
+        assert dup.exit_code != 0 and "already exists" in dup.output
+
+    def test_user_preset_scaffolds_via_init(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("COS_USER_PRESETS_DIR", str(tmp_path / "p"))
+        assert runner.invoke(
+            cli,
+            ["preset", "create", "--id", "solo-py", "--label", "Solo", "--stacks", "python"],
+        ).exit_code == 0
+        project = tmp_path / "fromuser"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init", "--agent", "claude", "-d", str(project),
+                "--preset", "solo-py", "--yes", "--no-index", "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        import yaml as _yaml
+
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert config["preset"] == "solo-py" and config["templates"] == ["python"]
+
+
+class TestFlagshipHexagonalPreset:
+    def test_scaffolds_full_multi_service_anatomy(self, runner: CliRunner, tmp_path: Path) -> None:
+        import yaml as _yaml
+
+        project = tmp_path / "flagship"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init", "--agent", "claude", "-d", str(project),
+                "--preset", "hexagonal-product", "--yes", "--no-index", "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "substitution conflict" not in result.output  # joined keys stay quiet
+
+        # Anatomy contract: three relocated services + mobile + shared/contracts.
+        for service in ("go", "go-fiber", "fastapi"):
+            assert (project / "src" / "services" / service).is_dir(), service
+        assert (project / "src" / "shared" / "contracts").is_dir()
+        assert not (project / "src" / "backend").exists()  # nothing left behind
+
+        boundary = _yaml.safe_load(
+            (project / ".coding-os" / "scaffold-boundary.yaml").read_text(encoding="utf-8")
+        )
+        roots = {e["stack"]: e["roots"] for e in boundary["stacks"]}
+        assert roots["go"] == ["src/services/go/"]
+        assert roots["fastapi"] == ["src/services/fastapi/"]
+        assert roots["react-native"] == ["src/mobile/"]
+        # Cross-service walls present for every backend pair.
+        forbids = {e["stack"]: set(e["forbids_writing_in"]) for e in boundary["stacks"]}
+        assert "src/services/fastapi/" in forbids["go"]
+        assert "src/services/go/" in forbids["fastapi"]
+
+        agents_md = (project / "AGENTS.md").read_text(encoding="utf-8")
+        for service in ("src/services/go", "src/services/go-fiber", "src/services/fastapi"):
+            assert service in agents_md  # verify matrix covers every service
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert config["extra_skills"] == ["hexagonal-architecture", "api-design"]

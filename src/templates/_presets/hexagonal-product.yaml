@@ -1,0 +1,16 @@
+# The flagship multi-service composition (TASK-365): hexagonal product with a
+# Go business core, a go-fiber API edge, a FastAPI AI adapter and a React
+# Native app. The three backend-root stacks collide on src/backend and
+# relocate to src/services/{go,go-fiber,fastapi} per the anatomy contract
+# (semantically: core / api / ai); cross-language reuse goes through
+# src/shared/contracts only.
+version: 1
+id: hexagonal-product
+label: "Hexagonal Product (Go core + Fiber API + FastAPI AI + React Native)"
+description: >-
+  Enterprise hexagonal architecture from day one: pure-Go business core,
+  go-fiber HTTP edge, FastAPI AI adapter service and a React Native app —
+  each service owns its subtree under src/services/, contracts are the only
+  cross-language boundary.
+stacks: [go, go-fiber, fastapi, react-native]
+skills: [hexagonal-architecture, api-design]

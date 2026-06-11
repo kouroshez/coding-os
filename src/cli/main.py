@@ -657,8 +657,11 @@ def _overlay_scaffold(
             if not src_file.is_file():
                 continue
             if src_file.name == ".gitkeep":
-                # .gitkeep just ensures the parent dir exists in the copy.
+                # .gitkeep just ensures the parent dir exists in the copy —
+                # honoring service relocation like any other scaffold path.
                 rel = src_file.relative_to(src_root)
+                if relocated_root and declared_root and str(rel).startswith(declared_root + "/"):
+                    rel = Path(relocated_root) / str(rel)[len(declared_root) + 1 :]
                 dest = project / rel
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 continue
@@ -924,9 +927,11 @@ cli.add_command(tail_cmd)
 cli.add_command(skills_list_cmd)
 
 from cli.module_commands import module_group as module_group_cmd  # noqa: E402
+from cli.preset_commands import preset_group as preset_group_cmd  # noqa: E402
 from cli.stack_lint import stack_lint as stack_lint_cmd  # noqa: E402
 
 cli.add_command(module_group_cmd)
+cli.add_command(preset_group_cmd)
 cli.add_command(stack_lint_cmd)
 
 # Durable error/log query CLI (cos errors / cos logs).

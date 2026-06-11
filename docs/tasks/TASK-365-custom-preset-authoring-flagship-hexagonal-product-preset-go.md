@@ -5,18 +5,17 @@ swimlane: templates
 kind: feature
 epic: D-catalog
 labels: [wave-4, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-356, TASK-361]
 blocked_by: []
 references: []
 ---
-
 # TASK-365: Custom preset authoring + flagship hexagonal-product preset (Go core / go-fiber API / FastAPI AI / RN)
 
 **Outcome (one sentence):** `cos preset create/export` lets a user save a custom composition; the flagship hexagonal-product preset (Go business core + go-fiber API + FastAPI AI adapter + React Native app under src/services anatomy) scaffolds green end-to-end via both wizard and CLI — first real multi-service dogfood.
@@ -34,3 +33,8 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_cli.py tests/test_template_scaffold.py -q` runs, **Then** green.
 
 ## Work Log
+- 2026-06-11 [claude]: Edit preset_registry.py
+- 2026-06-11 [claude]: Edit preset_registry.py
+- 2026-06-11 [claude]: Edit preset_registry.py
+- 2026-06-11 [claude]: Edit preset_commands.py
+- 2026-06-11 [claude]: Edit hexagonal-product.yaml

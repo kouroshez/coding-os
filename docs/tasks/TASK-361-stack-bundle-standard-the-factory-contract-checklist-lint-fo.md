@@ -37,3 +37,5 @@ references: []
 - 2026-06-11 [claude]: Edit stack_lint.py
 - 2026-06-11 [claude]: Edit template-authoring.md
 - 2026-06-11 [claude]: Edit stack_lint.py
+- 2026-06-11 [claude]: commit b024ec328c — feat(cli): stack bundle factory contract — checklist + cos stack-lint (TASK-361)
+- 2026-06-11 [claude]: IMPL DONE (parked, batch 6 #1) — § Stack bundle standard in template-authoring.md (12 rows: hard/soft/manual) + cos stac

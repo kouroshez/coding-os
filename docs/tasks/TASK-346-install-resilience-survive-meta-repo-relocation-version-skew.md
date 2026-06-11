@@ -282,3 +282,4 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: Edit 00-index.md
 - 2026-06-11 [claude]: committed 955b0d6c: src/cli/main.py, src/templates/_base/scaffold/docs/00-index.md, src/templates/_base/scaffold/docs/go
 - 2026-06-11 [claude]: Edit template-authoring.md
+- 2026-06-11 [claude]: committed b024ec32: docs/playbooks/template-authoring.md, src/cli/main.py, src/cli/stack_lint.py, tests/test_template_sc

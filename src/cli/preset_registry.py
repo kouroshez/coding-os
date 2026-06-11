@@ -30,6 +30,18 @@ PRESETS_DIRNAME = "_presets"
 _PRESET_SCHEMA_PATH = _core_dir("schemas") / "preset.schema.json"
 
 
+def user_presets_dir() -> Path:
+    """Where user-authored presets live (cos preset create/import).
+
+    Override with $COS_USER_PRESETS_DIR (tests, shared machines)."""
+    import os
+
+    override = os.environ.get("COS_USER_PRESETS_DIR")
+    if override:
+        return Path(override)
+    return Path.home() / ".coding-os" / "presets"
+
+
 @dataclass(frozen=True)
 class PresetProfile:
     """One project preset. Loaded from templates/_presets/<id>.yaml."""
@@ -91,19 +103,27 @@ def _validate(data: dict, path: Path) -> list[str]:
 def load_preset_registry(
     templates_dir: Path,
     known_stacks: set[str] | None = None,
+    include_user: bool = True,
 ) -> PresetLoadResult:
-    """Scan templates_dir/_presets for *.yaml, return validated presets.
+    """Scan templates_dir/_presets (+ the user preset dir) for *.yaml.
 
-    When `known_stacks` is given, a preset referencing a stack outside it is
-    skipped with a WARN (the wizard/CLI pass the live stack registry keys).
+    Repo presets win on id collision (a user file shadowing a shipped preset
+    is skipped with a WARN). When `known_stacks` is given, a preset
+    referencing a stack outside it is skipped with a WARN.
     """
     presets: dict[str, PresetProfile] = {}
     warnings: list[str] = []
+
+    manifests: list[Path] = []
     presets_dir = templates_dir / PRESETS_DIRNAME
-    if not presets_dir.is_dir():
+    if presets_dir.is_dir():
+        manifests.extend(sorted(presets_dir.glob("*.yaml")))
+    if include_user and user_presets_dir().is_dir():
+        manifests.extend(sorted(user_presets_dir().glob("*.yaml")))
+    if not manifests:
         return PresetLoadResult(presets={}, warnings=())
 
-    for manifest in sorted(presets_dir.glob("*.yaml")):
+    for manifest in manifests:
         try:
             data = yaml.safe_load(manifest.read_text(encoding="utf-8"))
         except (yaml.YAMLError, OSError) as exc:
@@ -133,6 +153,12 @@ def load_preset_registry(
                 )
                 continue
 
+        if data["id"] in presets:
+            warnings.append(
+                f"skipping preset {manifest}: id '{data['id']}' already shipped — "
+                f"repo presets win over user presets"
+            )
+            continue
         presets[data["id"]] = PresetProfile(
             id=data["id"],
             label=str(data["label"]),

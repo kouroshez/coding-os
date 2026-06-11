@@ -67,6 +67,30 @@ def _is_base_default(value: str) -> bool:
     return any(m in value for m in _BASE_DEFAULT_MARKERS)
 
 
+# Keys whose final value is computed by _derive_substitutions as a JOIN of
+# every contributing stack — a raw-merge collision on them is not a conflict
+# (the later-wins intermediate is discarded), so no warning is emitted.
+_JOINED_SUBSTITUTION_KEYS: frozenset[str] = frozenset(
+    {
+        "DOMAIN_ROUTES",
+        "SKILL_ROUTES",
+        "ENGINEERING_RULE_ROUTING",
+        "TOOL_ROUTING_IMPL",
+        "QUICK_ROUTING",
+        "STACK_REF_CODES",
+        "VERIFY_BACKEND_GLOB",
+        "VERIFY_BACKEND_SUITES",
+        "VERIFY_BACKEND",
+        "VERIFY_FRONTEND_GLOB",
+        "VERIFY_FRONTEND_SUITES",
+        "VERIFY_FRONTEND",
+        "VERIFY_MOBILE_GLOB",
+        "VERIFY_MOBILE_SUITES",
+        "VERIFY_MOBILE",
+    }
+)
+
+
 def _merge_substitutions(
     base: dict[str, str],
     stacks: list[StackProfile],
@@ -75,14 +99,15 @@ def _merge_substitutions(
     that happens after derivation so derived values can also use tokens.
 
     Warnings are emitted only when two real values collide — overriding a
-    base default is expected behaviour, not a conflict.
+    base default is expected behaviour, not a conflict, and neither are
+    collisions on keys whose final value is a derived join.
     """
     warnings: list[str] = []
     merged: dict[str, str] = dict(base)
     origin: dict[str, str] = dict.fromkeys(base, "base")
     for stack in stacks:
         for key, value in stack.substitutions.items():
-            if key in merged and merged[key] != value:
+            if key in merged and merged[key] != value and key not in _JOINED_SUBSTITUTION_KEYS:
                 # Only warn on real conflicts, not base-default overrides.
                 if origin.get(key) != "base" or not _is_base_default(merged[key]):
                     warnings.append(
