@@ -26,15 +26,20 @@ import click
 import yaml
 
 from cli._init_helpers import ensure_agents_md
+from cli._resources import adapters_dir, core_dir, data_root, templates_dir
 from cli.adapter_registry import load_adapter_registry
 from cli.aggregator import aggregate, today_iso
-from cli.core_version import stamp_core_version
+from cli.core_version import current_core_version, read_stamped_version, stamp_core_version
 from cli.stack_registry import load_base_profile, load_stack_registry
+from cli.sync_all import _dangling, _iter_symlinks, _prune_dangling
 
-CODING_OS_ROOT = Path(__file__).resolve().parent.parent.parent
-ADAPTERS_DIR = CODING_OS_ROOT / "src" / "adapters"
-CORE_DIR = CODING_OS_ROOT / "src" / "core"
-TEMPLATES_DIR = CODING_OS_ROOT / "src" / "templates"
+# Resolved via importlib (TASK-219) so update works under both a src-layout
+# editable install and a built wheel — and keeps working after the meta-repo
+# is moved and reinstalled. CODING_OS_ROOT is informational (installed-manifest).
+CODING_OS_ROOT = data_root().parent
+ADAPTERS_DIR = adapters_dir()
+CORE_DIR = core_dir()
+TEMPLATES_DIR = templates_dir()
 CONFIG_FILE = ".coding-os.yaml"
 STATE_DIR = ".coding-os"
 INSTALLED_MANIFEST = "installed-manifest.json"
@@ -118,7 +123,7 @@ def _load_config(project: Path) -> dict:
 def _load_adapter(agent: str):
     from cli.adapter_registry import load_adapter_registry
 
-    adapters = load_adapter_registry(CODING_OS_ROOT / "src" / "adapters")
+    adapters = load_adapter_registry(ADAPTERS_DIR)
     if agent not in adapters:
         raise click.ClickException(f"adapter '{agent}' not in registry")
     return adapters[agent]
@@ -430,6 +435,16 @@ def update(
     if not agents:
         raise click.ClickException("no agents recorded in .coding-os.yaml")
 
+    stamped_version = read_stamped_version(project / STATE_DIR)
+    installed_version = current_core_version()
+    if stamped_version and stamped_version != installed_version:
+        click.echo(
+            f"  WARN: core drift — project scaffolded by {stamped_version}, "
+            f"installed core is {installed_version}; this update re-stamps it "
+            "(release notes: docs/governance/release-process.md)",
+            err=True,
+        )
+
     overall_changes = False
     applied_summary: dict[str, dict] = {}
 
@@ -478,8 +493,25 @@ def update(
             except Exception as exc:
                 click.echo(f"  WARN: could not generate AGENTS.md ({exc})", err=True)
 
+        # Symlinks still dangling AFTER re-link point at a source the current
+        # registry no longer ships (or a meta-repo path that no longer exists)
+        # — a re-install can never heal them, so prune (same contract as
+        # sync-doctor; hub-architecture.md § Symlink health).
+        leftover_dangling = [str(link) for link in _iter_symlinks(project) if _dangling(link)]
+        if leftover_dangling:
+            pruned_count = _prune_dangling(leftover_dangling)
+            click.echo(
+                f"  Pruned {pruned_count} dangling symlink(s) left by a moved/removed coding-os source"
+            )
+            overall_changes = True
+
         if not _run_db_migrations(project):
             click.echo("  ERROR: schema migration failed — DB may be inconsistent", err=True)
+            click.echo(
+                "  HINT: ensure coding-os deps are installed (`uv sync --extra rag` in the "
+                "coding-os checkout), then re-run `cos update`",
+                err=True,
+            )
             raise SystemExit(1)
 
     if output_format == "json":

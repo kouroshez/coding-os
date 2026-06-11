@@ -683,10 +683,37 @@ def _resolve_cli_version() -> str:
         return "unknown"
 
 
+def _warn_dangling_agent_links() -> None:
+    """One stderr nudge when the cwd project's agent symlinks dangle (moved meta-repo).
+
+    Fail-open by contract: the probe must never break or slow a command —
+    hub-architecture.md § Symlink health is the spec for this passive layer.
+    """
+    try:
+        project = Path.cwd()
+        if not (project / CONFIG_FILE).exists():
+            return
+        from cli.sync_all import _dangling, _iter_symlinks
+
+        for link in _iter_symlinks(project):
+            if _dangling(link):
+                click.echo(
+                    "WARN: dangling coding-os symlinks detected (meta-repo moved or removed?) "
+                    "— run: cos sync-doctor --repair",
+                    err=True,
+                )
+                return
+    except Exception as exc:
+        import logging
+
+        logging.getLogger(__name__).debug("dangling-link probe skipped: %s", exc)
+
+
 @click.group()
 @click.version_option(version=_resolve_cli_version(), prog_name="coding-os")
 def cli() -> None:
     """Coding OS — the cognitive operating system that gives AI agents memory, structure, and discipline."""
+    _warn_dangling_agent_links()
     # Route every stdlib logger.error from doctor /
     # health / any cos command into logging_os so the CLI process is no longer
     # blind to its own failures. Idempotent — install_bridge() removes a prior
@@ -1173,6 +1200,11 @@ def _run_scaffold_phase(
             click.echo("  ERROR: failed to initialize thinking_os database", err=True)
             if proc.stderr:
                 click.echo(proc.stderr.strip(), err=True)
+            click.echo(
+                "  HINT: missing Python deps are the usual cause — run "
+                "`uv sync --extra rag` in the coding-os checkout, then re-run `cos init`",
+                err=True,
+            )
             raise SystemExit(1)
         click.echo("  Initialized thinking_os database")
 
@@ -1306,6 +1338,11 @@ def _run_scaffold_phase(
         except Exception as exc:
             # Registry is non-fatal — a failed write should not break init.
             click.echo(f"  WARN: could not register project in hub registry: {exc}", err=True)
+            click.echo(
+                "  HINT: register later with `cos registry add <project-path>` "
+                "so the hub web UI can see this project",
+                err=True,
+            )
 
 
 def _initial_doc_index(project: Path, state: Path) -> None:
@@ -1340,6 +1377,11 @@ def _initial_doc_index(project: Path, state: Path) -> None:
         # Non-fatal: missing yaml / embeddings extras shouldn't break init.
         click.echo(
             f"  WARN: initial doc index skipped: {result.stderr.strip().splitlines()[-1] if result.stderr else 'unknown'}",
+            err=True,
+        )
+        click.echo(
+            "  HINT: doc search stays empty until indexed — install extras with "
+            "`uv sync --extra rag` in the coding-os checkout, then run `make docs-index` here",
             err=True,
         )
 

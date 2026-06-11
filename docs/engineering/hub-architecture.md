@@ -338,6 +338,20 @@ cos sync-doctor               # per-project JSON report
 cos sync-doctor --repair      # re-run install.sh on each broken project
 ```
 
+Three resilience layers back this contract (TASK-346):
+
+- **Passive nudge** — every `cos` invocation inside a consumer project
+  probes the agent dirs for dangling symlinks (fail-open, one stderr
+  line) and prints the `cos sync-doctor --repair` command when found.
+- **`cos update` self-heal** — after re-linking, update prunes symlinks
+  still dangling (obsolete targets from a moved/removed source) and
+  warns on core-version drift (stamped `core-version.json` vs the
+  installed core, same signal as `cos doctor`).
+- **Install-mode-safe roots** — `cli/update.py` and `cli/sync_all.py`
+  resolve the bundled core/adapters/templates trees via
+  `cli/_resources.py` (importlib), not `Path(__file__)` hops, so they
+  work under editable installs, wheels, and post-move reinstalls alike.
+
 ## Commands cheat-sheet
 
 | Task | Command |

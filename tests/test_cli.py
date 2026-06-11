@@ -591,3 +591,131 @@ class TestRefuseSelfInit:
         # And the fake source files must still exist — self-init check must
         # have fired BEFORE the --force wipe.
         assert (tmp_path / "src" / "core" / "thinking_os" / "server.py").exists()
+
+
+# ---------------------------------------------------------------------------
+# install resilience — TASK-346 (meta-repo relocation, version skew, hints)
+# ---------------------------------------------------------------------------
+
+
+class TestInstallResilience:
+    @pytest.fixture(scope="class")
+    def resilience_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        """One shared consumer project — init is the expensive step."""
+        project = tmp_path_factory.mktemp("resilience") / "consumer"
+        project.mkdir()
+        result = CliRunner().invoke(
+            cli,
+            ["init", "--agent", "claude", "-d", str(project), "--no-index", "--no-register"],
+        )
+        assert result.exit_code == 0, f"init failed: {result.output}"
+        return project
+
+    def test_update_and_sync_roots_resolve_via_resources(self) -> None:
+        """update/sync_all must use the importlib-resolved trees (TASK-219),
+        not Path(__file__) hops that break under wheels / moved checkouts."""
+        from cli._resources import data_root
+        import cli.sync_all as sync_module
+        import cli.update as update_module
+
+        root = data_root()
+        assert update_module.CORE_DIR == root / "core"
+        assert update_module.ADAPTERS_DIR == root / "adapters"
+        assert update_module.TEMPLATES_DIR == root / "templates"
+        assert sync_module.CORE_DIR == root / "core"
+        assert sync_module.ADAPTERS_DIR == root / "adapters"
+
+    def test_update_warns_on_core_version_skew_and_restamps(
+        self, runner: CliRunner, resilience_project: Path
+    ) -> None:
+        import json
+
+        stamp = resilience_project / ".coding-os" / "core-version.json"
+        stamp.write_text(
+            json.dumps({"core_version": "0.0.1", "stamped_at": "2020-01-01T00:00:00+00:00"})
+        )
+        result = runner.invoke(cli, ["update", "-d", str(resilience_project)])
+        assert result.exit_code == 0, result.output
+        assert "core drift" in result.output
+        assert "0.0.1" in result.output
+        assert json.loads(stamp.read_text())["core_version"] != "0.0.1"
+
+    def test_update_heals_dangling_symlinks(
+        self, runner: CliRunner, resilience_project: Path
+    ) -> None:
+        """Top-level orphans go via diff removal; nested skill links are
+        invisible to _scan_project_assets (SKILL.md.exists() is False on a
+        dangling link) and only the leftover-prune pass heals them."""
+        ghost_target = resilience_project / ".coding-os" / "ghost-target.sh"
+        top_level = resilience_project / ".claude" / "hooks" / "zz-ghost-hook.sh"
+        top_level.symlink_to(ghost_target)
+        nested_skill_dir = resilience_project / ".claude" / "skills" / "zz-ghost-skill"
+        nested_skill_dir.mkdir(parents=True)
+        nested = nested_skill_dir / "SKILL.md"
+        nested.symlink_to(ghost_target)
+        assert top_level.is_symlink() and not top_level.exists()
+        assert nested.is_symlink() and not nested.exists()
+
+        result = runner.invoke(cli, ["update", "-d", str(resilience_project)])
+        assert result.exit_code == 0, result.output
+        assert not top_level.is_symlink()
+        assert "Pruned" in result.output
+        assert not nested.is_symlink()
+
+    def test_any_command_nudges_on_dangling_links(
+        self,
+        runner: CliRunner,
+        resilience_project: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The group-level probe fires for any command run inside the project."""
+        dangling = resilience_project / ".claude" / "rules" / "zz-ghost-rule.md"
+        dangling.symlink_to(resilience_project / "missing-rule.md")
+        monkeypatch.chdir(resilience_project)
+
+        result = runner.invoke(cli, ["update", "-d", str(resilience_project), "--dry-run"])
+        assert "cos sync-doctor --repair" in result.output
+        dangling.unlink()
+
+    def test_registry_failure_prints_recovery_hint(
+        self,
+        runner: CliRunner,
+        project_dir: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import cli.registry as registry_module
+
+        def _raise_disk_full(_project: Path):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(registry_module, "add_project", _raise_disk_full)
+        project_dir.mkdir()
+        result = runner.invoke(
+            cli, ["init", "--agent", "claude", "-d", str(project_dir), "--no-index"]
+        )
+        assert result.exit_code == 0, result.output
+        assert "cos registry add" in result.output
+
+    def test_db_init_failure_prints_recovery_hint(
+        self,
+        runner: CliRunner,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import subprocess
+
+        real_run = subprocess.run
+
+        def _fail_init_db(args, **kwargs):
+            if isinstance(args, list) and any("init_db" in str(arg) for arg in args):
+                return subprocess.CompletedProcess(args, 1, stdout="", stderr="boom")
+            return real_run(args, **kwargs)
+
+        monkeypatch.setattr(main_module.subprocess, "run", _fail_init_db)
+        project = tmp_path / "dbfail"
+        project.mkdir()
+        result = runner.invoke(
+            cli, ["init", "--agent", "claude", "-d", str(project), "--no-index", "--no-register"]
+        )
+        assert result.exit_code != 0
+        assert "uv sync --extra rag" in result.output

@@ -19,12 +19,15 @@ from pathlib import Path
 
 import click
 
+from cli._resources import adapters_dir, core_dir
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-CORE_DIR = _REPO_ROOT / "src" / "core"
-ADAPTERS_DIR = _REPO_ROOT / "src" / "adapters"
+# Resolved via importlib (TASK-219) — survives wheel installs and meta-repo moves.
+CORE_DIR = core_dir()
+ADAPTERS_DIR = adapters_dir()
 
 
 # ---------------------------------------------------------------------------
@@ -47,17 +50,13 @@ def _load_project_config(project: Path) -> dict:
 
 def _iter_symlinks(project: Path) -> list[Path]:
     """Yield every symlink under a consumer project's agent dirs."""
-    # Data-driven adapter discovery (Rule 11): scan adapters/ for
-    # registered adapter ids, fall back to the historical triplet on
-    # stripped-down test fixtures.
-    _meta_root = Path(__file__).resolve().parent.parent.parent / "src" / "adapters"
     # Discovery is data-driven via src/adapters/<id>/adapter.yaml. NEVER
     # hardcode adapter ids here (Rule 11) — the test
     # tests/test_no_hardcoded_stacks.py guards this. Empty list = safe
     # no-op for stripped-down test fixtures.
     try:
         agent_ids = sorted(
-            d.name for d in _meta_root.iterdir() if d.is_dir() and (d / "adapter.yaml").exists()
+            d.name for d in ADAPTERS_DIR.iterdir() if d.is_dir() and (d / "adapter.yaml").exists()
         )
     except OSError:
         agent_ids = []
