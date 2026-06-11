@@ -32,3 +32,5 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_cli.py tests/test_template_scaffold.py -q` runs, **Then** green.
 
 ## Work Log
+- 2026-06-11 [claude]: commit e849760ef7 — feat(templates): preset catalog v1 — five world presets (TASK-371)
+- 2026-06-11 [claude]: IMPL DONE (parked, batch 8 #1) — five world presets per the acceptance compositions: ai-saas (nextjs+fastapi, llm-patter

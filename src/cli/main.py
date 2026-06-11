@@ -928,10 +928,12 @@ cli.add_command(skills_list_cmd)
 
 from cli.module_commands import module_group as module_group_cmd  # noqa: E402
 from cli.preset_commands import preset_group as preset_group_cmd  # noqa: E402
+from cli.skill_commands import skill_group as skill_group_cmd  # noqa: E402
 from cli.stack_lint import stack_lint as stack_lint_cmd  # noqa: E402
 
 cli.add_command(module_group_cmd)
 cli.add_command(preset_group_cmd)
+cli.add_command(skill_group_cmd)
 cli.add_command(stack_lint_cmd)
 
 # Durable error/log query CLI (cos errors / cos logs).

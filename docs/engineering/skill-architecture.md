@@ -102,6 +102,44 @@ The hook reads [src/core/rules/skill-enforcement.md](../../src/core/rules/skill-
 
 Once `backend-fundamentals` and `frontend-fundamentals` ship, the `stack.yaml` files should declare them as additional secondaries (or the stack skills declare `depends_on:` and the hook resolves transitively). This keeps [skill-enforcement.md](../../src/core/rules/skill-enforcement.md) readable while the full dependency graph is computed by the hook.
 
+## Public skill standard + trusted import (TASK-369)
+
+Anyone can author or import a skill; the standard keeps the catalog safe and
+coherent. Three trust tiers:
+
+| Tier | Origin | Scripts execution |
+|---|---|---|
+| `core` | ships in `src/core/skills/` | trusted |
+| `stack` | ships in `src/templates/<id>/skills/` | trusted |
+| `community` | imported via `cos skill add <path\|git-url>` into `~/.coding-os/skills/` | **requires recorded consent** (`cos skill consent <name>`) |
+
+**Authoring** — `cos skill new <name>` scaffolds a spec-compliant skill
+(frontmatter: `name`, `description` ("Use when …" + triggers), `tier`,
+`domain[]`, `globs`, optional `depends_on[]`/`context`/`license`, body with
+purpose/when-to-read/anti-patterns); `cos skill lint <path>` validates it
+through the SAME loader the runtime uses (schema + enum checks), so lint-pass
+⇒ loadable. The scaffold passes lint out of the box.
+
+**Import gate** — `cos skill add` runs, in order:
+1. *Normalize*: a vanilla Agent-Skills-format skill (name+description only)
+   gains the coding-os taxonomy fields (`tier`/`domain`/`globs` defaults when
+   absent). The taxonomy `tier:` describes WHAT the skill is; TRUST is
+   recorded in provenance only — a file can never claim a trust level.
+2. *Security scan*: SKILL.md + `scripts/`/`assets/` are pattern-scanned for
+   exfiltration and destructive shapes (remote POSTs of env/keys, piped
+   shell-from-curl, base64+eval, `rm -rf /`, reverse-shell idioms). Findings
+   BLOCK the import and are printed by name — this is defense-in-depth and
+   honest about being static; consent (below) is the second layer.
+3. *License check*: a `license` frontmatter field or LICENSE file is recorded;
+   absence is a warning, not a block.
+4. *Provenance*: `<name>/.provenance.json` records source, sha256 of every
+   file, import date and trust tier — `cos skill list` surfaces it.
+5. *Consent*: community skills with `scripts/` install with
+   `scripts_consent: false`; executing their scripts is forbidden until
+   `cos skill consent <name>` records explicit consent.
+
+A community skill may never shadow a core or stack skill name.
+
 ## Per-stack skill groups — onboarding SSOT (TASK-352)
 
 The onboarding wizard ("which skills will this stack install?") and the Config

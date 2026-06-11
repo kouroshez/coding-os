@@ -5,18 +5,17 @@ swimlane: cli
 kind: feature
 epic: E-skills
 labels: [wave-4, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-352]
 blocked_by: []
 references: []
 ---
-
 # TASK-369: Skill standard + trusted import — public authoring spec, cos skill new/lint, three trust tiers, provenance gate
 
 **Outcome (one sentence):** Public skill authoring spec + template + `cos skill new`/`cos skill lint` (built on existing skill.schema.json); `cos skill add &lt;path|git-url&gt;` imports third-party skills through a gate: schema normalize (auto-fill tier/domain/globs), security scan (exfil/URL patterns in SKILL.md, static check on scripts/), license check, provenance record, scripts-execution consent for untrusted tier.
@@ -35,3 +34,5 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_cli.py -q` runs, **Then** green.
 
 ## Work Log
+- 2026-06-11 [claude]: Edit skill-architecture.md
+- 2026-06-11 [claude]: Edit skill_commands.py
