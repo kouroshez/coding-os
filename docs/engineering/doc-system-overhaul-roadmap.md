@@ -11,7 +11,7 @@
 
 ## Why this program
 
-The doc system has strong bones (header contract, anchor-to-doc tracing Rule 0/19, immutable `doc_audit_trail`, auto-index regen). The gaps are **specific and verified**, not systemic. Core architectural finding: the system has **two retrieval planes that don't talk** — graph_os (structure: `links_to`/`read_next`/`cites_heading`) and RAG (`cos_doc_search`: embeddings + metadata) — and the **highest-value content (always-active rules + playbooks) lives in neither search index**. It is reachable only by always-on loading or by an explicit markdown link.
+The doc system has strong bones (header contract, anchor-to-doc tracing Rule 0/19, auto-index regen). The gaps are **specific and verified**, not systemic. Core architectural finding: the system has **two retrieval planes that don't talk** — graph_os (structure: `links_to`/`read_next`/`cites_heading`) and RAG (`cos_doc_search`: embeddings + metadata) — and the **highest-value content (always-active rules + playbooks) lives in neither search index**. It is reachable only by always-on loading or by an explicit markdown link.
 
 ## Session progress (2026-06-03)
 

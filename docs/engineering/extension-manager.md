@@ -100,7 +100,7 @@ Uploaded bytes land in a **quarantine dir** (`.coding-os/extensions/_quarantine/
 
 ### Hub auth
 
-Mutating endpoints (`install`/`remove`/`upload`/`trust`) require auth. The Hub is loopback-bound by default (single-user), where the auth is the local session; for shared/enterprise deployments a Hub token is required (P5). Every mutation writes a `doc_audit_trail`-style row (who · what · which unit · digest · when).
+Mutating endpoints (`install`/`remove`/`upload`/`trust`) require auth. The Hub is loopback-bound by default (single-user), where the auth is the local session; for shared/enterprise deployments a Hub token is required (P5). Every mutation writes a who · what · which unit · digest · when log row.
 
 ## API surface (Hub routes)
 

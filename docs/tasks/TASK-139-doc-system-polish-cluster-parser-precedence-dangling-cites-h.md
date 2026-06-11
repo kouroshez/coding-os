@@ -18,7 +18,7 @@ references: []
 ---
 # TASK-139: Doc-system polish cluster — parser precedence, dangling cites_heading, shell-ops STATE_DIR, domain-hint regex, doc-graph-neighbor, audit naming
 
-**Outcome (one sentence):** Low-severity correctness/consistency sweep: short-form opening block no longer silently overridden by long-form (D1-F7); dangling cross-file cites_heading edges reconciled (D3-F8); auto-reindex-shell-ops fallback STATE_DIR stops hardcoding .coding-os/claude for non-claude agents (D7-F10); doc-search domain-hint regex won't map swimlane to absent domains (D7-F8); add a doc-specific graph-neighbor convenience (D4-F6); document cos_doc_* vs cos_audit_log_* family boundary (D4-F7).
+**Outcome (one sentence):** Low-severity correctness/consistency sweep: short-form opening block no longer silently overridden by long-form (D1-F7); dangling cross-file cites_heading edges reconciled (D3-F8); auto-reindex-shell-ops fallback STATE_DIR stops hardcoding .coding-os/claude for non-claude agents (D7-F10); doc-search domain-hint regex won't map swimlane to absent domains (D7-F8); add a doc-specific graph-neighbor convenience (D4-F6) (D4-F7 family-boundary doc item retired with the audit-log family).
 
 ## Work Log
 - 2026-06-06 [claude]: ARCHIVED after graph-verified triage — nothing actionable remains. D7-F10 already shipped (31b035d4). D7-F8 already guar
