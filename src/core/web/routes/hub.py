@@ -513,11 +513,15 @@ def _run_cos_init(
     stacks: list[str],
     agent: str,
     preset: str = "",
+    description: str = "",
+    extra_skills: list[str] | None = None,
     timeout: int = 180,
 ):
     """Run `cos init` in a subprocess → (ok, payload, error).
 
-    Module-level so a test can monkeypatch it without a real scaffold."""
+    Module-level so a test can monkeypatch it without a real scaffold.
+    Description/extra-skills ride the CLI flags (--summary/--skills) so the
+    wizard and a hand-typed `cos init` produce byte-identical projects."""
     cmd = _cos_init_command() + [
         "init",
         "--name",
@@ -535,6 +539,10 @@ def _run_cos_init(
         cmd += ["--preset", preset]
     for stack in stacks:
         cmd += ["--template", stack]
+    if description.strip():
+        cmd += ["--summary", description.strip()]
+    if extra_skills:
+        cmd += ["--skills", ",".join(extra_skills)]
     try:
         proc = subprocess.run(  # noqa: S603 — fixed argv list, never shell=True
             cmd, capture_output=True, text=True, timeout=timeout, cwd=parent_dir
@@ -557,34 +565,6 @@ def _run_cos_init(
     return True, payload, ""
 
 
-def _seed_project_extras(target: Path, description: str, extra_skills: list[str]) -> None:
-    """Persist wizard inputs into the fresh project. Fail-open: a seeding
-    failure never fails the create (init already succeeded)."""
-    try:
-        if description.strip():
-            # Seed for the description→PRD pipeline (TASK-364 consumes this).
-            meta_dir = target / "docs" / "_meta"
-            meta_dir.mkdir(parents=True, exist_ok=True)
-            (meta_dir / "project-description.md").write_text(
-                "# Project Description (onboarding intake)\n\n"
-                + description.strip()
-                + "\n",
-                encoding="utf-8",
-            )
-        if extra_skills:
-            import yaml as _yaml
-
-            cfg_path = target / ".coding-os.yaml"
-            cfg = _yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
-            merged = list(dict.fromkeys([*(cfg.get("extra_skills") or []), *extra_skills]))
-            cfg["extra_skills"] = merged
-            cfg_path.write_text(
-                _yaml.dump(cfg, default_flow_style=False, sort_keys=False), encoding="utf-8"
-            )
-    except Exception as exc:
-        logger.debug("project extras seeding skipped: %s", exc)
-
-
 @router.post("/registry/init")
 def hub_registry_init(
     name: str = Body("", embed=True),
@@ -603,14 +583,19 @@ def hub_registry_init(
         return error
     target: Path = info["target"]
     ok, payload, err = _run_cos_init(
-        info["name"], str(info["parent"]), all_stacks, agent or "claude", preset=preset
+        info["name"],
+        str(info["parent"]),
+        all_stacks,
+        agent or "claude",
+        preset=preset,
+        description=description or "",
+        extra_skills=extra_skills or [],
     )
     if not ok:
         # A failed init must leave nothing — remove the partial scaffold.
         if target.exists():
             shutil.rmtree(target, ignore_errors=True)
         return _err("internal", f"init failed: {err}", status=500)
-    _seed_project_extras(target, description or "", extra_skills or [])
     slug = (payload or {}).get("slug") or _resolve_slug_from_registry(target)
     return {
         "data": {

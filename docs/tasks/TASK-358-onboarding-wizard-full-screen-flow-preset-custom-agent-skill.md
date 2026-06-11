@@ -34,3 +34,4 @@ references: []
 - **Given** the UI build, **When** `make ui-build` and the web-route tests run, **Then** both green; wizard logic covered by component tests.
 
 ## Work Log
+- 2026-06-11 [claude]: IMPL DONE (parked in testing per batch cadence) — full-screen OnboardingWizard.tsx (preset/custom → agent → skills previ

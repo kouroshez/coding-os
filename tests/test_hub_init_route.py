@@ -147,7 +147,8 @@ class TestInitRouteRun:
 
     def test_failed_init_cleans_up_partial_scaffold(self, hub_env, monkeypatch):
         # Simulate init creating a partial dir then failing — the route must rmtree it.
-        def _fake(name, parent_dir, stacks, agent, preset="", timeout=180):
+        def _fake(name, parent_dir, stacks, agent, preset="", description="",
+                  extra_skills=None, timeout=180):
             (Path(parent_dir) / name).mkdir(parents=True, exist_ok=True)
             return (False, None, "boom")
 
@@ -227,13 +228,24 @@ class TestValidateInitEndpoint:
 
 
 class TestWizardCreateFlow:
-    def test_multi_stack_create_seeds_description_and_extra_skills(self, hub_env, monkeypatch):
-        def _fake(name, parent_dir, stacks, agent, preset="", timeout=180):
-            target = Path(parent_dir) / name
-            target.mkdir(parents=True)
-            (target / ".coding-os.yaml").write_text(
-                "version: '1.0'\ntemplates:\n- nextjs\n- fastapi\n", encoding="utf-8"
+    def test_multi_stack_create_forwards_description_and_extra_skills(self, hub_env, monkeypatch):
+        """Wizard inputs ride the CLI flags (--summary/--skills) so wizard and
+        hand-typed init produce identical projects (TASK-359 parity)."""
+        calls: list[dict] = []
+
+        def _fake(name, parent_dir, stacks, agent, preset="", description="",
+                  extra_skills=None, timeout=180):
+            calls.append(
+                {
+                    "name": name,
+                    "stacks": stacks,
+                    "agent": agent,
+                    "preset": preset,
+                    "description": description,
+                    "extra_skills": extra_skills,
+                }
             )
+            (Path(parent_dir) / name).mkdir(parents=True)
             return (True, {"slug": name}, "")
 
         _patch_init(monkeypatch, _fake)
@@ -251,13 +263,16 @@ class TestWizardCreateFlow:
         assert resp.status_code == 200, resp.text
         data = resp.json()["data"]
         assert data["auto_named"] is True and data["slug"].startswith("proj-")
-        target = hub_env / data["slug"]
-        desc = target / "docs" / "_meta" / "project-description.md"
-        assert "two-paragraph product description" in desc.read_text(encoding="utf-8")
-        import yaml as _yaml
-
-        cfg = _yaml.safe_load((target / ".coding-os.yaml").read_text(encoding="utf-8"))
-        assert cfg["extra_skills"] == ["redis", "docker"]
+        assert calls == [
+            {
+                "name": data["slug"],
+                "stacks": ["nextjs", "fastapi"],
+                "agent": "claude",
+                "preset": "",
+                "description": "A two-paragraph product description.",
+                "extra_skills": ["redis", "docker"],
+            }
+        ]
 
     def test_preset_and_stacks_mutually_exclusive(self, hub_env):
         with _client() as client:

@@ -1016,6 +1016,18 @@ def _refuse_coding_os_self_init(project: Path) -> None:
     help="Print the merged .coding-os config preview (swimlane union + conflicts) for the requested stacks/preset and exit without writing anything.",
 )
 @click.option(
+    "--skills",
+    "extra_skills_csv",
+    default=None,
+    help="Extra core skills beyond the stacks' own, comma-separated (wizard parity). Validated against the skill registry.",
+)
+@click.option(
+    "--summary",
+    "project_summary",
+    default=None,
+    help="1-2 paragraph project description; seeds docs/_meta/project-description.md (wizard parity, TASK-364 intake).",
+)
+@click.option(
     "--project-dir",
     "-d",
     default=None,
@@ -1081,6 +1093,8 @@ def init(
     template: tuple[str, ...],
     preset_id: str | None,
     dry_config: bool,
+    extra_skills_csv: str | None,
+    project_summary: str | None,
     project_dir: str | None,
     name: str | None,
     debug: bool,
@@ -1130,6 +1144,22 @@ def init(
         _dry_config_preview(template, output_format)
         return
 
+    # --skills validated up-front (fail fast, wizard parity: the wizard only
+    # offers known core skills).
+    extra_skills: list[str] = []
+    if extra_skills_csv:
+        from cli.skill_registry import load_skill_registry
+        from cli.skills_list import CORE_SKILLS_DIR
+
+        known_skills = set(load_skill_registry(CORE_SKILLS_DIR).skills.keys())
+        extra_skills = [s.strip() for s in extra_skills_csv.split(",") if s.strip()]
+        unknown_skills = [s for s in extra_skills if s not in known_skills]
+        if unknown_skills:
+            click.echo(
+                f"ERROR: unknown skill(s) {unknown_skills} — see `cos skills-list`.", err=True
+            )
+            sys.exit(2)
+
     # Idempotent detection: existing install → offer sync instead of re-init.
     existing = _detect_existing_install(shell_cwd) if not name and not project_dir else None
     if existing is not None:
@@ -1144,6 +1174,25 @@ def init(
             return
         click.echo("Aborted.")
         sys.exit(0)
+
+    # Non-TTY without --yes: refuse to guess targets silently (TASK-359).
+    # Sits AFTER existing-install detection so the idempotent sync path keeps
+    # working for a bare re-`cos init` inside a project.
+    if not yes and not sys.stdin.isatty():
+        if agent is None:
+            click.echo(
+                "ERROR: non-interactive shell — pass --agent (and --name/--project-dir), "
+                "or use --yes.",
+                err=True,
+            )
+            sys.exit(2)
+        if name is None and project_dir is None and not debug:
+            click.echo(
+                "ERROR: non-interactive shell — pass --name and/or --project-dir "
+                "(or --yes to scaffold into the current directory).",
+                err=True,
+            )
+            sys.exit(2)
 
     # Prompt for missing inputs. --yes disables all prompting. Prompts that
     # hit EOF (closed stdin — CI, scaffold tests) fall back to sensible
@@ -1223,6 +1272,8 @@ def init(
             no_register=no_register,
             do_index=do_index,
             active_preset=active_preset,
+            extra_skills=extra_skills,
+            project_summary=project_summary,
         )
 
     git_result = maybe_git_init(target, enabled=git)
@@ -1320,6 +1371,8 @@ def _run_scaffold_phase(
     no_register: bool = False,
     do_index: bool = True,
     active_preset=None,
+    extra_skills: list[str] | None = None,
+    project_summary: str | None = None,
 ) -> None:
     """Original scaffolding body — extracted so it can be redirected in JSON mode.
 
@@ -1387,7 +1440,21 @@ def _run_scaffold_phase(
             config["extra_skills"] = list(active_preset.skills)
         if active_preset.modules:
             config["modules"] = dict(active_preset.modules)
+    if extra_skills:
+        # --skills / wizard extras merge on top of preset-declared ones.
+        config["extra_skills"] = list(
+            dict.fromkeys([*(config.get("extra_skills") or []), *extra_skills])
+        )
     _save_config(project, config)
+    if project_summary and project_summary.strip():
+        # Onboarding intake — consumed by the description→PRD pipeline (TASK-364).
+        meta_dir = project / "docs" / "_meta"
+        meta_dir.mkdir(parents=True, exist_ok=True)
+        (meta_dir / "project-description.md").write_text(
+            "# Project Description (onboarding intake)\n\n" + project_summary.strip() + "\n",
+            encoding="utf-8",
+        )
+        click.echo("  Seeded docs/_meta/project-description.md")
     click.echo(f"  Generated {CONFIG_FILE}")
 
     # 4. Run adapter install for each agent

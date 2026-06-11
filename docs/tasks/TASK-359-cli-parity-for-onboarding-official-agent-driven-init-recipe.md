@@ -5,18 +5,17 @@ swimlane: cli
 kind: feature
 epic: B-onboarding
 labels: [wave-2, onboarding-program, ready]
-status: icebox
+status: in_progress
 priority: P1
 appetite: 1d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-356]
 blocked_by: []
 references: []
 ---
-
 # TASK-359: CLI parity for onboarding + official agent-driven init recipe
 
 **Outcome (one sentence):** `cos init` gains --preset/--skills/--summary/--swimlanes flags mirroring every wizard option; non-TTY runs fail fast with explicit errors instead of returning None; an official agent recipe (command/skill) documents the one-shot non-interactive init form.

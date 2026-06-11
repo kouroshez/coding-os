@@ -1123,6 +1123,66 @@ class TestPresets:
 
 
 # ---------------------------------------------------------------------------
+# CLI onboarding parity — TASK-359 (--skills/--summary + non-TTY fail-fast)
+# ---------------------------------------------------------------------------
+
+
+class TestCliOnboardingParity:
+    def test_skills_and_summary_flags_seed_project(self, runner: CliRunner, tmp_path: Path) -> None:
+        import yaml
+
+        project = tmp_path / "withextras"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init", "--agent", "claude", "-d", str(project),
+                "--skills", "redis, docker",
+                "--summary", "A focused product summary for the intake pipeline.",
+                "--yes", "--no-index", "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        cfg = yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert cfg["extra_skills"] == ["redis", "docker"]
+        intake = project / "docs" / "_meta" / "project-description.md"
+        assert "focused product summary" in intake.read_text(encoding="utf-8")
+
+    def test_unknown_skill_fails_fast(self, runner: CliRunner, tmp_path: Path) -> None:
+        project = tmp_path / "badskill"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init", "--agent", "claude", "-d", str(project),
+                "--skills", "no-such-skill", "--yes", "--no-index", "--no-register",
+            ],
+        )
+        assert result.exit_code == 2
+        assert "no-such-skill" in result.output
+        assert not (project / ".coding-os.yaml").exists()  # failed BEFORE any write
+
+    def test_non_tty_without_target_fails_fast(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("PWD", str(tmp_path))
+        result = runner.invoke(cli, ["init", "--agent", "claude"])
+        assert result.exit_code == 2
+        assert "--name" in result.output and "--project-dir" in result.output
+        assert list(tmp_path.iterdir()) == []  # nothing scaffolded
+
+    def test_non_tty_without_agent_names_the_flag(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("PWD", str(tmp_path))
+        result = runner.invoke(cli, ["init"])
+        assert result.exit_code == 2
+        assert "--agent" in result.output
+
+
+# ---------------------------------------------------------------------------
 # Skill catalog SSOT — TASK-352 (skill-architecture.md § Per-stack skill groups)
 # ---------------------------------------------------------------------------
 

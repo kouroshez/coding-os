@@ -198,3 +198,19 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: Edit OnboardingWizard.test.tsx
 - 2026-06-11 [claude]: Edit OnboardingWizard.test.tsx
 - 2026-06-11 [claude]: Edit hub-architecture.md
+- 2026-06-11 [claude]: committed 8a80b449: docs/engineering/hub-architecture.md, src/cli/registry.py, src/core/web/routes/hub.py, src/core/web/
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit main.py
+- 2026-06-11 [claude]: Edit hub.py
+- 2026-06-11 [claude]: Edit hub.py
+- 2026-06-11 [claude]: Edit hub.py
+- 2026-06-11 [claude]: Edit test_hub_init_route.py
+- 2026-06-11 [claude]: Edit new-project.md
+- 2026-06-11 [claude]: Edit test_cli.py
+- 2026-06-11 [claude]: Edit test_hub_init_route.py
