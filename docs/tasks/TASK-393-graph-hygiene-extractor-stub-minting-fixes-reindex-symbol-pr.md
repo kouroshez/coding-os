@@ -82,3 +82,4 @@ Actual: healthy=false; fix=True only papers over extractor-minted stubs.
 - 2026-06-11 [claude]: Edit mcp-error-envelope.md
 - 2026-06-11 [claude]: Existence gate landed in md_links (_resolve_link + _resolve_read_target) and task_deps (_extract_doc_paths); doctor _is_
 - 2026-06-11 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-11 [claude]: committed 1fe63fbc: docs/engineering/mcp-error-envelope.md, docs/playbooks/polyglot-extractor-roadmap.md, src/core/graph
