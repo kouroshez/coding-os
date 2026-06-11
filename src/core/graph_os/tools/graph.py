@@ -2574,10 +2574,20 @@ def cos_graph_export(
     else:
         parsed_exclude_kinds = _normalize_kinds(exclude_kinds)
         excluded = frozenset(parsed_exclude_kinds)
-    # G35: enforce a hard global cap on max_nodes so non-root export
-    # cannot blow past the budget per-component aggregation.
-    max_nodes = max(1, min(int(max_nodes), 2000))
+    # G35: hard global ceiling on max_nodes. Raised 2000 → 50000
+    # (TASK-402): the Hub sends 10k (rooted depth=all) / 30k (spine
+    # sidebar) and the old silent clamp cut both to 2000 — the user-
+    # visible "max still shows an incomplete graph". Sigma renders ~40k
+    # nodes (enterprise viz audit) and the 5 MB coherent-subgraph
+    # trimmer in ok() remains the OOM safety net above this.
+    max_nodes_requested = int(max_nodes)
+    max_nodes = max(1, min(max_nodes_requested, 50_000))
 
+    # TASK-402: over-fetch when a noise filter applies so the budget is
+    # spent on VISIBLE nodes — the old fetch-then-filter order burned the
+    # budget on doc_heading/frontmatter rows that the filter dropped a few
+    # lines later (the spine sidebar got 306 of 400 folders at a 30k ask).
+    fetch_budget = min(max_nodes * 4, 150_000) if excluded else max_nodes
     if root_uid is not None:
         # Hub Graph tab "depth=all" sent max_nodes=10000 but the walk
         # stopped at 3 hops, so subfolder contents never appeared
@@ -2591,7 +2601,7 @@ def cos_graph_export(
             max_hops=effective_hops,
             confidence_min=0.0,
             edge_types=parsed_edge_types,
-            visit_limit=max_nodes,
+            visit_limit=fetch_budget,
         )
     elif mode == "processes":
         nodes, edges = _export_processes(be, max_nodes=max_nodes)
@@ -2600,18 +2610,21 @@ def cos_graph_export(
             be,
             mode=mode,
             edge_types=parsed_edge_types,
-            max_nodes=max_nodes,
+            max_nodes=fetch_budget,
         )
-    # G35: hard-enforce node cap after blend (per-bucket leak).
-    if len(nodes) > max_nodes:
-        nodes = nodes[:max_nodes]
+
+    # apply noise filter BEFORE the budget cap. Drop nodes whose kind is
+    # in ``excluded`` AND drop any edges that touch them.
+    if excluded:
+        nodes = [n for n in nodes if (n.kind or "") not in excluded]
         kept_uids = {n.uid for n in nodes}
         edges = [e for e in edges if e.source_uid in kept_uids and e.target_uid in kept_uids]
 
-    # apply noise filter. Drop nodes whose kind is in
-    # ``excluded`` AND drop any edges that touch them.
-    if excluded:
-        nodes = [n for n in nodes if (n.kind or "") not in excluded]
+    # G35: hard-enforce node cap after blend + filter (per-bucket leak).
+    # Walk/blend results are nearest-first, so trimming keeps the most
+    # relevant frontier.
+    if len(nodes) > max_nodes:
+        nodes = nodes[:max_nodes]
         kept_uids = {n.uid for n in nodes}
         edges = [e for e in edges if e.source_uid in kept_uids and e.target_uid in kept_uids]
 
@@ -2660,6 +2673,17 @@ def cos_graph_export(
             "node_count": len(nodes),
             "edge_count": len(edges),
             "include_spine": include_spine,
+            # TASK-402: honest budget provenance — the Hub badge reads
+            # these instead of guessing from its own request params.
+            "max_nodes_requested": max_nodes_requested,
+            "max_nodes_effective": max_nodes,
+            "max_hops_effective": (
+                (3 if max_hops is None else max(1, min(int(max_hops), 16)))
+                if root_uid is not None
+                else None
+            ),
+            "result_truncated": len(nodes) >= max_nodes
+            or max_nodes < max_nodes_requested,
         },
     )
 

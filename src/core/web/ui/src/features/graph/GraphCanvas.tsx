@@ -30,7 +30,7 @@ export default function GraphCanvas() {
   // full graph for the overview view, and be permissive for rooted BFS
   // walks. Old caps were 1.4k/1.5k → ≤3.5% coverage which is what the
   // user reported as "max doesn't show 100%". Bumped 10-15× per the
-  // enterprise viz audit (docs/_meta/audits/audit-graph-viz-research.md).
+  // enterprise viz research review (2026-05, since retired).
   const overviewBudgetByDepth: Record<string, number> = {
     '1': 200,
     '2': 800,
@@ -71,6 +71,7 @@ export default function GraphCanvas() {
     ['graph-export', selectedRootUid ?? '__overview__', viewMode, depthKey],
     '/api/graph/export',
     exportParams,
+    { includeMeta: true },
   );
 
   const pruned = useMemo<ApiGraphPayload | null>(() => {
@@ -128,23 +129,37 @@ export default function GraphCanvas() {
           no nodes reachable at this depth
         </div>
       )}
-      {/* TASK-023: honest truncation badge (cert Domain 5.6 — provenance) */}
+      {/* TASK-023/TASK-402: honest truncation badge. Reads the server's
+          budget provenance (meta) instead of guessing from request params —
+          the old `fetched >= requestedMax` heuristic went silent whenever
+          the server clamped below the request. Bottom-LEFT so the Legend
+          widget (bottom-right) never covers it. */}
       {!isLoading && !error && pruned && (pruned.nodes?.length ?? 0) > 0 && (
         <div
           role="status"
           aria-label="node count and budget"
-          className="absolute bottom-3 right-3 rounded bg-[var(--cos-panel)]/85 px-2 py-1 text-[10px] font-mono text-[var(--cos-muted)]"
+          className="absolute bottom-3 left-3 rounded bg-[var(--cos-panel)]/85 px-2 py-1 text-[10px] font-mono text-[var(--cos-muted)]"
         >
           {(() => {
             const shown = pruned.nodes?.length ?? 0;
             const fetched = data?.nodes?.length ?? shown;
-            const truncated = fetched >= requestedMax;
+            const meta = data?.meta;
+            const truncated = Boolean(
+              meta?.result_truncated ||
+                meta?.truncated_subgraph ||
+                fetched >= (meta?.max_nodes_effective ?? requestedMax),
+            );
             return (
               <>
                 <span className="text-[var(--cos-text)]">{shown}</span>
                 <span> / </span>
                 <span>{fetched}</span>
                 <span> nodes</span>
+                {!selectedRootUid && (
+                  <span className="ml-1">
+                    · overview sample — pick a root in Contains spine for the exact tree
+                  </span>
+                )}
                 {truncated && (
                   <span className="ml-1 rounded bg-[var(--cos-warn-tint)] px-1 text-[var(--cos-warn)]">
                     truncated · raise depth budget

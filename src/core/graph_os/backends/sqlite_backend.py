@@ -429,10 +429,8 @@ class SqliteBackend:
         HARD delete by design — the graph mirrors HEAD-of-tree, so a symbol
         that left the file is gone, not historical (git is the record). This
         runs on every per-file reindex (prune-before-reindex), so the graph
-        keeps no deletion ledger of its own — that would be pure churn. The
-        only deletion audit in the system is the doc_audit_trail row that
-        prune_deleted_path writes for a rare whole-.md-file delete; node
-        prune here is routine and logged at debug. See graph-os-authoring.
+        keeps no deletion ledger of its own — that would be pure churn.
+        Node prune here is routine and logged at debug. See graph-os-authoring.
         """
         with self._write_lock:
             if not extractors:
@@ -572,6 +570,82 @@ class SqliteBackend:
                     rewrites += 1
             self._conn.commit()
             return rewrites
+
+    def link_import_bindings(self, *, file_path: str | None = None) -> int:
+        """Bind ``import_`` nodes to the symbol they import (TASK-402).
+
+        code_python emits one ``code:import:<file>::<name>`` node per
+        imported name (metadata carries ``imported`` + ``source_module``)
+        but no edge to the symbol itself, so every ``from M import name``
+        caller was invisible to references/impact (init_db probe: 16 of
+        ~106 caller files reachable). Same exactly-one resolution contract
+        as link_external_stubs: ambiguous or unresolved → skip, never guess.
+        """
+        with self._write_lock:
+            scope = " AND file_path = ?" if file_path else ""
+            params: tuple[Any, ...] = (file_path,) if file_path else ()
+            rows = self._conn.execute(
+                f"SELECT id, metadata_json FROM graph_nodes WHERE kind = 'import_'{scope}",
+                params,
+            ).fetchall()
+            wanted: dict[str, list[tuple[int, str]]] = {}
+            for node_id, metadata_json in rows:
+                try:
+                    metadata = json.loads(metadata_json or "{}")
+                except ValueError:
+                    continue
+                name = metadata.get("imported")
+                module = metadata.get("source_module")
+                if not name or not module or metadata.get("wildcard"):
+                    continue
+                wanted.setdefault(str(name), []).append((int(node_id), str(module)))
+            if not wanted:
+                return 0
+            placeholders = ",".join("?" * len(wanted))
+            real_rows = self._conn.execute(
+                f"""
+                SELECT id, label, file_path FROM graph_nodes
+                WHERE kind IN ('function','class','variable','interface')
+                  AND label IN ({placeholders})
+                  AND file_path IS NOT NULL
+                """,
+                tuple(wanted),
+            ).fetchall()
+            real_by_label: dict[str, list[tuple[int, str]]] = {}
+            for real_id, real_label, real_file in real_rows:
+                real_by_label.setdefault(str(real_label), []).append((int(real_id), real_file))
+            now = int(time.time())
+            linked = 0
+            for name, importers in wanted.items():
+                candidates = real_by_label.get(name, [])
+                if not candidates:
+                    continue
+                for import_id, module in importers:
+                    module_suffix = module.replace(".", "/")
+                    matches = {
+                        real_id
+                        for real_id, real_file in candidates
+                        if (
+                            real_file == f"{module_suffix}.py"
+                            or real_file.endswith(f"/{module_suffix}.py")
+                            or real_file == f"{module_suffix}/__init__.py"
+                            or real_file.endswith(f"/{module_suffix}/__init__.py")
+                        )
+                    }
+                    if len(matches) != 1:
+                        continue
+                    cursor = self._conn.execute(
+                        """
+                        INSERT OR IGNORE INTO graph_edges_v12
+                          (source_id, target_id, edge_type, confidence,
+                           extractor, source_span, created_at, updated_at)
+                        VALUES (?, ?, 'imports', 0.85, 'import_linker@v1', NULL, ?, ?)
+                        """,
+                        (import_id, next(iter(matches)), now, now),
+                    )
+                    linked += int(cursor.rowcount or 0)
+            self._conn.commit()
+            return linked
 
     def link_php_handlers(self) -> int:
         """Resolve Laravel controller-handler stubs to real method nodes.

@@ -390,6 +390,13 @@ stack for `cos init` is OUT of scope here (separate task).
   reconcile ever removes them. Zero-edge external stubs are therefore listed
   informationally AND deleted by `cos_graph_doctor(fix=True)` — re-extraction
   re-mints any that are still referenced.
+- **Import bindings are linked, not dangling (TASK-402).** code_python
+  emits one `import_` node per `from M import name` site (metadata:
+  `imported` + `source_module`) and `SqliteBackend.link_import_bindings`
+  binds it to the real symbol with an `imports` edge (module-suffix path
+  match, exactly-one rule — ambiguous skipped). Runs per-file on dispatch
+  (`link_stubs=True`) and globally after `cos graph-reindex`. Without it,
+  references/impact silently missed every from-import caller.
 - **tree-sitter grammar gaps are not file errors (TASK-395).** When the shell
   extractor sees tree-sitter ERROR nodes but `bash -n` accepts the file, the
   count is recorded as `grammar_gaps` metadata, not `parse_errors_count` —

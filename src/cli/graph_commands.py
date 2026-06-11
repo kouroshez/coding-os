@@ -800,9 +800,11 @@ def register(cli: click.Group) -> None:
             conn = init_db(str(resolve_db_path(project_root)))
             backend = SqliteBackend(conn=conn)
             relinked = backend.link_external_stubs()
+            imports_linked = backend.link_import_bindings()
             php_linked = backend.link_php_handlers()
             click.echo(
-                f"[graph-reindex] cross-file link: {relinked} stub(s) resolved"
+                f"[graph-reindex] cross-file link: {relinked} stub(s) resolved, "
+                f"{imports_linked} import binding(s)"
                 + (f" (+{php_linked} php handler(s))" if php_linked else "")
             )
         except Exception as exc:

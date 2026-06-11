@@ -27,6 +27,13 @@ export interface UseApiGetOptions {
   enabled?: boolean;
   /** Polling interval in ms — translated to TanStack `refetchInterval`. */
   refetchIntervalMs?: number;
+  /**
+   * Merge the envelope's sibling `meta` block into the returned object
+   * (as `data.meta`) — apiGet returns `[data, meta]` and the default
+   * path drops meta, which hid the graph export's budget provenance
+   * from the truncation badge (TASK-402). Object payloads only.
+   */
+  includeMeta?: boolean;
 }
 
 export function useApiGet<T>(
@@ -43,7 +50,10 @@ export function useApiGet<T>(
   return useQuery<T, Error>({
     queryKey: ['cos-scope', scope, path, params, ...key],
     queryFn: async () => {
-      const [data] = await apiGet<T>(path, params);
+      const [data, meta] = await apiGet<T>(path, params);
+      if (options?.includeMeta && data && typeof data === 'object' && !Array.isArray(data)) {
+        return { ...(data as object), meta } as T;
+      }
       return data;
     },
     enabled: options?.enabled ?? true,

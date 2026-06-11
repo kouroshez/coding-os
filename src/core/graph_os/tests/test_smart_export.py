@@ -540,3 +540,48 @@ class TestStalePathsDetector:
         res = _parse(graph_tools.cos_graph_doctor())
         categories = {issue["category"] for issue in res["data"]["issues"]}
         assert "stale_paths" not in categories
+
+
+# ---------------------------------------------------------------------------
+# Budget provenance + cap honesty (TASK-402)
+# ---------------------------------------------------------------------------
+
+
+class TestBudgetProvenance:
+    def test_meta_reports_requested_and_effective(self):
+        res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=20))
+        meta = res["data"]["meta"]
+        assert meta["max_nodes_requested"] == 20
+        assert meta["max_nodes_effective"] == 20
+        assert "result_truncated" in meta
+
+    def test_request_above_old_2000_clamp_is_honored(self):
+        # The old silent 2000 clamp cut the Hub's 10k/30k requests —
+        # depth=max rendered an incomplete graph with no signal.
+        res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=30000))
+        meta = res["data"]["meta"]
+        assert meta["max_nodes_effective"] == 30000
+        assert meta["result_truncated"] is False  # stub graph is tiny
+
+    def test_request_above_ceiling_flags_truncated(self):
+        res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=60000))
+        meta = res["data"]["meta"]
+        assert meta["max_nodes_effective"] == 50000
+        assert meta["result_truncated"] is True
+
+    def test_cap_hit_flags_truncated(self):
+        # Budget smaller than the stub graph -> cap hit -> truncated.
+        res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=2))
+        meta = res["data"]["meta"]
+        assert meta["result_truncated"] is True
+
+    def test_rooted_walk_reports_effective_hops(self):
+        res = _parse(
+            graph_tools.cos_graph_export(root_uid="code:file:a.py", max_nodes=20, max_hops=12)
+        )
+        meta = res["data"]["meta"]
+        assert meta["max_hops_effective"] == 12
+
+    def test_overview_has_no_hops(self):
+        res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=20))
+        assert res["data"]["meta"]["max_hops_effective"] is None

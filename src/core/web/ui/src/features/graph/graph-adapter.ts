@@ -22,10 +22,21 @@ export interface ApiEdge {
   confidence?: number;
 }
 
+export interface ApiGraphMeta {
+  node_count?: number;
+  edge_count?: number;
+  max_nodes_requested?: number;
+  max_nodes_effective?: number;
+  max_hops_effective?: number | null;
+  result_truncated?: boolean;
+  truncated_subgraph?: boolean;
+}
+
 export interface ApiGraphPayload {
   format?: string;
   nodes?: ApiNode[];
   edges?: ApiEdge[];
+  meta?: ApiGraphMeta;
 }
 
 export interface SigmaNodeAttrs {

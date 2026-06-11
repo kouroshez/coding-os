@@ -133,12 +133,12 @@ export default function ContainsTree() {
   const selectedRootUid = useGraphStore((s) => s.selectedRootUid);
   const setRoot = useGraphStore((s) => s.setRoot);
 
-  // Spine needs the full folder→file→class→method→inner-class chain so
-  // every node has its true contains parent in the payload (otherwise
-  // orphans surface as fake "extra roots"). We only filter doc-internal
-  // chatter and unresolved externals — those don't participate in the
-  // navigation tree. The tree row filter below trims to spine-relevant
-  // kinds at render time.
+  // The sidebar is a DIRECTORY tree: folders, files, and governance doc
+  // kinds. Symbol-level kinds (class/method/…) used to ride along "for
+  // the full chain", but at repo scale they pushed the payload past the
+  // 5 MB coherent-trim ceiling and the trim silently dropped ~25% of
+  // FOLDERS (TASK-402). Excluding them keeps the forest complete
+  // (~4k nodes); symbol drill-down lives on the canvas via root BFS.
   const { data, isLoading, error } = useApiGet<ApiGraphPayload>(
     ['contains-tree'],
     '/api/graph/export',
@@ -147,7 +147,9 @@ export default function ContainsTree() {
       edge_types: 'contains',
       max_nodes: 30000,
       exclude_kinds:
-        'doc_heading,doc_frontmatter,doc_external,import_,identifier,unknown',
+        'doc_heading,doc_frontmatter,doc_external,import_,identifier,unknown,' +
+        'class,method,function,interface,variable,route,tool,event,contract,' +
+        'mcp_tool,community,module',
     },
   );
 
