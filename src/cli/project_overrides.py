@@ -61,6 +61,13 @@ def _hook_index(registry_path: Path | None) -> dict[str, tuple[str, str]]:
     return {h.id: (h.script, h.category) for h in registry}
 
 
+def _requested_disabled_hooks(project_root: Path) -> set[str]:
+    """Per-hook overrides UNION hooks owned by disabled modules (TASK-353)."""
+    from cli.subsystems import module_disabled_hook_ids
+
+    return load_hook_overrides(project_root) | module_disabled_hook_ids(project_root)
+
+
 def effective_disabled_hooks(
     project_root: Path, registry_path: Path | None = None
 ) -> set[str]:
@@ -68,7 +75,7 @@ def effective_disabled_hooks(
     idx = _hook_index(registry_path)
     return {
         hid
-        for hid in load_hook_overrides(project_root)
+        for hid in _requested_disabled_hooks(project_root)
         if hid in idx and idx[hid][1] != SAFETY_CATEGORY
     }
 

@@ -2,14 +2,22 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://coding-os.dev/schemas/stack.schema.json",
   "title": "Coding-OS Stack Manifest",
-  "description": "Schema for templates/<id>/stack.yaml. Defines a stack module — metadata, contributed substitutions, ref codes, routing, rules, dimensions, skill enforcement, Makefile targets, and Jinja fragments.",
+  "description": "Schema for templates/<id>/stack.yaml. Defines a stack module \u2014 metadata, contributed substitutions, ref codes, routing, rules, dimensions, skill enforcement, Makefile targets, and Jinja fragments.",
   "type": "object",
-  "required": ["version", "id", "label", "category", "language"],
+  "required": [
+    "version",
+    "id",
+    "label",
+    "category",
+    "language"
+  ],
   "additionalProperties": false,
   "properties": {
     "version": {
       "type": "integer",
-      "enum": [1],
+      "enum": [
+        1
+      ],
       "description": "Schema version. Currently fixed at 1."
     },
     "id": {
@@ -20,7 +28,7 @@
     "language": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9_-]*$",
-      "description": "Base programming language (python, typescript, go, …). Drives language-grouped discovery; picking a bare language resolves to the '<language>-plain' stack (TASK-348)."
+      "description": "Base programming language (python, typescript, go, \u2026). Drives language-grouped discovery; picking a bare language resolves to the '<language>-plain' stack (TASK-348)."
     },
     "extends": {
       "type": "string",
@@ -29,13 +37,24 @@
     },
     "structure": {
       "type": "object",
-      "required": ["root"],
+      "required": [
+        "root"
+      ],
       "additionalProperties": false,
       "description": "Canonical directory anatomy this stack owns (docs/engineering/project-anatomy.md, TASK-351). When two selected stacks share the same root, init relocates each to src/services/<stack-id>/.",
       "properties": {
-        "root": {"type": "string", "description": "Subtree this stack writes into (e.g. src/backend)."},
-        "tree": {"type": "string", "description": "Canonical inner layout, human-readable tree text."},
-        "notes": {"type": "string", "description": "Convention rationale / coexistence caveats."}
+        "root": {
+          "type": "string",
+          "description": "Subtree this stack writes into (e.g. src/backend)."
+        },
+        "tree": {
+          "type": "string",
+          "description": "Canonical inner layout, human-readable tree text."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Convention rationale / coexistence caveats."
+        }
       }
     },
     "label": {
@@ -45,50 +64,87 @@
     },
     "category": {
       "type": "string",
-      "enum": ["backend", "frontend", "library", "devops", "data", "mobile"],
+      "enum": [
+        "backend",
+        "frontend",
+        "library",
+        "devops",
+        "data",
+        "mobile"
+      ],
       "description": "Stack category. Doctor C12 warns when two stacks share a category."
     },
     "primary_skill": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Primary skill name invoked when editing files matching this stack."
     },
     "skills": {
       "type": "array",
-      "items": {"type": "string"},
+      "items": {
+        "type": "string"
+      },
       "description": "All skills this stack contributes (including primary)."
     },
     "substitutions": {
       "type": "object",
-      "additionalProperties": {"type": "string"},
+      "additionalProperties": {
+        "type": "string"
+      },
       "description": "Template substitution keys merged into the aggregated world. Stack values override base defaults. Required keys depend on `category` (enforced by root-level allOf): backend/frontend/mobile must contribute routing + verify keys. Library/devops/data stacks may omit routing."
     },
     "verify": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["glob", "suites", "cmd"],
+        "required": [
+          "glob",
+          "suites",
+          "cmd"
+        ],
         "additionalProperties": false,
         "properties": {
-          "glob": {"type": "string"},
-          "suites": {"type": "string"},
-          "cmd": {"type": "string"}
+          "glob": {
+            "type": "string"
+          },
+          "suites": {
+            "type": "string"
+          },
+          "cmd": {
+            "type": "string"
+          }
         }
       }
     },
     "routing_entries": {
       "type": "array",
-      "items": {"type": "string"}
+      "items": {
+        "type": "string"
+      }
     },
     "ref_codes": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["code", "path", "desc"],
+        "required": [
+          "code",
+          "path",
+          "desc"
+        ],
         "additionalProperties": false,
         "properties": {
-          "code": {"type": "string", "pattern": "^REF:[A-Z0-9_-]+$"},
-          "path": {"type": "string"},
-          "desc": {"type": "string"}
+          "code": {
+            "type": "string",
+            "pattern": "^REF:[A-Z0-9_-]+$"
+          },
+          "path": {
+            "type": "string"
+          },
+          "desc": {
+            "type": "string"
+          }
         }
       }
     },
@@ -96,12 +152,22 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "cmd"],
+        "required": [
+          "name",
+          "cmd"
+        ],
         "additionalProperties": false,
         "properties": {
-          "name": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"},
-          "cmd": {"type": "string"},
-          "help": {"type": "string"}
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$"
+          },
+          "cmd": {
+            "type": "string"
+          },
+          "help": {
+            "type": "string"
+          }
         }
       }
     },
@@ -109,16 +175,26 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["file"],
+        "required": [
+          "file"
+        ],
         "additionalProperties": false,
         "properties": {
-          "file": {"type": "string"},
+          "file": {
+            "type": "string"
+          },
           "globs": {
             "type": "array",
-            "items": {"type": "string"}
+            "items": {
+              "type": "string"
+            }
           },
-          "always_load": {"type": "boolean"},
-          "priority": {"type": "integer"}
+          "always_load": {
+            "type": "boolean"
+          },
+          "priority": {
+            "type": "integer"
+          }
         }
       }
     },
@@ -126,15 +202,28 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "additionalProperties": false,
         "properties": {
-          "name": {"type": "string"},
+          "name": {
+            "type": "string"
+          },
           "read_files": {
             "type": "array",
-            "items": {"type": "string"}
+            "items": {
+              "type": "string"
+            }
           },
-          "depth": {"type": "string", "enum": ["L", "M", "D"]}
+          "depth": {
+            "type": "string",
+            "enum": [
+              "L",
+              "M",
+              "D"
+            ]
+          }
         }
       }
     },
@@ -142,17 +231,25 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["primary"],
+        "required": [
+          "primary"
+        ],
         "additionalProperties": false,
         "properties": {
           "globs": {
             "type": "array",
-            "items": {"type": "string"}
+            "items": {
+              "type": "string"
+            }
           },
-          "primary": {"type": "string"},
+          "primary": {
+            "type": "string"
+          },
           "secondary": {
             "type": "array",
-            "items": {"type": "string"}
+            "items": {
+              "type": "string"
+            }
           }
         }
       }
@@ -161,12 +258,30 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "order", "template"],
+        "required": [
+          "id",
+          "order",
+          "template"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": {"type": "string"},
-          "order": {"type": "integer"},
-          "template": {"type": "string"}
+          "id": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer"
+          },
+          "template": {
+            "type": "string"
+          },
+          "requires": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]*$"
+            },
+            "description": "Module ids (src/core/subsystems.yaml) that must ALL be enabled for this section to render; omit for always-on sections (TASK-353)."
+          }
         }
       }
     },
@@ -174,12 +289,21 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["event", "command"],
+        "required": [
+          "event",
+          "command"
+        ],
         "additionalProperties": false,
         "properties": {
-          "event": {"type": "string"},
-          "matcher": {"type": "string"},
-          "command": {"type": "string"}
+          "event": {
+            "type": "string"
+          },
+          "matcher": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          }
         }
       }
     }
@@ -187,7 +311,16 @@
   "allOf": [
     {
       "$comment": "Backend stacks must contribute routing + backend verify substitutions.",
-      "if": {"properties": {"category": {"const": "backend"}}, "required": ["category"]},
+      "if": {
+        "properties": {
+          "category": {
+            "const": "backend"
+          }
+        },
+        "required": [
+          "category"
+        ]
+      },
       "then": {
         "properties": {
           "substitutions": {
@@ -204,12 +337,23 @@
             ]
           }
         },
-        "required": ["substitutions"]
+        "required": [
+          "substitutions"
+        ]
       }
     },
     {
       "$comment": "Frontend stacks must contribute routing + frontend verify substitutions.",
-      "if": {"properties": {"category": {"const": "frontend"}}, "required": ["category"]},
+      "if": {
+        "properties": {
+          "category": {
+            "const": "frontend"
+          }
+        },
+        "required": [
+          "category"
+        ]
+      },
       "then": {
         "properties": {
           "substitutions": {
@@ -226,12 +370,23 @@
             ]
           }
         },
-        "required": ["substitutions"]
+        "required": [
+          "substitutions"
+        ]
       }
     },
     {
       "$comment": "Mobile stacks must contribute routing + mobile verify substitutions.",
-      "if": {"properties": {"category": {"const": "mobile"}}, "required": ["category"]},
+      "if": {
+        "properties": {
+          "category": {
+            "const": "mobile"
+          }
+        },
+        "required": [
+          "category"
+        ]
+      },
       "then": {
         "properties": {
           "substitutions": {
@@ -248,7 +403,9 @@
             ]
           }
         },
-        "required": ["substitutions"]
+        "required": [
+          "substitutions"
+        ]
       }
     }
   ]

@@ -447,9 +447,10 @@ def ensure_agents_md(project: Path, world: AggregatedWorld) -> bool:
     this safely without clobbering edits.
     """
     from cli.renderer import render_agents_md
+    from cli.subsystems import module_state
 
     agents_md = project / "AGENTS.md"
     if agents_md.exists():
         return False
-    agents_md.write_text(render_agents_md(world), encoding="utf-8")
+    agents_md.write_text(render_agents_md(world, module_state(project)), encoding="utf-8")
     return True

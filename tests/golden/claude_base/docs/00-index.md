@@ -1,6 +1,8 @@
 <!-- domain:ALL | layer:index | ssot:true | updated:2026-01-01 -->
 # cos-golden-fixture — Master Index
 
+> A software project managed by coding-os
+
 Purpose: Primary navigation hub for SSOT documentation across product, architecture, governance, and playbooks.
 Read when: You need to route to the canonical file for the active task.
 Skip when: `AGENTS.md` or a playbook has already routed you to the exact target file.

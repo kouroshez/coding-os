@@ -384,8 +384,10 @@ def remove_stack(
         _remove_template_mirror(stack_id, project)
 
     # Diff-safe AGENTS.md regeneration.
+    from cli.subsystems import module_state
+
     agents_md = project / "AGENTS.md"
-    new_content = render_agents_md(world)
+    new_content = render_agents_md(world, module_state(project))
     agents_md_changed = False
     agents_md_backup: Path | None = None
 

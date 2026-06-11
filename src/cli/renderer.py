@@ -66,12 +66,30 @@ def _world_to_context(world: AggregatedWorld) -> dict:
     }
 
 
-def render_agents_md(world: AggregatedWorld) -> str:
+def _modules_context(active_modules: dict[str, bool] | None) -> dict[str, bool]:
+    """Full {module_id: enabled} map for Jinja — every registry module gets a
+    key so StrictUndefined never fires inside a fragment. None → all enabled
+    (backward compatible default for regen scripts and golden fixtures)."""
+    from cli.subsystems import load_subsystems
+
+    base = {module_id: True for module_id in load_subsystems()}
+    if active_modules:
+        base.update({k: bool(v) for k, v in active_modules.items() if k in base})
+    return base
+
+
+def render_agents_md(
+    world: AggregatedWorld, active_modules: dict[str, bool] | None = None
+) -> str:
     """Render the full AGENTS.md by composing fragment templates.
 
     Sections are iterated in sorted order (already sorted by the
     aggregator). Each fragment is loaded from its owner's directory.
     Rendered pieces are joined with a single blank line between.
+
+    Conditional rendering: a section whose `requires` lists a disabled
+    module is skipped wholesale; fragments additionally receive a
+    `modules` map for inline `{% if modules.<id> %}` blocks.
     """
     # Build one Jinja env per unique owner dir, cache by path.
     envs: dict[Path, Environment] = {}
@@ -81,9 +99,12 @@ def render_agents_md(world: AggregatedWorld) -> str:
             envs[owner] = _make_env([owner])
         return envs[owner]
 
-    context = _world_to_context(world)
+    modules = _modules_context(active_modules)
+    context = {**_world_to_context(world), "modules": modules}
     rendered_parts: list[str] = []
     for section in world.agents_md_sections:
+        if any(not modules.get(required, True) for required in section.requires):
+            continue
         env = env_for(section.owner_dir)
         try:
             template = env.get_template(section.template)

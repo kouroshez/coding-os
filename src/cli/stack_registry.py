@@ -285,6 +285,7 @@ def _parse_sections(raw: Any, path: Path, owner_dir: Path) -> tuple[AgentsMdSect
                 order=int(_require_item_key(item, "order", path, ctx)),
                 template=str(_require_item_key(item, "template", path, ctx)),
                 owner_dir=owner_dir,
+                requires=tuple(str(r) for r in item.get("requires") or ()),
             )
         )
     return tuple(out)

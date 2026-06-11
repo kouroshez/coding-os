@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: G-modularity
 labels: [wave-3, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P0
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-349]
 blocked_by: []
 references: []
 ---
-
 # TASK-353: Conditional rendering — AGENTS.md sections + rules/hooks scoped by active modules
 
 **Outcome (one sentence):** agents_md_sections entries gain requires:[module]; renderer/aggregator filter AGENTS.md sections and rule concatenation by active modules; hook template render + runtime allowlist derive from module state (extends hook-overrides mechanism).

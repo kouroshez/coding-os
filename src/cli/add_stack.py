@@ -264,8 +264,10 @@ def add_stack(
         _link_stack_skills(agent, (stack_id,), project)
 
     # 3. Diff-safe AGENTS.md regeneration.
+    from cli.subsystems import module_state
+
     agents_md = project / "AGENTS.md"
-    new_content = render_agents_md(world)
+    new_content = render_agents_md(world, module_state(project))
     agents_md_changed = False
     agents_md_backup: Path | None = None
 

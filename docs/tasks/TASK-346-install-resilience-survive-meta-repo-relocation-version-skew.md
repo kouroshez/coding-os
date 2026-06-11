@@ -243,3 +243,10 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: Edit subsystems.yaml
 - 2026-06-11 [claude]: Edit subsystems.py
 - 2026-06-11 [claude]: Edit state-files.md
+- 2026-06-11 [claude]: committed 58dfb7f1: docs/engineering/state-files.md, src/cli/subsystems.py, src/core/subsystems.yaml, tests/test_cli.py
+- 2026-06-11 [claude]: Edit _data_types.py
+- 2026-06-11 [claude]: Edit stack_registry.py
+- 2026-06-11 [claude]: Edit renderer.py
+- 2026-06-11 [claude]: Edit tool-routing.md.tmpl
+- 2026-06-11 [claude]: Edit subsystems.py
+- 2026-06-11 [claude]: Edit project_overrides.py

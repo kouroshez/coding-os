@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: G-modularity
 labels: [wave-3, onboarding-program, ready]
-status: testing
+status: complete
 priority: P0
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: []
 blocked_by: []
@@ -34,3 +34,5 @@ references: []
 - **Given** the verification matrix, **When** `uv run pytest tests/test_cli.py -q` runs, **Then** loader/refusal/default-on tests pass and the suite is green.
 
 ## Work Log
+- 2026-06-11 [claude]: IMPL DONE (parked, batch 3 #2) — src/core/subsystems.yaml: 6 modules (kernel pinned non-disableable; docs/tasks/graph/me
+- 2026-06-11 [claude]: CLOSED on batch-3 suite: tests/test_cli.py 105 passed (26m57s) incl. TestSubsystems 7/7. Commit (subsystems.yaml + cli/s

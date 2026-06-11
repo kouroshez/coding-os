@@ -1,5 +1,7 @@
 ---
 name: nextjs-react
+tier: stack
+domain: [frontend]
 description: Use when creating or modifying React components, pages, layouts, or hooks in the Next.js frontend. Triggers on any .tsx/.ts file change under src/frontend/. Covers Server Component defaults, hydration safety, three-state async UI, error display mapping, localStorage SSR guards, and component extraction rules.
 globs: "src/frontend/**/*.{ts,tsx}"
 depends_on:

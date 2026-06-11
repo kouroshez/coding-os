@@ -1,5 +1,7 @@
 ---
 name: go-fiber
+tier: stack
+domain: [backend]
 description: Use when creating or modifying Go files under src/backend/ in a Fiber project — handlers, middleware, request validation, graceful shutdown, and table-driven tests with app.Test(). Triggers on any .go file change under src/backend/. Covers idiomatic Fiber v3 (GA 2026, Go 1.25+) patterns plus the Go fundamentals (error wrapping, context propagation, struct tags for validation); see references/fiber-v3-patterns.md for the v2→v3 changes.
 globs: "src/backend/**/*.go"
 depends_on:

@@ -99,6 +99,21 @@ def module_state(
     return {mid: (mid not in disabled) or m.kernel for mid, m in modules.items()}
 
 
+def module_disabled_hook_ids(
+    project_root: Path, modules: dict[str, Module] | None = None
+) -> set[str]:
+    """Hook ids owned by disabled modules — merged into the runtime
+    allowlist by cli.project_overrides (safety-category still refused there)."""
+    modules = modules or load_subsystems()
+    state = module_state(project_root, modules)
+    return {
+        hook_id
+        for module_id, module in modules.items()
+        if not state[module_id]
+        for hook_id in module.hooks
+    }
+
+
 def enabled_dependents(
     module_id: str, modules: dict[str, Module], state: dict[str, bool]
 ) -> list[str]:

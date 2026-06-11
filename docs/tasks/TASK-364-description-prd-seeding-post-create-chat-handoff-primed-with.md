@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: B-onboarding
 labels: [wave-2, onboarding-program, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-358]
 blocked_by: []
@@ -34,3 +34,4 @@ references: []
 
 ## Work Log
 - 2026-06-11 [claude]: IMPL DONE (parked in testing, batch 3 #1) — --summary/wizard description now: (1) overrides PROJECT_DESCRIPTION substitu
+- 2026-06-11 [claude]: CLOSED on batch-3 suite: tests/test_cli.py 105 passed (26m57s) + cognition routes 10/10. Self-score 9/10: all four accep
