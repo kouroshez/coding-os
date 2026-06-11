@@ -27,6 +27,17 @@
       "pattern": "^[a-z][a-z0-9_-]*$",
       "description": "Optional parent stack id. Child wins on scalars; substitutions merge parent-first; list fields concatenate with dedup. Cycles/unknown parents skip the stack with a WARN."
     },
+    "structure": {
+      "type": "object",
+      "required": ["root"],
+      "additionalProperties": false,
+      "description": "Canonical directory anatomy this stack owns (docs/engineering/project-anatomy.md, TASK-351). When two selected stacks share the same root, init relocates each to src/services/<stack-id>/.",
+      "properties": {
+        "root": {"type": "string", "description": "Subtree this stack writes into (e.g. src/backend)."},
+        "tree": {"type": "string", "description": "Canonical inner layout, human-readable tree text."},
+        "notes": {"type": "string", "description": "Convention rationale / coexistence caveats."}
+      }
+    },
     "label": {
       "type": "string",
       "minLength": 1,

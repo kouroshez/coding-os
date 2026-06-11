@@ -133,6 +133,7 @@ class StackProfile:
     source_dir: Path
     language: str = ""
     extends: str | None = None
+    structure: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

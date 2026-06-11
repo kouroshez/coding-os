@@ -3,6 +3,14 @@ id: django
 language: python
 label: "Django + DRF + PostgreSQL"
 category: backend
+
+structure:
+  root: src/backend
+  tree: |
+    src/backend/
+    ├── <project>/       # settings package
+    └── apps/<domain>/   # one Django app per domain
+  notes: "apps-per-domain; DRF viewsets thin, logic in services.py per app"
 primary_skill: python-django
 skills: [python-django]
 

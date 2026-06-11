@@ -3,6 +3,14 @@ id: go
 language: go
 label: "Go (stdlib + chi)"
 category: backend
+
+structure:
+  root: src/backend
+  tree: |
+    src/backend/
+    ├── cmd/<binary>/
+    └── internal/{handler,service,repo}
+  notes: "internal/-centric per Go community convention; go.mod lives in src/backend"
 primary_skill: go-patterns
 skills: [go-patterns]
 

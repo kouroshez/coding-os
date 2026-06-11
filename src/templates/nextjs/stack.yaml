@@ -3,6 +3,15 @@ id: nextjs
 language: typescript
 label: "Next.js + React + TypeScript"
 category: frontend
+
+structure:
+  root: src/frontend
+  tree: |
+    src/frontend/
+    ├── app/             # app-router pages + layouts
+    ├── components/
+    └── lib/
+  notes: "app-router convention; design tokens under docs/design/"
 primary_skill: nextjs-react
 skills: [nextjs-react]
 

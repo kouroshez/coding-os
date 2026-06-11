@@ -3,6 +3,16 @@ id: fastapi
 language: python
 label: "FastAPI + Pydantic + PostgreSQL"
 category: backend
+
+structure:
+  root: src/backend
+  tree: |
+    src/backend/app/
+    ├── api/v1/          # thin routes
+    ├── services/        # business logic
+    ├── schemas/         # pydantic models
+    └── db/              # models + migrations
+  notes: "routes thin, logic in services; SQLAlchemy under db/"
 primary_skill: python-fastapi
 skills: [python-fastapi]
 

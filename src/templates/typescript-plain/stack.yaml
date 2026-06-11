@@ -6,6 +6,13 @@ category: library
 primary_skill: null
 skills: []
 
+structure:
+  root: src
+  tree: |
+    src/index.ts         # public entry
+    tsconfig.json        # strict, NodeNext
+  notes: "library layout; framework stacks (nextjs, react-native) replace it"
+
 # Plain-language stack (template-authoring.md § Language layer): picked when
 # the user chooses "typescript" without a framework. Ships a strict tsconfig
 # skeleton; framework stacks (nextjs, react-native) carry their own layouts.

@@ -833,6 +833,59 @@ class TestLanguageLayer:
 
 
 # ---------------------------------------------------------------------------
+# project anatomy — TASK-351 (structure spec + multi-backend relocation)
+# ---------------------------------------------------------------------------
+
+
+class TestProjectAnatomy:
+    def test_every_stack_declares_structure_root(self) -> None:
+        from cli._resources import templates_dir
+        from cli.stack_registry import load_stack_registry
+
+        result = load_stack_registry(templates_dir())
+        for stack_id in result.keys():
+            structure = result[stack_id].structure
+            assert structure.get("root"), f"{stack_id} missing structure.root"
+            assert structure.get("tree"), f"{stack_id} missing structure.tree"
+
+    def test_colliding_roots_compute_service_relocations(self) -> None:
+        relocations = main_module._service_relocations(("go-plain", "go-fiber"))
+        assert relocations == {
+            "go-plain": "src/services/go-plain",
+            "go-fiber": "src/services/go-fiber",
+        }
+        # Single owner → untouched.
+        assert main_module._service_relocations(("go-plain", "nextjs")) == {}
+
+    def test_multi_backend_init_relocates_to_services(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        project = tmp_path / "twoback"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project),
+                "--template",
+                "go-plain",
+                "--template",
+                "go-fiber",
+                "--no-index",
+                "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        relocated = project / "src" / "services" / "go-plain" / "go.mod"
+        assert relocated.exists()
+        assert "module twoback" in relocated.read_text()
+        assert not (project / "src" / "backend" / "go.mod").exists()
+
+
+# ---------------------------------------------------------------------------
 # doctor --bootstrap — TASK-347 (preflight prerequisite checks)
 # ---------------------------------------------------------------------------
 

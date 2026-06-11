@@ -3,6 +3,12 @@ id: meta
 language: python
 label: "Coding OS Meta-Project (DNA)"
 category: library
+
+structure:
+  root: src
+  tree: |
+    src/{core,adapters,templates,cli}/   # DNA → mRNA → phenotype → factory
+  notes: "the meta-repo's own anatomy; see docs/architecture/meta-project.md"
 primary_skill: graph-explorer
 # Stack-scoped skills declared by src/templates/meta/skills/. The auto-linker
 # (src/core/scripts/link-stack-skills.sh) symlinks these into every adapter's

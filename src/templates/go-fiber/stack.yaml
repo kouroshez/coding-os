@@ -3,6 +3,14 @@ id: go-fiber
 language: go
 label: "Go + Fiber (gofiber/fiber v2) + PostgreSQL"
 category: backend
+
+structure:
+  root: src/backend
+  tree: |
+    src/backend/
+    ├── cmd/api/
+    └── internal/{domain,ports,adapters,handlers,middleware}
+  notes: "hexagonal: domain/ports/adapters; fiber handlers stay thin"
 primary_skill: go-fiber
 skills: [go-fiber]
 

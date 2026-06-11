@@ -3,6 +3,13 @@ id: python
 language: python
 label: "Python library / CLI / MCP server"
 category: library
+
+structure:
+  root: src
+  tree: |
+    src/<package>/       # src-layout package
+    tests/               # mirrors the package tree
+  notes: "src-layout; packaging SSOT is pyproject.toml (docs/engineering/python-rules.md)"
 primary_skill: null
 skills: []
 

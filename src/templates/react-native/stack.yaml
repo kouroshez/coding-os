@@ -3,6 +3,16 @@ id: react-native
 language: typescript
 label: "React Native + Expo + TypeScript"
 category: mobile
+
+structure:
+  root: src/mobile
+  tree: |
+    src/mobile/
+    ├── screens/
+    ├── components/
+    ├── navigation/
+    └── hooks/
+  notes: "Expo bare-compatible; state per state-management skill hierarchy"
 primary_skill: react-native-mobile
 skills: [react-native-mobile, react-native-patterns]
 

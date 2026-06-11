@@ -518,6 +518,30 @@ def _resolve_placeholders(text: str, substitutions: dict[str, str]) -> str:
     return result
 
 
+def _service_relocations(templates: tuple[str, ...]) -> dict[str, str]:
+    """stack-id → relocated root for stacks whose structure.root collides.
+
+    Anatomy contract (project-anatomy.md § Multi-backend relocation rule):
+    when two or more selected stacks declare the same structure.root, each
+    colliding stack's scaffold subtree moves to src/services/<stack-id>/.
+    Single-owner roots are untouched.
+    """
+    registry = _get_stack_registry()
+    owners: dict[str, list[str]] = {}
+    for name in templates:
+        profile = registry[name] if name in registry.keys() else None
+        root = (profile.structure or {}).get("root") if profile else None
+        if root:
+            owners.setdefault(root.rstrip("/"), []).append(name)
+    relocations: dict[str, str] = {}
+    for root, stack_ids in owners.items():
+        if len(stack_ids) < 2:
+            continue
+        for stack_id in stack_ids:
+            relocations[stack_id] = f"src/services/{stack_id}"
+    return relocations
+
+
 def _overlay_scaffold(
     project: Path,
     templates: tuple[str, ...],
@@ -531,16 +555,26 @@ def _overlay_scaffold(
     Returns: count of files copied.
     """
     # Source roots in overlay order: _base first, then each template overlay.
-    sources: list[Path] = [TEMPLATES_DIR / "_base" / "scaffold"]
+    # Each entry: (scaffold dir, owning stack id or None for _base).
+    sources: list[tuple[Path, str | None]] = [(TEMPLATES_DIR / "_base" / "scaffold", None)]
     for name in templates:
         candidate = TEMPLATES_DIR / name / "scaffold"
         if candidate.exists():
-            sources.append(candidate)
+            sources.append((candidate, name))
+
+    relocations = _service_relocations(templates)
+    registry = _get_stack_registry()
 
     copied = 0
-    for src_root in sources:
+    for src_root, stack_id in sources:
         if not src_root.exists():
             continue
+        relocated_root = relocations.get(stack_id) if stack_id else None
+        declared_root = (
+            (registry[stack_id].structure or {}).get("root", "").rstrip("/")
+            if stack_id and stack_id in registry.keys()
+            else ""
+        )
         for src_file in src_root.rglob("*"):
             if not src_file.is_file():
                 continue
@@ -552,6 +586,8 @@ def _overlay_scaffold(
                 continue
 
             rel = src_file.relative_to(src_root)
+            if relocated_root and declared_root and str(rel).startswith(declared_root + "/"):
+                rel = Path(relocated_root) / str(rel)[len(declared_root) + 1 :]
             if rel.parent.name == ".coding-os" and rel.name in COMPOSED_FILENAMES:
                 # These are deep-merged from base + every stack by
                 # compose_coding_os_configs — overlaying base first would
@@ -610,6 +646,30 @@ def _aggregate_scaffold_boundaries(
         if target.exists():
             target.unlink()
         return
+
+    # Multi-backend relocation (project-anatomy.md): colliding declared roots
+    # move each stack's boundary to src/services/<stack-id>/ BEFORE the
+    # shared-root invariant — composed backends coexist by design.
+    relocations = _service_relocations(tuple(templates))
+    if relocations:
+        registry = _get_stack_registry()
+        for entry in stacks_data:
+            new_root = relocations.get(entry["stack"])
+            if not new_root or entry["stack"] not in registry.keys():
+                continue
+            declared = (registry[entry["stack"]].structure or {}).get("root", "").rstrip("/")
+            if not declared:
+                continue
+
+            def _remap(path: str) -> str:
+                stripped = path.rstrip("/")
+                if stripped == declared or stripped.startswith(declared + "/"):
+                    remapped = new_root + stripped[len(declared) :]
+                    return remapped + "/" if path.endswith("/") else remapped
+                return path
+
+            entry["roots"] = [_remap(r) for r in entry["roots"]]
+            entry["file_patterns"] = [_remap(p) for p in entry["file_patterns"]]
 
     # Invariant 1: no two installed stacks may share a root.
     seen: dict[str, str] = {}

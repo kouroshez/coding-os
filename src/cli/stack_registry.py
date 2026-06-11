@@ -364,6 +364,7 @@ def _build_stack(data: dict, manifest_path: Path) -> StackProfile:
         source_dir=source_dir,
         language=str(data.get("language") or ""),
         extends=(str(data["extends"]) if data.get("extends") else None),
+        structure={k: str(v) for k, v in (data.get("structure") or {}).items()},
     )
 
 
