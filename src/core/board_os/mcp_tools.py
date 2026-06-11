@@ -35,6 +35,7 @@ from board_os.config import (
     PRIORITY_ENUM,
     READY_LABEL,
     STATUS_ENUM,
+    TASK_ID_FORMAT_RE,
     load_config,
 )
 from board_os.parser import parse_task
@@ -342,6 +343,7 @@ def _render_kind_aware_body(
     outcome: str | None,
     read_first_block: str,
     acceptance: str | None = None,
+    repro: str | None = None,
 ) -> str:
     """Render the task body with placeholders that match the kind's DoR.
 
@@ -374,13 +376,17 @@ def _render_kind_aware_body(
         sections_to_render["Read First"] = f"## Read First\n{read_first_block}"
 
     if "Repro Steps" in active_sections:
-        sections_to_render["Repro Steps"] = (
-            "## Repro Steps\n"
-            "1. (fill in: exact steps to reproduce)\n"
-            "2. ...\n"
-            "Expected: ...\n"
-            "Actual: ..."
+        repro_body = (
+            repro.strip()
+            if repro and repro.strip()
+            else (
+                "1. (fill in: exact steps to reproduce)\n"
+                "2. ...\n"
+                "Expected: ...\n"
+                "Actual: ..."
+            )
         )
+        sections_to_render["Repro Steps"] = "## Repro Steps\n" + repro_body
 
     if "Threat Model" in active_sections:
         sections_to_render["Threat Model"] = (
@@ -664,6 +670,7 @@ def cos_task_create(
     labels: list[str] | None = None,
     outcome: str | None = None,
     acceptance: str | None = None,
+    repro: str | None = None,
     read_first: list[str] | None = None,
     depends_on: list[str] | None = None,
     status: str = "icebox",
@@ -685,6 +692,14 @@ def cos_task_create(
         return fail("validation", f"appetite {appetite!r} bad shape")
     if status not in STATUS_ENUM:
         return fail("validation", f"status {status!r} not in {sorted(STATUS_ENUM)}")
+
+    bad_deps = [d for d in (depends_on or []) if not TASK_ID_FORMAT_RE.match(str(d))]
+    if bad_deps:
+        return fail(
+            "validation",
+            f"depends_on entries not TASK-NNN shaped: {bad_deps} — the cycle "
+            "detector and dependents queries match ids literally",
+        )
 
     labels = list(labels or [])
     for lbl in labels:
@@ -750,7 +765,13 @@ def cos_task_create(
     tasks_dir = project_root / "docs" / "tasks"
     tasks_dir.mkdir(parents=True, exist_ok=True)
 
-    task_id = _next_task_id(conn, project_root)
+    try:
+        task_id = _next_task_id(conn, project_root)
+    except sqlite3.OperationalError as exc:
+        return fail(
+            "unavailable",
+            f"task-id allocation failed under DB lock contention: {exc} — retry the create",
+        )
     slug = _slugify(title)
     file_path = tasks_dir / f"{task_id}-{slug}.md"
     if file_path.exists():
@@ -793,6 +814,7 @@ def cos_task_create(
         outcome=outcome,
         read_first_block=rf_lines,
         acceptance=acceptance,
+        repro=repro,
     )
     file_path.write_text(frontmatter + body, encoding="utf-8")
 
@@ -866,11 +888,15 @@ def cos_task_create(
     # icebox stays allowed; the gaps just ride the envelope.
     dor_gaps, _ = _ready_dor_check(file_path, agent_session)
     is_ready = READY_LABEL in labels
-    dor = {"ready": is_ready, "gaps": dor_gaps}
+    # `ready` must be HONEST: a block-severity gap means the task cannot
+    # leave icebox, regardless of the ready label (the old shape echoed
+    # ready=true next to block gaps — a self-contradiction).
+    has_block_gap = any(g.get("severity") == "block" for g in dor_gaps)
+    dor = {"ready": is_ready and not has_block_gap, "label_ready": is_ready, "gaps": dor_gaps}
     if dor_gaps or not is_ready:
         fixes = []
         if dor_gaps:
-            fixes.append("fill the flagged sections (outcome=/acceptance=/read_first=)")
+            fixes.append("fill the flagged sections (outcome=/acceptance=/repro=/read_first=)")
         if not is_ready:
             fixes.append(f"mark pullable: cos task-ready {task_id} (or create with ready=True)")
         dor["fix"] = "; ".join(fixes)

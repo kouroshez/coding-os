@@ -18,7 +18,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from board_os.parser import ParsedTask, parse_task
+from board_os.parser import ParsedTask, detect_duplicate_frontmatter, parse_task
 
 logger = logging.getLogger("coding_os.board_os.sync")
 
@@ -213,6 +213,12 @@ def sync_one(
 ) -> ParsedTask | None:
     """Sync a single file.  Called by auto-task-sync hook on Write/Edit."""
     content = file_path.read_text(encoding="utf-8")
+    duplicate = detect_duplicate_frontmatter(content)
+    if duplicate:
+        # Two frontmatter blocks with conflicting status silently skew board
+        # counts (the parser only reads the first) — reject loudly.
+        logger.warning("sync rejected %s: %s", file_path.name, duplicate)
+        return None
     parsed = parse_task(content, path=file_path)
     if parsed is None:
         logger.debug("unparseable: %s", file_path)

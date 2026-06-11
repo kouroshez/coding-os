@@ -79,6 +79,10 @@ _ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 _HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 # Appetite regex (Shape Up style: 30m, 2h, 1d, 3w, 1cy).
 APPETITE_RE = re.compile(r"^\d+(?:m|h|d|w|cy)$")
+# Canonical task-id shape (TASK-NNN, optionally namespaced TASK-NS-NNN).
+# depends_on/blocked_by entries are matched literally by the cycle detector
+# and the dependents junction — a malformed id silently never matches.
+TASK_ID_FORMAT_RE = re.compile(r"^TASK-(?:[A-Z][A-Z0-9]*-)?\d+$")
 
 
 class ConfigValidationError(ValueError):

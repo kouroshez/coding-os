@@ -21,6 +21,7 @@ from board_os.config import (
     KIND_ENUM,
     PRIORITY_ENUM,
     STATUS_ENUM,
+    TASK_ID_FORMAT_RE,
 )
 
 logger = logging.getLogger("coding_os.board_os.parser")
@@ -205,6 +206,21 @@ def _normalize_str_list(value: Any) -> tuple[str, ...]:
     return ()
 
 
+def _normalize_task_ids(value: Any, field: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    # Task-link fields must be TASK-NNN shaped — the cycle detector and the
+    # dependents junction match ids literally, so a malformed id silently
+    # never matches anything. Filter it out and surface a parse warning.
+    raw = _normalize_str_list(value)
+    valid: list[str] = []
+    warnings: list[str] = []
+    for entry in raw:
+        if TASK_ID_FORMAT_RE.match(entry):
+            valid.append(entry)
+        else:
+            warnings.append(f"{field}: dropped malformed task id {entry!r} (expected TASK-NNN)")
+    return tuple(valid), tuple(warnings)
+
+
 def parse_task(content: str, *, path: Path | None = None) -> ParsedTask | None:
     source_str = str(path) if path else None
     if not is_lean_format(content):
@@ -230,6 +246,9 @@ def parse_task(content: str, *, path: Path | None = None) -> ParsedTask | None:
         if h1:
             title = h1.group("title")
 
+    depends_on, dep_warnings = _normalize_task_ids(fm.get("depends_on"), "depends_on")
+    blocked_by, blk_warnings = _normalize_task_ids(fm.get("blocked_by"), "blocked_by")
+
     return ParsedTask(
         task_id=str(task_id),
         title=str(title or "").strip(),
@@ -244,8 +263,8 @@ def parse_task(content: str, *, path: Path | None = None) -> ParsedTask | None:
         started=(str(fm["started"]) if fm.get("started") else None),
         completed=(str(fm["completed"]) if fm.get("completed") else None),
         agent_session=(str(fm["agent_session"]) if fm.get("agent_session") else None),
-        depends_on=_normalize_str_list(fm.get("depends_on")),
-        blocked_by=_normalize_str_list(fm.get("blocked_by")),
+        depends_on=depends_on,
+        blocked_by=blocked_by,
         references=_normalize_str_list(fm.get("references")),
         external_ref=(str(fm["external_ref"]) if fm.get("external_ref") else None),
         outcome=_extract_outcome(body),
@@ -254,7 +273,7 @@ def parse_task(content: str, *, path: Path | None = None) -> ParsedTask | None:
         body_hash=hashlib.sha256(body.encode("utf-8")).hexdigest()[:16],
         source_path=source_str,
         is_lean=True,
-        parse_warnings=tuple(_validate_frontmatter(fm)),
+        parse_warnings=tuple(_validate_frontmatter(fm)) + dep_warnings + blk_warnings,
     )
 
 

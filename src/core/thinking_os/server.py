@@ -1657,6 +1657,8 @@ if _BOARD_OS_AVAILABLE:
         epic: str = "",
         labels: list[str] | None = None,
         outcome: str = "",
+        acceptance: str = "",
+        repro: str = "",
         read_first: list[str] | None = None,
         depends_on: list[str] | None = None,
         status: str = "icebox",
@@ -1667,7 +1669,9 @@ if _BOARD_OS_AVAILABLE:
 
         Prefer this over hand-writing YAML. Validates swimlane against
         scrumban-config.yaml and kind against the 8-value enum. Pass
-        ready=True to mark the task pullable in one shot.
+        ready=True to mark the task pullable in one shot; for bug-kind
+        tasks pass acceptance= (G/W/T lines) and repro= so the create
+        satisfies its own DoR in one call.
         """
         resolved_session = agent_session or _detect_agent_session_default() or None
         return _board_mcp.cos_task_create(
@@ -1680,6 +1684,8 @@ if _BOARD_OS_AVAILABLE:
             epic=epic or None,
             labels=labels or [],
             outcome=outcome or None,
+            acceptance=acceptance or None,
+            repro=repro or None,
             read_first=read_first or [],
             depends_on=depends_on or [],
             status=status,

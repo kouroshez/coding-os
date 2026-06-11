@@ -5,18 +5,17 @@ swimlane: "board_os"
 kind: refactor
 epic: null
 labels: [task-system-review, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-11
-started: null
-completed: null
-agent_session: null
+started: 2026-06-11
+completed: 2026-06-11
+agent_session: ses-claude-20260611-002926-83d4
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-400: board_os robustness — allocator error envelope, duplicate-frontmatter enforcement, depends_on format validation
 
 **Outcome (one sentence):** cos_task_create returns fail("unavailable") instead of crashing when _allocate_with_prefix exhausts its lock retries; detect_duplicate_frontmatter is actually called in sync_one (currently dead code) and rejects double-YAML task files; _normalize_str_list validates TASK-NNN format for depends_on/blocked_by so malformed ids never reach the cycle detector; cos_task_create's DoR responds honestly (ready=false when block-severity gaps exist, and bug-kind acceptance/repro are fillable in the same call).
@@ -33,3 +32,22 @@ references: []
 - **Given** a create whose DoR has block-severity gaps, **When** the envelope returns, **Then** dor.ready is false (today it contradicts itself with ready=true + block gaps).
 
 ## Work Log
+- 2026-06-11 [claude]: Edit server.py
+- 2026-06-11 [claude]: Edit mcp_tools.py
+- 2026-06-11 [claude]: Edit mcp_tools.py
+- 2026-06-11 [claude]: Edit mcp_tools.py
+- 2026-06-11 [claude]: Edit mcp_tools.py
+- 2026-06-11 [claude]: Edit mcp_tools.py
+- 2026-06-11 [claude]: Edit config.py
+- 2026-06-11 [claude]: Edit mcp_tools.py
+- 2026-06-11 [claude]: Edit mcp_tools.py
+- 2026-06-11 [claude]: Edit mcp_tools.py
+- 2026-06-11 [claude]: Edit parser.py
+- 2026-06-11 [claude]: Edit parser.py
+- 2026-06-11 [claude]: Edit parser.py
+- 2026-06-11 [claude]: Edit parser.py
+- 2026-06-11 [claude]: Edit parser.py
+- 2026-06-11 [claude]: Edit sync.py
+- 2026-06-11 [claude]: Edit sync.py
+- 2026-06-11 [claude]: Edit test_task_create_robustness.py
+- 2026-06-11 [claude]: Status transitioned to complete via cos task-done.
