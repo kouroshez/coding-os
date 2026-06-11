@@ -285,3 +285,4 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: committed b024ec32: docs/playbooks/template-authoring.md, src/cli/main.py, src/cli/stack_lint.py, tests/test_template_sc
 - 2026-06-11 [claude]: committed 76ad8897: src/cli/aggregator.py, src/cli/main.py, src/cli/preset_commands.py, src/cli/preset_registry.py, src/
 - 2026-06-11 [claude]: committed 08dc53b7: src/core/rules/dimension-registry.md, src/core/rules/skill-enforcement.md, src/core/scaffold_manifes
+- 2026-06-11 [claude]: committed c55ed431: src/cli/main.py, src/core/rules/dimension-registry.md, src/core/rules/skill-enforcement.md, src/core

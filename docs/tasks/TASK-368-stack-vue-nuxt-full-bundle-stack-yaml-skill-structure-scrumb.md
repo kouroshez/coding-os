@@ -34,3 +34,5 @@ references: []
 
 ## Work Log
 - 2026-06-11 [claude]: Edit stack.yaml
+- 2026-06-11 [claude]: commit c55ed43163 — feat(templates): vue-nuxt full stack bundle (TASK-368)
+- 2026-06-11 [claude]: IMPL DONE (parked, batch 7 #2) — complete vue-nuxt bundle on the factory pattern: stack.yaml (language=typescript, front

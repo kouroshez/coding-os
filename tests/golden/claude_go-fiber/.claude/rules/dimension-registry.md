@@ -71,4 +71,3 @@ phase to build your Read List.
 - **Nuxt page / route** (M) → `docs/playbooks/nuxt-app.md`, `docs/engineering/nuxt-rules.md`
 - **Vue component** (M) → `docs/engineering/nuxt-rules.md`
 - **Composable / state** (M) → `docs/playbooks/nuxt-app.md`
-- **Accessibility** (M) → `docs/engineering/accessibility-web.md`

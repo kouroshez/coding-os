@@ -21,7 +21,7 @@ skills: [vue-nuxt]
 substitutions:
   DOMAIN_ROUTES: "Frontend→`docs/playbooks/nuxt-app.md`"
   SKILL_ROUTES: "Frontend→`vue-nuxt`"
-  ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/nuxt-rules.md`, a11y→`docs/engineering/accessibility-web.md`"
+  ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/nuxt-rules.md`, a11y→`a11y` skill"
   TOOL_ROUTING_IMPL: "`lint-frontend`, `test-frontend`, `build-frontend`"
   VERIFY_FRONTEND_GLOB: "`src/frontend/`"
   VERIFY_FRONTEND_SUITES: "lint-frontend + test-frontend"
@@ -55,7 +55,6 @@ dimensions:
   - {name: "Nuxt page / route",   read_files: ["docs/playbooks/nuxt-app.md", "docs/engineering/nuxt-rules.md"]}
   - {name: "Vue component",       read_files: ["docs/engineering/nuxt-rules.md"]}
   - {name: "Composable / state",  read_files: ["docs/playbooks/nuxt-app.md"]}
-  - {name: "Accessibility",       read_files: ["docs/engineering/accessibility-web.md"]}
 
 skill_enforcement:
   - {globs: ["src/frontend/**/*.{vue,ts}"], primary: vue-nuxt, secondary: [clean-code, frontend-fundamentals, frontend-design, a11y, performance, testing-strategy]}

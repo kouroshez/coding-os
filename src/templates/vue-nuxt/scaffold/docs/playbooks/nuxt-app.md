@@ -13,7 +13,7 @@ Read next: [Nuxt Engineering Rules](../engineering/nuxt-rules.md)
 1. Create `src/frontend/pages/<route>.vue` (`[param].vue` for dynamic segments).
 2. Fetch SSR data with `useFetch`/`useAsyncData` — never bare `$fetch` in setup.
 3. Cross-page state goes to a Pinia store; page-local state stays `ref`/`computed`.
-4. Accessibility pass per [accessibility-web](../engineering/accessibility-web.md).
+4. Accessibility pass per the `a11y` core skill checklist.
 5. Test: component behavior via @vue/test-utils; composables as units.
 6. Verify: `cd src/frontend && npm run lint && npm test`.
 

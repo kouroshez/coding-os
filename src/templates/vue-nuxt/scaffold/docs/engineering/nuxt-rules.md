@@ -22,7 +22,7 @@ Read next: [Nuxt App Playbook](../playbooks/nuxt-app.md)
 5. **Strict TypeScript** — `npm run lint` (vue-tsc) gates merges; `any` needs
    a written justification.
 6. **A11y is not optional** — interactive elements keyboard-reachable with
-   visible focus; checked per [accessibility-web](./accessibility-web.md).
+   visible focus; the `a11y` core skill is the checklist SSOT.
 
 ## Testing bar
 

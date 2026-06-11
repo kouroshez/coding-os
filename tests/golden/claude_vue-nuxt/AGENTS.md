@@ -80,7 +80,7 @@ Results stored in `$COS_STATE_DIR/.last-verify.json` per-suite with timestamps. 
 
 ## Engineering Rule Routing
 
-Frontend→`docs/engineering/nuxt-rules.md`, a11y→`docs/engineering/accessibility-web.md`
+Frontend→`docs/engineering/nuxt-rules.md`, a11y→`a11y` skill
 
 ## Tool Routing
 
