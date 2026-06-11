@@ -1,8 +1,8 @@
 """Stage-1 metadata pre-filter tests for cos_doc_search.
 
 Covers migration v22 columns (domain/layer/ssot/updated_iso/is_active),
-the doc_audit_trail → is_active flip wired into audit_log_record, and
-the query-time hint extraction + active-task context helpers.
+the is_active retrieval filter, and the query-time hint extraction +
+active-task context helpers.
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ from pathlib import Path
 import pytest
 from database import run_migrations  # type: ignore
 from doc_indexer import _parse_front_matter  # type: ignore
-from tools.audit import audit_log_record  # type: ignore
 from tools.docs import (  # type: ignore
     _active_task_context,
     _build_metadata_filter,
@@ -253,58 +252,13 @@ class TestDocSearchFilters:
 # ---------------------------------------------------------------------------
 
 
-class TestAuditDeactivation:
-    def test_delete_action_flips_is_active(self, seeded_conn):
-        before = seeded_conn.execute(
-            "SELECT is_active FROM document_chunks WHERE source_path = ?",
-            ("docs/a.md",),
-        ).fetchone()[0]
-        assert before == 1
-
-        out = audit_log_record(
-            seeded_conn,
-            doc_path="docs/a.md",
-            action="deleted",
-            reason="superseded by a newer doc",
-        )
-        assert out["chunks_deactivated"] == 1
-
-        after = seeded_conn.execute(
-            "SELECT is_active FROM document_chunks WHERE source_path = ?",
-            ("docs/a.md",),
-        ).fetchone()[0]
-        assert after == 0
-
-    def test_revert_action_flips_is_active(self, seeded_conn):
-        out = audit_log_record(
-            seeded_conn,
-            doc_path="docs/a.md",
-            action="reverted",
-            reason="rolled back to prior version",
-        )
-        assert out["chunks_deactivated"] == 1
-
-    def test_update_action_does_not_flip(self, seeded_conn):
-        out = audit_log_record(
-            seeded_conn,
-            doc_path="docs/a.md",
-            action="updated",
-            reason="minor tweak",
-        )
-        assert out["chunks_deactivated"] == 0
-        active = seeded_conn.execute(
-            "SELECT is_active FROM document_chunks WHERE source_path = ?",
-            ("docs/a.md",),
-        ).fetchone()[0]
-        assert active == 1
-
+class TestInactiveChunkFiltering:
     def test_deactivation_propagates_to_search(self, seeded_conn):
-        audit_log_record(
-            seeded_conn,
-            doc_path="docs/a.md",
-            action="deleted",
-            reason="test",
+        seeded_conn.execute(
+            "UPDATE document_chunks SET is_active = 0 WHERE source_path = ?",
+            ("docs/a.md",),
         )
+        seeded_conn.commit()
         results = doc_search(seeded_conn, "audit log", limit=10, mode="lexical")
         paths = {r["source_path"] for r in results}
         assert "docs/a.md" not in paths

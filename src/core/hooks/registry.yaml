@@ -326,23 +326,6 @@ hooks:
         matcher: Write|Edit|MultiEdit
         status_message: "🧠 Recording observation + embedding to memory..."
 
-  - id: capture-audit
-    script: capture-audit.sh
-    description: |
-      Fire-and-forget doc-audit-log capture (TASK-060). On Write/Edit/
-      MultiEdit of a docs/** file, appends an immutable doc_audit_trail row
-      via thinking_os/capture_audit.py (audit_log_record). Symmetry with
-      capture-observation: cos_audit_log_record stays the manual/Codex path,
-      this is the auto path. Pre-filters to docs/** in shell so non-doc edits
-      never spawn python. Always exits 0.
-    category: observability
-    phase: "0"
-    timeout: 10
-    events:
-      - event: PostToolUse
-        matcher: Write|Edit|MultiEdit
-        status_message: "📜 Recording doc audit-trail entry..."
-
   - id: auto-reindex-docs
     script: auto-reindex-docs.sh
     description: Incremental re-index of docs (md) AND code / config (.py/.ts/.tsx/.sh/.yaml/.go) on Write/Edit. Dispatches to the matching graph_os extractor; fire-and-forget.

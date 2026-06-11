@@ -1934,6 +1934,20 @@ def _migrate_v41_tasks_lean_columns(conn: sqlite3.Connection) -> None:
     logger.info("Migration v41 applied: lean task columns added, v6 dead columns dropped")
 
 
+def _migrate_v42_drop_doc_audit_trail(conn: sqlite3.Connection) -> None:
+    """Migration v42 — drop doc_audit_trail (TASK-401): the audit concept is
+    retired project-wide; git is the forensic record for doc edits. Drops
+    the append-only guard triggers first (they would block any future
+    cleanup), then the table. Idempotent via IF EXISTS."""
+    conn.executescript("""\
+DROP TRIGGER IF EXISTS doc_audit_trail_no_update;
+DROP TRIGGER IF EXISTS doc_audit_trail_no_delete;
+DROP TABLE IF EXISTS doc_audit_trail;
+""")
+    conn.commit()
+    logger.info("Migration v42 applied: doc_audit_trail dropped (audit retirement)")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2260,6 +2274,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         41,
         "Tasks lean columns — add blocked_by/references/external_ref, drop dead v6 columns (TASK-398)",
         _migrate_v41_tasks_lean_columns,
+    ),
+    (
+        42,
+        "Drop doc_audit_trail — audit concept retired project-wide; git is the forensic record (TASK-401)",
+        _migrate_v42_drop_doc_audit_trail,
     ),
 ]
 

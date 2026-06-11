@@ -51,3 +51,4 @@ Actual: mtime-unchanged short-circuit skips the file — DB says complete, MD sa
 - 2026-06-11 [claude]: Edit test_db.py
 - 2026-06-11 [claude]: Status transitioned to complete via cos task-done.
 - 2026-06-11 [claude]: committed 5ba217f2: src/core/board_os/sync.py, src/core/thinking_os/database.py, src/core/thinking_os/task_sync.py, src/
+- 2026-06-11 [claude]: committed 3d0a17de: src/core/board_os/config.py, src/core/board_os/mcp_tools.py, src/core/board_os/parser.py, src/core/b

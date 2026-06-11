@@ -97,7 +97,7 @@ class TestCaptureObservationMultiEdit:
         src = CAPTURE_HOOK.read_text()
         assert "Write|Edit|MultiEdit)" in src, (
             "capture-observation.sh case-pattern no longer includes MultiEdit — "
-            "see TASK-016 / audit-memory-dead.md"
+            "see TASK-016"
         )
 
 
@@ -118,7 +118,7 @@ class TestPruneDeletedPathPragma:
         src = PRUNE_SCRIPT.read_text()
         assert "PRAGMA foreign_keys = ON" in src, (
             "prune_deleted_path.py no longer enables FK enforcement — "
-            "see TASK-017 / audit-graph-extractor.md"
+            "see TASK-017"
         )
 
     def test_cascade_fires_on_delete(self, tmp_path: Path) -> None:
@@ -161,52 +161,17 @@ class TestPruneDeletedPathPragma:
         spec.loader.exec_module(mod)
         return mod
 
-    def test_doc_delete_writes_audit_row(self, tmp_path: Path) -> None:
-        # D5-F2 (TASK-129): deleting a doc appends an action='deleted'
-        # doc_audit_trail row so the rm is auditable, not a silent erase.
-        db = tmp_path / "audit.db"
+    def test_doc_delete_leaves_no_audit_residue(self, tmp_path: Path) -> None:
+        # TASK-401: the audit trail is retired — pruning a doc must not
+        # reference doc_audit_trail at all (git is the forensic record).
+        db = tmp_path / "no-audit.db"
         conn = sqlite3.connect(str(db))
-        conn.executescript(
-            """
-            CREATE TABLE doc_audit_trail (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              doc_path TEXT NOT NULL, session_id TEXT, agent TEXT,
-              action TEXT NOT NULL, old_frontmatter TEXT, new_frontmatter TEXT,
-              old_content_hash TEXT, new_content_hash TEXT, reason TEXT,
-              supersedes_id INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-            """
-        )
         conn.commit()
         conn.close()
 
         mod = self._load_pruner("prune_deleted_path_doc")
         counts = mod._prune_one("docs/governance/gone.md", db_path=db)
-        assert counts["audit_rows"] == 1
-
-        conn = sqlite3.connect(str(db))
-        row = conn.execute(
-            "SELECT doc_path, action FROM doc_audit_trail WHERE doc_path=?",
-            ("docs/governance/gone.md",),
-        ).fetchone()
-        conn.close()
-        assert row == ("docs/governance/gone.md", "deleted")
-
-    def test_non_doc_delete_writes_no_audit_row(self, tmp_path: Path) -> None:
-        # A code-file delete must NOT write a doc audit row — the trail is doc-scoped.
-        db = tmp_path / "audit2.db"
-        conn = sqlite3.connect(str(db))
-        conn.executescript(
-            "CREATE TABLE doc_audit_trail (id INTEGER PRIMARY KEY, doc_path TEXT NOT NULL, "
-            "action TEXT NOT NULL, agent TEXT, reason TEXT, "
-            "created_at DATETIME DEFAULT CURRENT_TIMESTAMP);"
-        )
-        conn.commit()
-        conn.close()
-
-        mod = self._load_pruner("prune_deleted_path_code")
-        counts = mod._prune_one("src/core/foo.py", db_path=db)
-        assert counts["audit_rows"] == 0
+        assert "audit_rows" not in counts
 
     def test_script_imports_cleanly(self) -> None:
         """The script must remain importable so the regression test stays

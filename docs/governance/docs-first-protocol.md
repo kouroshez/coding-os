@@ -114,7 +114,7 @@ The doc is SSOT, but SSOT is not infallible. When code reality contradicts the d
 1. Stop the code change.
 2. Verify the contradiction with `cos_graph_contracts` (for HTTP/MCP surfaces) or `cos_graph_impact` (for code symbol churn).
 3. Edit the doc, increment frontmatter `updated:`.
-4. Append the prior decision to the audit trail: `cos_audit_log_record(doc_path, action="updated", supersedes_id=<prior>)`. Reverts are new rows; never rewrite the old one.
+4. The prior decision stays recoverable through git history — supersede with a normal commit; never rewrite published history.
 5. Refresh the anchor, then resume the code change.
 
 This is **not** a bypass — it is the protocol. A code agent that updates a doc to match reality is doing higher-value work than one that ships code matching nothing.

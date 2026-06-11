@@ -18,7 +18,6 @@ references:
   - src/core/web/ui/src/features/graph/GraphCanvas.tsx
   - src/core/web/ui/src/lib/node-colors.ts
   - src/core/web/routes/graph.py
-  - docs/_meta/audits/audit-graph-viz-research.md
 ---
 # TASK-018: graph viz P1 — uncap depth budgets + semantic color regrouping
 
@@ -28,7 +27,6 @@ references:
 - [src/core/web/ui/src/features/graph/GraphCanvas.tsx](../../src/core/web/ui/src/features/graph/GraphCanvas.tsx) — depth-budget config (lines 28-39)
 - [src/core/web/ui/src/lib/node-colors.ts](../../src/core/web/ui/src/lib/node-colors.ts) — NodeKind → color map
 - [src/core/web/routes/graph.py](../../src/core/web/routes/graph.py) — backend `/api/graph/export?max_nodes=…` default (line 210)
-- [docs/_meta/audits/audit-graph-viz-research.md](../_meta/audits/audit-graph-viz-research.md) — enterprise viz recommendations
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 - **Given** a user inspects the Graph tab with depth=`all`

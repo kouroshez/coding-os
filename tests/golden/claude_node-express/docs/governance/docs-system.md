@@ -146,11 +146,6 @@ Available templates under `docs/governance/_templates/`:
 - `security-review-template.md` — OWASP-aligned per-change checklist.
 - `doc-cheat-sheet.md` — decision guide for new docs (read first).
 
-## Audit Trail
+## Decision History
 
-Every doc edit can be appended to the immutable `doc_audit_trail` table via `cos_audit_log_record` MCP tool. Reverts are modeled as a new row with `action='reverted'` + `supersedes_id` pointing at the prior decision — never a row rewrite. The hub UI surfaces the per-doc timeline via `cos_audit_log_timeline`.
-
-Use cases:
-- Investigating "why did we change X back to Y?" — `cos_audit_log_query --doc-path <path>`.
-- Detecting agent hallucination drift — `cos_audit_log_query --only-reverted` shows decisions the team explicitly walked back.
-- Onboarding context — a doc's full decision history travels with the file.
+A doc's decision history lives in git: every edit is a commit, reverts are `git revert` commits, and `git log --follow <path>` reconstructs the full timeline. There is no separate trail table — git is the single forensic record.

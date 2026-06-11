@@ -255,8 +255,8 @@ def doc_search(
             Useful when an agent asks about "recent" / "current" state and
             stale older docs would be a wrong answer. None = any age.
         include_inactive: When False (default), hide chunks whose row was
-            marked is_active=0 by cos_audit_log_record (action='deleted'
-            or 'reverted'). Set True for forensic / audit retrieval.
+            marked is_active=0 because the source doc was deleted or
+            superseded. Set True to surface superseded specs.
         auto_context: When True (default) AND `domain` was not passed
             explicitly, read the active task's swimlane from
             $COS_AGENT_DIR/.swimlane and apply it as the default domain

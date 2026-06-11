@@ -18,7 +18,6 @@ references:
   - src/scripts/prune_deleted_path.py
   - src/core/graph_os/backends/sqlite_backend.py
   - src/core/hooks/auto-prune-deleted-files.sh
-  - docs/_meta/audits/audit-graph-extractor.md
 ---
 # TASK-017: fix prune_deleted_path missing PRAGMA foreign_keys ON
 
@@ -28,7 +27,6 @@ references:
 - [src/scripts/prune_deleted_path.py](../../src/scripts/prune_deleted_path.py) — the bug (line 37 opens connection without PRAGMA)
 - [src/core/graph_os/backends/sqlite_backend.py](../../src/core/graph_os/backends/sqlite_backend.py) — reference connection bootstrap (does enable `foreign_keys = ON`, lines 84 + 91)
 - [src/core/hooks/auto-prune-deleted-files.sh](../../src/core/hooks/auto-prune-deleted-files.sh) — PostToolUse Bash hook that invokes the script after every `rm`/`git mv`
-- [docs/_meta/audits/audit-graph-extractor.md](../_meta/audits/audit-graph-extractor.md) — original forensic (corrected by this task: the bug is NOT missing edge deletion logic; it is missing PRAGMA on a peer connection)
 
 ## Repro Steps
 1. Pick any indexed file. Capture baseline: `sqlite3 .coding-os/coding-os.db "SELECT COUNT(*) FROM graph_edges_v12 e LEFT JOIN graph_nodes n ON n.id=e.source_id WHERE n.id IS NULL;"`.

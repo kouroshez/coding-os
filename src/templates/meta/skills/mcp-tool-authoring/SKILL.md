@@ -249,7 +249,7 @@ This is a runtime concern, not an authoring one — but you should know that add
 | **Get-by-id / get-detail** | `cos_details`, `cos_doc_header` | Single-object fetch |
 | **Mutation** | `cos_observation_record`, `cos_task_create` | Creates a row, returns id |
 | **Action** | `cos_task_move`, `cos_supervise` | Side-effecting state change |
-| **Aggregate / query** | `cos_metric_query`, `cos_audit_log_query` | Filter + group, no mutation |
+| **Aggregate / query** | `cos_metric_query`, `cos_log_query` | Filter + group, no mutation |
 | **Composite / router** | `cos_route_skill`, `cos_classify_prompt` | Dispatches/classifies by signal |
 
 When in doubt, model your tool on the closest existing one.

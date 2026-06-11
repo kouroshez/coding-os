@@ -17,8 +17,6 @@ blocked_by: []
 references:
   - src/core/hooks/capture-observation.sh
   - src/scripts/prune_deleted_path.py
-  - docs/_meta/audits/audit-memory-dead.md
-  - docs/_meta/audits/audit-graph-extractor.md
 ---
 # TASK-026: regression tests for the two silent-revert risks
 

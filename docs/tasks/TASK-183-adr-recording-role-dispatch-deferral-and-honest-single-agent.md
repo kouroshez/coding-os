@@ -21,7 +21,6 @@ references: []
 **Outcome (one sentence):** A governance ADR records the decision to keep role dispatch opt-in (single-agent role-phase guidance is the default; real parallel dispatch is deferred until the independent-reviewer case), with the diagnosability already fixed by B5; the roles README points to it.
 
 ## Read First
-- docs/_meta/audits/audit-roles-dead.md
 - src/core/thinking_os/roles/README.md
 - docs/governance/adr-task-id-collision-resistance.md
 

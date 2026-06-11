@@ -12,7 +12,7 @@ Steps:
 5. Update the task's Work Log with `chain composed: <role list>`.
 
 Acceptance gates:
-- Skipping `cos_compose_chain` on a COMPLICATED+ task is the dead-path captured in [docs/_meta/audits/audit-roles-dead.md](../../docs/_meta/audits/audit-roles-dead.md) — that audit blames a prompt-based nudge that agents read but don't act on. `/compose` is the deterministic alternative: one keystroke, one tool call, one chain.
+- Skipping `cos_compose_chain` on a COMPLICATED+ task is a known dead-path: a prompt-based nudge that agents read but don't act on. `/compose` is the deterministic alternative: one keystroke, one tool call, one chain.
 - The chain output is persistent — `formula_dispatches` and `persona_selections` tables grow by ≥1 row per `/compose` invocation.
 
 Output format:

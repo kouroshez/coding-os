@@ -19,4 +19,4 @@ Use when reading from agent memory or running the learn loop. Writes are automat
 - [ ] Confidence is system-computed — never expect a write-time confidence knob.
 - [ ] Code beats memory on conflict — a stale observation is re-verified against code, not trusted.
 - [ ] No PII / no secrets in files whose edits get captured into a narrative.
-- [ ] Audit-log events (`cos_audit_log_record`) kept separate from operational memory.
+- [ ] Who-did-what-when facts left to git history, not recorded as memory.

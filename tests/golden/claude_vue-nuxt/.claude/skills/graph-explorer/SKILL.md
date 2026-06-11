@@ -41,6 +41,18 @@ self-contained one-file edit with no callers.
 > method→class→`constructs`, so "what breaks if I change this method?"
 > stays complete. Treat `references(calls)` as a lower bound for methods.
 
+> **Function blast-radius — import bindings are first-class (TASK-402).**
+> Every `from M import name` site emits an `import_` node which the
+> `link_import_bindings` pass binds to the real symbol (exactly-one
+> match; ambiguous → skipped, never guessed). `references(function)`
+> with default kinds therefore returns BOTH direct `calls` edges AND
+> `imports` edges whose `import_` source node carries the caller's
+> `file_path` — the init_db probe went from 6 to 80 of 106 caller files
+> once this pass landed. Two caller classes stay invisible to static
+> resolution and need a grep complement on security-critical sweeps:
+> module-alias attribute calls (`import database as db; db.init_db()`)
+> and calls embedded in string literals (`python -c "from … import …"`).
+
 Every response carries `data.meta.layer="graph"` and `data.meta.backend`
 (`sqlite` — the single store since Kùzu was retired 2026-05-18). The
 `meta.backend_fallback` flag is reserved for a future graph-native
@@ -63,7 +75,7 @@ exposes it; the rule below is mandatory before you act on a result.
 | `cos_graph_impact` | – | `walk_truncated` (BFS cap hit) | `visit_limit` · `depth` |
 | `cos_graph_context` | – | `walk_truncated` (BFS cap hit) | `visit_limit` · `depth` |
 | `cos_graph_path` | – | `walk_truncated` (hop saturation) | `hop_limit` |
-| `cos_graph_export` | – | UI badge | `max_nodes` · `max_hops` |
+| `cos_graph_export` | – | `result_truncated` + `max_nodes_requested` vs `max_nodes_effective` (ceiling 50k); Hub badge renders the same meta | `max_nodes` · `max_hops` |
 
 **`result_truncated == true` or `walk_truncated == true` ⇒ the answer
 is incomplete. Do NOT proceed on it.**

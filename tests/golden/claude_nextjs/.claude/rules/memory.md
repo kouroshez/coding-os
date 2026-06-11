@@ -36,7 +36,7 @@ In the **Orient** phase (after Classify, before Plan): `cos_search(query, min_co
 
 - **Cross-session is the killer feature** — record in session 1, `cos_search` finds it in session 4. If similar problems aren't getting faster, the write step is being skipped (audit: `cos_metric_trend(metric="time_to_solution", since_days=30)`).
 - **Code wins over memory.** Memory is frozen at write time; code evolves. If recall and `Read` disagree, the memory is stale — update or delete it, trust the code. `cos_search` returns each record's timestamp; older than the file's mtime → re-verify.
-- **Audit log ≠ operational memory.** `cos_audit_log_record` is immutable who-did-what-when (no decay, compliance); `cos_observation_record` is what an agent learned (decay + confidence). A permission *change* → audit log; a *pattern* about reviewing permissions → memory.
+- **Git history ≠ operational memory.** Who-did-what-when lives in git (immutable, no decay); `cos_observation_record` is what an agent learned (decay + confidence). A permission *change* → a commit; a *pattern* about reviewing permissions → memory.
 - **Privacy:** never record PII or secrets (memory is long-lived). Sensitive decisions (e.g. incident root cause) → record metadata + link the postmortem doc, don't inline.
 
 ## See also

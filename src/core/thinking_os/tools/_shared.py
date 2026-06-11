@@ -81,7 +81,6 @@ VALID_LAYERS: frozenset[str] = frozenset(
         "graph",
         "health",
         "learning",
-        "audit",
     }
 )
 
@@ -223,7 +222,7 @@ _TRIMMABLE_LIST_KEYS: tuple[str, ...] = (
     # so an oversized agent call produced envelope_unshrinkable — the same bug
     # class as the board 186KB ERROR, generalized. Adding a new wide tool? Add
     # its list key here (and to test_envelope.py::TestTrimLadderCoverage).
-    "rows",  # cos_log_query, cos_metric_query, cos_audit_log_query
+    "rows",  # cos_log_query, cos_metric_query
     "entries",  # cos_timeline
     "cycles",  # cos_graph_cycles
     "untested",  # cos_graph_test_gap

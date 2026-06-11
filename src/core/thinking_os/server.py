@@ -140,7 +140,6 @@ def thinking_os_health() -> str:
 # Import tool modules
 # ---------------------------------------------------------------------------
 from graph import query_related
-from tools.audit import audit_log_query, audit_log_record, audit_log_timeline
 from tools.docs import doc_search, list_doc_headers, parse_doc_header
 from tools.learning import (
     generate_feedback_drafts,
@@ -387,116 +386,6 @@ def cos_metric_trend(
     return ok(result, meta={"layer": "metrics"})
 
 
-# ---------------------------------------------------------------------------
-# Audit-log tools — append-only doc + decision history.
-# Backed by migration v21 (db.py::_migrate_v21_doc_audit_trail).
-# ---------------------------------------------------------------------------
-@mcp.tool(
-    name="cos_audit_log_record",
-    annotations={
-        "title": "Record Doc / Decision Audit Entry",
-        "readOnlyHint": False,
-        "destructiveHint": False,
-        "idempotentHint": False,
-        "openWorldHint": False,
-    },
-)
-@safe_tool
-def cos_audit_log_record(
-    doc_path: str,
-    action: str,
-    session_id: str = "",
-    agent: str = "",
-    old_frontmatter: str = "",
-    new_frontmatter: str = "",
-    old_content: str = "",
-    new_content: str = "",
-    reason: str = "",
-    supersedes_id: int = 0,
-) -> str:
-    """Append an immutable doc-edit / decision-change entry.
-
-    Use when:
-      • A spec / ADR / playbook is created, updated, or deleted.
-      • A previous decision is being explicitly reverted (action='reverted',
-        supersedes_id=<the row being undone>).
-      • A doc is moved / renamed (action='moved' / 'renamed').
-
-    Args:
-        doc_path: Repo-relative path under docs/ (required).
-        action: created|updated|deleted|reverted|moved|renamed.
-        session_id: Agent session id ($COS_AGENT_DIR/session-id contents).
-        agent: claude / codex / cursor / human.
-        old_frontmatter: Pre-edit frontmatter HTML/JSON; optional but useful.
-        new_frontmatter: Post-edit frontmatter; optional but useful.
-        old_content: Pre-edit body — used only to compute a 16-hex hash for
-            drift detection. Not stored verbatim.
-        new_content: Post-edit body — same hashing treatment.
-        reason: Free-text rationale (strongly encouraged for
-            updated/reverted/deleted).
-        supersedes_id: When action='reverted', the doc_audit_trail.id of
-            the prior decision being undone. 0 = none.
-
-    Returns:
-        JSON envelope with the inserted row id.
-    """
-    result = audit_log_record(
-        _db_conn,
-        doc_path=doc_path,
-        action=action,
-        session_id=session_id or None,
-        agent=agent or None,
-        old_frontmatter=old_frontmatter or None,
-        new_frontmatter=new_frontmatter or None,
-        old_content=old_content or None,
-        new_content=new_content or None,
-        reason=reason or None,
-        supersedes_id=supersedes_id or None,
-    )
-    return ok(result, meta={"layer": "audit", "source": "cos_audit_log_record"})
-
-
-@mcp.tool(
-    name="cos_audit_log_query",
-    annotations={
-        "title": "Query Doc / Decision Audit Trail",
-        "readOnlyHint": True,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": False,
-    },
-)
-@safe_tool
-def cos_audit_log_query(
-    doc_path: str = "",
-    session_id: str = "",
-    agent: str = "",
-    action: str = "",
-    only_reverted: bool = False,
-    since_iso: str = "",
-    limit: int = 25,
-) -> str:
-    """Filter the doc audit trail. Most-recent first.
-
-    All arguments are optional; an empty/zero value means "no filter on
-    that field". Combine filters freely.
-
-    Returns:
-        JSON envelope with `total`, `count`, `rows`.
-    """
-    result = audit_log_query(
-        _db_conn,
-        doc_path=doc_path or None,
-        session_id=session_id or None,
-        agent=agent or None,
-        action=action or None,
-        only_reverted=only_reverted,
-        since_iso=since_iso or None,
-        limit=limit,
-    )
-    return ok(result, meta={"layer": "audit", "source": "cos_audit_log_query"})
-
-
 @mcp.tool(
     name="cos_log_query",
     annotations={
@@ -531,32 +420,6 @@ def cos_log_query(
         limit=limit,
     )
     return ok(result, meta={"layer": "logs", "source": "cos_log_query"})
-
-
-@mcp.tool(
-    name="cos_audit_log_timeline",
-    annotations={
-        "title": "Per-Doc Audit Timeline",
-        "readOnlyHint": True,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": False,
-    },
-)
-@safe_tool
-def cos_audit_log_timeline(
-    doc_path: str,
-    limit: int = 50,
-) -> str:
-    """Return the chronological history of one document, oldest→newest.
-
-    Designed for the hub UI's "decision history" panel beside a doc.
-
-    Returns:
-        JSON envelope with `doc_path`, `count`, `rows`.
-    """
-    result = audit_log_timeline(_db_conn, doc_path=doc_path, limit=limit)
-    return ok(result, meta={"layer": "audit", "source": "cos_audit_log_timeline"})
 
 
 # ---------------------------------------------------------------------------
@@ -1269,9 +1132,9 @@ def cos_doc_search(
             Use when the agent asks about "recent" or "current" state and
             a stale older doc would be the wrong answer. Empty = any age.
         include_inactive: When False (default), hide chunks marked
-            is_active=0 by cos_audit_log_record (action='deleted' or
-            'reverted'). Set True for forensic / decision-history
-            retrieval that must surface superseded specs.
+            is_active=0 because the source doc was deleted or superseded.
+            Set True for decision-history retrieval that must surface
+            superseded specs.
         auto_context: When True (default), soft-default `domain` from the
             active task's swimlane ($COS_AGENT_DIR/.swimlane). Explicit
             `domain` argument always wins. Set False to disable.

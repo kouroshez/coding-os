@@ -31,7 +31,6 @@ Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.
 - **Board / Tasks (13):** `cos_task_board`, `cos_task_create`, `cos_task_move`, `cos_task_pick`, `cos_task_search`, `cos_task_by_filter`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_wip_check`, `cos_task_daily`, `cos_task_retro`, `cos_task_reposition`, `cos_work_log_append`
 - **Cognition (5):** `cos_supervise`, `cos_supervise_record_output`, `cos_dispatch_formula`, `cos_dispatch_formula_run`, `cos_dispatch_parallel_run`
 - **Analysis (4):** `cos_analyze_task`, `cos_ambiguity_check`, `cos_backtrack_log`, `cos_discovery`
-- **Audit (3):** `cos_audit_log_record`, `cos_audit_log_query`, `cos_audit_log_timeline`
 - **Misc (3):** `cos_traceability`, `cos_takeover`, `cos_digest_regenerate`
 
 ## Recommended External MCPs

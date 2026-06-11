@@ -456,7 +456,7 @@ class TestTrimLadderCoverage:
         (board cards/grouped are intentionally absent: the board pre-caps on the
         agent path and the browser opts out via apply_budget=False.)"""
         wide_tool_keys = {
-            "rows",  # cos_log_query, cos_metric_query, cos_audit_log_query
+            "rows",  # cos_log_query, cos_metric_query
             "entries",  # cos_timeline
             "cycles",  # cos_graph_cycles
             "untested",  # cos_graph_test_gap

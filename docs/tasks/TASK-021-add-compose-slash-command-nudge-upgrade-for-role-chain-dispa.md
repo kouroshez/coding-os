@@ -18,7 +18,6 @@ references:
   - src/core/commands/classify.md
   - src/core/hooks/nudge-thinking-os.sh
   - src/core/thinking_os/agents/README.md
-  - docs/_meta/audits/audit-roles-dead.md
 ---
 # TASK-021: /compose slash command + nudge upgrade
 
@@ -30,7 +29,6 @@ This is the user-facing surface layer. Programmatic auto-trigger (hook calling f
 - [src/core/commands/classify.md](../../src/core/commands/classify.md) — pattern for thin slash commands that hand off to MCP tools
 - [src/core/hooks/nudge-thinking-os.sh](../../src/core/hooks/nudge-thinking-os.sh) — the UserPromptSubmit hook whose `additionalContext` currently lists `cos_compose_chain` verbatim
 - [src/core/thinking_os/agents/README.md](../../src/core/thinking_os/agents/README.md) — 11-role catalog the composer dispatches into
-- [docs/_meta/audits/audit-roles-dead.md](../_meta/audits/audit-roles-dead.md) — forensic on why composition never fires (will be created in this task)
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 - **Given** a session classified COMPLICATED+ in the thinking_os gate
@@ -38,5 +36,5 @@ This is the user-facing surface layer. Programmatic auto-trigger (hook calling f
 - **Then** the slash command resolves to a call into `cos_compose_chain` with the active task's signals, and the agent receives the composed role chain in the same response; the nudge text in `nudge-thinking-os.sh` is updated to point at `/compose` instead of the bare tool name; `make verify-hooks` clean; `make docs-lint` clean.
 
 ## Work Log
-- 2026-05-23 — added [src/core/commands/compose.md](../../src/core/commands/compose.md) (5-step slash command wrapping `cos_compose_chain`), upgraded the [nudge-thinking-os.sh](../../src/core/hooks/nudge-thinking-os.sh) line 105 nudge text to point at `/compose` instead of the bare `cos_compose_chain` tool name, and authored [docs/_meta/audits/audit-roles-dead.md](../_meta/audits/audit-roles-dead.md) with the corrected fix path. `make verify-hooks` clean, `make docs-lint` clean. Deeper auto-trigger (Bash hook → formula_composer in-process + session-context.sh integration) deferred to Phase 9.
+- 2026-05-23 — added [src/core/commands/compose.md](../../src/core/commands/compose.md) (5-step slash command wrapping `cos_compose_chain`), upgraded the [nudge-thinking-os.sh](../../src/core/hooks/nudge-thinking-os.sh) line 105 nudge text to point at `/compose` instead of the bare `cos_compose_chain` tool name, and authored the roles-dead forensic note (since retired) with the corrected fix path. `make verify-hooks` clean, `make docs-lint` clean. Deeper auto-trigger (Bash hook → formula_composer in-process + session-context.sh integration) deferred to Phase 9.
 - 2026-05-23 [claude]: Status transitioned to complete via cos task-done.

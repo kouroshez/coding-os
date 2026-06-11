@@ -95,7 +95,6 @@ _DB_TABLES_OF_INTEREST = (
     "session_summaries",
     "persona_selections",
     "formula_dispatches",
-    "doc_audit_trail",
     "file_index_state",
 )
 

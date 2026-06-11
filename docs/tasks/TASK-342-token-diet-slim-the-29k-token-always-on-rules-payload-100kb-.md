@@ -31,7 +31,7 @@ references: []
 - **Given** make docs-lint + make verify-hooks, **When** run, **Then** green (no enforcement regression).
 
 ## Work Log
-- 2026-06-10 [claude]: committed f825b55b: docs/_meta/audits/audit-doctor-diagnostics-sweep.md, docs/_meta/audits/audit-graph-extractor.md, doc
+- 2026-06-10 [claude]: committed f825b55b: doc
 - 2026-06-10 [claude]: Edit critical-rules.md
 - 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
 - 2026-06-10 [claude]: Edit thinking_os.md

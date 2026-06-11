@@ -24,7 +24,7 @@ references: []
 - src/core/hooks/registry.yaml — the 8 layer hooks
 - src/core/hooks/session-context.sh — audit= banner field (~485)
 - src/core/thinking_os/completion_guardian.py — exhaustive branch vs task-closure
-- src/core/rules/auto-mode-vs-exhaustive.md, docs/engineering/intent-vocabulary.md, docs/_meta/audit-checklist-template.md
+- src/core/rules/auto-mode-vs-exhaustive.md, docs/engineering/intent-vocabulary.md
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 - **Given** a session, **When** any prompt uses exhaustive vocabulary, **Then** no .intent.json is written, no audit-*.md is required, no Stop-guardian exhaustive gate fires, and the banner has no audit= field.

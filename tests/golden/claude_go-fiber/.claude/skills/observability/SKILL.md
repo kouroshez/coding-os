@@ -240,7 +240,7 @@ audit.record(
 
 Audit logs go to **write-only, retention-policied storage** (separate index, separate retention from regular logs). Compliance frameworks (SOC2, GDPR, HIPAA, PCI-DSS) need them tamper-evident.
 
-For the coding-os meta-repo specifically: see `cos_audit_log_record` / `cos_audit_log_query` MCP tools — every governance action records there.
+For the coding-os meta-repo specifically: governance actions are reconstructable from git history (`git log`) and `cos_log_query`.
 
 ## CI Signal Hygiene
 

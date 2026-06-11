@@ -12,7 +12,7 @@ updated: 2026-06-05
 ## Status
 
 Accepted (2026-06-05). Supersedes the "Phase 9" deferral framing in
-[audit-roles-dead.md](../_meta/audits/audit-roles-dead.md) by making the
+the roles-dead forensic review (2026-05, since retired) by making the
 decision explicit rather than open.
 
 ## Context
@@ -38,7 +38,7 @@ guidance.
 ## Decision
 
 1. **Keep dispatch opt-in. Do NOT auto-fire it.** Building auto-dispatch
-   (audit-roles-dead fixes #2/#3) for a path with no caller is speculative
+   (roles-dead fixes #2/#3) for a path with no caller is speculative
    distributed-systems machinery — a Rule 22 (anti-over-engineering) violation.
    The cheap inline path is the right default for single-user sequential coding.
 2. **Label honestly.** The role chain is "single-agent role-phase guidance
@@ -72,6 +72,5 @@ concurrency-safe under `cos_dispatch_parallel_run`).
 
 ## References
 
-- [audit-roles-dead.md](../_meta/audits/audit-roles-dead.md) — original diagnosis.
 - [agent-economy-and-identity-roadmap.md](../engineering/agent-economy-and-identity-roadmap.md) — S1.
 - [src/core/thinking_os/roles/README.md](../../src/core/thinking_os/roles/README.md).

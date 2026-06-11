@@ -51,3 +51,4 @@ Actual: positional indexing, dual field names hidden by ?? fallbacks, inconsiste
 - 2026-06-11 [claude]: Edit CosBoardPage.tsx
 - 2026-06-11 [claude]: Edit test_task_create_robustness.py
 - 2026-06-11 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-11 [claude]: committed 977e309f: src/core/board_os/mcp_tools.py, src/core/board_os/tests/test_task_create_robustness.py, src/core/web

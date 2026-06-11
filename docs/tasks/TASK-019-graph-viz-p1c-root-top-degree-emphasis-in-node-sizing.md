@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references:
   - src/core/web/ui/src/features/graph/graph-adapter.ts
-  - docs/_meta/audits/audit-graph-viz-research.md
 ---
 # TASK-019: graph viz P1c — root + top-degree emphasis
 
@@ -24,7 +23,6 @@ references:
 
 ## Read First
 - [src/core/web/ui/src/features/graph/graph-adapter.ts](../../src/core/web/ui/src/features/graph/graph-adapter.ts) — `sizeFor()` and `labelForceFor()` (lines 90-100)
-- [docs/_meta/audits/audit-graph-viz-research.md](../_meta/audits/audit-graph-viz-research.md) — recommended formula `radius = base + α·log(1+PageRank) + β·kind_weight + γ·root_bonus`; full PageRank wiring deferred to Phase 9 (needs `/api/graph/ranking` route)
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 - **Given** the graph canvas renders with depth=`all` on the meta-repo

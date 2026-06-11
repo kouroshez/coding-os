@@ -97,8 +97,8 @@ def test_v20_skips_when_history_table_missing() -> None:
 def test_v20_is_in_migration_chain() -> None:
     """v20 (override audit) is registered in the migration chain.
 
-    No longer asserts last-migration position — v21 added
-    (doc_audit_trail). Just verifies v20 is still discoverable.
+    No longer asserts last-migration position — later migrations
+    followed. Just verifies v20 is still discoverable.
     """
     by_version = {row[0]: row[1] for row in MIGRATIONS}
     assert 20 in by_version, "v20 missing from MIGRATIONS"

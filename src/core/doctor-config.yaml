@@ -21,13 +21,12 @@ placeholder_scan:
   - docs/governance/_templates
   - docs/_meta
 schema:
-  expected_version: 39
+  expected_version: 42
   expected_tables:
   - agent_metrics
   - ambiguity_violations
   - backtrack_events
   - concept_graph
-  - doc_audit_trail
   - document_chunks
   - document_chunks_fts
   - document_chunks_fts_config

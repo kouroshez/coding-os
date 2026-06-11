@@ -164,8 +164,7 @@ Two separate stores. Don't conflate:
 | Concern | Store | Tool |
 |---|---|---|
 | "What did an agent learn?" | Operational memory | automatic capture + `cos_learn_*` |
-| "Who changed what + when (immutable)?" | Audit log | `cos_audit_log_record` |
-| "Forensic trail for compliance" | Audit log | `cos_audit_log_query` / `cos_audit_log_timeline` |
+| "Who changed what + when (immutable)?" | Git history | `git log` / `git blame` |
 
 A permission change → audit log. A pattern about reviewing permissions → operational memory.
 

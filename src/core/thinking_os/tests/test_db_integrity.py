@@ -40,8 +40,7 @@ _REQUIRED_TABLES = {
     # v18 router telemetry
     "retrieval_router_log",
     # v19/20 board polish (no new tables)
-    # v21 doc audit
-    "doc_audit_trail",
+    # v21 doc audit — table dropped again by v42 (audit retirement, TASK-401)
     # v22 doc_chunks metadata cols (no new table — but document_chunks must exist)
     "document_chunks",
 }

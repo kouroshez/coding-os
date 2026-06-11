@@ -17,7 +17,6 @@ blocked_by: []
 references:
   - src/core/hooks/capture-observation.sh
   - src/core/thinking_os/capture.py
-  - docs/_meta/audits/audit-memory-dead.md
 ---
 # TASK-016: fix capture-observation MultiEdit drop
 
@@ -26,7 +25,6 @@ references:
 ## Read First
 - [src/core/hooks/capture-observation.sh](../../src/core/hooks/capture-observation.sh) — shell hook with the bug at line 28
 - [src/core/thinking_os/capture.py](../../src/core/thinking_os/capture.py) — Python layer (CAPTURE_TOOLS already includes MultiEdit, line 31)
-- [docs/_meta/audits/audit-memory-dead.md](../_meta/audits/audit-memory-dead.md) — forensic root cause
 
 ## Repro Steps
 1. Run a session where the agent issues a MultiEdit on any file under repo.
@@ -41,5 +39,5 @@ Expected: ≥1 row per MultiEdit call. Actual: 0 rows; shell filter at `capture-
 - **Then** the shell case-pattern matches `MultiEdit`, `capture.py` is spawned, and a new row appears in `observations` within ≤2s of the call. `make verify-hooks` passes.
 
 ## Work Log
-- 2026-05-23 — diagnosed shell-vs-python filter mismatch (audit-memory-dead.md), patched `capture-observation.sh:28` to include MultiEdit, smoke-tested via direct capture.py and shell-hook paths (observations rows #3 + #4 written), `make verify-hooks` clean, committed `9dca67a`.
+- 2026-05-23 — diagnosed shell-vs-python filter mismatch, patched `capture-observation.sh:28` to include MultiEdit, smoke-tested via direct capture.py and shell-hook paths (observations rows #3 + #4 written), `make verify-hooks` clean, committed `9dca67a`.
 - 2026-05-23 [claude]: Status transitioned to complete via cos task-done.
