@@ -14,7 +14,7 @@ import json
 import os
 import sys
 import tempfile
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -134,6 +134,29 @@ def add_project(project_path: Path, *, slug: str | None = None) -> ProjectEntry:
     registry.projects.append(entry)
     save_registry(registry)
     return entry
+
+
+def rename_project(old_slug: str, new_slug: str) -> ProjectEntry | None:
+    """Rename a project's slug (path untouched). Returns the updated entry or None.
+
+    The onboarding temp-slug contract (TASK-358): a project created with an
+    auto-generated name can be renamed later without re-registering."""
+    new_slug = new_slug.strip()
+    if not new_slug:
+        raise click.ClickException("new slug must be non-empty")
+    registry = load_registry()
+    target = None
+    for p in registry.projects:
+        if p.slug == old_slug:
+            target = p
+        elif p.slug == new_slug:
+            raise click.ClickException(f"Slug {new_slug!r} already used by {p.path}.")
+    if target is None:
+        return None
+    renamed = replace(target, slug=new_slug)
+    registry.projects = [renamed if p is target else p for p in registry.projects]
+    save_registry(registry)
+    return renamed
 
 
 def remove_project(selector: str) -> ProjectEntry | None:

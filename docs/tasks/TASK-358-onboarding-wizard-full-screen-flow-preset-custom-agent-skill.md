@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: B-onboarding
 labels: [wave-2, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P0
 appetite: 3d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-356, TASK-352]
 blocked_by: []
 references: []
 ---
-
 # TASK-358: Onboarding wizard — full-screen flow (preset/custom, agent, skills preview, optional name, description) + dry-run validation
 
 **Outcome (one sentence):** Clicking "New project" opens a step-wise onboarding flow: preset-or-custom, agent picker (removes hardcoded claude at hub.py:350), language/stack, live skill preview, extra skills, swimlane preview, optional project name ("don't know yet" temp slug + later rename), 1-2 paragraph description, review step; backed by POST /api/hub/registry/validate-init dry-run.

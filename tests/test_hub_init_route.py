@@ -35,13 +35,10 @@ def _client() -> TestClient:
 
 
 def _patch_init(monkeypatch, fn):
-    patched = False
-    for modname in ("web.routes.hub", "core.web.routes.hub"):
-        mod = sys.modules.get(modname)
-        if mod is not None:
-            monkeypatch.setattr(mod, "_run_cos_init", fn, raising=False)
-            patched = True
-    assert patched, "hub route module not loaded"
+    # Deterministic import — never depend on an earlier test having built the app.
+    import web.routes.hub as hub_routes
+
+    monkeypatch.setattr(hub_routes, "_run_cos_init", fn)
 
 
 class TestStacksEndpoint:
@@ -150,7 +147,7 @@ class TestInitRouteRun:
 
     def test_failed_init_cleans_up_partial_scaffold(self, hub_env, monkeypatch):
         # Simulate init creating a partial dir then failing — the route must rmtree it.
-        def _fake(name, parent_dir, stack, agent, timeout=180):
+        def _fake(name, parent_dir, stacks, agent, preset="", timeout=180):
             (Path(parent_dir) / name).mkdir(parents=True, exist_ok=True)
             return (False, None, "boom")
 
@@ -162,3 +159,146 @@ class TestInitRouteRun:
             )
         assert resp.status_code == 500
         assert not (hub_env / "halfbaked").exists()  # partial scaffold removed
+
+
+# ---------------------------------------------------------------------------
+# Onboarding wizard backend — TASK-358
+# ---------------------------------------------------------------------------
+
+
+class TestAdaptersEndpoint:
+    def test_lists_data_driven_adapters(self, hub_env):
+        with _client() as client:
+            resp = client.get("/api/hub/adapters")
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        ids = {a["id"] for a in data["adapters"]}
+        assert "claude" in ids  # ships in this repo; no hardcoded single agent
+        assert data["count"] == len(data["adapters"]) >= 2
+
+
+class TestValidateInitEndpoint:
+    def test_valid_request_with_preview_and_auto_name(self, hub_env):
+        with _client() as client:
+            resp = client.post(
+                "/api/hub/registry/validate-init",
+                json={"parent_dir": str(hub_env), "stacks": ["nextjs", "fastapi"]},
+            )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert data["valid"] is True
+        assert data["auto_named"] is True  # "don't know yet" path
+        assert data["name"].startswith("proj-")
+        assert data["templates"] == ["nextjs", "fastapi"]
+        assert "backend" in data["swimlanes"] and "frontend" in data["swimlanes"]
+
+    def test_preset_expands_to_templates(self, hub_env):
+        with _client() as client:
+            resp = client.post(
+                "/api/hub/registry/validate-init",
+                json={"name": "p1", "parent_dir": str(hub_env), "preset": "nextjs-fastapi"},
+            )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data"]["templates"] == ["nextjs", "fastapi"]
+
+    def test_unknown_stack_and_agent_rejected(self, hub_env):
+        with _client() as client:
+            bad_stack = client.post(
+                "/api/hub/registry/validate-init",
+                json={"name": "p1", "parent_dir": str(hub_env), "stacks": ["no-such"]},
+            )
+            bad_agent = client.post(
+                "/api/hub/registry/validate-init",
+                json={"name": "p1", "parent_dir": str(hub_env), "agent": "no-such"},
+            )
+        assert bad_stack.status_code == 400
+        assert "no-such" in bad_stack.json()["error"]["message"]
+        assert bad_agent.status_code == 400
+        assert "available" in bad_agent.json()["error"]["message"]
+
+    def test_dry_run_writes_nothing(self, hub_env):
+        before = sorted(p.name for p in hub_env.iterdir())
+        with _client() as client:
+            client.post(
+                "/api/hub/registry/validate-init",
+                json={"parent_dir": str(hub_env), "stacks": ["python"]},
+            )
+        assert sorted(p.name for p in hub_env.iterdir()) == before
+
+
+class TestWizardCreateFlow:
+    def test_multi_stack_create_seeds_description_and_extra_skills(self, hub_env, monkeypatch):
+        def _fake(name, parent_dir, stacks, agent, preset="", timeout=180):
+            target = Path(parent_dir) / name
+            target.mkdir(parents=True)
+            (target / ".coding-os.yaml").write_text(
+                "version: '1.0'\ntemplates:\n- nextjs\n- fastapi\n", encoding="utf-8"
+            )
+            return (True, {"slug": name}, "")
+
+        _patch_init(monkeypatch, _fake)
+        with _client() as client:
+            resp = client.post(
+                "/api/hub/registry/init",
+                json={
+                    "parent_dir": str(hub_env),
+                    "stacks": ["nextjs", "fastapi"],
+                    "agent": "claude",
+                    "description": "A two-paragraph product description.",
+                    "extra_skills": ["redis", "docker"],
+                },
+            )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert data["auto_named"] is True and data["slug"].startswith("proj-")
+        target = hub_env / data["slug"]
+        desc = target / "docs" / "_meta" / "project-description.md"
+        assert "two-paragraph product description" in desc.read_text(encoding="utf-8")
+        import yaml as _yaml
+
+        cfg = _yaml.safe_load((target / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert cfg["extra_skills"] == ["redis", "docker"]
+
+    def test_preset_and_stacks_mutually_exclusive(self, hub_env):
+        with _client() as client:
+            resp = client.post(
+                "/api/hub/registry/init",
+                json={
+                    "name": "p2",
+                    "parent_dir": str(hub_env),
+                    "stacks": ["nextjs"],
+                    "preset": "nextjs-fastapi",
+                },
+            )
+        assert resp.status_code == 400
+        assert "mutually exclusive" in resp.json()["error"]["message"]
+
+
+class TestRegistryRename:
+    def test_temp_slug_renames_without_breaking_entry(self, hub_env):
+        from cli.registry import add_project, load_registry
+
+        proj = hub_env / "proj-abc123"
+        (proj / ".coding-os").mkdir(parents=True)
+        add_project(proj, slug="proj-abc123")
+        with _client() as client:
+            resp = client.patch(
+                "/api/hub/registry/proj-abc123", json={"new_slug": "real-name"}
+            )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data"]["slug"] == "real-name"
+        entries = {p.slug: p.path for p in load_registry().projects}
+        assert entries["real-name"] == str(proj)  # path untouched
+
+    def test_rename_unknown_404_and_duplicate_409(self, hub_env):
+        from cli.registry import add_project
+
+        for slug in ("one", "two"):
+            d = hub_env / slug
+            (d / ".coding-os").mkdir(parents=True)
+            add_project(d, slug=slug)
+        with _client() as client:
+            missing = client.patch("/api/hub/registry/ghost", json={"new_slug": "x1"})
+            dup = client.patch("/api/hub/registry/one", json={"new_slug": "two"})
+        assert missing.status_code == 404
+        assert dup.status_code == 409

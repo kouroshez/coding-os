@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import LiveAgentsPanel from '@/features/cognition/LiveAgentsPanel';
 import { apiDelete, apiPost } from '@/lib/api-client';
+import OnboardingWizard from './OnboardingWizard';
 
 /**
  * Hub home page — the first screen when opening http://127.0.0.1:9188.
@@ -122,29 +123,14 @@ export default function HubHome() {
     [refresh, runBusy],
   );
 
-  const runCreate = useCallback(
-    async (name: string, parentDir: string, stack: string) => {
-      setActionError(null);
-      try {
-        const [created] = await runBusy(() =>
-          apiPost<{ slug: string; path: string }>('/api/hub/registry/init', {
-            name,
-            parent_dir: parentDir,
-            stack: stack || undefined,
-          }),
-        );
-        await refresh();
-        setActionNote(`created ${created.slug} → ${created.path}`);
-        setNewOpen(false);
-        if (created.slug) navigate(`/p/${encodeURIComponent(created.slug)}/workspace/chat`);
-      } catch (err) {
-        setActionError({
-          action: 'create',
-          message: err instanceof Error ? err.message : 'create failed',
-        });
-      }
+  const onWizardCreated = useCallback(
+    async (slug: string) => {
+      await refresh();
+      setActionNote(`created ${slug}`);
+      setNewOpen(false);
+      if (slug) navigate(`/p/${encodeURIComponent(slug)}/workspace/chat`);
     },
-    [refresh, runBusy, navigate],
+    [refresh, navigate],
   );
 
   const runRemove = useCallback(
@@ -318,13 +304,12 @@ export default function HubHome() {
           </Banner>
         )}
 
-        {/* Dialogs (New / Import / Scan) — kept inline */}
+        {/* Dialogs (Import / Scan inline; New = full-screen wizard, TASK-358) */}
         {newOpen && (
-          <NewProjectDialog
+          <OnboardingWizard
             suggestions={roots?.suggestions ?? []}
-            onCancel={() => setNewOpen(false)}
-            onSubmit={runCreate}
-            busy={busy}
+            onClose={() => setNewOpen(false)}
+            onCreated={onWizardCreated}
           />
         )}
         {importOpen && (
@@ -737,129 +722,12 @@ function ProjectCard({
   );
 }
 
-interface StacksPayload {
-  stacks: { id: string; label: string; category: string }[];
-  count: number;
-}
-
 export function slugifyProjectName(name: string): string {
   return name
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, '-')
     .replace(/^[-.]+|[-.]+$/g, '');
-}
-
-export function NewProjectDialog({
-  suggestions, onCancel, onSubmit, busy,
-}: {
-  suggestions: string[];
-  onCancel: () => void;
-  onSubmit: (name: string, parentDir: string, stack: string) => void | Promise<void>;
-  busy: boolean;
-}) {
-  const [name, setName] = useState('');
-  const [parentDir, setParentDir] = useState(suggestions[0] ?? '');
-  const [stack, setStack] = useState('');
-  const { data } = useApiGet<StacksPayload>(['hub-stacks'], '/api/hub/stacks');
-  const stacks = data?.stacks ?? [];
-  const slug = slugifyProjectName(name);
-  const valid = /^[a-z0-9][a-z0-9._-]{0,63}$/.test(slug) && parentDir.trim().length > 0;
-
-  return (
-    <section className="mb-4 rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] p-4">
-      <h2 className="mb-2 text-sm font-semibold text-[var(--cos-text)]">Create a new project</h2>
-      <p className="mb-3 text-xs text-[var(--cos-muted)]">
-        Scaffolds a fresh coding-os project (runs <code>cos init</code>) and opens it.
-      </p>
-      <label className="mb-1 block text-xs">
-        <span className="mb-1 block text-[var(--cos-muted)]">Project name</span>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="my-app"
-          dir="auto"
-          className="w-full rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1.5 font-mono text-xs text-[var(--cos-text)]"
-        />
-      </label>
-      {name.trim() && (
-        <p className="mb-2 text-[10px] text-[var(--cos-faint)]">
-          folder + slug: <code className="text-[var(--cos-muted)]">{slug || '—'}</code>
-        </p>
-      )}
-      <label className="mb-1 block text-xs">
-        <span className="mb-1 block text-[var(--cos-muted)]">Parent folder</span>
-        <input
-          type="text"
-          value={parentDir}
-          onChange={(e) => setParentDir(e.target.value)}
-          placeholder="/Users/you/code"
-          className="w-full rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1.5 font-mono text-xs text-[var(--cos-text)]"
-        />
-      </label>
-      {suggestions.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-1 text-[10px]">
-          {suggestions.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setParentDir(s)}
-              className="rounded border border-[var(--cos-border)] px-2 py-0.5 font-mono text-[var(--cos-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="mb-3">
-        <span className="mb-1 block text-xs text-[var(--cos-muted)]">Stack</span>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            onClick={() => setStack('')}
-            aria-pressed={stack === ''}
-            className={[
-              'rounded border px-2.5 py-1 text-[11px]',
-              stack === ''
-                ? 'border-[var(--cos-accent)] bg-[var(--cos-brand-tint)] text-[var(--cos-accent)]'
-                : 'border-[var(--cos-border)] text-[var(--cos-muted)] hover:text-[var(--cos-text)]',
-            ].join(' ')}
-          >
-            base only
-          </button>
-          {stacks.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setStack(s.id)}
-              aria-pressed={stack === s.id}
-              title={s.category}
-              className={[
-                'rounded border px-2.5 py-1 text-[11px]',
-                stack === s.id
-                  ? 'border-[var(--cos-accent)] bg-[var(--cos-brand-tint)] text-[var(--cos-accent)]'
-                  : 'border-[var(--cos-border)] text-[var(--cos-muted)] hover:text-[var(--cos-text)]',
-              ].join(' ')}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <ToolbarButton
-          primary
-          label={busy ? 'creating…' : 'Create project'}
-          onClick={() => {
-            if (valid) void onSubmit(slug, parentDir.trim(), stack);
-          }}
-          disabled={busy || !valid}
-        />
-        <ToolbarButton label="Cancel" onClick={onCancel} disabled={busy} />
-      </div>
-    </section>
-  );
 }
 
 function ImportDialog({

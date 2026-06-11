@@ -33,3 +33,4 @@ references: []
 - **Given** the verification matrix, **When** `uv run pytest tests/test_cli.py -q` plus a web-route test run, **Then** green.
 
 ## Work Log
+- 2026-06-11 [claude]: IMPL DONE (parked in testing per batch cadence) — collect_stack_skill_groups + collect_skill_catalog in skills_list.py a

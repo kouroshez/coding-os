@@ -9,6 +9,7 @@ import re
 import shutil
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 from typing import Optional
 
@@ -285,13 +286,32 @@ def hub_stacks() -> dict:
     except Exception as exc:
         return _err("unavailable", f"stack registry unavailable: {exc}", status=503)
     stacks = [
-        {"id": s.id, "label": s.label, "category": s.category}
+        {"id": s.id, "label": s.label, "category": s.category, "language": s.language}
         for s in sorted(reg.values(), key=lambda p: p.id)
         if s.id != "_base"
     ]
     return {
         "data": {"stacks": stacks, "count": len(stacks)},
         "meta": {"layer": "hub", "source": "hub.stacks"},
+    }
+
+
+@router.get("/adapters")
+def hub_adapters() -> dict:
+    """List installable agent adapters (data-driven from src/adapters/*/adapter.yaml)."""
+    try:
+        from cli._resources import adapters_dir  # type: ignore
+        from cli.adapter_registry import load_adapter_registry  # type: ignore
+
+        reg = load_adapter_registry(adapters_dir())
+    except Exception as exc:
+        return _err("unavailable", f"adapter registry unavailable: {exc}", status=503)
+    adapters = [
+        {"id": a.id, "label": a.label} for a in sorted(reg.values(), key=lambda a: a.id)
+    ]
+    return {
+        "data": {"adapters": adapters, "count": len(adapters)},
+        "meta": {"layer": "hub", "source": "hub.adapters"},
     }
 
 
@@ -354,7 +374,147 @@ def _cos_init_command() -> list[str]:
     return [found] if found else [sys.executable, "-m", "cli.main"]
 
 
-def _run_cos_init(name: str, parent_dir: str, stack: str, agent: str, timeout: int = 180):
+def _validate_init_inputs(
+    name: str,
+    parent_dir: str,
+    stacks: list[str],
+    preset: str,
+    agent: str,
+) -> tuple[JSONResponse | dict | None, dict]:
+    """Shared dry-run validation for validate-init AND registry/init (SSOT).
+
+    Returns (error_response, info). info carries name/auto_named/parent/
+    target/templates once every check passes. No filesystem writes."""
+    info: dict = {}
+    name = (name or "").strip()
+    if name:
+        if not _PROJECT_NAME_RE.match(name):
+            return (
+                _err(
+                    "validation",
+                    "name must match ^[a-z0-9][a-z0-9._-]{0,63}$ (lowercase, no spaces)",
+                ),
+                {},
+            )
+        info["name"], info["auto_named"] = name, False
+    else:
+        # "don't know yet" — temp slug, renameable later via registry rename.
+        info["name"], info["auto_named"] = f"proj-{uuid.uuid4().hex[:6]}", True
+
+    if not isinstance(parent_dir, str) or not parent_dir.strip():
+        return _err("validation", "parent_dir is required"), {}
+    try:
+        parent = Path(parent_dir).expanduser().resolve()
+    except (OSError, RuntimeError) as exc:
+        return _err("validation", f"invalid parent_dir: {exc}"), {}
+    if not parent.is_dir():
+        return _err("not_found", f"parent_dir is not a directory: {parent}", status=404), {}
+    if not os.access(parent, os.W_OK):
+        return _err("validation", f"parent_dir is not writable: {parent}"), {}
+    if _is_meta_repo(parent):
+        return _err("validation", "cannot scaffold inside the coding-os meta-repo checkout"), {}
+    target = parent / info["name"]
+    if target.exists():
+        return _err("conflict", f"{target} already exists", status=409), {}
+    nested = _ancestor_with_coding_os(parent)
+    if nested is not None:
+        return (
+            _err(
+                "validation",
+                f"{parent} is inside the registered project {nested} — pick a parent outside it",
+            ),
+            {},
+        )
+
+    try:
+        from cli.list_stacks import TEMPLATES_DIR  # type: ignore
+        from cli.stack_registry import load_stack_registry  # type: ignore
+
+        stack_reg = load_stack_registry(TEMPLATES_DIR)
+    except Exception as exc:
+        return _err("unavailable", f"stack registry unavailable: {exc}", status=503), {}
+    stacks = [s for s in (stacks or []) if s]
+    unknown = [s for s in stacks if s not in stack_reg]
+    if unknown:
+        return _err("validation", f"unknown stack(s): {unknown}"), {}
+    if preset:
+        if stacks:
+            return _err("validation", "preset and stacks are mutually exclusive"), {}
+        from cli.preset_registry import load_preset_registry  # type: ignore
+
+        presets = load_preset_registry(TEMPLATES_DIR, known_stacks=set(stack_reg.keys()))
+        if preset not in presets:
+            return _err("not_found", f"preset '{preset}' not found", status=404), {}
+        info["templates"] = list(presets[preset].stacks)
+    else:
+        info["templates"] = stacks
+
+    try:
+        from cli._resources import adapters_dir  # type: ignore
+        from cli.adapter_registry import load_adapter_registry  # type: ignore
+
+        adapter_reg = load_adapter_registry(adapters_dir())
+    except Exception as exc:
+        return _err("unavailable", f"adapter registry unavailable: {exc}", status=503), {}
+    if agent not in adapter_reg:
+        return (
+            _err("validation", f"unknown agent '{agent}' — available: {sorted(adapter_reg)}"),
+            {},
+        )
+
+    info["parent"], info["target"] = parent, target
+    return None, info
+
+
+@router.post("/registry/validate-init")
+def hub_registry_validate_init(
+    name: str = Body("", embed=True),
+    parent_dir: str = Body(..., embed=True),
+    stacks: list[str] = Body(default_factory=list, embed=True),
+    preset: str = Body("", embed=True),
+    agent: str = Body("claude", embed=True),
+):
+    """Dry-run validation + merged-config preview for the onboarding wizard (TASK-358)."""
+    error, info = _validate_init_inputs(name, parent_dir, stacks, preset, agent)
+    if error is not None:
+        return error
+    swimlanes: list[str] = []
+    conflicts: list[str] = []
+    try:
+        from cli.config_composer import preview_coding_os_configs  # type: ignore
+        from cli.list_stacks import TEMPLATES_DIR  # type: ignore
+
+        merged, conflicts = preview_coding_os_configs(
+            info["templates"], templates_dir=TEMPLATES_DIR
+        )
+        scrumban = merged.get("scrumban-config.yaml") or {}
+        swimlanes = [
+            lane.get("id") for lane in scrumban.get("swimlanes") or [] if isinstance(lane, dict)
+        ]
+    except Exception as exc:
+        logger.debug("dry-config preview failed: %s", exc)
+    return {
+        "data": {
+            "valid": True,
+            "name": info["name"],
+            "auto_named": info["auto_named"],
+            "target": str(info["target"]),
+            "templates": info["templates"],
+            "swimlanes": swimlanes,
+            "conflicts": conflicts,
+        },
+        "meta": {"layer": "hub", "source": "hub.registry_validate_init"},
+    }
+
+
+def _run_cos_init(
+    name: str,
+    parent_dir: str,
+    stacks: list[str],
+    agent: str,
+    preset: str = "",
+    timeout: int = 180,
+):
     """Run `cos init` in a subprocess → (ok, payload, error).
 
     Module-level so a test can monkeypatch it without a real scaffold."""
@@ -371,7 +531,9 @@ def _run_cos_init(name: str, parent_dir: str, stack: str, agent: str, timeout: i
         "--format",
         "json",
     ]
-    if stack:
+    if preset:
+        cmd += ["--preset", preset]
+    for stack in stacks:
         cmd += ["--template", stack]
     try:
         proc = subprocess.run(  # noqa: S603 — fixed argv list, never shell=True
@@ -395,49 +557,90 @@ def _run_cos_init(name: str, parent_dir: str, stack: str, agent: str, timeout: i
     return True, payload, ""
 
 
+def _seed_project_extras(target: Path, description: str, extra_skills: list[str]) -> None:
+    """Persist wizard inputs into the fresh project. Fail-open: a seeding
+    failure never fails the create (init already succeeded)."""
+    try:
+        if description.strip():
+            # Seed for the description→PRD pipeline (TASK-364 consumes this).
+            meta_dir = target / "docs" / "_meta"
+            meta_dir.mkdir(parents=True, exist_ok=True)
+            (meta_dir / "project-description.md").write_text(
+                "# Project Description (onboarding intake)\n\n"
+                + description.strip()
+                + "\n",
+                encoding="utf-8",
+            )
+        if extra_skills:
+            import yaml as _yaml
+
+            cfg_path = target / ".coding-os.yaml"
+            cfg = _yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+            merged = list(dict.fromkeys([*(cfg.get("extra_skills") or []), *extra_skills]))
+            cfg["extra_skills"] = merged
+            cfg_path.write_text(
+                _yaml.dump(cfg, default_flow_style=False, sort_keys=False), encoding="utf-8"
+            )
+    except Exception as exc:
+        logger.debug("project extras seeding skipped: %s", exc)
+
+
 @router.post("/registry/init")
 def hub_registry_init(
-    name: str = Body(..., embed=True),
+    name: str = Body("", embed=True),
     parent_dir: str = Body(..., embed=True),
     stack: str = Body("", embed=True),
+    stacks: list[str] = Body(default_factory=list, embed=True),
+    preset: str = Body("", embed=True),
     agent: str = Body("claude", embed=True),
+    description: str = Body("", embed=True),
+    extra_skills: list[str] = Body(default_factory=list, embed=True),
 ):
-    """Scaffold a NEW project via `cos init` and register it (security-gated, TASK-249)."""
-    if not isinstance(name, str) or not _PROJECT_NAME_RE.match(name.strip()):
-        return _err(
-            "validation",
-            "name must match ^[a-z0-9][a-z0-9._-]{0,63}$ (lowercase, no spaces)",
-        )
-    name = name.strip()
-    if not isinstance(parent_dir, str) or not parent_dir.strip():
-        return _err("validation", "parent_dir is required")
-    try:
-        parent = Path(parent_dir).expanduser().resolve()
-    except (OSError, RuntimeError) as exc:
-        return _err("validation", f"invalid parent_dir: {exc}")
-    if not parent.is_dir():
-        return _err("not_found", f"parent_dir is not a directory: {parent}", status=404)
-    if _is_meta_repo(parent):
-        return _err("validation", "cannot scaffold inside the coding-os meta-repo checkout")
-    target = parent / name
-    if target.exists():
-        return _err("conflict", f"{target} already exists", status=409)
-    nested = _ancestor_with_coding_os(parent)
-    if nested is not None:
-        return _err(
-            "validation",
-            f"{parent} is inside the registered project {nested} — pick a parent outside it",
-        )
-    ok, payload, err = _run_cos_init(name, str(parent), (stack or "").strip(), agent or "claude")
+    """Scaffold a NEW project via `cos init` and register it (security-gated, TASK-249/358)."""
+    all_stacks = [s for s in ((stacks or []) + ([stack] if stack else [])) if s]
+    error, info = _validate_init_inputs(name, parent_dir, all_stacks, preset, agent or "claude")
+    if error is not None:
+        return error
+    target: Path = info["target"]
+    ok, payload, err = _run_cos_init(
+        info["name"], str(info["parent"]), all_stacks, agent or "claude", preset=preset
+    )
     if not ok:
         # A failed init must leave nothing — remove the partial scaffold.
         if target.exists():
             shutil.rmtree(target, ignore_errors=True)
         return _err("internal", f"init failed: {err}", status=500)
+    _seed_project_extras(target, description or "", extra_skills or [])
     slug = (payload or {}).get("slug") or _resolve_slug_from_registry(target)
     return {
-        "data": {"slug": slug, "path": str(target), "stack": (stack or None)},
+        "data": {
+            "slug": slug,
+            "path": str(target),
+            "stack": (all_stacks[0] if all_stacks else None),
+            "stacks": all_stacks,
+            "preset": preset or None,
+            "auto_named": info["auto_named"],
+        },
         "meta": {"layer": "hub", "source": "hub.registry_init"},
+    }
+
+
+@router.patch("/registry/{slug}")
+def hub_registry_rename(slug: str, new_slug: str = Body(..., embed=True)):
+    """Rename a project's slug (temp-slug → real name; path untouched)."""
+    if not _PROJECT_NAME_RE.match((new_slug or "").strip()):
+        return _err("validation", "new_slug must match ^[a-z0-9][a-z0-9._-]{0,63}$")
+    try:
+        from cli.registry import rename_project  # type: ignore
+
+        renamed = rename_project(slug, new_slug.strip())
+    except Exception as exc:
+        return _err("conflict", str(exc), status=409)
+    if renamed is None:
+        return _err("not_found", f"no project with slug {slug!r}", status=404)
+    return {
+        "data": {"slug": renamed.slug, "path": renamed.path},
+        "meta": {"layer": "hub", "source": "hub.registry_rename"},
     }
 
 

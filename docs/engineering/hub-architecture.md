@@ -250,18 +250,32 @@ hub-global endpoints back the **New Project** wizard on `HubHome`:
 
 - `GET /api/hub/stacks` — the installable stack grid, data-driven from
   `src/templates/*/stack.yaml` via `load_stack_registry` (Rule 11 — no
-  hardcoded stack list). Returns `{id, label, category}` per stack.
+  hardcoded stack list). Returns `{id, label, category, language}` per stack.
+- `GET /api/hub/presets` / `GET /api/hub/adapters` /
+  `GET /api/hub/skills` / `GET /api/hub/stacks/{id}/skills` — the wizard's
+  read-only data sources (TASK-352/356/358): preset catalog, agent adapters,
+  global skill catalog with provenance, and per-stack
+  required/recommended/optional skill groups.
+- `POST /api/hub/registry/validate-init` — dry-run validation + merged-config
+  preview (swimlane union + reported conflicts). Shares
+  `_validate_init_inputs` with the real init route (SSOT) and writes nothing.
 - `POST /api/hub/registry/init` — runs `cos init --name … --project-dir …
-  --template … --agent claude --yes --no-index --format json` in a
-  subprocess with a timeout. It is the **highest-severity new surface**
-  (writes the filesystem), so it sits behind the localhost security gate
-  below, and validates before spawning: the name against
-  `^[a-z0-9][a-z0-9._-]{0,63}$`, the parent dir exists, the target does not
-  already exist, and the target is neither the meta-repo nor nested inside a
-  registered project. `cos init` registers the project itself on a clean exit;
-  a failed init leaves nothing (the partial target dir is removed). The
-  wizard (location chips + name→slug preview + stack grid) lives in `HubHome`
-  on the shared `Modal`.
+  [--preset … | --template …×N] --agent <chosen> --yes --no-index --format
+  json` in a subprocess with a timeout. It is the **highest-severity new
+  surface** (writes the filesystem), so it sits behind the localhost security
+  gate below, and validates via the same `_validate_init_inputs` before
+  spawning. An empty name auto-generates a temp slug (`proj-<6hex>`,
+  "don't know yet"); the wizard's description seeds
+  `docs/_meta/project-description.md` (TASK-364 intake) and `extra_skills`
+  land in `.coding-os.yaml`. `cos init` registers the project itself on a
+  clean exit; a failed init leaves nothing (the partial target dir is removed).
+- `PATCH /api/hub/registry/{slug}` — slug rename (temp slug → real name; path
+  untouched), backed by `cli.registry.rename_project`.
+
+The full-screen step-wise wizard (`OnboardingWizard.tsx`, TASK-358 —
+preset-or-custom → agent → skills preview → extra skills → swimlanes →
+name-or-skip → description → review) replaced the single-form dialog on
+`HubHome`.
 
 ## Localhost security gate (Origin/Host allowlist + CSRF)
 

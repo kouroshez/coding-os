@@ -180,3 +180,21 @@ Actual: `.claude/` symlinks dangle silently, hooks/skills/rules vanish, `cos upd
 - 2026-06-11 [claude]: Edit t352_fix_frontmatter.py
 - 2026-06-11 [claude]: Edit test_cli.py
 - 2026-06-11 [claude]: Edit test_hub_init_route.py
+- 2026-06-11 [claude]: committed daf81ab5: src/cli/skills_list.py, src/core/web/routes/hub.py, src/templates/django/skills/python-django/SKILL.
+- 2026-06-11 [claude]: Edit registry.py
+- 2026-06-11 [claude]: Edit hub.py
+- 2026-06-11 [claude]: Edit hub.py
+- 2026-06-11 [claude]: Edit hub.py
+- 2026-06-11 [claude]: Edit hub.py
+- 2026-06-11 [claude]: Edit test_hub_init_route.py
+- 2026-06-11 [claude]: Edit test_hub_init_route.py
+- 2026-06-11 [claude]: Edit registry.py
+- 2026-06-11 [claude]: Edit registry.py
+- 2026-06-11 [claude]: Edit OnboardingWizard.tsx
+- 2026-06-11 [claude]: Edit HubHome.tsx
+- 2026-06-11 [claude]: Edit HubHome.tsx
+- 2026-06-11 [claude]: Edit HubHome.tsx
+- 2026-06-11 [claude]: Edit HubHome.tsx
+- 2026-06-11 [claude]: Edit OnboardingWizard.test.tsx
+- 2026-06-11 [claude]: Edit OnboardingWizard.test.tsx
+- 2026-06-11 [claude]: Edit hub-architecture.md
