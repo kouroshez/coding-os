@@ -719,3 +719,84 @@ class TestInstallResilience:
         )
         assert result.exit_code != 0
         assert "uv sync --extra rag" in result.output
+
+
+# ---------------------------------------------------------------------------
+# doctor --bootstrap — TASK-347 (preflight prerequisite checks)
+# ---------------------------------------------------------------------------
+
+
+class TestDoctorBootstrap:
+    _ALL_CHECK_IDS = (
+        "bootstrap.python_version",
+        "bootstrap.bash_version",
+        "bootstrap.git_present",
+        "bootstrap.uv_present",
+        "bootstrap.sed_flavor",
+    )
+
+    def test_all_checks_pass_on_dev_machine(self, runner: CliRunner) -> None:
+        """Runs with NO project — a brand-new user's very first command."""
+        result = runner.invoke(cli, ["doctor", "--bootstrap"])
+        assert result.exit_code == 0, result.output
+        for check_id in self._ALL_CHECK_IDS:
+            assert check_id in result.output
+
+    def test_old_bash_fails_with_brew_hint(
+        self, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.doctor as doctor_module
+
+        real_capture = doctor_module._capture_tool_version
+
+        def _bash_32(executable: str):
+            if executable == "bash":
+                return "GNU bash, version 3.2.57(1)-release (arm64-apple-darwin24)"
+            return real_capture(executable)
+
+        monkeypatch.setattr(doctor_module, "_capture_tool_version", _bash_32)
+        result = runner.invoke(cli, ["doctor", "--bootstrap"])
+        assert result.exit_code == 1
+        assert "brew install bash" in result.output
+
+    def test_missing_git_fails_with_install_hint(
+        self, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.doctor as doctor_module
+
+        real_capture = doctor_module._capture_tool_version
+        monkeypatch.setattr(
+            doctor_module,
+            "_capture_tool_version",
+            lambda exe: None if exe == "git" else real_capture(exe),
+        )
+        result = runner.invoke(cli, ["doctor", "--bootstrap"])
+        assert result.exit_code == 1
+        assert "git not found" in result.output
+
+    def test_missing_uv_warns_but_passes_unless_strict(
+        self, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.doctor as doctor_module
+
+        real_capture = doctor_module._capture_tool_version
+        monkeypatch.setattr(
+            doctor_module,
+            "_capture_tool_version",
+            lambda exe: None if exe == "uv" else real_capture(exe),
+        )
+        result = runner.invoke(cli, ["doctor", "--bootstrap"])
+        assert result.exit_code == 0, result.output
+        assert "uv not found" in result.output
+
+        strict_result = runner.invoke(cli, ["doctor", "--bootstrap", "--strict"])
+        assert strict_result.exit_code == 1
+
+    def test_json_format_is_machine_readable(self, runner: CliRunner) -> None:
+        import json
+
+        result = runner.invoke(cli, ["doctor", "--bootstrap", "--format", "json"])
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        reported_ids = {check["id"] for check in payload["checks"]}
+        assert set(self._ALL_CHECK_IDS) <= reported_ids

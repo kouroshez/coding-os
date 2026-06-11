@@ -36,6 +36,7 @@ uv tool install --editable .
 
 # 2. Verify
 cos --version                          # → cos 0.3.0
+cos doctor --bootstrap                 # preflight: python/bash/git/uv/sed prerequisites
 cos doctor                             # 14-point health check (must be all-green)
 
 # 3. Spawn a new project, scaffolded with one agent + one stack

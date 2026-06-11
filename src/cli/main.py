@@ -1202,7 +1202,8 @@ def _run_scaffold_phase(
                 click.echo(proc.stderr.strip(), err=True)
             click.echo(
                 "  HINT: missing Python deps are the usual cause — run "
-                "`uv sync --extra rag` in the coding-os checkout, then re-run `cos init`",
+                "`uv sync --extra rag` in the coding-os checkout, then re-run `cos init` "
+                "(machine prerequisites: `cos doctor --bootstrap`)",
                 err=True,
             )
             raise SystemExit(1)

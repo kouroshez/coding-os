@@ -3,7 +3,7 @@
 
 > Complete list of every `cos doctor` check, grouped by category. Each entry: ID, intent, severity-when-failing, fix hint. IDs are the SSOT — changing one is a breaking change for any consumer parsing JSON output.
 
-Categories: adapter · board · cognition · config · database · docs · graph · hook · hub · mcp · presence · runtime · scaffold · scheduled · stack · state.
+Categories: adapter · board · bootstrap · cognition · config · database · docs · graph · hook · hub · mcp · presence · runtime · scaffold · scheduled · stack · state.
 
 Run `cos doctor` for human-grouped text, `cos doctor --format json` for machine ingest.
 
@@ -59,6 +59,39 @@ No `in_progress` task has been idle past the stale threshold.
 Counts in each WIP swimlane stay under their caps from the board config.
 **Warns** when a cap is exceeded.
 **Fix**: move oldest task out of the offending swimlane.
+
+---
+
+## bootstrap
+
+Preflight prerequisite checks that run WITHOUT an initialized project:
+`cos doctor --bootstrap`. Probe-and-exit mode (like `--otel`) so a brand-new
+user can verify the machine before the first `cos init` (TASK-347). README
+§ Prerequisites is the min-version SSOT these checks encode.
+
+### bootstrap.python_version
+Running interpreter is Python >= 3.10.
+**Fails** below the floor.
+**Fix**: install a newer Python (`brew install python@3.12` / distro package) and reinstall `cos` with it.
+
+### bootstrap.bash_version
+`bash --version` reports major >= 4 (hook scripts use 4.x features; macOS ships 3.2).
+**Fails** below the floor or when bash is missing.
+**Fix**: `brew install bash` (macOS) / distro package.
+
+### bootstrap.git_present
+`git` resolves on PATH (`cos init` runs `git init` + installs git hooks).
+**Fails** when missing.
+**Fix**: `xcode-select --install` (macOS) / `apt install git`.
+
+### bootstrap.uv_present
+`uv` resolves on PATH (updates and extras install through it).
+**Warns** when missing — `cos` itself already runs.
+**Fix**: `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+
+### bootstrap.sed_flavor
+Reports GNU vs BSD sed (adapter installers must work on both).
+**Passes** either way — informational detail for support bundles; **warns** only when `sed` is missing entirely.
 
 ---
 

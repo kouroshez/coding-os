@@ -39,13 +39,17 @@ from typing import Any
 import click
 import yaml
 
+from cli._resources import adapters_dir, core_dir, data_root, templates_dir
 from cli.core_version import current_core_version, read_stamped_version
 
 logger = logging.getLogger(__name__)
 
-CODING_OS_ROOT = Path(__file__).resolve().parent.parent.parent
-MANIFEST_PATH_DEFAULT = CODING_OS_ROOT / "src" / "core" / "scaffold_manifest.json"
-MCP_SERVER_PATH = CODING_OS_ROOT / "src" / "core" / "thinking_os" / "server.py"
+# Bundled trees resolve via importlib (TASK-219) — survives wheel installs and
+# meta-repo moves. CODING_OS_ROOT remains for repo-only assets (docs/) that
+# exist solely in a source checkout.
+CODING_OS_ROOT = data_root().parent
+MANIFEST_PATH_DEFAULT = core_dir("scaffold_manifest.json")
+MCP_SERVER_PATH = core_dir("thinking_os", "server.py")
 
 
 def _load_runtime_paths() -> tuple[frozenset[str], tuple[str, ...]]:
@@ -54,7 +58,7 @@ def _load_runtime_paths() -> tuple[frozenset[str], tuple[str, ...]]:
     Returns (runtime_files_set, ignored_prefixes_tuple). On missing/invalid
     config, falls back to empty sets so doctor never crashes on config errors.
     """
-    path = CODING_OS_ROOT / "src" / "core" / "runtime_paths.yaml"
+    path = core_dir("runtime_paths.yaml")
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except (OSError, yaml.YAMLError) as exc:
@@ -67,7 +71,7 @@ def _load_runtime_paths() -> tuple[frozenset[str], tuple[str, ...]]:
 
 def _load_doctor_config() -> dict[str, Any]:
     """Load src/core/doctor-config.yaml. Returns {} on failure."""
-    path = CODING_OS_ROOT / "src" / "core" / "doctor-config.yaml"
+    path = core_dir("doctor-config.yaml")
     try:
         return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except (OSError, yaml.YAMLError) as exc:
@@ -429,7 +433,7 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
         # Late import to keep doctor usable even if adapter_registry has issues
         from cli.adapter_registry import load_adapter_registry
 
-        adapters = load_adapter_registry(CODING_OS_ROOT / "src" / "adapters")
+        adapters = load_adapter_registry(adapters_dir())
     except Exception as exc:
         report.checks.append(
             CheckResult(
@@ -548,7 +552,7 @@ def _check_placeholders(project: Path, report: DoctorReport) -> None:
     try:
         from cli.adapter_registry import load_adapter_registry
 
-        adapters = load_adapter_registry(CODING_OS_ROOT / "src" / "adapters")
+        adapters = load_adapter_registry(adapters_dir())
     except Exception as exc:
         logger.debug("adapter registry skipped for placeholder scan: %s", exc)
         adapters = {}
@@ -999,7 +1003,7 @@ def _check_stack_registry_consistency(report: DoctorReport) -> None:
     try:
         from cli.stack_registry import load_stack_registry
 
-        registry = load_stack_registry(CODING_OS_ROOT / "src" / "templates")
+        registry = load_stack_registry(templates_dir())
     except Exception as exc:
         report.checks.append(
             CheckResult(
@@ -1056,7 +1060,7 @@ def _check_category_balance(report: DoctorReport) -> None:
     try:
         from cli.stack_registry import load_stack_registry
 
-        registry = load_stack_registry(CODING_OS_ROOT / "src" / "templates")
+        registry = load_stack_registry(templates_dir())
     except Exception:
         report.checks.append(
             CheckResult(
@@ -1111,7 +1115,7 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
     try:
         from cli.adapter_registry import load_adapter_registry
 
-        adapters = load_adapter_registry(CODING_OS_ROOT / "src" / "adapters")
+        adapters = load_adapter_registry(adapters_dir())
     except Exception as exc:
         report.checks.append(
             CheckResult(
@@ -1135,7 +1139,7 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
     skills_dir = project / profile.skills_dir
     expected: list[tuple[str, str]] = []  # (stack, skill_name)
     for stack in report.templates:
-        stack_skills = CODING_OS_ROOT / "src" / "templates" / stack / "skills"
+        stack_skills = templates_dir(stack, "skills")
         if not stack_skills.exists():
             continue
         for entry in stack_skills.iterdir():
@@ -1302,7 +1306,7 @@ def _load_coding_os_mcp_launch(
     # is hardcoded here (Rule 12 / tests/test_no_hardcoded_stacks).
     from cli.adapter_registry import load_adapter_registry
 
-    adapters = load_adapter_registry(CODING_OS_ROOT / "src" / "adapters")
+    adapters = load_adapter_registry(adapters_dir())
 
     loader_fns = {
         "claude_json": _load_claude_json,
@@ -2242,6 +2246,127 @@ def _probe_otel() -> None:
         click.echo("\nNo OTEL_EXPORTER_OTLP_ENDPOINT set — local stdout exporter assumed.")
 
 
+_BOOTSTRAP_MIN_PYTHON = (3, 10)
+_BOOTSTRAP_MIN_BASH_MAJOR = 4
+
+
+def _capture_tool_version(executable: str) -> str | None:
+    """First line of `<tool> --version`, or None when the tool is absent."""
+    import shutil
+
+    if shutil.which(executable) is None:
+        return None
+    try:
+        proc = subprocess.run(
+            [executable, "--version"], capture_output=True, text=True, timeout=10
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    text = (proc.stdout or proc.stderr or "").strip()
+    return text.splitlines()[0] if text else ""
+
+
+def _check_bootstrap_python(report: DoctorReport) -> None:
+    found = sys.version_info[:2]
+    label = f"python {found[0]}.{found[1]}"
+    if found >= _BOOTSTRAP_MIN_PYTHON:
+        report.checks.append(CheckResult("bootstrap.python_version", SEV_PASS, label))
+    else:
+        report.checks.append(
+            CheckResult(
+                "bootstrap.python_version",
+                SEV_FAIL,
+                f"{label} < {_BOOTSTRAP_MIN_PYTHON[0]}.{_BOOTSTRAP_MIN_PYTHON[1]} — "
+                "install a newer Python and reinstall cos with it",
+            )
+        )
+
+
+def _check_bootstrap_bash(report: DoctorReport) -> None:
+    banner = _capture_tool_version("bash")
+    if banner is None:
+        report.checks.append(
+            CheckResult(
+                "bootstrap.bash_version",
+                SEV_FAIL,
+                "bash not found on PATH — hook scripts require bash >= 4",
+            )
+        )
+        return
+    match = re.search(r"version (\d+)\.(\d+)", banner)
+    major = int(match.group(1)) if match else 0
+    if major >= _BOOTSTRAP_MIN_BASH_MAJOR:
+        report.checks.append(CheckResult("bootstrap.bash_version", SEV_PASS, banner))
+    else:
+        report.checks.append(
+            CheckResult(
+                "bootstrap.bash_version",
+                SEV_FAIL,
+                f"{banner} — hooks need bash >= 4 (macOS ships 3.2: brew install bash)",
+            )
+        )
+
+
+def _check_bootstrap_git(report: DoctorReport) -> None:
+    banner = _capture_tool_version("git")
+    if banner is None:
+        report.checks.append(
+            CheckResult(
+                "bootstrap.git_present",
+                SEV_FAIL,
+                "git not found — `cos init` runs git init "
+                "(macOS: xcode-select --install · debian: apt install git)",
+            )
+        )
+    else:
+        report.checks.append(CheckResult("bootstrap.git_present", SEV_PASS, banner))
+
+
+def _check_bootstrap_uv(report: DoctorReport) -> None:
+    banner = _capture_tool_version("uv")
+    if banner is None:
+        report.checks.append(
+            CheckResult(
+                "bootstrap.uv_present",
+                SEV_WARN,
+                "uv not found — updates and extras install through it "
+                "(curl -LsSf https://astral.sh/uv/install.sh | sh)",
+            )
+        )
+    else:
+        report.checks.append(CheckResult("bootstrap.uv_present", SEV_PASS, banner))
+
+
+def _check_bootstrap_sed(report: DoctorReport) -> None:
+    banner = _capture_tool_version("sed")
+    if banner is None:
+        report.checks.append(
+            CheckResult("bootstrap.sed_flavor", SEV_WARN, "sed not found on PATH")
+        )
+        return
+    flavor = "gnu" if "GNU" in banner else "bsd"
+    report.checks.append(
+        CheckResult(
+            "bootstrap.sed_flavor", SEV_PASS, f"{flavor} sed detected", {"flavor": flavor}
+        )
+    )
+
+
+def run_bootstrap_doctor() -> DoctorReport:
+    """Preflight prerequisite checks — no initialized project required.
+
+    Encodes README § Prerequisites; check docs live in
+    docs/playbooks/doctor-checks.md § bootstrap (TASK-347).
+    """
+    report = DoctorReport(project_dir="-", agent=None, templates=[])
+    _check_bootstrap_python(report)
+    _check_bootstrap_bash(report)
+    _check_bootstrap_git(report)
+    _check_bootstrap_uv(report)
+    _check_bootstrap_sed(report)
+    return report
+
+
 @click.command()
 @click.option("--project-dir", "-d", default=".", help="Project directory (default: cwd)")
 @click.option(
@@ -2254,6 +2379,12 @@ def _probe_otel() -> None:
 @click.option("--strict", is_flag=True, default=False, help="Promote WARN to exit 1")
 @click.option("--manifest", default=None, help="Override manifest file path")
 @click.option("--otel", is_flag=True, default=False, help="Probe OTEL exporter config and exit")
+@click.option(
+    "--bootstrap",
+    is_flag=True,
+    default=False,
+    help="Preflight prerequisite checks (python/bash/git/uv/sed) — no project needed",
+)
 @click.option(
     "--claude-sdk",
     "claude_sdk",
@@ -2280,11 +2411,19 @@ def doctor(
     strict: bool,
     manifest: str | None,
     otel: bool,
+    bootstrap: bool,
     claude_sdk: bool,
     ignore_globs: tuple[str, ...],
     explain_id: str | None,
 ) -> None:
     """Deep health check: scaffold, DB schema, adapter, manifest, MCP."""
+    if bootstrap:
+        report = run_bootstrap_doctor()
+        if output_format == "json":
+            click.echo(_format_json(report, strict=strict))
+        else:
+            click.echo(_format_text(report, strict=strict))
+        sys.exit(report.exit_code(strict=strict))
     if otel:
         _probe_otel()
         return
