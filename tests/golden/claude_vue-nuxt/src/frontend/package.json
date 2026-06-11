@@ -1,0 +1,17 @@
+{
+  "name": "cos-golden-fixture-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "lint": "nuxt typecheck",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "nuxt": "^3.11.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0",
+    "vue-tsc": "^2.0.0"
+  }
+}

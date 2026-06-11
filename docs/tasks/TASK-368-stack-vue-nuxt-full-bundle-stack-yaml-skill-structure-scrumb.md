@@ -5,18 +5,17 @@ swimlane: templates
 kind: feature
 epic: D-catalog
 labels: [wave-4, onboarding-program, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-361]
 blocked_by: []
 references: []
 ---
-
 # TASK-368: Stack: vue-nuxt — full bundle (stack.yaml, skill, structure, scrumban, playbook, rules, verify, golden)
 
 **Outcome (one sentence):** A complete vue-nuxt stack (language=typescript) passes the bundle lint with a new vue-nuxt skill, structure spec (app/ pages/ components/ composables/), frontend swimlanes, frontend-ui playbook + engineering rules, verify row and golden test — proving the factory on a frontend stack.
@@ -34,3 +33,4 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_template_scaffold.py -q` runs, **Then** green including the new golden.
 
 ## Work Log
+- 2026-06-11 [claude]: Edit stack.yaml

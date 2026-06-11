@@ -1,0 +1,62 @@
+version: 1
+id: vue-nuxt
+language: typescript
+label: "Vue 3 + Nuxt + TypeScript"
+category: frontend
+
+structure:
+  root: src/frontend
+  tree: |
+    src/frontend/
+    ├── nuxt.config.ts
+    ├── app.vue            # root shell only
+    ├── pages/             # file-based routing
+    ├── components/        # auto-imported, PascalCase
+    ├── composables/       # useX() naming, auto-imported
+    └── server/api/        # Nitro server routes
+  notes: "Nuxt 3 conventions; state via Pinia per state-management skill hierarchy"
+primary_skill: vue-nuxt
+skills: [vue-nuxt]
+
+substitutions:
+  DOMAIN_ROUTES: "Frontend→`docs/playbooks/nuxt-app.md`"
+  SKILL_ROUTES: "Frontend→`vue-nuxt`"
+  ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/nuxt-rules.md`, a11y→`docs/engineering/accessibility-web.md`"
+  TOOL_ROUTING_IMPL: "`lint-frontend`, `test-frontend`, `build-frontend`"
+  VERIFY_FRONTEND_GLOB: "`src/frontend/`"
+  VERIFY_FRONTEND_SUITES: "lint-frontend + test-frontend"
+  VERIFY_FRONTEND: "`cd src/frontend && npm run lint && npm test`"
+  QUICK_ROUTING: |-
+    - Nuxt page / component task → [Nuxt App Playbook](./playbooks/nuxt-app.md)
+    - Composable / state work → [Nuxt App Playbook](./playbooks/nuxt-app.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-NUXT` → `./playbooks/nuxt-app.md`
+    - `REF:NUXT-RULES` → `./engineering/nuxt-rules.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-NUXT", path: "./playbooks/nuxt-app.md",      desc: "Nuxt app playbook"}
+  - {code: "REF:NUXT-RULES",    path: "./engineering/nuxt-rules.md",  desc: "Nuxt engineering rules"}
+
+routing_entries:
+  - "Nuxt page / component task → [Nuxt App Playbook](./playbooks/nuxt-app.md)"
+
+rules:
+  - {file: rules/frontend.md, globs: ["src/frontend/**/*.{vue,ts}"]}
+
+makefile_targets:
+  - {name: lint-frontend,  cmd: "cd src/frontend && npm run lint"}
+  - {name: test-frontend,  cmd: "cd src/frontend && npm test"}
+  - {name: build-frontend, cmd: "cd src/frontend && npm run build"}
+
+verify:
+  - {glob: "src/frontend/**/*.{vue,ts}", suites: "lint-frontend + test-frontend", cmd: "cd src/frontend && npm run lint && npm test"}
+
+dimensions:
+  - {name: "Nuxt page / route",   read_files: ["docs/playbooks/nuxt-app.md", "docs/engineering/nuxt-rules.md"]}
+  - {name: "Vue component",       read_files: ["docs/engineering/nuxt-rules.md"]}
+  - {name: "Composable / state",  read_files: ["docs/playbooks/nuxt-app.md"]}
+  - {name: "Accessibility",       read_files: ["docs/engineering/accessibility-web.md"]}
+
+skill_enforcement:
+  - {globs: ["src/frontend/**/*.{vue,ts}"], primary: vue-nuxt, secondary: [clean-code, frontend-fundamentals, frontend-design, a11y, performance, testing-strategy]}
+  - {globs: ["src/frontend/**/composables/**/*.ts", "src/frontend/**/stores/**/*.ts"], primary: vue-nuxt, secondary: [state-management, clean-code, frontend-fundamentals]}

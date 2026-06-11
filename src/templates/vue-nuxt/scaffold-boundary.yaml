@@ -1,0 +1,26 @@
+# Scaffold boundary for the vue-nuxt stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: vue-nuxt
+
+roots:
+  - src/frontend/
+
+file_patterns:
+  - "src/frontend/**/*.vue"
+  - "src/frontend/**/*.ts"
+  - "src/frontend/**/*.json"
+
+imports_from:
+  - src/shared/
+  - src/shared/types/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/backend/
+  - src/mobile/
+
+notes:
+  - "Pages own routing; composables own logic; server/api owns server-only code."
+  - "Anything imported by a page ships to the client — secrets live in server/."

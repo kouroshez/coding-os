@@ -33,6 +33,7 @@ SECTIONS: list[tuple[str, str, list[str]]] = [
     ("claude_nextjs", "claude", ["nextjs"]),
     ("claude_go-fiber", "claude", ["go-fiber"]),
     ("claude_node-express", "claude", ["node-express"]),
+    ("claude_vue-nuxt", "claude", ["vue-nuxt"]),
     ("codex_base", "codex", []),
     ("codex_django", "codex", ["django"]),
     ("codex_nextjs", "codex", ["nextjs"]),

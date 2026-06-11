@@ -714,3 +714,50 @@ class TestNodeExpressStack:
         assert "node-express" in registry_text
         dimensions_text = Path("src/core/rules/dimension-registry.md").read_text(encoding="utf-8")
         assert "Express route" in dimensions_text
+
+
+# ---------------------------------------------------------------------------
+# vue-nuxt stack bundle — TASK-368
+# ---------------------------------------------------------------------------
+
+
+class TestVueNuxtStack:
+    def test_factory_lint_passes_with_golden(self):
+        from cli.stack_lint import lint_all
+
+        report = lint_all()["vue-nuxt"]
+        assert report.passed, report.hard
+        assert not any("golden" in gap for gap in report.soft)
+
+    def test_scaffold_structure_and_routing(self, tmp_path):
+        import yaml as _yaml
+        from click.testing import CliRunner
+
+        from cli.main import cli
+
+        project = tmp_path / "nuxtapp"
+        project.mkdir()
+        result = CliRunner().invoke(
+            cli,
+            [
+                "init", "--agent", "claude", "-d", str(project),
+                "--template", "vue-nuxt", "--yes", "--no-index", "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        frontend = project / "src" / "frontend"
+        for piece in ("nuxt.config.ts", "app.vue", "pages/index.vue", "package.json"):
+            assert (frontend / piece).is_file(), piece
+        index_page = (frontend / "pages" / "index.vue").read_text(encoding="utf-8")
+        assert "{{PROJECT_NAME}}" not in index_page  # placeholder resolved in .vue? (md/json/ts only)
+
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert config["verify"]["frontend"] == "cd src/frontend && npm run lint && npm test"
+        agents_md = (project / "AGENTS.md").read_text(encoding="utf-8")
+        assert "nuxt-app.md" in agents_md
+
+    def test_regen_registries_include_vue_nuxt(self):
+        registry_text = Path("src/core/rules/skill-enforcement.md").read_text(encoding="utf-8")
+        assert "vue-nuxt" in registry_text
+        dimensions_text = Path("src/core/rules/dimension-registry.md").read_text(encoding="utf-8")
+        assert "Nuxt page / route" in dimensions_text

@@ -35,3 +35,5 @@ references: []
 ## Work Log
 - 2026-06-11 [claude]: Edit stack.yaml
 - 2026-06-11 [claude]: Edit SKILL.md
+- 2026-06-11 [claude]: commit 08dc53b794 — feat(templates): node-express full stack bundle (TASK-367)
+- 2026-06-11 [claude]: IMPL DONE (parked, batch 7 #1) — complete node-express bundle, first real consumer of the TASK-361 factory: stack.yaml (

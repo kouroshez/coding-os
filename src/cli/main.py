@@ -515,7 +515,7 @@ def _apply_template(
 # Unknown keys are always left intact, so files with no placeholders are
 # byte-identical after the pass (plain-stack code skeletons need this —
 # go.mod / main.go / index.ts carry {{PROJECT_NAME}}; TASK-348).
-_PLACEHOLDER_SUFFIXES = {".md", ".go", ".mod", ".ts", ".tsx", ".json"}
+_PLACEHOLDER_SUFFIXES = {".md", ".go", ".mod", ".ts", ".tsx", ".json", ".vue"}
 
 
 def _resolve_placeholders(text: str, substitutions: dict[str, str]) -> str:

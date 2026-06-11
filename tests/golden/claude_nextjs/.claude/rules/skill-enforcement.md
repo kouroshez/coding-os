@@ -40,3 +40,5 @@ invoke the matching skill via the `Skill` tool.
 | `src/backend/**/middleware/auth*.ts`, `src/backend/**/auth*.ts` | `node-express` | auth-patterns, security-web, clean-code | node-express |
 | `src/mobile/**/*.{ts,tsx}` | `react-native-mobile` | clean-code, frontend-fundamentals, mobile-fundamentals, a11y | react-native |
 | `src/mobile/**/components/**/*.{ts,tsx}`, `src/mobile/**/screens/**/*.{ts,tsx}` | `react-native-patterns` | clean-code, react-native-mobile, state-management, performance | react-native |
+| `src/frontend/**/*.{vue,ts}` | `vue-nuxt` | clean-code, frontend-fundamentals, frontend-design, a11y, performance, testing-strategy | vue-nuxt |
+| `src/frontend/**/composables/**/*.ts`, `src/frontend/**/stores/**/*.ts` | `vue-nuxt` | state-management, clean-code, frontend-fundamentals | vue-nuxt |

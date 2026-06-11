@@ -65,3 +65,10 @@ phase to build your Read List.
 - **Offline / sync** (M) → `docs/engineering/offline-first.md`, `docs/playbooks/mobile-app.md`
 - **Native bridge** (M) → `docs/playbooks/mobile-app.md`
 - **Accessibility** (M) → `docs/engineering/accessibility-mobile.md`
+
+## vue-nuxt
+
+- **Nuxt page / route** (M) → `docs/playbooks/nuxt-app.md`, `docs/engineering/nuxt-rules.md`
+- **Vue component** (M) → `docs/engineering/nuxt-rules.md`
+- **Composable / state** (M) → `docs/playbooks/nuxt-app.md`
+- **Accessibility** (M) → `docs/engineering/accessibility-web.md`
