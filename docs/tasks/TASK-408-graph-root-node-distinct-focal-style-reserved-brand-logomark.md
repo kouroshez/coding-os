@@ -54,3 +54,4 @@ references: []
 
 ## Work Log
 - 2026-06-12 [claude]: Root anchor now wears reserved focal style: iris-600 #4F46E5 (logomark weight, absent from all 24 kind colors) + home-in
+- 2026-06-12 [claude]: committed e4f790d2: docs/engineering/design-system.md, src/core/web/ui/src/features/graph/color-legend.tsx, src/core/web
