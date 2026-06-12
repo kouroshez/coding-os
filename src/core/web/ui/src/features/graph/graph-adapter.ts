@@ -1,5 +1,5 @@
 import Graph from 'graphology';
-import { kindColor, normalizeKind } from '@/lib/node-colors';
+import { kindColor, normalizeKind, isRootUid, ROOT_COLOR, ROOT_UIDS } from '@/lib/node-colors';
 
 // Payload shape returned by /api/graph/export (S4 wrapper around
 // cos_graph_export). Keeping it loose — the backend is authoritative.
@@ -95,9 +95,10 @@ export function buildGraph(
     degree.set(e.target_uid, (degree.get(e.target_uid) ?? 0) + 1);
   }
   // Repo-root anchor — extractor emits exactly one of these. Always
-  // dominates the canvas (size + label) so the viewer's eye lands on
-  // the centre of importance.
-  const ROOT_UIDS = new Set(['folder:.', 'folder:']);
+  // dominates the canvas (size + reserved focal color + home glyph +
+  // label) so the viewer's eye lands on the centre of importance.
+  // ROOT_UIDS / ROOT_COLOR / isRootUid are imported from node-colors so
+  // the build path and the theme-recolor path (useSigma) agree.
   // Top-K-by-degree get an emphasis tier (label + size bump). K scales
   // with graph size — five labels make sense on a 200-node subgraph;
   // a 20K-node overview needs more but capped well below "every
@@ -133,6 +134,15 @@ export function buildGraph(
   const createSvgIcon = (pathData: string) => 
     `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${pathData}"/></svg>`)}`;
 
+  // Root anchor glyph — a home inside a halo ring (white strokes on the
+  // reserved iris disc). Distinct from the generic folder icon so the
+  // project origin is unmistakable at a glance (enterprise focus-node
+  // pattern). Ring at r=10 sits just inside the node-image clip radius.
+  const ROOT_ICON =
+    `data:image/svg+xml;utf8,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.2 12 8l4.5 4.2"/><path d="M8.6 11.3V16h6.8v-4.7"/></svg>`,
+    )}`;
+
   const ICONS: Record<string, string> = {
     folder: createSvgIcon('M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z'),
     file: createSvgIcon('M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8'),
@@ -154,13 +164,14 @@ export function buildGraph(
       : true;
     if (graph.hasNode(n.uid)) continue;
 
-    const image = ICONS[normalKind];
+    const root = isRootUid(n.uid);
+    const image = root ? ROOT_ICON : ICONS[normalKind];
 
     graph.addNode(n.uid, {
       x: Math.random() * 2 - 1,
       y: Math.random() * 2 - 1,
       size: sizeFor(n.uid, normalKind),
-      color: kindColor(n.kind),
+      color: root ? ROOT_COLOR : kindColor(n.kind),
       label: n.label || n.uid,
       kind: normalKind,
       filePath: n.file_path ?? undefined,

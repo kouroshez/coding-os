@@ -9,7 +9,7 @@ import { applyDagreLayout } from './dagre-layout';
 import { NodeImageProgram } from "@sigma/node-image";
 import { useGraphStore } from '@/store/graph-store';
 import { useThemeStore } from '@/store/theme-store';
-import { kindColor } from '@/lib/node-colors';
+import { kindColor, isRootUid, ROOT_COLOR } from '@/lib/node-colors';
 
 export type LayoutMode = 'force' | 'dagre';
 
@@ -397,7 +397,9 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
       const sig = sigmaRef.current;
       if (!live || !sig || !containerRef.current) return;
       live.forEachNode((n: string, d: SigmaNodeAttrs) => {
-        live.setNodeAttribute(n, 'color', kindColor(d.kind, s.theme));
+        // Root anchor keeps its reserved focal color across a theme
+        // toggle — it is NOT a categorical folder (TASK-408).
+        live.setNodeAttribute(n, 'color', isRootUid(n) ? ROOT_COLOR : kindColor(d.kind, s.theme));
       });
       const cs = getComputedStyle(containerRef.current);
       sig.setSetting('labelColor', {

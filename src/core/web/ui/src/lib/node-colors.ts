@@ -105,6 +105,18 @@ export const NODE_COLORS_LIGHT: Record<NodeKind, string> = {
 
 export const ALL_KINDS: NodeKind[] = Object.keys(NODE_COLORS) as NodeKind[];
 
+// ─── Root / focal anchor (RESERVED — not a categorical kind) ──────────
+// The graph's structural origin (`folder:.`) gets a focal style OUTSIDE
+// the kind palette so it never blends into a category hue — the
+// canonical enterprise focus-node pattern (KeyLines / ReGraph /
+// Linkurious). It wears the brand-logomark iris weight (#4F46E5, the
+// same indigo the wordmark uses) so the anchor reads as "the project's
+// home". Theme-independent: the logomark references one iris weight on
+// both canvases. SSOT note: docs/engineering/design-system.md §4.
+export const ROOT_UIDS: ReadonlySet<string> = new Set(['folder:.', 'folder:']);
+export const ROOT_COLOR = '#4F46E5';
+export const isRootUid = (uid: string): boolean => ROOT_UIDS.has(uid);
+
 // Map legacy colon-prefixed kinds emitted by the extractors
 // (`code:function`, `doc:heading`) to the canonical short form used
 // by NodeKind / visibleKinds.  Mirrors `_LEGACY_KIND_MAP` in

@@ -136,6 +136,20 @@ common-vs-common kind pair ≥18 ΔE76 in BOTH palettes + every node separable
 from its canvas — `src/core/web/ui/scripts/palette_dual.py`. Values SSOT:
 `src/core/web/ui/src/lib/node-colors.ts`.
 
+**Root / focal anchor (RESERVED — not a categorical kind):** the graph's
+structural origin (`folder:.`) is styled *outside* the kind palette so it can
+never blend into a category hue — the canonical enterprise focus-node pattern
+(KeyLines / ReGraph / Linkurious give the root/focus node a reserved style +
+halo + persistent caption rather than a data-driven color). It wears the
+**brand-logomark iris weight `#4F46E5`** (iris-600 — the same indigo the
+"Coding OS" wordmark uses, so the anchor literally reads as *the project's
+home*), a dedicated home-in-halo glyph instead of the generic folder icon, the
+dominant node size, and an always-on caption (the project directory name).
+Theme-independent (one iris weight on both canvases — the logomark scale). A
+theme toggle preserves it (it is NOT recolored as a folder). `isRootUid` /
+`ROOT_COLOR` SSOT: `src/core/web/ui/src/lib/node-colors.ts`; the Legend surfaces
+it as a leading "project root" entry.
+
 **Swimlane / task-kind chips:** no full pastel fills. A chip = hue tint
 (~10% alpha on panel) + 3px left accent border + chip text in the hue's
 dark step. Keeps color-coding, kills the kindergarten look.
