@@ -128,15 +128,34 @@ for rule in "${CODING_OS_ROOT}/core/rules/"*.md; do
 done
 
 # ---------------------------------------------------------------------------
-# 6. Core skills (one dir per skill; SKILL.md is the entry point)
+# 6. Core skills (one dir per skill; SKILL.md is the entry point).
+# Per-project opt-out: .coding-os/skill-overrides.json {"disabled": [...]}
+# (TASK-256 contract). A disabled skill is skipped AND unlinked so the agent
+# runtime stops loading its description into every session's system prompt.
 # ---------------------------------------------------------------------------
+SKILL_OVERRIDES="${PROJECT_ROOT}/.coding-os/skill-overrides.json"
+DISABLED_SKILLS=""
+if [[ -f "$SKILL_OVERRIDES" ]] && command -v jq >/dev/null 2>&1; then
+  DISABLED_SKILLS=$(jq -r '(.disabled // [])[]' "$SKILL_OVERRIDES" 2>/dev/null | tr '\n' ' ' || true)
+fi
+_skill_disabled() {
+  [[ " ${DISABLED_SKILLS} " == *" $1 "* ]]
+}
+DISABLED_COUNT=0
 for skill_dir in "${CODING_OS_ROOT}/core/skills/"*/; do
   name=$(basename "$skill_dir")
+  if _skill_disabled "$name"; then
+    rm -f "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}/SKILL.md" 2>/dev/null || true
+    rmdir "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}" 2>/dev/null || true
+    DISABLED_COUNT=$((DISABLED_COUNT + 1))
+    continue
+  fi
   mkdir -p "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}"
   if [[ -f "${skill_dir}SKILL.md" ]]; then
     ln -sf "${skill_dir}SKILL.md" "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}/SKILL.md"
   fi
 done
+[[ "$DISABLED_COUNT" -gt 0 ]] && echo "  ✅ Skipped ${DISABLED_COUNT} disabled core skill(s) (skill-overrides.json)"
 
 # 6b. Re-link stack-specific skills declared in installed-manifest.json.
 # Idempotent: link-stack-skills.sh uses `ln -sf` and skips missing dirs.

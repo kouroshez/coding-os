@@ -243,6 +243,13 @@ its body runs. The check is a single `stat` when no override file exists (the
 common case), and a safety hook can never appear in the derived list, so it can
 never be skipped. Toggling a hook is instant — no re-render, no re-install.
 
+**Skill overrides enforce at link time**: `install-adapter.sh` (step 6) reads
+`skill-overrides.json` and skips + unlinks each disabled core skill, so the
+agent runtime stops loading its frontmatter description into every session's
+system prompt (~150 tok per skill per session, paid again by every subagent).
+Stack-required skills are not disableable (the CLI refuses them); disabling
+takes effect at the next `bash src/adapters/<id>/install.sh` / `cos update`.
+
 ## Create a project from the UI (init route + wizard)
 
 A user can scaffold a brand-new project from the Hub without the CLI. Two

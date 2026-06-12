@@ -44,6 +44,7 @@ _ALLOWLIST: frozenset[str] = frozenset(
         "cos_csrf",  # a CSRF cookie name issued by the hub gate, not a tool
         "cos_doc_heading_search",  # roadmap entry (proposed future tool, doc-system-overhaul-roadmap.md)
         "cos_hook_error",  # proposed shared shell helper in the observability doc
+        "cos_init_jobs_total",  # Prometheus funnel counter name (hub-architecture.md), not a tool
         "cos_root",  # example local variable in mcp-fast-path-entry.md prose
     }
 )
