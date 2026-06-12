@@ -217,6 +217,7 @@ def graph_export(
     include_spine: bool = Query(False),
     mode: str = Query("auto"),
     exclude_kinds: str | None = Query(None),
+    scope: str = Query("neighborhood"),
     _rl=Depends(make_rate_limit_dep("graph.export")),
     _m=Depends(make_metrics_dep("graph.export")),
 ):
@@ -265,6 +266,7 @@ def graph_export(
         include_spine,
         mode,
         tuple(ek) if ek is not None else None,
+        scope,
     )
 
     def _produce():
@@ -277,6 +279,7 @@ def graph_export(
             include_spine=include_spine,
             mode=mode,
             exclude_kinds=ek,
+            scope=scope,
         )
 
     result = graph_export_cache.get_or_compute(

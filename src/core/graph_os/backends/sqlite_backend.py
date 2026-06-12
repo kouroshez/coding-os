@@ -571,6 +571,61 @@ class SqliteBackend:
             self._conn.commit()
             return rewrites
 
+    def edges_among(
+        self,
+        uids: Sequence[str],
+        *,
+        edge_types: Sequence[str] | None = None,
+        exclude_edge_types: Sequence[str] = ("contains",),
+        limit: int = 100_000,
+    ) -> list[GraphEdge]:
+        """Edges whose BOTH endpoints are inside ``uids`` — the semantic
+        overlay of a subtree-scoped export (TASK-406). Chunked source-side
+        IN query + in-memory target filter."""
+        if not uids:
+            return []
+        chunk = 500
+        id_to_uid: dict[int, str] = {}
+        uid_list = list(dict.fromkeys(uids))
+        for start in range(0, len(uid_list), chunk):
+            batch = uid_list[start : start + chunk]
+            for row_id, row_uid in self._conn.execute(
+                f"SELECT id, uid FROM graph_nodes WHERE uid IN ({','.join('?' * len(batch))})",
+                batch,
+            ).fetchall():
+                id_to_uid[int(row_id)] = str(row_uid)
+        member_ids = list(id_to_uid)
+        member_set = set(member_ids)
+        excluded_types = set(exclude_edge_types or ())
+        wanted_types = set(edge_types) if edge_types else None
+        edges: list[GraphEdge] = []
+        for start in range(0, len(member_ids), chunk):
+            batch = member_ids[start : start + chunk]
+            rows = self._conn.execute(
+                "SELECT source_id, target_id, edge_type, extractor, confidence "
+                f"FROM graph_edges_v12 WHERE source_id IN ({','.join('?' * len(batch))})",
+                batch,
+            ).fetchall()
+            for src, tgt, edge_type, extractor, confidence in rows:
+                if int(tgt) not in member_set:
+                    continue
+                if edge_type in excluded_types:
+                    continue
+                if wanted_types is not None and edge_type not in wanted_types:
+                    continue
+                edges.append(
+                    GraphEdge(
+                        source_uid=id_to_uid[int(src)],
+                        target_uid=id_to_uid[int(tgt)],
+                        edge_type=str(edge_type),
+                        extractor=str(extractor or ""),
+                        confidence=float(confidence or 0.0),
+                    )
+                )
+                if len(edges) >= limit:
+                    return edges
+        return edges
+
     def contains_ancestors_bulk(
         self, uids: Sequence[str]
     ) -> tuple[list[GraphNode], list[GraphEdge]]:

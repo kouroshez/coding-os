@@ -516,3 +516,33 @@ def test_bulk_closure_empty_input():
     conn = _migrated_conn()
     backend = SqliteBackend(conn=conn)
     assert backend.contains_ancestors_bulk([]) == ([], [])
+
+
+# ---------------------------------------------------------------------------
+# edges_among — semantic overlay for subtree exports (TASK-406)
+# ---------------------------------------------------------------------------
+
+
+def test_edges_among_returns_only_in_set_semantic_edges():
+    conn = _migrated_conn()
+    backend = SqliteBackend(conn=conn)
+    inside_a = GraphNode(uid="code:function:m.py::a", kind="code:function", label="a", file_path="m.py")
+    inside_b = GraphNode(uid="code:function:m.py::b", kind="code:function", label="b", file_path="m.py")
+    outside = GraphNode(uid="code:function:x.py::c", kind="code:function", label="c", file_path="x.py")
+    holder = GraphNode(uid="code:file:m.py", kind="code:file", label="m.py", file_path="m.py")
+    backend.bulk_upsert(
+        [inside_a, inside_b, outside, holder],
+        [
+            GraphEdge(source_uid=inside_a.uid, target_uid=inside_b.uid, edge_type="calls",
+                      extractor="t", confidence=0.9),
+            GraphEdge(source_uid=inside_a.uid, target_uid=outside.uid, edge_type="calls",
+                      extractor="t", confidence=0.9),
+            GraphEdge(source_uid=holder.uid, target_uid=inside_a.uid, edge_type="contains",
+                      extractor="t", confidence=1.0),
+        ],
+    )
+    edges = backend.edges_among([inside_a.uid, inside_b.uid, holder.uid])
+    pairs = {(e.source_uid, e.target_uid, e.edge_type) for e in edges}
+    assert (inside_a.uid, inside_b.uid, "calls") in pairs
+    assert all(e.target_uid != outside.uid for e in edges)
+    assert all(e.edge_type != "contains" for e in edges)

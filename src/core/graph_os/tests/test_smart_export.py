@@ -70,6 +70,24 @@ class _StubBackend:
             return len(self._edges)
         return sum(1 for e in self._edges if e.edge_type == edge_type)
 
+    def edges_among(
+        self, uids, *, edge_types=None, exclude_edge_types=("contains",), limit=100_000
+    ):
+        members = set(uids)
+        wanted = set(edge_types) if edge_types else None
+        out = []
+        for e in self._edges:
+            if e.source_uid not in members or e.target_uid not in members:
+                continue
+            if e.edge_type in set(exclude_edge_types or ()):
+                continue
+            if wanted is not None and e.edge_type not in wanted:
+                continue
+            out.append(e)
+            if len(out) >= limit:
+                break
+        return out
+
 
 def _node(uid, kind="code:function", label=None, file_path="src/foo.py"):
     return GraphNode(
@@ -585,3 +603,47 @@ class TestBudgetProvenance:
     def test_overview_has_no_hops(self):
         res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=20))
         assert res["data"]["meta"]["max_hops_effective"] is None
+
+
+# ---------------------------------------------------------------------------
+# scope=subtree — rooted views stay inside the chosen subtree (TASK-406)
+# ---------------------------------------------------------------------------
+
+
+class TestSubtreeScope:
+    def test_subtree_walks_contains_down_only(self):
+        # Root at the module: members are the module's children, never the
+        # parent file (the old neighborhood walk climbed up and flooded).
+        res = _parse(
+            graph_tools.cos_graph_export(
+                root_uid="code:module:a",
+                max_nodes=50,
+                max_hops=8,
+                scope="subtree",
+                exclude_kinds=[],
+            )
+        )
+        uids = {n["uid"] for n in res["data"]["nodes"]}
+        assert "code:module:a" in uids
+        assert "code:function:a.py::login" in uids
+        assert "code:file:a.py" not in uids
+
+    def test_subtree_includes_semantic_edges_among_members(self):
+        res = _parse(
+            graph_tools.cos_graph_export(
+                root_uid="code:module:a",
+                max_nodes=50,
+                max_hops=8,
+                scope="subtree",
+                exclude_kinds=[],
+            )
+        )
+        types = {e["edge_type"] for e in res["data"]["edges"]}
+        assert "contains" in types
+        # calls among login/verify/issue_jwt are inside the subtree.
+        assert "calls" in types
+
+    def test_unknown_scope_rejected(self):
+        res = _parse(graph_tools.cos_graph_export(scope="galaxy"))
+        assert res["ok"] is False
+        assert res["error"]["category"] == "validation"

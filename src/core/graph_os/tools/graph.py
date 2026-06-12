@@ -2523,6 +2523,7 @@ def cos_graph_export(
     include_spine: bool = False,
     mode: str = "auto",
     exclude_kinds: Sequence[str] | None = None,
+    scope: str = "neighborhood",
     backend: str | None = None,
 ) -> dict[str, Any]:
     """Export a subgraph in `json | mermaid | dot`.
@@ -2554,6 +2555,8 @@ def cos_graph_export(
             "validation",
             f"mode must be one of auto/containment/dependencies/processes (got {mode!r})",
         )
+    if scope not in {"neighborhood", "subtree"}:
+        return _fail("validation", f"scope must be neighborhood|subtree (got {scope!r})")
 
     # G3: normalize edge_types + exclude_kinds (wire trap)
     parsed_edge_types = _normalize_kinds(edge_types) or None
@@ -2604,16 +2607,39 @@ def cos_graph_export(
         # (user-reported: "max doesn't show 100%"). Accept the
         # frontend's depth choice and clamp to a safe ceiling.
         effective_hops = 3 if max_hops is None else max(1, min(int(max_hops), 16))
-        nodes, edges = _walk_bfs(
-            be,
-            root_uid=root_uid,
-            direction="both",
-            max_hops=effective_hops,
-            confidence_min=0.0,
-            edge_types=parsed_edge_types,
-            visit_limit=max_nodes,
-            exclude_kinds=excluded,
-        )
+        if scope == "subtree":
+            # TASK-406: a rooted view means THIS subtree. The old "both"
+            # neighborhood walk climbed one hop to the parent and flooded
+            # the whole repo (probe: 26 of 8008 nodes inside the chosen
+            # folder). Walk `contains` downward only, then overlay the
+            # semantic edges among the members.
+            nodes, edges = _walk_bfs(
+                be,
+                root_uid=root_uid,
+                direction="out",
+                max_hops=effective_hops,
+                confidence_min=0.0,
+                edge_types=("contains",),
+                visit_limit=max_nodes,
+                exclude_kinds=excluded,
+            )
+            member_uids = [n.uid for n in nodes]
+            edges_among_fn = getattr(be, "edges_among", None)
+            if callable(edges_among_fn) and member_uids:
+                edges = list(edges) + list(
+                    edges_among_fn(member_uids, edge_types=parsed_edge_types)
+                )
+        else:
+            nodes, edges = _walk_bfs(
+                be,
+                root_uid=root_uid,
+                direction="both",
+                max_hops=effective_hops,
+                confidence_min=0.0,
+                edge_types=parsed_edge_types,
+                visit_limit=max_nodes,
+                exclude_kinds=excluded,
+            )
     elif mode == "processes":
         nodes, edges = _export_processes(be, max_nodes=max_nodes)
     else:

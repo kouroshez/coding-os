@@ -50,8 +50,10 @@ const FA2_BUDGET_PER_NODE_MS = 1.2; // measured empirically on Barnes-Hut
 const NOVERLAP_SETTINGS = {
   maxIterations: 30,
   ratio: 1.1,
-  margin: 6,
-  expansion: 1.05,
+  // TASK-406: wider margins give the layout more base spacing so the
+  // zoom-adaptive sizing has room to breathe at overview ratios.
+  margin: 10,
+  expansion: 1.08,
 };
 
 function _fa2Budget(nodeCount: number): number {
@@ -260,12 +262,23 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
     
     sigma.getCamera().on('updated', () => {
       const ratio = sigma.getCamera().ratio;
-      let newLOD = 2; 
+      let newLOD = 2;
       if (ratio > 3.0) newLOD = 0;
       else if (ratio > 1.2) newLOD = 1;
-      
+
       if (newLOD !== currentLOD) {
         currentLOD = newLOD;
+        // TASK-406: adaptive sizing — past the mid-zoom threshold node
+        // sizes follow GRAPH positions (linear ratio) instead of staying
+        // fixed-pixel, so zoomed-out circles shrink with the layout and
+        // stop piling on top of each other (Sigma's documented remedy;
+        // Cambridge Intelligence "adapt styles per zoom level"). Zoomed
+        // in, restore the default sqrt curve for readable labels.
+        sigma.setSetting(
+          'zoomToSizeRatioFunction',
+          newLOD <= 1 ? (r: number) => r : (r: number) => Math.sqrt(r),
+        );
+        sigma.setSetting('labelRenderedSizeThreshold', newLOD === 0 ? 24 : 9);
         sigma.refresh();
       }
     });

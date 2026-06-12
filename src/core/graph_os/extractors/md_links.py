@@ -471,14 +471,20 @@ def emit_contains_spine(
 
     # Always emit the repo root folder (parent of every top-level dir).
     # uid stays `folder:.` for stability across rebuilds and idempotency;
-    # `label` upgraded from "." to "repo-root" so the graph canvas shows
-    # a recognisable anchor instead of a tiny dot — uid is the contract,
-    # label is presentation.
+    # the label is the PROJECT NAME (cwd directory name — extraction runs
+    # from the project root by convention) so the spine anchors on
+    # something a human recognises ("coding-os"), not the technical
+    # "repo-root" placeholder (TASK-406). uid is the contract, label is
+    # presentation.
+    try:
+        project_label = Path.cwd().name or "repo-root"
+    except OSError:
+        project_label = "repo-root"
     root_uid = folder_uid(".")
     root_node = GraphNode(
         uid=root_uid,
         kind="folder",
-        label="repo-root",
+        label=project_label,
         file_path=None,
         metadata={"extractor": extractor_id, "repo_root": True},
     )

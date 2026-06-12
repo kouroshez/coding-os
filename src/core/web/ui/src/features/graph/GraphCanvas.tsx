@@ -66,6 +66,9 @@ export default function GraphCanvas() {
     exportParams.root_uid = selectedRootUid;
     exportParams.include_spine = true;
     exportParams.max_hops = rootedHopsByDepth[depthKey] ?? 3;
+    // TASK-406: a rooted view means THIS subtree — the old neighborhood
+    // walk climbed to the parent and flooded the whole repo.
+    exportParams.scope = 'subtree';
   }
   const { data, isLoading, error } = useApiGet<ApiGraphPayload>(
     ['graph-export', selectedRootUid ?? '__overview__', viewMode, depthKey],
@@ -93,6 +96,12 @@ export default function GraphCanvas() {
     setGraph(graph, { layout });
   }, [pruned, visibleKinds, visibleEdgeTypes, viewMode, setGraph]);
 
+  // Human-readable identity of the current root — the uid minus its
+  // scheme prefix ("folder:docs/tasks" → "docs/tasks").
+  const rootCrumb = selectedRootUid
+    ? selectedRootUid.replace(/^[a-z_]+:(file:|heading:)?/i, '') || selectedRootUid
+    : null;
+
   // Always mount the container so Sigma can attach on first paint;
   // overlay the CTA when no root is selected.  Conditionally rendering
   // the container caused Sigma to miss the host on initial mount and
@@ -100,6 +109,16 @@ export default function GraphCanvas() {
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="absolute inset-0" aria-label="graph canvas" />
+      {rootCrumb && (
+        <div
+          role="note"
+          aria-label="current graph root"
+          className="absolute left-3 top-16 z-10 max-w-[40%] truncate rounded-full border border-white/10 bg-[var(--cos-panel)]/80 px-3 py-1 font-mono text-[11px] text-[var(--cos-text)] shadow-xl backdrop-blur-md"
+          title={selectedRootUid ?? undefined}
+        >
+          📍 {rootCrumb === '.' ? 'project root' : rootCrumb}
+        </div>
+      )}
       {isLoading && (
         <div
           role="status"
