@@ -134,8 +134,11 @@ hook_registry_output: settings.template.json
 hook_capabilities:
   PreToolUse:
     matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill, Read, "mcp__coding-os__cos_task_move", "mcp__coding-os__cos_task_create", "mcp__coding-os__cos_work_log_append"]
+    # cos_task_move added (TASK-409): sync-task-current fires PostToolUse on
+    # this matcher to auto-write .task-current after an MCP task move; without
+    # it the pair rendered for zero adapters and the marker went stale.
   PostToolUse:
-    matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill, "mcp__coding-os__cos_backtrack_log"]
+    matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill, "mcp__coding-os__cos_backtrack_log", "mcp__coding-os__cos_task_move"]
   # PostToolUseFailure (SDK 0.1.73): fires when a tool errored. Empty
   # matcher = match all tools; presence/observation hooks keep the
   # board's activity signal accurate even on failures.

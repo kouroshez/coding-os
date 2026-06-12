@@ -165,6 +165,11 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         image: NodeImageProgram as any,
       },
+      // Tolerate a zero-width host at mount — the Cognition page (and any
+      // tab that mounts the canvas inside a not-yet-laid-out flex column)
+      // would otherwise throw "Sigma: Container has no width" on first
+      // paint (TASK-409); Sigma re-measures on the next resize/refresh.
+      allowInvalidContainer: true,
       renderLabels: true,
       labelSize: 12,
       labelColor: { color: labelHex },

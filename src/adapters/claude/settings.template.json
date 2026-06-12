@@ -427,6 +427,17 @@
         ]
       },
       {
+        "matcher": "mcp__coding-os__cos_task_move",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/sync-task-current.sh",
+            "statusMessage": "📌 Syncing .task-current...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Skill",
         "hooks": [
           {

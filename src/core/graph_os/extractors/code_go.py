@@ -4,8 +4,9 @@ Coverage targets Python parity for the Go ecosystem:
 
   Node kinds emitted
     - code:file              one per .go file
-    - code:module            one per file (Go package)
-    - code:package           one per file (declared `package <name>`)
+    - code:module            one per file (Go package); also the package
+                             grouping node (uid `code:package:go:<name>`,
+                             canonical kind `module`)
     - code:function          top-level funcs, including init() and TestXxx/etc.
     - code:method            receiver-bound funcs `func (r *T) M()`
     - code:class             struct + interface + alias + generic type defs
@@ -1360,8 +1361,11 @@ def extract(path: str, content: str) -> ExtractionResult:
     pkg_node_uid = package_uid(pkg_name)
     result.nodes.append(
         GraphNode(
+            # Go package node is a module-tier namespace; emit the canonical
+            # `module` kind (uid keeps the `code:package:` namespace so it
+            # never collides with the per-file module node) — TASK-409.
             uid=pkg_node_uid,
-            kind="code:package",
+            kind="module",
             label=pkg_name,
             lang="go",
             metadata={"extractor": EXTRACTOR_ID},

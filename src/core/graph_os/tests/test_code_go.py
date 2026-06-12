@@ -68,6 +68,20 @@ def test_extract_emits_file_and_module_pair():
     assert mods[0].label == "main"
 
 
+def test_package_node_emits_canonical_module_kind():
+    # TASK-409: the package grouping node must carry the canonical `module`
+    # kind (not the orphan `code:package`, which normalize_kind couldn't map
+    # and the doctor flagged as a legacy kind).
+    from graph_os.types import normalize_kind
+
+    r = code_go.extract("svc/main.go", _HELLO)
+    pkg = [n for n in r.nodes if n.uid == "code:package:go:main"]
+    assert len(pkg) == 1
+    assert pkg[0].kind == "module"
+    # the legacy stored form still normalizes (bridge for rebuild-kinds)
+    assert normalize_kind("code:package").value == "module"
+
+
 def test_extract_emits_top_level_funcs():
     r = code_go.extract("svc/main.go", _HELLO)
     funcs = _by_kind(r, "code:function")

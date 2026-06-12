@@ -539,7 +539,6 @@ CI runs the matrix on every PR. See `.github/workflows/ci.yml`.
 | [docs/governance/critical-rules.md](./docs/governance/critical-rules.md)            | 22 critical rules with rationale + repair steps             |
 | [docs/governance/mcp-tool-inventory.md](./docs/governance/mcp-tool-inventory.md)    | Per-tool spec + envelope contract                           |
 | [docs/governance/agent-workflow.md](./docs/governance/agent-workflow.md)            | Domain routing, task protocol, memory contract              |
-| [docs/engineering/intent-vocabulary.md](./docs/engineering/intent-vocabulary.md)    | Exhaustive-intent predicates (FA + EN)                      |
 | [docs/engineering/graph_os-queries.md](./docs/engineering/graph_os-queries.md)      | When to query the graph vs grep                             |
 | [docs/engineering/hub-architecture.md](./docs/engineering/hub-architecture.md)      | Hub: FastAPI ↔ React SPA contract                           |
 | [docs/playbooks/](./docs/playbooks/)                                                | Hook authoring · adapter authoring · template authoring · MCP tool authoring |
