@@ -2128,3 +2128,98 @@ class TestProjectExtraSkills:
         disabled = runner.invoke(cli, ["skill", "disable", "team-style"])
         assert disabled.exit_code == 0
         assert not link.exists()
+
+
+# ---------------------------------------------------------------------------
+# doctor --tokens — transcript token-usage audit
+# ---------------------------------------------------------------------------
+
+
+class TestDoctorTokens:
+    @staticmethod
+    def _usage_line(cache_read: int, output: int = 100) -> str:
+        import json as json_module
+
+        return json_module.dumps(
+            {
+                "message": {
+                    "usage": {
+                        "input_tokens": 10,
+                        "output_tokens": output,
+                        "cache_creation_input_tokens": 50,
+                        "cache_read_input_tokens": cache_read,
+                    }
+                }
+            }
+        )
+
+    def _make_transcripts(self, root: Path) -> Path:
+        transcripts = root / "transcripts"
+        transcripts.mkdir()
+        main = transcripts / "aaaa1111.jsonl"
+        main.write_text(
+            "\n".join(
+                [
+                    self._usage_line(80_000),
+                    "not json at all",
+                    self._usage_line(200_000),
+                ]
+            ),
+            encoding="utf-8",
+        )
+        sub_dir = transcripts / "aaaa1111" / "subagents"
+        sub_dir.mkdir(parents=True)
+        (sub_dir / "agent-bb22.jsonl").write_text(self._usage_line(30_000), encoding="utf-8")
+        return transcripts
+
+    def test_analyze_sums_usage_and_flags_budget(self, tmp_path: Path) -> None:
+        from cli.doctor_tokens import analyze_tokens
+
+        transcripts = self._make_transcripts(tmp_path)
+        report = analyze_tokens(tmp_path, transcripts_dir=transcripts)
+        assert report["found"] is True
+        assert report["sessions"] == 2
+        assert report["subagent_sessions"] == 1
+        assert report["turns"] == 3
+        assert report["totals"]["cache_read_input_tokens"] == 310_000
+        # 310_000 cache-read / 3 turns > 100K — over the 150K default? 103K is under.
+        assert report["avg_context_per_turn"] == 310_000 // 3
+        # first main turn: 10 + 50 + 80_000 (output excluded)
+        assert report["median_session_baseline"] == 80_060
+
+    def test_missing_transcript_dir_reports_not_found(self, tmp_path: Path) -> None:
+        from cli.doctor_tokens import analyze_tokens, format_tokens_text
+
+        report = analyze_tokens(tmp_path, transcripts_dir=tmp_path / "nope")
+        assert report["found"] is False
+        assert "nothing to analyze" in format_tokens_text(report)
+
+    def test_cli_flag_text_and_json(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import json as json_module
+
+        import cli.doctor_tokens as tokens_module
+
+        transcripts = self._make_transcripts(tmp_path)
+        monkeypatch.setattr(tokens_module, "transcript_dir_for", lambda project: transcripts)
+        result = runner.invoke(cli, ["doctor", "--tokens", "-d", str(tmp_path)])
+        assert result.exit_code == 0, result.output
+        assert "Token usage" in result.output
+        assert "avg context per turn" in result.output
+
+        json_result = runner.invoke(
+            cli, ["doctor", "--tokens", "--format", "json", "-d", str(tmp_path)]
+        )
+        assert json_result.exit_code == 0, json_result.output
+        payload = json_module.loads(json_result.output)
+        assert payload["turns"] == 3
+
+    def test_over_budget_warns(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        from cli.doctor_tokens import analyze_tokens, format_tokens_text
+
+        monkeypatch.setenv("COS_CONTEXT_BUDGET", "50000")
+        transcripts = self._make_transcripts(tmp_path)
+        report = analyze_tokens(tmp_path, transcripts_dir=transcripts)
+        assert report["over_budget"] is True
+        assert "WARN: avg context/turn exceeds budget" in format_tokens_text(report)

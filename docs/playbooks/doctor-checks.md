@@ -380,6 +380,30 @@ cos doctor --ignore 'graph.*' --ignore 'hook.coverage'
 
 Suppressed checks are listed in the summary footer: `suppressed: N check(s) via <glob>, ...`.
 
+## Tokens
+
+Token-usage audit of the agent's transcript history: `cos doctor --tokens [--days N]`.
+Probe-and-exit mode (like `--otel` / `--bootstrap`) — reads the Claude Code transcript
+JSONLs for this project (`~/.claude/projects/<slug>/`), sums the per-turn `usage`
+records (input / output / cache-write / cache-read), and reports:
+
+- 7-day (or `--days N`) totals plus a weighted input-equivalent figure
+  (in×1 + out×5 + cache-write×1.25 + cache-read×0.1 — the approximate
+  usage-limit weighting).
+- Average context per API turn (`cache_read / turns`) — the single best
+  predictor of burn rate; >150K means sessions are running too long without
+  `/clear`.
+- Top sessions by cache-read burn, with turn counts — marathon sessions
+  (>1,000 turns) are flagged.
+- Session-start baseline (median first-turn context) — the fixed overhead every
+  session and subagent pays before any work.
+
+**Warns** (in the summary line) when avg context/turn exceeds the budget
+(default 150K, override `COS_CONTEXT_BUDGET`). Exits 0 either way — this mode
+informs, it does not gate. Supports `--format json` for machine ingest.
+Transcripts are agent-runtime-specific; when no transcript directory exists for
+the project (e.g. Codex-only usage), the command reports that and exits 0.
+
 ## Explain
 
 To open this reference inline for a specific check:

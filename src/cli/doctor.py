@@ -2405,6 +2405,20 @@ def run_bootstrap_doctor() -> DoctorReport:
     default=None,
     help="Print the docs/playbooks/doctor-checks.md section for the given check ID and exit.",
 )
+@click.option(
+    "--tokens",
+    "tokens",
+    is_flag=True,
+    default=False,
+    help="Token-usage audit of agent transcripts (probe-and-exit, like --otel)",
+)
+@click.option(
+    "--days",
+    "tokens_days",
+    type=int,
+    default=7,
+    help="Window for --tokens (default 7 days)",
+)
 def doctor(
     project_dir: str,
     output_format: str,
@@ -2415,8 +2429,19 @@ def doctor(
     claude_sdk: bool,
     ignore_globs: tuple[str, ...],
     explain_id: str | None,
+    tokens: bool,
+    tokens_days: int,
 ) -> None:
     """Deep health check: scaffold, DB schema, adapter, manifest, MCP."""
+    if tokens:
+        from cli.doctor_tokens import analyze_tokens, format_tokens_text
+
+        token_report = analyze_tokens(Path(project_dir).resolve(), days=tokens_days)
+        if output_format == "json":
+            click.echo(json.dumps(token_report, indent=2))
+        else:
+            click.echo(format_tokens_text(token_report))
+        return
     if bootstrap:
         report = run_bootstrap_doctor()
         if output_format == "json":
