@@ -1,7 +1,16 @@
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Brain, HeartPulse, LayoutDashboard, Network, SlidersHorizontal } from 'lucide-react';
+import {
+  Brain,
+  HeartPulse,
+  LayoutDashboard,
+  Network,
+  PanelRightClose,
+  PanelRightOpen,
+  SlidersHorizontal,
+} from 'lucide-react';
+import { useGraphStore } from '@/store/graph-store';
 import HealthAlarmBar from '@/layout/HealthAlarmBar';
 import Inspector from '@/layout/Inspector';
 import LiveStatus from '@/layout/LiveStatus';
@@ -65,9 +74,14 @@ export default function AppShell({
   // only meaningful on /graph. Other pages render their own context
   // panes (Cognition right-aside, Search inline expand) so the global
   // aside would just sit empty and steal width.
-  const showInspector =
+  const inspectorRoute =
     /^\/graph(?:\/|$)/.test(location.pathname) ||
     /^\/p\/[^/]+\/graph(?:\/|$)/.test(location.pathname);
+  // TASK-404: the inspector also collapses on demand so the canvas can
+  // take the full width — a slim rail re-opens it.
+  const inspectorOpen = useGraphStore((s) => s.inspectorOpen);
+  const toggleInspector = useGraphStore((s) => s.toggleInspector);
+  const showInspector = inspectorRoute && inspectorOpen;
 
   const linkFor = (feature: string): string =>
     scopeSlug ? `/p/${encodeURIComponent(scopeSlug)}/${feature}` : `/${feature}`;
@@ -117,11 +131,31 @@ export default function AppShell({
         </div>
         {showInspector && (
           <aside
-            className="hidden w-[320px] shrink-0 overflow-auto border-l border-[var(--cos-border)] bg-[var(--cos-panel)] text-[var(--cos-text)] md:block"
+            className="relative hidden w-[320px] shrink-0 overflow-auto border-l border-[var(--cos-border)] bg-[var(--cos-panel)] text-[var(--cos-text)] md:block"
             aria-label="Inspector"
           >
+            <button
+              type="button"
+              onClick={toggleInspector}
+              title="Hide inspector"
+              aria-label="Hide inspector"
+              className="absolute right-2 top-2 z-10 text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2"
+            >
+              <PanelRightClose size={14} aria-hidden />
+            </button>
             <Inspector />
           </aside>
+        )}
+        {inspectorRoute && !inspectorOpen && (
+          <button
+            type="button"
+            onClick={toggleInspector}
+            title="Show inspector"
+            aria-label="Show inspector"
+            className="hidden w-7 shrink-0 items-start justify-center border-l border-[var(--cos-border)] bg-[var(--cos-panel)] pt-3 text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 md:flex"
+          >
+            <PanelRightOpen size={14} aria-hidden />
+          </button>
         )}
       </div>
       <CommandPalette />

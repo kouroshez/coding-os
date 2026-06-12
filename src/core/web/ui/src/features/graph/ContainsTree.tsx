@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ChevronDown, ChevronRight, PanelLeftClose } from 'lucide-react';
 import { useGraphStore } from '@/store/graph-store';
 import { useApiGet } from '@/lib/hooks';
 import { kindColor } from '@/lib/node-colors';
@@ -131,7 +132,21 @@ function TreeRow({
 // current graph root.
 export default function ContainsTree() {
   const selectedRootUid = useGraphStore((s) => s.selectedRootUid);
-  const setRoot = useGraphStore((s) => s.setRoot);
+  const toggleSpine = useGraphStore((s) => s.toggleSpine);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // URL is the source of truth for the selected root (hub hard rule):
+  // navigate instead of mutating the store directly so refresh / share
+  // keeps the selection. GraphPage syncs URL → store.
+  const selectRoot = useCallback(
+    (uid: string | null) => {
+      const scope = /^\/p\/([^/]+)(?:\/|$)/.exec(location.pathname);
+      const prefix = scope ? `/p/${scope[1]}` : '';
+      navigate(uid ? `${prefix}/graph/${encodeURIComponent(uid)}` : `${prefix}/graph`);
+    },
+    [navigate, location.pathname],
+  );
 
   // The sidebar is a DIRECTORY tree: folders, files, and governance doc
   // kinds. Symbol-level kinds (class/method/…) used to ride along "for
@@ -168,16 +183,27 @@ export default function ContainsTree() {
         <span className="font-semibold uppercase tracking-wide text-[var(--cos-muted)]">
           Contains spine
         </span>
-        {selectedRootUid && (
+        <span className="flex items-center gap-2">
+          {selectedRootUid && (
+            <button
+              type="button"
+              onClick={() => selectRoot(null)}
+              className="text-[var(--cos-muted)] hover:text-white"
+              title="Clear root"
+            >
+              clear
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => setRoot(null)}
-            className="text-[var(--cos-muted)] hover:text-white"
-            title="Clear root"
+            onClick={toggleSpine}
+            className="text-[var(--cos-muted)] hover:text-white focus-visible:ring-2"
+            title="Hide Contains spine"
+            aria-label="Hide Contains spine"
           >
-            clear
+            <PanelLeftClose size={12} aria-hidden />
           </button>
-        )}
+        </span>
       </header>
       <div className="flex-1 overflow-auto p-1 cos-scroll">
         {isLoading && <p className="p-2 text-xs text-[var(--cos-muted)]">loading spine…</p>}
@@ -197,7 +223,7 @@ export default function ContainsTree() {
               key={r.uid}
               node={r}
               depth={0}
-              onSelect={setRoot}
+              onSelect={selectRoot}
               selectedUid={selectedRootUid}
             />
           ))}

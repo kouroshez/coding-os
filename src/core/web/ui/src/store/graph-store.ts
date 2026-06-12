@@ -37,6 +37,11 @@ interface GraphStoreState {
   visibleKinds: Set<NodeKind>;
   visibleEdgeTypes: Set<string>;
   searchQuery: string;
+  // Panel ergonomics (TASK-404): each chrome panel collapses behind a
+  // toggle so the canvas can use the full viewport. Session-scoped.
+  spineOpen: boolean;
+  filtersOpen: boolean;
+  inspectorOpen: boolean;
 
   setRoot: (uid: string | null) => void;
   setSelectedNode: (uid: string | null) => void;
@@ -46,6 +51,9 @@ interface GraphStoreState {
   setAllKinds: (visible: boolean) => void;
   toggleEdgeType: (t: string) => void;
   setSearchQuery: (q: string) => void;
+  toggleSpine: () => void;
+  toggleFilters: () => void;
+  toggleInspector: () => void;
 }
 
 export const useGraphStore = create<GraphStoreState>((set) => ({
@@ -56,6 +64,9 @@ export const useGraphStore = create<GraphStoreState>((set) => ({
   visibleKinds: new Set<NodeKind>(ALL_KINDS),
   visibleEdgeTypes: new Set<string>(DEFAULT_EDGE_TYPES),
   searchQuery: '',
+  spineOpen: true,
+  filtersOpen: true,
+  inspectorOpen: true,
 
   // when a root is picked, mirror it into selectedNodeUid
   // so the right-pane Inspector opens for it.  Previously the inspector
@@ -93,4 +104,7 @@ export const useGraphStore = create<GraphStoreState>((set) => ({
     }),
 
   setSearchQuery: (searchQuery) => set({ searchQuery }),
+  toggleSpine: () => set((s) => ({ spineOpen: !s.spineOpen })),
+  toggleFilters: () => set((s) => ({ filtersOpen: !s.filtersOpen })),
+  toggleInspector: () => set((s) => ({ inspectorOpen: !s.inspectorOpen })),
 }));
