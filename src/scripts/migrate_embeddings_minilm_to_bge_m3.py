@@ -49,7 +49,11 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    thinking_os = Path(__file__).resolve().parent.parent.parent / "core" / "thinking_os"
+    # script lives at src/scripts/ → src is two parents up; the package is
+    # src/core/thinking_os. The `core/` form predated the src/ migration and
+    # left this one level short, so the migrator could never import — the
+    # embedding migration stalled and the doctor checkpoint never cleared. TASK-409.
+    thinking_os = Path(__file__).resolve().parent.parent / "core" / "thinking_os"
     sys.path.insert(0, str(thinking_os))
     import migrator_embeddings  # type: ignore
     from database import init_db  # type: ignore
