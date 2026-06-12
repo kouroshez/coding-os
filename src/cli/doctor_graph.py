@@ -540,6 +540,56 @@ def add_check_legacy_kinds(report: DoctorReport, conn: sqlite3.Connection | None
     )
 
 
+def add_check_backend_health(report: DoctorReport) -> None:
+    """graph.backend_health: the cos_graph_doctor verdict — the same healthy/
+    issues view the Hub Backend tab renders. The system doctor is the
+    whole-system probe, so backend findings (stale paths, phantoms,
+    malformed uids) must surface here too, not only in the Hub (TASK-405)."""
+    from cli.doctor import SEV_PASS, SEV_WARN, CheckResult
+
+    try:
+        from graph_os.tools.graph import cos_graph_doctor
+
+        envelope = cos_graph_doctor()
+        if isinstance(envelope, str):
+            envelope = json.loads(envelope)
+        data = envelope.get("data") or {}
+        healthy = data.get("healthy")
+        stats = data.get("stats") or {}
+        informational = set(
+            (data.get("meta") or {}).get("informational_categories") or []
+        )
+        real_issues = {
+            issue.get("category"): issue.get("count")
+            for issue in data.get("issues") or []
+            if issue.get("category") not in informational
+        }
+    except Exception as exc:
+        report.checks.append(
+            CheckResult("graph.backend_health", SEV_WARN, f"check failed: {exc}")
+        )
+        return
+    if healthy:
+        report.checks.append(
+            CheckResult(
+                "graph.backend_health",
+                SEV_PASS,
+                f"backend healthy — {stats.get('node_count', '?')} nodes / "
+                f"{stats.get('edge_count', '?')} edges",
+            )
+        )
+        return
+    summary = ", ".join(f"{cat}={cnt}" for cat, cnt in real_issues.items()) or "unknown"
+    report.checks.append(
+        CheckResult(
+            "graph.backend_health",
+            SEV_WARN,
+            f"backend issues: {summary} — run `cos graph-doctor --fix`",
+            {"issues": real_issues},
+        )
+    )
+
+
 def run_graph_checks(
     report: DoctorReport,
     state_dir: Path,
@@ -549,6 +599,7 @@ def run_graph_checks(
     add_check_freshness(report, conn)
     add_check_parse_error_rate(report, state_dir)
     add_check_backend_responsive(report, state_dir)
+    add_check_backend_health(report)
     add_check_groups_configured(report)
     add_check_embedding_migration(report, state_dir)
     add_check_embedding_dimensions(report, conn, state_dir)

@@ -75,3 +75,63 @@ def test_c27_warns_when_legacy_kind_present():
     add_check_legacy_kinds(report, conn)
     [c] = [c for c in report.checks if c.id == "graph.legacy_kinds"]
     assert c.severity == "WARN"
+
+
+def test_backend_health_reports_doctor_verdict(monkeypatch):
+    # TASK-405: cos doctor must surface the cos_graph_doctor verdict.
+    import json as _json
+
+    from cli import doctor_graph as dg
+
+    def _fake_doctor(**_kw):
+        return _json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "healthy": False,
+                    "stats": {"node_count": 10, "edge_count": 20},
+                    "issues": [
+                        {"category": "stale_paths", "count": 3},
+                        {"category": "slowest_extractions", "count": 10, "severity": "info"},
+                    ],
+                    "meta": {"informational_categories": ["slowest_extractions"]},
+                },
+            }
+        )
+
+    import graph_os.tools.graph as graph_tools
+
+    monkeypatch.setattr(graph_tools, "cos_graph_doctor", _fake_doctor)
+    report = _new_report()
+    dg.add_check_backend_health(report)
+    [c] = [c for c in report.checks if c.id == "graph.backend_health"]
+    assert c.severity == "WARN"
+    assert "stale_paths=3" in c.message
+    assert "slowest_extractions" not in c.message
+
+
+def test_backend_health_pass_on_healthy(monkeypatch):
+    import json as _json
+
+    import graph_os.tools.graph as graph_tools
+    from cli import doctor_graph as dg
+
+    monkeypatch.setattr(
+        graph_tools,
+        "cos_graph_doctor",
+        lambda **_kw: _json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "healthy": True,
+                    "stats": {"node_count": 5, "edge_count": 9},
+                    "issues": [],
+                    "meta": {"informational_categories": []},
+                },
+            }
+        ),
+    )
+    report = _new_report()
+    dg.add_check_backend_health(report)
+    [c] = [c for c in report.checks if c.id == "graph.backend_health"]
+    assert c.severity == "PASS"

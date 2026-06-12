@@ -8,6 +8,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import logging
+import re
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 
@@ -738,6 +739,8 @@ def extract(path: str, content: str) -> ExtractionResult:
     # them to 0.95 later without double-writing.
     for call in visitor.calls:
         confidence, evidence, resolved_uid = _resolve_call(call, visitor=visitor, path=normalised)
+        if resolved_uid is None:
+            continue
         # E5: `await X()` — emit `awaits` instead of `calls`.
         # E11: name-only `Foo()` heuristic over-tags `Path()` / `Counter()`
         # as `constructs`. Promote to `constructs` only when resolved
@@ -1105,12 +1108,17 @@ def _resolve_symbol(name: str, *, path: str, visitor: _PythonVisitor) -> str:
     return f"code:external:unresolved:{name}"
 
 
+# Dotted-name shape an unresolved-call stub may carry — anything else is an
+# over-captured expression, not an identifier (TASK-405).
+_IDENTIFIER_EXPR_RE = re.compile(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*")
+
+
 def _resolve_call(
     call: _CallSite,
     *,
     visitor: _PythonVisitor,
     path: str,
-) -> tuple[float, tuple[EvidenceSignal, ...], str]:
+) -> tuple[float, tuple[EvidenceSignal, ...], str | None]:
     """Return (confidence, evidence, resolved_uid) for a call-site.
 
     E4 calibration (audit: was 0.3-0.5 ceiling; 58.7% of calls at 0.3):
@@ -1157,6 +1165,13 @@ def _resolve_call(
         root_module = f"{abs_source}.{imp.imported}" if abs_source else imp.imported
         resolved = f"code:external:{root_module}:{tail}"
     else:
+        # An "identifier" stub must be identifier-shaped (dotted names only).
+        # Complex receivers (`(a or b / 'x').resolve`) used to mint
+        # expression-shaped stubs — 956 junk rows that nothing can ever
+        # link (TASK-405). Skip the edge entirely; the LSP overlay can
+        # still resolve such sites later.
+        if not _IDENTIFIER_EXPR_RE.fullmatch(call.full_expr or ""):
+            return (0.0, tuple(signals), None)
         signals.append(EvidenceSignal("unresolved_call", 0.3))
         confidence = 0.3
         resolved = f"code:external:unresolved:{call.full_expr}"

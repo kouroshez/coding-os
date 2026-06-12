@@ -516,3 +516,33 @@ def test_self_method_resolves_to_enclosing_class():
     }
     assert ("A.run", "code:method:core/foo.py::A.helper") in calls
     assert ("B.run", "code:method:core/foo.py::B.helper") in calls
+
+
+class TestExpressionStubGate:
+    # TASK-405: an unresolved-call stub must be identifier-shaped — complex
+    # receivers used to mint expression-shaped "identifier" junk.
+    def test_expression_receiver_emits_no_stub_edge(self):
+        r = _extract(
+            """
+            def f(a, b):
+                return (a or b / 'docs').resolve()
+            """
+        )
+        bad = [
+            e
+            for e in r.edges
+            if e.target_uid.startswith("code:external:unresolved:")
+        ]
+        assert bad == []
+        assert not any(
+            " " in n.uid or "'" in n.uid for n in r.nodes if n.kind == "identifier"
+        )
+
+    def test_dotted_unresolved_still_minted(self):
+        r = _extract("def f(): mystery.helper()")
+        stubs = [
+            e
+            for e in r.edges
+            if e.target_uid == "code:external:unresolved:mystery.helper"
+        ]
+        assert stubs
