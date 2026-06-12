@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [doctor, graph-os, adapters, hub-ui, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-12
 started: 2026-06-12
-completed: null
+completed: 2026-06-12
 agent_session: ses-claude-20260611-002926-83d4
 depends_on: []
 blocked_by: []
@@ -68,3 +68,7 @@ Actual: FAIL `docs.markdown_link_integrity` (README → deleted `intent-vocabula
 - 2026-06-12 [claude]: Edit useSigma.ts
 - 2026-06-12 [claude]: Edit test_code_go.py
 - 2026-06-12 [claude]: Fixed: README stale intent-vocabulary row removed (FAIL→PASS, 64 links resolve); Go package node emits canonical `module
+- 2026-06-12 [claude]: committed 4cf5a25d: README.md, src/adapters/claude/adapter.yaml, src/adapters/claude/settings.template.json, src/core/gr
+- 2026-06-12 [claude]: Edit migrate_embeddings_minilm_to_bge_m3.py
+- 2026-06-12 [claude]: commit e18c33d868 — fix(embeddings): repair migrator src/ path so bge-m3 migration can complete (TASK-409)
+- 2026-06-12 [claude]: Embedding WARNs root-caused + fixed: the bge-m3 migrator script had a stale src/ path (parent.parent.parent/core → never
