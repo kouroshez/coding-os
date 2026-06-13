@@ -87,6 +87,21 @@ class SkillEnforcementEntry:
 
 
 @dataclass(frozen=True)
+class AnatomyEntry:
+    """One installed stack's owned subtree, for the AGENTS.md anatomy map.
+
+    Built from each (relocated) stack's `structure` declaration so the map
+    reflects actual roots after multi-backend relocation, not declared ones.
+    """
+
+    stack_id: str
+    label: str
+    category: str
+    root: str
+    notes: str = ""
+
+
+@dataclass(frozen=True)
 class AgentsMdSection:
     """A fragment template to be rendered into AGENTS.md.
 
@@ -230,3 +245,7 @@ class AggregatedWorld:
     agents_md_sections: tuple[AgentsMdSection, ...]
     hooks: tuple[HookEntry, ...]
     conflicts: tuple[str, ...] = field(default_factory=tuple)
+    # One entry per installed stack that declares a structure.root, for the
+    # data-driven AGENTS.md anatomy map (project-anatomy.md). Empty for
+    # base-only projects — the fragment still renders the shared/ rows.
+    anatomy: tuple[AnatomyEntry, ...] = field(default_factory=tuple)

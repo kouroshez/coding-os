@@ -9,6 +9,16 @@ Read next: `docs/00-index.md`, then the matching playbook in `docs/playbooks/`
 
 cos-golden-fixture: A software project managed by coding-os. Stack: Go + Fiber (gofiber/fiber v2) + PostgreSQL.
 
+## Project Anatomy
+
+Top-level subtrees of this project (SSOT: `docs/engineering/project-anatomy.md`). **One owner per subtree.** Cross-language types flow through `src/shared/contracts/` only — never direct cross-stack imports. Same-language code reused by a second service is promoted to `src/shared/<lang>/` (reuse-first).
+
+| Subtree | Owner | Convention |
+|---|---|---|
+| `src/backend` | Go + Fiber (gofiber/fiber v2) + PostgreSQL (backend) | hexagonal: domain/ports/adapters; fiber handlers stay thin |
+| `src/shared/contracts/` | cross-language boundary | OpenAPI / proto / json-schema — the only cross-stack channel |
+| `src/shared/<lang>/` | same-language shared code | promote reused code here (reuse-first) |
+
 ## Principles
 
 P1. SSOT-first — no parallel truths. P2. Source-grounded — trace to SSOT. P3. Minimal-context — 3-10 files max. P4. Diff-first — preserve unrelated content. P5. User-runs-production. P6. Log-everything. P7. No-guessing — log unknowns to questions.md.

@@ -63,6 +63,7 @@ def _world_to_context(world: AggregatedWorld) -> dict:
         "agents_md_sections": world.agents_md_sections,
         "hooks": world.hooks,
         "conflicts": world.conflicts,
+        "anatomy": world.anatomy,
     }
 
 

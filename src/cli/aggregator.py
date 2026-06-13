@@ -32,6 +32,7 @@ from cli._data_types import (
     AdapterProfile,
     AgentsMdSection,
     AggregatedWorld,
+    AnatomyEntry,
     BaseProfile,
     DimensionEntry,
     HookEntry,
@@ -402,6 +403,21 @@ def aggregate(
     hooks = list(base.hooks) + [h for s in stacks for h in s.hooks]
     _check_hook_conflicts(hooks)
 
+    # Anatomy map — one entry per installed stack that declares a root.
+    # `stacks` are already relocated by the world builder, so structure.root
+    # is the actual on-disk root (multi-backend → src/services/<id>/).
+    anatomy = tuple(
+        AnatomyEntry(
+            stack_id=s.id,
+            label=s.label,
+            category=s.category,
+            root=s.structure["root"],
+            notes=s.structure.get("notes", ""),
+        )
+        for s in stacks
+        if s.structure.get("root")
+    )
+
     return AggregatedWorld(
         project_name=project_name,
         agent_id=adapter.id,
@@ -418,4 +434,5 @@ def aggregate(
         agents_md_sections=sections,
         hooks=tuple(hooks),
         conflicts=tuple(all_conflicts),
+        anatomy=anatomy,
     )

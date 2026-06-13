@@ -234,3 +234,5 @@ Flag framework/ORM leakage into domain/service code (keep the core framework-fre
 - [hexagonal-architecture](../hexagonal-architecture/SKILL.md) · [api-design](../api-design/SKILL.md) · [sql-authoring](../sql-authoring/SKILL.md).
 
 Universal principles from [clean-code](../clean-code/SKILL.md) still apply — this skill does not relax any of them.
+
+Cross-service code placement: promote a helper reused by a second service into `src/shared/<lang>/`, and route cross-language types through `src/shared/contracts/` only — see [clean-code](../clean-code/SKILL.md) § 7 and the `docs/engineering/project-anatomy.md` SSOT.

@@ -379,6 +379,12 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/nudge-reuse-first.sh",
+            "statusMessage": "♻️ Checking cross-service reuse (src/shared/ nudge)...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/check-doc-size.sh",
             "statusMessage": "📐 Checking doc size budget...",
             "timeout": 5

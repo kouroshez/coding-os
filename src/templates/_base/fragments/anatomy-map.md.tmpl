@@ -1,0 +1,11 @@
+## Project Anatomy
+
+Top-level subtrees of this project (SSOT: `docs/engineering/project-anatomy.md`). **One owner per subtree.** Cross-language types flow through `src/shared/contracts/` only — never direct cross-stack imports. Same-language code reused by a second service is promoted to `src/shared/<lang>/` (reuse-first).
+
+| Subtree | Owner | Convention |
+|---|---|---|
+{% for entry in anatomy -%}
+| `{{ entry.root }}` | {{ entry.label }} ({{ entry.category }}) | {{ entry.notes | replace('\n', ' ') | replace('|', '\\|') }} |
+{% endfor -%}
+| `src/shared/contracts/` | cross-language boundary | OpenAPI / proto / json-schema — the only cross-stack channel |
+| `src/shared/<lang>/` | same-language shared code | promote reused code here (reuse-first) |

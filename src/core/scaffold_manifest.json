@@ -85,6 +85,7 @@
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
+        ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/reclaim-sweep.sh",
@@ -216,7 +217,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 209
+      "count": 210
     },
     "claude_django": {
       "agent": "claude",
@@ -303,6 +304,7 @@
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
+        ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/reclaim-sweep.sh",
@@ -450,7 +452,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 226
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -537,6 +539,7 @@
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
+        ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/reclaim-sweep.sh",
@@ -677,7 +680,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 218
+      "count": 219
     },
     "claude_go": {
       "agent": "claude",
@@ -764,6 +767,7 @@
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
+        ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/reclaim-sweep.sh",
@@ -907,7 +911,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 221
+      "count": 222
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -994,6 +998,7 @@
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
+        ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/reclaim-sweep.sh",
@@ -1137,7 +1142,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 221
+      "count": 222
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -1224,6 +1229,7 @@
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
+        ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/reclaim-sweep.sh",
@@ -1358,7 +1364,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 212
+      "count": 213
     },
     "claude_meta": {
       "agent": "claude",
@@ -1445,6 +1451,7 @@
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
+        ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/reclaim-sweep.sh",
@@ -1619,7 +1626,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 252
+      "count": 253
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -1706,6 +1713,7 @@
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
+        ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/reclaim-sweep.sh",
@@ -1859,7 +1867,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 232
     },
     "claude_node-express": {
       "agent": "claude",
@@ -1946,6 +1954,7 @@
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
+        ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/reclaim-sweep.sh",
@@ -2088,7 +2097,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 220
+      "count": 221
     },
     "claude_python": {
       "agent": "claude",
@@ -2175,6 +2184,7 @@
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
+        ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/reclaim-sweep.sh",
@@ -2308,7 +2318,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 211
+      "count": 212
     },
     "claude_react-native": {
       "agent": "claude",
@@ -2395,6 +2405,7 @@
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
+        ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/reclaim-sweep.sh",
@@ -2548,7 +2559,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 232
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -2635,6 +2646,7 @@
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
+        ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/reclaim-sweep.sh",
@@ -2769,7 +2781,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 212
+      "count": 213
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -2856,6 +2868,7 @@
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
+        ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/reclaim-sweep.sh",
@@ -2996,7 +3009,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 218
+      "count": 219
     },
     "codex_base": {
       "agent": "codex",
@@ -3088,6 +3101,7 @@
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
+        ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/reclaim-sweep.sh",
@@ -3216,7 +3230,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 213
+      "count": 214
     },
     "codex_django": {
       "agent": "codex",
@@ -3310,6 +3324,7 @@
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
+        ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/reclaim-sweep.sh",
@@ -3454,7 +3469,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 230
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -3548,6 +3563,7 @@
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
+        ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/reclaim-sweep.sh",
@@ -3685,7 +3701,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 223
     },
     "codex_go": {
       "agent": "codex",
@@ -3779,6 +3795,7 @@
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
+        ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/reclaim-sweep.sh",
@@ -3919,7 +3936,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 226
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -4013,6 +4030,7 @@
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
+        ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/reclaim-sweep.sh",
@@ -4153,7 +4171,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 226
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -4247,6 +4265,7 @@
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
+        ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/reclaim-sweep.sh",
@@ -4378,7 +4397,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 216
+      "count": 217
     },
     "codex_meta": {
       "agent": "codex",
@@ -4472,6 +4491,7 @@
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
+        ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/reclaim-sweep.sh",
@@ -4643,7 +4663,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 256
+      "count": 257
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -4737,6 +4757,7 @@
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
+        ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/reclaim-sweep.sh",
@@ -4887,7 +4908,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 236
     },
     "codex_node-express": {
       "agent": "codex",
@@ -4981,6 +5002,7 @@
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
+        ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/reclaim-sweep.sh",
@@ -5120,7 +5142,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 224
+      "count": 225
     },
     "codex_python": {
       "agent": "codex",
@@ -5214,6 +5236,7 @@
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
+        ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/reclaim-sweep.sh",
@@ -5344,7 +5367,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 215
+      "count": 216
     },
     "codex_react-native": {
       "agent": "codex",
@@ -5438,6 +5461,7 @@
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
+        ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/reclaim-sweep.sh",
@@ -5588,7 +5612,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 236
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -5682,6 +5706,7 @@
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
+        ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/reclaim-sweep.sh",
@@ -5813,7 +5838,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 216
+      "count": 217
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -5907,6 +5932,7 @@
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
+        ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/reclaim-sweep.sh",
@@ -6044,7 +6070,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 223
     },
     "cursor_base": {
       "agent": "cursor",
@@ -6143,6 +6169,7 @@
         ".cursor/hooks/nudge-graph-os.sh",
         ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-model-routing.sh",
+        ".cursor/hooks/nudge-reuse-first.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/reclaim-sweep.sh",
@@ -6265,7 +6292,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 214
+      "count": 215
     },
     "cursor_django": {
       "agent": "cursor",
@@ -6371,6 +6398,7 @@
         ".cursor/hooks/nudge-graph-os.sh",
         ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-model-routing.sh",
+        ".cursor/hooks/nudge-reuse-first.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/reclaim-sweep.sh",
@@ -6504,7 +6532,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 231
     },
     "cursor_fastapi": {
       "agent": "cursor",
@@ -6610,6 +6638,7 @@
         ".cursor/hooks/nudge-graph-os.sh",
         ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-model-routing.sh",
+        ".cursor/hooks/nudge-reuse-first.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/reclaim-sweep.sh",
@@ -6736,7 +6765,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 224
     },
     "cursor_go": {
       "agent": "cursor",
@@ -6845,6 +6874,7 @@
         ".cursor/hooks/nudge-graph-os.sh",
         ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-model-routing.sh",
+        ".cursor/hooks/nudge-reuse-first.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/reclaim-sweep.sh",
@@ -6971,7 +7001,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 227
     },
     "cursor_go-fiber": {
       "agent": "cursor",
@@ -7080,6 +7110,7 @@
         ".cursor/hooks/nudge-graph-os.sh",
         ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-model-routing.sh",
+        ".cursor/hooks/nudge-reuse-first.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/reclaim-sweep.sh",
@@ -7206,7 +7237,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 227
     },
     "cursor_go-plain": {
       "agent": "cursor",
@@ -7308,6 +7339,7 @@
         ".cursor/hooks/nudge-graph-os.sh",
         ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-model-routing.sh",
+        ".cursor/hooks/nudge-reuse-first.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/reclaim-sweep.sh",
@@ -7432,7 +7464,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 217
+      "count": 218
     },
     "cursor_meta": {
       "agent": "cursor",
@@ -7565,6 +7597,7 @@
         ".cursor/hooks/nudge-graph-os.sh",
         ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-model-routing.sh",
+        ".cursor/hooks/nudge-reuse-first.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/reclaim-sweep.sh",
@@ -7698,7 +7731,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 258
     },
     "cursor_nextjs": {
       "agent": "cursor",
@@ -7804,6 +7837,7 @@
         ".cursor/hooks/nudge-graph-os.sh",
         ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-model-routing.sh",
+        ".cursor/hooks/nudge-reuse-first.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/reclaim-sweep.sh",
@@ -7943,7 +7977,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 237
     },
     "cursor_node-express": {
       "agent": "cursor",
@@ -8046,6 +8080,7 @@
         ".cursor/hooks/nudge-graph-os.sh",
         ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-model-routing.sh",
+        ".cursor/hooks/nudge-reuse-first.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/reclaim-sweep.sh",
@@ -8177,7 +8212,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 226
     },
     "cursor_python": {
       "agent": "cursor",
@@ -8278,6 +8313,7 @@
         ".cursor/hooks/nudge-graph-os.sh",
         ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-model-routing.sh",
+        ".cursor/hooks/nudge-reuse-first.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/reclaim-sweep.sh",
@@ -8402,7 +8438,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 216
+      "count": 217
     },
     "cursor_react-native": {
       "agent": "cursor",
@@ -8516,6 +8552,7 @@
         ".cursor/hooks/nudge-graph-os.sh",
         ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-model-routing.sh",
+        ".cursor/hooks/nudge-reuse-first.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/reclaim-sweep.sh",
@@ -8647,7 +8684,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 237
     },
     "cursor_typescript-plain": {
       "agent": "cursor",
@@ -8749,6 +8786,7 @@
         ".cursor/hooks/nudge-graph-os.sh",
         ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-model-routing.sh",
+        ".cursor/hooks/nudge-reuse-first.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/reclaim-sweep.sh",
@@ -8873,7 +8911,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 217
+      "count": 218
     },
     "cursor_vue-nuxt": {
       "agent": "cursor",
@@ -8976,6 +9014,7 @@
         ".cursor/hooks/nudge-graph-os.sh",
         ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-model-routing.sh",
+        ".cursor/hooks/nudge-reuse-first.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/reclaim-sweep.sh",
@@ -9105,7 +9144,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 224
     }
   }
 }

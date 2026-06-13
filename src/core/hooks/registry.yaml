@@ -337,6 +337,17 @@ hooks:
         matcher: Write|Edit
         status_message: "♻️ Re-indexing doc/code for cos_doc_search + graph_os freshness..."
 
+  - id: nudge-reuse-first
+    script: nudge-reuse-first.sh
+    description: After a Write/Edit under src/services/, nudge (non-blocking, debounced) to promote a symbol duplicated across same-language services into src/shared/<lang>/ — reuse-first placement (project-anatomy.md). Fail-open.
+    category: reminder
+    phase: H
+    timeout: 10
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "♻️ Checking cross-service reuse (src/shared/ nudge)..."
+
   - id: auto-reindex-shell-ops
     script: auto-reindex-shell-ops.sh
     description: Catch bulk file ops (mv/cp/rm/git checkout/git restore) the Write/Edit hook misses; debounced full reindex in background so the graph stays fresh after a rename or branch switch.

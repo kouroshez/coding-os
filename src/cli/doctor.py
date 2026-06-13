@@ -414,6 +414,94 @@ def _check_scaffold_roots(project: Path, report: DoctorReport) -> None:
         )
 
 
+# Top-level src/ subtrees the project anatomy permits (project-anatomy.md).
+# Stacks own backend/services/frontend/mobile; shared/ is the polyglot reuse
+# layer. Anything else directly under src/ is a stray subtree.
+_ANATOMY_TOP_LEVEL = ("backend", "services", "frontend", "mobile", "shared")
+
+
+def _declared_src_segments(project: Path, config: dict[str, Any] | None) -> set[str]:
+    """Top-level `src/<seg>/` segments each installed stack owns per the
+    aggregated scaffold-boundary.yaml — e.g. {"services", "frontend"} after
+    multi-backend relocation, or {"backend"} for a single backend. Empty when
+    no boundary file exists (fall back to the static anatomy allow-list)."""
+    state_name = (config or {}).get("state_dir", STATE_DIR_DEFAULT)
+    boundary = project / state_name / "scaffold-boundary.yaml"
+    if not boundary.is_file():
+        return set()
+    try:
+        data = yaml.safe_load(boundary.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return set()
+    segments: set[str] = set()
+    for stack in data.get("stacks") or []:
+        for root in stack.get("roots") or []:
+            parts = str(root).strip("/").split("/")
+            if len(parts) >= 2 and parts[0] == "src":
+                segments.add(parts[1])
+    return segments
+
+
+def _check_structure(
+    project: Path, report: DoctorReport, config: dict[str, Any] | None = None
+) -> None:
+    """structure.* — validate the src/ tree against the declared project anatomy.
+
+    A compliant tree appends only PASS (exit 0). Each stray subtree — a
+    `src/<name>/` that is neither `shared` nor a declared/known anatomy root —
+    becomes one FAIL naming the expected location, so the exit code is 1."""
+    src = project / "src"
+    if not src.is_dir():
+        report.checks.append(
+            CheckResult("structure.src_present", SEV_PASS, "no src/ tree — nothing to validate")
+        )
+        return
+
+    # `declared` (from the aggregated boundary) is used ONLY to detect the
+    # services/ layout — so a top-level src/backend/ in a project that placed
+    # its backends under src/services/ is flagged as misplaced. The five known
+    # anatomy slots are always permitted, so a hand-added src/frontend/ without
+    # a registered frontend stack is never a false positive.
+    declared = _declared_src_segments(project, config)
+    services_layout = "services" in declared
+    known = set(_ANATOMY_TOP_LEVEL)
+
+    stray = 0
+    for child in sorted(p for p in src.iterdir() if p.is_dir()):
+        name = child.name
+        if services_layout and name == "backend":
+            expected = (
+                "src/services/<stack-id>/ — this project uses the services/ "
+                "layout, so a top-level src/backend/ is misplaced"
+            )
+        elif name in known:
+            continue
+        else:
+            expected = (
+                f"a declared anatomy subtree ({', '.join(_ANATOMY_TOP_LEVEL)}); "
+                "services under src/services/<name>/, shared code under src/shared/"
+            )
+        report.checks.append(
+            CheckResult(
+                f"structure.stray.{name}",
+                SEV_FAIL,
+                f"src/{name}/ violates declared anatomy — expected: {expected}",
+                {"path": f"src/{name}", "expected": expected},
+            )
+        )
+        stray += 1
+
+    if stray == 0:
+        report.checks.append(
+            CheckResult(
+                "structure.anatomy",
+                SEV_PASS,
+                "src/ tree matches the declared anatomy",
+                {"known": sorted(known)},
+            )
+        )
+
+
 def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> None:
     """adapter.configured — adapter-specific files, driven entirely by src/adapters/<id>/adapter.yaml.
 
@@ -2419,6 +2507,13 @@ def run_bootstrap_doctor() -> DoctorReport:
     default=7,
     help="Window for --tokens (default 7 days)",
 )
+@click.option(
+    "--structure",
+    "structure",
+    is_flag=True,
+    default=False,
+    help="Validate the src/ tree against the declared project anatomy and exit",
+)
 def doctor(
     project_dir: str,
     output_format: str,
@@ -2431,6 +2526,7 @@ def doctor(
     explain_id: str | None,
     tokens: bool,
     tokens_days: int,
+    structure: bool,
 ) -> None:
     """Deep health check: scaffold, DB schema, adapter, manifest, MCP."""
     if tokens:
@@ -2458,6 +2554,22 @@ def doctor(
     if explain_id:
         click.echo(_explain_check(explain_id))
         return
+    if structure:
+        project = Path(project_dir).resolve()
+        report = DoctorReport(project_dir=str(project), agent=None, templates=[])
+        config_path = project / CONFIG_FILE
+        config: dict[str, Any] | None = None
+        if config_path.is_file():
+            try:
+                config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+            except yaml.YAMLError:
+                config = None
+        _check_structure(project, report, config)
+        if output_format == "json":
+            click.echo(_format_json(report, strict=strict))
+        else:
+            click.echo(_format_text(report, strict=strict))
+        sys.exit(report.exit_code(strict=strict))
     project = Path(project_dir).resolve()
     manifest_path = Path(manifest).resolve() if manifest else None
     report = run_doctor(

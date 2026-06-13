@@ -211,3 +211,42 @@ def test_base_only_keeps_defaults() -> None:
     world = aggregate(base, [], _dummy_adapter(), "p")
     assert world.substitutions["STACK"] == "Polyglot"
     assert world.substitutions["DOMAIN_ROUTES"] == "anywhere"
+
+
+# ---------- anatomy map (TASK-366) ----------
+
+
+def test_anatomy_built_from_stack_structure() -> None:
+    stack = _dummy_stack(
+        "fastapi",
+        label="FastAPI",
+        category="backend",
+        structure={"root": "src/backend", "notes": "app/{api,services,db}"},
+    )
+    world = aggregate(_dummy_base(), [stack], _dummy_adapter(), "p")
+    assert len(world.anatomy) == 1
+    entry = world.anatomy[0]
+    assert (entry.stack_id, entry.root, entry.category) == ("fastapi", "src/backend", "backend")
+    assert entry.label == "FastAPI"
+    assert entry.notes == "app/{api,services,db}"
+
+
+def test_anatomy_reflects_relocated_root() -> None:
+    # The world builder relocates colliding backends to src/services/<id>/
+    # BEFORE aggregate() sees them, so anatomy carries the relocated root.
+    relocated = _dummy_stack(
+        "go-fiber", category="backend", structure={"root": "src/services/go-fiber"}
+    )
+    world = aggregate(_dummy_base(), [relocated], _dummy_adapter(), "p")
+    assert world.anatomy[0].root == "src/services/go-fiber"
+
+
+def test_anatomy_empty_for_base_only() -> None:
+    world = aggregate(_dummy_base(), [], _dummy_adapter(), "p")
+    assert world.anatomy == ()
+
+
+def test_anatomy_skips_stack_without_root() -> None:
+    stack = _dummy_stack("nostruct")  # no structure declared
+    world = aggregate(_dummy_base(), [stack], _dummy_adapter(), "p")
+    assert world.anatomy == ()

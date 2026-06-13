@@ -42,6 +42,7 @@ skills: [thinking_os, clean-code, codebase-explorer, graph-explorer, search, tas
 agents_md_sections:
   - {id: header,               order: 10, template: "fragments/header.md.tmpl"}
   - {id: identity,             order: 20, template: "fragments/identity.md.tmpl"}
+  - {id: project-anatomy,      order: 25, template: "fragments/anatomy-map.md.tmpl"}
   - {id: principles,           order: 30, template: "fragments/principles.md.tmpl"}
   - {id: core-loop,            order: 40, template: "fragments/core-loop.md.tmpl"}
   - {id: verification-matrix,  order: 50, template: "fragments/verification-matrix.md.tmpl"}

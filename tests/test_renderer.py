@@ -32,6 +32,7 @@ def _world(
     verify_rows: tuple = (),
     hooks: tuple = (),
     makefile_targets: tuple = (),
+    anatomy: tuple = (),
 ) -> AggregatedWorld:
     return AggregatedWorld(
         project_name="p",
@@ -49,7 +50,11 @@ def _world(
         agents_md_sections=sections,
         hooks=hooks,
         conflicts=(),
+        anatomy=anatomy,
     )
+
+
+_BASE_DIR = Path(__file__).resolve().parent.parent / "src" / "templates" / "_base"
 
 
 def _adapter(**overrides) -> AdapterProfile:
@@ -196,3 +201,58 @@ def test_dimension_registry_empty() -> None:
 def test_skill_enforcement_empty_has_none_row() -> None:
     text = render_skill_enforcement(_world())
     assert "_none_" in text
+
+
+# ---------- anatomy map fragment (TASK-366) ----------
+
+
+def _anatomy_section() -> AgentsMdSection:
+    return AgentsMdSection(
+        id="project-anatomy",
+        order=25,
+        template="fragments/anatomy-map.md.tmpl",
+        owner_dir=_BASE_DIR,
+    )
+
+
+def test_anatomy_map_renders_stack_root_and_shared_rows() -> None:
+    from cli._data_types import AnatomyEntry
+
+    entry = AnatomyEntry(
+        stack_id="fastapi",
+        label="FastAPI",
+        category="backend",
+        root="src/backend",
+        notes="app/{api,services}",
+    )
+    out = render_agents_md(_world(sections=(_anatomy_section(),), anatomy=(entry,)))
+    assert "## Project Anatomy" in out
+    assert "`src/backend`" in out
+    assert "FastAPI (backend)" in out
+    assert "app/{api,services}" in out
+    # shared/ rows are always present (cross-language boundary)
+    assert "`src/shared/contracts/`" in out
+    assert "`src/shared/<lang>/`" in out
+
+
+def test_anatomy_map_renders_shared_rows_when_no_stacks() -> None:
+    out = render_agents_md(_world(sections=(_anatomy_section(),)))
+    assert "## Project Anatomy" in out
+    assert "`src/shared/contracts/`" in out
+    # no stack roots, but the table is still valid markdown
+    assert "| Subtree | Owner | Convention |" in out
+
+
+def test_anatomy_map_escapes_pipe_in_notes() -> None:
+    from cli._data_types import AnatomyEntry
+
+    entry = AnatomyEntry(
+        stack_id="nextjs",
+        label="Next.js",
+        category="frontend",
+        root="src/frontend",
+        notes="app/ router | components/",
+    )
+    out = render_agents_md(_world(sections=(_anatomy_section(),), anatomy=(entry,)))
+    # a raw pipe in a cell would break the table — it must be escaped
+    assert r"app/ router \| components/" in out

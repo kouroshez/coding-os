@@ -24,6 +24,7 @@ Before writing any code, verify you have read the relevant context:
 - [ ] If touching error handling or API responses: read [api-contract-discipline.md](../../rules/api-contract-discipline.md) and the project's error-envelope doc (`docs/engineering/mcp-error-envelope.md` for `cos_*` MCP tools, `docs/api-contracts/error-format.md` for HTTP services).
 - [ ] If touching auth, payments, or file uploads: read `docs/playbooks/security-review.md`.
 - [ ] Search the repo for existing patterns before introducing new ones — see the [search](../search/SKILL.md) skill for the grounded-count workflow.
+- [ ] Before adding code to a service subtree in a polyglot project, confirm placement against the `docs/engineering/project-anatomy.md` SSOT: same-language reuse lives in `src/shared/<lang>/`, cross-language types in `src/shared/contracts/` — see §7.
 
 ## 1. Error Handling: Fail-Closed Default
 
@@ -602,6 +603,16 @@ describe("fetchUserProfile", () => {
 });
 ```
 
+## 7. Cross-Service Code Placement — Reuse First
+
+In a polyglot project, *where* code lives is a correctness concern, not just tidiness. The top-level anatomy (SSOT: `docs/engineering/project-anatomy.md`) gives every subtree exactly one owner and one shared layer:
+
+- **Same-language reuse → `src/shared/<lang>/`.** When a second service in the same language needs a helper, type, or client that already exists in one service, promote it to `src/shared/<lang>/` (`go/`, `ts/`, `py/`) instead of copy-pasting. The trigger is the rule-of-three from [anti-overengineering.md](../../rules/anti-overengineering.md) — a real second consumer, not an anticipated one.
+- **Cross-language contracts → `src/shared/contracts/` only.** Two services in *different* languages never import each other's code. They share a request or event shape by generating from a versioned artifact in `src/shared/contracts/` (OpenAPI, protobuf, json-schema) — the single cross-language boundary. A Go service and a Python service agree on a payload through the same contract, never by reaching across subtrees.
+- **One owner per subtree.** A stack writes only inside its declared `structure.root`; `enforce-scaffold-boundary.sh` blocks a write that crosses into a sibling service. If you feel the urge to edit another service's tree, the code you want belongs in `src/shared/`.
+
+Promotion is reuse-first, not speculation — move code to `src/shared/<lang>/` when the second consumer actually appears. The reuse-first nudge surfaces the suggestion when it detects a symbol duplicated across services; it is advice, never a block.
+
 ## Post-Code Checklist
 
 After writing code, verify all eight points before committing:
@@ -618,3 +629,4 @@ After writing code, verify all eight points before committing:
 - [ ] **Function hygiene:** Functions are ~20 lines, 3-4 params, guard clauses first
 - [ ] **Edge cases:** None, empty, boundary, service-down, and concurrency considered
 - [ ] **Error path tests:** Every except/catch branch has a corresponding test case
+- [ ] **Cross-service placement:** Code reused by a second service is promoted to `src/shared/<lang>/`; cross-language types flow through `src/shared/contracts/` only — see §7 "Cross-Service Code Placement"
