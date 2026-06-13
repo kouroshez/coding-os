@@ -24,7 +24,7 @@ The pulse block is agent-only (the chat UI hides `<system-reminder>` tags), so t
 
 **Hook-internal Bash** (`mode = system`) — banner suppressed entirely.
 
-Inconsistency markers (`⚠️ wip=N but task=none — cos task-start <ID>`) are appended when the DB shows in-progress work the agent has not bound to.
+Inconsistency markers (`⚠️ wip=N but task=none — cos task-start <ID>`) are appended when the DB shows in-progress work the agent has not bound to. A context-budget marker (`⚠️ ctx=412k>150k — /clear after this task`) is appended when the transcript's last usage record exceeds `COS_CONTEXT_BUDGET` (default 150K tokens) — past that point every turn re-reads the whole prefix, so finish the bound task and recommend a fresh session instead of pulling the next task. Audit the burn rate with `cos doctor --tokens`.
 
 The agent's response MUST start with the rendered banner line exactly as emitted — no reformatting, translation, or abbreviation. Then a blank line. Then the normal reply. Example formal-work banner (the `⚠️` form forces the agent to surface unbound WIP before continuing):
 

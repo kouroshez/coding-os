@@ -563,6 +563,19 @@ except OSError:
     WARN=" ⚠️ wip=${WIP_NUM} but task=none — cos task-start <ID>"
   fi
 
+  # Context-budget warning: the last usage record in the live transcript is
+  # the session's true context size. Over COS_CONTEXT_BUDGET (default 150K)
+  # every further turn re-reads the whole prefix, so nudge a /clear at the
+  # next task boundary. Helper prints e.g. '412k>150k' or nothing; fail-open.
+  TRANSCRIPT_PATH="$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || true)"
+  CTX_OVER=""
+  if [[ -n "$TRANSCRIPT_PATH" ]] && [ -f "${_COS_HOOKS_PHYS}/_helpers/context_budget.py" ] && command -v python3 >/dev/null 2>&1; then
+    CTX_OVER=$(python3 "${_COS_HOOKS_PHYS}/_helpers/context_budget.py" "$TRANSCRIPT_PATH" 2>/dev/null | head -c 24 || true)
+  fi
+  if [[ -n "$CTX_OVER" ]]; then
+    WARN="${WARN} ⚠️ ctx=${CTX_OVER} — /clear after this task"
+  fi
+
   if [ -z "${SES_TAIL:-}" ]; then
     # Fresh/unresolved panel: session-id not seeded yet, so _read_state rejects
     # every state file. A banner here renders 'ses=? · task=none · gate=unset …',
