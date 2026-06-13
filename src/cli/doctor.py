@@ -457,6 +457,21 @@ def _check_structure(
         )
         return
 
+    # Only a project that DECLARED an anatomy (installed stacks → aggregated
+    # scaffold-boundary.yaml) is validated. A base-only consumer or a non-
+    # consumer tree (e.g. the meta-repo itself) never declared one, so there is
+    # nothing to validate against — emit PASS rather than flag its own layout.
+    state_name = (config or {}).get("state_dir", STATE_DIR_DEFAULT)
+    if not (project / state_name / "scaffold-boundary.yaml").is_file():
+        report.checks.append(
+            CheckResult(
+                "structure.not_declared",
+                SEV_PASS,
+                "no scaffold-boundary.yaml — no declared anatomy to validate",
+            )
+        )
+        return
+
     # `declared` (from the aggregated boundary) is used ONLY to detect the
     # services/ layout — so a top-level src/backend/ in a project that placed
     # its backends under src/services/ is flagged as misplaced. The five known

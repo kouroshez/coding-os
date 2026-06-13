@@ -7,6 +7,7 @@ smoke that the hook is fail-open and non-blocking.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -85,6 +86,28 @@ def test_nudge_detects_go_duplicate(tmp_path: Path) -> None:
     assert "src/shared/go/" in result.stdout
 
 
+def test_nudge_prunes_vendor_dirs(tmp_path: Path) -> None:
+    # the only "duplicate" lives inside a vendored dir — it must be pruned, so
+    # the 400-file budget is spent on real source and no false nudge fires.
+    _make_service_file(tmp_path, "alpha", "handler.py", "def calculate_invoice_total(x):\n    return x\n")
+    vendored = tmp_path / "src" / "services" / "beta" / "node_modules"
+    vendored.mkdir(parents=True)
+    (vendored / "lib.py").write_text("def calculate_invoice_total(y):\n    return y\n", encoding="utf-8")
+    result = _run_delegate("src/services/alpha/handler.py", tmp_path)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_nudge_silent_for_shared_path(tmp_path: Path) -> None:
+    # a file already in src/shared/ is not under src/services/ → never nudged
+    shared = tmp_path / "src" / "shared" / "py"
+    shared.mkdir(parents=True)
+    (shared / "util.py").write_text("def calculate_invoice_total():\n    pass\n", encoding="utf-8")
+    result = _run_delegate("src/shared/py/util.py", tmp_path)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
 # ---------- bash hook smoke (fail-open, non-blocking) ----------
 
 
@@ -110,3 +133,38 @@ def test_hook_exits_zero_for_non_service_path(tmp_path: Path) -> None:
     )
     assert result.returncode == 0
     assert result.stderr.strip() == ""
+
+
+def _invoke_hook_env(payload: dict, project_root: Path, panel_dir: Path) -> subprocess.CompletedProcess:
+    env = {
+        **os.environ,
+        "COS_PROJECT_ROOT": str(project_root),
+        "COS_PANEL_DIR": str(panel_dir),
+    }
+    return subprocess.run(
+        ["bash", str(HOOK)],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+        timeout=15,
+        cwd=str(project_root),
+        env=env,
+    )
+
+
+def test_hook_nudges_then_debounces(tmp_path: Path) -> None:
+    _make_service_file(tmp_path, "alpha", "handler.py", "def calculate_invoice_total(x):\n    return x\n")
+    _make_service_file(tmp_path, "beta", "billing.py", "def calculate_invoice_total(y):\n    return y\n")
+    panel = tmp_path / ".panel"
+    panel.mkdir()
+    payload = {"tool_name": "Write", "tool_input": {"file_path": "src/services/alpha/handler.py"}}
+
+    first = _invoke_hook_env(payload, tmp_path, panel)
+    assert first.returncode == 0
+    assert "[reuse-first]" in first.stderr
+    # the debounce marker landed in COS_PANEL_DIR, not COS_STATE_DIR
+    assert any(p.name.startswith(".reuse-nudge-") for p in panel.iterdir())
+
+    second = _invoke_hook_env(payload, tmp_path, panel)
+    assert second.returncode == 0
+    assert second.stderr.strip() == ""  # debounced within the TTL window

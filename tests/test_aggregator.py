@@ -250,3 +250,31 @@ def test_anatomy_skips_stack_without_root() -> None:
     stack = _dummy_stack("nostruct")  # no structure declared
     world = aggregate(_dummy_base(), [stack], _dummy_adapter(), "p")
     assert world.anatomy == ()
+
+
+def test_anatomy_renders_into_agents_md_end_to_end() -> None:
+    # full pipeline: aggregate() builds world.anatomy from the stack, then the
+    # real fragment renders it into AGENTS.md (criterion 1 end-to-end).
+    from cli._data_types import AgentsMdSection
+    from cli.renderer import render_agents_md
+
+    base_dir = Path(__file__).resolve().parent.parent / "src" / "templates" / "_base"
+    section = AgentsMdSection(
+        id="project-anatomy",
+        order=25,
+        template="fragments/anatomy-map.md.tmpl",
+        owner_dir=base_dir,
+    )
+    stack = _dummy_stack(
+        "fastapi",
+        label="FastAPI",
+        category="backend",
+        structure={"root": "src/backend", "notes": "app/{api,services}"},
+    )
+    world = aggregate(_dummy_base(agents_md_sections=(section,)), [stack], _dummy_adapter(), "p")
+    out = render_agents_md(world)
+    assert "## Project Anatomy" in out
+    assert "`src/backend`" in out
+    assert "FastAPI (backend)" in out
+    assert "app/{api,services}" in out
+    assert "`src/shared/contracts/`" in out

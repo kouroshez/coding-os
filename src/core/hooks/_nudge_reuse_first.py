@@ -8,9 +8,29 @@ nothing) and never blocks. Bounded scan so the PostToolUse hook stays fast.
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 from pathlib import Path
+
+# Vendor / build / VCS dirs never hold first-party reusable code; pruning them
+# keeps the MAX_SCAN_FILES budget on real source and avoids false hits on a
+# Node service whose node_modules dwarfs its own code.
+PRUNE_DIRS = frozenset(
+    {
+        "node_modules",
+        ".git",
+        ".venv",
+        "venv",
+        "dist",
+        "build",
+        "vendor",
+        ".next",
+        "__pycache__",
+        ".build",
+        "target",
+    }
+)
 
 # suffix -> (shared language dir, symbol-definition line patterns)
 _LANG: dict[str, tuple[str, tuple[str, ...]]] = {
@@ -81,19 +101,24 @@ def _first_duplicate(
     for other in sorted(services_root.iterdir()):
         if not other.is_dir() or other.name == own_service:
             continue
-        for path in other.rglob(f"*{suffix}"):
-            if scanned >= MAX_SCAN_FILES:
-                return None
-            scanned += 1
-            try:
-                other_text = path.read_text(encoding="utf-8", errors="ignore")
-            except OSError:
-                continue
-            for line in other_text.splitlines():
-                for rx in compiled:
-                    match = rx.match(line)
-                    if match and match.group(1) in symbol_set:
-                        return match.group(1), path.relative_to(project_root).as_posix()
+        for dirpath, dirnames, filenames in os.walk(other):
+            dirnames[:] = sorted(d for d in dirnames if d not in PRUNE_DIRS)
+            for filename in sorted(filenames):
+                if not filename.endswith(suffix):
+                    continue
+                if scanned >= MAX_SCAN_FILES:
+                    return None
+                scanned += 1
+                path = Path(dirpath) / filename
+                try:
+                    other_text = path.read_text(encoding="utf-8", errors="ignore")
+                except OSError:
+                    continue
+                for line in other_text.splitlines():
+                    for rx in compiled:
+                        match = rx.match(line)
+                        if match and match.group(1) in symbol_set:
+                            return match.group(1), path.relative_to(project_root).as_posix()
     return None
 
 
