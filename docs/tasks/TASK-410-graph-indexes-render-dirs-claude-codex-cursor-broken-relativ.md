@@ -5,12 +5,12 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [graph-os, doctor, extractors, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-13
 started: 2026-06-13
-completed: null
+completed: 2026-06-13
 agent_session: ses-claude-20260611-002926-83d4
 depends_on: []
 blocked_by: []
@@ -42,3 +42,4 @@ Actual: FAIL — 1 node code:file:core/hooks/registry.yaml (md_links stub, stub:
 - 2026-06-13 [claude]: Edit test_i7_extractors.py
 - 2026-06-13 [claude]: commit 3dc5c9be3f — fix(test): Go package node asserts canonical module kind (TASK-409 follow-up)
 - 2026-06-13 [claude]: committed 2c3c1fc0: docs/playbooks/polyglot-extractor-roadmap.md, src/core/graph_os/extractors/md_links.py, src/core/gra
+- 2026-06-13 [claude]: Root-caused via 3-agent workflow: the FAIL was NOT the bulk walker (already excludes .claude via DEFAULT_EXCLUDE) but th
