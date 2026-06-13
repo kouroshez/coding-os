@@ -77,7 +77,7 @@ def _aggregate_world(agent: str, templates: tuple[str, ...], project: Path):
     from cli.main (which would create a circular import — main imports
     from update).
     """
-    base = load_base_profile(TEMPLATES_DIR)
+    base = load_base_profile(TEMPLATES_DIR / "_base")
     stack_registry = load_stack_registry(TEMPLATES_DIR)
     adapter_registry = load_adapter_registry(ADAPTERS_DIR)
     if agent not in adapter_registry:
@@ -508,29 +508,28 @@ def update(
             )
             click.echo("  Migrated to module registry (all modules on)")
 
-        # Fill the AGENTS.md gap for projects that predate the
-        # render_agents_md path (pre-v0.2.0). Never overwrites an
-        # existing file — `ensure_agents_md` has an idempotent guard.
-        if not (project / "AGENTS.md").exists():
-            try:
-                world = _aggregate_world(agents[0], tuple(templates), project)
-                if ensure_agents_md(project, world):
-                    click.echo("  Generated missing AGENTS.md")
-                    overall_changes = True
-            except Exception as exc:
-                click.echo(f"  WARN: could not generate AGENTS.md ({exc})", err=True)
-
-        # Materialize / refresh stack-contributed make targets (TASK-392) so the
-        # suites named in AGENTS.md stay runnable as stacks are added/removed.
-        # User-authored Makefile targets are untouched (generated include only).
+        # Aggregate the world once and reuse it for both the AGENTS.md backfill
+        # and the Makefile materialization — `_aggregate_world` is the costly
+        # step, so a single call serves both.
         if agents:
             try:
-                mk_world = _aggregate_world(agents[0], tuple(templates), project)
-                if materialize_makefile_targets(project, project / STATE_DIR, mk_world):
+                world = _aggregate_world(agents[0], tuple(templates), project)
+            except Exception as exc:
+                world = None
+                click.echo(f"  WARN: could not aggregate world ({exc})", err=True)
+            if world is not None:
+                # Fill the AGENTS.md gap for projects that predate the
+                # render_agents_md path (pre-v0.2.0). The idempotent guard never
+                # overwrites an existing file.
+                if not (project / "AGENTS.md").exists() and ensure_agents_md(project, world):
+                    click.echo("  Generated missing AGENTS.md")
+                    overall_changes = True
+                # Materialize / refresh stack-contributed make targets (TASK-392)
+                # so the suites named in AGENTS.md stay runnable as stacks are
+                # added/removed. User-authored Makefile targets are untouched.
+                if materialize_makefile_targets(project, project / STATE_DIR, world):
                     click.echo("  Refreshed .coding-os/Makefile.stacks")
                     overall_changes = True
-            except Exception as exc:
-                click.echo(f"  WARN: could not refresh Makefile.stacks ({exc})", err=True)
 
         # Symlinks still dangling AFTER re-link point at a source the current
         # registry no longer ships (or a meta-repo path that no longer exists)

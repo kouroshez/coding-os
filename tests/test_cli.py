@@ -263,6 +263,25 @@ class TestMakefileMaterialization:
         assert "cd src/services/fastapi" in stacks
         assert "cd src/services/go-fiber" in stacks
 
+    def test_update_wires_include_into_legacy_makefile(
+        self, runner: CliRunner, project_dir: Path
+    ) -> None:
+        project = self._init(runner, project_dir, "fastapi")
+        makefile = project / "Makefile"
+        stacks = project / ".coding-os" / "Makefile.stacks"
+        # simulate a pre-TASK-392 project: no stacks include, no generated file,
+        # plus a user-authored target that must survive the update.
+        makefile.write_text(
+            "# Project Makefile\ninclude .coding-os/Makefile.base\n\nmy-target:\n\techo hi\n"
+        )
+        stacks.unlink()
+        result = runner.invoke(cli, ["update", "-d", str(project), "--yes"])
+        assert result.exit_code == 0, result.output
+        text = makefile.read_text()
+        assert "-include .coding-os/Makefile.stacks" in text  # include wired by update
+        assert "my-target:" in text and "\techo hi" in text  # user target preserved
+        assert "lint-backend:" in stacks.read_text()  # generated include restored
+
 
 # ---------------------------------------------------------------------------
 # add-adapter command
