@@ -567,8 +567,12 @@ class TestGoExtractor:
         kinds = {n.kind for n in r.nodes}
         assert "code:file" in kinds
         assert "code:module" in kinds
-        assert "code:package" in kinds
-        pkg_nodes = [n for n in r.nodes if n.kind == "code:package"]
+        # The package grouping node now carries the canonical `module` kind
+        # (TASK-409 — `code:package` was an orphan kind normalize_kind could
+        # not map); identify it by its stable uid namespace, not the kind.
+        pkg_nodes = [n for n in r.nodes if n.uid == "code:package:go:server"]
+        assert len(pkg_nodes) == 1
+        assert pkg_nodes[0].kind == "module"
         assert pkg_nodes[0].label == "server"
 
     def test_function_node(self):
