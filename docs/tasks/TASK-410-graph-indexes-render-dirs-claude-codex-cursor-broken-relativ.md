@@ -41,3 +41,4 @@ Actual: FAIL — 1 node code:file:core/hooks/registry.yaml (md_links stub, stub:
 - 2026-06-13 [claude]: Edit polyglot-extractor-roadmap.md
 - 2026-06-13 [claude]: Edit test_i7_extractors.py
 - 2026-06-13 [claude]: commit 3dc5c9be3f — fix(test): Go package node asserts canonical module kind (TASK-409 follow-up)
+- 2026-06-13 [claude]: committed 2c3c1fc0: docs/playbooks/polyglot-extractor-roadmap.md, src/core/graph_os/extractors/md_links.py, src/core/gra
