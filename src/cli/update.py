@@ -28,7 +28,7 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-from cli._init_helpers import ensure_agents_md
+from cli._init_helpers import ensure_agents_md, materialize_makefile_targets
 from cli._resources import adapters_dir, core_dir, data_root, templates_dir
 from cli.adapter_registry import load_adapter_registry
 from cli.aggregator import aggregate, today_iso
@@ -519,6 +519,18 @@ def update(
                     overall_changes = True
             except Exception as exc:
                 click.echo(f"  WARN: could not generate AGENTS.md ({exc})", err=True)
+
+        # Materialize / refresh stack-contributed make targets (TASK-392) so the
+        # suites named in AGENTS.md stay runnable as stacks are added/removed.
+        # User-authored Makefile targets are untouched (generated include only).
+        if agents:
+            try:
+                mk_world = _aggregate_world(agents[0], tuple(templates), project)
+                if materialize_makefile_targets(project, project / STATE_DIR, mk_world):
+                    click.echo("  Refreshed .coding-os/Makefile.stacks")
+                    overall_changes = True
+            except Exception as exc:
+                click.echo(f"  WARN: could not refresh Makefile.stacks ({exc})", err=True)
 
         # Symlinks still dangling AFTER re-link point at a source the current
         # registry no longer ships (or a meta-repo path that no longer exists)

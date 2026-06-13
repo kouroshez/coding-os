@@ -454,3 +454,45 @@ def ensure_agents_md(project: Path, world: AggregatedWorld) -> bool:
         return False
     agents_md.write_text(render_agents_md(world, module_state(project)), encoding="utf-8")
     return True
+
+
+def materialize_makefile_targets(project: Path, state: Path, world: AggregatedWorld) -> bool:
+    """Render stack-contributed make targets into a generated include and wire
+    it into the project Makefile.
+
+    Writes `world.makefile_targets` to ``<state>/Makefile.stacks`` and ensures
+    the project Makefile pulls it in via ``-include``. Returns True if anything
+    changed. The user-authored Makefile is never rewritten beyond ensuring the
+    single include line is present — so re-running on an edited Makefile is safe.
+    """
+    from cli.renderer import render_makefile_targets
+
+    stacks_path = state / "Makefile.stacks"
+    rendered = render_makefile_targets(world)
+    changed = not stacks_path.exists() or stacks_path.read_text(encoding="utf-8") != rendered
+    if changed:
+        stacks_path.parent.mkdir(parents=True, exist_ok=True)
+        stacks_path.write_text(rendered, encoding="utf-8")
+
+    makefile = project / "Makefile"
+    if makefile.exists():
+        state_rel = (
+            state.relative_to(project).as_posix() if state.is_relative_to(project) else state.name
+        )
+        if _ensure_stacks_include(makefile, state_rel):
+            changed = True
+    return changed
+
+
+def _ensure_stacks_include(makefile: Path, state_rel: str) -> bool:
+    text = makefile.read_text(encoding="utf-8")
+    if "Makefile.stacks" in text:
+        return False
+    include_line = f"-include {state_rel}/Makefile.stacks\n"
+    base_marker = f"include {state_rel}/Makefile.base\n"
+    if base_marker in text:
+        text = text.replace(base_marker, base_marker + include_line, 1)
+    else:
+        text = text.rstrip("\n") + "\n" + include_line
+    makefile.write_text(text, encoding="utf-8")
+    return True

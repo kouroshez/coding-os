@@ -228,6 +228,43 @@ class TestInit:
 
 
 # ---------------------------------------------------------------------------
+# makefile materialization (TASK-392)
+# ---------------------------------------------------------------------------
+
+
+class TestMakefileMaterialization:
+    def _init(self, runner: CliRunner, project_dir: Path, *templates: str) -> Path:
+        project_dir.mkdir()
+        args = [
+            "init", "--agent", "claude", "-d", str(project_dir),
+            "--no-index", "--no-register", "--no-git",
+        ]
+        for template in templates:
+            args += ["--template", template]
+        result = runner.invoke(cli, args)
+        assert result.exit_code == 0, result.output
+        return project_dir
+
+    def test_single_backend_target_is_materialized(self, runner: CliRunner, project_dir: Path) -> None:
+        project = self._init(runner, project_dir, "fastapi")
+        stacks = (project / ".coding-os" / "Makefile.stacks").read_text()
+        assert "lint-backend:" in stacks
+        assert "cd src/backend" in stacks
+        makefile = (project / "Makefile").read_text()
+        assert "-include .coding-os/Makefile.stacks" in makefile
+
+    def test_multi_backend_targets_relocated_into_services(
+        self, runner: CliRunner, project_dir: Path
+    ) -> None:
+        project = self._init(runner, project_dir, "fastapi", "go-fiber")
+        stacks = (project / ".coding-os" / "Makefile.stacks").read_text()
+        assert "lint-backend-fastapi:" in stacks
+        assert "lint-backend-go-fiber:" in stacks
+        assert "cd src/services/fastapi" in stacks
+        assert "cd src/services/go-fiber" in stacks
+
+
+# ---------------------------------------------------------------------------
 # add-adapter command
 # ---------------------------------------------------------------------------
 

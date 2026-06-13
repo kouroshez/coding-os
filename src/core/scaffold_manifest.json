@@ -170,6 +170,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -217,7 +218,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 210
+      "count": 211
     },
     "claude_django": {
       "agent": "claude",
@@ -391,6 +392,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -452,7 +454,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 227
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -626,6 +628,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -680,7 +683,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 219
+      "count": 220
     },
     "claude_go": {
       "agent": "claude",
@@ -854,6 +857,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -911,7 +915,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 223
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -1085,6 +1089,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -1142,7 +1147,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 223
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -1314,6 +1319,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -1364,7 +1370,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 213
+      "count": 214
     },
     "claude_meta": {
       "agent": "claude",
@@ -1547,6 +1553,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -1626,7 +1633,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 253
+      "count": 254
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -1800,6 +1807,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -1867,7 +1875,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 233
     },
     "claude_node-express": {
       "agent": "claude",
@@ -2040,6 +2048,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -2097,7 +2106,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 221
+      "count": 222
     },
     "claude_python": {
       "agent": "claude",
@@ -2269,6 +2278,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -2318,7 +2328,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 212
+      "count": 213
     },
     "claude_react-native": {
       "agent": "claude",
@@ -2493,6 +2503,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -2559,7 +2570,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 233
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -2731,6 +2742,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -2781,7 +2793,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 213
+      "count": 214
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -2954,6 +2966,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -3009,7 +3022,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 219
+      "count": 220
     },
     "codex_base": {
       "agent": "codex",
@@ -3184,6 +3197,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -3230,7 +3244,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 214
+      "count": 215
     },
     "codex_django": {
       "agent": "codex",
@@ -3409,6 +3423,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -3469,7 +3484,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 231
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -3648,6 +3663,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -3701,7 +3717,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 224
     },
     "codex_go": {
       "agent": "codex",
@@ -3880,6 +3896,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -3936,7 +3953,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 227
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -4115,6 +4132,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -4171,7 +4189,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 227
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -4348,6 +4366,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -4397,7 +4416,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 217
+      "count": 218
     },
     "codex_meta": {
       "agent": "codex",
@@ -4585,6 +4604,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -4663,7 +4683,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 258
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -4842,6 +4862,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -4908,7 +4929,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 237
     },
     "codex_node-express": {
       "agent": "codex",
@@ -5086,6 +5107,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -5142,7 +5164,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 226
     },
     "codex_python": {
       "agent": "codex",
@@ -5319,6 +5341,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -5367,7 +5390,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 216
+      "count": 217
     },
     "codex_react-native": {
       "agent": "codex",
@@ -5547,6 +5570,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -5612,7 +5636,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 237
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -5789,6 +5813,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -5838,7 +5863,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 217
+      "count": 218
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -6016,6 +6041,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -6070,7 +6096,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 224
     },
     "cursor_base": {
       "agent": "cursor",
@@ -6079,6 +6105,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -6292,7 +6319,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 215
+      "count": 216
     },
     "cursor_django": {
       "agent": "cursor",
@@ -6303,6 +6330,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -6532,7 +6560,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 232
     },
     "cursor_fastapi": {
       "agent": "cursor",
@@ -6543,6 +6571,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -6765,7 +6794,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 224
+      "count": 225
     },
     "cursor_go": {
       "agent": "cursor",
@@ -6776,6 +6805,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -7001,7 +7031,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 228
     },
     "cursor_go-fiber": {
       "agent": "cursor",
@@ -7012,6 +7042,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -7237,7 +7268,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 228
     },
     "cursor_go-plain": {
       "agent": "cursor",
@@ -7248,6 +7279,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -7464,7 +7496,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 218
+      "count": 219
     },
     "cursor_meta": {
       "agent": "cursor",
@@ -7475,6 +7507,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -7731,7 +7764,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 258
+      "count": 259
     },
     "cursor_nextjs": {
       "agent": "cursor",
@@ -7742,6 +7775,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -7977,7 +8011,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 238
     },
     "cursor_node-express": {
       "agent": "cursor",
@@ -7988,6 +8022,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -8212,7 +8247,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 227
     },
     "cursor_python": {
       "agent": "cursor",
@@ -8223,6 +8258,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -8438,7 +8474,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 217
+      "count": 218
     },
     "cursor_react-native": {
       "agent": "cursor",
@@ -8449,6 +8485,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -8684,7 +8721,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 238
     },
     "cursor_typescript-plain": {
       "agent": "cursor",
@@ -8695,6 +8732,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -8911,7 +8949,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 218
+      "count": 219
     },
     "cursor_vue-nuxt": {
       "agent": "cursor",
@@ -8922,6 +8960,7 @@
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
+        ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
@@ -9144,7 +9183,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 224
+      "count": 225
     }
   }
 }

@@ -32,6 +32,7 @@ from cli._init_helpers import (
     ensure_agents_md,
     ensure_gitignore,
     install_consumer_git_hooks,
+    materialize_makefile_targets,
     maybe_git_init,
     maybe_initial_commit,
     resolve_init_target,
@@ -1640,13 +1641,20 @@ def _run_scaffold_phase(
         shutil.copy2(makefile_src, makefile_dest)
         click.echo(f"  Copied Makefile.base to {STATE_DIR}/")
 
+        # Materialize stack-contributed targets (lint-backend, test-backend-<id>,
+        # …) into a generated include so the suites named in AGENTS.md are
+        # runnable. Writes .coding-os/Makefile.stacks; the project Makefile (if
+        # it already exists) gets the `-include` wired in idempotently.
+        materialize_makefile_targets(project, state, world)
+
         # Create a project Makefile if none exists
         project_makefile = project / "Makefile"
         if not project_makefile.exists():
             project_makefile.write_text(
                 f"# Project Makefile\n"
                 f"# coding-os universal targets\n"
-                f"include {STATE_DIR}/Makefile.base\n\n"
+                f"include {STATE_DIR}/Makefile.base\n"
+                f"-include {STATE_DIR}/Makefile.stacks\n\n"
                 f"# Add your project-specific targets below:\n\n"
             )
             click.echo("  Generated Makefile")
