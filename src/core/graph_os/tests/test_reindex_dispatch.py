@@ -188,6 +188,20 @@ class TestDispatch:
         report = dispatch(src, project_root=project, db_path=str(tmp_path / "t.db"))
         assert report["status"] == "skipped"
 
+    def test_render_dir_excluded(self, project, tmp_path):
+        # TASK-410: the per-file path must skip render/dependency dirs the
+        # bulk walker already excludes — otherwise it indexes a phenotype
+        # COPY of a canonical src/ doc whose relative links mint broken stubs.
+        src = _write(
+            project / ".claude" / "rules" / "meta-hook-author.md",
+            "# copy\n[reg](../../../core/hooks/registry.yaml)\n",
+        )
+        from graph_os.tools.reindex_dispatch import dispatch
+
+        report = dispatch(src, project_root=project, db_path=str(tmp_path / "t.db"))
+        assert report["status"] == "skipped"
+        assert report["reason"] == "excluded-dir"
+
     def test_task_markdown_uses_task_chain(self, project, tmp_path):
         src = _write(
             project / "docs" / "tasks" / "TASK-001-demo.md",

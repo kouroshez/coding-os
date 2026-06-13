@@ -10,6 +10,8 @@ Ship gate (Section 19, I.2):
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from graph_os.extractors import md_links
@@ -103,6 +105,21 @@ class TestResolveLink:
     def test_cross_file_anchor(self):
         result = md_links._resolve_link("docs/a.md", "../getting-started.md#install")
         assert result == "doc:file:getting-started.md#install"
+
+    def test_existing_code_file_resolves(self):
+        # An existing non-.md target → code:file node (unchanged behaviour).
+        Path("src/core").mkdir(parents=True, exist_ok=True)
+        Path("src/core/real.py").write_text("x = 1\n")
+        result = md_links._resolve_link("docs/x.md", "../src/core/real.py")
+        assert result == "code:file:src/core/real.py"
+
+    def test_missing_code_file_target_is_dropped(self):
+        # TASK-410: a link to a NON-existent non-.md target (the render-dir
+        # COPY bug — ../../../core/hooks/registry.yaml resolving one level
+        # short) must NOT mint a code:file stub. Existence gate now spans
+        # every extension, not just .md.
+        assert md_links._resolve_link("docs/x.md", "../src/core/nope.yaml") == ""
+        assert md_links._resolve_link(".claude/rules/r.md", "../../../core/hooks/registry.yaml") == ""
 
 
 # ---------------------------------------------------------------------------

@@ -115,6 +115,23 @@ def dispatch(
             "duration_ms": int((time.monotonic() - started) * 1000),
             "reason": "out-of-repo",
         }
+    # Render-artifact / dependency dirs (.claude/.codex/.cursor, node_modules,
+    # dist, .venv, …) are excluded by the bulk walker (DEFAULT_EXCLUDE). The
+    # per-file auto-reindex path had no such guard, so a PostToolUse edit
+    # inside a render dir indexed a phenotype COPY of a canonical src/ doc —
+    # whose copied-in relative links resolve from the wrong depth and mint
+    # broken file stubs (e.g. code:file:core/hooks/registry.yaml). Mirror the
+    # walker's per-segment denylist so both paths agree (TASK-410).
+    from graph_os.ingest.base import DEFAULT_EXCLUDE
+
+    if any(part in DEFAULT_EXCLUDE for part in Path(rel).parts):
+        return {
+            "status": "skipped",
+            "path": rel,
+            "layers": {},
+            "duration_ms": int((time.monotonic() - started) * 1000),
+            "reason": "excluded-dir",
+        }
     suffix = file_path.suffix.lower()
 
     result: dict[str, Any] = {

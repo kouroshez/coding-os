@@ -345,6 +345,14 @@ def _resolve_link(origin_path: str, target: str) -> str:
         # policy as the extensionless placeholders above; minting a stub
         # here is permanent stale_paths churn (existence gate: roadmap §6).
         return ""
+    if suffix not in {".md", ".mdx", ""} and not Path(normalised).is_file():
+        # Non-doc local target (.yaml/.py/.json/…) that does not exist on
+        # disk — a broken/stale link (e.g. a render-dir COPY whose relative
+        # path resolves one level short → code:file:core/hooks/registry.yaml).
+        # The .md gate above already drops missing doc links; widen the same
+        # existence gate to every extension so no broken code:file stub is
+        # minted (roadmap §6, TASK-410).
+        return ""
     if suffix in {".md", ".mdx", ""}:
         base = f"doc:file:{normalised}"
     elif normalised.startswith("docs/tasks/"):

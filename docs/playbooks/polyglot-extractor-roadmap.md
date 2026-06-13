@@ -362,14 +362,29 @@ stack for `cos init` is OUT of scope here (separate task).
 - Decorators (legacy + new TC39) — emit two-way edge.
 
 ### Markdown / task refs — stub-minting hygiene (TASK-393)
-- **Existence gate on doc-link targets.** A `.md`/`.mdx` link target that does
-  not exist on disk (cwd = project root, same convention as md_links' other
-  `Path(...)` checks) is dropped — no `doc:file:` stub is minted. Same drop
-  policy as extensionless placeholders. Applies to `md_links._resolve_link`
-  and `task_deps._extract_doc_paths` (`references_doc` is a *read* — a
-  nonexistent path is noise, not a contract). `_extract_scope_paths`
-  (`produces_doc`) keeps minting: scope-out paths name files a task will
-  create.
+- **Existence gate on link targets — ALL extensions (TASK-393, widened TASK-410).**
+  A link target that does not exist on disk (cwd = project root, same convention
+  as md_links' other `Path(...)` checks) is dropped — no stub is minted. The
+  gate originally covered only `.md`/`.mdx` and extensionless placeholders, so a
+  link to a missing `.yaml`/`.py`/`.json` still minted a `code:file:` stub; the
+  gate now spans **every** extension. Canonical regression: a render-dir COPY at
+  `.claude/rules/meta-hook-author.md` whose `../../../core/hooks/registry.yaml`
+  resolves one level short (the copy is two dirs shallower than the
+  `src/templates/meta/rules/` original) minted `code:file:core/hooks/registry.yaml`
+  — a legacy pre-src-migration prefix that tripped `graph.uid_consistency`.
+  Applies to `md_links._resolve_link` and `task_deps._extract_doc_paths`
+  (`references_doc` is a *read* — a nonexistent path is noise, not a contract).
+  `_extract_scope_paths` (`produces_doc`) keeps minting: scope-out paths name
+  files a task will create.
+- **Render-artifact dirs are excluded from BOTH index paths (TASK-410).** The
+  bulk walker (`walk_local`) already drops `.claude/.codex/.cursor` (and
+  `node_modules`, `dist`, `.venv`, …) via `DEFAULT_EXCLUDE`. The per-file
+  auto-reindex chokepoint `reindex_dispatch.dispatch()` had no such guard, so a
+  PostToolUse edit inside a render dir indexed a phenotype COPY of a canonical
+  `src/` doc (duplicate doc node + broken-relative-link stubs). `dispatch()` now
+  mirrors the walker's per-segment `DEFAULT_EXCLUDE` denylist (`reason:
+  "excluded-dir"`) so both paths agree — the canonical `src/templates/meta/rules/`
+  SSOT stays indexed, the `.claude/` copies never enter the graph.
 - **Greedy `.md`-token capture in task bullets** (`_DOC_PATH_RE`) catches bare
   names (`SKILL.md`), URL tails (`https://…/x.md` → `//…/x.md` since `:` is
   outside the class), and prose junk — all killed by the existence gate, not
