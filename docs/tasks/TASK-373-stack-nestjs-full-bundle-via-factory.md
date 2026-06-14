@@ -48,3 +48,4 @@ references: []
 - 2026-06-14 [claude]: Edit health.controller.ts
 - 2026-06-14 [claude]: Edit health.service.ts
 - 2026-06-14 [claude]: Authored nestjs stack bundle (stack.yaml language=typescript/backend, nestjs SKILL.md, scaffold: main/app.module + healt
+- 2026-06-14 [claude]: committed 839a010e: src/core/rules/dimension-registry.md, src/core/rules/skill-enforcement.md, src/core/scaffold_manifes
