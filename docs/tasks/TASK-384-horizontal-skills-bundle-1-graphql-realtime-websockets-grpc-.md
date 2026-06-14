@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: E-skills
 labels: [backlog, onboarding-program, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 2d
 created: 2026-06-11
-started: null
-completed: null
-agent_session: null
+started: 2026-06-14
+completed: 2026-06-14
+agent_session: ses-claude-20260614-003127-9cfa
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-384: Horizontal skills bundle 1 — graphql, realtime/websockets, grpc-microservices
 
 **Outcome (one sentence):** Three new core skills (graphql, realtime-websockets, grpc-microservices) authored to the public skill standard with schema-valid frontmatter and trigger evals.
@@ -33,3 +32,4 @@ references: []
 - **Given** docs, **When** `make docs-lint` runs, **Then** green.
 
 ## Work Log
+- 2026-06-14 [claude]: Status transitioned to complete via cos task-done.

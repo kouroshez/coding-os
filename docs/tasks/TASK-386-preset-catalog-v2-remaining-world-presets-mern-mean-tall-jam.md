@@ -4,19 +4,18 @@ title: "Preset catalog v2 \u2014 remaining world presets (MERN, MEAN, TALL, JAMs
 swimlane: templates
 kind: feature
 epic: D-catalog
-labels: [backlog, onboarding-program]
-status: icebox
+labels: [backlog, onboarding-program, ready]
+status: complete
 priority: P3
 appetite: 2d
 created: 2026-06-11
-started: null
-completed: null
-agent_session: null
+started: 2026-06-14
+completed: 2026-06-14
+agent_session: ses-claude-20260614-003127-9cfa
 depends_on: [TASK-373, TASK-374, TASK-375, TASK-376, TASK-377, TASK-378, TASK-379, TASK-380, TASK-381, TASK-382, TASK-383]
 blocked_by: []
 references: []
 ---
-
 # TASK-386: Preset catalog v2 — remaining world presets (MERN, MEAN, TALL, JAMstack, Flutter+BaaS, …)
 
 **Outcome (one sentence):** Remaining world presets composed from the grown stack catalog (MERN/MEAN need their stacks first); each scaffolds green and appears in onboarding with descriptions.
@@ -33,3 +32,4 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_cli.py::TestPresets -q` (extended) runs, **Then** green.
 
 ## Work Log
+- 2026-06-14 [claude]: Status transitioned to complete via cos task-done.

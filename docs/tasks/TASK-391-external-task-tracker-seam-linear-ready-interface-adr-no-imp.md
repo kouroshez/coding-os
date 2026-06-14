@@ -68,3 +68,5 @@ Delete docs/architecture/adr/0006-external-task-tracker-seam.md and revert its l
 - 2026-06-14 [claude]: Edit app.routes.ts
 - 2026-06-14 [claude]: Edit hello.md
 - 2026-06-14 [claude]: Authored docs/architecture/adr/0006-external-task-tracker-seam.md (Status Accepted, contract-only). Names only real seam
+- 2026-06-14 [claude]: committed c302ac2f: docs/00-index.md, docs/architecture/adr/00-index.md, docs/architecture/adr/0006-external-task-tracke
+- 2026-06-14 [claude]: ADR-0006 verified complete: all 5 acceptance criteria for content met (real seam only — tasks module, cos_task_* + cos_w

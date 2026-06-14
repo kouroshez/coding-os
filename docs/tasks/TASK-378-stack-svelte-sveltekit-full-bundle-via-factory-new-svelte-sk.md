@@ -5,18 +5,17 @@ swimlane: templates
 kind: feature
 epic: D-catalog
 labels: [backlog, onboarding-program, ready]
-status: icebox
+status: complete
 priority: P3
 appetite: 2d
 created: 2026-06-11
-started: null
-completed: null
-agent_session: null
+started: 2026-06-14
+completed: 2026-06-14
+agent_session: ses-claude-20260614-003127-9cfa
 depends_on: [TASK-361]
 blocked_by: []
 references: []
 ---
-
 # TASK-378: Stack: svelte-sveltekit — full bundle via factory (new svelte skill)
 
 **Outcome (one sentence):** Complete svelte-sveltekit stack bundle including a new svelte skill (language=typescript) passing the factory lint.
@@ -33,3 +32,4 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_template_scaffold.py tests/test_anatomy_contract.py -q` runs, **Then** green including the golden fixture.
 
 ## Work Log
+- 2026-06-14 [claude]: Status transitioned to complete via cos task-done.
