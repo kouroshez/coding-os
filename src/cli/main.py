@@ -605,6 +605,85 @@ def _dry_config_preview(templates: tuple[str, ...], output_format: str) -> None:
     click.echo("(dry-config — nothing written)")
 
 
+def _scaffold_tree_preview(templates: tuple[str, ...]) -> tuple[list[str], list[str]]:
+    """Relative paths `cos init` WOULD create — zero reads of the target, zero writes.
+
+    Returns (sorted paths, config-merge conflicts). Mirrors the source roots and
+    service-relocation logic of `_overlay_scaffold` / `_run_scaffold_phase` so the
+    preview matches what an actual init writes.
+    """
+    from cli.config_composer import preview_coding_os_configs
+
+    relocations = _service_relocations(templates)
+    registry = _get_stack_registry()
+    paths: set[str] = set()
+
+    sources: list[tuple[Path, str | None]] = [(TEMPLATES_DIR / "_base" / "scaffold", None)]
+    for name in templates:
+        candidate = TEMPLATES_DIR / name / "scaffold"
+        if candidate.exists():
+            sources.append((candidate, name))
+
+    for src_root, stack_id in sources:
+        if not src_root.exists():
+            continue
+        relocated_root = relocations.get(stack_id) if stack_id else None
+        declared_root = (
+            (registry[stack_id].structure or {}).get("root", "").rstrip("/")
+            if stack_id and stack_id in registry.keys()
+            else ""
+        )
+        for src_file in src_root.rglob("*"):
+            if not src_file.is_file() or src_file.name == ".gitkeep":
+                continue
+            rel = src_file.relative_to(src_root)
+            if relocated_root and declared_root and str(rel).startswith(declared_root + "/"):
+                rel = Path(relocated_root) / str(rel)[len(declared_root) + 1 :]
+            # Composed configs come from the merge step below, not the overlay.
+            if rel.parent.name == ".coding-os" and rel.name in COMPOSED_FILENAMES:
+                continue
+            paths.add(str(rel))
+
+    merged, conflicts = preview_coding_os_configs(list(templates), templates_dir=TEMPLATES_DIR)
+    for filename in merged:
+        paths.add(f"{STATE_DIR}/{filename}")
+
+    # Generated artifacts the scaffold phase always writes (not under scaffold/).
+    paths.update(
+        {
+            CONFIG_FILE,
+            "AGENTS.md",
+            "Makefile",
+            f"{STATE_DIR}/coding-os.db",
+            f"{STATE_DIR}/Makefile.base",
+        }
+    )
+    return sorted(paths), conflicts
+
+
+def _dry_run_preview(templates: tuple[str, ...], output_format: str) -> None:
+    """`cos init --dry-run` — preview the scaffold tree with ZERO writes."""
+    paths, conflicts = _scaffold_tree_preview(templates)
+    if output_format == "json":
+        click.echo(
+            json.dumps(
+                {"stacks": list(templates), "files": paths, "conflicts": conflicts},
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+        return
+    click.echo(f"Scaffold preview for stacks: {', '.join(templates) or '(base only)'}")
+    click.echo(f"  {len(paths)} file(s) would be created:")
+    for path in paths:
+        click.echo(f"    {path}")
+    if conflicts:
+        click.echo(f"  config conflicts ({len(conflicts)} — later wins):")
+        for line in conflicts:
+            click.echo(f"    WARN: {line}")
+    click.echo("(dry-run — nothing written)")
+
+
 def _service_relocations(templates: tuple[str, ...]) -> dict[str, str]:
     """stack-id → relocated root for stacks whose structure.root collides.
 
@@ -1091,6 +1170,12 @@ def _refuse_coding_os_self_init(project: Path) -> None:
     help="Print the merged .coding-os config preview (swimlane union + conflicts) for the requested stacks/preset and exit without writing anything.",
 )
 @click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Preview the would-be scaffold tree (files + composed configs) for the requested stacks/preset and exit without writing anything.",
+)
+@click.option(
     "--skills",
     "extra_skills_csv",
     default=None,
@@ -1168,6 +1253,7 @@ def init(
     template: tuple[str, ...],
     preset_id: str | None,
     dry_config: bool,
+    dry_run: bool,
     extra_skills_csv: str | None,
     project_summary: str | None,
     project_dir: str | None,
@@ -1217,6 +1303,10 @@ def init(
 
     if dry_config:
         _dry_config_preview(template, output_format)
+        return
+
+    if dry_run:
+        _dry_run_preview(template, output_format)
         return
 
     # --skills validated up-front (fail fast, wizard parity: the wizard only

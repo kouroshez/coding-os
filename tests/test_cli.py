@@ -1168,6 +1168,52 @@ class TestPresets:
         assert "scrumban-config.yaml" in payload["configs"]
         assert payload["conflicts"] == []  # single stack never conflicts
 
+    def test_dry_run_previews_tree_without_writing(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("PWD", str(tmp_path))
+        result = runner.invoke(
+            cli,
+            ["init", "--agent", "claude", "--template", "fastapi", "--dry-run", "--yes"],
+        )
+        assert result.exit_code == 0, result.output
+        assert "Scaffold preview for stacks: fastapi" in result.output
+        assert "file(s) would be created" in result.output
+        assert "AGENTS.md" in result.output
+        assert ".coding-os.yaml" in result.output
+        assert "nothing written" in result.output
+        assert list(tmp_path.iterdir()) == []  # zero filesystem effects
+
+    def test_dry_run_with_preset_reflects_expansion(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("PWD", str(tmp_path))
+        result = runner.invoke(
+            cli,
+            ["init", "--agent", "claude", "--preset", "nextjs-fastapi", "--dry-run", "--yes"],
+        )
+        assert result.exit_code == 0, result.output
+        assert "Preset 'nextjs-fastapi' → stacks: nextjs, fastapi" in result.output
+        assert "Scaffold preview for stacks: nextjs, fastapi" in result.output
+        assert list(tmp_path.iterdir()) == []  # zero filesystem effects
+
+    def test_dry_run_json_shape(self, runner: CliRunner, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("PWD", str(tmp_path))
+        result = runner.invoke(
+            cli,
+            ["init", "--agent", "claude", "--template", "nextjs", "--dry-run", "--yes", "--format", "json"],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["stacks"] == ["nextjs"]
+        assert "AGENTS.md" in payload["files"]
+        assert ".coding-os/scrumban-config.yaml" in payload["files"]
+        assert payload["conflicts"] == []  # single stack never conflicts
+        assert list(tmp_path.iterdir()) == []  # zero filesystem effects
+
     def test_list_stacks_shows_presets(self, runner: CliRunner) -> None:
         result = runner.invoke(cli, ["list-stacks", "--format", "json"])
         assert result.exit_code == 0, result.output

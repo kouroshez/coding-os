@@ -5,18 +5,17 @@ swimlane: cli
 kind: feature
 epic: H-lifecycle
 labels: [backlog, onboarding-program, ready]
-status: icebox
+status: in_progress
 priority: P3
 appetite: 1d
 created: 2026-06-11
-started: null
+started: 2026-06-14
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-389: Init dry-run + version migration guide
 
 **Outcome (one sentence):** `cos init --dry-run` previews the scaffold tree without writing; a migration guide documents upgrading pre-0.3 consumer projects.
