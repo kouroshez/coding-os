@@ -16,26 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-408: Graph root node distinct focal style — reserved brand-logomark color + home glyph + legend entry
-
----
-id: TASK-408
-title: "Graph root node distinct focal style — reserved brand-logomark color + home glyph + legend entry"
-swimlane: "graph_os"
-kind: feature
-epic: null
-labels: [graph-os, hub-ui, ux, design, ready]
-status: icebox
-priority: P2
-appetite: 1d
-created: 2026-06-12
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
 
 # TASK-408: Graph root node distinct focal style — reserved brand-logomark color + home glyph + legend entry
 

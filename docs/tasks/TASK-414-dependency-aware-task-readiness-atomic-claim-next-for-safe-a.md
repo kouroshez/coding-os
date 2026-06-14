@@ -79,4 +79,5 @@ references: []
 - 2026-06-14 [claude]: Implemented (E) atomic cos_task_claim_next (mcp_tools.py + server.py registration): reuses cos_task_pick then atomic CAS
 - 2026-06-14 [claude]: Tests: 7 new in test_dependency_gate.py (3 cascade incl. multi-dep/needs-authoring, 4 claim-next incl. concurrent race).
 - 2026-06-14 [claude]: Edit test_dependency_gate.py
-- 2026-06-14 [claude]: A/B/C/E done: dep-gate(transient)+pick-filter+cascade+cos_task_claim_next; board_os 501/cli 148/thinking_os 1412 green; 
+- 2026-06-14 [claude]: A/B/C/E done: dep-gate(transient)+pick-filter+cascade+cos_task_claim_next; board_os 501/cli 148/thinking_os 1412 green;
+- 2026-06-14 [claude]: committed 1ca8e4d5: docs/governance/mcp-tool-inventory.md, docs/governance/task-lifecycle.md, src/core/board_os/config.p

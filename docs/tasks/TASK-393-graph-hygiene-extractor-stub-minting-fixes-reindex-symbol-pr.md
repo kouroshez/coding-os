@@ -16,26 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-393: Graph hygiene — extractor stub-minting fixes, reindex symbol prune, one-time orphan cleanup
-
----
-id: TASK-393
-title: "Graph hygiene — extractor stub-minting fixes, reindex symbol prune, one-time orphan cleanup"
-swimlane: "graph_os"
-kind: bug
-epic: null
-labels: [graph-os, hygiene, doctor, ready]
-status: icebox
-priority: P2
-appetite: 1d
-created: 2026-06-11
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
 
 # TASK-393: Graph hygiene — extractor stub-minting fixes, reindex symbol prune, one-time orphan cleanup
 

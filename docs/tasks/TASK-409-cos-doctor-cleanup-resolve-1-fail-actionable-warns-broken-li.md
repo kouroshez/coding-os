@@ -16,26 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-409: cos doctor cleanup — resolve 1 FAIL + actionable WARNs (broken link, legacy Go kind, PostToolUse task-move matcher, Sigma zero-width)
-
----
-id: TASK-409
-title: "cos doctor cleanup — resolve 1 FAIL + actionable WARNs (broken link, legacy Go kind, PostToolUse task-move matcher, Sigma zero-width)"
-swimlane: core
-kind: bug
-epic: null
-labels: [doctor, graph-os, adapters, hub-ui, ready]
-status: icebox
-priority: P2
-appetite: 1d
-created: 2026-06-12
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
 
 # TASK-409: cos doctor cleanup — resolve 1 FAIL + actionable WARNs (broken link, legacy Go kind, PostToolUse task-move matcher, Sigma zero-width)
 

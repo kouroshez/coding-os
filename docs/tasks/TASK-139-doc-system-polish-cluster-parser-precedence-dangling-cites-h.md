@@ -22,3 +22,4 @@ references: []
 
 ## Work Log
 - 2026-06-06 [claude]: ARCHIVED after graph-verified triage — nothing actionable remains. D7-F10 already shipped (31b035d4). D7-F8 already guar
+- 2026-06-11 [claude]: committed f60a42b9: docs/engineering/doc-system-overhaul-roadmap.md, docs/engineering/extension-manager.md

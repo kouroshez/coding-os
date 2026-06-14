@@ -5,12 +5,12 @@ swimlane: cli
 kind: feature
 epic: E-skills
 labels: [wave-4, onboarding-program, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-11
 started: 2026-06-11
-completed: null
+completed: 2026-06-11
 agent_session: ses-claude-20260610-185418-2b3f
 depends_on: [TASK-352]
 blocked_by: []
@@ -38,3 +38,6 @@ references: []
 - 2026-06-11 [claude]: Edit ConfigPage.tsx
 - 2026-06-11 [claude]: Edit skill-architecture.md
 - 2026-06-11 [claude]: Edit ConfigPage.tsx
+- 2026-06-11 [claude]: commit 62555e5b33 — feat(cli): per-project extra skills + symlink-safe update prune (TASK-370)
+- 2026-06-11 [claude]: IMPL DONE (parked — final task before user-ordered stop) — cos skill enable/disable/project on the existing SSOT .coding
+- 2026-06-11 [claude]: CLOSED on final suite: tests/test_cli.py 141 passed (13m50s). Commit 62555e5b. Self-score 9.5/10: complete CLI+API+UI st

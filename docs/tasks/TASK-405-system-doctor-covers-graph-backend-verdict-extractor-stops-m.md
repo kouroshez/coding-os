@@ -16,26 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-405: System doctor covers graph-backend verdict + extractor stops minting expression-shaped identifier stubs
-
----
-id: TASK-405
-title: "System doctor covers graph-backend verdict + extractor stops minting expression-shaped identifier stubs"
-swimlane: "graph_os"
-kind: bug
-epic: null
-labels: [graph-os, doctor, hygiene, ready]
-status: icebox
-priority: P1
-appetite: 4h
-created: 2026-06-12
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
 
 # TASK-405: System doctor covers graph-backend verdict + extractor stops minting expression-shaped identifier stubs
 
@@ -64,3 +44,30 @@ Expected: cos doctor reports the backend verdict; identifiers are identifiers. A
 - 2026-06-12 [claude]: Edit code_python.py
 - 2026-06-12 [claude]: cos doctor gained graph.backend_health — surfaces the cos_graph_doctor verdict (healthy / real-category counts / fix hin
 - 2026-06-12 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-12 [claude]: committed 0f1e709e: src/cli/doctor_graph.py, src/core/graph_os/extractors/code_python.py, src/core/graph_os/tests/test_c
+- 2026-06-12 [claude]: Edit sqlite_backend.py
+- 2026-06-12 [claude]: Edit graph.py
+- 2026-06-12 [claude]: Edit graph.py
+- 2026-06-12 [claude]: Edit graph.py
+- 2026-06-12 [claude]: Edit graph.py
+- 2026-06-12 [claude]: Edit graph.py
+- 2026-06-12 [claude]: Edit md_links.py
+- 2026-06-12 [claude]: Edit GraphCanvas.tsx
+- 2026-06-12 [claude]: Edit GraphCanvas.tsx
+- 2026-06-12 [claude]: Edit useSigma.ts
+- 2026-06-12 [claude]: Edit useSigma.ts
+- 2026-06-12 [claude]: Edit test_smart_export.py
+- 2026-06-12 [claude]: commit 18bf8f58f7 — feat(graph_os): subtree-scoped roots + breadcrumb + adaptive zoom + project root label (TASK-406)
+- 2026-06-12 [claude]: commit 2f1aa2dae6 — chore(board): file TASK-407 community-map graph home (deferred from TASK-406 plan P3)
+- 2026-06-12 [claude]: Edit design-system.md
+- 2026-06-12 [claude]: Edit node-colors.ts
+- 2026-06-12 [claude]: Edit graph-adapter.ts
+- 2026-06-12 [claude]: Edit graph-adapter.ts
+- 2026-06-12 [claude]: Edit graph-adapter.ts
+- 2026-06-12 [claude]: Edit graph-adapter.ts
+- 2026-06-12 [claude]: Edit useSigma.ts
+- 2026-06-12 [claude]: Edit useSigma.ts
+- 2026-06-12 [claude]: Edit color-legend.tsx
+- 2026-06-12 [claude]: Edit color-legend.tsx
+- 2026-06-12 [claude]: commit e4f790d2cd — feat(graph_os): distinct focal style for repo-root anchor node (TASK-408)
+- 2026-06-12 [claude]: Edit README.md

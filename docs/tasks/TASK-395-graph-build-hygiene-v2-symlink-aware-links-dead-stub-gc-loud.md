@@ -16,26 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-395: Graph build hygiene v2 — symlink-aware links, dead-stub GC, loud bounded reindex, honest severity
-
----
-id: TASK-395
-title: "Graph build hygiene v2 — symlink-aware links, dead-stub GC, loud bounded reindex, honest severity"
-swimlane: "graph_os"
-kind: bug
-epic: null
-labels: [graph-os, hygiene, doctor, reindex, ready]
-status: icebox
-priority: P1
-appetite: 1d
-created: 2026-06-11
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
 
 # TASK-395: Graph build hygiene v2 — symlink-aware links, dead-stub GC, loud bounded reindex, honest severity
 

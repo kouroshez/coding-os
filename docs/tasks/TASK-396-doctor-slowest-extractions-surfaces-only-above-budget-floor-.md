@@ -16,26 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-396: Doctor: slowest_extractions surfaces only above budget floor + hub serves stale doctor code
-
----
-id: TASK-396
-title: "Doctor: slowest_extractions surfaces only above budget floor + hub serves stale doctor code"
-swimlane: "graph_os"
-kind: bug
-epic: null
-labels: [graph-os, doctor, hub, ready]
-status: icebox
-priority: P2
-appetite: 2h
-created: 2026-06-11
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
 
 # TASK-396: Doctor: slowest_extractions surfaces only above budget floor + hub serves stale doctor code
 
@@ -64,3 +44,4 @@ Expected: badge 0, no slowest card when within budget. Actual: badge 1 + permane
 - 2026-06-11 [claude]: Edit test_centrality_ranking_doctor.py
 - 2026-06-11 [claude]: slowest_extractions now surfaces in issues[] only above the 500ms roadmap floor (stats.slowest_extraction_ms always pres
 - 2026-06-11 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-11 [claude]: committed a458d5db: docs/playbooks/polyglot-extractor-roadmap.md, src/core/graph_os/tests/test_centrality_ranking_doctor

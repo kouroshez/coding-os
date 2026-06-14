@@ -171,6 +171,22 @@ clobbers sibling consumers) and must handle attaching to an already-OPEN
 source by checking `readyState`. A board tab holds 2 SSE connections
 (`/api/stream/events` + `/api/hooks/stream`), not 4.
 
+**Board stream event contract — a `task-updated` event means the status changed.**
+`/api/stream/events` emits a `task-updated` row from two producers: the
+authoritative DB watermark (`task_status_history`, `source: "db"`) and a
+file-watch fallback for human edits not backed by a DB row (`source: "file"`,
+`old_status: null`). The file-watch branch is **status-triggered, not
+mtime-triggered**: a task `.md` is rewritten for many reasons that do not move
+it (a `capture-work-log.sh` append per code Edit, a body edit), so `_poll_tick`
+keeps a per-file status watermark (`_StreamState.last_status`) and emits only
+when the parsed `status:` actually differs from the last seen value — an mtime
+bump alone is silently absorbed. Without this guard the AGENT STREAM panel
+stacks one phantom `? -> <status>` row per work-log append (TASK-411). The UI
+(`useBoardStream.ts`) additionally collapses an incoming live event that is
+identical to the newest row (same `taskId` + `newStatus` + `kind`) as
+defence-in-depth; history-bootstrap rows already dedupe on their stable
+`hist-…` id.
+
 ## Command palette (Cmd/Ctrl+K)
 
 `CommandPalette` (mounted in `AppShell`, built on the shared `Modal`) reserves

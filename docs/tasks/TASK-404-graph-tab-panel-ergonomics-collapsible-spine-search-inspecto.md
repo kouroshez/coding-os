@@ -16,26 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-404: Graph tab panel ergonomics — collapsible spine/search/inspector + URL-synced root selection
-
----
-id: TASK-404
-title: "Graph tab panel ergonomics — collapsible spine/search/inspector + URL-synced root selection"
-swimlane: "graph_os"
-kind: feature
-epic: null
-labels: [graph-os, hub-ui, ux, ready]
-status: icebox
-priority: P2
-appetite: 4h
-created: 2026-06-11
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
 
 # TASK-404: Graph tab panel ergonomics — collapsible spine/search/inspector + URL-synced root selection
 
@@ -69,3 +49,4 @@ references: []
 - 2026-06-12 [claude]: Edit ContainsTree.tsx
 - 2026-06-12 [claude]: Panels now collapse: spine sidebar (PanelLeftClose in header ↔ 28px rail), Search/Kinds/Edges filter card (X ↔ sliders i
 - 2026-06-12 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-12 [claude]: committed eafd3004: src/core/web/ui/src/features/graph/ContainsTree.tsx, src/core/web/ui/src/layout/AppShell.tsx, src/co

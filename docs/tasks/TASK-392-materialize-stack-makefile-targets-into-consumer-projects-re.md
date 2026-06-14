@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: J-anatomy
 labels: [onboarding-program, backlog, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-11
-started: null
-completed: null
-agent_session: null
+started: 2026-06-13
+completed: 2026-06-13
+agent_session: ses-claude-20260613-120154-405b
 depends_on: [TASK-355]
 blocked_by: []
 references: []
 ---
-
 # TASK-392: Materialize stack makefile_targets into consumer projects — render_makefile_targets has no init caller
 
 **Outcome (one sentence):** cos init/update writes stack-contributed make targets (e.g. lint-backend, test-backend-fastapi) into a generated include (e.g. .coding-os/Makefile.stacks) wired into the project Makefile, so the suites named in AGENTS.md actually exist as runnable targets.
@@ -39,3 +38,16 @@ references: []
 - **Given** the matrix, **When** `uv run pytest tests/test_cli.py -q` runs, **Then** green.
 
 ## Work Log
+- 2026-06-13 [claude]: Edit _init_helpers.py
+- 2026-06-13 [claude]: Edit main.py
+- 2026-06-13 [claude]: Edit main.py
+- 2026-06-13 [claude]: Edit update.py
+- 2026-06-13 [claude]: Edit update.py
+- 2026-06-13 [claude]: Edit test_makefile_materialize.py
+- 2026-06-13 [claude]: Edit test_cli.py
+- 2026-06-13 [claude]: commit 90396f0823 — fix(cli): materialize stack makefile_targets into a generated include
+- 2026-06-13 [claude]: Edit update.py
+- 2026-06-13 [claude]: Edit test_cli.py
+- 2026-06-13 [claude]: Edit update.py
+- 2026-06-13 [claude]: commit 719360a2c4 — fix(update): correct base.yaml path so update materializes Makefile + AGENTS.md
+- 2026-06-13 [claude]: Complete. init + update now materialize world.makefile_targets into .coding-os/Makefile.stacks and wire a -include into 

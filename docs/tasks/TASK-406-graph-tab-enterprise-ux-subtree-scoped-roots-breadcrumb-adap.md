@@ -16,26 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-406: Graph tab enterprise UX — subtree-scoped roots + breadcrumb, adaptive zoom styling, community home, project-name root
-
----
-id: TASK-406
-title: "Graph tab enterprise UX — subtree-scoped roots + breadcrumb, adaptive zoom styling, community home, project-name root"
-swimlane: "graph_os"
-kind: feature
-epic: null
-labels: [graph-os, hub-ui, ux, ready]
-status: icebox
-priority: P1
-appetite: 1d
-created: 2026-06-12
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
 
 # TASK-406: Graph tab enterprise UX — subtree-scoped roots + breadcrumb, adaptive zoom styling, community home, project-name root
 
@@ -58,3 +38,4 @@ references: []
 - 2026-06-12 [claude]: commit 0f1e709e24 — fix(doctor): system doctor surfaces graph-backend verdict; no expression stubs (TASK-405)
 - 2026-06-12 [claude]: Subtree-scoped rooted views shipped: export gained scope=subtree (contains walked downward + backend.edges_among semanti
 - 2026-06-12 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-12 [claude]: committed 18bf8f58: src/core/graph_os/backends/sqlite_backend.py, src/core/graph_os/extractors/md_links.py, src/core/gra

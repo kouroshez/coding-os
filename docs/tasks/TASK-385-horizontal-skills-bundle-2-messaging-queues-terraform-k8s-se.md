@@ -12,7 +12,7 @@ created: 2026-06-11
 started: null
 completed: null
 agent_session: null
-depends_on: []
+depends_on: [TASK-384]
 blocked_by: []
 references: []
 ---

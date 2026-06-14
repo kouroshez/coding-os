@@ -4,7 +4,7 @@ title: "Preset catalog v2 \u2014 remaining world presets (MERN, MEAN, TALL, JAMs
 swimlane: templates
 kind: feature
 epic: D-catalog
-labels: [backlog, onboarding-program, ready]
+labels: [backlog, onboarding-program]
 status: icebox
 priority: P3
 appetite: 2d
@@ -12,7 +12,7 @@ created: 2026-06-11
 started: null
 completed: null
 agent_session: null
-depends_on: []
+depends_on: [TASK-373, TASK-374, TASK-375, TASK-376, TASK-377, TASK-378, TASK-379, TASK-380, TASK-381, TASK-382, TASK-383]
 blocked_by: []
 references: []
 ---

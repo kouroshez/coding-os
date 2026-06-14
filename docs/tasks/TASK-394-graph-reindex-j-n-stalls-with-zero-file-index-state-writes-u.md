@@ -16,26 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-394: graph-reindex -j N stalls with zero file_index_state writes under a live MCP server
-
----
-id: TASK-394
-title: "graph-reindex -j N stalls with zero file_index_state writes under a live MCP server"
-swimlane: "graph_os"
-kind: bug
-epic: null
-labels: [graph-os, reindex, concurrency]
-status: icebox
-priority: P3
-appetite: 4h
-created: 2026-06-11
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
 
 # TASK-394: graph-reindex -j N stalls with zero file_index_state writes under a live MCP server
 
@@ -59,3 +39,4 @@ Actual: silent indefinite stall; run had to be killed (single-file dispatch thro
 ## Work Log
 - 2026-06-11 [claude]: Root-caused under TASK-395. Three stacked mechanisms: (1) CLI counted per-file graph-layer write failures as PROCESSED (
 - 2026-06-11 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-11 [claude]: committed 8b6ea66a: docs/engineering/mcp-error-envelope.md, docs/playbooks/polyglot-extractor-roadmap.md, src/cli/graph_

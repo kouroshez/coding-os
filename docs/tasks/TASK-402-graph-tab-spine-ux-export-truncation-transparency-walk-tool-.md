@@ -16,26 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-402: Graph tab spine UX + export truncation transparency + walk-tool coverage audit
-
----
-id: TASK-402
-title: "Graph tab spine UX + export truncation transparency + walk-tool coverage audit"
-swimlane: "graph_os"
-kind: bug
-epic: null
-labels: [graph-os, hub-ui, ux, audit, ready]
-status: icebox
-priority: P1
-appetite: 1d
-created: 2026-06-11
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
 
 # TASK-402: Graph tab spine UX + export truncation transparency + walk-tool coverage audit
 
@@ -79,3 +59,4 @@ Expected: rooted-vs-auto semantics are explicit, every cut is surfaced with coun
 - 2026-06-11 [claude]: Edit ContainsTree.tsx
 - 2026-06-11 [claude]: Root causes found+fixed: (1) server silently clamped export max_nodes to 2000 — UI's 10k/30k asks (depth=max, spine side
 - 2026-06-11 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-11 [claude]: committed e6c434cb: docs/playbooks/polyglot-extractor-roadmap.md, src/cli/graph_commands.py, src/core/graph_os/backends/

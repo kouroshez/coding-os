@@ -16,26 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-403: Graph export latency — batch node hydration + ancestor walk; visible loading states
-
----
-id: TASK-403
-title: "Graph export latency — batch node hydration + ancestor walk; visible loading states"
-swimlane: "graph_os"
-kind: bug
-epic: null
-labels: [graph-os, performance, hub-ui, ready]
-status: icebox
-priority: P1
-appetite: 4h
-created: 2026-06-11
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
 
 # TASK-403: Graph export latency — batch node hydration + ancestor walk; visible loading states
 
@@ -67,3 +47,4 @@ Expected: interactive (<2 s) and an obvious in-flight indicator. Actual: ~12-30 
 - 2026-06-11 [claude]: Edit GraphCanvas.tsx
 - 2026-06-11 [claude]: Latency root causes: per-uid get_node hydration (~30k round trips) + per-node _contains_ancestors walks in _export_blend
 - 2026-06-11 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-11 [claude]: committed b1073076: src/core/graph_os/backends/sqlite_backend.py, src/core/graph_os/tests/test_link_external_stubs.py, s
