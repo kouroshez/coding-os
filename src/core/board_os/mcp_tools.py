@@ -42,7 +42,10 @@ from board_os.parser import parse_task
 from board_os.sync import sync_one
 from board_os.workflow import (
     _format_yaml_scalar_token,
+    _has_task_dependencies_table,
     check_wip,
+    dependents_of,
+    incomplete_dependencies,
     patch_task_frontmatter_scalars,
     transition,
     validate_dependencies_no_cycle,
@@ -1256,6 +1259,109 @@ def _record_completion_outcome_safe(conn: sqlite3.Connection, task_id: str) -> N
         logger.debug("MCP completion outcome failed for %s: %s", task_id, exc)
 
 
+_TERMINAL_DEP_STATES = ("archive",)
+
+
+def cascade_ready_dependents(
+    conn: sqlite3.Connection,
+    completed_task_id: str,
+    *,
+    agent_session: str | None = None,
+) -> dict[str, list]:
+    """Auto-ready every dependent of `completed_task_id` now unblocked + DoR-complete.
+
+    Run after a task transitions to `complete`. Each dependent is classified:
+    `readied` (all deps complete AND body DoR met — the ready label is added,
+    moving blocked→icebox first), `needs_authoring` (all deps complete but the
+    body DoR is incomplete — surfaced, not silently hidden), or `still_blocked`
+    (another dep is open, or a dep is archived/cancelled — left blocked with a
+    reason instead of hanging). Already-ready or active dependents are skipped.
+    """
+    report: dict[str, list] = {"readied": [], "needs_authoring": [], "still_blocked": []}
+    project_root = _project_root()
+    for dependent_id in dependents_of(conn, completed_task_id):
+        row = conn.execute(
+            "SELECT status, file_path, labels_json FROM tasks WHERE task_id = ?",
+            (dependent_id,),
+        ).fetchone()
+        if row is None:
+            continue
+        status = str(row[0])
+        # Only backlog cards are cascade targets; an active/done card is the
+        # owning session's concern, never auto-mutated here.
+        if status not in ("icebox", "blocked"):
+            continue
+        if READY_LABEL in _labels_list_from_json(row[2]):
+            continue
+
+        pending = incomplete_dependencies(conn, dependent_id)
+        if pending:
+            terminal = [
+                dep
+                for dep in pending
+                if (
+                    conn.execute(
+                        "SELECT status FROM tasks WHERE task_id = ?", (dep,)
+                    ).fetchone()
+                    or (None,)
+                )[0]
+                in _TERMINAL_DEP_STATES
+            ]
+            reason = (
+                f"dependency terminal-failed (archived): {', '.join(terminal)}"
+                if terminal
+                else f"still waiting on: {', '.join(pending)}"
+            )
+            report["still_blocked"].append({"task_id": dependent_id, "reason": reason})
+            continue
+
+        # All deps complete. Gate on the body DoR before auto-readying so the
+        # cascade never marks an unauthored stub pullable.
+        file_path = project_root / row[1] if row[1] else None
+        dor_gaps: list[dict[str, str]] = []
+        if file_path is not None and file_path.exists():
+            dor_gaps, _ = _ready_dor_check(file_path, agent_session)
+        if dor_gaps:
+            report["needs_authoring"].append({"task_id": dependent_id, "dor": dor_gaps})
+            continue
+
+        # blocked must return to icebox before it can carry the ready label and
+        # be pulled (blocked→in_progress skips the icebox ready gate otherwise).
+        if status == "blocked":
+            move_env = json.loads(
+                cos_task_move(
+                    conn, task_id=dependent_id, to="icebox", agent_session=agent_session
+                )
+            )
+            if not move_env.get("ok"):
+                report["still_blocked"].append(
+                    {"task_id": dependent_id, "reason": "could not unblock to icebox"}
+                )
+                continue
+        ready_env = json.loads(
+            cos_task_ready(conn, task_id=dependent_id, agent_session=agent_session)
+        )
+        if ready_env.get("ok"):
+            report["readied"].append(dependent_id)
+        else:
+            report["still_blocked"].append(
+                {"task_id": dependent_id, "reason": "ready label add failed"}
+            )
+    return report
+
+
+def _cascade_ready_dependents_safe(
+    conn: sqlite3.Connection, task_id: str, agent_session: str | None
+) -> dict[str, list]:
+    # Fire-and-forget: the completion itself already committed; a cascade
+    # failure must never turn a successful close into an error.
+    try:
+        return cascade_ready_dependents(conn, task_id, agent_session=agent_session)
+    except Exception as exc:  # noqa: BLE001 - fire-and-forget
+        logger.debug("dependent cascade after %s complete failed: %s", task_id, exc)
+        return {"readied": [], "needs_authoring": [], "still_blocked": []}
+
+
 @safe_tool
 def _auto_reclaim_zombies_safe(conn: sqlite3.Connection) -> None:
     """Best-effort zombie reclaim run before an in_progress pull. Frees idle
@@ -1327,6 +1433,9 @@ def cos_task_move(
     }
     if result.new_status == "complete":
         _record_completion_outcome_safe(conn, task_id)
+        cascade = _cascade_ready_dependents_safe(conn, task_id, agent_session)
+        if any(cascade.values()):
+            data["cascade"] = cascade
 
     return ok(data, meta={"layer": "tasks", "source": "board_os.cos_task_move"})
 
@@ -2043,7 +2152,24 @@ def cos_task_pick(
     # "ready" is no longer a column — candidates now live in icebox with
     # a 'ready' label, plus the emergency column.  LIKE on labels_json
     # is cheap (<200 chars) and avoids a JSON1 dependency.
-    clauses = ["(status = 'emergency' OR (status = 'icebox' AND labels_json LIKE '%\"ready\"%'))"]
+    #
+    # Dependency filter: a ready icebox card with any prerequisite that is not
+    # `complete` isn't runnable now, so it's excluded via NOT EXISTS over the
+    # indexed task_dependencies junction (a missing dep row — never synced —
+    # has no status and counts as incomplete). emergency cards are unaffected.
+    # Guarded on the junction existing so a pre-v35 DB still returns candidates.
+    if _has_task_dependencies_table(conn):
+        ready_clause = (
+            "(status = 'icebox' AND labels_json LIKE '%\"ready\"%' "
+            "AND NOT EXISTS ("
+            "  SELECT 1 FROM task_dependencies d "
+            "  LEFT JOIN tasks dep ON dep.task_id = d.depends_on "
+            "  WHERE d.task_id = tasks.task_id "
+            "    AND (dep.status IS NULL OR dep.status != 'complete')))"
+        )
+    else:
+        ready_clause = "(status = 'icebox' AND labels_json LIKE '%\"ready\"%')"
+    clauses = [f"(status = 'emergency' OR {ready_clause})"]
     params: list = []
     if swimlane:
         clauses.append("swimlane = ?")
@@ -2068,6 +2194,82 @@ def cos_task_pick(
         {"candidates": top, "count": len(top)},
         meta={"layer": "tasks", "source": "board_os.cos_task_pick"},
     )
+
+
+# ---------- cos_task_claim_next ----------
+
+
+@safe_tool
+def cos_task_claim_next(
+    conn: sqlite3.Connection,
+    *,
+    swimlane: str | None = None,
+    priority_min: str = "P2",
+    agent_session: str | None = None,
+) -> str:
+    """Atomically claim the highest-priority runnable task for this session.
+
+    Select + claim in ONE step so N racing sessions each get a DISTINCT task or
+    ``{claimed: null}`` — never the same task twice, never an exception. Reuses
+    cos_task_pick (dependency-filtered, priority-ordered) for candidates, then
+    walks them attempting an atomic ``→ in_progress`` move: transition's
+    BEGIN IMMEDIATE + CAS ``WHERE status = <expected>`` lets exactly one session
+    win each row; a loser's CAS-miss (category `transient`) is skipped to the
+    next candidate. A per-session WIP-cap rejection stops the walk — this session
+    is already at its focus limit — and returns ``{claimed: null}``.
+    """
+    agent_session = _resolve_attribution(agent_session)
+    config = _current_config()
+
+    # A wider window than max_candidates: under contention the top few rows may
+    # all be claimed by peers before this session wins one, so scan deeper.
+    pick_env = json.loads(
+        cos_task_pick(
+            conn, swimlane=swimlane, priority_min=priority_min, max_candidates=50
+        )
+    )
+    if not pick_env.get("ok"):
+        return fail("internal", "claim-next could not enumerate candidates")
+    candidates = pick_env["data"]["candidates"]
+
+    for card in candidates:
+        expected_from = card["status"]  # 'icebox' (ready) or 'emergency'
+        result = transition(
+            conn,
+            card["id"],
+            "in_progress",
+            reason="claim-next",
+            agent_session=agent_session,
+            expected_from=expected_from,
+            config=config,
+            file_path=_resolve_task_file(conn, card["id"]),
+        )
+        if result.ok:
+            claimed = json.loads(cos_task_show(conn, task_id=card["id"]))
+            return ok(
+                {"claimed": claimed.get("data") if claimed.get("ok") else {"id": card["id"]}},
+                meta={"layer": "tasks", "source": "board_os.cos_task_claim_next"},
+            )
+        # A peer beat us to this row (CAS miss / status changed) — try the next.
+        if result.error_category == "transient":
+            continue
+        # WIP cap or a hard gate: this session can't take on more work now.
+        break
+
+    return ok(
+        {"claimed": None},
+        meta={"layer": "tasks", "source": "board_os.cos_task_claim_next"},
+    )
+
+
+def _resolve_task_file(conn: sqlite3.Connection, task_id: str) -> Path | None:
+    row = conn.execute(
+        "SELECT file_path FROM tasks WHERE task_id = ?", (task_id,)
+    ).fetchone()
+    if not row or not row[0]:
+        return None
+    candidate = _project_root() / row[0]
+    return candidate if candidate.exists() else None
 
 
 # ---------- cos_task_daily ----------
@@ -2307,15 +2509,18 @@ def cos_work_log_append(
 
     content = file_path.read_text(encoding="utf-8")
     marker = "## Work Log"
-    idx = content.find(marker)
-    if idx == -1:
+    # Match the heading anchored at line start, not a `## Work Log` mention
+    # inside prose (e.g. an Acceptance bullet) which a plain substring search
+    # would hit first — landing the entry ABOVE the real section.
+    head = re.search(r"(?m)^## Work Log[ \t]*$", content)
+    if head is None:
         # Append a Work Log section at the end.
         new_content = content.rstrip() + f"\n\n{marker}\n{line}\n"
     else:
-        # Insert the line at the end of the Work Log section
-        # (before the next H2 if any, else at EOF).
-        next_h2 = content.find("\n## ", idx + len(marker))
-        insert_at = next_h2 if next_h2 != -1 else len(content)
+        # Insert at the end of the Work Log section (before the next H2
+        # heading if any, else at EOF), both anchored at line start.
+        nxt = re.search(r"(?m)^## ", content[head.end():])
+        insert_at = head.end() + nxt.start() if nxt else len(content)
         before = content[:insert_at].rstrip()
         after = content[insert_at:]
         new_content = f"{before}\n{line}\n{after}"

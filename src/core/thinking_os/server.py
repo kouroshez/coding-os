@@ -1895,6 +1895,29 @@ if _BOARD_OS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_task_claim_next",
+        annotations={
+            "title": "Atomically Claim Next Runnable Task",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_claim_next(
+        swimlane: str = "",
+        priority_min: str = "P2",
+        agent_session: str = "",
+    ) -> str:
+        """Atomically select+claim the top runnable task for this session (or claimed=null)."""
+        return _board_mcp.cos_task_claim_next(
+            get_pooled_conn(),
+            swimlane=swimlane or None,
+            priority_min=priority_min,
+            agent_session=agent_session or None,
+        )
+
+    @mcp.tool(
         name="cos_task_daily",
         annotations={
             "title": "Daily Standup Summary",

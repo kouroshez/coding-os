@@ -38,6 +38,10 @@ workflow_policy:
   require_ready_label: true
   # Block in_progress→complete; force routing through `testing`.
   block_in_progress_to_complete: true
+  # Block icebox→in_progress while any depends_on task is not `complete`
+  # (retryable conflict; force/emergency bypass). cos_task_pick also omits
+  # cards with an incomplete dependency, so the picker surfaces runnable work.
+  require_deps_complete: true
   # Count the in_progress cap per agent_session so concurrent sessions
   # don't block each other on a global cap (testing/emergency stay global).
   per_session_wip: true

@@ -163,6 +163,10 @@ class WorkflowPolicy:
 
     require_ready_label: bool = True
     block_in_progress_to_complete: bool = True
+    # icebox→in_progress is blocked while any depends_on task is not 'complete'
+    # (RETRYABLE conflict; force/emergency bypass). cos_task_pick omits cards
+    # with an incomplete dependency.
+    require_deps_complete: bool = True
     per_session_wip: bool = True
     reclaim_idle_hours: int = 24
     # Per-status reclaim window. `testing` is where the testing-first
@@ -325,7 +329,12 @@ def parse_config(data: dict[str, Any], source_path: Path | None = None) -> Scrum
         errors.append("workflow_policy must be a mapping")
         policy_raw = {}
     policy_kwargs: dict[str, object] = {}
-    for flag in ("require_ready_label", "block_in_progress_to_complete", "per_session_wip"):
+    for flag in (
+        "require_ready_label",
+        "block_in_progress_to_complete",
+        "require_deps_complete",
+        "per_session_wip",
+    ):
         if flag in policy_raw:
             v = policy_raw[flag]
             if not isinstance(v, bool):

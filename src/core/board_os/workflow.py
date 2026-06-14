@@ -169,6 +169,84 @@ def _has_task_dependencies_table(conn: sqlite3.Connection) -> bool:
     )
 
 
+def incomplete_dependencies(conn: sqlite3.Connection, task_id: str) -> list[str]:
+    """Return the depends_on ids of `task_id` whose status is not 'complete'.
+
+    Reuses the same junction-then-JSON-column resolution as
+    tools.tasks.task_dependencies: on a v35+ DB it joins the indexed
+    task_dependencies junction; otherwise it reads the JSON `dependencies`
+    column. A dep id that has no matching tasks row (never synced) counts as
+    incomplete so a dangling prerequisite can't silently unblock a pull.
+    """
+    if _has_task_dependencies_table(conn):
+        try:
+            rows = conn.execute(
+                "SELECT d.depends_on, t.status "
+                "FROM task_dependencies d "
+                "LEFT JOIN tasks t ON t.task_id = d.depends_on "
+                "WHERE d.task_id = ? ORDER BY d.depends_on ASC",
+                (task_id,),
+            ).fetchall()
+            return [str(dep) for dep, status in rows if status != "complete"]
+        except sqlite3.OperationalError as exc:
+            logger.debug("incomplete_dependencies junction failed, JSON fallback: %s", exc)
+
+    row = conn.execute(
+        "SELECT dependencies FROM tasks WHERE task_id = ?", (task_id,)
+    ).fetchone()
+    if row is None or not row[0]:
+        return []
+    try:
+        dep_ids = [str(d) for d in json.loads(row[0])]
+    except (json.JSONDecodeError, TypeError):
+        return []
+    if not dep_ids:
+        return []
+    placeholders = ",".join("?" * len(dep_ids))
+    status_by_dep = {
+        str(r[0]): str(r[1])
+        for r in conn.execute(
+            f"SELECT task_id, status FROM tasks WHERE task_id IN ({placeholders})",
+            dep_ids,
+        ).fetchall()
+    }
+    return [dep for dep in dep_ids if status_by_dep.get(dep) != "complete"]
+
+
+def dependents_of(conn: sqlite3.Connection, task_id: str) -> list[str]:
+    """Return the ids of tasks that declare `task_id` in their depends_on.
+
+    The reverse of incomplete_dependencies. Drives the completion cascade:
+    when a prerequisite completes, its dependents are the only candidates that
+    could newly become runnable. Uses the indexed task_dependencies(depends_on)
+    junction on a v35+ DB; otherwise scans the JSON `dependencies` column.
+    """
+    if _has_task_dependencies_table(conn):
+        try:
+            rows = conn.execute(
+                "SELECT task_id FROM task_dependencies "
+                "WHERE depends_on = ? ORDER BY task_id ASC",
+                (task_id,),
+            ).fetchall()
+            return [str(r[0]) for r in rows]
+        except sqlite3.OperationalError as exc:
+            logger.debug("dependents_of junction failed, JSON fallback: %s", exc)
+
+    rows = conn.execute(
+        "SELECT task_id, dependencies FROM tasks "
+        "WHERE dependencies IS NOT NULL AND dependencies != ''"
+    ).fetchall()
+    found: list[str] = []
+    for dependent_id, deps_raw in rows:
+        try:
+            deps = [str(d) for d in json.loads(deps_raw)]
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if task_id in deps:
+            found.append(str(dependent_id))
+    return sorted(found)
+
+
 def validate_dependencies_no_cycle(
     conn: sqlite3.Connection, task_id: str, new_deps: list[str]
 ) -> list[str]:
@@ -382,6 +460,35 @@ def transition(
             ),
             error_category="validation",
         )
+
+    # Dependency gate: a task whose prerequisites are not yet complete cannot
+    # be pulled. Same pull edge as the ready gate (icebox→in_progress);
+    # emergency→in_progress (the fast lane) stays exempt so a fire never waits
+    # on backlog. Category `transient` — the codebase's retryable-by-default
+    # category (the canonical retryable "conflict" in the MCP envelope; a bare
+    # `conflict` string is non-retryable here) — so the agent re-issues the
+    # pull unchanged once the upstream task completes.
+    if (
+        policy is not None
+        and policy.require_deps_complete
+        and not bypass_gates
+        and current_status == "icebox"
+        and to_status == "in_progress"
+    ):
+        pending = incomplete_dependencies(conn, task_id)
+        if pending:
+            return TransitionResult(
+                ok=False,
+                task_id=task_id,
+                previous_status=current_status,
+                new_status=to_status,
+                error=(
+                    "blocked: prerequisites not complete: "
+                    + ", ".join(pending)
+                    + " — finish them or pass force=True"
+                ),
+                error_category="transient",
+            )
 
     # Testing-before-complete gate: in_progress→complete must route
     # through `testing` so the verification choreography runs. The edge
