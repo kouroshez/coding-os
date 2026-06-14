@@ -5,18 +5,17 @@ swimlane: "board_os"
 kind: docs
 epic: G-modularity
 labels: [backlog, onboarding-program, ready]
-status: icebox
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-11
-started: null
-completed: null
-agent_session: null
+started: 2026-06-14
+completed: 2026-06-14
+agent_session: ses-claude-20260614-003127-9cfa
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-391: External task-tracker seam — Linear-ready interface ADR (no implementation)
 
 **Outcome (one sentence):** A single ADR at docs/architecture/adr/0006-external-task-tracker-seam.md defines the interface seam (the `tasks` subsystem `cos_task_*` surface + the `module_disabled` fallback) an external tracker must satisfy when board_os's tasks module is off — contract only, no implementation.
@@ -40,3 +39,32 @@ references: []
 Delete docs/architecture/adr/0006-external-task-tracker-seam.md and revert its line in docs/architecture/adr/00-index.md; docs-only, so no runtime or schema state changes.
 
 ## Work Log
+- 2026-06-14 [claude]: Edit stack.yaml
+- 2026-06-14 [claude]: Edit scaffold-boundary.yaml
+- 2026-06-14 [claude]: Edit scrumban-config.yaml
+- 2026-06-14 [claude]: Edit 0006-external-task-tracker-seam.md
+- 2026-06-14 [claude]: Edit package.json
+- 2026-06-14 [claude]: Edit stack.yaml
+- 2026-06-14 [claude]: Edit stack.yaml
+- 2026-06-14 [claude]: commit 6e87334125 — chore(tasks): flush residual TASK-373 work-log line
+- 2026-06-14 [claude]: Edit scaffold-boundary.yaml
+- 2026-06-14 [claude]: Edit scaffold-boundary.yaml
+- 2026-06-14 [claude]: Edit tsconfig.json
+- 2026-06-14 [claude]: Edit astro.config.mjs
+- 2026-06-14 [claude]: Edit scrumban-config.yaml
+- 2026-06-14 [claude]: Edit scrumban-config.yaml
+- 2026-06-14 [claude]: Edit Backend.csproj
+- 2026-06-14 [claude]: Edit problem.ts
+- 2026-06-14 [claude]: Edit Program.cs
+- 2026-06-14 [claude]: Edit frontend.md
+- 2026-06-14 [claude]: Edit health.ts
+- 2026-06-14 [claude]: Edit index.astro
+- 2026-06-14 [claude]: Edit ExceptionHandlingMiddleware.cs
+- 2026-06-14 [claude]: Edit main.ts
+- 2026-06-14 [claude]: Edit HealthEndpoints.cs
+- 2026-06-14 [claude]: Edit config.ts
+- 2026-06-14 [claude]: Edit app.config.ts
+- 2026-06-14 [claude]: Edit HealthService.cs
+- 2026-06-14 [claude]: Edit app.routes.ts
+- 2026-06-14 [claude]: Edit hello.md
+- 2026-06-14 [claude]: Authored docs/architecture/adr/0006-external-task-tracker-seam.md (Status Accepted, contract-only). Names only real seam
