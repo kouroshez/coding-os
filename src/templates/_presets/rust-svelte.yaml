@@ -1,0 +1,8 @@
+version: 1
+id: rust-svelte
+label: "Rust (Axum) + SvelteKit"
+description: >-
+  A performance-first stack: a Rust + Axum backend with a SvelteKit frontend —
+  low overhead on both ends. api-design governs the contract.
+stacks: [rust-axum, svelte-sveltekit]
+skills: [api-design]

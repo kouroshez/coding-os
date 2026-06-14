@@ -1,0 +1,8 @@
+version: 1
+id: spring-react
+label: "Spring Boot + React (enterprise JVM)"
+description: >-
+  An enterprise JVM backend (Spring Boot, controllers/services/repositories)
+  with a Next.js React frontend. api-design governs the contract between them.
+stacks: [spring-boot, nextjs]
+skills: [api-design]

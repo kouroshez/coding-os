@@ -1,0 +1,8 @@
+version: 1
+id: flutter-baas
+label: "Flutter + BaaS (mobile, backend-as-a-service)"
+description: >-
+  A Flutter mobile app fronting a managed backend (Firebase/Supabase-style) —
+  screens, widgets, and provider state. state-management covers the client store.
+stacks: [flutter]
+skills: [state-management]

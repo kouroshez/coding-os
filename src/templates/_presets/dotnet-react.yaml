@@ -1,0 +1,8 @@
+version: 1
+id: dotnet-react
+label: ".NET (ASP.NET Core) + React"
+description: >-
+  An ASP.NET Core backend (minimal API/controllers, DI, middleware) with a
+  Next.js React frontend. api-design governs the contract across the seam.
+stacks: [aspnet-core, nextjs]
+skills: [api-design]

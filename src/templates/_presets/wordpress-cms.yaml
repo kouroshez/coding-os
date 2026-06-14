@@ -1,0 +1,8 @@
+version: 1
+id: wordpress-cms
+label: "WordPress CMS"
+description: >-
+  A content-managed WordPress site — theme for presentation, plugin for portable
+  business logic. security-web enforces sanitize/escape/nonce discipline.
+stacks: [wordpress]
+skills: [security-web]

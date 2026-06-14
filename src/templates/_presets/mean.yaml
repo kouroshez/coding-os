@@ -1,0 +1,8 @@
+version: 1
+id: mean
+label: "MEAN (Mongo + Express + Angular + Node)"
+description: >-
+  The Angular take on the JavaScript stack: an Express/TypeScript API with an
+  Angular SPA frontend, document-store oriented. db-design covers the data model.
+stacks: [node-express, angular]
+skills: [db-design]

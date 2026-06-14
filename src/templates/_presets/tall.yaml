@@ -1,0 +1,8 @@
+version: 1
+id: tall
+label: "TALL-style (Tailwind + Laravel)"
+description: >-
+  A Laravel-centric server-rendered product stack — controllers, Eloquent, and
+  Blade-driven UI. security-web keeps the web surface hardened.
+stacks: [laravel]
+skills: [security-web]

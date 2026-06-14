@@ -1,0 +1,8 @@
+version: 1
+id: jamstack
+label: "JAMstack (Astro content site)"
+description: >-
+  Content-first, statically generated sites with Astro islands — marketing,
+  docs, and SEO-driven pages. a11y keeps the rendered output accessible.
+stacks: [astro]
+skills: [a11y]

@@ -1,0 +1,8 @@
+version: 1
+id: nest-angular
+label: "NestJS + Angular (full TypeScript enterprise)"
+description: >-
+  End-to-end TypeScript: a NestJS modular backend with an Angular SPA frontend —
+  shared types across the seam. api-design governs the contract.
+stacks: [nestjs, angular]
+skills: [api-design]

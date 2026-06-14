@@ -1,0 +1,8 @@
+version: 1
+id: rails-react
+label: "Rails API + React"
+description: >-
+  A Ruby on Rails API backend (controllers, ActiveRecord) with a Next.js React
+  frontend. api-design governs the JSON contract across the seam.
+stacks: [rails, nextjs]
+skills: [api-design]
