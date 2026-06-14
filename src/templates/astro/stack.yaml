@@ -27,9 +27,9 @@ skills: [astro]
 # These substitution keys are joined across stacks by the aggregator.
 # VERIFY_FRONTEND_* override the "(none)" defaults from base.yaml.
 substitutions:
-  DOMAIN_ROUTES: "Frontend→`docs/playbooks/astro-app.md`, Content→`docs/playbooks/content-seo.md`"
+  DOMAIN_ROUTES: "Frontend→`docs/playbooks/astro-app.md`, Content→`docs/playbooks/astro-app.md`"
   SKILL_ROUTES: "Frontend→`astro`"
-  ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/astro-rules.md`, Content→`docs/playbooks/content-seo.md`, Error format→`docs/api-contracts/error-format.md`"
+  ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/astro-rules.md`, Content→`docs/playbooks/astro-app.md`, Error format→`docs/api-contracts/error-format.md`"
   TOOL_ROUTING_IMPL: "`lint-frontend`, `build-frontend`"
   VERIFY_FRONTEND_GLOB: "`src/frontend/`"
   VERIFY_FRONTEND_SUITES: "lint-frontend + build-frontend"
@@ -66,7 +66,7 @@ verify:
 dimensions:
   - {name: "Component / island",       read_files: ["docs/playbooks/astro-app.md", "docs/engineering/astro-rules.md"]}
   - {name: "Page / route",             read_files: ["docs/playbooks/astro-app.md", "docs/engineering/astro-rules.md"]}
-  - {name: "Content / SEO collection", read_files: ["docs/playbooks/content-seo.md", "docs/engineering/astro-rules.md"]}
+  - {name: "Content / SEO collection", read_files: ["docs/playbooks/astro-app.md", "docs/engineering/astro-rules.md"]}
 
 skill_enforcement:
   - {globs: ["src/frontend/**/*.{ts,astro}"], primary: astro, secondary: [clean-code, frontend-design, frontend-fundamentals, a11y, performance, testing-strategy]}

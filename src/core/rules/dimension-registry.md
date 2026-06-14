@@ -8,7 +8,7 @@ phase to build your Read List.
 - **Angular component** (M) → `docs/playbooks/angular-app.md`, `docs/engineering/angular-rules.md`
 - **Route / page** (M) → `docs/playbooks/angular-app.md`, `docs/engineering/angular-rules.md`
 - **Service / state** (M) → `docs/engineering/angular-rules.md`
-- **Accessibility** (M) → `docs/engineering/accessibility-web.md`
+- **Accessibility** (M) → `docs/engineering/angular-rules.md`
 
 ## aspnet-core
 
@@ -22,7 +22,7 @@ phase to build your Read List.
 
 - **Component / island** (M) → `docs/playbooks/astro-app.md`, `docs/engineering/astro-rules.md`
 - **Page / route** (M) → `docs/playbooks/astro-app.md`, `docs/engineering/astro-rules.md`
-- **Content / SEO collection** (M) → `docs/playbooks/content-seo.md`, `docs/engineering/astro-rules.md`
+- **Content / SEO collection** (M) → `docs/playbooks/astro-app.md`, `docs/engineering/astro-rules.md`
 
 ## django
 
