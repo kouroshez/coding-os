@@ -5,12 +5,24 @@ invoke the matching skill via the `Skill` tool.
 
 | Globs | Primary Skill | Secondary Skills | Stack |
 | --- | --- | --- | --- |
+| `src/frontend/**/*.ts` | `angular` | clean-code, frontend-fundamentals, a11y, state-management, testing-strategy, performance | angular |
+| `src/frontend/**/*.component.ts` | `angular` | clean-code, frontend-fundamentals, a11y | angular |
+| `src/frontend/**/*.service.ts` | `angular` | state-management, clean-code, frontend-fundamentals | angular |
+| `src/backend/**/*.cs` | `aspnet-core` | clean-code, backend-fundamentals, api-design, auth-patterns, security-web, testing-strategy, observability | aspnet-core |
+| `src/backend/**/*Service.cs`, `src/backend/**/Repositories/**/*.cs`, `src/backend/**/Data/**/*.cs` | `aspnet-core` | clean-code, db-design, backend-fundamentals | aspnet-core |
+| `src/backend/**/*Authorization*.cs`, `src/backend/**/Auth*.cs` | `aspnet-core` | auth-patterns, security-web, clean-code | aspnet-core |
+| `src/frontend/**/*.{ts,astro}` | `astro` | clean-code, frontend-design, frontend-fundamentals, a11y, performance, testing-strategy | astro |
+| `src/frontend/**/components/**/*.astro`, `src/frontend/**/pages/**/*.astro` | `astro` | clean-code, frontend-design, frontend-fundamentals, a11y | astro |
+| `src/frontend/**/content/**/*.ts`, `src/frontend/**/pages/api/**/*.ts` | `astro` | clean-code, frontend-fundamentals, api-design | astro |
 | `src/backend/**/*.py` | `python-django` | clean-code, backend-fundamentals, api-design, auth-patterns, security-web, testing-strategy, observability | django |
 | `src/backend/**/models.py`, `src/backend/**/migrations/*.py` | `python-django` | clean-code, db-design, backend-fundamentals | django |
 | `src/backend/**/auth*.py`, `src/backend/**/permissions.py` | `python-django` | auth-patterns, security-web, clean-code | django |
 | `src/backend/**/*.py` | `python-fastapi` | clean-code, api-design, backend-fundamentals, hexagonal-architecture, auth-patterns, security-web, testing-strategy, observability | fastapi |
 | `src/backend/**/models.py`, `src/backend/**/db/**/*.py`, `src/backend/**/migrations/**/*.py` | `python-fastapi` | clean-code, db-design, backend-fundamentals | fastapi |
 | `src/backend/**/auth*.py`, `src/backend/**/security.py` | `python-fastapi` | auth-patterns, security-web, clean-code | fastapi |
+| `src/mobile/**/*.dart` | `flutter` | clean-code, frontend-fundamentals, mobile-fundamentals, a11y | flutter |
+| `src/mobile/**/screens/**/*.dart`, `src/mobile/**/widgets/**/*.dart` | `flutter` | clean-code, state-management, performance | flutter |
+| `src/mobile/**/state/**/*.dart` | `flutter` | state-management, clean-code | flutter |
 | `src/backend/**/*.go` | `go-patterns` | clean-code, backend-fundamentals, api-design, hexagonal-architecture, testing-strategy, observability | go |
 | `src/backend/**/db/**/*.go`, `src/backend/**/repository/**/*.go` | `go-patterns` | clean-code, db-design, backend-fundamentals | go |
 | `src/backend/**/*.go` | `go-fiber` | clean-code, backend-fundamentals, api-design, hexagonal-architecture, auth-patterns, security-web, testing-strategy, observability | go-fiber |
@@ -41,7 +53,18 @@ invoke the matching skill via the `Skill` tool.
 | `src/backend/**/*.ts` | `node-express` | clean-code, backend-fundamentals, api-design, auth-patterns, security-web, testing-strategy, observability | node-express |
 | `src/backend/**/repositories/**/*.ts`, `src/backend/**/db/**/*.ts` | `node-express` | clean-code, db-design, backend-fundamentals | node-express |
 | `src/backend/**/middleware/auth*.ts`, `src/backend/**/auth*.ts` | `node-express` | auth-patterns, security-web, clean-code | node-express |
+| `src/backend/**/*.rb` | `rails` | clean-code, backend-fundamentals, api-design, auth-patterns, security-web, testing-strategy, observability | rails |
+| `src/backend/**/models/**/*.rb`, `src/backend/**/migrate/**/*.rb` | `rails` | clean-code, db-design, backend-fundamentals | rails |
+| `src/backend/**/controllers/concerns/auth*.rb`, `src/backend/**/models/concerns/auth*.rb` | `rails` | auth-patterns, security-web, clean-code | rails |
 | `src/mobile/**/*.{ts,tsx}` | `react-native-mobile` | clean-code, frontend-fundamentals, mobile-fundamentals, a11y | react-native |
 | `src/mobile/**/components/**/*.{ts,tsx}`, `src/mobile/**/screens/**/*.{ts,tsx}` | `react-native-patterns` | clean-code, react-native-mobile, state-management, performance | react-native |
+| `src/backend/**/*.rs` | `rust` | clean-code, backend-fundamentals, api-design, hexagonal-architecture, testing-strategy, observability | rust-axum |
+| `src/backend/**/routes/**/*.rs`, `src/backend/**/handlers/**/*.rs` | `rust` | clean-code, api-design, backend-fundamentals | rust-axum |
+| `src/backend/**/auth*.rs`, `src/backend/**/middleware/**/*.rs` | `rust` | auth-patterns, security-web, clean-code | rust-axum |
+| `src/backend/**/*.java` | `spring-boot` | clean-code, backend-fundamentals, api-design, auth-patterns, security-web, testing-strategy, observability | spring-boot |
+| `src/backend/**/*Repository.java`, `src/backend/**/repository/**/*.java`, `src/backend/**/*Entity.java` | `spring-boot` | clean-code, db-design, backend-fundamentals | spring-boot |
+| `src/backend/**/*SecurityConfig.java`, `src/backend/**/security/**/*.java`, `src/backend/**/Auth*.java` | `spring-boot` | auth-patterns, security-web, clean-code | spring-boot |
+| `src/frontend/**/*.{svelte,ts}` | `svelte` | clean-code, frontend-fundamentals, frontend-design, a11y, performance, testing-strategy | svelte-sveltekit |
+| `src/frontend/**/lib/stores/**/*.ts`, `src/frontend/**/stores/**/*.ts` | `svelte` | state-management, clean-code, frontend-fundamentals | svelte-sveltekit |
 | `src/frontend/**/*.{vue,ts}` | `vue-nuxt` | clean-code, frontend-fundamentals, frontend-design, a11y, performance, testing-strategy | vue-nuxt |
 | `src/frontend/**/composables/**/*.ts`, `src/frontend/**/stores/**/*.ts` | `vue-nuxt` | state-management, clean-code, frontend-fundamentals | vue-nuxt |

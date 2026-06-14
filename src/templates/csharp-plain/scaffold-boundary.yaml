@@ -1,0 +1,23 @@
+# Scaffold boundary for the csharp-plain stack (library / console).
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: csharp-plain
+
+roots:
+  - src/backend/
+
+file_patterns:
+  - "src/backend/**/*.cs"
+  - "src/backend/**/*.csproj"
+
+imports_from:
+  - src/shared/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/frontend/
+  - src/mobile/
+
+notes:
+  - "Plain C# project — Backend.csproj lives in src/backend/. Framework stacks (aspnet-core) replace this layout."

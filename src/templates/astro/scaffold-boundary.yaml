@@ -1,0 +1,28 @@
+# Scaffold boundary for the astro stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: astro
+
+roots:
+  - src/frontend/
+
+file_patterns:
+  - "src/frontend/**/*.astro"
+  - "src/frontend/**/*.ts"
+  - "src/frontend/**/*.mjs"
+  - "src/frontend/**/*.json"
+
+imports_from:
+  - src/shared/
+  - src/shared/types/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/backend/
+  - src/mobile/
+
+notes:
+  - "Pages ship zero client JS by default; only islands (client:* directives) hydrate."
+  - "Content collections (src/content/) are the typed content SSOT — schema in config.ts."
+  - "One problem.ts shaper is the only error-response writer for API endpoints."

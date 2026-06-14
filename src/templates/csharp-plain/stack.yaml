@@ -1,0 +1,50 @@
+version: 1
+id: csharp-plain
+language: csharp
+label: "C# (plain — library / console, no framework)"
+category: backend
+primary_skill: null
+skills: []
+
+structure:
+  root: src/backend
+  tree: |
+    src/backend/
+    ├── Backend.csproj       # console / library project
+    └── Program.cs           # entry point
+  notes: "plain project; framework stacks (aspnet-core) replace this layout with a web host"
+
+# Plain-language stack (template-authoring.md § Language layer): picked when
+# the user chooses "csharp" without a framework. Ships a runnable project
+# skeleton and the verify wiring; framework stacks (aspnet-core) extend the
+# language with their own conventions.
+
+substitutions:
+  DOMAIN_ROUTES: "C# module / CLI task → AGENTS.md critical rules"
+  SKILL_ROUTES: "C# → `clean-code` (generic) + `thinking_os` (kernel)"
+  ENGINEERING_RULE_ROUTING: "C# → AGENTS.md critical rules + `docs/governance/`"
+  TOOL_ROUTING_IMPL: "`lint-csharp`, `test-csharp`"
+  VERIFY_BACKEND_GLOB: "`src/backend/`"
+  VERIFY_BACKEND_SUITES: "lint-csharp + test-csharp"
+  VERIFY_BACKEND: "`cd src/backend && dotnet format --verify-no-changes && dotnet test`"
+  QUICK_ROUTING: |-
+    - C# module / package task → see AGENTS.md critical rules
+  STACK_REF_CODES: ""
+
+ref_codes: []
+
+routing_entries:
+  - "C# module / CLI task → see AGENTS.md critical rules"
+
+rules: []
+
+makefile_targets:
+  - {name: lint-csharp, cmd: "cd src/backend && dotnet format --verify-no-changes"}
+  - {name: test-csharp, cmd: "cd src/backend && dotnet test"}
+
+verify:
+  - {glob: "src/backend/**/*.cs", suites: "lint-csharp + test-csharp", cmd: "cd src/backend && dotnet format --verify-no-changes && dotnet test"}
+
+dimensions: []
+
+skill_enforcement: []

@@ -1,0 +1,28 @@
+# Scaffold boundary for the flutter stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+# SSOT for what `src/mobile/` may write, read, or import.
+
+version: 1
+stack: flutter
+
+roots:
+  - src/mobile/
+
+file_patterns:
+  - "src/mobile/**/*.dart"
+  - "src/mobile/**/*.yaml"
+
+imports_from:
+  - src/shared/
+  - src/shared/types/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/frontend/
+  - src/backend/
+  - src/ai-service/
+
+notes:
+  - "Widgets render, state holds business logic, services own transport — keep the layers one-directional."
+  - "One error mapper in lib/core is the only place that turns a failure into UI state."
+  - "Cross-stack types live in src/shared — never import directly from another stack root."

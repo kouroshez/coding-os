@@ -1,0 +1,18 @@
+# flutter delta — merged onto base by the config composer.
+swimlanes:
+  - id: screens
+    label: "Screens / Routes"
+    color: "#0468d7"
+    description: "Flutter screen widgets and declarative routing"
+  - id: widgets
+    label: "Widgets"
+    color: "#13b9fd"
+    description: "Reusable presentational components"
+  - id: state
+    label: "State / Providers"
+    color: "#8b5cf6"
+    description: "Riverpod providers and notifiers, business logic"
+  - id: services
+    label: "Services"
+    color: "#10b981"
+    description: "Transport, storage, platform channels, the error mapper"

@@ -1,0 +1,18 @@
+# angular delta — merged onto base by the config composer.
+swimlanes:
+  - id: components
+    label: "Components / Views"
+    color: "#dd0031"
+    description: "Standalone components, templates, signal-driven views"
+  - id: services
+    label: "Services / State"
+    color: "#8b5cf6"
+    description: "Injectable services, signals, RxJS streams, data access"
+  - id: routing
+    label: "Routing / Guards"
+    color: "#f59e0b"
+    description: "Route config, guards, resolvers, HTTP interceptors"
+  - id: a11y
+    label: "Accessibility"
+    color: "#10b981"
+    description: "WCAG conformance, focus management, ARIA"

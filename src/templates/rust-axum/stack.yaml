@@ -1,0 +1,65 @@
+version: 1
+id: rust-axum
+language: rust
+label: "Rust + Axum"
+category: backend
+
+structure:
+  root: src/backend
+  tree: |
+    src/backend/
+    ├── Cargo.toml
+    └── src/
+        ├── main.rs             # tokio entry — builds the router, binds the listener (no logic)
+        ├── app.rs              # Router assembly: routes + tower middleware layers
+        ├── error.rs            # the ONE central AppError → IntoResponse error shaper
+        └── routes/             # one module per domain
+            ├── mod.rs
+            └── health.rs       # handler fn + extractors; returns Result<Json<_>, AppError>
+  notes: "handlers are thin async fns returning Result<_, AppError>; tower middleware (TraceLayer, etc.) layered in app.rs; one AppError type implementing IntoResponse is the ONLY error-response shaper; extractors validate input fail-closed before the handler body runs"
+primary_skill: rust
+skills: [rust]
+
+substitutions:
+  DOMAIN_ROUTES: "Backend→`docs/playbooks/rust-axum-service.md`"
+  SKILL_ROUTES: "Backend→`rust`"
+  ENGINEERING_RULE_ROUTING: "Backend→`docs/engineering/rust-axum-rules.md`, Error format→`docs/api-contracts/error-format.md`"
+  TOOL_ROUTING_IMPL: "`lint-backend`, `test-backend`"
+  VERIFY_BACKEND_GLOB: "`src/backend/`"
+  VERIFY_BACKEND_SUITES: "lint-backend + test-backend"
+  VERIFY_BACKEND: "`cd src/backend && cargo clippy -- -D warnings && cargo test`"
+  QUICK_ROUTING: |-
+    - Axum handler / router task → [Rust + Axum Service Playbook](./playbooks/rust-axum-service.md)
+    - Extractor / tower middleware / AppError → [Rust + Axum Service Playbook](./playbooks/rust-axum-service.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-RUST-AXUM` → `./playbooks/rust-axum-service.md`
+    - `REF:RUST-AXUM-RULES` → `./engineering/rust-axum-rules.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-RUST-AXUM", path: "./playbooks/rust-axum-service.md", desc: "Rust + Axum service playbook"}
+  - {code: "REF:RUST-AXUM-RULES",    path: "./engineering/rust-axum-rules.md", desc: "Rust + Axum engineering rules"}
+
+routing_entries:
+  - "Axum handler / router task → [Rust + Axum Service Playbook](./playbooks/rust-axum-service.md)"
+
+rules:
+  - {file: rules/backend.md, globs: ["src/backend/**/*.rs"]}
+
+makefile_targets:
+  - {name: lint-backend, cmd: "cd src/backend && cargo clippy -- -D warnings"}
+  - {name: test-backend, cmd: "cd src/backend && cargo test"}
+
+verify:
+  - {glob: "src/backend/**/*.rs", suites: "lint-backend + test-backend", cmd: "cd src/backend && cargo clippy -- -D warnings && cargo test"}
+
+dimensions:
+  - {name: "Axum handler",            read_files: ["docs/playbooks/rust-axum-service.md", "docs/engineering/rust-axum-rules.md"]}
+  - {name: "Router / app wiring",     read_files: ["docs/engineering/rust-axum-rules.md"]}
+  - {name: "Extractor / DTO",         read_files: ["docs/engineering/rust-axum-rules.md", "docs/api-contracts/error-format.md"]}
+  - {name: "Tower middleware",        read_files: ["docs/engineering/rust-axum-rules.md"]}
+  - {name: "AppError / IntoResponse", read_files: ["docs/engineering/rust-axum-rules.md", "docs/api-contracts/error-format.md"]}
+
+skill_enforcement:
+  - {globs: ["src/backend/**/*.rs"], primary: rust, secondary: [clean-code, backend-fundamentals, api-design, hexagonal-architecture, testing-strategy, observability]}
+  - {globs: ["src/backend/**/routes/**/*.rs", "src/backend/**/handlers/**/*.rs"], primary: rust, secondary: [clean-code, api-design, backend-fundamentals]}
+  - {globs: ["src/backend/**/auth*.rs", "src/backend/**/middleware/**/*.rs"], primary: rust, secondary: [auth-patterns, security-web, clean-code]}

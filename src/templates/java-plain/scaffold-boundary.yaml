@@ -1,0 +1,23 @@
+# Scaffold boundary for the java-plain stack (library / console, Maven).
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: java-plain
+
+roots:
+  - src/backend/
+
+file_patterns:
+  - "src/backend/**/*.java"
+  - "src/backend/**/*.xml"
+
+imports_from:
+  - src/shared/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/frontend/
+  - src/mobile/
+
+notes:
+  - "Plain Java module — pom.xml lives in src/backend/. Framework stacks (spring-boot) replace this layout."

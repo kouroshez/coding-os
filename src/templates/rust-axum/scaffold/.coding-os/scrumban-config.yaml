@@ -1,0 +1,18 @@
+# rust-axum delta — merged onto base by the config composer.
+swimlanes:
+  - id: handlers
+    label: "Handlers / Routes"
+    color: "#dea584"     # Rust ochre
+    description: "Axum handler fns, router assembly, request/response DTOs"
+  - id: services
+    label: "Domain Services"
+    color: "#8b5cf6"
+    description: "Business logic, transport-free service layer"
+  - id: middleware
+    label: "Middleware / Error"
+    color: "#f59e0b"
+    description: "Tower middleware layers and the central AppError shaper"
+  - id: db
+    label: "Data / Repositories"
+    color: "#10b981"
+    description: "Repositories, sqlx queries, migrations"

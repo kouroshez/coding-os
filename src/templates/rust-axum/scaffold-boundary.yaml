@@ -1,0 +1,25 @@
+# Scaffold boundary for the rust-axum stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: rust-axum
+
+roots:
+  - src/backend/
+
+file_patterns:
+  - "src/backend/**/*.rs"
+  - "src/backend/**/Cargo.toml"
+
+imports_from:
+  - src/shared/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/frontend/
+  - src/mobile/
+
+notes:
+  - "Cargo workspace root is src/backend/ (Cargo.toml lives there)."
+  - "Handlers thin; one AppError implementing IntoResponse is the only error-response shaper."
+  - "Tower middleware is layered in app.rs, never inside individual handlers."

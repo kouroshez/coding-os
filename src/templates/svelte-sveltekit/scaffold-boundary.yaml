@@ -1,0 +1,29 @@
+# Scaffold boundary for the svelte-sveltekit stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: svelte-sveltekit
+
+roots:
+  - src/frontend/
+
+file_patterns:
+  - "src/frontend/**/*.svelte"
+  - "src/frontend/**/*.ts"
+  - "src/frontend/**/*.js"
+  - "src/frontend/**/*.json"
+  - "src/frontend/**/*.html"
+
+imports_from:
+  - src/shared/
+  - src/shared/types/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/backend/
+  - src/mobile/
+
+notes:
+  - "Routes own navigation; load functions own data; components stay presentational."
+  - "Secrets live only in +page.server.ts / +server.ts / hooks.server.ts — anything a +page.svelte imports ships to the client."
+  - "hooks.server.ts handleError is the only error-response shaper."

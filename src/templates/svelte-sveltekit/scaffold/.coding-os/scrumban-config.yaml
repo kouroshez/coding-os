@@ -1,0 +1,18 @@
+# svelte-sveltekit delta — merged onto base by the config composer.
+swimlanes:
+  - id: routes
+    label: "Routes / Pages"
+    color: "#ff3e00"
+    description: "File-based routes, +page/+layout, navigation"
+  - id: components
+    label: "Components"
+    color: "#3b82f6"
+    description: "Reusable .svelte UI, design-system pieces"
+  - id: stores
+    label: "Stores / State"
+    color: "#8b5cf6"
+    description: "writable/derived stores, load-function data"
+  - id: server
+    label: "Server / Load"
+    color: "#f59e0b"
+    description: "+page.server.ts, +server.ts, hooks.server.ts"

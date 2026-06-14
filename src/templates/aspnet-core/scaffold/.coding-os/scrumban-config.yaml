@@ -1,0 +1,18 @@
+# aspnet-core delta — merged onto base by the config composer.
+swimlanes:
+  - id: api
+    label: "API / Endpoints"
+    color: "#512bd4"
+    description: "ASP.NET Core endpoints/controllers, request/response DTOs"
+  - id: services
+    label: "Services / Domain"
+    color: "#8b5cf6"
+    description: "Business logic, transport-free services"
+  - id: common
+    label: "Common / Middleware"
+    color: "#f59e0b"
+    description: "Middleware, filters, the global exception-handling middleware"
+  - id: data
+    label: "Data / Repositories"
+    color: "#10b981"
+    description: "Repositories, EF Core migrations, query performance"

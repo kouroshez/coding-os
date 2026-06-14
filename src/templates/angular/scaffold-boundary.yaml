@@ -1,0 +1,27 @@
+# Scaffold boundary for the angular stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: angular
+
+roots:
+  - src/frontend/
+
+file_patterns:
+  - "src/frontend/**/*.ts"
+  - "src/frontend/**/*.html"
+  - "src/frontend/**/*.css"
+  - "src/frontend/**/*.json"
+
+imports_from:
+  - src/shared/
+  - src/shared/types/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/backend/
+  - src/mobile/
+
+notes:
+  - "Components are standalone and presentation-only; services own state and side effects."
+  - "One global ErrorHandler is the only error shaper; components never format raw errors for users."

@@ -1,0 +1,21 @@
+---
+// SSG page — runs at build time only, ships zero client JS.
+// Add an island (e.g. <Counter client:idle />) only when a piece of UI
+// genuinely needs interactivity; the rest stays static HTML.
+const title = "{{PROJECT_NAME}}";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <main>
+      <h1>{title}</h1>
+      <p>Static-first Astro app. Health endpoint: <code>/api/health</code>.</p>
+    </main>
+  </body>
+</html>

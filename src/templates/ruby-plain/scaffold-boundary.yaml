@@ -1,0 +1,23 @@
+# Scaffold boundary for the ruby-plain stack (stdlib + Bundler).
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: ruby-plain
+
+roots:
+  - src/backend/
+
+file_patterns:
+  - "src/backend/**/*.rb"
+  - "src/backend/Gemfile"
+
+imports_from:
+  - src/shared/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/frontend/
+  - src/mobile/
+
+notes:
+  - "Plain Ruby — Gemfile lives in src/backend/. The rails framework stack replaces this layout."

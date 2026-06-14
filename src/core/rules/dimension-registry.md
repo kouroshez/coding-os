@@ -3,6 +3,27 @@
 Auto-generated from all installed stacks. Use during Classify
 phase to build your Read List.
 
+## angular
+
+- **Angular component** (M) → `docs/playbooks/angular-app.md`, `docs/engineering/angular-rules.md`
+- **Route / page** (M) → `docs/playbooks/angular-app.md`, `docs/engineering/angular-rules.md`
+- **Service / state** (M) → `docs/engineering/angular-rules.md`
+- **Accessibility** (M) → `docs/engineering/accessibility-web.md`
+
+## aspnet-core
+
+- **ASP.NET Core endpoint** (M) → `docs/playbooks/aspnet-core-service.md`, `docs/engineering/aspnet-core-rules.md`
+- **Service / business logic** (M) → `docs/engineering/aspnet-core-rules.md`
+- **Middleware / DI wiring** (M) → `docs/engineering/aspnet-core-rules.md`
+- **DTO validation** (M) → `docs/engineering/aspnet-core-rules.md`, `docs/api-contracts/error-format.md`
+- **Auth / authorization** (M) → `docs/engineering/aspnet-core-rules.md`
+
+## astro
+
+- **Component / island** (M) → `docs/playbooks/astro-app.md`, `docs/engineering/astro-rules.md`
+- **Page / route** (M) → `docs/playbooks/astro-app.md`, `docs/engineering/astro-rules.md`
+- **Content / SEO collection** (M) → `docs/playbooks/content-seo.md`, `docs/engineering/astro-rules.md`
+
 ## django
 
 - **Django model / schema** (M) → `docs/engineering/backend-rules.md`, `docs/playbooks/backend-api.md`
@@ -13,6 +34,14 @@ phase to build your Read List.
 
 - **API endpoint** (M) → `docs/playbooks/fastapi-service.md`, `docs/engineering/fastapi-rules.md`
 - **Pydantic model** (M) → `docs/engineering/fastapi-rules.md`
+
+## flutter
+
+- **Flutter screen** (M) → `docs/playbooks/flutter-app.md`, `docs/engineering/flutter-rules.md`
+- **Flutter component** (M) → `docs/engineering/flutter-rules.md`
+- **State / provider** (M) → `docs/engineering/flutter-rules.md`, `docs/playbooks/flutter-app.md`
+- **Navigation / route** (M) → `docs/playbooks/flutter-app.md`
+- **Accessibility** (M) → `docs/engineering/flutter-rules.md`
 
 ## go
 
@@ -66,6 +95,15 @@ phase to build your Read List.
 - **Python module / API** (M) → `docs/playbooks/python-library.md`, `docs/engineering/python-rules.md`
 - **CLI command** (M) → `docs/playbooks/python-library.md`
 
+## rails
+
+- **Rails controller** (M) → `docs/playbooks/rails-service.md`, `docs/engineering/rails-rules.md`
+- **ActiveRecord model** (M) → `docs/engineering/rails-rules.md`
+- **Route / routes.rb** (M) → `docs/engineering/rails-rules.md`
+- **Concern / mixin** (M) → `docs/engineering/rails-rules.md`
+- **Migration / schema** (M) → `docs/engineering/rails-rules.md`, `docs/api-contracts/error-format.md`
+- **Auth / rescue_from** (M) → `docs/engineering/rails-rules.md`
+
 ## react-native
 
 - **RN screen** (M) → `docs/playbooks/mobile-app.md`, `docs/engineering/mobile-rules.md`
@@ -73,6 +111,29 @@ phase to build your Read List.
 - **Offline / sync** (M) → `docs/engineering/offline-first.md`, `docs/playbooks/mobile-app.md`
 - **Native bridge** (M) → `docs/playbooks/mobile-app.md`
 - **Accessibility** (M) → `docs/engineering/accessibility-mobile.md`
+
+## rust-axum
+
+- **Axum handler** (M) → `docs/playbooks/rust-axum-service.md`, `docs/engineering/rust-axum-rules.md`
+- **Router / app wiring** (M) → `docs/engineering/rust-axum-rules.md`
+- **Extractor / DTO** (M) → `docs/engineering/rust-axum-rules.md`, `docs/api-contracts/error-format.md`
+- **Tower middleware** (M) → `docs/engineering/rust-axum-rules.md`
+- **AppError / IntoResponse** (M) → `docs/engineering/rust-axum-rules.md`, `docs/api-contracts/error-format.md`
+
+## spring-boot
+
+- **Spring Boot controller** (M) → `docs/playbooks/spring-boot-service.md`, `docs/engineering/spring-boot-rules.md`
+- **Service / business logic** (M) → `docs/engineering/spring-boot-rules.md`
+- **Repository / persistence** (M) → `docs/engineering/spring-boot-rules.md`
+- **DTO validation** (M) → `docs/engineering/spring-boot-rules.md`, `docs/api-contracts/error-format.md`
+- **Security / authorization** (M) → `docs/engineering/spring-boot-rules.md`
+
+## svelte-sveltekit
+
+- **Svelte component** (M) → `docs/playbooks/svelte-sveltekit-app.md`, `docs/engineering/svelte-sveltekit-rules.md`
+- **Route / +page** (M) → `docs/playbooks/svelte-sveltekit-app.md`, `docs/engineering/svelte-sveltekit-rules.md`
+- **Store / state** (M) → `docs/engineering/svelte-sveltekit-rules.md`
+- **Accessibility** (M) → `docs/engineering/svelte-sveltekit-rules.md`
 
 ## vue-nuxt
 

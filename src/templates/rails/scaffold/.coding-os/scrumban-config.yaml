@@ -1,0 +1,18 @@
+# rails delta — merged onto base by the config composer.
+swimlanes:
+  - id: controllers
+    label: "Controllers / Routes"
+    color: "#cc0000"
+    description: "Rails controllers, routes.rb, request params, rendered responses"
+  - id: models
+    label: "Models / ActiveRecord"
+    color: "#8b5cf6"
+    description: "ActiveRecord models, validations, business logic, scopes"
+  - id: concerns
+    label: "Concerns"
+    color: "#f59e0b"
+    description: "Shared mixins, the rescue_from error chain, before_action filters"
+  - id: db
+    label: "Data / Migrations"
+    color: "#10b981"
+    description: "Migrations, schema, query performance"

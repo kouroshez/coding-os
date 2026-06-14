@@ -1,0 +1,50 @@
+version: 1
+id: ruby-plain
+language: ruby
+label: "Ruby (plain — stdlib + Bundler, no framework)"
+category: backend
+primary_skill: null
+skills: []
+
+structure:
+  root: src/backend
+  tree: |
+    src/backend/
+    ├── Gemfile
+    ├── main.rb
+    └── lib/             # grow into lib/-centric layout as the gem grows
+  notes: "plain Ruby — Gemfile + a runnable main.rb; lib/ holds reusable modules. Framework stacks (rails) replace this layout."
+
+# Plain-language stack (template-authoring.md § Language layer): picked when
+# the user chooses "ruby" without a framework. Ships a runnable skeleton and
+# the verify wiring; the rails stack extends the language with its conventions.
+
+substitutions:
+  DOMAIN_ROUTES: "Ruby library / CLI task → AGENTS.md critical rules"
+  SKILL_ROUTES: "Ruby → `clean-code` (generic) + `thinking_os` (kernel)"
+  ENGINEERING_RULE_ROUTING: "Ruby → AGENTS.md critical rules + `docs/governance/`"
+  TOOL_ROUTING_IMPL: "`lint-ruby`, `test-ruby`"
+  VERIFY_BACKEND_GLOB: "`src/backend/`"
+  VERIFY_BACKEND_SUITES: "lint-ruby + test-ruby"
+  VERIFY_BACKEND: "`cd src/backend && bundle exec rubocop && bundle exec rspec`"
+  QUICK_ROUTING: |-
+    - Ruby module / CLI task → see AGENTS.md critical rules
+  STACK_REF_CODES: ""
+
+ref_codes: []
+
+routing_entries:
+  - "Ruby library / CLI task → see AGENTS.md critical rules"
+
+rules: []
+
+makefile_targets:
+  - {name: lint-ruby, cmd: "cd src/backend && bundle exec rubocop"}
+  - {name: test-ruby, cmd: "cd src/backend && bundle exec rspec"}
+
+verify:
+  - {glob: "src/backend/**/*.rb", suites: "lint-ruby + test-ruby", cmd: "cd src/backend && bundle exec rubocop && bundle exec rspec"}
+
+dimensions: []
+
+skill_enforcement: []

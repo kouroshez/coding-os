@@ -1,0 +1,72 @@
+version: 1
+id: rails
+language: ruby
+label: "Ruby on Rails"
+category: backend
+
+structure:
+  root: src/backend
+  tree: |
+    src/backend/
+    ├── Gemfile
+    ├── config.ru
+    ├── config/
+    │   ├── application.rb     # Rails app bootstrap (no logic)
+    │   └── routes.rb          # the routing table — one place
+    └── app/
+        ├── controllers/
+        │   ├── application_controller.rb   # rescue_from lives here — the ONLY error shaper
+        │   └── <domain>_controller.rb      # thin — parse params, call the model, render
+        ├── models/<domain>.rb              # ActiveRecord — business logic + validations
+        └── controllers/concerns/           # cross-cutting mixins (auth, pagination)
+  notes: "controllers thin (parse → call model → render); ActiveRecord models own logic + validations; ONE rescue_from chain in ApplicationController shapes every error; shared behavior in concerns"
+primary_skill: rails
+skills: [rails]
+
+# These substitution keys are joined across stacks by the aggregator via
+# _derive_substitutions (joined on " | "). VERIFY_BACKEND_* override the
+# "(none)" defaults from base.yaml.
+substitutions:
+  DOMAIN_ROUTES: "Backend→`docs/playbooks/rails-service.md`"
+  SKILL_ROUTES: "Backend→`rails`"
+  ENGINEERING_RULE_ROUTING: "Backend→`docs/engineering/rails-rules.md`, Error format→`docs/api-contracts/error-format.md`"
+  TOOL_ROUTING_IMPL: "`lint-backend`, `test-backend`"
+  VERIFY_BACKEND_GLOB: "`src/backend/`"
+  VERIFY_BACKEND_SUITES: "lint-backend + test-backend"
+  VERIFY_BACKEND: "`cd src/backend && bundle exec rubocop && bundle exec rspec`"
+  QUICK_ROUTING: |-
+    - Rails controller / route task → [Rails Service Playbook](./playbooks/rails-service.md)
+    - ActiveRecord model / migration → [Rails Service Playbook](./playbooks/rails-service.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-RAILS` → `./playbooks/rails-service.md`
+    - `REF:RAILS-RULES` → `./engineering/rails-rules.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-RAILS", path: "./playbooks/rails-service.md", desc: "Rails service playbook"}
+  - {code: "REF:RAILS-RULES",    path: "./engineering/rails-rules.md", desc: "Rails engineering rules"}
+
+routing_entries:
+  - "Rails controller / route task → [Rails Service Playbook](./playbooks/rails-service.md)"
+
+rules:
+  - {file: rules/backend.md, globs: ["src/backend/**/*.rb"]}
+
+makefile_targets:
+  - {name: lint-backend, cmd: "cd src/backend && bundle exec rubocop"}
+  - {name: test-backend, cmd: "cd src/backend && bundle exec rspec"}
+
+verify:
+  - {glob: "src/backend/**/*.rb", suites: "lint-backend + test-backend", cmd: "cd src/backend && bundle exec rubocop && bundle exec rspec"}
+
+dimensions:
+  - {name: "Rails controller",        read_files: ["docs/playbooks/rails-service.md", "docs/engineering/rails-rules.md"]}
+  - {name: "ActiveRecord model",      read_files: ["docs/engineering/rails-rules.md"]}
+  - {name: "Route / routes.rb",       read_files: ["docs/engineering/rails-rules.md"]}
+  - {name: "Concern / mixin",         read_files: ["docs/engineering/rails-rules.md"]}
+  - {name: "Migration / schema",      read_files: ["docs/engineering/rails-rules.md", "docs/api-contracts/error-format.md"]}
+  - {name: "Auth / rescue_from",      read_files: ["docs/engineering/rails-rules.md"]}
+
+skill_enforcement:
+  - {globs: ["src/backend/**/*.rb"], primary: rails, secondary: [clean-code, backend-fundamentals, api-design, auth-patterns, security-web, testing-strategy, observability]}
+  - {globs: ["src/backend/**/models/**/*.rb", "src/backend/**/migrate/**/*.rb"], primary: rails, secondary: [clean-code, db-design, backend-fundamentals]}
+  - {globs: ["src/backend/**/controllers/concerns/auth*.rb", "src/backend/**/models/concerns/auth*.rb"], primary: rails, secondary: [auth-patterns, security-web, clean-code]}

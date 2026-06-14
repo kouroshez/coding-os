@@ -1,0 +1,18 @@
+# astro delta — merged onto base by the config composer.
+swimlanes:
+  - id: pages
+    label: "Pages / Routes"
+    color: "#ff5d01"
+    description: "Astro pages, layouts, file-based routing"
+  - id: islands
+    label: "Components / Islands"
+    color: "#8b5cf6"
+    description: "Astro components and hydrated client islands"
+  - id: content
+    label: "Content / SEO"
+    color: "#10b981"
+    description: "Content collections, metadata, SEO, sitemap"
+  - id: endpoints
+    label: "API Endpoints"
+    color: "#f59e0b"
+    description: "Server endpoints under pages/api, problem-shaped responses"

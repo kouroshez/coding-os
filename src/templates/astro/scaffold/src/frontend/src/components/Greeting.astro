@@ -1,0 +1,13 @@
+---
+// A plain Astro component — renders to static HTML, ships no client JS.
+// To make it interactive, extract the interactive part into a framework
+// component (React/Svelte/Vue) and hydrate it with a client:* directive;
+// keep the static shell here.
+interface Props {
+  name: string;
+}
+
+const { name } = Astro.props;
+---
+
+<p>Hello, {name}.</p>

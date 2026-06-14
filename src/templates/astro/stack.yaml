@@ -1,0 +1,74 @@
+version: 1
+id: astro
+language: typescript
+label: "Astro + TypeScript"
+category: frontend
+
+structure:
+  root: src/frontend
+  tree: |
+    src/frontend/
+    ├── package.json
+    ├── tsconfig.json
+    ├── astro.config.mjs       # integrations, output mode (static/hybrid)
+    └── src/
+        ├── pages/             # file-based routes — .astro pages + API endpoints
+        │   ├── index.astro    # SSG page (zero client JS by default)
+        │   └── api/
+        │       └── health.ts  # API endpoint — returns the problem-shaped JSON
+        ├── components/        # .astro components; islands opt into client JS
+        ├── content/           # content collections (config.ts + .md/.mdx entries)
+        └── lib/
+            └── problem.ts      # the ONLY error-response shaper (RFC 9457)
+  notes: "SSG by default — pages ship zero client JS; islands (client:* directives) are the only hydrated surface; content collections (src/content/) are the typed content SSOT; one problem.ts shaper owns every error response"
+primary_skill: astro
+skills: [astro]
+
+# These substitution keys are joined across stacks by the aggregator.
+# VERIFY_FRONTEND_* override the "(none)" defaults from base.yaml.
+substitutions:
+  DOMAIN_ROUTES: "Frontend→`docs/playbooks/astro-app.md`, Content→`docs/playbooks/content-seo.md`"
+  SKILL_ROUTES: "Frontend→`astro`"
+  ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/astro-rules.md`, Content→`docs/playbooks/content-seo.md`, Error format→`docs/api-contracts/error-format.md`"
+  TOOL_ROUTING_IMPL: "`lint-frontend`, `build-frontend`"
+  VERIFY_FRONTEND_GLOB: "`src/frontend/`"
+  VERIFY_FRONTEND_SUITES: "lint-frontend + build-frontend"
+  VERIFY_FRONTEND: "`cd src/frontend && npm run lint && npm run build`"
+  QUICK_ROUTING: |-
+    - Astro component / island task → [Astro App Playbook](./playbooks/astro-app.md)
+    - Page / route / API endpoint task → [Astro App Playbook](./playbooks/astro-app.md)
+    - Content collection / SEO / metadata task → [Content & SEO Playbook](./playbooks/content-seo.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-ASTRO` → `./playbooks/astro-app.md`
+    - `REF:PLAYBOOK-CONTENT` → `./playbooks/content-seo.md`
+    - `REF:ASTRO-RULES` → `./engineering/astro-rules.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-ASTRO",   path: "./playbooks/astro-app.md",   desc: "Astro app playbook"}
+  - {code: "REF:PLAYBOOK-CONTENT", path: "./playbooks/content-seo.md", desc: "Content & SEO playbook"}
+  - {code: "REF:ASTRO-RULES",      path: "./engineering/astro-rules.md", desc: "Astro engineering rules"}
+
+routing_entries:
+  - "Astro component / island task → [Astro App Playbook](./playbooks/astro-app.md)"
+  - "Page / route / API endpoint task → [Astro App Playbook](./playbooks/astro-app.md)"
+  - "Content collection / SEO / metadata task → [Content & SEO Playbook](./playbooks/content-seo.md)"
+
+rules:
+  - {file: rules/frontend.md, globs: ["src/frontend/**/*.{ts,tsx,astro}"]}
+
+makefile_targets:
+  - {name: lint-frontend,  cmd: "cd src/frontend && npm run lint"}
+  - {name: build-frontend, cmd: "cd src/frontend && npm run build"}
+
+verify:
+  - {glob: "src/frontend/**/*.{ts,astro}", suites: "lint-frontend + build-frontend", cmd: "cd src/frontend && npm run lint && npm run build"}
+
+dimensions:
+  - {name: "Component / island",       read_files: ["docs/playbooks/astro-app.md", "docs/engineering/astro-rules.md"]}
+  - {name: "Page / route",             read_files: ["docs/playbooks/astro-app.md", "docs/engineering/astro-rules.md"]}
+  - {name: "Content / SEO collection", read_files: ["docs/playbooks/content-seo.md", "docs/engineering/astro-rules.md"]}
+
+skill_enforcement:
+  - {globs: ["src/frontend/**/*.{ts,astro}"], primary: astro, secondary: [clean-code, frontend-design, frontend-fundamentals, a11y, performance, testing-strategy]}
+  - {globs: ["src/frontend/**/components/**/*.astro", "src/frontend/**/pages/**/*.astro"], primary: astro, secondary: [clean-code, frontend-design, frontend-fundamentals, a11y]}
+  - {globs: ["src/frontend/**/content/**/*.ts", "src/frontend/**/pages/api/**/*.ts"], primary: astro, secondary: [clean-code, frontend-fundamentals, api-design]}

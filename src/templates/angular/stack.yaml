@@ -1,0 +1,75 @@
+version: 1
+id: angular
+language: typescript
+label: "Angular + TypeScript"
+category: frontend
+
+structure:
+  root: src/frontend
+  tree: |
+    src/frontend/
+    ├── package.json
+    ├── tsconfig.json
+    ├── angular.json
+    └── src/
+        ├── main.ts              # bootstrapApplication entry (no logic)
+        ├── app/
+        │   ├── app.config.ts    # application providers (DI root) — no logic
+        │   ├── app.component.ts # root standalone component
+        │   ├── core/            # cross-cutting: error handler, interceptors, guards
+        │   └── <feature>/       # one folder per domain
+        │       ├── <feature>.component.ts  # standalone, signal-driven view
+        │       └── <feature>.service.ts    # injectable state + data access (RxJS)
+        └── styles.css
+  notes: "standalone components only (no NgModules); state via signals; data + side effects in injectable services (RxJS); one global ErrorHandler is the ONLY error shaper; routing via provideRouter"
+primary_skill: angular
+skills: [angular]
+
+# VERIFY_FRONTEND_* override the "(none)" defaults from base.yaml.
+substitutions:
+  DOMAIN_ROUTES: "Frontend→`docs/playbooks/angular-app.md`"
+  SKILL_ROUTES: "Frontend→`angular`"
+  ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/angular-rules.md`, a11y→`docs/engineering/accessibility-web.md`"
+  TOOL_ROUTING_IMPL: "`lint-frontend`, `build-frontend`"
+  VERIFY_FRONTEND_GLOB: "`src/frontend/`"
+  VERIFY_FRONTEND_SUITES: "lint-frontend + test-frontend"
+  VERIFY_FRONTEND: "`cd src/frontend && npm run lint && npm test`"
+  QUICK_ROUTING: |-
+    - Angular component / signal task → [Angular App Playbook](./playbooks/angular-app.md)
+    - Service / state / RxJS task → [Angular App Playbook](./playbooks/angular-app.md)
+    - Route / guard / interceptor task → [Angular App Playbook](./playbooks/angular-app.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-ANGULAR` → `./playbooks/angular-app.md`
+    - `REF:ANGULAR-RULES` → `./engineering/angular-rules.md`
+    - `REF:A11Y` → `./engineering/accessibility-web.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-ANGULAR", path: "./playbooks/angular-app.md",        desc: "Angular app playbook"}
+  - {code: "REF:ANGULAR-RULES",    path: "./engineering/angular-rules.md",    desc: "Angular engineering rules"}
+  - {code: "REF:A11Y",             path: "./engineering/accessibility-web.md", desc: "Accessibility checklist"}
+
+routing_entries:
+  - "Angular component / signal task → [Angular App Playbook](./playbooks/angular-app.md)"
+  - "Service / state / RxJS task → [Angular App Playbook](./playbooks/angular-app.md)"
+
+rules:
+  - {file: rules/frontend.md, globs: ["src/frontend/**/*.{ts,html,css}"]}
+
+makefile_targets:
+  - {name: lint-frontend,  cmd: "cd src/frontend && npm run lint"}
+  - {name: build-frontend, cmd: "cd src/frontend && npm run build"}
+  - {name: test-frontend,  cmd: "cd src/frontend && npm test"}
+
+verify:
+  - {glob: "src/frontend/**/*.ts", suites: "lint-frontend + test-frontend", cmd: "cd src/frontend && npm run lint && npm test"}
+
+dimensions:
+  - {name: "Angular component",     read_files: ["docs/playbooks/angular-app.md", "docs/engineering/angular-rules.md"]}
+  - {name: "Route / page",          read_files: ["docs/playbooks/angular-app.md", "docs/engineering/angular-rules.md"]}
+  - {name: "Service / state",       read_files: ["docs/engineering/angular-rules.md"]}
+  - {name: "Accessibility",         read_files: ["docs/engineering/accessibility-web.md"]}
+
+skill_enforcement:
+  - {globs: ["src/frontend/**/*.ts"], primary: angular, secondary: [clean-code, frontend-fundamentals, a11y, state-management, testing-strategy, performance]}
+  - {globs: ["src/frontend/**/*.component.ts"], primary: angular, secondary: [clean-code, frontend-fundamentals, a11y]}
+  - {globs: ["src/frontend/**/*.service.ts"], primary: angular, secondary: [state-management, clean-code, frontend-fundamentals]}

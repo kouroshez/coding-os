@@ -1,0 +1,25 @@
+# Scaffold boundary for the rails stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: rails
+
+roots:
+  - src/backend/
+
+file_patterns:
+  - "src/backend/**/*.rb"
+  - "src/backend/**/*.ru"
+  - "src/backend/Gemfile"
+
+imports_from:
+  - src/shared/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/frontend/
+  - src/mobile/
+
+notes:
+  - "Controllers thin (parse params, call the model, render); ActiveRecord models own business logic."
+  - "One rescue_from chain in ApplicationController is the only error-response shaper."

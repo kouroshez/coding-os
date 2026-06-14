@@ -1,0 +1,70 @@
+version: 1
+id: flutter
+language: dart
+label: "Flutter + Dart"
+category: mobile
+
+structure:
+  root: src/mobile
+  tree: |
+    src/mobile/
+    ├── pubspec.yaml
+    └── lib/
+        ├── main.dart           # runApp bootstrap (no logic)
+        ├── screens/            # one widget tree per route (StatelessWidget/ConsumerWidget)
+        ├── widgets/            # reusable presentational components
+        ├── state/              # providers / notifiers (Riverpod by default)
+        ├── services/           # transport + platform access (HTTP, storage, native channels)
+        └── core/               # cross-cutting: error mapper, router, theme
+  notes: "widgets render, state holds business logic, services own transport; one error mapper is the ONLY place that turns a failure into UI state; navigation via a single declarative router"
+primary_skill: flutter
+skills: [flutter]
+
+# VERIFY_MOBILE_* override the "(none)" mobile defaults from base.yaml; the
+# aggregator joins substitution keys across stacks via _derive_substitutions.
+substitutions:
+  DOMAIN_ROUTES: "Mobile→`docs/playbooks/flutter-app.md`"
+  SKILL_ROUTES: "Mobile→`flutter`"
+  ENGINEERING_RULE_ROUTING: "Mobile→`docs/engineering/flutter-rules.md`, Error format→`docs/api-contracts/error-format.md`"
+  TOOL_ROUTING_IMPL: "`lint-mobile`, `test-mobile`, `build-mobile`"
+  VERIFY_MOBILE_GLOB: "`src/mobile/`"
+  VERIFY_MOBILE_SUITES: "lint-mobile + test-mobile"
+  VERIFY_MOBILE: "`cd src/mobile && dart analyze && flutter test`"
+  QUICK_ROUTING: |-
+    - Flutter screen / widget task → [Flutter App Playbook](./playbooks/flutter-app.md)
+    - State / provider work → [Flutter App Playbook](./playbooks/flutter-app.md)
+    - Navigation / routing change → [Flutter App Playbook](./playbooks/flutter-app.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-FLUTTER` → `./playbooks/flutter-app.md`
+    - `REF:FLUTTER-RULES` → `./engineering/flutter-rules.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-FLUTTER", path: "./playbooks/flutter-app.md",     desc: "Flutter app playbook"}
+  - {code: "REF:FLUTTER-RULES",    path: "./engineering/flutter-rules.md", desc: "Flutter engineering rules"}
+
+routing_entries:
+  - "Flutter screen / widget task → [Flutter App Playbook](./playbooks/flutter-app.md)"
+  - "State / provider work → [Flutter App Playbook](./playbooks/flutter-app.md)"
+
+rules:
+  - {file: rules/mobile.md, globs: ["src/mobile/**/*.dart"]}
+
+makefile_targets:
+  - {name: lint-mobile,  cmd: "cd src/mobile && dart analyze"}
+  - {name: test-mobile,  cmd: "cd src/mobile && flutter test"}
+  - {name: build-mobile, cmd: "cd src/mobile && flutter build apk --debug"}
+
+verify:
+  - {glob: "src/mobile/**/*.dart", suites: "lint-mobile + test-mobile", cmd: "cd src/mobile && dart analyze && flutter test"}
+
+dimensions:
+  - {name: "Flutter screen",     read_files: ["docs/playbooks/flutter-app.md", "docs/engineering/flutter-rules.md"]}
+  - {name: "Flutter component",  read_files: ["docs/engineering/flutter-rules.md"]}
+  - {name: "State / provider",   read_files: ["docs/engineering/flutter-rules.md", "docs/playbooks/flutter-app.md"]}
+  - {name: "Navigation / route", read_files: ["docs/playbooks/flutter-app.md"]}
+  - {name: "Accessibility",      read_files: ["docs/engineering/flutter-rules.md"]}
+
+skill_enforcement:
+  - {globs: ["src/mobile/**/*.dart"], primary: flutter, secondary: [clean-code, frontend-fundamentals, mobile-fundamentals, a11y]}
+  - {globs: ["src/mobile/**/screens/**/*.dart", "src/mobile/**/widgets/**/*.dart"], primary: flutter, secondary: [clean-code, state-management, performance]}
+  - {globs: ["src/mobile/**/state/**/*.dart"], primary: flutter, secondary: [state-management, clean-code]}

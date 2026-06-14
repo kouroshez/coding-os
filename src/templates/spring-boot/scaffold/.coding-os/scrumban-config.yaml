@@ -1,0 +1,18 @@
+# spring-boot delta — merged onto base by the config composer.
+swimlanes:
+  - id: api
+    label: "API / Controllers"
+    color: "#6db33f"
+    description: "Spring MVC @RestController endpoints, request/response DTOs"
+  - id: services
+    label: "Services / Domain"
+    color: "#8b5cf6"
+    description: "Business logic, transport-free @Service beans"
+  - id: common
+    label: "Common / Advice"
+    color: "#f59e0b"
+    description: "Filters, interceptors, the global @RestControllerAdvice"
+  - id: data
+    label: "Data / Repositories"
+    color: "#10b981"
+    description: "Spring Data repositories, JPA entities, query performance"

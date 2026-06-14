@@ -1,0 +1,24 @@
+# Scaffold boundary for the aspnet-core stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: aspnet-core
+
+roots:
+  - src/backend/
+
+file_patterns:
+  - "src/backend/**/*.cs"
+  - "src/backend/**/*.csproj"
+
+imports_from:
+  - src/shared/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/frontend/
+  - src/mobile/
+
+notes:
+  - "Endpoints/controllers thin; services own logic; repositories own data access."
+  - "One global exception-handling middleware is the only error-response shaper."
