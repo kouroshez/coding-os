@@ -357,6 +357,27 @@ def _run_reclaim(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
             os.environ["COS_PROJECT_ROOT"] = prev_root
 
 
+def _run_dep_reconcile(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
+    """dep_reconcile — re-block tasks whose dependency reopened + surface
+    unblocked-but-unauthored and long-blocked tasks across the whole graph
+    (the gaps the per-completion cascade cannot reach, TASK-415). Reuses
+    board_os.cascade_ready_dependents; cos_task_move resolves file paths from
+    COS_PROJECT_ROOT, so scope it to this project for the call."""
+    from scheduled.dep_reconcile import run_dep_reconcile
+
+    prev_root = os.environ.get("COS_PROJECT_ROOT")
+    os.environ["COS_PROJECT_ROOT"] = str(project_root)
+    try:
+        with sqlite3.connect(str(db_path), timeout=10) as conn:
+            conn.row_factory = sqlite3.Row
+            return run_dep_reconcile(conn, dry_run=dry_run)
+    finally:
+        if prev_root is None:
+            os.environ.pop("COS_PROJECT_ROOT", None)
+        else:
+            os.environ["COS_PROJECT_ROOT"] = prev_root
+
+
 def run_project(project: dict, *, dry_run: bool) -> dict:
     """Run all maintenance tasks for one project."""
     slug = project.get("slug", "?")
@@ -485,6 +506,19 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
     except Exception as exc:
         run["tasks"]["reclaim"] = {"status": "error", "error": str(exc)}
         logger.error("[%s] reclaim raised: %s", slug, exc)
+        errors += 1
+
+    # Task 4.6: dep_reconcile — re-block reopened deps + surface unblocked-but-
+    # unauthored and long-blocked tasks across the whole graph (TASK-415).
+    try:
+        t = _run_dep_reconcile(db_path, project_root, dry_run=dry_run)
+        run["tasks"]["dep_reconcile"] = t
+        logger.info("[%s] dep_reconcile → %s", slug, t.get("status"))
+        if t.get("status") == "error":
+            errors += 1
+    except Exception as exc:
+        run["tasks"]["dep_reconcile"] = {"status": "error", "error": str(exc)}
+        logger.error("[%s] dep_reconcile raised: %s", slug, exc)
         errors += 1
 
     # Task 3.5: digest regenerate (after extract/decay so it reflects new patterns)

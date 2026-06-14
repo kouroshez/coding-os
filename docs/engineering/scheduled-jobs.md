@@ -48,6 +48,14 @@ Install: `make cron-install` → writes plist to `~/Library/LaunchAgents/`, load
    - Drift defined as: new outcomes added since `outcomes_at_recalc`
    - Output: `{weights_updated: N, skipped}`
 
+4. **dep_reconcile** — `run_dep_reconcile(conn)` from `src/core/scheduled/dep_reconcile.py` (TASK-415)
+   - Closes the gaps the per-completion cascade (`board_os.cascade_ready_dependents`) cannot reach because it only fires when ONE dependency completes. Three branches over the whole task graph:
+     - **re-block** — a ready/icebox task (carries the `ready` label, status `icebox`) with any now-incomplete dependency is moved back to `blocked`, the reason naming the reopened dependency.
+     - **needs-authoring** — reuses `cascade_ready_dependents` over every `complete` task; a dependent now unblocked but DoR-incomplete is surfaced (not auto-readied), one whose DoR passes is auto-readied.
+     - **long-blocked** — a task in `blocked` longer than `blocked_review_days` (default 14) is surfaced for human review (read-only).
+   - Gate: no `tasks` table → skip. Runs after `reclaim` so zombie/idle state is settled first.
+   - Output: `{reblocked, readied, needs_authoring, long_blocked}`
+
 ### Activity detection
 
 Before any task: `_activity.py::activity_since(db_path, days=1)` checks `observations` and `task_outcomes` for recent writes. Used to gate learn_extract (skip if 0 new outcomes) and CRON B (gate on ≥10 new observations).
