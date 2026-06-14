@@ -1,0 +1,18 @@
+# laravel delta — merged onto base by the config composer.
+swimlanes:
+  - id: http
+    label: "HTTP / Controllers"
+    color: "#ff2d20"
+    description: "Controllers, routes, Form Requests"
+  - id: services
+    label: "Services"
+    color: "#8b5cf6"
+    description: "Business logic, framework-light"
+  - id: models
+    label: "Models / Data"
+    color: "#10b981"
+    description: "Eloquent models, migrations, query performance"
+  - id: middleware
+    label: "Middleware"
+    color: "#f59e0b"
+    description: "Auth, validation, the exception Handler"

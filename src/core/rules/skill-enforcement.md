@@ -28,6 +28,9 @@ invoke the matching skill via the `Skill` tool.
 | `src/backend/**/*.go` | `go-fiber` | clean-code, backend-fundamentals, api-design, hexagonal-architecture, auth-patterns, security-web, testing-strategy, observability | go-fiber |
 | `src/backend/**/db/**/*.go`, `src/backend/**/migrations/**/*.go`, `src/backend/**/repository/**/*.go` | `go-fiber` | clean-code, db-design, backend-fundamentals | go-fiber |
 | `src/backend/**/auth*.go`, `src/backend/**/middleware/auth*.go` | `go-fiber` | auth-patterns, security-web, clean-code | go-fiber |
+| `src/backend/**/*.php` | `laravel` | php, clean-code, backend-fundamentals, api-design, security-web, testing-strategy | laravel |
+| `src/backend/**/Models/**/*.php`, `src/backend/**/database/**/*.php` | `laravel` | php, clean-code, db-design | laravel |
+| `src/backend/**/Middleware/**/*.php`, `src/backend/**/auth*.php` | `laravel` | php, security-web, clean-code | laravel |
 | `src/core/thinking_os/**/*.py` | `python-meta-server` | graph-explorer, clean-code, thinking_os, mcp-tool-authoring, llm-patterns, observability, agent-memory | meta |
 | `src/core/thinking_os/tools/memory.py`, `src/core/thinking_os/tools/learning.py`, `src/core/thinking_os/tools/retrieve.py` | `agent-memory` | python-meta-server, mcp-tool-authoring, clean-code | meta |
 | `src/core/thinking_os/tools/*.py`, `src/core/graph_os/tools/*.py`, `src/core/board_os/mcp_tools.py`, `src/core/web/routes/*.py` | `mcp-tool-authoring` | python-meta-server, graph-explorer, clean-code | meta |
@@ -68,3 +71,5 @@ invoke the matching skill via the `Skill` tool.
 | `src/frontend/**/lib/stores/**/*.ts`, `src/frontend/**/stores/**/*.ts` | `svelte` | state-management, clean-code, frontend-fundamentals | svelte-sveltekit |
 | `src/frontend/**/*.{vue,ts}` | `vue-nuxt` | clean-code, frontend-fundamentals, frontend-design, a11y, performance, testing-strategy | vue-nuxt |
 | `src/frontend/**/composables/**/*.ts`, `src/frontend/**/stores/**/*.ts` | `vue-nuxt` | state-management, clean-code, frontend-fundamentals | vue-nuxt |
+| `src/backend/**/*.php` | `wordpress` | php, clean-code, security-web | wordpress |
+| `src/backend/plugin/**/*.php` | `wordpress` | php, clean-code, security-web, api-design | wordpress |

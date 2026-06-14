@@ -1,0 +1,23 @@
+# Scaffold boundary for the laravel stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: laravel
+
+roots:
+  - src/backend/
+
+file_patterns:
+  - "src/backend/**/*.php"
+  - "src/backend/**/*.json"
+
+imports_from:
+  - src/shared/
+
+forbids_writing_in:
+  - src/frontend/
+  - src/mobile/
+
+notes:
+  - "Controllers thin; services own logic; the exception Handler is the only error-response shaper."
+  - "Business logic in services/models, never in routes."

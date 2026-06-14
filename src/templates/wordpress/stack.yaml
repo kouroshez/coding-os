@@ -1,0 +1,59 @@
+version: 1
+id: wordpress
+language: php
+label: "WordPress + PHP"
+category: backend
+
+structure:
+  root: src/backend
+  tree: |
+    src/backend/
+    ├── theme/              # the active theme (presentation)
+    │   ├── functions.php   # theme bootstrap, hooks, asset enqueue
+    │   ├── index.php
+    │   └── style.css
+    └── plugin/             # custom plugin (portable business logic)
+        └── plugin.php      # registers hooks, shortcodes, REST routes
+  notes: "business logic lives in a plugin (portable), not the theme; the theme is presentation; sanitize on input + escape on output, always; nonce-verify every state change"
+primary_skill: wordpress
+skills: [wordpress]
+
+substitutions:
+  DOMAIN_ROUTES: "Backend→`docs/playbooks/wordpress-service.md`"
+  SKILL_ROUTES: "Backend→`wordpress`"
+  ENGINEERING_RULE_ROUTING: "Backend→`docs/engineering/wordpress-rules.md`, Error format→`docs/api-contracts/error-format.md`"
+  TOOL_ROUTING_IMPL: "`lint-backend`"
+  VERIFY_BACKEND_GLOB: "`src/backend/`"
+  VERIFY_BACKEND_SUITES: "lint-backend"
+  VERIFY_BACKEND: "`cd src/backend && composer lint`"
+  QUICK_ROUTING: |-
+    - WordPress theme / hook task → [WordPress Playbook](./playbooks/wordpress-service.md)
+    - Plugin / shortcode / REST route → [WordPress Playbook](./playbooks/wordpress-service.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-WORDPRESS` → `./playbooks/wordpress-service.md`
+    - `REF:WORDPRESS-RULES` → `./engineering/wordpress-rules.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-WORDPRESS", path: "./playbooks/wordpress-service.md", desc: "WordPress playbook"}
+  - {code: "REF:WORDPRESS-RULES",    path: "./engineering/wordpress-rules.md", desc: "WordPress engineering rules"}
+
+routing_entries:
+  - "WordPress theme / hook task → [WordPress Playbook](./playbooks/wordpress-service.md)"
+
+rules:
+  - {file: rules/backend.md, globs: ["src/backend/**/*.php"]}
+
+makefile_targets:
+  - {name: lint-backend, cmd: "cd src/backend && composer lint"}
+
+verify:
+  - {glob: "src/backend/**/*.php", suites: "lint-backend", cmd: "cd src/backend && composer lint"}
+
+dimensions:
+  - {name: "Theme template / hook", read_files: ["docs/playbooks/wordpress-service.md", "docs/engineering/wordpress-rules.md"]}
+  - {name: "Plugin / shortcode",    read_files: ["docs/engineering/wordpress-rules.md"]}
+  - {name: "REST route / security", read_files: ["docs/engineering/wordpress-rules.md", "docs/api-contracts/error-format.md"]}
+
+skill_enforcement:
+  - {globs: ["src/backend/**/*.php"], primary: wordpress, secondary: [php, clean-code, security-web]}
+  - {globs: ["src/backend/plugin/**/*.php"], primary: wordpress, secondary: [php, clean-code, security-web, api-design]}

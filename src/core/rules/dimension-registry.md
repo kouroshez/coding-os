@@ -54,6 +54,13 @@ phase to build your Read List.
 - **Middleware / auth** (M) → `docs/engineering/fiber-rules.md`
 - **Request validation / DTO** (M) → `docs/engineering/fiber-rules.md`, `docs/api-contracts/error-format.md`
 
+## laravel
+
+- **Laravel controller** (M) → `docs/playbooks/laravel-service.md`, `docs/engineering/laravel-rules.md`
+- **Route / middleware** (M) → `docs/engineering/laravel-rules.md`
+- **Eloquent model** (M) → `docs/engineering/laravel-rules.md`
+- **Form Request / validation** (M) → `docs/engineering/laravel-rules.md`, `docs/api-contracts/error-format.md`
+
 ## meta
 
 - **MCP tool authoring (cos_*)** (M) → `docs/playbooks/mcp-tool-authoring.md`, `docs/engineering/mcp-error-envelope.md`, `docs/governance/mcp-tool-inventory.md`
@@ -140,3 +147,9 @@ phase to build your Read List.
 - **Nuxt page / route** (M) → `docs/playbooks/nuxt-app.md`, `docs/engineering/nuxt-rules.md`
 - **Vue component** (M) → `docs/engineering/nuxt-rules.md`
 - **Composable / state** (M) → `docs/playbooks/nuxt-app.md`
+
+## wordpress
+
+- **Theme template / hook** (M) → `docs/playbooks/wordpress-service.md`, `docs/engineering/wordpress-rules.md`
+- **Plugin / shortcode** (M) → `docs/engineering/wordpress-rules.md`
+- **REST route / security** (M) → `docs/engineering/wordpress-rules.md`, `docs/api-contracts/error-format.md`

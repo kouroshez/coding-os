@@ -1,0 +1,23 @@
+# Scaffold boundary for the wordpress stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: wordpress
+
+roots:
+  - src/backend/
+
+file_patterns:
+  - "src/backend/**/*.php"
+  - "src/backend/**/*.css"
+
+imports_from:
+  - src/shared/
+
+forbids_writing_in:
+  - src/frontend/
+  - src/mobile/
+
+notes:
+  - "Business logic in the plugin (portable); the theme is presentation only."
+  - "Sanitize on input, escape on output; nonce-verify every state change."

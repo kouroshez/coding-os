@@ -1,0 +1,14 @@
+# wordpress delta — merged onto base by the config composer.
+swimlanes:
+  - id: theme
+    label: "Theme"
+    color: "#21759b"
+    description: "Templates, hooks, asset enqueue (presentation)"
+  - id: plugin
+    label: "Plugin"
+    color: "#8b5cf6"
+    description: "Business logic, shortcodes, REST routes"
+  - id: security
+    label: "Security / Data"
+    color: "#d63638"
+    description: "Sanitize/escape, nonces, capabilities, custom tables"

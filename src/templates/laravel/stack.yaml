@@ -1,0 +1,66 @@
+version: 1
+id: laravel
+language: php
+label: "Laravel + PHP"
+category: backend
+
+structure:
+  root: src/backend
+  tree: |
+    src/backend/
+    ├── composer.json
+    ├── public/
+    │   └── index.php        # front controller (no logic)
+    ├── routes/
+    │   └── api.php          # one route group per resource
+    └── app/
+        ├── Http/Controllers/   # thin — delegate to services
+        ├── Models/             # Eloquent models
+        ├── Services/           # business logic
+        └── Exceptions/Handler.php  # the ONLY error-response shaper
+  notes: "controllers thin, services own logic; the exception Handler is the only error-response shaper; validate via Form Requests"
+primary_skill: laravel
+skills: [laravel]
+
+substitutions:
+  DOMAIN_ROUTES: "Backend→`docs/playbooks/laravel-service.md`"
+  SKILL_ROUTES: "Backend→`laravel`"
+  ENGINEERING_RULE_ROUTING: "Backend→`docs/engineering/laravel-rules.md`, Error format→`docs/api-contracts/error-format.md`"
+  TOOL_ROUTING_IMPL: "`lint-backend`, `test-backend`"
+  VERIFY_BACKEND_GLOB: "`src/backend/`"
+  VERIFY_BACKEND_SUITES: "lint-backend + test-backend"
+  VERIFY_BACKEND: "`cd src/backend && composer lint && composer test`"
+  QUICK_ROUTING: |-
+    - Laravel controller / route task → [Laravel Service Playbook](./playbooks/laravel-service.md)
+    - Middleware / Form Request validation → [Laravel Service Playbook](./playbooks/laravel-service.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-LARAVEL` → `./playbooks/laravel-service.md`
+    - `REF:LARAVEL-RULES` → `./engineering/laravel-rules.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-LARAVEL", path: "./playbooks/laravel-service.md", desc: "Laravel service playbook"}
+  - {code: "REF:LARAVEL-RULES",    path: "./engineering/laravel-rules.md", desc: "Laravel engineering rules"}
+
+routing_entries:
+  - "Laravel controller / route task → [Laravel Service Playbook](./playbooks/laravel-service.md)"
+
+rules:
+  - {file: rules/backend.md, globs: ["src/backend/**/*.php"]}
+
+makefile_targets:
+  - {name: lint-backend, cmd: "cd src/backend && composer lint"}
+  - {name: test-backend, cmd: "cd src/backend && composer test"}
+
+verify:
+  - {glob: "src/backend/**/*.php", suites: "lint-backend + test-backend", cmd: "cd src/backend && composer lint && composer test"}
+
+dimensions:
+  - {name: "Laravel controller",        read_files: ["docs/playbooks/laravel-service.md", "docs/engineering/laravel-rules.md"]}
+  - {name: "Route / middleware",        read_files: ["docs/engineering/laravel-rules.md"]}
+  - {name: "Eloquent model",            read_files: ["docs/engineering/laravel-rules.md"]}
+  - {name: "Form Request / validation", read_files: ["docs/engineering/laravel-rules.md", "docs/api-contracts/error-format.md"]}
+
+skill_enforcement:
+  - {globs: ["src/backend/**/*.php"], primary: laravel, secondary: [php, clean-code, backend-fundamentals, api-design, security-web, testing-strategy]}
+  - {globs: ["src/backend/**/Models/**/*.php", "src/backend/**/database/**/*.php"], primary: laravel, secondary: [php, clean-code, db-design]}
+  - {globs: ["src/backend/**/Middleware/**/*.php", "src/backend/**/auth*.php"], primary: laravel, secondary: [php, security-web, clean-code]}
