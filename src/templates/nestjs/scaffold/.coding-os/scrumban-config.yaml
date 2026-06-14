@@ -1,0 +1,18 @@
+# nestjs delta — merged onto base by the config composer.
+swimlanes:
+  - id: api
+    label: "API / Controllers"
+    color: "#e0234e"
+    description: "NestJS controllers, request/response DTOs"
+  - id: providers
+    label: "Providers / Services"
+    color: "#8b5cf6"
+    description: "Business logic, transport-free providers"
+  - id: common
+    label: "Common"
+    color: "#f59e0b"
+    description: "Guards, pipes, interceptors, the global exception filter"
+  - id: db
+    label: "Data / Repositories"
+    color: "#10b981"
+    description: "Repositories, migrations, query performance"

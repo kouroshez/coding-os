@@ -32,6 +32,9 @@ invoke the matching skill via the `Skill` tool.
 | `src/core/hooks/registry.yaml` | `hook-authoring` | meta-engineering, thinking_os, clean-code | meta |
 | `docs/tasks/TASK-*.md` | `task-driver` | thinking_os | meta |
 | `.github/workflows/*.yml`, `Dockerfile`, `docker-compose*.yml` | `deployment-cicd` | clean-code, observability | meta |
+| `src/backend/**/*.ts` | `nestjs` | clean-code, backend-fundamentals, api-design, auth-patterns, security-web, testing-strategy, observability | nestjs |
+| `src/backend/**/*.service.ts`, `src/backend/**/repositories/**/*.ts`, `src/backend/**/db/**/*.ts` | `nestjs` | clean-code, db-design, backend-fundamentals | nestjs |
+| `src/backend/**/*.guard.ts`, `src/backend/**/auth*.ts` | `nestjs` | auth-patterns, security-web, clean-code | nestjs |
 | `src/frontend/**/*.{ts,tsx}` | `nextjs-react` | clean-code, frontend-design, frontend-fundamentals, a11y, performance, testing-strategy | nextjs |
 | `src/frontend/**/components/**/*.{ts,tsx}`, `src/frontend/**/app/**/page.tsx`, `src/frontend/**/app/**/layout.tsx` | `nextjs-react` | clean-code, frontend-design, frontend-fundamentals, a11y | nextjs |
 | `src/frontend/**/store/**/*.ts`, `src/frontend/**/stores/**/*.ts`, `src/frontend/**/hooks/use*.ts` | `nextjs-react` | state-management, clean-code, frontend-fundamentals | nextjs |

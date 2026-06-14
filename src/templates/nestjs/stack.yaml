@@ -1,0 +1,68 @@
+version: 1
+id: nestjs
+language: typescript
+label: "NestJS + TypeScript"
+category: backend
+
+structure:
+  root: src/backend
+  tree: |
+    src/backend/
+    ├── package.json
+    ├── tsconfig.json
+    ├── nest-cli.json
+    └── src/
+        ├── main.ts              # NestFactory bootstrap (no logic)
+        ├── app.module.ts        # root module — wires feature modules only
+        ├── common/              # cross-cutting: filters, pipes, guards, interceptors
+        └── <feature>/           # one module per domain
+            ├── <feature>.module.ts
+            ├── <feature>.controller.ts   # thin — delegates to the provider
+            └── <feature>.service.ts      # business logic (the only layer that thinks)
+  notes: "controllers thin, providers own logic; one global exception filter is the ONLY error-response shaper; validation via a global ValidationPipe + class-validator DTOs"
+primary_skill: nestjs
+skills: [nestjs]
+
+substitutions:
+  DOMAIN_ROUTES: "Backend→`docs/playbooks/nestjs-service.md`"
+  SKILL_ROUTES: "Backend→`nestjs`"
+  ENGINEERING_RULE_ROUTING: "Backend→`docs/engineering/nestjs-rules.md`, Error format→`docs/api-contracts/error-format.md`"
+  TOOL_ROUTING_IMPL: "`lint-backend`, `test-backend`"
+  VERIFY_BACKEND_GLOB: "`src/backend/`"
+  VERIFY_BACKEND_SUITES: "lint-backend + test-backend"
+  VERIFY_BACKEND: "`cd src/backend && npm run lint && npm test`"
+  QUICK_ROUTING: |-
+    - NestJS controller / module task → [NestJS Service Playbook](./playbooks/nestjs-service.md)
+    - Guard / pipe / DTO validation → [NestJS Service Playbook](./playbooks/nestjs-service.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-NESTJS` → `./playbooks/nestjs-service.md`
+    - `REF:NESTJS-RULES` → `./engineering/nestjs-rules.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-NESTJS", path: "./playbooks/nestjs-service.md", desc: "NestJS service playbook"}
+  - {code: "REF:NESTJS-RULES",    path: "./engineering/nestjs-rules.md", desc: "NestJS engineering rules"}
+
+routing_entries:
+  - "NestJS controller / module task → [NestJS Service Playbook](./playbooks/nestjs-service.md)"
+
+rules:
+  - {file: rules/backend.md, globs: ["src/backend/**/*.ts"]}
+
+makefile_targets:
+  - {name: lint-backend, cmd: "cd src/backend && npm run lint"}
+  - {name: test-backend, cmd: "cd src/backend && npm test"}
+
+verify:
+  - {glob: "src/backend/**/*.ts", suites: "lint-backend + test-backend", cmd: "cd src/backend && npm run lint && npm test"}
+
+dimensions:
+  - {name: "NestJS controller",     read_files: ["docs/playbooks/nestjs-service.md", "docs/engineering/nestjs-rules.md"]}
+  - {name: "Provider / service",    read_files: ["docs/engineering/nestjs-rules.md"]}
+  - {name: "Module / DI wiring",    read_files: ["docs/engineering/nestjs-rules.md"]}
+  - {name: "Pipe / DTO validation", read_files: ["docs/engineering/nestjs-rules.md", "docs/api-contracts/error-format.md"]}
+  - {name: "Guard / auth",          read_files: ["docs/engineering/nestjs-rules.md"]}
+
+skill_enforcement:
+  - {globs: ["src/backend/**/*.ts"], primary: nestjs, secondary: [clean-code, backend-fundamentals, api-design, auth-patterns, security-web, testing-strategy, observability]}
+  - {globs: ["src/backend/**/*.service.ts", "src/backend/**/repositories/**/*.ts", "src/backend/**/db/**/*.ts"], primary: nestjs, secondary: [clean-code, db-design, backend-fundamentals]}
+  - {globs: ["src/backend/**/*.guard.ts", "src/backend/**/auth*.ts"], primary: nestjs, secondary: [auth-patterns, security-web, clean-code]}

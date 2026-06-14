@@ -39,6 +39,14 @@ phase to build your Read List.
 - **Rule SSOT regen** (M) → `docs/architecture/meta-project.md`
 - **Security review (overlay)** (M) → `docs/playbooks/security-review.md`, `src/core/rules/api-contract-discipline.md`
 
+## nestjs
+
+- **NestJS controller** (M) → `docs/playbooks/nestjs-service.md`, `docs/engineering/nestjs-rules.md`
+- **Provider / service** (M) → `docs/engineering/nestjs-rules.md`
+- **Module / DI wiring** (M) → `docs/engineering/nestjs-rules.md`
+- **Pipe / DTO validation** (M) → `docs/engineering/nestjs-rules.md`, `docs/api-contracts/error-format.md`
+- **Guard / auth** (M) → `docs/engineering/nestjs-rules.md`
+
 ## nextjs
 
 - **React component** (M) → `docs/engineering/frontend-rules.md`, `docs/playbooks/frontend-ui.md`
