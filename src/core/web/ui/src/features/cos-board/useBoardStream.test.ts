@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { agentForSession } from './useBoardStream';
+import { agentForSession, liveRowKey } from './useBoardStream';
 
 // The manifest ids the UI receives from /api/board/list `agent_manifest`.
 // `human` is the trailing row and the no-match fallback.
@@ -31,5 +31,26 @@ describe('agentForSession', () => {
     const ids = ['claude', 'claude-sdk', 'human'];
     expect(agentForSession('ses-claude-sdk-42', ids)).toBe('claude-sdk');
     expect(agentForSession('ses-claude-42', ids)).toBe('claude');
+  });
+});
+
+describe('liveRowKey', () => {
+  it('matches two file-edit rows that render identically (phantom-row collapse)', () => {
+    const a = { kind: 'task-updated' as const, taskId: 'TASK-392', message: '? -> in_progress' };
+    const b = { kind: 'task-updated' as const, taskId: 'TASK-392', message: '? -> in_progress' };
+    expect(liveRowKey(a)).toBe(liveRowKey(b));
+  });
+
+  it('distinguishes a different task, status, or kind', () => {
+    const base = { kind: 'task-updated' as const, taskId: 'TASK-392', message: '? -> in_progress' };
+    expect(liveRowKey(base)).not.toBe(
+      liveRowKey({ ...base, taskId: 'TASK-393' }),
+    );
+    expect(liveRowKey(base)).not.toBe(
+      liveRowKey({ ...base, message: 'ready -> in_progress' }),
+    );
+    expect(liveRowKey(base)).not.toBe(
+      liveRowKey({ ...base, kind: 'task-created' as const }),
+    );
   });
 });

@@ -171,6 +171,10 @@ class _StreamState:
     def __init__(self) -> None:
         self.tasks_dir = _tasks_dir()
         self.last_mtimes: dict[str, float] = {}
+        # Per-file status watermark so an mtime bump that did NOT change
+        # `status:` (a work-log append, a body edit) is not mistaken for a
+        # transition — the phantom-row fix.
+        self.last_status: dict[str, str | None] = {}
         self.last_history_id = 0
         self.last_dispatch_id = 0  # T8.6: track formula_dispatches.id watermark
         self.last_presence: dict[str, str] = {}
@@ -378,7 +382,11 @@ def _poll_tick(state: _StreamState) -> list[tuple[str, dict]]:
         prev_mtime = state.last_mtimes.get(fname)
 
         if prev_mtime is None:
+            # First sight: seed BOTH watermarks. Seeding the status lets a
+            # later mtime-only bump (work-log append, body edit) be seen as
+            # a non-transition instead of a phantom move.
             state.last_mtimes[fname] = mtime
+            state.last_status[fname] = _read_task_meta(md_file)["status"]
             continue
         if mtime == prev_mtime:
             continue
@@ -386,14 +394,24 @@ def _poll_tick(state: _StreamState) -> list[tuple[str, dict]]:
         state.last_mtimes[fname] = mtime
         m = _TASK_RE.match(fname)
         task_id = f"TASK-{m.group(1)}" if m else fname.replace(".md", "")
+        status = _read_task_meta(md_file)["status"]
 
-        # If we just emitted a DB event for this task close to the
-        # file mtime, the file change is the same event — skip.
+        # If we just emitted a DB event for this task close to the file
+        # mtime, the file change is the same event — skip, but keep the
+        # status watermark aligned with the file's now-current value.
         recent_ts = emitted_recent.get(task_id)
         if recent_ts is not None and abs(mtime - recent_ts) <= _TRANSITION_ALIGN_SECS:
+            state.last_status[fname] = status
             continue
 
-        meta = _read_task_meta(md_file)
+        # An mtime bump whose status is unchanged since the last emit is a
+        # non-transition — a work-log append (capture-work-log.sh fires one
+        # per code Edit) or a body edit. Absorb it silently, else the panel
+        # stacks one phantom "? -> <status>" row per Edit.
+        if status == state.last_status.get(fname):
+            continue
+        state.last_status[fname] = status
+
         # A file edit without an accompanying DB transition is a raw
         # human edit — frontmatter agent_session would be the LAST
         # author (stale), so treat it as human (null).
@@ -403,12 +421,12 @@ def _poll_tick(state: _StreamState) -> list[tuple[str, dict]]:
                 {
                     "task_id": task_id,
                     "old_status": None,
-                    "new_status": meta["status"],
+                    "new_status": status,
                     "agent_session": None,
                     "reason": "file edit",
                     "ts": int(time.time()),
                     "source": "file",
-                    "current_status": meta["status"],
+                    "current_status": status,
                 },
             )
         )

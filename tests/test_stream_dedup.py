@@ -200,3 +200,29 @@ def test_db_event_suppresses_duplicate_file_event(cos_project):
     assert len(matching) == 1, f"expected exactly one event for TASK-003; got {matching}"
     assert matching[0]["source"] == "db"
     assert matching[0]["agent_session"] == "ses-cursor-t"
+
+
+def test_status_unchanged_file_rewrite_emits_nothing(cos_project):
+    """A file rewrite that bumps mtime but leaves `status:` unchanged (a
+    work-log append, a body edit) must emit no file event — the phantom-row
+    fix."""
+    import time as _time
+
+    path = _write_task_file(cos_project, "TASK-004", status="in_progress")
+
+    async def on_poll(poll_num: int) -> None:
+        if poll_num == 2:
+            # Poll #1 seeds the mtime + status watermark; poll #2 rewrites
+            # the body (status still in_progress) and bumps mtime — the kind
+            # of churn capture-work-log.sh produces on every code Edit.
+            path.write_text(
+                "---\ntask_id: TASK-004\nstatus: in_progress\n---\n"
+                "body2\n## Work Log\n- 2026-06-13 [claude]: Edit foo.py\n",
+                encoding="utf-8",
+            )
+            now = _time.time()
+            os.utime(path, (now, now))
+
+    events = asyncio.run(_run_scenario(on_poll, max_polls=5, want_events=1))
+    matching = [e for e in events if e["task_id"] == "TASK-004"]
+    assert matching == [], f"status-unchanged rewrite must emit nothing; got {matching}"

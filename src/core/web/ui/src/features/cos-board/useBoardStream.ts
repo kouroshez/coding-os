@@ -117,6 +117,15 @@ function newId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+/** Key for a visually-identical stream row. Live `task-updated` events use
+ *  random ids (no natural dedupe like the stable `hist-…` bootstrap ids), so
+ *  a status-unchanged file rewrite that slips past the backend watermark
+ *  would stack identical rows. Collapsing consecutive matches on this key is
+ *  the UI-side defence-in-depth for that. */
+export function liveRowKey(ev: Pick<BoardEvent, 'kind' | 'taskId' | 'message'>): string {
+  return `${ev.kind}|${ev.taskId ?? ''}|${ev.message}`;
+}
+
 /** Resolve an `agent_session` string to a manifest agent id.
  *
  * Data-driven: scans the session against `agentIds` (the `id`s from
@@ -173,8 +182,11 @@ export function useBoardStream(agentIds: readonly string[]): UseBoardStreamRetur
   const sourceRef = useRef<EventSource | null>(null);
 
   const push = useCallback(
-    (ev: BoardEvent) => {
+    (ev: BoardEvent, collapseConsecutive = false) => {
       setEvents((prev) => {
+        if (collapseConsecutive && prev[0] && liveRowKey(prev[0]) === liveRowKey(ev)) {
+          return prev; // identical to the newest row — drop, don't stack
+        }
         const next = [ev, ...prev];
         if (next.length > MAX_EVENTS) next.length = MAX_EVENTS;
         writeCache(pathname, next);
@@ -335,19 +347,24 @@ export function useBoardStream(agentIds: readonly string[]): UseBoardStreamRetur
             ? `${data.old_status ?? '?'} -> ${data.new_status ?? '?'}`
             : `file changed -> status=${data.new_status ?? '?'}`;
         const suffix = data.reason && data.reason !== 'file edit' ? ` (${data.reason})` : '';
-        push({
-          id: newId(),
-          // Prefer the backend ts so the clock matches the actual
-          // transition, not the frame the browser happened to process it in.
-          t: hmsFromEpoch(data.ts),
-          kind: isCreate ? 'task-created' : 'task-updated',
-          taskId: data.task_id || null,
-          agent: agentForSession(data.agent_session, agentIds),
-          message: `${core}${suffix}`,
-          currentStatus: data.current_status ?? null,
-          newStatus: data.new_status ?? null,
-          transitionedAt: data.ts,
-        });
+        push(
+          {
+            id: newId(),
+            // Prefer the backend ts so the clock matches the actual
+            // transition, not the frame the browser happened to process it in.
+            t: hmsFromEpoch(data.ts),
+            kind: isCreate ? 'task-created' : 'task-updated',
+            taskId: data.task_id || null,
+            agent: agentForSession(data.agent_session, agentIds),
+            message: `${core}${suffix}`,
+            currentStatus: data.current_status ?? null,
+            newStatus: data.new_status ?? null,
+            transitionedAt: data.ts,
+          },
+          // Collapse a live event identical to the newest row — backend
+          // dedupe is primary, this guards replays/edge cases.
+          true,
+        );
       } catch (err) {
         // Malformed payloads degrade gracefully but must stay observable.
         console.error('[board-stream] unparseable task-updated payload', err);
