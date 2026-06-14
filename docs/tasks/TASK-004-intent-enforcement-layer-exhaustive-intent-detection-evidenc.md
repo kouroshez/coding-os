@@ -98,3 +98,4 @@ references: []
 - 2026-05-17 [claude]: CLOSING: ExhaustiveEvidence submitted (counts_after all 0, reviewer_check=pass, confidence=1.0). Reviewer subagent spot-
 - 2026-06-11 [claude]: committed 9a67789f: AGENTS.md, docs/_meta/00-index.md, docs/_meta/historical-task-ids.md, docs/api/openapi.json, docs/ar
 - 2026-06-11 [claude]: committed 0a5f575d: docs/_meta/audits/00-index.md, docs/_meta/audits/audit-agents-md-workflow-correctness.md, docs/_meta
+- 2026-06-14 [claude]: committed b3b7ea37: docs/engineering/00-index.md, docs/engineering/hub-architecture.md, docs/governance/00-index.md
