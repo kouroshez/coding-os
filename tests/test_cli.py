@@ -1,11 +1,11 @@
 """
-Tests for cli/main.py — init, add-adapter, health, eject commands.
+Tests for cli/main.py — init, add-adapter, health, materialize, eject commands.
 
 Covers:
   - init creates state dir, config, database, scaffold files, Makefile, AGENTS.md
   - add-adapter adds second adapter, updates config
   - health reports status correctly
-  - eject converts symlinks to real files
+  - materialize converts symlinks to real files; eject removes coding-os
   - hooks-dir prints core hooks path
 """
 
@@ -495,30 +495,66 @@ class TestHealth:
 
 
 # ---------------------------------------------------------------------------
-# eject command
+# materialize command (symlinks → standalone files)
 # ---------------------------------------------------------------------------
 
 
-class TestEject:
+class TestMaterialize:
     def test_converts_symlinks_to_files(self, runner: CliRunner, initialized_project: Path) -> None:
         # Verify there are symlinks first
         symlink_count = sum(1 for f in initialized_project.rglob("*") if f.is_symlink())
         assert symlink_count > 0, "Init should create symlinks"
 
-        result = runner.invoke(cli, ["eject", "-d", str(initialized_project)])
+        result = runner.invoke(cli, ["materialize", "-d", str(initialized_project)])
         assert result.exit_code == 0
-        assert "Ejected" in result.output
+        assert "Materialized" in result.output
 
         # Verify no symlinks remain
         remaining_symlinks = sum(1 for f in initialized_project.rglob("*") if f.is_symlink())
         assert remaining_symlinks == 0
 
-    def test_ejected_files_have_content(self, runner: CliRunner, initialized_project: Path) -> None:
-        runner.invoke(cli, ["eject", "-d", str(initialized_project)])
-        # After eject, settings.json should still be readable
+    def test_materialized_files_have_content(
+        self, runner: CliRunner, initialized_project: Path
+    ) -> None:
+        runner.invoke(cli, ["materialize", "-d", str(initialized_project)])
+        # After materialize, settings.json should still be readable
         settings = initialized_project / ".claude" / "settings.json"
         assert settings.exists()
         assert settings.stat().st_size > 0
+
+
+# ---------------------------------------------------------------------------
+# eject command (remove coding-os, keep code/docs — TASK-388)
+# ---------------------------------------------------------------------------
+
+
+class TestEject:
+    def test_eject_removes_coding_os_keeps_user_code(
+        self, runner: CliRunner, initialized_project: Path
+    ) -> None:
+        user_file = initialized_project / "src" / "app.py"
+        user_file.parent.mkdir(parents=True, exist_ok=True)
+        user_file.write_text("print('user code')\n", encoding="utf-8")
+        user_hash = hashlib.sha256(user_file.read_bytes()).hexdigest()
+        assert sum(1 for f in initialized_project.rglob("*") if f.is_symlink()) > 0
+
+        result = runner.invoke(cli, ["eject", "-d", str(initialized_project), "--yes"])
+        assert result.exit_code == 0, result.output
+        assert "Ejected coding-os" in result.output
+        # coding-os wiring removed
+        assert sum(1 for f in initialized_project.rglob("*") if f.is_symlink()) == 0
+        assert not (initialized_project / ".coding-os").exists()
+        assert not (initialized_project / ".coding-os.yaml").exists()
+        assert not (initialized_project / "AGENTS.md").exists()
+        # user code byte-identical
+        assert hashlib.sha256(user_file.read_bytes()).hexdigest() == user_hash
+
+    def test_eject_idempotent_noop_on_clean_dir(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        result = runner.invoke(cli, ["eject", "-d", str(tmp_path), "--yes"])
+        assert result.exit_code == 0, result.output
+        assert "nothing to eject" in result.output.lower()
 
 
 # ---------------------------------------------------------------------------

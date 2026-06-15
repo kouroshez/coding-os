@@ -6,7 +6,8 @@ Usage:
     coding-os init --agent claude,codex [--template django]
     coding-os add-adapter codex
     coding-os health
-    coding-os eject
+    coding-os adopt          # overlay onto an existing repo
+    coding-os eject          # remove coding-os, keep your code/docs
 """
 
 from __future__ import annotations
@@ -52,7 +53,7 @@ from cli.brain_commands import (
 )
 from cli.core_version import stamp_core_version
 from cli.doctor import doctor as doctor_cmd
-from cli.eject_file import eject_file as eject_file_cmd
+from cli.materialize_file import materialize_file as materialize_file_cmd
 from cli.list_adapters import list_adapters as list_adapters_cmd
 from cli.list_stacks import list_stacks as list_stacks_cmd
 from cli.setup import setup as setup_cmd
@@ -1002,7 +1003,7 @@ cli.add_command(brain_decay_cmd)
 cli.add_command(brain_gc_cmd)
 cli.add_command(update_cmd)
 cli.add_command(setup_cmd)
-cli.add_command(eject_file_cmd)
+cli.add_command(materialize_file_cmd)
 cli.add_command(tail_cmd)
 cli.add_command(skills_list_cmd)
 
@@ -2142,10 +2143,10 @@ def health(project_dir: str) -> None:
 
 @cli.command()
 @click.option("--project-dir", "-d", default=".", help="Project directory")
-def eject(project_dir: str) -> None:
-    """Convert symlinks to real files (self-contained project)."""
+def materialize(project_dir: str) -> None:
+    """Convert coding-os symlinks to real files (self-contained project)."""
     project = _resolve_project_dir(project_dir)
-    ejected = 0
+    materialized = 0
 
     for root, dirs, files in os.walk(project):
         for name in files:
@@ -2155,12 +2156,105 @@ def eject(project_dir: str) -> None:
                 if target.exists():
                     filepath.unlink()
                     shutil.copy2(target, filepath)
-                    ejected += 1
-                    if ejected % 50 == 0:
-                        click.echo(f"  … ejected {ejected} symlinks so far", err=True)
+                    materialized += 1
+                    if materialized % 50 == 0:
+                        click.echo(f"  … materialized {materialized} symlinks so far", err=True)
 
-    click.echo(f"Ejected {ejected} symlinks to real files.")
+    click.echo(f"Materialized {materialized} symlinks to real files.")
     click.echo("Project is now self-contained.")
+
+
+def _is_coding_os_symlink(link: Path) -> bool:
+    """True if `link` is coding-os wiring — dangling or resolving into the
+    meta-repo checkout (a user's own symlink elsewhere is left alone)."""
+    try:
+        real = link.resolve()
+    except OSError:
+        return True  # broken/cyclic — it was one of ours
+    if not real.exists():
+        return True  # dangling: source moved/removed
+    try:
+        real.relative_to(CODING_OS_ROOT.resolve())
+        return True
+    except ValueError:
+        return False
+
+
+@cli.command()
+@click.option("--project-dir", "-d", default=".", help="Project directory")
+@click.option("--yes", "-y", is_flag=True, default=False, help="Skip the confirmation prompt.")
+def eject(project_dir: str, yes: bool) -> None:
+    """Remove coding-os from a project, keeping your code and docs.
+
+    Deletes coding-os symlinks, the .coding-os/ state dir and the generated
+    AGENTS.md / .coding-os.yaml entrypoints, then deregisters the project. Real
+    files you authored (source, docs, anything that isn't a managed symlink) are
+    never touched. Re-running on an already-ejected project is a no-op.
+    """
+    project = _resolve_project_dir(project_dir)
+    state_dir = project / STATE_DIR
+    config = project / CONFIG_FILE
+    coding_os_links = [
+        p
+        for p in (Path(root) / n for root, _d, fs in os.walk(project) for n in fs)
+        if p.is_symlink() and _is_coding_os_symlink(p)
+    ]
+    # CLAUDE.md is the generated symlink to AGENTS.md (points at a sibling, so
+    # the meta-repo filter above misses it) — treat any symlinked one as ours.
+    claude_md = project / "CLAUDE.md"
+    generated_entrypoints = [config, project / "AGENTS.md"]
+    if claude_md.is_symlink():
+        generated_entrypoints.append(claude_md)
+
+    present = [f for f in generated_entrypoints if f.exists() or f.is_symlink()]
+    if not coding_os_links and not state_dir.exists() and not present:
+        click.echo("No coding-os install found here — nothing to eject.")
+        return
+
+    if not yes and not click.confirm(
+        f"Remove coding-os from {project}? Your code and docs stay.", default=False
+    ):
+        click.echo("Aborted.")
+        return
+
+    for link in coding_os_links:
+        link.unlink()
+    removed_files = 0
+    for f in present:
+        f.unlink()
+        removed_files += 1
+    removed_state = False
+    if state_dir.exists():
+        shutil.rmtree(state_dir)
+        removed_state = True
+
+    # Prune adapter dirs left empty after the symlinks went; keep any that still
+    # hold real (user-authored or materialized) files.
+    kept_dirs: list[str] = []
+    for agent_dir in sorted({p.parent for p in coding_os_links if p.parent.name.startswith(".")}):
+        if agent_dir.is_dir() and not any(agent_dir.iterdir()):
+            agent_dir.rmdir()
+        elif agent_dir.is_dir():
+            kept_dirs.append(agent_dir.name)
+
+    from cli.registry import remove_project
+
+    deregistered = False
+    try:
+        deregistered = remove_project(str(project)) is not None
+    except Exception as exc:  # registry is best-effort — never block an eject
+        _logging.getLogger("coding_os.cli").debug("eject: deregister skipped: %s", exc)
+
+    click.echo(f"Ejected coding-os from {project}")
+    click.echo(
+        f"  removed: {len(coding_os_links)} symlinks · {removed_files} config file(s)"
+        + (" · .coding-os/ state" if removed_state else "")
+        + (" · global-registry entry" if deregistered else "")
+    )
+    kept = "your source, docs, and any files you authored"
+    if kept_dirs:
+        kept += f" (incl. real files under {', '.join(sorted(set(kept_dirs)))})"
+    click.echo(f"  kept:    {kept}")
 
 
 @cli.command("hooks-dir")

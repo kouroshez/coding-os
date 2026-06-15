@@ -1,4 +1,4 @@
-"""Tests for D.5 — `cos eject-file` command."""
+"""Tests for D.5 — `cos materialize-file` command."""
 
 from __future__ import annotations
 
@@ -24,8 +24,8 @@ def _init(tmp_path: Path) -> Path:
     return project
 
 
-class TestEjectFile:
-    def test_ejects_symlink_to_copy(self, tmp_path: Path) -> None:
+class TestMaterializeFile:
+    def test_materializes_symlink_to_copy(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
         rel = ".claude/skills/thinking_os/SKILL.md"
         link = project / rel
@@ -33,13 +33,13 @@ class TestEjectFile:
         original_content = link.read_text()
 
         runner = CliRunner()
-        result = runner.invoke(cos_cli, ["eject-file", rel, "-d", str(project)])
+        result = runner.invoke(cos_cli, ["materialize-file", rel, "-d", str(project)])
         assert result.exit_code == 0, result.output
         assert not link.is_symlink()
         assert link.is_file()
         assert link.read_text() == original_content
 
-    def test_edit_after_eject_does_not_affect_source(self, tmp_path: Path) -> None:
+    def test_edit_after_materialize_does_not_affect_source(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
         rel = ".claude/skills/thinking_os/SKILL.md"
         link = project / rel
@@ -47,9 +47,9 @@ class TestEjectFile:
         source_original = source_path.read_text()
 
         runner = CliRunner()
-        runner.invoke(cos_cli, ["eject-file", rel, "-d", str(project)])
+        runner.invoke(cos_cli, ["materialize-file", rel, "-d", str(project)])
 
-        # Edit the ejected copy.
+        # Edit the materialized copy.
         link.write_text("MODIFIED by user\n")
         # Source must be untouched.
         assert source_path.read_text() == source_original
@@ -58,9 +58,9 @@ class TestEjectFile:
         project = _init(tmp_path)
         rel = ".claude/skills/thinking_os/SKILL.md"
         runner = CliRunner()
-        runner.invoke(cos_cli, ["eject-file", rel, "-d", str(project)])
+        runner.invoke(cos_cli, ["materialize-file", rel, "-d", str(project)])
         # Second call on now-regular file
-        result = runner.invoke(cos_cli, ["eject-file", rel, "-d", str(project)])
+        result = runner.invoke(cos_cli, ["materialize-file", rel, "-d", str(project)])
         assert result.exit_code != 0
         assert "already a regular file" in result.output.lower()
 
@@ -69,20 +69,20 @@ class TestEjectFile:
         runner = CliRunner()
         result = runner.invoke(
             cos_cli,
-            ["eject-file", ".claude/skills/nonexistent/SKILL.md", "-d", str(project)],
+            ["materialize-file", ".claude/skills/nonexistent/SKILL.md", "-d", str(project)],
         )
         assert result.exit_code != 0
 
-    def test_force_succeeds_on_already_ejected_file(self, tmp_path: Path) -> None:
+    def test_force_succeeds_on_already_materialized_file(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
         rel = ".claude/skills/thinking_os/SKILL.md"
         runner = CliRunner()
-        runner.invoke(cos_cli, ["eject-file", rel, "-d", str(project)])
+        runner.invoke(cos_cli, ["materialize-file", rel, "-d", str(project)])
         link = project / rel
         link.write_text("tampered")
-        # Without --force a second eject errors (see test_already_regular_errors
-        # _without_force); --force re-ejects an already-regular file cleanly.
-        result = runner.invoke(cos_cli, ["eject-file", rel, "--force", "-d", str(project)])
+        # Without --force a second materialize errors (see test_already_regular_errors
+        # _without_force); --force re-materializes an already-regular file cleanly.
+        result = runner.invoke(cos_cli, ["materialize-file", rel, "--force", "-d", str(project)])
         assert result.exit_code == 0, result.output
         # The path stays a real regular file — not deleted, not a dangling symlink.
         assert link.is_file() and not link.is_symlink()

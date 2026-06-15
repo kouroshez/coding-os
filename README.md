@@ -244,7 +244,7 @@ coding-os/
 ## Command index (highlights · 74 `cos` subcommands total)
 
 ```
-Project lifecycle    init · setup · add-adapter · add-stack · update · eject · eject-file
+Project lifecycle    init · adopt · setup · add-adapter · add-stack · update · materialize · materialize-file · eject
 Diagnostics          doctor · health · list-stacks · list-adapters · hooks-dir · hooks-log
 Brain                docs-index · task-sync · reindex · server-start
 Hub                  hub start · hub status · hub stop
