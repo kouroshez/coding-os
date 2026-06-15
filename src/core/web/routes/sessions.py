@@ -34,6 +34,13 @@ PRESENCE_TTL_S = 300
 
 
 def _project_state_dir() -> Path:
+    # Mirror presence.py::_state_dir — under explicit per-project scope
+    # (/api/p/<slug>/) the slug's root wins, NOT an inherited COS_STATE_DIR
+    # from another project (P8 cross-project read leak).
+    from web._project_context import is_explicit_project_scope  # type: ignore
+
+    if is_explicit_project_scope():
+        return current_project_root() / ".coding-os"
     base = os.environ.get("COS_STATE_DIR")
     if base:
         return Path(base).resolve()
