@@ -81,13 +81,19 @@ def _friendly_session_label(session_id: str, agent: str, started_at: float | int
 def _is_active_session(row: dict[str, Any]) -> bool:
     if row.get("ended_at"):
         return False
+    # Use the board's SSOT window so /api/observability/sessions and
+    # /api/board/list agree on "active" (P20 — was a hardcoded 120.0).
+    from board_os.presence import ACTIVE_WINDOW_SECS
+
     now = time.time()
     last_activity = (
         row.get("last_tool_at") or row.get("last_prompt_at") or row.get("started_at") or 0
     )
     last_stop = row.get("last_stop_at") or 0
     try:
-        return float(last_activity) >= float(last_stop) and (now - float(last_activity)) <= 120.0
+        return float(last_activity) >= float(last_stop) and (
+            now - float(last_activity)
+        ) <= float(ACTIVE_WINDOW_SECS)
     except Exception:
         return False
 
