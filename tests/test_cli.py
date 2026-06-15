@@ -11,12 +11,14 @@ Covers:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import sys
 from pathlib import Path
 
 import pytest
+import yaml
 from click.testing import CliRunner
 
 # Ensure cli module is importable
@@ -2325,3 +2327,74 @@ class TestDoctorTokens:
         report = analyze_tokens(tmp_path, transcripts_dir=transcripts)
         assert report["over_budget"] is True
         assert "WARN: avg context/turn exceeds budget" in format_tokens_text(report)
+
+
+class TestAdopt:
+    """`cos adopt` — brownfield overlay onto an existing repo (TASK-387)."""
+
+    ADOPT_FLAGS = ["--agent", "claude", "--yes", "--no-git", "--no-index", "--no-register"]
+
+    def _seed_brownfield(self, root: Path) -> dict[str, str]:
+        """Seed representative user files (build markers + code); return hashes."""
+        files = {
+            "pyproject.toml": '[project]\nname = "userapp"\nversion = "0.1.0"\n',
+            "package.json": '{\n  "name": "userapp",\n  "version": "0.1.0"\n}\n',
+            "src/app.py": "def main() -> None:\n    print('user code')\n",
+        }
+        hashes: dict[str, str] = {}
+        for rel, content in files.items():
+            target = root / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+            hashes[rel] = hashlib.sha256(content.encode("utf-8")).hexdigest()
+        return hashes
+
+    def _run_adopt(
+        self, runner: CliRunner, root: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.chdir(root)
+        monkeypatch.setenv("PWD", str(root))
+        return runner.invoke(cli, ["adopt", *self.ADOPT_FLAGS])
+
+    def test_adopt_overlays_without_touching_user_code(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        hashes = self._seed_brownfield(tmp_path)
+        result = self._run_adopt(runner, tmp_path, monkeypatch)
+        assert result.exit_code == 0, result.output
+        # Overlay landed.
+        assert (tmp_path / ".coding-os.yaml").exists()
+        assert (tmp_path / "AGENTS.md").exists()
+        assert (tmp_path / ".claude").is_dir()
+        # No pre-existing user file was modified or deleted.
+        for rel, digest in hashes.items():
+            current = tmp_path / rel
+            assert current.exists(), f"adopt deleted {rel}"
+            actual = hashlib.sha256(current.read_bytes()).hexdigest()
+            assert actual == digest, f"adopt modified pre-existing {rel}"
+
+    def test_adopt_detects_stacks_from_markers(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+        (tmp_path / "package.json").write_text("{}\n", encoding="utf-8")
+        result = self._run_adopt(runner, tmp_path, monkeypatch)
+        assert result.exit_code == 0, result.output
+        assert "Detected stacks:" in result.output
+        config = yaml.safe_load((tmp_path / ".coding-os.yaml").read_text(encoding="utf-8"))
+        templates = config.get("templates") or []
+        assert templates, "detected stacks were not recorded in .coding-os.yaml"
+        # python + typescript markers each resolve to a plain stack via registry.
+        from cli.main import _detect_stacks_from_markers
+
+        assert set(_detect_stacks_from_markers(tmp_path)) <= set(templates)
+
+    def test_adopt_pivots_to_sync_when_already_installed(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        first = self._run_adopt(runner, tmp_path, monkeypatch)
+        assert first.exit_code == 0, first.output
+        second = self._run_adopt(runner, tmp_path, monkeypatch)
+        assert second.exit_code == 0, second.output
+        assert "already present" in second.output
+        assert "sync" in second.output.lower()

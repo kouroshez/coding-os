@@ -113,6 +113,7 @@ def resolve_init_target(
     debug: bool,
     force: bool,
     cwd: Path,
+    adopt: bool = False,
     pre_wipe_hook: object | None = None,
 ) -> InitTarget:
     """Compute the final target directory for `cos init`.
@@ -174,7 +175,9 @@ def resolve_init_target(
             # other sentinel target) without losing files.
             if pre_wipe_hook is not None:
                 pre_wipe_hook(target)  # type: ignore[misc]
-            if not _is_dir_empty(target):
+            # adopt overlays onto an existing repo: keep its contents in place,
+            # never refuse and never wipe (brownfield user code must survive).
+            if not _is_dir_empty(target) and not adopt:
                 if not force:
                     raise InitError(
                         f"target {target} is not empty. Use --force to overwrite.",

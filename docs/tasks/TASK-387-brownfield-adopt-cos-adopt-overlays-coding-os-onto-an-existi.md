@@ -5,18 +5,17 @@ swimlane: cli
 kind: feature
 epic: H-lifecycle
 labels: [backlog, onboarding-program, ready]
-status: icebox
+status: in_progress
 priority: P2
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-14
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-387: Brownfield adopt — `cos adopt` overlays coding-os onto an existing repo incrementally
 
 **Outcome (one sentence):** `cos adopt` (or init --adopt) layers .coding-os state, adapters and docs onto an existing codebase without touching user code, detecting stack(s) and proposing anatomy mapping.

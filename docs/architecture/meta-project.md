@@ -214,6 +214,23 @@ If only one stack, it's `src/templates/<stack>/`.
 - **Bypassing `src/core/hooks/registry.yaml`.** A hook script with no
   registry entry won't be rendered into any adapter.
 
+## Project lifecycle commands (cli/)
+
+The factory CLI manages a consumer project across its whole life. All four
+reuse one scaffold/sync core — they differ only in entry conditions:
+
+| Command | When | Behaviour |
+|---|---|---|
+| `cos init` | greenfield — empty dir or new `--name` | Full scaffold: `.coding-os/`, adapters, AGENTS.md, stack docs. |
+| `cos adopt` | brownfield — existing repo, no `.coding-os` | Overlays coding-os **in place without touching user code**: detects stacks from build markers (`pyproject.toml`/`package.json`/`go.mod`/…) and records them, then runs the init scaffold with `name`/`project_dir`/`force` unset so no pre-existing file is overwritten. An already-adopted repo pivots to the idempotent sync path (same as a bare re-`cos init`). |
+| `cos update` | adopted repo, new meta-repo version | Re-links missing adapter components + refreshes config (`_sync_missing`). |
+| `cos eject` | leaving coding-os | Removes the overlay, keeping the project's own code + docs. |
+
+Stack auto-detection maps a build marker to its base **language** (not a stack
+id — Rule 11), then resolves that language to its plain stack via the registry
+(`plain_stack_by_language`); a marker with no matching stack is skipped, never
+guessed.
+
 ## Where to read next
 
 | Question | Doc |
