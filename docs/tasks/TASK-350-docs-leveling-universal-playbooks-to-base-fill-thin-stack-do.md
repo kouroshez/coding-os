@@ -5,12 +5,12 @@ swimlane: docs
 kind: docs
 epic: F-docs
 labels: [wave-5, onboarding-program, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-14
-completed: null
+completed: 2026-06-14
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -41,3 +41,5 @@ references: []
 
 ## Work Log
 - 2026-06-15 [claude]: commit 40a8240def — test(registry): add required language field to stack fixtures
+- 2026-06-15 [claude]: committed 7310aee5: src/core/scaffold_manifest.json, src/templates/_base/scaffold/docs/playbooks/00-index.md, src/templa
+- 2026-06-15 [claude]: Edit test_install_script.py

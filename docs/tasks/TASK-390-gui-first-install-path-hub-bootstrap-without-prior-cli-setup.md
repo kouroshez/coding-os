@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: B-onboarding
 labels: [backlog, onboarding-program, ready]
-status: in_progress
+status: complete
 priority: P3
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-14
-completed: null
+completed: 2026-06-14
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -32,3 +32,4 @@ references: []
 - **Given** the matrix, **When** the targeted install-path test (script smoke, mocked network) runs, **Then** green.
 
 ## Work Log
+- 2026-06-15 [claude]: committed 3396b410: docs/architecture/adr/00-index.md, docs/architecture/adr/0007-gui-first-install-path.md, install.sh,

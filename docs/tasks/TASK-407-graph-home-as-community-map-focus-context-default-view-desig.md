@@ -5,12 +5,12 @@ swimlane: "graph_os"
 kind: feature
 epic: null
 labels: [graph-os, hub-ui, ux, design, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-12
 started: 2026-06-14
-completed: null
+completed: 2026-06-14
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -40,3 +40,4 @@ references: []
 Revert the graph.py budget-allocation change and the GraphCanvas / graph-adapter render changes (the no-root home falls back to the prior blend-sample view) and delete the design-pass note; pure view/export behavior, no schema or persisted-state change.
 
 ## Work Log
+- 2026-06-15 [claude]: committed 34040af9: docs/engineering/00-index.md, docs/engineering/hub-architecture.md, src/core/graph_os/tests/test_sma

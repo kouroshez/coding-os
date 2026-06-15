@@ -5,12 +5,12 @@ swimlane: cli
 kind: feature
 epic: H-lifecycle
 labels: [backlog, onboarding-program, ready]
-status: in_progress
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-11
 started: 2026-06-14
-completed: null
+completed: 2026-06-14
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -32,3 +32,4 @@ references: []
 - **Given** the matrix, **When** the targeted dry-run test class in tests/test_cli.py runs, **Then** green.
 
 ## Work Log
+- 2026-06-14 [claude]: committed 76f85da0: docs/governance/00-index.md, docs/governance/migration-pre-0.3.md, src/cli/main.py, src/templates/_b

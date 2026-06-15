@@ -5,12 +5,12 @@ swimlane: "board_os"
 kind: feature
 epic: null
 labels: [board_os, autonomous, dependencies, follow-up, ready]
-status: in_progress
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-14
 started: 2026-06-14
-completed: null
+completed: 2026-06-14
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: [TASK-414]
 blocked_by: []
@@ -54,3 +54,6 @@ references: []
 - 2026-06-14 [claude]: Edit dep_reconcile.py
 - 2026-06-14 [claude]: Edit security-review.md
 - 2026-06-14 [claude]: Edit research-validation.md
+- 2026-06-14 [claude]: committed 3c983936: docs/engineering/scheduled-jobs.md, src/core/scheduled/dep_reconcile.py, src/core/scheduled/nightly.
+- 2026-06-15 [claude]: Edit 00-index.md
+- 2026-06-15 [claude]: Edit test_template_scaffold.py
