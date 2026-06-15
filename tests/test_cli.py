@@ -28,6 +28,15 @@ import cli.main as main_module
 from cli.main import cli
 
 
+@pytest.fixture(autouse=True)
+def _stub_initial_indexing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unit tests must not run the real doc/graph index on every `cos init` — it
+    loads the embedding model and walks the scaffold (minutes across the suite)
+    and both are covered by their own tests. Stub them to no-ops (TASK-423)."""
+    monkeypatch.setattr(main_module, "_initial_doc_index", lambda *a, **k: None)
+    monkeypatch.setattr(main_module, "_initial_graph_index", lambda *a, **k: None)
+
+
 @pytest.fixture
 def runner() -> CliRunner:
     return CliRunner()

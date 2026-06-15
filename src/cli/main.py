@@ -1949,11 +1949,12 @@ def _run_scaffold_phase(
     else:
         click.echo("  Skipped initial doc index (--no-index)")
 
-    # 11b. Build the knowledge graph so the Hub Graph tab + cos_graph_* tools
-    # work from the first session with NO manual `cos graph-reindex` (TASK-423).
-    # Gated on the same --index switch (fixtures/CI pass --no-index to skip the
-    # heavy extractor walk) AND on the graph module being enabled — a disabled
-    # graph module owns no tools/hooks, so building its graph is wasted work.
+    # 11b. Seed the knowledge graph so the Hub Graph tab + cos_graph_* tools work
+    # from the first session with NO manual `cos graph-reindex` (TASK-423). Gated
+    # on the same --index switch (fixtures/CI/golden scaffolds pass --no-index,
+    # so they never pay for the extractor walk) and, inside, on the graph module
+    # being enabled — a disabled graph module owns no tools, so building its
+    # graph would be wasted work.
     if do_index:
         _initial_graph_index(project, state)
     else:
