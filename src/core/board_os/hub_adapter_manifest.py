@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 _BOARD_DEFAULTS: dict[str, dict[str, str]] = {
     "claude": {"glyph": "Cl", "color": "#d97706"},
     "codex": {"glyph": "Cx", "color": "#0891b2"},
-    "cursor": {"glyph": "Cr", "color": "#6366f1"},
 }
 
 
@@ -125,6 +124,15 @@ def list_agent_manifest_rows() -> list[dict[str, Any]]:
     key = (str(adapters), round(mt, 6))
     rows = _cached_rows(key)
     return [dict(r) for r in rows]
+
+
+def list_agent_ids() -> list[str]:
+    """Canonical adapter ids — the SSOT scanned from src/adapters (fallback: board defaults)."""
+    try:
+        return [str(r["id"]) for r in list_agent_manifest_rows() if r.get("id")]
+    except Exception as exc:  # pragma: no cover - scanner already fails soft
+        logger.debug("list_agent_ids fallback to board defaults: %s", exc)
+        return list(_BOARD_DEFAULTS)
 
 
 def invalidate_agent_manifest_cache() -> None:

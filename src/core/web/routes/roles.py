@@ -143,7 +143,9 @@ def _agents_with_traces(state: Path) -> list[str]:
         if child.is_dir() and (child / "traces").exists():
             agents.append(child.name)
     if not agents:
-        for fallback in ("claude", "codex"):
+        from board_os.hub_adapter_manifest import list_agent_ids  # type: ignore
+
+        for fallback in list_agent_ids():
             if (state / fallback / "traces").exists():
                 agents.append(fallback)
     return agents

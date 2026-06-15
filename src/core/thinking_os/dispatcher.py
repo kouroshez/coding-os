@@ -99,14 +99,12 @@ _ADAPTERS_DIR = Path(__file__).resolve().parent.parent.parent / "adapters"
 
 
 def _known_agents() -> set[str]:
-    try:
-        if not _ADAPTERS_DIR.is_dir():
-            return {"claude", "codex", "cursor"}
-        return {
-            d.name for d in _ADAPTERS_DIR.iterdir() if d.is_dir() and (d / "adapter.yaml").exists()
-        } or {"claude", "codex", "cursor"}
-    except OSError:
-        return {"claude", "codex", "cursor"}
+    # SSOT: scan src/adapters via the shared manifest scanner so a new adapter dir
+    # is recognised with no edit here. Lazy import avoids a module-load cycle; the
+    # scanner already fails soft to board defaults.
+    from board_os.hub_adapter_manifest import list_agent_ids
+
+    return set(list_agent_ids())
 
 
 def _detect_agent() -> str:

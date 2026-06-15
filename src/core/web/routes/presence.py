@@ -183,15 +183,10 @@ def _last_hook_event(state: Path) -> dict[str, Any] | None:
 
 
 def _canonical_agents() -> list[str]:
-    """Return the canonical adapter ids (filter out test/legacy dirs)."""
-    try:
-        from board_os.hub_adapter_manifest import list_agent_manifest_rows  # type: ignore
+    """Return the canonical adapter ids (scanned from src/adapters, fails soft)."""
+    from board_os.hub_adapter_manifest import list_agent_ids  # type: ignore
 
-        rows = list_agent_manifest_rows()
-        return [str(r["id"]) for r in rows if r.get("id")]
-    except Exception as exc:
-        logger.debug("list_agent_manifest_rows unavailable: %s", exc)
-        return ["claude", "codex", "cursor"]
+    return list_agent_ids()
 
 
 @router.get("/now")
