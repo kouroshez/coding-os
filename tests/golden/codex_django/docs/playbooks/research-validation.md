@@ -18,7 +18,7 @@ Read next: Relevant local SSOT file, then the official external source for the s
 ## Research Rules
 
 - Record concrete versions and dates when recency matters.
-- Prefer official docs for Next.js, Django, package compatibility, and web standards.
+- Prefer official framework docs, package compatibility tables, and web standards over secondary sources.
 - Treat vendor blogs, community posts, and tutorials as non-canonical unless confirmed elsewhere.
 - When a finding changes architecture or workflow, move it into SSOT and cite the source in the task/change log.
 

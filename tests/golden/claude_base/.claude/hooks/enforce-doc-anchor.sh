@@ -101,6 +101,16 @@ if cos_one_shot_override doc-anchor 2>/dev/null; then
   exit 0
 fi
 
+# Fresh-project grace (TASK-372): a just-scaffolded project has no anchor and no
+# task history, so the agent's FIRST legitimate code edit would hit the BLOCK
+# below. `cos init` leaves a one-shot "$COS_STATE_DIR/.fresh-init" marker; allow
+# a single edit and consume the marker, so this can never become a standing
+# bypass — the next edit without an anchor blocks normally.
+if [[ -n "${COS_STATE_DIR:-}" && -f "$COS_STATE_DIR/.fresh-init" && ! -f "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.doc-anchor" ]]; then
+  rm -f "$COS_STATE_DIR/.fresh-init" 2>/dev/null || true
+  exit 0
+fi
+
 # --- The actual check ------------------------------------------------
 
 # panel-first: write-state.sh routes .doc-anchor to the panel dir.
