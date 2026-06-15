@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: I-polish
 labels: [wave-5, onboarding-program, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 2d
 created: 2026-06-11
-started: null
-completed: null
-agent_session: null
+started: 2026-06-14
+completed: 2026-06-14
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: [TASK-364]
 blocked_by: []
 references: []
 ---
-
 # TASK-372: First-session UX + Design coming-soon tab + Community/Support surface
 
 **Outcome (one sentence):** A fresh project's first agent session hits no doc-anchor wall (starter anchors seeded); workspace gains a Design tab with a polished coming-soon screen + ADR for the future design module; Hub About/footer carries GitHub repo link, star/follow CTA and GitHub Sponsors/BMC/crypto support links (also in README) — outside the onboarding path.
@@ -35,3 +34,20 @@ references: []
 
 ## Work Log
 - 2026-06-15 [claude]: Next-session plan (handoff): 3 separable slices — (1) seed starter doc-anchors so a fresh project's FIRST code edit does
+- 2026-06-15 [claude]: Edit support-links.ts
+- 2026-06-15 [claude]: Edit SupportFooter.tsx
+- 2026-06-15 [claude]: Edit SupportFooter.test.tsx
+- 2026-06-15 [claude]: Edit AppShell.tsx
+- 2026-06-15 [claude]: Edit AppShell.tsx
+- 2026-06-15 [claude]: Edit OnboardingWizard.test.tsx
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit DesignComingSoon.test.tsx
+- 2026-06-15 [claude]: commit 46f8dc159b — feat(hub): Design coming-soon tab + ADR-0008 + support/community footer (TASK-372)
+- 2026-06-15 [claude]: Edit runtime_paths.yaml
+- 2026-06-15 [claude]: Edit capture_golden.py
+- 2026-06-15 [claude]: Edit test_golden_parity.py
+- 2026-06-15 [claude]: Edit main.py
+- 2026-06-15 [claude]: Edit enforce-doc-anchor.sh
+- 2026-06-15 [claude]: Edit test_fresh_project_anchor.py
+- 2026-06-15 [claude]: commit 31a15f9cbe — feat: fresh-project first-edit grace clears the doc-anchor wall (TASK-372)
+- 2026-06-15 [claude]: commit b16ee4baa4 — test(golden): recapture fixtures after _base playbooks, skill bundles + anchor grace
