@@ -214,3 +214,4 @@ references: []
 - 2026-06-15 [claude]: Edit _init_helpers.py
 - 2026-06-15 [claude]: Edit _init_helpers.py
 - 2026-06-15 [claude]: Cursor adapter fully removed. Deleted src/adapters/cursor/ (12 files); loader is data-driven (load_adapter_registry + hu
+- 2026-06-15 [claude]: committed 87f4f96b: .github/ISSUE_TEMPLATE/bug_report.yml, .gitignore, AGENTS.md, CODEOWNERS, CONTRIBUTING.md, README.md
