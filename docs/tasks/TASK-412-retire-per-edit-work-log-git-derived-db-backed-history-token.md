@@ -38,3 +38,4 @@ references: []
 - **Given** the changes, **When** the board_os + stream + cli + ui test suites run, **Then** green; legacy tasks keep their inert ## Work Log section (one-time SHA extraction migration, no rewrite of prose).
 
 ## Work Log
+- 2026-06-15 [claude]: Next-session plan (handoff): retire per-Edit Work Log -> git-derived, DB-backed HISTORY. Start by reading board_os work-

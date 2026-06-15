@@ -34,3 +34,4 @@ references: []
 - **Given** the UI build + docs, **When** `make ui-build` and `make docs-lint` run, **Then** both green.
 
 ## Work Log
+- 2026-06-15 [claude]: Next-session plan (handoff): 3 separable slices — (1) seed starter doc-anchors so a fresh project's FIRST code edit does
