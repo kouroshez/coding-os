@@ -39,7 +39,8 @@ cos --version                          # → cos 0.3.0
 cos doctor --bootstrap                 # preflight: python/bash/git/uv/sed prerequisites
 cos doctor                             # 14-point health check (must be all-green)
 
-# 3. Spawn a new project, scaffolded with one agent + one stack
+# 3. Spawn a new project, scaffolded with an agent + a stack
+#    (--agent takes several: --agent claude,codex)
 cos init --agent claude --template django --name my-shop --yes
 cd my-shop                             # adapter installer ran for you and wrote
                                        # .claude/, .mcp.json, .coding-os/
@@ -52,8 +53,8 @@ Open `http://127.0.0.1:9188` in your browser. You will see the
 knowledge graph of `my-shop`, the Scrumban board, the cognition
 trace timeline, and unified search across all retrieval layers.
 
-For Codex, swap `--agent claude` for `--agent codex` —
-everything else is identical. Each agent's
+For Codex, swap `--agent claude` for `--agent codex` (or pass
+both — `--agent claude,codex`) — everything else is identical. Each agent's
 installer is `src/adapters/<agent>/install.sh`; `cos init` runs it
 for you and re-runs it on `cos update`.
 
@@ -565,7 +566,7 @@ with the output attached.
 ## Support / Community
 
 If coding-os saves you time, a star helps others find it. These links also
-live in the Hub footer (never inside the onboarding wizard).
+live in the Hub footer (never inside the new-project Composer).
 
 - ★ Star / follow on GitHub: <https://github.com/kouroshebra/coding-os>
 - Sponsor (GitHub Sponsors): <https://github.com/sponsors/kouroshebra> <!-- TODO(TASK-372): verify Sponsors enabled -->
