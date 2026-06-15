@@ -36,7 +36,7 @@ export interface BoardEvent {
   kind: BoardEventKind;
   taskId: string | null;
   /** A manifest agent id (the `id` field of `/api/board/list` `agent_manifest`,
-   *  e.g. 'claude', 'codex', 'cursor', a future 'gemini', or 'human').
+   *  e.g. 'claude', 'codex', a future 'gemini', or 'human').
    *  Resolved from `agent_session` via `agentForSession` against the live
    *  manifest — never a hardcoded literal list. */
   agent: string;

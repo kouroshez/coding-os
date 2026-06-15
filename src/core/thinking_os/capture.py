@@ -24,7 +24,7 @@ from database import DEFAULT_DB_PATH, get_connection
 from impact import calculate_impact
 
 # Tools worth capturing (all others are filtered out).  MultiEdit is the
-# batched variant emitted by Claude Code / Cursor when an agent edits
+# batched variant emitted by Claude Code when an agent edits
 # multiple hunks in one turn — filtering it out meant most real agent
 # edits produced zero observations.  We treat MultiEdit semantically as
 # an Edit (single file_path per invocation; the multi-hunk payload lives

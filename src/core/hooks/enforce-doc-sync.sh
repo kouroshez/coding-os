@@ -39,7 +39,7 @@
 
 set -euo pipefail
 
-# Resolve to source dir even when invoked via .{claude,codex,cursor}/hooks
+# Resolve to source dir even when invoked via .{claude,codex}/hooks
 # symlink so we can find _helpers/. Same idiom as agent-presence.sh.
 _src="${BASH_SOURCE[0]}"
 while [ -L "$_src" ]; do

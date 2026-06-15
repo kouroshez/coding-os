@@ -68,7 +68,7 @@ Out of scope:
 - Vulnerabilities that require an attacker with local shell access to
   the machine running coding-os (the threat model assumes the local
   user is trusted).
-- Issues that depend on a CLI agent (Claude Code, Codex, Cursor)
+- Issues that depend on a CLI agent (Claude Code, Codex)
   ignoring its own guardrails — those belong to the agent's vendor.
 
 ## Hardening Guidance

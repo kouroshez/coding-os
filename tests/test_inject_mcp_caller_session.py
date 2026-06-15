@@ -24,7 +24,7 @@ def _env(state_dir: Path, panel_id: str) -> dict:
     env = dict(os.environ)
     # Drop inherited runtime session vars so the explicit COS_PANEL_ID wins
     # deterministically (rung #1 of the resolver) instead of the live session.
-    for k in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CURSOR_SESSION_ID", "CODEX_SESSION_ID"):
+    for k in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_SESSION_ID"):
         env.pop(k, None)
     env["COS_STATE_DIR"] = str(state_dir)
     env["COS_AGENT"] = "claude"

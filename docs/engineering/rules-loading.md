@@ -1,7 +1,7 @@
 <!-- domain:CORE | layer:engineering | ssot:true | updated:2026-04-18 -->
 # Rules Loading — How `src/core/rules/*.md` Actually Become Active
 
-Purpose: Explicit, honest answer to "when is a rule file actually loaded, and by whom?" — because the files in `src/core/rules/` have Cursor-style frontmatter (`globs`, `alwaysApply`) that *looks* like auto-loading but neither Claude Code nor Codex consume that frontmatter.
+Purpose: Explicit, honest answer to "when is a rule file actually loaded, and by whom?" — because the files in `src/core/rules/` carry YAML frontmatter (`globs`, `alwaysApply`) that *looks* like auto-loading but neither Claude Code nor Codex consume that frontmatter.
 
 Read when: Adding a new `src/core/rules/*.md` file · wondering why a rule didn't seem to apply · deciding whether to rely on rule frontmatter or on explicit AGENTS.md references.
 
@@ -9,7 +9,7 @@ Read when: Adding a new `src/core/rules/*.md` file · wondering why a rule didn'
 
 ## TL;DR
 
-> **Neither Claude Code nor Codex auto-load `src/core/rules/*.md` based on the frontmatter in those files.** Rules become effective because `AGENTS.md` explicitly instructs the agent to read them. The frontmatter is Cursor-compatible (for future use), but on today's runtimes it's decorative.
+> **Neither Claude Code nor Codex auto-load `src/core/rules/*.md` based on the frontmatter in those files.** Rules become effective because `AGENTS.md` explicitly instructs the agent to read them. On today's runtimes the frontmatter is decorative — a machine-readable description, not a load trigger.
 
 ## The frontmatter you may see
 
@@ -23,9 +23,9 @@ alwaysApply: true
 ---
 ```
 
-This is the **Cursor rule format** (`.cursor/rules/`). Cursor IDE auto-injects matching rules into the model's context when the agent edits a file matching `globs`. **Claude Code and Codex do not consume these keys.**
+These keys (`globs`, `alwaysApply`) describe *which* files a rule is meant to govern and whether it is always active. **Claude Code and Codex do not consume these keys** — they neither auto-inject the rule nor scope it by `globs`.
 
-Keeping the frontmatter is safe — if we ever ship a Cursor adapter, these files work out of the box without any edit. For now it serves as a machine-readable description plus a hint to the reader.
+Keeping the frontmatter is harmless: it serves as a machine-readable description of the rule's scope plus a hint to the reader, at a cost of a few lines per file.
 
 ## What each runtime actually auto-loads
 
@@ -72,9 +72,8 @@ This tells the agent, on every session, to full-read every file in `src/core/rul
 ## Why this design is defensible
 
 1. **Symmetric across runtimes.** If we relied on `@import` in CLAUDE.md (Claude only), Codex users would silently miss the rule. The AGENTS-reference approach works identically on both.
-2. **Token-economical.** Rules are loaded once, not re-injected per file edit as Cursor does.
-3. **Future-compatible.** The Cursor frontmatter is preserved. Day we ship a Cursor adapter, those rules already work.
-4. **Hook-compatible.** Hooks like `enforce-skill.sh` and `block-protected-files.sh` have their own embedded logic — they do NOT parse `src/core/rules/*.md`. So the rule files are purely for agent context, not for runtime enforcement. This separation is why the system still works when a rule is rephrased but the hook logic is unchanged.
+2. **Token-economical.** Rules are loaded once, not re-injected per file edit.
+3. **Hook-compatible.** Hooks like `enforce-skill.sh` and `block-protected-files.sh` have their own embedded logic — they do NOT parse `src/core/rules/*.md`. So the rule files are purely for agent context, not for runtime enforcement. This separation is why the system still works when a rule is rephrased but the hook logic is unchanged.
 
 ## What happens if we DID want auto-loading
 
@@ -115,9 +114,9 @@ AGENTS.md contains the reference. Agents full-read `src/core/rules/` on orientat
 3. Run `make sync` — `install.sh` for each adapter re-creates the symlink in `.claude/rules/` and `.codex/rules/`.
 4. `check-agents-md-refs.sh` will warn if the reference is missing.
 
-## Why not drop the Cursor frontmatter?
+## Why keep the frontmatter at all?
 
-Cost of keeping it: ~4 lines per rule file. Cost of removing it: 0 lines saved, but we close the door on a future Cursor adapter without any other benefit. Keep it.
+Cost of keeping it: ~4 lines per rule file. Benefit: a machine-readable record of each rule's scope (`globs`) and always-active status (`alwaysApply`) that documents intent for both agents and humans. Cheap enough to keep.
 
 ## Debugging — "this rule didn't apply"
 
@@ -134,4 +133,3 @@ Diagnostic order:
 - [AGENTS.md](../../AGENTS.md) — where rules are referenced
 - [docs/engineering/hooks-reference.md](hooks-reference.md) — `check-agents-md-refs.sh` + `block-protected-files.sh`
 - [docs/engineering/adapter-parity.md](adapter-parity.md) — confirms both adapters symlink the same rule files
-- Cursor rules documentation (future reference): <https://docs.cursor.com/context/rules>

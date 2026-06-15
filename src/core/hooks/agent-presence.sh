@@ -9,14 +9,14 @@
 #     • OFFLINE  — no session marker / PID dead / Stop emitted long ago
 #
 #   The hook layer is the only cross-agent signal we have for presence:
-#   Claude Code, Cursor, and Codex all fire shell hooks via their
+#   Claude Code and Codex both fire shell hooks via their
 #   settings.{json,toml} contract.  Every lifecycle event routes to
 #   this one script so the state file has a single writer, which keeps
 #   the concurrency model trivial (tmp file + atomic rename).
 #
 # INVOKED BY
 #   A single registry.yaml entry maps this script to every lifecycle
-#   event Claude/Cursor/Codex expose.  The script reads `hook_event_name`
+#   event Claude/Codex expose.  The script reads `hook_event_name`
 #   from the JSON payload Claude Code sends on stdin and routes to the
 #   correct action:
 #     SessionStart    → "start"
@@ -29,7 +29,7 @@
 # OUTPUT
 #   $COS_AGENT_DIR/sessions/<session_id>.json (one file per live session).
 #     {
-#       "agent":            "claude|cursor|codex",
+#       "agent":            "claude|codex",
 #       "session_id":       "ses-<agent>-YYYYMMDD-...",
 #       "pid":              <integer>,     // agent runtime pid
 #       "started_at":       <epoch>,

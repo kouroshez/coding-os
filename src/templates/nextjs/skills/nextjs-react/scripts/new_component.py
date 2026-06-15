@@ -1,7 +1,7 @@
 """Generate a Next.js component scaffold per `references/anatomy.md`.
 
 PURPOSE:      Eliminate the per-component boilerplate path-decision so
-              every agent (claude / codex / cursor) emits the same shape.
+              every agent (claude / codex) emits the same shape.
 INPUT:        --area <segment>     — e.g. users, products
               --name <kebab-case>  — file slug
               [--client]           — emits `<name>.client.tsx` instead.

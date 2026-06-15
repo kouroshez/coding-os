@@ -22,7 +22,7 @@ PROJECT_ROOT="${PWD}"
 
 echo "⚙️  Installing coding-os Codex adapter..."
 
-# 1-8. Common install steps (shared with claude / cursor).
+# 1-8. Common install steps (shared with claude).
 bash "${CODING_OS_ROOT}/core/scripts/install-adapter.sh" \
   --adapter codex --agent-dir .codex \
   --coding-os-root "$CODING_OS_ROOT" --project-root "$PROJECT_ROOT"
@@ -81,7 +81,7 @@ echo "  MCP:          ${MCP_STATUS}"
 echo ""
 echo "NOTE: Codex PreToolUse/PostToolUse only support the Bash matcher."
 echo "      Write/Edit-triggered enforcement (doc-anchor, migration-conflict,"
-echo "      hardcoded-literals) is Claude/Cursor-only until Codex adds those"
+echo "      hardcoded-literals) is Claude-only until Codex adds those"
 echo "      events. Matching Codex hooks run concurrently, so this adapter"
 echo "      coalesces Bash / SessionStart / Stop checks through dispatcher"
 echo "      scripts under .codex/hooks/codex-*-dispatch.sh."

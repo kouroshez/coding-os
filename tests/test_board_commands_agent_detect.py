@@ -14,9 +14,6 @@ _ENV_KEYS = [
     "COS_PANEL_DIR",
     "COS_AGENT_SESSION_ID",
     "COS_PROJECT_ROOT",
-    "CURSOR_AGENT",
-    "CURSOR_PROJECT_DIR",
-    "CURSOR_VERSION",
     "CODEX_SESSION_ID",
     "CODEX_AGENT_DIR",
     "CODEX_HOME",
@@ -43,13 +40,8 @@ def _write_session(project: Path, agent: str, sid: str) -> None:
 
 def test_explicit_cos_agent_wins(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("COS_AGENT", "codex")
-    monkeypatch.setenv("CURSOR_AGENT", "1")  # would otherwise win
+    monkeypatch.setenv("CLAUDECODE", "1")  # would otherwise win
     assert board_commands._detect_agent_runtime() == "codex"
-
-
-def test_cursor_env_detection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("CURSOR_AGENT", "1")
-    assert board_commands._detect_agent_runtime() == "cursor"
 
 
 def test_claude_code_env_detection(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -73,21 +65,12 @@ def test_codex_env_detection(monkeypatch: pytest.MonkeyPatch) -> None:
     assert board_commands._detect_agent_runtime() == "codex"
 
 
-def test_priority_prefers_claude_over_codex_and_cursor(
+def test_priority_prefers_claude_over_codex(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("CLAUDECODE", "1")
     monkeypatch.setenv("CODEX_SESSION_ID", "abc")
-    monkeypatch.setenv("CURSOR_AGENT", "1")
     assert board_commands._detect_agent_runtime() == "claude"
-
-
-def test_priority_prefers_codex_over_cursor(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("CODEX_SESSION_ID", "abc")
-    monkeypatch.setenv("CURSOR_AGENT", "1")
-    assert board_commands._detect_agent_runtime() == "codex"
 
 
 def test_marker_file_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

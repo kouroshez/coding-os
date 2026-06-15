@@ -23,7 +23,6 @@
 # ---- Adapters ----
 /src/adapters/claude/            @kouroshebra
 /src/adapters/codex/             @kouroshebra
-/src/adapters/cursor/            @kouroshebra
 
 # ---- Templates (per-stack scaffolds) ----
 /src/templates/                  @kouroshebra

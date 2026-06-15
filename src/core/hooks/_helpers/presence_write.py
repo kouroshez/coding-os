@@ -10,7 +10,7 @@ USAGE
     python3 presence_write.py <path> <agent> <sid> <pid> <event> <now> [model] [sdk_uuid] [transcript]
 
 EVENT ∈ {start, prompt, tool, stop, end}. Other values fall through silently.
-MODEL (optional 7th arg) — Claude Code / Cursor / Codex runtime model id
+MODEL (optional 7th arg) — Claude Code / Codex runtime model id
 (e.g. "claude-opus-4-7"). When provided, stored as sessions/<sid>.json::model so
 the Hub UI can attribute live agents to the actual runtime model rather
 than the stale shared $COS_AGENT_DIR/.model file.

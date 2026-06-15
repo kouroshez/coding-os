@@ -75,7 +75,7 @@ class TestCosEnv:
         base_env = {
             k: v
             for k, v in os.environ.items()
-            if k not in ("CURSOR_PROJECT_DIR", "CLAUDE_PROJECT_DIR")
+            if k not in ("CLAUDE_PROJECT_DIR",)
         }
         result = subprocess.run(
             ["bash", "-c", script],
@@ -87,8 +87,8 @@ class TestCosEnv:
         )
         assert result.stdout.strip() == ".coding-os"
 
-    def test_cursor_project_dir_anchors_default_state_dir(self, tmp_path: Path) -> None:
-        """Cursor runs hooks with cwd != repo root; COS_STATE_DIR must still resolve."""
+    def test_claude_project_dir_anchors_default_state_dir(self, tmp_path: Path) -> None:
+        """Claude runs hooks with cwd != repo root; COS_STATE_DIR must still resolve."""
         fake_root = tmp_path / "repo"
         fake_root.mkdir()
         elsewhere = tmp_path / "elsewhere"
@@ -103,52 +103,20 @@ class TestCosEnv:
                 **{
                     k: v
                     for k, v in os.environ.items()
-                    if k not in ("CURSOR_PROJECT_DIR", "CLAUDE_PROJECT_DIR", "COS_STATE_DIR")
+                    if k not in ("CLAUDE_PROJECT_DIR", "COS_STATE_DIR")
                 },
                 "HOME": str(tmp_path),
-                "CURSOR_PROJECT_DIR": str(fake_root),
+                "CLAUDE_PROJECT_DIR": str(fake_root),
             },
             timeout=10,
         )
         assert result.stdout.strip() == str(fake_root / ".coding-os")
 
-    def test_cursor_beats_claude_project_dir_alias(self, tmp_path: Path) -> None:
-        """Cursor sets CLAUDE_PROJECT_DIR as a workspace alias — must not become agent=claude."""
-        fake_root = tmp_path / "repo"
-        fake_root.mkdir()
-        elsewhere = tmp_path / "elsewhere"
-        elsewhere.mkdir()
-        script_ag = 'source "{}"; echo "$COS_AGENT"'.format(HOOKS_DIR / "cos-env.sh")
-        result = subprocess.run(
-            ["bash", "-c", script_ag],
-            capture_output=True,
-            text=True,
-            cwd=str(elsewhere),
-            env={
-                **{
-                    k: v
-                    for k, v in os.environ.items()
-                    if k
-                    not in (
-                        "CURSOR_PROJECT_DIR",
-                        "CLAUDE_PROJECT_DIR",
-                        "COS_STATE_DIR",
-                        "COS_AGENT",
-                    )
-                },
-                "HOME": str(tmp_path),
-                "CURSOR_PROJECT_DIR": str(fake_root),
-                "CLAUDE_PROJECT_DIR": str(fake_root),
-            },
-            timeout=10,
-        )
-        assert result.stdout.strip() == "cursor"
-
     def test_agent_marker_file_fallback_without_runtime_env(self, tmp_path: Path) -> None:
         """.coding-os/.agent is fallback when no runtime-specific env exists."""
         st = tmp_path / "state"
         st.mkdir()
-        (st / ".agent").write_text("cursor\n", encoding="utf-8")
+        (st / ".agent").write_text("codex\n", encoding="utf-8")
         script_ag = 'source "{}"; echo "$COS_AGENT"'.format(HOOKS_DIR / "cos-env.sh")
         # Every env var that cos-env.sh treats as an authoritative runtime
         # signal must be stripped so we actually exercise the .agent file
@@ -157,9 +125,6 @@ class TestCosEnv:
         blocked_keys = {
             "COS_STATE_DIR",
             "COS_AGENT",
-            "CURSOR_AGENT",
-            "CURSOR_PROJECT_DIR",
-            "CURSOR_VERSION",
             "CODEX_SESSION_ID",
             "CODEX_AGENT_DIR",
             "CODEX_HOME",
@@ -181,7 +146,7 @@ class TestCosEnv:
             },
             timeout=10,
         )
-        assert result.stdout.strip() == "cursor"
+        assert result.stdout.strip() == "codex"
 
     def test_custom_state_dir(self, tmp_path: Path) -> None:
         """COS_STATE_DIR env var is respected."""

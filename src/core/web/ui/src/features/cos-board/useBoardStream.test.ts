@@ -4,13 +4,12 @@ import { agentForSession, liveRowKey } from './useBoardStream';
 
 // The manifest ids the UI receives from /api/board/list `agent_manifest`.
 // `human` is the trailing row and the no-match fallback.
-const MANIFEST_IDS = ['claude', 'codex', 'cursor', 'human'] as const;
+const MANIFEST_IDS = ['claude', 'codex', 'human'] as const;
 
 describe('agentForSession', () => {
   it('attributes a session to the manifest id embedded in it', () => {
     expect(agentForSession('ses-claude-2026', MANIFEST_IDS)).toBe('claude');
     expect(agentForSession('ses-codex-abc', MANIFEST_IDS)).toBe('codex');
-    expect(agentForSession('ses-cursor-7f', MANIFEST_IDS)).toBe('cursor');
   });
 
   it('falls back to human for empty / unknown sessions', () => {

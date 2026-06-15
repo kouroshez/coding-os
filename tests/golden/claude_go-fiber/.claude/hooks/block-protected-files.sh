@@ -64,7 +64,7 @@ if [[ "$FILE_PATH" == *"/scaffold/"* ]]; then
 fi
 
 # Data-driven adapter state protection: every adapter declares a state
-# dir (e.g. `.claude/`, `.codex/`, `.cursor/`) — we block edits under any
+# dir (e.g. `.claude/`, `.codex/`) — we block edits under any
 # of them.  Discovery order:
 #   1. src/adapters/<id>/adapter.yaml (source of truth in the meta-repo)
 #   2. legacy hardcoded safety-net for meta-project setups that pre-date
@@ -78,7 +78,7 @@ if [ -d "$ADAPTER_ROOT" ]; then
     ADAPTER_STATE_GLOB="${ADAPTER_STATE_GLOB}|.${aid}/rules/|.${aid}/hooks/|.${aid}/skills/"
   done
 fi
-ADAPTER_STATE_GLOB="${ADAPTER_STATE_GLOB}|.claude/rules/|.claude/hooks/|.codex/hooks/|.cursor/hooks/"
+ADAPTER_STATE_GLOB="${ADAPTER_STATE_GLOB}|.claude/rules/|.claude/hooks/|.codex/hooks/"
 
 matched_adapter_path=0
 IFS='|' read -r -a _glob_parts <<< "$ADAPTER_STATE_GLOB"

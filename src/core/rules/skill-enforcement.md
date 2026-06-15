@@ -40,7 +40,7 @@ invoke the matching skill via the `Skill` tool.
 | `src/core/web/**/*.py` | `python-meta-server` | graph-explorer, clean-code, api-design, observability | meta |
 | `src/core/web/ui/**/*.{ts,tsx}` | `react-vite-hub` | clean-code, frontend-fundamentals, a11y, state-management | meta |
 | `src/adapters/claude/**/*.py` | `claude-sdk-integration` | graph-explorer, clean-code, llm-patterns, observability | meta |
-| `src/adapters/codex/**/*.py`, `src/adapters/cursor/**/*.py` | `graph-explorer` | clean-code, thinking_os | meta |
+| `src/adapters/codex/**/*.py` | `graph-explorer` | clean-code, thinking_os | meta |
 | `src/core/hooks/*.sh` | `hook-authoring` | meta-engineering, clean-code, thinking_os | meta |
 | `src/core/hooks/_helpers/*.py` | `hook-authoring` | meta-engineering, clean-code, thinking_os | meta |
 | `src/templates/**/stack.yaml` | `meta-engineering` | thinking_os, clean-code | meta |

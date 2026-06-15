@@ -1,7 +1,7 @@
 """Multi-agent dispatch contract regression tests.
 
 Verifies that the dispatcher contract (DispatchRequest / DispatchResult) is
-honoured by every adapter — claude, codex, cursor, default — without any of
+honoured by every adapter — claude, codex, default — without any of
 them hard-depending on the others. The factory in
 `thinking_os.dispatcher.get_dispatcher()` must transparently pick the right
 implementation per-environment, falling back to `DefaultDispatcher` when no
@@ -41,7 +41,7 @@ def _build_request() -> DispatchRequest:
 class TestDispatcherContract:
     """Each adapter dispatcher must satisfy the AgentDispatcher Protocol."""
 
-    @pytest.mark.parametrize("agent", ["claude", "codex", "cursor"])
+    @pytest.mark.parametrize("agent", ["claude", "codex"])
     def test_factory_returns_protocol_satisfying_object(self, agent: str) -> None:
         """`get_dispatcher(agent)` returns an object that quacks like
         AgentDispatcher — `name`, `available()`, `dispatch()`."""

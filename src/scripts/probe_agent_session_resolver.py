@@ -52,7 +52,6 @@ for key in (
     "CLAUDE_CODE_SSE_PORT",
     "CLAUDE_CODE_ENTRYPOINT",
     "CLAUDE_PROJECT_DIR",
-    "CURSOR_TRACE_ID",
     "CODEX_PROJECT_DIR",
 ):
     val = os.environ.get(key)

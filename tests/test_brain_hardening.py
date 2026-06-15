@@ -204,7 +204,7 @@ def test_gc_memory_removes_orphans_and_trash(tmp_path: Path) -> None:
     "raw,want",
     [
         ("ses-claude-20260424-abc TASK-058-brain-hardening", "TASK-058"),
-        ("ses-cursor-20260424-abc exploratory-foo", "exploratory-foo"),
+        ("ses-codex-20260424-abc exploratory-foo", "exploratory-foo"),
         ("TASK-019", "TASK-019"),
         ("plain-slug", "plain-slug"),
         ("", ""),
@@ -246,7 +246,7 @@ def test_impact_penalises_test_and_cache_paths() -> None:
 
 
 def test_session_context_refreshes_agent_marker(tmp_path: Path) -> None:
-    (tmp_path / ".agent").write_text("cursor")
+    (tmp_path / ".agent").write_text("codex")
     (tmp_path / "claude").mkdir()
     env = {
         **os.environ,

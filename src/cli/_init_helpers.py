@@ -292,7 +292,6 @@ build/
 # machine-absolute symlink paths that do not survive a clone.
 .claude/
 .codex/
-.cursor/
 .mcp.json
 
 # Editor / OS noise
@@ -406,7 +405,7 @@ class GitHooksResult:
 def install_consumer_git_hooks(project: Path, *, enabled: bool) -> GitHooksResult:
     """Copy the human-persona git hooks into the fresh repo's .git/hooks.
 
-    The bodies resolve `.claude/.codex/.cursor` hooks at runtime, so the human
+    The bodies resolve `.claude/.codex` hooks at runtime, so the human
     / Codex-GUI commit path — which bypasses every PreToolUse hook — still gets
     the doc-anchor + commit-message backstop. Never clobbers a user's existing
     hook; fail-open — a missing body / OS error is reported, never fatal.

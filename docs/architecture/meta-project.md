@@ -20,8 +20,8 @@
 - coding-os is **not a library** an application imports.
 - coding-os is **a factory** that emits projects shaped like itself —
   identical scaffold (`.coding-os/`, hooks, MCP server, AGENTS.md),
-  swap the *stack* (django, nextjs, …) and the *agent* (claude, codex,
-  cursor) per consumer.
+  swap the *stack* (django, nextjs, …) and the *agent* (claude, codex)
+  per consumer.
 - The repo is **also an instance of what it produces** — `CLAUDE.md` is
   a symlink to `AGENTS.md`, `.claude/hooks/*` symlinks back into
   `src/core/hooks/`. This is "P5 Dogfood" in the principles list.
@@ -40,7 +40,7 @@ coding-os/
 ├── src/              ← importable code (P5 Dogfood: scaffold convention)
 │   ├── cli/          Factory entrypoint
 │   ├── core/         DNA (thinking_os, graph_os, board_os, web, scheduled, hooks, skills, rules, docs, schemas, commands)
-│   ├── adapters/     mRNA (claude, codex, cursor)
+│   ├── adapters/     mRNA (claude, codex)
 │   ├── templates/    Phenotype scaffolds (django, fastapi, go, go-fiber, nextjs, react-native, meta, python)
 │   └── scripts/      Maintenance tooling (regen, capture-golden, audit)
 ├── tests/            Test suite at root — NOT shipped in wheel (Python convention)
@@ -104,7 +104,6 @@ coding agent's runtime.
 |---|---|
 | `src/adapters/claude/` | `settings.template.json` rendered from `src/core/hooks/registry.yaml`, `sdk_dispatcher.py` for real Claude-Code-Sub-Agent dispatch, `install.sh` to wire `.claude/`, `.mcp.json`. |
 | `src/adapters/codex/` | `hooks.template.json` (smaller — Codex CLI fires fewer matchers), `ensure_codex_mcp.py`, `enable_codex_hooks.py`. |
-| `src/adapters/cursor/` | Minimal — only the events Cursor's hook spec actually fires. |
 
 Each `src/adapters/<id>/adapter.yaml` declares `hook_capabilities` — the
 renderer skips registry entries whose `{event, matcher}` pair isn't in

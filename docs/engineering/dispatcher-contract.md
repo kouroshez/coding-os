@@ -20,7 +20,6 @@ per agent CLI:
 |--------|--------------------------------------------|----------------------|
 | Claude | `claude-agent-sdk.query()` (in-process)    | Python library       |
 | Codex  | `codex --no-interactive --json` subprocess | CLI binary           |
-| Cursor | none (no headless API as of 2026-04)       | n/a — inline only    |
 | any    | `DefaultDispatcher` (DB-only fallback)     | n/a — inline only    |
 
 The contract here is the **agent-agnostic shape** every dispatcher must
@@ -93,15 +92,15 @@ class AgentDispatcher(Protocol):
 │   • extract_json_block()                 │
 └─────────────────┬────────────────────────┘
                   │ importlib (path-based; no static link)
-   ┌──────────────┼──────────────┬────────────┐
-   ▼              ▼              ▼            ▼
-src/adapters/     adapters/      adapters/   src/core/thinking_os/
-claude/       codex/         cursor/     dispatchers/
-sdk_dispatcher.py                        default.py
-   │              │              │            │
-   ▼              ▼              ▼            ▼
-claude-agent-sdk  codex CLI    stub     DB-only fallback
-(in-proc)         (subprocess) (skipped)(skipped)
+   ┌──────────────┼───────────────────────────┐
+   ▼              ▼                            ▼
+src/adapters/     adapters/      src/core/thinking_os/
+claude/       codex/             dispatchers/
+sdk_dispatcher.py                default.py
+   │              │                            │
+   ▼              ▼                            ▼
+claude-agent-sdk  codex CLI            DB-only fallback
+(in-proc)         (subprocess)         (skipped)
 ```
 
 **Why three implementations and not one:** the SDKs are different runtimes,

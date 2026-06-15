@@ -3,8 +3,8 @@
 Coding OS — verify that adapter dispatcher delegate lists track registry.yaml.
 
 PURPOSE:
-    Cursor and Codex adapters install shim scripts (cursor-*-dispatch.sh,
-    codex-*-dispatch.sh) that internally fan out to a HARDCODED list of core
+    The Codex adapter installs shim scripts (codex-*-dispatch.sh) that
+    internally fan out to a HARDCODED list of core
     hook scripts. When a hook is added to core/hooks/registry.yaml for one
     of those events (SessionStart, UserPromptSubmit, etc.), the registry
     edit alone does not reach those adapters — the dispatcher's delegate
@@ -19,10 +19,10 @@ USAGE:
     make verify-dispatchers          # registered as a Makefile target
 
 NOTES:
-    Cursor's dispatcher pattern is intentional (hardcoded delegate list).
+    Codex's dispatcher pattern is intentional (hardcoded delegate list).
     The user has decided NOT to auto-generate that list. This script is the
     drift-detection layer that catches forgetfulness without changing the
-    dispatch design. Same applies to Codex.
+    dispatch design.
 """
 
 from __future__ import annotations
@@ -41,36 +41,12 @@ REGISTRY = SRC_ROOT / "core" / "hooks" / "registry.yaml"
 RENDERED_TEMPLATE: dict[str, Path] = {
     "claude": SRC_ROOT / "adapters" / "claude" / "settings.template.json",
     "codex": SRC_ROOT / "adapters" / "codex" / "hooks.template.json",
-    "cursor": SRC_ROOT / "adapters" / "cursor" / "hooks.cursor.template.json",
 }
 
-# Map: (adapter, event, matcher) -> dispatcher script path. Cursor splits
-# PreToolUse into Bash and Write|Edit dispatchers — each owns a different
-# subset of registry entries. The matcher field disambiguates so a hook
-# whose matcher is `Bash` isn't flagged "missing" from the Write|Edit
-# dispatcher and vice versa.
+# Map: (adapter, event, matcher) -> dispatcher script path. The matcher
+# field disambiguates so a hook whose matcher is `Bash` isn't flagged
+# "missing" from a sibling dispatcher with a different matcher.
 DISPATCHERS: dict[tuple[str, str, str], Path] = {
-    ("cursor", "SessionStart", "startup"): SRC_ROOT
-    / "adapters"
-    / "cursor"
-    / "hooks"
-    / "cursor-sessionstart-dispatch.sh",
-    ("cursor", "PreToolUse", "Bash"): SRC_ROOT
-    / "adapters"
-    / "cursor"
-    / "hooks"
-    / "cursor-pretool-dispatch.sh",
-    ("cursor", "PreToolUse", "Write|Edit"): SRC_ROOT
-    / "adapters"
-    / "cursor"
-    / "hooks"
-    / "cursor-pretool-write-dispatch.sh",
-    ("cursor", "PostToolUse", "Write|Edit"): SRC_ROOT
-    / "adapters"
-    / "cursor"
-    / "hooks"
-    / "cursor-posttool-write-dispatch.sh",
-    ("cursor", "Stop", ""): SRC_ROOT / "adapters" / "cursor" / "hooks" / "cursor-stop-dispatch.sh",
     ("codex", "SessionStart", "startup"): SRC_ROOT
     / "adapters"
     / "codex"
@@ -98,12 +74,6 @@ DISPATCHERS: dict[tuple[str, str, str], Path] = {
 # specific to the adapter; or they're internal to the dispatcher pattern itself).
 DISPATCHER_INTERNAL = {
     # The dispatcher script names themselves — never expected to delegate to themselves.
-    "cursor-sessionstart-dispatch",
-    "cursor-pretool-dispatch",
-    "cursor-pretool-write-dispatch",
-    "cursor-posttool-write-dispatch",
-    "cursor-precompact-dispatch",
-    "cursor-stop-dispatch",
     "codex-sessionstart-dispatch",
     "codex-pretool-dispatch",
     "codex-posttool-dispatch",
@@ -155,7 +125,7 @@ def rendered_direct_hooks(adapter: str, event: str) -> set[str]:
     """Hooks listed DIRECTLY (not via a dispatcher) in the rendered template
     for this (adapter, event) pair.
 
-    Cursor and Codex split hooks: some are inline in hooks.cursor.template.json
+    Codex splits hooks: some are inline in the rendered template
     (e.g. PostToolUse:Skill → track-skill.sh fires directly), others are
     delegated to a dispatcher script that fans out to a hardcoded list. This
     function pulls the inline ones so the drift check considers them already
@@ -198,8 +168,8 @@ def expected_delegates(
     (adapter, event, matcher) triple.
 
     Filter: registry entry declares this exact `event` AND its matcher equals
-    `matcher` (so cursor-pretool-dispatch.sh — Bash only — doesn't get blamed
-    for missing Write|Edit hooks that belong to cursor-pretool-write-dispatch.sh).
+    `matcher` (so codex-pretool-dispatch.sh — Bash only — doesn't get blamed
+    for missing Write|Edit hooks that belong to a sibling Write|Edit dispatcher).
     Adapter capabilities are still respected: if the adapter can't fire that
     matcher, the hook is excluded.
     """

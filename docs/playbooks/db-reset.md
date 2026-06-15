@@ -14,7 +14,7 @@
 |---|---|---|
 | SQLite main DB | `.coding-os/coding-os.db` | observations, learned_patterns, tasks index, graph_nodes/edges, retrievals, embeddings, metrics, audit |
 | Legacy Kùzu directory | `.coding-os/graph_os.kuzu/` | retired 2026-05-18; `cos db-reset` still removes the dir if a consumer has one left over |
-| Agent session state | `.coding-os/<agent>/` | gates, traces, markers (one dir per agent: claude/codex/cursor) |
+| Agent session state | `.coding-os/<agent>/` | gates, traces, markers (one dir per agent: claude/codex) |
 | Task SSOT (opt-in) | `docs/tasks/TASK-*.md` | Scrumban task files — disk is the source of truth, DB is a derived index |
 
 Default `cos db-reset --confirm` wipes the first **two** only. Use `--wipe-sessions` and `--wipe-tasks` to extend the blast radius.

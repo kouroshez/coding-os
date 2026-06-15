@@ -129,7 +129,6 @@ export default function RolesPage() {
             >
               <option value="claude">claude</option>
               <option value="codex">codex</option>
-              <option value="cursor">cursor</option>
             </select>
           </div>
         </header>

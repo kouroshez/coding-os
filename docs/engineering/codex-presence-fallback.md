@@ -46,5 +46,5 @@ The hooks file (`.codex/hooks.json`) and per-event dispatchers (`.codex/hooks/co
 ## Don't be tempted to
 
 - **Patch Codex's binary.** The strings exist; they're not the missing piece. The session loop's hook invocation is what's not happening.
-- **Mirror the rollout-based detection for Claude/Cursor.** Both honor `.claude/settings.json` / `.cursor/hooks.cursor.json` correctly. Adding rollout fallbacks where they aren't needed introduces false-PRESENT readings on stale sessions.
+- **Mirror the rollout-based detection for Claude.** It honors `.claude/settings.json` correctly. Adding rollout fallbacks where they aren't needed introduces false-PRESENT readings on stale sessions.
 - **Cache the rollout scan more aggressively.** It's already O(50) file stats with a sorted short-circuit. The Hub computes presence on every `/api/board/list` poll (every few seconds in the UI). If profiling shows it as a hotspot, memoize on `current_project_root()` not globally.

@@ -2,16 +2,16 @@
 # Coding OS — common adapter installer.
 #
 # PURPOSE
-#   Single source of truth for the steps every adapter (claude / codex /
-#   cursor) shares: directory creation, symlinks for hooks / rules /
+#   Single source of truth for the steps every adapter (claude / codex)
+#   shares: directory creation, symlinks for hooks / rules /
 #   skills / commands, role-prompt linking, agent-identity stamping,
 #   stack-skill re-linking. Each adapter's install.sh now boils down to
 #   "configure + dispatch to this script + do adapter-specific finalization".
 #
 # USAGE
 #   bash src/core/scripts/install-adapter.sh \
-#     --adapter <claude|codex|cursor> \
-#     --agent-dir <.claude|.codex|.cursor> \
+#     --adapter <claude|codex> \
+#     --agent-dir <.claude|.codex> \
 #     [--coding-os-root <path>] [--project-root <path>]
 #
 # CONTRACT

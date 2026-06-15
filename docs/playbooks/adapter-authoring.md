@@ -1,7 +1,7 @@
 <!-- domain:META | layer:playbook | ssot:true | updated:2026-05-08 -->
 # Playbook — Authoring or Modifying an Adapter
 
-> P: Procedure for adding a new agent adapter under `src/adapters/<id>/` or modifying an existing one (Claude / Codex / Cursor).
+> P: Procedure for adding a new agent adapter under `src/adapters/<id>/` or modifying an existing one (Claude / Codex).
 > R: Adding a new agent runtime, bumping an adapter's SDK floor, expanding capability declarations, or porting a hook to a new adapter.
 > S: Day-to-day Claude work — see [claude-sdk.md](../adapters/claude-sdk.md) instead.
 > N: [claude-sdk.md](../adapters/claude-sdk.md), [adapter-parity.md](../engineering/adapter-parity.md), [hooks-reference.md](../engineering/hooks-reference.md)

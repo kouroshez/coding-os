@@ -87,12 +87,12 @@ def _detect_agent_runtime() -> str | None:
         return explicit
 
     # Alphabetical sort keeps detection deterministic.  The env-marker
-    # sets declared by each adapter.yaml don't overlap (CURSOR_* vs
-    # CODEX_* vs CLAUDE_*) so order is irrelevant to correctness — and
+    # sets declared by each adapter.yaml don't overlap (CODEX_* vs
+    # CLAUDE_*) so order is irrelevant to correctness — and
     # we never hardcode adapter-name literals here (rule #11).  The
     # legacy CLAUDE_PROJECT_DIR fallback below is the only place
     # disambiguation matters, and it gates on "no stronger marker
-    # fired" so a real CURSOR_* match already short-circuited.
+    # fired" so a real vendor-marker match already short-circuited.
     for agent_id in sorted(known_ids):
         for env_key in markers_by_id.get(agent_id, ()):
             if os.environ.get(env_key):
@@ -107,7 +107,7 @@ def _detect_agent_runtime() -> str | None:
         if raw and raw in known_ids:
             return raw
 
-    # Legacy compatibility marker: Cursor also sets CLAUDE_PROJECT_DIR, so
+    # Legacy compatibility marker: other IDEs also set CLAUDE_PROJECT_DIR, so
     # only trust it when no stronger signal fired.  The target adapter id
     # is looked up rather than hardcoded so the Claude rename never
     # strands this path.
@@ -696,7 +696,7 @@ def task_done_cmd(task_id):
         )
         parsed = _parse_envelope(envelope)
         if parsed.get("ok"):
-            # Codex/Cursor sessions can bypass Claude's post-write Work Log hook.
+            # Codex sessions can bypass Claude's post-write Work Log hook.
             # Record one deterministic completion line in the task markdown.
             mcp_tools.cos_work_log_append(
                 conn,

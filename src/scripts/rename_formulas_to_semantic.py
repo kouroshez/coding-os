@@ -103,7 +103,6 @@ EXCLUDE_DIR_FRAGMENTS = (
     "/node_modules/",
     "/.claude/",
     "/.codex/",
-    "/.cursor/",
     "/coding_os.egg-info/",
     "/dist/",
 )

@@ -3,7 +3,7 @@ Coding OS — fast-path entrypoint for the MCP server.
 
 PURPOSE
     `cos server-start` (src/cli/main.py) drags in 380ms of CLI subcommand
-    imports — irrelevant for MCP boot but charged on every Claude/Cursor/
+    imports — irrelevant for MCP boot but charged on every Claude /
     Codex spawn. When an MCP client opens a SECOND subprocess for
     auxiliary work (session-title generation, config-cache loading), the
     duplicated startup cost stacks under contention and pushes init past

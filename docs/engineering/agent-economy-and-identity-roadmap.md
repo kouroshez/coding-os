@@ -65,8 +65,7 @@ Two critical corrections that resize the "context tax":
 
 1. **Adapter-scoped.** On Codex the `UserPromptSubmit` dispatcher discards
    stdout, so the per-turn injection tax is ~0 and the banner does not render;
-   Codex.app fires 0/75 hooks. The tax is a Claude (and partially Cursor)
-   phenomenon.
+   Codex.app fires 0/75 hooks. The tax is a Claude phenomenon.
 2. **Prompt-cached.** The standing context (CLAUDE.md + rules) is a cache read
    (~90% discount), so the steady-state marginal cost is the ~120-token dynamic
    pulse/banner, not the raw 6-12k.
@@ -129,7 +128,7 @@ wiring (most "overnight" jobs call no LLM), build-real-parallel-orchestration
 
 ## Cross-cutting constraints
 
-**Scope this phase: Claude adapter only** (per product owner) — Codex/Cursor
+**Scope this phase: Claude adapter only** (per product owner) — Codex
 parity items are deferred and explicitly marked. Single-agent writes (Rule 21 +
 gate machinery); agent team only for read-only review. Trunk-based, explicit-path
 commits, commit-message contract. English, enterprise-grade in every authored

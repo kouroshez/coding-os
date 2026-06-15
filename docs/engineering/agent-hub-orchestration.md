@@ -46,7 +46,7 @@ panel, never sees it). This single bridge unblocks T10, T11, and traces↔chat.
 | Execution | All four phases, autonomous; per-task verify + commit; flow tracked in board + TodoWrite. |
 | Session governance | **No concurrency cap.** Root cause of "stuck" is the MCP attribution bug, not session count. Keep the unlimited-sessions design (`per_session_wip`); fix attribution only (TASK-F2). |
 | Traces UX | **Human summary as default + raw cognition trace behind a developer toggle.** |
-| context-window | Build it, **honestly Claude-only**. Codex/Cursor render `N/A` (no runtime usage signal) — never a fabricated number. |
+| context-window | Build it, **honestly Claude-only**. Codex renders `N/A` (no runtime usage signal) — never a fabricated number. |
 | Adapter scope | Claude only for now. The chat/runner endpoints stay adapter-generic in shape but only the Claude path is wired. |
 
 ## 3. Concurrency-safety guardrails for the implementing agent
@@ -91,7 +91,7 @@ carries their uncommitted WIP. Therefore:
 |---|---|---|---|
 | **T13** | One presence classifier (SSOT); the divergent web classifier is retired. | `web/routes/sessions.py` (delegate to `board_os/presence.py` verdict), reconcile vocab/thresholds. | `/api/sessions/active` and `cos_presence_query` agree on state for the same session; test asserts parity. |
 | **T14** | One endpoint returns the full live-agent snapshot (model+gate+role+skills+lifecycle); HUD popup is clickable per agent. | New/extended `GET /api/presence/agents` merging presence+roles+lifecycle; `LiveStatus.tsx` clickable per-agent detail. | One call returns all fields per agent; clicking an agent opens its live detail. No field hardcoded. |
-| **T15** | Live context-window % per Claude agent; `N/A` for others. | `cognition`/presence join to SDK transcript usage; HUD gauge. | Claude agent shows live token-usage %; Codex/Cursor show `N/A` (never a fake number). |
+| **T15** | Live context-window % per Claude agent; `N/A` for others. | `cognition`/presence join to SDK transcript usage; HUD gauge. | Claude agent shows live token-usage %; Codex shows `N/A` (never a fake number). |
 | **T16** | Traces default to a human-readable "what the agent did" summary; raw cognition events behind a dev toggle. | New summary projection over trace events (server `cognition.py` + `TraceTimeline.tsx`), dev toggle. | Normal user sees plain-language steps; toggle reveals raw jsonl. |
 | **T17** | The home page surfaces a live-agents section inline (not only the popover). | `HubHome.tsx` mounts a live-agents panel using the T14 endpoint. | Home page shows live agents inline with click-through to detail. |
 

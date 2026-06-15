@@ -25,7 +25,6 @@ body:
       description: Which agent runtime were you using?
       options:
         - Claude Code
-        - Cursor
         - Codex CLI
         - Codex GUI
         - Not agent-related (CLI / MCP direct)

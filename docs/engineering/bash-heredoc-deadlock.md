@@ -82,7 +82,7 @@ You can, for one-liners. For multi-line code with shell variables or quotes, esc
 
 ## Programmatic enforcement
 
-`src/core/hooks/block-bad-patterns.sh` rejects Write/Edit on `*.sh` files under `src/core/hooks/`, `src/adapters/*/install*`, `src/adapters/*/hooks/`, or `.{claude,codex,cursor}/hooks/` when the diff contains the dangerous regex `python3? +- +.*<<`. Bypass requires editing that hook (which is itself caught by `block-protected-files.sh` unless an active `governance` task is open).
+`src/core/hooks/block-bad-patterns.sh` rejects Write/Edit on `*.sh` files under `src/core/hooks/`, `src/adapters/*/install*`, `src/adapters/*/hooks/`, or `.{claude,codex}/hooks/` when the diff contains the dangerous regex `python3? +- +.*<<`. Bypass requires editing that hook (which is itself caught by `block-protected-files.sh` unless an active `governance` task is open).
 
 ## Related artifacts (this incident)
 

@@ -3,7 +3,7 @@
 
 Scripts here are **only installed into `.claude/hooks/`** of consumer
 projects whose adapter is `claude`. They are NOT visible to Codex,
-Cursor, Gemini, or any future adapter.
+Gemini, or any future adapter.
 
 Use this directory when a hook depends on an event/matcher that ONLY
 the Claude SDK fires (`SubagentStart`, `PostToolUseFailure`,

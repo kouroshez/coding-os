@@ -32,7 +32,6 @@ Successful board list payloads include:
 | `agent_states` | Per adapter id: `active` / `present` / `offline` (from `.coding-os/<agent>/sessions/*.json` written by `agent-presence.sh`, with DB fallback). |
 | `agent_manifest` | Rows built from `src/adapters/*/adapter.yaml` (id, label, `hub_glyph`, `hub_color`, session prefix) plus a synthetic **`human`** row — no hardcoded adapter tuple in Python or React. |
 | `presence_scope` | Today always `per_project`: presence files are read only under the **currently scoped project root** (the slug passed to `/api/p/<slug>/…` or `COS_PROJECT_ROOT`). |
-| `cursor_model` | Optional display-only string: first line of `.coding-os/cursor/.model` when the file exists. **Not** used for green/red presence (runtime stays `COS_AGENT=cursor`). |
 
 **Not implemented:** aggregating “this adapter is active in *any* registered repo” under `~/.coding-os/`. That would need a separate global store or a registry walk; the field `presence_scope` leaves room to extend the contract later.
 
@@ -386,7 +385,7 @@ Three things must line up:
 
 ## Symlink health
 
-Every consumer project's `.claude/hooks/*.sh` / `.cursor/hooks/*.sh` /
+Every consumer project's `.claude/hooks/*.sh` /
 `.codex/hooks/*.sh` is a symlink to `src/core/hooks/*.sh` in this meta repo.
 Edits here reach every project **instantly** — no `cos update` needed.
 

@@ -71,8 +71,6 @@ export interface BoardListPayload {
   }>;
   /** Adapter ids + Hub pill metadata (includes trailing `human` row). */
   agent_manifest?: BoardAgentManifestEntry[];
-  /** Display-only: first line of `.coding-os/cursor/.model` when present. */
-  cursor_model?: string | null;
   /** Always `per_project` today — global aggregation is documented only. */
   presence_scope?: string;
 }

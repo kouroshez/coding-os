@@ -23,7 +23,7 @@ echo "⚙️  Installing coding-os Claude adapter..."
 echo "  Project: $PROJECT_ROOT"
 echo "  coding-os: $CODING_OS_ROOT"
 
-# 1-8. Common install steps (shared with codex / cursor).
+# 1-8. Common install steps (shared with codex).
 bash "${CODING_OS_ROOT}/core/scripts/install-adapter.sh" \
   --adapter claude --agent-dir .claude \
   --coding-os-root "$CODING_OS_ROOT" --project-root "$PROJECT_ROOT"

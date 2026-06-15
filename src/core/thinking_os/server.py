@@ -218,8 +218,8 @@ def _detect_agent_session_default() -> str | None:
                 agent = detected
         except Exception:
             agent = None
-        # Fallback heuristic — CLAUDE_PROJECT_DIR is shared with Cursor,
-        # so it only fires when no stronger signal matched.
+        # Fallback heuristic — CLAUDE_PROJECT_DIR is a weak signal, so it
+        # only fires when no stronger signal matched.
         if agent is None and _os.environ.get("CLAUDE_PROJECT_DIR"):
             agent = "claude"
 
@@ -238,8 +238,8 @@ def _detect_agent_session_default() -> str | None:
 
     # Last resort — synthesize a per-process id so the column at least
     # carries the agent prefix instead of NULL. The hub's
-    # `agentForSession()` substring-matches on "claude" / "codex" /
-    # "cursor", so this is enough to render the correct badge.
+    # `agentForSession()` substring-matches on "claude" / "codex",
+    # so this is enough to render the correct badge.
     return f"ses-{agent}-mcp-{_os.getpid()}"
 
 

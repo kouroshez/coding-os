@@ -105,22 +105,6 @@ def _session_inventory(agent: str) -> list[dict]:
 _session_presence = _session_presence_fn
 
 
-def _cursor_model_display() -> str | None:
-    """Optional display-only line from .coding-os/cursor/.model (not presence)."""
-    from web._project_context import current_project_root
-
-    p = current_project_root() / ".coding-os" / "cursor" / ".model"
-    try:
-        raw = p.read_text(encoding="utf-8").strip()
-    except OSError:
-        return None
-    if not raw:
-        return None
-    # One-line display; avoid huge env dumps in JSON.
-    line = raw.splitlines()[0].strip()
-    return line[:160] if line else None
-
-
 def _agent_active_from_db(conn: sqlite3.Connection, agent: str) -> bool:
     """Legacy signal: recent task transition or in-progress task ownership.
 
@@ -389,9 +373,6 @@ def board_list(
         }
         env["data"]["agent_manifest"] = [*adapter_rows, human_row]
         env["data"]["presence_scope"] = "per_project"
-        cm = _cursor_model_display()
-        if cm is not None:
-            env["data"]["cursor_model"] = cm
 
     return JSONResponse(status_code=200, content=env)
 

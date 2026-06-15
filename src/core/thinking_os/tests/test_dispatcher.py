@@ -477,21 +477,21 @@ def test_adapter_hint_mismatch_warns_and_proceeds(monkeypatch, caplog):
         formula_id="reviewer", agent_file="/tmp/x.md", prompt="p", adapter="codex"
     )
     with caplog.at_level("WARNING", logger="coding_os.dispatcher"):
-        dispatcher = get_dispatcher(agent="cursor", request=req)
+        dispatcher = get_dispatcher(agent="claude", request=req)
 
     assert dispatcher is not None
     record = next(r for r in caplog.records if "adapter hint" in r.getMessage())
     assert "'codex'" in record.getMessage()
-    assert "'cursor'" in record.getMessage()
+    assert "'claude'" in record.getMessage()
 
 
 def test_matching_adapter_hint_stays_silent(monkeypatch, caplog):
     monkeypatch.delenv("COS_FORCE_DEFAULT_DISPATCHER", raising=False)
     req = DispatchRequest(
-        formula_id="reviewer", agent_file="/tmp/x.md", prompt="p", adapter="cursor"
+        formula_id="reviewer", agent_file="/tmp/x.md", prompt="p", adapter="codex"
     )
     with caplog.at_level("WARNING", logger="coding_os.dispatcher"):
-        get_dispatcher(agent="cursor", request=req)
+        get_dispatcher(agent="codex", request=req)
 
     assert not [r for r in caplog.records if "adapter hint" in r.getMessage()]
 

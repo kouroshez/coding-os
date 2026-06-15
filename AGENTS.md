@@ -89,7 +89,7 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 
 ## Adapter Parity & Hook Coverage
 
-Parity is bounded by runtime capability declared in `src/adapters/<agent>/adapter.yaml::hook_capabilities` — the renderer skips unsupported `{event, matcher}` pairs (Codex Bash-only = correct, not a gap). Protected work (gates/skills/doc-anchor) requires a runtime where hooks fire: Claude Code ✅ · Cursor ✅ · Codex CLI ⚠️ Bash-only · Codex.app ❌ · human ❌ (install `bash src/scripts/install-git-hooks.sh`). Audit: [workflow-audit-2026-04-25.md](docs/engineering/workflow-audit-2026-04-25.md).
+Parity is bounded by runtime capability declared in `src/adapters/<agent>/adapter.yaml::hook_capabilities` — the renderer skips unsupported `{event, matcher}` pairs (Codex Bash-only = correct, not a gap). Protected work (gates/skills/doc-anchor) requires a runtime where hooks fire: Claude Code ✅ · Codex CLI ⚠️ Bash-only · Codex.app ❌ · human ❌ (install `bash src/scripts/install-git-hooks.sh`). Audit: [workflow-audit-2026-04-25.md](docs/engineering/workflow-audit-2026-04-25.md).
 
 ## Key Files
 

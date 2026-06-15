@@ -20,9 +20,6 @@ def _scrub_env(tmp_path, monkeypatch):
         "CLAUDE_CODE_SSE_PORT",
         "CLAUDE_CODE_ENTRYPOINT",
         "CLAUDE_AGENT_SDK_VERSION",
-        "CURSOR_AGENT",
-        "CURSOR_PROJECT_DIR",
-        "CURSOR_VERSION",
         "CODEX_SESSION_ID",
         "CODEX_AGENT_DIR",
         "CODEX_HOME",
@@ -35,7 +32,6 @@ def _scrub_env(tmp_path, monkeypatch):
 
 
 def test_explicit_session_matches_known_id():
-    assert ar.detect_agent("ses-cursor-20260427-xyz") == "cursor"
     assert ar.detect_agent("ses-claude-abc") == "claude"
     assert ar.detect_agent("ses-codex-9") == "codex"
 
@@ -45,8 +41,8 @@ def test_explicit_session_human():
 
 
 def test_cos_agent_env_override(monkeypatch):
-    monkeypatch.setenv("COS_AGENT", "cursor")
-    assert ar.detect_agent(None) == "cursor"
+    monkeypatch.setenv("COS_AGENT", "codex")
+    assert ar.detect_agent(None) == "codex"
 
 
 def test_cos_agent_env_unknown_falls_through(monkeypatch):
@@ -58,11 +54,6 @@ def test_cos_agent_env_unknown_falls_through(monkeypatch):
 def test_vendor_marker_claude(monkeypatch):
     monkeypatch.setenv("CLAUDECODE", "1")
     assert ar.detect_agent(None) == "claude"
-
-
-def test_vendor_marker_cursor(monkeypatch):
-    monkeypatch.setenv("CURSOR_PROJECT_DIR", "/tmp/x")
-    assert ar.detect_agent(None) == "cursor"
 
 
 def test_vendor_marker_codex(monkeypatch):
@@ -85,7 +76,7 @@ def test_unknown_falls_back_to_agent_literal():
 
 def test_explicit_overrides_env(monkeypatch):
     monkeypatch.setenv("CLAUDECODE", "1")
-    assert ar.detect_agent("ses-cursor-x") == "cursor"
+    assert ar.detect_agent("ses-codex-x") == "codex"
 
 
 def test_legacy_agent_label_delegates():

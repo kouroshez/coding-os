@@ -102,8 +102,8 @@ skill_enforcement:
   - {globs: ["src/core/web/ui/**/*.{ts,tsx}"], primary: react-vite-hub,    secondary: [clean-code, frontend-fundamentals, a11y, state-management]}
   # Claude SDK adapter
   - {globs: ["src/adapters/claude/**/*.py"],  primary: claude-sdk-integration, secondary: [graph-explorer, clean-code, llm-patterns, observability]}
-  # Other adapters (codex / cursor / future)
-  - {globs: ["src/adapters/codex/**/*.py", "src/adapters/cursor/**/*.py"], primary: graph-explorer, secondary: [clean-code, thinking_os]}
+  # Other adapters (codex / future)
+  - {globs: ["src/adapters/codex/**/*.py"], primary: graph-explorer, secondary: [clean-code, thinking_os]}
   # Hook scripts + helpers
   - {globs: ["src/core/hooks/*.sh"],          primary: hook-authoring, secondary: [meta-engineering, clean-code, thinking_os]}
   - {globs: ["src/core/hooks/_helpers/*.py"], primary: hook-authoring, secondary: [meta-engineering, clean-code, thinking_os]}

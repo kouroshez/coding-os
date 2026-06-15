@@ -73,16 +73,14 @@ Thumbs.db
 # ---- Adapter-generated output (live symlinks into src/core/) --------
 .claude/
 .codex/
-.cursor/
 .mcp.json
 changes.log
 
 # Golden test fixtures are committed snapshots, not live output — the bare
-# .claude//.codex//.cursor/ rules above would otherwise leave their adapter
+# .claude//.codex/ rules above would otherwise leave their adapter
 # subdirs untracked, so they drift per-machine and break test_golden_parity.
 !tests/golden/**/.claude/
 !tests/golden/**/.codex/
-!tests/golden/**/.cursor/
 !tests/golden/**/.mcp.json
 
 # ---- Playwright + screenshots ---------------------------------------

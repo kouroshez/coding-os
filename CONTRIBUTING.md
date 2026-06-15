@@ -53,9 +53,9 @@ Requirements:
 - Node.js ≥ 20 (only if you touch `src/core/web/ui/`).
 - Bash ≥ 4 (macOS ships with bash 3.2 by default; install via `brew install bash`).
 
-Three adapters are wired today: `claude`, `codex`, `cursor` (under
+Two adapters are wired today: `claude`, `codex` (under
 `src/adapters/<id>/`). Each has its own `install.sh`; `cos init`
-runs the right one based on `--agent`. All three speak the same MCP
+runs the right one based on `--agent`. Both speak the same MCP
 server defined in `.mcp.json`.
 
 ### Option A — native install (recommended for daily work)
@@ -65,7 +65,7 @@ git clone https://github.com/kouroshebra/coding-os.git
 cd coding-os
 uv tool install --editable .          # installs the `cos` CLI globally
 uv sync --extra rag                   # installs Python deps incl. semantic search
-make sync                             # wire THIS repo: render every adapter (.claude/ .codex/ .cursor/ + .mcp.json)
+make sync                             # wire THIS repo: render every adapter (.claude/ .codex/ + .mcp.json)
 bash src/scripts/install-git-hooks.sh # install the git-side commit hooks (see below)
 cd src/core/web/ui && npm install     # optional, only for Hub UI work
 ```
@@ -84,7 +84,7 @@ cd src/core/web/ui && npm install     # optional, only for Hub UI work
 > `rm .git/hooks/{prepare-commit-msg,pre-commit,commit-msg,post-commit}`.
 
 > **Why `make sync`?** coding-os is itself a coding-os project (P5
-> Dogfood). The adapter dirs (`.claude/`, `.codex/`, `.cursor/`) — hooks,
+> Dogfood). The adapter dirs (`.claude/`, `.codex/`) — hooks,
 > MCP wiring, slash commands — are **generated** from `src/` and are
 > **gitignored**, so a fresh clone has none. The targets:
 > - `make sync` — the complete one: regenerates adapter templates from
@@ -233,7 +233,7 @@ Good examples (drawn from the actual history):
 fix(hooks): pre-commit deadlock — extract python heredoc per Rule 8
 feat(intent): completion guardian + Stop hook (G4)
 perf(web): gzip every /api response over 500 bytes (270KB → 21KB)
-docs(adapter-parity): note intent enforcement is Claude/Cursor only
+docs(adapter-parity): note intent enforcement is Claude only
 ```
 
 ## Pull Request Checklist
@@ -276,7 +276,7 @@ The complete numbered list with rationale lives in
 
 ```
 src/core/      → DNA: agent-agnostic kernel (hooks, MCP, rules, skills)
-src/adapters/  → mRNA: per-agent translation (claude, codex, cursor)
+src/adapters/  → mRNA: per-agent translation (claude, codex)
 src/templates/ → phenotype: per-stack overlay (django, nextjs, ...)
 src/cli/       → the `cos` factory CLI
 src/scripts/   → maintenance tooling

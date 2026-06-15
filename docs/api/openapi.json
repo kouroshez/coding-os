@@ -4462,6 +4462,16 @@
               ],
               "title": "Exclude Kinds"
             }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "neighborhood",
+              "title": "Scope",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5343,7 +5353,7 @@
         "operationId": "list_hooks_api_hooks_list_get",
         "parameters": [
           {
-            "description": "Filter by adapter_scope (claude / codex / cursor)",
+            "description": "Filter by adapter_scope (claude / codex)",
             "in": "query",
             "name": "adapter",
             "required": false,
@@ -5356,7 +5366,7 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by adapter_scope (claude / codex / cursor)",
+              "description": "Filter by adapter_scope (claude / codex)",
               "title": "Adapter"
             }
           },

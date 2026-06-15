@@ -78,8 +78,9 @@ sdk_package: claude-agent-sdk
 # Env vars the Claude Code runtime exports to hook subprocesses / the CLI
 # shell.  Consumed by cli/board_commands.py::_detect_agent_runtime so the
 # CLI can attribute agent_session correctly without hardcoded literals
-# (see rule #11). CLAUDE_PROJECT_DIR is intentionally omitted — Cursor
-# also sets it as a workspace alias, so it's not a reliable Claude signal.
+# (see rule #11). CLAUDE_PROJECT_DIR is intentionally omitted — other
+# IDE runtimes also set it as a workspace alias, so it's not a reliable
+# Claude signal.
 runtime_env_markers:
   - CLAUDECODE
   - CLAUDE_CODE_SSE_PORT

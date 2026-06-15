@@ -7,7 +7,7 @@
 #                      Holds agent-agnostic artifacts: coding-os.db, .hooks.log,
 #                      .agent marker, .capture-errors.log, .dogfood-reminded,
 #                      installed-manifest.json, domain-config.json.
-#   COS_AGENT        — which agent runtime invoked this hook (claude|codex|cursor|unknown)
+#   COS_AGENT        — which agent runtime invoked this hook (claude|codex|unknown)
 #   COS_AGENT_DIR    — agent-private state directory = $COS_STATE_DIR/$COS_AGENT
 #                      Holds per-agent state: session-id, .task-current,
 #                      .thinking_os-gate, .zoom-checkpoint, .doc-anchor,
@@ -28,14 +28,12 @@
 
 # Resolve from env, .coding-os.yaml, or defaults
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
-# Cursor / Claude often run hook subprocesses with cwd != repo root. Default
+# Claude often runs hook subprocesses with cwd != repo root. Default
 # relative ".coding-os" would then create the wrong tree (and an empty log at
 # the real project). Anchor to workspace when the IDE exports it.
 case "${COS_STATE_DIR}" in
   .coding-os | ./.coding-os)
-    if [[ -n "${CURSOR_PROJECT_DIR:-}" ]]; then
-      COS_STATE_DIR="${CURSOR_PROJECT_DIR}/.coding-os"
-    elif [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
+    if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
       COS_STATE_DIR="${CLAUDE_PROJECT_DIR}/.coding-os"
     fi
     ;;
@@ -81,10 +79,8 @@ COS_HOOK_LOG_MAX_LINES="${COS_HOOK_LOG_MAX_LINES:-500}"
 # ---------------------------------------------------------------------------
 # Agent runtime detection — which runtime invoked this hook?
 # Priority: explicit COS_AGENT env > .coding-os/.agent (install marker) >
-# Cursor (CURSOR_*) > Claude Code > Codex > unknown.
+# Codex > Claude Code > unknown.
 #
-# Cursor sets CLAUDE_PROJECT_DIR as a workspace alias, so we MUST NOT treat
-# CLAUDE_PROJECT_DIR alone as "Claude Code" — that mis-tags Cursor hooks.
 # Must run BEFORE COS_AGENT_DIR / COS_SESSION_FILE are computed.
 #
 # DRIFT WARNING: src/cli/board_commands.py::_detect_agent_runtime mirrors this
@@ -101,10 +97,7 @@ if [[ -z "${COS_AGENT:-}" ]]; then
   # to hook processes — only CLAUDE_CODE_ENTRYPOINT and CLAUDE_AGENT_SDK_VERSION
   # make it through.  Treat those as authoritative claude signals, otherwise
   # hooks fired by Claude Code mis-tag themselves via the .agent fallback.
-  if [[ -n "${CURSOR_PROJECT_DIR:-}" ]] || [[ -n "${CURSOR_VERSION:-}" ]] \
-       || [[ -n "${CURSOR_AGENT:-}" ]]; then
-    COS_AGENT="cursor"
-  elif [[ -n "${CODEX_SESSION_ID:-}" ]] || [[ -n "${CODEX_AGENT_DIR:-}" ]] || [[ -n "${CODEX_HOME:-}" ]]; then
+  if [[ -n "${CODEX_SESSION_ID:-}" ]] || [[ -n "${CODEX_AGENT_DIR:-}" ]] || [[ -n "${CODEX_HOME:-}" ]]; then
     COS_AGENT="codex"
   elif [[ -n "${CLAUDECODE:-}" ]] || [[ -n "${CLAUDE_CODE_SSE_PORT:-}" ]] \
        || [[ -n "${CLAUDE_CODE_ENTRYPOINT:-}" ]] \
@@ -116,8 +109,8 @@ if [[ -z "${COS_AGENT:-}" ]]; then
     COS_AGENT="$(head -c 32 "${COS_STATE_DIR}/.agent" 2>/dev/null | tr -d '[:space:]' || true)"
   fi
 
-  # Last-resort Claude compatibility marker; Cursor also sets CLAUDE_PROJECT_DIR,
-  # so only use this when no stronger signal existed.
+  # Last-resort Claude compatibility marker; only use this when no
+  # stronger signal existed.
   if [[ -z "${COS_AGENT:-}" ]] && [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
     COS_AGENT="claude"
   fi
@@ -133,7 +126,7 @@ COS_AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR}/${COS_AGENT}}"
 # ---------------------------------------------------------------------------
 # Panel identity — keys cognitive state per-PANEL of the SAME agent.
 #
-# Two panels of the same Claude/Codex/Cursor instance on the same project
+# Two panels of the same Claude/Codex instance on the same project
 # share $COS_AGENT_DIR but get distinct $COS_PANEL_DIR subdirs so cognitive
 # state files (.thinking_os-gate, .task-current, .active-skill, .doc-anchor,
 # .memory-check, .zoom-checkpoint, .active-formula, .learn-suggestions and
@@ -148,8 +141,8 @@ COS_AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR}/${COS_AGENT}}"
 #   3. Adapter-runtime env vars — declared per adapter in
 #      src/adapters/<id>/adapter.yaml::runtime_session_marker. Listed
 #      below in fall-through order so any adapter that exports its
-#      session id natively (Claude `CLAUDE_SESSION_ID`, Cursor
-#      `CURSOR_TRACE_ID`, Codex `CODEX_SESSION_ID`) is picked up. A new
+#      session id natively (Claude `CLAUDE_SESSION_ID`, Codex
+#      `CODEX_SESSION_ID`) is picked up. A new
 #      adapter adds its var here + to its adapter.yaml when it ships.
 #   4. PPID-derived stable token — last resort. The hook's parent process
 #      is the agent runtime process for THIS panel; PIDs differ across
@@ -169,12 +162,11 @@ _cos_resolve_panel_id() {
   # session's state across dozens of panels. Keep the bare CLAUDE_SESSION_ID
   # after it as a forward-compat alias. Stays in sync with each adapter.yaml
   # ::runtime_session_marker.env_vars (per-agent SSOT for the var name).
-  # Real adapter session vars only (claude/cursor/codex) — matches the three
+  # Real adapter session vars only (claude/codex) — matches the two
   # src/adapters/*/adapter.yaml::runtime_session_marker.env_vars. Speculative
   # GEMINI_*/ANTHROPIC_* removed: a future
   # adapter adds its var here + to its adapter.yaml when it actually ships.
-  for v in CLAUDE_CODE_SESSION_ID CLAUDE_SESSION_ID CURSOR_SESSION_ID CURSOR_TRACE_ID \
-           CODEX_SESSION_ID; do
+  for v in CLAUDE_CODE_SESSION_ID CLAUDE_SESSION_ID CODEX_SESSION_ID; do
     val="$(printenv "$v" 2>/dev/null || true)"
     if [[ -n "$val" ]]; then
       id="$val"
@@ -231,7 +223,7 @@ COS_PER_PANEL_FILES="${COS_PER_PANEL_FILES:-.thinking_os-gate .task-current .act
 #   Everything falls back to empty (NULL) — routing_weights tolerates it.
 if [[ -z "${COS_AGENT_MODEL:-}" ]]; then
   # printenv keeps this portable across bash / zsh (zsh lacks ${!var}).
-  for _cand in CLAUDE_CODE_MODEL CURSOR_MODEL CODEX_MODEL ANTHROPIC_MODEL \
+  for _cand in CLAUDE_CODE_MODEL CODEX_MODEL ANTHROPIC_MODEL \
                OPENAI_MODEL; do
     _val="$(printenv "$_cand" 2>/dev/null || true)"
     if [[ -n "$_val" ]]; then

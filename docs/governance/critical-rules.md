@@ -28,7 +28,7 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 ## Rule 1 — Never hardcode `.claude/` in `core/`
 
 - **Rule:** Use `$COS_STATE_DIR` (shared per-project), `$COS_AGENT_DIR` (shared per-agent: `.model`, `.task-mode`, `.swimlane`, `.hooks.log`, `coding-os.db`), `$COS_PANEL_DIR` (private per-panel-of-same-agent: `.task-current`, `.thinking_os-gate`, `.active-skill`, `.doc-anchor`, `.memory-check`, `.zoom-checkpoint`, `.active-formula`, `.learn-suggestions`, `session-id`), `$COS_DB_PATH`. Session-id at `$COS_PANEL_DIR/session-id`. Sid string format: `ses-{agent}-YYYYMMDD-…` (session-context.sh generated) OR runtime UUID (when `cos_panel_upgrade_from_payload` upgrades from stdin). Three-tier scope contract: [docs/engineering/state-files.md](../engineering/state-files.md).
-- **Why:** `.claude/` is one of N adapter dirs (`.codex/`, `.cursor/`, …). Hardcoding breaks adapter parity (P2).
+- **Why:** `.claude/` is one of N adapter dirs (`.codex/`, …). Hardcoding breaks adapter parity (P2).
 - **How:** Hook `block-bad-patterns.sh` greps `src/core/**` for `.claude/`. Adapter resolves env at session start via `src/core/hooks/cos-env.sh`.
 - **Where:** `src/core/hooks/cos-env.sh`
 

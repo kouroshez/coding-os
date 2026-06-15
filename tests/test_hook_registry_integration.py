@@ -5,14 +5,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REGISTRY = REPO_ROOT / "src" / "core" / "hooks" / "registry.yaml"
 HOOKS_DIR = REPO_ROOT / "src" / "core" / "hooks"
 CLAUDE_TEMPLATE = REPO_ROOT / "src" / "adapters" / "claude" / "settings.template.json"
-CURSOR_TEMPLATE = REPO_ROOT / "src" / "adapters" / "cursor" / "hooks.cursor.template.json"
 
 
 def _load_registry() -> list[dict]:
@@ -31,32 +29,6 @@ def _flatten_claude_template(data: dict) -> set[tuple[str, str, str]]:
                 cmd = hook.get("command", "")
                 out.add((event, matcher, cmd))
     return out
-
-
-def _cursor_dispatcher_chains() -> dict[str, list[str]]:
-    """Return {dispatcher_basename: [delegate_basename, …]} for cursor."""
-    chains: dict[str, list[str]] = {}
-    cursor_hooks = REPO_ROOT / "src" / "adapters" / "cursor" / "hooks"
-    for script in cursor_hooks.glob("*.sh"):
-        text = script.read_text(encoding="utf-8")
-        delegates = []
-        in_chain = False
-        for line in text.splitlines():
-            if "for delegate in" in line:
-                in_chain = True
-                continue
-            if in_chain:
-                stripped = line.strip().rstrip("\\").strip()
-                if not stripped or stripped == "do":
-                    if stripped == "do":
-                        break
-                    continue
-                if stripped.endswith("; do"):
-                    delegates.append(stripped.replace("; do", "").strip())
-                    break
-                delegates.append(stripped)
-        chains[script.name] = delegates
-    return chains
 
 
 def test_every_registry_script_exists_on_disk() -> None:
@@ -104,38 +76,6 @@ def test_claude_template_renders_every_supported_registry_event() -> None:
     assert not missing, (
         "Supported registry events missing from rendered claude template: " + ", ".join(missing)
     )
-
-
-def test_cursor_dispatcher_includes_every_posttool_write_hook() -> None:
-    """Cursor coalesces Write|Edit hooks into `cursor-posttool-write-dispatch.sh`.
-    Every registered hook with `PostToolUse :: Write|Edit` must appear in that
-    dispatcher's `for delegate in …; do` chain."""
-    chains = _cursor_dispatcher_chains()
-    chain_name = "cursor-posttool-write-dispatch.sh"
-    assert chain_name in chains, f"Missing cursor dispatcher: {chain_name}"
-    delegates = set(chains[chain_name])
-
-    expected: list[str] = []
-    for entry in _load_registry():
-        script = entry.get("script", "")
-        for ev in entry.get("events") or []:
-            if ev.get("event") == "PostToolUse" and ev.get("matcher") == "Write|Edit":
-                expected.append(script)
-
-    missing = [s for s in expected if s not in delegates]
-    # We don't require the full set — only that the cursor dispatcher covers
-    # the auto-* and capture-* observability hooks. Enforce the
-    # auto-regen-doc-index addition explicitly.
-    assert "auto-regen-doc-index.sh" in delegates, (
-        "TASK-161 hook missing from cursor PostToolUse Write dispatch chain"
-    )
-    # Other registered hooks may legitimately route via other dispatchers; we
-    # surface them as a soft assertion to flag drift rather than block.
-    if missing:
-        pytest.skip(
-            "Cursor dispatcher chain missing registered hooks (review whether "
-            f"intentional): {missing}"
-        )
 
 
 def test_registry_yaml_is_valid_yaml() -> None:

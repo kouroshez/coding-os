@@ -9,7 +9,7 @@
 > **Coding OS — the cognitive operating system that gives AI agents memory, structure, and discipline.**
 > Teaches AI agents *how to think* (thinking_os) and *how to code*
 > (workflow, hooks, skills, rules) — agent-agnostic so the same kernel
-> serves Claude Code, OpenAI Codex, and Cursor without rewriting.
+> serves Claude Code and OpenAI Codex without rewriting.
 
 ---
 
@@ -52,8 +52,8 @@ Open `http://127.0.0.1:9188` in your browser. You will see the
 knowledge graph of `my-shop`, the Scrumban board, the cognition
 trace timeline, and unified search across all retrieval layers.
 
-For Codex or Cursor, swap `--agent claude` for `--agent codex` or
-`--agent cursor` — everything else is identical. Each agent's
+For Codex, swap `--agent claude` for `--agent codex` —
+everything else is identical. Each agent's
 installer is `src/adapters/<agent>/install.sh`; `cos init` runs it
 for you and re-runs it on `cos update`.
 
@@ -65,7 +65,7 @@ deploy shape:
 | Layer | Runs where | Why |
 |---|---|---|
 | **Hub** (web panel: graph · board · cognition · search) | **Docker** (production-shaped) | Reproducible build · isolated runtime · same image dev → CI → prod |
-| **Consumer projects** (each project's `.coding-os/`, MCP server, skills, adapters) | **Host (native)** | Agent runtimes (Claude Code / Cursor / Codex CLI) live on the host filesystem · `cos init` factory writes alongside your source · IDE/editor needs direct paths |
+| **Consumer projects** (each project's `.coding-os/`, MCP server, skills, adapters) | **Host (native)** | Agent runtimes (Claude Code / Codex CLI) live on the host filesystem · `cos init` factory writes alongside your source · IDE/editor needs direct paths |
 
 The Hub container **reads** the host's projects via a read-only bind
 mount and the host's registry file, so every absolute path stays
@@ -124,7 +124,7 @@ docker run --rm -p 9188:9188 \
   coding-os-hub
 ```
 
-## MCP server wire-up (Claude / Codex / Cursor)
+## MCP server wire-up (Claude / Codex)
 
 `cos init` writes `.mcp.json` at the project root automatically. If
 you ever need to register the MCP server manually (e.g. another tool
@@ -142,7 +142,6 @@ Verify the wire is live in your agent runtime:
 
 - **Claude Code:** `cos doctor` shows `mcp.coding-os = ok`; the CLI
   exposes `cos_*` tools via `ToolSearch("select:<tool>")`.
-- **Cursor:** Settings → MCP → `coding-os` shows status "connected".
 - **Codex CLI:** `codex --mcp-list` lists `coding-os`.
 
 If the server isn't found, re-run `bash src/adapters/<agent>/install.sh`
@@ -162,7 +161,7 @@ src/core/  ──►  src/adapters/<agent>/  ──►  src/templates/<stack>/  
 | Layer            | What it owns                                                       |
 | ---------------- | ------------------------------------------------------------------ |
 | `src/core/`      | MCP server, hooks, rules, skills — **agent-agnostic, stack-agnostic** |
-| `src/adapters/`  | Per-agent translation: `.claude/`, `.codex/`, `.cursor/` rendering |
+| `src/adapters/`  | Per-agent translation: `.claude/`, `.codex/` rendering             |
 | `src/templates/` | Per-stack overlays: Django, Next.js, FastAPI, Go, Go+Fiber, React Native, Python, Meta |
 | `src/cli/`       | The `cos` factory CLI that composes the three layers               |
 
@@ -223,8 +222,7 @@ coding-os/
 │   │   └── scripts/        # Kernel-internal regen tooling
 │   ├── adapters/         # Per-agent translation (mRNA, adapter.yaml manifests)
 │   │   ├── claude/         # Claude Code adapter (most hooks fire)
-│   │   ├── codex/          # OpenAI Codex CLI adapter (Bash-only subset)
-│   │   └── cursor/         # Cursor IDE adapter (most hooks fire)
+│   │   └── codex/          # OpenAI Codex CLI adapter (Bash-only subset)
 │   ├── templates/        # Per-stack scaffolds (phenotype, stack.yaml-driven)
 │   │   ├── _base/          # Generic base + fragments/
 │   │   ├── django/         # Django + DRF + PostgreSQL
@@ -460,7 +458,6 @@ Deep dive: [docs/engineering/graph_os-queries.md](./docs/engineering/graph_os-qu
 | Agent           | Hook coverage | Skills              | MCP server | Notes                          |
 | --------------- | ------------- | ------------------- | ---------- | ------------------------------ |
 | Claude Code     | Full ✅        | Native Skill tool   | ✅          | Most complete enforcement.     |
-| Cursor (Agent)  | Full ✅        | Via instructions    | ✅          | Tied with Claude Code.         |
 | Codex CLI       | Partial ⚠️     | Via instructions    | ✅          | Bash-only PreToolUse matcher.  |
 | Codex GUI       | None ❌        | Via instructions    | ✅          | `.codex/hooks.json` ignored upstream — do NOT use for protected work. |
 
@@ -542,7 +539,7 @@ CI runs the matrix on every PR. See `.github/workflows/ci.yml`.
 | [docs/engineering/graph_os-queries.md](./docs/engineering/graph_os-queries.md)      | When to query the graph vs grep                             |
 | [docs/engineering/hub-architecture.md](./docs/engineering/hub-architecture.md)      | Hub: FastAPI ↔ React SPA contract                           |
 | [docs/playbooks/](./docs/playbooks/)                                                | Hook authoring · adapter authoring · template authoring · MCP tool authoring |
-| [docs/adapters/](./docs/adapters/)                                                  | Claude SDK · Codex CLI · Cursor IDE integration             |
+| [docs/adapters/](./docs/adapters/)                                                  | Claude SDK · Codex CLI integration                          |
 | [CONTRIBUTING.md](./CONTRIBUTING.md)                                                | Setup, contribution loop, PR checklist                      |
 | [SECURITY.md](./SECURITY.md)                                                        | Vulnerability disclosure policy                             |
 | [CHANGELOG.md](./CHANGELOG.md)                                                      | Release notes                                               |
@@ -558,7 +555,7 @@ CI runs the matrix on every PR. See `.github/workflows/ci.yml`.
 | `cos init` fails on `npm ci` step | Node.js missing or below 20 | Install Node ≥20 (`brew install node@20`); only required if your template touches `src/core/web/ui/` |
 | Docker build OOM on `npm ci` | Default Docker memory < 4 GB | Docker Desktop → Settings → Resources → bump memory to 4 GB+ |
 | `ToolSearch` returns `InputValidationError` for a `cos_*` tool | First-call schema not loaded (Claude defers MCP schemas) | `ToolSearch("select:cos_<name>")` first, then call the tool |
-| Hooks silently skip on Codex / Cursor | Agent runtime doesn't expose that `{event, matcher}` pair | Expected — see [Persona Enforcement Coverage](#supported-agents); use Claude Code for protected work |
+| Hooks silently skip on Codex | Agent runtime doesn't expose that `{event, matcher}` pair | Expected — see [Persona Enforcement Coverage](#supported-agents); use Claude Code for protected work |
 | Hub rejects the meta-repo checkout with `sits inside … already a coding-os project` | A stray `.coding-os/` exists higher up (e.g. `~/.coding-os/` from a test run) — fixed 2026-05-23: only **registered** ancestors block | Update + restart Hub: `git pull && cos hub stop && cos hub start`. If still blocking, the ancestor is genuinely registered: `cos registry remove <ancestor-path>` |
 
 Still stuck? Run `cos doctor --verbose` and open a

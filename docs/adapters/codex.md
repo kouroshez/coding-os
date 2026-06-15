@@ -3,7 +3,7 @@
 
 Purpose: Reference for the Codex (OpenAI) adapter — hook capabilities, dispatcher, gate behaviour, MCP responsibilities.
 Read when: editing `src/adapters/codex/`, debugging a Codex session, adding a new hook that needs Codex parity.
-Skip when: Claude/Cursor-specific issues.
+Skip when: Claude-specific issues.
 
 > Nav: [AGENTS.md](../../AGENTS.md) › [adapters](.) › **codex**
 > Status: live · subprocess SDK dispatcher active · limited hook surface

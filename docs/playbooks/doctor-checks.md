@@ -22,7 +22,7 @@ Active agent's settings file (e.g. `.claude/settings.json`) parses as valid JSON
 **Fix**: re-run the adapter installer (`bash src/adapters/<agent>/install.sh`).
 
 ### adapter.identity_file_present
-`.coding-os/.agent` exists and names a known adapter (claude / codex / cursor).
+`.coding-os/.agent` exists and names a known adapter (claude / codex).
 **Warns** when missing (the dispatcher falls back to env detection but stability suffers).
 **Fix**: `echo "<agent>" > .coding-os/.agent`.
 

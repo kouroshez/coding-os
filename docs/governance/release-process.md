@@ -139,7 +139,7 @@ the contracts below are frozen — it is a set of gates, not a date. All must ho
 | 1 | `cos init` scaffold output shape frozen | `tests/golden/**` stable across ≥2 minors; no planned skeleton change |
 | 2 | `cos_*` MCP tool signatures frozen | `cos_graph_contracts` / tool inventory stable; `ok`/`fail` envelope unchanged |
 | 3 | Hook contract frozen | `$COS_*` env + `registry.yaml` shape stable; no consumer-visible hook renames |
-| 4 | Adapter contract frozen | `adapter.yaml` schema stable across claude / codex / cursor |
+| 4 | Adapter contract frozen | `adapter.yaml` schema stable across claude / codex |
 | 5 | Quality gates promoted to required | ruff / mypy / eslint flipped from advisory to hard-fail in CI; baseline cleared |
 | 6 | Deprecation policy published | post-1.0 breaks follow deprecate → warn → remove over ≥2 minors, documented here |
 

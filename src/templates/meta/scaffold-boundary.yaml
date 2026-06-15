@@ -43,7 +43,6 @@ forbids_writing_in:
   - .coding-os/         # runtime state — managed by hooks, not edits
   - .claude/            # agent-installed glue (rendered, not authored)
   - .codex/             # agent-installed glue
-  - .cursor/            # agent-installed glue
   - dist/               # build output
   - build/              # build output
   - coding_os.egg-info/ # build output

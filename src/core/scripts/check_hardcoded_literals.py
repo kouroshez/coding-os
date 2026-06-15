@@ -35,7 +35,6 @@ BUILTIN_FALLBACK = {
     "go-fiber",
     "claude",
     "codex",
-    "cursor",
     "python-django",
     "nextjs-react",
     "python-fastapi",

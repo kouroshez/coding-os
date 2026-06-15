@@ -1,7 +1,7 @@
 <!-- domain:DOCS | layer:policy | ssot:true | updated:2026-04-29 -->
 # Stack Anatomy Contract
 
-> P: Defines the canonical shape of `src/templates/<stack>/skills/<skill>/references/anatomy.md` so every stack and every agent (claude · codex · cursor) emits the same file structure, naming, and entity recipes.
+> P: Defines the canonical shape of `src/templates/<stack>/skills/<skill>/references/anatomy.md` so every stack and every agent (claude · codex) emits the same file structure, naming, and entity recipes.
 > R: Authoring or auditing a stack's anatomy file; resolving disagreement between agents about where a new file belongs.
 > S: Reading code — the actual conventions are in the per-stack `anatomy.md`, not here.
 > N: [docs-system.md](docs-system.md), [scaffold-boundary-contract.md](scaffold-boundary-contract.md), [doc-cheat-sheet.md](_templates/doc-cheat-sheet.md)
@@ -129,7 +129,7 @@ Three guarantees that make every agent emit identical-shape anatomy:
 2. **Lint enforces it.** `tests/test_anatomy_contract.py` runs on every PR.
 3. **Token budget is a hard cap.** No agent can pad — every line costs.
 
-Agents (claude, codex, cursor) read the same `anatomy.md` and produce the same scaffold-growth output because the recipe section is the source of truth. The agent does not invent file paths — it follows the recipe.
+Agents (claude, codex) read the same `anatomy.md` and produce the same scaffold-growth output because the recipe section is the source of truth. The agent does not invent file paths — it follows the recipe.
 
 ## Adding a new entity recipe
 

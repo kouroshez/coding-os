@@ -4,8 +4,7 @@ Verifies src/core/hooks/cos-env.sh::_cos_resolve_panel_id picks the
 strongest available signal in the documented order:
   1. caller-set $COS_PANEL_ID env (highest)
   2. adapter env vars in declared order (CLAUDE_SESSION_ID,
-     CURSOR_SESSION_ID, CURSOR_TRACE_ID, CODEX_SESSION_ID,
-     GEMINI_SESSION_ID, ANTHROPIC_SESSION_ID)
+     CODEX_SESSION_ID, GEMINI_SESSION_ID, ANTHROPIC_SESSION_ID)
   3. PPID-derived hash fallback (lowest)
 
 Also asserts cos_panel_upgrade_from_payload swaps the panel id when the
@@ -27,8 +26,6 @@ def _source(env_overrides: dict[str, str]) -> str:
     base_env = {k: v for k, v in os.environ.items() if not k.startswith("COS_")}
     base_env.pop("CLAUDE_CODE_SESSION_ID", None)  # the primary var the resolver leads with
     base_env.pop("CLAUDE_SESSION_ID", None)
-    base_env.pop("CURSOR_SESSION_ID", None)
-    base_env.pop("CURSOR_TRACE_ID", None)
     base_env.pop("CODEX_SESSION_ID", None)
     base_env.pop("GEMINI_SESSION_ID", None)
     base_env.pop("ANTHROPIC_SESSION_ID", None)
@@ -75,17 +72,6 @@ def test_codex_session_id_env(tmp_path: Path) -> None:
         }
     )
     assert pid == "codex-xyz"
-
-
-def test_cursor_trace_id_env(tmp_path: Path) -> None:
-    pid = _source(
-        {
-            "COS_STATE_DIR": str(tmp_path),
-            "COS_AGENT": "cursor",
-            "CURSOR_TRACE_ID": "trace-789",
-        }
-    )
-    assert pid == "trace-789"
 
 
 def test_ppid_fallback_when_no_env(tmp_path: Path) -> None:
@@ -168,8 +154,6 @@ CHECK_STATE = REPO_ROOT / "src" / "core" / "hooks" / "check-state.sh"
 _SESSION_VARS = (
     "CLAUDE_CODE_SESSION_ID",
     "CLAUDE_SESSION_ID",
-    "CURSOR_SESSION_ID",
-    "CURSOR_TRACE_ID",
     "CODEX_SESSION_ID",
     "GEMINI_SESSION_ID",
     "ANTHROPIC_SESSION_ID",

@@ -4,7 +4,7 @@ GC stale presence files.
 Reaps a file when ANY of:
   * `ended_at` is set + age >1h (clean shutdown, normal aging)
   * `ended_at` is null, PID is dead, mtime >1h (crashed/killed session
-    — Codex+Cursor lack Stop/SessionEnd matchers today, so otherwise
+    — Codex lacks Stop/SessionEnd matchers today, so otherwise
     these accumulate forever and slow every /api/board/list scan)
   * file is unparseable + mtime >1h (corrupt write, never recoverable)
 

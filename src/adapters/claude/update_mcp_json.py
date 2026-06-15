@@ -63,7 +63,7 @@ def main(argv: list[str]) -> int:
         }
     else:
         # Fallback before `uv tool install` puts `cos` on PATH. The cwd
-        # placeholder lets Cursor/VSCode resolve it per-workspace.
+        # placeholder lets VSCode resolve it per-workspace.
         data["mcpServers"]["coding-os"] = {
             "command": "uv",
             "args": [

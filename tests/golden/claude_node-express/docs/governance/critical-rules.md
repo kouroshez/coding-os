@@ -28,7 +28,7 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 ## Rule 1 — Never hardcode `.claude/` in `core/`
 
 - **Rule:** Use `$COS_AGENT_DIR` (per-agent), `$COS_STATE_DIR` (shared), `$COS_DB_PATH`. Session-id at `$COS_AGENT_DIR/session-id`. Sid string format: `ses-{agent}-YYYYMMDD-…`.
-- **Why:** `.claude/` is one of N adapter dirs (`.codex/`, `.cursor/`, …). Hardcoding breaks adapter parity (P2).
+- **Why:** `.claude/` is one of N adapter dirs (`.codex/`, …). Hardcoding breaks adapter parity (P2).
 - **How:** Hook `block-bad-patterns.sh` greps `src/core/**` for `.claude/`. Adapter resolves env at session start via `src/core/hooks/cos-env.sh`.
 - **Where:** `src/core/hooks/cos-env.sh`
 

@@ -306,7 +306,7 @@ export default function DashboardPage() {
     budget?.enabled && budget.cap_usd > 0 ? Math.min(100, (todayCost / budget.cap_usd) * 100) : 0;
 
   // Live agents are derived from sessions/active, NOT from agent_states —
-  // agent_states is keyed by canonical adapter id (claude, codex, cursor)
+  // agent_states is keyed by canonical adapter id (claude, codex)
   // so two concurrent Claude sessions would collapse to one entry there.
   // sessions/active yields one record per `sessions/<sid>.json` file, so
   // every concurrent runtime gets its own row.
@@ -410,7 +410,7 @@ export default function DashboardPage() {
             <EmptyState
               icon="●"
               text="No agent running right now"
-              subtext="open a Claude / Codex / Cursor session in this repo to see live runtime."
+              subtext="open a Claude / Codex session in this repo to see live runtime."
             />
           ) : (
             <ul className="space-y-2">
@@ -727,7 +727,7 @@ function DashboardHeader({
               <span className="text-[var(--cos-faint)]">{relIso(lastHook?.iso_ts)} ago</span>
             </>
           ) : (
-            'idle · open Claude / Codex / Cursor to see live activity.'
+            'idle · open Claude / Codex to see live activity.'
           )}
         </p>
       </div>

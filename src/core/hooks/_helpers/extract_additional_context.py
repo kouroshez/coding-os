@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Extract the inner additionalContext text from a hook's JSON stdout.
 
-Codex/Cursor dispatchers coalesce several delegate hooks into one
+Codex dispatchers coalesce several delegate hooks into one
 SessionStart response. The delegates are the SAME scripts Claude runs, and
 many emit a Claude-style envelope on stdout:
 

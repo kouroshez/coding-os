@@ -191,7 +191,7 @@ def test_db_event_suppresses_duplicate_file_event(cos_project):
                 db,
                 "TASK-003",
                 "in_progress",
-                "ses-cursor-t",
+                "ses-codex-t",
                 ts=now,
             )
 
@@ -199,7 +199,7 @@ def test_db_event_suppresses_duplicate_file_event(cos_project):
     matching = [e for e in events if e["task_id"] == "TASK-003"]
     assert len(matching) == 1, f"expected exactly one event for TASK-003; got {matching}"
     assert matching[0]["source"] == "db"
-    assert matching[0]["agent_session"] == "ses-cursor-t"
+    assert matching[0]["agent_session"] == "ses-codex-t"
 
 
 def test_status_unchanged_file_rewrite_emits_nothing(cos_project):

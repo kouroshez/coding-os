@@ -96,7 +96,7 @@ Surface the right tool / discipline at prompt time so the agent never reaches a 
 | `nudge-graph-os` | UserPromptSubmit (13 structural patterns, bilingual EN+FA) | Recommends specific `cos_graph_*` tool BEFORE Read/grep. Debounce: per-pattern marker under `.graph-nudge/` |
 | `nudge-docs-first` | UserPromptSubmit (code-edit intent, bilingual EN+FA) — silent when `.doc-anchor` already populated or task-mode in `query/chore/adhoc` | Recommends `cos_doc_search` / `cos_doc_header` + points at [docs-first-protocol.md](../governance/docs-first-protocol.md) before any code Write/Edit (Rule 0 + 19). Debounce: `.docs-first-nudged` |
 
-Codex receives the same hooks via the `codex-userpromptsubmit-dispatch.sh` dispatcher (concurrent UserPromptSubmit triggers coalesced through `src/adapters/codex/adapter.yaml::hook_dispatchers`). Cursor: rendered same as Claude.
+Codex receives the same hooks via the `codex-userpromptsubmit-dispatch.sh` dispatcher (concurrent UserPromptSubmit triggers coalesced through `src/adapters/codex/adapter.yaml::hook_dispatchers`).
 
 ### Meta (4 hooks) — BLOCK or WARN on governance docs
 

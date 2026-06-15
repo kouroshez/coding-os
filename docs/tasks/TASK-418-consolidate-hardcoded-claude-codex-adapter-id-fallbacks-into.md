@@ -60,3 +60,4 @@ references: []
 - 2026-06-15 [claude]: Edit roles.py
 - 2026-06-15 [claude]: Edit test_hub_adapter_manifest.py
 - 2026-06-15 [claude]: Added list_agent_ids() SSOT in board_os/hub_adapter_manifest (scans src/adapters, fails soft to _BOARD_DEFAULTS). Rewire
+- 2026-06-15 [claude]: committed 52ffe190: src/core/board_os/hub_adapter_manifest.py, src/core/thinking_os/dispatcher.py, src/core/web/routes/p

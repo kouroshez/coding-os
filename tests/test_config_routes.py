@@ -69,7 +69,7 @@ def test_adapters_groups_models_by_adapter(client):
     assert len(claude["models"]) == 3
     assert sum(1 for m in claude["models"] if m["default"]) == 1  # exactly one default
 
-    for rid in ("codex", "cursor"):  # declared, but no fabricated model IDs (P7)
+    for rid in ("codex",):  # declared, but no fabricated model IDs (P7)
         assert adapters[rid]["runtime"] == "roadmap"
         assert adapters[rid]["available"] is False
         assert adapters[rid]["models"] == []

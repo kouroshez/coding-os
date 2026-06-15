@@ -911,11 +911,11 @@ def test_work_log_uses_readable_agent_label_from_session(
             conn,
             task_id="TASK-001",
             summary="done",
-            agent_session="ses-cursor-20260423-abc",
+            agent_session="ses-codex-20260423-abc",
         )
     )
     assert env["ok"] is True
-    assert "[cursor]" in env["data"]["line_appended"]
+    assert "[codex]" in env["data"]["line_appended"]
 
 
 # ---------- cos_task_daily ----------

@@ -40,8 +40,7 @@ if [[ "$FILE_PATH" == *.sh ]] && [[
       "$FILE_PATH" == *adapters/*/install* ||
       "$FILE_PATH" == *adapters/*/hooks/* ||
       "$FILE_PATH" == *.claude/hooks/* ||
-      "$FILE_PATH" == *.codex/hooks/* ||
-      "$FILE_PATH" == *.cursor/hooks/* ]]; then
+      "$FILE_PATH" == *.codex/hooks/* ]]; then
   # Strip shell comment lines before scanning so docs that *describe* the
   # dangerous pattern (e.g. session-context.sh line 159 warns about the
   # heredoc-write deadlock) do not trip the regex.

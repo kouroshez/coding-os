@@ -7,12 +7,12 @@ set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 # Meta-repo path first; fall back to a consumer's symlinked adapter hooks dir
-# (.claude/.codex/.cursor) so the commit-message contract still fires in a
+# (.claude/.codex) so the commit-message contract still fires in a
 # `cos init` project, which has no src/core/ of its own. Mirrors
 # the HOOKS_DIR resolution already in _pre_commit_body.sh.
 HELPER="${REPO_ROOT}/src/core/hooks/_helpers/check_commit_message.py"
 if [[ ! -f "$HELPER" ]]; then
-  for _ad in .claude .codex .cursor; do
+  for _ad in .claude .codex; do
     _cand="${REPO_ROOT}/${_ad}/hooks/_helpers/check_commit_message.py"
     if [[ -f "$_cand" ]]; then HELPER="$_cand"; break; fi
   done

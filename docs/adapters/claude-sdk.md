@@ -12,9 +12,9 @@
 
 ## 1. The mRNA layer — what this adapter is
 
-Claude is the **primary** adapter coding-os targets. Codex and Cursor are
-secondary; they reuse the same kernel but expose fewer capabilities (Codex
-has Bash-only PreToolUse; Cursor has no skills/agents at all). This file
+Claude is the **primary** adapter coding-os targets. Codex is
+secondary; it reuses the same kernel but exposes fewer capabilities (Codex
+has Bash-only PreToolUse). This file
 documents the Claude-specific translation of the agent-agnostic kernel.
 
 ```

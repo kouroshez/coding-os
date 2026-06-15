@@ -83,7 +83,6 @@ const COLUMN_META: Record<string, { label: string; sub: string; wip: number | nu
 const FALLBACK_AGENT_MANIFEST: BoardAgentManifestEntry[] = [
   { id: 'claude', color: '#d97706', label: 'claude', glyph: 'Cl', session: 'ses-claude' },
   { id: 'codex', color: '#0891b2', label: 'codex', glyph: 'Cx', session: 'ses-codex' },
-  { id: 'cursor', color: '#6366f1', label: 'cursor', glyph: 'Cr', session: 'ses-cursor' },
   { id: 'human', color: '#16a34a', label: 'human', glyph: 'H', session: 'local-mac' },
 ];
 
@@ -608,7 +607,6 @@ export default function CosBoardPage() {
       <TopBar
         taskCount={list?.count ?? 0}
         connected={connected}
-        cursorModel={list?.cursor_model}
         sessionCounts={list?.session_counts ?? {}}
         agentStates={
           list?.agent_states ?? (
@@ -1140,7 +1138,6 @@ export default function CosBoardPage() {
 function TopBar({
   taskCount,
   connected,
-  cursorModel,
   agentStates,
   sessionCounts,
   legendOpen,
@@ -1157,7 +1154,6 @@ function TopBar({
 }: {
   taskCount: number;
   connected: boolean;
-  cursorModel?: string | null;
   agentStates: Record<string, AgentState>;
   sessionCounts?: Record<string, number>;
   legendOpen: boolean;
@@ -1212,14 +1208,6 @@ function TopBar({
               />
             ))}
           </div>
-          {cursorModel && agentStates.cursor && agentStates.cursor !== 'offline' ? (
-            <span
-              title="display-only: .coding-os/cursor/.model"
-              style={{ color: 'var(--ink-faint)', fontSize: 10, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-            >
-              model: {cursorModel}
-            </span>
-          ) : null}
           <span
             style={{
               color: connected ? 'var(--cos-ok)' : 'var(--cos-faint)',

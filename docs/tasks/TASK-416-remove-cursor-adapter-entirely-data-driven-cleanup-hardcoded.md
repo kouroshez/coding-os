@@ -1,0 +1,216 @@
+---
+id: TASK-416
+title: "Remove Cursor adapter entirely \u2014 data-driven cleanup + hardcoded-literal scrub + derived regen"
+swimlane: infra
+kind: chore
+epic: null
+labels: [ready]
+status: complete
+priority: P2
+appetite: 1d
+created: 2026-06-15
+started: 2026-06-14
+completed: 2026-06-15
+agent_session: ses-claude-20260614-225343-4b14
+depends_on: []
+blocked_by: []
+references: []
+---
+# TASK-416: Remove Cursor adapter entirely — data-driven cleanup + hardcoded-literal scrub + derived regen
+
+**Outcome (one sentence):** The Cursor IDE adapter is fully removed from the live system: src/adapters/cursor/ deleted; all hardcoded adapter fallbacks/literals scrubbed (dispatcher.py, presence.py, hub_adapter_manifest.py, check_hardcoded_literals.py); cos-env.sh no longer detects a cursor agent; the cursor_model producer→consumer chain removed; UI agent selectors drop cursor; tests updated; stack.yaml glob fixed; living docs scrubbed; derived artifacts regenerated. Pagination/db/css cursors, completed-task history, dated audit, ADR-0003, and back-compat no-ops (.cursor in graph DEFAULT_EXCLUDE, adapter.schema.json cursor keys + doctor loader) are preserved. No git history rewrite.
+
+## Work Log
+- 2026-06-15 [claude]: Edit dispatcher.py
+- 2026-06-15 [claude]: Edit presence.py
+- 2026-06-15 [claude]: Edit hub_adapter_manifest.py
+- 2026-06-15 [claude]: Edit check_hardcoded_literals.py
+- 2026-06-15 [claude]: Edit board.py
+- 2026-06-15 [claude]: Edit board.py
+- 2026-06-15 [claude]: Edit CosBoardPage.tsx
+- 2026-06-15 [claude]: Edit CosBoardPage.tsx
+- 2026-06-15 [claude]: Edit CosBoardPage.tsx
+- 2026-06-15 [claude]: Edit CosBoardPage.tsx
+- 2026-06-15 [claude]: Edit CosBoardPage.tsx
+- 2026-06-15 [claude]: Edit types.ts
+- 2026-06-15 [claude]: Edit RolesPage.tsx
+- 2026-06-15 [claude]: Edit useBoardStream.test.ts
+- 2026-06-15 [claude]: Edit useBoardStream.test.ts
+- 2026-06-15 [claude]: Edit hooks.py
+- 2026-06-15 [claude]: Edit cos-env.sh
+- 2026-06-15 [claude]: Edit cos-env.sh
+- 2026-06-15 [claude]: Edit cos-env.sh
+- 2026-06-15 [claude]: Edit cos-env.sh
+- 2026-06-15 [claude]: Edit cos-env.sh
+- 2026-06-15 [claude]: Edit cos-env.sh
+- 2026-06-15 [claude]: Edit cos-env.sh
+- 2026-06-15 [claude]: Edit cos-env.sh
+- 2026-06-15 [claude]: Edit cos-env.sh
+- 2026-06-15 [claude]: Edit cos-env.sh
+- 2026-06-15 [claude]: Edit verify-agent-system.sh
+- 2026-06-15 [claude]: Edit verify-agent-system.sh
+- 2026-06-15 [claude]: Edit block-protected-files.sh
+- 2026-06-15 [claude]: Edit block-protected-files.sh
+- 2026-06-15 [claude]: Edit block-bad-patterns.sh
+- 2026-06-15 [claude]: Edit enforce-skill.sh
+- 2026-06-15 [claude]: Edit enforce-task-start.sh
+- 2026-06-15 [claude]: Edit enforce-zoom.sh
+- 2026-06-15 [claude]: Edit session-context.sh
+- 2026-06-15 [claude]: Edit session-context.sh
+- 2026-06-15 [claude]: Edit session-context.sh
+- 2026-06-15 [claude]: Edit agent-presence.sh
+- 2026-06-15 [claude]: Edit agent-presence.sh
+- 2026-06-15 [claude]: Edit agent-presence.sh
+- 2026-06-15 [claude]: Edit enforce-doc-sync.sh
+- 2026-06-15 [claude]: Edit extract_additional_context.py
+- 2026-06-15 [claude]: Edit presence_gc.py
+- 2026-06-15 [claude]: Edit presence_write.py
+- 2026-06-15 [claude]: Edit capture.py
+- 2026-06-15 [claude]: Edit server.py
+- 2026-06-15 [claude]: Edit server.py
+- 2026-06-15 [claude]: Edit wrap_dispatch_output.py
+- 2026-06-15 [claude]: Edit wrap_dispatch_output.py
+- 2026-06-15 [claude]: Edit wrap_dispatch_output.py
+- 2026-06-15 [claude]: Edit wrap_dispatch_output.py
+- 2026-06-15 [claude]: Edit verify_dispatchers.py
+- 2026-06-15 [claude]: Edit verify_dispatchers.py
+- 2026-06-15 [claude]: Edit verify_dispatchers.py
+- 2026-06-15 [claude]: Edit verify_dispatchers.py
+- 2026-06-15 [claude]: Edit verify_dispatchers.py
+- 2026-06-15 [claude]: Edit _commit_msg_body.sh
+- 2026-06-15 [claude]: Edit probe_agent_session_resolver.py
+- 2026-06-15 [claude]: Edit rename_formulas_to_semantic.py
+- 2026-06-15 [claude]: Edit adapter.yaml
+- 2026-06-15 [claude]: Edit test_hook_registry_integration.py
+- 2026-06-15 [claude]: Edit test_hook_registry_integration.py
+- 2026-06-15 [claude]: Edit test_hook_registry_integration.py
+- 2026-06-15 [claude]: Edit test_hub_adapter_manifest.py
+- 2026-06-15 [claude]: Edit test_config_routes.py
+- 2026-06-15 [claude]: Edit test_board_commands_agent_detect.py
+- 2026-06-15 [claude]: Edit test_board_commands_agent_detect.py
+- 2026-06-15 [claude]: Edit test_board_commands_agent_detect.py
+- 2026-06-15 [claude]: Edit test_board_commands_agent_detect.py
+- 2026-06-15 [claude]: Edit test_agent_runtime.py
+- 2026-06-15 [claude]: Edit test_agent_runtime.py
+- 2026-06-15 [claude]: Edit test_agent_runtime.py
+- 2026-06-15 [claude]: Edit test_agent_runtime.py
+- 2026-06-15 [claude]: Edit test_agent_runtime.py
+- 2026-06-15 [claude]: Edit test_mcp_tools.py
+- 2026-06-15 [claude]: Edit test_dispatcher.py
+- 2026-06-15 [claude]: Edit test_dispatcher.py
+- 2026-06-15 [claude]: Edit test_multi_agent_dispatch.py
+- 2026-06-15 [claude]: Edit test_multi_agent_dispatch.py
+- 2026-06-15 [claude]: Edit test_agent_presence_state.py
+- 2026-06-15 [claude]: Edit test_agent_presence_state.py
+- 2026-06-15 [claude]: Edit test_hooks.py
+- 2026-06-15 [claude]: Edit test_hooks.py
+- 2026-06-15 [claude]: Edit test_hooks.py
+- 2026-06-15 [claude]: Edit test_hooks.py
+- 2026-06-15 [claude]: Edit test_cos_env_panel_resolution.py
+- 2026-06-15 [claude]: Edit test_cos_env_panel_resolution.py
+- 2026-06-15 [claude]: Edit test_cos_env_panel_resolution.py
+- 2026-06-15 [claude]: Edit test_cos_env_panel_resolution.py
+- 2026-06-15 [claude]: Edit test_brain_hardening.py
+- 2026-06-15 [claude]: Edit test_brain_hardening.py
+- 2026-06-15 [claude]: Edit test_stream_dedup.py
+- 2026-06-15 [claude]: Edit conftest.py
+- 2026-06-15 [claude]: Edit conftest.py
+- 2026-06-15 [claude]: Edit conftest.py
+- 2026-06-15 [claude]: Edit test_inject_mcp_caller_session.py
+- 2026-06-15 [claude]: Edit test_hook_registry_integration.py
+- 2026-06-15 [claude]: Edit stack.yaml
+- 2026-06-15 [claude]: Edit rules-loading.md
+- 2026-06-15 [claude]: Edit agent-hub-orchestration.md
+- 2026-06-15 [claude]: Edit meta-project.md
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit agent-hub-orchestration.md
+- 2026-06-15 [claude]: Edit meta-project.md
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit meta-project.md
+- 2026-06-15 [claude]: Edit wrapper-derivation.md
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit wrapper-derivation.md
+- 2026-06-15 [claude]: Edit rules-loading.md
+- 2026-06-15 [claude]: Edit agent-economy-and-identity-roadmap.md
+- 2026-06-15 [claude]: Edit agent-economy-and-identity-roadmap.md
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit anatomy-contract.md
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit anatomy-contract.md
+- 2026-06-15 [claude]: Edit rules-loading.md
+- 2026-06-15 [claude]: Edit hooks-reference.md
+- 2026-06-15 [claude]: Edit critical-rules.md
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit rules-loading.md
+- 2026-06-15 [claude]: Edit codex-presence-fallback.md
+- 2026-06-15 [claude]: Edit release-process.md
+- 2026-06-15 [claude]: Edit rules-loading.md
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit rules-loading.md
+- 2026-06-15 [claude]: Edit bash-heredoc-deadlock.md
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit claude-sdk.md
+- 2026-06-15 [claude]: Edit adapter-parity.md
+- 2026-06-15 [claude]: Edit state-files.md
+- 2026-06-15 [claude]: Edit codex.md
+- 2026-06-15 [claude]: Edit adapter-parity.md
+- 2026-06-15 [claude]: Edit state-files.md
+- 2026-06-15 [claude]: Edit state-files.md
+- 2026-06-15 [claude]: Edit CONTRIBUTING.md
+- 2026-06-15 [claude]: Edit adapter-parity.md
+- 2026-06-15 [claude]: Edit CONTRIBUTING.md
+- 2026-06-15 [claude]: Edit CONTRIBUTING.md
+- 2026-06-15 [claude]: Edit claude-deepening-checklist.md
+- 2026-06-15 [claude]: Edit adapter-parity.md
+- 2026-06-15 [claude]: Edit hub-architecture.md
+- 2026-06-15 [claude]: Edit hub-architecture.md
+- 2026-06-15 [claude]: Edit hook-authoring.md
+- 2026-06-15 [claude]: Edit CONTRIBUTING.md
+- 2026-06-15 [claude]: Edit adapter-parity.md
+- 2026-06-15 [claude]: Edit hook-authoring.md
+- 2026-06-15 [claude]: Edit CONTRIBUTING.md
+- 2026-06-15 [claude]: Edit hook-authoring.md
+- 2026-06-15 [claude]: Edit dispatcher-contract.md
+- 2026-06-15 [claude]: Edit doctor-checks.md
+- 2026-06-15 [claude]: Edit dispatcher-contract.md
+- 2026-06-15 [claude]: Edit db-reset.md
+- 2026-06-15 [claude]: Edit adapter-authoring.md
+- 2026-06-15 [claude]: Edit AGENTS.md
+- 2026-06-15 [claude]: Edit wrapper-derivation.md
+- 2026-06-15 [claude]: Edit wrapper-derivation.md
+- 2026-06-15 [claude]: Edit anatomy-contract.md
+- 2026-06-15 [claude]: Edit anatomy-contract.md
+- 2026-06-15 [claude]: Edit critical-rules.md
+- 2026-06-15 [claude]: Edit bug_report.yml
+- 2026-06-15 [claude]: Edit CODEOWNERS
+- 2026-06-15 [claude]: Edit SECURITY.md
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit install.sh
+- 2026-06-15 [claude]: Edit install.sh
+- 2026-06-15 [claude]: Edit install.sh
+- 2026-06-15 [claude]: Edit update_mcp_json.py
+- 2026-06-15 [claude]: Edit board_commands.py
+- 2026-06-15 [claude]: Edit board_commands.py
+- 2026-06-15 [claude]: Edit board_commands.py
+- 2026-06-15 [claude]: Edit board_commands.py
+- 2026-06-15 [claude]: Edit mcp_start.py
+- 2026-06-15 [claude]: Edit install-adapter.sh
+- 2026-06-15 [claude]: Edit install-adapter.sh
+- 2026-06-15 [claude]: Edit agentPresenceVisuals.ts
+- 2026-06-15 [claude]: Edit useBoardStream.ts
+- 2026-06-15 [claude]: Edit DashboardPage.tsx
+- 2026-06-15 [claude]: Edit DashboardPage.tsx
+- 2026-06-15 [claude]: Edit DashboardPage.tsx
+- 2026-06-15 [claude]: Edit scaffold-boundary.yaml
+- 2026-06-15 [claude]: Edit new_component.py
+- 2026-06-15 [claude]: Edit verify_dispatchers.py
+- 2026-06-15 [claude]: Edit verify_dispatchers.py
+- 2026-06-15 [claude]: Edit .gitignore
+- 2026-06-15 [claude]: Edit .gitignore
+- 2026-06-15 [claude]: Edit .gitignore
+- 2026-06-15 [claude]: Edit _init_helpers.py
+- 2026-06-15 [claude]: Edit _init_helpers.py
+- 2026-06-15 [claude]: Cursor adapter fully removed. Deleted src/adapters/cursor/ (12 files); loader is data-driven (load_adapter_registry + hu

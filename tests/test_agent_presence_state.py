@@ -138,21 +138,21 @@ def test_dead_pid_with_stale_heartbeat_is_offline(fake_project):
 
 
 def test_dead_pid_with_recent_heartbeat_is_active(fake_project):
-    """Cursor / Claude Code VSCode rotate subprocesses between tool calls;
+    """Codex / Claude Code VSCode rotate subprocesses between tool calls;
     the presence file's pid references one that already exited while the
     same session continues.  Heartbeat (last_tool_at) wins — without this,
-    cursor kept showing 'offline' in the live-agents panel even while
+    the agent kept showing 'offline' in the live-agents panel even while
     actively writing code."""
     now = int(time.time())
     dead_pid = 2**31 - 1
     _write_presence(
         fake_project,
-        "cursor",
-        "ses-cursor-subproc-rotated",
+        "codex",
+        "ses-codex-subproc-rotated",
         pid=dead_pid,
         last_tool_at=now - 5,  # fresh heartbeat within ACTIVE window
     )
-    assert board_routes._presence_state("cursor") == "active"
+    assert board_routes._presence_state("codex") == "active"
 
 
 def test_dead_pid_with_heartbeat_past_active_is_offline(fake_project):
@@ -238,11 +238,11 @@ def test_agent_state_falls_back_to_db_as_present(fake_project, monkeypatch):
         "INSERT INTO task_status_history "
         "(task_id, old_status, new_status, agent_session, reason, transitioned_at) "
         "VALUES (?, ?, ?, ?, ?, ?)",
-        ("TASK-X", "icebox", "ready", "ses-cursor-legacy", None, now - 10),
+        ("TASK-X", "icebox", "ready", "ses-codex-legacy", None, now - 10),
     )
     conn.commit()
     try:
-        assert board_routes._agent_state(conn, "cursor") == "present"
+        assert board_routes._agent_state(conn, "codex") == "present"
         assert board_routes._agent_state(conn, "claude") == "offline"
     finally:
         conn.close()

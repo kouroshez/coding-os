@@ -152,7 +152,7 @@ NOTE: Codex PreToolUse/PostToolUse only support the Bash tool.
       hardcoded-literals) is Claude-only until Codex adds those events.
 ```
 
-### Intent enforcement layer (TASK-004) — Claude / Cursor only
+### Intent enforcement layer (TASK-004) — Claude only
 
 The 8 hooks introduced by the intent enforcement layer (TASK-004 phase P
 — intent-primer, detect-exhaustive-intent, enforce-audit-artifact,
@@ -161,13 +161,12 @@ enforce-count-grounding, enforce-subagent-delegation) all rely on at
 least one Codex-incapable matcher: `SessionStart compact|resume`,
 `PreToolUse Write|Edit`, or `Stop` with rich envelopes.  The renderer
 emits **0/8** for the Codex adapter and **10/10 matcher pairs for
-Claude** (full coverage); Cursor renders the single SessionStart
-event-only entry it supports.
+Claude** (full coverage).
 
 Codex CLI users therefore receive **no intent-enforcement coverage**
 under exhaustive-scope prompts — the agent sees no SessionStart prime,
 no detect-exhaustive-intent classifier, no Stop guardian.  The
-contract is enforced live only on Claude / Cursor sessions.  When
+contract is enforced live only on Claude sessions.  When
 OpenAI ships `Write|Edit` matchers (and a richer Stop envelope), update
 `src/adapters/codex/adapter.yaml::hook_capabilities` and re-run
 `make regen-adapter-templates`; no other code changes are needed.
@@ -251,8 +250,8 @@ runtime_session_marker:
 Resolution order (highest first), implemented once in core:
 
 1. `$COS_PANEL_ID` — explicit caller override (tests, manual debug).
-2. Stdin `session_id` (or `sessionId`) — set by `cos_panel_upgrade_from_payload` after the hook reads stdin. **Strongest signal**; Claude/Codex/Cursor hook specs all carry it.
-3. The adapter's `env_vars` list, probed in declared order. cos-env.sh today probes the union across all adapters (`CLAUDE_CODE_SESSION_ID` · `CLAUDE_SESSION_ID` · `CURSOR_SESSION_ID` · `CURSOR_TRACE_ID` · `CODEX_SESSION_ID` · `GEMINI_SESSION_ID` · `ANTHROPIC_SESSION_ID`) so an env var set by any adapter wins regardless of which adapter currently owns the hook subprocess. **(TASK-054: `CLAUDE_CODE_SESSION_ID` is what Claude Code actually exports — the originally-listed `CLAUDE_SESSION_ID` never matched, so Claude hooks fell to the PPID fallback and scattered state; corrected & verified 2026-06-01.)**
+2. Stdin `session_id` (or `sessionId`) — set by `cos_panel_upgrade_from_payload` after the hook reads stdin. **Strongest signal**; Claude/Codex hook specs all carry it.
+3. The adapter's `env_vars` list, probed in declared order. cos-env.sh today probes the union across all adapters (`CLAUDE_CODE_SESSION_ID` · `CLAUDE_SESSION_ID` · `CODEX_SESSION_ID` · `GEMINI_SESSION_ID` · `ANTHROPIC_SESSION_ID`) so an env var set by any adapter wins regardless of which adapter currently owns the hook subprocess. **(TASK-054: `CLAUDE_CODE_SESSION_ID` is what Claude Code actually exports — the originally-listed `CLAUDE_SESSION_ID` never matched, so Claude hooks fell to the PPID fallback and scattered state; corrected & verified 2026-06-01.)**
 4. PPID-derived hash — last-resort safety net for raw shell tests.
 
 **Adding a new adapter** (e.g. `src/adapters/gemini/`) requires zero code change in `src/core/`: drop a `runtime_session_marker` block into `src/adapters/gemini/adapter.yaml` declaring its env var(s) and stdin field, then the per-panel routing in `cos-env.sh` / `write-state.sh` / `check-state.sh` / `session-context.sh` works for that adapter immediately. The data-drivenness is enforced by Rule 11 — `tests/test_no_hardcoded_anthropic.py` would catch any leak of an adapter-specific session var into `src/core/` or `src/cli/`.
