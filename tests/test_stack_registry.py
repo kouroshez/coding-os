@@ -22,7 +22,7 @@ def _write_stack(base: Path, stack_id: str, extra: str = "") -> Path:
     # contract (backend/frontend/mobile each require routing+verify keys via
     # the schema allOf). These discovery tests don't assert on category.
     (stack_dir / "stack.yaml").write_text(
-        f"version: 1\nid: {stack_id}\nlabel: Test Stack\ncategory: library\n{extra}",
+        f"version: 1\nid: {stack_id}\nlanguage: python\nlabel: Test Stack\ncategory: library\n{extra}",
         encoding="utf-8",
     )
     return stack_dir
@@ -77,7 +77,7 @@ def test_mismatched_id_skipped(tmp_path: Path) -> None:
     # category: library so schema validation passes and the loader reaches
     # the dir-name/id mismatch check — that mismatch is what this test asserts.
     (stack_dir / "stack.yaml").write_text(
-        "version: 1\nid: wrong-name\nlabel: X\ncategory: library\n",
+        "version: 1\nid: wrong-name\nlanguage: python\nlabel: X\ncategory: library\n",
         encoding="utf-8",
     )
     result = load_stack_registry(tmp_path)
