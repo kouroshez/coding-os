@@ -39,3 +39,6 @@ references: []
 
 ## Work Log
 - 2026-06-15 [claude]: Next-session plan (handoff): retire per-Edit Work Log -> git-derived, DB-backed HISTORY. Start by reading board_os work-
+- 2026-06-15 [claude]: SCOUT VERDICT (2026-06-15): NOT a safe 1-commit change — fresh-context, 6-phase task with an IRREVERSIBLE v43 schema mig
+- 2026-06-15 [claude]: P1 table task_commit_links(task_id,commit_sha,subject,author,committed_at,source,linked_at; UNIQUE(task_id,commit_sha);
+- 2026-06-15 [claude]: READER: cos_task_history (mcp_tools.py:2789) drop _git_commits_from_worklog(2660)+_worklog_events(2745); SELECT from tas
