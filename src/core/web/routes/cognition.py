@@ -608,6 +608,37 @@ def _chat_session_options(profile, sdk, *, cwd, model, system_prompt, effort=Non
     return sdk.ClaudeAgentOptions(**kwargs)
 
 
+_CHAT_PRESENCE_WRITER = None
+_CHAT_PRESENCE_TRIED = False
+
+
+def _chat_presence_write(cwd: str, sid: str, event: str) -> None:
+    """Fire-and-forget Hub-chat presence so the chat shows in the Live-agents HUD (P13)."""
+    # Reuse the adapter's unified 12-key writer and stamp the long-lived host
+    # pid, so the board's glob reader sees the live chat session (the chat path
+    # fires no shell hooks, so nothing else writes its presence).
+    global _CHAT_PRESENCE_WRITER, _CHAT_PRESENCE_TRIED
+    try:
+        if not _CHAT_PRESENCE_TRIED:
+            _CHAT_PRESENCE_TRIED = True
+            import importlib.util
+            from pathlib import Path as _Path
+
+            path = _Path(__file__).resolve().parents[3] / "adapters" / "claude" / "sdk_dispatcher.py"
+            spec = importlib.util.spec_from_file_location("cos_adapter_claude_presence", path)
+            if spec and spec.loader:
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                _CHAT_PRESENCE_WRITER = getattr(mod, "_presence_write", None)
+        if _CHAT_PRESENCE_WRITER is not None:
+            import os
+            from pathlib import Path as _Path
+
+            _CHAT_PRESENCE_WRITER(_Path(cwd), "claude", sid, event, pid=os.getpid())
+    except Exception as exc:
+        logger.debug("chat presence write skipped (%s): %s", event, exc)
+
+
 def _serialize_session_info(info: Any) -> dict:
     return {
         "session_id": getattr(info, "session_id", None),
@@ -988,6 +1019,7 @@ async def chat_new(
                         )
                         yield _sse_chunk("session", {"session_id": resolved_id})
                         emitted_session = True
+                        _chat_presence_write(cwd, resolved_id, "prompt")
                 kind = type(event).__name__.lower().replace("message", "") or "event"
                 yield _sse_chunk(kind, _safe_serialize(event))
         except asyncio.CancelledError:
@@ -1005,6 +1037,7 @@ async def chat_new(
                 new_session_id,
             )
             yield _sse_chunk("session", {"session_id": resolved_id})
+        _chat_presence_write(cwd, resolved_id, "stop")
         yield _sse_chunk("done", {"session_id": resolved_id})
 
     return StreamingResponse(
@@ -1414,6 +1447,7 @@ async def chat_send(
         yield _sse_chunk(
             "started", {"session_id": session_id, "prompt": prompt[:200], "fork": fork}
         )
+        _chat_presence_write(cwd, session_id, "prompt")
         emitted_kinds: list[str] = []
         try:
             async for event in sdk.query(prompt=prompt, options=options):
@@ -1438,6 +1472,7 @@ async def chat_send(
             session_id,
             ",".join(emitted_kinds) or "(none)",
         )
+        _chat_presence_write(cwd, session_id, "stop")
         yield _sse_chunk("done", {"session_id": session_id})
 
     return StreamingResponse(
