@@ -583,7 +583,15 @@ export default function OnboardingWizard({
               aria-expanded={advancedOpen}
               className="flex w-full items-center justify-between rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)]/40 px-3 py-2 text-xs font-medium text-[var(--cos-text)] hover:border-[var(--accent)]/60"
             >
-              <span>Advanced — agents &amp; skills</span>
+              <span>
+                Advanced — agents &amp; skills
+                {!advancedOpen && (
+                  <span className="text-[var(--cos-faint)]">
+                    {` · ${state.agents.length} agent${state.agents.length === 1 ? '' : 's'}`}
+                    {state.extraSkills.length > 0 ? `, ${state.extraSkills.length} skill${state.extraSkills.length === 1 ? '' : 's'} on` : ''}
+                  </span>
+                )}
+              </span>
               <span aria-hidden="true" className="text-[var(--cos-muted)]">{advancedOpen ? '▲' : '▼'}</span>
             </button>
 
@@ -719,9 +727,20 @@ export default function OnboardingWizard({
             )}
 
             <div className="mt-4 border-t border-[var(--cos-border)] pt-3">
-              <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--cos-muted)]">Always included</div>
-              <p className="text-[11px] leading-snug text-[var(--cos-faint)]">
-                {CORE_SKILLS.join(' · ')} — the universal core every project gets.
+              <div className="mb-1.5 text-[10px] uppercase tracking-wide text-[var(--cos-muted)]">Core skills — always on</div>
+              <div className="flex flex-wrap gap-1">
+                {CORE_SKILLS.map((name) => (
+                  <span
+                    key={name}
+                    title="The cognitive floor — installed on every project, cannot be removed."
+                    className="inline-flex items-center gap-1 rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--accent)]"
+                  >
+                    <span aria-hidden="true">✓</span>{name}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[10px] leading-snug text-[var(--cos-faint)]">
+                The cognitive floor — memory, structure, discipline. Installed on every project.
               </p>
             </div>
           </div>
