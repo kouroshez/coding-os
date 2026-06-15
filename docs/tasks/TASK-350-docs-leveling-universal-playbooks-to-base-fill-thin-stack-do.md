@@ -5,18 +5,17 @@ swimlane: docs
 kind: docs
 epic: F-docs
 labels: [wave-5, onboarding-program, ready]
-status: icebox
+status: in_progress
 priority: P2
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-14
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-350: Docs leveling — universal playbooks to _base + fill thin-stack docs to django baseline
 
 **Outcome (one sentence):** security-review + research-validation playbooks move to _base with per-stack overlays (django's copies deleted, not duplicated); fastapi/go/go-fiber/react-native/python scaffold docs reach the django baseline (>=1 playbook + engineering rules each); docs-lint green.
@@ -41,3 +40,4 @@ references: []
 `git restore` the moved/added scaffold docs and the thin-stack docs, restore django's two playbook copies, then re-run `make manifest-regen` to revert scaffold_manifest.json; docs + derived manifest only, so no schema or runtime change.
 
 ## Work Log
+- 2026-06-15 [claude]: commit 40a8240def — test(registry): add required language field to stack fixtures

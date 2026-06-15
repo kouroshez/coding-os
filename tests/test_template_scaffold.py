@@ -295,6 +295,13 @@ class TestNextjsOverlay:
     def test_creates_docs_governance_playbook(self, nextjs_project: Path) -> None:
         assert (nextjs_project / "docs" / "playbooks" / "docs-governance.md").exists()
 
+    def test_inherits_base_universal_playbooks(self, nextjs_project: Path) -> None:
+        # security-review + research-validation moved to _base (TASK-350): a
+        # non-django composition must still get them via _base inheritance.
+        playbooks = nextjs_project / "docs" / "playbooks"
+        assert (playbooks / "security-review.md").exists()
+        assert (playbooks / "research-validation.md").exists()
+
     def test_creates_frontend_engineering_rules(self, nextjs_project: Path) -> None:
         eng = nextjs_project / "docs" / "engineering"
         for required in (

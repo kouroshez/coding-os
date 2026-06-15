@@ -220,13 +220,15 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 219
+      "count": 221
     },
     "claude_angular": {
       "agent": "claude",
@@ -455,6 +457,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/angular-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -473,7 +477,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -702,6 +706,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/aspnet-core-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -713,7 +719,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 233
     },
     "claude_astro": {
       "agent": "claude",
@@ -940,6 +946,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/astro-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -955,7 +963,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 235
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1178,6 +1186,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -1186,7 +1196,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 224
     },
     "claude_django": {
       "agent": "claude",
@@ -1661,13 +1671,15 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/fastapi-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 228
+      "count": 230
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1896,6 +1908,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/flutter-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -1909,7 +1923,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 235
     },
     "claude_go": {
       "agent": "claude",
@@ -2143,13 +2157,15 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/go-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 233
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2383,13 +2399,15 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/fiber-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 233
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2612,6 +2630,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -2620,7 +2640,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 224
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2843,6 +2863,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -2851,7 +2873,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 224
     },
     "claude_laravel": {
       "agent": "claude",
@@ -3078,6 +3100,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/laravel-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -3089,7 +3113,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 231
     },
     "claude_meta": {
       "agent": "claude",
@@ -3354,13 +3378,15 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 262
+      "count": 264
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3587,6 +3613,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/nestjs-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -3602,7 +3630,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 235
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -3846,13 +3874,15 @@
         "docs/playbooks/content-seo.md",
         "docs/playbooks/docs-governance.md",
         "docs/playbooks/frontend-ui.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 243
     },
     "claude_node-express": {
       "agent": "claude",
@@ -4079,6 +4109,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/express-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -4091,7 +4123,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 232
     },
     "claude_python": {
       "agent": "claude",
@@ -4315,13 +4347,15 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/python-library.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 221
+      "count": 223
     },
     "claude_rails": {
       "agent": "claude",
@@ -4550,6 +4584,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/rails-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -4564,7 +4600,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 236
     },
     "claude_react-native": {
       "agent": "claude",
@@ -4806,6 +4842,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/mobile-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -4814,7 +4852,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 243
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -5037,6 +5075,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -5045,7 +5085,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 224
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5273,7 +5313,9 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
         "docs/playbooks/rust-axum-service.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -5286,7 +5328,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 234
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5509,6 +5551,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -5517,7 +5561,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 224
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -5745,6 +5789,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/playbooks/spring-boot-service.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
@@ -5758,7 +5804,7 @@
         "src/backend/src/main/java/com/example/app/health/HealthStatus.java",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 234
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -5984,6 +6030,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/playbooks/svelte-sveltekit-app.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
@@ -6003,7 +6051,7 @@
         "src/frontend/vite.config.ts",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 238
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6226,6 +6274,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -6234,7 +6284,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 222
+      "count": 224
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6461,6 +6511,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/nuxt-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -6471,7 +6523,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 228
+      "count": 230
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -6695,6 +6747,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/playbooks/wordpress-service.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
@@ -6705,7 +6759,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 227
     },
     "codex_base": {
       "agent": "codex",
@@ -6929,13 +6983,15 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 225
     },
     "codex_angular": {
       "agent": "codex",
@@ -7168,6 +7224,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/angular-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -7186,7 +7244,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 244
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7419,6 +7477,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/aspnet-core-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -7430,7 +7490,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 237
     },
     "codex_astro": {
       "agent": "codex",
@@ -7661,6 +7721,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/astro-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -7676,7 +7738,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 239
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -7903,6 +7965,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -7911,7 +7975,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 228
     },
     "codex_django": {
       "agent": "codex",
@@ -8394,13 +8458,15 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/fastapi-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 234
     },
     "codex_flutter": {
       "agent": "codex",
@@ -8633,6 +8699,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/flutter-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -8646,7 +8714,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 239
     },
     "codex_go": {
       "agent": "codex",
@@ -8884,13 +8952,15 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/go-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 237
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9128,13 +9198,15 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/fiber-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 237
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -9361,6 +9433,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -9369,7 +9443,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 228
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -9596,6 +9670,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -9604,7 +9680,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 228
     },
     "codex_laravel": {
       "agent": "codex",
@@ -9835,6 +9911,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/laravel-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -9846,7 +9924,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 235
     },
     "codex_meta": {
       "agent": "codex",
@@ -10115,13 +10193,15 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 266
+      "count": 268
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -10352,6 +10432,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/nestjs-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -10367,7 +10449,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 239
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -10615,13 +10697,15 @@
         "docs/playbooks/content-seo.md",
         "docs/playbooks/docs-governance.md",
         "docs/playbooks/frontend-ui.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 247
     },
     "codex_node-express": {
       "agent": "codex",
@@ -10852,6 +10936,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/express-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -10864,7 +10950,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 236
     },
     "codex_python": {
       "agent": "codex",
@@ -11092,13 +11178,15 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/python-library.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 227
     },
     "codex_rails": {
       "agent": "codex",
@@ -11331,6 +11419,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/rails-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -11345,7 +11435,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "codex_react-native": {
       "agent": "codex",
@@ -11591,6 +11681,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/mobile-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -11599,7 +11691,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 247
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -11826,6 +11918,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -11834,7 +11928,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 228
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -12066,7 +12160,9 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
         "docs/playbooks/rust-axum-service.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -12079,7 +12175,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 238
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -12306,6 +12402,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -12314,7 +12412,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 228
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -12546,6 +12644,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/playbooks/spring-boot-service.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
@@ -12559,7 +12659,7 @@
         "src/backend/src/main/java/com/example/app/health/HealthStatus.java",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 238
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -12789,6 +12889,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/playbooks/svelte-sveltekit-app.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
@@ -12808,7 +12910,7 @@
         "src/frontend/vite.config.ts",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 242
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -13035,6 +13137,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -13043,7 +13147,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 226
+      "count": 228
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -13274,6 +13378,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/nuxt-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -13284,7 +13390,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 234
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -13512,6 +13618,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/playbooks/wordpress-service.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
@@ -13522,7 +13630,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 231
     },
     "cursor_base": {
       "agent": "cursor",
@@ -13747,13 +13855,15 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 224
+      "count": 226
     },
     "cursor_angular": {
       "agent": "cursor",
@@ -13987,6 +14097,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/angular-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -14005,7 +14117,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 245
     },
     "cursor_aspnet-core": {
       "agent": "cursor",
@@ -14239,6 +14351,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/aspnet-core-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -14250,7 +14364,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 238
     },
     "cursor_astro": {
       "agent": "cursor",
@@ -14482,6 +14596,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/astro-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -14497,7 +14613,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "cursor_csharp-plain": {
       "agent": "cursor",
@@ -14725,6 +14841,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -14733,7 +14851,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 229
     },
     "cursor_django": {
       "agent": "cursor",
@@ -15218,13 +15336,15 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/fastapi-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 235
     },
     "cursor_flutter": {
       "agent": "cursor",
@@ -15458,6 +15578,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/flutter-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -15471,7 +15593,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "cursor_go": {
       "agent": "cursor",
@@ -15710,13 +15832,15 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/go-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 238
     },
     "cursor_go-fiber": {
       "agent": "cursor",
@@ -15955,13 +16079,15 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/fiber-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 238
     },
     "cursor_go-plain": {
       "agent": "cursor",
@@ -16189,6 +16315,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -16197,7 +16325,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 229
     },
     "cursor_java-plain": {
       "agent": "cursor",
@@ -16425,6 +16553,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -16433,7 +16563,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 229
     },
     "cursor_laravel": {
       "agent": "cursor",
@@ -16665,6 +16795,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/laravel-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -16676,7 +16808,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 236
     },
     "cursor_meta": {
       "agent": "cursor",
@@ -16946,13 +17078,15 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 267
+      "count": 269
     },
     "cursor_nestjs": {
       "agent": "cursor",
@@ -17184,6 +17318,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/nestjs-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -17199,7 +17335,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "cursor_nextjs": {
       "agent": "cursor",
@@ -17448,13 +17584,15 @@
         "docs/playbooks/content-seo.md",
         "docs/playbooks/docs-governance.md",
         "docs/playbooks/frontend-ui.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 248
     },
     "cursor_node-express": {
       "agent": "cursor",
@@ -17686,6 +17824,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/express-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -17698,7 +17838,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 237
     },
     "cursor_python": {
       "agent": "cursor",
@@ -17927,13 +18067,15 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/python-library.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 228
     },
     "cursor_rails": {
       "agent": "cursor",
@@ -18167,6 +18309,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/rails-service.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -18181,7 +18325,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 241
     },
     "cursor_react-native": {
       "agent": "cursor",
@@ -18428,6 +18572,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/mobile-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -18436,7 +18582,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 248
     },
     "cursor_ruby-plain": {
       "agent": "cursor",
@@ -18664,6 +18810,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -18672,7 +18820,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 229
     },
     "cursor_rust-axum": {
       "agent": "cursor",
@@ -18905,7 +19053,9 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
         "docs/playbooks/rust-axum-service.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -18918,7 +19068,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 239
     },
     "cursor_rust-plain": {
       "agent": "cursor",
@@ -19146,6 +19296,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -19154,7 +19306,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 229
     },
     "cursor_spring-boot": {
       "agent": "cursor",
@@ -19387,6 +19539,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/playbooks/spring-boot-service.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
@@ -19400,7 +19554,7 @@
         "src/backend/src/main/java/com/example/app/health/HealthStatus.java",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 239
     },
     "cursor_svelte-sveltekit": {
       "agent": "cursor",
@@ -19631,6 +19785,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/playbooks/svelte-sveltekit-app.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
@@ -19650,7 +19806,7 @@
         "src/frontend/vite.config.ts",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 243
     },
     "cursor_typescript-plain": {
       "agent": "cursor",
@@ -19878,6 +20034,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -19886,7 +20044,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 227
+      "count": 229
     },
     "cursor_vue-nuxt": {
       "agent": "cursor",
@@ -20118,6 +20276,8 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/nuxt-app.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
@@ -20128,7 +20288,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 235
     },
     "cursor_wordpress": {
       "agent": "cursor",
@@ -20357,6 +20517,8 @@
         "docs/ops/00-index.md",
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
+        "docs/playbooks/research-validation.md",
+        "docs/playbooks/security-review.md",
         "docs/playbooks/wordpress-service.md",
         "docs/prd/00-index.md",
         "docs/prd/01-snapshot-vision.md",
@@ -20367,7 +20529,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 232
     }
   }
 }
