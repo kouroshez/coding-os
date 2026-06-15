@@ -37,6 +37,19 @@ def _looks_like_cos_project(path: Path) -> bool:
         return False
 
 
+def _is_hub_state_dir(coding_os: Path) -> bool:
+    """True when this .coding-os/ is the GLOBAL hub state dir, not a project's.
+
+    The global ~/.coding-os/ carries the hub registry + pid; a project's
+    .coding-os/ never does (hub-architecture.md § address spaces). Lets the
+    home/global dir be rejected as a phantom "runtime-cwd" project.
+    """
+    try:
+        return (coding_os / "registry.json").is_file() or (coding_os / "hub.pid").is_file()
+    except OSError:
+        return False
+
+
 def _is_meta_repo(path: Path) -> bool:
     """True when `path` is the coding-os meta-repo checkout itself.
 
@@ -124,7 +137,17 @@ def _resolve_slug_from_registry(cwd: Path) -> str:
 def _derive_runtime_entry() -> dict | None:
     """Return an in-memory entry for the cwd project when it's a cos repo."""
     cwd = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
+    # $HOME hosts the GLOBAL hub state at ~/.coding-os/ — never a project.
+    try:
+        if cwd == Path.home().resolve():
+            return None
+    except (OSError, RuntimeError):
+        pass
     if not _looks_like_cos_project(cwd):
+        return None
+    # A .coding-os/ carrying the hub registry/pid is the global state dir,
+    # not a project root (e.g. the Hub booted from a non-home COS_HOME).
+    if _is_hub_state_dir(cwd / ".coding-os"):
         return None
     # .coding-os/ only exists at the project root.  A nested .coding-os/
     # inside another project (e.g. src/core/web/ui/.coding-os/ left over
@@ -374,12 +397,26 @@ def _cos_init_command() -> list[str]:
     return [found] if found else [sys.executable, "-m", "cli.main"]
 
 
+def _resolve_agents(agent: str, agents: list[str] | None) -> list[str]:
+    """Merge the single `agent` (back-compat) + `agents` list into a deduped,
+    order-preserving list; defaults to ['claude'] when both are empty.
+
+    A project may legitimately host several adapters (.claude/ + .codex/) —
+    the CLI already supports `--agent claude,codex` (main.py::_parse_agents)."""
+    merged: list[str] = []
+    for candidate in [*(agents or []), agent]:
+        token = (candidate or "").strip()
+        if token and token not in merged:
+            merged.append(token)
+    return merged or ["claude"]
+
+
 def _validate_init_inputs(
     name: str,
     parent_dir: str,
     stacks: list[str],
     preset: str,
-    agent: str,
+    agents: list[str],
     extra_skills: list[str] | None = None,
 ) -> tuple[JSONResponse | dict | None, dict]:
     """Shared dry-run validation for validate-init AND registry/init (SSOT).
@@ -457,11 +494,18 @@ def _validate_init_inputs(
         adapter_reg = load_adapter_registry(adapters_dir())
     except Exception as exc:
         return _err("unavailable", f"adapter registry unavailable: {exc}", status=503), {}
-    if agent not in adapter_reg:
+    if not agents:
+        return _err("validation", "at least one agent is required"), {}
+    unknown_agents = [a for a in agents if a not in adapter_reg]
+    if unknown_agents:
         return (
-            _err("validation", f"unknown agent '{agent}' — available: {sorted(adapter_reg)}"),
+            _err(
+                "validation",
+                f"unknown agent(s) {unknown_agents} — available: {sorted(adapter_reg)}",
+            ),
             {},
         )
+    info["agents"] = list(agents)
 
     # Argv allowlist (TASK-363): every value that reaches the subprocess argv
     # is validated against a registry — skills included.
@@ -487,12 +531,14 @@ def hub_registry_validate_init(
     parent_dir: str = Body(..., embed=True),
     stacks: list[str] = Body(default_factory=list, embed=True),
     preset: str = Body("", embed=True),
-    agent: str = Body("claude", embed=True),
+    agent: str = Body("", embed=True),
+    agents: list[str] = Body(default_factory=list, embed=True),
     extra_skills: list[str] = Body(default_factory=list, embed=True),
 ):
     """Dry-run validation + merged-config preview for the onboarding wizard (TASK-358)."""
+    resolved_agents = _resolve_agents(agent, agents)
     error, info = _validate_init_inputs(
-        name, parent_dir, stacks, preset, agent, extra_skills=extra_skills
+        name, parent_dir, stacks, preset, resolved_agents, extra_skills=extra_skills
     )
     if error is not None:
         return error
@@ -518,6 +564,7 @@ def hub_registry_validate_init(
             "auto_named": info["auto_named"],
             "target": str(info["target"]),
             "templates": info["templates"],
+            "agents": info["agents"],
             "swimlanes": swimlanes,
             "conflicts": conflicts,
         },
@@ -529,7 +576,7 @@ def _build_cos_init_cmd(
     name: str,
     parent_dir: str,
     stacks: list[str],
-    agent: str,
+    agents: list[str],
     preset: str = "",
     description: str = "",
     extra_skills: list[str] | None = None,
@@ -542,7 +589,7 @@ def _build_cos_init_cmd(
         "--project-dir",
         parent_dir,
         "--agent",
-        agent,
+        ",".join(agents),
         "--yes",
         "--no-index",
         "--format",
@@ -563,7 +610,7 @@ def _run_cos_init(
     name: str,
     parent_dir: str,
     stacks: list[str],
-    agent: str,
+    agents: list[str],
     preset: str = "",
     description: str = "",
     extra_skills: list[str] | None = None,
@@ -578,7 +625,7 @@ def _run_cos_init(
         name,
         parent_dir,
         stacks,
-        agent,
+        agents,
         preset=preset,
         description=description,
         extra_skills=extra_skills,
@@ -624,15 +671,17 @@ def hub_registry_init(
     stack: str = Body("", embed=True),
     stacks: list[str] = Body(default_factory=list, embed=True),
     preset: str = Body("", embed=True),
-    agent: str = Body("claude", embed=True),
+    agent: str = Body("", embed=True),
+    agents: list[str] = Body(default_factory=list, embed=True),
     description: str = Body("", embed=True),
     extra_skills: list[str] = Body(default_factory=list, embed=True),
     background: bool = Body(False, embed=True),
 ):
     """Scaffold a NEW project via `cos init` and register it (security-gated, TASK-249/358/362)."""
     all_stacks = [s for s in ((stacks or []) + ([stack] if stack else [])) if s]
+    resolved_agents = _resolve_agents(agent, agents)
     error, info = _validate_init_inputs(
-        name, parent_dir, all_stacks, preset, agent or "claude", extra_skills=extra_skills
+        name, parent_dir, all_stacks, preset, resolved_agents, extra_skills=extra_skills
     )
     if error is not None:
         return error
@@ -646,7 +695,7 @@ def hub_registry_init(
             info["name"],
             str(info["parent"]),
             all_stacks,
-            agent or "claude",
+            resolved_agents,
             preset=preset,
             description=description or "",
             extra_skills=extra_skills or [],
@@ -665,7 +714,7 @@ def hub_registry_init(
         info["name"],
         str(info["parent"]),
         all_stacks,
-        agent or "claude",
+        resolved_agents,
         preset=preset,
         description=description or "",
         extra_skills=extra_skills or [],
@@ -682,6 +731,7 @@ def hub_registry_init(
             "path": str(target),
             "stack": (all_stacks[0] if all_stacks else None),
             "stacks": all_stacks,
+            "agents": resolved_agents,
             "preset": preset or None,
             "auto_named": info["auto_named"],
         },

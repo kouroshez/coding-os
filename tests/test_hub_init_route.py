@@ -233,13 +233,13 @@ class TestWizardCreateFlow:
         hand-typed init produce identical projects (TASK-359 parity)."""
         calls: list[dict] = []
 
-        def _fake(name, parent_dir, stacks, agent, preset="", description="",
+        def _fake(name, parent_dir, stacks, agents, preset="", description="",
                   extra_skills=None, timeout=180):
             calls.append(
                 {
                     "name": name,
                     "stacks": stacks,
-                    "agent": agent,
+                    "agents": agents,
                     "preset": preset,
                     "description": description,
                     "extra_skills": extra_skills,
@@ -267,12 +267,57 @@ class TestWizardCreateFlow:
             {
                 "name": data["slug"],
                 "stacks": ["nextjs", "fastapi"],
-                "agent": "claude",
+                "agents": ["claude"],
                 "preset": "",
                 "description": "A two-paragraph product description.",
                 "extra_skills": ["redis", "docker"],
             }
         ]
+
+    def test_multi_agent_create_installs_both_adapters(self, hub_env, monkeypatch):
+        """A project may host several adapters: agents=[claude,codex] reaches
+        the scaffolder as a list and echoes back in the response (TASK-419)."""
+        calls: list[dict] = []
+
+        def _fake(name, parent_dir, stacks, agents, preset="", description="",
+                  extra_skills=None, timeout=180):
+            calls.append({"agents": agents})
+            (Path(parent_dir) / name).mkdir(parents=True)
+            return (True, {"slug": name}, "")
+
+        _patch_init(monkeypatch, _fake)
+        with _client() as client:
+            resp = client.post(
+                "/api/hub/registry/init",
+                json={
+                    "name": "multi",
+                    "parent_dir": str(hub_env),
+                    "stacks": ["python"],
+                    "agents": ["claude", "codex"],
+                },
+            )
+        assert resp.status_code == 200, resp.text
+        assert calls == [{"agents": ["claude", "codex"]}]
+        assert resp.json()["data"]["agents"] == ["claude", "codex"]
+
+    def test_validate_init_echoes_resolved_agents_and_rejects_unknown(self, hub_env):
+        """validate-init surfaces the resolved agent list for the live preview
+        and rejects an unknown adapter in the list (TASK-419)."""
+        with _client() as client:
+            good = client.post(
+                "/api/hub/registry/validate-init",
+                json={"parent_dir": str(hub_env), "stacks": ["python"],
+                      "agents": ["claude", "codex"]},
+            )
+            bad = client.post(
+                "/api/hub/registry/validate-init",
+                json={"parent_dir": str(hub_env), "stacks": ["python"],
+                      "agents": ["claude", "no-such"]},
+            )
+        assert good.status_code == 200, good.text
+        assert good.json()["data"]["agents"] == ["claude", "codex"]
+        assert bad.status_code == 400
+        assert "no-such" in bad.json()["error"]["message"]
 
     def test_preset_and_stacks_mutually_exclusive(self, hub_env):
         with _client() as client:

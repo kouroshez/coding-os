@@ -90,6 +90,42 @@ def test_cwd_not_duplicated_when_already_registered(hub_fixture):
     assert len(matching) == 1
 
 
+def test_home_dir_is_not_a_runtime_project(hub_fixture, monkeypatch):
+    """$HOME hosts the GLOBAL hub state at ~/.coding-os/ — it must never
+    surface as a phantom 'live cwd' project. Regression for the home dir
+    showing up as a project card when the Hub boots from $HOME (TASK-419).
+    """
+    home = hub_fixture["tmp"] / "home"
+    (home / ".coding-os").mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(home))
+    monkeypatch.chdir(home)
+
+    with _client() as client:
+        resp = client.get("/api/hub/projects")
+    data = resp.json()
+    paths = {Path(p["path"]).resolve() for p in data["projects"]}
+    assert home.resolve() not in paths
+
+
+def test_hub_state_dir_is_not_a_runtime_project(hub_fixture, monkeypatch):
+    """A .coding-os/ carrying the hub registry (registry.json) is the GLOBAL
+    state dir, not a project — it must not surface even when it is the cwd
+    (e.g. the Hub booted from a non-home COS_HOME). TASK-419.
+    """
+    state = hub_fixture["tmp"] / "cos-home"
+    (state / ".coding-os").mkdir(parents=True)
+    (state / ".coding-os" / "registry.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(state))
+    monkeypatch.chdir(state)
+
+    with _client() as client:
+        resp = client.get("/api/hub/projects")
+    data = resp.json()
+    paths = {Path(p["path"]).resolve() for p in data["projects"]}
+    assert state.resolve() not in paths
+
+
 def test_nested_coding_os_is_not_a_project(hub_fixture, monkeypatch):
     """A stray .coding-os/ inside a registered project must NEVER appear.
 
