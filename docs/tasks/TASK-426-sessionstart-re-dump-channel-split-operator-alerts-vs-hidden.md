@@ -45,3 +45,4 @@ Drive a long Claude Code session to the context ceiling (~430k). The runtime aut
 - 2026-06-15 [claude]: Edit session-context.sh
 - 2026-06-15 [claude]: Edit verify_ss.py
 - 2026-06-15 [claude]: Implemented channel split in session-context.sh: SS_VISIBLE (uncommitted-work, active-tasks) -> stderr; SS_HIDDEN (recov
+- 2026-06-15 [claude]: committed cae258bc: docs/engineering/state-files.md, src/core/hooks/session-context.sh, src/core/rules/transparency-bann
