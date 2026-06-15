@@ -330,8 +330,12 @@ pre-selected into `extra_skills` (the scaffold only auto-links a stack's own
 skill dirs, so curated core companions must ride `--skills`); unshipped
 (`validated:false`) skills are filtered out of the selectable set. Built on the
 shared `Modal` + `ActionPill` primitives and `--cos-*` tokens. The job-progress
-view + cancel (TASK-362) are unchanged. Module toggles at create time are a
-follow-up — modules ship all-enabled and are toggled post-create in Config.
+view + cancel (TASK-362) are unchanged. **Module toggles at create (TASK-421):**
+the Advanced section lists subsystem modules from `GET /api/hub/modules`
+(`subsystems.yaml`); turning one off feeds `disabled_modules` →
+`cos init --disable-module <id>` (kernel locked; the `tasks → docs` dependency
+cascades in the UI and is re-checked by `set_module_enabled` at scaffold).
+Modules stay adjustable post-create in Config.
 
 **Project list never surfaces the global state dir.** `_derive_runtime_entry`
 auto-lists the cwd as a project when it has `.coding-os/`, but `$HOME` and any

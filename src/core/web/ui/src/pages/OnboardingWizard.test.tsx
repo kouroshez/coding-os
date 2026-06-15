@@ -32,6 +32,14 @@ const FIXTURES: Record<string, unknown> = {
     ],
   },
   '/api/hub/skills': { skills: [] },
+  '/api/hub/modules': {
+    modules: [
+      { id: 'kernel', label: 'Kernel — state, env', kernel: true, depends_on: [] },
+      { id: 'docs', label: 'Docs system — SSOT docs', kernel: false, depends_on: [] },
+      { id: 'tasks', label: 'Task system — Scrumban', kernel: false, depends_on: ['docs'] },
+      { id: 'graph', label: 'Knowledge graph — queries', kernel: false, depends_on: [] },
+    ],
+  },
 };
 
 vi.mock('@/lib/hooks', () => ({
@@ -156,6 +164,26 @@ describe('Composer (TASK-419)', () => {
 
     FakeEventSource.instances[0].emit('succeeded', { status: 'succeeded', result: { slug: 'proj-abc123' } });
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith('proj-abc123'));
+  });
+
+  it('module toggles ride the init payload and respect the docs→tasks dependency', async () => {
+    renderComposer();
+    fireEvent.click(screen.getByText('Next.js + FastAPI full-stack'));
+    fireEvent.click(screen.getByRole('button', { name: /Advanced/ }));
+
+    expect(screen.getByTestId('module-kernel')).toBeDisabled(); // kernel always on
+
+    // Turn docs off → tasks (depends on docs) cascades off too.
+    fireEvent.click(screen.getByTestId('module-docs'));
+    expect(screen.getByTestId('module-docs')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('module-tasks')).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(screen.getByTestId('module-graph'));
+
+    await waitFor(() => expect(createBtn()).toBeEnabled());
+    fireEvent.click(createBtn());
+    await waitFor(() => expect(FakeEventSource.instances.length).toBe(1));
+    const initCall = apiPost.mock.calls.find(([p]) => String(p).endsWith('/registry/init'));
+    expect(initCall?.[1].disabled_modules).toEqual(expect.arrayContaining(['docs', 'tasks', 'graph']));
   });
 
   it('forwards the description and starts a job, reporting progress', async () => {

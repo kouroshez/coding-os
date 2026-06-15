@@ -23,6 +23,7 @@ import { slugifyProjectName } from './HubHome';
 interface PresetItem { id: string; label: string; description: string; stacks: string[] }
 interface StackItem { id: string; label: string; category: string; language: string }
 interface AdapterItem { id: string; label: string }
+interface ModuleItem { id: string; label: string; kernel: boolean; depends_on: string[] }
 interface SkillEntry {
   name: string; tier: string | null; domain: string[];
   description: string; provenance: string; validated: boolean;
@@ -69,6 +70,7 @@ interface ComposerState {
   stacks: string[];
   agents: string[];
   extraSkills: string[];
+  disabledModules: string[];
   name: string;
   skipName: boolean;
   description: string;
@@ -168,7 +170,7 @@ export default function OnboardingWizard({
 }) {
   const [state, setState] = useState<ComposerState>({
     mode: 'preset', preset: '', stacks: [], agents: ['claude'],
-    extraSkills: [], name: '', skipName: false, description: '',
+    extraSkills: [], disabledModules: [], name: '', skipName: false, description: '',
     parentDir: suggestions[0] ?? '',
   });
   const [error, setError] = useState<string | null>(null);
@@ -184,6 +186,7 @@ export default function OnboardingWizard({
   const { data: stacksData } = useApiGet<{ stacks: StackItem[] }>(['hub-stacks'], '/api/hub/stacks');
   const { data: adaptersData } = useApiGet<{ adapters: AdapterItem[] }>(['hub-adapters'], '/api/hub/adapters');
   const { data: catalogData } = useApiGet<{ skills: SkillEntry[] }>(['hub-skills'], '/api/hub/skills');
+  const { data: modulesData } = useApiGet<{ modules: ModuleItem[] }>(['hub-modules'], '/api/hub/modules');
 
   const selectedStacks = useMemo(() => {
     if (state.mode === 'preset') {
@@ -253,6 +256,7 @@ export default function OnboardingWizard({
         stacks: state.mode === 'custom' ? state.stacks : [],
         preset: state.mode === 'preset' ? state.preset : '',
         agents: state.agents,
+        disabled_modules: state.disabledModules,
       });
       setValidation(data);
     } catch (err) {
@@ -261,7 +265,7 @@ export default function OnboardingWizard({
     } finally {
       setValidating(false);
     }
-  }, [state.parentDir, state.skipName, state.name, state.mode, state.stacks, state.preset, state.agents]);
+  }, [state.parentDir, state.skipName, state.name, state.mode, state.stacks, state.preset, state.agents, state.disabledModules]);
 
   // Debounced live preview — re-validates whenever a relevant choice changes.
   useEffect(() => {
@@ -303,6 +307,22 @@ export default function OnboardingWizard({
   const toggle = (list: string[], id: string) =>
     list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
 
+  const moduleCatalog = modulesData?.modules ?? [];
+  const isModuleOn = (id: string) => !state.disabledModules.includes(id);
+  // Toggle a module, keeping the dependency graph valid (tasks needs docs):
+  // disabling a module also disables its dependents; enabling re-enables deps.
+  const toggleModule = (id: string) => setState((s) => {
+    const disabled = new Set(s.disabledModules);
+    if (disabled.has(id)) {
+      disabled.delete(id);
+      for (const dep of moduleCatalog.find((m) => m.id === id)?.depends_on ?? []) disabled.delete(dep);
+    } else {
+      disabled.add(id);
+      for (const m of moduleCatalog) if (m.depends_on.includes(id)) disabled.add(m.id);
+    }
+    return { ...s, disabledModules: [...disabled] };
+  });
+
   const slug = slugifyProjectName(state.name);
   // Empty name is fine — the backend assigns a temp slug (auto_named). Only a
   // non-empty name has to be a valid slug.
@@ -323,6 +343,7 @@ export default function OnboardingWizard({
         agents: state.agents,
         description: state.description,
         extra_skills: state.extraSkills,
+        disabled_modules: state.disabledModules,
         background: true,
       });
       setJob({ jobId: started.job_id, phase: 'validate', log: [], status: 'running', error: '' });
@@ -661,10 +682,31 @@ export default function OnboardingWizard({
                   </div>
                 )}
 
-                <p className="text-[11px] leading-snug text-[var(--cos-muted)]">
-                  Modules (task board, knowledge graph, memory, docs) are all enabled by default —
-                  toggle them anytime in <span className="font-medium text-[var(--cos-text)]">Config</span> after the project is created.
-                </p>
+                {moduleCatalog.length > 0 && (
+                  <div>
+                    <div className="mb-1.5 text-xs font-medium text-[var(--cos-text)]">
+                      Modules <span className="text-[var(--cos-faint)]">(on by default — turn off what you don&apos;t need)</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {moduleCatalog.map((m) => (
+                        <ToggleChip
+                          key={m.id}
+                          testId={`module-${m.id}`}
+                          active={isModuleOn(m.id)}
+                          locked={m.kernel}
+                          label={m.label.split(' — ')[0]}
+                          hint={m.kernel
+                            ? 'Kernel — always on'
+                            : (m.depends_on.length ? `needs: ${m.depends_on.join(', ')}` : m.label)}
+                          onClick={m.kernel ? undefined : () => toggleModule(m.id)}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-1.5 text-[11px] leading-snug text-[var(--cos-muted)]">
+                      Kernel is always on. Turning a module off also turns off anything that depends on it. Adjustable later in Config.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </section>

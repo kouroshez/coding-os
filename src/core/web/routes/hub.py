@@ -338,6 +338,30 @@ def hub_adapters() -> dict:
     }
 
 
+@router.get("/modules")
+def hub_modules() -> dict:
+    """List subsystem modules (data-driven from src/core/subsystems.yaml) for the Composer."""
+    try:
+        from cli.subsystems import load_subsystems  # type: ignore
+
+        registry = load_subsystems()
+    except Exception as exc:
+        return _err("unavailable", f"subsystem registry unavailable: {exc}", status=503)
+    modules = [
+        {
+            "id": m.id,
+            "label": m.label,
+            "kernel": m.kernel,
+            "depends_on": list(m.depends_on),
+        }
+        for m in registry.values()
+    ]
+    return {
+        "data": {"modules": modules, "count": len(modules)},
+        "meta": {"layer": "hub", "source": "hub.modules"},
+    }
+
+
 @router.get("/presets")
 def hub_presets() -> dict:
     """List project presets (data-driven from src/templates/_presets/*.yaml)."""
@@ -418,6 +442,7 @@ def _validate_init_inputs(
     preset: str,
     agents: list[str],
     extra_skills: list[str] | None = None,
+    disabled_modules: list[str] | None = None,
 ) -> tuple[JSONResponse | dict | None, dict]:
     """Shared dry-run validation for validate-init AND registry/init (SSOT).
 
@@ -507,6 +532,25 @@ def _validate_init_inputs(
         )
     info["agents"] = list(agents)
 
+    # Module toggles (TASK-421): validate against the subsystem registry —
+    # kernel is non-disableable; dependency-order disabling is handled at
+    # scaffold time (set_module_enabled refuses invalid chains).
+    disabled_modules = [m for m in (disabled_modules or []) if m]
+    if disabled_modules:
+        try:
+            from cli.subsystems import load_subsystems  # type: ignore
+
+            registry_modules = load_subsystems()
+        except Exception as exc:
+            return _err("unavailable", f"subsystem registry unavailable: {exc}", status=503), {}
+        unknown_mods = [m for m in disabled_modules if m not in registry_modules]
+        if unknown_mods:
+            return _err("validation", f"unknown module(s): {unknown_mods}"), {}
+        kernel_mods = [m for m in disabled_modules if registry_modules[m].kernel]
+        if kernel_mods:
+            return _err("validation", f"module(s) {kernel_mods} are kernel and cannot be disabled"), {}
+    info["disabled_modules"] = disabled_modules
+
     # Argv allowlist (TASK-363): every value that reaches the subprocess argv
     # is validated against a registry — skills included.
     if extra_skills:
@@ -534,11 +578,13 @@ def hub_registry_validate_init(
     agent: str = Body("", embed=True),
     agents: list[str] = Body(default_factory=list, embed=True),
     extra_skills: list[str] = Body(default_factory=list, embed=True),
+    disabled_modules: list[str] = Body(default_factory=list, embed=True),
 ):
     """Dry-run validation + merged-config preview for the onboarding wizard (TASK-358)."""
     resolved_agents = _resolve_agents(agent, agents)
     error, info = _validate_init_inputs(
-        name, parent_dir, stacks, preset, resolved_agents, extra_skills=extra_skills
+        name, parent_dir, stacks, preset, resolved_agents,
+        extra_skills=extra_skills, disabled_modules=disabled_modules,
     )
     if error is not None:
         return error
@@ -565,6 +611,7 @@ def hub_registry_validate_init(
             "target": str(info["target"]),
             "templates": info["templates"],
             "agents": info["agents"],
+            "disabled_modules": info["disabled_modules"],
             "swimlanes": swimlanes,
             "conflicts": conflicts,
         },
@@ -580,6 +627,7 @@ def _build_cos_init_cmd(
     preset: str = "",
     description: str = "",
     extra_skills: list[str] | None = None,
+    disabled_modules: list[str] | None = None,
 ) -> list[str]:
     """One argv builder for sync AND job-based init (parity stays in the CLI)."""
     cmd = _cos_init_command() + [
@@ -603,6 +651,8 @@ def _build_cos_init_cmd(
         cmd += ["--summary", description.strip()]
     if extra_skills:
         cmd += ["--skills", ",".join(extra_skills)]
+    for module_id in disabled_modules or []:
+        cmd += ["--disable-module", module_id]
     return cmd
 
 
@@ -614,6 +664,7 @@ def _run_cos_init(
     preset: str = "",
     description: str = "",
     extra_skills: list[str] | None = None,
+    disabled_modules: list[str] | None = None,
     timeout: int = 180,
 ):
     """Run `cos init` in a subprocess → (ok, payload, error).
@@ -629,6 +680,7 @@ def _run_cos_init(
         preset=preset,
         description=description,
         extra_skills=extra_skills,
+        disabled_modules=disabled_modules,
     )
     try:
         proc = subprocess.run(  # noqa: S603 — fixed argv list, never shell=True
@@ -675,13 +727,15 @@ def hub_registry_init(
     agents: list[str] = Body(default_factory=list, embed=True),
     description: str = Body("", embed=True),
     extra_skills: list[str] = Body(default_factory=list, embed=True),
+    disabled_modules: list[str] = Body(default_factory=list, embed=True),
     background: bool = Body(False, embed=True),
 ):
     """Scaffold a NEW project via `cos init` and register it (security-gated, TASK-249/358/362)."""
     all_stacks = [s for s in ((stacks or []) + ([stack] if stack else [])) if s]
     resolved_agents = _resolve_agents(agent, agents)
     error, info = _validate_init_inputs(
-        name, parent_dir, all_stacks, preset, resolved_agents, extra_skills=extra_skills
+        name, parent_dir, all_stacks, preset, resolved_agents,
+        extra_skills=extra_skills, disabled_modules=disabled_modules,
     )
     if error is not None:
         return error
@@ -699,6 +753,7 @@ def hub_registry_init(
             preset=preset,
             description=description or "",
             extra_skills=extra_skills or [],
+            disabled_modules=info["disabled_modules"],
         )
         job = init_jobs.start_job(cmd, target, str(info["parent"]), _parse_init_payload)
         return {
@@ -718,6 +773,7 @@ def hub_registry_init(
         preset=preset,
         description=description or "",
         extra_skills=extra_skills or [],
+        disabled_modules=info["disabled_modules"],
     )
     if not ok:
         # A failed init must leave nothing — remove the partial scaffold.
@@ -732,6 +788,7 @@ def hub_registry_init(
             "stack": (all_stacks[0] if all_stacks else None),
             "stacks": all_stacks,
             "agents": resolved_agents,
+            "disabled_modules": info["disabled_modules"],
             "preset": preset or None,
             "auto_named": info["auto_named"],
         },

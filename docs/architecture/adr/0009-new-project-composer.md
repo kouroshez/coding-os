@@ -59,5 +59,6 @@ for this slice.
 - `HubHome` is unchanged — it still renders `<OnboardingWizard>` (default
   export, same props).
 - A project can now be created with several adapters from the UI.
-- Follow-up: surface module toggles in the Composer once `cos init` grows a
-  module flag.
+- Follow-up **delivered (TASK-421)**: `cos init --disable-module`, the
+  `GET /api/hub/modules` catalog, and Composer module toggles now let a user
+  pick active subsystems (e.g. graph-only) at create time.

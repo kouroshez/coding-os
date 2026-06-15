@@ -1622,6 +1622,39 @@ class TestSubsystems:
         assert data == {"version": 1, "disabled": ["memory"]}
         assert not state_file.with_suffix(".json.tmp").exists()  # atomic replace
 
+    def test_init_disable_module_writes_state(self, runner: CliRunner, project_dir: Path) -> None:
+        """`cos init --disable-module` disables modules in the scaffold (TASK-421)."""
+        from cli.subsystems import module_state
+
+        project_dir.mkdir()
+        result = runner.invoke(cli, [
+            "init", "--agent", "claude", "-d", str(project_dir),
+            "--disable-module", "graph", "--disable-module", "memory",
+            "--no-index", "--no-register",
+        ])
+        assert result.exit_code == 0, f"init failed: {result.output}"
+        state = module_state(project_dir)
+        assert state["graph"] is False and state["memory"] is False
+        assert state["kernel"] is True  # untouched
+
+    def test_init_disable_module_rejects_unknown(self, runner: CliRunner, project_dir: Path) -> None:
+        project_dir.mkdir()
+        result = runner.invoke(cli, [
+            "init", "--agent", "claude", "-d", str(project_dir),
+            "--disable-module", "no-such-module", "--no-index", "--no-register",
+        ])
+        assert result.exit_code == 2
+        assert "unknown module" in result.output.lower()
+
+    def test_init_disable_module_rejects_kernel(self, runner: CliRunner, project_dir: Path) -> None:
+        project_dir.mkdir()
+        result = runner.invoke(cli, [
+            "init", "--agent", "claude", "-d", str(project_dir),
+            "--disable-module", "kernel", "--no-index", "--no-register",
+        ])
+        assert result.exit_code == 2
+        assert "kernel" in result.output.lower()
+
     def test_unknown_module_refused_listing_available(self, tmp_path: Path) -> None:
         from cli.subsystems import set_module_enabled
 

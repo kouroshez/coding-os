@@ -148,7 +148,7 @@ class TestInitRouteRun:
     def test_failed_init_cleans_up_partial_scaffold(self, hub_env, monkeypatch):
         # Simulate init creating a partial dir then failing — the route must rmtree it.
         def _fake(name, parent_dir, stacks, agent, preset="", description="",
-                  extra_skills=None, timeout=180):
+                  extra_skills=None, disabled_modules=None, timeout=180):
             (Path(parent_dir) / name).mkdir(parents=True, exist_ok=True)
             return (False, None, "boom")
 
@@ -234,7 +234,7 @@ class TestWizardCreateFlow:
         calls: list[dict] = []
 
         def _fake(name, parent_dir, stacks, agents, preset="", description="",
-                  extra_skills=None, timeout=180):
+                  extra_skills=None, disabled_modules=None, timeout=180):
             calls.append(
                 {
                     "name": name,
@@ -280,7 +280,7 @@ class TestWizardCreateFlow:
         calls: list[dict] = []
 
         def _fake(name, parent_dir, stacks, agents, preset="", description="",
-                  extra_skills=None, timeout=180):
+                  extra_skills=None, disabled_modules=None, timeout=180):
             calls.append({"agents": agents})
             (Path(parent_dir) / name).mkdir(parents=True)
             return (True, {"slug": name}, "")
@@ -332,6 +332,52 @@ class TestWizardCreateFlow:
             )
         assert resp.status_code == 400
         assert "mutually exclusive" in resp.json()["error"]["message"]
+
+
+class TestModuleToggles:
+    def test_modules_catalog_lists_kernel_and_deps(self, hub_env):
+        with _client() as client:
+            resp = client.get("/api/hub/modules")
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        by_id = {m["id"]: m for m in data["modules"]}
+        assert by_id["kernel"]["kernel"] is True
+        assert "docs" in by_id["tasks"]["depends_on"]
+        assert data["count"] == len(data["modules"]) >= 6
+
+    def test_init_forwards_disabled_modules(self, hub_env, monkeypatch):
+        captured: dict = {}
+
+        def _fake(name, parent_dir, stacks, agents, preset="", description="",
+                  extra_skills=None, disabled_modules=None, timeout=180):
+            captured["disabled_modules"] = disabled_modules
+            (Path(parent_dir) / name).mkdir(parents=True)
+            return (True, {"slug": name}, "")
+
+        _patch_init(monkeypatch, _fake)
+        with _client() as client:
+            resp = client.post("/api/hub/registry/init", json={
+                "name": "modproj", "parent_dir": str(hub_env), "stacks": ["python"],
+                "disabled_modules": ["graph", "memory"],
+            })
+        assert resp.status_code == 200, resp.text
+        assert captured["disabled_modules"] == ["graph", "memory"]
+        assert resp.json()["data"]["disabled_modules"] == ["graph", "memory"]
+
+    def test_validate_init_rejects_unknown_and_kernel_modules(self, hub_env):
+        with _client() as client:
+            unknown = client.post("/api/hub/registry/validate-init", json={
+                "parent_dir": str(hub_env), "stacks": ["python"], "disabled_modules": ["nope"]})
+            kernel = client.post("/api/hub/registry/validate-init", json={
+                "parent_dir": str(hub_env), "stacks": ["python"], "disabled_modules": ["kernel"]})
+            good = client.post("/api/hub/registry/validate-init", json={
+                "parent_dir": str(hub_env), "stacks": ["python"], "disabled_modules": ["graph"]})
+        assert unknown.status_code == 400
+        assert "unknown module" in unknown.json()["error"]["message"].lower()
+        assert kernel.status_code == 400
+        assert "kernel" in kernel.json()["error"]["message"].lower()
+        assert good.status_code == 200
+        assert good.json()["data"]["disabled_modules"] == ["graph"]
 
 
 class TestRegistryRename:

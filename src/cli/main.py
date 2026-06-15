@@ -1255,6 +1255,12 @@ def _refuse_coding_os_self_init(project: Path) -> None:
     default=True,
     help="Seed the doc-search index after scaffold (loads the embedding model, ~15s). --no-index skips it for fast / CI / fixture scaffolds — the index lives in the gitignored runtime DB, so golden captures never need it.",
 )
+@click.option(
+    "--disable-module",
+    "disable_module",
+    multiple=True,
+    help="Subsystem module to disable at create (repeatable): docs, tasks, graph, memory, hub-extras, design. kernel can't be disabled; tasks needs docs. Wizard parity with the Composer module toggles.",
+)
 def init(
     agent: str | None,
     template: tuple[str, ...],
@@ -1274,6 +1280,7 @@ def init(
     today_override: str | None,
     no_register: bool,
     do_index: bool,
+    disable_module: tuple[str, ...],
 ) -> None:
     """Initialize coding-os in a project.
 
@@ -1330,6 +1337,29 @@ def init(
         if unknown_skills:
             click.echo(
                 f"ERROR: unknown skill(s) {unknown_skills} — see `cos skills-list`.", err=True
+            )
+            sys.exit(2)
+
+    # --disable-module validated up-front against the subsystem registry
+    # (fail fast, wizard parity). kernel is non-disableable; dependency-order
+    # disabling (e.g. tasks before docs) is handled at scaffold time.
+    disabled_modules: list[str] = []
+    if disable_module:
+        from cli.subsystems import load_subsystems
+
+        registry_modules = load_subsystems()
+        disabled_modules = list(dict.fromkeys(m.strip() for m in disable_module if m.strip()))
+        unknown_mods = [m for m in disabled_modules if m not in registry_modules]
+        if unknown_mods:
+            click.echo(
+                f"ERROR: unknown module(s) {unknown_mods} — available: "
+                f"{sorted(registry_modules)}.", err=True
+            )
+            sys.exit(2)
+        kernel_mods = [m for m in disabled_modules if registry_modules[m].kernel]
+        if kernel_mods:
+            click.echo(
+                f"ERROR: module(s) {kernel_mods} are kernel and cannot be disabled.", err=True
             )
             sys.exit(2)
 
@@ -1448,6 +1478,7 @@ def init(
             active_preset=active_preset,
             extra_skills=extra_skills,
             project_summary=project_summary,
+            disabled_modules=disabled_modules,
         )
 
     git_result = maybe_git_init(target, enabled=git)
@@ -1669,6 +1700,7 @@ def _run_scaffold_phase(
     active_preset=None,
     extra_skills: list[str] | None = None,
     project_summary: str | None = None,
+    disabled_modules: list[str] | None = None,
 ) -> None:
     """Original scaffolding body — extracted so it can be redirected in JSON mode.
 
@@ -1740,6 +1772,14 @@ def _run_scaffold_phase(
             config["extra_skills"] = list(active_preset.skills)
         if active_preset.modules:
             config["modules"] = dict(active_preset.modules)
+    # CLI / wizard --disable-module entries merge on top of preset-declared
+    # module state; the module_toggles pass below disables them in dependency
+    # order (set_module_enabled refuses invalid chains, e.g. docs while tasks on).
+    if disabled_modules:
+        merged_modules = dict(config.get("modules") or {})
+        for module_id in disabled_modules:
+            merged_modules[module_id] = False
+        config["modules"] = merged_modules
     if extra_skills:
         # --skills / wizard extras merge on top of preset-declared ones.
         config["extra_skills"] = list(
@@ -1909,6 +1949,16 @@ def _run_scaffold_phase(
     else:
         click.echo("  Skipped initial doc index (--no-index)")
 
+    # 11b. Build the knowledge graph so the Hub Graph tab + cos_graph_* tools
+    # work from the first session with NO manual `cos graph-reindex` (TASK-423).
+    # Gated on the same --index switch (fixtures/CI pass --no-index to skip the
+    # heavy extractor walk) AND on the graph module being enabled — a disabled
+    # graph module owns no tools/hooks, so building its graph is wasted work.
+    if do_index:
+        _initial_graph_index(project, state)
+    else:
+        click.echo("  Skipped initial graph index (--no-index)")
+
     # 12. Register project in the global ~/.coding-os/registry.json so the
     # Hub web UI (`cos hub`) can enumerate it and serve its sqlite DB.
     # Skipped when --no-register passed (sandbox fixtures use disposable
@@ -1969,6 +2019,58 @@ def _initial_doc_index(project: Path, state: Path) -> None:
         click.echo(
             "  HINT: doc search stays empty until indexed — install extras with "
             "`uv sync --extra rag` in the coding-os checkout, then run `make docs-index` here",
+            err=True,
+        )
+
+
+def _initial_graph_index(project: Path, state: Path) -> None:
+    """Build the knowledge graph for a fresh project when the graph module is on (TASK-423)."""
+    try:
+        from cli.subsystems import module_state
+
+        if not module_state(project).get("graph", True):
+            click.echo("  Skipped graph index (graph module disabled)")
+            return
+    except Exception:
+        # State unreadable → graph is on by default; fall through and build.
+        pass
+    db_path = state / "coding-os.db"
+    core_path = str(CORE_DIR)
+    brain_dir = str(CORE_DIR / "thinking_os")
+    # include_docs=False: the docs RAG layer was just seeded by
+    # _initial_doc_index; here we want only the graph (AST + doc structure),
+    # which needs no embedding model. Runs in-process python (sys.executable),
+    # NOT the global `cos`, so an env without the graph deps fails fast instead
+    # of doing heavy work (mirrors _initial_doc_index).
+    code = (
+        "import sys; "
+        f"sys.path.insert(0, {core_path!r}); "
+        f"sys.path.insert(0, {brain_dir!r}); "
+        "from graph_os.ingest.base import walk_local; "
+        "from graph_os.tools.reindex_dispatch import dispatch; "
+        f"plan = walk_local({str(project)!r}); "
+        "reports = [dispatch(str(f), project_root="
+        f"{str(project)!r}, db_path={str(db_path)!r}, "
+        "include_docs=False, link_stubs=True) for f in plan.files]; "
+        "ok = sum(1 for r in reports if r.get('status') == 'ok'); "
+        "print(f'  Built knowledge graph: {ok}/{len(reports)} file(s) indexed')"
+    )
+    env = os.environ.copy()
+    env["COS_DB_PATH"] = str(db_path)
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0 and result.stdout.strip():
+        click.echo(result.stdout.rstrip())
+    elif result.returncode != 0:
+        # Non-fatal: missing graph deps shouldn't break init.
+        detail = result.stderr.strip().splitlines()[-1] if result.stderr.strip() else "unknown"
+        click.echo(f"  WARN: initial graph index skipped: {detail}", err=True)
+        click.echo(
+            "  HINT: graph stays empty until built — run `cos graph-reindex` here",
             err=True,
         )
 
