@@ -2513,6 +2513,63 @@ _AUTO_BLEND_BUCKETS: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 
 
+# W7 / R4-05 fix (TASK-423): the canonical set of edge types the graph CAN
+# contain — the validation oracle for `edge_types` filters. A SUPERSET of every
+# type any extractor emits, PLUS the query-only/view types the tool layer
+# filters on (accesses_field / defines_route / tested_by are referenced by the
+# blend buckets + test-gap queries but never emitted as rows). Being a superset
+# is deliberate: an over-accepted filter just returns [] (harmless), whereas a
+# MISSING real type would reject a legitimate filter on a POPULATED graph.
+# Validate against THIS — never against `SELECT DISTINCT edge_type`, which is
+# empty on a fresh / sparse / mid-build graph and made valid filters like
+# 'contains' look like typos (the graph-os contract is "empty result is valid").
+# Drift guard: src/core/graph_os/tests/test_graph_empty_state.py.
+_KNOWN_EDGE_TYPES: frozenset[str] = frozenset(
+    {
+        # Code structure + calls
+        "calls",
+        "calls_contract",
+        "calls_mcp_tool",
+        "constructs",
+        "dispatches",
+        "awaits",
+        "imports",
+        "re_exports",
+        "inherits_from",
+        "implements",
+        "extends",
+        "is_decorated_by",
+        "declares",
+        # Types
+        "has_param_type",
+        "has_return_type",
+        "returns_type",
+        "field_of_type",
+        "accesses_field",
+        # Contracts / surfaces
+        "handles_route",
+        "handles_event",
+        "handles_tool",
+        "handles_command",
+        "handles_test",
+        "defines_route",
+        # Docs
+        "links_to",
+        "cites_heading",
+        "references_doc",
+        "read_next",
+        "references",
+        # Spine / community / task / test
+        "contains",
+        "member_of_community",
+        "produces_code",
+        "depends_on",
+        "blocks",
+        "tested_by",
+    }
+)
+
+
 def cos_graph_export(
     *,
     format: str = "json",
@@ -2560,24 +2617,20 @@ def cos_graph_export(
 
     # G3: normalize edge_types + exclude_kinds (wire trap)
     parsed_edge_types = _normalize_kinds(edge_types) or None
-    # W7 / R4-05: reject unknown edge_types instead of silently filtering
-    # to an empty graph (a typo'd edge_type looked identical to "no edges
-    # of this type exist"). Cross-check against the DISTINCT set in the DB.
+    # W7 / R4-05 (TASK-423): reject a typo'd edge_type, but validate against
+    # the canonical schema set (_KNOWN_EDGE_TYPES) — NOT the edge_types PRESENT
+    # in the DB. A fresh / sparse / mid-build graph has few or zero distinct
+    # edge_types, and the old SELECT-DISTINCT oracle rejected legitimate types
+    # like 'contains' as "unknown". A valid filter on an empty graph must return
+    # ok([]) (the graph-os "empty result is valid" contract); only a genuine
+    # typo is a fail. No DB read here, so it also runs on non-SQLite backends.
     if parsed_edge_types:
-        sqlite_conn = getattr(be, "_conn", None)
-        if sqlite_conn is not None:
-            known = {
-                r[0]
-                for r in sqlite_conn.execute(
-                    "SELECT DISTINCT edge_type FROM graph_edges_v12"
-                ).fetchall()
-            }
-            unknown = [e for e in parsed_edge_types if e not in known]
-            if unknown:
-                return _fail(
-                    "validation",
-                    f"unknown edge_type(s) {unknown}; known: {sorted(known)}",
-                )
+        unknown = [e for e in parsed_edge_types if e not in _KNOWN_EDGE_TYPES]
+        if unknown:
+            return _fail(
+                "validation",
+                f"unknown edge_type(s) {unknown}; known: {sorted(_KNOWN_EDGE_TYPES)}",
+            )
     # exclude_kinds None → default noise list; [] explicit → no filter.
     if exclude_kinds is None:
         excluded = _DEFAULT_NOISE_KINDS
@@ -3687,15 +3740,17 @@ def cos_graph_centrality(
 
             kind = _normalize_kind_enum(kind).value
         except Exception:
-            if sqlite_conn is not None:
-                known_kinds = {
-                    r[0]
-                    for r in sqlite_conn.execute("SELECT DISTINCT kind FROM graph_nodes").fetchall()
-                }
-                return _fail(
-                    "validation",
-                    f"unknown kind {kind!r}; known: {sorted(known_kinds)}",
-                )
+            # TASK-423: validate against the canonical NodeKind enum, not the
+            # kinds PRESENT in the DB. We only reach this branch when
+            # normalize_kind rejected the value, i.e. it is a genuine typo; an
+            # empty/sparse graph must still accept a VALID kind filter (which
+            # normalizes successfully and never enters this branch).
+            from ..types import NodeKind as _NodeKind
+
+            return _fail(
+                "validation",
+                f"unknown kind {kind!r}; known: {sorted(k.value for k in _NodeKind)}",
+            )
 
     if sqlite_conn is not None:
         try:
