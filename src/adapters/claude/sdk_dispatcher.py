@@ -197,6 +197,9 @@ def _presence_write(
             except (OSError, _json.JSONDecodeError):
                 prev = {}
         now = int(_time.time())
+        # Schema parity with _helpers/presence_write.py (the canonical writer):
+        # preserve model/sdk_uuid/used_tokens/context_updated_at so the Hub
+        # reader resolves them for SDK sub-agents too (P5).
         new = {
             "agent": agent,
             "session_id": session_id,
@@ -206,11 +209,19 @@ def _presence_write(
             "last_tool_at": prev.get("last_tool_at"),
             "last_stop_at": prev.get("last_stop_at"),
             "ended_at": prev.get("ended_at"),
+            "model": prev.get("model"),
+            "sdk_uuid": prev.get("sdk_uuid"),
+            "used_tokens": prev.get("used_tokens"),
+            "context_updated_at": prev.get("context_updated_at"),
         }
         if event == "start":
             new["started_at"] = now
             new["ended_at"] = None
             new["last_stop_at"] = None
+        elif event == "prompt":
+            new["last_prompt_at"] = now
+            new["last_stop_at"] = None
+            new["started_at"] = new["started_at"] or now
         elif event == "tool":
             new["last_tool_at"] = now
             new["started_at"] = new["started_at"] or now
@@ -218,7 +229,9 @@ def _presence_write(
             new["last_stop_at"] = now
         elif event == "end":
             new["ended_at"] = now
-        tmp = path.with_suffix(f".tmp.{_os.getpid()}")
+        # Keep the .json stem on the temp file (canonical writer uses
+        # f"{path}.tmp.{pid}") so presence_gc reaps crash-orphaned temps (P31).
+        tmp = path.parent / f"{path.name}.tmp.{_os.getpid()}"
         tmp.write_text(_json.dumps(new, separators=(",", ":")), encoding="utf-8")
         _os.replace(tmp, path)
     except OSError as exc:

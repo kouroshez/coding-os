@@ -130,7 +130,9 @@ def _agent_runtime(agent_dir: Path, agent: str) -> dict[str, Any] | None:
     """Best-effort runtime snapshot for one agent."""
     if not agent_dir.is_dir():
         return None
-    sid = _read_text(agent_dir / "session-id")
+    # Prefer the live panel-scoped session-id marker; the flat agent-level
+    # session-id is a startup fossil nothing writes anymore (P7).
+    sid = _newest_marker(agent_dir, "session-id") or _read_text(agent_dir / "session-id")
     task = _strip_session_prefix(_newest_marker(agent_dir, ".task-current"), sid)
     skill_active = _strip_session_prefix(_newest_marker(agent_dir, ".active-skill"), sid)
     gate = _strip_session_prefix(_newest_marker(agent_dir, ".thinking_os-gate"), sid)

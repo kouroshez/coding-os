@@ -56,7 +56,9 @@ def test_write_start_creates_file_with_expected_schema(dispatcher_mod, project: 
     path = _presence_file(project, sid)
     assert path.exists()
     data = json.loads(path.read_text(encoding="utf-8"))
-    # Schema parity with core/hooks/agent-presence.sh
+    # Schema parity with the canonical writer _helpers/presence_write.py
+    # (12 keys) so the Hub reader resolves model/context for SDK sub-agents
+    # too — the dispatcher previously emitted only 8 (TASK-420 / P5).
     assert set(data.keys()) == {
         "agent",
         "session_id",
@@ -66,6 +68,10 @@ def test_write_start_creates_file_with_expected_schema(dispatcher_mod, project: 
         "last_tool_at",
         "last_stop_at",
         "ended_at",
+        "model",
+        "sdk_uuid",
+        "used_tokens",
+        "context_updated_at",
     }
     assert data["agent"] == "claude"
     assert data["session_id"] == sid

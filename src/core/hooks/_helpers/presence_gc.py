@@ -55,6 +55,17 @@ def main(argv: list[str]) -> int:
     if not os.path.isdir(d):
         return 0
     for name in os.listdir(d):
+        # Reap crash-orphaned atomic-write temps (x.json.tmp.PID) — both
+        # presence writers use the f"{path}.tmp.{pid}" form; the .json-only
+        # filter below would skip them forever otherwise (P31).
+        if ".tmp." in name:
+            tp = os.path.join(d, name)
+            try:
+                if now - os.path.getmtime(tp) > _STALE_AGE_SECS:
+                    _drop(tp)
+            except OSError:
+                pass
+            continue
         if not name.endswith(".json"):
             continue
         p = os.path.join(d, name)
