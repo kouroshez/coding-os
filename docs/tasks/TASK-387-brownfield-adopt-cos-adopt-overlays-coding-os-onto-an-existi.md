@@ -5,12 +5,12 @@ swimlane: cli
 kind: feature
 epic: H-lifecycle
 labels: [backlog, onboarding-program, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 2d
 created: 2026-06-11
 started: 2026-06-14
-completed: null
+completed: 2026-06-14
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -32,3 +32,15 @@ references: []
 - **Given** the matrix, **When** the targeted adopt test class in tests/test_cli.py runs, **Then** green.
 
 ## Work Log
+- 2026-06-15 [claude]: committed d6c5121c: docs/architecture/meta-project.md, src/cli/_init_helpers.py, src/cli/main.py, tests/test_cli.py
+- 2026-06-15 [claude]: Edit main.py
+- 2026-06-15 [claude]: Edit main.py
+- 2026-06-15 [claude]: Edit main.py
+- 2026-06-15 [claude]: Edit main.py
+- 2026-06-15 [claude]: Edit main.py
+- 2026-06-15 [claude]: Edit main.py
+- 2026-06-15 [claude]: Edit materialize_file.py
+- 2026-06-15 [claude]: Edit test_cli.py
+- 2026-06-15 [claude]: Edit test_cli.py
+- 2026-06-15 [claude]: Edit README.md
+- 2026-06-15 [claude]: Edit meta-project.md
