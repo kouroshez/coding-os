@@ -18,6 +18,7 @@ import DoctorPage from './pages/DoctorPage';
 import MemoryPage from './pages/MemoryPage';
 import NeedProjectPage from './pages/NeedProjectPage';
 import WorkspacePage from './pages/WorkspacePage';
+import DesignComingSoon from './pages/DesignComingSoon';
 import DiagnosticsPage from './pages/DiagnosticsPage';
 
 // Redirect helpers to transition old deep-links smoothly to nested hub routes
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="chat" element={<NeedProjectPage feature="chat" />} />
             <Route path="board" element={<NeedProjectPage feature="board" />} />
             <Route path="search" element={<NeedProjectPage feature="search" />} />
+            <Route path="design" element={<DesignComingSoon />} />
           </Route>
 
           {/* Unified Diagnostics Hub (Global) */}
@@ -84,6 +86,7 @@ export default function App() {
             <Route path="chat/:sessionId" element={<ChatLanding />} />
             <Route path="board" element={<CosBoardPage />} />
             <Route path="search" element={<SearchPage />} />
+            <Route path="design" element={<DesignComingSoon />} />
           </Route>
 
           {/* Unified Diagnostics Hub (Project-Scoped) */}

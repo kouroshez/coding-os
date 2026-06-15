@@ -253,3 +253,15 @@ describe('OnboardingWizard (TASK-358)', () => {
     expect(screen.getByTestId('wizard-create')).toBeDisabled();
   });
 });
+
+describe('OnboardingWizard support-link isolation (TASK-372)', () => {
+  it('never renders Hub support / community links inside the wizard', () => {
+    render(
+      <OnboardingWizard suggestions={['/code']} onClose={() => {}} onCreated={vi.fn()} />,
+    );
+    // The wizard has its own nav footer, but never the support/community links.
+    expect(screen.queryByRole('link', { name: /sponsor/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /coffee/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /crypto/i })).toBeNull();
+  });
+});

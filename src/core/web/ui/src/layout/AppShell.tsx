@@ -17,6 +17,7 @@ import LiveStatus from '@/layout/LiveStatus';
 import ProjectSwitcher from '@/layout/ProjectSwitcher';
 import AttentionBell from '@/features/attention/AttentionBell';
 import CommandPalette from '@/features/palette/CommandPalette';
+import SupportFooter from '@/layout/SupportFooter';
 import logoUrl from '@/assets/logo.png';
 import ThemeToggle from '@/layout/ThemeToggle';
 
@@ -158,6 +159,7 @@ export default function AppShell({
           </button>
         )}
       </div>
+      <SupportFooter />
       <CommandPalette />
     </div>
   );

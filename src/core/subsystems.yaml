@@ -62,3 +62,14 @@ modules:
     tools: []
     doc_tags: []
     depends_on: []
+
+  # Roadmap module (TASK-372 / ADR-0008): the visual Design surface. Registered
+  # so the id is reserved + toggleable; ships with NO hooks/rules/tools yet.
+  - id: design
+    label: "Design — visual design surface (roadmap)"
+    kernel: false
+    hooks: []
+    rules: []
+    tools: []
+    doc_tags: []
+    depends_on: []

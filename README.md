@@ -565,6 +565,17 @@ Still stuck? Run `cos doctor --verbose` and open a
 [discussion](https://github.com/kouroshebra/coding-os/discussions)
 with the output attached.
 
+## Support / Community
+
+If coding-os saves you time, a star helps others find it. These links also
+live in the Hub footer (never inside the onboarding wizard).
+
+- ★ Star / follow on GitHub: <https://github.com/kouroshebra/coding-os>
+- Sponsor (GitHub Sponsors): <https://github.com/sponsors/kouroshebra> <!-- TODO(TASK-372): verify Sponsors enabled -->
+- Buy Me a Coffee: <https://www.buymeacoffee.com/TODO-handle> <!-- TODO(TASK-372): real handle pending -->
+- Support via crypto: wallet address pending <!-- TODO(TASK-372) -->
+- Questions / ideas: <https://github.com/kouroshebra/coding-os/discussions>
+
 ## License
 
 Apache License 2.0 — see [LICENSE](./LICENSE). Copyright 2026
