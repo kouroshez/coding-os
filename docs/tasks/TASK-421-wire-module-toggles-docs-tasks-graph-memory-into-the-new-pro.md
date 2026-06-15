@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [hub, onboarding, modules, ready]
-status: icebox
-priority: P2
+status: complete
+priority: P1
 appetite: 1d
 created: 2026-06-15
-started: null
-completed: null
-agent_session: null
+started: 2026-06-15
+completed: 2026-06-15
+agent_session: ses-claude-20260615-014142-5969
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-421: Wire module toggles (docs/tasks/graph/memory) into the new-project Composer + cos init
 
 **Outcome (one sentence):** Let a user enable/disable subsystem modules (docs, tasks, graph, memory, design; kernel locked, tasks->docs dependency respected) at project-creation time from the Composer's Advanced section, instead of only post-create in Config. Split out of TASK-419, which shipped the Composer but deferred module-at-create because it needs a new surface: a `cos init` module flag + scaffold wiring + a Hub module-catalog endpoint.
@@ -48,3 +47,40 @@ references: []
 
 ## Work Log
 - 2026-06-15 [claude]: Split out of TASK-419 (Composer shipped). Module-at-create deferred there because it needs a new `cos init` flag + scaffold wiring + a Hub module-catalog endpoint — distinct from the UI redesign.
+- 2026-06-15 [claude]: Edit main.py
+- 2026-06-15 [claude]: Edit main.py
+- 2026-06-15 [claude]: Edit main.py
+- 2026-06-15 [claude]: Edit main.py
+- 2026-06-15 [claude]: Edit main.py
+- 2026-06-15 [claude]: Edit test_cli.py
+- 2026-06-15 [claude]: Edit hub.py
+- 2026-06-15 [claude]: Edit hub.py
+- 2026-06-15 [claude]: Edit hub.py
+- 2026-06-15 [claude]: Edit hub.py
+- 2026-06-15 [claude]: Edit hub.py
+- 2026-06-15 [claude]: Edit hub.py
+- 2026-06-15 [claude]: Edit hub.py
+- 2026-06-15 [claude]: Edit hub.py
+- 2026-06-15 [claude]: Edit hub.py
+- 2026-06-15 [claude]: Edit hub.py
+- 2026-06-15 [claude]: Edit hub.py
+- 2026-06-15 [claude]: Edit hub.py
+- 2026-06-15 [claude]: Edit hub.py
+- 2026-06-15 [claude]: Edit test_hub_init_route.py
+- 2026-06-15 [claude]: Edit test_hub_init_route.py
+- 2026-06-15 [claude]: Edit OnboardingWizard.tsx
+- 2026-06-15 [claude]: Edit OnboardingWizard.tsx
+- 2026-06-15 [claude]: Edit OnboardingWizard.tsx
+- 2026-06-15 [claude]: Edit OnboardingWizard.tsx
+- 2026-06-15 [claude]: Edit OnboardingWizard.tsx
+- 2026-06-15 [claude]: Edit OnboardingWizard.tsx
+- 2026-06-15 [claude]: Edit OnboardingWizard.tsx
+- 2026-06-15 [claude]: Edit OnboardingWizard.tsx
+- 2026-06-15 [claude]: Edit OnboardingWizard.tsx
+- 2026-06-15 [claude]: Edit OnboardingWizard.test.tsx
+- 2026-06-15 [claude]: Edit OnboardingWizard.test.tsx
+- 2026-06-15 [claude]: Edit hub-architecture.md
+- 2026-06-15 [claude]: Edit 0009-new-project-composer.md
+- 2026-06-15 [claude]: commit 9f00400566 — feat(hub): choose active modules at create (--disable-module, /api/hub/modules, Composer) TASK-421
+- 2026-06-15 [claude]: Done (commit 9f004005). Module selection at create wired end-to-end. CLI: `cos init --disable-module <id>` (repeatable)
+- 2026-06-15 [claude]: Status transitioned to complete via cos task-done.
