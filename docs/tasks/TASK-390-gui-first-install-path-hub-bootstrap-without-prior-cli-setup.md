@@ -5,18 +5,17 @@ swimlane: infra
 kind: feature
 epic: B-onboarding
 labels: [backlog, onboarding-program, ready]
-status: icebox
+status: in_progress
 priority: P3
 appetite: 2d
 created: 2026-06-11
-started: null
+started: 2026-06-14
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-390: GUI-first install path — Hub bootstrap without prior CLI setup (installer/Docker one-liner)
 
 **Outcome (one sentence):** A user with no cos CLI can boot the Hub via a single installer/Docker command and reach the onboarding wizard; ADR records the trust/path trade-offs.
