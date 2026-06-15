@@ -998,6 +998,33 @@ def _check_runtime_errors(state: Path, report: DoctorReport) -> None:
         )
 
 
+def _check_hub_code_fresh(report: DoctorReport) -> None:
+    """hub.code_fresh — WARN when a running Hub serves core code older than disk (run `cos hub restart`)."""
+    try:
+        from cli.hub_commands import _hub_code_is_stale
+    except Exception as exc:
+        logger.debug("hub staleness check unavailable: %s", exc)
+        report.checks.append(
+            CheckResult("hub.code_fresh", SEV_PASS, "hub staleness check unavailable (skip)")
+        )
+        return
+    stale, newest = _hub_code_is_stale()
+    if stale:
+        changed = newest.name if newest else "core code"
+        report.checks.append(
+            CheckResult(
+                "hub.code_fresh",
+                SEV_WARN,
+                f"Hub serving stale code — {changed} changed after it started; run `cos hub restart`",
+                {"newest_changed": str(newest) if newest else None},
+            )
+        )
+    else:
+        report.checks.append(
+            CheckResult("hub.code_fresh", SEV_PASS, "hub fresh or not running")
+        )
+
+
 def run_doctor(
     project: Path,
     *,
@@ -1079,6 +1106,8 @@ def run_doctor(
         logger.debug("board doctor unavailable: %s", exc)
     _check_scheduled(project, report)
     _check_presence_zombies(project, report)
+    _tick("hub code freshness")
+    _check_hub_code_fresh(report)
     try:
         from cli.doctor_extras import run_extra_checks
 

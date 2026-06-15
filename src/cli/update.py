@@ -552,6 +552,18 @@ def update(
             )
             raise SystemExit(1)
 
+        # The hub imports core in-process and never hot-reloads; bounce a
+        # running, now-stale hub so the fresh core is live (hub-architecture.md).
+        try:
+            from cli.hub_commands import _hub_code_is_stale, hub_restart
+
+            stale, _ = _hub_code_is_stale()
+            if stale:
+                click.echo("  Restarting Hub to load updated core code…")
+                click.get_current_context().invoke(hub_restart)
+        except Exception as exc:
+            logger.debug("hub auto-restart skipped: %s", exc)
+
     if output_format == "json":
         click.echo(
             json.dumps(

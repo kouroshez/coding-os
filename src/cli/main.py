@@ -1256,6 +1256,12 @@ def _refuse_coding_os_self_init(project: Path) -> None:
     help="Seed the doc-search index after scaffold (loads the embedding model, ~15s). --no-index skips it for fast / CI / fixture scaffolds — the index lives in the gitignored runtime DB, so golden captures never need it.",
 )
 @click.option(
+    "--graph-index/--no-graph-index",
+    "graph_index",
+    default=False,
+    help="Build the knowledge graph even under --no-index (AST walk, no embedding model). The Hub Composer passes this so a fast --no-index create still gets a populated Graph tab; default off keeps CI/fixture scaffolds (which pass --no-index) graph-free.",
+)
+@click.option(
     "--disable-module",
     "disable_module",
     multiple=True,
@@ -1280,6 +1286,7 @@ def init(
     today_override: str | None,
     no_register: bool,
     do_index: bool,
+    graph_index: bool,
     disable_module: tuple[str, ...],
 ) -> None:
     """Initialize coding-os in a project.
@@ -1475,6 +1482,7 @@ def init(
             today=today_override,
             no_register=no_register,
             do_index=do_index,
+            graph_index=graph_index,
             active_preset=active_preset,
             extra_skills=extra_skills,
             project_summary=project_summary,
@@ -1697,6 +1705,7 @@ def _run_scaffold_phase(
     today: str | None = None,
     no_register: bool = False,
     do_index: bool = True,
+    graph_index: bool = False,
     active_preset=None,
     extra_skills: list[str] | None = None,
     project_summary: str | None = None,
@@ -1950,12 +1959,13 @@ def _run_scaffold_phase(
         click.echo("  Skipped initial doc index (--no-index)")
 
     # 11b. Seed the knowledge graph so the Hub Graph tab + cos_graph_* tools work
-    # from the first session with NO manual `cos graph-reindex` (TASK-423). Gated
-    # on the same --index switch (fixtures/CI/golden scaffolds pass --no-index,
-    # so they never pay for the extractor walk) and, inside, on the graph module
-    # being enabled — a disabled graph module owns no tools, so building its
-    # graph would be wasted work.
-    if do_index:
+    # from the first session with NO manual `cos graph-reindex` (TASK-423). Built
+    # when --index (the default) OR --graph-index is set — the latter lets a fast
+    # --no-index create (the Hub Composer) still get a populated graph (AST walk,
+    # no embedding model), while CI/fixture scaffolds that pass only --no-index
+    # stay graph-free. Inside, it is also gated on the graph module being enabled
+    # — a disabled graph module owns no tools, so building its graph is wasted.
+    if do_index or graph_index:
         _initial_graph_index(project, state)
     else:
         click.echo("  Skipped initial graph index (--no-index)")
@@ -2058,12 +2068,27 @@ def _initial_graph_index(project: Path, state: Path) -> None:
     )
     env = os.environ.copy()
     env["COS_DB_PATH"] = str(db_path)
-    result = subprocess.run(
-        [sys.executable, "-c", code],
-        env=env,
-        capture_output=True,
-        text=True,
-    )
+    # Bounded so a very large repo never blows the init budget (the Hub Composer
+    # wraps `cos init` in its own timeout). On timeout the graph is left empty —
+    # valid, since cos_graph_export returns ok([]) for an empty graph — with a
+    # clear repair HINT, far better than hard-failing a half-created project.
+    timeout_s = int(os.environ.get("COS_INIT_GRAPH_TIMEOUT", "180"))
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+        )
+    except subprocess.TimeoutExpired:
+        click.echo(
+            f"  WARN: initial graph index exceeded {timeout_s}s — graph left empty", err=True
+        )
+        click.echo(
+            "  HINT: graph stays empty until built — run `cos graph-reindex` here", err=True
+        )
+        return
     if result.returncode == 0 and result.stdout.strip():
         click.echo(result.stdout.rstrip())
     elif result.returncode != 0:

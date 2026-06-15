@@ -41,6 +41,10 @@ def _log_file() -> Path:
     return _hub_dir() / "hub.log"
 
 
+def _reload_flag_file() -> Path:
+    return _hub_dir() / "hub.reload"
+
+
 def _read_pid() -> int | None:
     """Read the hub pid file and validate the process is alive."""
     path = _pid_file()
@@ -80,6 +84,46 @@ def _hub_health_ok(port: int) -> bool:
         return False
 
 
+def _core_newest_mtime() -> tuple[float, Path | None]:
+    """Newest mtime among the in-process core *.py the hub loads (skips tests/caches)."""
+    from cli._resources import core_dir
+
+    newest = 0.0
+    newest_path: Path | None = None
+    for dirpath, dirnames, filenames in os.walk(core_dir()):
+        dirnames[:] = [
+            d for d in dirnames if d not in {"tests", "__pycache__"} and not d.startswith(".")
+        ]
+        for name in filenames:
+            if not name.endswith(".py"):
+                continue
+            candidate = Path(dirpath) / name
+            try:
+                mtime = candidate.stat().st_mtime
+            except OSError:
+                continue
+            if mtime > newest:
+                newest, newest_path = mtime, candidate
+    return newest, newest_path
+
+
+def _hub_code_is_stale() -> tuple[bool, Path | None]:
+    """True when a running hub loaded core *.py older than the newest on disk (SSOT: status/doctor/update)."""
+    if _read_pid() is None:
+        return False, None
+    # A --reload hub auto-restarts its worker on source change, so it is never
+    # stale even though hub.pid mtime stays at the original start.
+    if _reload_flag_file().exists():
+        return False, None
+    # hub.pid is rewritten on every start/restart, so its mtime ≈ hub start time.
+    try:
+        started = _pid_file().stat().st_mtime
+    except OSError:
+        return False, None
+    newest, newest_path = _core_newest_mtime()
+    return newest > started, newest_path
+
+
 def _resolve_cos_bin() -> str:
     """Locate the `cos` entrypoint for the daemon to invoke."""
     import shutil
@@ -103,7 +147,14 @@ def hub_cli() -> None:
     default=False,
     help="Block in the current terminal instead of daemonising.",
 )
-def hub_start(port: int, foreground: bool) -> None:
+@click.option(
+    "--reload",
+    "reload_",
+    is_flag=True,
+    default=False,
+    help="Dev only: uvicorn auto-reloads the worker on core_dir() source edits.",
+)
+def hub_start(port: int, foreground: bool, reload_: bool) -> None:
     """Start the Hub uvicorn process (detached by default).
 
     NOTES: The pid-file collision check ONLY runs in detached mode.  In
@@ -118,7 +169,7 @@ def hub_start(port: int, foreground: bool) -> None:
         from web.server import run_server  # type: ignore
 
         click.echo(f"Starting Hub on http://{HUB_HOST}:{port} (foreground)")
-        run_server(host=HUB_HOST, port=port)
+        run_server(host=HUB_HOST, port=port, reload=reload_)
         return
 
     existing = _read_pid()
@@ -153,6 +204,8 @@ def hub_start(port: int, foreground: bool) -> None:
     log = _log_file()
     log.touch(exist_ok=True)
     cmd = [_resolve_cos_bin(), "hub", "start", "--foreground", "--port", str(port)]
+    if reload_:
+        cmd.append("--reload")
 
     # Graph backend default: SQLite (in-process reindex)
     # lands.  Rationale — Kùzu enforces a single-writer lock on its DB
@@ -196,13 +249,20 @@ def hub_start(port: int, foreground: bool) -> None:
         time.sleep(0.1)
 
     _write_pid(proc.pid)
+    # Mark reload mode so the staleness signal stays "fresh" (the worker
+    # auto-reloads); a normal start/restart clears it.
+    if reload_:
+        _reload_flag_file().write_text("1\n", encoding="utf-8")
+    else:
+        _reload_flag_file().unlink(missing_ok=True)
     click.echo(f"Hub started (pid {proc.pid}) at http://{HUB_HOST}:{port}")
-    click.echo(f"  Logs: {log}")
+    click.echo(f"  Logs: {log}" + (" (--reload: dev auto-reload on)" if reload_ else ""))
 
 
 @hub_cli.command("stop")
 def hub_stop() -> None:
     """Stop the running Hub daemon."""
+    _reload_flag_file().unlink(missing_ok=True)  # reload mode ends with the process
     pid = _read_pid()
     if pid is None:
         click.echo("Hub is not running.")
@@ -274,6 +334,13 @@ def hub_status() -> None:
     else:
         click.echo(f"Hub: running (pid {pid})")
         click.echo(f"  Logs: {_log_file()}")
+        stale, newest = _hub_code_is_stale()
+        if stale:
+            changed = newest.name if newest else "core code"
+            click.echo(
+                f"  ⚠ Running stale code — {changed} changed after the hub "
+                f"started; run `cos hub restart` to load it"
+            )
 
     meta_repo = Path(__file__).resolve().parent.parent.parent
     click.echo(f"  Meta repo: {meta_repo}")

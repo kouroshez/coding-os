@@ -52,6 +52,7 @@ def test_graph_index_runs_when_graph_module_enabled(tmp_path, monkeypatch):
     def fake_run(cmd, **kwargs):
         captured["cmd"] = cmd
         captured["env"] = kwargs.get("env", {})
+        captured["timeout"] = kwargs.get("timeout")
         return SimpleNamespace(
             returncode=0, stdout="  Built knowledge graph: 5/5 file(s) indexed", stderr=""
         )
@@ -63,3 +64,29 @@ def test_graph_index_runs_when_graph_module_enabled(tmp_path, monkeypatch):
     # fails fast instead of doing heavy work.
     assert captured["cmd"][0] == sys.executable
     assert captured["env"].get("COS_DB_PATH", "").endswith("coding-os.db")
+    # Bounded so a huge repo can't blow the init budget (TASK-429).
+    assert isinstance(captured["timeout"], int) and captured["timeout"] > 0
+
+
+def test_graph_index_degrades_gracefully_on_timeout(tmp_path, monkeypatch):
+    project, state = _project(tmp_path)
+
+    def boom(cmd, **kwargs):
+        raise main_module.subprocess.TimeoutExpired(cmd, kwargs.get("timeout", 0))
+
+    monkeypatch.setattr(main_module.subprocess, "run", boom)
+    # Must swallow the timeout — init continues, graph left empty (valid).
+    main_module._initial_graph_index(project, state)
+
+
+def test_composer_init_argv_builds_graph_under_no_index():
+    # The Hub Composer create path must pass BOTH --no-index (skip slow doc-RAG)
+    # and --graph-index (still build the graph) so a new project's Graph tab is
+    # never empty (TASK-429).
+    core = Path(__file__).resolve().parent.parent / "src" / "core"
+    sys.path.insert(0, str(core))
+    from web.routes.hub import _build_cos_init_cmd
+
+    cmd = _build_cos_init_cmd("proj", "/tmp", [], ["claude"])
+    assert "--no-index" in cmd
+    assert "--graph-index" in cmd

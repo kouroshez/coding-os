@@ -265,14 +265,18 @@ def run_server(
     _host = host or DEFAULT_HOST
     _port = port or DEFAULT_PORT
 
-    uvicorn.run(
-        "web.server:create_app",
-        host=_host,
-        port=_port,
-        reload=reload,
-        log_level=log_level,
-        factory=True,
-    )
+    run_kwargs: dict = {
+        "host": _host,
+        "port": _port,
+        "reload": reload,
+        "log_level": log_level,
+        "factory": True,
+    }
+    if reload:
+        # Scope the watcher to core (the in-process served code) so a docs/test
+        # edit never triggers a reload storm; _CORE_DIR is src/core.
+        run_kwargs["reload_dirs"] = [str(_CORE_DIR)]
+    uvicorn.run("web.server:create_app", **run_kwargs)
 
 
 if __name__ == "__main__":

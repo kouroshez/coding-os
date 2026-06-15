@@ -292,8 +292,18 @@ hub-global endpoints back the **New Project** wizard on `HubHome`:
   preview (swimlane union + reported conflicts). Shares
   `_validate_init_inputs` with the real init route (SSOT) and writes nothing.
 - `POST /api/hub/registry/init` — runs `cos init --name … --project-dir …
-  [--preset … | --template …×N] --agent <a[,b,…]> --yes --no-index --format
-  json` in a subprocess with a timeout. Both init and validate-init accept
+  [--preset … | --template …×N] --agent <a[,b,…]> --yes --no-index
+  --graph-index --format json` in a subprocess with a timeout. `--no-index`
+  skips the heavy doc-RAG embedding (model load ~15s); `--graph-index`
+  **overrides** the fact that `--no-index` would otherwise also skip the
+  graph, so a Composer-created project still gets a built knowledge graph
+  (AST walk, no embedding model) and its Graph tab is populated from the
+  first session — never an empty canvas. The graph build is bounded by
+  `COS_INIT_GRAPH_TIMEOUT` (default 180s); on a very large repo it degrades
+  to a gracefully-empty graph plus a `cos graph-reindex` HINT rather than
+  hard-failing init, and the create subprocess timeout has headroom over
+  that cap so a slow build never truncates a half-created project. Both
+  init and validate-init accept
   `agents: list[str]` (a project may host several adapters, e.g.
   `.claude/` + `.codex/`) with a single `agent: str` kept for back-compat;
   `_resolve_agents` merges + de-dupes them and the preview echoes the resolved
@@ -387,7 +397,7 @@ operator has accepted the risk.
 | `src/adapters/<agent>/adapter.yaml` field | `make sync` | `cos sync-all` |
 | `src/core/thinking_os/database.py` schema (new migration) | next `cos`/`hub` invocation runs `init_db` | `cos sync-all` forces `init_db` on every project's DB |
 | `src/core/web/ui/src/**` (SPA source) | `make ui-build` → `dist/` → hub serves new bundle on next request (hard-refresh browser) | same — all projects share one SPA bundle served by the hub |
-| `src/core/web/routes/**` (FastAPI) | hub daemon auto-reloads if started with `--reload`, otherwise `cos hub stop && cos hub start` | same |
+| `src/core/web/routes/**`, `src/core/graph_os/**`, `src/core/thinking_os/**`, `src/core/board_os/**` (any code the hub imports **in-process**) | hub auto-reloads only with `--reload`; otherwise `cos hub restart` — staleness is detected by `cos hub status` / `cos doctor` (`hub.code_fresh`) and auto-bounced by `cos update` | same |
 | `src/cli/**` | `uv tool install --editable .` pointed at this repo, so next `cos` invocation picks it up | same |
 
 ## "I edited the UI, why don't I see it?"
@@ -405,6 +415,48 @@ Three things must line up:
    hard-refresh during iteration.
 
 `~/.coding-os/` never enters this loop. It is state, not code.
+
+## Hub serves in-process core — staleness detection
+
+The hub is one long-running process that imports `graph_os`, `web`,
+`thinking_os`, and `board_os` **in-process** and serves the Graph tab +
+`cos_*` endpoints for *every* registered project from those imports.
+Python loads each module once at process start and never reloads a live
+module, so a fix to core code (e.g. a `graph_os` edge-type validation
+bug) only reaches consumers **after the hub restarts** — until then the
+hub keeps serving the pre-fix code to all projects. This is the most
+common "I fixed it but it's still broken" trap.
+
+Three mechanisms close the gap so a consumer (a regular user, not the
+meta-developer) never has to hunt for it:
+
+- **`cos hub status`** prints a stale-code warning when the newest core
+  `*.py` mtime is newer than the hub's start time (the `hub.pid` mtime,
+  rewritten on every start/restart), naming `cos hub restart`.
+- **`cos doctor`** surfaces the same signal as the `hub.code_fresh`
+  check — WARN when stale, PASS when fresh or when no hub is running
+  (never a false positive). The staleness predicate is the single SSOT
+  helper `cli/hub_commands.py::_hub_code_is_stale()`, reused by status,
+  doctor, and update.
+- **`cos update`** auto-restarts a running, now-stale hub at the end of
+  a non-dry-run, so the act of updating a project also makes the fresh
+  core live for the Graph tab + tools.
+
+Scope: only `*.py` the hub imports in-process counts (the helper walks
+`cli/_resources.core_dir()`, skipping `tests/` and `__pycache__`). Hook
+`.sh` files are live symlinks read per-invocation, not in-process, so
+they are never part of this signal.
+
+**Dev auto-reload** — `cos hub start --reload` runs uvicorn with
+`reload=True` and `reload_dirs` scoped to `core_dir()` (not the whole
+repo, which would storm on doc/test edits), so a meta-developer's core
+edits go live with no manual restart. Reload mode drops a `hub.reload`
+marker next to `hub.pid`; while it is present `_hub_code_is_stale()`
+short-circuits to *fresh*, so `cos hub status` / `cos doctor` /
+`cos update` never false-positive on a hub that already auto-reloads.
+`cos hub restart` and the `cos update` auto-restart return the hub to
+normal (non-reload) mode — reload is an explicit per-start dev opt-in,
+not for a production/service hub.
 
 ## Symlink health
 
@@ -440,8 +492,9 @@ Three resilience layers back this contract (TASK-346):
 | Task | Command |
 |---|---|
 | Start the hub (first time) | `cos hub start` |
-| Stop / restart | `cos hub stop` then `cos hub start` |
-| Status + meta repo + symlink health | `cos hub status` |
+| Start with dev auto-reload (watches `core_dir`) | `cos hub start --reload` |
+| Stop / restart | `cos hub stop` then `cos hub start` (or `cos hub restart`) |
+| Status + meta repo + symlink health + code-staleness | `cos hub status` |
 | Tail hub log | `cos hub logs -n 100` |
 | Run as background service | `cos service install` (launchd / systemd user) |
 | List registered projects | `cos registry list` |

@@ -640,6 +640,9 @@ def _build_cos_init_cmd(
         ",".join(agents),
         "--yes",
         "--no-index",
+        # Skip the heavy doc-RAG embedding but still build the knowledge graph
+        # (AST walk, no model) so the new project's Graph tab is never empty.
+        "--graph-index",
         "--format",
         "json",
     ]
@@ -665,9 +668,13 @@ def _run_cos_init(
     description: str = "",
     extra_skills: list[str] | None = None,
     disabled_modules: list[str] | None = None,
-    timeout: int = 180,
+    timeout: int = 300,
 ):
     """Run `cos init` in a subprocess → (ok, payload, error).
+
+    Default timeout has headroom over the in-init graph-build cap
+    (COS_INIT_GRAPH_TIMEOUT, default 180s) so a slow graph build degrades to an
+    empty graph inside init rather than the create subprocess being killed.
 
     Module-level so a test can monkeypatch it without a real scaffold.
     Description/extra-skills ride the CLI flags (--summary/--skills) so the
