@@ -221,10 +221,11 @@ Outcome: no observation loss, no zombie session-id bleeding into the next chat. 
 Persona: long Claude chat, context gets compacted, same session-id continues.
 
 - `SessionStart:compact` → `session-context` does NOT generate a new id, does NOT clear state.
-- Prints the Workflow Rules reminder (task management · Verification Matrix · Complexity Gate · Domain skill) so the post-compact agent doesn't forget them.
+- Emits the minimal **recovery card** (the 5 critical Workflow Rules + the `[Session State]` gate/task/skill line) as a hidden `additionalContext` envelope — never operator-visible stdout — so the post-compact agent doesn't forget them. Recovery is the **floor**: it is re-injected on every source, so a compacted agent is never blinded.
+- **Suppresses the heavy digest on `compact`.** `[Agent Digest]`, trajectory, routing, and token-economics run on `startup`/`resume` only. A same-session compact still holds the regenerable digest in working memory, so re-emitting it was the wasted re-dump that put a multi-thousand-token wall mid-chat. Channel + tier contract: [transparency-banner.md § SessionStart emission](../../src/core/rules/transparency-banner.md).
 - State files stay valid, session-id unchanged, mtime unchanged.
 
-Outcome: compact is transparent to the hook layer. The agent's working state survives.
+Outcome: compact is transparent to the hook layer. The agent's working state survives, and the operator no longer sees a re-primed wall mid-chat.
 
 ### S6 — Fresh `cos init` (new consumer project)
 
