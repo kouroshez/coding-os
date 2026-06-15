@@ -1685,6 +1685,10 @@ def _run_scaffold_phase(
     state.mkdir(parents=True, exist_ok=True)
     click.echo(f"  Created {STATE_DIR}/")
     stamp_core_version(state)
+    # First-edit grace marker (TASK-372): lets the agent's first legitimate code
+    # edit in a brand-new project skip the doc-anchor BLOCK. enforce-doc-anchor.sh
+    # consumes it on that first edit, so the grace is exactly one edit, bounded.
+    (state / ".fresh-init").touch()
 
     # 2. Initialize DB directory
     db_path = state / "coding-os.db"

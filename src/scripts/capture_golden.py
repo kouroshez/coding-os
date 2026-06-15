@@ -51,6 +51,7 @@ RUNTIME_PATHS = {
     ".coding-os/.task-current",
     ".coding-os/.zoom-checkpoint",
     ".coding-os/.last-verify",
+    ".coding-os/.fresh-init",
 }
 IGNORED_PREFIXES = (".git/", "node_modules/", ".venv/", ".build/")
 

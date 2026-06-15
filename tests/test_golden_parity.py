@@ -47,6 +47,7 @@ RUNTIME_PATHS = {
     ".coding-os/.task-current",
     ".coding-os/.zoom-checkpoint",
     ".coding-os/.last-verify",
+    ".coding-os/.fresh-init",
     # gitignored + carries a wall-clock `stamped_at` → byte-comparing it
     # false-fails parity on every capture. It is never committed, so it is
     # a runtime artifact, not part of the scaffold contract.

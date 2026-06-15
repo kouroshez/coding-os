@@ -21,6 +21,9 @@ runtime_files:
   - .coding-os/.task-current
   - .coding-os/.zoom-checkpoint
   - .coding-os/.last-verify
+  # First-edit grace marker written by `cos init` (TASK-372); consumed by
+  # enforce-doc-anchor.sh on the first code edit, so it's pure runtime state.
+  - .coding-os/.fresh-init
   - .coding-os/.cos.log
   - .coding-os/.cos.log.jsonl
 
