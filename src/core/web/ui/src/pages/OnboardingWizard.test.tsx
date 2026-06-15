@@ -1,6 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+/**
+ * Composer tests — TASK-419 (single-screen new-project flow).
+ * Replaces the step-wizard tests (TASK-358); the flow is now one screen
+ * with a live preview + an Advanced section (agents multi-select, skills).
+ */
+
 const FIXTURES: Record<string, unknown> = {
   '/api/hub/presets': {
     presets: [
@@ -44,7 +50,7 @@ vi.mock('@/lib/api-client', () => ({
   apiPost: (...args: unknown[]) => apiPost(...args),
 }));
 
-import OnboardingWizard, { wizardSteps } from './OnboardingWizard';
+import OnboardingWizard from './OnboardingWizard';
 import { slugifyProjectName } from './HubHome';
 
 const VALIDATE_OK = {
@@ -53,6 +59,7 @@ const VALIDATE_OK = {
   auto_named: true,
   target: '/code/proj-abc123',
   templates: ['nextjs', 'fastapi'],
+  agents: ['claude'],
   swimlanes: ['backend', 'frontend', 'docs'],
   conflicts: [],
 };
@@ -88,178 +95,129 @@ beforeEach(() => {
   apiGet.mockReset().mockResolvedValue([
     { stack: 'fastapi', groups: { required: [], recommended: [], optional: [] } },
   ]);
-  apiPost.mockReset().mockResolvedValue([VALIDATE_OK]);
+  apiPost.mockReset().mockImplementation(async (path: string) =>
+    (String(path).endsWith('/init') ? [{ job_id: 'job-xyz', name: 'proj-abc123' }] : [VALIDATE_OK]));
   FakeEventSource.instances = [];
   vi.stubGlobal('EventSource', FakeEventSource as unknown as typeof EventSource);
 });
 
-describe('slugifyProjectName (kept after dialog→wizard migration)', () => {
-  it('lowercases + dashes unsafe chars', () => {
-    expect(slugifyProjectName('My App!')).toBe('my-app');
-  });
-});
-
-describe('wizardSteps (TASK-358)', () => {
-  it('preset mode skips the stack picker; custom includes it', () => {
-    const base = {
-      mode: null, preset: '', stacks: [] as string[], agent: 'claude',
-      extraSkills: [] as string[], name: '', skipName: false, description: '', parentDir: '',
-    };
-    expect(wizardSteps({ ...base, mode: 'preset' })).not.toContain('stacks');
-    expect(wizardSteps({ ...base, mode: 'custom' })).toContain('stacks');
-    expect(wizardSteps({ ...base, mode: 'custom' })).toEqual([
-      'mode', 'stacks', 'agent', 'skills', 'extra', 'swimlanes', 'name', 'description', 'review',
-    ]);
-  });
-});
-
-function renderWizard(onCreated = vi.fn()) {
+function renderComposer(onCreated = vi.fn()) {
   render(
     <OnboardingWizard suggestions={['/code']} onClose={() => {}} onCreated={onCreated} />,
   );
   return onCreated;
 }
 
-async function clickNext() {
-  fireEvent.click(screen.getByTestId('wizard-next'));
-}
+const createBtn = () => screen.getByRole('button', { name: 'Create project' });
 
-describe('OnboardingWizard (TASK-358)', () => {
-  it('blocks Continue until a mode (and preset) is chosen', () => {
-    renderWizard();
-    expect(screen.getByTestId('wizard-next')).toBeDisabled();
-    fireEvent.click(screen.getByTestId('mode-preset'));
-    expect(screen.getByTestId('wizard-next')).toBeDisabled();
+describe('slugifyProjectName (still exported from HubHome)', () => {
+  it('lowercases + dashes unsafe chars', () => {
+    expect(slugifyProjectName('My App!')).toBe('my-app');
+  });
+});
+
+describe('Composer (TASK-419)', () => {
+  it('keeps Create disabled until a preset is chosen, then enables it', async () => {
+    renderComposer();
+    expect(createBtn()).toBeDisabled();
     fireEvent.click(screen.getByText('Next.js + FastAPI full-stack'));
-    expect(screen.getByTestId('wizard-next')).toBeEnabled();
+    // live validate fires on a debounce; VALIDATE_OK has valid: true
+    await waitFor(() => expect(createBtn()).toBeEnabled());
   });
 
-  it('agent options come from the adapters endpoint (no hardcoded single agent)', async () => {
-    renderWizard();
-    fireEvent.click(screen.getByTestId('mode-preset'));
+  it('shows a live preview (swimlanes, agents) from validate-init', async () => {
+    renderComposer();
     fireEvent.click(screen.getByText('Next.js + FastAPI full-stack'));
-    await clickNext(); // → agent
-    expect(screen.getByText('Claude Code')).toBeInTheDocument();
-    expect(screen.getByText('Codex CLI')).toBeInTheDocument();
+    await waitFor(() => expect(apiPost).toHaveBeenCalledWith(
+      '/api/hub/registry/validate-init',
+      expect.objectContaining({ preset: 'nextjs-fastapi', agents: ['claude'] }),
+    ));
+    // board lanes from the dry-run render as chips (no raw JSON)
+    await waitFor(() => expect(screen.getByText('backend')).toBeInTheDocument());
+    expect(screen.getByText('frontend')).toBeInTheDocument();
   });
 
-  it('walks preset flow to review, starts a job and reports progress to created (TASK-362)', async () => {
-    const onCreated = vi.fn();
-    apiPost.mockImplementation(async (path: string) =>
-      path.endsWith('/init') ? [{ job_id: 'job-xyz', name: 'proj-abc123' }] : [VALIDATE_OK]);
-    renderWizard(onCreated);
-
-    fireEvent.click(screen.getByTestId('mode-preset'));
+  it('agents are multi-select in Advanced and ride the init payload', async () => {
+    const onCreated = renderComposer();
     fireEvent.click(screen.getByText('Next.js + FastAPI full-stack'));
-    await clickNext(); // agent
-    fireEvent.click(screen.getByText('Codex CLI'));
-    await clickNext(); // skills
-    await clickNext(); // extra
-    await clickNext(); // swimlanes — triggers validate
-    await waitFor(() => expect(apiPost).toHaveBeenCalled());
-    await clickNext(); // name
-    fireEvent.click(screen.getByTestId('skip-name')); // don't know yet
-    await clickNext(); // description
-    fireEvent.change(screen.getByRole('textbox'), {
-      target: { value: 'A product for testing wizards.' },
+    fireEvent.click(screen.getByRole('button', { name: /Advanced/ }));
+    fireEvent.click(screen.getByTestId('agent-codex')); // add codex alongside claude
+    await waitFor(() => expect(createBtn()).toBeEnabled());
+    fireEvent.click(createBtn());
+
+    await waitFor(() => expect(FakeEventSource.instances.length).toBe(1));
+    const initCall = apiPost.mock.calls.find(([p]) => String(p).endsWith('/registry/init'));
+    expect(initCall?.[1]).toMatchObject({
+      preset: 'nextjs-fastapi',
+      stacks: [],
+      agents: ['claude', 'codex'],
+      background: true,
     });
-    await clickNext(); // review
-    await waitFor(() => expect(screen.getByTestId('wizard-create')).toBeEnabled());
-    fireEvent.click(screen.getByTestId('wizard-create'));
 
-    // Progress screen attaches an EventSource to the job stream.
+    FakeEventSource.instances[0].emit('succeeded', { status: 'succeeded', result: { slug: 'proj-abc123' } });
+    await waitFor(() => expect(onCreated).toHaveBeenCalledWith('proj-abc123'));
+  });
+
+  it('forwards the description and starts a job, reporting progress', async () => {
+    renderComposer();
+    fireEvent.click(screen.getByText('Next.js + FastAPI full-stack'));
+    fireEvent.change(screen.getByPlaceholderText(/booking app/i), {
+      target: { value: 'A product for testing the composer.' },
+    });
+    await waitFor(() => expect(createBtn()).toBeEnabled());
+    fireEvent.click(createBtn());
+
     await waitFor(() => expect(FakeEventSource.instances.length).toBe(1));
     const stream = FakeEventSource.instances[0];
     expect(stream.url).toContain('/api/hub/init-jobs/job-xyz/events');
     stream.emit('log', { line: 'Installing claude adapter...' });
     stream.emit('phase', { phase: 'docs-seed' });
     await waitFor(() =>
-      expect(screen.getByTestId('job-log')).toHaveTextContent('Installing claude adapter'),
-    );
+      expect(screen.getByTestId('job-log')).toHaveTextContent('Installing claude adapter'));
     expect(screen.getByText('Agent is processing your description & docs')).toBeInTheDocument();
 
-    stream.emit('succeeded', { status: 'succeeded', result: { slug: 'proj-abc123' } });
-    await waitFor(() => expect(onCreated).toHaveBeenCalledWith('proj-abc123'));
-
-    const createCall = apiPost.mock.calls.find(([p]) => String(p).endsWith('/init'));
-    expect(createCall?.[1]).toMatchObject({
-      preset: 'nextjs-fastapi',
-      stacks: [],
-      agent: 'codex',
-      name: '',
-      description: 'A product for testing wizards.',
+    const initCall = apiPost.mock.calls.find(([p]) => String(p).endsWith('/registry/init'));
+    expect(initCall?.[1]).toMatchObject({
+      description: 'A product for testing the composer.',
       background: true,
     });
   });
 
   it('cancel during a running job returns the UI to an actionable state', async () => {
-    apiPost.mockImplementation(async (path: string) =>
-      path.endsWith('/init') ? [{ job_id: 'job-c1', name: 'proj-x' }] : [VALIDATE_OK]);
-    renderWizard();
-    fireEvent.click(screen.getByTestId('mode-preset'));
+    renderComposer();
     fireEvent.click(screen.getByText('Next.js + FastAPI full-stack'));
-    for (let i = 0; i < 4; i += 1) await clickNext(); // agent→skills→extra→swimlanes
-    await clickNext(); // name
-    fireEvent.click(screen.getByTestId('skip-name'));
-    await clickNext(); // description
-    await clickNext(); // review
-    await waitFor(() => expect(screen.getByTestId('wizard-create')).toBeEnabled());
-    fireEvent.click(screen.getByTestId('wizard-create'));
+    await waitFor(() => expect(createBtn()).toBeEnabled());
+    fireEvent.click(createBtn());
     await waitFor(() => expect(FakeEventSource.instances.length).toBe(1));
 
-    fireEvent.click(screen.getByTestId('job-cancel'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     const cancelCall = apiPost.mock.calls.find(([p]) => String(p).includes('/cancel'));
-    expect(cancelCall?.[0]).toContain('/api/hub/init-jobs/job-c1/cancel');
+    expect(cancelCall?.[0]).toContain('/api/hub/init-jobs/job-xyz/cancel');
 
     FakeEventSource.instances[0].emit('cancelled', {
-      status: 'cancelled', cleanup: { removed_dir: '/code/proj-x' },
+      status: 'cancelled', cleanup: { removed_dir: '/code/proj-abc123' },
     });
     await waitFor(() =>
-      expect(screen.getByText(/partial scaffold was removed/i)).toBeInTheDocument(),
-    );
-    fireEvent.click(screen.getByTestId('job-back')); // actionable: back to review
-    expect(screen.getByTestId('wizard-create')).toBeInTheDocument();
+      expect(screen.getByText(/partial scaffold was removed/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Back to composer/ }));
+    await waitFor(() => expect(createBtn()).toBeInTheDocument());
   });
 
-  it('back navigation preserves chosen state', async () => {
-    renderWizard();
-    fireEvent.click(screen.getByTestId('mode-custom'));
-    await clickNext(); // → stacks (custom-only step)
-    fireEvent.click(screen.getByText('FastAPI'));
-    fireEvent.click(screen.getByText('Go Fiber'));
-    await clickNext(); // agent
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(screen.getByRole('button', { name: 'FastAPI' })).toHaveAttribute(
-      'aria-pressed', 'true',
-    );
-    expect(screen.getByRole('button', { name: 'Go Fiber' })).toHaveAttribute(
-      'aria-pressed', 'true',
-    );
-  });
-
-  it('renders inline validation error from the dry-run at review', async () => {
-    apiPost.mockRejectedValue(new Error('parent_dir is not writable: /code'));
-    renderWizard();
-    fireEvent.click(screen.getByTestId('mode-preset'));
+  it('surfaces the dry-run validation error inline', async () => {
+    apiPost.mockReset().mockImplementation(async (path: string) => {
+      if (String(path).endsWith('/validate-init')) throw new Error('parent_dir is not writable: /code');
+      return [{ job_id: 'x', name: 'y' }];
+    });
+    renderComposer();
     fireEvent.click(screen.getByText('Next.js + FastAPI full-stack'));
-    for (let i = 0; i < 4; i += 1) await clickNext(); // agent→skills→extra→swimlanes
-    await clickNext(); // name
-    fireEvent.click(screen.getByTestId('skip-name'));
-    await clickNext(); // description
-    await clickNext(); // review — validate rejects
-    await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent('not writable'),
-    );
-    expect(screen.getByTestId('wizard-create')).toBeDisabled();
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('not writable'));
+    expect(createBtn()).toBeDisabled();
   });
 });
 
-describe('OnboardingWizard support-link isolation (TASK-372)', () => {
-  it('never renders Hub support / community links inside the wizard', () => {
-    render(
-      <OnboardingWizard suggestions={['/code']} onClose={() => {}} onCreated={vi.fn()} />,
-    );
-    // The wizard has its own nav footer, but never the support/community links.
+describe('Composer support-link isolation (TASK-372)', () => {
+  it('never renders Hub support / community links inside the composer', () => {
+    render(<OnboardingWizard suggestions={['/code']} onClose={() => {}} onCreated={vi.fn()} />);
     expect(screen.queryByRole('link', { name: /sponsor/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /coffee/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /crypto/i })).toBeNull();

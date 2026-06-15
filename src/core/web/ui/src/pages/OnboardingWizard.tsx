@@ -1,19 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useApiGet } from '@/lib/hooks';
 import { apiGet, apiPost } from '@/lib/api-client';
+import { Modal } from '@/components/Modal';
+import { ActionPill, Banner } from '@/layout/HubPrimitives';
 import { slugifyProjectName } from './HubHome';
 
 /**
- * Full-screen onboarding wizard — TASK-358.
+ * New-project Composer — TASK-419 (supersedes the 8-step wizard, TASK-358).
  *
- * PURPOSE: "New project" enters a step-wise flow instead of a single form:
- *          preset-or-custom → (custom: stacks) → agent → skills preview →
- *          extra skills → swimlanes preview → name-or-skip → description →
- *          review (validate-init dry-run) → create.
+ * PURPOSE: One screen. Left = choices (template, name/folder/description,
+ *          Advanced: agents + skills). Right = a live "what you'll get"
+ *          preview driven by the validate-init dry-run. The fast path
+ *          (pick a preset → Create) is ~3 interactions; depth is gated
+ *          behind Advanced (progressive disclosure).
  * INPUT:   GET /api/hub/{presets,stacks,adapters,skills,stacks/{id}/skills};
  *          POST /api/hub/registry/{validate-init,init}.
- * OUTPUT:  A created+registered project; description seeds
- *          docs/_meta/project-description.md (TASK-364 intake).
+ * OUTPUT:  A created+registered project; the description seeds
+ *          docs/_meta/project-description.md → PRD (TASK-364). A project may
+ *          host several adapters (agents is a list — hub.py::_resolve_agents).
  */
 
 interface PresetItem { id: string; label: string; description: string; stacks: string[] }
@@ -29,7 +33,7 @@ interface StackSkillGroups {
 }
 interface ValidatePayload {
   valid: boolean; name: string; auto_named: boolean; target: string;
-  templates: string[]; swimlanes: string[]; conflicts: string[];
+  templates: string[]; agents: string[]; swimlanes: string[]; conflicts: string[];
 }
 
 interface JobProgress {
@@ -40,6 +44,7 @@ interface JobProgress {
   error: string;
 }
 
+const PHASE_ORDER = ['validate', 'scaffold', 'adapters', 'docs-seed', 'register', 'done'];
 const PHASE_LABELS: Record<string, string> = {
   validate: 'Validating your choices',
   scaffold: 'Scaffolding the project tree',
@@ -49,27 +54,20 @@ const PHASE_LABELS: Record<string, string> = {
   done: 'Done',
 };
 
-type StepId =
-  | 'mode' | 'stacks' | 'agent' | 'skills' | 'extra'
-  | 'swimlanes' | 'name' | 'description' | 'review';
+const NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 
-const STEP_TITLES: Record<StepId, string> = {
-  mode: 'How do you want to start?',
-  stacks: 'Pick your stack(s)',
-  agent: 'Which agent will work in this project?',
-  skills: 'Skills this setup installs',
-  extra: 'Add extra skills (optional)',
-  swimlanes: 'Your board, composed',
-  name: 'Name the project',
-  description: 'Describe the project',
-  review: 'Review & create',
-};
+// The 9 universal skills every project gets (base.yaml). Shown read-only so the
+// user understands the floor without us pretending they are choices.
+const CORE_SKILLS = [
+  'thinking_os', 'clean-code', 'graph-explorer', 'search', 'task-driver',
+  'codebase-explorer', 'testing-strategy', 'observability', 'incident-response',
+];
 
-export interface WizardState {
-  mode: 'preset' | 'custom' | null;
+interface ComposerState {
+  mode: 'preset' | 'custom';
   preset: string;
   stacks: string[];
-  agent: string;
+  agents: string[];
   extraSkills: string[];
   name: string;
   skipName: boolean;
@@ -77,34 +75,32 @@ export interface WizardState {
   parentDir: string;
 }
 
-const INITIAL: WizardState = {
-  mode: null, preset: '', stacks: [], agent: 'claude', extraSkills: [],
-  name: '', skipName: false, description: '', parentDir: '',
-};
+// --------------------------------------------------------------------------
+// Presentational primitives (tokens + ActionPill vocabulary, no raw hex)
+// --------------------------------------------------------------------------
 
-export function wizardSteps(state: WizardState): StepId[] {
-  return [
-    'mode',
-    ...(state.mode === 'custom' ? (['stacks'] as StepId[]) : []),
-    'agent', 'skills', 'extra', 'swimlanes', 'name', 'description', 'review',
-  ];
-}
-
-function Chip({
-  active, label, hint, onClick, testId,
-}: { active: boolean; label: string; hint?: string; onClick: () => void; testId?: string }) {
+function ToggleChip({
+  active, label, hint, locked, onClick, testId,
+}: {
+  active: boolean; label: string; hint?: string; locked?: boolean;
+  onClick?: () => void; testId?: string;
+}) {
   return (
     <button
       type="button"
       data-testid={testId}
       onClick={onClick}
+      disabled={locked}
       aria-pressed={active}
       title={hint}
       className={[
-        'rounded border px-3 py-1.5 text-xs focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]',
-        active
-          ? 'border-[var(--cos-accent)] bg-[var(--cos-brand-tint)] text-[var(--cos-accent)]'
-          : 'border-[var(--cos-border)] text-[var(--cos-muted)] hover:text-[var(--cos-text)]',
+        'rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+        locked
+          ? 'cursor-default border-[var(--cos-border)] bg-[var(--cos-bg)]/40 text-[var(--cos-muted)]'
+          : active
+            ? 'border-[var(--accent)] bg-[var(--accent)]/12 text-[var(--accent)] shadow-sm'
+            : 'border-[var(--cos-border)] bg-[var(--cos-panel)]/60 text-[var(--cos-text)] hover:border-[var(--accent)]/60 hover:text-[var(--accent)]',
       ].join(' ')}
     >
       {label}
@@ -112,17 +108,56 @@ function Chip({
   );
 }
 
-function SkillRow({ entry }: { entry: SkillEntry }) {
+function tierBadge(tier: string | null) {
+  if (!tier) return null;
   return (
-    <li className="flex items-baseline gap-2 text-xs">
-      <code className="text-[var(--cos-text)]">{entry.name}</code>
-      <span className="text-[10px] text-[var(--cos-faint)]">{entry.provenance}</span>
-      {!entry.validated && (
-        <span className="text-[10px] text-[var(--cos-warn,#eab308)]">not shipped yet</span>
-      )}
+    <span className="rounded bg-[var(--cos-bg)]/60 px-1.5 py-px text-[9px] font-medium uppercase tracking-wide text-[var(--cos-faint)]">
+      {tier}
+    </span>
+  );
+}
+
+function SkillRow({ entry, action }: { entry: SkillEntry; action?: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-2 rounded-lg border border-[var(--cos-border)]/70 bg-[var(--cos-bg)]/30 px-2.5 py-2">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <code className="text-xs font-semibold text-[var(--cos-text)]">{entry.name}</code>
+          {tierBadge(entry.tier)}
+          {entry.domain.slice(0, 3).map((d) => (
+            <span key={d} className="rounded bg-[var(--accent)]/10 px-1.5 py-px text-[9px] text-[var(--accent)]">
+              {d}
+            </span>
+          ))}
+        </div>
+        {entry.description && (
+          <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-[var(--cos-muted)]">
+            {entry.description}
+          </p>
+        )}
+      </div>
+      {action && <div className="shrink-0 self-center">{action}</div>}
     </li>
   );
 }
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-medium text-[var(--cos-text)]">{label}</span>
+      {hint && <span className="mb-1.5 block text-[11px] leading-snug text-[var(--cos-muted)]">{hint}</span>}
+      {children}
+    </label>
+  );
+}
+
+const INPUT_CLASS =
+  'w-full rounded-lg border border-[var(--cos-border)] bg-[var(--cos-bg)] px-3 py-2 text-sm text-[var(--cos-text)] '
+  + 'placeholder-[var(--cos-faint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
+
+// --------------------------------------------------------------------------
+// Composer
+// --------------------------------------------------------------------------
 
 export default function OnboardingWizard({
   suggestions, onClose, onCreated,
@@ -131,24 +166,24 @@ export default function OnboardingWizard({
   onClose: () => void;
   onCreated: (slug: string) => void;
 }) {
-  const [state, setState] = useState<WizardState>({ ...INITIAL, parentDir: suggestions[0] ?? '' });
-  const [stepIndex, setStepIndex] = useState(0);
-  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState<ComposerState>({
+    mode: 'preset', preset: '', stacks: [], agents: ['claude'],
+    extraSkills: [], name: '', skipName: false, description: '',
+    parentDir: suggestions[0] ?? '',
+  });
   const [error, setError] = useState<string | null>(null);
   const [skillGroups, setSkillGroups] = useState<StackSkillGroups[]>([]);
   const [validation, setValidation] = useState<ValidatePayload | null>(null);
+  const [validating, setValidating] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [presetQuery, setPresetQuery] = useState('');
+  const [job, setJob] = useState<JobProgress | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const { data: presetsData } = useApiGet<{ presets: PresetItem[] }>(
-    ['hub-presets'], '/api/hub/presets',
-  );
+  const { data: presetsData } = useApiGet<{ presets: PresetItem[] }>(['hub-presets'], '/api/hub/presets');
   const { data: stacksData } = useApiGet<{ stacks: StackItem[] }>(['hub-stacks'], '/api/hub/stacks');
-  const { data: adaptersData } = useApiGet<{ adapters: AdapterItem[] }>(
-    ['hub-adapters'], '/api/hub/adapters',
-  );
+  const { data: adaptersData } = useApiGet<{ adapters: AdapterItem[] }>(['hub-adapters'], '/api/hub/adapters');
   const { data: catalogData } = useApiGet<{ skills: SkillEntry[] }>(['hub-skills'], '/api/hub/skills');
-
-  const steps = wizardSteps(state);
-  const step = steps[Math.min(stepIndex, steps.length - 1)];
 
   const selectedStacks = useMemo(() => {
     if (state.mode === 'preset') {
@@ -156,6 +191,7 @@ export default function OnboardingWizard({
     }
     return state.stacks;
   }, [state.mode, state.preset, state.stacks, presetsData]);
+  const stacksSig = selectedStacks.join(',');
 
   const stacksByLanguage = useMemo(() => {
     const groups = new Map<string, StackItem[]>();
@@ -166,23 +202,49 @@ export default function OnboardingWizard({
     return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [stacksData]);
 
-  // Skills preview — fetched when the step is reached so back-nav keeps state.
+  const filteredPresets = useMemo(() => {
+    const q = presetQuery.trim().toLowerCase();
+    const all = presetsData?.presets ?? [];
+    if (!q) return all;
+    return all.filter(
+      (p) => p.label.toLowerCase().includes(q)
+        || p.description.toLowerCase().includes(q)
+        || p.stacks.some((s) => s.toLowerCase().includes(q)),
+    );
+  }, [presetsData, presetQuery]);
+
+  // Skill groups for the selected stacks + auto-seed recommended core skills
+  // into extra_skills (they are NOT auto-installed by the scaffold — only the
+  // stack's own skill dirs are linked, so the curated core companions need to
+  // ride the --skills flag). Re-seeds whenever the stack set changes; user
+  // toggles persist within a stack set.
   useEffect(() => {
-    if (step !== 'skills' || selectedStacks.length === 0) return;
+    if (selectedStacks.length === 0) { setSkillGroups([]); setState((s) => ({ ...s, extraSkills: [] })); return; }
     let cancelled = false;
     void Promise.all(
       selectedStacks.map((id) =>
         apiGet<StackSkillGroups>(`/api/hub/stacks/${encodeURIComponent(id)}/skills`)
           .then(([data]) => data)
-          .catch(() => null),
-      ),
+          .catch(() => null)),
     ).then((results) => {
-      if (!cancelled) setSkillGroups(results.filter(Boolean) as StackSkillGroups[]);
+      if (cancelled) return;
+      const groups = results.filter(Boolean) as StackSkillGroups[];
+      setSkillGroups(groups);
+      const seed = new Set<string>();
+      for (const g of groups) {
+        for (const e of g.groups.recommended) {
+          if (e.provenance === 'core' && e.validated) seed.add(e.name);
+        }
+      }
+      setState((s) => ({ ...s, extraSkills: [...seed] }));
     });
     return () => { cancelled = true; };
-  }, [step, selectedStacks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stacksSig]);
 
-  const runValidate = useCallback(async (): Promise<ValidatePayload | null> => {
+  const runValidate = useCallback(async () => {
+    if (!state.parentDir.trim()) { setValidation(null); return; }
+    setValidating(true);
     setError(null);
     try {
       const [data] = await apiPost<ValidatePayload>('/api/hub/registry/validate-init', {
@@ -190,59 +252,79 @@ export default function OnboardingWizard({
         parent_dir: state.parentDir.trim(),
         stacks: state.mode === 'custom' ? state.stacks : [],
         preset: state.mode === 'preset' ? state.preset : '',
-        agent: state.agent,
+        agents: state.agents,
       });
       setValidation(data);
-      return data;
     } catch (err) {
       setValidation(null);
       setError(err instanceof Error ? err.message : 'validation failed');
-      return null;
+    } finally {
+      setValidating(false);
     }
-  }, [state]);
+  }, [state.parentDir, state.skipName, state.name, state.mode, state.stacks, state.preset, state.agents]);
 
-  // Swimlane preview + review both run the dry-run validation on entry.
+  // Debounced live preview — re-validates whenever a relevant choice changes.
   useEffect(() => {
-    if (step === 'swimlanes' || step === 'review') void runValidate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+    const t = setTimeout(() => { void runValidate(); }, 350);
+    return () => clearTimeout(t);
+  }, [runValidate]);
 
-  const canContinue = useMemo(() => {
-    switch (step) {
-      case 'mode':
-        return state.mode === 'preset' ? state.preset !== '' : state.mode === 'custom';
-      case 'stacks':
-        return state.stacks.length > 0;
-      case 'agent':
-        return state.agent !== '';
-      case 'name':
-        return state.skipName || /^[a-z0-9][a-z0-9._-]{0,63}$/.test(slugifyProjectName(state.name));
-      case 'review':
-        return Boolean(validation?.valid) && state.parentDir.trim() !== '';
-      default:
-        return true;
+  const recommendedChips = useMemo(() => {
+    const seen = new Set<string>();
+    const out: SkillEntry[] = [];
+    for (const g of skillGroups) {
+      for (const e of g.groups.recommended) {
+        if (e.provenance === 'core' && e.validated && !seen.has(e.name)) { seen.add(e.name); out.push(e); }
+      }
     }
-  }, [step, state, validation]);
+    return out;
+  }, [skillGroups]);
 
-  const [job, setJob] = useState<JobProgress | null>(null);
+  const requiredEntries = useMemo(() => {
+    const seen = new Set<string>();
+    const out: SkillEntry[] = [];
+    for (const g of skillGroups) {
+      for (const e of g.groups.required) {
+        if (!seen.has(e.name)) { seen.add(e.name); out.push(e); }
+      }
+    }
+    return out;
+  }, [skillGroups]);
+
+  const optionalSkills = useMemo(() => {
+    const installed = new Set(
+      skillGroups.flatMap((g) => [...g.groups.required, ...g.groups.recommended]).map((e) => e.name),
+    );
+    return (catalogData?.skills ?? []).filter(
+      (s) => s.provenance === 'core' && s.validated && !installed.has(s.name) && !CORE_SKILLS.includes(s.name),
+    );
+  }, [catalogData, skillGroups]);
+
+  const toggle = (list: string[], id: string) =>
+    list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+
+  const slug = slugifyProjectName(state.name);
+  // Empty name is fine — the backend assigns a temp slug (auto_named). Only a
+  // non-empty name has to be a valid slug.
+  const nameOk = state.skipName || slug === '' || NAME_RE.test(slug);
+  const choiceOk = state.mode === 'preset' ? state.preset !== '' : true;
+  const canCreate = Boolean(validation?.valid) && state.parentDir.trim() !== ''
+    && nameOk && choiceOk && state.agents.length > 0 && !busy;
 
   const create = useCallback(async () => {
     setBusy(true);
     setError(null);
     try {
-      const [started] = await apiPost<{ job_id: string; name: string }>(
-        '/api/hub/registry/init',
-        {
-          name: state.skipName ? '' : slugifyProjectName(state.name),
-          parent_dir: state.parentDir.trim(),
-          stacks: state.mode === 'custom' ? state.stacks : [],
-          preset: state.mode === 'preset' ? state.preset : '',
-          agent: state.agent,
-          description: state.description,
-          extra_skills: state.extraSkills,
-          background: true,
-        },
-      );
+      const [started] = await apiPost<{ job_id: string; name: string }>('/api/hub/registry/init', {
+        name: state.skipName ? '' : slugifyProjectName(state.name),
+        parent_dir: state.parentDir.trim(),
+        stacks: state.mode === 'custom' ? state.stacks : [],
+        preset: state.mode === 'preset' ? state.preset : '',
+        agents: state.agents,
+        description: state.description,
+        extra_skills: state.extraSkills,
+        background: true,
+      });
       setJob({ jobId: started.job_id, phase: 'validate', log: [], status: 'running', error: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'create failed');
@@ -250,8 +332,7 @@ export default function OnboardingWizard({
     }
   }, [state]);
 
-  // Job progress stream (TASK-362): replay + follow; reconnects after refresh
-  // because the job lives in the server process keyed by job_id.
+  // Job progress stream (TASK-362): replay + follow; reconnects after refresh.
   useEffect(() => {
     if (!job || job.status !== 'running') return;
     const source = new EventSource(`/api/hub/init-jobs/${encodeURIComponent(job.jobId)}/events`);
@@ -261,15 +342,10 @@ export default function OnboardingWizard({
     source.addEventListener('phase', (e) =>
       setJob((j) => (j ? { ...j, phase: (JSON.parse((e as MessageEvent).data) as { phase: string }).phase } : j)));
     const terminal = (status: JobProgress['status']) => (e: Event) => {
-      const payload = JSON.parse((e as MessageEvent).data) as {
-        error?: string; result?: { slug?: string };
-      };
+      const payload = JSON.parse((e as MessageEvent).data) as { error?: string; result?: { slug?: string } };
       source.close();
       setBusy(false);
-      if (status === 'succeeded') {
-        onCreated(payload.result?.slug ?? '');
-        return;
-      }
+      if (status === 'succeeded') { onCreated(payload.result?.slug ?? ''); return; }
       setJob((j) => (j ? { ...j, status, error: payload.error ?? '' } : j));
       if (status === 'failed') setError(payload.error || 'init failed');
     };
@@ -290,404 +366,369 @@ export default function OnboardingWizard({
     }
   }, [job]);
 
-  const toggle = (list: string[], id: string) =>
-    list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
-
-  const optionalSkills = useMemo(() => {
-    const installed = new Set(
-      skillGroups.flatMap((g) => [...g.groups.required, ...g.groups.recommended]).map((e) => e.name),
-    );
-    return (catalogData?.skills ?? []).filter(
-      (s) => s.provenance === 'core' && !installed.has(s.name),
-    );
-  }, [catalogData, skillGroups]);
-
+  // ---- Job progress view -------------------------------------------------
   if (job) {
-    const phaseIndex = ['validate', 'scaffold', 'adapters', 'docs-seed', 'register', 'done'];
+    const running = job.status === 'running';
     return (
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Creating project"
-        className="fixed inset-0 z-50 flex flex-col bg-[var(--cos-bg)]"
+      <Modal
+        open
+        onClose={running ? () => {} : onClose}
+        title={running ? 'Creating your project…' : `Create ${job.status}`}
+        size="lg"
+        footer={running ? (
+          <ActionPill label="Cancel" onClick={() => void cancelJob()} />
+        ) : (
+          <ActionPill label="Back to composer" onClick={() => { setJob(null); setError(null); }} />
+        )}
       >
-        <header className="border-b border-[var(--cos-border)] px-6 py-4">
-          <h1 className="text-sm font-semibold text-[var(--cos-text)]">
-            {job.status === 'running' ? 'Creating your project…' : `Create ${job.status}`}
-          </h1>
-        </header>
-        <main className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="mx-auto max-w-2xl space-y-4">
-            <ol className="space-y-1.5" data-testid="job-phases">
-              {phaseIndex.map((p) => {
-                const reached = phaseIndex.indexOf(p) <= phaseIndex.indexOf(job.phase);
-                const current = p === job.phase && job.status === 'running';
-                return (
-                  <li
-                    key={p}
-                    aria-current={current ? 'step' : undefined}
-                    className={[
-                      'flex items-center gap-2 text-xs',
-                      reached ? 'text-[var(--cos-text)]' : 'text-[var(--cos-faint)]',
-                    ].join(' ')}
-                  >
-                    <span aria-hidden="true">{reached ? (current ? '◌' : '●') : '○'}</span>
-                    {PHASE_LABELS[p] ?? p}
-                  </li>
-                );
-              })}
-            </ol>
-            <pre
-              data-testid="job-log"
-              className="max-h-64 overflow-y-auto rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] p-2 font-mono text-[10px] text-[var(--cos-muted)]"
-            >
-              {job.log.join('\n') || '…'}
-            </pre>
-            {job.status === 'cancelled' && (
-              <p className="text-xs text-[var(--cos-muted)]">
-                Cancelled — the partial scaffold was removed. Nothing was created.
-              </p>
-            )}
-            {error && (
-              <p role="alert" className="rounded border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-400">
-                {error}
-              </p>
-            )}
-          </div>
-        </main>
-        <footer className="flex items-center justify-between border-t border-[var(--cos-border)] px-6 py-4">
-          {job.status === 'running' ? (
-            <button
-              type="button"
-              data-testid="job-cancel"
-              onClick={() => void cancelJob()}
-              className="rounded border border-[var(--cos-border)] px-3 py-1.5 text-xs text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
-            >
-              Cancel
-            </button>
-          ) : (
-            <button
-              type="button"
-              data-testid="job-back"
-              onClick={() => { setJob(null); setError(null); }}
-              className="rounded border border-[var(--cos-border)] px-3 py-1.5 text-xs text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
-            >
-              Back to review
-            </button>
-          )}
-        </footer>
-      </div>
+        <ol className="space-y-1.5" data-testid="job-phases">
+          {PHASE_ORDER.map((p) => {
+            const reached = PHASE_ORDER.indexOf(p) <= PHASE_ORDER.indexOf(job.phase);
+            const current = p === job.phase && running;
+            return (
+              <li
+                key={p}
+                aria-current={current ? 'step' : undefined}
+                className={['flex items-center gap-2 text-sm', reached ? 'text-[var(--cos-text)]' : 'text-[var(--cos-faint)]'].join(' ')}
+              >
+                <span aria-hidden="true">{reached ? (current ? '◌' : '●') : '○'}</span>
+                {PHASE_LABELS[p] ?? p}
+              </li>
+            );
+          })}
+        </ol>
+        <pre
+          data-testid="job-log"
+          className="mt-4 max-h-64 overflow-y-auto rounded-lg border border-[var(--cos-border)] bg-[var(--cos-bg)]/40 p-3 font-mono text-[10px] text-[var(--cos-muted)]"
+        >
+          {job.log.join('\n') || '…'}
+        </pre>
+        {job.status === 'cancelled' && (
+          <p className="mt-3 text-xs text-[var(--cos-muted)]">
+            Cancelled — the partial scaffold was removed. Nothing was created.
+          </p>
+        )}
+        {error && <div role="alert" className="mt-3"><Banner kind="error">{error}</Banner></div>}
+      </Modal>
     );
   }
 
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Create a new project"
-      className="fixed inset-0 z-50 flex flex-col bg-[var(--cos-bg)]"
-    >
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-[var(--cos-border)] px-6 py-4">
-        <div>
-          <div className="text-[10px] uppercase tracking-wide text-[var(--cos-muted)]">
-            New project · step {steps.indexOf(step) + 1} / {steps.length}
-          </div>
-          <h1 className="text-sm font-semibold text-[var(--cos-text)]">{STEP_TITLES[step]}</h1>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close wizard"
-          className="rounded px-2 py-1 text-sm text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
-        >
-          ×
-        </button>
-      </header>
+  // ---- Composer view -----------------------------------------------------
+  const setupSummary = state.mode === 'preset'
+    ? (presetsData?.presets.find((p) => p.id === state.preset)?.label ?? '—')
+    : (selectedStacks.join(' + ') || 'base only');
 
-      {/* Body */}
-      <main className="flex-1 overflow-y-auto px-6 py-6">
-        <div className="mx-auto max-w-2xl">
-          {step === 'mode' && (
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <Chip
-                  testId="mode-preset"
-                  active={state.mode === 'preset'}
-                  label="Start from a preset"
-                  onClick={() => setState((s) => ({ ...s, mode: 'preset', stacks: [] }))}
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Create a new project"
+      size="xl"
+      footer={(
+        <>
+          <ActionPill label="Cancel" onClick={onClose} />
+          <ActionPill
+            label={busy ? 'Creating…' : 'Create project'}
+            onClick={() => void create()}
+            disabled={!canCreate}
+            primary
+          />
+        </>
+      )}
+    >
+      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        {/* ---- Left: choices ---- */}
+        <div className="space-y-6">
+          {/* Template */}
+          <section>
+            <div className="mb-2 inline-flex rounded-lg border border-[var(--cos-border)] p-0.5">
+              {(['preset', 'custom'] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  data-testid={`mode-${m}`}
+                  onClick={() => setState((s) => ({ ...s, mode: m }))}
+                  className={[
+                    'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+                    state.mode === m ? 'bg-[var(--accent)] text-[var(--cos-bg)]' : 'text-[var(--cos-muted)] hover:text-[var(--cos-text)]',
+                  ].join(' ')}
+                >
+                  {m === 'preset' ? 'Start from a preset' : 'Compose my own'}
+                </button>
+              ))}
+            </div>
+
+            {state.mode === 'preset' ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={presetQuery}
+                  onChange={(e) => setPresetQuery(e.target.value)}
+                  placeholder="Filter presets…"
+                  className={INPUT_CLASS}
                 />
-                <Chip
-                  testId="mode-custom"
-                  active={state.mode === 'custom'}
-                  label="Compose my own"
-                  onClick={() => setState((s) => ({ ...s, mode: 'custom', preset: '' }))}
-                />
-              </div>
-              {state.mode === 'preset' && (
-                <ul className="space-y-2">
-                  {(presetsData?.presets ?? []).map((p) => (
+                <ul className="grid max-h-[320px] gap-2 overflow-y-auto cos-scroll pr-1 sm:grid-cols-2">
+                  {filteredPresets.map((p) => (
                     <li key={p.id}>
                       <button
                         type="button"
                         aria-pressed={state.preset === p.id}
                         onClick={() => setState((s) => ({ ...s, preset: p.id }))}
                         className={[
-                          'w-full rounded border p-3 text-left focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]',
+                          'h-full w-full rounded-xl border p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
                           state.preset === p.id
-                            ? 'border-[var(--cos-accent)] bg-[var(--cos-brand-tint)]'
-                            : 'border-[var(--cos-border)] hover:border-[var(--cos-accent)]',
+                            ? 'border-[var(--accent)] bg-[var(--accent)]/8 shadow-sm'
+                            : 'border-[var(--cos-border)] bg-[var(--cos-panel)]/50 hover:border-[var(--accent)]/60',
                         ].join(' ')}
                       >
-                        <div className="text-xs font-semibold text-[var(--cos-text)]">{p.label}</div>
-                        <div className="text-[11px] text-[var(--cos-muted)]">{p.description}</div>
-                        <div className="mt-1 font-mono text-[10px] text-[var(--cos-faint)]">
-                          {p.stacks.join(' + ')}
-                        </div>
+                        <div className="text-sm font-semibold text-[var(--cos-text)]">{p.label}</div>
+                        <div className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-[var(--cos-muted)]">{p.description}</div>
+                        <div className="mt-1.5 font-mono text-[10px] text-[var(--accent)]">{p.stacks.join(' + ')}</div>
                       </button>
                     </li>
                   ))}
                 </ul>
-              )}
-            </div>
-          )}
-
-          {step === 'stacks' && (
-            <div className="space-y-4">
-              {stacksByLanguage.map(([language, stacks]) => (
-                <div key={language}>
-                  <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--cos-muted)]">
-                    {language}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {stacksByLanguage.map(([language, stacks]) => (
+                  <div key={language}>
+                    <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--cos-muted)]">{language}</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {stacks.map((s) => (
+                        <ToggleChip
+                          key={s.id}
+                          active={state.stacks.includes(s.id)}
+                          label={s.label}
+                          hint={s.category}
+                          onClick={() => setState((st) => ({ ...st, stacks: toggle(st.stacks, s.id) }))}
+                        />
+                      ))}
+                    </div>
                   </div>
+                ))}
+                <p className="text-[11px] text-[var(--cos-muted)]">
+                  Two stacks sharing a root coexist under <code>src/services/&lt;stack&gt;/</code> automatically.
+                </p>
+              </div>
+            )}
+          </section>
+
+          {/* Identity */}
+          <section className="space-y-3">
+            <Field label="Project name" hint="Optional — leave blank for a temporary slug you can rename later.">
+              <input
+                type="text"
+                value={state.name}
+                disabled={state.skipName}
+                onChange={(e) => setState((s) => ({ ...s, name: e.target.value }))}
+                placeholder="my-app"
+                dir="auto"
+                className={INPUT_CLASS}
+              />
+            </Field>
+            <div className="flex flex-wrap items-center gap-2">
+              <ToggleChip
+                testId="skip-name"
+                active={state.skipName}
+                label="Pick a temp name for me"
+                onClick={() => setState((s) => ({ ...s, skipName: !s.skipName }))}
+              />
+              {!state.skipName && state.name.trim() && (
+                <span className="text-[11px] text-[var(--cos-faint)]">slug: <code>{slug || '—'}</code></span>
+              )}
+              {!nameOk && <span className="text-[11px] text-[var(--cos-err)]">lowercase, no spaces</span>}
+            </div>
+            <Field label="Parent folder">
+              <input
+                type="text"
+                value={state.parentDir}
+                onChange={(e) => setState((s) => ({ ...s, parentDir: e.target.value }))}
+                placeholder="/Users/you/code"
+                className={`${INPUT_CLASS} font-mono`}
+              />
+            </Field>
+            {suggestions.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {suggestions.map((s) => (
+                  <ToggleChip
+                    key={s}
+                    active={state.parentDir === s}
+                    label={s}
+                    onClick={() => setState((st) => ({ ...st, parentDir: s }))}
+                  />
+                ))}
+              </div>
+            )}
+            <Field
+              label="What is this project?"
+              hint="1–2 sentences: what it is, for whom, what matters most. The agent expands this into your starter docs (PRD)."
+            >
+              <textarea
+                value={state.description}
+                onChange={(e) => setState((s) => ({ ...s, description: e.target.value }))}
+                rows={3}
+                dir="auto"
+                placeholder="A booking app for indie venues — fast checkout matters most."
+                className={INPUT_CLASS}
+              />
+            </Field>
+          </section>
+
+          {/* Advanced */}
+          <section>
+            <button
+              type="button"
+              onClick={() => setAdvancedOpen((v) => !v)}
+              aria-expanded={advancedOpen}
+              className="flex w-full items-center justify-between rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)]/40 px-3 py-2 text-xs font-medium text-[var(--cos-text)] hover:border-[var(--accent)]/60"
+            >
+              <span>Advanced — agents &amp; skills</span>
+              <span aria-hidden="true" className="text-[var(--cos-muted)]">{advancedOpen ? '▲' : '▼'}</span>
+            </button>
+
+            {advancedOpen && (
+              <div className="mt-3 space-y-5">
+                <div>
+                  <div className="mb-1.5 text-xs font-medium text-[var(--cos-text)]">Agents</div>
+                  <p className="mb-2 text-[11px] text-[var(--cos-muted)]">
+                    A project can host more than one adapter (e.g. both Claude Code and Codex).
+                  </p>
                   <div className="flex flex-wrap gap-1.5">
-                    {stacks.map((s) => (
-                      <Chip
-                        key={s.id}
-                        active={state.stacks.includes(s.id)}
-                        label={s.label}
-                        hint={s.category}
-                        onClick={() => setState((st) => ({ ...st, stacks: toggle(st.stacks, s.id) }))}
+                    {(adaptersData?.adapters ?? []).map((a) => (
+                      <ToggleChip
+                        key={a.id}
+                        testId={`agent-${a.id}`}
+                        active={state.agents.includes(a.id)}
+                        label={a.label}
+                        onClick={() => setState((s) => ({
+                          ...s,
+                          // keep at least one agent selected
+                          agents: s.agents.includes(a.id) && s.agents.length === 1
+                            ? s.agents
+                            : toggle(s.agents, a.id),
+                        }))}
                       />
                     ))}
                   </div>
                 </div>
-              ))}
-              <p className="text-[11px] text-[var(--cos-muted)]">
-                Two stacks sharing a root (e.g. two backends) coexist under{' '}
-                <code>src/services/&lt;stack&gt;/</code> automatically.
-              </p>
-            </div>
-          )}
 
-          {step === 'agent' && (
-            <div className="flex flex-wrap gap-2">
-              {(adaptersData?.adapters ?? []).map((a) => (
-                <Chip
-                  key={a.id}
-                  active={state.agent === a.id}
-                  label={a.label}
-                  onClick={() => setState((s) => ({ ...s, agent: a.id }))}
-                />
-              ))}
-            </div>
-          )}
-
-          {step === 'skills' && (
-            <div className="space-y-4">
-              {skillGroups.length === 0 && (
-                <p className="text-xs text-[var(--cos-muted)]">
-                  {selectedStacks.length === 0
-                    ? 'Base install only — universal skills ship with every project.'
-                    : 'Loading skill preview…'}
-                </p>
-              )}
-              {skillGroups.map((g) => (
-                <section key={g.stack}>
-                  <h2 className="mb-1 text-xs font-semibold text-[var(--cos-text)]">{g.stack}</h2>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <div className="text-[10px] uppercase text-[var(--cos-muted)]">required</div>
-                      <ul>{g.groups.required.map((e) => <SkillRow key={e.name} entry={e} />)}</ul>
+                {recommendedChips.length > 0 && (
+                  <div>
+                    <div className="mb-1.5 text-xs font-medium text-[var(--cos-text)]">
+                      Recommended skills <span className="text-[var(--cos-faint)]">(on by default)</span>
                     </div>
-                    <div>
-                      <div className="text-[10px] uppercase text-[var(--cos-muted)]">recommended</div>
-                      <ul>{g.groups.recommended.map((e) => <SkillRow key={e.name} entry={e} />)}</ul>
+                    <ul className="space-y-1.5">
+                      {recommendedChips.map((e) => (
+                        <SkillRow
+                          key={e.name}
+                          entry={e}
+                          action={(
+                            <ToggleChip
+                              active={state.extraSkills.includes(e.name)}
+                              label={state.extraSkills.includes(e.name) ? 'on' : 'off'}
+                              onClick={() => setState((s) => ({ ...s, extraSkills: toggle(s.extraSkills, e.name) }))}
+                            />
+                          )}
+                        />
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {optionalSkills.length > 0 && (
+                  <div>
+                    <div className="mb-1.5 text-xs font-medium text-[var(--cos-text)]">More skills</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {optionalSkills.map((s) => (
+                        <ToggleChip
+                          key={s.name}
+                          active={state.extraSkills.includes(s.name)}
+                          label={s.name}
+                          hint={s.description}
+                          onClick={() => setState((st) => ({ ...st, extraSkills: toggle(st.extraSkills, s.name) }))}
+                        />
+                      ))}
                     </div>
                   </div>
-                </section>
-              ))}
-            </div>
-          )}
+                )}
 
-          {step === 'extra' && (
-            <div className="space-y-2">
-              <p className="text-[11px] text-[var(--cos-muted)]">
-                Optional core skills beyond what your stacks install — manage later in Config.
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {optionalSkills.map((s) => (
-                  <Chip
-                    key={s.name}
-                    active={state.extraSkills.includes(s.name)}
-                    label={s.name}
-                    hint={s.description}
-                    onClick={() =>
-                      setState((st) => ({ ...st, extraSkills: toggle(st.extraSkills, s.name) }))}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {step === 'swimlanes' && (
-            <div className="space-y-3">
-              <div className="flex flex-wrap gap-1.5">
-                {(validation?.swimlanes ?? []).map((lane) => (
-                  <span
-                    key={lane}
-                    className="rounded border border-[var(--cos-border)] px-2.5 py-1 text-[11px] text-[var(--cos-text)]"
-                  >
-                    {lane}
-                  </span>
-                ))}
-              </div>
-              {(validation?.conflicts?.length ?? 0) > 0 && (
-                <div className="rounded border border-[var(--cos-border)] p-2 text-[10px] text-[var(--cos-muted)]">
-                  <div className="mb-1 font-semibold">merge notes (later stack wins):</div>
-                  {validation!.conflicts.map((c) => <div key={c} className="font-mono">{c}</div>)}
-                </div>
-              )}
-            </div>
-          )}
-
-          {step === 'name' && (
-            <div className="space-y-3">
-              <label className="block text-xs">
-                <span className="mb-1 block text-[var(--cos-muted)]">Project name</span>
-                <input
-                  type="text"
-                  value={state.name}
-                  disabled={state.skipName}
-                  onChange={(e) => setState((s) => ({ ...s, name: e.target.value }))}
-                  placeholder="my-app"
-                  dir="auto"
-                  className="w-full rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1.5 font-mono text-xs text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
-                />
-              </label>
-              {!state.skipName && state.name.trim() && (
-                <p className="text-[10px] text-[var(--cos-faint)]">
-                  folder + slug: <code>{slugifyProjectName(state.name) || '—'}</code>
+                <p className="text-[11px] leading-snug text-[var(--cos-muted)]">
+                  Modules (task board, knowledge graph, memory, docs) are all enabled by default —
+                  toggle them anytime in <span className="font-medium text-[var(--cos-text)]">Config</span> after the project is created.
                 </p>
-              )}
-              <Chip
-                testId="skip-name"
-                active={state.skipName}
-                label="Don't know yet — pick a temp name for me"
-                onClick={() => setState((s) => ({ ...s, skipName: !s.skipName }))}
-              />
-              <label className="block text-xs">
-                <span className="mb-1 block text-[var(--cos-muted)]">Parent folder</span>
-                <input
-                  type="text"
-                  value={state.parentDir}
-                  onChange={(e) => setState((s) => ({ ...s, parentDir: e.target.value }))}
-                  placeholder="/Users/you/code"
-                  className="w-full rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1.5 font-mono text-xs text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
-                />
-              </label>
-              {suggestions.length > 0 && (
-                <div className="flex flex-wrap gap-1 text-[10px]">
-                  {suggestions.map((s) => (
-                    <Chip
-                      key={s}
-                      active={state.parentDir === s}
-                      label={s}
-                      onClick={() => setState((st) => ({ ...st, parentDir: s }))}
-                    />
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* ---- Right: live preview ---- */}
+        <aside>
+          <div className="rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-bg)]/40 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--cos-muted)]">What you&apos;ll get</h3>
+              {validating && <span className="text-[10px] text-[var(--cos-faint)]">updating…</span>}
+            </div>
+
+            <dl className="space-y-2.5 text-xs">
+              <div>
+                <dt className="text-[var(--cos-muted)]">Setup</dt>
+                <dd className="font-medium text-[var(--cos-text)]">{setupSummary}</dd>
+              </div>
+              <div>
+                <dt className="text-[var(--cos-muted)]">Agents</dt>
+                <dd className="mt-1 flex flex-wrap gap-1">
+                  {state.agents.map((a) => (
+                    <span key={a} className="rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-2 py-0.5 text-[11px] text-[var(--accent)]">{a}</span>
                   ))}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--cos-muted)]">Name → folder</dt>
+                <dd className="font-mono text-[11px] text-[var(--cos-text)]">
+                  {validation?.auto_named ? `${validation.name} (temp)` : (validation?.name || (state.skipName ? 'auto' : slug || '—'))}
+                </dd>
+              </div>
+              {validation?.target && (
+                <div>
+                  <dt className="text-[var(--cos-muted)]">Location</dt>
+                  <dd className="break-all font-mono text-[10px] text-[var(--cos-muted)]">{validation.target}</dd>
                 </div>
               )}
-            </div>
-          )}
-
-          {step === 'description' && (
-            <label className="block text-xs">
-              <span className="mb-1 block text-[var(--cos-muted)]">
-                1–2 paragraphs: what is this project, for whom, what matters most?
-                The agent screens this into your initial docs.
-              </span>
-              <textarea
-                value={state.description}
-                onChange={(e) => setState((s) => ({ ...s, description: e.target.value }))}
-                rows={6}
-                dir="auto"
-                className="w-full rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1.5 text-xs text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
-              />
-            </label>
-          )}
-
-          {step === 'review' && (
-            <dl className="space-y-2 text-xs">
-              <div><dt className="inline text-[var(--cos-muted)]">setup: </dt>
-                <dd className="inline font-mono">
-                  {state.mode === 'preset' ? `preset ${state.preset}` : selectedStacks.join(' + ') || 'base only'}
-                </dd></div>
-              <div><dt className="inline text-[var(--cos-muted)]">agent: </dt>
-                <dd className="inline font-mono">{state.agent}</dd></div>
-              <div><dt className="inline text-[var(--cos-muted)]">name: </dt>
-                <dd className="inline font-mono">
-                  {validation?.auto_named ? `${validation.name} (temp — rename later)` : validation?.name ?? '—'}
-                </dd></div>
-              <div><dt className="inline text-[var(--cos-muted)]">target: </dt>
-                <dd className="inline font-mono">{validation?.target ?? '—'}</dd></div>
-              <div><dt className="inline text-[var(--cos-muted)]">extra skills: </dt>
-                <dd className="inline font-mono">{state.extraSkills.join(', ') || '—'}</dd></div>
-              {!validation && !error && (
-                <p className="text-[var(--cos-muted)]">validating…</p>
+              {(validation?.swimlanes?.length ?? 0) > 0 && (
+                <div>
+                  <dt className="text-[var(--cos-muted)]">Board lanes</dt>
+                  <dd className="mt-1 flex flex-wrap gap-1">
+                    {validation!.swimlanes.map((lane) => (
+                      <span key={lane} className="inline-flex items-center gap-1 rounded-md border border-[var(--cos-border)] px-1.5 py-0.5 text-[10px] text-[var(--cos-text)]">
+                        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]/60" />{lane}
+                      </span>
+                    ))}
+                  </dd>
+                </div>
               )}
             </dl>
-          )}
 
-          {error && (
-            <p role="alert" className="mt-4 rounded border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-400">
-              {error}
-            </p>
-          )}
-        </div>
-      </main>
+            {requiredEntries.length > 0 && (
+              <div className="mt-4">
+                <div className="mb-1.5 text-[10px] uppercase tracking-wide text-[var(--cos-muted)]">Skills your stack installs</div>
+                <ul className="space-y-1.5">
+                  {requiredEntries.map((e) => <SkillRow key={e.name} entry={e} />)}
+                </ul>
+              </div>
+            )}
 
-      {/* Footer */}
-      <footer className="flex items-center justify-between border-t border-[var(--cos-border)] px-6 py-4">
-        <button
-          type="button"
-          onClick={() => (stepIndex === 0 ? onClose() : setStepIndex((i) => i - 1))}
-          disabled={busy}
-          className="rounded border border-[var(--cos-border)] px-3 py-1.5 text-xs text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
-        >
-          {stepIndex === 0 ? 'Cancel' : 'Back'}
-        </button>
-        {step !== 'review' ? (
-          <button
-            type="button"
-            data-testid="wizard-next"
-            onClick={() => setStepIndex((i) => i + 1)}
-            disabled={!canContinue || busy}
-            className="rounded bg-[var(--cos-accent)] px-4 py-1.5 text-xs font-semibold text-[var(--cos-bg)] disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
-          >
-            Continue
-          </button>
-        ) : (
-          <button
-            type="button"
-            data-testid="wizard-create"
-            onClick={() => void create()}
-            disabled={!canContinue || busy}
-            className="rounded bg-[var(--cos-accent)] px-4 py-1.5 text-xs font-semibold text-[var(--cos-bg)] disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
-          >
-            {busy ? 'creating…' : 'Create project'}
-          </button>
-        )}
-      </footer>
-    </div>
+            <div className="mt-4 border-t border-[var(--cos-border)] pt-3">
+              <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--cos-muted)]">Always included</div>
+              <p className="text-[11px] leading-snug text-[var(--cos-faint)]">
+                {CORE_SKILLS.join(' · ')} — the universal core every project gets.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {error && <div role="alert" className="mt-4"><Banner kind="error">{error}</Banner></div>}
+    </Modal>
   );
 }

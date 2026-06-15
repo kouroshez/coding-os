@@ -292,8 +292,12 @@ hub-global endpoints back the **New Project** wizard on `HubHome`:
   preview (swimlane union + reported conflicts). Shares
   `_validate_init_inputs` with the real init route (SSOT) and writes nothing.
 - `POST /api/hub/registry/init` — runs `cos init --name … --project-dir …
-  [--preset … | --template …×N] --agent <chosen> --yes --no-index --format
-  json` in a subprocess with a timeout. It is the **highest-severity new
+  [--preset … | --template …×N] --agent <a[,b,…]> --yes --no-index --format
+  json` in a subprocess with a timeout. Both init and validate-init accept
+  `agents: list[str]` (a project may host several adapters, e.g.
+  `.claude/` + `.codex/`) with a single `agent: str` kept for back-compat;
+  `_resolve_agents` merges + de-dupes them and the preview echoes the resolved
+  list. It is the **highest-severity new
   surface** (writes the filesystem), so it sits behind the localhost security
   gate below, and validates via the same `_validate_init_inputs` before
   spawning. An empty name auto-generates a temp slug (`proj-<6hex>`,
@@ -315,10 +319,25 @@ hub-global endpoints back the **New Project** wizard on `HubHome`:
   counters (`cos_init_jobs_total{status=…}`) render into `/metrics`. The
   sync (non-background) form stays for programmatic callers.
 
-The full-screen step-wise wizard (`OnboardingWizard.tsx`, TASK-358 —
-preset-or-custom → agent → skills preview → extra skills → swimlanes →
-name-or-skip → description → review) replaced the single-form dialog on
-`HubHome`.
+**Composer (`OnboardingWizard.tsx`, TASK-419)** — a single screen replaces the
+8-step wizard (TASK-358). Left column = choices (template preset/custom, name +
+folder + a first-class description, and an *Advanced* disclosure for
+multi-select agents + skills with tier/domain/description depth); right column =
+a live "what you'll get" preview driven by `validate-init` (resolved stacks,
+agents, board lanes as chips — not raw JSON, target path). The dominant path
+(pick a preset → Create) is ~3 interactions. Stack-recommended *core* skills are
+pre-selected into `extra_skills` (the scaffold only auto-links a stack's own
+skill dirs, so curated core companions must ride `--skills`); unshipped
+(`validated:false`) skills are filtered out of the selectable set. Built on the
+shared `Modal` + `ActionPill` primitives and `--cos-*` tokens. The job-progress
+view + cancel (TASK-362) are unchanged. Module toggles at create time are a
+follow-up — modules ship all-enabled and are toggled post-create in Config.
+
+**Project list never surfaces the global state dir.** `_derive_runtime_entry`
+auto-lists the cwd as a project when it has `.coding-os/`, but `$HOME` and any
+`.coding-os/` carrying the hub registry/pid (`registry.json` / `hub.pid` — the
+global state dir, see § Three address spaces) are rejected, so the home dir
+never appears as a phantom "live cwd" project.
 
 ## Localhost security gate (Origin/Host allowlist + CSRF)
 

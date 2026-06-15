@@ -7,11 +7,12 @@ import { apiPatch } from '@/lib/api-client';
 import { SubNav, subNavTabClass } from '@/layout/HubPrimitives';
 
 /**
- * Per-project Configuration surface — read-only this phase. Shows what tech
- * stacks, skills, MCP servers, and hooks are wired for the active project so a
- * human can SEE the setup without reading YAML/JSON. Per-project enable/disable
- * is a separate kernel-override epic (a toggle must never edit the global
- * registry), so toggles are intentionally absent here.
+ * Per-project Configuration surface. Shows what tech stacks, skills, MCP
+ * servers, hooks, and modules are wired for the active project so a human can
+ * SEE the setup without reading YAML/JSON. Modules and extra skills ARE
+ * toggleable here (subsystems-state.json / .coding-os.yaml); stacks, MCP, and
+ * hooks stay read-only — per-project enable/disable for those is a separate
+ * kernel-override epic (a toggle must never edit the global registry).
  */
 
 type Tab = 'stacks' | 'skills' | 'mcp' | 'hooks' | 'modules';
