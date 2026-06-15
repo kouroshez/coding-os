@@ -221,6 +221,11 @@ The hook registry renders cleanly into every adapter declared in `installed-mani
 
 ## hub
 
+### hub.code_fresh
+A running Hub serves the in-process core (`graph_os`/`web`/`thinking_os`/`board_os`) it imported at start; Python never reloads a live module, so a core edit only reaches projects after a restart.
+**Warns** when the newest core `*.py` mtime is newer than the Hub's start (`hub.pid` mtime). **Passes** when the Hub is fresh, not running, or started with `--reload`.
+**Fix**: `cos hub restart` (or start with `cos hub start --reload` for a dev auto-reload loop). See `docs/engineering/hub-architecture.md` § Hub serves in-process core.
+
 ### hub.consumer_hook_symlinks_healthy
 Every registered consumer project's hook symlinks resolve to live meta-repo files.
 **Fails** on dangling symlinks (meta-repo moved on disk).
