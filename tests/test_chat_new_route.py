@@ -159,6 +159,8 @@ def _make_fake_sdk(events, captured_opts=None):
             return kwargs
 
         async def query(self, prompt, options):
+            if captured_opts is not None:
+                captured_opts["_options"] = options
             for ev in events:
                 yield ev
 
@@ -223,7 +225,13 @@ def test_chat_new_enables_partial_streaming(client, monkeypatch):
     _patch_sdk(monkeypatch, _make_fake_sdk([_Init("uuid-2")], captured_opts=captured))
     with client.stream("POST", "/api/cognition/chat", json={"prompt": "hi"}) as r:
         "".join(r.iter_text())
-    assert captured.get("include_partial_messages") is True
+    # Options are now built by the SSOT builder (TASK-417); assert via the
+    # ClaudeAgentOptions object the route hands to query().
+    opts = captured.get("_options")
+    assert getattr(opts, "include_partial_messages", None) is True
+    # routed through the SSOT builder: chat profile registers cos_*, no Write
+    assert "mcp__coding-os__*" in getattr(opts, "allowed_tools", [])
+    assert "Write" not in getattr(opts, "allowed_tools", [])
 
 
 def test_get_chat_missing_session_returns_404(client, monkeypatch):
@@ -249,8 +257,10 @@ def test_chat_send_streams_partial_and_skips_project_hooks(client, monkeypatch):
         "POST", "/api/cognition/chat/some-session-id/send", json={"prompt": "more"}
     ) as r:
         "".join(r.iter_text())
-    assert captured.get("include_partial_messages") is True
-    assert captured.get("setting_sources") == []
+    opts = captured.get("_options")
+    assert getattr(opts, "include_partial_messages", None) is True
+    assert getattr(opts, "setting_sources", None) == []
+    assert "mcp__coding-os__*" in getattr(opts, "allowed_tools", [])
 
 
 # ---------------------------------------------------------------------------

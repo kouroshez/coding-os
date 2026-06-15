@@ -50,6 +50,80 @@ _DESTRUCTIVE_BASH_DENY = (
     "Bash(wget * | sh:*)",
 )
 
+# Base tool allow-list for the interactive Hub-chat surface. The Claude CLI
+# treats --allowedTools as an EXCLUSIVE allow-list under permission_mode=
+# "dontAsk" (verified live: listing only the MCP wildcard denies Read), so
+# the chat profile must enumerate the base tools it keeps. Write/Edit/
+# MultiEdit are intentionally absent — chat is read+research+MCP and must
+# not mutate code (closes the dogfood-corruption gap by construction).
+_CHAT_BASE_TOOLS = (
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash",
+    "WebFetch",
+    "WebSearch",
+    "TodoWrite",
+)
+
+_CHAT_PROFILES = ("chat", "chat_resume")
+
+
+def _cos_mcp_servers(cwd: str) -> dict[str, Any]:
+    try:
+        data = json.loads((Path(cwd) / ".mcp.json").read_text(encoding="utf-8"))
+        cos = (data.get("mcpServers") or {}).get("coding-os")
+        return {"coding-os": cos} if cos else {}
+    except (OSError, ValueError) as exc:
+        logger.debug("cos mcp_servers unavailable for %s: %s", cwd, exc)
+        return {}
+
+
+def claude_session_options(
+    profile: str,
+    *,
+    cwd: str,
+    model: str | None = None,
+    system_prompt: Any = None,
+    resume: str | None = None,
+    fork: bool = False,
+    effort: str | None = None,
+):
+    """Build ClaudeAgentOptions for a profile — the SSOT for Claude SDK sessions (docs/adapters/session-options-builder.md)."""
+    from claude_agent_sdk import ClaudeAgentOptions
+
+    if profile not in _CHAT_PROFILES:
+        raise NotImplementedError(
+            f"claude_session_options: profile {profile!r} not yet migrated (TASK-417 phases)"
+        )
+
+    opts: dict[str, Any] = dict(
+        cwd=cwd,
+        model=model,
+        permission_mode="dontAsk",
+        # Fast conversational surface: skip the ~40s project SessionStart hook
+        # suite. Capability comes from programmatic mcp_servers below, NOT from
+        # setting_sources, so cos_* works without that latency.
+        setting_sources=[],
+        include_partial_messages=True,
+        # P2 capability: register coding-os MCP programmatically — renders
+        # --mcp-config independent of setting_sources (subprocess_cli.py:307).
+        mcp_servers=_cos_mcp_servers(cwd),
+        # Exclusive allow-list under dontAsk: base tools + the MCP wildcard.
+        allowed_tools=[*_CHAT_BASE_TOOLS, _DEFAULT_COS_MCP_ALLOW],
+        # P3: destructive-Bash deny floor (rm -rf / force-push / sudo / pipe-to-sh).
+        disallowed_tools=list(_DESTRUCTIVE_BASH_DENY),
+    )
+    if system_prompt is not None:
+        opts["system_prompt"] = system_prompt
+    if effort:
+        opts["effort"] = effort
+    if profile == "chat_resume":
+        if resume:
+            opts["resume"] = resume
+        opts["fork_session"] = fork
+    return ClaudeAgentOptions(**opts)
+
 # OTEL env vars the dispatcher copies from the parent process so the
 # sub-session emits to the same collector. No collector defaults are
 # bundled (D5) — operator sets exporter / endpoint / headers.

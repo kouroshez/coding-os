@@ -563,6 +563,51 @@ def _project_cwd() -> str:
     return str(current_project_root())
 
 
+_SESSION_OPTS_BUILDER = None
+_SESSION_OPTS_TRIED = False
+
+
+def _session_options_builder():
+    """Load the Claude adapter's session-options builder (SSOT) via the dynamic adapter-load seam."""
+    global _SESSION_OPTS_BUILDER, _SESSION_OPTS_TRIED
+    if _SESSION_OPTS_TRIED:
+        return _SESSION_OPTS_BUILDER
+    _SESSION_OPTS_TRIED = True
+    try:
+        import importlib.util
+        from pathlib import Path
+
+        path = Path(__file__).resolve().parents[3] / "adapters" / "claude" / "sdk_dispatcher.py"
+        spec = importlib.util.spec_from_file_location("cos_adapter_claude_session_opts", path)
+        if spec and spec.loader:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            _SESSION_OPTS_BUILDER = getattr(mod, "claude_session_options", None)
+    except Exception as exc:
+        logger.debug("session-options builder load failed: %s", exc)
+    return _SESSION_OPTS_BUILDER
+
+
+def _chat_session_options(profile, sdk, *, cwd, model, system_prompt, effort=None, resume=None, fork=False):
+    """Build chat ClaudeAgentOptions via the adapter SSOT builder, with a defensive inline fallback."""
+    build = _session_options_builder()
+    if build is not None:
+        try:
+            return build(profile, cwd=cwd, model=model, system_prompt=system_prompt,
+                         effort=effort, resume=resume, fork=fork)
+        except Exception as exc:
+            logger.debug("session-options builder call failed (%s); inline fallback", exc)
+    kwargs = dict(cwd=cwd, model=model, permission_mode="dontAsk",
+                  setting_sources=[], include_partial_messages=True, system_prompt=system_prompt)
+    if effort:
+        kwargs["effort"] = effort
+    if profile == "chat_resume":
+        if resume:
+            kwargs["resume"] = resume
+        kwargs["fork_session"] = fork
+    return sdk.ClaudeAgentOptions(**kwargs)
+
+
 def _serialize_session_info(info: Any) -> dict:
     return {
         "session_id": getattr(info, "session_id", None),
@@ -907,28 +952,14 @@ async def chat_new(
     system_prompt = _role_system_prompt(role) or _chat_system_prompt(model)
     system_prompt = _prime_with_project_description(system_prompt, cwd)
     new_session_id = f"ses-claude-ui-{int(_time.time())}-{secrets.token_hex(3)}"
-    opts_kwargs: dict = dict(
-        cwd=cwd,
-        model=model,
-        permission_mode="dontAsk",
-        setting_sources=[],
-        # Stream partial deltas so the UI paints the answer token-by-token (the
-        # SDK otherwise yields one complete AssistantMessage at the end → the
-        # whole reply appears at once). Emits StreamEvent frames carrying raw
-        # Anthropic content_block_delta events.
-        include_partial_messages=True,
-        # Hub chat is a fast conversational surface — skip the project hook suite
-        # (dozens of SessionStart hooks add ~40s of latency before the first
-        # reply) and the auto-loaded CLAUDE.md governance/banner. The agent keeps
-        # Read/Grep/Bash (incl. the `cos` CLI) to ground answers.
-        # No session_id: the claude CLI rejects non-UUID ids ("Invalid session
-        # ID. Must be a valid UUID"). The SDK mints its own UUID, surfaced below
-        # from the stream and emitted as the `session` event.
+    # SSOT builder (chat profile): setting_sources=[] (no ~40s SessionStart
+    # suite) + programmatic coding-os MCP (cos_* capability) + base-tool
+    # allow-list (no Write/Edit → chat can't mutate code) + destructive-Bash
+    # deny floor. No session_id: the CLI rejects non-UUID ids; the SDK mints
+    # its own UUID, surfaced below from the stream as the `session` event.
+    options = _chat_session_options(
+        "chat", sdk, cwd=cwd, model=model, system_prompt=system_prompt, effort=effort
     )
-    opts_kwargs["system_prompt"] = system_prompt
-    if effort:
-        opts_kwargs["effort"] = effort
-    options = sdk.ClaudeAgentOptions(**opts_kwargs)
 
     async def event_gen():
         yield _sse_chunk(
@@ -1372,22 +1403,11 @@ async def chat_send(
     cwd = _project_cwd()
     fork = bool(body.get("fork"))
     model = body.get("model") or None
-    options = sdk.ClaudeAgentOptions(
-        resume=session_id,
-        cwd=cwd,
-        fork_session=fork,
-        model=model,
-        # Headless resume has no interactive approver, so a write tool under the
-        # default permission mode errors with "requested permissions … but you
-        # haven't granted it yet". Match chat_new / onboard so Write/Edit/Bash run.
-        permission_mode="dontAsk",
-        # Follow-up turns must be as clean + fast as the first: no project hook
-        # suite / CLAUDE.md governance (that caused the banner, "No response
-        # requested", and tool-permission errors on resume).
-        setting_sources=[],
-        # Stream partial deltas so follow-up replies paint token-by-token too.
-        include_partial_messages=True,
-        system_prompt=_chat_system_prompt(model),
+    # SSOT builder (chat_resume profile) — same chat-light policy as chat_new
+    # (mcp + deny floor + no Write/Edit), plus resume/fork for the follow-up turn.
+    options = _chat_session_options(
+        "chat_resume", sdk, cwd=cwd, model=model,
+        system_prompt=_chat_system_prompt(model), resume=session_id, fork=fork,
     )
 
     async def event_gen():
