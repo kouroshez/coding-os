@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [hub, onboarding, ux, frontend, backend, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-06-15
 started: 2026-06-15
-completed: null
+completed: 2026-06-15
 agent_session: ses-claude-20260615-014142-5969
 depends_on: []
 blocked_by: []
@@ -94,3 +94,6 @@ references: []
 - 2026-06-15 [claude]: Edit hub-architecture.md
 - 2026-06-15 [claude]: Edit hub-architecture.md
 - 2026-06-15 [claude]: Edit 0009-new-project-composer.md
+- 2026-06-15 [claude]: committed 8c9cec44: docs/architecture/adr/00-index.md, docs/architecture/adr/0009-new-project-composer.md, docs/engineer
+- 2026-06-15 [claude]: Slice 2/2 landed (commit 8c9cec44): single-screen Composer shipped. OnboardingWizard.tsx rewritten as a 2-column Modal c
+- 2026-06-15 [claude]: Status transitioned to complete via cos task-done.
