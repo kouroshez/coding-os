@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: null
 labels: [logging, dx, core]
-status: complete
+status: archive
 priority: P2
 appetite: "4h"
 created: 2026-05-15
