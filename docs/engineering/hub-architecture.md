@@ -112,6 +112,16 @@ path; **Graph** and **Cognition** are project-scoped only. The Doctor page reads
 
 Chart primitives (`Sparkline`, `BarList`, `Gauge`, `StatTile`) live in [src/core/web/ui/src/lib/charts.tsx](../../src/core/web/ui/src/lib/charts.tsx) — hand-rolled inline SVG, no chart library dependency. Prometheus text parser at [src/core/web/ui/src/lib/prometheus-parse.ts](../../src/core/web/ui/src/lib/prometheus-parse.ts).
 
+## Graph community-map home (focus+context, TASK-407)
+
+> **Status — needs a human visual review.** The layout below is the InfraNodus/Bloom-style default for the no-root Graph home; the blind switch in TASK-406 was visually rejected (only 2 community nodes surfaced at a 500-node budget). This pass fixes the budget allocation and the de-emphasis styling but the on-canvas result has not yet been signed off by the user.
+
+The no-root Graph home renders `cos_graph_export(mode="processes")` as a community map: each Louvain community is a labelled colored group with its top hubs, and non-focus member nodes are de-emphasised so the canvas reads as a subsystem map, not a flat blend sample.
+
+**Per-community budget reservation** (`_export_processes` in [src/core/graph_os/tools/graph.py](../../src/core/graph_os/tools/graph.py)): two passes instead of the old greedy walk. Pass 1 reserves one synthetic `community` header node per community (budget-capped). Pass 2 spreads the remaining budget as an **equal per-community member quota** (`member_budget // headed_count`, floor 1) so a single 400-member cluster can no longer starve the rest. At `max_nodes=500` every community above `min_size` surfaces at least its header — the TASK-406 regression guard (`test_at_least_six_community_nodes_surface`, `test_budget_reserved_across_communities`).
+
+**De-emphasis styling** (`buildGraph` in [src/core/web/ui/src/features/graph/graph-adapter.ts](../../src/core/web/ui/src/features/graph/graph-adapter.ts), wired by [GraphCanvas.tsx](../../src/core/web/ui/src/features/graph/GraphCanvas.tsx) passing `mode`): in `processes` mode community headers are the **focus** tier — forced label (`forceLabel`), full group color from [node-colors.ts](../../src/core/web/ui/src/lib/node-colors.ts), hub size — and member nodes are **context** — a small uniform dot, alpha-muted color (`#RRGGBBAA`), no forced label and no icon. Other modes (`auto`/`containment`/`dependencies`) are untouched.
+
 ## Hub settings contract (`/api/settings` ↔ `hub-settings.json`)
 
 `GET/PATCH /api/settings` round-trips `$COS_STATE_DIR/hub-settings.json`

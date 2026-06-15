@@ -89,6 +89,7 @@ export default function GraphCanvas() {
     const graph = buildGraph(pruned, {
       visibleKinds: new Set(visibleKinds),
       visibleEdgeTypes: new Set(visibleEdgeTypes),
+      mode: viewMode,
     });
     // containment view → top-down dagre tree; everything
     // else stays on ForceAtlas2 with noverlap.

@@ -301,6 +301,83 @@ class TestProcessesMode:
         edge_types = {e["edge_type"] for e in res["data"]["edges"]}
         assert "member_of_community" in edge_types
 
+    @staticmethod
+    def _community(idx: int, size: int):
+        from graph_os.communities import Community
+
+        members = tuple(
+            {
+                "uid": f"code:function:c{idx}.py::fn{j}",
+                "label": f"fn{idx}_{j}",
+                "kind": "code:function",
+                "step_index": j,
+                "file_path": f"src/c{idx}.py",
+                "start_line": 1,
+            }
+            for j in range(size)
+        )
+        return Community(
+            community_id=f"community:c{idx}",
+            name=f"flow-{idx}",
+            summary=f"fn{idx}_0 → fn{idx}_1",
+            priority=float(size),
+            member_count=size,
+            members=members,
+        )
+
+    def _bind_communities(self, monkeypatch, communities):
+        # The export resolves member uids via be.get_node; register them
+        # on the bound stub so the member rows hydrate.
+        from graph_os import communities as comm_mod
+
+        be = graph_tools._backend()
+        for c in communities:
+            for m in c.members:
+                be._nodes[m["uid"]] = _node(m["uid"], label=m["label"])
+        monkeypatch.setattr(
+            comm_mod,
+            "compute_communities",
+            lambda b, **kwargs: (list(communities), {}),
+        )
+
+    def test_at_least_six_community_nodes_surface(self, monkeypatch):
+        # TASK-407 / guards the TASK-406 regression: 8 communities where
+        # the first holds 400 members. At a 500-node budget the old greedy
+        # pass surfaced only ~2 headers; the fair reservation must surface
+        # every header.
+        communities = [self._community(0, 400)] + [
+            self._community(i, 5) for i in range(1, 8)
+        ]
+        self._bind_communities(monkeypatch, communities)
+        res = _parse(graph_tools.cos_graph_export(mode="processes", max_nodes=500))
+        assert res["ok"] is True
+        community_nodes = [n for n in res["data"]["nodes"] if n["kind"] == "community"]
+        assert len(community_nodes) >= 6
+
+    def test_budget_reserved_across_communities(self, monkeypatch):
+        # The 400-member community must not consume the whole budget — its
+        # member count in the export is capped at the fair per-community
+        # share so every community above min_size appears as its header.
+        communities = [self._community(0, 400)] + [
+            self._community(i, 5) for i in range(1, 8)
+        ]
+        self._bind_communities(monkeypatch, communities)
+        res = _parse(graph_tools.cos_graph_export(mode="processes", max_nodes=500))
+        nodes = res["data"]["nodes"]
+        # Every community above min_size surfaces at least its header node.
+        community_ids = {n["uid"] for n in nodes if n["kind"] == "community"}
+        assert {f"community:c{i}" for i in range(8)} <= community_ids
+        # The top community's members are capped — far below its 400 size.
+        edges = res["data"]["edges"]
+        top_members = {
+            e["source_uid"]
+            for e in edges
+            if e["target_uid"] == "community:c0"
+        }
+        member_budget = 500 - len(community_ids)
+        fair_share = max(1, member_budget // len(communities))
+        assert len(top_members) <= fair_share
+
 
 # ---------------------------------------------------------------------------
 # Noise filter parametrisation

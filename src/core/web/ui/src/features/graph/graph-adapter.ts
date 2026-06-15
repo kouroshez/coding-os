@@ -73,12 +73,32 @@ const CANVAS_NOISE_KINDS: ReadonlySet<string> = new Set([
   'doc_heading',
 ]);
 
+// TASK-407 — focus+context community-map styling (InfraNodus / Bloom
+// default for the no-root home). In `processes` mode the synthetic
+// `community` nodes are the FOCUS (forced label, full group color, hub
+// size) and their member nodes are CONTEXT (de-emphasised: muted color +
+// reduced size) so the canvas reads as a labelled subsystem map instead
+// of a flat blend sample. SSOT: docs/engineering/hub-architecture.md.
+const MEMBER_DEEMPHASIS_ALPHA = '88'; // ~53% opacity hex suffix
+const COMMUNITY_NODE_SIZE = 14;
+const MEMBER_DEEMPHASIS_SIZE = 3;
+
+// Blend a 6-digit hex color toward muted by appending an alpha suffix.
+// Sigma's WebGL renderer honours 8-digit hex (#RRGGBBAA).
+function mute(color: string): string {
+  return /^#[0-9a-fA-F]{6}$/.test(color) ? `${color}${MEMBER_DEEMPHASIS_ALPHA}` : color;
+}
+
 // Convert a raw export payload into a graphology Graph suitable for
 // Sigma.js. Initial coordinates are random in [-1, 1] — ForceAtlas2
 // will settle them on mount.
 export function buildGraph(
   payload: ApiGraphPayload,
-  opts: { visibleKinds?: Set<string>; visibleEdgeTypes?: Set<string> } = {},
+  opts: {
+    visibleKinds?: Set<string>;
+    visibleEdgeTypes?: Set<string>;
+    mode?: string;
+  } = {},
 ): Graph<SigmaNodeAttrs, SigmaEdgeAttrs> {
   const graph = new Graph<SigmaNodeAttrs, SigmaEdgeAttrs>({ multi: true });
 
@@ -110,8 +130,17 @@ export function buildGraph(
     .slice(0, TOP_K)
     .map(([uid]) => uid);
   const TOP_DEGREE: Set<string> = new Set(topByDegree);
+  // TASK-407: in the community map the synthetic `community` headers are
+  // the focus tier and their members are de-emphasised context.
+  const isCommunityMap = opts.mode === 'processes';
   const sizeFor = (uid: string, kind: string): number => {
     if (ROOT_UIDS.has(uid)) return 32;             // γ·root_bonus
+    if (isCommunityMap) {
+      if (kind === 'community') return COMMUNITY_NODE_SIZE;
+      // Member nodes recede — a small uniform dot so the labelled
+      // community groups dominate the canvas (focus+context).
+      return MEMBER_DEEMPHASIS_SIZE;
+    }
     const base = kind === 'folder' ? 5 : kind === 'file' ? 4 : kind === 'module' ? 3.5 : 2;
     const d = degree.get(uid) ?? 0;
     const sized = base + Math.log2(d + 1) * 2.6;
@@ -125,8 +154,11 @@ export function buildGraph(
   // root; everything else relies on Sigma's zoom-aware label budget
   // (labelDensity / labelRenderedSizeThreshold) so labels only show
   // when there's room.
-  const labelForceFor = (uid: string): boolean => {
+  const labelForceFor = (uid: string, kind: string): boolean => {
     if (ROOT_UIDS.has(uid)) return true;
+    // TASK-407: community headers always carry their group label so the
+    // map reads as named subsystems; members stay zoom-budget-only.
+    if (isCommunityMap) return kind === 'community';
     if (TOP_DEGREE.has(uid)) return true;
     return false;
   };
@@ -167,19 +199,27 @@ export function buildGraph(
     const root = isRootUid(n.uid);
     const image = root ? ROOT_ICON : ICONS[normalKind];
 
+    // TASK-407: focus tier = community headers (full group color);
+    // context tier = members (muted) in the community-map home.
+    const isMember = isCommunityMap && normalKind !== 'community';
+    const baseColor = root ? ROOT_COLOR : kindColor(n.kind);
+    const color = isMember ? mute(baseColor) : baseColor;
+
     graph.addNode(n.uid, {
       x: Math.random() * 2 - 1,
       y: Math.random() * 2 - 1,
       size: sizeFor(n.uid, normalKind),
-      color: root ? ROOT_COLOR : kindColor(n.kind),
+      color,
       label: n.label || n.uid,
       kind: normalKind,
       filePath: n.file_path ?? undefined,
       startLine: n.start_line ?? undefined,
       hidden: !kindVisible,
-      forceLabel: labelForceFor(n.uid),
-      type: image ? 'image' : 'circle',
-      image: image,
+      forceLabel: labelForceFor(n.uid, normalKind),
+      // Members drop their icon image so the muted dot reads as context,
+      // not a competing focus node; community headers have no icon anyway.
+      type: image && !isMember ? 'image' : 'circle',
+      image: image && !isMember ? image : undefined,
     });
   }
 
