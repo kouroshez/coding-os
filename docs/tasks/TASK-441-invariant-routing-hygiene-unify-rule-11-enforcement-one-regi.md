@@ -9,14 +9,13 @@ status: icebox
 priority: P2
 appetite: 1d
 created: 2026-06-16
-started: null
+started: 2026-06-16
 completed: null
-agent_session: null
+agent_session: ses-803-0b9f
 depends_on: [TASK-438]
 blocked_by: []
 references: []
 ---
-
 # TASK-441: Invariant + routing hygiene: unify Rule-11 enforcement (one registry read), fix model-routing tier-vs-id footgun, add bash -n self-check for safety hooks
 
 **Outcome (one sentence):** The data-driven invariant (Rule 11) is enforced by ONE registry-derived source instead of three divergent sets, model routing can never forward a tier name as an SDK model id, and a half-saved safety hook fails open instead of breaking enforcement across every live-symlinked session. Closes audit R10+R11+R14 (problem-tree Branch C + blast-radius hardening).
@@ -38,3 +37,5 @@ references: []
 **Given** these changes **When** make verify-hooks + the relevant matrix tests run **Then** they pass.
 
 ## Work Log
+- 2026-06-16 [claude]: Edit test_board_coherence.py
+- 2026-06-16 [claude]: Edit test_board_coherence.py

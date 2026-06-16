@@ -47,3 +47,4 @@ references: []
 - 2026-06-16 [claude]: Edit git_coherence.py
 - 2026-06-16 [claude]: Edit test_board_coherence.py
 - 2026-06-16 [ses-803-0b9f]: Extracted board↔git drift detection to src/core/board_os/git_coherence.py (pure, no core→cli dep); doctor_board._check_g
+- 2026-06-16 [claude]: committed f394d4d7 · 6 files

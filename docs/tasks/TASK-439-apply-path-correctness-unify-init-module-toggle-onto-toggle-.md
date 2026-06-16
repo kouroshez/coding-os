@@ -47,3 +47,4 @@ cos init --disable-module graph in a temp project → .coding-os/disabled-hook-s
 - 2026-06-16 [claude]: Edit doctor.py
 - 2026-06-16 [claude]: Edit test_cli.py
 - 2026-06-16 [ses-803-0b9f]: SI-1: init now calls write_runtime_allowlist after module-toggle loop (main.py) → disabled-hook-scripts written at init,
+- 2026-06-16 [claude]: committed aec4d2da · 4 files

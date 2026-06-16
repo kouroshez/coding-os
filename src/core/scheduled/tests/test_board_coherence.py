@@ -56,8 +56,11 @@ def test_no_drift_files_nothing(tmp_path: Path) -> None:
     assert r["status"] == "ok" and r.get("drift") is False
 
 
-def test_files_once_idempotent(tmp_path: Path) -> None:
+def test_files_once_idempotent(tmp_path: Path, monkeypatch) -> None:
     repo, db_path, conn = _repo_with_db(tmp_path)
+    # cos_task_create resolves docs/tasks from $COS_PROJECT_ROOT/cwd — scope it to
+    # the tmp repo so the test never writes task files into the real repo.
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(repo))
     _seed_drift(conn, "drift seed A")
     conn.close()
 
@@ -75,8 +78,9 @@ def test_files_once_idempotent(tmp_path: Path) -> None:
     assert n == 1
 
 
-def test_dry_run_files_nothing(tmp_path: Path) -> None:
+def test_dry_run_files_nothing(tmp_path: Path, monkeypatch) -> None:
     repo, db_path, conn = _repo_with_db(tmp_path)
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(repo))  # scope task writes to tmp repo
     _seed_drift(conn, "drift seed B")
     conn.close()
     r = _run_board_coherence(db_path, repo, dry_run=True)
