@@ -2,8 +2,8 @@
 
 Called by session-context.sh (UserPromptSubmit) with the transcript path from
 the hook payload. Reads the tail of the transcript, finds the most recent
-``usage`` record, and prints ``<ctx_k>k><budget_k>k`` (e.g. ``412k>150k``)
-when context exceeds COS_CONTEXT_BUDGET (default 150000). Prints nothing when
+``usage`` record, and prints ``<ctx_k>k><budget_k>k`` (e.g. ``412k>200k``)
+when context exceeds COS_CONTEXT_BUDGET (default 200000). Prints nothing when
 under budget or on any error — fire-and-forget, never blocks the prompt.
 Spec: docs/playbooks/doctor-checks.md § Tokens, src/core/rules/transparency-banner.md.
 """
@@ -14,7 +14,7 @@ import json
 import os
 import sys
 
-DEFAULT_CONTEXT_BUDGET_TOKENS = 150_000
+DEFAULT_CONTEXT_BUDGET_TOKENS = 200_000
 TAIL_BYTES = 262_144
 
 

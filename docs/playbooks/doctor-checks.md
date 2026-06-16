@@ -405,15 +405,15 @@ records (input / output / cache-write / cache-read), and reports:
   (in×1 + out×5 + cache-write×1.25 + cache-read×0.1 — the approximate
   usage-limit weighting).
 - Average context per API turn (`cache_read / turns`) — the single best
-  predictor of burn rate; >150K means sessions are running too long without
-  `/clear`.
+  predictor of burn rate; >200K suggests sessions could use `/compact`
+  mid-task or a `/clear` between unrelated tasks.
 - Top sessions by cache-read burn, with turn counts — marathon sessions
   (>1,000 turns) are flagged.
 - Session-start baseline (median first-turn context) — the fixed overhead every
   session and subagent pays before any work.
 
 **Warns** (in the summary line) when avg context/turn exceeds the budget
-(default 150K, override `COS_CONTEXT_BUDGET`). Exits 0 either way — this mode
+(default 200K, override `COS_CONTEXT_BUDGET`). Exits 0 either way — this mode
 informs, it does not gate. Supports `--format json` for machine ingest.
 Transcripts are agent-runtime-specific; when no transcript directory exists for
 the project (e.g. Codex-only usage), the command reports that and exits 0.

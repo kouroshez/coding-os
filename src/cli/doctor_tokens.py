@@ -30,7 +30,7 @@ WEIGHT_OUTPUT = 5.0
 WEIGHT_CACHE_WRITE = 1.25
 WEIGHT_CACHE_READ = 0.1
 
-DEFAULT_CONTEXT_BUDGET_TOKENS = 150_000
+DEFAULT_CONTEXT_BUDGET_TOKENS = 200_000
 MARATHON_TURNS_THRESHOLD = 1_000
 TOP_SESSIONS_SHOWN = 5
 
@@ -170,7 +170,7 @@ def format_tokens_text(report: dict[str, Any]) -> str:
     if report["over_budget"]:
         lines.append(
             f"  WARN: avg context/turn exceeds budget ({budget:,}). "
-            "Sessions run too long without /clear — start a fresh session per task."
+            "Use /compact mid-task; /clear between unrelated tasks to cut burn."
         )
     else:
         lines.append(f"  OK: avg context/turn within budget ({budget:,}).")
