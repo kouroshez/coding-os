@@ -40,3 +40,4 @@ references: []
 - 2026-06-16 [claude]: Edit TASK-433-regen-doc-index-idempotency-drop-date-stamp-so-unchanged-fro.md
 - 2026-06-16 [claude]: Edit TASK-433-regen-doc-index-idempotency-drop-date-stamp-so-unchanged-fro.md
 - 2026-06-16 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-16 [claude]: committed 7fd93b01: docs/00-index.md, docs/_meta/00-index.md, docs/adapters/00-index.md,…

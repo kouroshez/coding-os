@@ -41,3 +41,4 @@ TASK-428 work-log line 47 = 'committed 5f8b7ed0: ...src/cli/main.py, s' — chop
 - 2026-06-16 [claude]: Edit test_post_commit_tasklog.py
 - 2026-06-16 [claude]: Edit test_mcp_tools.py
 - 2026-06-16 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-16 [claude]: committed 715a3b15: src/core/board_os/mcp_tools.py, src/core/board_os/tests/test_mcp_tools.py,…

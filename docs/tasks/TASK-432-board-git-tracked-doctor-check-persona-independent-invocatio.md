@@ -42,3 +42,4 @@ references: []
 - 2026-06-16 [claude]: Edit TASK-432-board-git-tracked-doctor-check-persona-independent-invocatio.md
 - 2026-06-16 [claude]: Edit TASK-432-board-git-tracked-doctor-check-persona-independent-invocatio.md
 - 2026-06-16 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-16 [claude]: committed 1cda8d03: docs/playbooks/doctor-checks.md, src/cli/doctor_board.py, tests/test_doctor_board_git_tracked.py
