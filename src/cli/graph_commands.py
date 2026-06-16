@@ -153,6 +153,18 @@ def register(cli: click.Group) -> None:
         )
         _json_echo(result, pretty=pretty)
 
+    @cli.command(name="graph-search")
+    @click.argument("query", nargs=-1)
+    @click.option("--top-k", default=10, show_default=True, type=int)
+    @click.option("--pretty", is_flag=True)
+    def graph_search(query, top_k, pretty):
+        """Hybrid semantic + lexical + centrality search over indexed code by free text."""
+        q = " ".join(query).strip()
+        if not q:
+            raise click.BadParameter("query argument required")
+        _, tools = _open_backend()
+        _json_echo(tools.cos_graph_search(q, top_k=top_k), pretty=pretty)
+
     @cli.command(name="graph-context")
     @click.argument("uid")
     @click.option("--direction", default="both", type=click.Choice(["in", "out", "both"]))
