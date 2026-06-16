@@ -1821,6 +1821,16 @@ def _run_scaffold_phase(
                 click.echo(f"  WARN: module '{module_id}': {toggle.reason}", err=True)
             else:
                 click.echo(f"  Module disabled per preset: {module_id}")
+        # SI-1 (TASK-439): route init through the SAME runtime-allowlist path
+        # as `cos module disable`. set_module_enabled alone only flips state;
+        # without this, .coding-os/disabled-hook-scripts is never written at
+        # init time and the disabled modules' hooks keep firing. AGENTS.md is
+        # written fresh by the scaffold copy below, so only the allowlist needs
+        # regenerating here (not the full toggle_and_regen).
+        from cli.project_overrides import write_runtime_allowlist
+
+        allowlist = write_runtime_allowlist(project)
+        click.echo(f"  Runtime hook allowlist → {allowlist.relative_to(project)}")
     if project_summary and project_summary.strip():
         # Onboarding intake — consumed by the description→PRD pipeline (TASK-364).
         meta_dir = project / "docs" / "_meta"

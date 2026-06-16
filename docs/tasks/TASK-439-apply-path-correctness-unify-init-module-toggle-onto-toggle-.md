@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [modularity, apply-path, doctor, dogfood, audit-2026-06, ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-16
-started: null
-completed: null
-agent_session: null
+started: 2026-06-16
+completed: 2026-06-16
+agent_session: ses-803-0b9f
 depends_on: [TASK-438]
 blocked_by: []
 references: []
 ---
-
 # TASK-439: Apply-path correctness: unify init module-toggle onto toggle_and_regen (fix SI-1), module-aware doctor consistency check, guard cos module against the meta-repo
 
 **Outcome (one sentence):** init and runtime share ONE module-toggle apply-path, so a module disabled at init is fully disabled (tools AND hooks), doctor can prove the disabled-hook-scripts allowlist matches subsystems-state.json, and running cos module inside the meta-repo never clobbers the hand-written AGENTS.md. Closes audit R2+R3+R4 (problem-tree Branch A + Branch D).
@@ -41,3 +40,10 @@ cos init --disable-module graph in a temp project → .coding-os/disabled-hook-s
 **Given** these changes **When** `uv run pytest tests/test_cli.py -q` runs **Then** new regression tests for SI-1, the doctor check, and the meta-repo guard pass.
 
 ## Work Log
+- 2026-06-16 [claude]: Edit main.py
+- 2026-06-16 [claude]: Edit module_commands.py
+- 2026-06-16 [claude]: Edit doctor.py
+- 2026-06-16 [claude]: Edit doctor.py
+- 2026-06-16 [claude]: Edit doctor.py
+- 2026-06-16 [claude]: Edit test_cli.py
+- 2026-06-16 [ses-803-0b9f]: SI-1: init now calls write_runtime_allowlist after module-toggle loop (main.py) → disabled-hook-scripts written at init,

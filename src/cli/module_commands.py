@@ -47,6 +47,18 @@ def regen_after_toggle(project: Path) -> list[str]:
         notes.append("AGENTS.md regen skipped: no agents in .coding-os.yaml")
         return notes
 
+    # Meta-repo dogfood guard (TASK-439): the coding-os source tree ships a
+    # hand-written AGENTS.md (CLAUDE.md symlinks to it). A module toggle here
+    # must still flip state + the runtime allowlist (done above), but must NOT
+    # clobber the hand-written AGENTS.md with a generated one. Detect the
+    # source-tree markers (same signature as _refuse_coding_os_self_init) and
+    # skip only the AGENTS.md rewrite.
+    if (project / "src" / "core" / "thinking_os" / "server.py").exists() and (
+        project / "src" / "cli" / "main.py"
+    ).exists():
+        notes.append("AGENTS.md skipped (coding-os meta-repo — hand-written content preserved)")
+        return notes
+
     from cli.main import _build_world
     from cli.renderer import render_agents_md
 

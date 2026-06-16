@@ -1025,6 +1025,57 @@ def _check_hub_code_fresh(report: DoctorReport) -> None:
         )
 
 
+def _check_module_consistency(project: Path, report: DoctorReport) -> None:
+    """modules.state_consistency — .coding-os/disabled-hook-scripts matches subsystem state."""
+    logger = logging.getLogger("coding_os.doctor")
+    try:
+        from cli.project_overrides import RUNTIME_ALLOWLIST, disabled_hook_scripts
+
+        expected = disabled_hook_scripts(project)
+        allowlist_file = project / ".coding-os" / RUNTIME_ALLOWLIST
+        if not allowlist_file.exists():
+            if expected:
+                report.checks.append(
+                    CheckResult(
+                        "modules.state_consistency",
+                        SEV_WARN,
+                        f"{len(expected)} hook(s) should be disabled but "
+                        ".coding-os/disabled-hook-scripts is missing — run `cos module disable <id>`",
+                    )
+                )
+            else:
+                report.checks.append(
+                    CheckResult("modules.state_consistency", SEV_PASS, "no modules disabled")
+                )
+            return
+        actual = {
+            line.strip()
+            for line in allowlist_file.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        }
+        missing = expected - actual
+        if missing:
+            sample = ", ".join(sorted(missing)[:3])
+            report.checks.append(
+                CheckResult(
+                    "modules.state_consistency",
+                    SEV_WARN,
+                    f"disabled-hook-scripts drift: {len(missing)} expected hook(s) "
+                    f"absent ({sample}…) — regenerate via `cos module disable <id>`",
+                )
+            )
+        else:
+            report.checks.append(
+                CheckResult(
+                    "modules.state_consistency",
+                    SEV_PASS,
+                    f"allowlist matches module state ({len(expected)} disabled hook(s))",
+                )
+            )
+    except Exception as exc:
+        logger.debug("module consistency check skipped: %s", exc)
+
+
 def run_doctor(
     project: Path,
     *,
@@ -1077,6 +1128,7 @@ def run_doctor(
     _check_cognition_registries(project, report)
     _tick("hook coverage")
     _check_hook_coverage(project, report)
+    _check_module_consistency(project, report)
     _tick("runtime errors")
     _check_runtime_errors(state, report)
     # graph_os health checks.
@@ -1084,7 +1136,18 @@ def run_doctor(
     try:
         from cli.doctor_graph import run_graph_checks
 
-        run_graph_checks(report, state, graph_conn)
+        # Module-aware (TASK-439): a project that disabled the graph module must
+        # not be nagged to run graph-reindex on an intentionally-empty graph.
+        from cli.subsystems import module_state
+
+        if module_state(project).get("graph", True):
+            run_graph_checks(report, state, graph_conn)
+        else:
+            report.checks.append(
+                CheckResult(
+                    "graph.module", SEV_PASS, "graph module disabled — skipping graph health"
+                )
+            )
     except ImportError as exc:
         logger = logging.getLogger("coding_os.doctor")
         logger.debug("graph doctor unavailable: %s", exc)

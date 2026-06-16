@@ -1646,6 +1646,61 @@ class TestSubsystems:
         assert state["graph"] is False and state["memory"] is False
         assert state["kernel"] is True  # untouched
 
+    def test_init_disable_module_writes_runtime_allowlist(
+        self, runner: CliRunner, project_dir: Path
+    ) -> None:
+        """SI-1 (TASK-439): init writes .coding-os/disabled-hook-scripts via write_runtime_allowlist."""
+        from cli.project_overrides import disabled_hook_scripts
+
+        project_dir.mkdir()
+        result = runner.invoke(cli, [
+            "init", "--agent", "claude", "-d", str(project_dir),
+            "--disable-module", "graph", "--no-index", "--no-register",
+        ])
+        assert result.exit_code == 0, f"init failed: {result.output}"
+        allowlist = project_dir / ".coding-os" / "disabled-hook-scripts"
+        assert allowlist.exists(), "init must route through write_runtime_allowlist (SI-1)"
+        expected = disabled_hook_scripts(project_dir)
+        actual = {ln.strip() for ln in allowlist.read_text().splitlines() if ln.strip()}
+        assert expected, "graph module should own disabled hooks"
+        assert actual == expected, f"allowlist {actual} != module state {expected}"
+
+    def test_doctor_detects_disabled_hook_scripts_drift(
+        self, runner: CliRunner, project_dir: Path
+    ) -> None:
+        """modules.state_consistency (TASK-439): doctor WARNs when the allowlist drifts from state."""
+        from cli.doctor import DoctorReport, _check_module_consistency
+
+        project_dir.mkdir()
+        runner.invoke(cli, [
+            "init", "--agent", "claude", "-d", str(project_dir),
+            "--disable-module", "graph", "--no-index", "--no-register",
+        ])
+        (project_dir / ".coding-os" / "disabled-hook-scripts").unlink()
+        report = DoctorReport(project_dir=str(project_dir), agent=None, templates=[])
+        _check_module_consistency(project_dir, report)
+        consistency = [c for c in report.checks if c.id == "modules.state_consistency"]
+        assert consistency, "module consistency check missing"
+        assert consistency[0].severity == "WARN", consistency[0].message
+
+    def test_module_regen_in_meta_repo_preserves_handwritten_agents_md(
+        self, tmp_path: Path
+    ) -> None:
+        """Meta-repo guard (TASK-439): regen_after_toggle never clobbers the hand-written AGENTS.md."""
+        from cli.module_commands import regen_after_toggle
+
+        (tmp_path / ".coding-os").mkdir()
+        (tmp_path / "src" / "core" / "thinking_os").mkdir(parents=True)
+        (tmp_path / "src" / "core" / "thinking_os" / "server.py").write_text("# meta\n")
+        (tmp_path / "src" / "cli").mkdir(parents=True)
+        (tmp_path / "src" / "cli" / "main.py").write_text("# meta\n")
+        (tmp_path / ".coding-os.yaml").write_text("agents: [claude]\n")
+        original = "# Hand-written AGENTS.md — preserve me\n"
+        (tmp_path / "AGENTS.md").write_text(original)
+        notes = regen_after_toggle(tmp_path)
+        assert (tmp_path / "AGENTS.md").read_text() == original
+        assert any("meta-repo" in n for n in notes), notes
+
     def test_init_disable_module_rejects_unknown(self, runner: CliRunner, project_dir: Path) -> None:
         project_dir.mkdir()
         result = runner.invoke(cli, [
