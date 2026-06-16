@@ -49,7 +49,7 @@ The banner is limited to **cognitive state** (what the agent thinks it's doing),
 
 The same hidden-vs-visible contract governs `SessionStart`, not only the per-prompt banner. `session-context.sh` routes its SessionStart output to two channels:
 
-- **Hidden (agent context).** The recovery rules, `[Session State]`, `[MCP Prime]`, and `[Agent Digest]` go into a single `{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":…}}` envelope on stdout. Claude injects it but the chat UI hides it (the `<system-reminder>` treatment the banner relies on). This is the agent's memory inheritance — noise to the operator.
+- **Hidden (agent context).** The recovery rules, `[Session State]`, `[MCP Prime]`, `[Agent Digest]`, and the startup/resume-only enrichment blocks (Project Trajectory, Autonomous Routing Evolution, token-economics) go into a single `{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":…}}` envelope on stdout. Claude injects it but the chat UI hides it (the `<system-reminder>` treatment the banner relies on). This is the agent's memory inheritance — noise to the operator.
 - **Visible (operator alerts).** `[Uncommitted Work]` (a prior session's dirty tree) and `[Session Start]` active-tasks go to **stderr** — the deliberate operator-only channel, same as `warn-mcp-down`'s liveness banner. These are signals a human must act on, so they stay in the chat.
 
 Two invariants keep this cross-runtime safe:
