@@ -319,7 +319,10 @@ hub-global endpoints back the **New Project** wizard on `HubHome`:
   **overrides** the fact that `--no-index` would otherwise also skip the
   graph, so a Composer-created project still gets a built knowledge graph
   (AST walk, no embedding model) and its Graph tab is populated from the
-  first session — never an empty canvas. The graph build is bounded by
+  first session — never an empty canvas (unless the graph module is
+  disabled at create time via `--disable-module graph`, which skips the
+  build and leaves the Graph tab empty until `cos graph-reindex`). The
+  graph build is bounded by
   `COS_INIT_GRAPH_TIMEOUT` (default 180s); on a very large repo it degrades
   to a gracefully-empty graph plus a `cos graph-reindex` HINT rather than
   hard-failing init, and the create subprocess timeout has headroom over
