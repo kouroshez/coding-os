@@ -34,3 +34,4 @@ uv run pytest tests/test_graph_cli_parity.py::test_every_mcp_graph_tool_has_cli_
 ## Work Log
 - 2026-06-16 [claude]: Edit graph_commands.py
 - 2026-06-16 [ses-803-0b9f]: Added `cos graph-search` CLI mirror in graph_commands.py (delegates to cos_graph_search, top_k flag, same envelope via _
+- 2026-06-16 [claude]: committed 39492aea · 1 file
