@@ -27,3 +27,4 @@ Given both edits land, When make docs-lint runs, Then it passes (link-audit hard
 - 2026-06-16 [claude]: Edit transparency-banner.md
 - 2026-06-16 [claude]: Edit hub-architecture.md
 - 2026-06-16 [claude]: Fixed both drifts: transparency-banner.md §SessionStart bullet now enumerates all 6 SS_HIDDEN blocks (added the 3 startu
+- 2026-06-16 [claude]: committed 99b2e759 · 2 files
