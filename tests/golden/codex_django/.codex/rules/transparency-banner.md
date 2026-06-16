@@ -45,6 +45,18 @@ If `USER_BANNER` is not in the latest `additionalContext` (SessionStart with no 
 
 The banner is limited to **cognitive state** (what the agent thinks it's doing), not **action history**. Per-tool counts live in the pulse `ACTIVITY` field, block/warn events already surface as stderr, and conversation summaries are the normal reply.
 
+## SessionStart emission — hidden agent context vs visible operator alerts
+
+The same hidden-vs-visible contract governs `SessionStart`, not only the per-prompt banner. `session-context.sh` routes its SessionStart output to two channels:
+
+- **Hidden (agent context).** The recovery rules, `[Session State]`, `[MCP Prime]`, and `[Agent Digest]` go into a single `{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":…}}` envelope on stdout. Claude injects it but the chat UI hides it (the `<system-reminder>` treatment the banner relies on). This is the agent's memory inheritance — noise to the operator.
+- **Visible (operator alerts).** `[Uncommitted Work]` (a prior session's dirty tree) and `[Session Start]` active-tasks go to **stderr** — the deliberate operator-only channel, same as `warn-mcp-down`'s liveness banner. These are signals a human must act on, so they stay in the chat.
+
+Two invariants keep this cross-runtime safe:
+
+1. **One envelope per invocation.** The Codex SessionStart dispatcher captures each delegate with `2>&1` and runs one `json.loads`, so a stray plain line merged with a JSON envelope would surface literal JSON to the agent. Under Codex, `session-context.sh` emits **plain text only** (the dispatcher re-wraps the whole card); the envelope split is Claude-only, and Codex has no operator-visible SessionStart chat so nothing is lost.
+2. **Suppress the digest on `compact`.** A same-session auto-compact (Claude-only source) still holds the digest in working memory, so re-emitting it is the wasted re-dump that put a multi-thousand-token wall mid-chat. On `compact` only the minimal recovery (rules + `[Session State]`) is emitted; the digest/trajectory/routing block runs on `startup`/`resume` only. See [state-files.md §S5](../../docs/engineering/state-files.md).
+
 ## Anti-patterns
 
 - Skipping the banner because "nothing changed since last turn" — the user still benefits from continuous confirmation.

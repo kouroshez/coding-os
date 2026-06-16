@@ -113,7 +113,7 @@ if [[ "$SOURCE" == "startup" ]]; then
   if [ -n "$PREV_SESSION_ID" ] && [ -f "$COS_DB_PATH" ]; then
     SUMMARY_PY="${_COS_HOOKS_PHYS}/../thinking_os/session_summary.py"
     if [ -f "$SUMMARY_PY" ]; then
-      python3 "$SUMMARY_PY" "$PREV_SESSION_ID" "" "$COS_DB_PATH" 2>/dev/null || true
+      python3 "$SUMMARY_PY" "$PREV_SESSION_ID" "" "$COS_DB_PATH" >/dev/null 2>&1 || true
       cos_log_hook session-context recovered "prev_session=${PREV_SESSION_ID}"
     fi
   fi
@@ -176,9 +176,33 @@ if [[ "$SOURCE" == "startup" ]]; then
   cos_log_hook session-context reset "cleared=${CLEARED} panel=${COS_PANEL_ID}"
 fi
 
-# On compact or resume: re-inject critical workflow reminders + current state snapshot
+# ---------------------------------------------------------------------------
+# SessionStart cognitive emission — channel split (spec:
+# src/core/rules/transparency-banner.md § SessionStart emission). Two buffers:
+#   SS_HIDDEN  — agent context (recovery rules, [Session State], [MCP Prime],
+#                [Agent Digest]). Claude -> ONE hidden additionalContext envelope
+#                (operator never sees it). Codex -> folded into the delegate's
+#                plain text (the dispatcher merges 2>&1 + re-wraps the card).
+#   SS_VISIBLE — operator alerts that MUST stay in the chat ([Uncommitted Work],
+#                active-tasks). Claude -> stderr (visible, like warn-mcp-down's
+#                banner). Codex -> folded in with the rest.
+SS_HIDDEN=""
+SS_VISIBLE=""
+_ss_append() {
+  local _name="$1" _txt="$2"
+  if [[ -n "$_txt" ]]; then
+    if [[ -z "${!_name}" ]]; then
+      printf -v "$_name" '%s' "$_txt"
+    else
+      printf -v "$_name" '%s\n%s' "${!_name}" "$_txt"
+    fi
+  fi
+}
+
+# On compact or resume: re-inject critical workflow reminders + current state
+# snapshot (HIDDEN — agent recovery context, not operator noise).
 if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
-  printf '%s\n' \
+  _recovery="$(printf '%s\n' \
     '[Session Context Recovery]' \
     '' \
     'CRITICAL WORKFLOW RULES:' \
@@ -186,8 +210,7 @@ if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
     '2. Verification Matrix — run domain verification BEFORE marking done' \
     '3. Complexity Gate — record gate before writing code (thinking_os-gate.sh BLOCKS without it)' \
     '4. Domain skill — invoke matching skill before writing code' \
-    '5. MCP tools deferred — ToolSearch("select:mcp__coding-os__cos_task_move,mcp__coding-os__cos_task_show,mcp__coding-os__cos_task_search,mcp__coding-os__cos_supervise_record_output") before first use each session' \
-    ''
+    '5. MCP tools deferred — ToolSearch("select:mcp__coding-os__cos_task_move,mcp__coding-os__cos_task_show,mcp__coding-os__cos_task_search,mcp__coding-os__cos_supervise_record_output") before first use each session')"
 
   # Emit dynamic state snapshot so agent knows WHERE it is after compaction.
   source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
@@ -220,8 +243,8 @@ if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
     _ACTIVE_SKILL=$(cat "$_SKILL_FILE" 2>/dev/null | head -1 | cut -d' ' -f2- || true)
   fi
 
-  printf '%s\n' "[Session State] gate=${_GATE_STATUS} | task=${_TASK_CURRENT:-none} | skill=${_ACTIVE_SKILL:-none}"
-  printf '%s\n' ""
+  _recovery="${_recovery}"$'\n'"[Session State] gate=${_GATE_STATUS} | task=${_TASK_CURRENT:-none} | skill=${_ACTIVE_SKILL:-none}"
+  _ss_append SS_HIDDEN "$_recovery"
 fi
 
 # On startup: show active in-progress tasks (Scrumban) so the agent
@@ -246,60 +269,58 @@ if [[ "$SOURCE" == "startup" ]]; then
     else
       WIP_LINES=""
     fi
+    # Active in-progress work is an operator-facing status signal (VISIBLE).
     if [ -n "$WIP_LINES" ]; then
-      echo "[Session Start] Active tasks (in_progress / testing):"
-      echo "$WIP_LINES"
-      echo "  Resume with: cos task-show TASK-NNN  |  cos board"
+      _ss_append SS_VISIBLE "[Session Start] Active tasks (in_progress / testing):
+${WIP_LINES}
+  Resume with: cos task-show TASK-NNN  |  cos board"
     fi
   fi
 
   # Surface an uncommitted working tree — a prior session may have been
   # abandoned mid-task. The agent must NOT blind-commit another session's
   # WIP (see src/core/rules/git-workflow.md § Concurrent sessions).
-  # Read-only; never blocks.
+  # Read-only; never blocks. Operator-facing safety alert (VISIBLE).
   if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     DIRTY=$(git status --porcelain 2>/dev/null | head -20 || true)
     if [ -n "$DIRTY" ]; then
       DIRTY_N=$(printf '%s\n' "$DIRTY" | wc -l | tr -d ' ')
-      echo ""
-      echo "[Uncommitted Work] ${DIRTY_N} file(s) modified — possibly a prior session's WIP:"
-      printf '%s\n' "$DIRTY" | sed 's/^/  /'
-      echo "  Commit with EXPLICIT paths only — never a bare 'git commit'."
+      _ss_append SS_VISIBLE "[Uncommitted Work] ${DIRTY_N} file(s) modified — possibly a prior session's WIP:
+$(printf '%s\n' "$DIRTY" | sed 's/^/  /')
+  Commit with EXPLICIT paths only — never a bare 'git commit'."
     fi
   fi
 
   # Prime the hot task-tool family once. These cos_* tools are deferred
   # (Claude-harness-side, not repo-controllable — see mcp-schema-traps.md),
   # so front-loading one ToolSearch avoids mid-task InputValidationError
-  # round-trips that push the agent back to raw Edit/Bash.
-  echo ""
-  echo "[MCP Prime] Hot tools are deferred — load the task family ONCE now so you don't fall back to raw Edit/Bash for task ops:"
-  echo '  ToolSearch("select:mcp__coding-os__cos_task_move,mcp__coding-os__cos_task_show,mcp__coding-os__cos_task_board,mcp__coding-os__cos_task_search,mcp__coding-os__cos_supervise_record_output,mcp__coding-os__cos_classify_prompt")'
+  # round-trips that push the agent back to raw Edit/Bash. Agent-only (HIDDEN).
+  _ss_append SS_HIDDEN "[MCP Prime] Hot tools are deferred — load the task family ONCE now so you don't fall back to raw Edit/Bash for task ops:
+  ToolSearch(\"select:mcp__coding-os__cos_task_move,mcp__coding-os__cos_task_show,mcp__coding-os__cos_task_board,mcp__coding-os__cos_task_search,mcp__coding-os__cos_supervise_record_output,mcp__coding-os__cos_classify_prompt\")"
 fi
 
-# Agent digest = memory inheritance. Runs on EVERY SessionStart, including a
-# fresh `startup`: a new session must inherit prior learnings, not
-# only recover them after a compaction. The recovery text + state snapshot
-# above stay compact/resume-only — a fresh start has nothing to recover, but
-# it DOES need the working-memory digest. The status message for the startup
-# matcher already promises "Loading … memory digest"; this makes it true.
-if [[ "$SOURCE" == "startup" || "$SOURCE" == "compact" || "$SOURCE" == "resume" ]]; then
+# Agent digest = memory inheritance (HIDDEN). Runs on a FRESH process only —
+# startup or resume. A same-session auto-compact (Claude-only source) keeps the
+# digest in working memory, so re-emitting it there is the wasted re-dump that
+# put a multi-thousand-token wall mid-chat; suppress it on compact
+# (src/core/rules/transparency-banner.md § SessionStart emission, state-files.md §S5).
+if [[ "$SOURCE" == "startup" || "$SOURCE" == "resume" ]]; then
   # Agent digest: the always-active working-memory snapshot
   # (identity, top domains, beliefs, fading patterns, breakthroughs). The
   # digest was printed but never regenerated (cos_digest_regenerate had no
   # hook caller, so digest.md never existed) — regenerate it here first so
-  # the agent inherits a FRESH memory summary each session.
+  # the agent inherits a FRESH memory summary each session. The regen is a
+  # side-effect (writes digest.md); its stdout is not agent content -> /dev/null.
   if [ -f "$COS_DB_PATH" ]; then
     DIGEST_REGEN="${_COS_HOOKS_PHYS}/_helpers/digest_regen.py"
     if [ -f "$DIGEST_REGEN" ]; then
-      python3 "$DIGEST_REGEN" "$COS_DB_PATH" "${COS_PROJECT_ROOT:-$(pwd)}" 2>/dev/null || true
+      python3 "$DIGEST_REGEN" "$COS_DB_PATH" "${COS_PROJECT_ROOT:-$(pwd)}" >/dev/null 2>&1 || true
     fi
   fi
   DIGEST_PATH="${COS_STATE_DIR:-.coding-os}/digest.md"
   if [ -f "$DIGEST_PATH" ]; then
-    echo ""
-    echo "[Agent Digest]"
-    cat "$DIGEST_PATH"
+    _ss_append SS_HIDDEN "[Agent Digest]
+$(cat "$DIGEST_PATH")"
   fi
 
   # Project Trajectory: inject latest trajectory snapshot so the
@@ -309,7 +330,7 @@ if [[ "$SOURCE" == "startup" || "$SOURCE" == "compact" || "$SOURCE" == "resume" 
   if [ -f "$COS_DB_PATH" ]; then
     TRAJ_HELPER="${_COS_HOOKS_PHYS}/_helpers/trajectory_startup.py"
     if [ -f "$TRAJ_HELPER" ]; then
-      python3 "$TRAJ_HELPER" "$COS_DB_PATH" 2>/dev/null || true
+      _ss_append SS_HIDDEN "$(python3 "$TRAJ_HELPER" "$COS_DB_PATH" 2>/dev/null || true)"
     fi
   fi
 
@@ -318,7 +339,7 @@ if [[ "$SOURCE" == "startup" || "$SOURCE" == "compact" || "$SOURCE" == "resume" 
   if [ -f "$COS_DB_PATH" ]; then
     ROUTING_HELPER="${_COS_HOOKS_PHYS}/_helpers/routing_evolution.py"
     if [ -f "$ROUTING_HELPER" ]; then
-      python3 "$ROUTING_HELPER" "$COS_DB_PATH" 2>/dev/null || true
+      _ss_append SS_HIDDEN "$(python3 "$ROUTING_HELPER" "$COS_DB_PATH" 2>/dev/null || true)"
     fi
   fi
 
@@ -326,7 +347,27 @@ if [[ "$SOURCE" == "startup" || "$SOURCE" == "compact" || "$SOURCE" == "resume" 
   if [ -f "$COS_DB_PATH" ]; then
     STARTUP_PY="${_COS_HOOKS_PHYS}/../thinking_os/session_startup.py"
     if [ -f "$STARTUP_PY" ]; then
-      python3 "$STARTUP_PY" "$COS_DB_PATH" 2>/dev/null || true
+      _ss_append SS_HIDDEN "$(python3 "$STARTUP_PY" "$COS_DB_PATH" 2>/dev/null || true)"
+    fi
+  fi
+fi
+
+# Emit the accumulated SessionStart blocks on the right channel. Claude: alerts
+# to stderr (operator-visible, not injected); agent context as ONE hidden
+# additionalContext envelope on stdout (the primers' idiom, mirrors the
+# user-prompt-submit branch below). Codex: the dispatcher captures each delegate
+# 2>&1 and runs one json.loads, so a JSON envelope merged with a stray stderr
+# line would surface literal JSON — emit plain text only and let the dispatcher
+# re-wrap the whole card (Codex has no operator-visible SessionStart chat).
+if [[ "$SOURCE" == "startup" || "$SOURCE" == "compact" || "$SOURCE" == "resume" ]]; then
+  if [[ "${COS_AGENT:-}" == "codex" ]]; then
+    _all="$SS_VISIBLE"
+    _ss_append _all "$SS_HIDDEN"
+    if [[ -n "$_all" ]]; then printf '%s\n' "$_all"; fi
+  else
+    if [[ -n "$SS_VISIBLE" ]]; then printf '%s\n' "$SS_VISIBLE" >&2; fi
+    if [[ -n "$SS_HIDDEN" ]]; then
+      printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":$(printf '%s' "$SS_HIDDEN" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
     fi
   fi
 fi
@@ -524,7 +565,7 @@ try:
         print(f'{n}({last})')
 except OSError:
     pass
-" 2>/dev/null | head -c 32)
+" 2>/dev/null | head -c 32 || true)
   fi
 
   PARTS="agent=${COS_AGENT:-?}"
@@ -544,7 +585,10 @@ except OSError:
   ACTIVITY=""
   ACTIVITY_HELPER="${_COS_HOOKS_PHYS}/_helpers/turn_summary.py"
   if [ -f "$ACTIVITY_HELPER" ] && command -v python3 >/dev/null 2>&1; then
-    ACTIVITY=$(python3 "$ACTIVITY_HELPER" 2>/dev/null | head -c 256)
+    # || true: the banner is the operator's only transparency surface and MUST
+    # be fail-open — a non-zero helper (or head -c closing the pipe early) under
+    # `set -euo pipefail` must never abort the hook before the banner is emitted.
+    ACTIVITY=$(python3 "$ACTIVITY_HELPER" 2>/dev/null | head -c 256 || true)
   fi
   [[ -n "$ACTIVITY" ]] && PARTS="${PARTS} | ${ACTIVITY}"
 

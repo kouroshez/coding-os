@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/private/var/folders/6d/r9t0r9x53fg2992cxw4jq5tm0000gn/T/cos-golden-854jvbg7/codex_django/cos-golden-fixture/.codex/hooks/codex-pretool-dispatch.sh"
+            "command": "/private/var/folders/6d/r9t0r9x53fg2992cxw4jq5tm0000gn/T/cos-golden-rrjyhz37/codex_django/cos-golden-fixture/.codex/hooks/codex-pretool-dispatch.sh"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/private/var/folders/6d/r9t0r9x53fg2992cxw4jq5tm0000gn/T/cos-golden-854jvbg7/codex_django/cos-golden-fixture/.codex/hooks/codex-posttool-dispatch.sh"
+            "command": "/private/var/folders/6d/r9t0r9x53fg2992cxw4jq5tm0000gn/T/cos-golden-rrjyhz37/codex_django/cos-golden-fixture/.codex/hooks/codex-posttool-dispatch.sh"
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/private/var/folders/6d/r9t0r9x53fg2992cxw4jq5tm0000gn/T/cos-golden-854jvbg7/codex_django/cos-golden-fixture/.codex/hooks/codex-sessionstart-dispatch.sh",
+            "command": "/private/var/folders/6d/r9t0r9x53fg2992cxw4jq5tm0000gn/T/cos-golden-rrjyhz37/codex_django/cos-golden-fixture/.codex/hooks/codex-sessionstart-dispatch.sh",
             "statusMessage": "🚀 Loading session context + MCP health..."
           }
         ]
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/private/var/folders/6d/r9t0r9x53fg2992cxw4jq5tm0000gn/T/cos-golden-854jvbg7/codex_django/cos-golden-fixture/.codex/hooks/codex-sessionstart-dispatch.sh",
+            "command": "/private/var/folders/6d/r9t0r9x53fg2992cxw4jq5tm0000gn/T/cos-golden-rrjyhz37/codex_django/cos-golden-fixture/.codex/hooks/codex-sessionstart-dispatch.sh",
             "statusMessage": "🔄 Recovering workflow context + MCP health..."
           }
         ]
@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/private/var/folders/6d/r9t0r9x53fg2992cxw4jq5tm0000gn/T/cos-golden-854jvbg7/codex_django/cos-golden-fixture/.codex/hooks/codex-userpromptsubmit-dispatch.sh"
+            "command": "/private/var/folders/6d/r9t0r9x53fg2992cxw4jq5tm0000gn/T/cos-golden-rrjyhz37/codex_django/cos-golden-fixture/.codex/hooks/codex-userpromptsubmit-dispatch.sh"
           }
         ]
       }
@@ -61,7 +61,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/private/var/folders/6d/r9t0r9x53fg2992cxw4jq5tm0000gn/T/cos-golden-854jvbg7/codex_django/cos-golden-fixture/.codex/hooks/codex-stop-dispatch.sh",
+            "command": "/private/var/folders/6d/r9t0r9x53fg2992cxw4jq5tm0000gn/T/cos-golden-rrjyhz37/codex_django/cos-golden-fixture/.codex/hooks/codex-stop-dispatch.sh",
             "statusMessage": "📝 Finalizing session recap + memory enrichment...",
             "timeout": 5000
           }
