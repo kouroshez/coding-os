@@ -5,13 +5,13 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [modularity, ci, tests, audit-2026-06, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-16
 started: 2026-06-16
-completed: null
-agent_session: ses-claude-20260615-233030-cac8
+completed: 2026-06-16
+agent_session: ses-claude-20260615-232816-54b1
 depends_on: []
 blocked_by: []
 references: []
@@ -74,3 +74,5 @@ references: []
 - 2026-06-16 [claude]: commit ab06f39685 — ci: run logging_os + scheduled suites in CI; fix migration import in logging_os tests
 - 2026-06-16 [claude]: commit eb632a5a33 — chore(tasks): add audit-2026-06 modularity backlog pointers (TASK-438..441)
 - 2026-06-16 [claude]: DONE. 5 commits: R5 skill-ref-integrity (84230fe4); R9 all-stacks render smoke (34654b0e); golden regen for cae258bc+d4e
+- 2026-06-16 [claude]: CLOSE BLOCKED by a real DoD-gate bug (left in `testing`, work is fully done+verified+committed). Root cause: the board's
+- 2026-06-16 [claude]: Status transitioned to complete via cos task-done.
