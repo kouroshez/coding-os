@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [hub, ui, presence, scope-loss, ux, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-16
 started: 2026-06-15
-completed: null
+completed: 2026-06-16
 agent_session: ses-claude-20260615-232816-54b1
 depends_on: []
 blocked_by: []
@@ -79,3 +79,5 @@ True cross-project Live-agents roster: iterate `cli.registry` projects, scope ea
 - 2026-06-16 [claude]: Edit presence.test.ts
 - 2026-06-16 [claude]: Edit test_presence_agents_route.py
 - 2026-06-16 [claude]: Landed: presence.py stamps owning-project slug on /agents+/now (new _project_slug); presence.ts adds slug + pure cogniti
+- 2026-06-16 [claude]: committed 252fd742 · 11 files
+- 2026-06-16 [claude]: Status transitioned to complete via cos task-done.
