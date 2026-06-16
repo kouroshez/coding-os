@@ -7,6 +7,9 @@ on:
     branches: [main]
   # Allow manual re-runs without a push.
   workflow_dispatch:
+  # Nightly full slow-suite sweep (scaffold sandboxes, background loops).
+  schedule:
+    - cron: "0 7 * * *"
 
 # Cancel superseded runs for the same ref to keep CI minutes sane.
 concurrency:
@@ -114,6 +117,60 @@ jobs:
         run: uv run pytest tests/ -q -m 'not slow'
 
   # ============================================================
+  # Modularity safety net — the @slow re-render guards the matrix
+  # job skips (golden parity, rules-fresh) PLUS the fast skill +
+  # all-stacks render smokes. Gates every PR so a botched re-render
+  # or a stale golden can no longer ship silently to consumers.
+  # ============================================================
+  test-modularity:
+    name: modularity safety net (golden + render smoke)
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+      - name: Install deps
+        run: uv sync --extra rag --extra graph_os
+      - name: Referential-integrity + all-stacks render smoke (fast)
+        run: uv run pytest tests/test_skill_ref_integrity.py tests/test_all_stacks_render_smoke.py -q
+      - name: Golden parity + rules freshness (the @slow re-render guards)
+        run: uv run pytest tests/test_golden_parity.py tests/test_rules_fresh.py -q
+
+  # ============================================================
+  # Nightly full slow-suite — scaffold sandboxes + background
+  # loops + add/remove-stack round-trips. Schedule-only (too slow
+  # for every PR); the cheap subset is gated by test-modularity.
+  # ============================================================
+  test-slow-nightly:
+    name: nightly slow suite
+    if: github.event_name == 'schedule'
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+      - name: Install deps
+        run: uv sync --extra rag --extra graph_os
+      - name: make test-slow
+        run: make test-slow
+
+  # ============================================================
   # Hook syntax — bash -n + shellcheck on every src/core/hooks/*.sh
   # ============================================================
   test-hooks:
@@ -208,7 +265,7 @@ jobs:
   ci-pass:
     name: CI Pass
     if: always()
-    needs: [lint, test-python, test-hooks, test-frontend, docs-lint]
+    needs: [lint, test-python, test-hooks, test-frontend, test-modularity, docs-lint]
     runs-on: ubuntu-latest
     steps:
       - name: Verify all required jobs succeeded
@@ -217,6 +274,7 @@ jobs:
              || [[ "${{ needs.test-python.result }}" != "success" ]] \
              || [[ "${{ needs.test-hooks.result }}" != "success" ]] \
              || [[ "${{ needs.test-frontend.result }}" != "success" ]] \
+             || [[ "${{ needs.test-modularity.result }}" != "success" ]] \
              || [[ "${{ needs.docs-lint.result }}" != "success" ]]; then
             echo "One or more required jobs failed."
             exit 1
