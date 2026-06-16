@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: null
 labels: [intent, enforcement, governance, completion-discipline, epic]
-status: complete
+status: archive
 priority: P1
 appetite: "5d"
 created: 2026-05-17

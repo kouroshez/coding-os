@@ -44,3 +44,4 @@ references: []
 - 2026-06-15 [claude]: Edit test_hub_staleness.py
 - 2026-06-15 [claude]: Root cause: Hub (PID 3113, started 22h pre-fix) served stale in-process graph_os → every project's Graph tab showed `unk
 - 2026-06-15 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-15 [claude]: committed 5f8b7ed0: docs/engineering/hub-architecture.md, src/cli/doctor.py, src/cli/hub_commands.py, src/cli/main.py, s
