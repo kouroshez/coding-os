@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [modularity, ci, tests, audit-2026-06, ready]
-status: in_progress
+status: testing
 priority: P1
 appetite: 1d
 created: 2026-06-16
@@ -72,3 +72,5 @@ references: []
 - 2026-06-16 [claude]: Edit conftest.py
 - 2026-06-16 [claude]: Edit ci.yml
 - 2026-06-16 [claude]: commit ab06f39685 — ci: run logging_os + scheduled suites in CI; fix migration import in logging_os tests
+- 2026-06-16 [claude]: commit eb632a5a33 — chore(tasks): add audit-2026-06 modularity backlog pointers (TASK-438..441)
+- 2026-06-16 [claude]: DONE. 5 commits: R5 skill-ref-integrity (84230fe4); R9 all-stacks render smoke (34654b0e); golden regen for cae258bc+d4e
