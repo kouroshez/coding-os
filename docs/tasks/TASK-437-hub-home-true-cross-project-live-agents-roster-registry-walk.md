@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [hub, presence, cross-project, scope-isolation, ready]
-status: in_progress
+status: testing
 priority: P2
 appetite: 1d
 created: 2026-06-16
@@ -42,3 +42,12 @@ Depends on TASK-435 (slug stamping + cognitionHref already landed). The home pan
 - 2026-06-16 [claude]: Edit hub.py
 - 2026-06-16 [claude]: Edit test_hub_agents_cross_project.py
 - 2026-06-16 [ses-803-0b9f]: Backend done: GET /api/hub/agents (hub.py) + cross_project_agents() (presence.py) walks cli.registry, scopes each projec
+- 2026-06-16 [claude]: committed 79400c08 · 3 files
+- 2026-06-16 [claude]: Edit presence.ts
+- 2026-06-16 [claude]: Edit LiveAgentsPanel.tsx
+- 2026-06-16 [claude]: Edit LiveAgentsPanel.tsx
+- 2026-06-16 [claude]: Edit LiveAgentsPanel.tsx
+- 2026-06-16 [claude]: Edit LiveAgentsPanel.tsx
+- 2026-06-16 [claude]: Edit LiveAgentsPanel.tsx
+- 2026-06-16 [claude]: Edit LiveAgentsPanel.test.tsx
+- 2026-06-16 [ses-803-0b9f]: Frontend done: LiveAgentsPanel now consumes GET /api/hub/agents, flattens per-project groups into the landing grid, each

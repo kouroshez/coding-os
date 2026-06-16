@@ -5,18 +5,19 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useApiGet } from '@/lib/hooks';
 import { useScopedLink } from '@/lib/use-scoped-link';
 import { useEventStream } from '@/lib/use-event-stream';
-import { agentStatus, cognitionHref, gateMeta, modelLabel, type PresenceAgent, type PresenceAgentsResponse } from '@/lib/presence';
+import { agentStatus, cognitionHref, gateMeta, modelLabel, type HubAgentsResponse, type PresenceAgent } from '@/lib/presence';
 import AgentDetailModal from './AgentDetailModal';
 
 const QUERY_KEY = ['presence-agents-home'];
 
-/** Live-agents grid for the landing — one card per non-offline agent from the
- *  unified /api/presence/agents endpoint. Clicking a card opens a centered
- *  detail modal (not a navigate-away); an SSE tick invalidates the query so
- *  the grid stays live between polls (TASK-194 + Hub redesign). */
+/** Live-agents grid for the landing — one card per non-offline agent across
+ *  ALL registered projects (GET /api/hub/agents, each card tagged with its
+ *  owning project slug — TASK-437). Clicking a card opens a centered detail
+ *  modal (not a navigate-away); an SSE tick invalidates the query so the grid
+ *  stays live between polls (TASK-194 + Hub redesign). */
 export default function LiveAgentsPanel() {
   const qc = useQueryClient();
-  const { data } = useApiGet<PresenceAgentsResponse>(QUERY_KEY, '/api/presence/agents', undefined, {
+  const { data } = useApiGet<HubAgentsResponse>(QUERY_KEY, '/api/hub/agents', undefined, {
     refetchIntervalMs: 4000,
   });
   useEventStream(['presence-updated', 'agent-activity'], () => {
@@ -24,8 +25,13 @@ export default function LiveAgentsPanel() {
   });
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const agents = (data?.agents ?? []).filter((a) => a.state && a.state !== 'offline');
-  const selected = agents.find((a) => a.agent === selectedId) ?? null;
+  // Flatten the per-project groups into one grid; each agent keeps its own slug
+  // (TASK-437 cross-project roster). Card key = slug:agent so two projects'
+  // same-named agents (both "claude") never collide.
+  const agents = (data?.projects ?? [])
+    .flatMap((p) => p.agents)
+    .filter((a) => a.state && a.state !== 'offline');
+  const selected = agents.find((a) => `${a.slug}:${a.agent}` === selectedId) ?? null;
 
   if (agents.length === 0) return null;
 
@@ -36,7 +42,11 @@ export default function LiveAgentsPanel() {
       </h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {agents.map((a) => (
-          <AgentCard key={a.agent} agent={a} onOpen={() => setSelectedId(a.agent)} />
+          <AgentCard
+            key={`${a.slug}:${a.agent}`}
+            agent={a}
+            onOpen={() => setSelectedId(`${a.slug}:${a.agent}`)}
+          />
         ))}
       </div>
       <AgentDetailModal agent={selected} onClose={() => setSelectedId(null)} />
@@ -65,6 +75,9 @@ function AgentCard({ agent, onOpen }: { agent: PresenceAgent; onOpen: () => void
             aria-hidden
           />
           <span className="text-sm font-semibold capitalize text-[var(--cos-text)]">{agent.agent}</span>
+          {agent.slug && (
+            <span className="text-[10px] text-[var(--cos-faint)]">· {agent.slug}</span>
+          )}
           <span className="ml-auto text-[10px] font-medium text-[var(--cos-muted)]">{status.label}</span>
         </div>
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">

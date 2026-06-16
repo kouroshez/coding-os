@@ -26,6 +26,20 @@ export interface PresenceAgentsResponse {
   agents: PresenceAgent[];
 }
 
+/** One registered project's live-agent group from GET /api/hub/agents
+ *  (cross-project roster, TASK-437). Each agent already carries its own
+ *  `slug`, so the existing card + cognitionHref render per-project links. */
+export interface HubAgentGroup {
+  slug: string;
+  project_root: string;
+  agents: PresenceAgent[];
+}
+
+export interface HubAgentsResponse {
+  projects: HubAgentGroup[];
+  count: number;
+}
+
 export interface AgentStatus {
   label: string;
   dot: string;

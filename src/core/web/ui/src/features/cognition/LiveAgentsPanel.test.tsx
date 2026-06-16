@@ -5,7 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({ agents: [] as unknown[] }));
 vi.mock('@/lib/hooks', () => ({
-  useApiGet: () => ({ data: { agents: hoisted.agents }, isLoading: false, error: null }),
+  // Cross-project shape from GET /api/hub/agents (TASK-437): one group per
+  // project. The panel flattens groups into the single grid these tests assert.
+  useApiGet: () => ({
+    data: { projects: [{ slug: 'demo', project_root: '/x', agents: hoisted.agents }], count: hoisted.agents.length },
+    isLoading: false,
+    error: null,
+  }),
 }));
 
 import LiveAgentsPanel from './LiveAgentsPanel';
