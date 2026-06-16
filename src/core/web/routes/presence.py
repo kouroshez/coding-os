@@ -438,3 +438,90 @@ def presence_agents(
             }
         )
     )
+
+
+def cross_project_agents() -> list[dict[str, Any]]:
+    """Per-project live-agent groups across EVERY registered project (TASK-437).
+
+    Walks cli.registry and scopes each project to its OWN state dir + DB. A
+    fresh sqlite handle is opened and closed within each iteration so no
+    project's connection/state leaks into another (hub-architecture.md
+    § Per-project backend keying — the exact hazard TASK-424 hardens)."""
+    import sqlite3
+
+    try:
+        from cli.registry import load_registry  # type: ignore
+
+        reg = load_registry()
+    except Exception as exc:
+        logger.debug("load_registry failed for cross-project agents: %s", exc)
+        return []
+    try:
+        from web.routes.board import _agent_state  # type: ignore
+    except Exception:
+        _agent_state = None  # type: ignore
+    try:
+        from web.routes.roles import resolve_chain  # type: ignore
+    except Exception:
+        resolve_chain = None  # type: ignore
+
+    canonical = _canonical_agents()
+    groups: list[dict[str, Any]] = []
+    for entry in reg.projects:
+        try:
+            project_root = Path(entry.path).resolve()
+        except OSError:
+            continue
+        state = project_root / ".coding-os"
+        if not state.is_dir():
+            continue
+        # Per-project lifecycle state from a connection scoped to THIS project's
+        # DB only — opened + closed here so the handle never escapes the loop.
+        states: dict[str, str] = {}
+        db_file = state / "coding-os.db"
+        if _agent_state is not None and db_file.exists():
+            conn = None
+            try:
+                conn = sqlite3.connect(str(db_file))
+                for agent_id in canonical:
+                    states[agent_id] = _agent_state(conn, agent_id)
+            except Exception as exc:
+                logger.debug("agent_state for %s failed: %s", entry.slug, exc)
+            finally:
+                if conn is not None:
+                    conn.close()
+
+        agents: list[dict[str, Any]] = []
+        for agent_id in canonical:
+            snap = _agent_runtime(state / agent_id, agent_id)
+            if snap is None:
+                continue
+            chain: list[str] = []
+            role: str | None = None
+            if resolve_chain is not None:
+                try:
+                    chain, role = resolve_chain(state, agent_id)
+                except Exception as exc:
+                    logger.debug("resolve_chain failed for %s/%s: %s", entry.slug, agent_id, exc)
+            sess = snap.get("session")
+            sdk_uuid = sess.get("sdk_uuid") if isinstance(sess, dict) else None
+            agents.append(
+                {
+                    "agent": agent_id,
+                    "session_id": snap.get("session_id"),
+                    "sdk_uuid": sdk_uuid,
+                    "slug": entry.slug,
+                    "model": snap.get("model"),
+                    "gate": snap.get("gate"),
+                    "task": snap.get("task"),
+                    "skill_active": snap.get("skill_active"),
+                    "role": role,
+                    "chain": chain,
+                    "state": states.get(agent_id, "offline"),
+                }
+            )
+        if agents:
+            groups.append(
+                {"slug": entry.slug, "project_root": str(project_root), "agents": agents}
+            )
+    return groups

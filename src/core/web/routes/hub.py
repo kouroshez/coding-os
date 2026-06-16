@@ -250,6 +250,15 @@ def hub_projects() -> dict:
     return {"projects": projects, "count": len(projects)}
 
 
+@router.get("/agents")
+def hub_agents() -> dict:
+    """Cross-project live-agent roster — one group per registered project (TASK-437)."""
+    from web.routes.presence import cross_project_agents  # type: ignore
+
+    groups = cross_project_agents()
+    return {"projects": groups, "count": sum(len(g["agents"]) for g in groups)}
+
+
 # ---------------------------------------------------------------------------
 # POST /api/hub/registry/add
 # ---------------------------------------------------------------------------
