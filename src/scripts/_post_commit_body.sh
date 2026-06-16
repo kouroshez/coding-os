@@ -32,11 +32,14 @@ if grep -q "committed ${SHA}" "${REPO_ROOT}/${TASK_FILE}" 2>/dev/null; then
   exit 0
 fi
 
+# Log the sha + file COUNT, not the file list: the list is fully recoverable
+# via `git show --name-only <sha>`, so enumerating it only produced a long,
+# git-redundant string that the 120-char Work Log cap then truncated mid-path.
 COUNT="$(printf '%s\n' "$CODE_FILES" | wc -l | tr -d ' ')"
-JOINED="$(printf '%s\n' "$CODE_FILES" | head -6 | awk 'NR>1{printf ", "}{printf "%s", $0}')"
-SUMMARY="committed ${SHA}: ${JOINED}"
-if [ "$COUNT" -gt 6 ]; then
-  SUMMARY="${SUMMARY} (+$((COUNT - 6)) more · ${COUNT} files)"
+if [ "$COUNT" -eq 1 ]; then
+  SUMMARY="committed ${SHA} · ${COUNT} file"
+else
+  SUMMARY="committed ${SHA} · ${COUNT} files"
 fi
 
 HELPER="${COS_WORKLOG_HELPER:-${REPO_ROOT}/src/core/hooks/_helpers/work_log_append.py}"

@@ -56,7 +56,9 @@ def test_logs_code_files_for_a_task_commit(tmp_path):
     _run(repo, stub, out)
     recorded = out.read_text()
     assert "TASK-901" in recorded
-    assert "src/a.py" in recorded
+    # Count-first summary, not the enumerated file list (recoverable via git).
+    assert "1 file" in recorded
+    assert "src/a.py" not in recorded
 
 
 def test_idempotent_when_sha_already_logged(tmp_path):

@@ -2474,6 +2474,24 @@ def cos_task_wip_check(conn: sqlite3.Connection) -> str:
 # ---------- cos_work_log_append ----------
 
 
+_WORKLOG_SUMMARY_CAP = 120
+
+
+def _truncate_summary(text: str, cap: int = _WORKLOG_SUMMARY_CAP) -> str:
+    # Trim at the last word boundary within the cap and mark the loss with a
+    # single ellipsis, so a long note reads as deliberately shortened rather
+    # than silently chopped mid-word. The ellipsis counts toward the cap, so
+    # the returned string is always <= cap (the documented Work Log contract).
+    flat = text.strip().replace("\n", " ")
+    if len(flat) <= cap:
+        return flat
+    clipped = flat[: cap - 1].rstrip()
+    boundary = clipped.rfind(" ")
+    if boundary > 0:
+        clipped = clipped[:boundary].rstrip()
+    return f"{clipped}…"
+
+
 @safe_tool
 def cos_work_log_append(
     conn: sqlite3.Connection,
@@ -2504,7 +2522,7 @@ def cos_work_log_append(
 
     date = datetime.utcnow().strftime("%Y-%m-%d")
     agent_label = _agent_label(agent_session)
-    summary_trunc = summary.strip().replace("\n", " ")[:120]
+    summary_trunc = _truncate_summary(summary)
     line = f"- {date} [{agent_label}]: {summary_trunc}"
 
     content = file_path.read_text(encoding="utf-8")

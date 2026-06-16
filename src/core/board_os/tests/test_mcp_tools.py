@@ -894,6 +894,29 @@ def test_work_log_truncates_long_summary(
     assert len(summary_part) <= 120
 
 
+def test_work_log_truncation_marks_loss_with_ellipsis(
+    project: Path,
+    conn: sqlite3.Connection,
+):
+    mcp_tools.cos_task_create(conn, title="ellipsis", swimlane="core", kind="chore")
+    long_summary = "word " * 40  # 199 chars after strip, many word boundaries
+    env = _parse(
+        mcp_tools.cos_work_log_append(
+            conn,
+            task_id="TASK-001",
+            summary=long_summary,
+        )
+    )
+    summary_part = env["data"]["line_appended"].split(": ", 1)[1]
+    assert len(summary_part) <= 120
+    # The loss is marked, not silent.
+    assert summary_part.endswith("…")
+    # The cut fell on a word boundary, not mid-word.
+    kept = summary_part[:-1].rstrip()
+    assert long_summary.strip().startswith(kept)
+    assert long_summary.strip()[len(kept)] == " "
+
+
 def test_work_log_uses_readable_agent_label_from_session(
     project: Path,
     conn: sqlite3.Connection,
