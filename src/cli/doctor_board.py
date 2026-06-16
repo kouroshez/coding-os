@@ -5,6 +5,7 @@ board.no_stale_tasks       no stale `in_progress` tasks
                            (stale = no Work Log append > 3 days OR elapsed > 2× appetite)
 board.frontmatter_valid    frontmatter schema valid on every `docs/tasks/*.md`
 board.index_synced         `docs/tasks.md` index (if present) in sync with frontmatter
+board.git_tracked          every DB task row's `docs/tasks/*.md` is git-tracked & committed
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+import subprocess
 import time
 from pathlib import Path
 
@@ -283,6 +285,83 @@ def _check_index_synced(report, project: Path) -> None:
         )
 
 
+def _check_git_tracked(report, conn: sqlite3.Connection, project: Path) -> None:
+    from cli.doctor import CheckResult as _CR
+
+    # board.git_tracked only makes sense when `project` is itself a git
+    # work-tree root. Guard the two failure modes git has off a non-repo cwd:
+    # exit 128 ("not a git repository"), and the nested case where git silently
+    # walks UP and reports a PARENT repo's status for the wrong tree.
+    try:
+        top = subprocess.run(
+            ["git", "-C", str(project), "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        report.checks.append(_CR("board.git_tracked", SEV_WARN, f"git unavailable — skipped ({exc})"))
+        return
+    if top.returncode != 0 or Path(top.stdout.strip() or ".").resolve() != Path(project).resolve():
+        report.checks.append(
+            _CR("board.git_tracked", SEV_PASS, "project is not a git work-tree root — skipped")
+        )
+        return
+
+    rows = conn.execute(
+        "SELECT task_id, file_path FROM tasks WHERE file_path IS NOT NULL AND file_path != ''"
+    ).fetchall()
+    if not rows:
+        report.checks.append(_CR("board.git_tracked", SEV_PASS, "no task rows to check"))
+        return
+
+    # One porcelain scan of docs/tasks. -z = NUL-delimited + unquoted, robust to
+    # special chars; each record is "XY <path>" (rename adds a second NUL-joined
+    # path we ignore). Map repo-relative path -> 2-char XY status.
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(project), "status", "--porcelain", "-z", "--", "docs/tasks"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        report.checks.append(_CR("board.git_tracked", SEV_WARN, f"git status failed — skipped ({exc})"))
+        return
+    status_by_path = {rec[3:]: rec[:2] for rec in proc.stdout.split("\0") if len(rec) > 3}
+
+    untracked: list[str] = []
+    modified: list[str] = []
+    missing: list[str] = []
+    for task_id, file_path in rows:
+        if not (Path(project) / file_path).exists():
+            missing.append(task_id)
+            continue
+        code = status_by_path.get(file_path)
+        if code is None:
+            continue  # tracked & clean
+        (untracked if code == "??" else modified).append(task_id)
+
+    if untracked or modified or missing:
+        report.checks.append(
+            _CR(
+                "board.git_tracked",
+                SEV_WARN,
+                f"board↔git drift — {len(untracked)} untracked, {len(modified)} modified, "
+                f"{len(missing)} missing .md (DB row without a committed file)",
+                {
+                    "untracked": sorted(untracked),
+                    "modified": sorted(modified),
+                    "missing_file": sorted(missing),
+                },
+            )
+        )
+    else:
+        report.checks.append(
+            _CR("board.git_tracked", SEV_PASS, f"all {len(rows)} task file(s) tracked & committed")
+        )
+
+
 def run_board_checks(report, project: Path, state_dir: Path) -> None:
     """Entry point called from src/cli/doctor.py::run_doctor."""
     from cli.doctor import CheckResult as _CR
@@ -303,6 +382,7 @@ def run_board_checks(report, project: Path, state_dir: Path) -> None:
         _check_no_stale_tasks(report, conn)
         _check_frontmatter_valid(report, project)
         _check_index_synced(report, project)
+        _check_git_tracked(report, conn, project)
     finally:
         conn.close()
 

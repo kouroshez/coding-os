@@ -45,6 +45,15 @@ Every `docs/tasks/TASK-*.md` parses as lean frontmatter (Rule 14).
 **Warns** with a per-file list of offenders.
 **Fix**: `cos task-validate TASK-NNN` on each.
 
+### board.git_tracked
+Every DB task row's `docs/tasks/*.md` is git-tracked and committed (board↔git
+coherence — the board DB is gitignored, so the `.md` is the only durable
+cross-machine SSOT; an untracked completed task vanishes on a fresh clone).
+**Warns** with the drifting task ids split into untracked / modified / missing
+`.md` (a DB row whose file was never committed). **Passes** when all are clean;
+**skips** (pass) when the project is not a git work-tree root.
+**Fix**: commit the listed `docs/tasks/*.md` with explicit paths.
+
 ### board.index_synced
 Legacy `docs/tasks.md` index (if present) matches the file-system reality.
 **Warns** on drift; **passes** when no legacy index exists.
