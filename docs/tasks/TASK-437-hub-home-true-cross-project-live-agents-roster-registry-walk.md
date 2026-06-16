@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [hub, presence, cross-project, scope-isolation, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-16
 started: 2026-06-16
-completed: null
+completed: 2026-06-16
 agent_session: ses-803-0b9f
 depends_on: [TASK-435]
 blocked_by: []
@@ -51,3 +51,4 @@ Depends on TASK-435 (slug stamping + cognitionHref already landed). The home pan
 - 2026-06-16 [claude]: Edit LiveAgentsPanel.tsx
 - 2026-06-16 [claude]: Edit LiveAgentsPanel.test.tsx
 - 2026-06-16 [ses-803-0b9f]: Frontend done: LiveAgentsPanel now consumes GET /api/hub/agents, flattens per-project groups into the landing grid, each
+- 2026-06-16 [claude]: committed fdd0e05c · 3 files
