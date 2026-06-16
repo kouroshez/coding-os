@@ -191,6 +191,35 @@ def _canonical_agents() -> list[str]:
     return list_agent_ids()
 
 
+def _project_slug(project_root: Path) -> str | None:
+    """Owning-project registry slug for a resolved root (fail-soft, TASK-435).
+
+    Home-level presence surfaces render at the unscoped '/' route and cannot
+    read a slug from the URL, so each agent carries its project's slug to build
+    an explicit /p/<slug>/cognition/... link instead of an unscoped one."""
+    try:
+        from cli.registry import load_registry  # type: ignore
+
+        reg = load_registry()
+    except Exception as exc:
+        logger.debug("load_registry unavailable for slug stamp: %s", exc)
+        reg = None
+    if reg is not None:
+        for entry in reg.projects:
+            try:
+                if Path(entry.path).resolve() == project_root:
+                    return entry.slug
+            except OSError:
+                continue
+    try:
+        from cli.registry import _derive_slug  # type: ignore
+
+        return _derive_slug(project_root)
+    except Exception as exc:
+        logger.debug("_derive_slug unavailable: %s", exc)
+        return None
+
+
 @router.get("/now")
 def presence_now(
     _rl=Depends(make_rate_limit_dep("presence.now")),
@@ -200,6 +229,7 @@ def presence_now(
     from web._project_context import current_project_root  # type: ignore
 
     project = current_project_root()
+    slug = _project_slug(project)
     state = _state_dir()
     canonical = _canonical_agents()
 
@@ -236,6 +266,7 @@ def presence_now(
                 "ok": True,
                 "data": {
                     "project_root": str(project),
+                    "slug": slug,
                     "state_dir": str(state),
                     "agents": agents,
                     "agent_states": agent_states,
@@ -321,6 +352,7 @@ def presence_agents(
     from web._project_context import current_project_root  # type: ignore
 
     project = current_project_root()
+    slug = _project_slug(project)
     state = _state_dir()
     canonical = _canonical_agents()
 
@@ -379,6 +411,7 @@ def presence_agents(
                     "agent": agent_id,
                     "session_id": snap.get("session_id"),
                     "sdk_uuid": sdk_uuid,
+                    "slug": slug,
                     "model": snap.get("model"),
                     "gate": snap.get("gate"),
                     "task": snap.get("task"),

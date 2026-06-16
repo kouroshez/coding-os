@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Modal } from '@/components/Modal';
 import { useScopedLink } from '@/lib/use-scoped-link';
-import { agentStatus, gateMeta, modelLabel, type PresenceAgent } from '@/lib/presence';
+import { agentStatus, cognitionHref, gateMeta, modelLabel, type PresenceAgent } from '@/lib/presence';
 
 /**
  * Live per-agent detail — opened from the live-agents grid. Reads its agent
@@ -16,15 +16,11 @@ export default function AgentDetailModal({
   agent: PresenceAgent | null;
   onClose: () => void;
 }) {
-  const { scopedLink } = useScopedLink();
+  const { slug } = useScopedLink();
   const status = agent ? agentStatus(agent.state) : null;
   const gate = agent ? gateMeta(agent.gate) : null;
-  const chatHref = agent?.sdk_uuid
-    ? scopedLink('cognition', `${encodeURIComponent(agent.sdk_uuid)}?view=chat`)
-    : null;
-  const traceHref = agent?.session_id
-    ? scopedLink('cognition', `${encodeURIComponent(agent.session_id)}?view=trace`)
-    : null;
+  const chatHref = cognitionHref(agent?.slug, slug, agent?.sdk_uuid, 'chat');
+  const traceHref = cognitionHref(agent?.slug, slug, agent?.session_id, 'trace');
 
   return (
     <Modal

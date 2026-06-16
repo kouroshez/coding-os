@@ -4,6 +4,7 @@ import { useApiGet } from '@/lib/hooks';
 import { resolveApiUrl } from '@/lib/api-client';
 import { acquireEventSource } from '@/lib/shared-event-source';
 import { useScopedLink } from '@/lib/use-scoped-link';
+import { cognitionHref } from '@/lib/presence';
 
 interface AgentRuntime {
   agent: string;
@@ -29,6 +30,7 @@ interface UnifiedPayload {
 
 interface PresencePayload {
   project_root: string;
+  slug?: string | null;
   state_dir: string;
   agents: AgentRuntime[];
   agent_states: Record<string, string>;
@@ -64,7 +66,7 @@ function relTime(iso: string | null | undefined): string {
 }
 
 export default function LiveStatus() {
-  const { scopedLink } = useScopedLink();
+  const { slug } = useScopedLink();
   const { data } = useApiGet<PresencePayload>(
     ['presence-now'],
     '/api/presence/now',
@@ -129,6 +131,15 @@ export default function LiveStatus() {
   const primarySnap = data?.agents.find((a) => a.agent === primaryAgent) ?? null;
 
   const lastHook = liveHook ?? data?.last_hook ?? null;
+
+  // Cognition links must target a project scope; on the unscoped Hub home the
+  // owner comes from the presence payload's slug, else the active URL slug.
+  // Null owner → hide the link rather than route to the project picker.
+  const cognitionOwner = data?.slug || slug;
+  const liveStreamHref = cognitionOwner
+    ? `/p/${encodeURIComponent(cognitionOwner)}/cognition?view=live`
+    : null;
+  const currentChatHref = cognitionHref(data?.slug, slug, data?.current_chat_uuid, 'chat');
 
   const sessionLabel = primarySnap?.session_id
     ? primarySnap.session_id.split('-').slice(2).join('-').slice(0, 12)
@@ -272,16 +283,18 @@ export default function LiveStatus() {
           )}
 
           <div className="flex items-center justify-between px-3 py-2 text-[10px]">
-            <Link
-              to={scopedLink('cognition', '?view=live')}
-              onClick={() => setOpen(false)}
-              className="text-[var(--cos-accent)] hover:underline"
-            >
-              live hook stream →
-            </Link>
-            {data.current_chat_uuid && (
+            {liveStreamHref && (
               <Link
-                to={scopedLink('cognition', `${encodeURIComponent(data.current_chat_uuid)}?view=chat`)}
+                to={liveStreamHref}
+                onClick={() => setOpen(false)}
+                className="text-[var(--cos-accent)] hover:underline"
+              >
+                live hook stream →
+              </Link>
+            )}
+            {currentChatHref && (
+              <Link
+                to={currentChatHref}
                 onClick={() => setOpen(false)}
                 className="text-[var(--cos-accent)] hover:underline"
               >

@@ -63,6 +63,10 @@ def test_presence_agents_unifies_all_fields(client):
     assert isinstance(claude["chain"], list)
     assert "state" in claude
     assert "context_pct" in claude
+    # Owning-project slug stamped so home-level surfaces can build a scoped
+    # /p/<slug>/cognition link instead of the unscoped picker route (TASK-435).
+    assert "slug" in claude
+    assert claude["slug"] is None or isinstance(claude["slug"], str)
 
 
 def test_context_pct_standard_window():

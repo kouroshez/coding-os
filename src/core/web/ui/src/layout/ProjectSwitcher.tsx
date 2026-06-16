@@ -40,33 +40,29 @@ interface HubProjectsPayload {
 }
 
 const PROJECT_SCOPE_RE = /^\/p\/([^/]+)(\/.*)?$/;
-const FEATURE_PATH_RE = /^\/(dashboard|board|graph|search|cognition|observability|roles)(\/.*)?$/;
 
-function parseCurrentScope(pathname: string): {
-  slug: string | null;
-  feature: string;
-  rest: string;
-} {
+/**
+ * Split the URL into its project slug and the feature *tail* — everything
+ * after `/p/<slug>`. Capturing the whole tail (not a hardcoded feature name)
+ * means switching projects preserves ANY nested route — workspace/chat/:id,
+ * diagnostics/logs, config — instead of collapsing to the Board tab when the
+ * route is one an old allow-list never knew about (TASK-435).
+ */
+function parseCurrentScope(pathname: string): { slug: string | null; tail: string } {
   const scoped = PROJECT_SCOPE_RE.exec(pathname);
   if (scoped) {
-    const remainder = scoped[2] ?? '';
-    const featMatch = FEATURE_PATH_RE.exec(remainder);
-    return {
-      slug: scoped[1],
-      feature: featMatch?.[1] ?? 'board',
-      rest: featMatch?.[2] ?? '',
-    };
+    return { slug: scoped[1], tail: scoped[2] ?? '' };
   }
-  const featTop = FEATURE_PATH_RE.exec(pathname);
-  if (featTop) {
-    return { slug: null, feature: featTop[1], rest: featTop[2] ?? '' };
-  }
-  return { slug: null, feature: 'board', rest: '' };
+  // Unscoped global route (e.g. /workspace/board, /diagnostics/logs): keep the
+  // whole path as the tail so switching INTO a project preserves the feature.
+  return { slug: null, tail: pathname === '/' ? '' : pathname };
 }
 
-function pathForSlug(slug: string | null, feature: string, rest: string): string {
-  const tail = `/${feature}${rest}`;
-  return slug ? `/p/${encodeURIComponent(slug)}${tail}` : tail;
+function pathForSlug(slug: string | null, tail: string): string {
+  // A bare project (empty tail) lands on its chat workspace — `/p/<slug>`
+  // redirects there anyway, so being explicit avoids a redirect round-trip.
+  const suffix = tail || '/workspace/chat';
+  return slug ? `/p/${encodeURIComponent(slug)}${suffix}` : suffix;
 }
 
 export default function ProjectSwitcher() {
@@ -76,7 +72,7 @@ export default function ProjectSwitcher() {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const { slug: activeSlug, feature, rest } = useMemo(
+  const { slug: activeSlug, tail } = useMemo(
     () => parseCurrentScope(location.pathname),
     [location.pathname],
   );
@@ -110,10 +106,10 @@ export default function ProjectSwitcher() {
 
   const jumpTo = useCallback(
     (slug: string | null) => {
-      navigate(pathForSlug(slug, feature, rest));
+      navigate(pathForSlug(slug, tail));
       setOpen(false);
     },
-    [navigate, feature, rest],
+    [navigate, tail],
   );
 
   const activeProject = data?.projects.find((p) => p.slug === activeSlug);

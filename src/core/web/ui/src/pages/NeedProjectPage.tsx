@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
 
 interface HubProject {
@@ -21,15 +21,22 @@ const FEATURE_LABELS: Record<string, string> = {
 
 export default function NeedProjectPage({ feature }: { feature: string }) {
   const navigate = useNavigate();
+  const params = useParams<{ sessionId?: string; rootUid?: string }>();
+  const { search } = useLocation();
   const { data, isLoading, error } = useApiGet<HubProjectsPayload>(
     ['hub-projects'],
     '/api/hub/projects',
   );
   const projects = data?.projects ?? [];
   const featureLabel = FEATURE_LABELS[feature] ?? feature;
+  // Preserve the deep-link target the user clicked (a cognition :sessionId or
+  // graph :rootUid + ?view=… query) across the project pick, so picking a
+  // project lands on the actual transcript/node — not a bare feature tab.
+  const subId = params.sessionId ?? params.rootUid ?? null;
 
   const choose = (slug: string) => {
-    navigate(`/p/${encodeURIComponent(slug)}/${feature}`, { replace: true });
+    const sub = subId ? `/${encodeURIComponent(subId)}` : '';
+    navigate(`/p/${encodeURIComponent(slug)}/${feature}${sub}${search}`, { replace: true });
   };
 
   return (

@@ -8,6 +8,10 @@ export interface PresenceAgent {
   agent: string;
   session_id?: string | null;
   sdk_uuid?: string | null;
+  /** Owning project's registry slug — present on /api/presence/agents so
+   *  home-level (unscoped) surfaces can build an explicit /p/<slug>/cognition
+   *  link instead of degrading to the unscoped picker route (TASK-435). */
+  slug?: string | null;
   model?: string | null;
   gate?: string | null;
   task?: string | null;
@@ -77,4 +81,27 @@ export function gateMeta(gate?: string | null): GateMeta | null {
 function titleCase(s: string): string {
   if (!s) return s;
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+/**
+ * Project-scoped cognition URL for a live agent — or null when no owning
+ * project can be resolved (TASK-435).
+ *
+ * `agentSlug` is the agent's owning-project slug from /api/presence/agents;
+ * `urlSlug` is the active project parsed from the current URL (useScopedLink),
+ * used as a fallback for surfaces already rendered inside a /p/<slug>/ scope.
+ * Returning null (instead of an unscoped `/cognition/...`) is deliberate: the
+ * unscoped form routes to the NeedProjectPage picker and never reaches the
+ * transcript, so callers degrade to an in-place detail modal instead.
+ */
+export function cognitionHref(
+  agentSlug: string | null | undefined,
+  urlSlug: string | null,
+  id: string | null | undefined,
+  view: 'chat' | 'trace',
+): string | null {
+  if (!id) return null;
+  const owner = agentSlug || urlSlug;
+  if (!owner) return null;
+  return `/p/${encodeURIComponent(owner)}/cognition/${encodeURIComponent(id)}?view=${view}`;
 }

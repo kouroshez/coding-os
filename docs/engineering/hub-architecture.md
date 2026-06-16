@@ -66,6 +66,27 @@ renders a `ctx N%` badge (`DashboardPage.tsx::ContextPctBadge`, green/amber/red
 at 60/85%), with an explicit `ctx ?` state when the value is honest-null —
 never a fabricated 0%.
 
+### Live-agent owning project (`slug`) — home-level click-through (TASK-435)
+
+`/api/presence/agents` stamps each agent with `slug`: the owning project's
+registry slug, derived from the resolved `current_project_root()` via
+`cli.registry` (`_derive_slug`, matched against `load_registry()`). Home-level
+surfaces render at the **unscoped** `/` route, where `useScopedLink` has no
+`/p/<slug>/` segment to read; they therefore build the chat/trace link
+**explicitly** from `agent.slug` → `/p/<slug>/cognition/<sdk_uuid>?view=chat`,
+NOT via `useScopedLink` (which is for already-scoped contexts and silently
+degrades to the unscoped `/cognition/...` form → `NeedProjectPage`, the project
+picker, never the transcript — the TASK-435 bug that violated TASK-194's
+click-through DoD). `slug` is honest-null when no registry slug resolves; the
+Live-agents panel then falls back to the in-place `AgentDetailModal` rather than
+emitting a picker-bound link.
+
+Presence stays `per_project`-scoped (§ Scrumban board API): the home panel shows
+the Hub launch-cwd project's agents, each carrying that project's slug. A true
+cross-project roster (registry walk + per-project DB scoping) remains the
+documented extension the `presence_scope` field leaves room for — filed as a
+follow-up, not folded into TASK-435.
+
 ## Per-project backend keying (graph + DB)
 
 One uvicorn process serves every registered project. To prevent the first project's SQLite handle from leaking into another project's response, every layer that opens a database now keys its singleton by the **resolved DB path**, not by a process-global slot.

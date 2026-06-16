@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import LiveAgentsPanel from '@/features/cognition/LiveAgentsPanel';
 import { apiDelete, apiPost } from '@/lib/api-client';
+import { PageHeader, ActionPill, Banner, SkeletonGrid } from '@/layout/HubPrimitives';
 import OnboardingWizard from './OnboardingWizard';
 
 /**
@@ -157,25 +158,39 @@ export default function HubHome() {
     [refresh, runBusy],
   );
 
-  const runGc = useCallback(
-    async (dryRun: boolean) => {
+  const runPrune = useCallback(
+    async () => {
       setActionError(null);
       try {
+        // Dry-run first so the user confirms against the actual list, mirroring
+        // the per-project Unregister confirm — registry GC is irreversible.
+        const [preview] = await runBusy(() =>
+          apiPost<GcPayload>('/api/hub/registry/gc', { dry_run: true }),
+        );
+        const n = preview.removed_count;
+        if (n === 0) {
+          setActionNote('registry is already clean; nothing to prune.');
+          return;
+        }
+        const ok = window.confirm(
+          `Prune ${n} stale entr${n === 1 ? 'y' : 'ies'} from the hub registry?\n\n`
+          + preview.removed.map((r) => `• ${r.slug} → ${r.path}`).join('\n')
+          + '\n\nThis only removes registry entries — nothing on disk is deleted.',
+        );
+        if (!ok) {
+          setActionNote('prune cancelled.');
+          return;
+        }
         const [result] = await runBusy(() =>
-          apiPost<GcPayload>('/api/hub/registry/gc', { dry_run: dryRun }),
+          apiPost<GcPayload>('/api/hub/registry/gc', { dry_run: false }),
         );
         await refresh();
-        const n = result.removed_count;
-        const verb = dryRun ? 'would remove' : 'removed';
-        setActionNote(
-          n === 0
-            ? 'registry is already clean; nothing to prune.'
-            : `${verb} ${n} stale entr${n === 1 ? 'y' : 'ies'}`,
-        );
+        const removed = result.removed_count;
+        setActionNote(`removed ${removed} stale entr${removed === 1 ? 'y' : 'ies'}`);
       } catch (err) {
         setActionError({
-          action: 'gc',
-          message: err instanceof Error ? err.message : 'gc failed',
+          action: 'prune',
+          message: err instanceof Error ? err.message : 'prune failed',
         });
       }
     },
@@ -197,34 +212,23 @@ export default function HubHome() {
 
   return (
     <div className="relative flex h-full flex-col overflow-auto cos-scroll">
-      {/* Hero background — soft radial gradient anchored at top-left.   */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[380px]"
-        style={{
-          background:
-            'radial-gradient(60% 100% at 30% 0%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 70%), radial-gradient(45% 80% at 90% 10%, color-mix(in oklab, var(--cos-accent, var(--accent)) 10%, transparent), transparent 70%)',
-        }}
-      />
-
       <div className="mx-auto w-full max-w-7xl px-6 pb-12 pt-10 sm:px-10">
-        {/* Hero header */}
-        <header className="mb-8">
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <div className="min-w-0">
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--cos-border)] bg-[var(--cos-panel)]/60 px-3 py-1 text-[11px] tracking-wide text-[var(--cos-muted)] backdrop-blur">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--cos-ok-tint)] shadow-[0_0_8px]" />
-                Hub live on port 9188
-              </div>
-              <h1 className="text-3xl font-semibold tracking-tight text-[var(--cos-text)] sm:text-4xl">
-                Your projects
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--cos-muted)]">
-                Pick a project to open its board, graph, search, or cognition.
-                Import an existing <code className="rounded bg-[var(--cos-panel)] px-1 py-0.5 text-[11px]">.coding-os/</code> directory,
-                scan a folder, or prune stale entries from the registry.
-              </p>
-            </div>
+        <PageHeader
+          eyebrow={(
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--cos-ok-tint)] shadow-[0_0_8px]" />
+              Hub · port 9188
+            </>
+          )}
+          title="Your projects"
+          subtitle={(
+            <>
+              Open a project to work in it — chat, board, graph, or search.
+              Register an existing <code className="rounded bg-[var(--cos-panel)] px-1 py-0.5 text-[11px]">.coding-os/</code> folder,
+              scan a directory, or prune stale entries.
+            </>
+          )}
+          right={(
             <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/70 px-4 py-3 backdrop-blur">
               <div className="text-center">
                 <div className="text-2xl font-semibold tabular-nums text-[var(--accent)]">
@@ -235,64 +239,40 @@ export default function HubHome() {
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Action bar */}
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <ActionPill
-              icon={<IconPlus />}
-              label="New project"
-              onClick={() => { setNewOpen(true); setImportOpen(false); setScanOpen(false); }}
-              primary
-            />
-            <ActionPill
-              icon={<IconPlus />}
-              label="Import existing"
-              onClick={() => { setImportOpen(true); setNewOpen(false); setScanOpen(false); }}
-            />
-            <ActionPill
-              icon={<IconFolderSearch />}
-              label="Scan folder"
-              onClick={() => { setScanOpen(true); setImportOpen(false); setNewOpen(false); }}
-            />
-            <ActionPill
-              icon={<IconBroom />}
-              label="Prune dead entries"
-              onClick={() => runGc(false)}
-              disabled={busy}
-            />
-            <ActionPill
-              icon={<IconRefresh />}
-              label="Refresh"
-              onClick={() => refresh()}
-              disabled={busy}
-            />
-            {projectCount > 4 && (
-              <div className="ml-auto flex items-center gap-2 rounded-full border border-[var(--cos-border)] bg-[var(--cos-panel)] px-3 py-1.5">
-                <IconSearch />
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Filter…"
-                  className="w-48 bg-transparent text-xs text-[var(--cos-text)] placeholder-[var(--cos-muted)] outline-none"
-                />
-                {query && (
-                  <button
-                    type="button"
-                    onClick={() => setQuery('')}
-                    className="text-[var(--cos-muted)] hover:text-[var(--cos-text)]"
-                    aria-label="Clear filter"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </header>
-
-        <LiveAgentsPanel />
+          )}
+          actions={(
+            <>
+              <ActionPill
+                icon={<IconPlus />}
+                label="New project"
+                onClick={() => { setNewOpen(true); setImportOpen(false); setScanOpen(false); }}
+                primary
+              />
+              <ActionPill
+                icon={<IconPlus />}
+                label="Import existing"
+                onClick={() => { setImportOpen(true); setNewOpen(false); setScanOpen(false); }}
+              />
+              <ActionPill
+                icon={<IconFolderSearch />}
+                label="Scan folder"
+                onClick={() => { setScanOpen(true); setImportOpen(false); setNewOpen(false); }}
+              />
+              <ActionPill
+                icon={<IconBroom />}
+                label="Prune dead entries"
+                onClick={() => runPrune()}
+                disabled={busy}
+              />
+              <ActionPill
+                icon={<IconRefresh />}
+                label="Refresh"
+                onClick={() => refresh()}
+                disabled={busy}
+              />
+            </>
+          )}
+        />
 
         {/* Notes + errors */}
         {actionNote && (
@@ -351,12 +331,39 @@ export default function HubHome() {
         )}
         {!isLoading && !error && projectCount > 0 && (
           <>
-            {query && (
-              <div className="mb-3 text-xs text-[var(--cos-muted)]">
-                {filteredProjects.length} of {projectCount} projects match{' '}
-                <span className="font-mono">{`"${query}"`}</span>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs text-[var(--cos-muted)]">
+                {query ? (
+                  <>
+                    {filteredProjects.length} of {projectCount} match{' '}
+                    <span className="font-mono">{`"${query}"`}</span>
+                  </>
+                ) : (
+                  `${projectCount} ${projectCount === 1 ? 'project' : 'projects'}`
+                )}
               </div>
-            )}
+              <div className="flex items-center gap-2 rounded-full border border-[var(--cos-border)] bg-[var(--cos-panel)] px-3 py-1.5">
+                <IconSearch />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Filter projects…"
+                  aria-label="Filter projects"
+                  className="w-44 bg-transparent text-xs text-[var(--cos-text)] placeholder-[var(--cos-muted)] outline-none"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery('')}
+                    className="text-[var(--cos-muted)] hover:text-[var(--cos-text)]"
+                    aria-label="Clear filter"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            </div>
             <ul className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
               {filteredProjects.map((p) => (
                 <li key={`${p.slug}-${p.path}`}>
@@ -388,6 +395,12 @@ export default function HubHome() {
             )}
           </>
         )}
+
+        {/* Live agents — secondary "what's running right now" strip, below the
+            primary project launcher (returns null when nothing is running). */}
+        <div className="mt-12">
+          <LiveAgentsPanel />
+        </div>
       </div>
     </div>
   );
@@ -396,72 +409,6 @@ export default function HubHome() {
 // --------------------------------------------------------------------------
 // Visual primitives (modernised look — pure presentation, no logic)
 // --------------------------------------------------------------------------
-
-function ActionPill({
-  icon, label, onClick, disabled, primary,
-}: {
-  icon?: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  primary?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={[
-        'group inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-all duration-150',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--cos-bg)]',
-        primary
-          ? 'border-transparent bg-[var(--accent)] text-[var(--cos-bg)] shadow-lg shadow-[var(--accent)]/20 hover:shadow-[var(--accent)]/40 hover:-translate-y-px'
-          : 'border-[var(--cos-border)] bg-[var(--cos-panel)]/70 text-[var(--cos-text)] backdrop-blur hover:border-[var(--accent)] hover:bg-[var(--cos-panel)] hover:text-[var(--accent)]',
-        disabled ? 'cursor-not-allowed opacity-50 hover:translate-y-0' : '',
-      ].join(' ')}
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
-  );
-}
-
-function Banner({
-  kind, children, onDismiss,
-}: {
-  kind: 'ok' | 'error';
-  children: React.ReactNode;
-  onDismiss: () => void;
-}) {
-  const palette = kind === 'ok'
-    ? 'border-[var(--cos-ok)] bg-[var(--cos-ok-tint)] text-[var(--cos-ok)]'
-    : 'border-[var(--cos-err)] bg-[var(--cos-err-tint)] text-[var(--cos-err)]';
-  return (
-    <div className={`mb-5 flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-xs ${palette}`}>
-      <span>{children}</span>
-      <button
-        type="button"
-        className="shrink-0 text-[10px] uppercase tracking-wider opacity-70 hover:opacity-100"
-        onClick={onDismiss}
-      >
-        dismiss
-      </button>
-    </div>
-  );
-}
-
-function SkeletonGrid() {
-  return (
-    <ul className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <li
-          key={i}
-          className="h-[148px] animate-pulse rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/40"
-        />
-      ))}
-    </ul>
-  );
-}
 
 function EmptyState({ onImport, onScan }: { onImport: () => void; onScan: () => void }) {
   return (
@@ -544,9 +491,20 @@ function IconBox() {
     </svg>
   );
 }
-function FeatureIcon({ name }: { name: 'board' | 'graph' | 'search' | 'cognition' }) {
+const PROJECT_SHORTCUTS = [
+  { key: 'chat', label: 'Chat', path: 'workspace/chat' },
+  { key: 'board', label: 'Board', path: 'workspace/board' },
+  { key: 'graph', label: 'Graph', path: 'graph' },
+  { key: 'search', label: 'Search', path: 'workspace/search' },
+] as const;
+
+function FeatureIcon({ name }: { name: 'chat' | 'board' | 'graph' | 'search' }) {
   const props = { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', ...stroke };
   switch (name) {
+    case 'chat':
+      return (
+        <svg {...props}><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8A8.5 8.5 0 0 1 12.5 20a8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" /></svg>
+      );
     case 'board':
       return (
         <svg {...props}><rect x="3" y="3" width="7" height="18" rx="1.5" /><rect x="14" y="3" width="7" height="11" rx="1.5" /></svg>
@@ -557,42 +515,12 @@ function FeatureIcon({ name }: { name: 'board' | 'graph' | 'search' | 'cognition
       );
     case 'search':
       return <IconSearch />;
-    case 'cognition':
-      return (
-        <svg {...props}><path d="M12 3a4 4 0 0 0-4 4v.5A3 3 0 0 0 6 13a3 3 0 0 0 2 2.8V18a3 3 0 0 0 3 3 3 3 0 0 0 3-3v-2.2A3 3 0 0 0 16 13a3 3 0 0 0-2-5.5V7a4 4 0 0 0-2-4Z" /></svg>
-      );
   }
 }
 
 // --------------------------------------------------------------------------
 // Subcomponents
 // --------------------------------------------------------------------------
-
-function ToolbarButton({
-  label, onClick, disabled, primary,
-}: {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  primary?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={[
-        'rounded border px-3 py-1.5 font-mono text-xs transition-colors',
-        primary
-          ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20'
-          : 'border-[var(--cos-border)] text-[var(--cos-text)] hover:border-[var(--accent)] hover:text-[var(--accent)]',
-        disabled ? 'cursor-not-allowed opacity-50' : '',
-      ].join(' ')}
-    >
-      {label}
-    </button>
-  );
-}
 
 function ProjectCard({
   project, onOpen, onRemove,
@@ -623,8 +551,9 @@ function ProjectCard({
       {/* Header */}
       <div className="flex items-start justify-between gap-3 px-4 pb-3 pt-4">
         <Link
-          to={`/p/${encodeURIComponent(project.slug)}`}
+          to={`/p/${encodeURIComponent(project.slug)}/workspace/chat`}
           className="flex min-w-0 flex-1 items-center gap-3"
+          title={`Open ${project.slug} — chat`}
         >
           <div
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/15 text-base font-semibold text-[var(--accent)]"
@@ -696,19 +625,19 @@ function ProjectCard({
         </div>
       </div>
 
-      {/* Feature shortcuts — modern grid with icons */}
+      {/* Feature shortcuts — Chat is the default landing, then Board/Graph/Search */}
       <div className="grid grid-cols-4 gap-1 border-t border-[var(--cos-border)] bg-[var(--cos-bg)]/30 p-2">
-        {(['board', 'graph', 'search', 'cognition'] as const).map((feat) => (
+        {PROJECT_SHORTCUTS.map((s) => (
           <button
-            key={feat}
+            key={s.key}
             type="button"
-            onClick={() => onOpen(feat)}
-            className="group/feat flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-[10px] font-medium capitalize text-[var(--cos-muted)] transition-all hover:bg-[var(--cos-panel)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            onClick={() => onOpen(s.path)}
+            className="group/feat flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-[10px] font-medium text-[var(--cos-muted)] transition-all hover:bg-[var(--cos-panel)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <span className="opacity-70 group-hover/feat:opacity-100">
-              <FeatureIcon name={feat} />
+              <FeatureIcon name={s.key} />
             </span>
-            <span>{feat}</span>
+            <span>{s.label}</span>
           </button>
         ))}
       </div>
@@ -789,7 +718,7 @@ function ImportDialog({
         />
       </label>
       <div className="flex items-center gap-2">
-        <ToolbarButton
+        <ActionPill
           primary
           label={busy ? 'importing…' : 'Import'}
           onClick={() => {
@@ -798,7 +727,7 @@ function ImportDialog({
           }}
           disabled={busy || !path.trim()}
         />
-        <ToolbarButton label="Cancel" onClick={onCancel} disabled={busy} />
+        <ActionPill label="Cancel" onClick={onCancel} disabled={busy} />
       </div>
     </section>
   );
@@ -910,13 +839,13 @@ function ScanDialog({
         </div>
       )}
       <div className="mb-3 flex items-center gap-2">
-        <ToolbarButton
+        <ActionPill
           primary
           label={busy ? 'scanning…' : 'Scan'}
           onClick={() => void runScan()}
           disabled={busy || !scannable}
         />
-        <ToolbarButton label="Cancel" onClick={onCancel} disabled={busy} />
+        <ActionPill label="Cancel" onClick={onCancel} disabled={busy} />
       </div>
 
       {meta && <div className="mb-2 text-[11px] text-[var(--cos-muted)]">{meta}</div>}
@@ -962,7 +891,7 @@ function ScanDialog({
               </li>
             ))}
           </ul>
-          <ToolbarButton
+          <ActionPill
             primary
             label={`Import selected (${selected.size})`}
             onClick={() => void importSelected()}
