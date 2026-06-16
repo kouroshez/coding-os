@@ -261,6 +261,17 @@ jobs:
         run: uv run python src/scripts/dump_openapi.py --check
         # Required: a drifted Hub API contract must regenerate the
         # snapshot (python src/scripts/dump_openapi.py) before merge.
+      - name: Board↔git coherence (no uncommitted task files) — TASK-436
+        run: |
+          drift="$(git status --porcelain -- docs/tasks)"
+          if [ -n "$drift" ]; then
+            echo "board↔git drift — docs/tasks has uncommitted file(s):"
+            echo "$drift"
+            exit 1
+          fi
+          echo "board↔git coherence OK — every docs/tasks file is committed"
+        # Required: the same drift the cos doctor board.git_tracked check + the
+        # nightly task-filer guard, asserted on the checked-out tree (P6).
 
   # ============================================================
   # Required-checks gate — every job above must succeed.

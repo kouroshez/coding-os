@@ -316,6 +316,62 @@ def _run_error_sweep(
     return {"status": "ok", **result}
 
 
+def _run_board_coherence(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
+    """board_coherence — file ONE idempotent board task when board↔git drift persists (TASK-436)."""
+    from board_os.git_coherence import detect_board_git_drift, task_rows_from_db
+
+    with sqlite3.connect(str(db_path), timeout=10) as conn:
+        conn.row_factory = sqlite3.Row
+        if (
+            conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='tasks'"
+            ).fetchone()
+            is None
+        ):
+            return {"status": "skipped", "reason": "no tasks table"}
+
+        drift = detect_board_git_drift(project_root, task_rows_from_db(conn))
+        if not drift.is_git_root or drift.skip_reason:
+            return {"status": "skipped", "reason": drift.skip_reason or "not a git work-tree root"}
+        if not drift.has_drift:
+            return {"status": "ok", "drift": False}
+
+        # Idempotent: one open auto-git-drift task at a time. A second nightly
+        # pass on still-drifted state must NOT pile up duplicate tasks.
+        existing = conn.execute(
+            "SELECT task_id FROM tasks WHERE status NOT IN ('complete', 'archive') "
+            "AND labels_json LIKE '%\"auto-git-drift\"%'"
+        ).fetchone()
+        if existing is not None:
+            return {"status": "ok", "drift": True, "filed": False, "existing_task": existing[0]}
+        if dry_run:
+            return {"status": "ok", "drift": True, "filed": False, "dry_run": True}
+
+        from board_os.mcp_tools import cos_task_create
+
+        envelope = cos_task_create(
+            conn,
+            title=(
+                f"[board-drift] {len(drift.untracked)} untracked / "
+                f"{len(drift.modified)} modified / {len(drift.missing)} missing task file(s)"
+            ),
+            swimlane="infra",
+            kind="chore",
+            priority="P2",
+            status="icebox",
+            ready=True,
+            labels=["auto-git-drift", "board-coherence"],
+            outcome=(
+                drift.summary()
+                + " — commit the untracked/modified docs/tasks/*.md (or reconcile the DB rows) "
+                "so the board (DB) and git agree."
+            ),
+        )
+        parsed = json.loads(envelope)
+        task_id = parsed.get("data", {}).get("task_id") if parsed.get("ok") else None
+    return {"status": "ok", "drift": True, "filed": True, "task_id": task_id}
+
+
 def _run_reclaim(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
     """reclaim — recover zombie in_progress/testing tasks of dead sessions and
     auto-archive aged backlog (TASK-210 RC4). This is the UNATTENDED-TIMER leg:
@@ -506,6 +562,19 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
     except Exception as exc:
         run["tasks"]["reclaim"] = {"status": "error", "error": str(exc)}
         logger.error("[%s] reclaim raised: %s", slug, exc)
+        errors += 1
+
+    # Task 4.65: board_coherence — file an idempotent board task on board↔git
+    # drift so no-hook personas (P4/P5/P7) see it without invoking cos doctor.
+    try:
+        t = _run_board_coherence(db_path, project_root, dry_run=dry_run)
+        run["tasks"]["board_coherence"] = t
+        logger.info("[%s] board_coherence → %s", slug, t.get("status"))
+        if t.get("status") == "error":
+            errors += 1
+    except Exception as exc:
+        run["tasks"]["board_coherence"] = {"status": "error", "error": str(exc)}
+        logger.error("[%s] board_coherence raised: %s", slug, exc)
         errors += 1
 
     # Task 4.6: dep_reconcile — re-block reopened deps + surface unblocked-but-

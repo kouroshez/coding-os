@@ -286,79 +286,50 @@ def _check_index_synced(report, project: Path) -> None:
 
 
 def _check_git_tracked(report, conn: sqlite3.Connection, project: Path) -> None:
+    from board_os.git_coherence import detect_board_git_drift, task_rows_from_db
     from cli.doctor import CheckResult as _CR
 
-    # board.git_tracked only makes sense when `project` is itself a git
-    # work-tree root. Guard the two failure modes git has off a non-repo cwd:
-    # exit 128 ("not a git repository"), and the nested case where git silently
-    # walks UP and reports a PARENT repo's status for the wrong tree.
-    try:
-        top = subprocess.run(
-            ["git", "-C", str(project), "rev-parse", "--show-toplevel"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-    except (OSError, subprocess.SubprocessError) as exc:
-        report.checks.append(_CR("board.git_tracked", SEV_WARN, f"git unavailable — skipped ({exc})"))
+    # Detection extracted to core/board_os/git_coherence.py (TASK-436) so the
+    # nightly cron task-filer + CI gate share ONE detector with this check.
+    drift = detect_board_git_drift(project, task_rows_from_db(conn))
+    if not drift.is_git_root:
+        if drift.git_unavailable:
+            report.checks.append(
+                _CR("board.git_tracked", SEV_WARN, f"git unavailable — skipped ({drift.skip_reason})")
+            )
+        else:
+            report.checks.append(
+                _CR("board.git_tracked", SEV_PASS, "project is not a git work-tree root — skipped")
+            )
         return
-    if top.returncode != 0 or Path(top.stdout.strip() or ".").resolve() != Path(project).resolve():
+    if drift.skip_reason:  # real repo, but git status failed
         report.checks.append(
-            _CR("board.git_tracked", SEV_PASS, "project is not a git work-tree root — skipped")
+            _CR("board.git_tracked", SEV_WARN, f"git status failed — skipped ({drift.skip_reason})")
         )
         return
-
-    rows = conn.execute(
-        "SELECT task_id, file_path FROM tasks WHERE file_path IS NOT NULL AND file_path != ''"
-    ).fetchall()
-    if not rows:
+    if drift.checked == 0:
         report.checks.append(_CR("board.git_tracked", SEV_PASS, "no task rows to check"))
         return
-
-    # One porcelain scan of docs/tasks. -z = NUL-delimited + unquoted, robust to
-    # special chars; each record is "XY <path>" (rename adds a second NUL-joined
-    # path we ignore). Map repo-relative path -> 2-char XY status.
-    try:
-        proc = subprocess.run(
-            ["git", "-C", str(project), "status", "--porcelain", "-z", "--", "docs/tasks"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-    except (OSError, subprocess.SubprocessError) as exc:
-        report.checks.append(_CR("board.git_tracked", SEV_WARN, f"git status failed — skipped ({exc})"))
-        return
-    status_by_path = {rec[3:]: rec[:2] for rec in proc.stdout.split("\0") if len(rec) > 3}
-
-    untracked: list[str] = []
-    modified: list[str] = []
-    missing: list[str] = []
-    for task_id, file_path in rows:
-        if not (Path(project) / file_path).exists():
-            missing.append(task_id)
-            continue
-        code = status_by_path.get(file_path)
-        if code is None:
-            continue  # tracked & clean
-        (untracked if code == "??" else modified).append(task_id)
-
-    if untracked or modified or missing:
+    if drift.has_drift:
         report.checks.append(
             _CR(
                 "board.git_tracked",
                 SEV_WARN,
-                f"board↔git drift — {len(untracked)} untracked, {len(modified)} modified, "
-                f"{len(missing)} missing .md (DB row without a committed file)",
+                drift.summary(),
                 {
-                    "untracked": sorted(untracked),
-                    "modified": sorted(modified),
-                    "missing_file": sorted(missing),
+                    "untracked": sorted(drift.untracked),
+                    "modified": sorted(drift.modified),
+                    "missing_file": sorted(drift.missing),
                 },
             )
         )
     else:
         report.checks.append(
-            _CR("board.git_tracked", SEV_PASS, f"all {len(rows)} task file(s) tracked & committed")
+            _CR(
+                "board.git_tracked",
+                SEV_PASS,
+                f"all {drift.checked} task file(s) tracked & committed",
+            )
         )
 
 
