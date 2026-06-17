@@ -81,14 +81,14 @@ the bug unless the user asks.
 0. **Mark ready** — a task needs the `ready` label before it can leave
    `icebox`: `cos task-ready TASK-NNN` (or create with `--ready` / `ready=True`).
    `icebox → in_progress` is BLOCKED otherwise (the `emergency` lane is exempt).
-1. `cos task-start TASK-NNN` before substantive edits.
+1. `cos task-start TASK-NNN` before substantive edits, then **commit each logical unit autonomously as you implement** (`git commit <paths>` — never wait to be asked; [git-workflow.md](../../rules/git-workflow.md) § When to commit).
 2. If dependency/policy/tooling blocks progress:
    `cos_task_move(task_id=..., to="blocked")` and log the blocker.
 3. After implementation: `cos_task_move(task_id=..., to="testing")` —
    move to `testing` FIRST, then run verification. `in_progress → complete`
    is BLOCKED, so don't run tests while still `in_progress`.
 4. Run verification commands tied to changed files.
-5. If green: append one short work-log note (token-lean), then `cos task-done`.
+5. If green: append one short work-log note (token-lean), commit, then `cos task-done` (push to `main` at close).
 6. If red: keep in `testing` or move back to `in_progress` with a short reason.
 
 ## Work Log (append-only, 120 char cap)
@@ -105,7 +105,7 @@ the bug unless the user asks.
 2. Reconcile the new user request against existing tasks (`cos_task_board` / `cos task-show`).
 3. If no suitable task exists: create one, fill Outcome/Read First/Acceptance.
 4. `cos task-start TASK-NNN` → enforces WIP + sets `.task-current`.
-4. Do work. `capture-work-log` auto-records. Status visible via `cos_task_board`.
+4. Do work — **commit each logical unit autonomously**. `capture-work-log` auto-records. Status visible via `cos_task_board`.
 5. Move to `testing`, run checks, then `cos task-done TASK-NNN` when G/W/T pass.
 
 ## MCP outage fallback (R-L-28)

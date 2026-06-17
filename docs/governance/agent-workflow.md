@@ -42,6 +42,8 @@ When two domains share weight, route to the higher blast-radius domain first.
 | → blocked | `cos task-move TASK-<id> --to blocked --reason "why"` | Records the blocker on the detail file and on the board. |
 | Session bootstrap | `cos daily` | Surfaces WIP, blockers, age, and roadmap phase. |
 
+Commit cadence is **autonomous**: while `in_progress` the agent runs `git commit <paths>` after each logical unit — it does NOT wait to be asked (a mid-work session must never strand uncommitted edits, and review needs a committed diff). `push` to `main` happens at task close or on user ask. Full contract: [git-workflow.md § When to commit](../../src/core/rules/git-workflow.md).
+
 The board state lives in `docs/tasks/TASK-<id>-<slug>.md` (canonical) and is mirrored to `.coding-os/coding-os.db` (derived index). There is no flat `docs/tasks.md` index; `cos board` renders the current state on demand.
 
 `make task-*` wrappers exist only as thin aliases for the `cos task-*` commands; new automation should call `cos` directly.

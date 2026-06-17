@@ -61,7 +61,7 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 
 ## Core Loop — Classify · Orient · Plan · Execute · Verify
 
-**Classify (dry):** `cos_classify_prompt` records the Cynefin × dimensions gate (fallback: `write-state.sh .thinking_os-gate "<LEVEL> <dims>"`) → reconcile task (Rule 18) → Read List. **Orient:** targeted reads · `cos_search` · graph. **Plan:** per dimension current/target/gap/risk; create the task before coding; COMPLICATED+ loads `Skill thinking_os`. **Execute:** smallest correct change [P1, P4]. **Verify & Close:** `cos task-move --to testing` → matrix command → work-log note → `cos task-done`. Never close on assumed pass.
+**Classify (dry):** `cos_classify_prompt` records the Cynefin × dimensions gate (fallback: `write-state.sh .thinking_os-gate "<LEVEL> <dims>"`) → reconcile task (Rule 18) → Read List. **Orient:** targeted reads · `cos_search` · graph. **Plan:** per dimension current/target/gap/risk; create the task before coding; COMPLICATED+ loads `Skill thinking_os`. **Execute:** smallest correct change [P1, P4]; **commit each logical unit autonomously** (`git commit <paths>` — don't wait to be asked; [git-workflow.md](src/core/rules/git-workflow.md) § When to commit). **Verify & Close:** `cos task-move --to testing` → matrix command → work-log note → commit → `cos task-done` (push to `main` at close / on ask). Never close on assumed pass.
 
 ## Verification Matrix
 

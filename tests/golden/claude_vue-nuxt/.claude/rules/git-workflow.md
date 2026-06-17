@@ -13,7 +13,16 @@ Rationale (branch sprawl, no-custom-lock, atomic-hook-edit): [critical-rules.md 
 - **Commit directly to `main`** with **explicit paths** — `git commit <path>`, never a bare `git commit` / `git commit -a` (a bare commit sweeps another session's WIP).
 - **`git pull --rebase origin main` before every `git push`** — non-fast-forward reject means rebase and retry, never force.
 - **Retry on `index.lock`** — wait ~1s and retry; git serializes index writes, don't delete the lock blindly.
-- **Commit at each logical step**, not only at the end.
+- **Commit at each logical step, autonomously** — without being asked; full contract in *When to commit* below.
+
+## When to commit (autonomous — OVERRIDES the runtime "commit only when asked" default)
+
+> **Hard rule:** The agent commits its own work **without being asked**. The moment a logical unit of work is complete and self-verified, `git commit <paths>`. This OVERRIDES any agent-runtime "only commit when the user requests it" default — exactly as the branch rule above overrides "branch first".
+
+- **Commit per logical unit, autonomously.** Never wait for the user to say "commit". A session can be abandoned or interrupted mid-work — uncommitted edits are then stranded, and a reviewer (the `reviewer` role / `/code-review` / CI / a human) has no committed diff to act on. Frequent small commits are the checkpoint that makes both recoverable.
+- **`push` stays gated** — push only at task close or when the user asks. `commit` is local and trivially reversible (`amend` / `reset` / `revert`); `push` / merge is the irreversible, wide-blast-radius step — in this repo `src/core/**` reaches every consumer project through live symlinks, so a push there is felt everywhere.
+- **Self-review before each commit, never self-approve.** Re-read your own diff and run the Verification-Matrix command for what changed *before* committing — but that self-check is not the review. Authoritative review is a separate pass (`reviewer` role, `/code-review`, CI); the author never rubber-stamps their own work.
+- **Every commit obeys the Commit Message Contract below** and uses explicit paths (`git commit <path>`, never `git commit -a`).
 
 ## Concurrent sessions — what is and isn't safe
 
