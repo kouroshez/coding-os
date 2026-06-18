@@ -47,8 +47,6 @@ class DispatchRequest(BaseModel):
     # invariant: a mismatch logs a warning in get_dispatcher and dispatch
     # proceeds on the session adapter (dispatcher-contract.md rule 6).
     adapter: str | None = None
-    # Reserved per-adapter quota carrier — enforce or log, never drop silently.
-    adapter_budget_usd: float | None = None
 
     @field_validator("formula_id")
     @classmethod

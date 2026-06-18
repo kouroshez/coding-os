@@ -465,10 +465,9 @@ def test_no_complexity_and_no_pref_leaves_sdk_default(monkeypatch, tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_new_adapter_fields_default_none():
+def test_adapter_hint_defaults_none():
     req = DispatchRequest(formula_id="implementer", agent_file="/tmp/x.md", prompt="p")
     assert req.adapter is None
-    assert req.adapter_budget_usd is None
 
 
 def test_adapter_hint_mismatch_warns_and_proceeds(monkeypatch, caplog):

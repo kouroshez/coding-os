@@ -1757,21 +1757,6 @@ class TestConditionalRendering:
         restored = render_agents_md(world, {"tasks": True})
         assert restored == render_agents_md(world)  # byte-identical restore
 
-    def test_section_level_requires_skips_whole_section(self, world) -> None:
-        from dataclasses import replace as dc_replace
-
-        from cli.renderer import render_agents_md
-
-        sections = tuple(
-            dc_replace(s, requires=("tasks",)) if s.id == "session-handoff" else s
-            for s in world.agents_md_sections
-        )
-        gated_world = dc_replace(world, agents_md_sections=sections)
-        enabled = render_agents_md(gated_world, {"tasks": True})
-        disabled = render_agents_md(gated_world, {"tasks": False})
-        handoff_only_when_enabled = set(enabled.splitlines()) - set(disabled.splitlines())
-        assert handoff_only_when_enabled  # the gated section disappeared wholesale
-
     def test_disabled_module_hooks_join_runtime_allowlist(self, tmp_path: Path) -> None:
         from cli.project_overrides import disabled_hook_scripts, effective_disabled_hooks
         from cli.subsystems import set_module_enabled

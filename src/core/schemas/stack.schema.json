@@ -273,14 +273,6 @@
           },
           "template": {
             "type": "string"
-          },
-          "requires": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "pattern": "^[a-z][a-z0-9_-]*$"
-            },
-            "description": "Module ids (src/core/subsystems.yaml) that must ALL be enabled for this section to render; omit for always-on sections (TASK-353)."
           }
         }
       }

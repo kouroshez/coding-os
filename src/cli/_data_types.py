@@ -115,9 +115,6 @@ class AgentsMdSection:
     order: int
     template: str
     owner_dir: Path
-    # Module ids (subsystems.yaml) that must ALL be enabled for this section
-    # to render; empty = always rendered.
-    requires: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

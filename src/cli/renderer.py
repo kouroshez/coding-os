@@ -88,9 +88,9 @@ def render_agents_md(
     aggregator). Each fragment is loaded from its owner's directory.
     Rendered pieces are joined with a single blank line between.
 
-    Conditional rendering: a section whose `requires` lists a disabled
-    module is skipped wholesale; fragments additionally receive a
-    `modules` map for inline `{% if modules.<id> %}` blocks.
+    Conditional rendering: fragments receive a `modules` map for inline
+    `{% if modules.<id> %}` blocks; a fragment that renders empty once its
+    gated blocks drop out is skipped wholesale.
     """
     # Build one Jinja env per unique owner dir, cache by path.
     envs: dict[Path, Environment] = {}
@@ -104,8 +104,6 @@ def render_agents_md(
     context = {**_world_to_context(world), "modules": modules}
     rendered_parts: list[str] = []
     for section in world.agents_md_sections:
-        if any(not modules.get(required, True) for required in section.requires):
-            continue
         env = env_for(section.owner_dir)
         try:
             template = env.get_template(section.template)

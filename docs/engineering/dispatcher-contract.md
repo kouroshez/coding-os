@@ -48,7 +48,6 @@ class DispatchRequest(BaseModel):
     max_budget_usd: float | None
     long_context: bool
     adapter: str | None        # target-runtime HINT (e.g. "codex"); see below
-    adapter_budget_usd: float | None  # reserved per-adapter quota; carrier only
 
 class DispatchResult(BaseModel):
     formula_id: str
@@ -130,9 +129,9 @@ a static import on `src/adapters/`.
    session adapter — one adapter per session remains the invariant. The field
    exists so supervisor decisions (preset `roles_adapter_hints`, TASK-321) have
    a typed carrier today; honoring the hint with a real cross-adapter dispatch
-   is the explicit follow-up seam, not implied behaviour.
-   `adapter_budget_usd` is the matching quota carrier — adapters that cannot
-   enforce it MUST log, never silently drop (same rule as `max_budget_usd`).
+   is the explicit follow-up seam, not implied behaviour. Per-call cost ceilings
+   ride on `max_budget_usd`; a separate `adapter_budget_usd` carrier was removed
+   (audit 2026-06 F-axis-5 — it was never read, only defaulted).
 
 ## Parity rules
 
