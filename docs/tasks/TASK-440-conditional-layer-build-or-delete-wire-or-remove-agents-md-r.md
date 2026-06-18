@@ -5,18 +5,17 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: [modularity, build-or-delete, conditional-assembly, audit-2026-06, ready]
-status: icebox
+status: in_progress
 priority: P1
 appetite: 1d
 created: 2026-06-16
-started: null
+started: 2026-06-17
 completed: null
-agent_session: null
+agent_session: ses-claude-20260617-183518-6ce2
 depends_on: [TASK-438]
 blocked_by: []
 references: []
 ---
-
 # TASK-440: Conditional layer build-or-delete: wire (or remove) AGENTS.md requires: + skill/hook overrides, render per-consumer rules, hide no-op design module + orphan goldens
 
 **Outcome (one sentence):** Toggling a module/skill actually changes what the consumer is told to do — its rule files are scoped to its own stacks, its disabled module's prose drops from AGENTS.md, a core/stack skill can be disabled, and every declared-but-dead modularity axis is deleted (doc-first) so no half-wired surface survives. Closes audit R6+R7+R8+R13 and new findings F2+F3+F4+F9 (+F10/F11 hygiene).
@@ -47,3 +46,11 @@ references: []
 **Given** all of the above **When** the matrix tests + golden parity + a new render-with-module-disabled assertion run **Then** they pass.
 
 ## Work Log
+- 2026-06-18 [claude]: Edit renderer.py
+- 2026-06-18 [claude]: Edit task-authoring.md.tmpl
+- 2026-06-18 [claude]: Edit task-authoring.md.tmpl
+- 2026-06-18 [claude]: Edit task-logging.md.tmpl
+- 2026-06-18 [claude]: Edit task-logging.md.tmpl
+- 2026-06-18 [claude]: Edit test_all_stacks_render_smoke.py
+- 2026-06-18 [claude]: commit ccf6986a5a — feat(modularity): gate task-authoring/task-logging AGENTS.md fragments on modules.tasks
+- 2026-06-18 [claude]: F2 slice LANDED: task-authoring + task-logging fragments now gated on {% if modules.tasks %}; renderer skips…

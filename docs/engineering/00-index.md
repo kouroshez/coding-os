@@ -31,7 +31,7 @@ Read next: any of the entries below.
 
 - [Naming Contract](naming-contract.md) — `ssot:true` · updated 2026-04-26
 
-### Engineering (37)
+### Engineering (38)
 
 - [Template Location — In-Repo Files vs In-CLI vs Hybrid](templates-location-analysis.md) — `ssot:true` · updated 2026-04-18
 - [Rules Loading — How `src/core/rules/*.md` Actually Become Active](rules-loading.md) — `ssot:true` · updated 2026-04-18
@@ -70,5 +70,6 @@ Read next: any of the entries below.
 - [Test Governance — Multi-Agent-Safe, Laptop-Safe Suite Execution](test-governance.md) — `ssot:true` · updated 2026-06-10
 - [Hub Threat Model — localhost trust boundary (TASK-363)](hub-threat-model.md) — `ssot:true` · updated 2026-06-11
 - [Project Anatomy — Polyglot Coexistence Contract](project-anatomy.md) — `ssot:true` · updated 2026-06-11
+- [Modularity / Auto-Sync Audit — June 2026](modularity-audit-2026-06.md) — `ssot:true` · updated 2026-06-17
 
 <!-- END auto-index -->
