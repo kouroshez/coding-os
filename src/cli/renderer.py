@@ -119,7 +119,9 @@ def render_agents_md(
             raise RenderError(
                 f"fragment '{section.template}' (section {section.id}) failed to render: {exc}"
             ) from exc
-        rendered_parts.append(text.rstrip())
+        part = text.rstrip()
+        if part:  # a fully module-gated fragment renders empty — skip it
+            rendered_parts.append(part)
 
     return "\n\n".join(rendered_parts) + "\n"
 

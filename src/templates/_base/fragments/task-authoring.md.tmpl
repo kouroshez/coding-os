@@ -1,4 +1,4 @@
-## Task Authoring (Phase L Scrumban)
+{% if modules.tasks %}## Task Authoring (Phase L Scrumban)
 
 Tasks live at `docs/tasks/TASK-NNN-slug.md`. They are written in lean
 Phase L format: YAML frontmatter + Outcome + Read First (links only) +
@@ -66,3 +66,4 @@ response to know "where I was". Work Log is append-only — never rewrite.
 blockers + WIP state. If no check-in in 24h, `remind-daily.sh` prints
 a banner. Streak data is purely observability — NEVER use it to
 pressure the human (ADHD-friendly default).
+{% endif %}

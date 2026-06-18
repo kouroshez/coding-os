@@ -53,3 +53,17 @@ def test_agents_md_renders_clean(stack_id: str) -> None:
         f"stack '{stack_id}': {len(survivors)} surviving Jinja delimiter(s) "
         f"in rendered AGENTS.md — a substitution or conditional did not resolve."
     )
+
+
+def test_disabling_tasks_module_drops_its_agents_md_fragments() -> None:
+    """Audit F2: disabling a module strips its AGENTS.md prose. Tasks off ⇒ the
+    task-authoring + task-logging fragments are absent; on (default) ⇒ present.
+    Byte-identity of the on-branch is guarded separately by golden-parity."""
+    world = _build_world("claude", ("python",), _PROJECT, today=_FIXED_DATE)
+    enabled = render_agents_md(world)
+    disabled = render_agents_md(world, active_modules={"tasks": False})
+
+    assert "## Task Authoring" in enabled and "## Task Logging" in enabled
+    assert "## Task Authoring" not in disabled, "tasks off must drop task-authoring"
+    assert "## Task Logging" not in disabled, "tasks off must drop task-logging"
+    assert not _JINJA_DELIMITER.findall(disabled), "gate left a stray Jinja delimiter"
