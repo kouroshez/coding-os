@@ -143,8 +143,8 @@ jobs:
           cache-dependency-glob: "pyproject.toml"
       - name: Install deps
         run: uv sync --extra rag --extra graph_os
-      - name: Referential-integrity + all-stacks render smoke (fast)
-        run: uv run pytest tests/test_skill_ref_integrity.py tests/test_all_stacks_render_smoke.py -q
+      - name: Referential-integrity + all-stacks render smoke + toggle round-trips (fast)
+        run: uv run pytest tests/test_skill_ref_integrity.py tests/test_all_stacks_render_smoke.py tests/test_modularity_toggle.py -q
       - name: Golden parity + rules freshness (the @slow re-render guards)
         run: uv run pytest tests/test_golden_parity.py tests/test_rules_fresh.py -q
 

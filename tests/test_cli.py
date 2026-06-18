@@ -1772,67 +1772,10 @@ class TestSubsystems:
 
 # ---------------------------------------------------------------------------
 # Conditional rendering by active modules — TASK-353
+#   The fast, subprocess-free toggle round-trips (TestConditionalRendering)
+#   moved to tests/test_modularity_toggle.py (F7/TASK-447) so they escape this
+#   file's module-level @slow mark and run in the test-modularity PR job.
 # ---------------------------------------------------------------------------
-
-
-class TestConditionalRendering:
-    @pytest.fixture(scope="class")
-    def world(self):
-        return main_module._build_world("claude", ("python",), Path("/virtual/condrender"))
-
-    def test_default_render_is_byte_identical_and_contains_task_block(self, world) -> None:
-        from cli.renderer import render_agents_md
-
-        default = render_agents_md(world)
-        explicit_all_on = render_agents_md(world, {"tasks": True, "docs": True})
-        assert default == explicit_all_on  # zero regression for existing consumers
-        assert "Scrumban board (Phase L — preferred)" in default
-        assert "{%" not in default  # no leaked template syntax
-
-    def test_tasks_module_disabled_drops_task_block_and_restores_identically(self, world) -> None:
-        from cli.renderer import render_agents_md
-
-        without_tasks = render_agents_md(world, {"tasks": False})
-        assert "Scrumban board" not in without_tasks
-        assert "Legacy task flow" not in without_tasks
-        assert "## Tool Routing" in without_tasks  # section survives, block doesn't
-        assert "## Core Loop" in without_tasks or "Core Loop" in without_tasks  # kernel content intact
-        restored = render_agents_md(world, {"tasks": True})
-        assert restored == render_agents_md(world)  # byte-identical restore
-
-    def test_disabled_module_hooks_join_runtime_allowlist(self, tmp_path: Path) -> None:
-        from cli.project_overrides import disabled_hook_scripts, effective_disabled_hooks
-        from cli.subsystems import set_module_enabled
-
-        assert effective_disabled_hooks(tmp_path) == set()
-        assert set_module_enabled(tmp_path, "tasks", False).ok is True
-        disabled = effective_disabled_hooks(tmp_path)
-        assert "auto-task-sync" in disabled and "nudge-task-discovery" in disabled
-        scripts = disabled_hook_scripts(tmp_path)
-        assert any(s.endswith(".sh") for s in scripts)
-        # Safety-category hooks never reach the allowlist, whatever is disabled.
-        assert "enforce-task-transition" not in disabled
-        assert "enforce-wip-limit" not in disabled
-
-    def test_no_toggleable_module_owns_a_safety_hook(self) -> None:
-        """Kernel non-disableable BY CONSTRUCTION: safety hooks must not be
-        listed by any toggleable module, or the allowlist filter would be the
-        only line of defense."""
-        import yaml as _yaml
-
-        from cli.subsystems import load_subsystems
-
-        repo_root = Path(__file__).resolve().parent.parent
-        registry = _yaml.safe_load(
-            (repo_root / "src" / "core" / "hooks" / "registry.yaml").read_text(encoding="utf-8")
-        )
-        hook_entries = registry.get("hooks", registry)
-        safety = {h["id"] for h in hook_entries if h.get("category") == "safety"}
-        for module in load_subsystems().values():
-            if module.kernel:
-                continue
-            overlap = safety & set(module.hooks)
-            assert not overlap, f"toggleable module '{module.id}' owns safety hook(s): {overlap}"
 
 
 # ---------------------------------------------------------------------------
