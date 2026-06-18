@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-17 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-18 -->
 # Modularity / Auto-Sync Audit — June 2026
 
 > P: The SSOT register for the 2026-06 modularity/auto-sync audit — every finding (F1–F16), its evidence, severity, verified status, and mapped task — plus the architecture verdict and the decisions locked with the owner.
@@ -47,12 +47,12 @@ Severity: 🔴 high · 🟡 medium · 🟢 low. Status: open / **fixed** / defer
 | F4 | 🔴 | No working path to disable a core/stack skill — CLI errors, Hub additive-only, `skill-overrides.json` has no writer | `skill_commands.py:423-428`; `project_overrides.py:51` (0 callers); false docstring | TASK-440 |
 | F5 | 🔴 | Half-saved safety hook fails CLOSED on Claude (rc=2 = BLOCK every tool call); R14's dispatcher fix is Codex-only | `settings.template.json` direct hook calls; no `bash -n` at `install-adapter.sh` symlink | TASK-441 (re-scoped) |
 | F6 | 🔴 | Model routing leaks bare tier names ('sonnet') as SDK ids; violates its own doc contract | `routing.py:24-29,97-106`; `cognition.py:1214` gates on `data_points>0`; `claude-sdk.md:188` | TASK-441 |
-| F7 | 🔴 | Stack + module toggle round-trips are `@slow`/nightly-only — no fast PR guard on the primary surface | `test_cli.py:608` module-level slow mark; `test_remove_stack.py` all slow | TASK-447 |
-| F8 | 🔴 | Hook BLOCK failures never reach `log_events` — invisible to `cos_log_query` / auto-bug-filer | hooks log to jsonl only; only Python `_write_db` writes the table | TASK-447 |
+| F7 | 🔴 | Stack + module toggle round-trips are `@slow`/nightly-only — no fast PR guard on the primary surface | `test_cli.py:608` module-level slow mark; `test_remove_stack.py` all slow | **FIXED** 0bd8c6bd (TASK-447) — `test_modularity_toggle.py` in the PR job |
+| F8 | 🔴 | Hook BLOCK failures never reach `log_events` — invisible to `cos_log_query` / auto-bug-filer | hooks log to jsonl only; only Python `_write_db` writes the table | **FIXED** aa5a7351 (TASK-447) — `cos_say_json.py` shared shell→DB writer |
 | F9 | 🔴 | 32 non-safety hooks (of 83) belong to no module — untoggleable via the only working path | `registry.yaml`=83 vs `subsystems.yaml`=39; orphans incl enforce-skill/test-governor | TASK-440 |
 | F10 | 🟡 | `design` module is a live no-op toggle | `subsystems.yaml:68-75` empty; live Enable/Disable in `ConfigPage.tsx` | TASK-440 |
 | F11 | 🟡 | 4 golden fixtures captured but never asserted (drift-blind CI) | `capture_golden.py` 10 vs `test_golden_parity.py:33` 6 (claude_go-fiber/node-express/vue-nuxt, codex_go-fiber) | TASK-440 |
-| F12 | 🟡 | Rule-11 enforcement split across 3 divergent sources + false 'mirrors' docstring | `test_no_hardcoded_stacks.py:29` frozen-6 vs `check_hardcoded_literals.py:46` discover_literals | docstring **FIXED** 3034a454; unify → TASK-441 |
+| F12 | 🟡 | Rule-11 enforcement split across 3 divergent sources + false 'mirrors' docstring | `test_no_hardcoded_stacks.py:29` frozen-6 vs `check_hardcoded_literals.py:46` discover_literals | **FIXED** cda16188 (TASK-441) — both share narrowed `discover_literals()`+`scan()`; skills + ambiguous ids dropped |
 | F13 | 🟡 | Core `routing.py` hardcodes model tiers AND stack/skill ids — a Rule-11 self-breach the cli-scoped enforcer can't see | `routing.py:24-36` DEFAULT_MODELS/DEFAULT_SKILLS (incl stale 'bash-linux') | TASK-441 |
 | F14 | 🟢 | Codex goldens store absolute temp paths → perpetually-dirty tree | `test_golden_parity.py:142` normalizes at compare-time only; 4 files dirty on capture | TASK-440 (cleanup) |
 | F15 | 🟢 | Meta-repo AGENTS.md clobber guard in module toggle but NOT in add/remove-stack | `module_commands.py:56-60` guarded; `add_stack.py:269`/`remove_stack.py:389` not | TASK-440 (cleanup) |
