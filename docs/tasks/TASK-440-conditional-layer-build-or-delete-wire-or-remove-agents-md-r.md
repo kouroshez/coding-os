@@ -112,3 +112,5 @@ references: []
 - 2026-06-18 [claude]: Edit test_cli.py
 - 2026-06-18 [claude]: Edit modularity-audit-2026-06.md
 - 2026-06-18 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-18 [claude]: Edit modularity-audit-2026-06.md
+- 2026-06-18 [claude]: VERIFIED + regression fixed. Independent re-verification of the build-or-delete pass: 260 passed…
