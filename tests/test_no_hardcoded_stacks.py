@@ -16,7 +16,7 @@ Not allowed:
 
 from __future__ import annotations
 
-import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -24,35 +24,18 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CLI_DIR = REPO_ROOT / "src" / "cli"
 
-# Stack/adapter names discovered from the registries — this is the set
-# that must NOT appear as bare literals in cli/*.py.
-FORBIDDEN_LITERALS = {"django", "nextjs", "claude", "codex", "python-django", "nextjs-react"}
+# Single source for Rule-11 enforcement (R11/F12, TASK-441): this rear-guard
+# test and the PreToolUse front-guard (block-hardcoded-literals.sh) share the
+# SAME narrowed forbidden set + scan logic, so they can never diverge.
+sys.path.insert(0, str(REPO_ROOT / "src" / "core" / "scripts"))
+from check_hardcoded_literals import discover_literals, scan  # noqa: E402
 
-# Substrings that indicate a legitimate non-hardcoded use (imports,
-# comments referencing directory names, docstrings, URL paths).
-# We allow a literal if the line matches any of these patterns.
-CONTEXTUAL_ALLOW_RE = [
-    re.compile(r"^\s*#"),  # whole-line comment
-    re.compile(r'^\s*"""'),  # docstring marker line
-    re.compile(r"^\s*'"),  # also docstring
-    re.compile(r"^\s*\*"),  # markdown-in-docstring bullet
-]
+FORBIDDEN_LITERALS = discover_literals()
 
 
 def _scan_cli_file(path: Path) -> list[tuple[int, str, str]]:
     """Return (line_no, token, line) for every forbidden literal occurrence."""
-    violations: list[tuple[int, str, str]] = []
-    for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        stripped = line.strip()
-        if any(rx.match(line) for rx in CONTEXTUAL_ALLOW_RE):
-            continue
-        for token in FORBIDDEN_LITERALS:
-            # Match as a quoted string literal only — e.g. `"django"` or `'django'`
-            # — not as a substring of some longer identifier.
-            patt = re.compile(rf'(?<![A-Za-z0-9_])["\']({re.escape(token)})["\'](?![A-Za-z0-9_])')
-            if patt.search(stripped):
-                violations.append((i, token, stripped))
-    return violations
+    return scan(path.read_text(encoding="utf-8"), FORBIDDEN_LITERALS)
 
 
 @pytest.mark.parametrize(
@@ -69,3 +52,16 @@ def test_no_hardcoded_stack_names(cli_file: Path) -> None:
         + "\n\nMove the metadata to templates/<stack>/stack.yaml or "
         "src/adapters/<agent>/adapter.yaml and read it via the registry."
     )
+
+
+def test_forbidden_set_stays_narrowed() -> None:
+    """R11/F12: the shared set must stay false-positive-free. Re-adding the skills
+    loop or dropping the AMBIGUOUS_IDS filter in discover_literals would silently
+    re-break every cli/*.py edit through the live front-guard hook."""
+    forbidden = discover_literals()
+    for skill in ("thinking_os", "observability", "clean-code", "graph-explorer"):
+        assert skill not in forbidden, f"{skill!r} is a skill — collides with code"
+    for ambiguous in ("go", "python", "meta", "fastapi"):
+        assert ambiguous not in forbidden, f"{ambiguous!r} doubles as an ordinary code token"
+    for real in ("django", "nextjs", "claude", "codex"):
+        assert real in forbidden, f"{real!r} must stay enforced (over-narrowed otherwise)"

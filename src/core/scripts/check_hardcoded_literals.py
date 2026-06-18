@@ -6,11 +6,13 @@ and adapters/*/adapter.yaml::id (no hardcoded list here either), falling back
 to a conservative built-in set when the registries can't be loaded (keeps the
 hook useful during bootstrap). Prints violations to stderr, exits 2 on block.
 
-NOTE: this does NOT yet share its forbidden set with
-tests/test_no_hardcoded_stacks.py — that test uses a narrower curated list to
-avoid false positives on ambiguous short ids (go/meta/python) and skill names
-that collide with path components and dict keys. Unifying both onto one
-narrowed source is tracked in TASK-441 (R11/F12).
+This is the SINGLE source Rule-11 enforcement shares: the PreToolUse hook
+(block-hardcoded-literals.sh) AND the rear-guard test (test_no_hardcoded_stacks.py)
+both import discover_literals() + scan() from here, so the front and rear guards
+can never diverge (R11/F12, TASK-441). The set is NARROWED twice to stay
+false-positive-free on cli/*.py: skill names are excluded (they collide with
+path segments and dict keys — e.g. "thinking_os", "observability"), and a small
+set of stack ids that double as ordinary code tokens is excluded (AMBIGUOUS_IDS).
 """
 
 from __future__ import annotations
@@ -29,24 +31,31 @@ CONTEXTUAL_ALLOW_RE = [
     re.compile(r"^\s*\*"),
 ]
 
+# Used only when the YAML registries can't be read (bootstrap / no pyyaml).
+# Unambiguous stack/adapter ids only — no skills, no AMBIGUOUS_IDS.
 BUILTIN_FALLBACK = {
     "django",
     "nextjs",
-    "fastapi",
-    "go",
     "go-fiber",
     "claude",
     "codex",
-    "python-django",
-    "nextjs-react",
-    "python-fastapi",
-    "go-patterns",
-    "frontend-design",
 }
+
+# Stack ids that are also ordinary code tokens, so flagging them as quoted
+# literals in cli/*.py is almost always a false positive — never a real
+# Rule-11 breach. Excluded from the forbidden set (the rear-guard test would
+# otherwise red on legitimate code, and the live hook would block it):
+#   go      — the Go binary name, "go.mod" marker, help-string examples
+#   python  — the Python binary name, "pyproject.toml" marker
+#   meta    — the cos_* response-envelope `meta` field (.get("meta"))
+#   fastapi — the pip package / framework name in descriptions
+AMBIGUOUS_IDS = {"go", "python", "meta", "fastapi"}
 
 
 def discover_literals() -> set[str]:
-    """Read IDs from stack.yaml + adapter.yaml so the guard stays data-driven."""
+    """Read stack/adapter IDs from stack.yaml + adapter.yaml so the guard stays
+    data-driven. Skills are NOT included (Rule 11 is about stack/adapter ids, and
+    skill names collide with code), and AMBIGUOUS_IDS are filtered out."""
     result: set[str] = set()
     templates_dir = REPO_ROOT / "src" / "templates"
     adapters_dir = REPO_ROOT / "src" / "adapters"
@@ -60,8 +69,6 @@ def discover_literals() -> set[str]:
             sid = data.get("id")
             if sid:
                 result.add(str(sid))
-            for skill in data.get("skills") or []:
-                result.add(str(skill))
         except Exception:  # pragma: no cover - defensive
             continue
     for adapter_yaml in adapters_dir.glob("*/adapter.yaml"):
@@ -72,7 +79,7 @@ def discover_literals() -> set[str]:
                 result.add(str(aid))
         except Exception:  # pragma: no cover - defensive
             continue
-    return result or BUILTIN_FALLBACK
+    return (result - AMBIGUOUS_IDS) or BUILTIN_FALLBACK
 
 
 def scan(content: str, forbidden: set[str]) -> list[tuple[int, str, str]]:
