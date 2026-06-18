@@ -143,7 +143,7 @@ cos_say error thinking_os.server "db migration v23 failed" code=DUPCOL
 cos_say fatal cli.main         "uv not on PATH — abort"
 ```
 
-`cos_say` is sourced from `cos-env.sh` alongside `cos_log_hook`.
+`cos_say` is sourced from `cos-env.sh` alongside `cos_log_hook`. Both reach the durable sqlite sink: `cos_say` (WARN+) and a `cos_log_hook … block` route through the shared `_helpers/cos_say_json.py` writer, which inserts the WARN+ event into `log_events` after rendering the jsonl line — so a hook BLOCK is queryable via `cos_log_query` / `error_sweep`, not just present in the text/jsonl tail. The same `$COS_LOG_DB_MIN_LEVEL` floor and fail-open apply as for the Python sink.
 
 ## Levels
 
