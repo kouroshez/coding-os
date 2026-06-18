@@ -26,18 +26,15 @@ import click
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 GOLDEN_DIR = REPO_ROOT / "tests" / "golden"
 
-# Mirrors generate_manifest.SECTIONS for now.
+# Must stay in lock-step with tests/test_golden_parity.py::SECTIONS — a fixture
+# captured here but not asserted there is drift-blind CI (audit F11).
 SECTIONS: list[tuple[str, str, list[str]]] = [
     ("claude_base", "claude", []),
     ("claude_django", "claude", ["django"]),
     ("claude_nextjs", "claude", ["nextjs"]),
-    ("claude_go-fiber", "claude", ["go-fiber"]),
-    ("claude_node-express", "claude", ["node-express"]),
-    ("claude_vue-nuxt", "claude", ["vue-nuxt"]),
     ("codex_base", "codex", []),
     ("codex_django", "codex", ["django"]),
     ("codex_nextjs", "codex", ["nextjs"]),
-    ("codex_go-fiber", "codex", ["go-fiber"]),
 ]
 
 # Files created at runtime — never tracked in golden.
