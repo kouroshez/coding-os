@@ -844,7 +844,11 @@ def _gated_module(tool_name: str) -> str | None:
     return None
 
 
-def safe_tool(fn: Callable[..., str]) -> Callable[..., str]:
+def safe_tool(
+    fn: Callable[..., str] | None = None,
+    *,
+    name: str | None = None,
+) -> Callable[..., str] | Callable[[Callable[..., str]], Callable[..., str]]:
     """Decorator: convert unhandled exceptions inside a tool to `fail()`.
 
     Mapping is conservative — specific Python exception types map to the
@@ -855,49 +859,61 @@ def safe_tool(fn: Callable[..., str]) -> Callable[..., str]:
         @safe_tool
         def cos_example(...) -> str:
             ...
+
+    Pass `name=` when the Python function name differs from the registered MCP
+    tool name (e.g. `thinking_os_search` registered as `cos_search`) so the
+    subsystems module gate keys on the name `subsystems.yaml` lists, not the
+    internal function name. Without it the gate silently never fires for that
+    tool (the bug `test_module_gating_registry` guards against).
     """
 
-    @wraps(fn)
-    def wrapper(*args: Any, **kwargs: Any) -> str:
-        gated_by = _gated_module(fn.__name__)
-        if gated_by:
-            return fail(
-                "module_disabled",
-                f"tool '{fn.__name__}' belongs to the disabled '{gated_by}' module — "
-                f"enable it with `cos module enable {gated_by}`",
-                retryable=False,
-            )
-        try:
-            result = fn(*args, **kwargs)
-        except PermissionError as exc:
-            _log_tool_failure(fn.__name__, exc, args)
-            return fail("permission", str(exc) or "permission denied", retryable=False)
-        except FileNotFoundError as exc:
-            _log_tool_failure(fn.__name__, exc, args)
-            return fail("not_found", str(exc) or "resource not found", retryable=False)
-        except (TimeoutError, ConnectionError) as exc:
-            _log_tool_failure(fn.__name__, exc, args)
-            return fail("transient", str(exc) or type(exc).__name__, retryable=True)
-        except ValueError as exc:
-            _log_tool_failure(fn.__name__, exc, args)
-            return fail("validation", str(exc) or "invalid input", retryable=False)
-        except ImportError as exc:
-            _log_tool_failure(fn.__name__, exc, args)
-            return fail("unavailable", str(exc) or "optional dependency missing", retryable=True)
-        except Exception as exc:
-            _log_tool_failure(fn.__name__, exc, args)
-            return fail("internal", f"{type(exc).__name__}: {exc}", retryable=False)
+    def decorate(target: Callable[..., str]) -> Callable[..., str]:
+        gate_name = name or target.__name__
 
-        # Name the offending tool when ok() flagged the envelope unshrinkable.
-        # ok() logs the size from a context without the tool name, leaving the
-        # eye with an unactionable "something is 265KB" error.
-        if isinstance(result, str) and "envelope_unshrinkable" in result:
-            logger.error(
-                "tool %s returned an unshrinkable envelope (%d chars > %d budget)",
-                fn.__name__,
-                len(result),
-                TOKEN_BUDGET_CHARS,
-            )
-        return result
+        @wraps(target)
+        def wrapper(*args: Any, **kwargs: Any) -> str:
+            gated_by = _gated_module(gate_name)
+            if gated_by:
+                return fail(
+                    "module_disabled",
+                    f"tool '{gate_name}' belongs to the disabled '{gated_by}' module — "
+                    f"enable it with `cos module enable {gated_by}`",
+                    retryable=False,
+                )
+            try:
+                result = target(*args, **kwargs)
+            except PermissionError as exc:
+                _log_tool_failure(gate_name, exc, args)
+                return fail("permission", str(exc) or "permission denied", retryable=False)
+            except FileNotFoundError as exc:
+                _log_tool_failure(gate_name, exc, args)
+                return fail("not_found", str(exc) or "resource not found", retryable=False)
+            except (TimeoutError, ConnectionError) as exc:
+                _log_tool_failure(gate_name, exc, args)
+                return fail("transient", str(exc) or type(exc).__name__, retryable=True)
+            except ValueError as exc:
+                _log_tool_failure(gate_name, exc, args)
+                return fail("validation", str(exc) or "invalid input", retryable=False)
+            except ImportError as exc:
+                _log_tool_failure(gate_name, exc, args)
+                return fail("unavailable", str(exc) or "optional dependency missing", retryable=True)
+            except Exception as exc:
+                _log_tool_failure(gate_name, exc, args)
+                return fail("internal", f"{type(exc).__name__}: {exc}", retryable=False)
 
-    return wrapper
+            # Name the offending tool when ok() flagged the envelope unshrinkable.
+            # ok() logs the size from a context without the tool name, leaving the
+            # eye with an unactionable "something is 265KB" error.
+            if isinstance(result, str) and "envelope_unshrinkable" in result:
+                logger.error(
+                    "tool %s returned an unshrinkable envelope (%d chars > %d budget)",
+                    gate_name,
+                    len(result),
+                    TOKEN_BUDGET_CHARS,
+                )
+            return result
+
+        return wrapper
+
+    # Bare `@safe_tool` → fn is the target. `@safe_tool(name=...)` → fn is None.
+    return decorate(fn) if fn is not None else decorate

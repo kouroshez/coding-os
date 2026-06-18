@@ -463,7 +463,7 @@ def cos_observation_record(
         "openWorldHint": False,
     },
 )
-@safe_tool
+@safe_tool(name="cos_search")
 def thinking_os_search(
     query: str,
     limit: int = 5,
@@ -535,7 +535,7 @@ def thinking_os_search(
         "openWorldHint": False,
     },
 )
-@safe_tool
+@safe_tool(name="cos_timeline")
 def thinking_os_timeline(
     days: int = 30,
     domain: str = "",
@@ -573,7 +573,7 @@ def thinking_os_timeline(
         "openWorldHint": False,
     },
 )
-@safe_tool
+@safe_tool(name="cos_details")
 def thinking_os_details(
     pattern_id: int,
     source: str = "learned_patterns",
