@@ -106,6 +106,13 @@ echo "$ADAPTER" > "${PROJECT_ROOT}/.coding-os/.agent" 2>/dev/null || true
 # ---------------------------------------------------------------------------
 for hook in "${CODING_OS_ROOT}/core/hooks/"*.sh; do
   name=$(basename "$hook")
+  # Fail-open (R14): never link a syntax-broken hook. A hook that aborts on a
+  # parse error exits non-zero, which the runtime reads as a BLOCK — one broken
+  # hook would then reject every matching tool call. Skip + warn instead.
+  if ! bash -n "$hook" 2>/dev/null; then
+    echo "  ⚠️  ${name}: bash -n failed — NOT linked (fix the hook source)" >&2
+    continue
+  fi
   ln -sf "$hook" "${PROJECT_ROOT}/${AGENT_DIR}/hooks/${name}"
 done
 
@@ -115,6 +122,10 @@ done
 if [[ -d "${CODING_OS_ROOT}/adapters/${ADAPTER}/hooks" ]]; then
   for hook in "${CODING_OS_ROOT}/adapters/${ADAPTER}/hooks/"*.sh; do
     name=$(basename "$hook")
+    if ! bash -n "$hook" 2>/dev/null; then  # fail-open (R14) — see core-hooks loop
+      echo "  ⚠️  ${name}: bash -n failed — NOT linked (fix the hook source)" >&2
+      continue
+    fi
     ln -sf "$hook" "${PROJECT_ROOT}/${AGENT_DIR}/hooks/${name}"
   done
 fi
