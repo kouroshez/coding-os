@@ -310,7 +310,7 @@ function ModulesTab() {
     <>
       <TabIntro>
         Subsystem modules for this project. The kernel is always on; disabling a module gates its
-        MCP tools, hooks and AGENTS.md sections (re-enable any time — state lives in
+        MCP tools and self-skips its hooks (re-enable any time — state lives in
         .coding-os/subsystems-state.json).
       </TabIntro>
       {toggleError && (

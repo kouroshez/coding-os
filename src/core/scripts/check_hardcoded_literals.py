@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Scan stdin content for hardcoded stack/adapter literals in cli/*.py.
 
-Mirrors the logic in tests/test_no_hardcoded_stacks.py so the hook and
-the test agree. Prints violations to stderr and exits 2 on block, 0 on
-clean.
+The forbidden set is data-driven: discovered from templates/*/stack.yaml::id
+and adapters/*/adapter.yaml::id (no hardcoded list here either), falling back
+to a conservative built-in set when the registries can't be loaded (keeps the
+hook useful during bootstrap). Prints violations to stderr, exits 2 on block.
 
-Literals are read from templates/*/stack.yaml::id and
-adapters/*/adapter.yaml::id — no hardcoded list in this file either.
-Falls back to a conservative built-in set if the registries can't be
-loaded (keeps the hook useful during bootstrap).
+NOTE: this does NOT yet share its forbidden set with
+tests/test_no_hardcoded_stacks.py — that test uses a narrower curated list to
+avoid false positives on ambiguous short ids (go/meta/python) and skill names
+that collide with path components and dict keys. Unifying both onto one
+narrowed source is tracked in TASK-441 (R11/F12).
 """
 
 from __future__ import annotations
