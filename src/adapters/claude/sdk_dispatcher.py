@@ -79,6 +79,43 @@ def _cos_mcp_servers(cwd: str) -> dict[str, Any]:
         return {}
 
 
+_MODEL_ALIAS_CACHE: dict[str, str] = {}
+
+
+# Map a tier alias (sonnet/opus/haiku) → a concrete adapter.yaml model id before
+# it reaches the SDK: the kernel router speaks in tiers (claude-sdk.md — the
+# adapter owns alias→id), so a routed 'sonnet' must become 'claude-sonnet-4-6'.
+# `claude-*` ids and None pass through; an unknown non-id falls back to the
+# adapter default so the SDK never receives a bare tier (R10/F6).
+def _resolve_model_alias(model: str | None) -> str | None:
+    if not model or model.startswith("claude-"):
+        return model
+    alias = model.strip().lower()
+    if not alias:
+        return model
+    if alias in _MODEL_ALIAS_CACHE:
+        return _MODEL_ALIAS_CACHE[alias]
+    resolved = model
+    try:
+        import yaml
+
+        data = yaml.safe_load(
+            (Path(__file__).resolve().parent / "adapter.yaml").read_text(encoding="utf-8")
+        ) or {}
+        models = [m for m in (data.get("models") or []) if isinstance(m, dict) and m.get("id")]
+        match = next((str(m["id"]) for m in models if alias in str(m["id"]).lower()), None)
+        if match is None:
+            match = next((str(m["id"]) for m in models if m.get("default")), None)
+            if match:
+                logger.warning("unknown model alias %r → adapter default %s", model, match)
+        if match:
+            resolved = match
+    except Exception as exc:
+        logger.debug("model alias resolution skipped for %r: %s", model, exc)
+    _MODEL_ALIAS_CACHE[alias] = resolved
+    return resolved
+
+
 def claude_session_options(
     profile: str,
     *,
@@ -97,6 +134,7 @@ def claude_session_options(
             f"claude_session_options: profile {profile!r} not yet migrated (TASK-417 phases)"
         )
 
+    model = _resolve_model_alias(model)  # tier alias → concrete id (R10/F6)
     opts: dict[str, Any] = dict(
         cwd=cwd,
         model=model,
@@ -351,10 +389,14 @@ class ClaudeSDKDispatcher:
         if not any(item.startswith("mcp__coding-os") for item in allow_list):
             allow_list.append(_DEFAULT_COS_MCP_ALLOW)
 
+        # Resolve a routed tier alias (sonnet/opus/...) to a concrete adapter
+        # model id BEFORE it reaches the SDK or the effort gate (R10/F6).
+        resolved_model = _resolve_model_alias(request.model)
+
         # High-tier models get "xhigh"; everything else uses the SDK
         # default (None → "high"). See _XHIGH_EFFORT_MODEL_PREFIXES.
         effort: str | None = None
-        if request.model and request.model.startswith(_XHIGH_EFFORT_MODEL_PREFIXES):
+        if resolved_model and resolved_model.startswith(_XHIGH_EFFORT_MODEL_PREFIXES):
             effort = "xhigh"
 
         # Structured output (T1) — opt-in per role via
@@ -396,7 +438,7 @@ class ClaudeSDKDispatcher:
             "claude-sdk dispatch: formula=%s model=%s effort=%s "
             "structured=%s budget_usd=%s tools=%s",
             request.formula_id,
-            request.model,
+            resolved_model,
             effort,
             bool(output_format),
             request.max_budget_usd,
@@ -418,7 +460,7 @@ class ClaudeSDKDispatcher:
         transcript_parts: list[str] = []
         # v27: capture the model the dispatcher requested so persistence
         # can fill formula_dispatches.model without re-deriving from usage.
-        result_meta: dict[str, Any] = {"model": request.model} if request.model else {}
+        result_meta: dict[str, Any] = {"model": resolved_model} if resolved_model else {}
         result_subtype: str | None = None
         structured_output: Any = None
         tool_calls: list[dict[str, Any]] = []
@@ -492,7 +534,7 @@ class ClaudeSDKDispatcher:
             # settings, memory, and CLAUDE.md outside the project root
             # would silently change behavior.
             setting_sources=["project"],
-            model=request.model,
+            model=resolved_model,
             effort=effort,
             # Per-role skill inheritance. Sub-sessions don't inherit
             # parent skills, so each role declares its required skills

@@ -180,3 +180,35 @@ def test_system_prompt_preset_shape() -> None:
         "SystemPromptPreset lost `exclude_dynamic_sections` — review "
         "claude-sdk.md §7.2 before bumping the SDK."
     )
+
+
+def _load_sdk_dispatcher():
+    import importlib.util
+    from pathlib import Path
+
+    path = Path("src/adapters/claude/sdk_dispatcher.py")
+    if not path.is_file():
+        pytest.skip("sdk_dispatcher.py not found from test cwd")
+    spec = importlib.util.spec_from_file_location("sdk_dispatcher_under_test", path)
+    mod = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(mod)  # top-level imports are stdlib; SDK is lazy
+    except Exception:  # pragma: no cover - missing optional dep in this env
+        pytest.skip("sdk_dispatcher.py failed to exec — missing deps in test env")
+    return mod
+
+
+def test_resolve_model_alias_never_forwards_a_bare_tier() -> None:
+    """R10/F6: a routed tier alias is resolved to a concrete adapter.yaml id
+    before it reaches the SDK; concrete ids + None pass through; an unknown
+    non-id falls back to a concrete default, never a bare tier."""
+    r = _load_sdk_dispatcher()._resolve_model_alias
+    for tier in ("sonnet", "opus", "haiku"):
+        resolved = r(tier)
+        assert resolved.startswith("claude-") and tier in resolved, (
+            f"tier {tier!r} resolved to {resolved!r} — must be a concrete claude-* id"
+        )
+    assert r("claude-opus-4-8") == "claude-opus-4-8"  # concrete passes through
+    assert r(None) is None
+    fallback = r("totally-unknown")
+    assert fallback is not None and fallback.startswith("claude-")  # never a bare tier
