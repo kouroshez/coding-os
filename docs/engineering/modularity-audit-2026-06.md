@@ -83,6 +83,20 @@ The 2026-06-16 register (R1–R15) was superseded by the verified F-series. Reco
 - **Per-consumer rules = RUNTIME-FILTER.** Keep `dimension-registry.md` / `skill-enforcement.md` on disk; filter to the consumer's installed stacks at Classify time (reuse `skill_primer.py` scoping). Do not break the live symlink with per-toggle file regen. Exclude the `meta` stack from non-meta consumers. Rationale: strictly smaller, preserves the propagation model, matches "runtime-gating beats regenerate-and-strip".
 - **Dead machinery = DELETE all five, DOC-FIRST.** This doc records each before deletion: (1) `requires:` section-skip path; (2) `load_skill_overrides` + `skill-overrides.json` reader-with-no-writer + false docstring; (3) `Module.rules` / `Module.doc_tags` dead schema fields; (4) `routing_weights` recalc/drift self-licking loop; (5) `DispatchRequest.adapter` + `adapter_budget_usd` cross-adapter carriers. Rationale: a dead field that implies a feature is a liability for the plugin community (Rule 22); rebuild from the real SSOT if ever needed.
 
+### 5.1 Implementation outcome (TASK-440, 2026-06-18) — two of the five were NOT dead
+
+Adversarial re-verification during the delete pass found that "DELETE all five" was based on a stale read for **two** axes; deleting them would have broken live, contracted behaviour. What actually shipped:
+
+| Axis | Decision | Shipped | Why |
+|---|---|---|---|
+| (1) `requires:` section-skip | delete | **DELETED** | No `stack.yaml`/`base.yaml` declared it; F2 used inline `{% if modules.X %}` gates instead. Removed field + renderer branch + schema property + its only test. |
+| (2) `load_skill_overrides` + `skill-overrides.json` | delete | **DELETED** | Folded into the single `.coding-os.yaml::disabled_skills` store (F4). `install-adapter.sh` now reads it via `extract_disabled_skills.py`. |
+| (3) `Module.rules` / `Module.doc_tags` | delete | **DELETED** | Zero readers (the `.rules` greps hit `RuleEntry`, a different type). Removed from dataclass + loader + every module in `subsystems.yaml`. |
+| (4) `routing_weights` recalc/drift loop | delete | **KEPT** | NOT dead — live callers: `board_commands.py` (every 10 outcomes), `nightly.py`, `session-context.sh` (startup), 15+ tests. Deleting it also contradicts §6 ("keep feeding the learning loop"; populate `task_outcomes.model`). Re-scope to the routing task (F16) if its value is still doubted; do not delete blind. |
+| (5) `DispatchRequest.adapter` + `adapter_budget_usd` | delete both | **HALF** — kept `.adapter`, deleted `.adapter_budget_usd` | `.adapter` has a live reader in `get_dispatcher` (the one-adapter-per-session mismatch warning, dispatcher-contract.md rule 6) and a test; only `adapter_budget_usd` was truly never read. `max_budget_usd` already carries the per-call ceiling. |
+
+Lesson: a "dead axis" register is only as good as its last re-verification — confirm callers in code at delete time, never delete from the register alone. F9 was implemented as **total** hook ownership (all 83 registry hooks → exactly one module; new `cognition`+`observability` toggle modules; enforcement/meta/safety pinned to `kernel`), guarded by a new `test_every_registry_hook_has_exactly_one_module_owner` invariant.
+
 ## 6. Remaining roadmap
 
 | Order | Task | What |
