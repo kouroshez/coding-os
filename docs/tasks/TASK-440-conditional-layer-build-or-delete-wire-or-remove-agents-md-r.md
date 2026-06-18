@@ -5,12 +5,12 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: [modularity, build-or-delete, conditional-assembly, audit-2026-06, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-16
 started: 2026-06-17
-completed: null
+completed: 2026-06-18
 agent_session: ses-claude-20260617-183518-6ce2
 depends_on: [TASK-438]
 blocked_by: []
@@ -54,3 +54,61 @@ references: []
 - 2026-06-18 [claude]: Edit test_all_stacks_render_smoke.py
 - 2026-06-18 [claude]: commit ccf6986a5a — feat(modularity): gate task-authoring/task-logging AGENTS.md fragments on modules.tasks
 - 2026-06-18 [claude]: F2 slice LANDED: task-authoring + task-logging fragments now gated on {% if modules.tasks %}; renderer skips…
+- 2026-06-18 [claude]: committed 4dd5a5f9 · 1 file
+- 2026-06-18 [claude]: Edit retrieval-routing.md.tmpl
+- 2026-06-18 [claude]: Edit retrieval-routing.md.tmpl
+- 2026-06-18 [claude]: Edit test_all_stacks_render_smoke.py
+- 2026-06-18 [claude]: commit 83b2d670ee — feat(modularity): gate retrieval-routing rows + freshness prose on their modules
+- 2026-06-18 [claude]: Edit capture_golden.py
+- 2026-06-18 [claude]: commit 562adf9db2 — chore(modularity): delete 4 drift-blind orphan goldens, lock capture↔parity sections (F11)
+- 2026-06-18 [claude]: Edit subsystems.py
+- 2026-06-18 [claude]: Edit subsystems.py
+- 2026-06-18 [claude]: Edit module_commands.py
+- 2026-06-18 [claude]: Edit subsystems.yaml
+- 2026-06-18 [claude]: commit a075079303 — feat(modularity): hide reserved 'design' module; drop dead Module.rules/doc_tags (F10, axis3)
+- 2026-06-18 [claude]: Edit _init_helpers.py
+- 2026-06-18 [claude]: Edit module_commands.py
+- 2026-06-18 [claude]: Edit main.py
+- 2026-06-18 [claude]: Edit add_stack.py
+- 2026-06-18 [claude]: Edit remove_stack.py
+- 2026-06-18 [claude]: Edit capture_golden.py
+- 2026-06-18 [claude]: Edit capture_golden.py
+- 2026-06-18 [claude]: Edit dispatcher-contract.md
+- 2026-06-18 [claude]: Edit dispatcher-contract.md
+- 2026-06-18 [claude]: Edit dispatcher.py
+- 2026-06-18 [claude]: Edit test_dispatcher.py
+- 2026-06-18 [claude]: Edit _data_types.py
+- 2026-06-18 [claude]: Edit stack_registry.py
+- 2026-06-18 [claude]: Edit renderer.py
+- 2026-06-18 [claude]: Edit renderer.py
+- 2026-06-18 [claude]: Edit test_cli.py
+- 2026-06-18 [claude]: Edit stack.schema.json
+- 2026-06-18 [claude]: commit 75ebd1eae3 — fix(modularity): guard meta-repo AGENTS.md in add/remove-stack; capture-normalize goldens (F15, F14)
+- 2026-06-18 [claude]: Edit _orphan_hooks_audit.py
+- 2026-06-18 [claude]: Edit _hook_purposes.py
+- 2026-06-18 [claude]: Edit subsystems.yaml
+- 2026-06-18 [claude]: Edit subsystems.yaml
+- 2026-06-18 [claude]: Edit subsystems.yaml
+- 2026-06-18 [claude]: Edit _orphan_hooks_audit.py
+- 2026-06-18 [claude]: Edit test_cli.py
+- 2026-06-18 [claude]: commit 17724a0490 — feat(modularity): assign all 44 orphan hooks to modules — 0 untoggleable hooks (F9)
+- 2026-06-18 [claude]: Edit skill_commands.py
+- 2026-06-18 [claude]: Edit skill_commands.py
+- 2026-06-18 [claude]: Edit skill_commands.py
+- 2026-06-18 [claude]: Edit extract_disabled_skills.py
+- 2026-06-18 [claude]: Edit install-adapter.sh
+- 2026-06-18 [claude]: Edit project_overrides.py
+- 2026-06-18 [claude]: Edit project_overrides.py
+- 2026-06-18 [claude]: Edit test_project_overrides.py
+- 2026-06-18 [claude]: Edit test_adapters.py
+- 2026-06-18 [claude]: Edit hub-architecture.md
+- 2026-06-18 [claude]: Edit hub-architecture.md
+- 2026-06-18 [claude]: Edit test_cli.py
+- 2026-06-18 [claude]: Edit skill_commands.py
+- 2026-06-18 [claude]: Edit skill_commands.py
+- 2026-06-18 [claude]: commit 1796d038fb — feat(modularity): cos skill disable works for core/stack skills; single store (F4, axis2)
+- 2026-06-18 [claude]: Edit skill_primer.py
+- 2026-06-18 [claude]: Edit core-loop.md.tmpl
+- 2026-06-18 [claude]: Edit test_cli.py
+- 2026-06-18 [claude]: Edit modularity-audit-2026-06.md
+- 2026-06-18 [claude]: Status transitioned to complete via cos task-done.
