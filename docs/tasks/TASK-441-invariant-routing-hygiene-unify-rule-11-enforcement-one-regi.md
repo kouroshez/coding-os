@@ -53,3 +53,7 @@ references: []
 - 2026-06-18 [claude]: Edit test_claude_dispatcher_options.py
 - 2026-06-18 [claude]: commit 6c4c531aab — feat(modularity): adapter resolves model tier aliases to concrete SDK ids (R10/F6)
 - 2026-06-18 [claude]: F5 + F6 LANDED + verified + pushed. F5 (install-time bash -n gate, install-adapter.sh) + finding: CI ALREADY has bash…
+- 2026-06-18 [claude]: commit 24e7d7a04b — chore(tasks): TASK-441 work-log — F5+F6 landed/verified; F12/F13 design forks parked
+- 2026-06-18 [claude]: Edit routing.py
+- 2026-06-18 [claude]: commit 11a60dd4d7 — fix(modularity): route_skill cold-start no longer suggests the dangling 'bash-linux' skill (F13)
+- 2026-06-18 [claude]: F13 LANDED (11a60dd4): route_skill cold-start no longer suggests the dangling non-existent 'bash-linux' skill (→…
