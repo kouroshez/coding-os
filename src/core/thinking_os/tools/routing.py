@@ -28,10 +28,14 @@ DEFAULT_MODELS = {
     "CHAOTIC": "sonnet",
 }
 
+# Cold-start skill defaults per domain — core routing POLICY data, not a cli
+# literal (Rule 11 is cli-scoped); the warm path overrides these from real
+# task_outcomes. Making cold-start data-driven from the consumer's installed
+# stacks is a deferred enhancement (TASK-441/F13).
 DEFAULT_SKILLS = {
     "BACKEND": ["python-django"],
     "FRONTEND": ["nextjs-react"],
-    "INFRA": ["bash-linux"],
+    "INFRA": ["shell-scripting"],  # was 'bash-linux' — a dangling, non-existent skill
     "DOCS": [],
 }
 
