@@ -98,14 +98,17 @@ class TestClaudeAdapter:
             assert skill_md.exists()
             assert skill_md.is_symlink()
 
-    def test_skill_overrides_skip_and_unlink(self, project: Path) -> None:
-        # First install links everything; adding an override then
-        # re-installing must skip AND remove the disabled skill.
+    def test_disabled_skills_skip_and_unlink(self, project: Path) -> None:
+        # First install links everything; adding a disabled_skills opt-out then
+        # re-installing must skip AND remove the disabled skill. Single store:
+        # .coding-os.yaml::disabled_skills (no separate skill-overrides.json).
         run_adapter_install("claude", project)
         assert (project / ".claude" / "skills" / "wordpress" / "SKILL.md").exists()
 
-        overrides = project / ".coding-os" / "skill-overrides.json"
-        overrides.write_text('{"disabled": ["wordpress", "supabase"]}', encoding="utf-8")
+        config = project / ".coding-os.yaml"
+        config.write_text(
+            "disabled_skills:\n  - wordpress\n  - supabase\n", encoding="utf-8"
+        )
         result = run_adapter_install("claude", project)
         assert result.returncode == 0, result.stderr
 

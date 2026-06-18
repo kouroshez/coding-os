@@ -1,9 +1,11 @@
-"""Per-project hook/skill enable-disable override layer (TASK-256).
+"""Per-project hook enable-disable override layer (TASK-256).
 
-A project carries two optional override files (written by the Config UI):
+A project carries one optional hook-override file (written by the Config UI):
 
     .coding-os/hook-overrides.json   {"disabled": ["<hook-id>", ...]}
-    .coding-os/skill-overrides.json  {"disabled": ["<skill-name>", ...]}
+
+Skill opt-outs live in `.coding-os.yaml::disabled_skills` (one store, applied
+by cli.skill_commands) — there is no separate skill-overrides.json.
 
 Safety-category hooks are NON-disableable. `effective_disabled_hooks` drops
 them, and `write_runtime_allowlist` writes only safe-to-skip script basenames
@@ -21,7 +23,6 @@ from pathlib import Path
 SAFETY_CATEGORY = "safety"
 STATE_DIR = ".coding-os"
 HOOK_OVERRIDES = "hook-overrides.json"
-SKILL_OVERRIDES = "skill-overrides.json"
 RUNTIME_ALLOWLIST = "disabled-hook-scripts"
 
 
@@ -46,11 +47,6 @@ def _read_disabled(path: Path) -> set[str]:
 def load_hook_overrides(project_root: Path) -> set[str]:
     """Hook ids the project requested to disable (raw, unvalidated)."""
     return _read_disabled(Path(project_root) / STATE_DIR / HOOK_OVERRIDES)
-
-
-def load_skill_overrides(project_root: Path) -> set[str]:
-    """Skill names the project requested to disable."""
-    return _read_disabled(Path(project_root) / STATE_DIR / SKILL_OVERRIDES)
 
 
 def _hook_index(registry_path: Path | None) -> dict[str, tuple[str, str]]:

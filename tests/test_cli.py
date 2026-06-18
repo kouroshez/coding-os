@@ -2316,35 +2316,44 @@ class TestProjectExtraSkills:
         assert result.exit_code == 0, result.output
         return project
 
-    def test_enable_disable_round_trip_core_skill(
+    def test_disable_enable_round_trip_core_skill(
         self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """F4: a core skill (redis) ships by default; disable records the opt-out
+        AND unlinks its adapter symlink; re-enable clears it + relinks."""
         import yaml as _yaml
 
         project = self._make_project(runner, tmp_path)
         monkeypatch.chdir(project)
-        enabled = runner.invoke(cli, ["skill", "enable", "redis"])
-        assert enabled.exit_code == 0 and "[core]" in enabled.output
-        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
-        assert "redis" in config["extra_skills"]
-
-        listing = runner.invoke(cli, ["skill", "project"])
-        assert "extra (core): redis" in listing.output
+        link = project / ".claude" / "skills" / "redis" / "SKILL.md"
+        assert link.exists()  # core skill linked by init
 
         disabled = runner.invoke(cli, ["skill", "disable", "redis"])
-        assert disabled.exit_code == 0
+        assert disabled.exit_code == 0, disabled.output
         config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
-        assert "redis" not in (config.get("extra_skills") or [])
+        assert "redis" in config["disabled_skills"]
+        assert not link.exists()  # symlink unlinked inline
 
-    def test_unknown_and_not_extra_rejected(
+        listing = runner.invoke(cli, ["skill", "project"])
+        assert "disabled (core): redis" in listing.output
+
+        enabled = runner.invoke(cli, ["skill", "enable", "redis"])
+        assert enabled.exit_code == 0, enabled.output
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert "redis" not in (config.get("disabled_skills") or [])
+        assert link.exists()  # relinked inline
+
+    def test_unknown_skill_and_idempotent_disable(
         self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         project = self._make_project(runner, tmp_path)
         monkeypatch.chdir(project)
         unknown = runner.invoke(cli, ["skill", "enable", "no-such-skill"])
         assert unknown.exit_code != 0 and "unknown skill" in unknown.output
-        not_extra = runner.invoke(cli, ["skill", "disable", "redis"])
-        assert not_extra.exit_code != 0 and "not an extra skill" in not_extra.output
+        first = runner.invoke(cli, ["skill", "disable", "redis"])
+        assert first.exit_code == 0
+        again = runner.invoke(cli, ["skill", "disable", "redis"])
+        assert again.exit_code == 0 and "already disabled" in again.output
 
     def test_community_skill_links_into_adapter_and_survives_update(
         self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

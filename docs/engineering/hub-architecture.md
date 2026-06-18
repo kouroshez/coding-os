@@ -272,8 +272,10 @@ to `docs/`.
 
 Hooks are **live symlinks** shared by every project, so a per-project enable/
 disable cannot live in the global `registry.yaml` (editing it de-armours every
-consumer). Instead each project carries `.coding-os/hook-overrides.json` /
-`.coding-os/skill-overrides.json` (`{"disabled": ["<id>", …]}`).
+consumer). Instead each project carries `.coding-os/hook-overrides.json`
+(`{"disabled": ["<hook-id>", …]}`). Skill opt-outs live in the project's
+`.coding-os.yaml::disabled_skills` list (one store, written by `cos skill
+disable`) — there is no separate `skill-overrides.json`.
 
 The SSOT is [src/cli/project_overrides.py](../../src/cli/project_overrides.py):
 it reads the override, drops any **safety-category** hook (safety hooks are
@@ -289,12 +291,16 @@ its body runs. The check is a single `stat` when no override file exists (the
 common case), and a safety hook can never appear in the derived list, so it can
 never be skipped. Toggling a hook is instant — no re-render, no re-install.
 
-**Skill overrides enforce at link time**: `install-adapter.sh` (step 6) reads
-`skill-overrides.json` and skips + unlinks each disabled core skill, so the
-agent runtime stops loading its frontmatter description into every session's
-system prompt (~150 tok per skill per session, paid again by every subagent).
-Stack-required skills are not disableable (the CLI refuses them); disabling
-takes effect at the next `bash src/adapters/<id>/install.sh` / `cos update`.
+**Skill overrides apply inline + at link time**: `cos skill disable <name>`
+([src/cli/skill_commands.py](../../src/cli/skill_commands.py)) records the opt-out
+in `.coding-os.yaml::disabled_skills` AND unlinks the skill's `SKILL.md` symlink
+from every installed adapter immediately (no re-install needed). On a fresh
+install / `cos update`, `install-adapter.sh` (step 6) re-reads the list via
+`extract_disabled_skills.py` and skips + unlinks each disabled core/stack skill,
+so the agent runtime stops loading its frontmatter description into every
+session's system prompt (~150 tok per skill per session, paid again by every
+subagent). Core and stack skills can both be disabled this way; re-enable with
+`cos skill enable <name>`.
 
 ## Create a project from the UI (init route + wizard)
 

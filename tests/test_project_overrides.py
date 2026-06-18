@@ -58,12 +58,6 @@ class TestPrimitive:
         assert nonsafety.script in lines
         assert safety.script not in lines
 
-    def test_skill_overrides_load(self, tmp_path):
-        state = tmp_path / ".coding-os"
-        state.mkdir()
-        (state / "skill-overrides.json").write_text(json.dumps({"disabled": ["performance"]}))
-        assert po.load_skill_overrides(tmp_path) == {"performance"}
-
 
 class TestRuntimeSelfSkip:
     def _run_hook(self, root: Path, script_name: str, listed: list[str]) -> str:

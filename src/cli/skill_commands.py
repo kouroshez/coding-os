@@ -393,8 +393,84 @@ def _known_skill_provenance(name: str) -> str | None:
     return None
 
 
+def _skill_source_skill_md(name: str, provenance: str) -> Path | None:
+    """Absolute path to the source SKILL.md for a core/stack/community skill."""
+    if provenance == "core":
+        return core_dir("skills") / name / "SKILL.md"
+    if provenance == "community":
+        return user_skills_dir() / name / "SKILL.md"
+    if provenance == "stack":
+        for stack_dir in templates_dir().iterdir():
+            candidate = stack_dir / "skills" / name / "SKILL.md"
+            if candidate.is_file():
+                return candidate
+    return None
+
+
+def _relink_core_stack_skill(
+    project_root: Path, name: str, source_skill_md: Path, *, link: bool
+) -> int:
+    """Re-link (or unlink) a core/stack skill's SKILL.md in every installed
+    adapter skills dir. Returns links touched. Linked as
+    `<skills_dir>/<name>/SKILL.md` (parity with install-adapter.sh step 6)."""
+    touched = 0
+    for skills_root in _installed_adapter_skills_dirs(project_root):
+        skill_dir = skills_root / name
+        link_path = skill_dir / "SKILL.md"
+        if link:
+            skill_dir.mkdir(parents=True, exist_ok=True)
+            if not link_path.exists():
+                link_path.symlink_to(source_skill_md)
+                touched += 1
+        else:
+            if link_path.is_symlink() or link_path.exists():
+                link_path.unlink()
+                touched += 1
+            try:
+                skill_dir.rmdir()
+            except OSError:
+                pass  # dir not empty / absent — leave it
+    return touched
+
+
+def _relink_community_skill(project_root: Path, name: str, *, link: bool) -> int:
+    """Re-link (or unlink) a community skill as a whole-DIR symlink so its
+    supporting scripts ride along. Returns links touched."""
+    source = user_skills_dir() / name
+    touched = 0
+    for skills_root in _installed_adapter_skills_dirs(project_root):
+        link_path = skills_root / name
+        if link:
+            skills_root.mkdir(parents=True, exist_ok=True)
+            if not link_path.exists():
+                link_path.symlink_to(source)
+                touched += 1
+        elif link_path.is_symlink():
+            link_path.unlink()
+            touched += 1
+    return touched
+
+
+def _installed_stack_skills(config: dict) -> set[str]:
+    """Required skill names provided by the project's installed stacks."""
+    from cli.skills_list import collect_stack_skill_groups
+
+    out: set[str] = set()
+    for stack_id in config.get("templates") or []:
+        try:
+            groups = collect_stack_skill_groups(stack_id)
+        except Exception:
+            continue
+        out |= {entry["name"] for entry in groups.get("required", [])}
+    return out
+
+
 def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
-    """Shared CLI/web mutator: toggle a project extra skill. Returns summary."""
+    """Shared CLI/web mutator: toggle any skill (core/stack/community) for a
+    project. Community skills ride `extra_skills`; core/stack skills ride
+    `disabled_skills` (a sibling key — one .coding-os.yaml store, no second
+    file). The adapter SKILL.md symlink is relinked/unlinked inline so the
+    toggle takes effect without a re-install."""
     provenance = _known_skill_provenance(name)
     if provenance is None:
         raise click.ClickException(
@@ -402,48 +478,49 @@ def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
         )
     config = _load_project_config(project_root)
     extras = list(config.get("extra_skills") or [])
-    stack_skills: set[str] = set()
-    from cli.skills_list import collect_stack_skill_groups
+    disabled = list(config.get("disabled_skills") or [])
+    stack_skills = _installed_stack_skills(config)
+    source = _skill_source_skill_md(name, provenance)
 
-    for stack_id in config.get("templates") or []:
-        try:
-            groups = collect_stack_skill_groups(stack_id)
-        except Exception:
-            continue
-        stack_skills |= {entry["name"] for entry in groups.get("required", [])}
-
-    if enabled:
-        if name in stack_skills:
-            return {"name": name, "provenance": provenance, "changed": False,
-                    "note": "already provided by an installed stack"}
-        if name in extras:
-            return {"name": name, "provenance": provenance, "changed": False,
-                    "note": "already enabled"}
-        extras.append(name)
-    else:
-        if name not in extras:
-            raise click.ClickException(
-                f"'{name}' is not an extra skill of this project"
-                + (" (it comes from a stack — disable is not applicable)" if name in stack_skills else "")
-            )
-        extras.remove(name)
+    # Community skills are opt-IN via extras; core/stack ship by default and are
+    # opt-OUT via the disabled list. The two lists are mutually exclusive per id.
+    if provenance == "community":
+        if enabled:
+            if name in extras:
+                return {"name": name, "provenance": provenance, "changed": False,
+                        "note": "already enabled"}
+            extras.append(name)
+        else:
+            if name not in extras:
+                raise click.ClickException(f"'{name}' is not an extra skill of this project")
+            extras.remove(name)
+    else:  # core | stack
+        if enabled:
+            if name not in disabled:
+                return {"name": name, "provenance": provenance, "changed": False,
+                        "note": "already enabled (core/stack skills ship by default)"}
+            disabled.remove(name)
+        else:
+            if name in disabled:
+                return {"name": name, "provenance": provenance, "changed": False,
+                        "note": "already disabled"}
+            # A stack skill not installed by any current stack cannot be disabled.
+            if provenance == "stack" and name not in stack_skills:
+                raise click.ClickException(
+                    f"'{name}' is a stack skill but no installed stack provides it"
+                )
+            disabled.append(name)
 
     config["extra_skills"] = extras
+    config["disabled_skills"] = sorted(disabled)
     _save_project_config(project_root, config)
 
-    links_touched = 0
     if provenance == "community":
-        source = user_skills_dir() / name
-        for skills_root in _installed_adapter_skills_dirs(project_root):
-            link = skills_root / name
-            if enabled:
-                skills_root.mkdir(parents=True, exist_ok=True)
-                if not link.exists():
-                    link.symlink_to(source)
-                    links_touched += 1
-            elif link.is_symlink():
-                link.unlink()
-                links_touched += 1
+        links_touched = _relink_community_skill(project_root, name, link=enabled)
+    elif source is not None:
+        links_touched = _relink_core_stack_skill(project_root, name, source, link=enabled)
+    else:
+        links_touched = 0
 
     return {"name": name, "provenance": provenance, "changed": True, "links": links_touched}
 
@@ -451,7 +528,7 @@ def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
 @skill_group.command("enable")
 @click.argument("name")
 def skill_enable(name: str) -> None:
-    """Add a skill to this project's extras (links community skills into adapters)."""
+    """Enable a skill: add a community extra, or clear a core/stack disable."""
     outcome = set_project_skill(_find_project_root(), name, enabled=True)
     if not outcome["changed"]:
         click.echo(f"{name}: no change — {outcome['note']}")
@@ -463,17 +540,21 @@ def skill_enable(name: str) -> None:
 @skill_group.command("disable")
 @click.argument("name")
 def skill_disable(name: str) -> None:
-    """Remove a skill from this project's extras (unlinks community symlinks)."""
+    """Disable a skill: remove a community extra, or opt a core/stack skill out."""
     outcome = set_project_skill(_find_project_root(), name, enabled=False)
+    if not outcome["changed"]:
+        click.echo(f"{name}: no change — {outcome['note']}")
+        return
     suffix = f" ({outcome['links']} adapter link(s) removed)" if outcome["links"] else ""
-    click.echo(f"disabled {name}{suffix}")
+    click.echo(f"disabled {name} [{outcome['provenance']}]{suffix}")
 
 
 @skill_group.command("project")
 def skill_project_list() -> None:
-    """Show this project's skills: stack-provided vs extras (with provenance)."""
+    """Show this project's skills: stack-provided vs extras, plus disabled."""
     project_root = _find_project_root()
     config = _load_project_config(project_root)
+    disabled = set(config.get("disabled_skills") or [])
     from cli.skills_list import collect_stack_skill_groups
 
     for stack_id in config.get("templates") or []:
@@ -486,3 +567,5 @@ def skill_project_list() -> None:
             click.echo(f"  stack:{stack_id:<16} {required}")
     for name in config.get("extra_skills") or []:
         click.echo(f"  extra ({_known_skill_provenance(name) or 'missing!'}): {name}")
+    for name in sorted(disabled):
+        click.echo(f"  disabled ({_known_skill_provenance(name) or 'unknown'}): {name}")
