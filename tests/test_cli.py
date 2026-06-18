@@ -1582,6 +1582,29 @@ class TestSubsystems:
             unknown = [h for h in module.hooks if h not in known]
             assert not unknown, f"module '{module.id}' references unknown hook(s): {unknown}"
 
+    def test_every_registry_hook_has_exactly_one_module_owner(self) -> None:
+        """Audit F9 invariant: no orphan hooks, no double-claims. Every hook in
+        the registry is owned by exactly one subsystems.yaml module so a new
+        hook cannot silently land untoggleable."""
+        import yaml as _yaml
+        from collections import Counter
+
+        from cli.subsystems import load_subsystems
+
+        repo_root = Path(__file__).resolve().parent.parent
+        registry = _yaml.safe_load(
+            (repo_root / "src" / "core" / "hooks" / "registry.yaml").read_text(encoding="utf-8")
+        )
+        registry_ids = {h["id"] for h in registry.get("hooks", [])}
+        owners: Counter[str] = Counter()
+        for module in load_subsystems().values():
+            owners.update(module.hooks)
+
+        orphans = sorted(registry_ids - set(owners))
+        duplicates = sorted(h for h, n in owners.items() if n > 1)
+        assert not orphans, f"registry hooks with no module owner (F9): {orphans}"
+        assert not duplicates, f"hooks claimed by more than one module: {duplicates}"
+
     def test_no_state_file_means_all_enabled_and_reader_never_writes(self, tmp_path: Path) -> None:
         from cli.subsystems import module_state
 

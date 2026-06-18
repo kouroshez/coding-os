@@ -13,9 +13,49 @@
 version: 1
 modules:
   - id: kernel
-    label: "Kernel — state, env, session lifecycle"
+    label: "Kernel — state, env, session lifecycle + always-on safety/enforcement discipline"
     kernel: true
-    hooks: [session-context, session-end, classify-task-mode, agent-presence, track-skill, inject-mcp-caller-session]
+    # Lifecycle + the non-negotiable discipline surface. Safety-category hooks
+    # are non-disableable regardless of module (project_overrides filters them);
+    # pinning enforcement + meta-governance here makes the registry↔module map
+    # total so every hook has an owner (audit F9), with none toggleable-away.
+    hooks:
+      - session-context
+      - session-end
+      - classify-task-mode
+      - agent-presence
+      - track-skill
+      - inject-mcp-caller-session
+      # safety (never disableable — category-gated in project_overrides)
+      - block-secrets
+      - block-dangerous-commands
+      - block-bad-patterns
+      - block-hardcoded-literals
+      - block-migration-conflict
+      - block-protected-files
+      - block-uv-heredoc
+      - check-mcp-extras
+      - enforce-task-transition
+      - enforce-wip-limit
+      - lint-task
+      - validate-task-frontmatter
+      # core enforcement discipline (always on)
+      - branch-guard
+      - enforce-commit-message
+      - enforce-scaffold-boundary
+      - enforce-skill
+      - enforce-template
+      - enforce-verify
+      - enforce-zoom
+      - search-enforce-inventory
+      - search-verify-remaining
+      - test-governor
+      - thinking_os-gate
+      # meta-repo governance (coding-os-internal; no-ops in consumers)
+      - check-agents-md-refs
+      - check-agents-md-size
+      - remind-dogfood
+      - warn-template-drift
     tools: []
     depends_on: []
 
@@ -29,7 +69,7 @@ modules:
   - id: tasks
     label: "Task system — Scrumban board, lifecycle, work logs"
     kernel: false
-    hooks: [enforce-task-start, enforce-task-body, nudge-task-discovery, warn-abandoned-task, remind-daily, auto-task-sync, sync-task-current, link-commit-to-task, reclaim-sweep]
+    hooks: [enforce-task-start, enforce-task-body, nudge-task-discovery, warn-abandoned-task, remind-daily, auto-task-sync, sync-task-current, link-commit-to-task, reclaim-sweep, capture-work-log]
     tools: ["cos_task_*", cos_work_log_append]
     depends_on: [docs]
 
@@ -45,6 +85,23 @@ modules:
     kernel: false
     hooks: [enforce-memory-check, capture-observation, jit-recall, nudge-learn-narrative, remind-learn-validate, auto-brain-decay, drain-embedding-outbox, check-capture-worked]
     tools: [cos_search, cos_observation_record, cos_timeline, cos_details, "cos_learn_*"]
+    depends_on: []
+
+  - id: cognition
+    label: "Cognition — role composition, reasoning primers + workflow nudges"
+    kernel: false
+    # The optional reasoning-assist surface: session primers, role chain
+    # composition, and soft nudges. Toggle off to cut the per-session token
+    # cost of the cognitive scaffolding (hard gates stay in kernel).
+    hooks: [advance-role, auto-compose-roles, enforce-anti-ambiguity, nudge-model-routing, nudge-thinking-os, rules-primer, session-skill-primer, track-backtrack, track-discovery, nudge-reuse-first, regen-reminder, test-first-reminder]
+    tools: []
+    depends_on: []
+
+  - id: observability
+    label: "Observability — session tracing, transcript + tool-failure capture"
+    kernel: false
+    hooks: [auto-trace-rotate, capture-tool-failure, record-verify-auto, snapshot-transcript]
+    tools: []
     depends_on: []
 
   - id: hub-extras
