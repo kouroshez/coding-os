@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -93,6 +94,13 @@ def _scaffold(agent: str, templates: list[str], target: Path) -> None:
     )
 
 
+# Some adapters (codex) bake the absolute install path into generated configs.
+# Normalise it to a sandbox placeholder AT CAPTURE so the committed golden is
+# deterministic regardless of the temp dir — otherwise the tree is perpetually
+# dirty (audit F14). Must match test_golden_parity.py's compare-time regex.
+_SANDBOX_RE = re.compile(rb"/[^\s\"'`]*?/" + re.escape(FIXTURE_NAME.encode()) + rb"/")
+
+
 def _copy_filtered(src_root: Path, dst_root: Path) -> int:
     """Copy files from src to dst, skipping runtime/ignored paths. Return count."""
     if dst_root.exists():
@@ -109,7 +117,12 @@ def _copy_filtered(src_root: Path, dst_root: Path) -> int:
             continue
         dst = dst_root / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(f, dst)
+        raw = f.read_bytes()
+        normalised = _SANDBOX_RE.sub(b"__SANDBOX__/", raw)
+        if normalised != raw:
+            dst.write_bytes(normalised)
+        else:
+            shutil.copy2(f, dst)
         count += 1
     return count
 

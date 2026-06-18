@@ -25,6 +25,17 @@ DEFAULT_DEBUG_NAME = "the-script-output"
 NAME_REGEX = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 
 
+def is_coding_os_source_tree(project: Path) -> bool:
+    """True when `project` is the coding-os meta-repo source tree itself.
+
+    The source tree ships a hand-written AGENTS.md (CLAUDE.md symlinks to it);
+    any scaffold path (init, add/remove-stack, module toggle) must detect this
+    and refuse to clobber it. Same telltale markers used by the init guard."""
+    return (project / "src" / "core" / "thinking_os" / "server.py").exists() and (
+        project / "src" / "cli" / "main.py"
+    ).exists()
+
+
 class InitExit(IntEnum):
     """Stable exit codes for `cos init` error paths.
 

@@ -264,6 +264,7 @@ def add_stack(
         _link_stack_skills(agent, (stack_id,), project)
 
     # 3. Diff-safe AGENTS.md regeneration.
+    from cli._init_helpers import is_coding_os_source_tree
     from cli.subsystems import module_state
 
     agents_md = project / "AGENTS.md"
@@ -271,7 +272,11 @@ def add_stack(
     agents_md_changed = False
     agents_md_backup: Path | None = None
 
-    if not agents_md.exists():
+    # Meta-repo dogfood guard (F15): never clobber the hand-written source-tree
+    # AGENTS.md (parity with the module-toggle guard).
+    if is_coding_os_source_tree(project):
+        click.echo("  INFO: AGENTS.md skipped (coding-os meta-repo)", err=True)
+    elif not agents_md.exists():
         agents_md.write_text(new_content, encoding="utf-8")
         agents_md_changed = True
     else:

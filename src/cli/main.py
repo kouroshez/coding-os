@@ -1131,9 +1131,9 @@ def _refuse_coding_os_self_init(project: Path) -> None:
     Detect this by checking for the telltale `src/core/thinking_os/server.py`
     file and refuse.
     """
-    marker = project / "src" / "core" / "thinking_os" / "server.py"
-    cli_main = project / "src" / "cli" / "main.py"
-    if marker.exists() and cli_main.exists():
+    from cli._init_helpers import is_coding_os_source_tree
+
+    if is_coding_os_source_tree(project):
         click.echo(
             f"\nERROR: Refusing to init inside the coding-os repo itself ({project}).\n"
             f"  This path contains src/core/thinking_os/server.py — it is the source tree.\n"
