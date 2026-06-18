@@ -45,3 +45,4 @@ In an autonomous run over multiple related icebox tasks, the agent completes 1-2
 - 2026-06-16 [claude]: Edit doctor-checks.md
 - 2026-06-16 [claude]: Edit doctor-checks.md
 - 2026-06-16 [claude]: Raised COS_CONTEXT_BUDGET default 150K→200K and reframed the banner ctx marker from a ⚠️ "/clear after this task"…
+- 2026-06-16 [claude]: committed cdddc529 · 25 files
