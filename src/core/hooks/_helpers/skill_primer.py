@@ -168,10 +168,38 @@ def _format_card(
         lines.append("  " + " · ".join(sorted(all_skills)))
         lines.append("")
 
+    dimension_lines = _format_dimensions(stacks)
+    if dimension_lines:
+        lines.extend(dimension_lines)
+        lines.append("")
+
     lines.append(
         'Minimal load before any code edit: Skill skill: "clean-code" (universal) + the primary matching the file you intend to edit.'
     )
     return "\n".join(lines).rstrip()
+
+
+def _format_dimensions(stacks: list[tuple[str, dict]]) -> list[str]:
+    """Runtime-scoped Classify Read List: dimensions of the INSTALLED stacks
+    only (F3/R8). The committed dimension-registry.md ships all stacks via
+    symlink; this card is the per-consumer filtered view the agent should use
+    when building its Read List, so an uninstalled (or removed) stack never
+    appears. meta is excluded for non-meta consumers because it is simply not
+    in a non-meta project's installed-manifest."""
+    rows: list[str] = []
+    for stack_id, stack in stacks:
+        for dim in stack.get("dimensions") or []:
+            name = dim.get("name")
+            read_files = dim.get("read_files") or []
+            if not name:
+                continue
+            files_preview = ", ".join(read_files[:2])
+            if len(read_files) > 2:
+                files_preview += f", +{len(read_files) - 2}"
+            rows.append(f"  [{stack_id}] {name} → {files_preview}")
+    if not rows:
+        return []
+    return ["Classify Read List — dimensions for INSTALLED stacks only:", *rows]
 
 
 def main() -> int:

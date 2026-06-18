@@ -39,7 +39,7 @@ Five phases: **Initialize → Classify → Orient → Plan → Execute → Verif
 
 ### Classify (dry — zero file reads)
 
-Use Dimension Type Registry (`$COS_STATE_DIR/rules/dimension-registry.md`, auto-loaded) to build Read List:
+Use the SessionStart "Classify Read List" card (scoped to THIS project's installed stacks) to build the Read List; `$COS_STATE_DIR/rules/dimension-registry.md` is the full all-stacks reference:
 
 1. **Complexity Gate** — record: `bash $COS_STATE_DIR/hooks/write-state.sh $COS_STATE_DIR/.thinking_os-gate "COMPLICATED 3"`
 2. **Domain Route** — Backend→`docs/playbooks/backend-api.md`

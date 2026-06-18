@@ -1136,6 +1136,26 @@ class TestRegenChainRelocation:
         assert "src/services/fastapi/**/*.py" in card
         assert "src/backend" not in card
 
+    def test_skill_primer_dimension_readlist_scoped_to_installed_stacks(self) -> None:
+        """F3/R8: the SessionStart Classify Read List shows ONLY installed
+        stacks' dimensions; an uninstalled stack (and meta, for a non-meta
+        consumer) never appears."""
+        import importlib.util
+
+        repo_root = Path(__file__).resolve().parent.parent
+        helper = repo_root / "src" / "core" / "hooks" / "_helpers" / "skill_primer.py"
+        spec = importlib.util.spec_from_file_location("skill_primer_f3", helper)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        stacks = [("python", module._load_stack(repo_root, "python"))]
+        card = module._format_card(stacks)
+
+        assert "Classify Read List" in card
+        assert "[python] Python module / API" in card  # installed dimension shows
+        assert "[angular]" not in card  # uninstalled stack absent
+        assert "[meta]" not in card  # meta excluded for non-meta consumer
+
 
 # ---------------------------------------------------------------------------
 # Presets + dry-config — TASK-356 (config-composition.md § Presets)
