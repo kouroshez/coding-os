@@ -117,6 +117,7 @@ def module_state_payload(project: Path) -> dict:
                 "tools": len(m.tools),
             }
             for m in modules.values()
+            if not m.hidden
         ]
     }
 

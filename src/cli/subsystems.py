@@ -32,10 +32,11 @@ class Module:
     label: str
     kernel: bool = False
     hooks: tuple[str, ...] = ()
-    rules: tuple[str, ...] = ()
     tools: tuple[str, ...] = ()
-    doc_tags: tuple[str, ...] = ()
     depends_on: tuple[str, ...] = ()
+    # Reserved-but-not-yet-shipped module: kept in the registry so its id stays
+    # stable, but suppressed from every toggle surface (no live no-op switch).
+    hidden: bool = False
 
 
 @dataclass(frozen=True)
@@ -58,10 +59,9 @@ def load_subsystems(path: Path | None = None) -> dict[str, Module]:
             label=str(raw.get("label") or raw["id"]),
             kernel=bool(raw.get("kernel", False)),
             hooks=tuple(str(h) for h in raw.get("hooks") or ()),
-            rules=tuple(str(r) for r in raw.get("rules") or ()),
             tools=tuple(str(t) for t in raw.get("tools") or ()),
-            doc_tags=tuple(str(t) for t in raw.get("doc_tags") or ()),
             depends_on=tuple(str(d) for d in raw.get("depends_on") or ()),
+            hidden=bool(raw.get("hidden", False)),
         )
         modules[module.id] = module
     for module in modules.values():
