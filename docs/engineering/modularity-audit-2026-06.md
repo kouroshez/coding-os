@@ -97,6 +97,8 @@ Adversarial re-verification during the delete pass found that "DELETE all five" 
 
 Lesson: a "dead axis" register is only as good as its last re-verification — confirm callers in code at delete time, never delete from the register alone. F9 was implemented as **total** hook ownership (all 83 registry hooks → exactly one module; new `cognition`+`observability` toggle modules; enforcement/meta/safety pinned to `kernel`), guarded by a new `test_every_registry_hook_has_exactly_one_module_owner` invariant.
 
+The same lesson recurred in **F11**: independent post-merge verification (the matrix `test_template_scaffold.py` suite, which the delete pass had not run) found `claude_node-express` + `claude_vue-nuxt` were NOT orphans — `stack_lint.lint_all()` asserts a golden per stack via `test_factory_lint_passes_with_golden`, so deleting them turned 2 tests red. Both were restored; only `claude_go-fiber` + `codex_go-fiber` (asserted by no test — `go-fiber` has no `test_factory_lint_passes_with_golden`) stayed deleted. "Never asserted by `test_golden_parity`" ≠ "never asserted by any test" — the original F11 read checked only the parity SECTIONS list.
+
 ## 6. Remaining roadmap
 
 | Order | Task | What |
