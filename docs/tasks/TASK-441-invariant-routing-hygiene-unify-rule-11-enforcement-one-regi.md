@@ -11,12 +11,11 @@ appetite: 1d
 created: 2026-06-16
 started: 2026-06-16
 completed: null
-agent_session: ses-803-0b9f
+agent_session: ses-claude-20260617-183518-6ce2
 depends_on: [TASK-438]
 blocked_by: []
 references: []
 ---
-
 # TASK-441: Invariant + routing hygiene: unify Rule-11 enforcement (one registry read), fix model-routing tier-vs-id footgun, add bash -n self-check for safety hooks
 
 **Outcome (one sentence):** Rule-11 is enforced by ONE narrowed registry-derived source instead of three divergent sets, model routing can never forward a tier name as an SDK id (and core stops self-breaching Rule-11), and a half-saved safety hook fails OPEN at install/CI instead of fail-CLOSED across every live-symlinked Claude session. Closes audit R10+R11+R14 + new findings F6+F12+F13 (+F16 flagged).
@@ -42,3 +41,15 @@ references: []
 **Given** these changes **When** make verify-hooks + test_no_hardcoded_stacks + the routing tests run **Then** they pass.
 
 ## Work Log
+- 2026-06-18 [claude]: Edit install-adapter.sh
+- 2026-06-18 [claude]: Edit install-adapter.sh
+- 2026-06-18 [claude]: commit 574765732a — feat(modularity): install-time bash -n gate — never link a syntax-broken hook (R14/F5)
+- 2026-06-18 [claude]: Edit sdk_dispatcher.py
+- 2026-06-18 [claude]: Edit sdk_dispatcher.py
+- 2026-06-18 [claude]: Edit sdk_dispatcher.py
+- 2026-06-18 [claude]: Edit sdk_dispatcher.py
+- 2026-06-18 [claude]: Edit sdk_dispatcher.py
+- 2026-06-18 [claude]: Edit sdk_dispatcher.py
+- 2026-06-18 [claude]: Edit test_claude_dispatcher_options.py
+- 2026-06-18 [claude]: commit 6c4c531aab — feat(modularity): adapter resolves model tier aliases to concrete SDK ids (R10/F6)
+- 2026-06-18 [claude]: F5 + F6 LANDED + verified + pushed. F5 (install-time bash -n gate, install-adapter.sh) + finding: CI ALREADY has bash…
