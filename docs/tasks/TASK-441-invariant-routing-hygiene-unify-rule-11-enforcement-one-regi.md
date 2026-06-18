@@ -5,12 +5,12 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: [modularity, rule-11, model-routing, hooks, audit-2026-06, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-16
 started: 2026-06-16
-completed: null
+completed: 2026-06-18
 agent_session: ses-claude-20260617-183518-6ce2
 depends_on: [TASK-438]
 blocked_by: []
@@ -57,3 +57,18 @@ references: []
 - 2026-06-18 [claude]: Edit routing.py
 - 2026-06-18 [claude]: commit 11a60dd4d7 — fix(modularity): route_skill cold-start no longer suggests the dangling 'bash-linux' skill (F13)
 - 2026-06-18 [claude]: F13 LANDED (11a60dd4): route_skill cold-start no longer suggests the dangling non-existent 'bash-linux' skill (→…
+- 2026-06-18 [claude]: commit be42ecb26c — chore(tasks): TASK-441 work-log — F13 landed; F12 deferred (live-hook scan change)
+- 2026-06-18 [claude]: Edit f12_evidence.py
+- 2026-06-18 [claude]: Edit f12_verify.py
+- 2026-06-18 [claude]: Edit check_hardcoded_literals.py
+- 2026-06-18 [claude]: Edit check_hardcoded_literals.py
+- 2026-06-18 [claude]: Edit check_hardcoded_literals.py
+- 2026-06-18 [claude]: Edit test_no_hardcoded_stacks.py
+- 2026-06-18 [claude]: Edit test_no_hardcoded_stacks.py
+- 2026-06-18 [claude]: commit cda16188ae — refactor(modularity): unify Rule-11 enforcement on one narrowed source (F12)
+- 2026-06-18 [claude]: Edit modularity-audit-2026-06.md
+- 2026-06-18 [claude]: Edit modularity-audit-2026-06.md
+- 2026-06-18 [claude]: Edit modularity-audit-2026-06.md
+- 2026-06-18 [claude]: commit bb5375c279 — docs(modularity): mark F7/F8/F12 fixed in the audit SSOT register
+- 2026-06-18 [claude]: F12 LANDED (cda16188): unified Rule-11 enforcement — test_no_hardcoded_stacks now imports discover_literals()+scan()…
+- 2026-06-18 [claude]: Status transitioned to complete via cos task-done.

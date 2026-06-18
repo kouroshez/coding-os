@@ -5,18 +5,17 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [modularity, audit-2026-06, tests, observability, F7, F8, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-18
-started: null
-completed: null
-agent_session: null
+started: 2026-06-18
+completed: 2026-06-18
+agent_session: ses-claude-20260617-183518-6ce2
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-447: Modularity test legibility: fast PR-gated toggle round-trips (F7) + shell→log_events BLOCK bridge (F8)
 
 **Outcome (one sentence):** A modularity regression is caught on the PR that causes it and is legible to an agent: module/stack toggle round-trips run fast on every PR (not nightly-only), and a hook BLOCK leaves a machine-readable row in log_events that cos_log_query surfaces.
@@ -38,3 +37,17 @@ references: []
 **Given** these changes **When** make verify-hooks + uv run pytest tests/test_cli.py + the logging_os suite run **Then** they pass.
 
 ## Work Log
+- 2026-06-18 [claude]: Edit test_modularity_toggle.py
+- 2026-06-18 [claude]: Edit test_cli.py
+- 2026-06-18 [claude]: Edit ci.yml
+- 2026-06-18 [claude]: commit 0bd8c6bd6d — test(modularity): fast PR-gated toggle round-trips run on every PR (F7)
+- 2026-06-18 [claude]: Edit cos_say_json.py
+- 2026-06-18 [claude]: Edit cos-env.sh
+- 2026-06-18 [claude]: Edit f8_smoke.py
+- 2026-06-18 [claude]: Edit f8_smoke.py
+- 2026-06-18 [claude]: Edit test_cos_say_db_bridge.py
+- 2026-06-18 [claude]: Edit logging_os.md
+- 2026-06-18 [claude]: commit aa5a7351d1 — feat(modularity): hook BLOCK/WARN durable in log_events, not just the tail (F8)
+- 2026-06-18 [claude]: F7 LANDED (0bd8c6bd): moved subprocess-free toggle round-trips out of test_cli.py module-level @slow into…
+- 2026-06-18 [claude]: F8 LANDED (aa5a7351): cos_say_json.py is now the single shell→DB writer — cos_say(WARN+) + cos_log_hook block insert…
+- 2026-06-18 [claude]: Status transitioned to complete via cos task-done.
