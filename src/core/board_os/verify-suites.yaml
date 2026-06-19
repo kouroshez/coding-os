@@ -31,6 +31,19 @@ suites:
       - "src/core/graph_os/**/*.py"
     command: "uv run --extra graph_os pytest src/core/graph_os/tests/ -q"
 
+  # Shipped runtime subsystems (in CI on every PR) that previously had NO
+  # verify-suite entry — an agent edit recorded no PASS/FAIL and got zero
+  # matrix gate (audit F-TST-1). Commands mirror the ci.yml subsystem steps.
+  test-logging_os:
+    paths:
+      - "src/core/logging_os/**/*.py"
+    command: "uv run --extra rag pytest src/core/logging_os/tests/ -q"
+
+  test-scheduled:
+    paths:
+      - "src/core/scheduled/**/*.py"
+    command: "uv run --extra rag pytest src/core/scheduled/tests/ -q"
+
   verify-hooks:
     paths:
       - "src/core/hooks/*.sh"
