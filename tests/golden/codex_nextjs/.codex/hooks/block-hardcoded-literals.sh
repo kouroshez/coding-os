@@ -49,15 +49,32 @@ else
 fi
 [[ -z "$CONTENT" ]] && exit 0
 
-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
-CHECKER="${HOOK_DIR}/../scripts/check_hardcoded_literals.py"
+# Resolve the checker against the REAL src/core/hooks dir. This script runs
+# via a per-file symlink inside a dir-of-symlinks (.claude/hooks/ in every
+# consumer AND the meta-repo's own .claude), so $(dirname "$0")/../scripts
+# lands at the nonexistent .claude/scripts/ and the gate went SILENTLY inert
+# — letting hardcoded literals through on every PreToolUse edit. cos-env's
+# _cos_helpers_dir follows the symlink chain to the real .../hooks/_helpers;
+# its parent is the real hooks dir, whose ../scripts holds the checker.
+if declare -F _cos_helpers_dir >/dev/null 2>&1; then
+  CORE_HOOKS_DIR="$(dirname "$(_cos_helpers_dir)")"
+else
+  CORE_HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)"
+fi
+CHECKER="${CORE_HOOKS_DIR}/../scripts/check_hardcoded_literals.py"
 
 if [[ ! -f "$CHECKER" ]]; then
+  # Never silent again: a missing checker means a broken install, not "all
+  # clear". Stay fail-open (this gate's scope is narrow — cli/*.py only — and
+  # a half-installed tree must not block every cli edit), but make it LOUD.
+  echo "block-hardcoded-literals: SSOT-drift checker not found at $CHECKER — gate INERT; reinstall the adapter (bash src/adapters/<id>/install.sh)" >&2
   exit 0
 fi
 
-echo "$CONTENT" | python3 "$CHECKER" --file "$FILE_PATH"
-RC=$?
+# `|| RC=$?` keeps set -e from killing the script on the checker's rc=2, so
+# the override hint below actually prints (it was dead code under pipefail).
+RC=0
+echo "$CONTENT" | python3 "$CHECKER" --file "$FILE_PATH" || RC=$?
 
 if [[ $RC -eq 2 ]]; then
   echo "  One-shot override: touch $COS_STATE_DIR/.literals-override" >&2

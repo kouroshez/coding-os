@@ -442,6 +442,18 @@ cos_log_hook() {
       fi
     fi
 
+    # F8 (TASK-447): make a BLOCK durable in the SQLite log_events store the
+    # logging_os sink owns so cos_log_query / error_sweep surface it — not just
+    # the text logs above. Reuse the shared shell→DB writer (DB-only here).
+    if [[ "$action" == "block" ]] && command -v python3 >/dev/null 2>&1; then
+      local _db_helper
+      _db_helper="$(_cos_helpers_dir)/cos_say_json.py"
+      if [[ -f "$_db_helper" ]]; then
+        python3 "$_db_helper" "$ts" "ERROR" "hook.${hook_name}" "${detail:-blocked}" \
+          "action=block session=${session} task=${task}" >/dev/null 2>&1 || true
+      fi
+    fi
+
     # Opportunistic truncation — keep only last N lines when file grows past 2x cap.
     if [[ -f "$COS_HOOK_LOG" ]]; then
       local lines
