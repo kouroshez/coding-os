@@ -606,17 +606,22 @@ def _dry_config_preview(templates: tuple[str, ...], output_format: str) -> None:
     click.echo("(dry-config — nothing written)")
 
 
-def _scaffold_tree_preview(templates: tuple[str, ...]) -> tuple[list[str], list[str]]:
+def _scaffold_tree_preview(
+    templates: tuple[str, ...], disabled_modules: tuple[str, ...] = ()
+) -> tuple[list[str], list[str]]:
     """Relative paths `cos init` WOULD create — zero reads of the target, zero writes.
 
-    Returns (sorted paths, config-merge conflicts). Mirrors the source roots and
-    service-relocation logic of `_overlay_scaffold` / `_run_scaffold_phase` so the
-    preview matches what an actual init writes.
+    Returns (sorted paths, config-merge conflicts). Mirrors the source roots,
+    service-relocation logic AND the `<!-- module:X -->` doc-skip of
+    `_overlay_scaffold` / `_run_scaffold_phase` so the preview matches what an
+    actual init (incl. `--disable-module`) writes (audit INIT-4).
     """
     from cli.config_composer import preview_coding_os_configs
 
     relocations = _service_relocations(templates)
     registry = _get_stack_registry()
+    disabled_set = {m.strip() for m in disabled_modules if m.strip()}
+    active_set = set(templates)
     paths: set[str] = set()
 
     sources: list[tuple[Path, str | None]] = [(TEMPLATES_DIR / "_base" / "scaffold", None)]
@@ -638,6 +643,20 @@ def _scaffold_tree_preview(templates: tuple[str, ...]) -> tuple[list[str], list[
             if not src_file.is_file() or src_file.name == ".gitkeep":
                 continue
             rel = src_file.relative_to(src_root)
+            # A module-tagged doc the actual --disable-module init would drop
+            # must not appear in the preview (INIT-4: preview == actual). Only
+            # .md files carry the marker, mirroring the overlay's own scope.
+            if disabled_set and src_file.suffix == ".md":
+                try:
+                    skip_file, _ = _apply_doc_conditions(
+                        src_file.read_text(encoding="utf-8"), disabled_set, active_set
+                    )
+                    if skip_file:
+                        continue
+                except OSError as exc:
+                    logging.getLogger(__name__).debug(
+                        "doc-condition preview check skipped for %s: %s", src_file, exc
+                    )
             if relocated_root and declared_root and str(rel).startswith(declared_root + "/"):
                 rel = Path(relocated_root) / str(rel)[len(declared_root) + 1 :]
             # Composed configs come from the merge step below, not the overlay.
@@ -662,13 +681,20 @@ def _scaffold_tree_preview(templates: tuple[str, ...]) -> tuple[list[str], list[
     return sorted(paths), conflicts
 
 
-def _dry_run_preview(templates: tuple[str, ...], output_format: str) -> None:
+def _dry_run_preview(
+    templates: tuple[str, ...], output_format: str, disabled_modules: tuple[str, ...] = ()
+) -> None:
     """`cos init --dry-run` — preview the scaffold tree with ZERO writes."""
-    paths, conflicts = _scaffold_tree_preview(templates)
+    paths, conflicts = _scaffold_tree_preview(templates, disabled_modules)
     if output_format == "json":
         click.echo(
             json.dumps(
-                {"stacks": list(templates), "files": paths, "conflicts": conflicts},
+                {
+                    "stacks": list(templates),
+                    "disabled_modules": [m for m in disabled_modules if m],
+                    "files": paths,
+                    "conflicts": conflicts,
+                },
                 indent=2,
                 ensure_ascii=False,
             )
@@ -1328,7 +1354,7 @@ def init(
         return
 
     if dry_run:
-        _dry_run_preview(template, output_format)
+        _dry_run_preview(template, output_format, disable_module)
         return
 
     # --skills validated up-front (fail fast, wizard parity: the wizard only
