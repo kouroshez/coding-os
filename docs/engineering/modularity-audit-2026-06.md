@@ -99,6 +99,10 @@ Lesson: a "dead axis" register is only as good as its last re-verification — c
 
 The same lesson recurred in **F11**: independent post-merge verification (the matrix `test_template_scaffold.py` suite, which the delete pass had not run) found `claude_node-express` + `claude_vue-nuxt` were NOT orphans — `stack_lint.lint_all()` asserts a golden per stack via `test_factory_lint_passes_with_golden`, so deleting them turned 2 tests red. Both were restored; only `claude_go-fiber` + `codex_go-fiber` (asserted by no test — `go-fiber` has no `test_factory_lint_passes_with_golden`) stayed deleted. "Never asserted by `test_golden_parity`" ≠ "never asserted by any test" — the original F11 read checked only the parity SECTIONS list.
 
+## 5.2 Pass-3 re-verification (2026-06-19) — RAPTOR-1/3 decision: KEEP routing_weights
+
+A third adversarial pass re-checked `routing_weights`. Verified: `route_model` + `route_skill` rank from `task_outcomes` **directly** (`routing.py:95`/`:206`); `routing_weights` is only rebuilt (`recalculate_weights`) + staleness-checked (`routing_drift`), never **read** for a routing decision — a write-and-self-check loop (RAPTOR-1 confirmed). **Decision: KEEP, do NOT delete.** Its consumer is the cost-aware ranker that is multi-model **Phase 1** (designed + scheduled, deferred by the owner); deletion is premature + high-blast-radius (append-only migration v3/v26 cannot be removed, 15+ tests reference it). Wiring `route_model` to consult it now IS that Phase 1, so it stays out of this audit pass. Fixed instead: the `thinking_os-final-edition.md` store table that falsely listed `routing_weights` as written/consumed by `cos_route_skill/model` (corrected + marked not-yet-consumed), and a cross-reference between the two deliberately-duplicated recalc bodies (`routing.py` ⇄ the import-light `routing_evolution.py` hook helper — a Rule-8 decoupling, NOT a DRY accident; RAPTOR-3 left as a documented lockstep). B-4 (2026-06-19) fixed the upstream starvation so the loop now accrues real `model`+`complexity`.
+
 ## 6. Remaining roadmap
 
 | Order | Task | What |

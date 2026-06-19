@@ -5,7 +5,7 @@ swimlane: cli
 kind: feature
 epic: null
 labels: [modularity-audit-pass3, plugin-dx, PLUG-1, ready]
-status: in_progress
+status: testing
 priority: P2
 appetite: 1d
 created: 2026-06-19
@@ -30,3 +30,4 @@ references: []
 - **Given** a stack/adapter in a tmp overlay dir **When** the registry loads with overlay_dirs **Then** it is discovered alongside the bundled ones. - **Given** a community id colliding with a bundled one **When** loaded **Then** the bundled profile is kept + a no-shadow warning. - **Given** $COS_USER_TEMPLATES_DIR set and overlay_dirs unset **When** loaded **Then** the env dir resolves automatically. - **Given** a malformed community adapter **When** loaded **Then** it is skipped, not raised. - **Given** the 32 registry tests **When** run **Then** all pass.
 
 ## Work Log
+- 2026-06-19 [claude]: commit 567b1d3384 — feat(cli): out-of-tree community stack/adapter overlay — no-fork plugins (PLUG-1)

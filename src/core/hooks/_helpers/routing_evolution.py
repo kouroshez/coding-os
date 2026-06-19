@@ -11,6 +11,10 @@ _WEIGHT_STORE_THRESHOLD = 5  # mirrors routing.py MIN_SAMPLES_PER_BUCKET
 
 def _recalculate(conn: sqlite3.Connection) -> int:
     """Rebuild routing_weights from task_outcomes. Returns rows updated."""
+    # Mirrors src/core/thinking_os/tools/routing.py::recalculate_weights. This
+    # import-light copy lets the session-start hook recalc WITHOUT importing the
+    # MCP tool tree (Rule 8 decoupling, not accidental DRY). Keep both bodies in
+    # lockstep — a routing_weights schema change lands in BOTH (audit RAPTOR-3).
     rows = conn.execute(
         "SELECT domain, complexity, model, skills_used AS skill, "
         "SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) AS successes, "

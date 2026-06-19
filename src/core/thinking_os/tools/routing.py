@@ -272,6 +272,13 @@ def recalculate_weights(conn: sqlite3.Connection) -> dict:
     Returns:
         Dict with count of weights recalculated.
     """
+    # The recalc SQL below is intentionally duplicated in
+    # src/core/hooks/_helpers/routing_evolution.py::_recalculate — the
+    # import-light copy the session-start hook runs (it must NOT import this MCP
+    # tool tree, Rule 8). Keep both in lockstep: a routing_weights schema change
+    # lands in BOTH. routing_weights is rebuilt here but is NOT yet read by
+    # route_model/route_skill (they rank task_outcomes directly); its consumer is
+    # the deferred multi-model cost-aware ranker (audit RAPTOR-1).
     # Check if routing_weights table exists
     table_check = conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='routing_weights'"
