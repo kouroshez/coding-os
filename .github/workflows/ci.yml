@@ -149,6 +149,38 @@ jobs:
         run: uv run pytest tests/test_golden_parity.py tests/test_rules_fresh.py -q
 
   # ============================================================
+  # Verification-Matrix suites — the cli / adapters / doctor
+  # suites AGENTS.md § Verification Matrix prescribes are
+  # module-level @slow (scaffold sandboxes / subprocess), so the
+  # test-python job's `-m 'not slow'` deselects them. Run them
+  # once on a single runner so a cli/adapter/doctor regression is
+  # caught on the PR that introduces it — not only in the nightly
+  # sweep (audit F-TST-2: the matrix contract was aspirational on
+  # PRs, the root cause of the 2 prior CI-hidden RED breakages).
+  # The heaviest scaffold suites (test_template_scaffold,
+  # test_background, add/remove-stack) intentionally stay nightly.
+  # ============================================================
+  test-matrix:
+    name: verification-matrix suites (cli + adapters + doctor)
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+      - name: Install deps
+        run: uv sync --extra rag --extra graph_os
+      - name: cli + adapters + doctor matrix suites
+        run: uv run --extra rag --extra graph_os pytest tests/test_cli.py tests/test_adapters.py tests/test_adapter_parity.py tests/test_doctor.py -q
+
+  # ============================================================
   # Nightly full slow-suite — scaffold sandboxes + background
   # loops + add/remove-stack round-trips. Schedule-only (too slow
   # for every PR); the cheap subset is gated by test-modularity.
@@ -280,7 +312,7 @@ jobs:
   ci-pass:
     name: CI Pass
     if: always()
-    needs: [lint, test-python, test-hooks, test-frontend, test-modularity, docs-lint]
+    needs: [lint, test-python, test-hooks, test-frontend, test-modularity, test-matrix, docs-lint]
     runs-on: ubuntu-latest
     steps:
       - name: Verify all required jobs succeeded
@@ -290,6 +322,7 @@ jobs:
              || [[ "${{ needs.test-hooks.result }}" != "success" ]] \
              || [[ "${{ needs.test-frontend.result }}" != "success" ]] \
              || [[ "${{ needs.test-modularity.result }}" != "success" ]] \
+             || [[ "${{ needs.test-matrix.result }}" != "success" ]] \
              || [[ "${{ needs.docs-lint.result }}" != "success" ]]; then
             echo "One or more required jobs failed."
             exit 1
