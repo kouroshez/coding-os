@@ -147,6 +147,12 @@ jobs:
         run: uv run pytest tests/test_skill_ref_integrity.py tests/test_all_stacks_render_smoke.py tests/test_modularity_toggle.py -q
       - name: Golden parity + rules freshness (the @slow re-render guards)
         run: uv run pytest tests/test_golden_parity.py tests/test_rules_fresh.py -q
+      - name: Scaffold-manifest freshness (all 56 single-stack sections)
+        # Golden-parity only covers the 6 representative sections; the manifest
+        # is the single-stack scaffold contract for ALL stacks. Its freshness
+        # test is @slow (builds sandboxes) so it was nightly-only — drift for the
+        # ~50 non-golden stacks shipped to main uncaught (audit INIT-1).
+        run: uv run pytest tests/test_manifest_fresh.py -q
 
   # ============================================================
   # Verification-Matrix suites — the cli / adapters / doctor
