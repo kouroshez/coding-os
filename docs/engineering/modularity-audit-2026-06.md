@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-18 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-19 -->
 # Modularity / Auto-Sync Audit — June 2026
 
 > P: The SSOT register for the 2026-06 modularity/auto-sync audit — every finding (F1–F16), its evidence, severity, verified status, and mapped task — plus the architecture verdict and the decisions locked with the owner.
@@ -114,3 +114,22 @@ A third adversarial pass re-checked `routing_weights`. Verified: `route_model` +
 | — | (new, recommended) | consumer-in-CI dogfood harness — the only real proof the toggle vision works end-to-end |
 
 Self-driving multi-model routing (the owner's differentiator) is deferred: do NOT build cross-adapter dispatch now (Claude-only), but start populating `task_outcomes.model` so the learning loop has fuel (F16). The tier→id resolver (F6/F13) is its prerequisite.
+
+## 7. Pass-3 backlog (2026-06-19) — adversarial re-verification + landed fixes
+
+A third pass (43-agent workflow) independently re-verified the F1–F16 "closed" claims (4 of 8 spot-checked were only `real_but_partial`, one — F12 — carried a live consumer bug) and hunted blind spots the prior passes missed. All eleven items below landed:
+
+| ID | Finding (audit ref) | Resolution |
+|---|---|---|
+| B-1 | Matrix suites (`test_cli`/`test_adapters`/`test_doctor`) are `@slow` → never on PR (F-TST-2) | new single-runner `test-matrix` PR job; in `ci-pass` |
+| B-2 | `block-hardcoded-literals` resolved its checker to a nonexistent `.claude/scripts/` path → **silently inert** on every consumer (F12 live bug) | resolve via cos-env `_cos_helpers_dir`; loud-on-miss; set-e block-path fix |
+| B-3 | Hub `/api/search/*` bypassed `_gated_module` → served disabled subsystems (F1 consumer hole) | per-project `module_state` gate on all 3 routes; `module_disabled`→403 |
+| B-4 | `task_outcomes.model` NULL + complexity UNKNOWN on every MCP completion (F16 starvation) | shared `_state_search_dirs()` resolves `<state>/<agent>/.model` + panel gate; strip `ppid-` |
+| B-5/B-6 | AGENTS.md commands tools whose module is off; graph/cognition/etc. ungated (F2 / RGC-B) | gate Core-Loop/Handoff memory+observability refs; graph/cognition/hub-extras have no always-on prose (correct-by-design) |
+| B-7 | No out-of-tree plugin path — a community stack/adapter needed a fork (PLUG-1) | `$COS_USER_TEMPLATES_DIR` / `$COS_USER_ADAPTERS_DIR` overlay; no-shadow; adapters fail-soft |
+| B-8 | `routing_weights` write-and-self-check loop with no decision consumer (RAPTOR-1/3) | KEEP (consumer = deferred ranker); fix store-table drift + cross-ref the duplicated recalc (§5.2) |
+| B-9 | `logging_os` + `scheduled` had no `verify-suites.yaml` entry; test FAILs never reached `log_events` (F-TST-1/3) | add both suites; `record-verify-auto` `cos_say ERROR`s a FAIL into the sink |
+| B-10 | `cos init --dry-run` not module-aware (INIT-4); manifest freshness nightly-only (INIT-1) | thread `--disable-module` into the preview; manifest freshness now in the test-modularity PR job |
+| B-11 | Gating-mechanism map + fragment-structure contract + overlay undocumented (MD-3/MD-4) | this register + `template-authoring.md` sections |
+
+Two more pre-existing CI-hidden REDs surfaced and were fixed in passing: `cos-env.sh` goldens stale since TASK-447's F8 (regenerated), and the manifest-freshness flake under concurrent tree writes (reliable on a static CI tree). **Still open** (owner-gated, not regressions): the consumer-in-CI dogfood harness (§6) and the multi-model cost-aware ranker (Phase 1).
