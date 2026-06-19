@@ -15,7 +15,12 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db  # noqa: E402
-from record_outcome import _derive_rework, record_outcome  # noqa: E402
+from record_outcome import (  # noqa: E402
+    _derive_rework,
+    _read_gate_file,
+    _resolve_model,
+    record_outcome,
+)
 
 
 def _reopen(db: Path, task_id: str) -> None:
@@ -93,3 +98,56 @@ class TestDeriveRework:
             assert _derive_rework(conn, "UNKNOWN-TASK") is False
         finally:
             conn.close()
+
+
+class TestModelAndGateCapture:
+    """The MCP server has no COS_PANEL_DIR/COS_AGENT_DIR but knows COS_AGENT, so
+    model + complexity must resolve from <state>/<agent>/ — the same agent-subdir
+    path skills_used already used. Before B-4, model was NULL + complexity UNKNOWN
+    on every MCP-driven completion, starving the multi-model routing loop (F16)."""
+
+    @staticmethod
+    def _emulate_mcp_server(monkeypatch, state_dir: Path) -> None:
+        monkeypatch.setenv("COS_STATE_DIR", str(state_dir))
+        monkeypatch.setenv("COS_AGENT", "claude")
+        for var in ("COS_AGENT_MODEL", "ANTHROPIC_MODEL", "COS_AGENT_DIR", "COS_PANEL_DIR"):
+            monkeypatch.delenv(var, raising=False)
+
+    def test_resolve_model_from_agent_subdir(self, tmp_path: Path, monkeypatch) -> None:
+        (tmp_path / "claude").mkdir()
+        (tmp_path / "claude" / ".model").write_text("claude-opus-4-8", encoding="utf-8")
+        self._emulate_mcp_server(monkeypatch, tmp_path)
+        assert _resolve_model() == "claude-opus-4-8"  # was None pre-fix
+
+    def test_read_gate_from_agent_subdir_strips_ppid_prefix(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        (tmp_path / "claude").mkdir()
+        # ppid- prefix (no session-id yet) — the old parser read it AS the level
+        (tmp_path / "claude" / ".thinking_os-gate").write_text(
+            "ppid-abc123 COMPLICATED 3", encoding="utf-8"
+        )
+        self._emulate_mcp_server(monkeypatch, tmp_path)
+        assert _read_gate_file() == ("COMPLICATED", 3)  # was ("ppid-abc123", …) pre-fix
+
+    def test_record_outcome_captures_model_and_complexity_end_to_end(
+        self, db: Path, tmp_path: Path, monkeypatch
+    ) -> None:
+        state = db.parent  # <tmp>/.coding-os
+        (state / "claude").mkdir(parents=True, exist_ok=True)
+        (state / "claude" / ".model").write_text("claude-opus-4-8", encoding="utf-8")
+        (state / "claude" / ".thinking_os-gate").write_text(
+            "ses-x COMPLEX 5", encoding="utf-8"
+        )
+        self._emulate_mcp_server(monkeypatch, state)
+
+        record_outcome(task_id="TASK-9", task_type="feat", outcome="success", db_path=db)
+
+        conn = sqlite3.connect(str(db))
+        try:
+            row = conn.execute(
+                "SELECT model, complexity, dimensions FROM task_outcomes WHERE task_id='TASK-9'"
+            ).fetchone()
+        finally:
+            conn.close()
+        assert row == ("claude-opus-4-8", "COMPLEX", 5)  # both were NULL/UNKNOWN pre-fix

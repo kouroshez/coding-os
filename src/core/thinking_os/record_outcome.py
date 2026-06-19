@@ -31,22 +31,47 @@ logger = logging.getLogger("thinking_os.outcome")
 VALID_OUTCOMES = {"success", "rework", "partial", "blocked"}
 
 
-def _read_gate_file() -> tuple[str, int]:
-    """Read complexity classification from .thinking_os-gate file.
+def _state_search_dirs() -> list[str]:
+    # Dirs to search for a per-panel/per-agent state marker, most-specific
+    # first: panel dir -> agent dir -> <state>/<agent> -> state dir. The
+    # long-lived MCP server has no COS_PANEL_DIR/COS_AGENT_DIR but does know
+    # COS_AGENT, so the <state>/<agent> entry is what makes markers resolvable
+    # there (proven: skills_used captures via this path, model/gate did not).
+    state_dir = os.environ.get("COS_STATE_DIR", ".coding-os")
+    agent = os.environ.get("COS_AGENT", "")
+    dirs = [d for d in (os.environ.get("COS_PANEL_DIR"), os.environ.get("COS_AGENT_DIR")) if d]
+    if agent:
+        dirs.append(str(Path(state_dir) / agent))
+    dirs.append(state_dir)
+    return dirs
 
-    Format: "<session-id> <CLASSIFICATION> <N>" (session-scoped).
-    Skips the session-id prefix when parsing.
+
+def _read_gate_file() -> tuple[str, int]:
+    """Read complexity classification from the .thinking_os-gate marker.
+
+    The gate is per-panel (it is in COS_PER_PANEL_FILES), so search the panel dir
+    first, then the agent dir, then <state>/<agent>, then COS_STATE_DIR — the same
+    order _read_active_skills uses. Reading COS_STATE_DIR alone left complexity
+    UNKNOWN on every panel-scoped completion (audit B-4: routing-loop starvation).
+    Format: "<session-or-panel-id> <CLASSIFICATION> <N>"; the id prefix is skipped.
     """
-    gate_path = Path(os.environ.get("COS_STATE_DIR", ".coding-os") + "/.thinking_os-gate")
-    if not gate_path.exists():
+    gate_path = None
+    for d in _state_search_dirs():
+        candidate = Path(d) / ".thinking_os-gate"
+        if candidate.exists():
+            gate_path = candidate
+            break
+    if gate_path is None:
         return "UNKNOWN", 1
     try:
         content = gate_path.read_text().strip()
         parts = content.split()
-        # Session-scoped format: "ses-xxx COMPLICATED 4"
-        # Legacy format: "COMPLICATED 4"
-        if parts and parts[0].startswith("ses-"):
-            parts = parts[1:]  # skip session ID
+        # Skip a leading session/panel-id token. The writer prefixes the value
+        # with the panel session id (ses-…) or, before one exists, the panel
+        # ppid hash (ppid-…) — the gate parser only stripped "ses-" and so read
+        # "ppid-…" as the complexity. Legacy format ("COMPLICATED 4") has none.
+        if parts and parts[0].startswith(("ses-", "ppid-", "c-sess", "anon")):
+            parts = parts[1:]
         complexity = parts[0] if parts else "UNKNOWN"
         dimensions = int(parts[1]) if len(parts) > 1 else 1
         return complexity, dimensions
@@ -114,9 +139,10 @@ def _resolve_model() -> str | None:
     model = os.environ.get("COS_AGENT_MODEL") or os.environ.get("ANTHROPIC_MODEL")
     if model:
         return model
-    for d in (os.environ.get("COS_AGENT_DIR"), os.environ.get("COS_STATE_DIR", ".coding-os")):
-        if not d:
-            continue
+    # The model snapshot lives at <state>/<agent>/.model — _state_search_dirs
+    # adds that path so the MCP server (no COS_AGENT_DIR) resolves it; before,
+    # task_outcomes.model was NULL on every MCP-driven completion.
+    for d in _state_search_dirs():
         try:
             marker = Path(d) / ".model"
             if marker.exists():
