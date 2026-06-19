@@ -572,41 +572,64 @@ def resolve_relocated_profiles(
     return profiles
 
 
-def load_stack_registry(templates_dir: Path) -> StackLoadResult:
-    """Scan templates_dir for */stack.yaml files, return a registry.
-
-    Directories without stack.yaml are silently ignored. Invalid manifests
-    are skipped with a warning string recorded in the result.
-    """
-    stacks: dict[str, StackProfile] = {}
-    warnings: list[str] = []
-
-    if not templates_dir.is_dir():
-        warnings.append(f"templates dir not found: {templates_dir}")
-        return StackLoadResult(stacks={}, warnings=tuple(warnings))
-
-    for child in sorted(templates_dir.iterdir()):
-        if not child.is_dir():
-            continue
-        if child.name.startswith("_"):
+def _scan_stack_dir(
+    src: Path,
+    stacks: dict[str, StackProfile],
+    warnings: list[str],
+    *,
+    is_overlay: bool,
+) -> None:
+    for child in sorted(src.iterdir()):
+        if not child.is_dir() or child.name.startswith("_"):
             continue  # _base/ is loaded separately
         manifest = child / STACK_MANIFEST_NAME
         if not manifest.exists():
             continue
         try:
-            data = _load_yaml(manifest)
-            profile = _build_stack(data, manifest)
+            profile = _build_stack(_load_yaml(manifest), manifest)
         except StackManifestError as exc:
             msg = f"skipping stack {child.name}: {exc}"
             warnings.append(msg)
             logger.warning(msg)
             continue
         if profile.id in stacks:
-            msg = f"duplicate stack id '{profile.id}' — keeping first"
+            msg = (
+                f"community stack id '{profile.id}' may not shadow a bundled stack — keeping bundled"
+                if is_overlay
+                else f"duplicate stack id '{profile.id}' — keeping first"
+            )
             warnings.append(msg)
             logger.warning(msg)
             continue
         stacks[profile.id] = profile
+
+
+def load_stack_registry(
+    templates_dir: Path, *, overlay_dirs: tuple[Path, ...] | None = None
+) -> StackLoadResult:
+    """Scan templates_dir (then any out-of-tree overlay_dirs) for */stack.yaml.
+
+    Directories without stack.yaml are silently ignored. Invalid manifests are
+    skipped with a warning string recorded in the result. overlay_dirs hold
+    community stacks ($COS_USER_TEMPLATES_DIR); a community id may NOT shadow a
+    bundled stack — the bundled profile is kept (scanned first). overlay_dirs
+    defaults to the resolved user overlay (empty unless the dir exists, so CI /
+    fresh installs are a no-op); pass () to scan ONLY templates_dir (stack_lint).
+    """
+    if overlay_dirs is None:
+        from cli._resources import overlay_template_dirs
+
+        overlay_dirs = overlay_template_dirs()
+    stacks: dict[str, StackProfile] = {}
+    warnings: list[str] = []
+
+    if templates_dir.is_dir():
+        _scan_stack_dir(templates_dir, stacks, warnings, is_overlay=False)
+    else:
+        warnings.append(f"templates dir not found: {templates_dir}")
+    for overlay in overlay_dirs:
+        if overlay.is_dir():
+            _scan_stack_dir(overlay, stacks, warnings, is_overlay=True)
 
     stacks = _resolve_extends(stacks, warnings)
     return StackLoadResult(stacks=stacks, warnings=tuple(warnings))

@@ -116,7 +116,9 @@ def lint_all(
     registry_dir: Path | None = None, golden_root: Path | None = None
 ) -> dict[str, LintReport]:
     root = registry_dir or templates_dir()
-    registry = load_stack_registry(root)
+    # Lint ONLY the bundled stacks under `root` — a community overlay stack has
+    # no golden to assert against (overlay_dirs=() opts out of the user overlay).
+    registry = load_stack_registry(root, overlay_dirs=())
     reports = {
         stack_id: lint_stack(registry[stack_id], root / stack_id, golden_root)
         for stack_id in sorted(registry.keys())

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,17 @@ import pytest
 from cli.adapter_registry import AdapterManifestError, load_adapter_registry
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+_SRC_ADAPTERS = REPO_ROOT / "src" / "adapters"
+
+
+def _copy_adapter_as(src_id: str, dest_dir: Path, new_id: str) -> None:
+    target = dest_dir / new_id
+    shutil.copytree(_SRC_ADAPTERS / src_id, target)
+    manifest = target / "adapter.yaml"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(f"id: {src_id}", f"id: {new_id}", 1),
+        encoding="utf-8",
+    )
 
 
 def test_live_registry_has_claude_and_codex() -> None:
@@ -121,3 +133,36 @@ def test_adapter_schema_accepts_live_adapters() -> None:
     """Sanity: claude + codex must both pass schema validation."""
     adapters = load_adapter_registry(REPO_ROOT / "src" / "adapters")
     assert "claude" in adapters and "codex" in adapters
+
+
+# ---------- out-of-tree community overlay (B-7) ----------
+
+
+def test_overlay_discovers_community_adapter(tmp_path: Path) -> None:
+    """A community adapter in an out-of-tree overlay loads alongside the bundled
+    ones — a third party adds an adapter without forking ($COS_USER_ADAPTERS_DIR)."""
+    overlay = tmp_path / "overlay"
+    overlay.mkdir()
+    _copy_adapter_as("claude", overlay, "community-x")
+    reg = load_adapter_registry(_SRC_ADAPTERS, overlay_dirs=(overlay,))
+    assert "community-x" in reg and "claude" in reg
+
+
+def test_overlay_may_not_shadow_bundled_adapter(tmp_path: Path) -> None:
+    """A community adapter id colliding with a bundled one is rejected (bundled
+    kept), never raising the way a bundled duplicate does."""
+    overlay = tmp_path / "overlay"
+    overlay.mkdir()
+    _copy_adapter_as("claude", overlay, "claude")  # same id as bundled
+    reg = load_adapter_registry(_SRC_ADAPTERS, overlay_dirs=(overlay,))
+    assert "claude" in reg  # bundled kept, no AdapterManifestError
+
+
+def test_overlay_malformed_community_adapter_fails_soft(tmp_path: Path) -> None:
+    """A malformed COMMUNITY adapter is skipped (fail-soft), never crashing the
+    CLI — unlike a malformed bundled adapter which still fails hard."""
+    overlay = tmp_path / "overlay"
+    (overlay / "broken").mkdir(parents=True)
+    (overlay / "broken" / "adapter.yaml").write_text("{a: [unclosed\n", encoding="utf-8")
+    reg = load_adapter_registry(_SRC_ADAPTERS, overlay_dirs=(overlay,))
+    assert "claude" in reg and "broken" not in reg

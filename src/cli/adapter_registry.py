@@ -184,19 +184,11 @@ def _load_one(manifest_path: Path) -> AdapterProfile:
     )
 
 
-def load_adapter_registry(adapters_dir: Path) -> dict[str, AdapterProfile]:
-    """Scan adapters_dir for */adapter.yaml, return {id: AdapterProfile}.
-
-    Unlike stack loading, this fails hard on the first invalid manifest.
-    """
-    result: dict[str, AdapterProfile] = {}
-    if not adapters_dir.is_dir():
-        raise AdapterManifestError(f"adapters dir not found: {adapters_dir}")
-
-    for child in sorted(adapters_dir.iterdir()):
-        if not child.is_dir():
-            continue
-        if child.name.startswith("_"):
+def _scan_adapter_dir(
+    src: Path, result: dict[str, AdapterProfile], *, fail_hard: bool
+) -> None:
+    for child in sorted(src.iterdir()):
+        if not child.is_dir() or child.name.startswith("_"):
             continue
         manifest = child / ADAPTER_MANIFEST_NAME
         if not manifest.exists():
@@ -204,9 +196,45 @@ def load_adapter_registry(adapters_dir: Path) -> dict[str, AdapterProfile]:
             # in-progress adapter stubs live in the tree without breaking CLI.
             logger.debug("adapter %s has no %s, skipping", child.name, ADAPTER_MANIFEST_NAME)
             continue
-        profile = _load_one(manifest)
+        try:
+            profile = _load_one(manifest)
+        except AdapterManifestError:
+            if fail_hard:
+                raise
+            logger.warning("skipping community adapter %s: invalid %s", child.name, ADAPTER_MANIFEST_NAME)
+            continue
         if profile.id in result:
-            raise AdapterManifestError(f"duplicate adapter id '{profile.id}' at {manifest}")
+            if fail_hard:
+                raise AdapterManifestError(f"duplicate adapter id '{profile.id}' at {manifest}")
+            logger.warning(
+                "community adapter id '%s' may not shadow a bundled adapter — keeping bundled",
+                profile.id,
+            )
+            continue
         result[profile.id] = profile
 
+
+def load_adapter_registry(
+    adapters_dir: Path, *, overlay_dirs: tuple[Path, ...] | None = None
+) -> dict[str, AdapterProfile]:
+    """Scan adapters_dir (then out-of-tree overlay_dirs) for */adapter.yaml.
+
+    The bundled dir fails hard on an invalid manifest (a broken core adapter is
+    a real error). overlay_dirs hold community adapters ($COS_USER_ADAPTERS_DIR)
+    and fail SOFT — a malformed community adapter is skipped, never crashing the
+    CLI — and may NOT shadow a bundled adapter id (the bundled one is kept).
+    overlay_dirs defaults to the resolved user overlay (empty unless the dir
+    exists); pass () to scan ONLY adapters_dir.
+    """
+    if overlay_dirs is None:
+        from cli._resources import overlay_adapter_dirs
+
+        overlay_dirs = overlay_adapter_dirs()
+    result: dict[str, AdapterProfile] = {}
+    if not adapters_dir.is_dir():
+        raise AdapterManifestError(f"adapters dir not found: {adapters_dir}")
+    _scan_adapter_dir(adapters_dir, result, fail_hard=True)
+    for overlay in overlay_dirs:
+        if overlay.is_dir():
+            _scan_adapter_dir(overlay, result, fail_hard=False)
     return result

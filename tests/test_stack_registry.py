@@ -194,3 +194,42 @@ def test_schema_accepts_live_stacks() -> None:
         f"live stacks should all pass schema validation; warnings: {result.warnings}"
     )
     assert len(result.stacks) >= 4
+
+
+# ---------- out-of-tree community overlay (B-7) ----------
+
+
+def test_overlay_discovers_community_stack(tmp_path: Path) -> None:
+    """A stack in an out-of-tree overlay dir loads alongside the bundled ones —
+    a third party adds a stack without forking ($COS_USER_TEMPLATES_DIR)."""
+    bundled, overlay = tmp_path / "bundled", tmp_path / "overlay"
+    _write_stack(bundled, "alpha")
+    _write_stack(overlay, "community-x")
+    result = load_stack_registry(bundled, overlay_dirs=(overlay,))
+    assert "alpha" in result and "community-x" in result
+
+
+def test_overlay_may_not_shadow_bundled_stack(tmp_path: Path) -> None:
+    """A community stack id that collides with a bundled one is rejected — the
+    bundled profile is kept and a warning is recorded."""
+    bundled, overlay = tmp_path / "bundled", tmp_path / "overlay"
+    _write_stack(bundled, "alpha")  # label "Test Stack"
+    (overlay / "alpha").mkdir(parents=True)
+    (overlay / "alpha" / "stack.yaml").write_text(
+        "version: 1\nid: alpha\nlanguage: python\nlabel: OVERLAY SHADOW\ncategory: library\n",
+        encoding="utf-8",
+    )
+    result = load_stack_registry(bundled, overlay_dirs=(overlay,))
+    assert result["alpha"].label == "Test Stack", "bundled stack must win over a community shadow"
+    assert any("may not shadow" in w for w in result.warnings)
+
+
+def test_overlay_defaults_to_env_user_dir(tmp_path: Path, monkeypatch) -> None:
+    """With overlay_dirs unset (None), the loader resolves $COS_USER_TEMPLATES_DIR
+    so every caller is overlay-aware for free."""
+    bundled, overlay = tmp_path / "bundled", tmp_path / "overlay"
+    _write_stack(bundled, "alpha")
+    _write_stack(overlay, "community-x")
+    monkeypatch.setenv("COS_USER_TEMPLATES_DIR", str(overlay))
+    result = load_stack_registry(bundled)  # default None -> resolves the env dir
+    assert "community-x" in result, "default overlay must resolve $COS_USER_TEMPLATES_DIR"
