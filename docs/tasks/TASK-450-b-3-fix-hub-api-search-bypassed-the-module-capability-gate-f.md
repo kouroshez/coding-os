@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [modularity-audit-pass3, hub, F1, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-19
 started: 2026-06-19
-completed: null
+completed: 2026-06-19
 agent_session: ses-claude-20260619-063923-1c50
 depends_on: []
 blocked_by: []
@@ -33,3 +33,9 @@ Disable the memory module, start the Hub, GET /api/search/memory?query=x — pre
 - **Given** a project with subsystems-state.json disabling memory and COS_PROJECT_ROOT set to it **When** GET /api/search/memory?query=x **Then** HTTP 403 with error.category=module_disabled naming memory. - **Given** only memory disabled **When** GET /api/search/docs **Then** not 403 (each route gates on its own module). - **Given** TestSearchRoutes **When** run **Then** all pass (5 incl 2 new).
 
 ## Work Log
+- 2026-06-19 [claude]: committed 9dcad28d · 3 files
+- 2026-06-19 [claude]: Edit record_outcome.py
+- 2026-06-19 [claude]: Edit record_outcome.py
+- 2026-06-19 [claude]: Edit record_outcome.py
+- 2026-06-19 [claude]: Edit test_record_outcome.py
+- 2026-06-19 [claude]: Edit test_record_outcome.py

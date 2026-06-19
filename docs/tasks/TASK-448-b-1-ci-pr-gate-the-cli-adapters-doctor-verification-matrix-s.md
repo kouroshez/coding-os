@@ -5,12 +5,12 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [modularity-audit-pass3, ci, F-TST-2, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-19
 started: 2026-06-19
-completed: null
+completed: 2026-06-19
 agent_session: ses-claude-20260619-063923-1c50
 depends_on: []
 blocked_by: []
@@ -24,3 +24,4 @@ references: []
 - 2026-06-19 [claude]: Edit ci.yml
 - 2026-06-19 [claude]: Edit ci.yml
 - 2026-06-19 [claude]: Edit block-hardcoded-literals.sh
+- 2026-06-19 [claude]: committed c0e77b79 · 1 file

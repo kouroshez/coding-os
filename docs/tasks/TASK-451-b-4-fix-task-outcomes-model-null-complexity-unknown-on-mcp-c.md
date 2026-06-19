@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [modularity-audit-pass3, routing, F16, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-19
 started: 2026-06-19
-completed: null
+completed: 2026-06-19
 agent_session: ses-claude-20260619-063923-1c50
 depends_on: []
 blocked_by: []
@@ -33,3 +33,9 @@ SELECT COUNT(*), SUM(model IS NULL) FROM task_outcomes WHERE created_at > dateti
 - **Given** COS_AGENT=claude + <state>/claude/.model present, COS_AGENT_DIR/COS_PANEL_DIR/COS_AGENT_MODEL unset (the MCP-server env) **When** _resolve_model() **Then** returns the model (was None). - **Given** <state>/claude/.thinking_os-gate = "ppid-abc COMPLICATED 3" **When** _read_gate_file() **Then** ("COMPLICATED", 3) (was treating ppid-abc as the level). - **Given** record_outcome end-to-end with those markers **When** the row is written **Then** model + complexity + dimensions are non-NULL/known.
 
 ## Work Log
+- 2026-06-19 [claude]: committed 94ba0717 · 2 files
+- 2026-06-19 [claude]: Edit core-loop.md.tmpl
+- 2026-06-19 [claude]: Edit core-loop.md.tmpl
+- 2026-06-19 [claude]: Edit session-handoff.md.tmpl
+- 2026-06-19 [claude]: Edit test_all_stacks_render_smoke.py
+- 2026-06-19 [claude]: commit 554825cd7a — test(golden): regenerate after hook changes (B-2 checker fix + F8 cos-env drift)

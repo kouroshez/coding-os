@@ -26,8 +26,8 @@ For **CLEAR** 1-dim: skip to Execute. Output: Classify Checkpoint in task Notes.
 ### Orient (targeted reads + memory)
 
 1. **Targeted Read** — ONLY files from Read List. Note findings in task Notes. [P3]
-2. **Memory Check** (500tok max): `cos_search` → `cos_learn_suggest` → `cos_details` if conf>0.7.
-3. **Repo Search** — Grep/Glob existing code. Diff against spec if found. [P1, P2]
+{% if modules.memory %}2. **Memory Check** (500tok max): `cos_search` → `cos_learn_suggest` → `cos_details` if conf>0.7.
+{% endif %}3. **Repo Search** — Grep/Glob existing code. Diff against spec if found. [P1, P2]
 4. **Model Update** — new dimensions? Reframe trigger → back to Classify.
 
 ### Plan (deep analysis — no new reads)
@@ -48,4 +48,5 @@ For **CLEAR**: skip Plan.
 
 1. Run domain verification commands (see Verification Matrix below). Fail 2x → `make task-block`. [P6]
 2. `make task-done TASK=<num> TYPE=<type> MSG="..." WHAT="..." FILES="..."`. Always WHAT+FILES. [P6]
-3. `cos_metric_record` outcome (auto-recorded by session-end.sh — manual call optional). Every 10 tasks: `cos_learn_extract`.
+{% if modules.observability or modules.memory %}3. {% if modules.observability %}`cos_metric_record` outcome (auto-recorded by session-end.sh — manual call optional). {% endif %}{% if modules.memory %}Every 10 tasks: `cos_learn_extract`.{% endif %}
+{% endif %}

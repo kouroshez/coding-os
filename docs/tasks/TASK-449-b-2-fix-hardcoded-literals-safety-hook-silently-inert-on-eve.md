@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [modularity-audit-pass3, safety-hook, F12, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-19
 started: 2026-06-19
-completed: null
+completed: 2026-06-19
 agent_session: ses-claude-20260619-063923-1c50
 depends_on: []
 blocked_by: []
@@ -35,3 +35,11 @@ printf '{"tool_name":"Write","tool_input":{"file_path":"src/cli/foo.py","content
 - **Given** make verify-hooks **When** run **Then** syntax + shellcheck are clean.
 
 ## Work Log
+- 2026-06-19 [claude]: committed 0790b161 · 1 file
+- 2026-06-19 [claude]: Edit search.py
+- 2026-06-19 [claude]: Edit search.py
+- 2026-06-19 [claude]: Edit search.py
+- 2026-06-19 [claude]: Edit search.py
+- 2026-06-19 [claude]: Edit _envelope.py
+- 2026-06-19 [claude]: Edit test_web_server.py
+- 2026-06-19 [claude]: commit c0e77b7971 — ci: PR-gate the cli/adapters/doctor verification-matrix suites (F-TST-2)
