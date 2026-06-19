@@ -272,6 +272,38 @@ class TestSearchRoutes:
         resp = client.get("/api/search/memory")
         assert resp.status_code == 422
 
+    def test_search_memory_gated_when_module_disabled(self, client, tmp_path, monkeypatch):
+        """Disabling the `memory` subsystem gates the Hub /api/search/memory route.
+
+        Audit F1 / B-3: the HTTP wrapper called tools.memory directly and bypassed
+        the MCP _gated_module gate, so a disabled subsystem still served over the
+        web API. The route now scopes the gate to the request's project."""
+        import json as _json
+
+        state = tmp_path / ".coding-os" / "subsystems-state.json"
+        state.parent.mkdir(parents=True)
+        state.write_text(_json.dumps({"disabled": ["memory"]}), encoding="utf-8")
+        monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+
+        resp = client.get("/api/search/memory", params={"query": "anything"})
+        assert resp.status_code == 403  # module_disabled → 403
+        body = resp.json()
+        assert body["error"]["category"] == "module_disabled"
+        assert "memory" in body["error"]["message"]
+
+    def test_search_docs_not_gated_by_unrelated_module(self, client, tmp_path, monkeypatch):
+        """Each search route gates on its OWN owning module — disabling `memory`
+        must not gate the docs route (no over-broad gating)."""
+        import json as _json
+
+        state = tmp_path / ".coding-os" / "subsystems-state.json"
+        state.parent.mkdir(parents=True)
+        state.write_text(_json.dumps({"disabled": ["memory"]}), encoding="utf-8")
+        monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+
+        resp = client.get("/api/search/docs", params={"query": "test"})
+        assert resp.status_code != 403  # docs module still enabled
+
 
 # ---------------------------------------------------------------------------
 # SSE endpoint

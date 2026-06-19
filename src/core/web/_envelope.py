@@ -42,6 +42,7 @@ ENVELOPE_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
 _CATEGORY_TO_STATUS: dict[str, int] = {
     "validation": 400,
     "permission": 403,
+    "module_disabled": 403,  # capability gated off for this project (subsystem toggle)
     "not_found": 404,
     "transient": 503,
     "unavailable": 503,

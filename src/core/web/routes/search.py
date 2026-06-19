@@ -41,6 +41,40 @@ def _unavailable(msg: str = "search tools unavailable") -> str:
     )
 
 
+def _module_disabled(module_id: str) -> bool:
+    """True when module_id is disabled for the CURRENT request's project.
+
+    The MCP cos_* capability gate (_shared._gated_module) reads $COS_STATE_DIR —
+    the wrong project under the multi-project Hub — so these HTTP wrappers
+    bypassed it and still served a disabled subsystem (audit F1 / B-3). Scope to
+    the request's project via cli.subsystems.module_state instead. Fail-open: a
+    gating error must never take the search route down."""
+    try:
+        from cli.subsystems import module_state  # type: ignore
+
+        from web._project_context import current_project_root
+
+        return not module_state(current_project_root()).get(module_id, True)
+    except Exception:
+        return False
+
+
+def _gated(module_id: str) -> str:
+    return json.dumps(
+        {
+            "ok": False,
+            "error": {
+                "category": "module_disabled",
+                "retryable": False,
+                "message": (
+                    f"this search belongs to the disabled '{module_id}' module — "
+                    f"enable it with `cos module enable {module_id}`"
+                ),
+            },
+        }
+    )
+
+
 @router.get("/memory")
 def memory_search(
     query: str = Query(..., description="Natural-language search query"),
@@ -50,6 +84,8 @@ def memory_search(
     _m=Depends(make_metrics_dep("search.memory")),
 ):
     """Search thinking_os memory (observations + learned patterns)."""
+    if _module_disabled("memory"):
+        return unwrap(_gated("memory"))
     try:
         from database import has_fts5_table  # type: ignore
         from tools.memory import memory_search as _search  # type: ignore
@@ -109,6 +145,8 @@ def doc_search(
     _m=Depends(make_metrics_dep("search.docs")),
 ):
     """Semantic search over project documentation chunks."""
+    if _module_disabled("docs"):
+        return unwrap(_gated("docs"))
     try:
         sys.path.insert(0, str(_TOS_DIR))
         from tools.docs import doc_search as _doc_search  # type: ignore
@@ -153,6 +191,8 @@ def task_search(
     _m=Depends(make_metrics_dep("search.tasks")),
 ):
     """Semantic + structured search over the Scrumban task store."""
+    if _module_disabled("tasks"):
+        return unwrap(_gated("tasks"))
     try:
         sys.path.insert(0, str(_TOS_DIR))
         from tools.retrieve import log_retrieval  # type: ignore
