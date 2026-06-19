@@ -5,12 +5,12 @@ swimlane: docs
 kind: docs
 epic: null
 labels: [modularity-audit-pass3, RAPTOR-1, docs-update, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-19
 started: 2026-06-19
-completed: null
+completed: 2026-06-19
 agent_session: ses-claude-20260619-063923-1c50
 depends_on: []
 blocked_by: []
@@ -33,3 +33,4 @@ references: []
 - 2026-06-19 [claude]: Edit routing.py
 - 2026-06-19 [claude]: Edit routing_evolution.py
 - 2026-06-19 [claude]: Edit modularity-audit-2026-06.md
+- 2026-06-19 [claude]: commit 73be0269ce — docs(routing): correct routing_weights store-table drift + record KEEP decision (RAPTOR-1/3)

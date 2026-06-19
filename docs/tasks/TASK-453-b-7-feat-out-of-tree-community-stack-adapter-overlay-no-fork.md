@@ -5,12 +5,12 @@ swimlane: cli
 kind: feature
 epic: null
 labels: [modularity-audit-pass3, plugin-dx, PLUG-1, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-19
 started: 2026-06-19
-completed: null
+completed: 2026-06-19
 agent_session: ses-claude-20260619-063923-1c50
 depends_on: []
 blocked_by: []
