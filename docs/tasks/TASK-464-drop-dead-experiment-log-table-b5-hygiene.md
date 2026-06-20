@@ -33,3 +33,4 @@ references: []
 ## Work Log
 - 2026-06-20 [claude]: commit 8bd3575376 — refactor(thinking_os): drop dead experiment_log table (B5)
 - 2026-06-20 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-20 [claude]: committed c4e2432a · 1 file
