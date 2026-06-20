@@ -11,6 +11,7 @@ from pathlib import Path
 
 import click
 
+from cli._resources import overlay_adapter_dirs
 from cli.adapter_registry import load_adapter_registry
 
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -71,7 +72,7 @@ def _render_json(adapters: dict) -> str:
 )
 def list_adapters(output_format: str) -> None:
     """List all available adapters discovered from adapters/*/adapter.yaml."""
-    adapters = load_adapter_registry(ADAPTERS_DIR)
+    adapters = load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs())
     if output_format == "json":
         click.echo(_render_json(adapters))
     else:

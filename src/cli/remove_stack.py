@@ -35,6 +35,7 @@ import click
 import yaml
 
 from cli._data_types import AggregatedWorld
+from cli._resources import overlay_adapter_dirs, overlay_template_dirs
 from cli.adapter_registry import load_adapter_registry
 from cli.aggregator import aggregate, today_iso
 from cli.config_composer import recompose_for_removed_stack
@@ -182,7 +183,7 @@ def _unlink_stack_skills(
     Returns the tuple of skill names actually unlinked. No-op for adapters whose
     skills_dir is null (e.g. Codex).
     """
-    adapters = load_adapter_registry(ADAPTERS_DIR)
+    adapters = load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs())
     if agent not in adapters:
         return ()
     skills_dir_rel = adapters[agent].skills_dir
@@ -210,7 +211,7 @@ def _unlink_stack_skills(
 
 def _remove_stack_rules(agent: str, stack_id: str, project: Path) -> int:
     """Delete path-scoped rule files add-stack copied as `<stack>-*.md`. Returns count."""
-    adapters = load_adapter_registry(ADAPTERS_DIR)
+    adapters = load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs())
     if agent not in adapters:
         return 0
     adapter_profile = adapters[agent]
@@ -330,12 +331,12 @@ def remove_stack(
     if not agent:
         raise RemoveStackError("no agent recorded in .coding-os.yaml")
 
-    adapters = load_adapter_registry(ADAPTERS_DIR)
+    adapters = load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs())
     if agent not in adapters:
         raise RemoveStackError(f"adapter '{agent}' not in registry")
     adapter_profile = adapters[agent]
     base = load_base_profile(TEMPLATES_DIR / "_base")
-    stacks = load_stack_registry(TEMPLATES_DIR)
+    stacks = load_stack_registry(TEMPLATES_DIR, overlay_dirs=overlay_template_dirs())
 
     remaining_templates = tuple(s for s in installed_templates if s != stack_id)
 

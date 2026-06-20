@@ -29,6 +29,7 @@ import click
 import yaml
 
 from cli._data_types import AggregatedWorld
+from cli._resources import overlay_adapter_dirs, overlay_template_dirs
 from cli.adapter_registry import load_adapter_registry
 from cli.aggregator import aggregate, today_iso
 from cli.renderer import render_agents_md
@@ -180,8 +181,8 @@ def add_stack(
     project = Path(project_dir).resolve()
     config = _load_project_config(project)
 
-    # 1. Registry lookup
-    stacks = load_stack_registry(TEMPLATES_DIR)
+    # 1. Registry lookup (consumer-discovery: include community overlay stacks)
+    stacks = load_stack_registry(TEMPLATES_DIR, overlay_dirs=overlay_template_dirs())
     if stack_id not in stacks:
         raise AddStackError(f"stack '{stack_id}' not found — available: {sorted(stacks.keys())}")
     stack_profile = stacks[stack_id]
@@ -212,7 +213,7 @@ def add_stack(
     if not agent:
         raise AddStackError("no agent recorded in .coding-os.yaml")
 
-    adapters = load_adapter_registry(ADAPTERS_DIR)
+    adapters = load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs())
     if agent not in adapters:
         raise AddStackError(f"adapter '{agent}' not in registry")
     adapter_profile = adapters[agent]

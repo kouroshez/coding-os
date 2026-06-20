@@ -124,6 +124,17 @@ This mirrors the community-skill model (`$COS_USER_SKILLS_DIR`); the trust-tier 
 consent / security-scan layer that skills carry is the planned hardening, not yet
 wired for stacks/adapters.
 
+**Which commands surface the overlay (TASK-471):** the overlay is **opt-in per
+call site**. The *consumer-discovery* commands pass `overlay_template_dirs()` /
+`overlay_adapter_dirs()` and so see community plugins — `cos list-stacks`,
+`cos list-adapters`, `cos init --template <id>`, `cos add-stack <id>`,
+`cos remove-stack <id>` (and any command via `main._get_stack_registry()` /
+`_get_adapter_registry()`). The meta-repo **SSOT regen/lint/scaffold** loaders
+(`src/scripts/generate_manifest.py`, `src/scripts/regen_rules.py`,
+`stack_lint.py`) stay **bundled-only** (default `overlay_dirs=()`), so a
+community stack never leaks into `scaffold_manifest.json` /
+`dimension-registry.md` (the TASK-458 leak fix).
+
 ## Steps to modify an existing stack
 
 1. **Locate the SSOT.** Behavior change → `stack.yaml`. New scaffold file → `scaffold/`. New entity recipe → `skills/<skill>/references/anatomy.md`.

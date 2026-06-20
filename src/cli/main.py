@@ -27,7 +27,14 @@ import click
 import yaml
 
 from cli._data_types import AggregatedWorld
-from cli._resources import adapters_dir, core_dir, data_root, templates_dir
+from cli._resources import (
+    adapters_dir,
+    core_dir,
+    data_root,
+    overlay_adapter_dirs,
+    overlay_template_dirs,
+    templates_dir,
+)
 from cli._init_helpers import (
     InitError,
     ensure_agents_md,
@@ -88,15 +95,19 @@ def _discover_valid_agents() -> list[str]:
     any load error so the CLI stays bootable.
     """
     try:
-        return sorted(load_adapter_registry(ADAPTERS_DIR).keys())
+        return sorted(
+            load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs()).keys()
+        )
     except Exception:
         return []
 
 
 def _discover_valid_templates() -> list[str]:
-    """Read stack ids from templates/*/stack.yaml at CLI startup."""
+    """Read stack ids from templates/*/stack.yaml (+ community overlay) at CLI startup."""
     try:
-        return sorted(load_stack_registry(TEMPLATES_DIR).keys())
+        return sorted(
+            load_stack_registry(TEMPLATES_DIR, overlay_dirs=overlay_template_dirs()).keys()
+        )
     except Exception:
         return []
 
@@ -127,14 +138,18 @@ def _get_base_profile():
 def _get_stack_registry():
     global _stack_cache
     if _stack_cache is None:
-        _stack_cache = load_stack_registry(TEMPLATES_DIR)
+        # Consumer-discovery path: include out-of-tree community stacks
+        # ($COS_USER_TEMPLATES_DIR). The meta-repo SSOT regen/lint scripts load
+        # the registry bundled-only (no overlay) so a community stack never leaks
+        # into scaffold_manifest.json / dimension-registry.md (TASK-458/471).
+        _stack_cache = load_stack_registry(TEMPLATES_DIR, overlay_dirs=overlay_template_dirs())
     return _stack_cache
 
 
 def _get_adapter_registry():
     global _adapter_cache
     if _adapter_cache is None:
-        _adapter_cache = load_adapter_registry(ADAPTERS_DIR)
+        _adapter_cache = load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs())
     return _adapter_cache
 
 

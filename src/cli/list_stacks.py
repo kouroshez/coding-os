@@ -13,6 +13,7 @@ from pathlib import Path
 
 import click
 
+from cli._resources import overlay_template_dirs
 from cli.stack_registry import load_stack_registry
 
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -92,7 +93,7 @@ def list_stacks(output_format: str) -> None:
     """List all available stacks discovered from templates/*/stack.yaml."""
     from cli.preset_registry import load_preset_registry
 
-    registry = load_stack_registry(TEMPLATES_DIR)
+    registry = load_stack_registry(TEMPLATES_DIR, overlay_dirs=overlay_template_dirs())
     presets = load_preset_registry(TEMPLATES_DIR, known_stacks=set(registry.keys()))
     if output_format == "json":
         click.echo(_render_json(registry, registry.warnings, presets))
