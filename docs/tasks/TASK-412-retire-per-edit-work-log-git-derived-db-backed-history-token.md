@@ -5,18 +5,17 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [ready]
-status: icebox
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-13
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260619-211916-fd8f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-412: Retire per-Edit Work Log → git-derived, DB-backed HISTORY (token-optimized agent view)
 
 **Outcome (one sentence):** Replace the per-Edit ## Work Log section with a git-derived, DB-backed HISTORY so the agent reads a token-optimized but technically-detailed task history; retiring the per-Edit append also removes the root cause of the stream phantom-row (TASK-411) and work-log-placement bugs. git becomes the single forensic record (consistent with the retired audit subsystem).

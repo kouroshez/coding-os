@@ -5,18 +5,17 @@ swimlane: infra
 kind: refactor
 epic: audit-remediation-2026-06
 labels: [audit-remediation, token-economics, ready]
-status: icebox
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-20
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260619-211916-fd8f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-468: Token-floor pass 2: measured rule-trim + block-tax tuning + dead-hook prune (C2-C5)
 
 **Outcome (one sentence):** The risky remainder of the token-economics audit after C1 (TASK-466) shipped the big mechanical win: C2 measured per-rule trim of the ~13K always-active rule floor (NOT mechanical — each rule is load-bearing; trim only proven-redundant prose, keep enforcement contracts); C3 retune block-tax (enforce-verify blocked twice in this very session even after docs-lint ran — investigate the ledger dedup/tree-invalidation friction, not just the count); C4 prune provably-dead hooks (needs a longer hook-firing telemetry window than the rolling .hooks.log to avoid removing rare-fire safety hooks like block-migration-conflict); C5 collapse session-state gate hooks where redundant. Each sub-item is measured (before/after token or block-rate) and verified (verify-hooks + golden + adapter parity), never a blind trim of a guardrail.
