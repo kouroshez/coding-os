@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [hub, http-parity, deferred, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-20
 started: 2026-06-20
-completed: null
+completed: 2026-06-20
 agent_session: ses-claude-20260620-144553-a8b6
 depends_on: []
 blocked_by: []
@@ -33,3 +33,4 @@ references: []
 - 2026-06-20 [claude]: Edit graph.py
 - 2026-06-20 [claude]: Edit test_web_server.py
 - 2026-06-20 [claude]: Added 7 GET routes to routes/graph.py (search, resolve, centrality, ranking, cycles, dead-code, diff) following the…
+- 2026-06-20 [claude]: committed c1831bdf · 2 files
