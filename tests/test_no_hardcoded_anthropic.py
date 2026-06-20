@@ -29,6 +29,7 @@ ALLOWED_MODEL_PATHS: set[str] = {
     "src/core/hooks/_helpers/presence_write.py",  # docstring example of the model arg
     "src/core/thinking_os/compress.py",  # COS_COMPRESS_MODEL env default
     "src/core/thinking_os/tests/test_compress.py",  # asserts _stamp_provenance echoes the model id
+    "src/core/thinking_os/tests/test_record_outcome.py",  # writes .model fixture + asserts resolution
     "src/core/thinking_os/agents/researcher.md",  # role frontmatter
     "src/core/thinking_os/agents/implementer.md",
     "src/core/thinking_os/agents/reviewer.md",
@@ -94,3 +95,40 @@ def test_scan_actually_covers_files() -> None:
     _iter_source_files() returns [] and the secret/model scan silently skips."""
     files = _iter_source_files()
     assert len(files) > 50, f"source scan collected only {len(files)} files — GUARDED_DIRS stale?"
+
+
+def _core_py_files() -> list[Path]:
+    return [
+        f
+        for f in (REPO_ROOT / "src" / "core").rglob("*.py")
+        if "__pycache__" not in f.parts
+    ]
+
+
+def test_no_claude_agent_options_construction_in_core() -> None:
+    """P8 anti-recurrence (TASK-472): src/core/** must never construct the adapter
+    SDK type directly — ClaudeAgentOptions builds route through the adapter seam
+    (claude_agent_options / claude_session_options in sdk_dispatcher.py). Catches
+    both `ClaudeAgentOptions(...)` and `sdk.ClaudeAgentOptions(...)`."""
+    import ast
+
+    offenders: list[str] = []
+    core_files = _core_py_files()
+    for path in core_files:
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8", errors="ignore"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            name = getattr(func, "attr", None) or getattr(func, "id", None)
+            if name == "ClaudeAgentOptions":
+                offenders.append(f"{path.relative_to(REPO_ROOT).as_posix()}:{node.lineno}")
+    assert core_files, "no src/core/**.py scanned — layout drift?"
+    assert not offenders, (
+        "ClaudeAgentOptions constructed inside src/core/** (P8 violation) at "
+        + ", ".join(offenders)
+        + " — route through _build_agent_options / the adapter sdk_dispatcher seam."
+    )

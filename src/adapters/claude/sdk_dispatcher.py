@@ -162,6 +162,14 @@ def claude_session_options(
         opts["fork_session"] = fork
     return ClaudeAgentOptions(**opts)
 
+
+def claude_agent_options(**kwargs: Any):
+    """Generic ClaudeAgentOptions constructor — the adapter seam core routes every
+    non-profile option build through (P8: core never constructs the SDK type itself)."""
+    from claude_agent_sdk import ClaudeAgentOptions
+
+    return ClaudeAgentOptions(**kwargs)
+
 # OTEL env vars the dispatcher copies from the parent process so the
 # sub-session emits to the same collector. No collector defaults are
 # bundled (D5) — operator sets exporter / endpoint / headers.

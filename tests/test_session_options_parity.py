@@ -62,3 +62,15 @@ def test_unmigrated_profile_raises(tmp_path):
     build = _load_builder()
     with pytest.raises(NotImplementedError):
         build("dispatch", cwd=str(tmp_path), model=None, system_prompt=None)
+
+
+def test_generic_agent_options_seam(tmp_path):
+    """The non-profile seam core routes its remaining builds through (TASK-472)."""
+    spec = importlib.util.spec_from_file_location("cos_test_claude_sdk_dispatcher2", DISPATCHER)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    o = mod.claude_agent_options(
+        cwd=str(tmp_path), model=None, max_turns=7, allowed_tools=["mcp__coding-os__*"]
+    )
+    assert o.max_turns == 7
+    assert "mcp__coding-os__*" in o.allowed_tools

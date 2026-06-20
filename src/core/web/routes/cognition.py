@@ -563,40 +563,58 @@ def _project_cwd() -> str:
     return str(current_project_root())
 
 
-_SESSION_OPTS_BUILDER = None
-_SESSION_OPTS_TRIED = False
+_ADAPTER_DISPATCHER_MOD = None
+_ADAPTER_DISPATCHER_TRIED = False
 
 
-def _session_options_builder():
-    """Load the Claude adapter's session-options builder (SSOT) via the dynamic adapter-load seam."""
-    global _SESSION_OPTS_BUILDER, _SESSION_OPTS_TRIED
-    if _SESSION_OPTS_TRIED:
-        return _SESSION_OPTS_BUILDER
-    _SESSION_OPTS_TRIED = True
+def _adapter_dispatcher():
+    """Load src/adapters/claude/sdk_dispatcher.py once — the adapter SDK-construction
+    seam (P8: every ClaudeAgentOptions build crosses this boundary into the adapter)."""
+    global _ADAPTER_DISPATCHER_MOD, _ADAPTER_DISPATCHER_TRIED
+    if _ADAPTER_DISPATCHER_TRIED:
+        return _ADAPTER_DISPATCHER_MOD
+    _ADAPTER_DISPATCHER_TRIED = True
     try:
         import importlib.util
         from pathlib import Path
 
         path = Path(__file__).resolve().parents[3] / "adapters" / "claude" / "sdk_dispatcher.py"
-        spec = importlib.util.spec_from_file_location("cos_adapter_claude_session_opts", path)
+        spec = importlib.util.spec_from_file_location("cos_adapter_claude_dispatcher", path)
         if spec and spec.loader:
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)
-            _SESSION_OPTS_BUILDER = getattr(mod, "claude_session_options", None)
+            _ADAPTER_DISPATCHER_MOD = mod
     except Exception as exc:
-        logger.debug("session-options builder load failed: %s", exc)
-    return _SESSION_OPTS_BUILDER
+        logger.debug("adapter dispatcher load failed: %s", exc)
+    return _ADAPTER_DISPATCHER_MOD
 
 
-def _chat_session_options(profile, sdk, *, cwd, model, system_prompt, effort=None, resume=None, fork=False):
-    """Build chat ClaudeAgentOptions via the adapter SSOT builder, with a defensive inline fallback."""
+def _session_options_builder():
+    """The adapter's profile-based session-options builder (SSOT), or None."""
+    mod = _adapter_dispatcher()
+    return getattr(mod, "claude_session_options", None) if mod else None
+
+
+def _build_agent_options(**kwargs):
+    """Construct ClaudeAgentOptions via the adapter seam — P8: core never builds the
+    SDK type itself. Raises if the adapter dispatcher cannot be loaded."""
+    mod = _adapter_dispatcher()
+    builder = getattr(mod, "claude_agent_options", None) if mod else None
+    if builder is None:
+        raise RuntimeError("claude adapter ClaudeAgentOptions seam unavailable")
+    return builder(**kwargs)
+
+
+def _chat_session_options(profile, *, cwd, model, system_prompt, effort=None, resume=None, fork=False):
+    """Build chat ClaudeAgentOptions via the adapter SSOT builder; on builder error
+    fall back to the chat-light kwargs, still constructed through the adapter seam."""
     build = _session_options_builder()
     if build is not None:
         try:
             return build(profile, cwd=cwd, model=model, system_prompt=system_prompt,
                          effort=effort, resume=resume, fork=fork)
         except Exception as exc:
-            logger.debug("session-options builder call failed (%s); inline fallback", exc)
+            logger.debug("session-options builder call failed (%s); generic seam fallback", exc)
     kwargs = dict(cwd=cwd, model=model, permission_mode="dontAsk",
                   setting_sources=[], include_partial_messages=True, system_prompt=system_prompt)
     if effort:
@@ -605,7 +623,7 @@ def _chat_session_options(profile, sdk, *, cwd, model, system_prompt, effort=Non
         if resume:
             kwargs["resume"] = resume
         kwargs["fork_session"] = fork
-    return sdk.ClaudeAgentOptions(**kwargs)
+    return _build_agent_options(**kwargs)
 
 
 _CHAT_PRESENCE_WRITER = None
@@ -989,7 +1007,7 @@ async def chat_new(
     # deny floor. No session_id: the CLI rejects non-UUID ids; the SDK mints
     # its own UUID, surfaced below from the stream as the `session` event.
     options = _chat_session_options(
-        "chat", sdk, cwd=cwd, model=model, system_prompt=system_prompt, effort=effort
+        "chat", cwd=cwd, model=model, system_prompt=system_prompt, effort=effort
     )
 
     async def event_gen():
@@ -1139,7 +1157,7 @@ async def author_task(
     model = body.get("model") or None
     cwd = _project_cwd()
     sid = f"ses-claude-author-{int(_time.time())}-{secrets.token_hex(3)}"
-    options = sdk.ClaudeAgentOptions(
+    options = _build_agent_options(
         cwd=cwd,
         model=model,
         permission_mode="dontAsk",
@@ -1347,7 +1365,7 @@ async def onboard(
             logger.debug("onboard PreToolUse gate error: %s", exc)
         return {}
 
-    options = sdk.ClaudeAgentOptions(
+    options = _build_agent_options(
         cwd=cwd,
         model=model,
         permission_mode="dontAsk",
@@ -1357,6 +1375,9 @@ async def onboard(
         allowed_tools=list(_ONBOARD_ALLOWED_TOOLS),
         disallowed_tools=["Bash"],  # deny wins even over the allow-list
         system_prompt=system_prompt,
+        # HookMatcher is the adapter SDK's type, constructed here because the hook
+        # closure is core-local; ClaudeAgentOptions itself still routes through the
+        # adapter seam. Migrating HookMatcher is tracked separately (out of scope).
         hooks={
             "PreToolUse": [
                 sdk.HookMatcher(
@@ -1439,7 +1460,7 @@ async def chat_send(
     # SSOT builder (chat_resume profile) — same chat-light policy as chat_new
     # (mcp + deny floor + no Write/Edit), plus resume/fork for the follow-up turn.
     options = _chat_session_options(
-        "chat_resume", sdk, cwd=cwd, model=model,
+        "chat_resume", cwd=cwd, model=model,
         system_prompt=_chat_system_prompt(model), resume=session_id, fork=fork,
     )
 
