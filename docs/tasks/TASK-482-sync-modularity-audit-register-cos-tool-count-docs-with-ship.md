@@ -5,18 +5,17 @@ swimlane: docs
 kind: docs
 epic: null
 labels: [modularity, audit-pass5, docs-sync, ready]
-status: icebox
+status: in_progress
 priority: P2
 appetite: 1d
 created: 2026-06-20
-started: null
+started: 2026-06-20
 completed: null
-agent_session: null
+agent_session: ses-claude-20260620-150945-6eba
 depends_on: [TASK-480, TASK-481]
 blocked_by: []
 references: []
 ---
-
 # TASK-482: Sync modularity-audit register + cos_* tool-count docs with shipped code (pass-5 closure)
 
 **Outcome (one sentence):** docs/engineering/modularity-audit-2026-06.md §8.3 marks the 9 landed findings as FIXED <sha> (TASK-471..474) instead of "open", corrects the stale P4-13 file citation (src/core/web/routes/cognition.py), softens the TASK-477 observability shed-count (7 not ~9), and the registered cos_* tool count is reconciled to the real number across docs/governance/mcp-tool-inventory.md + docs/engineering/mcp-schema-traps.md + the audit doc. Closes audit D7-1, D7-6, D7-2, D3-5 — satisfies the owner's docs-in-sync hard rule on the modularity SSOT itself.</outcome>
@@ -27,3 +26,14 @@ references: []
 - docs/engineering/mcp-schema-traps.md
 
 ## Work Log
+- 2026-06-20 [claude]: Edit _count_tools.py
+- 2026-06-20 [claude]: Edit _count_tools.py
+- 2026-06-20 [claude]: Edit modularity-audit-2026-06.md
+- 2026-06-20 [claude]: Edit modularity-audit-2026-06.md
+- 2026-06-20 [claude]: Edit modularity-audit-2026-06.md
+- 2026-06-20 [claude]: Edit modularity-audit-2026-06.md
+- 2026-06-20 [claude]: Edit modularity-audit-2026-06.md
+- 2026-06-20 [claude]: Edit modularity-audit-2026-06.md
+- 2026-06-20 [claude]: Edit mcp-schema-traps.md
+- 2026-06-20 [claude]: Edit modularity-audit-2026-06.md
+- 2026-06-20 [claude]: Synced register §8.3: 9 landed findings (P4-2/3/6/9/11/12/13/14/15) marked FIXED with closing shas…

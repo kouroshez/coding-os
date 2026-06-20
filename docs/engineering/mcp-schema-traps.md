@@ -8,7 +8,7 @@
 
 > Nav: [Engineering Index](./00-index.md) | [Docs Index](../00-index.md)
 
-> The 79 `cos_*` tools are deferred — their schemas are not loaded at session start. Agents must call `ToolSearch` before the first use of any tool. Several tools also have Pydantic-validated inputs whose field types are non-obvious and produce opaque validation errors when wrong. This file is the canonical reference for those traps.
+> The 87 `cos_*` tools are deferred — their schemas are not loaded at session start. Agents must call `ToolSearch` before the first use of any tool. Several tools also have Pydantic-validated inputs whose field types are non-obvious and produce opaque validation errors when wrong. This file is the canonical reference for those traps.
 
 ## Deferred Tool Loading (mandatory, session-scoped)
 
