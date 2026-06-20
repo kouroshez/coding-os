@@ -70,6 +70,6 @@ Read next: any of the entries below.
 - [Test Governance — Multi-Agent-Safe, Laptop-Safe Suite Execution](test-governance.md) — `ssot:true` · updated 2026-06-10
 - [Hub Threat Model — localhost trust boundary (TASK-363)](hub-threat-model.md) — `ssot:true` · updated 2026-06-11
 - [Project Anatomy — Polyglot Coexistence Contract](project-anatomy.md) — `ssot:true` · updated 2026-06-11
-- [Modularity / Auto-Sync Audit — June 2026](modularity-audit-2026-06.md) — `ssot:true` · updated 2026-06-18
+- [Modularity / Auto-Sync Audit — June 2026](modularity-audit-2026-06.md) — `ssot:true` · updated 2026-06-19
 
 <!-- END auto-index -->
