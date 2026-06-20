@@ -33,6 +33,7 @@ class ErrorEnvelope(BaseModel):
 # envelope error shape (i.e. anything that goes through unwrap()).
 ENVELOPE_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     400: {"model": ErrorEnvelope, "description": "Validation error."},
+    401: {"model": ErrorEnvelope, "description": "Unauthorized (COS_HUB_TOKEN required)."},
     403: {"model": ErrorEnvelope, "description": "Forbidden (permission / disabled module)."},
     404: {"model": ErrorEnvelope, "description": "Resource not found."},
     500: {"model": ErrorEnvelope, "description": "Internal error."},
@@ -42,6 +43,7 @@ ENVELOPE_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 _CATEGORY_TO_STATUS: dict[str, int] = {
     "validation": 400,
+    "unauthorized": 401,
     "permission": 403,
     "module_disabled": 403,  # capability gated off for this project (subsystem toggle)
     "not_found": 404,

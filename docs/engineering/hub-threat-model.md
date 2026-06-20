@@ -27,7 +27,8 @@ write capabilities on the machine it runs on.
 | Path traversal via project name | `^[a-z0-9][a-z0-9._-]{0,63}$` — no separators, no leading dot; target is always exactly one component under the validated parent | `_validate_init_inputs` ([hub.py](../../src/core/web/routes/hub.py)) |
 | Scaffolding over sensitive trees | parent must exist, be writable, not the meta-repo, not inside a registered project; existing target → 409 | `_validate_init_inputs` |
 | Argv injection into `cos init` | every subprocess argument validated against a registry (stacks, preset, agent, skills) — arbitrary strings never reach argv; fixed argv list, never `shell=True` | `_validate_init_inputs` + `_build_cos_init_cmd` |
-| Unauthorized mutations (shared machines / reverse-proxied hubs) | optional `COS_HUB_TOKEN` → every state-changing `/api/*` request requires `Authorization: Bearer <token>` (401 otherwise, constant-time compare, applies even with the CORS dev escape); reads stay open | `SecurityGateMiddleware` |
+| Unauthorized mutations (shared machines / reverse-proxied hubs) | optional `COS_HUB_TOKEN` → every state-changing `/api/*` request requires `Authorization: Bearer <token>` (401 otherwise, constant-time compare, applies even with the CORS dev escape) | `SecurityGateMiddleware` |
+| Unauthorized **reads** of the whole code graph from a remotely-reachable hub | when `COS_HUB_TOKEN` is set AND the resolved `Host` is non-loopback (not in `_BASE_ALLOWED_HOSTS` = `localhost`/`127.0.0.1`/`::1`), read `GET /api/*` also requires the bearer (401 otherwise). Loopback reads stay open and byte-unchanged — the single-user dev default is unaffected (TASK-487) | `SecurityGateMiddleware` |
 | Runaway/hostile init job | job cancel terminates the subprocess and removes the partial scaffold; failed init rolls back; terminal jobs GC'd | [init_jobs.py](../../src/core/web/init_jobs.py) |
 | Registry poisoning via scan | bounded scan (depth ≤ 6, ≤ 5000 dirs) + `.coding-os/` heuristic | hub.py scan route |
 
@@ -38,6 +39,13 @@ write capabilities on the machine it runs on.
   multi-user hub would replace it wholesale rather than extend it).
 - No rate limiting on localhost mutations: the actor already runs code on
   the machine; throttling adds friction without a security win.
+- Non-loopback detection trusts the `Host` header. A reverse proxy that
+  rewrites `Host` to a loopback name (or forges `X-Forwarded-*`) can present
+  as local; an operator placing the hub behind a proxy owns that proxy's
+  config and must preserve the real `Host` (or set `COS_HUB_TOKEN` and treat
+  the hub as authenticated regardless). The SPA bearer-on-reads client and a
+  real remote-auth UX are deferred until a hosted hub is an actual launch
+  decision — the server-side gate ships first to close the window.
 
 ## Regression coverage
 

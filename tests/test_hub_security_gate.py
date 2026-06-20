@@ -131,3 +131,35 @@ class TestCorsAllowAllEscapeHatch:
                 headers={"Origin": "http://evil.example.com"},
             )
         assert resp.status_code == 200, resp.text
+
+
+class TestReadAuthOnNonLoopback:
+    """TASK-487 — when COS_HUB_TOKEN is set, reads require the bearer on a
+    non-loopback host; loopback reads stay open and byte-unchanged."""
+
+    _REMOTE = "http://evil.example.com:9188"
+
+    def test_loopback_read_stays_open_with_token(self, hub_env, monkeypatch):
+        monkeypatch.setenv("COS_HUB_TOKEN", "s3cret")
+        with _local_client() as client:  # Host=localhost (loopback)
+            resp = client.get("/api/board/list")
+        assert resp.status_code != 401, resp.text
+
+    def test_non_loopback_read_requires_token(self, hub_env, monkeypatch):
+        monkeypatch.setenv("COS_HUB_TOKEN", "s3cret")
+        with TestClient(create_app(), base_url=self._REMOTE) as client:
+            resp = client.get("/api/board/list")
+        assert resp.status_code == 401, resp.text
+        assert resp.json()["error"]["category"] == "unauthorized"
+
+    def test_non_loopback_read_passes_with_bearer(self, hub_env, monkeypatch):
+        monkeypatch.setenv("COS_HUB_TOKEN", "s3cret")
+        with TestClient(create_app(), base_url=self._REMOTE) as client:
+            resp = client.get("/api/board/list", headers={"Authorization": "Bearer s3cret"})
+        assert resp.status_code != 401, resp.text
+
+    def test_non_loopback_read_open_when_token_unset(self, hub_env, monkeypatch):
+        monkeypatch.delenv("COS_HUB_TOKEN", raising=False)
+        with TestClient(create_app(), base_url=self._REMOTE) as client:
+            resp = client.get("/api/board/list")
+        assert resp.status_code != 401, resp.text

@@ -408,6 +408,7 @@ server-side test.
 | **Referer fallback** | same | if `Origin` is absent but `Referer` present, the `Referer` hostname must be allowlisted → else `403` |
 | **Host allowlist** | any request carrying Origin/Referer | the `Host` header hostname must be allowlisted (DNS-rebinding defense — a rebound page sends `Host: evil.com`) → else `403` |
 | **CSRF double-submit** | state-changing methods | the gate issues a readable `cos_csrf` cookie (SameSite=Lax) on responses; when that cookie is present on a request, the `X-CSRF-Token` header must echo it → else `403`. The SPA's `api-client.ts` reads the cookie and sends the header automatically. |
+| **Bearer on reads (non-loopback)** | `GET /api/*` when `COS_HUB_TOKEN` is set AND the resolved `Host` is non-loopback | `Authorization: Bearer <token>` required → else `401` (constant-time compare). A remotely-reachable hub otherwise serves the whole code graph unauthenticated. Loopback reads stay open + byte-unchanged; mutations require the bearer regardless of host (TASK-487). |
 
 The Origin allowlist is the cross-origin *guarantee*; the CSRF token is
 same-origin defense-in-depth (it engages once the cookie exists, i.e. in the

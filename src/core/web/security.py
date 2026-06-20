@@ -84,16 +84,26 @@ class SecurityGateMiddleware(BaseHTTPMiddleware):
         # Optional bearer token (TASK-363): when COS_HUB_TOKEN is set, every
         # state-changing API request must carry it — including non-browser
         # clients, and regardless of the CORS dev escape (fail-closed).
-        # Reads stay open; default (unset) keeps open-localhost behavior.
+        # Default (token unset) keeps open-localhost behavior.
+        #
+        # Read-route auth (TASK-487): on a NON-loopback host (reverse-proxy /
+        # shared box / 0.0.0.0 bind) a read `GET /api/*` exposes the entire
+        # code graph, so when the token is set reads require it there too.
+        # Loopback (the single-user dev default) keeps reads open and
+        # byte-unchanged. Non-loopback = the resolved Host is not in
+        # _BASE_ALLOWED_HOSTS. Caveat: a reverse proxy can forge Host /
+        # X-Forwarded-* (documented in hub-threat-model.md).
         token = _hub_token()
-        if (
-            token
-            and request.method.upper() in _MUTATING_METHODS
-            and request.url.path.startswith("/api/")
-        ):
-            supplied = request.headers.get("authorization", "")
-            if not secrets.compare_digest(supplied, f"Bearer {token}"):
-                return _unauthorized("COS_HUB_TOKEN is set — pass Authorization: Bearer <token>")
+        method = request.method.upper()
+        if token and method != "OPTIONS" and request.url.path.startswith("/api/"):
+            host_name = _hostname_of_authority(request.headers.get("host", ""))
+            non_loopback = bool(host_name) and host_name not in _BASE_ALLOWED_HOSTS
+            if method in _MUTATING_METHODS or non_loopback:
+                supplied = request.headers.get("authorization", "")
+                if not secrets.compare_digest(supplied, f"Bearer {token}"):
+                    return _unauthorized(
+                        "COS_HUB_TOKEN is set — pass Authorization: Bearer <token>"
+                    )
 
         if _cors_allow_all():
             return await call_next(request)
@@ -102,7 +112,6 @@ class SecurityGateMiddleware(BaseHTTPMiddleware):
         origin = headers.get("origin")
         referer = headers.get("referer")
         allowed = _allowed_hosts()
-        method = request.method.upper()
         is_mutation = method in _MUTATING_METHODS
         is_api = request.url.path.startswith("/api/")
 
