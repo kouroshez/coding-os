@@ -14,11 +14,11 @@ Read next: any of the entries below.
 
 - [Playbook — Security Review (Per-Change Overlay)](security-review.md) — `ssot:true` · updated 2026-05-08
 - [Playbook — Authoring or Modifying an Adapter](adapter-authoring.md) — `ssot:true` · updated 2026-05-08
-- [Playbook — Authoring a Stack Template](template-authoring.md) — `ssot:true` · updated 2026-05-08
 - [Playbook — Authoring a `cos_*` MCP Tool](mcp-tool-authoring.md) — `ssot:true` · updated 2026-05-08
 - [DB Reset Playbook — Wipe & Rebuild coding-os Data](db-reset.md) — `ssot:true` · updated 2026-05-12
 - [Playbook — Authoring a Hook in `src/core/hooks/`](hook-authoring.md) — `ssot:true` · updated 2026-05-13
 - [Playbook — Authoring a Rich Skill in `src/core/skills/` and `src/templates/<stack>/skills/`](skill-authoring.md) — `ssot:true` · updated 2026-06-04
+- [Playbook — Authoring a Stack Template](template-authoring.md) — `ssot:true` · updated 2026-06-19
 
 ### Reference (1)
 
