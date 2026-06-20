@@ -132,9 +132,22 @@ fi
 
 # ---------------------------------------------------------------------------
 # 5. Core rules
+# dimension-registry.md and skill-enforcement.md are DERIVED full-stack-catalog
+# matrices (one row per installed stack × dimension/glob). They are NOT linked as
+# always-active rules: SessionStart's skill_primer card already injects the
+# per-consumer, installed-stack-only view the agent should use, and
+# enforce-skill.sh carries its enforcement logic inline (it never reads the .md).
+# Linking the full catalog taxed every session ~4.5K tokens for stacks a project
+# does not use (audit 2026-06 token-economics, C1). They remain on-demand reference
+# at src/core/rules/ + .coding-os/templates/. A consumer that wants them always-on
+# can symlink them by hand.
 # ---------------------------------------------------------------------------
+_NON_ACTIVE_RULES="dimension-registry.md skill-enforcement.md"
 for rule in "${CODING_OS_ROOT}/core/rules/"*.md; do
   name=$(basename "$rule")
+  case " ${_NON_ACTIVE_RULES} " in
+    *" ${name} "*) continue ;;
+  esac
   ln -sf "$rule" "${PROJECT_ROOT}/${AGENT_DIR}/rules/${name}"
 done
 
