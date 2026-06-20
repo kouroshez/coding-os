@@ -1727,6 +1727,23 @@ class TestSubsystems:
         agents_md = (project_dir / "AGENTS.md").read_text(encoding="utf-8")
         assert "`graph-explorer`" not in agents_md, "disabled module's skill leaked into AGENTS.md"
 
+    def test_init_disable_module_unlinks_owned_commands(
+        self, runner: CliRunner, project_dir: Path
+    ) -> None:
+        """D1-1 (TASK-481): a module disabled at init sheds its owned slash-commands
+        from the adapter commands dir; always-on commands survive."""
+        project_dir.mkdir()
+        result = runner.invoke(cli, [
+            "init", "--agent", "claude", "-d", str(project_dir),
+            "--disable-module", "tasks", "--no-index", "--no-register",
+        ])
+        assert result.exit_code == 0, f"init failed: {result.output}"
+        commands_dir = project_dir / ".claude" / "commands"
+        for shed in ("board.md", "daily.md", "retro.md", "task.md"):
+            assert not (commands_dir / shed).exists(), f"{shed} must be unlinked when tasks off"
+        # An always-on (kernel-level) command survives the tasks disable.
+        assert (commands_dir / "classify.md").exists(), "kernel command wrongly shed"
+
     def test_doctor_detects_disabled_hook_scripts_drift(
         self, runner: CliRunner, project_dir: Path
     ) -> None:

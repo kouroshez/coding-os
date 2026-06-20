@@ -103,6 +103,102 @@ def _cascade_skills_after_toggle(
     return notes
 
 
+def _installed_adapter_commands_dirs(project_root: Path) -> list[Path]:
+    """Each installed adapter's commands dir (parity with the skills-dir scan in
+    skill_commands._installed_adapter_skills_dirs)."""
+    from cli._resources import adapters_dir
+    from cli.adapter_registry import load_adapter_registry
+
+    dirs: list[Path] = []
+    for adapter in load_adapter_registry(adapters_dir()).values():
+        commands_dir = getattr(adapter, "commands_dir", None)
+        if not commands_dir:
+            continue
+        agent_dir = project_root / commands_dir
+        if agent_dir.parent.is_dir():
+            dirs.append(agent_dir)
+    return dirs
+
+
+def _toggle_command_link(project_root: Path, name: str, *, link: bool) -> int:
+    """Link/unlink one core slash-command (`<name>.md`) in every adapter commands
+    dir. Returns links touched; 0 when the command source is absent."""
+    from cli._resources import core_dir
+
+    source = core_dir("commands") / f"{name}.md"
+    if not source.is_file():
+        return 0
+    touched = 0
+    for commands_root in _installed_adapter_commands_dirs(project_root):
+        link_path = commands_root / f"{name}.md"
+        if link:
+            commands_root.mkdir(parents=True, exist_ok=True)
+            if link_path.is_symlink() and not link_path.exists():
+                link_path.unlink()  # dangling link (target moved) — clear before relink
+            if not link_path.exists():
+                link_path.symlink_to(source)
+                touched += 1
+        elif link_path.is_symlink() or link_path.exists():
+            link_path.unlink()
+            touched += 1
+    return touched
+
+
+def cascade_module_commands(
+    project_root: Path,
+    module_id: str,
+    enabled: bool,
+    *,
+    modules: dict | None = None,
+) -> dict:
+    """Relink/unlink a module's owned slash-commands after a module toggle —
+    parity with cascade_module_skills. disable → unlink each owned command unless
+    another enabled module still owns it (ref-count); enable → relink. Idempotent."""
+    from cli.subsystems import load_subsystems, module_state
+
+    modules = modules or load_subsystems()
+    owned = sorted(modules[module_id].commands) if module_id in modules else []
+    if not owned:
+        return {"module": module_id, "linked": [], "unlinked": []}
+    state = module_state(project_root, modules)
+    still_owned = {
+        cmd
+        for mid, module in modules.items()
+        if mid != module_id and state.get(mid, True)
+        for cmd in module.commands
+    }
+    linked: list[str] = []
+    unlinked: list[str] = []
+    for name in owned:
+        if name in still_owned:
+            continue  # another enabled module still owns it — never unlink
+        if _toggle_command_link(project_root, name, link=enabled):
+            (linked if enabled else unlinked).append(name)
+    return {"module": module_id, "linked": linked, "unlinked": unlinked}
+
+
+def _cascade_commands_after_toggle(project: Path, module_id: str, enabled: bool) -> list[str]:
+    """Relink/unlink the module's owned commands (TASK-481), meta-repo guarded.
+
+    Best-effort like the skill cascade: state + allowlist already committed, so an
+    idempotent symlink hiccup is a `cos doctor` (modules.command_drift) follow-up,
+    never a reason to fail the toggle."""
+    from cli._init_helpers import is_coding_os_source_tree
+
+    if is_coding_os_source_tree(project):
+        return ["commands: cascade skipped (coding-os meta-repo — adapter links preserved)"]
+    try:
+        out = cascade_module_commands(project, module_id, enabled)
+    except Exception as exc:  # noqa: BLE001 — toggle already committed; surface, don't fail
+        return [f"commands: cascade skipped ({exc}) — run `cos doctor`"]
+    notes: list[str] = []
+    if out["unlinked"]:
+        notes.append(f"commands unlinked (module off): {', '.join(out['unlinked'])}")
+    if out["linked"]:
+        notes.append(f"commands relinked: {', '.join(out['linked'])}")
+    return notes
+
+
 def toggle_and_regen(
     project: Path, module_id: str, enabled: bool, *, keep_skills: bool = False
 ) -> tuple[ToggleResult, list[str]]:
@@ -148,6 +244,7 @@ def toggle_and_regen(
             [],
         )
     notes.extend(_cascade_skills_after_toggle(project, module_id, enabled, keep_skills))
+    notes.extend(_cascade_commands_after_toggle(project, module_id, enabled))
     return result, notes
 
 

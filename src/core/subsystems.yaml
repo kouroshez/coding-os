@@ -7,8 +7,12 @@
 # are non-disableable regardless of module membership (TASK-256 layer);
 # `kernel: true` additionally pins the whole module.
 #
-# Schema: id, label, kernel, hooks[], tools[], skills[], depends_on[], hidden.
+# Schema: id, label, kernel, hooks[], tools[], skills[], commands[], depends_on[], hidden.
 # `tools` trailing '*' = MCP prefix family (tools/_shared.py gate).
+# `commands` = slash-command stems (core/commands/<name>.md) UNAMBIGUOUSLY owned
+# by this module; disabling it unlinks them from the adapter commands dir
+# (ref-counted) via module_commands.cascade_module_commands (TASK-481). Always-on
+# commands (classify/verify/review/diagnose/new-project) are never listed.
 # `skills` = domain-skill names UNAMBIGUOUSLY owned by this module; disabling it
 # unlinks them (ref-counted, override-aware) via skill_commands.cascade_module_skills
 # (TASK-475). Always-on skills (clean-code, thinking_os, search) are never listed.
@@ -75,6 +79,7 @@ modules:
     hooks: [enforce-task-start, enforce-task-body, nudge-task-discovery, warn-abandoned-task, remind-daily, auto-task-sync, sync-task-current, link-commit-to-task, reclaim-sweep, capture-work-log]
     tools: ["cos_task_*", cos_work_log_append]
     skills: [task-driver]
+    commands: [board, daily, retro, task]
     depends_on: [docs]
 
   - id: graph
@@ -91,6 +96,7 @@ modules:
     hooks: [enforce-memory-check, capture-observation, jit-recall, nudge-learn-narrative, remind-learn-validate, auto-brain-decay, drain-embedding-outbox, check-capture-worked]
     tools: [cos_search, cos_observation_record, cos_timeline, cos_details, "cos_learn_*", "cos_retrieval_*", cos_promote, cos_digest_regenerate]
     skills: [agent-memory]
+    commands: [memory-search]
     depends_on: []
 
   - id: cognition
@@ -104,6 +110,10 @@ modules:
     # supervision, model/skill routing, situation detect. cos_classify_prompt
     # (Record Gate, core loop) + cos_health (diagnostic) stay KERNEL by design.
     tools: ["cos_dispatch_*", "cos_route_*", cos_compose_chain, cos_supervise, cos_supervise_record_output, cos_role_info, cos_situation_detect, cos_takeover, cos_analyze_task, cos_ambiguity_check, cos_backtrack_log, cos_discovery]
+    # /compose is the role-chain composition surface; /role-* commands map from
+    # thinking_os/agents/ (a separate source) and stay always-on (Rule 22 — not
+    # worth the agents/ source-mapping to gate a low-frequency advanced surface).
+    commands: [compose]
     depends_on: []
 
   - id: observability

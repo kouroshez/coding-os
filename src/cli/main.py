@@ -1957,6 +1957,7 @@ def _run_scaffold_phase(
     # same skill-parity `cos module disable` has at runtime by running the same
     # ref-counted cascade (a skill another enabled module owns is kept).
     if module_toggles:
+        from cli.module_commands import cascade_module_commands
         from cli.skill_commands import cascade_module_skills
 
         for module_id in module_toggles:
@@ -1964,11 +1965,21 @@ def _run_scaffold_phase(
                 cascade = cascade_module_skills(project, module_id, enabled=False)
             except Exception as exc:  # noqa: BLE001 — best-effort; `cos doctor` reconciles drift
                 click.echo(f"  WARN: skill cascade for '{module_id}' skipped ({exc})", err=True)
-                continue
-            if cascade["unlinked"]:
-                click.echo(
-                    f"  Skills unlinked ({module_id} off): {', '.join(cascade['unlinked'])}"
-                )
+            else:
+                if cascade["unlinked"]:
+                    click.echo(
+                        f"  Skills unlinked ({module_id} off): {', '.join(cascade['unlinked'])}"
+                    )
+            try:
+                cmd_cascade = cascade_module_commands(project, module_id, enabled=False)
+            except Exception as exc:  # noqa: BLE001 — best-effort; `cos doctor` reconciles drift
+                click.echo(f"  WARN: command cascade for '{module_id}' skipped ({exc})", err=True)
+            else:
+                if cmd_cascade["unlinked"]:
+                    click.echo(
+                        f"  Commands unlinked ({module_id} off): "
+                        f"{', '.join(cmd_cascade['unlinked'])}"
+                    )
 
     # 6. Aggregate base + stacks + adapter into a world.
     # Use the first agent for world building (substitutions, AGENTS.md).

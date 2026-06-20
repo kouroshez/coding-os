@@ -284,6 +284,98 @@ class TestModuleSkillCascade:
         assert check.severity == SEV_WARN and "graph-explorer" in check.message
 
 
+def _link_command_into(project: Path, name: str) -> Path:
+    """Symlink a real core slash-command's file into .claude/commands."""
+    from cli._resources import core_dir
+
+    source = core_dir("commands") / f"{name}.md"
+    assert source.is_file(), f"fixture assumes a real command: {name}"
+    link = project / ".claude" / "commands" / f"{name}.md"
+    link.parent.mkdir(parents=True, exist_ok=True)
+    link.symlink_to(source)
+    return link
+
+
+class TestModuleCommandCascade:
+    """TASK-481 — disabling a module unlinks its owned slash-commands (ref-counted);
+    re-enabling relinks them. Parity with TestModuleSkillCascade."""
+
+    def _project(self, tmp_path: Path) -> Path:
+        (tmp_path / ".coding-os.yaml").write_text("templates: []\n", encoding="utf-8")
+        (tmp_path / ".claude" / "commands").mkdir(parents=True, exist_ok=True)
+        return tmp_path
+
+    def test_disable_unlinks_owned_commands(self, tmp_path: Path) -> None:
+        from cli.module_commands import cascade_module_commands
+
+        project = self._project(tmp_path)
+        links = {c: _link_command_into(project, c) for c in ("board", "daily", "retro", "task")}
+        out = cascade_module_commands(project, "tasks", enabled=False)
+        assert set(out["unlinked"]) == {"board", "daily", "retro", "task"}
+        for link in links.values():
+            assert not link.exists() and not link.is_symlink()
+
+    def test_reenable_relinks_owned_commands(self, tmp_path: Path) -> None:
+        from cli.module_commands import cascade_module_commands
+
+        project = self._project(tmp_path)
+        out = cascade_module_commands(project, "tasks", enabled=True)
+        assert set(out["linked"]) == {"board", "daily", "retro", "task"}
+        assert (project / ".claude" / "commands" / "board.md").is_symlink()
+
+    def test_shared_command_survives_when_other_owner_enabled(self, tmp_path: Path) -> None:
+        from cli.module_commands import cascade_module_commands
+        from cli.subsystems import Module
+
+        project = self._project(tmp_path)
+        _link_command_into(project, "board")
+        synthetic = {
+            "tasks": Module(id="tasks", label="t", commands=("board",)),
+            "twin": Module(id="twin", label="x", commands=("board",)),
+        }
+        out = cascade_module_commands(project, "tasks", enabled=False, modules=synthetic)
+        assert out["unlinked"] == []  # twin still enabled owns board
+        assert (project / ".claude" / "commands" / "board.md").is_symlink()
+
+    def test_relink_idempotent_over_dangling_command_symlink(self, tmp_path: Path) -> None:
+        from cli.module_commands import _toggle_command_link
+
+        project = self._project(tmp_path)
+        link = project / ".claude" / "commands" / "board.md"
+        link.symlink_to(tmp_path / "gone.md")  # dangling: target absent
+        assert link.is_symlink() and not link.exists()
+        _toggle_command_link(project, "board", link=True)  # must not raise FileExistsError
+        assert link.exists() and link.is_symlink()
+
+    def test_every_owned_command_resolves(self) -> None:
+        from cli._resources import core_dir
+        from cli.subsystems import load_subsystems
+
+        for module in load_subsystems().values():
+            for name in module.commands:
+                assert (core_dir("commands") / f"{name}.md").is_file(), (
+                    f"module '{module.id}' owns unresolvable command '{name}'"
+                )
+
+    def test_doctor_flags_module_command_drift(self, tmp_path: Path) -> None:
+        from cli.doctor import SEV_PASS, SEV_WARN, DoctorReport, _check_module_command_drift
+        from cli.subsystems import set_module_enabled
+
+        project = self._project(tmp_path)
+        _link_command_into(project, "board")
+
+        ok_report = DoctorReport(project_dir=str(project), agent="claude", templates=[])
+        _check_module_command_drift(project, ok_report)
+        passing = next(c for c in ok_report.checks if c.id == "modules.command_drift")
+        assert passing.severity == SEV_PASS
+
+        assert set_module_enabled(project, "tasks", False).ok is True  # command stays linked
+        drift_report = DoctorReport(project_dir=str(project), agent="claude", templates=[])
+        _check_module_command_drift(project, drift_report)
+        check = next(c for c in drift_report.checks if c.id == "modules.command_drift")
+        assert check.severity == SEV_WARN and "board" in check.message
+
+
 class TestModuleStateHardening:
     """TASK-474 — concurrent-toggle lock (no lost-update) + corrupt-state visibility."""
 

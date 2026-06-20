@@ -1142,6 +1142,52 @@ def _check_module_skill_drift(project: Path, report: DoctorReport) -> None:
         logger.debug("module skill drift check skipped: %s", exc)
 
 
+def _check_module_command_drift(project: Path, report: DoctorReport) -> None:
+    """modules.command_drift — a disabled module's owned slash-command is still
+    linked in an adapter commands dir (TASK-481). A command also owned by an
+    ENABLED module is never drift (ref-count)."""
+    logger = logging.getLogger("coding_os.doctor")
+    try:
+        from cli.module_commands import _installed_adapter_commands_dirs
+        from cli.subsystems import load_subsystems, module_state
+
+        modules = load_subsystems()
+        state = module_state(project, modules)
+        enabled_owned = {
+            cmd
+            for mid, module in modules.items()
+            if state.get(mid, True)
+            for cmd in module.commands
+        }
+        command_dirs = _installed_adapter_commands_dirs(project)
+        drift: list[str] = []
+        for mid, module in modules.items():
+            if state.get(mid, True):
+                continue
+            for name in module.commands:
+                if name in enabled_owned:
+                    continue
+                cmd_file = f"{name}.md"
+                if any((d / cmd_file).exists() or (d / cmd_file).is_symlink() for d in command_dirs):
+                    drift.append(f"{name} (module '{mid}' off)")
+        if drift:
+            report.checks.append(
+                CheckResult(
+                    "modules.command_drift",
+                    SEV_WARN,
+                    f"{len(drift)} command(s) linked for disabled module(s): "
+                    + ", ".join(sorted(set(drift))[:4])
+                    + " — re-run `cos module disable <id>`",
+                )
+            )
+        else:
+            report.checks.append(
+                CheckResult("modules.command_drift", SEV_PASS, "no module/command drift")
+            )
+    except Exception as exc:
+        logger.debug("module command drift check skipped: %s", exc)
+
+
 def _check_subsystems_state_integrity(project: Path, report: DoctorReport) -> None:
     """modules.state_integrity — a corrupt subsystems-state.json fails OPEN to
     all-enabled silently (TASK-474 P4-12); surface it as a WARN, not a false PASS."""
@@ -1221,6 +1267,7 @@ def run_doctor(
     _check_hook_coverage(project, report)
     _check_module_consistency(project, report)
     _check_module_skill_drift(project, report)
+    _check_module_command_drift(project, report)
     _check_subsystems_state_integrity(project, report)
     _tick("runtime errors")
     _check_runtime_errors(state, report)
