@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Graph-First Rule (Meta-Stack)
 
-> **Inviolable**: when the question is *structural* — who calls, what breaks, what connects, rename, trace — call the graph **before** Read or grep. One envelope (~300 tok) replaces 5–10 file reads.
+> **Inviolable**: when the question is *structural* — who calls, what breaks, what connects, rename, trace — call the graph **before** Read or grep. A targeted envelope (references/impact/rename of one symbol) costs a few hundred to a few thousand tokens (heuristic chars/4; measured by `make bench` → `token_cost`) and replaces grepping + reading every matching file — the saving scales with codebase size. Whole-graph dumps (`export`/`communities`) cost far more (tens of thousands of tokens); reach for them deliberately, not for a quick lookup.
 
 | Intent | Tool |
 |---|---|
