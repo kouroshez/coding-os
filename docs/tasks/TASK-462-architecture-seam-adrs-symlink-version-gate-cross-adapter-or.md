@@ -5,12 +5,12 @@ swimlane: infra
 kind: chore
 epic: audit-remediation-2026-06
 labels: [audit-remediation, governance, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-20
 started: 2026-06-19
-completed: null
+completed: 2026-06-19
 agent_session: ses-claude-20260619-211916-fd8f
 depends_on: []
 blocked_by: []
@@ -23,3 +23,5 @@ references: []
 ## Work Log
 - 2026-06-20 [claude]: Edit 0010-consumer-distribution-version-gate.md
 - 2026-06-20 [claude]: Edit 0011-cross-adapter-orchestration-seam.md
+- 2026-06-20 [claude]: committed 76ca8fe6 · 3 files
+- 2026-06-20 [claude]: DONE: wrote ADR-0010 (consumer distribution version-gate — defer build, flip symlink→copy + BLOCKing core_version…
