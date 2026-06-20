@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [logging-os, routing, audit-pass4, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-20
-started: null
-completed: null
-agent_session: null
+started: 2026-06-20
+completed: 2026-06-20
+agent_session: ses-claude-20260620-015545-0bbe
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-473: Logging + routing correctness — durable floor decoupling (P4-2) + per-role model attribution (P4-9)
 
 **Outcome (one sentence):** COS_LOG_DB_MIN_LEVEL becomes the authoritative durability floor independent of the console floor COS_LOG_LEVEL (per-sink flooring), and the routing learning loop attributes a role's outcome to the model that actually ran the role (formula_dispatches.model), not the orchestrator's session model (task_outcomes.model). Closes two correctness defects B-4's population fix exposed.
@@ -34,3 +33,5 @@ COS_LOG_LEVEL=ERROR COS_LOG_DB_MIN_LEVEL=WARN; cos_say WARN demo → 0 log_event
 **Given** COS_LOG_LEVEL=ERROR + COS_LOG_DB_MIN_LEVEL=WARN and a session run under Opus that dispatched a role to Sonnet **When** a WARN is emitted through api._emit/cos_say and route_model later ranks for that complexity **Then** exactly one durable log_events row is written with no stderr line, AND route_model credits Sonnet (the per-role model) not Opus; AND regression tests cover both the console>db floor regime and the per-role attribution; AND thinking_os + logging_os matrix suites pass.
 
 ## Work Log
+- 2026-06-20 [claude]: commit 3c76fb9f9f — fix(logging): per-sink flooring + per-role model attribution (TASK-473)
+- 2026-06-20 [claude]: P4-2: per-sink flooring. api._emit + shell cos_say short-circuit only below min(console,db); stderr/text/jsonl gated…
