@@ -2,7 +2,7 @@
 
 <!-- BEGIN auto-index -->
 
-### Adr (11)
+### Adr (12)
 
 - [ADR-0001: Adopt Python src-layout](0001-src-layout.md) — `ssot:true` · updated 2026-04-15
 - [ADR-0005: board_os — file-first Scrumban with DB sync, not DB-first](0005-board-os-file-first-scrumban.md) — `ssot:true` · updated 2026-04-20
@@ -15,5 +15,6 @@
 - [ADR-0009: New-project flow is a single-screen Composer, not a step wizard](0009-new-project-composer.md) — `ssot:true` · updated 2026-06-15
 - [ADR-0011: Cross-adapter orchestration lives in core; P8 is not the blocker](0011-cross-adapter-orchestration-seam.md) — `ssot:true` · updated 2026-06-19
 - [ADR-0010: Consumer distribution needs a version gate before the first real consumer](0010-consumer-distribution-version-gate.md) — `ssot:true` · updated 2026-06-19
+- [ADR-0012: A lighthouse consumer (streamos) breaks the dogfood monoculture](0012-lighthouse-consumer-breaks-the-dogfood-monoculture.md) — `ssot:true` · updated 2026-06-20
 
 <!-- END auto-index -->
