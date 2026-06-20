@@ -80,19 +80,30 @@ def route_model(
             "data_points": total,
         }
 
-    # Query success rates per model for this complexity
-    conditions = ["complexity = ?"]
+    # Query success rates per model for this complexity. Per-role attribution
+    # (TASK-473 P4-9): credit the model that actually RAN the role
+    # (formula_dispatches.model, keyed by task_marker), falling back to the
+    # orchestrator model (task_outcomes.model) for tasks done with no role
+    # dispatch. The DISTINCT subquery collapses multiple same-model dispatches in
+    # one task to a single data point so one task isn't double-counted per role.
+    conditions = ["t.complexity = ?"]
     params: list = [complexity]
     if domain:
-        conditions.append("domain = ?")
+        conditions.append("t.domain = ?")
         params.append(domain)
     where = " AND ".join(conditions)
 
     rows = conn.execute(
-        f"SELECT model, "
+        "SELECT model, "
         "SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) AS successes, "
-        "COUNT(*) AS total "
-        f"FROM task_outcomes WHERE {where} AND model IS NOT NULL "
+        "COUNT(*) AS total FROM ("
+        "  SELECT DISTINCT t.task_id, COALESCE(fd.model, t.model) AS model, t.outcome "
+        "  FROM task_outcomes t "
+        "  LEFT JOIN formula_dispatches fd "
+        "    ON fd.task_marker = t.task_id AND fd.model IS NOT NULL "
+        f"  WHERE {where}"
+        ") per_task_model "
+        "WHERE model IS NOT NULL "
         "GROUP BY model "
         "HAVING total >= ?",
         params + [MIN_SAMPLES_PER_BUCKET],

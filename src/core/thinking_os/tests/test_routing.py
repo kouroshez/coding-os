@@ -155,6 +155,41 @@ class TestRouteModel:
         assert "data_points" in result
         assert result["data_points"] > 0
 
+    def test_credits_per_role_model_not_orchestrator(self, conn: sqlite3.Connection) -> None:
+        """TASK-473 P4-9: a session under opus that dispatched the role to sonnet
+        must credit sonnet (formula_dispatches.model), not opus (task_outcomes.model)."""
+        for i in range(12):
+            tid = f"TASK-{200 + i}"
+            conn.execute(
+                "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome, model) "
+                "VALUES (?, 'feat', 'BACKEND', 'COMPLICATED', 'success', 'opus')",
+                (tid,),
+            )
+            conn.execute(
+                "INSERT INTO formula_dispatches "
+                "(session_id, task_marker, persona_id, formula_id, input_hash, status, ts, model) "
+                "VALUES (?, ?, 'implementer', 'f', 'h', 'ok', datetime('now'), 'sonnet')",
+                (f"ses-{i}", tid),
+            )
+        conn.commit()
+        result = route_model(conn, complexity="COMPLICATED", domain="BACKEND")
+        assert result["recommended_model"] == "sonnet"
+        models = {s["model"] for s in result.get("model_stats", [])}
+        assert "sonnet" in models and "opus" not in models
+
+    def test_orchestrator_model_used_when_no_dispatch(self, conn: sqlite3.Connection) -> None:
+        """A task done directly (no formula_dispatch) still attributes to its
+        orchestrator model — the COALESCE fallback, so direct work isn't lost."""
+        for i in range(12):
+            conn.execute(
+                "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome, model) "
+                "VALUES (?, 'feat', 'BACKEND', 'COMPLICATED', 'success', 'haiku')",
+                (f"TASK-{300 + i}",),
+            )
+        conn.commit()
+        result = route_model(conn, complexity="COMPLICATED", domain="BACKEND")
+        assert result["recommended_model"] == "haiku"
+
 
 # ---------------------------------------------------------------------------
 # cos_route_skill

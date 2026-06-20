@@ -8,6 +8,7 @@ from typing import Any
 
 from .config import (
     Level,
+    current_level,
     db_min_level,
     db_path,
     detect_render,
@@ -21,7 +22,24 @@ from .render import render
 _dropped_events = 0
 
 
+def _event_level(event: dict[str, Any]) -> Level | None:
+    try:
+        return Level.from_name(event.get("lvl", ""))
+    except ValueError:
+        return None
+
+
+def _below_console_floor(event: dict[str, Any]) -> bool:
+    """True when this event is under the console floor (COS_LOG_LEVEL) — the
+    gate for the human-facing sinks (stderr + text mirror + jsonl tail). An
+    unparseable level fails OPEN (printed) rather than silently dropped."""
+    level = _event_level(event)
+    return level is not None and level < current_level()
+
+
 def _write_stderr(event: dict[str, Any]) -> None:
+    if _below_console_floor(event):
+        return
     line = render(detect_render(), event)
     try:
         sys.stderr.write(line + "\n")
@@ -54,10 +72,14 @@ def _append_line(path: Path, line: str) -> None:
 
 
 def _write_text_file(event: dict[str, Any]) -> None:
+    if _below_console_floor(event):
+        return
     _append_line(text_log_path(), render("short", event))
 
 
 def _write_jsonl_file(event: dict[str, Any]) -> None:
+    if _below_console_floor(event):
+        return
     _append_line(jsonl_log_path(), render("json", event))
 
 
@@ -105,11 +127,8 @@ def _insert_log_event(path: Path, event: dict[str, Any]) -> None:
 
 
 def _write_db(event: dict[str, Any]) -> None:
-    try:
-        level = Level.from_name(event.get("lvl", ""))
-    except ValueError:
-        return
-    if level < db_min_level():
+    level = _event_level(event)
+    if level is None or level < db_min_level():
         return  # hot path: debug/info/ok never touch the durable store
     path = db_path()
     if not path.exists():

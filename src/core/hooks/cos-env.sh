@@ -751,9 +751,28 @@ cos_say() {
     ERROR) floor_value=40 ;;
     FATAL) floor_value=50 ;;
   esac
-  if [[ "$level_value" -lt "$floor_value" ]]; then
+  # Per-sink flooring (TASK-473): the console floor (COS_LOG_LEVEL) gates the
+  # human sinks (stderr/text/jsonl); the durable floor (COS_LOG_DB_MIN_LEVEL,
+  # re-applied inside cos_say_json.py) gates the log_events row independently.
+  # Short-circuit only when the event clears NEITHER floor — flooring at the
+  # console level alone here dropped a WARN before the durable store saw it.
+  local db_floor_name db_floor_value=30
+  db_floor_name="$(echo "${COS_LOG_DB_MIN_LEVEL:-WARN}" | tr '[:lower:]' '[:upper:]')"
+  case "$db_floor_name" in
+    DEBUG) db_floor_value=10 ;;
+    INFO)  db_floor_value=20 ;;
+    OK)    db_floor_value=21 ;;
+    WARN)  db_floor_value=30 ;;
+    ERROR) db_floor_value=40 ;;
+    FATAL) db_floor_value=50 ;;
+  esac
+  local min_floor="$floor_value"
+  [[ "$db_floor_value" -lt "$min_floor" ]] && min_floor="$db_floor_value"
+  if [[ "$level_value" -lt "$min_floor" ]]; then
     return 0
   fi
+  local below_console=0
+  [[ "$level_value" -lt "$floor_value" ]] && below_console=1
 
   local kv=""
   if [[ $# -gt 0 ]]; then
@@ -816,18 +835,24 @@ cos_say() {
       ;;
   esac
 
-  printf '%s\n' "$stderr_line" >&2 2>/dev/null || true
+  # Human sinks respect the console floor; the durable log_events row was already
+  # written above by cos_say_json.py (gated by COS_LOG_DB_MIN_LEVEL) (TASK-473).
+  if [[ "$below_console" -eq 0 ]]; then
+    printf '%s\n' "$stderr_line" >&2 2>/dev/null || true
+  fi
 
   local log_file="${COS_LOG_FILE:-${COS_STATE_DIR}/.cos.log}"
-  {
-    mkdir -p "$(dirname "$log_file")" 2>/dev/null
-    printf '%s\n' "$short_line" >> "$log_file"
-  } 2>/dev/null || true
-
-  if [[ -n "$json_line" ]]; then
+  if [[ "$below_console" -eq 0 ]]; then
     {
-      printf '%s\n' "$json_line" >> "${log_file}.jsonl"
+      mkdir -p "$(dirname "$log_file")" 2>/dev/null
+      printf '%s\n' "$short_line" >> "$log_file"
     } 2>/dev/null || true
+
+    if [[ -n "$json_line" ]]; then
+      {
+        printf '%s\n' "$json_line" >> "${log_file}.jsonl"
+      } 2>/dev/null || true
+    fi
   fi
 
   return 0

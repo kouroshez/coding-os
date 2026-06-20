@@ -169,3 +169,22 @@ def test_session_and_trace_stamped_from_env(
     ).fetchone()
     assert row[0] == "ses-xyz"
     assert row[1] == "trace-1"
+
+
+def test_warn_persists_durably_below_console_floor(
+    temp_state: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """TASK-473: with the console floor (ERROR) above the durable floor (WARN),
+    api.warn() must still reach the DB — the _emit early-out floors at
+    min(console, db), not at the console level that previously dropped it."""
+    monkeypatch.setenv("COS_LOG_LEVEL", "ERROR")
+    monkeypatch.setenv("COS_LOG_DB_MIN_LEVEL", "WARN")
+    _migrated_db(temp_state)
+    api.warn("core.test", "decoupled durable")
+    count = (
+        sqlite3.connect(str(temp_state / "coding-os.db"))
+        .execute("SELECT count(*) FROM log_events")
+        .fetchone()[0]
+    )
+    assert count == 1
+    assert capsys.readouterr().err == ""  # no stderr line below the console floor

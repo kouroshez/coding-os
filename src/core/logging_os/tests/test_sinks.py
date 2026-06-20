@@ -14,6 +14,11 @@ def temp_log_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
     monkeypatch.delenv("COS_LOG_FILE", raising=False)
     monkeypatch.delenv("COS_DB_PATH", raising=False)
+    # Reset the floors so a sibling test that called setup()/install_bridge (which
+    # write COS_LOG_LEVEL into os.environ directly) can't leak its console floor in
+    # and gate the human sinks unexpectedly — parity with test_api.py's fixture.
+    monkeypatch.delenv("COS_LOG_LEVEL", raising=False)
+    monkeypatch.delenv("COS_LOG_DB_MIN_LEVEL", raising=False)
     return tmp_path
 
 
@@ -168,3 +173,19 @@ def test_db_sink_noop_without_db(
     sinks.dispatch(_event())  # WARN — no db file → skipped, not dropped
     assert sinks.dropped_events() == before
     assert (temp_log_dir / ".cos.log.jsonl").exists()
+
+
+def test_console_floor_gates_human_sinks_not_db(
+    temp_log_dir: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """TASK-473: COS_LOG_LEVEL=ERROR (console) + COS_LOG_DB_MIN_LEVEL=WARN (durable)
+    — a WARN writes exactly one durable row but no stderr/text/jsonl line."""
+    monkeypatch.setenv("COS_LOG_LEVEL", "ERROR")
+    monkeypatch.setenv("COS_LOG_DB_MIN_LEVEL", "WARN")
+    db = _migrated_db(temp_log_dir)
+    sinks.dispatch(_event())  # WARN
+    rows = sqlite3.connect(str(db)).execute("SELECT count(*) FROM log_events").fetchone()[0]
+    assert rows == 1  # durable floor honored independently of the console floor
+    assert capsys.readouterr().err == ""  # console floor (ERROR) suppressed the human line
+    assert not (temp_log_dir / ".cos.log").exists()  # text sink also gated by console floor
+    assert not (temp_log_dir / ".cos.log.jsonl").exists()
