@@ -4,6 +4,7 @@ import { useApiGet } from '@/lib/hooks';
 import { kindColor } from '@/lib/node-colors';
 import ImpactPanel from '@/features/graph/ImpactPanel';
 import RefactorPanel from '@/features/graph/RefactorPanel';
+import DiffTriagePanel from '@/features/graph/DiffTriagePanel';
 
 interface Neighbour {
   uid: string;
@@ -31,7 +32,7 @@ interface ContextPayload {
 // Right-pane node inspector. Calls /api/graph/context and renders the
 // key fields plus an "Open in Editor" vscode:// link when file_path
 // is known.
-const INSPECTOR_TABS = ['context', 'impact', 'refactor'] as const;
+const INSPECTOR_TABS = ['context', 'impact', 'refactor', 'diff'] as const;
 type InspectorTab = (typeof INSPECTOR_TABS)[number];
 
 export default function NodeInspector({ uid }: { uid: string }) {
@@ -105,6 +106,7 @@ export default function NodeInspector({ uid }: { uid: string }) {
 
       {tab === 'impact' && <ImpactPanel uid={uid} />}
       {tab === 'refactor' && <RefactorPanel uid={uid} />}
+      {tab === 'diff' && <DiffTriagePanel />}
       {tab === 'context' && (
         <>
       {data.spine && data.spine.length > 0 && (

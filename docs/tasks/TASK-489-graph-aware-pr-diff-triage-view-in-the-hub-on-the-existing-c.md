@@ -30,3 +30,9 @@ references: []
 **Given** cos_graph_diff (graph.py:4279, delegating to detect_changes) already computes changed-symbol → downstream impact and the /diff HTTP route is delivered by TASK-488, **When** a reviewer enters a base..head range in the Hub, **Then** a thin view renders changed symbols, downstream_consumers, downstream_tasks, and risk_level by consuming the /diff route with no new kernel. **And** walk_truncated is surfaced honestly when the impact walk hits its visit cap. **And** risk_level is labelled heuristic (edge-count thresholds), never an authoritative score. **And** the view degrades gracefully when no PR-ingestion feed exists (manual range entry still works).
 
 ## Work Log
+- 2026-06-20 [claude]: Edit DiffTriagePanel.tsx
+- 2026-06-20 [claude]: Edit NodeInspector.tsx
+- 2026-06-20 [claude]: Edit NodeInspector.tsx
+- 2026-06-20 [claude]: Edit NodeInspector.tsx
+- 2026-06-20 [claude]: Edit DiffTriagePanel.test.tsx
+- 2026-06-20 [claude]: Added DiffTriagePanel.tsx — a thin Hub view that takes a base..head range, consumes the /api/graph/diff route…
