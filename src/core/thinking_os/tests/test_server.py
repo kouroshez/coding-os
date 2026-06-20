@@ -80,7 +80,6 @@ class TestHealthTool:
             "task_outcomes",
             "agent_metrics",
             "learned_patterns",
-            "experiment_log",
             "observations",
             "session_summaries",
         ]

@@ -125,7 +125,6 @@ EXPECTED_TABLES = [
     "task_outcomes",
     "agent_metrics",
     "learned_patterns",
-    "experiment_log",
     "observations",
     "session_summaries",
     "schema_version",
@@ -266,7 +265,6 @@ class TestDbStats:
             "task_outcomes",
             "agent_metrics",
             "learned_patterns",
-            "experiment_log",
             "observations",
             "session_summaries",
         ]:

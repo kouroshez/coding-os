@@ -34,7 +34,6 @@ schema:
   - document_chunks_fts_docsize
   - document_chunks_fts_idx
   - embeddings
-  - experiment_log
   - file_index_state
   - formula_dispatches
   - graph_edges_v12

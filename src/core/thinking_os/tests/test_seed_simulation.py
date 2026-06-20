@@ -7,7 +7,6 @@ Simulates 20+ personas across 6 months of project history with:
   - 500 observations (Write/Edit across all domains)
   - 100 agent metrics (different models, agent types)
   - 30 sessions
-  - 20 experiments
 
 Then exercises every tool to verify the system works under realistic load.
 """
@@ -327,45 +326,6 @@ def seed_sessions(conn: sqlite3.Connection, count: int = 30) -> int:
     return count
 
 
-def seed_experiments(conn: sqlite3.Connection, count: int = 20) -> int:
-    """Seed experiment_log."""
-    hypotheses = [
-        "Using opus for COMPLEX tasks reduces rework rate",
-        "TDD-first approach improves BACKEND success rate",
-        "Splitting large tasks into smaller ones reduces blocked outcomes",
-        "Adding security-reviewer agent catches more vulnerabilities",
-        "Haiku is sufficient for CLEAR documentation tasks",
-        "Parallel subagents speed up multi-domain tasks",
-        "Running lint before tests catches issues earlier",
-        "Using django-tdd skill reduces BACKEND rework",
-        "Frontend hydration errors decrease with nextjs-react skill",
-        "Celery task failures correlate with missing error handling",
-    ]
-
-    for i in range(count):
-        task_id = f"TASK-{random.randint(1, 200):03d}"
-        hypothesis = random.choice(hypotheses)
-        outcome = random.choice(["confirmed", "refuted", "inconclusive"])
-        created = _random_date()
-
-        conn.execute(
-            "INSERT INTO experiment_log "
-            "(task_id, hypothesis, test_description, outcome, learning, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (
-                task_id,
-                hypothesis,
-                f"Tested over {random.randint(5, 20)} tasks",
-                outcome,
-                f"{'Pattern validated' if outcome == 'confirmed' else 'Need more data'}",
-                created,
-            ),
-        )
-
-    conn.commit()
-    return count
-
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -382,7 +342,6 @@ def seeded_conn(tmp_path: Path) -> sqlite3.Connection:
     seed_observations(conn, 500)
     seed_agent_metrics(conn, 100)
     seed_sessions(conn, 30)
-    seed_experiments(conn, 20)
 
     return conn
 
@@ -401,7 +360,6 @@ class TestSeedHealth:
         assert stats["tables"]["observations"] == 500
         assert stats["tables"]["agent_metrics"] == 100
         assert stats["tables"]["session_summaries"] == 30
-        assert stats["tables"]["experiment_log"] == 20
 
     def test_fts5_indexed(self, seeded_conn: sqlite3.Connection):
         if not has_fts5_table(seeded_conn):

@@ -1948,6 +1948,20 @@ DROP TABLE IF EXISTS doc_audit_trail;
     logger.info("Migration v42 applied: doc_audit_trail dropped (audit retirement)")
 
 
+def _migrate_v43_drop_experiment_log(conn: sqlite3.Connection) -> None:
+    """Migration v43 — drop experiment_log (audit 2026-06-19, group B5). The table
+    was created in the v1 schema for the Experiment Protocol but never got a write
+    path (zero writers in 260 tasks); only a dashboard reader + stats count showed
+    a perpetual 0. Speculative scaffolding for a feature with no demand → removed
+    per anti-overengineering. If the Experiment Protocol later needs persistence, a
+    task adds the table + its write tool together. Idempotent (IF EXISTS)."""
+    conn.executescript("""\
+DROP TABLE IF EXISTS experiment_log;
+""")
+    conn.commit()
+    logger.info("Migration v43 applied: experiment_log dropped (no writer, B5)")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2280,6 +2294,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         "Drop doc_audit_trail — audit concept retired project-wide; git is the forensic record (TASK-401)",
         _migrate_v42_drop_doc_audit_trail,
     ),
+    (
+        43,
+        "Drop experiment_log — created in v1 but never wired (zero writers); speculative scaffolding removed (B5)",
+        _migrate_v43_drop_experiment_log,
+    ),
 ]
 
 
@@ -2490,7 +2509,6 @@ _TABLES = [
     "task_outcomes",
     "agent_metrics",
     "learned_patterns",
-    "experiment_log",
     "observations",
     "session_summaries",
     "outcome_history",

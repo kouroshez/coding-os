@@ -56,11 +56,6 @@ def seeded_path(db_path: Path) -> Path:
                 "INSERT INTO observations (title, memory_type) VALUES (?, ?)",
                 (f"Obs {i}", "discovery"),
             )
-        # Experiments
-        conn.execute(
-            "INSERT INTO experiment_log (task_id, hypothesis, outcome) VALUES (?, ?, ?)",
-            ("TASK-5", "Test hypothesis", "pass"),
-        )
         conn.commit()
     finally:
         conn.close()
@@ -100,11 +95,6 @@ class TestDashboard:
         output = generate_dashboard(seeded_path)
         assert "Domain Failure Hotspots" in output
         assert "BACKEND" in output or "FRONTEND" in output
-
-    def test_experiments_section(self, seeded_path: Path) -> None:
-        output = generate_dashboard(seeded_path)
-        assert "Recent Experiments" in output
-        assert "Test hypothesis" in output
 
     def test_no_crash_on_empty_sections(self, db_path: Path) -> None:
         output = generate_dashboard(db_path)

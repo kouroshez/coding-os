@@ -80,7 +80,6 @@ def generate_dashboard(db_path: str | Path | None = None) -> str:
         lines.append(f"  Observations   : {stats['tables']['observations']}")
         lines.append(f"  Task outcomes  : {stats['tables']['task_outcomes']}")
         lines.append(f"  Agent metrics  : {stats['tables']['agent_metrics']}")
-        lines.append(f"  Experiments    : {stats['tables']['experiment_log']}")
         lines.append(f"  Sessions       : {stats['tables']['session_summaries']}")
         lines.append("")
 
@@ -144,22 +143,6 @@ def generate_dashboard(db_path: str | Path | None = None) -> str:
                 )
         else:
             lines.append("  (no data)")
-        lines.append("")
-
-        # --- Section 5: Recent Experiments ---
-        lines.append("── Recent Experiments (last 5) ────────────────────")
-        exp_rows = conn.execute(
-            "SELECT task_id, hypothesis, outcome FROM experiment_log "
-            "ORDER BY created_at DESC LIMIT 5"
-        ).fetchall()
-        if exp_rows:
-            for row in exp_rows:
-                d = dict(row)
-                icon = "✓" if d["outcome"] == "pass" else "✗" if d["outcome"] == "fail" else "?"
-                hyp = (d["hypothesis"] or "")[:50]
-                lines.append(f"  [{icon}] {d['task_id']}: {hyp}")
-        else:
-            lines.append("  (no experiments)")
         lines.append("")
 
         return "\n".join(lines)
