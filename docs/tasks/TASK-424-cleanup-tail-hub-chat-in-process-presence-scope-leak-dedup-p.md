@@ -5,13 +5,13 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: [ready]
-status: blocked
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-15
 started: 2026-06-15
 completed: null
-agent_session: ses-claude-20260614-214422-d991
+agent_session: ses-claude-20260620-015545-0bbe
 depends_on: []
 blocked_by: []
 references: []
@@ -30,4 +30,5 @@ references: []
 **Given** the Hub chat and the web routes, **When** a chat turn runs and the routes resolve state, **Then** the chat session is written to sessions/<resolved-sid>.json (stamped with the host pid) and appears in /api/presence, sessions.py applies the is_explicit_project_scope gate like its siblings, and the targeted route/presence tests pass.
 
 ## Work Log
-- 2026-06-15 [claude]: P13 (b2f1426e) + P8 (5d185a51) LANDED. P13: chat_new/chat_send write Hub-chat presence via the adapter's unified writer 
+- 2026-06-15 [claude]: P13 (b2f1426e) + P8 (5d185a51) LANDED. P13: chat_new/chat_send write Hub-chat presence via the adapter's unified writer
+- 2026-06-20 [claude]: Archiving (no-necessary-now). Both load-bearing acceptance items already landed on main: P13 Hub-chat presence…
