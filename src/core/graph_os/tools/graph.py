@@ -5420,14 +5420,31 @@ def cos_graph_resolve(
     )
 
 
+# Arabic/Persian harakat — combining vowel + gemination marks (U+064B–U+0652)
+# plus the superscript alef (U+0670). The unicode61 `remove_diacritics 2`
+# tokenizer folds Latin combining marks but NOT these, so a harakat-bearing
+# query would miss a harakat-free indexed form. Strip them from the query so
+# the common case (harakat-typed query vs harakat-free index) matches. Full
+# symmetric folding of harakat-bearing INDEXED text needs an FTS-rebuild
+# migration and is deferred until Persian/Arabic is a named market (TASK-485).
+_HARAKAT_STRIP = {cp: None for cp in (*range(0x064B, 0x0653), 0x0670)}
+
+
+def _fold_harakat(raw: str) -> str:
+    """Drop Arabic/Persian harakat so a vowel-marked query folds to its base."""
+    return raw.translate(_HARAKAT_STRIP)
+
+
 def _fts5_safe_query(raw: str) -> str:
     """Sanitise a free-text query for FTS5.
 
     FTS5 reserves `"`, `*`, `(`, `)`, `:`. We strip them rather than
     quote-escape because most agent queries are noun phrases — splitting
     into tokens with implicit AND is the highest-recall behaviour.
+    Arabic/Persian harakat are folded first (see _fold_harakat).
     Returns empty string on degenerate input so the caller skips FTS.
     """
+    raw = _fold_harakat(raw)
     cleaned = []
     for ch in raw:
         if ch.isalnum() or ch in "._-":

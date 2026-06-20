@@ -1141,3 +1141,16 @@ def test_every_tool_uses_graph_layer(seeded_backend):
         env = _decode(thunk())
         if env["ok"]:
             assert env["data"]["meta"]["layer"] == "graph", name
+
+
+def test_harakat_query_folds_to_base_form():
+    """A harakat-bearing Arabic/Persian query folds to its harakat-free base, so
+    both forms produce the identical FTS5 query (cross-form match, TASK-485)."""
+    bare = "علم"
+    voweled = "عِلْم"  # same word with kasra (U+0650) + sukun (U+0652)
+    assert voweled != bare
+    assert graph._fold_harakat(voweled) == bare
+    # The two forms must yield the same FTS5 MATCH string — this is the
+    # query-side half of harakat-insensitive search.
+    assert graph._fts5_safe_query(voweled) == graph._fts5_safe_query(bare)
+    assert graph._fts5_safe_query(bare)  # non-empty (token survived)
