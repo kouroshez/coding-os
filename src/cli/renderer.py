@@ -79,6 +79,35 @@ def _modules_context(active_modules: dict[str, bool] | None) -> dict[str, bool]:
     return base
 
 
+def _disabled_module_skills(modules: dict[str, bool]) -> set[str]:
+    """Skills owned ONLY by disabled modules — ref-counted so a skill an
+    enabled module also owns survives (parity with the on-disk skill cascade in
+    skill_commands.planned_skill_unlinks)."""
+    from cli.subsystems import load_subsystems
+
+    registry = load_subsystems()
+    enabled_owned = {s for mid, m in registry.items() if modules.get(mid, True) for s in m.skills}
+    disabled_owned = {
+        s for mid, m in registry.items() if not modules.get(mid, True) for s in m.skills
+    }
+    return disabled_owned - enabled_owned
+
+
+def _gate_installed_skills(
+    context: dict, world: AggregatedWorld, modules: dict[str, bool]
+) -> None:
+    """Drop a disabled module's owned skills from the rendered `## Skills` list
+    (INSTALLED_SKILLS) so a gated module leaves no orphaned skill mention (audit
+    D2-2). No-op when nothing is disabled, so the all-on render is byte-identical."""
+    dropped = _disabled_module_skills(modules)
+    if not dropped:
+        return
+    kept = [s for s in world.skills if s not in dropped]
+    subs = dict(context.get("substitutions") or {})
+    subs["INSTALLED_SKILLS"] = ", ".join(f"`{s}`" for s in kept)
+    context["substitutions"] = subs
+
+
 def render_agents_md(
     world: AggregatedWorld, active_modules: dict[str, bool] | None = None
 ) -> str:
@@ -102,6 +131,7 @@ def render_agents_md(
 
     modules = _modules_context(active_modules)
     context = {**_world_to_context(world), "modules": modules}
+    _gate_installed_skills(context, world, modules)
     rendered_parts: list[str] = []
     for section in world.agents_md_sections:
         env = env_for(section.owner_dir)

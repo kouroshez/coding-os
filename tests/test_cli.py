@@ -1708,6 +1708,25 @@ class TestSubsystems:
         assert expected, "graph module should own disabled hooks"
         assert actual == expected, f"allowlist {actual} != module state {expected}"
 
+    def test_init_disable_module_unlinks_owned_skill_and_gates_agents_md(
+        self, runner: CliRunner, project_dir: Path
+    ) -> None:
+        """D2-1/D2-2 (TASK-480): a module disabled at init sheds its owned core
+        skill from BOTH the adapter skills dir AND the rendered AGENTS.md skills
+        list — init reaches the skill-parity `cos module disable` has at runtime."""
+        project_dir.mkdir()
+        result = runner.invoke(cli, [
+            "init", "--agent", "claude", "-d", str(project_dir),
+            "--disable-module", "graph", "--no-index", "--no-register",
+        ])
+        assert result.exit_code == 0, f"init failed: {result.output}"
+        # D2-1: the graph-owned core skill must NOT be linked in the adapter dir.
+        skill_link = project_dir / ".claude" / "skills" / "graph-explorer" / "SKILL.md"
+        assert not skill_link.exists(), "graph-explorer must be unlinked when graph is off at init"
+        # D2-2: it must also be gone from the AGENTS.md ## Skills list.
+        agents_md = (project_dir / "AGENTS.md").read_text(encoding="utf-8")
+        assert "`graph-explorer`" not in agents_md, "disabled module's skill leaked into AGENTS.md"
+
     def test_doctor_detects_disabled_hook_scripts_drift(
         self, runner: CliRunner, project_dir: Path
     ) -> None:

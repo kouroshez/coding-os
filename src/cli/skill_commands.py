@@ -419,6 +419,8 @@ def _relink_core_stack_skill(
         link_path = skill_dir / "SKILL.md"
         if link:
             skill_dir.mkdir(parents=True, exist_ok=True)
+            if link_path.is_symlink() and not link_path.exists():
+                link_path.unlink()  # dangling link (target moved) — clear before relink
             if not link_path.exists():
                 link_path.symlink_to(source_skill_md)
                 touched += 1
@@ -442,6 +444,8 @@ def _relink_community_skill(project_root: Path, name: str, *, link: bool) -> int
         link_path = skills_root / name
         if link:
             skills_root.mkdir(parents=True, exist_ok=True)
+            if link_path.is_symlink() and not link_path.exists():
+                link_path.unlink()  # dangling link (target moved) — clear before relink
             if not link_path.exists():
                 link_path.symlink_to(source)
                 touched += 1

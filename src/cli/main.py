@@ -1952,6 +1952,24 @@ def _run_scaffold_phase(
         for agent in agents:
             _link_stack_skills(agent, template, project)
 
+    # 5c. A module disabled above must shed its owned skills too (audit D2-1):
+    # the adapter install (step 4) links every core skill, so init reaches the
+    # same skill-parity `cos module disable` has at runtime by running the same
+    # ref-counted cascade (a skill another enabled module owns is kept).
+    if module_toggles:
+        from cli.skill_commands import cascade_module_skills
+
+        for module_id in module_toggles:
+            try:
+                cascade = cascade_module_skills(project, module_id, enabled=False)
+            except Exception as exc:  # noqa: BLE001 — best-effort; `cos doctor` reconciles drift
+                click.echo(f"  WARN: skill cascade for '{module_id}' skipped ({exc})", err=True)
+                continue
+            if cascade["unlinked"]:
+                click.echo(
+                    f"  Skills unlinked ({module_id} off): {', '.join(cascade['unlinked'])}"
+                )
+
     # 6. Aggregate base + stacks + adapter into a world.
     # Use the first agent for world building (substitutions, AGENTS.md).
     # All adapters share the same core content; adapter-specific setup

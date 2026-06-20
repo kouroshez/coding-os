@@ -52,6 +52,18 @@ class TestConditionalRendering:
         restored = render_agents_md(world, {"tasks": True})
         assert restored == render_agents_md(world)  # byte-identical restore
 
+    def test_disabled_module_skill_drops_from_installed_skills_list(self, world) -> None:
+        """D2-2 (TASK-480): a disabled module's owned skill leaves the rendered
+        `## Skills` (INSTALLED_SKILLS) list — ref-counted, byte-identical all-on."""
+        all_on = render_agents_md(world)
+        assert "`graph-explorer`" in all_on and "`task-driver`" in all_on
+        graph_off = render_agents_md(world, {"graph": False})
+        assert "`graph-explorer`" not in graph_off
+        assert "`task-driver`" in graph_off  # only the gated module's skill drops
+        tasks_off = render_agents_md(world, {"tasks": False})
+        assert "`task-driver`" not in tasks_off
+        assert render_agents_md(world, {"graph": True}) == all_on  # byte-identical restore
+
     def test_disabled_module_hooks_join_runtime_allowlist(self, tmp_path: Path) -> None:
         from cli.project_overrides import disabled_hook_scripts, effective_disabled_hooks
         from cli.subsystems import set_module_enabled
@@ -153,6 +165,22 @@ class TestModuleSkillCascade:
         assert set(out["unlinked"]) == {"graph-explorer", "graph-os-authoring"}
         for link in links.values():
             assert not link.exists(), "owned skill symlink must be unlinked"
+
+    def test_relink_is_idempotent_over_dangling_symlink(self, tmp_path: Path) -> None:
+        """D1-2 (TASK-480): re-linking a skill whose symlink dangles (target moved
+        — the case `cos sync-doctor --repair` cleans) must not raise FileExistsError;
+        the relink clears the dangling link and re-points it at the real source."""
+        from cli.skill_commands import _relink_core_stack_skill, _skill_source_skill_md
+
+        project = self._project(tmp_path)
+        source = _skill_source_skill_md("graph-explorer", "core")
+        assert source is not None
+        link = project / ".claude" / "skills" / "graph-explorer" / "SKILL.md"
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(tmp_path / "gone" / "SKILL.md")  # dangling: target absent
+        assert link.is_symlink() and not link.exists()
+        _relink_core_stack_skill(project, "graph-explorer", source, link=True)  # must not raise
+        assert link.exists() and link.resolve() == source.resolve()
 
     def test_keep_skills_leaves_links(self, tmp_path: Path) -> None:
         from cli.skill_commands import cascade_module_skills

@@ -49,6 +49,9 @@ def test_module_state_payload_reports_tools_and_hooks_per_module(tmp_path: Path)
     assert "docs" in by_id["tasks"]["depends_on"]  # tasks needs docs
     # graph owns the cos_graph_* tool family + its enforce/auto hooks.
     assert by_id["graph"]["tools"] >= 1 and by_id["graph"]["hooks"] >= 1
+    # D6-5 (TASK-480): the per-module skills count is part of the contract
+    # `cos module list --format json` + the Hub Settings page consume.
+    assert by_id["graph"]["skills"] >= 1  # graph owns graph-explorer + graph-os-authoring
     # Untoggled project → all modules report enabled.
     assert all(m["enabled"] for m in payload["modules"])
 
