@@ -132,6 +132,22 @@ def _merge_value(
     raise ValueError(f"unknown merge strategy: {strategy!r}")
 
 
+def _stack_scaffold_dir(stack_id: str, templates_dir: Path) -> Path:
+    """Resolve a stack's scaffold dir — bundled first, then a community overlay
+    ($COS_USER_TEMPLATES_DIR, TASK-479). Bundled stacks resolve byte-identically; a
+    nonexistent path is returned unchanged so _load() returns None gracefully."""
+    bundled = templates_dir / stack_id / "scaffold"
+    if bundled.is_dir():
+        return bundled
+    from cli._resources import overlay_template_dirs
+
+    for root in overlay_template_dirs():
+        candidate = root / stack_id / "scaffold"
+        if candidate.is_dir():
+            return candidate
+    return bundled
+
+
 def compose(
     base: dict[str, Any],
     overlays: list[dict[str, Any]],
@@ -210,7 +226,7 @@ def _compose_one(
     overlays: list[dict[str, Any]] = []
     overlay_names: list[str] = []
     for stack_id in templates:
-        overlay = _load(templates_dir / stack_id / "scaffold" / ".coding-os" / filename, fmt)
+        overlay = _load(_stack_scaffold_dir(stack_id, templates_dir) / ".coding-os" / filename, fmt)
         if overlay is not None:
             overlays.append(overlay)
             overlay_names.append(stack_id)
@@ -281,7 +297,7 @@ def recompose_for_added_stack(
     written: list[str] = []
     base_dir = templates_dir / "_base" / "scaffold" / ".coding-os"
     for filename, spec, fmt in _COMPOSED:
-        overlay = _load(templates_dir / stack_id / "scaffold" / ".coding-os" / filename, fmt)
+        overlay = _load(_stack_scaffold_dir(stack_id, templates_dir) / ".coding-os" / filename, fmt)
         if overlay is None:
             continue
         target = state / filename
@@ -321,7 +337,7 @@ def recompose_for_removed_stack(
         base = _load(base_dir / filename, fmt)
         overlays: list[dict[str, Any]] = []
         for stack_id in remaining_templates:
-            overlay = _load(templates_dir / stack_id / "scaffold" / ".coding-os" / filename, fmt)
+            overlay = _load(_stack_scaffold_dir(stack_id, templates_dir) / ".coding-os" / filename, fmt)
             if overlay is not None:
                 overlays.append(overlay)
         merged = compose(base or {}, overlays, spec)

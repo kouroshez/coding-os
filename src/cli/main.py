@@ -428,6 +428,35 @@ def _link_stack_skills(
     if linked:
         click.echo(f"  Linked stack skills: {', '.join(linked)}")
 
+    # Community-overlay stacks live outside the bundled tree the shell linker
+    # scans (data_root), so link their skills here from the resolved source_dir
+    # (TASK-479). Only fires for a stack whose source_dir is NOT under TEMPLATES_DIR.
+    stack_registry = _get_stack_registry()
+    bundled_root = TEMPLATES_DIR.resolve()
+    community: list[str] = []
+    for t in templates:
+        if t not in stack_registry:
+            continue
+        source_dir = stack_registry[t].source_dir.resolve()
+        try:
+            source_dir.relative_to(bundled_root)
+            continue  # bundled — already linked by the shell
+        except ValueError:
+            pass  # community overlay stack
+        skills_src = source_dir / "skills"
+        if not skills_src.is_dir():
+            continue
+        for skill_dir in sorted(p for p in skills_src.iterdir() if p.is_dir()):
+            src_md = skill_dir / "SKILL.md"
+            dest = project_dir / skills_dir / skill_dir.name / "SKILL.md"
+            if not src_md.is_file() or dest.exists():
+                continue
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.symlink_to(src_md)
+            community.append(skill_dir.name)
+    if community:
+        click.echo(f"  Linked community stack skills: {', '.join(community)}")
+
 
 def _run_adapter_install(agent: str, project_dir: Path) -> None:
     """Run the adapter's declared install script.
@@ -645,7 +674,9 @@ def _scaffold_tree_preview(
 
     sources: list[tuple[Path, str | None]] = [(TEMPLATES_DIR / "_base" / "scaffold", None)]
     for name in templates:
-        candidate = TEMPLATES_DIR / name / "scaffold"
+        # Community stacks resolve from source_dir, not the bundled tree (TASK-479).
+        stack_root = registry[name].source_dir if name in registry.keys() else TEMPLATES_DIR / name
+        candidate = stack_root / "scaffold"
         if candidate.exists():
             sources.append((candidate, name))
 
@@ -777,15 +808,17 @@ def _overlay_scaffold(
     Returns: count of files copied.
     """
     # Source roots in overlay order: _base first, then each template overlay.
-    # Each entry: (scaffold dir, owning stack id or None for _base).
+    # Each entry: (scaffold dir, owning stack id or None for _base). A community
+    # stack's scaffold lives at its resolved source_dir, not the bundled tree (TASK-479).
+    registry = _get_stack_registry()
     sources: list[tuple[Path, str | None]] = [(TEMPLATES_DIR / "_base" / "scaffold", None)]
     for name in templates:
-        candidate = TEMPLATES_DIR / name / "scaffold"
+        stack_root = registry[name].source_dir if name in registry.keys() else TEMPLATES_DIR / name
+        candidate = stack_root / "scaffold"
         if candidate.exists():
             sources.append((candidate, name))
 
     relocations = _service_relocations(templates)
-    registry = _get_stack_registry()
 
     from cli.subsystems import module_state
 

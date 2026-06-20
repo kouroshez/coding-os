@@ -91,6 +91,47 @@ def test_ssot_regen_path_stays_bundled_only(
     assert "acme-rust" not in bundled_only
 
 
+def test_community_scaffold_dir_resolves_from_overlay(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """TASK-479: config_composer resolves a community stack's scaffold from the
+    overlay; a bundled stack still resolves to the bundled tree (no regression)."""
+    from cli._resources import templates_dir
+    from cli.config_composer import _stack_scaffold_dir
+
+    overlay = tmp_path / "templates"
+    (overlay / "acme" / "scaffold" / ".coding-os").mkdir(parents=True)
+    monkeypatch.setenv("COS_USER_TEMPLATES_DIR", str(overlay))
+
+    assert _stack_scaffold_dir("acme", templates_dir()) == overlay / "acme" / "scaffold"
+    # a real bundled stack is unchanged — bundled-first
+    assert _stack_scaffold_dir("python", templates_dir()) == templates_dir() / "python" / "scaffold"
+
+
+def test_overlay_scaffold_copies_community_stack_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """TASK-479: a discovered community stack's scaffold files actually land in
+    the project (init/add-stack no longer a silent half-apply)."""
+    import cli.main as main
+
+    overlay = tmp_path / "templates"
+    _community_stack(overlay, "acme")
+    scaffold = overlay / "acme" / "scaffold" / "src"
+    scaffold.mkdir(parents=True)
+    (scaffold / "ACME.md").write_text("# acme stack file\n", encoding="utf-8")
+    monkeypatch.setenv("COS_USER_TEMPLATES_DIR", str(overlay))
+
+    project = tmp_path / "proj"
+    project.mkdir()
+    main._reset_registries_for_tests()
+    try:
+        main._overlay_scaffold(project, ("acme",), {})
+        assert (project / "src" / "ACME.md").is_file()  # community scaffold landed
+    finally:
+        main._reset_registries_for_tests()
+
+
 def test_community_id_may_not_shadow_bundled(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

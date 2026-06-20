@@ -135,6 +135,12 @@ call site**. The *consumer-discovery* commands pass `overlay_template_dirs()` /
 community stack never leaks into `scaffold_manifest.json` /
 `dimension-registry.md` (the TASK-458 leak fix).
 
+**File application (TASK-479):** discovery alone is not enough — `cos init` /
+`cos add-stack` resolve a community stack's `scaffold/`, `.coding-os/` config
+overlay, and `skills/` from its **`StackProfile.source_dir`** (the overlay dir),
+not the bundled tree, so an out-of-tree stack is usable end-to-end. Bundled
+stacks resolve byte-identically (the resolvers are bundled-first).
+
 ## Steps to modify an existing stack
 
 1. **Locate the SSOT.** Behavior change → `stack.yaml`. New scaffold file → `scaffold/`. New entity recipe → `skills/<skill>/references/anatomy.md`.
