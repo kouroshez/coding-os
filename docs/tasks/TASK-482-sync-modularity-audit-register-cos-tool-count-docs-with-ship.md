@@ -5,12 +5,12 @@ swimlane: docs
 kind: docs
 epic: null
 labels: [modularity, audit-pass5, docs-sync, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-20
 started: 2026-06-20
-completed: null
+completed: 2026-06-20
 agent_session: ses-claude-20260620-150945-6eba
 depends_on: [TASK-480, TASK-481]
 blocked_by: []
@@ -37,3 +37,4 @@ references: []
 - 2026-06-20 [claude]: Edit mcp-schema-traps.md
 - 2026-06-20 [claude]: Edit modularity-audit-2026-06.md
 - 2026-06-20 [claude]: Synced register §8.3: 9 landed findings (P4-2/3/6/9/11/12/13/14/15) marked FIXED with closing shas…
+- 2026-06-20 [claude]: committed 6cdc894a · 2 files
