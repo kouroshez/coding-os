@@ -5,12 +5,12 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [governance, docs-update, modularity, audit, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-20
 started: 2026-06-20
-completed: null
+completed: 2026-06-20
 agent_session: ses-claude-20260620-015545-0bbe
 depends_on: []
 blocked_by: []
@@ -37,3 +37,5 @@ references: []
 - 2026-06-20 [claude]: Edit modularity-audit-2026-06.md
 - 2026-06-20 [claude]: commit 8ce536ebc2 — docs(modularity): pass-4 empirical register — matrix + 12 new findings, 3 fixed (TASK-470)
 - 2026-06-20 [claude]: 35-agent refute-by-default workflow: 28 raw → 15 confirmed → 12 new findings. Fixed 3 clear bugs this session: P4-8…
+- 2026-06-20 [claude]: commit 49a185af1d — chore(board): track pass-4 audit (TASK-470) + remediation backlog TASK-471..474
+- 2026-06-20 [claude]: Status transitioned to complete via cos task-done.
