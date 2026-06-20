@@ -133,3 +133,49 @@ A third pass (43-agent workflow) independently re-verified the F1–F16 "closed"
 | B-11 | Gating-mechanism map + fragment-structure contract + overlay undocumented (MD-3/MD-4) | this register + `template-authoring.md` sections |
 
 Two more pre-existing CI-hidden REDs surfaced and were fixed in passing: `cos-env.sh` goldens stale since TASK-447's F8 (regenerated), and the manifest-freshness flake under concurrent tree writes (reliable on a static CI tree). **Still open** (owner-gated, not regressions): the consumer-in-CI dogfood harness (§6) and the multi-model cost-aware ranker (Phase 1).
+
+## 8. Pass-4 (2026-06-20) — EMPIRICAL consumer round-trip + 35-agent blind-spot hunt (TASK-470)
+
+Passes 1–3 were all **code-read**, and each over-claimed "fully closed". Pass-4 ran the one thing they deferred: a **real `cos init` consumer** (`-t python -t go`, not in-memory render, not the meta-repo dogfood) was scaffolded and every optional module/skill/stack was toggled and **measured** — closing §1's "most important blind spot" (coding-os can never exercise its own section-surgery). A second 35-agent adversarial workflow (refute-by-default) then hunted seams the code-reads could not see.
+
+### 8.1 Falsifiable per-module matrix (real consumer; baseline = 223-line `AGENTS.md`, 46 skills)
+
+| module | `AGENTS.md` Δlines | skills removed | hooks gated | verdict |
+|---|---|---|---|---|
+| docs | 0 | 0 | 0 | DEP-BLOCKED (tasks→docs) — dependency-correct |
+| **tasks** | **82** | 0 | 10 | ✅ full render-strip (`Scrumban`→0, `.bak`+regen) |
+| graph | 0 | 0 | 8 | hooks gated; **no consumer prose** (B-5/6 confirmed); skill remains |
+| memory | 6 | 0 | 8 | partial strip (Core-Loop refs) |
+| cognition | 0 | 0 | 12 | hooks gated; no consumer prose (confirmed) |
+| observability | 2 | 0 | 4 | partial strip |
+| hub-extras | 0 | 0 | 2 | hooks gated; no prose |
+
+Plus: `cos remove-stack go` = full cascade (skill unlink + path-rule removal + `AGENTS.md` −15 + backups); `cos skill disable` = symlink unlink + `disabled_skills` record; whole-matrix restore byte-identical; `log_events` live (hook BLOCKs queryable); registry staleness already covered by `cos doctor hub.project_paths_exist`; `--no-register` avoids debug pollution. **The toggle machinery itself is empirically SOLID** — Pass-4 did NOT reproduce the prior "over-claimed closed" pattern at this layer.
+
+### 8.2 Verdict — REFUTED (qualified) at three adjacent seams
+
+The module/skill/hook toggle core holds, but "the modularity machinery is solid" is refuted at: the **failure-rollback path** (P4-10), the **community-plugin overlay** (P4-3/6), and the **durable-logging + routing-attribution wiring** (P4-1/2/9). Plus one latent crash (P4-8) and one unenforced-invariant breach (P4-13).
+
+### 8.3 New finding register (P4-1…P4-15) — adversarially confirmed, exact file:line in TASK-470 work-log
+
+| ID | Sev | Finding | Status |
+|---|---|---|---|
+| **P4-8** | 🔴 | `cognition.py:1065` referenced undefined `field_map` → `NameError` on the schema-validation-failure path, masked as `fail("internal")` (hid the degraded-formula recovery the supervisor consumes) | **FIXED** `f962c383` |
+| **P4-10** | 🔴 | `toggle_and_regen` rollback (`module_commands.py:89`) reverted only state, stranding `disabled-hook-scripts` on the failed-toggle state (inverted half-state); `doctor.py` checked one direction → certified it PASS | **FIXED** `8586bc98` (allowlist re-derived on rollback + bidirectional `extra = actual - expected` check) |
+| **P4-1** | 🟡 | `cos_say_json.py:50` swallowed a `logging_os.sinks` import break bare → every hook BLOCK/WARN went durably silent with zero signal (drop-observability lives inside `_write_db`, never reached) | **FIXED** `bd0ee1a3` (COS_LOG_FILE breadcrumb, fail-open) |
+| **P4-3/6** | 🔴 | Community-plugin overlay half-wired: `load_stack_registry`/`load_adapter_registry` accept `overlay_dirs` but **no** consumer command passes it; `overlay_adapter_dirs()` is dead code; B-7 closed clean with no tracking task; `template-authoring.md` oversells it as live | open → **TASK-471** (PLUG-2) |
+| **P4-13** | 🔴 | P8 invariant breached + unenforced: `cognition.py:552` `import claude_agent_sdk` + inline `ClaudeAgentOptions(...)` at :1142/:1350 bypass the importlib builder; the guard `session-options-builder.md:64` claims does not exist (`roles.py`/`presence.py` probes + `compress.py` raw-API are out of scope) | open → **TASK-472** |
+| **P4-9** | 🟡 | `routing.py` learns `task_outcomes.model` = the **orchestrator** runtime model, never `formula_dispatches.model` (the true per-role model) → per-role recs structurally unfounded (the second-order defect B-4's population fix created) | open → **TASK-473** |
+| **P4-2** | 🟡 | `COS_LOG_DB_MIN_LEVEL` not authoritative: console floor (`cos-env.sh:744`, `api.py:_emit`) gates before the DB floor → raising `COS_LOG_LEVEL` silently drops DB-eligible WARNs | open → **TASK-473** |
+| **P4-11** | 🟡 | Concurrent module toggles unlocked RMW + fixed temp filename (`subsystems.py:177`) → silent lost-update + torn write; contradicts git-workflow.md "concurrent sessions safe" | open → **TASK-474** (bounded: rare admin action) |
+| **P4-14/15** | 🟡 | `enforce-skill.sh:84` unanchored `*core/*.py` substring demands `graph-explorer` with no meta-scope and no graph-module awareness → leaks the meta-repo-only block onto any consumer with a `core/`/`cli/` dir (recoverable, not a deadlock; #15 refutes #14's graph-module causal link — the hook is kernel-owned) | open → **TASK-474** |
+| **P4-12** | 🟢 | Corrupt `subsystems-state.json` fails open to all-enabled with only a debug log; next toggle **persists** the data loss; doctor reports PASS (fail-open *direction* is correct + tested — only the silent revert is the gap) | open → **TASK-474** |
+
+### 8.4 Re-confirmed known/deferred (not new)
+
+- **P4-4/5** = the **B-7/PLUG-1 + B-11** partial closure (init/add-stack hard-abort on a community id; doc drift) — same area, sharpened into P4-3/6 above.
+- **P4-7** = strategic-audit **latent-bug-(1)**: `route_model`'s empirical path emits a concrete (possibly retired) id to the SDK with no live-catalog validation (`_resolve_model_alias` exempts any `claude-*`). Fix when scheduled: one catalog guard inside the `claude-*` fast-return.
+
+### 8.5 Owner decision pending — module↔skill coherence
+
+`subsystems.yaml` has **zero `skills:` keys**, so disabling a module never touches a skill (disabling `graph` leaves the `graph-explorer` skill + its `AGENTS.md` mention). This is the direct consequence of the locked **Q1-HYBRID** decision (module/skill are independent toggle units) — NOT a regression — but the owner's recurring ask ("disable a module → its stuff incl. skills disappears") implies Q1 may warrant revisiting. Surfaced for decision; not unilaterally changed (Rule 22 / would contradict a locked decision).
