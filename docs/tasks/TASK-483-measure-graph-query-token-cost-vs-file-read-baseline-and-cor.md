@@ -5,12 +5,12 @@ swimlane: "graph_os"
 kind: feature
 epic: null
 labels: [governance, benchmark, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-20
 started: 2026-06-20
-completed: null
+completed: 2026-06-20
 agent_session: ses-claude-20260620-144553-a8b6
 depends_on: []
 blocked_by: []
@@ -39,3 +39,21 @@ references: []
 - 2026-06-20 [claude]: Edit AGENTS.md
 - 2026-06-20 [claude]: Edit graph-first.md
 - 2026-06-20 [claude]: Added bench/token_cost.py (reuses fixtures+run_benchmark; emits workflow/graph_tokens/naive_tokens/ratio/savings_pct)…
+- 2026-06-20 [claude]: committed 18ece90c · 4 files
+- 2026-06-20 [claude]: Edit embeddings.py
+- 2026-06-20 [claude]: Edit database.py
+- 2026-06-20 [claude]: Edit server.py
+- 2026-06-20 [claude]: Edit docs.py
+- 2026-06-20 [claude]: Edit docs.py
+- 2026-06-20 [claude]: Edit docs.py
+- 2026-06-20 [claude]: Edit docs.py
+- 2026-06-20 [claude]: Edit server.py
+- 2026-06-20 [claude]: Edit doctor-checks.md
+- 2026-06-20 [claude]: Edit test_embeddings.py
+- 2026-06-20 [claude]: Edit test_embeddings.py
+- 2026-06-20 [claude]: Edit test_embeddings_phase_i.py
+- 2026-06-20 [claude]: Edit test_embeddings_phase_i.py
+- 2026-06-20 [claude]: Edit embeddings.py
+- 2026-06-20 [claude]: Edit docs.py
+- 2026-06-20 [claude]: Edit docs.py
+- 2026-06-20 [claude]: Edit test_doc_search.py

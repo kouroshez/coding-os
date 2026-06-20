@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: feature
 epic: null
 labels: [embeddings, pre-launch, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-20
 started: 2026-06-20
-completed: null
+completed: 2026-06-20
 agent_session: ses-claude-20260620-144553-a8b6
 depends_on: []
 blocked_by: []
@@ -32,3 +32,4 @@ references: []
 
 ## Work Log
 - 2026-06-20 [claude]: Flipped DEFAULT_MODEL_NAME (embeddings.py:61) + embeddings table model_name default (database.py:323) to BAAI/bge-m3;…
+- 2026-06-20 [claude]: committed f25bc9a8 · 8 files

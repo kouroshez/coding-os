@@ -5,7 +5,7 @@ swimlane: core
 kind: security
 epic: null
 labels: [hub, xss, ready]
-status: in_progress
+status: blocked
 priority: P3
 appetite: 1d
 created: 2026-06-20
@@ -38,3 +38,13 @@ references: []
 - 2026-06-20 [claude]: Edit graph.py
 - 2026-06-20 [claude]: Edit test_mcp_tools.py
 - 2026-06-20 [claude]: Locked the design half of the task: added a SECURITY comment in _escape (graph.py) documenting it must stay…
+- 2026-06-20 [claude]: committed 0ff953b0 · 2 files
+- 2026-06-20 [claude]: Edit security.py
+- 2026-06-20 [claude]: Edit security.py
+- 2026-06-20 [claude]: Edit _envelope.py
+- 2026-06-20 [claude]: Edit _envelope.py
+- 2026-06-20 [claude]: Edit test_hub_security_gate.py
+- 2026-06-20 [claude]: Edit hub-threat-model.md
+- 2026-06-20 [claude]: Edit hub-threat-model.md
+- 2026-06-20 [claude]: Edit hub-architecture.md
+- 2026-06-20 [claude]: commit 40d5f4ca46 — feat(core): gate Hub read routes behind COS_HUB_TOKEN on non-loopback hosts

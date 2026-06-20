@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: feature
 epic: null
 labels: [i18n, fts5, ready]
-status: in_progress
+status: blocked
 priority: P3
 appetite: 1d
 created: 2026-06-20
@@ -32,3 +32,4 @@ references: []
 - 2026-06-20 [claude]: Edit graph.py
 - 2026-06-20 [claude]: Edit test_mcp_tools.py
 - 2026-06-20 [claude]: Shipped query-side harakat folding: _fold_harakat() + applied in _fts5_safe_query (graph.py) strips U+064B–U+0652 +…
+- 2026-06-20 [claude]: committed 9dbd0bd5 · 2 files

@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [hub, review, deferred, ready]
-status: icebox
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-20
-started: null
-completed: null
-agent_session: null
+started: 2026-06-20
+completed: 2026-06-20
+agent_session: ses-claude-20260620-144553-a8b6
 depends_on: [TASK-488]
 blocked_by: []
 references: []
 ---
-
 # TASK-489: Graph-aware PR/diff triage view in the Hub on the existing cos_graph_diff kernel
 
 **Outcome (one sentence):** A Hub view takes a base..head range and shows changed symbols → downstream consumers/tasks → a coarse risk level, built on the existing cos_graph_diff kernel (no new diff engine), giving reviewers graph-aware blast-radius at review time. Deferred: most valuable once a PR-ingestion feed (GitHub App / CI) exists; until then it serves manual range entry.
@@ -36,3 +35,4 @@ references: []
 - 2026-06-20 [claude]: Edit NodeInspector.tsx
 - 2026-06-20 [claude]: Edit DiffTriagePanel.test.tsx
 - 2026-06-20 [claude]: Added DiffTriagePanel.tsx — a thin Hub view that takes a base..head range, consumes the /api/graph/diff route…
+- 2026-06-20 [claude]: committed f11dab2c · 3 files

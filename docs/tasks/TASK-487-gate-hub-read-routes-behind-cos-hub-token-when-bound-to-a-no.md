@@ -5,18 +5,17 @@ swimlane: core
 kind: security
 epic: null
 labels: [hub, deferred, ready]
-status: icebox
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-20
-started: null
-completed: null
-agent_session: null
+started: 2026-06-20
+completed: 2026-06-20
+agent_session: ses-claude-20260620-144553-a8b6
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-487: Gate Hub read routes behind COS_HUB_TOKEN when bound to a non-loopback host
 
 **Outcome (one sentence):** When the Hub is configured to bind to a non-loopback host (reverse-proxy / shared dev box), read routes — not just mutations — require the COS_HUB_TOKEN bearer, so a remotely reachable Hub does not serve the entire proprietary code graph unauthenticated. Deferred until remote/hosted Hub is an actual launch decision; loopback default stays token-free.
@@ -38,3 +37,4 @@ references: []
 
 ## Work Log
 - 2026-06-20 [claude]: Server-side read-auth shipped: SecurityGateMiddleware now requires the COS_HUB_TOKEN bearer on read GET /api/* when…
+- 2026-06-20 [claude]: committed 40d5f4ca · 5 files
