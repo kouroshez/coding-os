@@ -93,7 +93,7 @@ Parity is bounded by runtime capability declared in `src/adapters/<agent>/adapte
 
 ## Key Files
 
-MCP server [server.py](src/core/thinking_os/server.py) · DB/migrations [database.py](src/core/thinking_os/database.py) · MCP tools [tools/](src/core/thinking_os/tools/) · graph_os [src/core/graph_os/](src/core/graph_os/) · board_os [src/core/board_os/](src/core/board_os/) · web [src/core/web/](src/core/web/) (+ [ui/](src/core/web/ui/)) · roles [roles/](src/core/thinking_os/roles/) + [agents/](src/core/thinking_os/agents/) + [presets](src/core/thinking_os/presets/registry.yaml)/[situations](src/core/thinking_os/situations/registry.yaml) · hooks [src/core/hooks/](src/core/hooks/) · skills [src/core/skills/](src/core/skills/) (routing → [skill-enforcement.md](src/core/rules/skill-enforcement.md)) · CLI [src/cli/](src/cli/) · adapters [src/adapters/](src/adapters/) · templates [src/templates/](src/templates/) (8 stacks).
+MCP server [server.py](src/core/thinking_os/server.py) · DB/migrations [database.py](src/core/thinking_os/database.py) · MCP tools [tools/](src/core/thinking_os/tools/) · graph_os [src/core/graph_os/](src/core/graph_os/) · board_os [src/core/board_os/](src/core/board_os/) · web [src/core/web/](src/core/web/) (+ [ui/](src/core/web/ui/)) · roles [roles/](src/core/thinking_os/roles/) + [agents/](src/core/thinking_os/agents/) + [presets](src/core/thinking_os/presets/registry.yaml)/[situations](src/core/thinking_os/situations/registry.yaml) · hooks [src/core/hooks/](src/core/hooks/) · skills [src/core/skills/](src/core/skills/) (routing → [skill-enforcement.md](src/core/rules/skill-enforcement.md)) · CLI [src/cli/](src/cli/) · adapters [src/adapters/](src/adapters/) · templates [src/templates/](src/templates/).
 
 ## Stop Conditions
 

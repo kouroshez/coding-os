@@ -36,7 +36,7 @@ All evidence checked against source (not agent inference).
 | G7 | `cos init` runs `git init` but makes no baseline commit | `src/cli/_init_helpers.py:207` | LOW |
 | G8 | No doc-authoring skill — agent writes docs blind to the contract | skill registry | LOW |
 | G9 | Opening block is WARN not ERROR for content docs | `docs-lint.sh` | LOW |
-| G10 | Unsupported stacks (laravel/wordpress/flutter/supabase/terraform/streaming/iot) get `_base` only — no graceful path | `src/templates/` has 8 stacks | MED |
+| G10 | ~~Unsupported stacks get `_base` only~~ — RESOLVED: `src/templates/` now ships 27 stacks (laravel/wordpress/flutter incl.) | `src/templates/` (see dir) | DONE |
 | G11 | Redundancy: dual opening-block syntax · 3× sections-by-layer · dual `.doc-anchor` path | `docs-system.md`, `doc-cheat-sheet.md` | LOW |
 
 ## Failure scenarios (reverse-engineered)
