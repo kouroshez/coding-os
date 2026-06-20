@@ -118,6 +118,132 @@ def test_core_skill_toggle_unlinks_and_relinks_symlink(tmp_path: Path) -> None:
     assert skill not in (cfg_on.get("disabled_skills") or [])
 
 
+def _link_skill_into(project: Path, skill: str) -> Path:
+    """Symlink a real skill's SKILL.md (core OR meta-stack) into .claude/skills."""
+    from cli.skill_commands import _known_skill_provenance, _skill_source_skill_md
+
+    provenance = _known_skill_provenance(skill)
+    source = _skill_source_skill_md(skill, provenance) if provenance else None
+    assert source and source.is_file(), f"fixture assumes a real skill: {skill}"
+    link = project / ".claude" / "skills" / skill / "SKILL.md"
+    link.parent.mkdir(parents=True, exist_ok=True)
+    link.symlink_to(source)
+    return link
+
+
+class TestModuleSkillCascade:
+    """TASK-475 — disabling a module unlinks its owned skills (ref-counted,
+    override-aware); re-enabling relinks them except the user's explicit opt-outs."""
+
+    def _project(self, tmp_path: Path) -> Path:
+        (tmp_path / ".coding-os.yaml").write_text("templates: []\n", encoding="utf-8")
+        # An installed adapter skills dir must exist for relinks to land (the
+        # cascade only touches dirs `_installed_adapter_skills_dirs` reports).
+        (tmp_path / ".claude" / "skills").mkdir(parents=True, exist_ok=True)
+        return tmp_path
+
+    def test_disable_unlinks_owned_skills(self, tmp_path: Path) -> None:
+        from cli.skill_commands import cascade_module_skills
+
+        project = self._project(tmp_path)
+        links = {s: _link_skill_into(project, s) for s in ("graph-explorer", "graph-os-authoring")}
+
+        out = cascade_module_skills(project, "graph", enabled=False)
+
+        assert set(out["unlinked"]) == {"graph-explorer", "graph-os-authoring"}
+        for link in links.values():
+            assert not link.exists(), "owned skill symlink must be unlinked"
+
+    def test_keep_skills_leaves_links(self, tmp_path: Path) -> None:
+        from cli.skill_commands import cascade_module_skills
+
+        project = self._project(tmp_path)
+        link = _link_skill_into(project, "graph-explorer")
+
+        out = cascade_module_skills(project, "graph", enabled=False, keep_skills=True)
+
+        assert out["unlinked"] == [] and "graph-explorer" in out["kept"]
+        assert link.is_symlink(), "--keep-skills must leave the link in place"
+
+    def test_shared_skill_survives_when_other_owner_enabled(self, tmp_path: Path) -> None:
+        """Ref-count: a skill another ENABLED module also owns is never unlinked."""
+        from cli.skill_commands import cascade_module_skills
+        from cli.subsystems import Module
+
+        project = self._project(tmp_path)
+        shared = _link_skill_into(project, "graph-explorer")
+        solo = _link_skill_into(project, "graph-os-authoring")
+        synthetic = {
+            "graph": Module(id="graph", label="g", skills=("graph-explorer", "graph-os-authoring")),
+            "twin": Module(id="twin", label="t", skills=("graph-explorer",)),
+        }
+
+        out = cascade_module_skills(project, "graph", enabled=False, modules=synthetic)
+
+        assert out["unlinked"] == ["graph-os-authoring"]
+        assert "graph-explorer" in out["kept"]
+        assert shared.is_symlink(), "shared skill (twin still enabled) must survive"
+        assert not solo.exists(), "solely-graph skill must be unlinked"
+
+    def test_reenable_relinks_except_user_disabled(self, tmp_path: Path) -> None:
+        import yaml
+
+        from cli.skill_commands import cascade_module_skills
+
+        project = self._project(tmp_path)
+        # User explicitly opted graph-explorer out; module re-enable must respect it.
+        (project / ".coding-os.yaml").write_text(
+            "templates: []\ndisabled_skills: [graph-explorer]\n", encoding="utf-8"
+        )
+
+        out = cascade_module_skills(project, "graph", enabled=True)
+
+        assert "graph-os-authoring" in out["linked"]
+        assert "graph-explorer" in out["kept"]  # user override outranks the relink
+        relinked = project / ".claude" / "skills" / "graph-os-authoring" / "SKILL.md"
+        overridden = project / ".claude" / "skills" / "graph-explorer" / "SKILL.md"
+        assert relinked.is_symlink()
+        assert not overridden.exists()
+        # disabled_skills is the user's list — the cascade must not have touched it.
+        cfg = yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert cfg["disabled_skills"] == ["graph-explorer"]
+
+    def test_kernel_skills_never_module_owned(self) -> None:
+        from cli.subsystems import load_subsystems
+
+        always_on = {"clean-code", "thinking_os", "search"}
+        for module in load_subsystems().values():
+            overlap = always_on & set(module.skills)
+            assert not overlap, f"module '{module.id}' owns always-on skill(s): {overlap}"
+
+    def test_every_owned_skill_resolves(self) -> None:
+        from cli.skill_commands import _known_skill_provenance
+        from cli.subsystems import load_subsystems
+
+        for module in load_subsystems().values():
+            for name in module.skills:
+                assert _known_skill_provenance(name) is not None, (
+                    f"module '{module.id}' owns unresolvable skill '{name}'"
+                )
+
+    def test_doctor_flags_module_skill_drift(self, tmp_path: Path) -> None:
+        from cli.doctor import SEV_PASS, SEV_WARN, DoctorReport, _check_module_skill_drift
+        from cli.subsystems import set_module_enabled
+
+        project = self._project(tmp_path)
+        _link_skill_into(project, "graph-explorer")
+
+        ok_report = DoctorReport(project_dir=str(project), agent="claude", templates=[])
+        _check_module_skill_drift(project, ok_report)
+        assert next(c for c in ok_report.checks if c.id == "modules.skill_drift").severity == SEV_PASS
+
+        assert set_module_enabled(project, "graph", False).ok is True  # skill stays linked
+        drift_report = DoctorReport(project_dir=str(project), agent="claude", templates=[])
+        _check_module_skill_drift(project, drift_report)
+        check = next(c for c in drift_report.checks if c.id == "modules.skill_drift")
+        assert check.severity == SEV_WARN and "graph-explorer" in check.message
+
+
 class TestToggleRollbackAtomicity:
     """audit pass-4 #10 — a regen failure mid-toggle must roll BOTH the module
     state AND the runtime allowlist back. regen writes the allowlist first, so

@@ -188,7 +188,7 @@ Owner reframe: **a module IS a bundle of five artifact kinds — `{skills, hooks
 |---|---|---|---|
 | **Hooks** | hook fires on every matching tool call (wasted exec, possibly wrong nudge) | ✅ runtime allowlist + render-strip | DONE |
 | **Rules / AGENTS.md prose** | tokens every session + commands the agent to use an absent tool | ✅ `{% if modules.X %}` render-strip (TASK-452 gated tool refs) | DONE |
-| **Skills** | orphaned SKILL.md for an absent module; can instruct absent tools | 🔶 decided (TASK-475 cascade-with-override) | PENDING |
+| **Skills** | orphaned SKILL.md for an absent module; can instruct absent tools | ✅ data-driven `skills:` + targeted cascade (TASK-475) | DONE |
 | **MCP tools** | **tool name in the agent's live tool list every session → hallucination + wrong-tool pick** | ❌ runtime-gate ONLY (still advertised, fails at call) | **TASK-476 + TASK-477** |
 | **Commands** | slash-command file; NOT in context until the user types `/` → ~zero cost | ❌ not bound | DEFER (low value) |
 
@@ -207,3 +207,12 @@ The server registers **~90 `cos_*` tools**. `_gated_module` ([`tools/_shared.py`
 - **DEFER — commands dimension** (near-zero context cost) and **module-owns-its-own-MCP** (the plugin/overlay path, TASK-471).
 
 Honest scope note: in Claude Code, MCP tool *schemas* are deferred (lazy via ToolSearch), so the primary win of removal is **less hallucination / cleaner tool list**, with a secondary, modest token saving — not a halving of context.
+
+### 9.3 Skills dimension (TASK-477's sibling — LANDED, TASK-475)
+
+The per-skill toggle machinery already existed (`skill_commands.set_project_skill` + idempotent `_relink_core_stack_skill`/`_relink_community_skill` + `cos skill enable/disable`). The only gap was *binding skills to modules*, so disabling a module did not shed its skills. Closed with the smallest data-driven change:
+
+- **Data:** `subsystems.yaml::modules[].skills` (new optional list, sibling of `hooks:`/`tools:`); `Module.skills` in the loader. Conservative ownership — only **unambiguously meta-owned** skills: `graph` ← graph-explorer, graph-os-authoring · `memory` ← agent-memory · `tasks` ← task-driver. `clean-code`/`thinking_os`/`search` are always-on and **never** module-owned (asserted by `test_kernel_skills_never_module_owned`).
+- **Collision trap avoided (api-contract-discipline):** the **`observability` skill** is a cross-cutting *app* skill (django/fastapi/go stacks list it for the consumer's own logging/metrics) — it is NOT the coding-os observability *module*. Mapping it would wrongly unlink it for those consumers, so `observability`/`docs`/`cognition`/`hub-extras` own no skills (same restraint as classify+health staying kernel for tools).
+- **Mechanism:** a **targeted** cascade (`skill_commands.cascade_module_skills`) mirroring `remove_stack._unlink_stack_skills`, run from `module_commands.toggle_and_regen` after the state+allowlist+AGENTS.md regen. Disable → unlink owned skills **ref-counted** against other enabled owners; enable → relink owned skills **except** the user's `.coding-os.yaml::disabled_skills` (the override). `--keep-skills` skips the unlink; a TTY confirm previews the unlinks. Meta-repo guarded (`is_coding_os_source_tree`) exactly like the AGENTS.md regen, so a dogfood `cos module disable` never mutates the hand-maintained `.claude/skills/` links.
+- **Deviation from the literal acceptance ("recorded in disabled_skills"):** the cascade writes **nothing** to the user's `disabled_skills` list. That list means *"the user explicitly opted this skill out"*; conflating it with *"the module is off"* would make re-enabling the module unable to tell the two apart (and would mislabel `cos skill project`). Instead the linked-state is **derived** (`linked ⟺ some owning module enabled ∧ skill ∉ user disabled_skills`), so re-enable relinks correctly and the override survives. `cos doctor` surfaces the residue via a `modules.skill_drift` WARN (disabled module, skill still linked).

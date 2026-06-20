@@ -33,6 +33,7 @@ class Module:
     kernel: bool = False
     hooks: tuple[str, ...] = ()
     tools: tuple[str, ...] = ()
+    skills: tuple[str, ...] = ()
     depends_on: tuple[str, ...] = ()
     # Reserved-but-not-yet-shipped module: kept in the registry so its id stays
     # stable, but suppressed from every toggle surface (no live no-op switch).
@@ -60,6 +61,7 @@ def load_subsystems(path: Path | None = None) -> dict[str, Module]:
             kernel=bool(raw.get("kernel", False)),
             hooks=tuple(str(h) for h in raw.get("hooks") or ()),
             tools=tuple(str(t) for t in raw.get("tools") or ()),
+            skills=tuple(str(s) for s in raw.get("skills") or ()),
             depends_on=tuple(str(d) for d in raw.get("depends_on") or ()),
             hidden=bool(raw.get("hidden", False)),
         )

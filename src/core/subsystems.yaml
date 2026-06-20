@@ -7,8 +7,11 @@
 # are non-disableable regardless of module membership (TASK-256 layer);
 # `kernel: true` additionally pins the whole module.
 #
-# Schema: id, label, kernel, hooks[], tools[], depends_on[], hidden.
+# Schema: id, label, kernel, hooks[], tools[], skills[], depends_on[], hidden.
 # `tools` trailing '*' = MCP prefix family (tools/_shared.py gate).
+# `skills` = domain-skill names UNAMBIGUOUSLY owned by this module; disabling it
+# unlinks them (ref-counted, override-aware) via skill_commands.cascade_module_skills
+# (TASK-475). Always-on skills (clean-code, thinking_os, search) are never listed.
 # `hidden: true` keeps a reserved id stable but drops it from every toggle UI.
 version: 1
 modules:
@@ -71,6 +74,7 @@ modules:
     kernel: false
     hooks: [enforce-task-start, enforce-task-body, nudge-task-discovery, warn-abandoned-task, remind-daily, auto-task-sync, sync-task-current, link-commit-to-task, reclaim-sweep, capture-work-log]
     tools: ["cos_task_*", cos_work_log_append]
+    skills: [task-driver]
     depends_on: [docs]
 
   - id: graph
@@ -78,6 +82,7 @@ modules:
     kernel: false
     hooks: [enforce-graph-context, enforce-graph-first-read, enforce-rename-plan, nudge-graph-os, warn-graph-empty, verify-rename-callers, auto-reindex-shell-ops, auto-prune-deleted-files]
     tools: ["cos_graph_*"]
+    skills: [graph-explorer, graph-os-authoring]
     depends_on: []
 
   - id: memory
@@ -85,6 +90,7 @@ modules:
     kernel: false
     hooks: [enforce-memory-check, capture-observation, jit-recall, nudge-learn-narrative, remind-learn-validate, auto-brain-decay, drain-embedding-outbox, check-capture-worked]
     tools: [cos_search, cos_observation_record, cos_timeline, cos_details, "cos_learn_*", "cos_retrieval_*", cos_promote, cos_digest_regenerate]
+    skills: [agent-memory]
     depends_on: []
 
   - id: cognition

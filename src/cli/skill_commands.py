@@ -525,6 +525,100 @@ def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
     return {"name": name, "provenance": provenance, "changed": True, "links": links_touched}
 
 
+# --- Module→skill cascade (TASK-475) -------------------------------------
+# A module owns the skills it declares in subsystems.yaml::modules[].skills.
+# Invariant: an owned skill is LINKED iff (at least one owning module is enabled)
+# AND (the user has not opted it out via .coding-os.yaml::disabled_skills). The
+# cascade is TARGETED per toggle (mirrors remove_stack._unlink_stack_skills), not
+# a global reconcile. It records NOTHING in disabled_skills — that list is the
+# user's explicit override, and conflating "module off" with "user opted out"
+# would make a module re-enable unable to tell them apart; the linked-state is
+# derived instead, and `cos doctor` surfaces any residue (modules.skill_drift).
+
+
+def _user_disabled_skills(project_root: Path) -> set[str]:
+    try:
+        return set(_load_project_config(project_root).get("disabled_skills") or [])
+    except (OSError, click.ClickException):
+        return set()
+
+
+def _toggle_skill_link(project_root: Path, name: str, *, link: bool) -> int:
+    """Link/unlink one skill by provenance; 0 when the skill cannot be resolved."""
+    provenance = _known_skill_provenance(name)
+    if provenance is None:
+        return 0
+    if provenance == "community":
+        return _relink_community_skill(project_root, name, link=link)
+    source = _skill_source_skill_md(name, provenance)
+    if source is None:
+        return 0
+    return _relink_core_stack_skill(project_root, name, source, link=link)
+
+
+def planned_skill_unlinks(
+    project_root: Path, module_id: str, modules: dict | None = None
+) -> list[str]:
+    """Owned skills `cos module disable <id>` would unlink now — ref-counted
+    against other ENABLED owners (never the module itself). Drives the confirm."""
+    from cli.subsystems import load_subsystems, module_state
+
+    modules = modules or load_subsystems()
+    if module_id not in modules:
+        return []
+    state = module_state(project_root, modules)
+    still_owned = {
+        skill
+        for mid, module in modules.items()
+        if mid != module_id and state.get(mid, True)
+        for skill in module.skills
+    }
+    return [s for s in sorted(modules[module_id].skills) if s not in still_owned]
+
+
+def cascade_module_skills(
+    project_root: Path,
+    module_id: str,
+    enabled: bool,
+    *,
+    keep_skills: bool = False,
+    modules: dict | None = None,
+) -> dict:
+    """Relink/unlink a module's owned skills after a module toggle.
+
+    enable → relink each owned skill unless the user opted it out; disable →
+    unlink each owned skill unless another enabled module still owns it (ref-count)
+    or --keep-skills is set. Idempotent; returns the names touched per bucket."""
+    from cli.subsystems import load_subsystems
+
+    modules = modules or load_subsystems()
+    owned = sorted(modules[module_id].skills) if module_id in modules else []
+    if not owned:
+        return {"module": module_id, "linked": [], "unlinked": [], "kept": []}
+
+    user_disabled = _user_disabled_skills(project_root)
+    linked: list[str] = []
+    unlinked: list[str] = []
+    kept: list[str] = []
+
+    if enabled:
+        for name in owned:
+            if name in user_disabled:
+                kept.append(name)  # user override outranks the module relink
+            elif _toggle_skill_link(project_root, name, link=True):
+                linked.append(name)
+    elif keep_skills:
+        kept = owned
+    else:
+        candidates = set(planned_skill_unlinks(project_root, module_id, modules))
+        for name in owned:
+            if name not in candidates:
+                kept.append(name)  # another enabled module still owns it
+            elif _toggle_skill_link(project_root, name, link=False):
+                unlinked.append(name)
+    return {"module": module_id, "linked": linked, "unlinked": unlinked, "kept": kept}
+
+
 @skill_group.command("enable")
 @click.argument("name")
 def skill_enable(name: str) -> None:

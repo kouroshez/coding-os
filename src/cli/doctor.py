@@ -1092,6 +1092,56 @@ def _check_module_consistency(project: Path, report: DoctorReport) -> None:
         logger.debug("module consistency check skipped: %s", exc)
 
 
+def _check_module_skill_drift(project: Path, report: DoctorReport) -> None:
+    """modules.skill_drift — a disabled module's owned skill is still linked.
+
+    The residue a `--keep-skills` disable (or an out-of-band edit) leaves: the
+    module is off but its SKILL.md is still in an adapter skills dir. A skill
+    also owned by an ENABLED module is never drift (ref-count)."""
+    logger = logging.getLogger("coding_os.doctor")
+    try:
+        from cli.skill_commands import _installed_adapter_skills_dirs
+        from cli.subsystems import load_subsystems, module_state
+
+        modules = load_subsystems()
+        state = module_state(project, modules)
+        enabled_owned = {
+            skill
+            for mid, module in modules.items()
+            if state.get(mid, True)
+            for skill in module.skills
+        }
+        skills_dirs = _installed_adapter_skills_dirs(project)
+        drift: list[str] = []
+        for mid, module in modules.items():
+            if state.get(mid, True):
+                continue
+            for name in module.skills:
+                if name in enabled_owned:
+                    continue
+                if any(
+                    (d / name / "SKILL.md").exists() or (d / name).is_symlink()
+                    for d in skills_dirs
+                ):
+                    drift.append(f"{name} (module '{mid}' off)")
+        if drift:
+            report.checks.append(
+                CheckResult(
+                    "modules.skill_drift",
+                    SEV_WARN,
+                    f"{len(drift)} skill(s) linked for disabled module(s): "
+                    + ", ".join(sorted(set(drift))[:4])
+                    + " — `cos skill disable <name>` or re-run `cos module disable <id>`",
+                )
+            )
+        else:
+            report.checks.append(
+                CheckResult("modules.skill_drift", SEV_PASS, "no module/skill drift")
+            )
+    except Exception as exc:
+        logger.debug("module skill drift check skipped: %s", exc)
+
+
 def run_doctor(
     project: Path,
     *,
@@ -1145,6 +1195,7 @@ def run_doctor(
     _tick("hook coverage")
     _check_hook_coverage(project, report)
     _check_module_consistency(project, report)
+    _check_module_skill_drift(project, report)
     _tick("runtime errors")
     _check_runtime_errors(state, report)
     # graph_os health checks.

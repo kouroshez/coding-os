@@ -75,7 +75,37 @@ def regen_after_toggle(project: Path) -> list[str]:
     return notes
 
 
-def toggle_and_regen(project: Path, module_id: str, enabled: bool) -> tuple[ToggleResult, list[str]]:
+def _cascade_skills_after_toggle(
+    project: Path, module_id: str, enabled: bool, keep_skills: bool
+) -> list[str]:
+    """Relink/unlink the module's owned skills (TASK-475), meta-repo guarded.
+
+    Best-effort: the state + allowlist + AGENTS.md are the load-bearing artifacts
+    and have already committed by here; an idempotent symlink hiccup is a `cos
+    doctor` (modules.skill_drift) follow-up, never a reason to fail the toggle."""
+    from cli._init_helpers import is_coding_os_source_tree
+
+    if is_coding_os_source_tree(project):
+        return ["skills: cascade skipped (coding-os meta-repo — adapter links preserved)"]
+    try:
+        from cli.skill_commands import cascade_module_skills
+
+        out = cascade_module_skills(project, module_id, enabled, keep_skills=keep_skills)
+    except Exception as exc:  # noqa: BLE001 — toggle already committed; surface, don't fail
+        return [f"skills: cascade skipped ({exc}) — run `cos doctor`"]
+    notes: list[str] = []
+    if out["unlinked"]:
+        notes.append(f"skills unlinked (module off): {', '.join(out['unlinked'])}")
+    if out["linked"]:
+        notes.append(f"skills relinked: {', '.join(out['linked'])}")
+    if keep_skills and out["kept"]:
+        notes.append(f"skills kept linked (--keep-skills): {', '.join(out['kept'])}")
+    return notes
+
+
+def toggle_and_regen(
+    project: Path, module_id: str, enabled: bool, *, keep_skills: bool = False
+) -> tuple[ToggleResult, list[str]]:
     """Single entry point shared by the CLI and the hub settings route.
 
     Atomic: a regen failure rolls the state flip back, so the project never
@@ -117,6 +147,7 @@ def toggle_and_regen(project: Path, module_id: str, enabled: bool) -> tuple[Togg
             ),
             [],
         )
+    notes.extend(_cascade_skills_after_toggle(project, module_id, enabled, keep_skills))
     return result, notes
 
 
@@ -135,6 +166,7 @@ def module_state_payload(project: Path) -> dict:
                 "depends_on": list(m.depends_on),
                 "hooks": len(m.hooks),
                 "tools": len(m.tools),
+                "skills": len(m.skills),
             }
             for m in modules.values()
             if not m.hidden
@@ -159,12 +191,15 @@ def module_list(output_format: str) -> None:
     for m in payload["modules"]:
         flag = "kernel (always on)" if m["kernel"] else ("enabled" if m["enabled"] else "DISABLED")
         deps = f"  needs: {', '.join(m['depends_on'])}" if m["depends_on"] else ""
-        click.echo(f"  {m['id']:<12} {flag:<18} hooks={m['hooks']} tools={m['tools']}{deps}")
+        click.echo(
+            f"  {m['id']:<12} {flag:<18} hooks={m['hooks']} tools={m['tools']} "
+            f"skills={m['skills']}{deps}"
+        )
 
 
-def _run_toggle(module_id: str, enabled: bool) -> None:
+def _run_toggle(module_id: str, enabled: bool, *, keep_skills: bool = False) -> None:
     project = _project_root()
-    result, notes = toggle_and_regen(project, module_id, enabled)
+    result, notes = toggle_and_regen(project, module_id, enabled, keep_skills=keep_skills)
     if not result.ok:
         raise click.ClickException(result.reason)
     click.echo(f"module '{module_id}' {'enabled' if enabled else 'disabled'}")
@@ -175,12 +210,30 @@ def _run_toggle(module_id: str, enabled: bool) -> None:
 @module_group.command("enable")
 @click.argument("module_id")
 def module_enable(module_id: str) -> None:
-    """Enable a module and regenerate dependent artifacts."""
+    """Enable a module and regenerate dependent artifacts (relinks its skills)."""
     _run_toggle(module_id, True)
 
 
 @module_group.command("disable")
 @click.argument("module_id")
-def module_disable(module_id: str) -> None:
-    """Disable a module and regenerate dependent artifacts."""
-    _run_toggle(module_id, False)
+@click.option(
+    "--keep-skills",
+    is_flag=True,
+    default=False,
+    help="Disable the module but keep its skills linked (skip the skill cascade).",
+)
+@click.option("--yes", "-y", is_flag=True, default=False, help="Skip the skill-unlink confirmation.")
+def module_disable(module_id: str, keep_skills: bool, yes: bool) -> None:
+    """Disable a module and regenerate dependent artifacts (unlinks its skills)."""
+    import sys
+
+    if not keep_skills and not yes and sys.stdin.isatty():
+        from cli.skill_commands import planned_skill_unlinks
+
+        unlinks = planned_skill_unlinks(_project_root(), module_id)
+        if unlinks and not click.confirm(
+            f"Disabling '{module_id}' will unlink skill(s): {', '.join(unlinks)}. Continue?",
+            default=True,
+        ):
+            raise click.ClickException("aborted — module left enabled")
+    _run_toggle(module_id, False, keep_skills=keep_skills)
