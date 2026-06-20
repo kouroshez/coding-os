@@ -86,12 +86,34 @@ def toggle_and_regen(project: Path, module_id: str, enabled: bool) -> tuple[Togg
     try:
         notes = regen_after_toggle(project)
     except Exception as exc:
+        # Roll back the state flip AND re-derive the runtime allowlist. regen
+        # writes the allowlist FIRST (it can't know the later AGENTS.md render
+        # will throw), so reverting only the state file would strand the
+        # allowlist on the failed-toggle state — an inverted half-state where
+        # state says enabled but the module's hooks are still listed disabled.
+        # (audit pass-4 #10)
         set_module_enabled(project, module_id, not enabled)
+        from cli.project_overrides import write_runtime_allowlist
+
+        try:
+            write_runtime_allowlist(project)
+        except Exception as restore_exc:  # noqa: BLE001 — original error wins; surface both
+            return (
+                ToggleResult(
+                    ok=False,
+                    module_id=module_id,
+                    reason=(
+                        f"regen failed ({exc}); allowlist restore also failed "
+                        f"({restore_exc}) — run `cos doctor` to reconcile"
+                    ),
+                ),
+                [],
+            )
         return (
             ToggleResult(
                 ok=False,
                 module_id=module_id,
-                reason=f"regen failed ({exc}) — module state rolled back, nothing changed",
+                reason=f"regen failed ({exc}) — module state + runtime allowlist rolled back",
             ),
             [],
         )

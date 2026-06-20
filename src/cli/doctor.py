@@ -1053,15 +1053,31 @@ def _check_module_consistency(project: Path, report: DoctorReport) -> None:
             for line in allowlist_file.read_text(encoding="utf-8").splitlines()
             if line.strip()
         }
+        # Bidirectional: `missing` = under-disabled (a hook that should be off is
+        # absent); `extra` = over-disabled (the allowlist lists hooks for a module
+        # that is ENABLED — the inverted half-state a failed-toggle rollback leaves
+        # behind). Checking only `missing` reported SEV_PASS on the over-disabled
+        # corruption, certifying a desynced project as healthy. (audit pass-4 #10)
         missing = expected - actual
-        if missing:
-            sample = ", ".join(sorted(missing)[:3])
+        extra = actual - expected
+        if missing or extra:
+            parts: list[str] = []
+            if missing:
+                parts.append(
+                    f"{len(missing)} expected hook(s) absent ({', '.join(sorted(missing)[:3])}…)"
+                )
+            if extra:
+                parts.append(
+                    f"{len(extra)} hook(s) disabled for ENABLED module(s) "
+                    f"({', '.join(sorted(extra)[:3])}…) — over-disabled, likely a failed toggle rollback"
+                )
             report.checks.append(
                 CheckResult(
                     "modules.state_consistency",
                     SEV_WARN,
-                    f"disabled-hook-scripts drift: {len(missing)} expected hook(s) "
-                    f"absent ({sample}…) — regenerate via `cos module disable <id>`",
+                    "disabled-hook-scripts drift: "
+                    + "; ".join(parts)
+                    + " — regenerate via `cos module enable/disable <id>`",
                 )
             )
         else:

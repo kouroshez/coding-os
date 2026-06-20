@@ -116,3 +116,53 @@ def test_core_skill_toggle_unlinks_and_relinks_symlink(tmp_path: Path) -> None:
     assert link.is_symlink() and link.resolve() == source.resolve()
     cfg_on = yaml.safe_load((tmp_path / ".coding-os.yaml").read_text(encoding="utf-8"))
     assert skill not in (cfg_on.get("disabled_skills") or [])
+
+
+class TestToggleRollbackAtomicity:
+    """audit pass-4 #10 — a regen failure mid-toggle must roll BOTH the module
+    state AND the runtime allowlist back. regen writes the allowlist first, so
+    reverting only the state file stranded the allowlist on the failed-toggle
+    state (an inverted half-state), and `cos doctor` mis-certified it PASS."""
+
+    def test_rollback_restores_allowlist_not_just_state(self, tmp_path: Path, monkeypatch) -> None:
+        from cli import module_commands
+        from cli.project_overrides import RUNTIME_ALLOWLIST, write_runtime_allowlist
+        from cli.subsystems import module_state
+
+        (tmp_path / ".coding-os").mkdir()
+
+        # Simulate regen that progresses PAST the allowlist write (the real first
+        # step) and then throws on the later AGENTS.md render.
+        def _boom(project: Path) -> list[str]:
+            write_runtime_allowlist(project)
+            raise RuntimeError("render boom")
+
+        monkeypatch.setattr(module_commands, "regen_after_toggle", _boom)
+
+        result, _notes = module_commands.toggle_and_regen(tmp_path, "memory", False)
+        assert result.ok is False
+        assert "rolled back" in result.reason
+        # state rolled back to enabled …
+        assert module_state(tmp_path)["memory"] is True
+        # … AND the allowlist file no longer lists memory's hooks.
+        allowlist = tmp_path / ".coding-os" / RUNTIME_ALLOWLIST
+        content = allowlist.read_text(encoding="utf-8") if allowlist.exists() else ""
+        assert "brain-decay" not in content and "jit-recall" not in content
+
+    def test_doctor_flags_over_disabled_allowlist(self, tmp_path: Path) -> None:
+        from cli.doctor import SEV_WARN, DoctorReport, _check_module_consistency
+        from cli.project_overrides import RUNTIME_ALLOWLIST
+
+        # All modules enabled (no state file) but the allowlist lists memory's
+        # hooks — the exact over-disabled corruption a failed rollback leaves.
+        cos_dir = tmp_path / ".coding-os"
+        cos_dir.mkdir()
+        (cos_dir / RUNTIME_ALLOWLIST).write_text(
+            "auto-brain-decay.sh\njit-recall.sh\n", encoding="utf-8"
+        )
+
+        report = DoctorReport(project_dir=str(tmp_path), agent="claude", templates=[])
+        _check_module_consistency(tmp_path, report)
+        check = next(c for c in report.checks if c.id == "modules.state_consistency")
+        assert check.severity == SEV_WARN  # NOT a false PASS
+        assert "over-disabled" in check.message
