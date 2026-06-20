@@ -85,6 +85,47 @@ def test_cos_log_hook_block_lands_in_log_events(tmp_path: Path) -> None:
     assert "block" in (block_rows[0][3] or ""), "action=block recorded in kv"
 
 
+def test_durable_import_failure_leaves_breadcrumb(tmp_path: Path, monkeypatch) -> None:
+    """audit pass-4 #1 — a logging_os.sinks import break (the 'logging_os RED on
+    main' class) must NOT make the durable write a silent no-op. The helper now
+    leaves a breadcrumb in COS_LOG_FILE (which survives the caller's 2>/dev/null)
+    and never raises."""
+    sys.path.insert(0, str(_HELPER.parent))
+    import importlib
+
+    helper = importlib.import_module("cos_say_json")
+    # Force the in-function `from logging_os.sinks import _write_db` to fail.
+    monkeypatch.setitem(sys.modules, "logging_os.sinks", None)
+    log_file = tmp_path / "cos.log"
+    monkeypatch.setenv("COS_LOG_FILE", str(log_file))
+    monkeypatch.setenv("COS_LOG_DB_MIN_LEVEL", "WARN")
+
+    # Must not raise despite the broken durable sink.
+    helper._persist_db_row(
+        "2026-06-20T00:00:00Z", "ERROR", "hook.demo", "blocked by demo", {"action": "block"}
+    )
+
+    assert log_file.exists(), "an import break must leave a discoverable breadcrumb"
+    text = log_file.read_text(encoding="utf-8")
+    assert "durable sink unavailable" in text and "not persisted to log_events" in text
+
+
+def test_below_floor_skips_import_and_breadcrumb(tmp_path: Path, monkeypatch) -> None:
+    """A sub-floor event must never import logging_os at all — so a broken sink
+    leaves NO breadcrumb for INFO chatter (the hot path stays silent + fast)."""
+    sys.path.insert(0, str(_HELPER.parent))
+    import importlib
+
+    helper = importlib.import_module("cos_say_json")
+    monkeypatch.setitem(sys.modules, "logging_os.sinks", None)
+    log_file = tmp_path / "cos.log"
+    monkeypatch.setenv("COS_LOG_FILE", str(log_file))
+    monkeypatch.setenv("COS_LOG_DB_MIN_LEVEL", "WARN")
+
+    helper._persist_db_row("2026-06-20T00:00:00Z", "INFO", "hook.demo", "chatter", {})
+    assert not log_file.exists(), "below-floor events never reach the durable sink"
+
+
 def _env_path() -> str:
     import os
 

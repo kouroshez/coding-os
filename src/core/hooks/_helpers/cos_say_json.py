@@ -47,8 +47,34 @@ def _persist_db_row(ts: str, level: str, scope: str, message: str, kv: dict[str,
                 "trace_id": kv.get("trace") or kv.get("trace_id"),
             }
         )
-    except Exception:
-        pass  # fail-open — a logging failure must never break the hook
+    except Exception as exc:  # fail-open — a logging failure must never break the hook
+        _note_durable_failure(level, scope, exc)
+
+
+def _note_durable_failure(level: str, scope: str, exc: Exception) -> None:
+    # The bare swallow used to make a logging_os import break (the documented
+    # "logging_os RED on main" class) a SILENT no-op — every WARN+/BLOCK absent
+    # from cos_log_query with zero signal, because the drop-observability lives
+    # inside _write_db which an import failure never reaches. Leave a breadcrumb
+    # that survives the caller's `2>/dev/null` (the durable text log first, then
+    # stderr) so the dropped durable write is at least discoverable. Still
+    # fail-open: never raise. (audit pass-4 #1)
+    note = (
+        f"logging_os: durable sink unavailable ({type(exc).__name__}: {exc}) "
+        f"— {level.upper()} {scope} not persisted to log_events\n"
+    )
+    log_file = os.environ.get("COS_LOG_FILE")
+    if log_file:
+        try:
+            with open(log_file, "a", encoding="utf-8") as handle:
+                handle.write(note)
+            return
+        except OSError:
+            note += "  (text log also unwritable)\n"  # fall through to stderr
+    try:
+        sys.stderr.write(note)
+    except OSError:
+        return  # last-resort sink failed too — nothing left to do, stay fail-open
 
 
 def main() -> int:
