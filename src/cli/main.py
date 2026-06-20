@@ -614,7 +614,11 @@ def _scaffold_tree_preview(
     Returns (sorted paths, config-merge conflicts). Mirrors the source roots,
     service-relocation logic AND the `<!-- module:X -->` doc-skip of
     `_overlay_scaffold` / `_run_scaffold_phase` so the preview matches what an
-    actual init (incl. `--disable-module`) writes (audit INIT-4).
+    actual init writes (audit INIT-4). disabled_modules is taken LITERALLY from the
+    validated `--disable-module` flags; the real init additionally resolves
+    dependency-refusal (e.g. `docs` stays enabled while `tasks` depends on it) and
+    preset-declared disables at scaffold time, so for those two cases the preview
+    is a best-effort upper bound on what gets dropped, not byte-exact (pass-3).
     """
     from cli.config_composer import preview_coding_os_configs
 
@@ -709,6 +713,31 @@ def _dry_run_preview(
         for line in conflicts:
             click.echo(f"    WARN: {line}")
     click.echo("(dry-run — nothing written)")
+
+
+def _validated_disabled_modules(disable_module: tuple[str, ...]) -> list[str]:
+    # Validate --disable-module up-front so BOTH the dry-run preview and the real
+    # init reject the same ids (pass-3 review: dry-run returned before validation,
+    # so a typo'd module gave a false all-clear). kernel ids are non-disableable;
+    # a dependency-refused disable is resolved (with a WARN) later at scaffold time.
+    if not disable_module:
+        return []
+    from cli.subsystems import load_subsystems
+
+    registry_modules = load_subsystems()
+    disabled = list(dict.fromkeys(m.strip() for m in disable_module if m.strip()))
+    unknown = [m for m in disabled if m not in registry_modules]
+    if unknown:
+        click.echo(
+            f"ERROR: unknown module(s) {unknown} — available: {sorted(registry_modules)}.",
+            err=True,
+        )
+        sys.exit(2)
+    kernel = [m for m in disabled if registry_modules[m].kernel]
+    if kernel:
+        click.echo(f"ERROR: module(s) {kernel} are kernel and cannot be disabled.", err=True)
+        sys.exit(2)
+    return disabled
 
 
 def _service_relocations(templates: tuple[str, ...]) -> dict[str, str]:
@@ -1349,12 +1378,16 @@ def init(
         template = active_preset.stacks
         click.echo(f"Preset '{preset_id}' → stacks: {', '.join(template)}")
 
+    # Validate --disable-module BEFORE the dry-run/real split so the preview and
+    # the real init reject the same ids (pass-3 review).
+    disabled_modules = _validated_disabled_modules(disable_module)
+
     if dry_config:
         _dry_config_preview(template, output_format)
         return
 
     if dry_run:
-        _dry_run_preview(template, output_format, disable_module)
+        _dry_run_preview(template, output_format, tuple(disabled_modules))
         return
 
     # --skills validated up-front (fail fast, wizard parity: the wizard only
@@ -1373,28 +1406,6 @@ def init(
             )
             sys.exit(2)
 
-    # --disable-module validated up-front against the subsystem registry
-    # (fail fast, wizard parity). kernel is non-disableable; dependency-order
-    # disabling (e.g. tasks before docs) is handled at scaffold time.
-    disabled_modules: list[str] = []
-    if disable_module:
-        from cli.subsystems import load_subsystems
-
-        registry_modules = load_subsystems()
-        disabled_modules = list(dict.fromkeys(m.strip() for m in disable_module if m.strip()))
-        unknown_mods = [m for m in disabled_modules if m not in registry_modules]
-        if unknown_mods:
-            click.echo(
-                f"ERROR: unknown module(s) {unknown_mods} — available: "
-                f"{sorted(registry_modules)}.", err=True
-            )
-            sys.exit(2)
-        kernel_mods = [m for m in disabled_modules if registry_modules[m].kernel]
-        if kernel_mods:
-            click.echo(
-                f"ERROR: module(s) {kernel_mods} are kernel and cannot be disabled.", err=True
-            )
-            sys.exit(2)
 
     # Idempotent detection: existing install → offer sync instead of re-init.
     existing = _detect_existing_install(shell_cwd) if not name and not project_dir else None

@@ -31,6 +31,29 @@ logger = logging.getLogger("thinking_os.outcome")
 VALID_OUTCOMES = {"success", "rework", "partial", "blocked"}
 
 
+_CYNEFIN_LEVELS = {"CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC", "CONFUSION", "UNKNOWN"}
+
+
+def _newest_panel_gate() -> Path | None:
+    # The gate is panel-scoped: <state>/<agent>/panels/<panel-id>/.thinking_os-gate.
+    # The long-lived MCP server has no COS_PANEL_DIR, so reach the panel dir under
+    # the agent dir directly and take the freshest gate (pass-3 review: the flat
+    # _state_search_dirs walk stops one level short of the panel subdir).
+    agent = os.environ.get("COS_AGENT", "")
+    if not agent:
+        return None
+    panels = Path(os.environ.get("COS_STATE_DIR", ".coding-os")) / agent / "panels"
+    if not panels.is_dir():
+        return None
+    gates = [p / ".thinking_os-gate" for p in panels.iterdir() if (p / ".thinking_os-gate").is_file()]
+    if not gates:
+        return None
+    try:
+        return max(gates, key=lambda g: g.stat().st_mtime)
+    except OSError:
+        return gates[0]
+
+
 def _state_search_dirs() -> list[str]:
     # Dirs to search for a per-panel/per-agent state marker, most-specific
     # first: panel dir -> agent dir -> <state>/<agent> -> state dir. The
@@ -62,15 +85,18 @@ def _read_gate_file() -> tuple[str, int]:
             gate_path = candidate
             break
     if gate_path is None:
+        gate_path = _newest_panel_gate()  # MCP-server path: panel subdir (pass-3)
+    if gate_path is None:
         return "UNKNOWN", 1
     try:
         content = gate_path.read_text().strip()
         parts = content.split()
         # Skip a leading session/panel-id token. The writer prefixes the value
-        # with the panel session id (ses-…) or, before one exists, the panel
-        # ppid hash (ppid-…) — the gate parser only stripped "ses-" and so read
-        # "ppid-…" as the complexity. Legacy format ("COMPLICATED 4") has none.
-        if parts and parts[0].startswith(("ses-", "ppid-", "c-sess", "anon")):
+        # with a session id (ses-…), the panel ppid hash (ppid-…), OR a BARE UUID
+        # (CLAUDE_CODE_SESSION_ID) — so skip ANY leading token that is not itself a
+        # Cynefin level, rather than an allow-list of prefixes that missed bare
+        # UUIDs and read them as the complexity (pass-3 review).
+        if parts and parts[0].upper() not in _CYNEFIN_LEVELS:
             parts = parts[1:]
         complexity = parts[0] if parts else "UNKNOWN"
         dimensions = int(parts[1]) if len(parts) > 1 else 1

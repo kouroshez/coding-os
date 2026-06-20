@@ -198,16 +198,18 @@ def _scan_adapter_dir(
             continue
         try:
             profile = _load_one(manifest)
-        except AdapterManifestError:
+        except (AdapterManifestError, OSError) as exc:
+            # OSError too: an unreadable community adapter.yaml must skip in the
+            # soft path, never crash the CLI (pass-3 review).
             if fail_hard:
                 raise
-            logger.warning("skipping community adapter %s: invalid %s", child.name, ADAPTER_MANIFEST_NAME)
+            logger.warning("skipping community adapter %s: %s", child.name, exc)
             continue
         if profile.id in result:
             if fail_hard:
                 raise AdapterManifestError(f"duplicate adapter id '{profile.id}' at {manifest}")
             logger.warning(
-                "community adapter id '%s' may not shadow a bundled adapter — keeping bundled",
+                "community adapter id '%s' already loaded (bundled or an earlier overlay) — keeping first",
                 profile.id,
             )
             continue
@@ -215,7 +217,7 @@ def _scan_adapter_dir(
 
 
 def load_adapter_registry(
-    adapters_dir: Path, *, overlay_dirs: tuple[Path, ...] | None = None
+    adapters_dir: Path, *, overlay_dirs: tuple[Path, ...] = ()
 ) -> dict[str, AdapterProfile]:
     """Scan adapters_dir (then out-of-tree overlay_dirs) for */adapter.yaml.
 
@@ -223,13 +225,12 @@ def load_adapter_registry(
     a real error). overlay_dirs hold community adapters ($COS_USER_ADAPTERS_DIR)
     and fail SOFT — a malformed community adapter is skipped, never crashing the
     CLI — and may NOT shadow a bundled adapter id (the bundled one is kept).
-    overlay_dirs defaults to the resolved user overlay (empty unless the dir
-    exists); pass () to scan ONLY adapters_dir.
-    """
-    if overlay_dirs is None:
-        from cli._resources import overlay_adapter_dirs
 
-        overlay_dirs = overlay_adapter_dirs()
+    overlay_dirs is OPT-IN (default () = bundled-only); a consumer-discovery call
+    site passes the resolved `cli._resources.overlay_adapter_dirs()`. Meta-repo
+    SSOT regen + lint stay bundled-only (pass-3 review — defaulting it ON leaked
+    community adapters into the regen scripts).
+    """
     result: dict[str, AdapterProfile] = {}
     if not adapters_dir.is_dir():
         raise AdapterManifestError(f"adapters dir not found: {adapters_dir}")

@@ -20,12 +20,15 @@ def test_apply_doc_conditions_skips_whole_file_tagged_doc() -> None:
     assert "Cognition doc" in content
 
 
-def test_scaffold_preview_accepts_disabled_modules_without_over_including() -> None:
-    """Threading disabled_modules into the preview never ADDS paths — a disabled
-    module's whole-file-tagged docs can only drop, mirroring the real overlay."""
+def test_scaffold_preview_drops_whole_file_tagged_doc() -> None:
+    """Disabling a module whose scaffold docs carry a whole-file `| module:X` header
+    tag drops exactly those docs (subset) — the literal-flag drop the overlay does.
+    Uses docs/tasks, the only modules with tagged scaffold docs today (graph/etc.
+    have none, so they would trivially no-op — pass-3 review sharpened this)."""
     base_paths, _ = _scaffold_tree_preview(("python",))
-    scoped_paths, _ = _scaffold_tree_preview(("python",), disabled_modules=("graph", "cognition"))
+    scoped_paths, _ = _scaffold_tree_preview(("python",), disabled_modules=("docs", "tasks"))
     assert set(scoped_paths) <= set(base_paths)
+    assert len(scoped_paths) < len(base_paths), "a module:docs/tasks-tagged doc must drop"
 
 
 def test_scaffold_preview_default_is_unchanged() -> None:

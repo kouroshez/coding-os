@@ -33,6 +33,7 @@ class ErrorEnvelope(BaseModel):
 # envelope error shape (i.e. anything that goes through unwrap()).
 ENVELOPE_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     400: {"model": ErrorEnvelope, "description": "Validation error."},
+    403: {"model": ErrorEnvelope, "description": "Forbidden (permission / disabled module)."},
     404: {"model": ErrorEnvelope, "description": "Resource not found."},
     500: {"model": ErrorEnvelope, "description": "Internal error."},
     503: {"model": ErrorEnvelope, "description": "Backend unavailable (retryable)."},

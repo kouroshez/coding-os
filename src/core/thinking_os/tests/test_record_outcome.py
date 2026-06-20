@@ -151,3 +151,22 @@ class TestModelAndGateCapture:
         finally:
             conn.close()
         assert row == ("claude-opus-4-8", "COMPLEX", 5)  # both were NULL/UNKNOWN pre-fix
+
+    def test_read_gate_from_panel_subdir(self, tmp_path: Path, monkeypatch) -> None:
+        """Production routes the gate to <state>/<agent>/panels/<id>/ — one level
+        below the flat search; _newest_panel_gate must reach it (pass-3 review)."""
+        panel = tmp_path / "claude" / "panels" / "p1"
+        panel.mkdir(parents=True)
+        (panel / ".thinking_os-gate").write_text("ses-x COMPLICATED 4", encoding="utf-8")
+        self._emulate_mcp_server(monkeypatch, tmp_path)
+        assert _read_gate_file() == ("COMPLICATED", 4)  # was UNKNOWN pre-fix
+
+    def test_read_gate_strips_bare_uuid_prefix(self, tmp_path: Path, monkeypatch) -> None:
+        """A bare-UUID session prefix (CLAUDE_CODE_SESSION_ID) matches no known
+        prefix; skip any leading non-level token so it is not read as the level."""
+        (tmp_path / "claude").mkdir()
+        (tmp_path / "claude" / ".thinking_os-gate").write_text(
+            "3f2a9c10-7b4e-4d21-9a8c-0e1f2a3b4c5d COMPLEX 6", encoding="utf-8"
+        )
+        self._emulate_mcp_server(monkeypatch, tmp_path)
+        assert _read_gate_file() == ("COMPLEX", 6)  # was ('3f2a9c10-...', ...) pre-fix

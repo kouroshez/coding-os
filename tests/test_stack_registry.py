@@ -221,15 +221,22 @@ def test_overlay_may_not_shadow_bundled_stack(tmp_path: Path) -> None:
     )
     result = load_stack_registry(bundled, overlay_dirs=(overlay,))
     assert result["alpha"].label == "Test Stack", "bundled stack must win over a community shadow"
-    assert any("may not shadow" in w for w in result.warnings)
+    assert any("already loaded" in w and "alpha" in w for w in result.warnings)
 
 
-def test_overlay_defaults_to_env_user_dir(tmp_path: Path, monkeypatch) -> None:
-    """With overlay_dirs unset (None), the loader resolves $COS_USER_TEMPLATES_DIR
-    so every caller is overlay-aware for free."""
+def test_overlay_is_opt_in_default_is_bundled_only(tmp_path: Path, monkeypatch) -> None:
+    """The overlay is OPT-IN: the env-resolver `overlay_template_dirs()` includes
+    $COS_USER_TEMPLATES_DIR when passed explicitly, but the DEFAULT loader is
+    bundled-only so meta-repo SSOT regen never folds in community stacks (pass-3)."""
+    from cli._resources import overlay_template_dirs
+
     bundled, overlay = tmp_path / "bundled", tmp_path / "overlay"
     _write_stack(bundled, "alpha")
     _write_stack(overlay, "community-x")
     monkeypatch.setenv("COS_USER_TEMPLATES_DIR", str(overlay))
-    result = load_stack_registry(bundled)  # default None -> resolves the env dir
-    assert "community-x" in result, "default overlay must resolve $COS_USER_TEMPLATES_DIR"
+
+    opted_in = load_stack_registry(bundled, overlay_dirs=overlay_template_dirs())
+    assert "community-x" in opted_in, "explicit overlay_dirs must include the user dir"
+
+    default = load_stack_registry(bundled)  # no overlay_dirs -> bundled-only
+    assert "community-x" not in default, "default must NOT scan the user overlay"

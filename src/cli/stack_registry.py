@@ -587,14 +587,17 @@ def _scan_stack_dir(
             continue
         try:
             profile = _build_stack(_load_yaml(manifest), manifest)
-        except StackManifestError as exc:
+        except (StackManifestError, OSError) as exc:
+            # OSError too: an unreadable community-overlay stack.yaml must skip,
+            # never crash the loader (pass-3 review — fail-soft was Manifest-only).
             msg = f"skipping stack {child.name}: {exc}"
             warnings.append(msg)
             logger.warning(msg)
             continue
         if profile.id in stacks:
             msg = (
-                f"community stack id '{profile.id}' may not shadow a bundled stack — keeping bundled"
+                f"community stack id '{profile.id}' already loaded (bundled or an earlier "
+                f"overlay) — keeping first"
                 if is_overlay
                 else f"duplicate stack id '{profile.id}' — keeping first"
             )
@@ -605,21 +608,22 @@ def _scan_stack_dir(
 
 
 def load_stack_registry(
-    templates_dir: Path, *, overlay_dirs: tuple[Path, ...] | None = None
+    templates_dir: Path, *, overlay_dirs: tuple[Path, ...] = ()
 ) -> StackLoadResult:
     """Scan templates_dir (then any out-of-tree overlay_dirs) for */stack.yaml.
 
     Directories without stack.yaml are silently ignored. Invalid manifests are
     skipped with a warning string recorded in the result. overlay_dirs hold
     community stacks ($COS_USER_TEMPLATES_DIR); a community id may NOT shadow a
-    bundled stack — the bundled profile is kept (scanned first). overlay_dirs
-    defaults to the resolved user overlay (empty unless the dir exists, so CI /
-    fresh installs are a no-op); pass () to scan ONLY templates_dir (stack_lint).
-    """
-    if overlay_dirs is None:
-        from cli._resources import overlay_template_dirs
+    bundled stack — the bundled profile is kept (scanned first).
 
-        overlay_dirs = overlay_template_dirs()
+    overlay_dirs is OPT-IN (default () = bundled-only). The meta-repo's SSOT
+    regen + lint + scaffold paths MUST stay bundled-only, so they get the default;
+    only a consumer-discovery call site passes the resolved
+    `cli._resources.overlay_template_dirs()` to include $COS_USER_TEMPLATES_DIR.
+    (Defaulting it ON leaked community stacks into scaffold_manifest.json /
+    dimension-registry.md via the regen scripts — pass-3 review.)
+    """
     stacks: dict[str, StackProfile] = {}
     warnings: list[str] = []
 
