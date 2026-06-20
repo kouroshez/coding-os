@@ -10,7 +10,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from tools._shared import _MODULE_GATE_CACHE, safe_tool  # noqa: E402
+from tools._shared import _MODULE_GATE_CACHE, apply_module_tool_gating, safe_tool  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -75,3 +75,72 @@ def test_reenable_lifts_the_gate(tmp_path, monkeypatch):
     assert json.loads(cos_graph_dummy())["ok"] is False
     _disable(tmp_path)  # empty disabled list
     assert json.loads(cos_graph_dummy())["ok"] is True
+
+
+# ---------------------------------------------------------------------------
+# TASK-476 — startup surface removal: a disabled module's tools VANISH from
+# list_tools (not merely fail at call), so the agent never sees/hallucinates
+# them. Complements the per-call gate above (defense-in-depth) which the
+# tests above cover.
+# ---------------------------------------------------------------------------
+
+
+def _build_mcp(*names: str):
+    from mcp.server.fastmcp import FastMCP
+
+    def _stub() -> str:
+        return "x"
+
+    mcp = FastMCP("surface-removal-test")
+    for tool_name in names:
+        mcp.tool(name=tool_name)(_stub)
+    return mcp
+
+
+def _live_names(mcp) -> set[str]:
+    return {tool.name for tool in mcp._tool_manager.list_tools()}
+
+
+def test_surface_removal_drops_disabled_family_keeps_rest(tmp_path, monkeypatch):
+    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+    _disable(tmp_path, "graph")
+    mcp = _build_mcp("cos_graph_query", "cos_graph_context", "cos_task_show", "cos_health")
+    summary = apply_module_tool_gating(mcp)
+    assert _live_names(mcp) == {"cos_task_show", "cos_health"}  # graph family gone
+    assert set(summary["removed"]) == {"cos_graph_query", "cos_graph_context"}
+    assert summary["disabled_modules"] == ["graph"]
+
+
+def test_surface_removal_is_noop_when_nothing_disabled(tmp_path, monkeypatch):
+    # Acceptance #2 — default all-on consumer: surface is byte-identical.
+    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+    mcp = _build_mcp("cos_graph_query", "cos_task_show", "cos_health")
+    before = _live_names(mcp)
+    summary = apply_module_tool_gating(mcp)
+    assert _live_names(mcp) == before
+    assert summary == {"removed": [], "disabled_modules": []}
+
+
+def test_surface_removal_corrupt_state_serves_full_surface(tmp_path, monkeypatch):
+    # Acceptance #3 — corrupt state => fail-open, never a half-surface.
+    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+    (tmp_path / "subsystems-state.json").write_text("{not json", encoding="utf-8")
+    mcp = _build_mcp("cos_graph_query", "cos_task_show")
+    summary = apply_module_tool_gating(mcp)
+    assert _live_names(mcp) == {"cos_graph_query", "cos_task_show"}
+    assert summary["removed"] == []
+
+
+def test_surface_removal_fails_open_on_manager_error(tmp_path, monkeypatch):
+    # A list_tools/remove error must be swallowed (fail-open), never propagate.
+    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+    _disable(tmp_path, "graph")
+    mcp = _build_mcp("cos_graph_query")
+    monkeypatch.setattr(
+        mcp._tool_manager,
+        "list_tools",
+        lambda: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+    summary = apply_module_tool_gating(mcp)  # must not raise
+    assert summary["removed"] == []
+    assert summary["disabled_modules"] == ["graph"]

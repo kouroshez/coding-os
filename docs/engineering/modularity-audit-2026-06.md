@@ -179,3 +179,31 @@ The module/skill/hook toggle core holds, but "the modularity machinery is solid"
 ### 8.5 Owner decision pending — module↔skill coherence
 
 `subsystems.yaml` has **zero `skills:` keys**, so disabling a module never touches a skill (disabling `graph` leaves the `graph-explorer` skill + its `AGENTS.md` mention). This is the direct consequence of the locked **Q1-HYBRID** decision (module/skill are independent toggle units) — NOT a regression — but the owner's recurring ask ("disable a module → its stuff incl. skills disappears") implies Q1 may warrant revisiting. Surfaced for decision; not unilaterally changed (Rule 22 / would contradict a locked decision).
+
+## 9. Module-bundle completion — the five dimensions (2026-06-20)
+
+Owner reframe: **a module IS a bundle of five artifact kinds — `{skills, hooks, MCP tools (or its own MCP), commands, rules/instructions}` — and disabling it must drop ALL of them "as if it never existed".** Coverage as of this entry:
+
+| Dimension | In-context cost when module OFF but artifact present | Module-bound today? | Action |
+|---|---|---|---|
+| **Hooks** | hook fires on every matching tool call (wasted exec, possibly wrong nudge) | ✅ runtime allowlist + render-strip | DONE |
+| **Rules / AGENTS.md prose** | tokens every session + commands the agent to use an absent tool | ✅ `{% if modules.X %}` render-strip (TASK-452 gated tool refs) | DONE |
+| **Skills** | orphaned SKILL.md for an absent module; can instruct absent tools | 🔶 decided (TASK-475 cascade-with-override) | PENDING |
+| **MCP tools** | **tool name in the agent's live tool list every session → hallucination + wrong-tool pick** | ❌ runtime-gate ONLY (still advertised, fails at call) | **TASK-476 + TASK-477** |
+| **Commands** | slash-command file; NOT in context until the user types `/` → ~zero cost | ❌ not bound | DEFER (low value) |
+
+### 9.1 The MCP-tools gap (the real one)
+
+The server registers **~90 `cos_*` tools**. `_gated_module` ([`tools/_shared.py`](../../src/core/thinking_os/tools/_shared.py)) only changes *call* behaviour — a disabled module's tool stays in `list_tools`, so the agent still sees it and hallucinates a call that then `fail('module_disabled')`s. That is "exists but broken", not "never existed". Measured tool→module ownership:
+
+- gateable today: **graph 22 · tasks 21 · memory 9 · docs 3 = 55 / 90 (61 %)**.
+- `cognition` and `observability` modules carry `tools: []` — ~25 conceptually-theirs tools (compose/dispatch/supervise/route/situation/role · metric/log/trajectory/presence/digest) are stranded in the always-on kernel surface, so toggling those modules sheds nothing.
+
+### 9.2 Decision (no over-engineering)
+
+- **TASK-476 — surface removal (mechanism).** At stdio-server startup call `apply_module_tool_gating(mcp)` → `mcp.remove_tool(name)` for every disabled-module-owned tool (FastMCP supports it; per-project via `$COS_STATE_DIR`). Keep the per-call `safe_tool` gate as defense-in-depth (cached client list / mid-session toggle). Fail-open; `--test` keeps the full set. Per-project server ⇒ surface change applies **next session** automatically (new session = new server); the runtime gate covers the in-session window — so **no live `list_tools` reload / IPC is needed** (rejected as over-engineering).
+- **TASK-477 — complete the tool→module map (data + per-tool call-site check).** Map the ~25 stranded cognition/observability tools to their modules so the toggle actually sheds them, **verifying each tool's call-sites first** so a kernel-loop tool (e.g. `cos_classify_prompt`, `cos_health`) is NOT gated.
+- **DEFER — "trim redundant tools even all-on" (curation-A).** The 20 task / 22 graph tools have overlap, but merge/delete is the **highest blast-radius, lowest-leverage** move. Surface-removal + map-completion sheds 61 %+ for free; revisit curation only with usage evidence, never by vibe.
+- **DEFER — commands dimension** (near-zero context cost) and **module-owns-its-own-MCP** (the plugin/overlay path, TASK-471).
+
+Honest scope note: in Claude Code, MCP tool *schemas* are deferred (lazy via ToolSearch), so the primary win of removal is **less hallucination / cleaner tool list**, with a secondary, modest token saving — not a halving of context.

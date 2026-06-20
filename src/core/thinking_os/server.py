@@ -20,7 +20,7 @@ from pathlib import Path
 
 from database import get_db_stats, get_pooled_conn, init_db
 from mcp.server.fastmcp import FastMCP
-from tools._shared import fail, ok, safe_tool
+from tools._shared import apply_module_tool_gating, fail, ok, safe_tool
 
 # ---------------------------------------------------------------------------
 # Logging — central via core.logging_os; .mcp.log retained as MCP-specific sink.
@@ -3100,6 +3100,13 @@ def main() -> None:
         sys.exit(0 if success else 1)
     else:
         logger.info("Starting thinking_os MCP server (stdio)...")
+        gating = apply_module_tool_gating(mcp)
+        if gating["removed"]:
+            logger.info(
+                "Module gating: removed %d tool(s) for disabled module(s) %s",
+                len(gating["removed"]),
+                gating["disabled_modules"],
+            )
         mcp.run(transport="stdio")
 
 
