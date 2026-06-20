@@ -48,7 +48,7 @@ Skipping any layer creates a failure mode. Skipping eval is the most common skip
 
 | Need | Default | Why |
 |---|---|---|
-| Complex reasoning, code architecture, long horizons | `claude-opus-4-7` | Best reasoning, 1M context, most expensive |
+| Complex reasoning, code architecture, long horizons | `claude-opus-4-8` | Best reasoning, 1M context, most expensive |
 | Production default — chat, summaries, code edits | `claude-sonnet-4-6` | Strong reasoning, ~5× cheaper than Opus, 200K context |
 | Cheap, fast classification / extraction / heuristics | `claude-haiku-4-5-20251001` | Fast, cheap; fine for narrow tasks |
 | Multi-modal vision (charts, screenshots, OCR) | `claude-sonnet-4-6` or `gpt-4o` | Both vision-capable in 2026 |

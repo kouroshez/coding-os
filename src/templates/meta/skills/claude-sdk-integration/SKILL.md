@@ -69,7 +69,7 @@ question — never interleave dynamic content into the cached prefix.
 
 ### 2. Model selection
 
-Default: `claude-sonnet-4-6`. Promote to `claude-opus-4-7` only for:
+Default: `claude-sonnet-4-6`. Promote to `claude-opus-4-8` only for:
 - COMPLICATED+ tasks via `cos_compose_chain`.
 - Architect / refactorer roles.
 Never use older model IDs (3.x family) — retired.
