@@ -5,12 +5,12 @@ swimlane: cli
 kind: bug
 epic: null
 labels: [modularity-audit-pass3, code-review-fix, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-20
 started: 2026-06-19
-completed: null
+completed: 2026-06-19
 agent_session: ses-claude-20260619-063923-1c50
 depends_on: []
 blocked_by: []
@@ -52,3 +52,4 @@ make manifest-regen with a ~/.coding-os/templates/foo/stack.yaml present folds '
 - 2026-06-20 [claude]: Edit adapter_registry.py
 - 2026-06-20 [claude]: Edit test_init_dry_run_preview.py
 - 2026-06-20 [claude]: Edit test_stack_registry.py
+- 2026-06-20 [claude]: committed 50b5ea8c · 9 files
