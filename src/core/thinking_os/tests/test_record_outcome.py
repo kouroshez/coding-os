@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db  # noqa: E402
 from record_outcome import (  # noqa: E402
+    _derive_blocked,
     _derive_rework,
     _read_gate_file,
     _resolve_model,
@@ -28,6 +29,17 @@ def _reopen(db: Path, task_id: str) -> None:
     conn.execute(
         "INSERT INTO task_status_history (task_id, old_status, new_status, transitioned_at) "
         "VALUES (?, 'testing', 'in_progress', 0)",
+        (task_id,),
+    )
+    conn.commit()
+    conn.close()
+
+
+def _block(db: Path, task_id: str) -> None:
+    conn = sqlite3.connect(str(db))
+    conn.execute(
+        "INSERT INTO task_status_history (task_id, old_status, new_status, transitioned_at) "
+        "VALUES (?, 'in_progress', 'blocked', 0)",
         (task_id,),
     )
     conn.commit()
@@ -96,6 +108,38 @@ class TestDeriveRework:
         conn = sqlite3.connect(str(db))
         try:
             assert _derive_rework(conn, "UNKNOWN-TASK") is False
+        finally:
+            conn.close()
+
+
+class TestDeriveBlocked:
+    """The blocked emit path: a task that entered 'blocked' before completing is
+    recorded 'blocked' (not the hardcoded 'success'); blocked outranks rework."""
+
+    def test_blocked_history_becomes_blocked(self, db: Path) -> None:
+        _block(db, "TASK-B1")
+        r = record_outcome(task_id="TASK-B1", task_type="feat", outcome="success", db_path=db)
+        assert r["outcome"] == "blocked"
+
+    def test_blocked_outranks_rework(self, db: Path) -> None:
+        _block(db, "TASK-B2")
+        _reopen(db, "TASK-B2")  # both signals present
+        r = record_outcome(task_id="TASK-B2", task_type="fix", outcome="success", db_path=db)
+        assert r["outcome"] == "blocked"  # stronger friction marker wins
+
+    def test_clean_task_not_blocked(self, db: Path) -> None:
+        r = record_outcome(task_id="TASK-B3", task_type="feat", outcome="success", db_path=db)
+        assert r["outcome"] == "success"
+
+    def test_explicit_partial_not_overridden(self, db: Path) -> None:
+        _block(db, "TASK-B4")  # has blocked signal, but caller asserts 'partial'
+        r = record_outcome(task_id="TASK-B4", task_type="fix", outcome="partial", db_path=db)
+        assert r["outcome"] == "partial"  # refine only upgrades an optimistic 'success'
+
+    def test_derive_blocked_false_on_clean(self, db: Path) -> None:
+        conn = sqlite3.connect(str(db))
+        try:
+            assert _derive_blocked(conn, "UNKNOWN-TASK") is False
         finally:
             conn.close()
 

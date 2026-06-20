@@ -205,6 +205,29 @@ def _derive_rework(conn: sqlite3.Connection, task_id: str) -> bool:
         return False
 
 
+def _derive_blocked(conn: sqlite3.Connection, task_id: str) -> bool:
+    """True when the task's OWN status history shows it entered the 'blocked'
+    state before completing — a real friction signal (it stalled on an external
+    dependency, not on rework). Like _derive_rework this is the only TASK-SCOPED
+    blocked signal that exists; it refines an optimistic 'success' and never
+    overrides an explicitly-asserted non-success. 'blocked' outweighs 'rework':
+    a task that was both stalled and re-edited is recorded as blocked, the
+    stronger friction marker for routing_weights. There is deliberately NO
+    derivation for 'partial' — partial-acceptance has no status-history footprint
+    and must be asserted explicitly by the closer (it is otherwise unknowable)."""
+    try:
+        return bool(
+            conn.execute(
+                "SELECT 1 FROM task_status_history "
+                "WHERE task_id = ? AND new_status = 'blocked' LIMIT 1",
+                (task_id,),
+            ).fetchone()
+        )
+    except sqlite3.Error as exc:
+        logger.debug("blocked derivation skipped for %s: %s", task_id, exc)
+        return False
+
+
 def record_outcome(
     *,
     task_id: str,
@@ -264,11 +287,15 @@ def record_outcome(
             except sqlite3.Error as exc:
                 logger.debug("duration compute skipped for %s: %s", task_id, exc)
 
-        # Refine an optimistic 'success' into the honest 'rework' when the
-        # task's own history shows it — the only thing that gives the variance
-        # gate + rework extractors a non-monotone signal to learn from.
-        if refine_from_history and outcome == "success" and _derive_rework(conn, task_id):
-            outcome = "rework"
+        # Refine an optimistic 'success' into the honest non-success the task's
+        # own history records — the only thing that gives the variance gate +
+        # extractors a non-monotone signal to learn from. 'blocked' (stalled on a
+        # dependency) outweighs 'rework' (re-edited): check it first.
+        if refine_from_history and outcome == "success":
+            if _derive_blocked(conn, task_id):
+                outcome = "blocked"
+            elif _derive_rework(conn, task_id):
+                outcome = "rework"
 
         # Read current outcome BEFORE update (for breakthrough detection)
         previous_outcome = None

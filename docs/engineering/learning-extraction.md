@@ -135,6 +135,20 @@ non-`success` is never overridden; the same derived value is threaded into the
 `retrievals.outcome` back-fill (no second hardcoded-`success` writer). Migration
 v38 backfilled history from the same reopen signal.
 
+`record_outcome._derive_blocked` (audit 2026-06-19, group B) adds the second
+task-scoped signal: a task whose `task_status_history` shows it entered the
+`blocked` state before completing is recorded `'blocked'` — a stall-on-dependency
+marker distinct from rework. **Precedence: `blocked` > `rework` > `success`** — a
+task that was both stalled and re-edited is the stronger friction case. There is
+deliberately **no `partial` derivation**: partial-acceptance leaves no
+status-history footprint, so it is *explicit-only* (the closer asserts it) and
+otherwise unknowable — inventing a heuristic for it would just feed noise. This
+closes the audit finding that "partial/blocked have no production emit path"
+**at the plumbing level only**: it makes a non-`success` outcome structurally
+possible, but real signal variance still requires diverse consumer work (the
+dogfood monoculture, audit group F) — wiring alone does not un-degenerate a
+flywheel that only ever runs one kind of task.
+
 > **Honest scope (audit 2026-06-08).** A `backtrack_event` was *removed* as a
 > signal: it is session-scoped with no `task_id`, and one session closes many
 > tasks (161 in the live corpus), so attributing a session's backtrack to its
