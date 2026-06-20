@@ -29,7 +29,14 @@ import yaml
 logger = logging.getLogger(__name__)
 
 from cli._init_helpers import ensure_agents_md, materialize_makefile_targets
-from cli._resources import adapters_dir, core_dir, data_root, templates_dir
+from cli._resources import (
+    adapters_dir,
+    core_dir,
+    data_root,
+    overlay_adapter_dirs,
+    overlay_template_dirs,
+    templates_dir,
+)
 from cli.adapter_registry import load_adapter_registry
 from cli.aggregator import aggregate, today_iso
 from cli.core_version import current_core_version, read_stamped_version, stamp_core_version
@@ -78,8 +85,8 @@ def _aggregate_world(agent: str, templates: tuple[str, ...], project: Path):
     from update).
     """
     base = load_base_profile(TEMPLATES_DIR / "_base")
-    stack_registry = load_stack_registry(TEMPLATES_DIR)
-    adapter_registry = load_adapter_registry(ADAPTERS_DIR)
+    stack_registry = load_stack_registry(TEMPLATES_DIR, overlay_dirs=overlay_template_dirs())
+    adapter_registry = load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs())
     if agent not in adapter_registry:
         raise click.ClickException(f"adapter '{agent}' not found in {ADAPTERS_DIR}")
     # Same relocation step as cli.main._build_world — `cos update` must not
@@ -132,7 +139,7 @@ def _load_config(project: Path) -> dict:
 def _load_adapter(agent: str):
     from cli.adapter_registry import load_adapter_registry
 
-    adapters = load_adapter_registry(ADAPTERS_DIR)
+    adapters = load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs())
     if agent not in adapters:
         raise click.ClickException(f"adapter '{agent}' not in registry")
     return adapters[agent]

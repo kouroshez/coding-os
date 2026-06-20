@@ -536,11 +536,11 @@ def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
 # derived instead, and `cos doctor` surfaces any residue (modules.skill_drift).
 
 
-def _user_disabled_skills(project_root: Path) -> set[str]:
+def _safe_project_config(project_root: Path) -> dict:
     try:
-        return set(_load_project_config(project_root).get("disabled_skills") or [])
+        return _load_project_config(project_root)
     except (OSError, click.ClickException):
-        return set()
+        return {}
 
 
 def _toggle_skill_link(project_root: Path, name: str, *, link: bool) -> int:
@@ -596,7 +596,9 @@ def cascade_module_skills(
     if not owned:
         return {"module": module_id, "linked": [], "unlinked": [], "kept": []}
 
-    user_disabled = _user_disabled_skills(project_root)
+    config = _safe_project_config(project_root)
+    user_disabled = set(config.get("disabled_skills") or [])
+    installed_stack_skills = _installed_stack_skills(config)
     linked: list[str] = []
     unlinked: list[str] = []
     kept: list[str] = []
@@ -605,6 +607,12 @@ def cascade_module_skills(
         for name in owned:
             if name in user_disabled:
                 kept.append(name)  # user override outranks the module relink
+            elif _known_skill_provenance(name) == "stack" and name not in installed_stack_skills:
+                # A meta-stack-owned skill (e.g. graph-os-authoring) that THIS
+                # project never installed — never force-link it (mirrors the
+                # set_project_skill stack guard, TASK-478). Only core skills ship
+                # on every consumer, so only they cascade unconditionally.
+                kept.append(name)
             elif _toggle_skill_link(project_root, name, link=True):
                 linked.append(name)
     elif keep_skills:

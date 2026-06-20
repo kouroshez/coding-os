@@ -162,49 +162,53 @@ def set_module_enabled(
             reason=f"unknown module '{module_id}' — available: {sorted(modules)}",
         )
     module = modules[module_id]
-    state = module_state(project_root, modules)
-
-    if not enabled:
-        if module.kernel:
-            return ToggleResult(
-                ok=False,
-                module_id=module_id,
-                reason=f"module '{module_id}' is kernel (always on) and cannot be disabled",
-            )
-        dependents = enabled_dependents(module_id, modules, state)
-        if dependents:
-            return ToggleResult(
-                ok=False,
-                module_id=module_id,
-                reason=(
-                    f"cannot disable '{module_id}': enabled module(s) depend on it — "
-                    + ", ".join(f"{d} → {module_id}" for d in dependents)
-                    + ". Disable the dependent(s) first."
-                ),
-            )
-    else:
-        missing = [d for d in module.depends_on if not state.get(d, True)]
-        if missing:
-            return ToggleResult(
-                ok=False,
-                module_id=module_id,
-                reason=(
-                    f"cannot enable '{module_id}': dependency chain not satisfied — "
-                    + ", ".join(f"{module_id} → {d} (disabled)" for d in missing)
-                    + ". Enable the dependency first."
-                ),
-            )
+    # Kernel-pin + unknown-id are STATIC refusals (no concurrent toggle can change
+    # them), so they stay outside the lock. The dependency refusals depend on OTHER
+    # modules' enabled state and are re-validated under the lock below.
+    if not enabled and module.kernel:
+        return ToggleResult(
+            ok=False,
+            module_id=module_id,
+            reason=f"module '{module_id}' is kernel (always on) and cannot be disabled",
+        )
 
     path = _state_path(project_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     # Concurrency-safe read-modify-write (TASK-474 P4-11): an advisory exclusive
     # lock serializes racing toggles, and the disabled set is RE-READ under the
     # lock so a concurrent writer's change survives (no silent lost-update). The
-    # temp file is per-pid so two writers never share one .json.tmp (no torn write).
+    # dependency-refusal validation is re-run under the lock against that fresh set
+    # (TASK-478): a concurrent toggle of a DIFFERENT module could otherwise slip an
+    # orphaned-dependency state past a pre-lock snapshot. Per-pid temp = no torn write.
     lock_path = path.with_suffix(".json.lock")
     with open(lock_path, "w", encoding="utf-8") as lock_fd:
         fcntl.flock(lock_fd, fcntl.LOCK_EX)
         disabled = _read_disabled(project_root)
+        state = {mid: (mid not in disabled) or m.kernel for mid, m in modules.items()}
+        if not enabled:
+            dependents = enabled_dependents(module_id, modules, state)
+            if dependents:
+                return ToggleResult(
+                    ok=False,
+                    module_id=module_id,
+                    reason=(
+                        f"cannot disable '{module_id}': enabled module(s) depend on it — "
+                        + ", ".join(f"{d} → {module_id}" for d in dependents)
+                        + ". Disable the dependent(s) first."
+                    ),
+                )
+        else:
+            missing = [d for d in module.depends_on if not state.get(d, True)]
+            if missing:
+                return ToggleResult(
+                    ok=False,
+                    module_id=module_id,
+                    reason=(
+                        f"cannot enable '{module_id}': dependency chain not satisfied — "
+                        + ", ".join(f"{module_id} → {d} (disabled)" for d in missing)
+                        + ". Enable the dependency first."
+                    ),
+                )
         if enabled:
             disabled.discard(module_id)
         else:

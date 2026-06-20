@@ -121,15 +121,18 @@ def collect_stack_skill_groups(stack_id: str) -> dict:
     """Per-stack required/recommended/optional groups — SSOT for the onboarding
     preview, consumed by `cos skills-list --stack` AND GET /api/hub/stacks/{id}/skills
     (skill-architecture.md § Per-stack skill groups). Raises KeyError on unknown stack."""
+    from cli._resources import overlay_template_dirs
     from cli.stack_registry import load_stack_registry
 
-    stacks = load_stack_registry(TEMPLATES_DIR)
+    stacks = load_stack_registry(TEMPLATES_DIR, overlay_dirs=overlay_template_dirs())
     if stack_id not in stacks:
         raise KeyError(stack_id)
     stack = stacks[stack_id]
 
     core_reg = load_skill_registry(CORE_SKILLS_DIR)
-    stack_skills_dir = TEMPLATES_DIR / stack_id / "skills"
+    # source_dir resolves the overlay dir for a community stack (== TEMPLATES_DIR/id
+    # for a bundled one), so the preview reads the right skills tree (TASK-478).
+    stack_skills_dir = stack.source_dir / "skills"
     stack_reg = load_skill_registry(stack_skills_dir) if stack_skills_dir.is_dir() else None
     warnings = list(core_reg.warnings)
     if stack_reg:

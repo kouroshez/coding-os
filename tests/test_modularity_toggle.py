@@ -185,7 +185,23 @@ class TestModuleSkillCascade:
         assert shared.is_symlink(), "shared skill (twin still enabled) must survive"
         assert not solo.exists(), "solely-graph skill must be unlinked"
 
-    def test_reenable_relinks_except_user_disabled(self, tmp_path: Path) -> None:
+    def test_reenable_relinks_core_skips_uninstalled_stack_skill(self, tmp_path: Path) -> None:
+        """Cascade-enable relinks a core skill (graph-explorer, ships everywhere) but
+        NOT a meta-stack skill the project never installed (graph-os-authoring) — the
+        TASK-478 fix for force-linking meta-internal skills into non-meta consumers."""
+        from cli.skill_commands import cascade_module_skills
+
+        project = self._project(tmp_path)
+        (project / ".coding-os.yaml").write_text("templates: []\n", encoding="utf-8")
+
+        out = cascade_module_skills(project, "graph", enabled=True)
+
+        assert "graph-explorer" in out["linked"]
+        assert "graph-os-authoring" in out["kept"]  # meta-stack-only, not installed → skipped
+        assert (project / ".claude" / "skills" / "graph-explorer" / "SKILL.md").is_symlink()
+        assert not (project / ".claude" / "skills" / "graph-os-authoring").exists()
+
+    def test_reenable_respects_user_disabled_override(self, tmp_path: Path) -> None:
         import yaml
 
         from cli.skill_commands import cascade_module_skills
@@ -198,12 +214,8 @@ class TestModuleSkillCascade:
 
         out = cascade_module_skills(project, "graph", enabled=True)
 
-        assert "graph-os-authoring" in out["linked"]
         assert "graph-explorer" in out["kept"]  # user override outranks the relink
-        relinked = project / ".claude" / "skills" / "graph-os-authoring" / "SKILL.md"
-        overridden = project / ".claude" / "skills" / "graph-explorer" / "SKILL.md"
-        assert relinked.is_symlink()
-        assert not overridden.exists()
+        assert not (project / ".claude" / "skills" / "graph-explorer").exists()
         # disabled_skills is the user's list — the cascade must not have touched it.
         cfg = yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
         assert cfg["disabled_skills"] == ["graph-explorer"]
@@ -302,6 +314,24 @@ class TestModuleStateHardening:
             '{"disabled": "graph"}', encoding="utf-8"
         )
         assert state_file_integrity(tmp_path) is not None  # disabled must be a list, not a str
+
+    def test_dependency_refusal_validated_against_current_disk_state(self, tmp_path: Path) -> None:
+        """TASK-478: the dependency-refusal validation now runs under the lock
+        against the freshly-read disabled set, so a refusal reflects the CURRENT
+        on-disk state (not a stale pre-lock snapshot). tasks depends_on docs."""
+        from cli.subsystems import set_module_enabled
+
+        # Disabling docs while tasks is still enabled must refuse (tasks needs docs).
+        refuse_disable = set_module_enabled(tmp_path, "docs", False)
+        assert refuse_disable.ok is False and "depend on it" in refuse_disable.reason
+
+        # Bring docs down legitimately (disable tasks first), then re-enabling tasks
+        # while docs stays disabled must refuse — validated from the re-read set.
+        assert set_module_enabled(tmp_path, "tasks", False).ok is True
+        assert set_module_enabled(tmp_path, "docs", False).ok is True
+        refuse_enable = set_module_enabled(tmp_path, "tasks", True)
+        assert refuse_enable.ok is False
+        assert "dependency chain not satisfied" in refuse_enable.reason
 
 
 class TestToggleRollbackAtomicity:
