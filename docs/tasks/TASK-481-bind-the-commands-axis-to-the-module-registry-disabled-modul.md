@@ -5,12 +5,12 @@ swimlane: cli
 kind: feature
 epic: null
 labels: [modularity, audit-pass5, commands, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-20
 started: 2026-06-20
-completed: null
+completed: 2026-06-20
 agent_session: ses-claude-20260620-150945-6eba
 depends_on: [TASK-480]
 blocked_by: []
@@ -50,3 +50,4 @@ references: []
 - 2026-06-20 [claude]: Edit test_modularity_toggle.py
 - 2026-06-20 [claude]: Edit test_cli.py
 - 2026-06-20 [claude]: Implemented commands cascade axis: subsystems.yaml commands: on…
+- 2026-06-20 [claude]: committed 660f3167 · 7 files
