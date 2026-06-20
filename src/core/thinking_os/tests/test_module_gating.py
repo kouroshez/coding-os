@@ -10,7 +10,12 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from tools._shared import _MODULE_GATE_CACHE, apply_module_tool_gating, safe_tool  # noqa: E402
+from tools._shared import (  # noqa: E402
+    _MODULE_GATE_CACHE,
+    _gated_module,
+    apply_module_tool_gating,
+    safe_tool,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -144,3 +149,39 @@ def test_surface_removal_fails_open_on_manager_error(tmp_path, monkeypatch):
     summary = apply_module_tool_gating(mcp)  # must not raise
     assert summary["removed"] == []
     assert summary["disabled_modules"] == ["graph"]
+
+
+# ---------------------------------------------------------------------------
+# TASK-477 — the cognition/observability modules were `tools: []` (toggleable
+# but shed nothing). They now own their reasoning/metrics surface; classify +
+# health stay kernel by design. Reads the real subsystems.yaml via _gated_module.
+# ---------------------------------------------------------------------------
+
+
+def test_cognition_disable_gates_reasoning_keeps_kernel(tmp_path, monkeypatch):
+    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+    _disable(tmp_path, "cognition")
+    assert _gated_module("cos_compose_chain") == "cognition"
+    assert _gated_module("cos_dispatch_formula_run") == "cognition"
+    assert _gated_module("cos_route_model") == "cognition"
+    assert _gated_module("cos_supervise_record_output") == "cognition"
+    # Record Gate + diagnostic stay kernel — never gated by a module toggle.
+    assert _gated_module("cos_classify_prompt") is None
+    assert _gated_module("cos_health") is None
+
+
+def test_observability_disable_gates_metrics_and_trajectory(tmp_path, monkeypatch):
+    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+    _disable(tmp_path, "observability")
+    assert _gated_module("cos_metric_record") == "observability"
+    assert _gated_module("cos_log_query") == "observability"
+    assert _gated_module("cos_trajectory_snapshot") == "observability"
+    assert _gated_module("cos_presence_query") == "observability"
+
+
+def test_memory_disable_gates_retrieval_promote_digest(tmp_path, monkeypatch):
+    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+    _disable(tmp_path, "memory")
+    assert _gated_module("cos_retrieval_cite") == "memory"
+    assert _gated_module("cos_promote") == "memory"
+    assert _gated_module("cos_digest_regenerate") == "memory"

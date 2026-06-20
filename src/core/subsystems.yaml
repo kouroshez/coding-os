@@ -84,7 +84,7 @@ modules:
     label: "Agent memory — observations, learning, recall"
     kernel: false
     hooks: [enforce-memory-check, capture-observation, jit-recall, nudge-learn-narrative, remind-learn-validate, auto-brain-decay, drain-embedding-outbox, check-capture-worked]
-    tools: [cos_search, cos_observation_record, cos_timeline, cos_details, "cos_learn_*"]
+    tools: [cos_search, cos_observation_record, cos_timeline, cos_details, "cos_learn_*", "cos_retrieval_*", cos_promote, cos_digest_regenerate]
     depends_on: []
 
   - id: cognition
@@ -94,14 +94,20 @@ modules:
     # composition, and soft nudges. Toggle off to cut the per-session token
     # cost of the cognitive scaffolding (hard gates stay in kernel).
     hooks: [advance-role, auto-compose-roles, enforce-anti-ambiguity, nudge-model-routing, nudge-thinking-os, rules-primer, session-skill-primer, track-backtrack, track-discovery, nudge-reuse-first, regen-reminder, test-first-reminder]
-    tools: []
+    # The reasoning-assist tool surface: role composition, formula dispatch,
+    # supervision, model/skill routing, situation detect. cos_classify_prompt
+    # (Record Gate, core loop) + cos_health (diagnostic) stay KERNEL by design.
+    tools: ["cos_dispatch_*", "cos_route_*", cos_compose_chain, cos_supervise, cos_supervise_record_output, cos_role_info, cos_situation_detect, cos_takeover, cos_analyze_task, cos_ambiguity_check, cos_backtrack_log, cos_discovery]
     depends_on: []
 
   - id: observability
     label: "Observability — session tracing, transcript + tool-failure capture"
     kernel: false
     hooks: [auto-trace-rotate, capture-tool-failure, record-verify-auto, snapshot-transcript]
-    tools: []
+    # Session metrics, log query, trajectory snapshots, presence. Internal
+    # callers (task-done outcome recording, hooks) use the impl functions, not
+    # these MCP tools, so gating is surface-only — it never breaks recording.
+    tools: ["cos_metric_*", "cos_trajectory_*", cos_log_query, cos_presence_query]
     depends_on: []
 
   - id: hub-extras
