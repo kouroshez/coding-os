@@ -181,6 +181,10 @@ regen-rules: ## Regenerate src/core/rules/{dimension-registry,skill-enforcement}
 regen-doctor-schema: ## Regenerate src/core/doctor-config.yaml::schema from live db.py
 	@uv run python src/scripts/regen_doctor_schema.py
 
+.PHONY: graph-phantom-check
+graph-phantom-check: ## Fail if orphaned_phantom graph nodes exceed the baseline (regression gate; nightly CI + local)
+	@uv run python src/scripts/check_graph_phantoms.py
+
 .PHONY: logs-trim
 logs-trim: ## Trim .coding-os/.hooks.log to last 200 lines (manual override of the opportunistic truncator)
 	@LOG="$${COS_STATE_DIR:-.coding-os}/.hooks.log"; \

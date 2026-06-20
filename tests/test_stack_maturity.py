@@ -69,3 +69,41 @@ def test_every_candidate_stack_is_classified() -> None:
     derived = _derive()
     classified = derived["Stable"] | derived["Beta"] | derived["Stub"]
     assert classified == _candidate_stacks()
+
+
+# ---------------------------------------------------------------------------
+# Stack-count drift lint (TASK-461 / audit A1): a hardcoded "N stacks" literal
+# in a governance entry doc rots silently — the "8 stacks" line in AGENTS.md was
+# the canonical example (TASK-459). The count's SSOT is this maturity matrix +
+# its derivation; entry docs must NOT pin a number that ground truth can outrun.
+# ---------------------------------------------------------------------------
+
+# Files scanned for stale counts. The maturity doc is excluded: it is self-
+# guarded by the tier tests above and intentionally quotes the "27" marketing
+# figure as a bad example.
+_COUNT_SCANNED = [
+    _REPO / "AGENTS.md",
+    *sorted((_REPO / "src" / "core" / "rules").glob("*.md")),
+]
+_STACK_COUNT_RE = re.compile(r"\b(\d+)\s+stacks?\b", re.IGNORECASE)
+
+
+def _canonical_counts() -> set[int]:
+    n = len(_candidate_stacks())  # user-facing stacks (excl meta/_base/_presets)
+    return {n, n + 1}  # allow excl-meta (n) or incl-meta (n+1) — both are "true"
+
+
+def test_no_stale_stack_count_in_governance_docs() -> None:
+    allowed = _canonical_counts()
+    violations: list[str] = []
+    for path in _COUNT_SCANNED:
+        if not path.is_file():
+            continue
+        for lineno, line in enumerate(path.read_text().splitlines(), 1):
+            for m in _STACK_COUNT_RE.finditer(line):
+                if int(m.group(1)) not in allowed:
+                    rel = path.relative_to(_REPO)
+                    violations.append(f"{rel}:{lineno}: '{m.group(0)}' (canonical: {sorted(allowed)})")
+    assert not violations, "stale stack-count literal(s) — update or link stack-maturity.md:\n" + "\n".join(
+        violations
+    )

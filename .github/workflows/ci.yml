@@ -211,6 +211,14 @@ jobs:
         run: uv sync --extra rag --extra graph_os
       - name: make test-slow
         run: make test-slow
+      - name: Graph phantom-regression gate (full reindex — nightly-only, too slow per-PR)
+        # Builds the graph from scratch (~44K nodes, minutes) then fails if
+        # orphaned_phantom nodes exceed the baseline — the real "graph rotted"
+        # signal (the 70 cursor-node spike class). A raw healthy:false gate was
+        # rejected: it is permanently red from benign external-unresolved imports.
+        run: |
+          uv run cos graph-reindex --force -j 4 || uv run cos graph-reindex --force
+          uv run python src/scripts/check_graph_phantoms.py
 
   # ============================================================
   # Hook syntax — bash -n + shellcheck on every src/core/hooks/*.sh
