@@ -5,12 +5,12 @@ swimlane: cli
 kind: bug
 epic: null
 labels: [modularity, audit-pass5, skills, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-20
 started: 2026-06-20
-completed: null
+completed: 2026-06-20
 agent_session: ses-claude-20260620-150945-6eba
 depends_on: []
 blocked_by: []
@@ -50,3 +50,4 @@ In a temp dir run the init path with a module disabled (e.g. graph): the graph-o
 - 2026-06-20 [claude]: Edit test_modularity_toggle.py
 - 2026-06-20 [claude]: Edit test_module_gating_smoke.py
 - 2026-06-20 [claude]: Implemented D2-1 (init step 5c runs ref-counted cascade_module_skills for disabled modules), D2-2 (renderer…
+- 2026-06-20 [claude]: committed 6b761096 · 6 files
