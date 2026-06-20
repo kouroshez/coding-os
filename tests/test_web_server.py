@@ -150,6 +150,32 @@ class TestGraphRoutes:
         resp = client.get("/api/graph/export", params={"format": "json"})
         assert resp.status_code in (200, 503)
 
+    @pytest.mark.parametrize(
+        "path,params",
+        [
+            ("/api/graph/search", {"q": "test"}),
+            ("/api/graph/resolve", {"q": "test"}),
+            ("/api/graph/centrality", {}),
+            ("/api/graph/ranking", {}),
+            ("/api/graph/cycles", {}),
+            ("/api/graph/dead-code", {}),
+            ("/api/graph/diff", {}),
+        ],
+    )
+    def test_new_graph_routes_envelope_shape(self, client, path, params):
+        """Each newly-exposed graph route (TASK-488) returns a well-formed
+        envelope verbatim from its cos_graph_* producer (data | error)."""
+        resp = client.get(path, params=params)
+        assert resp.status_code in (200, 404, 503)
+        body = resp.json()
+        assert "data" in body or "error" in body
+
+    @pytest.mark.parametrize("path", ["/api/graph/search", "/api/graph/resolve"])
+    def test_new_graph_routes_require_query(self, client, path):
+        """search + resolve require q — missing it is a 422 validation error."""
+        resp = client.get(path)
+        assert resp.status_code == 422
+
 
 # ---------------------------------------------------------------------------
 # /api/board — board routes

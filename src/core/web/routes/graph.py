@@ -1,4 +1,4 @@
-"""core.web.routes.graph — /api/graph/* HTTP wrappers for 11 cos_graph_* tools."""
+"""core.web.routes.graph — /api/graph/* HTTP wrappers for 21 cos_graph_* tools."""
 
 from __future__ import annotations
 
@@ -366,3 +366,133 @@ def graph_doctor(
     if g is None:
         return unwrap(_unavailable())
     return unwrap(g.cos_graph_doctor())
+
+
+@router.get("/search")
+def graph_search(
+    q: str = Query(..., description="Natural-language query"),
+    top_k: int = Query(10, ge=1, le=100),
+    _rl=Depends(make_rate_limit_dep("graph.search")),
+    _m=Depends(make_metrics_dep("graph.search")),
+):
+    """Embedding-ranked semantic search over graph nodes."""
+    g = _tools()
+    if g is None:
+        return unwrap(_unavailable())
+    return unwrap(g.cos_graph_search(q, top_k=int(top_k)))
+
+
+@router.get("/resolve")
+def graph_resolve(
+    q: str = Query(..., description="Symbol name or description to resolve"),
+    kinds: str | None = Query(None, description="Comma-separated node kinds"),
+    top: int = Query(10, ge=1, le=100),
+    _rl=Depends(make_rate_limit_dep("graph.resolve")),
+    _m=Depends(make_metrics_dep("graph.resolve")),
+):
+    """Resolve a name/description to canonical node uids."""
+    g = _tools()
+    if g is None:
+        return unwrap(_unavailable())
+    kinds_list = [k.strip() for k in kinds.split(",") if k.strip()] if kinds else None
+    return unwrap(g.cos_graph_resolve(q, kinds=kinds_list, top=int(top)))
+
+
+@router.get("/centrality")
+def graph_centrality(
+    top: int = Query(20, ge=1, le=200),
+    kind: str = Query(""),
+    metric: str = Query("degree"),
+    include_external: bool = Query(False),
+    include_structural: bool = Query(False),
+    _rl=Depends(make_rate_limit_dep("graph.centrality")),
+    _m=Depends(make_metrics_dep("graph.centrality")),
+):
+    """Most-connected nodes by the chosen centrality metric."""
+    g = _tools()
+    if g is None:
+        return unwrap(_unavailable())
+    result = g.cos_graph_centrality(
+        top=int(top),
+        kind=(kind or None),
+        metric=metric,
+        include_external=include_external,
+        include_structural=include_structural,
+    )
+    return unwrap(result)
+
+
+@router.get("/ranking")
+def graph_ranking(
+    q: str | None = Query(None, description="Optional query to personalize ranking"),
+    top: int = Query(20, ge=1, le=200),
+    kind: str = Query(""),
+    damping: float = Query(0.85, ge=0.0, le=1.0),
+    iterations: int = Query(30, ge=1, le=200),
+    include_external: bool = Query(False),
+    include_tests: bool = Query(False),
+    _rl=Depends(make_rate_limit_dep("graph.ranking")),
+    _m=Depends(make_metrics_dep("graph.ranking")),
+):
+    """PageRank-style importance ranking over the graph."""
+    g = _tools()
+    if g is None:
+        return unwrap(_unavailable())
+    result = g.cos_graph_ranking(
+        query=q,
+        top=int(top),
+        kind=(kind or None),
+        damping=float(damping),
+        iterations=int(iterations),
+        include_external=include_external,
+        include_tests=include_tests,
+    )
+    return unwrap(result)
+
+
+@router.get("/cycles")
+def graph_cycles(
+    scope: str = Query("imports"),
+    top: int = Query(20, ge=1, le=200),
+    min_size: int = Query(2, ge=2, le=100),
+    _rl=Depends(make_rate_limit_dep("graph.cycles")),
+    _m=Depends(make_metrics_dep("graph.cycles")),
+):
+    """Dependency cycles in the chosen edge scope."""
+    g = _tools()
+    if g is None:
+        return unwrap(_unavailable())
+    result = g.cos_graph_cycles(scope=scope, top=int(top), min_size=int(min_size))
+    return unwrap(result)
+
+
+@router.get("/dead-code")
+def graph_dead_code(
+    kind: str = Query(""),
+    top: int = Query(50, ge=1, le=500),
+    include_tests: bool = Query(False),
+    _rl=Depends(make_rate_limit_dep("graph.dead_code")),
+    _m=Depends(make_metrics_dep("graph.dead_code")),
+):
+    """Symbols with no inbound references (candidate dead code)."""
+    g = _tools()
+    if g is None:
+        return unwrap(_unavailable())
+    result = g.cos_graph_dead_code(kind=kind, top=int(top), include_tests=include_tests)
+    return unwrap(result)
+
+
+@router.get("/diff")
+def graph_diff(
+    base: str = Query("HEAD~1"),
+    head: str = Query("HEAD"),
+    analyze_downstream: bool = Query(True),
+    _rl=Depends(make_rate_limit_dep("graph.diff")),
+    _m=Depends(make_metrics_dep("graph.diff")),
+):
+    """Structural diff of the graph between two git refs."""
+    g = _tools()
+    if g is None:
+        return unwrap(_unavailable())
+    result = g.cos_graph_diff(base=base, head=head, analyze_downstream=analyze_downstream)
+    return unwrap(result)
