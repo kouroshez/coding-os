@@ -80,6 +80,11 @@ if [[ $RC -eq 2 ]]; then
   echo "  One-shot override: touch $COS_STATE_DIR/.literals-override" >&2
   echo "  (or: echo '{\"literals\":{\"reason\":\"\"}}' > $COS_STATE_DIR/.overrides.json)" >&2
   exit 2
+elif [[ $RC -ne 0 ]]; then
+  # A crashing checker (argparse/traceback, rc=1/127) is NOT a clean pass — stay
+  # fail-open (don't block every cli edit on a checker bug) but make it LOUD so
+  # the dead gate is observable, never silent (pass-3 review).
+  echo "block-hardcoded-literals: checker errored (rc=$RC) — edit allowed but the SSOT-drift gate did NOT run" >&2
 fi
 
 exit 0

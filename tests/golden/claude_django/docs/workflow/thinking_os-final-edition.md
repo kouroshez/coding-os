@@ -1386,10 +1386,12 @@ python3 .claude/thinking_os/bootstrap_outcomes.py --dry-run # preview only
 | agent_metrics     | session-end.sh                | Session end                   |
 | task_outcomes     | cos task-done                 | Task completion               |
 | learned_patterns  | cos_learn_extract            | Every 10 task_outcomes        |
-| routing_weights   | cos_route_skill/model        | After learned_patterns updated|
+| routing_weights   | recalculate_weights           | Every ~10 outcomes / on drift |
 | outcome_history   | decay.py                      | Periodic (>7 days)            |
 | experiment_log    | manual / MCP tools            | Research experiments          |
 | schema_version    | migrations                    | Schema upgrades               |
+
+> `routing_weights` is rebuilt from `task_outcomes` but is **not yet read** by `route_model`/`route_skill` — they rank `task_outcomes` directly. Its intended consumer is the multi-model cost-aware ranker (deferred); until that lands the table is a warm pre-aggregation, not a live decision input.
 
 **MCP tools** (available in Orient Memory Check):
 

@@ -67,4 +67,11 @@ STATUS="PASS"
 
 bash "$(dirname "$0")/record-verify.sh" "$SUITE" "$STATUS" >/dev/null 2>&1 || true
 cos_log_hook record-verify-auto recorded "suite=$SUITE status=$STATUS" 2>/dev/null || true
+
+# F-TST-3: a matrix-suite FAIL must be QUERYABLE (it reached only the hook jsonl
+# before). cos_say at ERROR routes through cos_say_json.py into the log_events
+# sink (DB floor WARN), so `cos_log_query` / an auto-bug-filer can surface it.
+if [[ "$STATUS" == "FAIL" ]] && command -v cos_say >/dev/null 2>&1; then
+  cos_say ERROR "verify.${SUITE}" "matrix suite failed (exit ${EXIT_CODE})" 2>/dev/null || true
+fi
 exit 0
