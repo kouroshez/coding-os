@@ -81,9 +81,9 @@ events; would not benefit from being merged into Write|Edit-only batch).
 - **Behavioural drift**: extracting bash functions risks subtle scoping
   bugs (`local` vs global, `set -e` propagation, `exit` vs `return`).
   Mitigation: parity test with byte-identical stderr.
-- **Test surface**: The 18 hooks have ~30 small ad-hoc test scripts
-  scattered through `src/core/hooks/test-hooks.sh`. All must be re-pointed
-  at the super-hook to keep coverage.
+- **Test surface**: hook coverage lives in the pytest suite
+  (`tests/test_hooks_*.py`); the legacy `src/core/hooks/test-hooks.sh`
+  harness was retired (TASK-460). Any super-hook must keep that suite green.
 - **Shared `set -euo pipefail`**: One checker's `pipefail` failure
   could now kill the whole super-hook. Each `_check_*` function must
   use `local -` or `( subshell )` isolation when running brittle pipes.

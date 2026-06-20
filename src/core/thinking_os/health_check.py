@@ -230,11 +230,12 @@ def check_hooks() -> dict:
 
         result["hooks"][hook_name] = hook_info
 
-    # Check test-hooks.sh exists
-    test_hook = HOOKS_DIR / "test-hooks.sh"
-    result["test_suite_exists"] = test_hook.exists()
-    if not test_hook.exists():
-        result["issues"].append("test-hooks.sh not found — no functional tests")
+    # Functional hook tests now live in the pytest suite (tests/test_hooks_*.py),
+    # not the retired bash test-hooks.sh harness (TASK-460). Probe that instead.
+    hook_tests = list((PROJECT_ROOT / "tests").glob("test_hooks_*.py"))
+    result["test_suite_exists"] = bool(hook_tests)
+    if not hook_tests:
+        result["issues"].append("no tests/test_hooks_*.py — no functional hook tests")
 
     return result
 

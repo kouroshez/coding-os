@@ -3,6 +3,11 @@
 # Usage: record-verify.sh <suite-name> <PASS|FAIL>
 # Example: record-verify.sh test-board_os PASS
 #
+# NOT a duplicate of record-verify-auto.sh: this is the shared 2-arg CLI recorder
+# (the actual ledger writer); record-verify-auto.sh is the PostToolUse Bash hook
+# that detects a suite run and DELEGATES to this script (record-verify-auto.sh:68).
+# Keep both — the hook is the trigger, this is the implementation (TASK-460).
+#
 # v2 (TASK-328): entries carry {git_head, dirty_digest, agent, session_tail}
 # so freshness is commit-keyed, not time-only. Tree state comes from
 # `verify_suites_cli tree-state` (single source — no bash/python drift); when
