@@ -1154,3 +1154,18 @@ def test_harakat_query_folds_to_base_form():
     # query-side half of harakat-insensitive search.
     assert graph._fts5_safe_query(voweled) == graph._fts5_safe_query(bare)
     assert graph._fts5_safe_query(bare)  # non-empty (token survived)
+
+
+def test_escape_stays_syntax_only_never_html_encodes():
+    """_escape() is mermaid/dot syntax-safe and must NOT HTML-encode (TASK-486):
+    HTML-context escaping belongs at the render boundary, not here. Locks the
+    byte-for-byte CLI/.mmd/.dot contract against a well-meaning XSS 'fix'."""
+    payload = "<img src=x onerror=alert(1)>"
+    escaped = graph._escape(payload)
+    # angle brackets + ampersand survive verbatim — NOT &lt; / &gt; / &amp;
+    assert "<img" in escaped and ">" in escaped
+    assert "&lt;" not in escaped
+    assert "&gt;" not in escaped
+    assert "&amp;" not in escaped
+    # the mermaid/dot-breaking chars ARE still neutralised
+    assert graph._escape('a"b\\c') == "a'b/c"

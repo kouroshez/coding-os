@@ -5,18 +5,17 @@ swimlane: core
 kind: security
 epic: null
 labels: [hub, xss, ready]
-status: icebox
+status: in_progress
 priority: P3
 appetite: 1d
 created: 2026-06-20
-started: null
+started: 2026-06-20
 completed: null
-agent_session: null
+agent_session: ses-claude-20260620-144553-a8b6
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-486: HTML-context-escape graph-export labels at the browser render boundary (never inside _escape)
 
 **Outcome (one sentence):** When the first browser HTML/mermaid-rendering consumer of graph exports ships, node labels are HTML-context-escaped at the DOM-injection boundary — never inside graph.py _escape(), which must stay mermaid/dot-syntax-only — so attacker- or content-controlled symbol/doc labels cannot become stored XSS. No live sink today (SPA renders only format=json via Sigma WebGL), so this is gated on that first HTML consumer.
@@ -36,3 +35,6 @@ references: []
 **Given** _escape() (graph.py:3478) intentionally produces mermaid/dot syntax-safe text (HTML-entity-encoding it would corrupt CLI/.mmd/.dot output) and the SPA today renders only format=json with no HTML sink, **When** a browser HTML/mermaid render of exported labels is introduced, **Then** HTML-context escaping is applied at that render/DOM-injection point, not in _escape(). **And** a test indexes a node whose label contains '<img src=x onerror=alert(1)>' and asserts it renders inert. **And** _escape() and the CLI/.mmd/.dot output paths remain byte-for-byte unchanged.
 
 ## Work Log
+- 2026-06-20 [claude]: Edit graph.py
+- 2026-06-20 [claude]: Edit test_mcp_tools.py
+- 2026-06-20 [claude]: Locked the design half of the task: added a SECURITY comment in _escape (graph.py) documenting it must stay…

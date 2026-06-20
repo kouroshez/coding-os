@@ -3481,6 +3481,11 @@ def _escape(text: str) -> str:
     # single-quote (avoids the dot \" / mermaid #quot; divergence), then
     # collapse any newline / control char to a space so the one-line
     # `id["label"]` / `id [label="..."]` syntax never breaks.
+    # SECURITY (TASK-486): deliberately NOT HTML-escaped — `<`, `>`, `&` pass
+    # through verbatim because HTML-encoding here would corrupt .mmd/.dot/CLI
+    # output. HTML-context escaping of a label belongs at the browser
+    # DOM/render boundary, never in this syntax-only helper. No HTML sink
+    # exists today (the SPA renders format=json via Sigma WebGL).
     out = text.replace("\\", "/").replace('"', "'")
     return "".join(" " if (c == "\n" or c == "\r" or ord(c) < 32) else c for c in out)
 
