@@ -1142,6 +1142,31 @@ def _check_module_skill_drift(project: Path, report: DoctorReport) -> None:
         logger.debug("module skill drift check skipped: %s", exc)
 
 
+def _check_subsystems_state_integrity(project: Path, report: DoctorReport) -> None:
+    """modules.state_integrity — a corrupt subsystems-state.json fails OPEN to
+    all-enabled silently (TASK-474 P4-12); surface it as a WARN, not a false PASS."""
+    logger = logging.getLogger("coding_os.doctor")
+    try:
+        from cli.subsystems import state_file_integrity
+
+        reason = state_file_integrity(project)
+        if reason:
+            report.checks.append(
+                CheckResult(
+                    "modules.state_integrity",
+                    SEV_WARN,
+                    f"subsystems-state.json {reason} — module toggles silently fall back "
+                    "to ALL-ENABLED; fix or delete the file",
+                )
+            )
+        else:
+            report.checks.append(
+                CheckResult("modules.state_integrity", SEV_PASS, "subsystems-state.json readable")
+            )
+    except Exception as exc:
+        logger.debug("subsystems state integrity check skipped: %s", exc)
+
+
 def run_doctor(
     project: Path,
     *,
@@ -1196,6 +1221,7 @@ def run_doctor(
     _check_hook_coverage(project, report)
     _check_module_consistency(project, report)
     _check_module_skill_drift(project, report)
+    _check_subsystems_state_integrity(project, report)
     _tick("runtime errors")
     _check_runtime_errors(state, report)
     # graph_os health checks.

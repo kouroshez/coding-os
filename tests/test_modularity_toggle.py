@@ -244,6 +244,66 @@ class TestModuleSkillCascade:
         assert check.severity == SEV_WARN and "graph-explorer" in check.message
 
 
+class TestModuleStateHardening:
+    """TASK-474 — concurrent-toggle lock (no lost-update) + corrupt-state visibility."""
+
+    def test_concurrent_disables_no_lost_update(self, tmp_path: Path) -> None:
+        import threading
+
+        from cli.subsystems import _read_disabled, set_module_enabled
+
+        mods = ["graph", "memory", "cognition", "observability", "hub-extras"]
+        barrier = threading.Barrier(len(mods))
+        errors: list[Exception] = []
+
+        def _worker(module_id: str) -> None:
+            try:
+                barrier.wait()  # release all writers at once → maximal contention
+                set_module_enabled(tmp_path, module_id, False)
+            except Exception as exc:  # noqa: BLE001
+                errors.append(exc)
+
+        threads = [threading.Thread(target=_worker, args=(m,)) for m in mods]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        assert not errors, errors
+        assert _read_disabled(tmp_path) == set(mods)  # every racing toggle persisted
+
+    def test_corrupt_state_surfaces_as_doctor_warn(self, tmp_path: Path) -> None:
+        from cli.doctor import (
+            SEV_PASS,
+            SEV_WARN,
+            DoctorReport,
+            _check_subsystems_state_integrity,
+        )
+
+        (tmp_path / ".coding-os").mkdir()
+        ok_report = DoctorReport(project_dir=str(tmp_path), agent="claude", templates=[])
+        _check_subsystems_state_integrity(tmp_path, ok_report)  # absent file → PASS
+        assert (
+            next(c for c in ok_report.checks if c.id == "modules.state_integrity").severity
+            == SEV_PASS
+        )
+
+        (tmp_path / ".coding-os" / "subsystems-state.json").write_text("{not json", encoding="utf-8")
+        warn_report = DoctorReport(project_dir=str(tmp_path), agent="claude", templates=[])
+        _check_subsystems_state_integrity(tmp_path, warn_report)
+        check = next(c for c in warn_report.checks if c.id == "modules.state_integrity")
+        assert check.severity == SEV_WARN and "subsystems-state.json" in check.message
+
+    def test_malformed_disabled_shape_is_flagged(self, tmp_path: Path) -> None:
+        from cli.subsystems import state_file_integrity
+
+        (tmp_path / ".coding-os").mkdir()
+        (tmp_path / ".coding-os" / "subsystems-state.json").write_text(
+            '{"disabled": "graph"}', encoding="utf-8"
+        )
+        assert state_file_integrity(tmp_path) is not None  # disabled must be a list, not a str
+
+
 class TestToggleRollbackAtomicity:
     """audit pass-4 #10 — a regen failure mid-toggle must roll BOTH the module
     state AND the runtime allowlist back. regen writes the allowlist first, so

@@ -10,8 +10,10 @@ the first toggle, never by readers. Toggle behavior (MCP gating, Config tab,
 
 from __future__ import annotations
 
+import fcntl
 import json
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -87,6 +89,23 @@ def _read_disabled(project_root: Path) -> set[str]:
     except (json.JSONDecodeError, OSError) as exc:
         logger.debug("subsystems state unreadable (%s) — treating as all-enabled", exc)
         return set()
+
+
+def state_file_integrity(project_root: Path) -> str | None:
+    """Human reason if subsystems-state.json exists but is unreadable/malformed,
+    else None. _read_disabled silently falls back to ALL-ENABLED on corruption
+    (the next toggle then persists the loss); this lets `cos doctor` surface it
+    (TASK-474 P4-12) instead of certifying the desync PASS."""
+    path = _state_path(project_root)
+    if not path.is_file():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        return f"unparseable ({exc})"
+    if not isinstance(data, dict) or not isinstance(data.get("disabled", []), list):
+        return 'malformed (expected {"disabled": [...]})'
+    return None
 
 
 def module_state(
@@ -176,18 +195,27 @@ def set_module_enabled(
                 ),
             )
 
-    disabled = _read_disabled(project_root)
-    if enabled:
-        disabled.discard(module_id)
-    else:
-        disabled.add(module_id)
-
     path = _state_path(project_root)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".json.tmp")
-    tmp.write_text(
-        json.dumps({"version": 1, "disabled": sorted(disabled)}, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    tmp.replace(path)
+    # Concurrency-safe read-modify-write (TASK-474 P4-11): an advisory exclusive
+    # lock serializes racing toggles, and the disabled set is RE-READ under the
+    # lock so a concurrent writer's change survives (no silent lost-update). The
+    # temp file is per-pid so two writers never share one .json.tmp (no torn write).
+    lock_path = path.with_suffix(".json.lock")
+    with open(lock_path, "w", encoding="utf-8") as lock_fd:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        disabled = _read_disabled(project_root)
+        if enabled:
+            disabled.discard(module_id)
+        else:
+            disabled.add(module_id)
+        tmp = path.with_suffix(f".json.{os.getpid()}.tmp")
+        try:
+            tmp.write_text(
+                json.dumps({"version": 1, "disabled": sorted(disabled)}, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            tmp.replace(path)
+        finally:
+            tmp.unlink(missing_ok=True)
     return ToggleResult(ok=True, module_id=module_id, enabled=enabled, state_path=path)

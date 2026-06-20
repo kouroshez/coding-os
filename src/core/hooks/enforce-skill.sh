@@ -76,13 +76,39 @@ fi
 # Check skill matches file type (STATE_VALUE has all invoked skills)
 ALL_SKILLS="$STATE_VALUE"
 
-# Meta-stack guard: editing any meta-repo authoring path REQUIRES the
-# graph-explorer skill (clean-code alone is not enough). This closes
-# the dogfood gap where the agent could bypass graph by loading only
-# clean-code. Source of truth: src/templates/meta/stack.yaml::skill_enforcement.
+# Meta-stack guard: editing a meta-repo authoring path REQUIRES the
+# graph-explorer skill (clean-code alone is not enough) — closes the dogfood
+# gap where the agent bypasses graph by loading only clean-code. SSOT:
+# src/templates/meta/stack.yaml::skill_enforcement.
+#
+# Meta-scope gate (TASK-474 P4-14/15): the hook is symlinked verbatim into
+# consumers, where `*core/*.py` would wrongly match the consumer's OWN
+# src/core/*.py and demand a meta-only skill. Fire ONLY inside the coding-os
+# source tree, and self-skip when the graph module is disabled (the skill is gone).
+_in_meta_source_tree() {
+  local dir
+  dir=$(cd "$(dirname "$1")" 2>/dev/null && pwd) || return 1
+  while [[ "$dir" != "/" && -n "$dir" ]]; do
+    if [[ -d "$dir/src/templates/_base" && -d "$dir/src/adapters/claude" \
+          && -d "$dir/src/adapters/codex" ]]; then
+      return 0
+    fi
+    dir=$(dirname "$dir")
+  done
+  return 1
+}
+
+_graph_module_disabled() {
+  local state="${COS_STATE_DIR:-.coding-os}/subsystems-state.json"
+  [[ -f "$state" ]] || state="$(pwd)/.coding-os/subsystems-state.json"
+  [[ -f "$state" ]] || return 1
+  jq -e '(.disabled // []) | index("graph") != null' "$state" >/dev/null 2>&1
+}
+
 case "$FILE_PATH" in
   *core/*.py|*cli/*.py|*adapters/*.py)
-    if ! echo "$ALL_SKILLS" | grep -qiE "graph-explorer"; then
+    if _in_meta_source_tree "$FILE_PATH" && ! _graph_module_disabled \
+        && ! echo "$ALL_SKILLS" | grep -qiE "graph-explorer"; then
       echo "BLOCKED: Editing meta-repo authoring path ($FILE_PATH) requires Skill graph-explorer." >&2
       echo "  Reason: load-bearing src/core/cli/adapter file — call cos_graph_context first." >&2
       echo "  Fix:    Skill skill: \"graph-explorer\"" >&2
