@@ -25,3 +25,4 @@ references: []
 - 2026-06-20 [claude]: Edit doc-system-overhaul-roadmap.md
 - 2026-06-20 [claude]: commit 2e5534a55b — docs: remove stale '8 stacks' SSOT literal (AGENTS.md + overhaul roadmap)
 - 2026-06-20 [claude]: DONE: A2 graph purged via cos_graph_doctor(fix=true) → healthy:true (70 phantom cursor + 1103 external + 5 stale…
+- 2026-06-20 [claude]: committed 1de45092 · 1 file
