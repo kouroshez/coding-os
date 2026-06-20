@@ -31,10 +31,11 @@ Read next: any of the entries below.
 - [ADR: Role dispatch stays opt-in; the role chain is single-agent guidance](adr-role-dispatch-deferral.md) — `ssot:true` · updated 2026-06-05
 - [ADR — Task ID Collision Resistance for OSS Multi-Contributor Flow](adr-task-id-collision-resistance.md) — `ssot:true` · updated 2026-06-09
 
-### Reference (2)
+### Reference (3)
 
 - [MCP Tool Inventory](mcp-tool-inventory.md) — `ssot:true` · updated 2026-05-25
 - [Decision Records](decision-records.md) — `ssot:true` · updated 2026-05-25
+- [Stack Maturity Matrix](stack-maturity.md) — `ssot:true` · updated 2026-06-19
 
 ### Governance (1)
 
