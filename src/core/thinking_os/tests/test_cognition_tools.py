@@ -322,3 +322,49 @@ class TestCosClassifyPromptGateRecord:
         assert result["ok"] is True
         assert result["data"]["recorded"] is False
         assert "write-state.sh" in result["data"]["record_hint"]
+
+
+class TestDispatchPersistenceDegradedPath:
+    """Audit pass-4 #8: the schema-validation-failure branch of
+    _persist_dispatch_output referenced an undefined `field_map`, so a real
+    dispatched role returning ok-but-invalid output raised NameError (masked by
+    @safe_tool as an opaque fail('internal')) instead of returning the degraded
+    bundle filled-count the supervisor consumes."""
+
+    def test_validation_failure_returns_count_not_nameerror(self, db_path):
+        from tools.cognition import _persist_dispatch_output
+
+        # 'researcher' is in ROLE_OUTPUT_CLASSES and ResearcherOutput requires
+        # `summary`, so an empty output_json fails model_validate -> the degraded
+        # branch (the formerly-crashing line) runs.
+        filled = _persist_dispatch_output(
+            session_id="sess-pass4-8",
+            task_marker="TASK-470",
+            persona_id="p1",
+            formula_id="researcher",
+            output_json={},
+            status="ok",
+            latency_ms=5,
+            db_path=db_path,
+        )
+        assert isinstance(filled, int)  # returned cleanly — no NameError
+
+    def test_validation_failure_skips_dispatch_row(self, db_path):
+        from tools.cognition import _persist_dispatch_output
+
+        _persist_dispatch_output(
+            session_id="sess-pass4-8b",
+            task_marker="TASK-470",
+            persona_id="p1",
+            formula_id="researcher",
+            output_json={},
+            status="ok",
+            latency_ms=5,
+            db_path=db_path,
+        )
+        with sqlite3.connect(db_path) as conn:
+            rows = conn.execute(
+                "SELECT COUNT(*) FROM formula_dispatches WHERE session_id = ?",
+                ("sess-pass4-8b",),
+            ).fetchone()[0]
+        assert rows == 0  # invalid output is never persisted (T1.6)

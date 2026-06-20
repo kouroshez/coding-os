@@ -1062,7 +1062,7 @@ def _persist_dispatch_output(
     # T1.6: skip the dispatch row INSERT when schema validation failed.
     # Returning the bundle field count keeps the caller signature stable.
     if validation_failed:
-        return sum(1 for f in field_map if getattr(bundle, field_map[f], None) is not None)
+        return sum(1 for f in _all_bundle_fields() if getattr(bundle, f, None) is not None)
 
     raw = json.dumps(output_json, sort_keys=True, default=str).encode()
     output_hash = hashlib.sha256(raw).hexdigest()[:16]
