@@ -320,7 +320,7 @@ CREATE TABLE IF NOT EXISTS embeddings (
     source_id    INTEGER NOT NULL,
     text_hash    TEXT NOT NULL,
     embedding    BLOB NOT NULL,
-    model_name   TEXT DEFAULT 'all-MiniLM-L6-v2',
+    model_name   TEXT DEFAULT 'BAAI/bge-m3',
     created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(source_table, source_id)
 );

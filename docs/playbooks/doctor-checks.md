@@ -169,8 +169,17 @@ No graph reindex run has overflowed its budget.
 
 ### graph.embedding_dimensions
 All `embeddings` rows agree on the configured embedding dim.
-**Warns** on mixed dims (typically: model swap mid-flight).
+**Warns** on mixed dims (typically: model swap mid-flight) — this is also the
+mixed-model signal after the MiniLM→BGE-M3 cutover, since the two models have
+distinct dims (384 vs 1024).
 **Fix**: `cos brain reindex` after fully migrating to the new model.
+
+> **Embedding model (M5).** Fresh projects default to `BAAI/bge-m3` — 1024-dim,
+> multilingual, ~4.3GB first-time download. The runtime never phones home: the
+> model is used offline from the local cache and a vendoring download is
+> explicit opt-in via `COS_ALLOW_MODEL_DOWNLOAD=1`. A mixed-dim warn after the
+> cutover means MiniLM stragglers remain — re-embed via `make migrate-embeddings`.
+> Per-project opt-back to the old small model: `COS_EMBEDDING_MODEL=all-MiniLM-L6-v2`.
 
 ### graph.embedding_migration
 No embedding migration is currently mid-flight.

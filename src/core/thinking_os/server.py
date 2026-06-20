@@ -91,16 +91,18 @@ def thinking_os_health() -> str:
     # Surface RAG availability so the agent can decide whether
     # semantic search is wired up before issuing cos_doc_search.
     embeddings_available = False
+    active_model = "unknown"
     try:
-        from embeddings import is_available
+        from embeddings import active_model_name, is_available
 
         embeddings_available = is_available()
+        active_model = active_model_name()
     except ImportError as exc:
         logger.debug("Embeddings module unavailable for health check: %s", exc)
 
     stats["rag"] = {
         "embeddings_available": embeddings_available,
-        "embedding_model": "all-MiniLM-L6-v2",
+        "embedding_model": active_model,
         "embeddings_count": stats["tables"].get("embeddings") or 0,
         "document_chunks_count": stats["tables"].get("document_chunks") or 0,
     }

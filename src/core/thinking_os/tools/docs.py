@@ -33,6 +33,19 @@ _OVERFETCH_MULTIPLIER = 3
 # crowding the result list.
 _MAX_PER_SOURCE = 2
 
+
+def _resolve_doc_threshold() -> float:
+    # M5: an unset threshold resolves to the active model's doc-calibrated
+    # cosine floor (MiniLM 0.05 / BGE-M3 0.50) so semantic doc search does not
+    # return everything after the BGE-M3 cutover. Falls back to the MiniLM-era
+    # value when the embeddings module is unavailable.
+    try:
+        from embeddings import doc_similarity_floor
+
+        return doc_similarity_floor()
+    except ImportError:
+        return 0.05
+
 # G.7.3 — identifier-looking query detection. Heuristic is deliberately
 # permissive: if the user typed something code-shaped we route to FTS first
 # because cosine similarity is weak on short literal tokens.
@@ -212,7 +225,7 @@ def doc_search(
     query: str,
     source_types: list[str] | None = None,
     limit: int = 5,
-    threshold: float = 0.05,
+    threshold: float | None = None,
     dedupe_per_source: bool = True,
     mode: SearchMode = "auto",
     *,
@@ -238,8 +251,9 @@ def doc_search(
         source_types: Optional filter — only return chunks whose source_type
             matches one of these values (e.g. ["prd", "architecture"]).
         limit: Maximum results to return (1-50).
-        threshold: Minimum cosine similarity (default 0.05 — tuned for
-            all-MiniLM-L6-v2 on short queries).
+        threshold: Minimum cosine similarity. Default None → the active
+            model's doc-calibrated floor (MiniLM 0.05 / BGE-M3 0.50); pass an
+            explicit float to override.
         dedupe_per_source: When True, return at most _MAX_PER_SOURCE chunks
             per source_path so a single dominant file doesn't crowd out others.
         mode: Retrieval mode:
@@ -277,6 +291,9 @@ def doc_search(
 
     # Cap inputs to defensive limits
     limit = max(1, min(int(limit), 50))
+
+    if threshold is None:
+        threshold = _resolve_doc_threshold()
 
     # Soft defaults from active task context. Explicit kwargs always win.
     applied_domain = domain

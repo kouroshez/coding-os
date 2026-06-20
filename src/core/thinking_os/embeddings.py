@@ -57,9 +57,12 @@ if os.environ.get("COS_ALLOW_MODEL_DOWNLOAD") != "1":
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
     os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
-# Default model — small, fast, MIT license. ~22MB download.
-DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
-EMBEDDING_DIM = 384  # Dimensions of all-MiniLM-L6-v2 output (legacy default)
+# Default model for FRESH projects — BAAI/bge-m3: 1024-dim, multilingual,
+# ~4.3GB first-time download (vendored explicitly via COS_ALLOW_MODEL_DOWNLOAD=1).
+# Per-project opt-back to MiniLM via COS_EMBEDDING_MODEL. The model a running
+# process actually encodes with is active_model_name(), NOT this constant.
+DEFAULT_MODEL_NAME = "BAAI/bge-m3"
+EMBEDDING_DIM = 384  # Legacy MiniLM dim — last-resort fallback; per-model dims live in MODEL_DIMS
 EMBEDDING_BYTES = EMBEDDING_DIM * 4  # float32 → 4 bytes per dimension
 
 # Dual-model support during the MiniLM → BGE-M3 migration.
@@ -151,6 +154,23 @@ _PERSISTED_FLOORS: dict[str, float] = {
 def persisted_similarity_floor(model_name: str | None = None) -> float:
     """Calibrated cosine floor for the persisted-embedding similar path."""
     return _PERSISTED_FLOORS.get(model_name or active_model_name(), 0.25)
+
+
+# Calibrated cosine floors for DOC-CHUNK semantic search (cos_doc_search).
+# Distinct from _PERSISTED_FLOORS: query-vs-doc-chunk cosines sit lower than
+# code-symbol-vs-symbol ones, so the node floor (0.60) would discard genuine
+# hits. Measured 2026-06 on the dogfood corpus: BGE-M3 related ~0.54-0.68 vs
+# noise ~0.31-0.49 → 0.50 is the clean split. MiniLM keeps its legacy 0.05
+# (it barely separates, so an aggressive floor just costs recall).
+_DOC_FLOORS: dict[str, float] = {
+    "all-MiniLM-L6-v2": 0.05,
+    "BAAI/bge-m3": 0.50,
+}
+
+
+def doc_similarity_floor(model_name: str | None = None) -> float:
+    """Calibrated cosine floor for cos_doc_search semantic ranking."""
+    return _DOC_FLOORS.get(model_name or active_model_name(), 0.05)
 
 
 def migration_status(conn: sqlite3.Connection, target_model: str | None = None) -> dict:

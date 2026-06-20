@@ -196,7 +196,9 @@ class TestUpsertEmbeddingPhaseI:
             "VALUES (1, 'test', 'hello', 'hello world narrative')"
         )
         conn.commit()
-        result = embeddings.upsert_embedding(conn, "observations", 1, "hello world")
+        result = embeddings.upsert_embedding(
+            conn, "observations", 1, "hello world", model_name="all-MiniLM-L6-v2"
+        )
         assert result["status"] == "inserted"
         assert result["dim"] == 384
         assert result["model_name"] == "all-MiniLM-L6-v2"
@@ -213,7 +215,9 @@ class TestUpsertEmbeddingPhaseI:
             "VALUES (1, 'test', 'hi', 'hi narrative')"
         )
         conn.commit()
-        first = embeddings.upsert_embedding(conn, "observations", 1, "hi")
+        first = embeddings.upsert_embedding(
+            conn, "observations", 1, "hi", model_name="all-MiniLM-L6-v2"
+        )
         assert first["status"] == "inserted"
 
         second = embeddings.upsert_embedding(

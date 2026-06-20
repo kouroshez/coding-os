@@ -145,6 +145,10 @@ class TestDocSearchEdgeCases:
 
 
 class TestDocSearchSemantic:
+    # Needs the real model: the calibrated BGE-M3 doc floor (0.50) is above the
+    # arbitrary cosines the conftest stub encoder produces, so semantic ranking
+    # is only meaningful with real embeddings (auth query → auth chunk ~0.67).
+    @pytest.mark.real_embeddings
     @REQUIRES_RAG
     def test_finds_authentication_chunks(self, indexed_project: sqlite3.Connection) -> None:
         """An auth query should surface the auth-related chunks across sources."""

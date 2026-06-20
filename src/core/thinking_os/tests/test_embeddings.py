@@ -95,7 +95,9 @@ class TestEmbedText:
         result = embeddings.embed_text("hello world")
         assert result is not None
         assert isinstance(result, bytes)
-        assert len(result) == embeddings.EMBEDDING_BYTES  # 1536 bytes
+        # Size tracks the active model's dim (MiniLM 384 / BGE-M3 1024), float32.
+        expected_bytes = embeddings.model_dim(embeddings.active_model_name()) * 4
+        assert len(result) == expected_bytes
 
     @REQUIRES_RAG
     def test_embed_text_deterministic(self) -> None:
@@ -125,7 +127,8 @@ class TestEmbedTexts:
     def test_embed_texts_batch(self) -> None:
         results = embeddings.embed_texts(["one", "two", "three"])
         assert len(results) == 3
-        assert all(r is not None and len(r) == embeddings.EMBEDDING_BYTES for r in results)
+        expected_bytes = embeddings.model_dim(embeddings.active_model_name()) * 4
+        assert all(r is not None and len(r) == expected_bytes for r in results)
 
     @REQUIRES_RAG
     def test_embed_texts_handles_empty_entries(self) -> None:
