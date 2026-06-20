@@ -22,6 +22,11 @@ CODING_OS_ROOT = Path(__file__).resolve().parent.parent
 ADAPTERS_DIR = CODING_OS_ROOT / "src" / "adapters"
 CORE_HOOKS_DIR = CODING_OS_ROOT / "src" / "core" / "hooks"
 CORE_RULES_DIR = CODING_OS_ROOT / "src" / "core" / "rules"
+# Derived full-catalog matrices that install-adapter.sh deliberately does NOT
+# symlink as always-active rules — the SessionStart skill_primer card + inline
+# enforce-skill.sh cover them (TASK-466 / audit C1). Keep in sync with
+# install-adapter.sh::_NON_ACTIVE_RULES.
+NON_ACTIVE_RULES = {"dimension-registry.md", "skill-enforcement.md"}
 CORE_SKILLS_DIR = CODING_OS_ROOT / "src" / "core" / "skills"
 LINK_STACK_SKILLS = CODING_OS_ROOT / "src" / "core" / "scripts" / "link-stack-skills.sh"
 
@@ -82,10 +87,15 @@ class TestClaudeAdapter:
         run_adapter_install("claude", project)
         rules_dir = project / ".claude" / "rules"
         rule_files = list(rules_dir.glob("*.md"))
-        core_rule_count = len(list(CORE_RULES_DIR.glob("*.md")))
+        core_rule_count = len(
+            [p for p in CORE_RULES_DIR.glob("*.md") if p.name not in NON_ACTIVE_RULES]
+        )
         assert len(rule_files) == core_rule_count
         for rule in rule_files:
             assert rule.is_symlink()
+        # The derived matrices must NOT be linked as always-active rules (C1).
+        for excluded in NON_ACTIVE_RULES:
+            assert not (rules_dir / excluded).exists()
 
     def test_symlinks_skills(self, project: Path) -> None:
         run_adapter_install("claude", project)
@@ -366,7 +376,7 @@ class TestCodexAdapter:
         run_adapter_install("codex", project)
         codex_rules = project / ".codex" / "rules"
         assert codex_rules.is_dir()
-        source_rules = {p.name for p in CORE_RULES_DIR.glob("*.md")}
+        source_rules = {p.name for p in CORE_RULES_DIR.glob("*.md")} - NON_ACTIVE_RULES
         linked = {p.name for p in codex_rules.glob("*.md")}
         assert source_rules == linked, f"missing rule symlinks: {source_rules - linked}"
         for link in codex_rules.glob("*.md"):
