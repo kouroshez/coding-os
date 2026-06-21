@@ -20,18 +20,35 @@ Read next: The domain playbook matching your task type.
 
 Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.coding-os/coding-os.db`. All tools use `cos_*` prefix.
 
+<!-- Module-gated tool families (TASK-501 / DOC-3): a disabled module's MCP tools
+     are removed from the live tool list, so their inventory lines are stripped at
+     init too. Markers strip to byte-identical output when all modules are on. -->
 - **Health (1):** `cos_health` — DB stats, schema version, FTS5 status
+<!-- if-module:memory -->
 - **Memory (5):** `cos_search` (5-signal ranked), `cos_timeline` (chronological), `cos_details` (full record), `cos_promote` (pattern → rule), `cos_observation_record`
-- **Metrics (3):** `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
 - **Learning (5):** `cos_learn_extract`, `cos_learn_suggest`, `cos_learn_validate`, `cos_learn_feedback`, `cos_learn_narrative`
 - **Retrieval Quality (4):** `cos_retrieval_cite`, `cos_retrieval_learn`, `cos_retrieval_quality`, `cos_retrieval_enrichment_check`
+<!-- end-if -->
+<!-- if-module:observability -->
+- **Metrics (3):** `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
+<!-- end-if -->
+<!-- if-module:cognition -->
 - **Routing & Roles (6):** `cos_route_model`, `cos_route_skill`, `cos_compose_chain`, `cos_role_info`, `cos_situation_detect`, `cos_classify_prompt`
+<!-- end-if -->
+<!-- if-module:docs -->
 - **Docs RAG (3):** `cos_doc_search`, `cos_doc_header`, `cos_doc_headers_by`
+<!-- end-if -->
+<!-- if-module:graph -->
 - **Graph (17):** `cos_graph_query`, `cos_graph_resolve`, `cos_graph_context`, `cos_graph_communities`, `cos_graph_path`, `cos_graph_impact`, `cos_graph_references`, `cos_graph_rename_plan`, `cos_graph_similar`, `cos_graph_detect_changes`, `cos_graph_entrypoints`, `cos_graph_trace`, `cos_graph_contracts`, `cos_graph_export`, `cos_graph_centrality`, `cos_graph_ranking`, `cos_graph_doctor`
+<!-- end-if -->
+<!-- if-module:tasks -->
 - **Board / Tasks (13):** `cos_task_board`, `cos_task_create`, `cos_task_move`, `cos_task_pick`, `cos_task_search`, `cos_task_by_filter`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_wip_check`, `cos_task_daily`, `cos_task_retro`, `cos_task_reposition`, `cos_work_log_append`
+<!-- end-if -->
+<!-- if-module:cognition -->
 - **Cognition (5):** `cos_supervise`, `cos_supervise_record_output`, `cos_dispatch_formula`, `cos_dispatch_formula_run`, `cos_dispatch_parallel_run`
 - **Analysis (4):** `cos_analyze_task`, `cos_ambiguity_check`, `cos_backtrack_log`, `cos_discovery`
 - **Misc (3):** `cos_traceability`, `cos_takeover`, `cos_digest_regenerate`
+<!-- end-if -->
 
 ## Recommended External MCPs
 
@@ -52,17 +69,31 @@ These are commonly useful but not required. Install via Claude Code MCP settings
 ## Task-to-Tool Selection Matrix
 
 - Framework/library docs → context7 first, ref as fallback, WebSearch as last resort
+<!-- if-module:memory -->
 - Memory search / past patterns → `cos_search`, `cos_timeline`, `cos_learn_suggest`
+<!-- end-if -->
+<!-- if-module:tasks -->
 - Task board / status → `cos_task_board`, `cos_task_search`, `cos_task_by_filter`
 - Task create/move/complete → `cos_task_create`, `cos_task_move`, `cos_work_log_append`
+<!-- end-if -->
+<!-- if-module:graph -->
 - File/concept relationships → `cos_graph_context`, `cos_graph_impact`, `cos_graph_references`
 - Rename planning → `cos_graph_rename_plan` (callers + impact before any rename)
+<!-- end-if -->
+<!-- if-module:docs -->
 - Doc search (semantic) → `cos_doc_search`; single-file frontmatter → `cos_doc_header`
+<!-- end-if -->
+<!-- if-module:cognition -->
 - Model/skill routing → `cos_route_model`, `cos_route_skill`, `cos_compose_chain`
 - Role chain for complex task → `cos_compose_chain` → writes `.coding-os/<agent>/.roles`
 - Formula dispatch → `cos_dispatch_formula`, `cos_dispatch_formula_run`
+<!-- end-if -->
+<!-- if-module:observability -->
 - Agent performance metrics → `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
+<!-- end-if -->
+<!-- if-module:memory -->
 - Breakthrough narrative → `cos_learn_narrative`
+<!-- end-if -->
 - Code pattern in repo → Grep (pattern) or Glob (filename)
 - Visual UI verification → playwright (if installed)
 - Lints/tests/builds → Bash (make targets per playbook)

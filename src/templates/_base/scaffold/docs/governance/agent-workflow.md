@@ -82,6 +82,7 @@ Task and infrastructure scripts use standardized prefixes:
 - Stop when product intent is not derivable from SSOT — never invent schema names, route shapes, or copy.
 - RETRY_LIMIT — second identical failure with no new evidence → `cos task-move TASK-NNN --to blocked`.
 
+<!-- if-module:memory -->
 ## Memory & Learning (Thinking OS)
 
 Self-learning layer on the thinking_os MCP server (`.coding-os/coding-os.db`).
@@ -97,3 +98,4 @@ Self-learning layer on the thinking_os MCP server (`.coding-os/coding-os.db`).
 **Learning Loop** (conditional, non-blocking): extracts patterns from outcomes, suggests rules at 3+ similar failures, tunes routing weights per domain × complexity. Runs every 10 completed tasks.
 
 **Outcome types:** `success`, `rework`, `partial`, `blocked` — recorded for every task including blocked.
+<!-- end-if -->
