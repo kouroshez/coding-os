@@ -62,7 +62,9 @@ if [[ -z "$MSG" ]]; then
   exit 0
 fi
 
-if ! printf '%s' "$MSG" | python3 "$CHECK" - ; then
+if ! CHECK_OUT=$(printf '%s' "$MSG" | python3 "$CHECK" - 2>&1); then
+  echo "BLOCKED: git log is permanent and release-please parses the title into CHANGELOG.md — a malformed message corrupts the changelog forever." >&2
+  printf '%s\n' "$CHECK_OUT" >&2
   cos_log_hook enforce-commit-message block "rule=commit-msg-contract"
   exit 2
 fi

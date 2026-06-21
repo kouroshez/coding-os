@@ -111,6 +111,7 @@ cos_log_hook branch-guard block "rule=${REASON}"
 bash "$(dirname "$0")/../scripts/log-write.sh" \
   --type "hook-block" --msg "branch-guard" --what "$REASON" 2>/dev/null || true
 
+echo "WHY: trunk-based git keeps history linear and the blast radius reviewable — src/core/ edits reach every consumer via live symlinks." >&2
 if [[ -n "$MESSAGE" ]]; then
   printf '%s\n' "$MESSAGE" >&2
 else

@@ -118,7 +118,7 @@ ANCHOR_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.doc-anchor"
 ANCHOR_MAX_AGE=28800  # 8h — same ownership horizon as task-current.
 
 if [[ ! -f "$ANCHOR_FILE" ]]; then
-  echo "BLOCKED: No doc anchor recorded for this session." >&2
+  echo "BLOCKED: docs are the contract — code without a traced spec drifts from intent. No doc anchor recorded for this session." >&2
   echo "  Rule 0 (docs-first) + Rule 19 (docs are the contract):" >&2
   echo "  docs are SSOT — code must trace to a spec / playbook / ADR." >&2
   echo "  Full procedure: docs/governance/docs-first-protocol.md" >&2

@@ -65,7 +65,7 @@ fi
 check_state "$SKILL_FILE" 7200  # 120 min
 
 if [[ "$STATE_VALID" != "true" ]]; then
-  echo "BLOCKED: No domain skill invoked for this session. Reason: $STATE_REASON" >&2
+  echo "BLOCKED: a domain skill carries the judgment this edit needs — code written without it ships debt. No domain skill invoked for this session. Reason: $STATE_REASON" >&2
   echo '  Backend .py  → Skill skill: "python-django"' >&2
   echo '  Frontend .tsx → Skill skill: "nextjs-react"' >&2
   echo '  Any code     → Skill skill: "clean-code"' >&2

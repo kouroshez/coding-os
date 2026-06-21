@@ -34,7 +34,7 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 
 | # | Rule |
 |---|---|
-| 0 | Docs-first — every code Write/Edit traces to `.doc-anchor` (hook BLOCK). |
+| 0 | Docs-first — every code Write/Edit traces to `.doc-anchor` (hook BLOCK); *why:* intent must survive the author, so the spec is edited before the code. |
 | 1 | Never hardcode `.claude/` in `src/core/` — use `$COS_*` env vars. |
 | 2 | MCP tool names use `cos_*` prefix ([inventory](docs/governance/mcp-tool-inventory.md)). |
 | 3 | Hooks source `cos-env.sh`. |
@@ -56,10 +56,10 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 | 19 | Docs are the contract — edit doc before extending code. |
 | 20 | Test discipline — matrix command only mid-task ([test-discipline.md](src/core/rules/test-discipline.md)). |
 | 21 | Never `isolation: "worktree"` — Agent tool read-only research only. |
-| 22 | Anti-overengineering — reuse-first · no speculation · diff-minimal · rule-of-three · defer-by-default ([rule](src/core/rules/anti-overengineering.md)). |
-| 23 | Trunk-based git — commit direct to `main`, never branch ([git-workflow.md](src/core/rules/git-workflow.md)). |
-| 24 | Commit msg: title ≤100 chars · body ≤3 lines · no agent attribution / Co-Authored-By / quoted prompts. |
-| 25 | Cognitive-state mutations via semantic ops only — `cos_task_move`/`cos task-done`/`cos_classify_prompt`; lookup via `cos task-show`/`cos_task_search`, never raw ls/grep/Edit. |
+| 22 | Anti-overengineering — reuse-first · no speculation · diff-minimal · rule-of-three · defer-by-default ([rule](src/core/rules/anti-overengineering.md)); *why:* every line is a liability a future maintainer carries forever. |
+| 23 | Trunk-based git — commit direct to `main`, never branch ([git-workflow.md](src/core/rules/git-workflow.md)); *why:* branches sprawl and `src/core/` reaches every consumer via live symlinks, so history stays linear and reviewable. |
+| 24 | Commit msg: title ≤100 chars · body ≤3 lines · no agent attribution / Co-Authored-By / quoted prompts; *why:* git log is permanent and release-please parses the title into the changelog. |
+| 25 | Cognitive-state mutations via semantic ops only — `cos_task_move`/`cos task-done`/`cos_classify_prompt`; lookup via `cos task-show`/`cos_task_search`, never raw ls/grep/Edit; *why:* the board DB and docs/tasks/ files desync if edited by hand. |
 
 ## Core Loop — Classify · Orient · Plan · Execute · Verify
 
