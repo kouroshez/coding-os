@@ -366,9 +366,16 @@
       "Body_hub_registry_init_api_hub_registry_init_post": {
         "properties": {
           "agent": {
-            "default": "claude",
+            "default": "",
             "title": "Agent",
             "type": "string"
+          },
+          "agents": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Agents",
+            "type": "array"
           },
           "background": {
             "default": false,
@@ -379,6 +386,13 @@
             "default": "",
             "title": "Description",
             "type": "string"
+          },
+          "disabled_modules": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Disabled Modules",
+            "type": "array"
           },
           "extra_skills": {
             "items": {
@@ -459,9 +473,23 @@
       "Body_hub_registry_validate_init_api_hub_registry_validate_init_post": {
         "properties": {
           "agent": {
-            "default": "claude",
+            "default": "",
             "title": "Agent",
             "type": "string"
+          },
+          "agents": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Agents",
+            "type": "array"
+          },
+          "disabled_modules": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Disabled Modules",
+            "type": "array"
           },
           "extra_skills": {
             "items": {
@@ -996,6 +1024,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1066,6 +1114,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1135,6 +1203,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -1234,6 +1322,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1323,6 +1431,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -1506,6 +1634,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1585,6 +1733,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -1694,6 +1862,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1773,6 +1961,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -1856,6 +2064,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1936,6 +2164,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -2025,6 +2273,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2105,6 +2373,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -2197,6 +2485,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2287,6 +2595,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2356,6 +2684,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -2444,6 +2792,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2526,6 +2894,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2607,6 +2995,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -2712,6 +3120,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2805,6 +3233,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2888,6 +3336,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -2991,6 +3459,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -3091,6 +3579,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -3171,6 +3679,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -3254,6 +3782,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -3324,6 +3872,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -3383,6 +3951,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -3470,6 +4058,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -3560,6 +4168,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -3757,6 +4385,150 @@
         ]
       }
     },
+    "/api/graph/centrality": {
+      "get": {
+        "description": "Most-connected nodes by the chosen centrality metric.",
+        "operationId": "graph_centrality_api_graph_centrality_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "top",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Top",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "metric",
+            "required": false,
+            "schema": {
+              "default": "degree",
+              "title": "Metric",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_external",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include External",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_structural",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Structural",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Centrality",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
     "/api/graph/communities": {
       "get": {
         "description": "Louvain-detected processes for the Hub Search tab grouping (TASK-075).",
@@ -3805,6 +4577,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -3937,6 +4729,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -4029,6 +4841,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -4071,6 +4903,256 @@
           }
         },
         "summary": "Graph Contracts",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/cycles": {
+      "get": {
+        "description": "Dependency cycles in the chosen edge scope.",
+        "operationId": "graph_cycles_api_graph_cycles_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "imports",
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Top",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_size",
+            "required": false,
+            "schema": {
+              "default": 2,
+              "maximum": 100,
+              "minimum": 2,
+              "title": "Min Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Cycles",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/dead-code": {
+      "get": {
+        "description": "Symbols with no inbound references (candidate dead code).",
+        "operationId": "graph_dead_code_api_graph_dead_code_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Top",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_tests",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Tests",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Dead Code",
         "tags": [
           "graph"
         ]
@@ -4139,6 +5221,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -4186,6 +5288,128 @@
         ]
       }
     },
+    "/api/graph/diff": {
+      "get": {
+        "description": "Structural diff of the graph between two git refs.",
+        "operationId": "graph_diff_api_graph_diff_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "base",
+            "required": false,
+            "schema": {
+              "default": "HEAD~1",
+              "title": "Base",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "head",
+            "required": false,
+            "schema": {
+              "default": "HEAD",
+              "title": "Head",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "analyze_downstream",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Analyze Downstream",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Diff",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
     "/api/graph/doctor": {
       "get": {
         "description": "Graph backend health snapshot — counts, freshness, backend id.",
@@ -4208,6 +5432,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -4304,6 +5548,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -4493,6 +5757,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -4616,6 +5900,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -4715,6 +6019,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -4857,6 +6181,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -4899,6 +6243,182 @@
           }
         },
         "summary": "Graph Query",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/ranking": {
+      "get": {
+        "description": "PageRank-style importance ranking over the graph.",
+        "operationId": "graph_ranking_api_graph_ranking_get",
+        "parameters": [
+          {
+            "description": "Optional query to personalize ranking",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional query to personalize ranking",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Top",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "damping",
+            "required": false,
+            "schema": {
+              "default": 0.85,
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "title": "Damping",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "iterations",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Iterations",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_external",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include External",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_tests",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Tests",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Ranking",
         "tags": [
           "graph"
         ]
@@ -4957,6 +6477,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -5058,6 +6598,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -5100,6 +6660,254 @@
           }
         },
         "summary": "Graph Rename Plan",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/resolve": {
+      "get": {
+        "description": "Resolve a name/description to canonical node uids.",
+        "operationId": "graph_resolve_api_graph_resolve_get",
+        "parameters": [
+          {
+            "description": "Symbol name or description to resolve",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "description": "Symbol name or description to resolve",
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Comma-separated node kinds",
+            "in": "query",
+            "name": "kinds",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated node kinds",
+              "title": "Kinds"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Top",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Resolve",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/search": {
+      "get": {
+        "description": "Embedding-ranked semantic search over graph nodes.",
+        "operationId": "graph_search_api_graph_search_get",
+        "parameters": [
+          {
+            "description": "Natural-language query",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "description": "Natural-language query",
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top_k",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Top K",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Search",
         "tags": [
           "graph"
         ]
@@ -5158,6 +6966,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -5259,6 +7087,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -5408,6 +7256,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -5524,6 +7392,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -5628,6 +7516,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -5694,6 +7602,30 @@
           }
         },
         "summary": "Hub Adapters",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/agents": {
+      "get": {
+        "description": "Cross-project live-agent roster — one group per registered project (TASK-437).",
+        "operationId": "hub_agents_api_hub_agents_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Hub Agents Api Hub Agents Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Hub Agents",
         "tags": [
           "hub"
         ]
@@ -5817,6 +7749,30 @@
           }
         },
         "summary": "Hub Init Job Events",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/modules": {
+      "get": {
+        "description": "List subsystem modules (data-driven from src/core/subsystems.yaml) for the Composer.",
+        "operationId": "hub_modules_api_hub_modules_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Hub Modules Api Hub Modules Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Hub Modules",
         "tags": [
           "hub"
         ]
@@ -6331,6 +8287,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -6481,6 +8457,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -6595,6 +8591,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -6686,6 +8702,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -6772,6 +8808,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -6882,6 +8938,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -6984,6 +9060,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -7067,6 +9163,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -7158,6 +9274,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -7644,6 +9780,26 @@
             },
             "description": "Validation error."
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -7752,6 +9908,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -7881,6 +10057,26 @@
               }
             },
             "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
           },
           "404": {
             "content": {
@@ -8020,6 +10216,26 @@
           }
         },
         "summary": "Get Modules",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/settings/modules/drift": {
+      "get": {
+        "description": "Non-PASS module drift (skill/command/state_integrity) for a Hub WARN banner.\n\nReuses the three existing `cos doctor` check functions verbatim — no new check\nlogic — so the toggle UI surfaces the drift its own cascade can produce\n(HUB-PB2 / TASK-504).",
+        "operationId": "get_module_drift_api_settings_modules_drift_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Module Drift",
         "tags": [
           "settings"
         ]
