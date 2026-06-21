@@ -305,6 +305,19 @@ fi
 # put a multi-thousand-token wall mid-chat; suppress it on compact
 # (src/core/rules/transparency-banner.md § SessionStart emission, state-files.md §S5).
 if [[ "$SOURCE" == "startup" || "$SOURCE" == "resume" ]]; then
+  # Constitution slice = the values layer the rules derive from (HIDDEN). Same
+  # startup/resume gate as the digest (suppressed on compact — the slice is
+  # already in working memory). SSOT is docs/governance/constitution.md; we
+  # surface only the delimited slice so the file stays the single source (TASK-491).
+  CONSTITUTION_DOC="${COS_PROJECT_ROOT:-$(pwd)}/docs/governance/constitution.md"
+  if [ -f "$CONSTITUTION_DOC" ]; then
+    CONSTITUTION_SLICE=$(sed -n '/<!-- SLICE:START -->/,/<!-- SLICE:END -->/p' "$CONSTITUTION_DOC" 2>/dev/null | grep -vE 'SLICE:(START|END)' || true)
+    if [ -n "$CONSTITUTION_SLICE" ]; then
+      _ss_append SS_HIDDEN "[Constitution] (values the rules derive from — full: docs/governance/constitution.md)
+${CONSTITUTION_SLICE}"
+    fi
+  fi
+
   # Agent digest: the always-active working-memory snapshot
   # (identity, top domains, beliefs, fading patterns, breakthroughs). The
   # digest was printed but never regenerated (cos_digest_regenerate had no
@@ -605,6 +618,17 @@ except OSError:
   WARN=""
   if [ -n "$WIP_NUM" ] && [ "$WIP_NUM" -gt 0 ] 2>/dev/null && [ -z "$TASK_CUR" ]; then
     WARN=" ⚠️ wip=${WIP_NUM} but task=none — cos task-start <ID>"
+  fi
+
+  # CLEAR-1 self-bypass count (TASK-494): surface how many times this session
+  # self-exempted from the enforcement gates via a manual "CLEAR 1" gate write,
+  # so the cost of bypassing is visible rather than silent. Fail-open.
+  BYPASS_LOG="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.clear1-bypass-log"
+  if [ -f "$BYPASS_LOG" ]; then
+    BYPASS_N=$(wc -l < "$BYPASS_LOG" 2>/dev/null | tr -d ' ' || echo 0)
+    if [ -n "$BYPASS_N" ] && [ "$BYPASS_N" -gt 0 ] 2>/dev/null; then
+      WARN="${WARN} ℹ️ bypasses=${BYPASS_N} self-issued CLEAR-1"
+    fi
   fi
 
   # Context-budget signal: the last usage record in the live transcript is

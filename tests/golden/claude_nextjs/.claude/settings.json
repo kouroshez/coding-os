@@ -242,6 +242,17 @@
         ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/warn-destructive-edit.sh",
+            "statusMessage": "🛡️ Checking for destructive deletion of load-bearing content...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Edit",
         "hooks": [
           {

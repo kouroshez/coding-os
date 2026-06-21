@@ -37,3 +37,10 @@ Replace `CLEAR 1` with the real classification + dimension count (e.g. `COMPLICA
 - **CLEAR** (1 dim) → record gate, proceed directly, no skill needed.
 - **COMPLICATED / COMPLEX** → record gate, invoke `Skill skill: "thinking_os"` for full methodology.
 - **CHAOTIC** → act to stabilize, record gate, then Zoom cycle afterward.
+
+## Deliberation Record (COMPLICATED+ only)
+
+For a **COMPLICATED or COMPLEX** gate, before EXECUTE the Plan phase appends a 1–2 sentence rationale to the task work log via `cos_work_log_append` — *why this approach, and which [constitution](../../docs/governance/constitution.md) value it honors* (e.g. "chose the smallest-correct-change over a generic helper because no third caller exists yet — anti-overengineering"). This makes the *reasoning*, not just the action, a persisted, auditable artifact that also feeds the memory/learning loop — the finding behind *Teaching Claude Why*: deliberation generalizes where a demonstration alone does not.
+
+- **CLEAR / light gates skip this** — casual-work cost discipline is preserved.
+- **Guidance, not a gate** — no hook enforces it and task-close is never blocked on it (avoid rationale-theater). Reuse the existing `cos_work_log_append`; add no new tool, hook, or schema.

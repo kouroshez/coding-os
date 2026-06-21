@@ -5,7 +5,8 @@ Steps:
 2. Call MCP tool `cos_task_retro(period_days=N)` (canonical aggregation of completed + blocked + failure patterns).
 3. Call `cos_failure_pattern_query(since_days=N, min_count=2)` to surface recurring failure modes.
 4. Call `cos_metric_trend(metric="time_to_solution", since_days=N)` to detect process drift.
-5. Render in the template below. The action items are the only place the agent should *propose* content beyond the data — every line needs an owner placeholder + due-date placeholder (the user fills them in).
+5. Read `$COS_PANEL_DIR/.clear1-bypass-log` (if present): each line is a self-issued `CLEAR 1` enforcement-bypass plus its justification. Report the count + justifications — a rising count means the discipline is being routed around, not internalized.
+6. Render in the template below. The action items are the only place the agent should *propose* content beyond the data — every line needs an owner placeholder + due-date placeholder (the user fills them in).
 
 Template:
 ```markdown
@@ -22,6 +23,9 @@ Template:
 
 ### Trend (time_to_solution)
 - median {Nm} (vs {Nm} previous period) — {improving | stable | regressing}
+
+### Self-issued CLEAR-1 bypasses ({count})
+- {justification} — what discipline was skipped, and was it warranted
 
 ### Action items
 - [ ] {action} — @owner — due YYYY-MM-DD

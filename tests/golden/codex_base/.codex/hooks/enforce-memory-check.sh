@@ -120,7 +120,7 @@ echo "  Repair (pick one):" >&2
 echo "  1. Call cos_search in this session, then self-attest the marker:" >&2
 echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" .memory-check \"cos_search:<your-query>\"" >&2
 echo "  2. Trivial ad-hoc fix → record CLEAR 1 gate instead:" >&2
-echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1\"" >&2
+echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1 <one-line why this is trivial>\"" >&2
 echo "  3. Exploratory spike → rename task marker:" >&2
 echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" .task-current \"exploratory-<slug>\"" >&2
 echo "" >&2

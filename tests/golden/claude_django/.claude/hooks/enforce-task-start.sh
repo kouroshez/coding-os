@@ -61,7 +61,7 @@ if [[ "$STATE_VALID" != "true" ]]; then
   echo "  Preferred:  cos task-create --title \"...\" --swimlane <domain> --kind <type>" >&2
   echo "              cos task-start TASK-NNN" >&2
   echo "  Manual:     bash \".${COS_AGENT}/hooks/write-state.sh\" .task-current \"<task-name>\"" >&2
-  echo "  Trivial:    bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1\"" >&2
+  echo "  Trivial:    bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1 <one-line why this is trivial>\"" >&2
   exit 2
 fi
 
