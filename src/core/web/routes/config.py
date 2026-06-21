@@ -71,7 +71,7 @@ def config_stacks() -> dict:
     return {"installed": installed, "available": available, "count": len(available)}
 
 
-def _project_extra_skills() -> list[str]:
+def _project_config_skill_list(key: str) -> list[str]:
     try:
         import yaml
 
@@ -79,10 +79,14 @@ def _project_extra_skills() -> list[str]:
         if not config_path.is_file():
             return []
         config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
-        return list(config.get("extra_skills") or [])
+        return list(config.get(key) or [])
     except Exception as exc:
-        logger.debug("extra_skills read failed: %s", exc)
+        logger.debug("%s read failed: %s", key, exc)
         return []
+
+
+def _project_extra_skills() -> list[str]:
+    return _project_config_skill_list("extra_skills")
 
 
 @router.get("/skills")
@@ -90,6 +94,7 @@ def config_skills() -> dict:
     """List the core skill registry (name, tier, domain, globs, phase) + project extras."""
     skills: list[dict] = []
     extras = set(_project_extra_skills())
+    disabled = set(_project_config_skill_list("disabled_skills"))
     try:
         from cli.skill_registry import load_skill_registry
         from cli.skills_list import CORE_SKILLS_DIR
@@ -105,12 +110,22 @@ def config_skills() -> dict:
                     "globs": s.globs,
                     "phase": s.phase,
                     "extra": s.name in extras,
+                    # provenance + disabled let the Hub render Enable/Disable for
+                    # core/stack skills (opt-out via disabled_skills), not just the
+                    # community add/remove path (HUB-PB1 / TASK-503).
+                    "provenance": "core",
+                    "disabled": s.name in disabled,
                 }
             )
     except Exception as exc:
         logger.debug("load_skill_registry failed: %s", exc)
 
-    return {"skills": skills, "count": len(skills), "extra_skills": sorted(extras)}
+    return {
+        "skills": skills,
+        "count": len(skills),
+        "extra_skills": sorted(extras),
+        "disabled_skills": sorted(disabled),
+    }
 
 
 @router.patch("/skills/{skill_name}")

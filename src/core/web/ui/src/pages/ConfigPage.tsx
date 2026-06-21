@@ -152,6 +152,10 @@ interface SkillRow {
   globs: string | null;
   description?: string;
   extra?: boolean;
+  // Producer fields (config_skills) that let the Hub disable a core/stack skill,
+  // not just add a community one (HUB-PB1 / TASK-503).
+  provenance?: string;
+  disabled?: boolean;
 }
 
 function SkillsTab() {
@@ -161,19 +165,32 @@ function SkillsTab() {
   if (isLoading) return <StateRow>Loading skills…</StateRow>;
   if (error) return <StateRow>Could not load skills: {error.message}</StateRow>;
   const rows = data?.skills ?? [];
-  const toggleExtra = async (skill: SkillRow) => {
+  // Core/stack skills ship by default → Enable/Disable via disabled_skills.
+  // Community skills are opt-in → add/remove via extra_skills. The PATCH route
+  // (set_project_skill) already routes by provenance; the UI just sends intent.
+  const isCoreStack = (s: SkillRow) => s.provenance === 'core' || s.provenance === 'stack';
+  const isOn = (s: SkillRow) => (isCoreStack(s) ? !s.disabled : !!s.extra);
+  const toggle = async (skill: SkillRow) => {
     setPending(skill.name);
     try {
-      await apiPatch(`/api/config/skills/${skill.name}`, { enabled: !skill.extra });
+      const nextEnabled = isCoreStack(skill) ? !!skill.disabled : !skill.extra;
+      await apiPatch(`/api/config/skills/${skill.name}`, { enabled: nextEnabled });
       await invalidateApiQueries(queryClient, 'config-skills');
     } finally {
       setPending(null);
     }
   };
+  const stateLabel = (s: SkillRow) => {
+    if (pending === s.name) return '…';
+    if (isCoreStack(s)) return s.disabled ? 'off' : 'on ✓';
+    return s.extra ? 'extra ✓' : 'add';
+  };
+  const actionVerb = (s: SkillRow) =>
+    isCoreStack(s) ? (s.disabled ? 'Enable' : 'Disable') : s.extra ? 'Remove' : 'Add';
   return (
     <>
-      <TabIntro>Skills the agent can load. They are glob-gated — the agent loads one automatically before editing matching files. “Extra” marks skills added to this project beyond its stacks.</TabIntro>
-      <Table head={['Skill', 'Tier', 'Domain', 'Triggers on', 'Extra']}>
+      <TabIntro>Skills the agent can load. They are glob-gated — the agent loads one automatically before editing matching files. Core/stack skills ship by default; disable one to drop it for this project. “extra” marks community skills added beyond the stacks.</TabIntro>
+      <Table head={['Skill', 'Tier', 'Domain', 'Triggers on', 'State']}>
         {rows.map((s) => (
           <tr key={s.name} className="border-b border-[var(--cos-border)] last:border-0 hover:bg-white/[0.02]">
             <td className="px-3 py-2 font-medium text-[var(--cos-text)]">{s.name}</td>
@@ -184,15 +201,16 @@ function SkillsTab() {
               <button
                 type="button"
                 disabled={pending === s.name}
-                onClick={() => void toggleExtra(s)}
-                aria-label={`${s.extra ? 'Remove' : 'Add'} ${s.name} as project extra skill`}
+                onClick={() => void toggle(s)}
+                aria-label={`${actionVerb(s)} ${s.name}`}
+                aria-pressed={isOn(s)}
                 className={`rounded px-2 py-0.5 text-[10px] focus-visible:ring-2 ${
-                  s.extra
+                  isOn(s)
                     ? 'bg-emerald-500/15 text-emerald-300'
                     : 'bg-white/5 text-[var(--cos-faint)] hover:text-[var(--cos-muted)]'
                 }`}
               >
-                {pending === s.name ? '…' : s.extra ? 'extra ✓' : 'add'}
+                {stateLabel(s)}
               </button>
             </td>
           </tr>
