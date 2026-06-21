@@ -18,7 +18,7 @@ import os
 import sys
 from pathlib import Path
 
-from database import get_db_stats, get_pooled_conn, init_db
+from database import get_db_stats, get_pooled_conn, init_db, project_root
 from mcp.server.fastmcp import FastMCP
 from tools._shared import apply_module_tool_gating, fail, ok, safe_tool
 
@@ -141,17 +141,20 @@ def thinking_os_health() -> str:
     # or absent SLICE markers would silently drop the slice; assert it here so
     # `cos doctor` / health flags the regression like a dangling symlink. Fail-open.
     try:
-        from pathlib import Path
-
-        const_path = (
-            Path(__file__).resolve().parents[3] / "docs" / "governance" / "constitution.md"
-        )
+        const_path = project_root() / "docs" / "governance" / "constitution.md"
         present = const_path.is_file()
         slice_markers_ok = False
         if present:
             const_text = const_path.read_text(encoding="utf-8", errors="ignore")
+            start = const_text.find("<!-- SLICE:START -->")
+            end = const_text.find("<!-- SLICE:END -->")
+            # Require non-empty CONTENT between the markers, not just their
+            # presence: an empty slice silently delivers no values while a
+            # markers-only check would report healthy (TASK-510).
             slice_markers_ok = (
-                "<!-- SLICE:START -->" in const_text and "<!-- SLICE:END -->" in const_text
+                start != -1
+                and end > start
+                and const_text[start + len("<!-- SLICE:START -->") : end].strip() != ""
             )
         stats["constitution"] = {
             "present": present,
@@ -159,7 +162,7 @@ def thinking_os_health() -> str:
             "non_decaying": True,
             "repair": None
             if (present and slice_markers_ok)
-            else "restore docs/governance/constitution.md with <!-- SLICE:START/END --> markers so SessionStart can surface the values slice (TASK-491)",
+            else "restore docs/governance/constitution.md with a non-empty <!-- SLICE:START/END --> block so SessionStart can surface the values slice (TASK-491)",
         }
     except Exception as exc:  # pragma: no cover — defensive, never fail the health call
         logger.debug("constitution health check failed: %s", exc)
