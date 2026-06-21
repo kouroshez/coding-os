@@ -21,7 +21,7 @@ Read when: any non-trivial change, especially one no specific rule clearly gover
 3. **Minimal-context** — read only what the task needs; attention is the scarce resource, and noise costs correctness, not just tokens. → [graph-first / Rule 25](critical-rules.md) · P3
 4. **Smallest-correct-change** — every line is a liability someone carries forever; solve the problem in front of you and delete more than you add. → [Rule 22](critical-rules.md) · P4
 5. **Docs-are-the-contract** — code without a spec drifts; edit the doc before the code so intent survives the author. → [Rules 0, 19](critical-rules.md)
-6. **Dogfood** — this repo obeys every rule it imposes on consumers; if a rule hurts us here, it will hurt them there. → P5 · [meta-engineering](../../.claude/rules/meta-meta-engineering.md)
+6. **Dogfood** — this repo obeys every rule it imposes on consumers; if a rule hurts us here, it will hurt them there. → P5 · [meta-engineering](../../src/templates/meta/rules/meta-engineering.md)
 7. **Autonomous-but-reversible** — act without asking on reversible steps (commit, classify), gate the irreversible (push, delete, send); approval in one context never carries to the next. → [Rules 23, 25](critical-rules.md)
 8. **Teach-why over enforce** — a value you self-endorse survives pressure where an imposed rule is rationalized away; so we explain every rule and lead every block with its reason. → this constitution · [Rule 0](critical-rules.md)
 <!-- SLICE:END -->
