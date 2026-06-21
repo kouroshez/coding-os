@@ -227,6 +227,59 @@ def _remove_stack_rules(agent: str, stack_id: str, project: Path) -> int:
     return removed
 
 
+def _remove_stack_docs(
+    stack_id: str,
+    project: Path,
+    remaining_templates: tuple[str, ...],
+    stacks: dict,
+) -> tuple[str, ...]:
+    """Backup + delete docs the stack scaffolded under docs/ (DOC-5).
+
+    Manifest-driven: the stack's own scaffold/docs/ tree is the source of truth
+    for what add-stack shipped. A doc whose relative path is also shipped by
+    _base or a remaining stack is preserved (ref-counted). Each removed doc is
+    backed up first, so user edits survive in .coding-os/backups/. Skips the
+    meta-repo source tree (parity with the AGENTS.md clobber guard, F15).
+    """
+    from cli._init_helpers import is_coding_os_source_tree
+
+    if stack_id not in stacks or is_coding_os_source_tree(project):
+        return ()
+    scaffold_root = stacks[stack_id].source_dir / "scaffold"
+    docs_src = scaffold_root / "docs"
+    if not docs_src.is_dir():
+        return ()
+
+    sibling_roots = [TEMPLATES_DIR / "_base" / "scaffold"]
+    sibling_roots += [
+        stacks[other].source_dir / "scaffold"
+        for other in remaining_templates
+        if other in stacks
+    ]
+    provided_elsewhere: set[str] = set()
+    for root in sibling_roots:
+        sib_docs = root / "docs"
+        if not sib_docs.is_dir():
+            continue
+        for sib in sib_docs.rglob("*"):
+            if sib.is_file():
+                provided_elsewhere.add(str(sib.relative_to(root)))
+
+    removed: list[str] = []
+    for doc in sorted(docs_src.rglob("*")):
+        if not doc.is_file() or doc.name == ".gitkeep":
+            continue
+        rel = doc.relative_to(scaffold_root)
+        if str(rel) in provided_elsewhere:
+            continue
+        dest = project / rel
+        if dest.is_file():
+            _backup_file(project, rel)
+            dest.unlink()
+            removed.append(str(rel))
+    return tuple(removed)
+
+
 def _remove_template_mirror(stack_id: str, project: Path) -> bool:
     """Remove `.coding-os/src/templates/<stack>/` mirror copied by add-stack."""
     mirror = project / STATE_DIR / "src" / "templates" / stack_id
@@ -247,6 +300,7 @@ def _build_summary(
     recomposed: tuple[str, ...],
     unlinked_skills: tuple[str, ...],
     rules_removed: int,
+    docs_removed: tuple[str, ...] = (),
 ) -> dict:
     return {
         "status": "noop" if not_installed else "ok",
@@ -259,6 +313,7 @@ def _build_summary(
         "recomposed_configs": list(recomposed),
         "unlinked_skills": list(unlinked_skills),
         "rules_removed": rules_removed,
+        "docs_removed": list(docs_removed),
     }
 
 
@@ -273,6 +328,8 @@ def _print_text(summary: dict) -> None:
         click.echo(f"  Unlinked skills: {', '.join(summary['unlinked_skills'])}")
     if summary["rules_removed"]:
         click.echo(f"  Removed path-scoped rules: {summary['rules_removed']}")
+    if summary.get("docs_removed"):
+        click.echo(f"  Removed scaffold docs: {', '.join(summary['docs_removed'])}")
     if summary["agents_md_changed"]:
         click.echo("  AGENTS.md: regenerated")
         if summary["agents_md_backup"]:
@@ -382,6 +439,7 @@ def remove_stack(
         )
         unlinked_skills = _unlink_stack_skills(agent, stack_id, remaining_templates, project)
         rules_removed = _remove_stack_rules(agent, stack_id, project)
+        docs_removed = _remove_stack_docs(stack_id, project, remaining_templates, stacks)
         _remove_template_mirror(stack_id, project)
 
     # Diff-safe AGENTS.md regeneration.
@@ -428,6 +486,7 @@ def remove_stack(
         recomposed=recomposed,
         unlinked_skills=unlinked_skills,
         rules_removed=rules_removed,
+        docs_removed=docs_removed,
     )
     if output_format == "json":
         click.echo(json.dumps(summary, indent=2))

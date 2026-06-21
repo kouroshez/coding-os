@@ -126,6 +126,44 @@ def test_append_stack_history_inserts_before_following_key() -> None:
     assert data["stack_history"][1].get("removed_at")
 
 
+# ---------- fast unit test for scaffold-doc removal (DOC-5 / TASK-502) ----------
+
+
+def test_remove_stack_docs_backs_up_and_deletes(tmp_path: Path) -> None:
+    """_remove_stack_docs deletes the stack's scaffolded docs (backed up first),
+    manifest-driven from the stack's own scaffold/docs tree."""
+    from cli.remove_stack import (
+        TEMPLATES_DIR,
+        _remove_stack_docs,
+        overlay_template_dirs,
+    )
+    from cli.stack_registry import load_stack_registry
+
+    stacks = load_stack_registry(TEMPLATES_DIR, overlay_dirs=overlay_template_dirs())
+    if "go" not in stacks:
+        pytest.skip("go stack not in registry")
+
+    project = tmp_path / "proj"
+    scaffold_root = stacks["go"].source_dir / "scaffold"
+    copied: list[Path] = []
+    for src in (scaffold_root / "docs").rglob("*"):
+        if src.is_file() and src.name != ".gitkeep":
+            rel = src.relative_to(scaffold_root)
+            dest = project / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text("scaffolded + locally edited", encoding="utf-8")
+            copied.append(rel)
+    assert copied, "go stack ships at least one scaffold doc"
+
+    removed = _remove_stack_docs("go", project, (), stacks)
+
+    assert set(removed) == {str(r) for r in copied}
+    for rel in copied:
+        assert not (project / rel).exists(), f"{rel} should have been removed"
+    backups = list((project / ".coding-os" / "backups").glob("*.bak"))
+    assert len(backups) == len(copied), "each removed doc is backed up first"
+
+
 # ---------- end-to-end CLI tests (scaffold sandboxes) ----------
 
 
