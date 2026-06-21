@@ -324,6 +324,34 @@ class TestCosClassifyPromptGateRecord:
         assert "write-state.sh" in result["data"]["record_hint"]
 
 
+class TestCosClassifyPromptCognitionNudge:
+    """A COMPLICATED+ gate with the cognition module disabled (lean profile)
+    surfaces a discoverability nudge to re-enable it, instead of letting the
+    agent hit a module_disabled wall on cos_compose_chain mid-plan (TASK-509)."""
+
+    _COMPLEX = "design a multi-service auth and payments integration strategy"
+
+    def test_nudge_when_cognition_disabled(self, mcp_tools, tmp_path, monkeypatch):
+        import json as _json
+
+        state = tmp_path / ".coding-os"
+        state.mkdir(parents=True)
+        (state / "subsystems-state.json").write_text(
+            _json.dumps({"version": 1, "disabled": ["cognition"]}), encoding="utf-8"
+        )
+        monkeypatch.setenv("COS_STATE_DIR", str(state))
+        result = mcp_tools.call("cos_classify_prompt", prompt=self._COMPLEX, record=False)
+        assert result["ok"] is True
+        assert result["data"]["complexity"] in ("COMPLICATED", "COMPLEX")
+        assert "cos module enable cognition" in result["data"]["nudge"]
+
+    def test_no_nudge_when_cognition_enabled(self, mcp_tools, tmp_path, monkeypatch):
+        monkeypatch.setenv("COS_STATE_DIR", str(tmp_path / "absent"))  # no state = all on
+        result = mcp_tools.call("cos_classify_prompt", prompt=self._COMPLEX, record=False)
+        assert result["ok"] is True
+        assert result["data"]["nudge"] == ""
+
+
 class TestDispatchPersistenceDegradedPath:
     """Audit pass-4 #8: the schema-validation-failure branch of
     _persist_dispatch_output referenced an undefined `field_map`, so a real

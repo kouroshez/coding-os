@@ -77,6 +77,48 @@ def load_subsystems(path: Path | None = None) -> dict[str, Module]:
     return modules
 
 
+DEFAULT_PROFILE = "standard"  # fallback when subsystems.yaml omits default_profile
+
+
+def load_profiles(path: Path | None = None) -> tuple[dict[str, list[str]], str]:
+    """Parse subsystems.yaml → ({profile: [disabled ids]}, default_profile name).
+
+    Each profile lists the modules it disables (everything else stays on). Every
+    disabled id is validated against the registry: unknown / kernel ids raise, and
+    the set must be dependency-safe (never disable a module an enabled one needs)
+    so a footgun profile cannot ship."""
+    manifest = path or _SUBSYSTEMS_PATH
+    data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+    modules = load_subsystems(path)
+    profiles: dict[str, list[str]] = {}
+    for name, spec in (data.get("profiles") or {}).items():
+        disabled = [str(m) for m in (spec or {}).get("disabled") or []]
+        for mid in disabled:
+            if mid not in modules:
+                raise ValueError(f"profile '{name}' disables unknown module '{mid}'")
+            if modules[mid].kernel:
+                raise ValueError(f"profile '{name}' cannot disable kernel module '{mid}'")
+        disabled_set = set(disabled)
+        for mid, module in modules.items():
+            if mid in disabled_set:
+                continue
+            broken = [d for d in module.depends_on if d in disabled_set]
+            if broken:
+                raise ValueError(
+                    f"profile '{name}' disables {broken} but enabled '{mid}' depends on it"
+                )
+        profiles[str(name)] = disabled
+    return profiles, str(data.get("default_profile") or DEFAULT_PROFILE)
+
+
+def resolve_profile(name: str, path: Path | None = None) -> list[str]:
+    """Module ids a profile disables. Raises ValueError on an unknown profile."""
+    profiles, _ = load_profiles(path)
+    if name not in profiles:
+        raise ValueError(f"unknown profile '{name}' — available: {sorted(profiles)}")
+    return list(profiles[name])
+
+
 def _state_path(project_root: Path) -> Path:
     return Path(project_root) / STATE_DIR / STATE_FILENAME
 

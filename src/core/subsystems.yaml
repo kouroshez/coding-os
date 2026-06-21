@@ -18,6 +18,20 @@
 # (TASK-475). Always-on skills (clean-code, thinking_os, search) are never listed.
 # `hidden: true` keeps a reserved id stable but drops it from every toggle UI.
 version: 1
+
+# Profiles (TASK-509): named curated module sets for `cos init --profile <name>`.
+# Each profile lists the modules it DISABLES (everything else stays on); the
+# resolver feeds that union through the existing --disable-module path into
+# subsystems-state.json. Progressive disclosure / least-surface-by-default — a
+# fresh consumer gets a leaner MCP tool surface; `full` is the all-on escape
+# (byte-identical to a no-profile init). Disabled lists must stay dependency-safe
+# (never drop a module another profile-enabled module depends on).
+default_profile: standard
+profiles:
+  core: { disabled: [memory, cognition, observability] }   # kernel + docs + tasks + graph
+  standard: { disabled: [cognition] }                       # + memory + observability (default)
+  full: { disabled: [] }                                    # everything (today's behaviour)
+
 modules:
   - id: kernel
     label: "Kernel — state, env, session lifecycle + always-on safety/enforcement discipline"

@@ -72,6 +72,10 @@ def _scaffold(agent: str, templates: list[str], target: Path) -> None:
         "--no-git",
         "--force",
         "--no-register",
+        # Pin the full module surface so a default-profile flip never silently
+        # shrinks the goldens (TASK-509); per-profile scaffolds are tested apart.
+        "--profile",
+        "full",
         # Golden tracks scaffold structure only; the doc index lives in the
         # gitignored runtime DB. Skipping it drops the ~15s embedding-model
         # load per section (8× faster capture, no perceived hang).

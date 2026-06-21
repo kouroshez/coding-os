@@ -188,3 +188,29 @@ def test_disable_module_sheds_skill_command_and_tool_surface(tmp_path: Path, mon
     #    (doc-strip is init-only by design; runtime delete would clobber user
     #    edits). Pinned so a future runtime-strip flips this assertion knowingly.
     assert doc.exists(), "DOC-4: runtime doc-strip is deferred — doc still present"
+
+
+# ---------------------------------------------------------------------------
+# 6. Profiles (TASK-509) — named curated module sets resolve to a disabled list
+#    that `cos init --profile` feeds through the existing --disable-module path.
+# ---------------------------------------------------------------------------
+
+
+def test_profiles_resolve_to_expected_disabled_sets() -> None:
+    from cli.subsystems import load_profiles, resolve_profile
+
+    profiles, default = load_profiles()
+    assert default == "standard"
+    assert set(profiles) >= {"core", "standard", "full"}
+    assert resolve_profile("full") == []  # full = today's all-on behaviour
+    assert set(resolve_profile("standard")) == {"cognition"}
+    assert set(resolve_profile("core")) == {"memory", "cognition", "observability"}
+
+
+def test_unknown_profile_raises() -> None:
+    import pytest as _pytest
+
+    from cli.subsystems import resolve_profile
+
+    with _pytest.raises(ValueError, match="unknown profile"):
+        resolve_profile("does-not-exist")

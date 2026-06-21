@@ -295,3 +295,13 @@ Severity: 🔴 high · 🟡 medium · 🟢 low.
 - **TASK-505** (`55921670`) — fast in-process consumer-disable integration guard (skill+command symlink shed + tool gate; pins the DOC-4 runtime-doc-strip gap).
 - **Discovered in passing — golden-parity is pre-existing RED on `main`:** the codex `role-*` commands + hooks shipped after the goldens were captured (`assert not [extra files]`, `test_golden_parity.py:151`); unrelated to the doc-gating change (confirmed). Filed **TASK-508** (recapture the 8 goldens).
 - **Still owner-gated:** the curated default tool surface (PB-3-tool) — pending the owner's first-run-behaviour sign-off.
+
+### 11.7 Profile system landed (2026-06-21, TASK-509)
+
+The owner approved the curated default, shipped as a **profile system** (the enterprise progressive-disclosure pattern) rather than a one-branch `--full` switch:
+
+- **Data:** `subsystems.yaml::profiles` — `core` (kernel+docs+tasks+graph), `standard` (+memory+observability, the `default_profile`), `full` (everything; byte-identical to a no-profile init). Each profile lists the modules it *disables*; `subsystems.resolve_profile()` validates unknown/kernel ids + dependency-safety.
+- **CLI:** `cos init --profile <name>` merges the resolved disabled set into the existing `--disable-module` apply path (dependency-checked `set_module_enabled`). Omitted → the registry `default_profile`.
+- **Coherence nudge:** a COMPLICATED+ `cos_classify_prompt` with `cognition` off returns a `nudge` field naming `cos module enable cognition` (Rule 15) — no silent `module_disabled` wall mid-plan.
+- **Fixture safety:** `capture_golden.py` + `test_golden_parity._scaffold` pin `--profile full`, so a default-profile flip never silently shrinks the goldens; profile resolution is unit-tested separately.
+- **Why a profile system over a hardcoded default:** least-surface-by-default + progressive disclosure + data-driven extensibility (community profiles) + auditability (the active profile is recorded state) — the VSCode-profile / systemd-target precedent. The Raptor move: a 3-way dial over the *existing* toggle machinery, not new machinery (anti-overengineering — earned by 3 real consumer cohorts, not speculation).

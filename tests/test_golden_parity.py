@@ -71,6 +71,10 @@ def _scaffold(agent: str, templates: list[str], target: Path) -> None:
         "--no-git",
         "--force",
         "--no-register",
+        # Pin the full module surface to match capture_golden so a default-profile
+        # flip never breaks parity (TASK-509); per-profile scaffolds tested apart.
+        "--profile",
+        "full",
         # Parity compares scaffold structure; the doc index lives in the
         # gitignored runtime DB. Skip it to match capture_golden + drop the
         # ~15s embedding load per section.

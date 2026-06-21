@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from tools._shared import fail, ok, safe_tool
+from tools._shared import _gated_module, fail, ok, safe_tool
 
 logger = logging.getLogger("coding_os.tools.cognition")
 
@@ -1776,6 +1776,18 @@ def register_cos_classify_prompt(mcp, db_path):
                     f'"{complexity} {dimensions}"'
                 )
 
+        # Discoverability nudge (TASK-509): a COMPLICATED+ gate needs the
+        # cognition surface (role composition / formula dispatch, Rule 15), but a
+        # lean profile may have disabled it. Surface the one-liner to re-enable
+        # rather than letting the agent hit a module_disabled wall mid-plan.
+        nudge = ""
+        if complexity in ("COMPLICATED", "COMPLEX") and _gated_module("cos_compose_chain") == "cognition":
+            nudge = (
+                f"{complexity} work but the cognition module is OFF — role "
+                "composition / formula dispatch are unavailable. Enable it with "
+                "`cos module enable cognition` (or scaffold with `--profile full`)."
+            )
+
         return ok(
             {
                 "complexity": complexity,
@@ -1785,6 +1797,7 @@ def register_cos_classify_prompt(mcp, db_path):
                 "domains": hit_domains,
                 "recorded": recorded,
                 "record_hint": record_hint,
+                "nudge": nudge,
             },
             meta={"layer": "routing"},
         )

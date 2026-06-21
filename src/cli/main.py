@@ -1370,6 +1370,12 @@ def _refuse_coding_os_self_init(project: Path) -> None:
     multiple=True,
     help="Subsystem module to disable at create (repeatable): docs, tasks, graph, memory, hub-extras, design. kernel can't be disabled; tasks needs docs. Wizard parity with the Composer module toggles.",
 )
+@click.option(
+    "--profile",
+    "profile",
+    default=None,
+    help="Module profile curating the agent's MCP tool surface: core (lean), standard, full (everything). Merged with --disable-module; omit to use the registry default. See subsystems.yaml::profiles.",
+)
 def init(
     agent: str | None,
     template: tuple[str, ...],
@@ -1391,6 +1397,7 @@ def init(
     do_index: bool,
     graph_index: bool,
     disable_module: tuple[str, ...],
+    profile: str | None,
 ) -> None:
     """Initialize coding-os in a project.
 
@@ -1425,6 +1432,20 @@ def init(
         active_preset = presets[preset_id]
         template = active_preset.stacks
         click.echo(f"Preset '{preset_id}' → stacks: {', '.join(template)}")
+
+    # A --profile expands to a curated disabled-module set (subsystems.yaml::
+    # profiles) MERGED with explicit --disable-module flags; omitted → the
+    # registry default_profile. Resolved before validation so the union flows
+    # through the same dependency-checked apply path (TASK-509).
+    from cli.subsystems import load_profiles, resolve_profile
+
+    _chosen_profile = profile or load_profiles()[1]
+    try:
+        _profile_disabled = resolve_profile(_chosen_profile)
+    except ValueError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        sys.exit(2)
+    disable_module = tuple(_profile_disabled) + tuple(disable_module)
 
     # Validate --disable-module BEFORE the dry-run/real split so the preview and
     # the real init reject the same ids (pass-3 review).
