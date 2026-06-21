@@ -5,18 +5,17 @@ swimlane: core
 kind: docs
 epic: teach-why-alignment
 labels: [teach-why, skills, exemplars, ready]
-status: icebox
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-21
-started: null
-completed: null
-agent_session: null
+started: 2026-06-20
+completed: 2026-06-20
+agent_session: ses-claude-20260620-185936-c751
 depends_on: [TASK-491]
 blocked_by: []
 references: []
 ---
-
 # TASK-496: Add positive worked-example reasoning to high-traffic skills (counter the negative-example-only bias)
 
 **Outcome (one sentence):** The repo teaches almost exclusively by NEGATIVE example (anti-patterns, "reject on sight", BLOCK). The article shows diverse POSITIVE exemplars of admirable reasoning shift the persona prior and generalize OOD (fictional-AI-role-model technique; admirable reasoning beats admirable actions). For the major anti-patterns in the highest-traffic skills (start with clean-code; extend to simplify), add ONE short positive 'worked case' that shows the REASONING (why the good version is right), matched to each major anti-pattern — not just the prohibition. Prose-only; extend existing skills, create NO new skill files (anti-overengineering, rule-of-three).
@@ -28,3 +27,6 @@ references: []
 - docs/governance/constitution.md
 
 ## Work Log
+- 2026-06-21 [claude]: Edit SKILL.md
+- 2026-06-21 [claude]: commit a495bc920d — docs(skills): frame clean-code as teach-why — read the reason, link tactics to the Constitution
+- 2026-06-21 [claude]: clean-code SKILL.md already pairs GOOD/BAD per anti-pattern (premise of negative-only was partially false), so rather…

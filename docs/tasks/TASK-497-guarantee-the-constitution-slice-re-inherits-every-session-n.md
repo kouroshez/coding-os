@@ -5,18 +5,17 @@ swimlane: "thinking_os"
 kind: feature
 epic: teach-why-alignment
 labels: [teach-why, health, persistence, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-21
-started: null
-completed: null
-agent_session: null
+started: 2026-06-20
+completed: 2026-06-20
+agent_session: ses-claude-20260620-185936-c751
 depends_on: [TASK-491]
 blocked_by: []
 references: []
 ---
-
 # TASK-497: Guarantee the Constitution slice re-inherits every session (non-decaying) + assert presence in cos_health
 
 **Outcome (one sentence):** Guidance that lives only in a doc the agent might read is the "merely imposed" value the article calls brittle. coding-os's killer feature is cross-session persistence (digest re-inheritance, decaying memory) — but values are NOT currently guaranteed to re-inherit, and memory DECAYS low-confidence items (correct for patterns, catastrophic for character). Pin the compressed constitution slice into the GUARANTEED SessionStart inheritance and mark it non-decaying / not eligible for memory GC, so it re-inherits identically every startup/resume (the "character does not decay" invariant — the runtime analogue of the article's "alignment persists through RL"). Add one assertion to the existing cos_health (or startup self-check) that the slice is present; treat absence like a dangling-symlink repair. Reuse the digest-suppression-on-compact logic; inject only the compressed slice (avoid the multi-thousand-token compaction wall). No new persistence subsystem.
@@ -34,3 +33,7 @@ references: []
 - **Given** the change set, **When** verifying, **Then** `uv run --extra rag pytest src/core/thinking_os/tests/ -q -m 'not slow'` + `make verify-hooks` + `python src/core/thinking_os/server.py --test` are GREEN.
 
 ## Work Log
+- 2026-06-21 [claude]: Edit server.py
+- 2026-06-21 [claude]: Edit constitution.md
+- 2026-06-21 [claude]: commit 6d568944f6 — feat(thinking_os): assert Constitution-slice presence in cos_health (non-decaying values invariant)
+- 2026-06-21 [claude]: cos_health (server.py thinking_os_health) now emits a constitution block {present, slice_markers_ok, non_decaying,…

@@ -5,12 +5,12 @@ swimlane: docs
 kind: feature
 epic: teach-why-alignment
 labels: [teach-why, constitution, alignment, governance, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-06-21
 started: 2026-06-20
-completed: null
+completed: 2026-06-20
 agent_session: ses-claude-20260620-185936-c751
 depends_on: []
 blocked_by: []
@@ -36,3 +36,9 @@ references: []
 - **Given** the full change set, **When** verifying, **Then** `make docs-lint` + `make verify-hooks` are GREEN. Execution requires a `governance`/`docs-update` task marker (Rule 7) and an atomic edit of the live-symlinked session-context.sh.
 
 ## Work Log
+- 2026-06-21 [claude]: commit 75365afdc0 — chore(board): archive 2 closed tasks; add 10 Constitution/values-layer tasks
+- 2026-06-21 [claude]: Edit constitution.md
+- 2026-06-21 [claude]: Edit session-context.sh
+- 2026-06-21 [claude]: Edit AGENTS.md
+- 2026-06-21 [claude]: commit 99b4fc95a0 — feat(core): add coding-os Constitution (teach-why values layer) + surface slice at SessionStart
+- 2026-06-21 [claude]: Authored docs/governance/constitution.md (8 values, down-only links to critical-rules.md, delimited SLICE block, 39…

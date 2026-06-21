@@ -8,7 +8,7 @@ Read next: any of the entries below.
 
 <!-- BEGIN auto-index -->
 
-### Policy (11)
+### Policy (12)
 
 - [Stack Anatomy Contract](anatomy-contract.md) — `ssot:true` · updated 2026-04-29
 - [Task Lifecycle Policy](task-lifecycle.md) — `ssot:true` · updated 2026-05-08
@@ -21,6 +21,7 @@ Read next: any of the entries below.
 - [GDPR / Privacy Compliance](gdpr-compliance.md) — `ssot:true` · updated 2026-05-25
 - [Risk Register](risk-register.md) — `ssot:true` · updated 2026-05-25
 - [Release Process (SSOT)](release-process.md) — `ssot:true` · updated 2026-06-07
+- [The coding-os Constitution — Values the Rules Derive From](constitution.md) — `ssot:true` · updated 2026-06-21
 
 ### Runbook (1)
 
