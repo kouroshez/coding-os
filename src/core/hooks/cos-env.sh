@@ -26,15 +26,72 @@
 #     see live hook activity. Fail-open: never errors a hook even if the
 #     write fails.
 
-# Resolve from env, .coding-os.yaml, or defaults
+# Resolve $COS_STATE_DIR. Precedence (applied ONLY while it is the bare default):
+#   1. explicit non-default COS_STATE_DIR → verbatim
+#   2. $CLAUDE_PROJECT_DIR                 → $CLAUDE_PROJECT_DIR/.coding-os
+#   3. $COS_PROJECT_ROOT                   → $COS_PROJECT_ROOT/.coding-os
+#   4. upward marker-walk from $PWD        → <root>/.coding-os
+#   5. nothing found                       → relative .coding-os (legacy)
+# Why a walk: hooks often run with cwd != repo root (e.g. `cd src/backend &&
+# go build`); a bare relative ".coding-os" then lazily creates a STRAY
+# .coding-os/ at the subdir (the nested-.coding-os bug). CLAUDE_PROJECT_DIR is
+# unset under the VSCode native extension, so steps 3-4 are the runtime-
+# independent fix. SPEC: docs/engineering/state-files.md § Project-root resolution.
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
-# Claude often runs hook subprocesses with cwd != repo root. Default
-# relative ".coding-os" would then create the wrong tree (and an empty log at
-# the real project). Anchor to workspace when the IDE exports it.
+
+# Pure-Bash project-root finder (no python3 spawn — this runs on every hook).
+# DRIFT WARNING: mirrors src/core/thinking_os/database.py::_find_project_root_from_cwd
+# (its _ROOT_MARKERS + .coding-os/-co-location requirement); tests/test_hooks.py
+# asserts the two stay identical. The extra $HOME hard-stop here prevents binding
+# the global hub at $HOME/.coding-os. Echoes the resolved root, or empty when none
+# is found at/below the $HOME boundary.
+_cos_find_project_root() {
+  local dir home_real first_state="" marker found_marker
+  # Rule 5: resolve symlinks (macOS /tmp -> /private/tmp) before the $HOME compare.
+  dir="$(cd -P "${PWD}" 2>/dev/null && pwd -P)" || dir="${PWD}"
+  home_real="$(cd -P "${HOME:-/dev/null}" 2>/dev/null && pwd -P)" || home_real="${HOME:-}"
+  while [[ -n "$dir" && "$dir" != "/" ]]; do
+    # Never inspect/accept $HOME or above — $HOME/.coding-os is the global hub.
+    if [[ -n "$home_real" && "$dir" == "$home_real" ]]; then
+      break
+    fi
+    if [[ -d "$dir/.coding-os" ]]; then
+      if [[ -z "$first_state" ]]; then
+        first_state="$dir"
+      fi
+      # Prefer a .coding-os/ co-located with a root marker (skips a stray nested
+      # .coding-os/). Marker set mirrors database.py::_ROOT_MARKERS.
+      found_marker=""
+      for marker in .git .coding-os.yaml pyproject.toml package.json go.mod AGENTS.md; do
+        if [[ -e "$dir/$marker" ]]; then
+          found_marker=1
+          break
+        fi
+      done
+      if [[ -n "$found_marker" ]]; then
+        printf '%s' "$dir"
+        return 0
+      fi
+    fi
+    dir="$(dirname "$dir")"
+  done
+  # No marked root below the boundary → innermost bare .coding-os/ (never
+  # lazy-create at cwd), else empty (caller keeps the relative default).
+  printf '%s' "$first_state"
+}
+
 case "${COS_STATE_DIR}" in
   .coding-os | ./.coding-os)
     if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
       COS_STATE_DIR="${CLAUDE_PROJECT_DIR}/.coding-os"
+    elif [[ -n "${COS_PROJECT_ROOT:-}" ]]; then
+      COS_STATE_DIR="${COS_PROJECT_ROOT}/.coding-os"
+    else
+      _cos_root="$(_cos_find_project_root)"
+      if [[ -n "$_cos_root" ]]; then
+        COS_STATE_DIR="${_cos_root}/.coding-os"
+      fi
+      unset _cos_root
     fi
     ;;
 esac

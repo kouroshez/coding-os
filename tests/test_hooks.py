@@ -43,6 +43,49 @@ def run_hook(
     )
 
 
+REPO_SRC = HOOKS_DIR.parent.parent  # <repo>/src — for the canonical Python resolver
+
+
+def _resolve_cos_var(
+    var: str,
+    cwd: str,
+    env_overrides: dict[str, str] | None = None,
+    strip: tuple[str, ...] = ("CLAUDE_PROJECT_DIR", "COS_PROJECT_ROOT", "COS_STATE_DIR"),
+) -> str:
+    """Source cos-env.sh from `cwd` and echo one exported var. The anchor env
+    vars in `strip` are removed first so the upward marker-walk path runs."""
+    env = {k: v for k, v in os.environ.items() if k not in strip}
+    if env_overrides:
+        env.update(env_overrides)
+    script = 'source "%s"; echo "$%s"' % (HOOKS_DIR / "cos-env.sh", var)
+    return subprocess.run(
+        ["bash", "-c", script],
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+        env=env,
+        timeout=10,
+    ).stdout.strip()
+
+
+def _python_resolve_root(cwd: str) -> str:
+    """Project root per the canonical Python resolver, run from `cwd`."""
+    import sys
+
+    code = (
+        "import sys; sys.path.insert(0, %r); "
+        "from core.thinking_os.database import _find_project_root_from_cwd; "
+        "print(_find_project_root_from_cwd())" % str(REPO_SRC)
+    )
+    return subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+        timeout=30,
+    ).stdout.strip()
+
+
 # ---------------------------------------------------------------------------
 # Syntax validation — all hooks must pass bash -n
 # ---------------------------------------------------------------------------
@@ -111,6 +154,106 @@ class TestCosEnv:
             timeout=10,
         )
         assert result.stdout.strip() == str(fake_root / ".coding-os")
+
+    def test_marker_walk_anchors_root_from_subdir(self, tmp_path: Path) -> None:
+        """The bug: with CLAUDE_PROJECT_DIR and COS_PROJECT_ROOT unset and cwd a
+        nested subdir, cos-env.sh must walk up to the marked root, not lazily
+        create a stray nested .coding-os/ at the subdir."""
+        home = tmp_path / "home"
+        root = home / "proj"
+        (root / ".coding-os").mkdir(parents=True)
+        (root / ".coding-os.yaml").write_text("version: '1.0'\n", encoding="utf-8")
+        sub = root / "src" / "backend"
+        sub.mkdir(parents=True)
+        got = _resolve_cos_var("COS_STATE_DIR", str(sub), {"HOME": str(home)})
+        assert got == os.path.realpath(str(root)) + "/.coding-os"
+
+    def test_marker_walk_hard_stops_below_home(self, tmp_path: Path) -> None:
+        """The walk must never bind $HOME/.coding-os (the global hub): a subdir
+        under $HOME with no project markers falls back to the relative default."""
+        home = tmp_path / "home"
+        (home / ".coding-os").mkdir(parents=True)  # global-hub simulation
+        sub = home / "randomproj" / "x"
+        sub.mkdir(parents=True)
+        got = _resolve_cos_var("COS_STATE_DIR", str(sub), {"HOME": str(home)})
+        assert got == ".coding-os"
+
+    def test_marker_walk_skips_stray_nested_state_dir(self, tmp_path: Path) -> None:
+        """A stray nested .coding-os/ (no co-located marker) from a pre-fix run
+        is skipped in favor of the marked root above it."""
+        home = tmp_path / "home"
+        root = home / "proj"
+        (root / ".coding-os").mkdir(parents=True)
+        (root / ".coding-os.yaml").write_text("version: '1.0'\n", encoding="utf-8")
+        sub = root / "src" / "backend"
+        (sub / ".coding-os").mkdir(parents=True)  # stray, no co-located marker
+        got = _resolve_cos_var("COS_STATE_DIR", str(sub), {"HOME": str(home)})
+        assert got == os.path.realpath(str(root)) + "/.coding-os"
+
+    def test_cos_project_root_escape_hatch(self, tmp_path: Path) -> None:
+        """COS_PROJECT_ROOT explicitly anchors the state dir when set, even from
+        an unrelated cwd."""
+        custom = tmp_path / "customroot"
+        custom.mkdir()
+        elsewhere = tmp_path / "elsewhere"
+        elsewhere.mkdir()
+        got = _resolve_cos_var(
+            "COS_STATE_DIR",
+            str(elsewhere),
+            {"COS_PROJECT_ROOT": str(custom), "HOME": str(tmp_path)},
+        )
+        assert got == str(custom / ".coding-os")
+
+    def test_root_resolution_parity_with_database(self, tmp_path: Path) -> None:
+        """cos-env.sh's walk must stay identical to the canonical Python resolver
+        database.py::_find_project_root_from_cwd — same marker set AND same root
+        for representative trees — so the two implementations cannot drift. (The
+        shell's extra $HOME hard-stop is asserted separately; Python's equivalent
+        is TASK-498, so parity fixtures keep the marked root strictly below $HOME
+        where both already agree.)"""
+        import re
+
+        # (a) marker-set identity between the two implementations.
+        db_src = (HOOKS_DIR.parent / "thinking_os" / "database.py").read_text(encoding="utf-8")
+        m = re.search(r"_ROOT_MARKERS\s*=\s*\((.*?)\)", db_src, re.DOTALL)
+        assert m, "could not find _ROOT_MARKERS in database.py"
+        db_markers = set(re.findall(r"""["']([^"']+)["']""", m.group(1)))
+        env_src = (HOOKS_DIR / "cos-env.sh").read_text(encoding="utf-8")
+        fm = re.search(r"for marker in ([^\n;]+); do", env_src)
+        assert fm, "could not find the marker loop in cos-env.sh"
+        shell_markers = set(fm.group(1).split())
+        assert shell_markers == db_markers, (
+            f"marker drift: shell={sorted(shell_markers)} db={sorted(db_markers)}"
+        )
+
+        # (b) behavioral parity over representative trees.
+        home = tmp_path / "home"
+        a_root = home / "a"  # marked by .coding-os.yaml
+        (a_root / ".coding-os").mkdir(parents=True)
+        (a_root / ".coding-os.yaml").write_text("v\n", encoding="utf-8")
+        a_sub = a_root / "src" / "backend"
+        a_sub.mkdir(parents=True)
+        b_root = home / "b"  # stray nested .coding-os/ below a marked root
+        (b_root / ".coding-os").mkdir(parents=True)
+        (b_root / ".coding-os.yaml").write_text("v\n", encoding="utf-8")
+        b_sub = b_root / "src" / "x"
+        (b_sub / ".coding-os").mkdir(parents=True)
+        c_root = home / "c"  # marked by .git only (no yaml)
+        (c_root / ".coding-os").mkdir(parents=True)
+        (c_root / ".git").mkdir()
+        c_sub = c_root / "pkg"
+        c_sub.mkdir()
+
+        for sub, expected in ((a_sub, a_root), (b_sub, b_root), (c_sub, c_root)):
+            shell_root = os.path.dirname(
+                _resolve_cos_var("COS_STATE_DIR", str(sub), {"HOME": str(home)})
+            )
+            py_root = _python_resolve_root(str(sub))
+            assert (
+                os.path.realpath(shell_root)
+                == os.path.realpath(py_root)
+                == os.path.realpath(str(expected))
+            ), f"parity mismatch at {sub}: shell={shell_root} py={py_root} expected={expected}"
 
     def test_agent_marker_file_fallback_without_runtime_env(self, tmp_path: Path) -> None:
         """.coding-os/.agent is fallback when no runtime-specific env exists."""

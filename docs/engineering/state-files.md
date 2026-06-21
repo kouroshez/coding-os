@@ -7,6 +7,51 @@ Read when: Adding a new session-scoped marker · debugging a "session mismatch" 
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
+## Project-root resolution — how `$COS_STATE_DIR` is found
+
+Every hook and every Python entry point must agree on **one** project root, or
+they split-brain: a hook firing with `cwd != repo root` (e.g. `cd src/backend &&
+go build`) would lazily create a stray nested `.coding-os/` at the subdir while
+the long-lived MCP server correctly uses the real root (this was the
+nested-`.coding-os` bug; the phantom-Hub-project class is TASK-117).
+
+The resolver in [`cos-env.sh`](../../src/core/hooks/cos-env.sh) applies this
+precedence, and **only** when `COS_STATE_DIR` is still the bare default
+(`.coding-os`):
+
+1. **Explicit `COS_STATE_DIR`** (any non-default value) → used verbatim.
+2. **`$CLAUDE_PROJECT_DIR`** set → `$CLAUDE_PROJECT_DIR/.coding-os`. (Claude Code
+   exports this in most runtimes — but **not** the VSCode native extension,
+   where it is unset; that gap is why steps 3–4 exist.)
+3. **`$COS_PROJECT_ROOT`** set → `$COS_PROJECT_ROOT/.coding-os`. Explicit escape
+   hatch a consumer can export (e.g. in VSCode `settings.json`).
+4. **Upward marker-walk** from `$PWD` (resolved with `cd -P`, Critical Rule 5):
+   accept the first ancestor that has a `.coding-os/` directory **and**
+   co-locates one of the root markers; else fall back to the innermost bare
+   `.coding-os/`. This skips a stray nested `.coding-os/` left by a pre-fix run.
+5. **No match** → the relative `.coding-os` default (legacy behavior; no root
+   could be proven, so we do not guess).
+
+**Root markers** (a `.coding-os/` is the *real* root only if one is co-located):
+`.git`, `.coding-os.yaml`, `pyproject.toml`, `package.json`, `go.mod`,
+`AGENTS.md`. This set is the **SSOT** in
+[`database.py::_ROOT_MARKERS`](../../src/core/thinking_os/database.py); the
+`cos-env.sh` walk mirrors it exactly. `.git` alone never anchors (it must
+co-locate a `.coding-os/`), so a parent monorepo `.git` cannot hijack the walk.
+
+**`$HOME` hard-stop.** The shell walk stops *below* `$HOME` and `/`: it never
+inspects or accepts `$HOME/.coding-os`, which is the **global hub** state
+(registry of all projects), not a project root. Paths are `cd -P`-resolved
+before the `$HOME` comparison so a `/tmp → /private/tmp` symlink (macOS) cannot
+defeat it (Critical Rule 5).
+
+**Drift guard.** `cos-env.sh` and `database.py` are two implementations of one
+contract. `tests/test_hooks.py` asserts (a) their marker lists are identical and
+(b) they resolve the same root for a battery of fixture trees — so the mirror
+can never silently drift. The Python-side `$HOME` hard-stop and the
+consolidation of the remaining cwd-only Python resolvers onto this one contract
+are tracked in **TASK-498**.
+
 ## The split — shared root vs. agent-private subdir vs. panel-private subdir (three-tier scope)
 
 ```
