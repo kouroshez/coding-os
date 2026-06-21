@@ -48,7 +48,7 @@ mv -f "$_TMP" "$STATE_FILE"
 # memory-check, zoom, anti-ambiguity). Record each such write as an append-only,
 # per-session line so the bypass is visible (banner bypasses=N) and auditable
 # (retro) rather than a silent free pass. Fire-and-forget — never break the write.
-if [[ "$(basename "$STATE_FILE_INPUT")" == ".thinking_os-gate" && "$VALUE" == "CLEAR 1"* ]]; then
+if [[ "$(basename "$STATE_FILE_INPUT")" == ".thinking_os-gate" && ( "$VALUE" == "CLEAR 1" || "$VALUE" == "CLEAR 1 "* ) ]]; then
   _JUSTIF="${VALUE#CLEAR 1}"; _JUSTIF="${_JUSTIF# }"
   printf '%s\t%s\n' "$SESSION_ID" "${_JUSTIF:-(no justification given)}" \
     >> "$(dirname "$STATE_FILE")/.clear1-bypass-log" 2>/dev/null || true

@@ -310,7 +310,9 @@ if [[ "$SOURCE" == "startup" || "$SOURCE" == "resume" ]]; then
   # already in working memory). SSOT is docs/governance/constitution.md; we
   # surface only the delimited slice so the file stays the single source (TASK-491).
   CONSTITUTION_DOC="${COS_PROJECT_ROOT:-$(pwd)}/docs/governance/constitution.md"
-  if [ -f "$CONSTITUTION_DOC" ]; then
+  if [ -f "$CONSTITUTION_DOC" ] && grep -q '<!-- SLICE:START -->' "$CONSTITUTION_DOC" 2>/dev/null && grep -q '<!-- SLICE:END -->' "$CONSTITUTION_DOC" 2>/dev/null; then
+    # Both markers required: a missing SLICE:END would make sed dump the rest of
+    # the file into the injection (unbounded tokens) — guard before extracting.
     CONSTITUTION_SLICE=$(sed -n '/<!-- SLICE:START -->/,/<!-- SLICE:END -->/p' "$CONSTITUTION_DOC" 2>/dev/null | grep -vE 'SLICE:(START|END)' || true)
     if [ -n "$CONSTITUTION_SLICE" ]; then
       _ss_append SS_HIDDEN "[Constitution] (values the rules derive from — full: docs/governance/constitution.md)
@@ -625,7 +627,15 @@ except OSError:
   # so the cost of bypassing is visible rather than silent. Fail-open.
   BYPASS_LOG="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.clear1-bypass-log"
   if [ -f "$BYPASS_LOG" ]; then
-    BYPASS_N=$(wc -l < "$BYPASS_LOG" 2>/dev/null | tr -d ' ' || echo 0)
+    # Count only THIS session's bypass lines (col 1 = session id); the log stays
+    # append-only across sessions for /retro audit — don't truncate it (TASK-510).
+    _CUR_SID=$(tr -d '\n\r' < "${COS_SESSION_FILE:-/nonexistent}" 2>/dev/null || true)
+    if [ -n "$_CUR_SID" ]; then
+      BYPASS_N=$(grep -cF "${_CUR_SID}$(printf '\t')" "$BYPASS_LOG" 2>/dev/null || true)
+    else
+      BYPASS_N=$(wc -l < "$BYPASS_LOG" 2>/dev/null | tr -d ' ' || true)
+    fi
+    [ -z "$BYPASS_N" ] && BYPASS_N=0
     if [ -n "$BYPASS_N" ] && [ "$BYPASS_N" -gt 0 ] 2>/dev/null; then
       WARN="${WARN} ℹ️ bypasses=${BYPASS_N} self-issued CLEAR-1"
     fi

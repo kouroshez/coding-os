@@ -8,7 +8,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -112,6 +111,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -176,9 +176,12 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -224,7 +227,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 217
+      "count": 220
     },
     "claude_angular": {
       "agent": "claude",
@@ -234,7 +237,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -338,6 +340,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -404,12 +407,15 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/angular/rules/frontend.md",
         ".coding-os/src/templates/angular/skills/angular/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -469,7 +475,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 239
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -479,7 +485,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -583,6 +588,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -649,12 +655,15 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/aspnet-core/rules/backend.md",
         ".coding-os/src/templates/aspnet-core/skills/aspnet-core/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -707,7 +716,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 232
     },
     "claude_astro": {
       "agent": "claude",
@@ -717,7 +726,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -821,6 +829,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -886,11 +895,14 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/astro/skills/astro/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -947,7 +959,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 234
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -957,7 +969,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -1061,6 +1072,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -1125,10 +1137,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -1176,7 +1191,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 220
+      "count": 223
     },
     "claude_django": {
       "agent": "claude",
@@ -1186,7 +1201,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -1290,6 +1304,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -1356,6 +1371,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -1364,6 +1380,8 @@
         ".coding-os/src/templates/django/skills/python-django/SKILL.md",
         ".coding-os/src/templates/django/skills/python-django/references/anatomy.md",
         ".coding-os/src/templates/django/skills/python-django/scripts/new_endpoint.py",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -1416,7 +1434,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 234
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1426,7 +1444,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -1530,6 +1547,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -1596,6 +1614,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -1604,6 +1623,8 @@
         ".coding-os/src/templates/fastapi/skills/python-fastapi/SKILL.md",
         ".coding-os/src/templates/fastapi/skills/python-fastapi/references/anatomy.md",
         ".coding-os/src/templates/fastapi/skills/python-fastapi/scripts/new_endpoint.py",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -1651,7 +1672,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 229
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1661,7 +1682,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -1765,6 +1785,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -1831,12 +1852,15 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/flutter/rules/mobile.md",
         ".coding-os/src/templates/flutter/skills/flutter/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -1891,7 +1915,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 234
     },
     "claude_go": {
       "agent": "claude",
@@ -1901,7 +1925,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -2005,6 +2028,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -2071,6 +2095,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -2082,6 +2107,8 @@
         ".coding-os/src/templates/go/skills/go-patterns/references/go-2026-idioms.md",
         ".coding-os/src/templates/go/skills/go-patterns/scripts/new_endpoint.py",
         ".coding-os/src/templates/go/skills/go-patterns/versions.json",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -2129,7 +2156,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 232
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2139,7 +2166,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -2243,6 +2269,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -2309,6 +2336,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -2320,6 +2348,8 @@
         ".coding-os/src/templates/go-fiber/skills/go-fiber/references/fiber-v3-patterns.md",
         ".coding-os/src/templates/go-fiber/skills/go-fiber/scripts/new_endpoint.py",
         ".coding-os/src/templates/go-fiber/skills/go-fiber/versions.json",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -2367,7 +2397,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 232
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2377,7 +2407,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -2481,6 +2510,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -2545,10 +2575,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -2596,7 +2629,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 220
+      "count": 223
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2606,7 +2639,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -2710,6 +2742,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -2774,10 +2807,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -2825,7 +2861,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 220
+      "count": 223
     },
     "claude_laravel": {
       "agent": "claude",
@@ -2835,7 +2871,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -2939,6 +2974,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -3004,11 +3040,14 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/laravel/skills/laravel/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -3061,7 +3100,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 230
     },
     "claude_meta": {
       "agent": "claude",
@@ -3071,7 +3110,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -3175,6 +3213,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -3250,6 +3289,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -3285,6 +3325,8 @@
         ".coding-os/src/templates/meta/skills/react-vite-hub/assets/hub-ui-checklist.md",
         ".coding-os/src/templates/meta/skills/react-vite-hub/scripts/__pycache__/check_vite_env.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/react-vite-hub/scripts/check_vite_env.py",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -3330,7 +3372,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 260
+      "count": 263
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3340,7 +3382,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -3444,6 +3485,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -3509,11 +3551,14 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/nestjs/skills/nestjs/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -3570,7 +3615,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 234
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -3580,7 +3625,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -3684,6 +3728,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -3750,6 +3795,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -3758,6 +3804,8 @@
         ".coding-os/src/templates/nextjs/skills/nextjs-react/SKILL.md",
         ".coding-os/src/templates/nextjs/skills/nextjs-react/references/anatomy.md",
         ".coding-os/src/templates/nextjs/skills/nextjs-react/scripts/new_component.py",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -3818,7 +3866,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 242
     },
     "claude_node-express": {
       "agent": "claude",
@@ -3828,7 +3876,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -3932,6 +3979,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -3997,11 +4045,14 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/node-express/skills/node-express/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -4055,7 +4106,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 228
+      "count": 231
     },
     "claude_python": {
       "agent": "claude",
@@ -4065,7 +4116,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -4169,6 +4219,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -4233,9 +4284,12 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -4283,7 +4337,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 219
+      "count": 222
     },
     "claude_rails": {
       "agent": "claude",
@@ -4293,7 +4347,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -4397,6 +4450,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -4463,12 +4517,15 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/rails/rules/backend.md",
         ".coding-os/src/templates/rails/skills/rails/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -4524,7 +4581,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 235
     },
     "claude_react-native": {
       "agent": "claude",
@@ -4534,7 +4591,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -4638,6 +4694,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -4705,6 +4762,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -4721,6 +4779,8 @@
         ".coding-os/src/templates/react-native/skills/react-native-patterns/references/list-performance.md",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/__pycache__/scan_rn_perf.cpython-310.pyc",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/scan_rn_perf.py",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -4772,7 +4832,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 242
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -4782,7 +4842,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -4886,6 +4945,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -4950,10 +5010,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -5001,7 +5064,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 220
+      "count": 223
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5011,7 +5074,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -5115,6 +5177,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -5181,12 +5244,15 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/rust-axum/rules/backend.md",
         ".coding-os/src/templates/rust-axum/skills/rust/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -5240,7 +5306,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 233
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5250,7 +5316,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -5354,6 +5419,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -5418,10 +5484,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -5469,7 +5538,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 220
+      "count": 223
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -5479,7 +5548,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -5583,6 +5651,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -5649,12 +5718,15 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/spring-boot/rules/backend.md",
         ".coding-os/src/templates/spring-boot/skills/spring-boot/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -5708,7 +5780,7 @@
         "src/backend/src/main/java/com/example/app/health/HealthStatus.java",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 233
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -5718,7 +5790,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -5822,6 +5893,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -5887,11 +5959,14 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/svelte-sveltekit/skills/svelte/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -5951,7 +6026,7 @@
         "src/frontend/vite.config.ts",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 237
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -5961,7 +6036,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -6065,6 +6139,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -6129,10 +6204,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -6180,7 +6258,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 220
+      "count": 223
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6190,7 +6268,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -6294,6 +6371,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -6359,11 +6437,14 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -6415,7 +6496,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 229
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -6425,7 +6506,6 @@
       "paths": [
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
-        ".claude/commands/compose.md",
         ".claude/commands/daily.md",
         ".claude/commands/diagnose.md",
         ".claude/commands/memory-search.md",
@@ -6529,6 +6609,7 @@
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
+        ".claude/hooks/warn-destructive-edit.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -6593,10 +6674,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -6647,7 +6731,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 226
     },
     "codex_base": {
       "agent": "codex",
@@ -6655,7 +6739,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -6766,6 +6849,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -6828,9 +6912,12 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -6875,7 +6962,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 221
+      "count": 224
     },
     "codex_angular": {
       "agent": "codex",
@@ -6885,7 +6972,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -6996,6 +7082,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -7060,12 +7147,15 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/angular/rules/frontend.md",
         ".coding-os/src/templates/angular/skills/angular/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -7124,7 +7214,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 243
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7134,7 +7224,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -7245,6 +7334,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -7309,12 +7399,15 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/aspnet-core/rules/backend.md",
         ".coding-os/src/templates/aspnet-core/skills/aspnet-core/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -7366,7 +7459,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 236
     },
     "codex_astro": {
       "agent": "codex",
@@ -7376,7 +7469,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -7487,6 +7579,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -7550,11 +7643,14 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/astro/skills/astro/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -7610,7 +7706,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 238
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -7620,7 +7716,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -7731,6 +7826,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -7793,10 +7889,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -7843,7 +7942,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 224
+      "count": 227
     },
     "codex_django": {
       "agent": "codex",
@@ -7853,7 +7952,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -7964,6 +8062,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -8028,6 +8127,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -8036,6 +8136,8 @@
         ".coding-os/src/templates/django/skills/python-django/SKILL.md",
         ".coding-os/src/templates/django/skills/python-django/references/anatomy.md",
         ".coding-os/src/templates/django/skills/python-django/scripts/new_endpoint.py",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -8087,7 +8189,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 238
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8097,7 +8199,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -8208,6 +8309,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -8272,6 +8374,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -8280,6 +8383,8 @@
         ".coding-os/src/templates/fastapi/skills/python-fastapi/SKILL.md",
         ".coding-os/src/templates/fastapi/skills/python-fastapi/references/anatomy.md",
         ".coding-os/src/templates/fastapi/skills/python-fastapi/scripts/new_endpoint.py",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -8326,7 +8431,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 233
     },
     "codex_flutter": {
       "agent": "codex",
@@ -8336,7 +8441,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -8447,6 +8551,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -8511,12 +8616,15 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/flutter/rules/mobile.md",
         ".coding-os/src/templates/flutter/skills/flutter/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -8570,7 +8678,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 238
     },
     "codex_go": {
       "agent": "codex",
@@ -8580,7 +8688,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -8691,6 +8798,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -8755,6 +8863,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -8766,6 +8875,8 @@
         ".coding-os/src/templates/go/skills/go-patterns/references/go-2026-idioms.md",
         ".coding-os/src/templates/go/skills/go-patterns/scripts/new_endpoint.py",
         ".coding-os/src/templates/go/skills/go-patterns/versions.json",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -8812,7 +8923,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 236
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -8822,7 +8933,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -8933,6 +9043,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -8997,6 +9108,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -9008,6 +9120,8 @@
         ".coding-os/src/templates/go-fiber/skills/go-fiber/references/fiber-v3-patterns.md",
         ".coding-os/src/templates/go-fiber/skills/go-fiber/scripts/new_endpoint.py",
         ".coding-os/src/templates/go-fiber/skills/go-fiber/versions.json",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -9054,7 +9168,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 236
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -9064,7 +9178,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -9175,6 +9288,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -9237,10 +9351,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -9287,7 +9404,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 224
+      "count": 227
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -9297,7 +9414,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -9408,6 +9524,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -9470,10 +9587,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -9520,7 +9640,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 224
+      "count": 227
     },
     "codex_laravel": {
       "agent": "codex",
@@ -9530,7 +9650,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -9641,6 +9760,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -9704,11 +9824,14 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/laravel/skills/laravel/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -9760,7 +9883,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 234
     },
     "codex_meta": {
       "agent": "codex",
@@ -9770,7 +9893,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -9881,6 +10003,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -9954,6 +10077,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -9989,6 +10113,8 @@
         ".coding-os/src/templates/meta/skills/react-vite-hub/assets/hub-ui-checklist.md",
         ".coding-os/src/templates/meta/skills/react-vite-hub/scripts/__pycache__/check_vite_env.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/react-vite-hub/scripts/check_vite_env.py",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -10033,7 +10159,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 264
+      "count": 267
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -10043,7 +10169,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -10154,6 +10279,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -10217,11 +10343,14 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/nestjs/skills/nestjs/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -10277,7 +10406,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 238
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -10287,7 +10416,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -10398,6 +10526,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -10462,6 +10591,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -10470,6 +10600,8 @@
         ".coding-os/src/templates/nextjs/skills/nextjs-react/SKILL.md",
         ".coding-os/src/templates/nextjs/skills/nextjs-react/references/anatomy.md",
         ".coding-os/src/templates/nextjs/skills/nextjs-react/scripts/new_component.py",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -10529,7 +10661,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 246
     },
     "codex_node-express": {
       "agent": "codex",
@@ -10539,7 +10671,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -10650,6 +10781,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -10713,11 +10845,14 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/node-express/skills/node-express/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -10770,7 +10905,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 235
     },
     "codex_python": {
       "agent": "codex",
@@ -10780,7 +10915,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -10891,6 +11025,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -10953,9 +11088,12 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11002,7 +11140,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 226
     },
     "codex_rails": {
       "agent": "codex",
@@ -11012,7 +11150,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -11123,6 +11260,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -11187,12 +11325,15 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/rails/rules/backend.md",
         ".coding-os/src/templates/rails/skills/rails/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11247,7 +11388,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 239
     },
     "codex_react-native": {
       "agent": "codex",
@@ -11257,7 +11398,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -11368,6 +11508,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -11433,6 +11574,7 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
@@ -11449,6 +11591,8 @@
         ".coding-os/src/templates/react-native/skills/react-native-patterns/references/list-performance.md",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/__pycache__/scan_rn_perf.cpython-310.pyc",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/scan_rn_perf.py",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11499,7 +11643,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 246
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -11509,7 +11653,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -11620,6 +11763,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -11682,10 +11826,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11732,7 +11879,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 224
+      "count": 227
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -11742,7 +11889,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -11853,6 +11999,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -11917,12 +12064,15 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/rust-axum/rules/backend.md",
         ".coding-os/src/templates/rust-axum/skills/rust/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11975,7 +12125,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 237
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -11985,7 +12135,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -12096,6 +12245,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -12158,10 +12308,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -12208,7 +12361,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 224
+      "count": 227
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -12218,7 +12371,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -12329,6 +12481,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -12393,12 +12546,15 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/spring-boot/rules/backend.md",
         ".coding-os/src/templates/spring-boot/skills/spring-boot/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -12451,7 +12607,7 @@
         "src/backend/src/main/java/com/example/app/health/HealthStatus.java",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 237
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -12461,7 +12617,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -12572,6 +12727,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -12635,11 +12791,14 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/svelte-sveltekit/skills/svelte/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -12698,7 +12857,7 @@
         "src/frontend/vite.config.ts",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 241
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -12708,7 +12867,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -12819,6 +12977,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -12881,10 +13040,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -12931,7 +13093,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 224
+      "count": 227
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -12941,7 +13103,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -13052,6 +13213,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -13115,11 +13277,14 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/SKILL.md",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -13170,7 +13335,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 233
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -13180,7 +13345,6 @@
       "paths": [
         ".codex/commands/board.md",
         ".codex/commands/classify.md",
-        ".codex/commands/compose.md",
         ".codex/commands/daily.md",
         ".codex/commands/diagnose.md",
         ".codex/commands/memory-search.md",
@@ -13291,6 +13455,7 @@
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
+        ".codex/hooks/warn-destructive-edit.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -13353,10 +13518,13 @@
         ".coding-os/Makefile.base",
         ".coding-os/Makefile.stacks",
         ".coding-os/core-version.json",
+        ".coding-os/disabled-hook-scripts",
         ".coding-os/domain-config.json",
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/subsystems-state.json",
+        ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -13406,7 +13574,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 230
     }
   }
 }
