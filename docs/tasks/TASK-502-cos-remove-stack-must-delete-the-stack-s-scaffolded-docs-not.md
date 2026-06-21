@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-21
-started: null
-completed: null
-agent_session: null
+started: 2026-06-21
+completed: 2026-06-21
+agent_session: ses-claude-20260620-223048-0760
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-502: cos remove-stack must delete the stack's scaffolded docs, not just rules (modularity DOC-5)
 
 ---
@@ -60,3 +59,14 @@ Actual: remove_stack.py:224 deletes only `<rules_dir>/<stack>-*.md`; the scaffol
 **Then** go-rules.md and go-service.md are removed or .bak'd, AND a doc also contributed by a remaining stack is preserved, AND a user-modified doc is skipped not clobbered, AND the removal is manifest-driven (never glob-guessed).
 
 ## Work Log
+- 2026-06-21 [claude]: Edit remove_stack.py
+- 2026-06-21 [claude]: Edit remove_stack.py
+- 2026-06-21 [claude]: Edit remove_stack.py
+- 2026-06-21 [claude]: Edit remove_stack.py
+- 2026-06-21 [claude]: Edit remove_stack.py
+- 2026-06-21 [claude]: Edit test_remove_stack.py
+- 2026-06-21 [claude]: Edit verify_doc502.py
+- 2026-06-21 [claude]: Added _remove_stack_docs (manifest-driven from stack scaffold/docs, backup-before-delete, ref-counted vs…
+- 2026-06-21 [claude]: Edit config.py
+- 2026-06-21 [claude]: Edit config.py
+- 2026-06-21 [claude]: Edit ConfigPage.tsx

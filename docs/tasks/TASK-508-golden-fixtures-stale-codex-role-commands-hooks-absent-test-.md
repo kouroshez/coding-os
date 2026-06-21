@@ -34,3 +34,4 @@ Run `COS_TEST_FORCE=1 uv run pytest tests/test_golden_parity.py -q`. Expected: p
 **Given** the meta-repo at HEAD **When** `uv run pytest tests/test_golden_parity.py -q` runs **Then** all fixtures pass; the recaptured tests/golden/<adapter>_<stack>/ trees contain the codex role-* commands + hooks, and a diff of the recapture shows ONLY those additive role/hook files (no surprise content drift in unrelated docs).
 
 ## Work Log
+- 2026-06-21 [claude]: committed 8b1603c1 · 1 file

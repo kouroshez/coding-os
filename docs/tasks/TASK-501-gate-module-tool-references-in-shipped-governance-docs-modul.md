@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-21
-started: null
-completed: null
-agent_session: null
+started: 2026-06-21
+completed: 2026-06-21
+agent_session: ses-claude-20260620-223048-0760
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-501: Gate module-tool references in shipped governance docs (modularity DOC-3)
 
 ---
@@ -60,3 +59,10 @@ Actual: the shipped governance docs (mcp-tool-inventory.md, agent-workflow.md) c
 **Then** no returned chunk instructs cos_graph_* tools, AND an all-modules-on scaffold of the same docs is byte-identical to today (only if-module markers stripped), AND the fix reuses the existing `_apply_doc_conditions` init path with no new schema axis.
 
 ## Work Log
+- 2026-06-21 [claude]: Edit mcp-tool-inventory.md
+- 2026-06-21 [claude]: Edit mcp-tool-inventory.md
+- 2026-06-21 [claude]: Edit agent-workflow.md
+- 2026-06-21 [claude]: Edit agent-workflow.md
+- 2026-06-21 [claude]: Edit verify_doc501.py
+- 2026-06-21 [claude]: commit 0094051e7a — docs(modularity): gate module-tool refs in shipped governance docs by owning module (TASK-501)
+- 2026-06-21 [claude]: Gated mcp-tool-inventory.md + agent-workflow.md tool families in if-module blocks…

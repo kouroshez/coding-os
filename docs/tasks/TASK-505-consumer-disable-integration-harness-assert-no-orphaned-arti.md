@@ -5,18 +5,17 @@ swimlane: core
 kind: test
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-21
-started: null
-completed: null
-agent_session: null
+started: 2026-06-21
+completed: 2026-06-21
+agent_session: ses-claude-20260620-223048-0760
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-505: Consumer-disable integration harness — assert no orphaned artifacts end-to-end (modularity CI guard)
 
 ---
@@ -54,3 +53,4 @@ references: []
 **Then** the test asserts no owned hook in the allowlist, no owned tool in list_tools, no owned skill symlink, no owned command symlink, AND surfaces (xfail/known-gap) any module-tagged doc still present; the harness is single-module (not a matrix) and runs in the fast PR test-modularity job, not @slow.
 
 ## Work Log
+- 2026-06-21 [claude]: Added a fast in-process integration test (test_module_gating_smoke §5): links a module's owned skill+command…
