@@ -285,3 +285,13 @@ Severity: 🔴 high · 🟡 medium · 🟢 low.
 | **Consumer-in-CI harness** | **BUILD one thin single-module integration test (TASK-505).** | The durable guard against the unit-passes-but-end-to-end-half-wired pattern; would have auto-caught DOC-4/DOC-5. Keep single-module, not a matrix (Raptor: smaller+correct). |
 
 **Pass-6 verdict:** the modularity machine is **genuinely built** (~97% true closure at the mechanism layer); the remaining work is **edge hygiene** — three docs leaks (TASK-501/502, DOC-4 backlog), Hub read-surface parity (TASK-503/504 + low backlog), a leaner default (owner-gated), and one durable end-to-end guard (TASK-505) — none of which are missing core machinery. Follow-up tasks: TASK-501..505 (filed, DoR-ready).
+
+### 11.6 Implementation outcome (2026-06-21) — all five follow-ups landed
+
+- **TASK-501** (`0094051e`) — shipped governance docs (`mcp-tool-inventory.md`, `agent-workflow.md`) wrap each tool family in `<!-- if-module:X -->` blocks; all-on output is byte-identical (verified via `_apply_doc_conditions`).
+- **TASK-502** (`8fd49e26`) — `cos remove-stack` now deletes the stack's scaffolded docs too (`_remove_stack_docs`: manifest-driven, backup-before-delete, ref-counted, meta-guarded) + a fast unit test.
+- **TASK-503** (`79eadfca`) — `config_skills` emits `provenance`+`disabled`; the Hub Skills tab renders Enable/Disable for core/stack skills (was additive-only).
+- **TASK-504** (`44fe5ae3`) — `GET /api/settings/modules/drift` reuses the three `cos doctor` checks; ModulesTab shows a WARN banner.
+- **TASK-505** (`55921670`) — fast in-process consumer-disable integration guard (skill+command symlink shed + tool gate; pins the DOC-4 runtime-doc-strip gap).
+- **Discovered in passing — golden-parity is pre-existing RED on `main`:** the codex `role-*` commands + hooks shipped after the goldens were captured (`assert not [extra files]`, `test_golden_parity.py:151`); unrelated to the doc-gating change (confirmed). Filed **TASK-508** (recapture the 8 goldens).
+- **Still owner-gated:** the curated default tool surface (PB-3-tool) — pending the owner's first-run-behaviour sign-off.
