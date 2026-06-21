@@ -139,3 +139,52 @@ def test_safe_tool_runs_when_module_enabled(tmp_path: Path, monkeypatch) -> None
 def test_fail_helper_shapes_the_module_disabled_category() -> None:
     env = _envelope(fail("module_disabled", "x", retryable=False))
     assert env["ok"] is False and env["error"]["category"] == "module_disabled"
+
+
+# ---------------------------------------------------------------------------
+# 5. End-to-end cascade (TASK-505) — disabling a module sheds EVERY artifact
+#    kind it owns: skill symlink + command symlink + the MCP tool surface. This
+#    is the integration guard against the "unit passes but end-to-end half-wired"
+#    pattern; it also pins the known docs-axis gap (DOC-4: runtime doc-strip is
+#    deliberately deferred). Fast: links a couple of artifacts in-process and
+#    runs the same cascades `toggle_and_regen` runs — no subprocess `cos init`.
+# ---------------------------------------------------------------------------
+
+
+def test_disable_module_sheds_skill_command_and_tool_surface(tmp_path: Path, monkeypatch) -> None:
+    from cli.module_commands import cascade_module_commands
+    from cli.skill_commands import cascade_module_skills
+
+    project = tmp_path / "consumer"
+    (project / ".coding-os").mkdir(parents=True)
+    (project / ".coding-os.yaml").write_text(
+        "name: consumer\nagents: [claude]\ntemplates: []\n", encoding="utf-8"
+    )
+    # Simulate a scaffolded consumer with the `tasks` module's artifacts linked.
+    skill_link = project / ".claude" / "skills" / "task-driver" / "SKILL.md"
+    skill_link.parent.mkdir(parents=True)
+    skill_link.symlink_to(_REPO_ROOT / "src" / "core" / "skills" / "task-driver" / "SKILL.md")
+    cmd_link = project / ".claude" / "commands" / "board.md"
+    cmd_link.parent.mkdir(parents=True)
+    cmd_link.symlink_to(_REPO_ROOT / "src" / "core" / "commands" / "board.md")
+    doc = project / "docs" / "governance" / "task-lifecycle.md"
+    doc.parent.mkdir(parents=True)
+    doc.write_text("<!-- module:tasks -->\n# Task Lifecycle\n", encoding="utf-8")
+
+    # Disable `tasks` — the same targeted cascades toggle_and_regen runs.
+    cascade_module_skills(project, "tasks", enabled=False)
+    cascade_module_commands(project, "tasks", enabled=False)
+    _write_disabled(project / ".coding-os", ["tasks", "docs"])  # docs kept off to honour tasks→docs dep
+    monkeypatch.setenv("COS_STATE_DIR", str(project / ".coding-os"))
+
+    # 1) owned skill symlink shed
+    assert not skill_link.exists() and not skill_link.is_symlink(), "task-driver skill should unlink"
+    # 2) owned command symlink shed
+    assert not cmd_link.exists() and not cmd_link.is_symlink(), "board command should unlink"
+    # 3) MCP tool family gated out of the agent's live surface
+    assert _gated_module("cos_task_create") == "tasks"
+    assert _gated_module("cos_work_log_append") == "tasks"
+    # 4) KNOWN GAP (DOC-4) — runtime disable does NOT strip module-tagged docs
+    #    (doc-strip is init-only by design; runtime delete would clobber user
+    #    edits). Pinned so a future runtime-strip flips this assertion knowingly.
+    assert doc.exists(), "DOC-4: runtime doc-strip is deferred — doc still present"
