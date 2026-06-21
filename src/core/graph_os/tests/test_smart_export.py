@@ -345,9 +345,7 @@ class TestProcessesMode:
         # the first holds 400 members. At a 500-node budget the old greedy
         # pass surfaced only ~2 headers; the fair reservation must surface
         # every header.
-        communities = [self._community(0, 400)] + [
-            self._community(i, 5) for i in range(1, 8)
-        ]
+        communities = [self._community(0, 400)] + [self._community(i, 5) for i in range(1, 8)]
         self._bind_communities(monkeypatch, communities)
         res = _parse(graph_tools.cos_graph_export(mode="processes", max_nodes=500))
         assert res["ok"] is True
@@ -358,9 +356,7 @@ class TestProcessesMode:
         # The 400-member community must not consume the whole budget — its
         # member count in the export is capped at the fair per-community
         # share so every community above min_size appears as its header.
-        communities = [self._community(0, 400)] + [
-            self._community(i, 5) for i in range(1, 8)
-        ]
+        communities = [self._community(0, 400)] + [self._community(i, 5) for i in range(1, 8)]
         self._bind_communities(monkeypatch, communities)
         res = _parse(graph_tools.cos_graph_export(mode="processes", max_nodes=500))
         nodes = res["data"]["nodes"]
@@ -369,11 +365,7 @@ class TestProcessesMode:
         assert {f"community:c{i}" for i in range(8)} <= community_ids
         # The top community's members are capped — far below its 400 size.
         edges = res["data"]["edges"]
-        top_members = {
-            e["source_uid"]
-            for e in edges
-            if e["target_uid"] == "community:c0"
-        }
+        top_members = {e["source_uid"] for e in edges if e["target_uid"] == "community:c0"}
         member_budget = 500 - len(community_ids)
         fair_share = max(1, member_budget // len(communities))
         assert len(top_members) <= fair_share

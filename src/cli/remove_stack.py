@@ -252,9 +252,7 @@ def _remove_stack_docs(
 
     sibling_roots = [TEMPLATES_DIR / "_base" / "scaffold"]
     sibling_roots += [
-        stacks[other].source_dir / "scaffold"
-        for other in remaining_templates
-        if other in stacks
+        stacks[other].source_dir / "scaffold" for other in remaining_templates if other in stacks
     ]
     provided_elsewhere: set[str] = set()
     for root in sibling_roots:

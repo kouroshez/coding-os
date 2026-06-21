@@ -87,12 +87,10 @@ def _fill_dor(file_path: Path) -> None:
 
 
 def _complete(conn: sqlite3.Connection, task_id: str) -> None:
-    assert _parse(
-        mcp_tools.cos_task_move(conn, task_id=task_id, to="in_progress", force=True)
-    )["ok"]
-    assert _parse(
-        mcp_tools.cos_task_move(conn, task_id=task_id, to="complete", force=True)
-    )["ok"]
+    assert _parse(mcp_tools.cos_task_move(conn, task_id=task_id, to="in_progress", force=True))[
+        "ok"
+    ]
+    assert _parse(mcp_tools.cos_task_move(conn, task_id=task_id, to="complete", force=True))["ok"]
 
 
 def _status(conn: sqlite3.Connection, task_id: str) -> str:
@@ -104,9 +102,7 @@ def _status(conn: sqlite3.Connection, task_id: str) -> str:
 
 def test_reblocks_when_dependency_reopens(project: Path, conn: sqlite3.Connection):
     dep_id, _ = _create(conn, project, title="prerequisite")
-    task_id, task_path = _create(
-        conn, project, title="dependent", depends_on=[dep_id], ready=True
-    )
+    task_id, task_path = _create(conn, project, title="dependent", depends_on=[dep_id], ready=True)
     _fill_dor(task_path)
     mcp_tools.sync_one(conn, task_path, project_root=project)
 
@@ -114,9 +110,7 @@ def test_reblocks_when_dependency_reopens(project: Path, conn: sqlite3.Connectio
     assert _status(conn, task_id) == "icebox"
 
     # The dependency reopens (reverted out of complete).
-    assert _parse(
-        mcp_tools.cos_task_move(conn, task_id=dep_id, to="in_progress", force=True)
-    )["ok"]
+    assert _parse(mcp_tools.cos_task_move(conn, task_id=dep_id, to="in_progress", force=True))["ok"]
 
     result = run_dep_reconcile(conn, dry_run=False)
     assert result["status"] == "ok"
@@ -129,9 +123,7 @@ def test_reblocks_when_dependency_reopens(project: Path, conn: sqlite3.Connectio
 
 def test_does_not_reblock_when_deps_still_complete(project: Path, conn: sqlite3.Connection):
     dep_id, _ = _create(conn, project, title="prerequisite")
-    task_id, task_path = _create(
-        conn, project, title="dependent", depends_on=[dep_id], ready=True
-    )
+    task_id, task_path = _create(conn, project, title="dependent", depends_on=[dep_id], ready=True)
     _fill_dor(task_path)
     mcp_tools.sync_one(conn, task_path, project_root=project)
     _complete(conn, dep_id)  # dep stays complete
@@ -172,9 +164,7 @@ def test_surfaces_unblocked_but_unauthored(project: Path, conn: sqlite3.Connecti
 
 def test_surfaces_long_blocked(project: Path, conn: sqlite3.Connection):
     task_id, _ = _create(conn, project, title="stuck")
-    assert _parse(
-        mcp_tools.cos_task_move(conn, task_id=task_id, to="blocked", force=True)
-    )["ok"]
+    assert _parse(mcp_tools.cos_task_move(conn, task_id=task_id, to="blocked", force=True))["ok"]
     # Backdate the blocked transition past the 14-day threshold.
     old = int(time.time()) - 20 * 86400
     conn.execute(
@@ -193,9 +183,7 @@ def test_surfaces_long_blocked(project: Path, conn: sqlite3.Connection):
 
 def test_recent_block_not_surfaced(project: Path, conn: sqlite3.Connection):
     task_id, _ = _create(conn, project, title="freshly blocked")
-    assert _parse(
-        mcp_tools.cos_task_move(conn, task_id=task_id, to="blocked", force=True)
-    )["ok"]
+    assert _parse(mcp_tools.cos_task_move(conn, task_id=task_id, to="blocked", force=True))["ok"]
 
     result = run_dep_reconcile(conn, dry_run=False)
     assert task_id not in {i["task_id"] for i in result["long_blocked"]}
@@ -215,9 +203,7 @@ def test_skips_when_no_tasks_table(tmp_path: Path):
 
 def test_dry_run_does_not_mutate(project: Path, conn: sqlite3.Connection):
     dep_id, _ = _create(conn, project, title="prerequisite")
-    task_id, task_path = _create(
-        conn, project, title="dependent", depends_on=[dep_id], ready=True
-    )
+    task_id, task_path = _create(conn, project, title="dependent", depends_on=[dep_id], ready=True)
     _fill_dor(task_path)
     mcp_tools.sync_one(conn, task_path, project_root=project)
     _complete(conn, dep_id)

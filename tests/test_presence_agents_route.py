@@ -72,7 +72,11 @@ def test_presence_agents_unifies_all_fields(client):
 def test_context_pct_standard_window():
     from core.web.routes.presence import _context_pct_from_usage
 
-    usage = {"input_tokens": 50_000, "cache_read_input_tokens": 50_000, "cache_creation_input_tokens": 0}
+    usage = {
+        "input_tokens": 50_000,
+        "cache_read_input_tokens": 50_000,
+        "cache_creation_input_tokens": 0,
+    }
     assert _context_pct_from_usage(usage, "claude-opus-4-8") == 50.0
 
 

@@ -53,14 +53,23 @@ def analyze(fields: dict[str, str], min_hit_rate: float) -> tuple[dict, list[str
 
     hr = metrics["hit_rate"]
     if hr is not None and hr < min_hit_rate:
-        flags.append(f"low hit rate {hr:.0%} (<{min_hit_rate:.0%}) — cache too small, "
-                     "wrong TTLs, or caching the wrong keys")
+        flags.append(
+            f"low hit rate {hr:.0%} (<{min_hit_rate:.0%}) — cache too small, "
+            "wrong TTLs, or caching the wrong keys"
+        )
     if metrics["evicted_keys"] and metrics["maxmemory_policy"] == "noeviction":
-        flags.append("evictions with noeviction policy — writes are being rejected; "
-                     "set allkeys-lru for a cache")
-    if metrics["maxmemory_policy"] == "noeviction" and fields.get("maxmemory", "0") not in ("0", ""):
-        flags.append("maxmemory set with noeviction — Redis rejects writes when full "
-                     "(outage); use allkeys-lru/lfu for a cache")
+        flags.append(
+            "evictions with noeviction policy — writes are being rejected; "
+            "set allkeys-lru for a cache"
+        )
+    if metrics["maxmemory_policy"] == "noeviction" and fields.get("maxmemory", "0") not in (
+        "0",
+        "",
+    ):
+        flags.append(
+            "maxmemory set with noeviction — Redis rejects writes when full "
+            "(outage); use allkeys-lru/lfu for a cache"
+        )
     return metrics, flags
 
 

@@ -5,9 +5,18 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]
-                       / "src" / "templates" / "meta" / "skills"
-                       / "react-vite-hub" / "scripts"))
+sys.path.insert(
+    0,
+    str(
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "templates"
+        / "meta"
+        / "skills"
+        / "react-vite-hub"
+        / "scripts"
+    ),
+)
 
 import check_vite_env as cve  # noqa: E402
 
@@ -21,7 +30,9 @@ def test_builtin_env_clean() -> None:
 
 
 def test_process_env_flagged() -> None:
-    assert any("process.env" in f for f in cve.scan_text("const k = process.env.API_KEY;", filename="x.ts"))
+    assert any(
+        "process.env" in f for f in cve.scan_text("const k = process.env.API_KEY;", filename="x.ts")
+    )
 
 
 def test_non_vite_meta_env_flagged() -> None:

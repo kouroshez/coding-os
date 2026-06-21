@@ -23,9 +23,14 @@ def rollup_fingerprints(conn: sqlite3.Connection) -> int:
         a = agg.get(r["fingerprint"])
         if a is None:
             a = agg[r["fingerprint"]] = {
-                "scope": r["scope"], "exc_type": r["exc_type"], "sample_msg": r["msg"],
-                "max_lvl": r["lvl"], "first_seen": r["ts"], "last_seen": r["ts"],
-                "count": 0, "sessions": set(),
+                "scope": r["scope"],
+                "exc_type": r["exc_type"],
+                "sample_msg": r["msg"],
+                "max_lvl": r["lvl"],
+                "first_seen": r["ts"],
+                "last_seen": r["ts"],
+                "count": 0,
+                "sessions": set(),
             }
         a["count"] += 1
         if r["ts"] < a["first_seen"]:
@@ -46,8 +51,17 @@ def rollup_fingerprints(conn: sqlite3.Connection) -> int:
             "  last_seen = excluded.last_seen, count = excluded.count, "
             "  distinct_sessions = excluded.distinct_sessions, max_lvl = excluded.max_lvl, "
             "  sample_msg = excluded.sample_msg",
-            (fp, a["scope"], a["exc_type"], a["sample_msg"], a["max_lvl"],
-             a["first_seen"], a["last_seen"], a["count"], len(a["sessions"])),
+            (
+                fp,
+                a["scope"],
+                a["exc_type"],
+                a["sample_msg"],
+                a["max_lvl"],
+                a["first_seen"],
+                a["last_seen"],
+                a["count"],
+                len(a["sessions"]),
+            ),
         )
     conn.commit()
     return len(agg)

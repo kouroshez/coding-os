@@ -32,9 +32,9 @@ RECOMMENDED = {
 
 
 def strip_jsonc(text: str) -> str:
-    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)   # block comments
-    text = re.sub(r"(^|\s)//[^\n]*", r"\1", text)            # line comments
-    text = re.sub(r",(\s*[}\]])", r"\1", text)               # trailing commas
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)  # block comments
+    text = re.sub(r"(^|\s)//[^\n]*", r"\1", text)  # line comments
+    text = re.sub(r",(\s*[}\]])", r"\1", text)  # trailing commas
     return text
 
 
@@ -55,8 +55,10 @@ def audit(config: dict) -> list[str]:
         if opts.get(flag) != want:
             findings.append(f"{flag} not set — {why}")
     if "extends" in config and findings:
-        findings.append(f"note: this config extends {config['extends']!r}; "
-                        "a flag above may be inherited — verify the resolved config")
+        findings.append(
+            f"note: this config extends {config['extends']!r}; "
+            "a flag above may be inherited — verify the resolved config"
+        )
     return findings
 
 

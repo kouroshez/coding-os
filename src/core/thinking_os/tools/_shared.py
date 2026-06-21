@@ -918,7 +918,9 @@ def safe_tool(
                 return fail("validation", str(exc) or "invalid input", retryable=False)
             except ImportError as exc:
                 _log_tool_failure(gate_name, exc, args)
-                return fail("unavailable", str(exc) or "optional dependency missing", retryable=True)
+                return fail(
+                    "unavailable", str(exc) or "optional dependency missing", retryable=True
+                )
             except Exception as exc:
                 _log_tool_failure(gate_name, exc, args)
                 return fail("internal", f"{type(exc).__name__}: {exc}", retryable=False)

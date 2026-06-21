@@ -34,15 +34,21 @@ def scan_text(text: str, *, filename: str = "?") -> list[str]:
         if line.lstrip().startswith("#"):
             continue
         if USES_MOVING.search(line):
-            findings.append(f"{filename}:{n}: action pinned to a moving ref (@main/master/latest) — pin a tag/SHA")
+            findings.append(
+                f"{filename}:{n}: action pinned to a moving ref (@main/master/latest) — pin a tag/SHA"
+            )
         elif USES_NOREF.search(line):
             findings.append(f"{filename}:{n}: action with no @version — pin a tag/SHA")
         if SECRET_ECHO.search(line):
             findings.append(f"{filename}:{n}: secret echoed into a step — leaks in logs")
         if RUN_CURL_BASH.search(line):
-            findings.append(f"{filename}:{n}: curl | bash from an unpinned source — supply-chain risk")
+            findings.append(
+                f"{filename}:{n}: curl | bash from an unpinned source — supply-chain risk"
+            )
     if has_job and not has_timeout:
-        findings.append(f"{filename}: no timeout-minutes on any job — a hung job runs until the platform cap")
+        findings.append(
+            f"{filename}: no timeout-minutes on any job — a hung job runs until the platform cap"
+        )
     return findings
 
 

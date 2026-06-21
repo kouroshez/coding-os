@@ -152,9 +152,7 @@ def state_file_integrity(project_root: Path) -> str | None:
     return None
 
 
-def module_state(
-    project_root: Path, modules: dict[str, Module] | None = None
-) -> dict[str, bool]:
+def module_state(project_root: Path, modules: dict[str, Module] | None = None) -> dict[str, bool]:
     """{module_id: enabled} for a project. No state file → all enabled.
 
     Read-only: never creates the state file (lazy creation happens on the

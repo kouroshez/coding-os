@@ -153,7 +153,10 @@ def run_decay_locked(
         try:
             age = _marker_age_days(marker)
             if age is not None and age < throttle_days:
-                return {"status": "skipped", "reason": f"ran {age:.1f}d ago (threshold {throttle_days}d)"}
+                return {
+                    "status": "skipped",
+                    "reason": f"ran {age:.1f}d ago (threshold {throttle_days}d)",
+                }
             if dry_run:
                 return {"status": "dry_run", "would_run": True, "marker_age_days": age}
             result = run_decay(path, archive_prune_days=archive_prune_days)

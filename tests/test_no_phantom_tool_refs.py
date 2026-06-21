@@ -105,7 +105,9 @@ def _is_phantom(token: str) -> bool:
 
 def _phantoms_in(path: Path) -> list[str]:
     findings: list[str] = []
-    for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
+    for lineno, line in enumerate(
+        path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1
+    ):
         for token in _TOKEN_RE.findall(line):
             if _is_phantom(token):
                 rel = path.relative_to(REPO)
@@ -127,8 +129,9 @@ def test_tool_source_scan_found_tools() -> None:
 )
 def test_no_phantom_tool_refs(contract_file: Path) -> None:
     phantoms = _phantoms_in(contract_file)
-    assert not phantoms, "phantom cos_* reference(s) — name a tool that is not registered:\n" + "\n".join(
-        "  " + p for p in phantoms
+    assert not phantoms, (
+        "phantom cos_* reference(s) — name a tool that is not registered:\n"
+        + "\n".join("  " + p for p in phantoms)
     )
 
 

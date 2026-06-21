@@ -605,18 +605,33 @@ def _build_agent_options(**kwargs):
     return builder(**kwargs)
 
 
-def _chat_session_options(profile, *, cwd, model, system_prompt, effort=None, resume=None, fork=False):
+def _chat_session_options(
+    profile, *, cwd, model, system_prompt, effort=None, resume=None, fork=False
+):
     """Build chat ClaudeAgentOptions via the adapter SSOT builder; on builder error
     fall back to the chat-light kwargs, still constructed through the adapter seam."""
     build = _session_options_builder()
     if build is not None:
         try:
-            return build(profile, cwd=cwd, model=model, system_prompt=system_prompt,
-                         effort=effort, resume=resume, fork=fork)
+            return build(
+                profile,
+                cwd=cwd,
+                model=model,
+                system_prompt=system_prompt,
+                effort=effort,
+                resume=resume,
+                fork=fork,
+            )
         except Exception as exc:
             logger.debug("session-options builder call failed (%s); generic seam fallback", exc)
-    kwargs = dict(cwd=cwd, model=model, permission_mode="dontAsk",
-                  setting_sources=[], include_partial_messages=True, system_prompt=system_prompt)
+    kwargs = dict(
+        cwd=cwd,
+        model=model,
+        permission_mode="dontAsk",
+        setting_sources=[],
+        include_partial_messages=True,
+        system_prompt=system_prompt,
+    )
     if effort:
         kwargs["effort"] = effort
     if profile == "chat_resume":
@@ -642,7 +657,9 @@ def _chat_presence_write(cwd: str, sid: str, event: str) -> None:
             import importlib.util
             from pathlib import Path as _Path
 
-            path = _Path(__file__).resolve().parents[3] / "adapters" / "claude" / "sdk_dispatcher.py"
+            path = (
+                _Path(__file__).resolve().parents[3] / "adapters" / "claude" / "sdk_dispatcher.py"
+            )
             spec = importlib.util.spec_from_file_location("cos_adapter_claude_presence", path)
             if spec and spec.loader:
                 mod = importlib.util.module_from_spec(spec)
@@ -1460,8 +1477,12 @@ async def chat_send(
     # SSOT builder (chat_resume profile) — same chat-light policy as chat_new
     # (mcp + deny floor + no Write/Edit), plus resume/fork for the follow-up turn.
     options = _chat_session_options(
-        "chat_resume", cwd=cwd, model=model,
-        system_prompt=_chat_system_prompt(model), resume=session_id, fork=fork,
+        "chat_resume",
+        cwd=cwd,
+        model=model,
+        system_prompt=_chat_system_prompt(model),
+        resume=session_id,
+        fork=fork,
     )
 
     async def event_gen():

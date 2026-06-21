@@ -37,8 +37,12 @@ def _make_service_file(project: Path, service: str, name: str, body: str) -> Non
 
 
 def test_nudge_detects_cross_service_duplicate(tmp_path: Path) -> None:
-    _make_service_file(tmp_path, "alpha", "handler.py", "def calculate_invoice_total(x):\n    return x\n")
-    _make_service_file(tmp_path, "beta", "billing.py", "def calculate_invoice_total(y):\n    return y\n")
+    _make_service_file(
+        tmp_path, "alpha", "handler.py", "def calculate_invoice_total(x):\n    return x\n"
+    )
+    _make_service_file(
+        tmp_path, "beta", "billing.py", "def calculate_invoice_total(y):\n    return y\n"
+    )
     result = _run_delegate("src/services/alpha/handler.py", tmp_path)
     assert result.returncode == 0
     assert "[reuse-first]" in result.stdout
@@ -48,7 +52,9 @@ def test_nudge_detects_cross_service_duplicate(tmp_path: Path) -> None:
 
 
 def test_nudge_silent_when_no_duplicate(tmp_path: Path) -> None:
-    _make_service_file(tmp_path, "alpha", "handler.py", "def calculate_invoice_total(x):\n    return x\n")
+    _make_service_file(
+        tmp_path, "alpha", "handler.py", "def calculate_invoice_total(x):\n    return x\n"
+    )
     _make_service_file(tmp_path, "beta", "other.py", "def render_dashboard():\n    return 1\n")
     result = _run_delegate("src/services/alpha/handler.py", tmp_path)
     assert result.returncode == 0
@@ -57,7 +63,9 @@ def test_nudge_silent_when_no_duplicate(tmp_path: Path) -> None:
 
 def test_nudge_silent_for_non_service_file(tmp_path: Path) -> None:
     (tmp_path / "src" / "backend").mkdir(parents=True)
-    (tmp_path / "src" / "backend" / "main.py").write_text("def calculate_invoice_total():\n    pass\n")
+    (tmp_path / "src" / "backend" / "main.py").write_text(
+        "def calculate_invoice_total():\n    pass\n"
+    )
     result = _run_delegate("src/backend/main.py", tmp_path)
     assert result.returncode == 0
     assert result.stdout.strip() == ""
@@ -89,10 +97,14 @@ def test_nudge_detects_go_duplicate(tmp_path: Path) -> None:
 def test_nudge_prunes_vendor_dirs(tmp_path: Path) -> None:
     # the only "duplicate" lives inside a vendored dir — it must be pruned, so
     # the 400-file budget is spent on real source and no false nudge fires.
-    _make_service_file(tmp_path, "alpha", "handler.py", "def calculate_invoice_total(x):\n    return x\n")
+    _make_service_file(
+        tmp_path, "alpha", "handler.py", "def calculate_invoice_total(x):\n    return x\n"
+    )
     vendored = tmp_path / "src" / "services" / "beta" / "node_modules"
     vendored.mkdir(parents=True)
-    (vendored / "lib.py").write_text("def calculate_invoice_total(y):\n    return y\n", encoding="utf-8")
+    (vendored / "lib.py").write_text(
+        "def calculate_invoice_total(y):\n    return y\n", encoding="utf-8"
+    )
     result = _run_delegate("src/services/alpha/handler.py", tmp_path)
     assert result.returncode == 0
     assert result.stdout.strip() == ""
@@ -135,7 +147,9 @@ def test_hook_exits_zero_for_non_service_path(tmp_path: Path) -> None:
     assert result.stderr.strip() == ""
 
 
-def _invoke_hook_env(payload: dict, project_root: Path, panel_dir: Path) -> subprocess.CompletedProcess:
+def _invoke_hook_env(
+    payload: dict, project_root: Path, panel_dir: Path
+) -> subprocess.CompletedProcess:
     env = {
         **os.environ,
         "COS_PROJECT_ROOT": str(project_root),
@@ -153,8 +167,12 @@ def _invoke_hook_env(payload: dict, project_root: Path, panel_dir: Path) -> subp
 
 
 def test_hook_nudges_then_debounces(tmp_path: Path) -> None:
-    _make_service_file(tmp_path, "alpha", "handler.py", "def calculate_invoice_total(x):\n    return x\n")
-    _make_service_file(tmp_path, "beta", "billing.py", "def calculate_invoice_total(y):\n    return y\n")
+    _make_service_file(
+        tmp_path, "alpha", "handler.py", "def calculate_invoice_total(x):\n    return x\n"
+    )
+    _make_service_file(
+        tmp_path, "beta", "billing.py", "def calculate_invoice_total(y):\n    return y\n"
+    )
     panel = tmp_path / ".panel"
     panel.mkdir()
     payload = {"tool_name": "Write", "tool_input": {"file_path": "src/services/alpha/handler.py"}}

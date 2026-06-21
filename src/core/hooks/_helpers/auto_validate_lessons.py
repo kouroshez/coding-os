@@ -86,7 +86,12 @@ def auto_validate(session_id: str, db_path: str, suggestions_file: str) -> dict:
                 unhelpful += 1
             else:
                 helpful += 1
-        return {"status": "ok", "surfaced": len(surfaced), "helpful": helpful, "unhelpful": unhelpful}
+        return {
+            "status": "ok",
+            "surfaced": len(surfaced),
+            "helpful": helpful,
+            "unhelpful": unhelpful,
+        }
     finally:
         conn.close()
 

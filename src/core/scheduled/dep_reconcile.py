@@ -34,9 +34,7 @@ def _reblock_reopened(conn: sqlite3.Connection, *, dry_run: bool) -> list[dict]:
     )
     from board_os.workflow import incomplete_dependencies
 
-    rows = conn.execute(
-        "SELECT task_id, labels_json FROM tasks WHERE status = 'icebox'"
-    ).fetchall()
+    rows = conn.execute("SELECT task_id, labels_json FROM tasks WHERE status = 'icebox'").fetchall()
 
     reblocked: list[dict] = []
     for task_id, labels_json in rows:
@@ -51,9 +49,7 @@ def _reblock_reopened(conn: sqlite3.Connection, *, dry_run: bool) -> list[dict]:
             # icebox→blocked is not a state-machine edge (valid from icebox:
             # in_progress/emergency/archive), so force the deliberate re-block.
             env = json.loads(
-                cos_task_move(
-                    conn, task_id=str(task_id), to="blocked", reason=reason, force=True
-                )
+                cos_task_move(conn, task_id=str(task_id), to="blocked", reason=reason, force=True)
             )
             if not env.get("ok"):
                 entry["move_failed"] = env.get("error")
@@ -68,9 +64,7 @@ def _surface_unblocked(conn: sqlite3.Connection, *, dry_run: bool) -> dict[str, 
 
     complete_ids = [
         str(r[0])
-        for r in conn.execute(
-            "SELECT task_id FROM tasks WHERE status = 'complete'"
-        ).fetchall()
+        for r in conn.execute("SELECT task_id FROM tasks WHERE status = 'complete'").fetchall()
     ]
 
     readied: list[str] = []
@@ -119,9 +113,7 @@ def run_dep_reconcile(
 ) -> dict:
     """Run all three reconciler branches over the whole task graph."""
     if (
-        conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='tasks'"
-        ).fetchone()
+        conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='tasks'").fetchone()
         is None
     ):
         return {"status": "skipped", "reason": "tasks table not present"}

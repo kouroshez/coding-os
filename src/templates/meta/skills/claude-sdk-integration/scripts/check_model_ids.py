@@ -30,8 +30,9 @@ CURRENT = {
 MODEL_ID = re.compile(r"claude-[a-z0-9.\-]*\d[a-z0-9.\-]*")
 CURRENT_IDS = set(CURRENT.values())
 # Tolerate the bare current ids + their dated variants.
-CURRENT_PREFIXES = tuple(v.rsplit("-", 1)[0] if v[-1].isdigit() and "-2025" not in v else v
-                         for v in CURRENT_IDS)
+CURRENT_PREFIXES = tuple(
+    v.rsplit("-", 1)[0] if v[-1].isdigit() and "-2025" not in v else v for v in CURRENT_IDS
+)
 
 
 def _suggest(model_id: str) -> str:
@@ -51,7 +52,9 @@ def scan_text(text: str, *, filename: str = "?") -> list[str]:
             mid = m.group(0)
             if mid in CURRENT_IDS or any(mid.startswith(p) for p in CURRENT_PREFIXES):
                 continue
-            findings.append(f"{filename}:{n}: stale model id '{mid}' — current is '{_suggest(mid)}'")
+            findings.append(
+                f"{filename}:{n}: stale model id '{mid}' — current is '{_suggest(mid)}'"
+            )
     return findings
 
 

@@ -246,8 +246,11 @@ def logs_summary(
     scopes: dict[str, int] = {}
     for evt in _read_tail_jsonl(path, max_lines=8000):
         if not _event_passes(
-            evt, level_floor=10, scope_pattern=None,
-            earliest_epoch=earliest_epoch, search_lower=None,
+            evt,
+            level_floor=10,
+            scope_pattern=None,
+            earliest_epoch=earliest_epoch,
+            search_lower=None,
         ):
             continue
         lvl = str(evt.get("lvl", "INFO")).upper()

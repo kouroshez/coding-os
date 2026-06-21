@@ -341,9 +341,7 @@ class TestSearchSimilar:
             assert embeddings.search_similar(tmp_db, "anything") == []
 
     @REQUIRES_RAG
-    def test_dual_model_bridge_surfaces_both_dims(
-        self, tmp_db: sqlite3.Connection
-    ) -> None:
+    def test_dual_model_bridge_surfaces_both_dims(self, tmp_db: sqlite3.Connection) -> None:
         # Wave 2 (M4): mid-migration the table holds vectors from two models
         # at different dims. search_similar must encode the query with EVERY
         # present model and surface rows from BOTH — the old single-model path
@@ -414,9 +412,7 @@ class TestReindexAll:
             assert result.get("status") == "skipped"
 
     @REQUIRES_RAG
-    def test_reindex_embeds_allowlisted_graph_nodes_only(
-        self, tmp_db: sqlite3.Connection
-    ) -> None:
+    def test_reindex_embeds_allowlisted_graph_nodes_only(self, tmp_db: sqlite3.Connection) -> None:
         # Wave 1: reindex_all must embed meaningful graph_node kinds and skip
         # noise kinds (identifier/import_/module) that pollute similarity.
         now = 0
@@ -498,9 +494,7 @@ class TestModelSSOTAndCutover:
         st = embeddings.migration_status(tmp_db, target)
         assert st["complete"] is False and st["remaining"] == 1
         # convert the laggard
-        tmp_db.execute(
-            "UPDATE embeddings SET model_name = ? WHERE source_id = 2", (target,)
-        )
+        tmp_db.execute("UPDATE embeddings SET model_name = ? WHERE source_id = 2", (target,))
         tmp_db.commit()
         st2 = embeddings.migration_status(tmp_db, target)
         assert st2["complete"] is True and st2["remaining"] == 0
@@ -524,8 +518,7 @@ class TestEmbeddingOutbox:
         assert rep["drained"] == 1 and rep["remaining"] == 0
         assert (
             tmp_db.execute(
-                "SELECT COUNT(*) FROM embeddings "
-                "WHERE source_table='observations' AND source_id=1"
+                "SELECT COUNT(*) FROM embeddings WHERE source_table='observations' AND source_id=1"
             ).fetchone()[0]
             == 1
         )

@@ -40,9 +40,7 @@ def _tree_state(repo_root: Path | None = None) -> dict[str, str]:
 
     def _git(*git_args: str) -> bytes:
         try:
-            proc = subprocess.run(
-                ["git", *git_args], capture_output=True, cwd=cwd, timeout=10
-            )
+            proc = subprocess.run(["git", *git_args], capture_output=True, cwd=cwd, timeout=10)
         except (OSError, subprocess.TimeoutExpired):
             return b""
         return proc.stdout if proc.returncode == 0 else b""
@@ -178,11 +176,7 @@ def cmd_tree_state(args: argparse.Namespace) -> int:
 
 
 def _command_paths(cmd: str) -> set[str]:
-    return {
-        tok.rstrip("/")
-        for tok in cmd.split()
-        if "/" in tok and not tok.startswith("-")
-    }
+    return {tok.rstrip("/") for tok in cmd.split() if "/" in tok and not tok.startswith("-")}
 
 
 _WRAPPER_TOKENS = ("nice", "time", "/usr/bin/time", "caffeinate")

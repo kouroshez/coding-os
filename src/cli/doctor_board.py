@@ -295,7 +295,11 @@ def _check_git_tracked(report, conn: sqlite3.Connection, project: Path) -> None:
     if not drift.is_git_root:
         if drift.git_unavailable:
             report.checks.append(
-                _CR("board.git_tracked", SEV_WARN, f"git unavailable — skipped ({drift.skip_reason})")
+                _CR(
+                    "board.git_tracked",
+                    SEV_WARN,
+                    f"git unavailable — skipped ({drift.skip_reason})",
+                )
             )
         else:
             report.checks.append(

@@ -171,7 +171,14 @@ def validate_pattern(
     if "error" in result:
         return unwrap(
             json.dumps(
-                {"ok": False, "error": {"category": "not_found", "message": result["error"], "retryable": False}}
+                {
+                    "ok": False,
+                    "error": {
+                        "category": "not_found",
+                        "message": result["error"],
+                        "retryable": False,
+                    },
+                }
             )
         )
     return unwrap(json.dumps({"ok": True, "data": {**result, "meta": {"layer": "learning"}}}))

@@ -110,8 +110,11 @@ _TRUNCATION_MARKER = "\n\n…[truncated]"
 # Order matters: multi-line private keys first, then specific token shapes, then
 # a conservative key=value form gated on a digit (entropy) to avoid false hits.
 _SECRET_SPECS: list[tuple[str, str, str]] = [
-    (r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z ]+ )?PRIVATE KEY-----",
-     "<redacted-private-key>", "private_key"),
+    (
+        r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z ]+ )?PRIVATE KEY-----",
+        "<redacted-private-key>",
+        "private_key",
+    ),
     (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", "<redacted-email>", "email"),
     (r"\bBearer\s+[A-Za-z0-9._\-]{8,}", "Bearer <redacted-token>", "bearer_token"),
     (r"\bAKIA[0-9A-Z]{16}\b", "<redacted-aws-key>", "aws_key"),
@@ -119,8 +122,11 @@ _SECRET_SPECS: list[tuple[str, str, str]] = [
     (r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b", "<redacted-token>", "slack_token"),
     (r"\b(?:sk|pk|rk)_(?:live|test|prod)_[A-Za-z0-9]{12,}\b", "<redacted-key>", "stripe_key"),
     (r"\bsk-[A-Za-z0-9]{20,}\b", "<redacted-key>", "sk_key"),
-    (r"(?i)\b(api[_-]?key|secret|token|password|passwd|access[_-]?key)\b(\s*[=:]\s*)(?=\S*\d)\S{8,}",
-     r"\1\2<redacted-secret>", "secret_assignment"),
+    (
+        r"(?i)\b(api[_-]?key|secret|token|password|passwd|access[_-]?key)\b(\s*[=:]\s*)(?=\S*\d)\S{8,}",
+        r"\1\2<redacted-secret>",
+        "secret_assignment",
+    ),
 ]
 _SECRET_PATTERNS: list[tuple[re.Pattern, str, str]] = [
     (re.compile(pattern), repl, label) for pattern, repl, label in _SECRET_SPECS

@@ -7,8 +7,17 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]
-                       / "src" / "core" / "skills" / "frontend-design" / "scripts"))
+sys.path.insert(
+    0,
+    str(
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "core"
+        / "skills"
+        / "frontend-design"
+        / "scripts"
+    ),
+)
 
 import check_contrast as cc  # noqa: E402
 
@@ -43,5 +52,5 @@ def test_parse_bad_color_raises() -> None:
 
 
 def test_main_pass_fail(capsys) -> None:
-    assert cc.main(["#000000", "#ffffff"]) == 0   # AA passes
-    assert cc.main(["#777777", "#888888"]) == 1   # fails AA
+    assert cc.main(["#000000", "#ffffff"]) == 0  # AA passes
+    assert cc.main(["#777777", "#888888"]) == 1  # fails AA

@@ -38,9 +38,7 @@ STACK_IDS = _stack_ids()
 
 def test_stack_registry_nonempty() -> None:
     """Sanity: stacks must load, else the parametrize below is a silent no-op."""
-    assert len(STACK_IDS) >= 10, (
-        f"only {len(STACK_IDS)} stacks discovered — registry load broken"
-    )
+    assert len(STACK_IDS) >= 10, f"only {len(STACK_IDS)} stacks discovered — registry load broken"
 
 
 @pytest.mark.parametrize("stack_id", STACK_IDS)
@@ -81,7 +79,9 @@ def test_disabling_module_drops_its_retrieval_routing_row() -> None:
 
     assert "Embedding index finds chunks" in enabled  # docs row present by default
     assert "Embedding index finds chunks" not in no_docs, "docs off drops its row + freshness prose"
-    assert "5-signal ranking + spaced repetition" not in no_mem, "memory off drops its retrieval row"
+    assert "5-signal ranking + spaced repetition" not in no_mem, (
+        "memory off drops its retrieval row"
+    )
     # Cross-module isolation: turning docs off must NOT drop the memory/tasks rows.
     assert "5-signal ranking + spaced repetition" in no_docs
     assert "dependency JSON walks" in no_docs

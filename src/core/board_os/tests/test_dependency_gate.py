@@ -90,18 +90,12 @@ def test_start_blocked_when_dependency_incomplete(project: Path, conn: sqlite3.C
 
 def test_start_allowed_once_dependency_complete(project: Path, conn: sqlite3.Connection):
     dep_id, dep_path = _create(conn, project, title="prerequisite")
-    task_id, task_path = _create(
-        conn, project, title="dependent", depends_on=[dep_id], ready=True
-    )
+    task_id, task_path = _create(conn, project, title="dependent", depends_on=[dep_id], ready=True)
     _fill_dor(task_path)  # so the body DoR gate isn't what blocks the pull
 
     # Drive the prerequisite to complete (force bypasses its own gates).
-    assert _parse(
-        mcp_tools.cos_task_move(conn, task_id=dep_id, to="in_progress", force=True)
-    )["ok"]
-    assert _parse(
-        mcp_tools.cos_task_move(conn, task_id=dep_id, to="complete", force=True)
-    )["ok"]
+    assert _parse(mcp_tools.cos_task_move(conn, task_id=dep_id, to="in_progress", force=True))["ok"]
+    assert _parse(mcp_tools.cos_task_move(conn, task_id=dep_id, to="complete", force=True))["ok"]
 
     env = _parse(mcp_tools.cos_task_move(conn, task_id=task_id, to="in_progress"))
     assert env["ok"] is True, env
@@ -150,9 +144,7 @@ def test_pick_omits_dependency_incomplete_includes_runnable(
     assert blocked_id not in picked, "a card with an incomplete dependency is not runnable now"
 
 
-def test_pick_surfaces_card_once_dependency_complete(
-    project: Path, conn: sqlite3.Connection
-):
+def test_pick_surfaces_card_once_dependency_complete(project: Path, conn: sqlite3.Connection):
     dep_id, _ = _create(conn, project, title="prerequisite")
     blocked_id, _ = _create(
         conn, project, title="formerly blocked", depends_on=[dep_id], ready=True, priority="P0"
@@ -170,9 +162,9 @@ def test_pick_surfaces_card_once_dependency_complete(
 
 
 def _complete(conn: sqlite3.Connection, task_id: str) -> dict:
-    assert _parse(
-        mcp_tools.cos_task_move(conn, task_id=task_id, to="in_progress", force=True)
-    )["ok"]
+    assert _parse(mcp_tools.cos_task_move(conn, task_id=task_id, to="in_progress", force=True))[
+        "ok"
+    ]
     env = _parse(mcp_tools.cos_task_move(conn, task_id=task_id, to="complete", force=True))
     assert env["ok"], env
     return env
@@ -182,9 +174,7 @@ def _labels(conn: sqlite3.Connection, task_id: str) -> list[str]:
     return _parse(mcp_tools.cos_task_show(conn, task_id=task_id))["data"].get("labels", [])
 
 
-def _create_runnable(
-    conn: sqlite3.Connection, project: Path, **kw
-) -> tuple[str, Path]:
+def _create_runnable(conn: sqlite3.Connection, project: Path, **kw) -> tuple[str, Path]:
     """A ready, DoR-complete icebox card — claim-next's transition gate passes."""
     task_id, path = _create(conn, project, ready=True, **kw)
     _fill_dor(path)
@@ -195,14 +185,10 @@ def _create_runnable(
 # ── (B) completion cascade auto-readies unblocked, DoR-complete dependents ──
 
 
-def test_completion_cascade_readies_unblocked_dependent(
-    project: Path, conn: sqlite3.Connection
-):
+def test_completion_cascade_readies_unblocked_dependent(project: Path, conn: sqlite3.Connection):
     dep_id, _ = _create(conn, project, title="prerequisite")
     # A DoR-complete dependent in icebox WITHOUT the ready label yet.
-    dependent_id, dependent_path = _create(
-        conn, project, title="dependent", depends_on=[dep_id]
-    )
+    dependent_id, dependent_path = _create(conn, project, title="dependent", depends_on=[dep_id])
     _fill_dor(dependent_path)
     mcp_tools.sync_one(conn, dependent_path, project_root=project)
     assert "ready" not in _labels(conn, dependent_id)
@@ -266,9 +252,7 @@ def test_claim_next_returns_a_runnable_task(project: Path, conn: sqlite3.Connect
     assert claimed["status"] == "in_progress"
 
 
-def test_claim_next_excludes_dependency_blocked_card(
-    project: Path, conn: sqlite3.Connection
-):
+def test_claim_next_excludes_dependency_blocked_card(project: Path, conn: sqlite3.Connection):
     dep_id, _ = _create(conn, project, title="prerequisite", priority="P3")
     _create(conn, project, title="blocked", depends_on=[dep_id], ready=True, priority="P0")
 
@@ -298,9 +282,7 @@ def test_concurrent_claim_next_yields_distinct_tasks(
     def claim(session: str) -> None:
         local = db.init_db(db_path)
         try:
-            env = _parse(
-                mcp_tools.cos_task_claim_next(local, agent_session=session)
-            )
+            env = _parse(mcp_tools.cos_task_claim_next(local, agent_session=session))
             claimed = env["data"]["claimed"] if env["ok"] else None
             results.append(claimed["id"] if claimed else None)
         finally:
@@ -308,9 +290,7 @@ def test_concurrent_claim_next_yields_distinct_tasks(
 
     import threading
 
-    threads = [
-        threading.Thread(target=claim, args=(f"ses-{i}",)) for i in range(2)
-    ]
+    threads = [threading.Thread(target=claim, args=(f"ses-{i}",)) for i in range(2)]
     for t in threads:
         t.start()
     for t in threads:

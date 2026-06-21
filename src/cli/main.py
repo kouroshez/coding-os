@@ -634,9 +634,7 @@ def _dry_config_preview(templates: tuple[str, ...], output_format: str) -> None:
         )
         return
     scrumban = merged.get("scrumban-config.yaml") or {}
-    lanes = [
-        lane.get("id") for lane in scrumban.get("swimlanes") or [] if isinstance(lane, dict)
-    ]
+    lanes = [lane.get("id") for lane in scrumban.get("swimlanes") or [] if isinstance(lane, dict)]
     click.echo(f"Merge preview for stacks: {', '.join(templates) or '(base only)'}")
     click.echo(f"  swimlanes: {', '.join(lanes) or '(none)'}")
     for filename in merged:
@@ -1475,7 +1473,6 @@ def init(
             )
             sys.exit(2)
 
-
     # Idempotent detection: existing install → offer sync instead of re-init.
     existing = _detect_existing_install(shell_cwd) if not name and not project_dir else None
     if existing is not None:
@@ -1916,8 +1913,7 @@ def _run_scaffold_phase(
             return sum(
                 1
                 for other in module_toggles
-                if other in registry_modules
-                and module_id in registry_modules[other].depends_on
+                if other in registry_modules and module_id in registry_modules[other].depends_on
             )
 
         ordered = sorted(module_toggles, key=_dependents_being_disabled)
@@ -2230,9 +2226,7 @@ def _initial_graph_index(project: Path, state: Path) -> None:
         click.echo(
             f"  WARN: initial graph index exceeded {timeout_s}s — graph left empty", err=True
         )
-        click.echo(
-            "  HINT: graph stays empty until built — run `cos graph-reindex` here", err=True
-        )
+        click.echo("  HINT: graph stays empty until built — run `cos graph-reindex` here", err=True)
         return
     if result.returncode == 0 and result.stdout.strip():
         click.echo(result.stdout.rstrip())
@@ -2628,9 +2622,7 @@ def hooks_log(
         click.echo(f"Could not read {log_path}: {exc}", err=True)
         return
     matched = [
-        ln
-        for ln in lines
-        if all(f in ln for f in filters) and (show_all or _is_decision_state(ln))
+        ln for ln in lines if all(f in ln for f in filters) and (show_all or _is_decision_state(ln))
     ]
     for ln in matched[-tail_count:]:
         click.echo(ln)

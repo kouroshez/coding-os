@@ -556,18 +556,14 @@ def add_check_backend_health(report: DoctorReport) -> None:
         data = envelope.get("data") or {}
         healthy = data.get("healthy")
         stats = data.get("stats") or {}
-        informational = set(
-            (data.get("meta") or {}).get("informational_categories") or []
-        )
+        informational = set((data.get("meta") or {}).get("informational_categories") or [])
         real_issues = {
             issue.get("category"): issue.get("count")
             for issue in data.get("issues") or []
             if issue.get("category") not in informational
         }
     except Exception as exc:
-        report.checks.append(
-            CheckResult("graph.backend_health", SEV_WARN, f"check failed: {exc}")
-        )
+        report.checks.append(CheckResult("graph.backend_health", SEV_WARN, f"check failed: {exc}"))
         return
     if healthy:
         report.checks.append(

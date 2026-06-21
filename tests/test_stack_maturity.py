@@ -103,7 +103,9 @@ def test_no_stale_stack_count_in_governance_docs() -> None:
             for m in _STACK_COUNT_RE.finditer(line):
                 if int(m.group(1)) not in allowed:
                     rel = path.relative_to(_REPO)
-                    violations.append(f"{rel}:{lineno}: '{m.group(0)}' (canonical: {sorted(allowed)})")
-    assert not violations, "stale stack-count literal(s) — update or link stack-maturity.md:\n" + "\n".join(
-        violations
+                    violations.append(
+                        f"{rel}:{lineno}: '{m.group(0)}' (canonical: {sorted(allowed)})"
+                    )
+    assert not violations, (
+        "stale stack-count literal(s) — update or link stack-maturity.md:\n" + "\n".join(violations)
     )

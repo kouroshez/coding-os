@@ -23,14 +23,24 @@ from pathlib import Path
 
 # Imports that signal delivery (web) or infra (ORM/driver) inside core code.
 RULES: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"^\s*(from|import)\s+(flask|fastapi|django|starlette)\b"),
-     "web framework imported in domain/service code — keep the core framework-free"),
-    (re.compile(r"require\(['\"]express['\"]\)|from\s+['\"]express['\"]"),
-     "Express imported in domain/service code — move HTTP concerns to the delivery layer"),
-    (re.compile(r"^\s*(from|import)\s+(sqlalchemy|django\.db|psycopg2?|pymongo)\b"),
-     "ORM/driver imported in domain/service code — depend on a repository port, not the driver"),
-    (re.compile(r"\b(request|Request|Response|res\.json|req\.body)\b.*=|def\s+\w+\([^)]*\brequest\b"),
-     "HTTP request/response object in domain/service code — pass plain data in, return plain data out"),
+    (
+        re.compile(r"^\s*(from|import)\s+(flask|fastapi|django|starlette)\b"),
+        "web framework imported in domain/service code — keep the core framework-free",
+    ),
+    (
+        re.compile(r"require\(['\"]express['\"]\)|from\s+['\"]express['\"]"),
+        "Express imported in domain/service code — move HTTP concerns to the delivery layer",
+    ),
+    (
+        re.compile(r"^\s*(from|import)\s+(sqlalchemy|django\.db|psycopg2?|pymongo)\b"),
+        "ORM/driver imported in domain/service code — depend on a repository port, not the driver",
+    ),
+    (
+        re.compile(
+            r"\b(request|Request|Response|res\.json|req\.body)\b.*=|def\s+\w+\([^)]*\brequest\b"
+        ),
+        "HTTP request/response object in domain/service code — pass plain data in, return plain data out",
+    ),
 ]
 
 

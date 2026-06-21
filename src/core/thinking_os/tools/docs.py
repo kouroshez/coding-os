@@ -46,6 +46,7 @@ def _resolve_doc_threshold() -> float:
     except ImportError:
         return 0.05
 
+
 # G.7.3 — identifier-looking query detection. Heuristic is deliberately
 # permissive: if the user typed something code-shaped we route to FTS first
 # because cosine similarity is weak on short literal tokens.

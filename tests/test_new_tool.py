@@ -5,9 +5,18 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]
-                       / "src" / "templates" / "meta" / "skills"
-                       / "mcp-tool-authoring" / "scripts"))
+sys.path.insert(
+    0,
+    str(
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "templates"
+        / "meta"
+        / "skills"
+        / "mcp-tool-authoring"
+        / "scripts"
+    ),
+)
 
 import new_tool as nt  # noqa: E402
 

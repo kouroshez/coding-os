@@ -174,11 +174,15 @@ def test_disable_module_sheds_skill_command_and_tool_surface(tmp_path: Path, mon
     # Disable `tasks` — the same targeted cascades toggle_and_regen runs.
     cascade_module_skills(project, "tasks", enabled=False)
     cascade_module_commands(project, "tasks", enabled=False)
-    _write_disabled(project / ".coding-os", ["tasks", "docs"])  # docs kept off to honour tasks→docs dep
+    _write_disabled(
+        project / ".coding-os", ["tasks", "docs"]
+    )  # docs kept off to honour tasks→docs dep
     monkeypatch.setenv("COS_STATE_DIR", str(project / ".coding-os"))
 
     # 1) owned skill symlink shed
-    assert not skill_link.exists() and not skill_link.is_symlink(), "task-driver skill should unlink"
+    assert not skill_link.exists() and not skill_link.is_symlink(), (
+        "task-driver skill should unlink"
+    )
     # 2) owned command symlink shed
     assert not cmd_link.exists() and not cmd_link.is_symlink(), "board command should unlink"
     # 3) MCP tool family gated out of the agent's live surface

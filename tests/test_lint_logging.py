@@ -5,8 +5,17 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]
-                       / "src" / "core" / "skills" / "observability" / "scripts"))
+sys.path.insert(
+    0,
+    str(
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "core"
+        / "skills"
+        / "observability"
+        / "scripts"
+    ),
+)
 
 import lint_logging as ll  # noqa: E402
 

@@ -105,12 +105,8 @@ def test_kernel_toggle_refused(module_client):
 
 def test_unknown_module_404_and_bad_body_400(module_client):
     client, _ = module_client
-    assert client.patch(
-        "/api/settings/modules/no-such", json={"enabled": False}
-    ).status_code == 404
-    assert client.patch(
-        "/api/settings/modules/memory", json={"enabled": "yes"}
-    ).status_code == 400
+    assert client.patch("/api/settings/modules/no-such", json={"enabled": False}).status_code == 404
+    assert client.patch("/api/settings/modules/memory", json={"enabled": "yes"}).status_code == 400
 
 
 class TestConfigSkillsExtras:

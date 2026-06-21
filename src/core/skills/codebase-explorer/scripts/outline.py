@@ -28,10 +28,14 @@ def outline_python(text: str) -> list[dict]:
     def visit(node: ast.AST, depth: int) -> None:
         for child in ast.iter_child_nodes(node):
             if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                items.append({"kind": "func", "name": child.name, "line": child.lineno, "depth": depth})
+                items.append(
+                    {"kind": "func", "name": child.name, "line": child.lineno, "depth": depth}
+                )
                 visit(child, depth + 1)
             elif isinstance(child, ast.ClassDef):
-                items.append({"kind": "class", "name": child.name, "line": child.lineno, "depth": depth})
+                items.append(
+                    {"kind": "class", "name": child.name, "line": child.lineno, "depth": depth}
+                )
                 visit(child, depth + 1)
 
     visit(tree, 0)
@@ -50,7 +54,9 @@ def outline_ts(text: str) -> list[dict]:
         m = _TS_DECL.match(line)
         if m:
             depth = len(m.group("indent")) // 2
-            items.append({"kind": m.group("kind"), "name": m.group("name"), "line": n, "depth": depth})
+            items.append(
+                {"kind": m.group("kind"), "name": m.group("name"), "line": n, "depth": depth}
+            )
     return items
 
 

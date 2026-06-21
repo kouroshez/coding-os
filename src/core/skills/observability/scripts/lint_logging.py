@@ -22,14 +22,19 @@ from pathlib import Path
 PII = r"(password|passwd|secret|token|api[_-]?key|ssn|credit[_-]?card|email|authorization)"
 
 LINE_RULES: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"^\s*print\s*\(", re.IGNORECASE),
-     "print() — use a structured logger, not stdout"),
-    (re.compile(r"console\.(log|error|warn)\s*\("),
-     "console.log — use a structured logger with levels + context"),
-    (re.compile(rf"log(ger)?\.\w+\([^)]*{PII}", re.IGNORECASE),
-     "PII/secret-shaped value in a log call — redact or use an id"),
-    (re.compile(r"log(ger)?\.\w+\(\s*f['\"]"),
-     "f-string in a log call — eager-formats even when the level is disabled; pass args separately"),
+    (re.compile(r"^\s*print\s*\(", re.IGNORECASE), "print() — use a structured logger, not stdout"),
+    (
+        re.compile(r"console\.(log|error|warn)\s*\("),
+        "console.log — use a structured logger with levels + context",
+    ),
+    (
+        re.compile(rf"log(ger)?\.\w+\([^)]*{PII}", re.IGNORECASE),
+        "PII/secret-shaped value in a log call — redact or use an id",
+    ),
+    (
+        re.compile(r"log(ger)?\.\w+\(\s*f['\"]"),
+        "f-string in a log call — eager-formats even when the level is disabled; pass args separately",
+    ),
 ]
 
 

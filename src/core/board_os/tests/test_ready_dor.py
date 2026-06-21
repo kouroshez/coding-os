@@ -68,7 +68,9 @@ def _fill_dor(file_path: Path) -> None:
     file_path.write_text(body, encoding="utf-8")
 
 
-def test_ready_warns_but_sets_label_when_dor_incomplete(project: Path, conn: sqlite3.Connection) -> None:
+def test_ready_warns_but_sets_label_when_dor_incomplete(
+    project: Path, conn: sqlite3.Connection
+) -> None:
     task_id, _ = _make_feature(conn, project)
     env = json.loads(mcp_tools.cos_task_ready(conn, task_id=task_id))
     assert env["ok"] is True
@@ -108,12 +110,12 @@ def test_ready_clean_when_dor_complete(project: Path, conn: sqlite3.Connection) 
     env = json.loads(mcp_tools.cos_task_ready(conn, task_id=task_id))
     assert env["ok"] is True
     assert "ready" in env["data"]["labels"]
-    assert not env["data"].get("dor"), f"complete task should surface no gaps: {env['data'].get('dor')}"
+    assert not env["data"].get("dor"), (
+        f"complete task should surface no gaps: {env['data'].get('dor')}"
+    )
 
 
-def test_unready_is_never_dor_gated(
-    project: Path, conn: sqlite3.Connection, monkeypatch
-) -> None:
+def test_unready_is_never_dor_gated(project: Path, conn: sqlite3.Connection, monkeypatch) -> None:
     task_id, _ = _make_feature(conn, project)
     mcp_tools.cos_task_ready(conn, task_id=task_id)  # default warn → label lands
     monkeypatch.setenv("COS_READY_DOR", "strict")

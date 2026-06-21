@@ -90,9 +90,10 @@ def lint_stack(
             report.soft.append("no `dimensions:` rows (Classify-phase read list)")
         if not profile.skill_enforcement:
             report.soft.append("no `skill_enforcement:` globs (auto skill loading)")
-        if profile.category in _CODE_CATEGORIES and not (
-            stack_dir / "scaffold-boundary.yaml"
-        ).is_file():
+        if (
+            profile.category in _CODE_CATEGORIES
+            and not (stack_dir / "scaffold-boundary.yaml").is_file()
+        ):
             report.soft.append("no scaffold-boundary.yaml (write-boundary contract)")
         if not (stack_dir / "scaffold" / ".coding-os" / "scrumban-config.yaml").is_file():
             report.soft.append("no scrumban-config.yaml delta (board lanes)")

@@ -248,9 +248,7 @@ def test_create_task_testing_does_not_stamp_started(project: Path, conn: sqlite3
     assert "agent_session: null" in content
 
 
-def test_create_skeleton_surfaces_dor_gaps_in_envelope(
-    project: Path, conn: sqlite3.Connection
-):
+def test_create_skeleton_surfaces_dor_gaps_in_envelope(project: Path, conn: sqlite3.Connection):
     """A lean create (no acceptance, not ready) must succeed but announce its
     own incompleteness — dor.gaps lists the placeholder codes and dor.fix
     tells the agent the exact next moves (TASK-339)."""
@@ -484,7 +482,17 @@ def _insert_complete(
     conn.execute(
         "INSERT INTO tasks (task_id, title, status, file_path, content_hash, mtime, "
         "swimlane, priority, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (task_id, task_id, status, f"docs/tasks/{task_id}.md", "h", 0, swimlane, "P2", completed_at),
+        (
+            task_id,
+            task_id,
+            status,
+            f"docs/tasks/{task_id}.md",
+            "h",
+            0,
+            swimlane,
+            "P2",
+            completed_at,
+        ),
     )
     conn.commit()
 
@@ -494,9 +502,7 @@ def test_board_keyset_paginates_complete(project: Path, conn: sqlite3.Connection
         _insert_complete(conn, f"TASK-9{i:02d}", completed_at=1000 + i)
 
     env = _parse(
-        mcp_tools.cos_task_board(
-            conn, status_filter=["complete"], page_size=3, apply_budget=False
-        )
+        mcp_tools.cos_task_board(conn, status_filter=["complete"], page_size=3, apply_budget=False)
     )
     col = env["data"]["columns"]["complete"]
     assert col["total_count"] == 7
@@ -591,9 +597,7 @@ def test_board_include_archive_on_plain_tuple_connection(
     plain = sqlite3.connect(str(tmp_path / "coding-os.db"))
     try:
         env = _parse(
-            mcp_tools.cos_task_board(
-                plain, include_archive=True, page_size=3, apply_budget=False
-            )
+            mcp_tools.cos_task_board(plain, include_archive=True, page_size=3, apply_budget=False)
         )
     finally:
         plain.close()
@@ -1052,9 +1056,7 @@ def test_pooled_conn_threads_create_safely(project: Path, conn: sqlite3.Connecti
             )
         )
         with lock:
-            (results if env["ok"] else errors).append(
-                env["data"]["task_id"] if env["ok"] else env
-            )
+            (results if env["ok"] else errors).append(env["data"]["task_id"] if env["ok"] else env)
 
     threads = [threading.Thread(target=worker, args=(i,)) for i in range(8)]
     for t in threads:
@@ -1074,12 +1076,18 @@ def test_reclaim_moves_idle_in_progress_to_icebox_ready(project: Path, conn: sql
 
     env = _parse(
         mcp_tools.cos_task_create(
-            conn, title="zombie", swimlane="core", kind="chore",
-            outcome="zombie reclaim regression guard outcome.", ready=True,
+            conn,
+            title="zombie",
+            swimlane="core",
+            kind="chore",
+            outcome="zombie reclaim regression guard outcome.",
+            ready=True,
         )
     )
     tid = env["data"]["task_id"]
-    assert _parse(mcp_tools.cos_task_move(conn, task_id=tid, to="in_progress", agent_session="ses-dead"))["ok"]
+    assert _parse(
+        mcp_tools.cos_task_move(conn, task_id=tid, to="in_progress", agent_session="ses-dead")
+    )["ok"]
 
     old = int(_t.time()) - 48 * 3600
     conn.execute("UPDATE tasks SET started_at = ? WHERE task_id = ?", (old, tid))
@@ -1098,12 +1106,18 @@ def test_reclaim_moves_idle_in_progress_to_icebox_ready(project: Path, conn: sql
 def test_reclaim_skips_fresh_in_progress(project: Path, conn: sqlite3.Connection):
     env = _parse(
         mcp_tools.cos_task_create(
-            conn, title="fresh", swimlane="core", kind="chore",
-            outcome="fresh task must not be reclaimed outcome.", ready=True,
+            conn,
+            title="fresh",
+            swimlane="core",
+            kind="chore",
+            outcome="fresh task must not be reclaimed outcome.",
+            ready=True,
         )
     )
     tid = env["data"]["task_id"]
-    assert _parse(mcp_tools.cos_task_move(conn, task_id=tid, to="in_progress", agent_session="ses-x"))["ok"]
+    assert _parse(
+        mcp_tools.cos_task_move(conn, task_id=tid, to="in_progress", agent_session="ses-x")
+    )["ok"]
 
     rec = _parse(mcp_tools.cos_task_reclaim(conn))
     assert rec["ok"], rec
@@ -1128,7 +1142,9 @@ def test_task_history_returns_create_and_status_events(project: Path, conn: sqli
     )
     task_id = created["data"]["task_id"]
     assert _parse(
-        mcp_tools.cos_task_move(conn, task_id=task_id, to="in_progress", agent_session="ses-claude-hist")
+        mcp_tools.cos_task_move(
+            conn, task_id=task_id, to="in_progress", agent_session="ses-claude-hist"
+        )
     )["ok"]
 
     env = _parse(mcp_tools.cos_task_history(conn, task_id=task_id, include_commits=False))
@@ -1216,9 +1232,7 @@ def test_task_edit_updates_field_and_records_history(project: Path, conn: sqlite
 
 
 def test_task_edit_noop_when_unchanged(project: Path, conn: sqlite3.Connection):
-    created = _parse(
-        mcp_tools.cos_task_create(conn, title="Same", swimlane="core", kind="chore")
-    )
+    created = _parse(mcp_tools.cos_task_create(conn, title="Same", swimlane="core", kind="chore"))
     tid = created["data"]["task_id"]
     env = _parse(mcp_tools.cos_task_edit(conn, task_id=tid, title="Same"))
     assert env["ok"] is True
@@ -1226,9 +1240,7 @@ def test_task_edit_noop_when_unchanged(project: Path, conn: sqlite3.Connection):
 
 
 def test_task_edit_rejects_bad_swimlane(project: Path, conn: sqlite3.Connection):
-    created = _parse(
-        mcp_tools.cos_task_create(conn, title="x", swimlane="core", kind="chore")
-    )
+    created = _parse(mcp_tools.cos_task_create(conn, title="x", swimlane="core", kind="chore"))
     tid = created["data"]["task_id"]
     env = _parse(mcp_tools.cos_task_edit(conn, task_id=tid, swimlane="nope"))
     assert env["ok"] is False
@@ -1271,7 +1283,9 @@ def test_start_auto_reclaims_idle_zombie(project: Path, conn: sqlite3.Connection
     )["ok"]
     old = int(_t.time()) - 48 * 3600
     conn.execute("UPDATE tasks SET started_at = ? WHERE task_id = ?", (old, ztid))
-    conn.execute("UPDATE task_status_history SET transitioned_at = ? WHERE task_id = ?", (old, ztid))
+    conn.execute(
+        "UPDATE task_status_history SET transitioned_at = ? WHERE task_id = ?", (old, ztid)
+    )
     conn.commit()
 
     live = _parse(
@@ -1333,9 +1347,7 @@ def test_task_edit_title_updates_h1(project: Path, conn: sqlite3.Connection):
 def _backdate_task(conn: sqlite3.Connection, task_id: str, status: str, seconds_ago: int) -> None:
     old = int(time.time()) - seconds_ago
     conn.execute("UPDATE tasks SET status=?, started_at=? WHERE task_id=?", (status, old, task_id))
-    conn.execute(
-        "UPDATE task_status_history SET transitioned_at=? WHERE task_id=?", (old, task_id)
-    )
+    conn.execute("UPDATE task_status_history SET transitioned_at=? WHERE task_id=?", (old, task_id))
     conn.commit()
 
 
@@ -1420,14 +1432,15 @@ def test_reclaim_returns_stale_testing_to_in_progress(project, conn, monkeypatch
     entry = next(r for r in env["data"]["reclaimed"] if r["task_id"] == "TASK-001")
     assert entry["from_status"] == "testing"
     assert entry["to_status"] == "in_progress"
-    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "in_progress"
+    assert (
+        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0]
+        == "in_progress"
+    )
 
 
 def test_reclaim_in_progress_to_icebox_ready(project: Path, conn: sqlite3.Connection):
     """An in_progress zombie still drops to icebox and regains the ready label."""
-    mcp_tools.cos_task_create(
-        conn, title="IP zombie", swimlane="core", kind="bug", status="icebox"
-    )
+    mcp_tools.cos_task_create(conn, title="IP zombie", swimlane="core", kind="bug", status="icebox")
     _backdate_task(conn, "TASK-001", "in_progress", 30 * 3600)  # > 24h
     env = _parse(mcp_tools.cos_task_reclaim(conn))
     entry = next(r for r in env["data"]["reclaimed"] if r["task_id"] == "TASK-001")
@@ -1471,18 +1484,20 @@ def test_archive_transition_from_icebox(project: Path, conn: sqlite3.Connection)
     )
     env = _parse(mcp_tools.cos_task_move(conn, task_id="TASK-001", to="archive"))
     assert env["ok"] is True, env
-    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "archive"
+    assert (
+        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "archive"
+    )
 
 
 def test_archive_rejected_from_in_progress(project: Path, conn: sqlite3.Connection):
     """No direct in_progress->archive edge — so `cos task-cancel` parks active work to icebox."""
-    mcp_tools.cos_task_create(
-        conn, title="Active", swimlane="core", kind="bug", status="icebox"
-    )
+    mcp_tools.cos_task_create(conn, title="Active", swimlane="core", kind="bug", status="icebox")
     conn.execute("UPDATE tasks SET status='in_progress' WHERE task_id='TASK-001'")
     conn.commit()
     env = _parse(mcp_tools.cos_task_move(conn, task_id="TASK-001", to="archive"))
-    assert env["ok"] is False, "in_progress->archive must be rejected (validates cancel's icebox park)"
+    assert env["ok"] is False, (
+        "in_progress->archive must be rejected (validates cancel's icebox park)"
+    )
 
 
 # ---------- F5b: icebox auto-archive sweep — TASK-210 RC6 ----------
@@ -1494,14 +1509,20 @@ def test_archive_sweep_off_by_default(project: Path, conn: sqlite3.Connection):
     """Default config (auto_archive_days=0) never deletes backlog."""
     from board_os.config import parse_config
 
-    mcp_tools.cos_task_create(conn, title="Old idea", swimlane="core", kind="chore", status="icebox")
+    mcp_tools.cos_task_create(
+        conn, title="Old idea", swimlane="core", kind="chore", status="icebox"
+    )
     _backdate_task(conn, "TASK-001", "icebox", 100 * 86400)
     archived = mcp_tools._archive_stale_sweep(conn, parse_config({"swimlanes": _SL}))
     assert archived == []
-    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "icebox"
+    assert (
+        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "icebox"
+    )
 
 
-def test_archive_sweep_archives_aged_icebox_respecting_keep(project: Path, conn: sqlite3.Connection):
+def test_archive_sweep_archives_aged_icebox_respecting_keep(
+    project: Path, conn: sqlite3.Connection
+):
     """Opt-in: aged icebox cards archive, but a keep/parked label exempts."""
     from board_os.config import parse_config
 
@@ -1515,8 +1536,12 @@ def test_archive_sweep_archives_aged_icebox_respecting_keep(project: Path, conn:
     archived = mcp_tools._archive_stale_sweep(conn, cfg)
     ids = [a["task_id"] for a in archived]
     assert "TASK-001" in ids and "TASK-002" not in ids
-    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "archive"
-    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-002'").fetchone()[0] == "icebox"
+    assert (
+        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "archive"
+    )
+    assert (
+        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-002'").fetchone()[0] == "icebox"
+    )
 
 
 # ---------- F4: hub/human-actor zombies are reclaimable — TASK-210 MISS-1 ----------
@@ -1536,7 +1561,9 @@ def test_reclaim_covers_hub_human_actor_zombie(project: Path, conn: sqlite3.Conn
         "WHERE task_id='TASK-001'",
         (old,),
     )
-    conn.execute("UPDATE task_status_history SET transitioned_at=? WHERE task_id='TASK-001'", (old,))
+    conn.execute(
+        "UPDATE task_status_history SET transitioned_at=? WHERE task_id='TASK-001'", (old,)
+    )
     conn.commit()
     env = _parse(mcp_tools.cos_task_reclaim(conn))
     assert any(r["task_id"] == "TASK-001" for r in env["data"]["reclaimed"]), (
@@ -1551,9 +1578,15 @@ def test_reconcile_classifies_likely_complete_via_worklog(project: Path, conn: s
     """A testing zombie with committed/logged work is likely-complete → review & done, not recycle."""
     mcp_tools.cos_task_create(conn, title="Done-ish", swimlane="core", kind="bug", status="icebox")
     _backdate_task(conn, "TASK-001", "testing", 8 * 3600)
-    conn.execute("UPDATE tasks SET work_log_last_5=? WHERE task_id='TASK-001'", ('["implemented + tested"]',))
+    conn.execute(
+        "UPDATE tasks SET work_log_last_5=? WHERE task_id='TASK-001'", ('["implemented + tested"]',)
+    )
     conn.commit()
-    item = next(i for i in _parse(mcp_tools.cos_task_reconcile(conn))["data"]["stranded"] if i["task_id"] == "TASK-001")
+    item = next(
+        i
+        for i in _parse(mcp_tools.cos_task_reconcile(conn))["data"]["stranded"]
+        if i["task_id"] == "TASK-001"
+    )
     assert item["classification"] == "likely_complete"
     assert "task-done" in item["recommendation"]
 
@@ -1567,7 +1600,11 @@ def test_reconcile_classifies_likely_abandoned(project, conn, monkeypatch):
     _backdate_task(conn, "TASK-001", "in_progress", 30 * 3600)
     conn.execute("UPDATE tasks SET work_log_last_5='[]' WHERE task_id='TASK-001'")
     conn.commit()
-    item = next(i for i in _parse(mcp_tools.cos_task_reconcile(conn))["data"]["stranded"] if i["task_id"] == "TASK-001")
+    item = next(
+        i
+        for i in _parse(mcp_tools.cos_task_reconcile(conn))["data"]["stranded"]
+        if i["task_id"] == "TASK-001"
+    )
     assert item["classification"] == "likely_abandoned"
 
 
@@ -1581,13 +1618,16 @@ def test_reconcile_fail_safe_when_git_unverifiable(project, conn, monkeypatch):
     mcp_tools.cos_task_create(conn, title="No git", swimlane="core", kind="bug", status="icebox")
     _backdate_task(conn, "TASK-001", "testing", 8 * 3600)
     item = next(
-        i for i in _parse(mcp_tools.cos_task_reconcile(conn))["data"]["stranded"]
+        i
+        for i in _parse(mcp_tools.cos_task_reconcile(conn))["data"]["stranded"]
         if i["task_id"] == "TASK-001"
     )
     assert item["classification"] == "likely_complete"
     env = _parse(mcp_tools.cos_task_reclaim(conn))
     assert any(s["task_id"] == "TASK-001" for s in env["data"]["skipped_for_review"])
-    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "testing"
+    assert (
+        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "testing"
+    )
 
 
 def test_reconcile_is_read_only(project: Path, conn: sqlite3.Connection):
@@ -1614,7 +1654,9 @@ def test_reclaim_skips_likely_complete_testing(project: Path, conn: sqlite3.Conn
     env = _parse(mcp_tools.cos_task_reclaim(conn))
     assert any(s["task_id"] == "TASK-001" for s in env["data"]["skipped_for_review"])
     assert not any(r["task_id"] == "TASK-001" for r in env["data"]["reclaimed"])
-    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "testing"
+    assert (
+        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "testing"
+    )
 
 
 # ---------- cos_task_board envelope budget (TASK-209) ----------

@@ -521,7 +521,5 @@ def cross_project_agents() -> list[dict[str, Any]]:
                 }
             )
         if agents:
-            groups.append(
-                {"slug": entry.slug, "project_root": str(project_root), "agents": agents}
-            )
+            groups.append({"slug": entry.slug, "project_root": str(project_root), "agents": agents})
     return groups

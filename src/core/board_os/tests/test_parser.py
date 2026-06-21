@@ -351,9 +351,7 @@ def test_horizontal_rule_and_yaml_snippet_do_not_flag():
     with_hr = _task_doc("complete", body="\nintro\n\n---\n\nmore prose\n\n---\n\nend\n")
     assert detect_duplicate_frontmatter(with_hr) is None
 
-    with_yamlish = _task_doc(
-        "complete", body="\n---\nkey: value\nother: thing\n---\nprose\n"
-    )
+    with_yamlish = _task_doc("complete", body="\n---\nkey: value\nother: thing\n---\nprose\n")
     assert detect_duplicate_frontmatter(with_yamlish) is None
 
 

@@ -64,9 +64,7 @@ def _requested_disabled_hooks(project_root: Path) -> set[str]:
     return load_hook_overrides(project_root) | module_disabled_hook_ids(project_root)
 
 
-def effective_disabled_hooks(
-    project_root: Path, registry_path: Path | None = None
-) -> set[str]:
+def effective_disabled_hooks(project_root: Path, registry_path: Path | None = None) -> set[str]:
     """Hook ids that WILL be disabled — requested minus safety + unknown ids."""
     idx = _hook_index(registry_path)
     return {
@@ -76,9 +74,7 @@ def effective_disabled_hooks(
     }
 
 
-def refused_safety_hooks(
-    project_root: Path, registry_path: Path | None = None
-) -> set[str]:
+def refused_safety_hooks(project_root: Path, registry_path: Path | None = None) -> set[str]:
     """Requested ids that are refused because they are safety-category."""
     idx = _hook_index(registry_path)
     return {
@@ -88,17 +84,13 @@ def refused_safety_hooks(
     }
 
 
-def disabled_hook_scripts(
-    project_root: Path, registry_path: Path | None = None
-) -> set[str]:
+def disabled_hook_scripts(project_root: Path, registry_path: Path | None = None) -> set[str]:
     """Script basenames for the effective-disabled hooks (runtime allowlist)."""
     idx = _hook_index(registry_path)
     return {idx[hid][0] for hid in effective_disabled_hooks(project_root, registry_path)}
 
 
-def write_runtime_allowlist(
-    project_root: Path, registry_path: Path | None = None
-) -> Path:
+def write_runtime_allowlist(project_root: Path, registry_path: Path | None = None) -> Path:
     """Write .coding-os/disabled-hook-scripts (cos-env.sh consumes it). Returns the path."""
     scripts = sorted(disabled_hook_scripts(project_root, registry_path))
     out = Path(project_root) / STATE_DIR / RUNTIME_ALLOWLIST

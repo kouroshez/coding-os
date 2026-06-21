@@ -45,7 +45,9 @@ def _newest_panel_gate() -> Path | None:
     panels = Path(os.environ.get("COS_STATE_DIR", ".coding-os")) / agent / "panels"
     if not panels.is_dir():
         return None
-    gates = [p / ".thinking_os-gate" for p in panels.iterdir() if (p / ".thinking_os-gate").is_file()]
+    gates = [
+        p / ".thinking_os-gate" for p in panels.iterdir() if (p / ".thinking_os-gate").is_file()
+    ]
     if not gates:
         return None
     try:

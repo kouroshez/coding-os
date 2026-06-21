@@ -6,6 +6,7 @@ probe loop is a hand-maintained mirror of the adapters' declared markers. A
 declared-but-unprobed marker is silently dead — that adapter's panels fall to
 the unstable ppid fallback. This test makes the mirror non-driftable.
 """
+
 from __future__ import annotations
 
 import re
@@ -42,8 +43,7 @@ def test_every_adapter_marker_is_probed() -> None:
     assert markers, "no adapters discovered under src/adapters/*/adapter.yaml"
 
     drift = {
-        adapter: [v for v in env_vars if v not in probe]
-        for adapter, env_vars in markers.items()
+        adapter: [v for v in env_vars if v not in probe] for adapter, env_vars in markers.items()
     }
     drift = {adapter: missing for adapter, missing in drift.items() if missing}
 

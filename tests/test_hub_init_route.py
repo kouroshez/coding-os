@@ -147,8 +147,17 @@ class TestInitRouteRun:
 
     def test_failed_init_cleans_up_partial_scaffold(self, hub_env, monkeypatch):
         # Simulate init creating a partial dir then failing — the route must rmtree it.
-        def _fake(name, parent_dir, stacks, agent, preset="", description="",
-                  extra_skills=None, disabled_modules=None, timeout=180):
+        def _fake(
+            name,
+            parent_dir,
+            stacks,
+            agent,
+            preset="",
+            description="",
+            extra_skills=None,
+            disabled_modules=None,
+            timeout=180,
+        ):
             (Path(parent_dir) / name).mkdir(parents=True, exist_ok=True)
             return (False, None, "boom")
 
@@ -233,8 +242,17 @@ class TestWizardCreateFlow:
         hand-typed init produce identical projects (TASK-359 parity)."""
         calls: list[dict] = []
 
-        def _fake(name, parent_dir, stacks, agents, preset="", description="",
-                  extra_skills=None, disabled_modules=None, timeout=180):
+        def _fake(
+            name,
+            parent_dir,
+            stacks,
+            agents,
+            preset="",
+            description="",
+            extra_skills=None,
+            disabled_modules=None,
+            timeout=180,
+        ):
             calls.append(
                 {
                     "name": name,
@@ -279,8 +297,17 @@ class TestWizardCreateFlow:
         the scaffolder as a list and echoes back in the response (TASK-419)."""
         calls: list[dict] = []
 
-        def _fake(name, parent_dir, stacks, agents, preset="", description="",
-                  extra_skills=None, disabled_modules=None, timeout=180):
+        def _fake(
+            name,
+            parent_dir,
+            stacks,
+            agents,
+            preset="",
+            description="",
+            extra_skills=None,
+            disabled_modules=None,
+            timeout=180,
+        ):
             calls.append({"agents": agents})
             (Path(parent_dir) / name).mkdir(parents=True)
             return (True, {"slug": name}, "")
@@ -306,13 +333,19 @@ class TestWizardCreateFlow:
         with _client() as client:
             good = client.post(
                 "/api/hub/registry/validate-init",
-                json={"parent_dir": str(hub_env), "stacks": ["python"],
-                      "agents": ["claude", "codex"]},
+                json={
+                    "parent_dir": str(hub_env),
+                    "stacks": ["python"],
+                    "agents": ["claude", "codex"],
+                },
             )
             bad = client.post(
                 "/api/hub/registry/validate-init",
-                json={"parent_dir": str(hub_env), "stacks": ["python"],
-                      "agents": ["claude", "no-such"]},
+                json={
+                    "parent_dir": str(hub_env),
+                    "stacks": ["python"],
+                    "agents": ["claude", "no-such"],
+                },
             )
         assert good.status_code == 200, good.text
         assert good.json()["data"]["agents"] == ["claude", "codex"]
@@ -348,30 +381,62 @@ class TestModuleToggles:
     def test_init_forwards_disabled_modules(self, hub_env, monkeypatch):
         captured: dict = {}
 
-        def _fake(name, parent_dir, stacks, agents, preset="", description="",
-                  extra_skills=None, disabled_modules=None, timeout=180):
+        def _fake(
+            name,
+            parent_dir,
+            stacks,
+            agents,
+            preset="",
+            description="",
+            extra_skills=None,
+            disabled_modules=None,
+            timeout=180,
+        ):
             captured["disabled_modules"] = disabled_modules
             (Path(parent_dir) / name).mkdir(parents=True)
             return (True, {"slug": name}, "")
 
         _patch_init(monkeypatch, _fake)
         with _client() as client:
-            resp = client.post("/api/hub/registry/init", json={
-                "name": "modproj", "parent_dir": str(hub_env), "stacks": ["python"],
-                "disabled_modules": ["graph", "memory"],
-            })
+            resp = client.post(
+                "/api/hub/registry/init",
+                json={
+                    "name": "modproj",
+                    "parent_dir": str(hub_env),
+                    "stacks": ["python"],
+                    "disabled_modules": ["graph", "memory"],
+                },
+            )
         assert resp.status_code == 200, resp.text
         assert captured["disabled_modules"] == ["graph", "memory"]
         assert resp.json()["data"]["disabled_modules"] == ["graph", "memory"]
 
     def test_validate_init_rejects_unknown_and_kernel_modules(self, hub_env):
         with _client() as client:
-            unknown = client.post("/api/hub/registry/validate-init", json={
-                "parent_dir": str(hub_env), "stacks": ["python"], "disabled_modules": ["nope"]})
-            kernel = client.post("/api/hub/registry/validate-init", json={
-                "parent_dir": str(hub_env), "stacks": ["python"], "disabled_modules": ["kernel"]})
-            good = client.post("/api/hub/registry/validate-init", json={
-                "parent_dir": str(hub_env), "stacks": ["python"], "disabled_modules": ["graph"]})
+            unknown = client.post(
+                "/api/hub/registry/validate-init",
+                json={
+                    "parent_dir": str(hub_env),
+                    "stacks": ["python"],
+                    "disabled_modules": ["nope"],
+                },
+            )
+            kernel = client.post(
+                "/api/hub/registry/validate-init",
+                json={
+                    "parent_dir": str(hub_env),
+                    "stacks": ["python"],
+                    "disabled_modules": ["kernel"],
+                },
+            )
+            good = client.post(
+                "/api/hub/registry/validate-init",
+                json={
+                    "parent_dir": str(hub_env),
+                    "stacks": ["python"],
+                    "disabled_modules": ["graph"],
+                },
+            )
         assert unknown.status_code == 400
         assert "unknown module" in unknown.json()["error"]["message"].lower()
         assert kernel.status_code == 400
@@ -388,9 +453,7 @@ class TestRegistryRename:
         (proj / ".coding-os").mkdir(parents=True)
         add_project(proj, slug="proj-abc123")
         with _client() as client:
-            resp = client.patch(
-                "/api/hub/registry/proj-abc123", json={"new_slug": "real-name"}
-            )
+            resp = client.patch("/api/hub/registry/proj-abc123", json={"new_slug": "real-name"})
         assert resp.status_code == 200, resp.text
         assert resp.json()["data"]["slug"] == "real-name"
         entries = {p.slug: p.path for p in load_registry().projects}

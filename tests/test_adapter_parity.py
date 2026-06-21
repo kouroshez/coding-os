@@ -162,9 +162,7 @@ def _dispatcher_script_delegates() -> dict[str, set[str]]:
     for item in data.get("hook_dispatchers") or []:
         script = str(item.get("script", ""))
         if script:
-            result.setdefault(script, set()).update(
-                str(d) for d in item.get("delegates") or []
-            )
+            result.setdefault(script, set()).update(str(d) for d in item.get("delegates") or [])
     return result
 
 

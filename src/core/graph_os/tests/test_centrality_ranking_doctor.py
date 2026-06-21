@@ -309,7 +309,7 @@ class TestDoctor:
         migrated_conn.execute(
             "INSERT INTO graph_nodes (uid, kind, label, file_path, metadata_json, created_at, updated_at) "
             "VALUES ('doc:file:tests/golden/x/AGENTS.md', 'doc_file', 'AGENTS.md', "
-            "'tests/golden/x/AGENTS.md', '{\"extractor\": \"md_links@v1\", \"stub\": true}', 0, 0)"
+            '\'tests/golden/x/AGENTS.md\', \'{"extractor": "md_links@v1", "stub": true}\', 0, 0)'
         )
         migrated_conn.commit()
         data = _ok(graph.cos_graph_doctor())

@@ -39,7 +39,9 @@ def registered_props() -> dict[str, set[str]]:
 def test_documented_kwargs_exist(registered_props, tool, kwargs):
     assert tool in registered_props, f"skills document {tool} but it is not a registered MCP tool"
     missing = kwargs - registered_props[tool]
-    assert not missing, f"{tool} missing documented kwargs {missing}; real {sorted(registered_props[tool])}"
+    assert not missing, (
+        f"{tool} missing documented kwargs {missing}; real {sorted(registered_props[tool])}"
+    )
 
 
 def test_no_fictional_tool_names(registered_props):

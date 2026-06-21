@@ -275,7 +275,9 @@ class TestModuleSkillCascade:
 
         ok_report = DoctorReport(project_dir=str(project), agent="claude", templates=[])
         _check_module_skill_drift(project, ok_report)
-        assert next(c for c in ok_report.checks if c.id == "modules.skill_drift").severity == SEV_PASS
+        assert (
+            next(c for c in ok_report.checks if c.id == "modules.skill_drift").severity == SEV_PASS
+        )
 
         assert set_module_enabled(project, "graph", False).ok is True  # skill stays linked
         drift_report = DoctorReport(project_dir=str(project), agent="claude", templates=[])
@@ -420,7 +422,9 @@ class TestModuleStateHardening:
             == SEV_PASS
         )
 
-        (tmp_path / ".coding-os" / "subsystems-state.json").write_text("{not json", encoding="utf-8")
+        (tmp_path / ".coding-os" / "subsystems-state.json").write_text(
+            "{not json", encoding="utf-8"
+        )
         warn_report = DoctorReport(project_dir=str(tmp_path), agent="claude", templates=[])
         _check_subsystems_state_integrity(tmp_path, warn_report)
         check = next(c for c in warn_report.checks if c.id == "modules.state_integrity")

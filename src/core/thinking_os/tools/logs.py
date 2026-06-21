@@ -15,7 +15,7 @@ def _levels_at_or_above(floor: str) -> list[str]:
     floor_up = floor.strip().upper()
     if floor_up not in _LEVEL_ORDER:
         return []
-    return _LEVEL_ORDER[_LEVEL_ORDER.index(floor_up):]
+    return _LEVEL_ORDER[_LEVEL_ORDER.index(floor_up) :]
 
 
 def log_query(
@@ -62,9 +62,7 @@ def log_query(
 
     where_sql = " AND ".join(where) if where else "1=1"
 
-    total = conn.execute(
-        f"SELECT COUNT(*) FROM log_events WHERE {where_sql}", params
-    ).fetchone()[0]
+    total = conn.execute(f"SELECT COUNT(*) FROM log_events WHERE {where_sql}", params).fetchone()[0]
 
     rows = conn.execute(
         f"SELECT id, ts, lvl, scope, msg, kv, exc_type, stack, "

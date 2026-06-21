@@ -27,8 +27,7 @@ GOVERNOR = HOOKS / "test-governor.sh"
 AUTO_RECORD = HOOKS / "record-verify-auto.sh"
 
 BOARD_SUITE_CMD = (
-    "uv run --extra rag --with aiohttp --with pytest-asyncio "
-    "pytest src/core/board_os/tests/ -q"
+    "uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q"
 )
 
 
@@ -96,9 +95,7 @@ class TestFullSweepGate:
         assert "COS_FULL_SWEEP_OK" in err
 
     def test_pathless_pytest_blocks(self, state_dir: Path) -> None:
-        code, _ = _run_hook(
-            GOVERNOR, {"tool_input": {"command": "uv run pytest -q"}}, state_dir
-        )
+        code, _ = _run_hook(GOVERNOR, {"tool_input": {"command": "uv run pytest -q"}}, state_dir)
         assert code == 2
 
     def test_override_with_reason_allows(self, state_dir: Path) -> None:
@@ -130,18 +127,14 @@ class TestFullSweepGate:
         assert code == 0
 
     def test_targeted_suite_is_not_a_sweep(self, state_dir: Path) -> None:
-        code, _ = _run_hook(
-            GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir
-        )
+        code, _ = _run_hook(GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir)
         assert code == 0
 
 
 class TestDedup:
     def test_fresh_pass_same_tree_blocks_rerun(self, state_dir: Path) -> None:
         _write_fresh_pass(state_dir, "test-board_os")
-        code, err = _run_hook(
-            GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir
-        )
+        code, err = _run_hook(GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir)
         assert code == 2
         assert "already green" in err
         assert "peer-agent" in err
@@ -161,9 +154,7 @@ class TestDedup:
         (state_dir / ".last-verify.json").write_text(
             json.dumps({"test-board_os": entry}), encoding="utf-8"
         )
-        code, _ = _run_hook(
-            GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir
-        )
+        code, _ = _run_hook(GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir)
         assert code == 0
 
 
@@ -176,9 +167,7 @@ class TestRunLock:
             "started_ts": int(time.time()),
         }
         (state_dir / ".test-run.lock").write_text(json.dumps(lock), encoding="utf-8")
-        code, err = _run_hook(
-            GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir
-        )
+        code, err = _run_hook(GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir)
         assert code == 2
         assert "codex" in err
 
@@ -190,17 +179,13 @@ class TestRunLock:
             "started_ts": int(time.time()) - 4000,
         }
         (state_dir / ".test-run.lock").write_text(json.dumps(lock), encoding="utf-8")
-        code, _ = _run_hook(
-            GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir
-        )
+        code, _ = _run_hook(GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir)
         assert code == 0
         new_lock = json.loads((state_dir / ".test-run.lock").read_text(encoding="utf-8"))
         assert new_lock["agent"] != "codex"
 
     def test_allowed_run_writes_lock(self, state_dir: Path) -> None:
-        code, _ = _run_hook(
-            GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir
-        )
+        code, _ = _run_hook(GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir)
         assert code == 0
         lock = json.loads((state_dir / ".test-run.lock").read_text(encoding="utf-8"))
         assert lock["suite"] == "test-board_os"
@@ -267,9 +252,7 @@ class TestInlineOverrides:
 
 class TestFailOpen:
     def test_non_pytest_command_passes_through(self, state_dir: Path) -> None:
-        code, _ = _run_hook(
-            GOVERNOR, {"tool_input": {"command": "git status"}}, state_dir
-        )
+        code, _ = _run_hook(GOVERNOR, {"tool_input": {"command": "git status"}}, state_dir)
         assert code == 0
 
     def test_garbage_payload_passes_through(self, state_dir: Path) -> None:

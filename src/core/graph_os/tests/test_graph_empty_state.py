@@ -155,4 +155,6 @@ def test_known_edge_types_covers_emitted_literals():
 
     assert emitted, "no edge_type literals found — extractor path wrong?"
     missing = emitted - graph._KNOWN_EDGE_TYPES
-    assert not missing, f"extractor-emitted edge types missing from _KNOWN_EDGE_TYPES: {sorted(missing)}"
+    assert not missing, (
+        f"extractor-emitted edge types missing from _KNOWN_EDGE_TYPES: {sorted(missing)}"
+    )

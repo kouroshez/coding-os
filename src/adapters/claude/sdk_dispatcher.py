@@ -99,9 +99,12 @@ def _resolve_model_alias(model: str | None) -> str | None:
     try:
         import yaml
 
-        data = yaml.safe_load(
-            (Path(__file__).resolve().parent / "adapter.yaml").read_text(encoding="utf-8")
-        ) or {}
+        data = (
+            yaml.safe_load(
+                (Path(__file__).resolve().parent / "adapter.yaml").read_text(encoding="utf-8")
+            )
+            or {}
+        )
         models = [m for m in (data.get("models") or []) if isinstance(m, dict) and m.get("id")]
         match = next((str(m["id"]) for m in models if alias in str(m["id"]).lower()), None)
         if match is None:
@@ -169,6 +172,7 @@ def claude_agent_options(**kwargs: Any):
     from claude_agent_sdk import ClaudeAgentOptions
 
     return ClaudeAgentOptions(**kwargs)
+
 
 # OTEL env vars the dispatcher copies from the parent process so the
 # sub-session emits to the same collector. No collector defaults are

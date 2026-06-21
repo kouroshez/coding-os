@@ -38,7 +38,9 @@ def normalize(name: str) -> str:
 
 def render(name: str, layer: str) -> str:
     fn = normalize(name)
-    summary = fn.replace("cos_", "").replace("_", " ").strip().capitalize() + " — one-line description."
+    summary = (
+        fn.replace("cos_", "").replace("_", " ").strip().capitalize() + " — one-line description."
+    )
     return TEMPLATE.format(fn=fn, layer=layer, summary=summary)
 
 
@@ -60,8 +62,11 @@ def main(argv: list[str]) -> int:
         print(args.out)
     else:
         sys.stdout.write(code)
-    print("reminder: add @safe_tool/ok/fail imports from tools._shared; register + "
-          "update docs/governance/mcp-tool-inventory.md", file=sys.stderr)
+    print(
+        "reminder: add @safe_tool/ok/fail imports from tools._shared; register + "
+        "update docs/governance/mcp-tool-inventory.md",
+        file=sys.stderr,
+    )
     return 0
 
 

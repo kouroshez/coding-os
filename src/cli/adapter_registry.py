@@ -184,9 +184,7 @@ def _load_one(manifest_path: Path) -> AdapterProfile:
     )
 
 
-def _scan_adapter_dir(
-    src: Path, result: dict[str, AdapterProfile], *, fail_hard: bool
-) -> None:
+def _scan_adapter_dir(src: Path, result: dict[str, AdapterProfile], *, fail_hard: bool) -> None:
     for child in sorted(src.iterdir()):
         if not child.is_dir() or child.name.startswith("_"):
             continue

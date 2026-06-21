@@ -528,21 +528,11 @@ class TestExpressionStubGate:
                 return (a or b / 'docs').resolve()
             """
         )
-        bad = [
-            e
-            for e in r.edges
-            if e.target_uid.startswith("code:external:unresolved:")
-        ]
+        bad = [e for e in r.edges if e.target_uid.startswith("code:external:unresolved:")]
         assert bad == []
-        assert not any(
-            " " in n.uid or "'" in n.uid for n in r.nodes if n.kind == "identifier"
-        )
+        assert not any(" " in n.uid or "'" in n.uid for n in r.nodes if n.kind == "identifier")
 
     def test_dotted_unresolved_still_minted(self):
         r = _extract("def f(): mystery.helper()")
-        stubs = [
-            e
-            for e in r.edges
-            if e.target_uid == "code:external:unresolved:mystery.helper"
-        ]
+        stubs = [e for e in r.edges if e.target_uid == "code:external:unresolved:mystery.helper"]
         assert stubs

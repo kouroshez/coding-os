@@ -23,13 +23,22 @@ from pathlib import Path
 REQUEST = r"\$_(GET|POST|REQUEST)"
 
 LINE_RULES: list[tuple[re.Pattern, str]] = [
-    (re.compile(rf"\$wpdb->(query|get_results|get_var|get_row)\s*\([^)]*{REQUEST}"),
-     "$wpdb call with raw request data — use $wpdb->prepare() with %d/%s"),
-    (re.compile(rf"\becho\s+[^;]*{REQUEST}"), "echo of raw request data — escape (esc_html/esc_attr)"),
-    (re.compile(r"'permission_callback'\s*=>\s*'__return_true'"),
-     "REST permission_callback __return_true — add a capability check"),
-    (re.compile(r"\bwp_table\b|\bwp_posts\b|\bwp_users\b"),
-     "hardcoded wp_ table name — use $wpdb->posts / $wpdb->prefix"),
+    (
+        re.compile(rf"\$wpdb->(query|get_results|get_var|get_row)\s*\([^)]*{REQUEST}"),
+        "$wpdb call with raw request data — use $wpdb->prepare() with %d/%s",
+    ),
+    (
+        re.compile(rf"\becho\s+[^;]*{REQUEST}"),
+        "echo of raw request data — escape (esc_html/esc_attr)",
+    ),
+    (
+        re.compile(r"'permission_callback'\s*=>\s*'__return_true'"),
+        "REST permission_callback __return_true — add a capability check",
+    ),
+    (
+        re.compile(r"\bwp_table\b|\bwp_posts\b|\bwp_users\b"),
+        "hardcoded wp_ table name — use $wpdb->posts / $wpdb->prefix",
+    ),
 ]
 
 # File-level: a handler that touches request data but never verifies a nonce

@@ -275,9 +275,12 @@ def _run_error_sweep(
     """error_sweep — roll up durable errors into log_fingerprints + file board bug tasks (E12)."""
     with sqlite3.connect(str(db_path), timeout=10) as conn:
         conn.row_factory = sqlite3.Row
-        if conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='log_fingerprints'"
-        ).fetchone() is None:
+        if (
+            conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='log_fingerprints'"
+            ).fetchone()
+            is None
+        ):
             return {"status": "skipped", "reason": "log_fingerprints not present (pre-v32)"}
 
         from scheduled.error_sweep import run_error_sweep

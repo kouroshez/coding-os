@@ -549,9 +549,7 @@ CREATE TRIGGER IF NOT EXISTS trg_learned_patterns_protect_delete
         SELECT RAISE(ABORT, 'learned_patterns: trust_tier locked/core cannot be deleted via standard path');
     END;
 """)
-    logger.info(
-        "Brain-hardening migration v7 applied: trust_tier, provenance, memory_audit"
-    )
+    logger.info("Brain-hardening migration v7 applied: trust_tier, provenance, memory_audit")
 
 
 def has_memory_audit_table(conn: sqlite3.Connection) -> bool:
@@ -1647,7 +1645,9 @@ def _migrate_v32_log_events(conn: sqlite3.Connection) -> None:
         """
     )
     conn.commit()
-    logger.info("Migration v32 applied: log_events + log_fingerprints (observability eye durable store)")
+    logger.info(
+        "Migration v32 applied: log_events + log_fingerprints (observability eye durable store)"
+    )
 
 
 def _migrate_v33_pattern_archived_at(conn: sqlite3.Connection) -> None:
@@ -1737,8 +1737,7 @@ END;
         for dep in dep_ids:
             if isinstance(dep, str) and dep:
                 conn.execute(
-                    "INSERT OR IGNORE INTO task_dependencies (task_id, depends_on) "
-                    "VALUES (?, ?)",
+                    "INSERT OR IGNORE INTO task_dependencies (task_id, depends_on) VALUES (?, ?)",
                     (task_id, dep),
                 )
 
@@ -1779,9 +1778,7 @@ END;
             "SELECT rowid, title, COALESCE(goal_text, '') FROM tasks"
         )
     else:
-        logger.warning(
-            "Migration v35: FTS5 unavailable — tasks_fts skipped (LIKE fallback active)"
-        )
+        logger.warning("Migration v35: FTS5 unavailable — tasks_fts skipped (LIKE fallback active)")
 
     conn.commit()
     logger.info(
@@ -1973,7 +1970,9 @@ def _migrate_v41_tasks_lean_columns(conn: sqlite3.Connection) -> None:
         try:
             conn.execute(f"ALTER TABLE tasks DROP COLUMN {name}")
         except sqlite3.OperationalError as exc:
-            logger.warning("Migration v41: could not drop tasks.%s (%s) — leaving in place", name, exc)
+            logger.warning(
+                "Migration v41: could not drop tasks.%s (%s) — leaving in place", name, exc
+            )
     conn.commit()
     logger.info("Migration v41 applied: lean task columns added, v6 dead columns dropped")
 

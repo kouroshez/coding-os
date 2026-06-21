@@ -45,7 +45,9 @@ def test_writes_stacks_include_and_target(tmp_path: Path) -> None:
     stacks = (state / "Makefile.stacks").read_text(encoding="utf-8")
     assert "lint-backend:" in stacks
     assert "cd src/backend && ruff check ." in stacks
-    assert "-include .coding-os/Makefile.stacks" in (tmp_path / "Makefile").read_text(encoding="utf-8")
+    assert "-include .coding-os/Makefile.stacks" in (tmp_path / "Makefile").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_include_is_idempotent(tmp_path: Path) -> None:
@@ -62,7 +64,9 @@ def test_include_is_idempotent(tmp_path: Path) -> None:
 def test_user_targets_untouched(tmp_path: Path) -> None:
     state = _setup(tmp_path)
     makefile = tmp_path / "Makefile"
-    makefile.write_text(makefile.read_text(encoding="utf-8") + "\nmy-target:\n\techo hi\n", encoding="utf-8")
+    makefile.write_text(
+        makefile.read_text(encoding="utf-8") + "\nmy-target:\n\techo hi\n", encoding="utf-8"
+    )
     materialize_makefile_targets(tmp_path, state, _world(MakefileTarget("lint-backend", "cmd")))
     text = makefile.read_text(encoding="utf-8")
     assert "my-target:" in text

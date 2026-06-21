@@ -187,9 +187,7 @@ def _embed_task_safe(conn: sqlite3.Connection, parsed: ParsedTask) -> None:
         logger.debug("task embedding skipped (module unavailable): %s", exc)
         return
 
-    row = conn.execute(
-        "SELECT rowid FROM tasks WHERE task_id = ?", (parsed.task_id,)
-    ).fetchone()
+    row = conn.execute("SELECT rowid FROM tasks WHERE task_id = ?", (parsed.task_id,)).fetchone()
     if row is None:
         return
 

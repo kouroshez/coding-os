@@ -91,9 +91,9 @@ def _is_active_session(row: dict[str, Any]) -> bool:
     )
     last_stop = row.get("last_stop_at") or 0
     try:
-        return float(last_activity) >= float(last_stop) and (
-            now - float(last_activity)
-        ) <= float(ACTIVE_WINDOW_SECS)
+        return float(last_activity) >= float(last_stop) and (now - float(last_activity)) <= float(
+            ACTIVE_WINDOW_SECS
+        )
     except Exception:
         return False
 

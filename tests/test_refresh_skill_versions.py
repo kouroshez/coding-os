@@ -14,42 +14,56 @@ import refresh_skill_versions as rsv  # noqa: E402
 
 
 def _entry(version: str = "1.0.0") -> dict:
-    return {"ecosystem": "npm", "package": "next", "version": version,
-            "source": "https://registry.npmjs.org/next", "checked": "2026-01-01"}
+    return {
+        "ecosystem": "npm",
+        "package": "next",
+        "version": version,
+        "source": "https://registry.npmjs.org/next",
+        "checked": "2026-01-01",
+    }
 
 
 def test_validate_entry_accepts_well_formed() -> None:
     rsv.validate_entry("next", _entry())
 
 
-@pytest.mark.parametrize("entry,needle", [
-    ({"ecosystem": "npm", "package": "next"}, "missing required"),
-    ({"ecosystem": "frobnicate", "package": "x", "version": "1"}, "unknown ecosystem"),
-    ("not-a-dict", "must be an object"),
-])
+@pytest.mark.parametrize(
+    "entry,needle",
+    [
+        ({"ecosystem": "npm", "package": "next"}, "missing required"),
+        ({"ecosystem": "frobnicate", "package": "x", "version": "1"}, "unknown ecosystem"),
+        ("not-a-dict", "must be an object"),
+    ],
+)
 def test_validate_entry_rejects_bad(entry: object, needle: str) -> None:
     with pytest.raises(rsv.SchemaError) as exc:
         rsv.validate_entry("k", entry)
     assert needle in str(exc.value)
 
 
-@pytest.mark.parametrize("pinned,latest,drift", [
-    ("1.0.0", "1.0.0", False),
-    ("v1.0.0", "1.0.0", False),   # v-prefix normalized
-    ("1.0.0", "1.0.1", True),
-    (" 1.0.0 ", "1.0.0", False),  # whitespace tolerant
-])
+@pytest.mark.parametrize(
+    "pinned,latest,drift",
+    [
+        ("1.0.0", "1.0.0", False),
+        ("v1.0.0", "1.0.0", False),  # v-prefix normalized
+        ("1.0.0", "1.0.1", True),
+        (" 1.0.0 ", "1.0.0", False),  # whitespace tolerant
+    ],
+)
 def test_is_drift(pinned: str, latest: str, drift: bool) -> None:
     assert rsv.is_drift(pinned, latest) is drift
 
 
-@pytest.mark.parametrize("tag,expected", [
-    ("v1.2.3", "1.2.3"),
-    ("cli-2.6.0", "2.6.0"),        # maestro tags releases as cli-<ver>
-    ("docker-v29.5.3", "29.5.3"),  # moby tags releases as docker-v<ver>
-    ("3.13.1", "3.13.1"),          # bare version, no prefix
-    ("nightly", "nightly"),        # no number → returned as-is
-])
+@pytest.mark.parametrize(
+    "tag,expected",
+    [
+        ("v1.2.3", "1.2.3"),
+        ("cli-2.6.0", "2.6.0"),  # maestro tags releases as cli-<ver>
+        ("docker-v29.5.3", "29.5.3"),  # moby tags releases as docker-v<ver>
+        ("3.13.1", "3.13.1"),  # bare version, no prefix
+        ("nightly", "nightly"),  # no number → returned as-is
+    ],
+)
 def test_tag_version_strips_project_prefixes(tag: str, expected: str) -> None:
     assert rsv._tag_version(tag) == expected
 

@@ -5,9 +5,18 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]
-                       / "src" / "templates" / "meta" / "skills"
-                       / "claude-sdk-integration" / "scripts"))
+sys.path.insert(
+    0,
+    str(
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "templates"
+        / "meta"
+        / "skills"
+        / "claude-sdk-integration"
+        / "scripts"
+    ),
+)
 
 import check_model_ids as cm  # noqa: E402
 
@@ -31,4 +40,4 @@ def test_stale_sonnet_suggests_current_sonnet() -> None:
 
 
 def test_comment_ignored() -> None:
-    assert cm.scan_text('# old: claude-3-opus-20240229', filename="x.py") == []
+    assert cm.scan_text("# old: claude-3-opus-20240229", filename="x.py") == []

@@ -64,8 +64,11 @@ def main(argv: list[str]) -> int:
         print(args.out)
     else:
         sys.stdout.write(code)
-    print("reminder: register the extractor in the reindex dispatcher; "
-          "verify with: uv run --extra graph_os pytest src/core/graph_os/tests/ -q", file=sys.stderr)
+    print(
+        "reminder: register the extractor in the reindex dispatcher; "
+        "verify with: uv run --extra graph_os pytest src/core/graph_os/tests/ -q",
+        file=sys.stderr,
+    )
     return 0
 
 

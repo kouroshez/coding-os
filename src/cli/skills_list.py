@@ -159,7 +159,9 @@ def collect_stack_skill_groups(stack_id: str) -> dict:
                 recommended.append(name)
 
     grouped = {*required, *recommended}
-    optional = [p.name for p in sorted(core_reg.values(), key=lambda p: p.name) if p.name not in grouped]
+    optional = [
+        p.name for p in sorted(core_reg.values(), key=lambda p: p.name) if p.name not in grouped
+    ]
 
     return {
         "stack": stack_id,
@@ -311,7 +313,9 @@ def skills_list(
             click.echo(f"ERROR: stack '{stack_id}' not found.", err=True)
             sys.exit(2)
         click.echo(
-            json.dumps(payload, indent=2) if output_format == "json" else _render_groups_text(payload)
+            json.dumps(payload, indent=2)
+            if output_format == "json"
+            else _render_groups_text(payload)
         )
         return
 

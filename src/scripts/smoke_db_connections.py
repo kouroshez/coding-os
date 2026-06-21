@@ -27,7 +27,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src" / "core"))
 sys.path.insert(0, str(REPO_ROOT))
 
-EXPECTED = Path(os.environ.get("COS_DB_PATH") or REPO_ROOT / ".coding-os" / "coding-os.db").resolve()
+EXPECTED = Path(
+    os.environ.get("COS_DB_PATH") or REPO_ROOT / ".coding-os" / "coding-os.db"
+).resolve()
 
 
 def _check(name: str, fn: Callable[[], Path | str | None]) -> tuple[str, bool, str]:

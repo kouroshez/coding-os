@@ -139,7 +139,9 @@ def _print_dispatches(
             )
         click.echo(f"{'─' * 72}\n")
     except sqlite3.OperationalError:
-        click.echo("formula_dispatches table not found — DB may pre-date the cognition tables.", err=True)
+        click.echo(
+            "formula_dispatches table not found — DB may pre-date the cognition tables.", err=True
+        )
 
 
 def _print_backtracks(conn: sqlite3.Connection, cutoff: str | None, limit: int) -> None:
@@ -168,7 +170,9 @@ def _print_backtracks(conn: sqlite3.Connection, cutoff: str | None, limit: int) 
             click.echo(f"  [{r['ts']}] {r['from_formula']} → {r['to_formula']}: {r['reason'][:50]}")
         click.echo(f"{'─' * 72}\n")
     except sqlite3.OperationalError:
-        click.echo("backtrack_events table not found — DB may pre-date the cognition tables.", err=True)
+        click.echo(
+            "backtrack_events table not found — DB may pre-date the cognition tables.", err=True
+        )
 
 
 def _print_persona_selections(

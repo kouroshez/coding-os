@@ -150,9 +150,7 @@ def main() -> int:
     if not services_root.is_dir():
         return 0
 
-    hit = _first_duplicate(
-        services_root, own_service, suffix, set(symbols), patterns, project_root
-    )
+    hit = _first_duplicate(services_root, own_service, suffix, set(symbols), patterns, project_root)
     if hit is None:
         return 0
 

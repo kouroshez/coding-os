@@ -5,8 +5,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]
-                       / "src" / "core" / "skills" / "supabase" / "scripts"))
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1] / "src" / "core" / "skills" / "supabase" / "scripts")
+)
 
 import check_rls as cr  # noqa: E402
 

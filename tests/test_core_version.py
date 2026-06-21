@@ -64,9 +64,7 @@ def test_doctor_pass_when_match(tmp_path: Path) -> None:
 
 def test_doctor_warn_on_drift(tmp_path: Path) -> None:
     state = _state(tmp_path)
-    (state / STAMP_FILENAME).write_text(
-        json.dumps({"core_version": "0.0.1-old"}), encoding="utf-8"
-    )
+    (state / STAMP_FILENAME).write_text(json.dumps({"core_version": "0.0.1-old"}), encoding="utf-8")
     check = _stamp_check(state)
     assert check.severity == SEV_WARN
     assert "drift" in check.message

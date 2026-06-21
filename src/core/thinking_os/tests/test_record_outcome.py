@@ -99,8 +99,11 @@ class TestDeriveRework:
     def test_refine_disabled_keeps_success(self, db: Path) -> None:
         _reopen(db, "TASK-5")
         r = record_outcome(
-            task_id="TASK-5", task_type="fix", outcome="success",
-            refine_from_history=False, db_path=db,
+            task_id="TASK-5",
+            task_type="fix",
+            outcome="success",
+            refine_from_history=False,
+            db_path=db,
         )
         assert r["outcome"] == "success"
 
@@ -180,9 +183,7 @@ class TestModelAndGateCapture:
         state = db.parent  # <tmp>/.coding-os
         (state / "claude").mkdir(parents=True, exist_ok=True)
         (state / "claude" / ".model").write_text("claude-opus-4-8", encoding="utf-8")
-        (state / "claude" / ".thinking_os-gate").write_text(
-            "ses-x COMPLEX 5", encoding="utf-8"
-        )
+        (state / "claude" / ".thinking_os-gate").write_text("ses-x COMPLEX 5", encoding="utf-8")
         self._emulate_mcp_server(monkeypatch, state)
 
         record_outcome(task_id="TASK-9", task_type="feat", outcome="success", db_path=db)

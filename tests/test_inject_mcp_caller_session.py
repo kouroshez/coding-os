@@ -8,6 +8,7 @@ Contract under test:
 - no-override: caller already passed agent_session -> emit NOTHING.
 - fail-open: panel session unresolvable -> emit NOTHING, exit 0.
 """
+
 from __future__ import annotations
 
 import json
@@ -57,7 +58,10 @@ def _run(state: Path, panel_id: str, payload: dict) -> subprocess.CompletedProce
 
 def test_injects_panel_session_when_absent(tmp_path: Path) -> None:
     state = _seed_panel(tmp_path, "panel-A", SID)
-    payload = {"tool_name": "mcp__coding-os__cos_task_move", "tool_input": {"task_id": "TASK-1", "to": "in_progress"}}
+    payload = {
+        "tool_name": "mcp__coding-os__cos_task_move",
+        "tool_input": {"task_id": "TASK-1", "to": "in_progress"},
+    }
     proc = _run(state, "panel-A", payload)
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.strip(), f"expected updatedInput JSON, got empty (stderr={proc.stderr!r})"
@@ -73,17 +77,26 @@ def test_does_not_override_explicit_agent_session(tmp_path: Path) -> None:
     state = _seed_panel(tmp_path, "panel-B", SID)
     payload = {
         "tool_name": "mcp__coding-os__cos_task_move",
-        "tool_input": {"task_id": "TASK-2", "to": "testing", "agent_session": "ses-claude-explicit-xyz"},
+        "tool_input": {
+            "task_id": "TASK-2",
+            "to": "testing",
+            "agent_session": "ses-claude-explicit-xyz",
+        },
     }
     proc = _run(state, "panel-B", payload)
     assert proc.returncode == 0, proc.stderr
-    assert proc.stdout.strip() == "", f"must NOT override an explicit agent_session; got {proc.stdout!r}"
+    assert proc.stdout.strip() == "", (
+        f"must NOT override an explicit agent_session; got {proc.stdout!r}"
+    )
 
 
 def test_fail_open_when_session_unresolvable(tmp_path: Path) -> None:
     # Panel dir exists but has no session-id file -> cos_current_session empty.
     state = _seed_panel(tmp_path, "panel-C", sid=None)
-    payload = {"tool_name": "mcp__coding-os__cos_task_move", "tool_input": {"task_id": "TASK-3", "to": "in_progress"}}
+    payload = {
+        "tool_name": "mcp__coding-os__cos_task_move",
+        "tool_input": {"task_id": "TASK-3", "to": "in_progress"},
+    }
     proc = _run(state, "panel-C", payload)
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.strip() == "", f"fail-open: no session -> emit nothing; got {proc.stdout!r}"
@@ -115,16 +128,37 @@ def test_jq_missing_fails_loud_not_silent(tmp_path: Path) -> None:
     state = _seed_panel(tmp_path, "panel-D", SID)
     env = _env(state, "panel-D")
     env["PATH"] = _path_without_jq(tmp_path)
-    payload = {"tool_name": "mcp__coding-os__cos_task_move", "tool_input": {"task_id": "TASK-4", "to": "in_progress"}}
+    payload = {
+        "tool_name": "mcp__coding-os__cos_task_move",
+        "tool_input": {"task_id": "TASK-4", "to": "in_progress"},
+    }
     proc = subprocess.run(
-        ["bash", str(HOOK)], input=json.dumps(payload), capture_output=True, text=True, timeout=20, env=env, cwd=str(REPO)
+        ["bash", str(HOOK)],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+        timeout=20,
+        env=env,
+        cwd=str(REPO),
     )
-    assert proc.returncode == 0, f"must not block the MCP call; rc={proc.returncode} stderr={proc.stderr!r}"
-    assert "jq not found" in proc.stderr.lower(), f"jq-missing must warn LOUD; stderr={proc.stderr!r}"
+    assert proc.returncode == 0, (
+        f"must not block the MCP call; rc={proc.returncode} stderr={proc.stderr!r}"
+    )
+    assert "jq not found" in proc.stderr.lower(), (
+        f"jq-missing must warn LOUD; stderr={proc.stderr!r}"
+    )
     marker = state / "claude" / "panels" / "panel-D" / ".mcp-attribution-degraded"
     assert marker.exists(), "jq-missing must drop a diagnostic marker"
     # debounced: a second call in the same panel does not re-warn on stderr
     proc2 = subprocess.run(
-        ["bash", str(HOOK)], input=json.dumps(payload), capture_output=True, text=True, timeout=20, env=env, cwd=str(REPO)
+        ["bash", str(HOOK)],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+        timeout=20,
+        env=env,
+        cwd=str(REPO),
     )
-    assert "jq not found" not in proc2.stderr.lower(), f"warning must be debounced; stderr={proc2.stderr!r}"
+    assert "jq not found" not in proc2.stderr.lower(), (
+        f"warning must be debounced; stderr={proc2.stderr!r}"
+    )

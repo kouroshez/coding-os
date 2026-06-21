@@ -96,8 +96,7 @@ class TestCaptureObservationMultiEdit:
         (e.g. `Write|Edit)`) flips the test before runtime would notice."""
         src = CAPTURE_HOOK.read_text()
         assert "Write|Edit|MultiEdit)" in src, (
-            "capture-observation.sh case-pattern no longer includes MultiEdit — "
-            "see TASK-016"
+            "capture-observation.sh case-pattern no longer includes MultiEdit — see TASK-016"
         )
 
 
@@ -117,8 +116,7 @@ class TestPruneDeletedPathPragma:
     def test_pragma_string_in_source(self) -> None:
         src = PRUNE_SCRIPT.read_text()
         assert "PRAGMA foreign_keys = ON" in src, (
-            "prune_deleted_path.py no longer enables FK enforcement — "
-            "see TASK-017"
+            "prune_deleted_path.py no longer enables FK enforcement — see TASK-017"
         )
 
     def test_cascade_fires_on_delete(self, tmp_path: Path) -> None:

@@ -32,13 +32,17 @@ def scan_text(text: str, *, filename: str = "?") -> list[str]:
         if stripped.startswith(("//", "*", "/*")):
             continue
         if PROCESS_ENV.search(line):
-            findings.append(f"{filename}:{n}: process.env in client code — undefined in a Vite build; "
-                            "use import.meta.env.VITE_*")
+            findings.append(
+                f"{filename}:{n}: process.env in client code — undefined in a Vite build; "
+                "use import.meta.env.VITE_*"
+            )
         for m in META_ENV.finditer(line):
             var = m.group(1)
             if var not in BUILTINS and not var.startswith("VITE_"):
-                findings.append(f"{filename}:{n}: import.meta.env.{var} not VITE_-prefixed — "
-                                "Vite won't expose it to the client")
+                findings.append(
+                    f"{filename}:{n}: import.meta.env.{var} not VITE_-prefixed — "
+                    "Vite won't expose it to the client"
+                )
     return findings
 
 

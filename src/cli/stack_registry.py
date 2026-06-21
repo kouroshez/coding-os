@@ -544,7 +544,9 @@ def relocate_profile(profile: StackProfile, new_root: str) -> StackProfile:
             for t in profile.makefile_targets
         ),
         rules=tuple(replace(r, globs=_swap_paths(r.globs)) for r in profile.rules),
-        dimensions=tuple(replace(d, read_files=_swap_paths(d.read_files)) for d in profile.dimensions),
+        dimensions=tuple(
+            replace(d, read_files=_swap_paths(d.read_files)) for d in profile.dimensions
+        ),
         skill_enforcement=tuple(
             replace(se, globs=_swap_paths(se.globs)) for se in profile.skill_enforcement
         ),

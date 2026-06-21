@@ -19,13 +19,27 @@ import sys
 from pathlib import Path
 
 LINE_RULES: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"\bwaitForTimeout\s*\("), "waitForTimeout (hard sleep) — use an auto-waiting expect"),
-    (re.compile(r"\b(setTimeout|sleep)\s*\("), "manual sleep — use an auto-waiting locator/assertion"),
-    (re.compile(r"page\.(click|fill|type)\s*\(\s*['\"](\.|#)[\w-]*\d"),
-     "CSS selector with a generated/positional class — use getByRole/getByTestId"),
-    (re.compile(r"locator\(\s*['\"][^'\"]*:nth-child"), "nth-child selector — brittle; use a semantic locator"),
+    (
+        re.compile(r"\bwaitForTimeout\s*\("),
+        "waitForTimeout (hard sleep) — use an auto-waiting expect",
+    ),
+    (
+        re.compile(r"\b(setTimeout|sleep)\s*\("),
+        "manual sleep — use an auto-waiting locator/assertion",
+    ),
+    (
+        re.compile(r"page\.(click|fill|type)\s*\(\s*['\"](\.|#)[\w-]*\d"),
+        "CSS selector with a generated/positional class — use getByRole/getByTestId",
+    ),
+    (
+        re.compile(r"locator\(\s*['\"][^'\"]*:nth-child"),
+        "nth-child selector — brittle; use a semantic locator",
+    ),
     (re.compile(r"\bpage\.\$x?\("), "page.$ / page.$x (deprecated, no auto-wait) — use locators"),
-    (re.compile(r"\bxpath=|\bpage\.\$x\("), "XPath selector — brittle; use a role/label/text locator"),
+    (
+        re.compile(r"\bxpath=|\bpage\.\$x\("),
+        "XPath selector — brittle; use a role/label/text locator",
+    ),
 ]
 
 TEST_DECL = re.compile(r"\b(test|it)\s*\(\s*['\"]")

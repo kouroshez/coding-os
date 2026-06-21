@@ -46,14 +46,18 @@ def scan_source(text: str, *, filename: str = "?") -> list[str]:
         if not isinstance(node, ast.FunctionDef):
             continue
         decs = _decorator_names(node)
-        if "tool" not in decs:           # only @mcp.tool() functions
+        if "tool" not in decs:  # only @mcp.tool() functions
             continue
         if "safe_tool" not in decs:
-            findings.append(f"{filename}:{node.lineno}: {node.name} is @mcp.tool but not @safe_tool (Rule 13)")
+            findings.append(
+                f"{filename}:{node.lineno}: {node.name} is @mcp.tool but not @safe_tool (Rule 13)"
+            )
         if not node.name.startswith("cos_"):
             findings.append(f"{filename}:{node.lineno}: {node.name} missing cos_ prefix (Rule 2)")
         if not _returns_envelope(node):
-            findings.append(f"{filename}:{node.lineno}: {node.name} never returns ok()/fail() (Rule 13)")
+            findings.append(
+                f"{filename}:{node.lineno}: {node.name} never returns ok()/fail() (Rule 13)"
+            )
     return findings
 
 

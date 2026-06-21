@@ -41,6 +41,7 @@ def _luminance(rgb: tuple[int, int, int]) -> float:
     def chan(c: int) -> float:
         x = c / 255.0
         return x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4
+
     r, g, b = (chan(c) for c in rgb)
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
@@ -68,10 +69,17 @@ def main(argv: list[str]) -> int:
     aa = 3.0 if args.large else 4.5
     aaa = 4.5 if args.large else 7.0
     passes_aa, passes_aaa = ratio >= aa, ratio >= aaa
-    print(f"  contrast {ratio:.2f}:1 — AA {'pass' if passes_aa else 'FAIL'} "
-          f"(>= {aa}), AAA {'pass' if passes_aaa else 'FAIL'} (>= {aaa})", file=sys.stderr)
+    print(
+        f"  contrast {ratio:.2f}:1 — AA {'pass' if passes_aa else 'FAIL'} "
+        f"(>= {aa}), AAA {'pass' if passes_aaa else 'FAIL'} (>= {aaa})",
+        file=sys.stderr,
+    )
     if args.as_json:
-        print(json.dumps({"ratio": round(ratio, 2), "aa": passes_aa, "aaa": passes_aaa, "large": args.large}))
+        print(
+            json.dumps(
+                {"ratio": round(ratio, 2), "aa": passes_aa, "aaa": passes_aaa, "large": args.large}
+            )
+        )
     else:
         print("pass" if passes_aa else "fail")
     return 0 if passes_aa else 1

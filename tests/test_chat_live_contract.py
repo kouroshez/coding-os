@@ -104,7 +104,9 @@ def test_live_chat_stream_shape_contract():
         assistants = [p for (n, p) in frames if n == "assistant"]
         assert assistants, "no assistant frame in the stream"
         assert any(a.get("model") for a in assistants), "assistant frame missing top-level model"
-        assert any(isinstance(a.get("usage"), dict) for a in assistants), "assistant frame missing usage"
+        assert any(isinstance(a.get("usage"), dict) for a in assistants), (
+            "assistant frame missing usage"
+        )
 
         # 4. The session is queryable right after done — mirror the frontend's
         #    grace window (the jsonl flush can lag by a beat).

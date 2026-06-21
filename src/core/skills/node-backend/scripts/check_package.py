@@ -27,13 +27,16 @@ def audit(pkg: dict, *, has_lockfile: bool) -> list[str]:
     if not isinstance(engines, dict) or "node" not in engines:
         findings.append("no engines.node — pin the Node version (LTS) for reproducible runtime")
     if not has_lockfile:
-        findings.append("no lockfile alongside (package-lock/pnpm-lock/yarn.lock) — "
-                        "builds are not reproducible")
+        findings.append(
+            "no lockfile alongside (package-lock/pnpm-lock/yarn.lock) — builds are not reproducible"
+        )
     scripts = pkg.get("scripts", {})
     if isinstance(scripts, dict):
         for name, body in scripts.items():
             if isinstance(body, str) and "npm install" in body:
-                findings.append(f"script '{name}' runs 'npm install' (mutates lockfile) — use 'npm ci'")
+                findings.append(
+                    f"script '{name}' runs 'npm install' (mutates lockfile) — use 'npm ci'"
+                )
         if "start" not in scripts:
             findings.append("no 'start' script — define the production entrypoint")
     return findings

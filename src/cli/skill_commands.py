@@ -491,8 +491,12 @@ def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
     if provenance == "community":
         if enabled:
             if name in extras:
-                return {"name": name, "provenance": provenance, "changed": False,
-                        "note": "already enabled"}
+                return {
+                    "name": name,
+                    "provenance": provenance,
+                    "changed": False,
+                    "note": "already enabled",
+                }
             extras.append(name)
         else:
             if name not in extras:
@@ -501,13 +505,21 @@ def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
     else:  # core | stack
         if enabled:
             if name not in disabled:
-                return {"name": name, "provenance": provenance, "changed": False,
-                        "note": "already enabled (core/stack skills ship by default)"}
+                return {
+                    "name": name,
+                    "provenance": provenance,
+                    "changed": False,
+                    "note": "already enabled (core/stack skills ship by default)",
+                }
             disabled.remove(name)
         else:
             if name in disabled:
-                return {"name": name, "provenance": provenance, "changed": False,
-                        "note": "already disabled"}
+                return {
+                    "name": name,
+                    "provenance": provenance,
+                    "changed": False,
+                    "note": "already disabled",
+                }
             # A stack skill not installed by any current stack cannot be disabled.
             if provenance == "stack" and name not in stack_skills:
                 raise click.ClickException(

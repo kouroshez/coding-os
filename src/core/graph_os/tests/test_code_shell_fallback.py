@@ -212,7 +212,7 @@ class TestGrammarGapReclassification:
             "#!/usr/bin/env bash\n"
             "calc() {\n"
             "  local t0_us=$((10#$1 * 1000000 + 10#$2))\n"
-            "  echo \"$t0_us\"\n"
+            '  echo "$t0_us"\n'
             "}\n"
         )
         r = code_shell.extract("src/core/hooks/gap.sh", src)

@@ -208,25 +208,19 @@ class TestCommitKeyedFreshness:
     def test_v1_entry_without_keys_is_stale(self, tmp_path: Path, monkeypatch) -> None:
         self._patch_tree(monkeypatch, "a" * 40, "clean")
         entry = {"status": "PASS", "ts": int(time.time())}
-        missing, _ok = verify_suites_cli._check_suites(
-            ["test-board_os"], _ledger(tmp_path, entry)
-        )
+        missing, _ok = verify_suites_cli._check_suites(["test-board_os"], _ledger(tmp_path, entry))
         assert missing == ["test-board_os"]
 
     def test_expired_ts_stale_even_on_same_tree(self, tmp_path: Path, monkeypatch) -> None:
         self._patch_tree(monkeypatch, "a" * 40, "clean")
         entry = _fresh_entry(ts=int(time.time()) - 100_000)
-        missing, _ok = verify_suites_cli._check_suites(
-            ["test-board_os"], _ledger(tmp_path, entry)
-        )
+        missing, _ok = verify_suites_cli._check_suites(["test-board_os"], _ledger(tmp_path, entry))
         assert missing == ["test-board_os"]
 
     def test_no_git_degrades_to_time_only(self, tmp_path: Path, monkeypatch) -> None:
         self._patch_tree(monkeypatch, "", "")
         entry = {"status": "PASS", "ts": int(time.time())}
-        missing, ok = verify_suites_cli._check_suites(
-            ["test-board_os"], _ledger(tmp_path, entry)
-        )
+        missing, ok = verify_suites_cli._check_suites(["test-board_os"], _ledger(tmp_path, entry))
         assert ok == ["test-board_os"]
         assert missing == []
 
@@ -238,10 +232,7 @@ class TestCommandMatching:
 
     def test_real_invocation_matches(self) -> None:
         cfg = load_verify_suites()
-        assert (
-            verify_suites_cli._match_suite_command(self.THINKING_CMD, cfg)
-            == "test-thinking_os"
-        )
+        assert verify_suites_cli._match_suite_command(self.THINKING_CMD, cfg) == "test-thinking_os"
 
     def test_wrapped_invocation_matches(self) -> None:
         cfg = load_verify_suites()

@@ -30,7 +30,9 @@ _FRONTMATTER_RE = re.compile(
     r"^---\s*\n(?P<yaml>.*?)\n---\s*\n(?P<body>.*)$",
     re.DOTALL,
 )
-_H1_RE = re.compile(r"^#\s+(?P<task_id>TASK-(?:[A-Z][A-Z0-9]*-)?\d+):\s*(?P<title>.+?)\s*$", re.MULTILINE)
+_H1_RE = re.compile(
+    r"^#\s+(?P<task_id>TASK-(?:[A-Z][A-Z0-9]*-)?\d+):\s*(?P<title>.+?)\s*$", re.MULTILINE
+)
 _H2_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 _OUTCOME_RE = re.compile(
     r"\*\*Outcome[^*]*\*\*\s*(?:<!--[^>]*-->\s*)?(.+?)(?:\n\n|\n##|\Z)",
@@ -297,7 +299,9 @@ def _parse_legacy_fallback(content: str, source_str: str | None) -> ParsedTask |
         return None
     raw_deps = getattr(result, "dependencies", "") or ""
     if isinstance(raw_deps, list):
-        deps = tuple(str(d) for d in raw_deps if re.match(r"^TASK-(?:[A-Z][A-Z0-9]*-)?\d+$", str(d)))
+        deps = tuple(
+            str(d) for d in raw_deps if re.match(r"^TASK-(?:[A-Z][A-Z0-9]*-)?\d+$", str(d))
+        )
     elif isinstance(raw_deps, str):
         deps = tuple(re.findall(r"TASK-(?:[A-Z][A-Z0-9]*-)?\d+", raw_deps))
     else:

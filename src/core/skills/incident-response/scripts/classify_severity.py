@@ -30,8 +30,14 @@ RESPONSE = {
 }
 
 
-def classify(*, users_affected: float, data_loss: bool, security_breach: bool,
-             core_down: bool, workaround: bool) -> tuple[int, str]:
+def classify(
+    *,
+    users_affected: float,
+    data_loss: bool,
+    security_breach: bool,
+    core_down: bool,
+    workaround: bool,
+) -> tuple[int, str]:
     if data_loss or security_breach:
         return 1, "irreversible data loss or security breach — always SEV1"
     if core_down and users_affected >= 50 and not workaround:
@@ -60,8 +66,10 @@ def main(argv: list[str]) -> int:
         return 2
 
     level, why = classify(
-        users_affected=args.users_affected, data_loss=args.data_loss,
-        security_breach=args.security_breach, core_down=args.core_down,
+        users_affected=args.users_affected,
+        data_loss=args.data_loss,
+        security_breach=args.security_breach,
+        core_down=args.core_down,
         workaround=args.workaround,
     )
     response = RESPONSE[level]

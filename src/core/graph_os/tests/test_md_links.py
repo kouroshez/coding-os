@@ -119,7 +119,9 @@ class TestResolveLink:
         # short) must NOT mint a code:file stub. Existence gate now spans
         # every extension, not just .md.
         assert md_links._resolve_link("docs/x.md", "../src/core/nope.yaml") == ""
-        assert md_links._resolve_link(".claude/rules/r.md", "../../../core/hooks/registry.yaml") == ""
+        assert (
+            md_links._resolve_link(".claude/rules/r.md", "../../../core/hooks/registry.yaml") == ""
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -433,9 +435,7 @@ class TestExistenceGate:
     def test_missing_repo_rooted_read_next_dropped(self):
         r = _extract("# H\n\nRead next: docs/ghost.md\n")
         assert not any(
-            e.target_uid == "doc:file:docs/ghost.md"
-            for e in r.edges
-            if e.edge_type == "read_next"
+            e.target_uid == "doc:file:docs/ghost.md" for e in r.edges if e.edge_type == "read_next"
         )
 
     def test_existing_target_still_minted(self):
@@ -555,9 +555,7 @@ class TestGovernanceClassificationDeterminism:
         path = "src/core/rules/anti-overengineering.md"
         content = "# Anti-Overengineering\n\nbody"
         assert md_links._classify_governance_path(path)[0] is not None  # is governance
-        kinds = {
-            _file_node(md_links.extract(path, content), path).kind for _ in range(3)
-        }
+        kinds = {_file_node(md_links.extract(path, content), path).kind for _ in range(3)}
         assert len(kinds) == 1  # deterministic
         assert kinds != {"doc:file"}  # classified, not left as a plain doc
 
@@ -565,9 +563,7 @@ class TestGovernanceClassificationDeterminism:
         path = "src/core/skills/clean-code/SKILL.md"
         content = "# clean-code\n\nbody"
         assert md_links._classify_governance_path(path)[0] is not None
-        kinds = {
-            _file_node(md_links.extract(path, content), path).kind for _ in range(3)
-        }
+        kinds = {_file_node(md_links.extract(path, content), path).kind for _ in range(3)}
         assert len(kinds) == 1
         assert kinds != {"doc:file"}
 

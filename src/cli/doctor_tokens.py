@@ -59,7 +59,9 @@ def _scan_file(path: Path) -> dict[str, Any]:
             for key in USAGE_KEYS:
                 totals[key] += usage.get(key) or 0
             if turns == 1:
-                first_turn_context = sum(usage.get(key) or 0 for key in USAGE_KEYS if key != "output_tokens")
+                first_turn_context = sum(
+                    usage.get(key) or 0 for key in USAGE_KEYS if key != "output_tokens"
+                )
     return {
         "name": path.stem,
         "is_subagent": path.parent.name == "subagents",
@@ -106,7 +108,9 @@ def analyze_tokens(
     total_turns = sum(s["turns"] for s in sessions)
 
     main_baselines = sorted(
-        s["first_turn_context"] for s in sessions if not s["is_subagent"] and s["first_turn_context"]
+        s["first_turn_context"]
+        for s in sessions
+        if not s["is_subagent"] and s["first_turn_context"]
     )
     median_baseline = main_baselines[len(main_baselines) // 2] if main_baselines else 0
     avg_context = totals["cache_read_input_tokens"] // total_turns if total_turns else 0
@@ -175,7 +179,9 @@ def format_tokens_text(report: dict[str, Any]) -> str:
     else:
         lines.append(f"  OK: avg context/turn within budget ({budget:,}).")
     if report["marathon_sessions"]:
-        names = ", ".join(f"{m['name'][:8]}({m['turns']} turns)" for m in report["marathon_sessions"])
+        names = ", ".join(
+            f"{m['name'][:8]}({m['turns']} turns)" for m in report["marathon_sessions"]
+        )
         lines.append(f"  WARN: marathon sessions (>= {MARATHON_TURNS_THRESHOLD} turns): {names}")
     if report["top_sessions"]:
         lines += ["", "  top sessions by cache-read burn:"]

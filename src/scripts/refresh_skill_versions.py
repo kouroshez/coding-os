@@ -44,6 +44,7 @@ REQUIRED_KEYS = ("ecosystem", "package", "version")
 # Each returns the latest stable version string, or raises on failure. URLs are
 # the registry's machine-readable endpoint (see docs/playbooks/skill-authoring.md).
 
+
 def _get_json(url: str, timeout: float) -> dict:
     req = urllib.request.Request(url, headers={"User-Agent": "coding-os-skill-refresh"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -83,7 +84,9 @@ def _tag_version(tag: str) -> str:
 
 def _github(repo: str, timeout: float) -> str:
     # repo == "owner/name"; /releases/latest skips pre-releases (= stable).
-    return _tag_version(_get_json(f"https://api.github.com/repos/{repo}/releases/latest", timeout)["tag_name"])
+    return _tag_version(
+        _get_json(f"https://api.github.com/repos/{repo}/releases/latest", timeout)["tag_name"]
+    )
 
 
 def _endoflife(product: str, timeout: float, track: str | None = None) -> str:
@@ -106,7 +109,9 @@ def _k8s(_pkg: str, timeout: float) -> str:
 
 
 def _wordpress(_pkg: str, timeout: float) -> str:
-    return _get_json("https://api.wordpress.org/core/version-check/1.7/", timeout)["offers"][0]["version"]
+    return _get_json("https://api.wordpress.org/core/version-check/1.7/", timeout)["offers"][0][
+        "version"
+    ]
 
 
 FETCHERS: dict[str, Callable[[str, float], str]] = {
@@ -123,6 +128,7 @@ FETCHERS: dict[str, Callable[[str, float], str]] = {
 
 # --- pure layer (unit-testable, no IO) ---------------------------------------
 
+
 class SchemaError(ValueError):
     pass
 
@@ -135,7 +141,9 @@ def validate_entry(key: str, entry: object) -> None:
         raise SchemaError(f"{key}: missing required field(s): {', '.join(missing)}")
     eco = entry["ecosystem"]
     if eco not in FETCHERS:
-        raise SchemaError(f"{key}: unknown ecosystem '{eco}' (known: {', '.join(sorted(FETCHERS))})")
+        raise SchemaError(
+            f"{key}: unknown ecosystem '{eco}' (known: {', '.join(sorted(FETCHERS))})"
+        )
 
 
 def is_drift(pinned: str, latest: str) -> bool:
@@ -153,9 +161,11 @@ def load_manifest(path: Path) -> dict:
 
 # --- IO layer ----------------------------------------------------------------
 
+
 def find_manifests(root: Path, skill: str | None) -> list[Path]:
     found = sorted(
-        p for p in root.rglob(VERSIONS_FILENAME)
+        p
+        for p in root.rglob(VERSIONS_FILENAME)
         if "node_modules" not in p.parts and ".venv" not in p.parts
     )
     if skill:
@@ -180,8 +190,13 @@ def refresh_manifest(
     rows: list[dict] = []
     changed = False
     for key, entry in manifest.items():
-        row = {"manifest": str(path), "key": key, "package": entry["package"],
-               "ecosystem": entry["ecosystem"], "pinned": entry["version"]}
+        row = {
+            "manifest": str(path),
+            "key": key,
+            "package": entry["package"],
+            "ecosystem": entry["ecosystem"],
+            "pinned": entry["version"],
+        }
         if offline:
             row["status"] = "schema-ok"
             rows.append(row)
@@ -248,8 +263,11 @@ def main(argv: list[str]) -> int:
     for i, path in enumerate(manifests, 1):
         log(f"[{i}/{len(manifests)}] {path}")
         try:
-            all_rows.extend(refresh_manifest(
-                path, offline=args.offline, write=args.write, timeout=args.timeout, log=log))
+            all_rows.extend(
+                refresh_manifest(
+                    path, offline=args.offline, write=args.write, timeout=args.timeout, log=log
+                )
+            )
         except SchemaError as exc:
             schema_failed = True
             log(f"  SCHEMA ERROR: {exc}")
@@ -257,10 +275,21 @@ def main(argv: list[str]) -> int:
     drift = [r for r in all_rows if r.get("status") == "drift"]
     unreachable = [r for r in all_rows if r.get("status") == "unreachable"]
     if args.as_json:
-        print(json.dumps({"manifests": len(manifests), "drift": len(drift),
-                          "unreachable": len(unreachable), "rows": all_rows}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "manifests": len(manifests),
+                    "drift": len(drift),
+                    "unreachable": len(unreachable),
+                    "rows": all_rows,
+                },
+                indent=2,
+            )
+        )
     else:
-        log(f"\nsummary: {len(all_rows)} entries · {len(drift)} drift · {len(unreachable)} unreachable")
+        log(
+            f"\nsummary: {len(all_rows)} entries · {len(drift)} drift · {len(unreachable)} unreachable"
+        )
 
     if schema_failed:
         return 1

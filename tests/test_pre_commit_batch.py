@@ -78,5 +78,3 @@ def test_hanging_direct_child_times_out(tmp_path: Path) -> None:
         pre_commit_batch._run_hook(hook, "{}", timeout_s=2)
     elapsed = time.monotonic() - start
     assert elapsed < 10, f"timeout not enforced ({elapsed:.1f}s)"
-
-

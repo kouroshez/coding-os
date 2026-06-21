@@ -47,9 +47,18 @@ def test_helper_persists_warn_plus_and_skips_below_floor(tmp_path: Path) -> None
     env = {"COS_DB_PATH": str(db), "COS_LOG_DB_MIN_LEVEL": "WARN", "PATH": _env_path()}
 
     subprocess.run(
-        [sys.executable, str(_HELPER), "2026-06-18T00:00:00Z", "ERROR",
-         "hook.demo", "blocked by demo", "action=block session=sX task=T9"],
-        env=env, stdout=subprocess.DEVNULL, check=True,
+        [
+            sys.executable,
+            str(_HELPER),
+            "2026-06-18T00:00:00Z",
+            "ERROR",
+            "hook.demo",
+            "blocked by demo",
+            "action=block session=sX task=T9",
+        ],
+        env=env,
+        stdout=subprocess.DEVNULL,
+        check=True,
     )
     rows = _rows(db)
     assert len(rows) == 1, "ERROR must persist exactly one durable row"
@@ -60,7 +69,9 @@ def test_helper_persists_warn_plus_and_skips_below_floor(tmp_path: Path) -> None
 
     subprocess.run(
         [sys.executable, str(_HELPER), "2026-06-18T00:00:01Z", "INFO", "hook.demo", "chatter", ""],
-        env=env, stdout=subprocess.DEVNULL, check=True,
+        env=env,
+        stdout=subprocess.DEVNULL,
+        check=True,
     )
     assert len(_rows(db)) == 1, "below-floor INFO must NOT touch the durable store"
 
@@ -77,8 +88,9 @@ def test_cos_log_hook_block_lands_in_log_events(tmp_path: Path) -> None:
         f'source "{_COS_ENV}" 2>/dev/null || true; '
         'cos_log_hook block-secrets block "rule=demo-secret"'
     )
-    subprocess.run(["bash", "-c", script], env=env,
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(
+        ["bash", "-c", script], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
     block_rows = [r for r in _rows(db) if r[1] == "hook.block-secrets"]
     assert block_rows, "a hook BLOCK must be durable in log_events for cos_log_query"
     assert block_rows[0][0] == "ERROR"

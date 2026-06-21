@@ -123,7 +123,10 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument(
-        "--root", type=Path, default=AGENTS_DIR, help="Agents dir (default: src/core/thinking_os/agents)."
+        "--root",
+        type=Path,
+        default=AGENTS_DIR,
+        help="Agents dir (default: src/core/thinking_os/agents).",
     )
     parser.add_argument(
         "--dry-run", action="store_true", help="Report what would change without writing."

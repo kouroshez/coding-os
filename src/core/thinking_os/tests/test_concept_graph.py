@@ -110,8 +110,12 @@ class TestOrphanReconcile:
             "INSERT INTO graph_edges_v12 (id, source_id, target_id, edge_type, extractor, created_at, updated_at) "
             "VALUES (1, 1, 2, 'calls', 'test', 0, 0)"
         )
-        c.execute("INSERT INTO graph_evidence_v12 (edge_id, signal_name, weight, created_at) VALUES (1,'s',1.0,0)")
-        c.execute("INSERT INTO graph_evidence_v12 (edge_id, signal_name, weight, created_at) VALUES (99999,'s',1.0,0)")
+        c.execute(
+            "INSERT INTO graph_evidence_v12 (edge_id, signal_name, weight, created_at) VALUES (1,'s',1.0,0)"
+        )
+        c.execute(
+            "INSERT INTO graph_evidence_v12 (edge_id, signal_name, weight, created_at) VALUES (99999,'s',1.0,0)"
+        )
         c.execute(
             "INSERT INTO embeddings (source_table, source_id, text_hash, embedding) "
             "VALUES ('learned_patterns', 999, 'h', X'00')"
@@ -130,5 +134,7 @@ class TestOrphanReconcile:
         c2 = sqlite3.connect(db)
         assert c2.execute("SELECT COUNT(*) FROM embeddings").fetchone()[0] == 0
         assert c2.execute("SELECT COUNT(*) FROM pattern_validations").fetchone()[0] == 0
-        assert c2.execute("SELECT COUNT(*) FROM graph_evidence_v12").fetchone()[0] == 1  # valid kept
+        assert (
+            c2.execute("SELECT COUNT(*) FROM graph_evidence_v12").fetchone()[0] == 1
+        )  # valid kept
         c2.close()

@@ -111,7 +111,10 @@ async def main():
 
     # Narration → stderr; the final JSON document is the only thing on stdout
     # so a caller can pipe stdout straight into a JSON parser.
-    print(f"\n=== Benchmark: claude-sdk dispatcher × {len(SCENARIOS)} scenarios ===\n", file=sys.stderr)
+    print(
+        f"\n=== Benchmark: claude-sdk dispatcher × {len(SCENARIOS)} scenarios ===\n",
+        file=sys.stderr,
+    )
     results = []
     for sc in SCENARIOS:
         print(f"→ running {sc['name']} ...", file=sys.stderr)

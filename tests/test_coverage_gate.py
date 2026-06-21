@@ -7,8 +7,17 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]
-                       / "src" / "core" / "skills" / "testing-strategy" / "scripts"))
+sys.path.insert(
+    0,
+    str(
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "core"
+        / "skills"
+        / "testing-strategy"
+        / "scripts"
+    ),
+)
 
 import coverage_gate as cg  # noqa: E402
 
@@ -24,7 +33,7 @@ def test_cobertura_xml() -> None:
 
 def test_cobertura_missing_rate_raises() -> None:
     with pytest.raises(ValueError):
-        cg.percent_from_cobertura('<coverage></coverage>')
+        cg.percent_from_cobertura("<coverage></coverage>")
 
 
 def test_gate_pass(tmp_path: Path) -> None:

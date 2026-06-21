@@ -115,7 +115,7 @@ def _is_shared_pid_session(session: str | None) -> bool:
     if not session or not session.startswith("ses-"):
         return False
     idx = session.rfind("-pid")
-    return idx != -1 and session[idx + len("-pid"):].isdigit()
+    return idx != -1 and session[idx + len("-pid") :].isdigit()
 
 
 def check_wip(
@@ -147,9 +147,7 @@ def check_wip(
                 (status, agent_session),
             ).fetchone()
         else:
-            row = conn.execute(
-                "SELECT COUNT(*) FROM tasks WHERE status = ?", (status,)
-            ).fetchone()
+            row = conn.execute("SELECT COUNT(*) FROM tasks WHERE status = ?", (status,)).fetchone()
         counts[status] = int(row[0]) if row else 0
     caps = {
         "in_progress": config.wip_limits.in_progress,
@@ -191,9 +189,7 @@ def incomplete_dependencies(conn: sqlite3.Connection, task_id: str) -> list[str]
         except sqlite3.OperationalError as exc:
             logger.debug("incomplete_dependencies junction failed, JSON fallback: %s", exc)
 
-    row = conn.execute(
-        "SELECT dependencies FROM tasks WHERE task_id = ?", (task_id,)
-    ).fetchone()
+    row = conn.execute("SELECT dependencies FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
     if row is None or not row[0]:
         return []
     try:
@@ -224,8 +220,7 @@ def dependents_of(conn: sqlite3.Connection, task_id: str) -> list[str]:
     if _has_task_dependencies_table(conn):
         try:
             rows = conn.execute(
-                "SELECT task_id FROM task_dependencies "
-                "WHERE depends_on = ? ORDER BY task_id ASC",
+                "SELECT task_id FROM task_dependencies WHERE depends_on = ? ORDER BY task_id ASC",
                 (task_id,),
             ).fetchall()
             return [str(r[0]) for r in rows]
@@ -723,9 +718,7 @@ def transition(
             except OSError:
                 md_backup = None
             try:
-                _write_status_to_frontmatter(
-                    target_file, to_status, agent_session=agent_session
-                )
+                _write_status_to_frontmatter(target_file, to_status, agent_session=agent_session)
             except FileNotFoundError:
                 warnings.append(f"MD file missing: {target_file} — DB-only transition")
             except Exception as exc:  # pragma: no cover

@@ -19,14 +19,22 @@ import sys
 from pathlib import Path
 
 LINE_RULES: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"renderItem=\{\s*\([^)]*\)\s*=>"),
-     "inline renderItem arrow — new function each render; hoist + useCallback"),
-    (re.compile(r"<(FlatList|FlashList|SectionList)\b(?![^>]*keyExtractor)", re.DOTALL),
-     "list without keyExtractor — falls back to index keys; provide a stable id"),
-    (re.compile(r"style=\{\{"),
-     "inline style object — new reference each render; StyleSheet.create or hoist"),
-    (re.compile(r"<ScrollView\b[^>]*>\s*\{[^}]*\.map\("),
-     "ScrollView rendering a mapped list — renders all items; use FlatList/FlashList"),
+    (
+        re.compile(r"renderItem=\{\s*\([^)]*\)\s*=>"),
+        "inline renderItem arrow — new function each render; hoist + useCallback",
+    ),
+    (
+        re.compile(r"<(FlatList|FlashList|SectionList)\b(?![^>]*keyExtractor)", re.DOTALL),
+        "list without keyExtractor — falls back to index keys; provide a stable id",
+    ),
+    (
+        re.compile(r"style=\{\{"),
+        "inline style object — new reference each render; StyleSheet.create or hoist",
+    ),
+    (
+        re.compile(r"<ScrollView\b[^>]*>\s*\{[^}]*\.map\("),
+        "ScrollView rendering a mapped list — renders all items; use FlatList/FlashList",
+    ),
 ]
 
 

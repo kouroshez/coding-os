@@ -39,9 +39,7 @@ def _referenced_skills() -> dict[str, list[int]]:
 
     Returns slug -> line numbers where it appears (for a precise failure)."""
     refs: dict[str, list[int]] = {}
-    for lineno, line in enumerate(
-        SKILL_ENFORCEMENT.read_text(encoding="utf-8").splitlines(), 1
-    ):
+    for lineno, line in enumerate(SKILL_ENFORCEMENT.read_text(encoding="utf-8").splitlines(), 1):
         stripped = line.strip()
         if not stripped.startswith("|"):
             continue
@@ -68,9 +66,7 @@ REFERENCED_SKILLS = _referenced_skills()
 
 def test_skill_harvest_found_skills() -> None:
     """Sanity: the skill-universe harvest must work, else every ref looks phantom."""
-    assert len(KNOWN_SKILLS) >= 20, (
-        f"harvested only {len(KNOWN_SKILLS)} skills — extraction broken"
-    )
+    assert len(KNOWN_SKILLS) >= 20, f"harvested only {len(KNOWN_SKILLS)} skills — extraction broken"
     assert "clean-code" in KNOWN_SKILLS  # canonical agent-agnostic fundamental
     assert "thinking_os" in KNOWN_SKILLS  # underscore-slug exception is real
 
@@ -83,9 +79,7 @@ def test_skill_enforcement_table_parsed() -> None:
 def test_no_phantom_skill_refs() -> None:
     """Every skill named in skill-enforcement.md resolves to a real skill dir."""
     phantoms = {
-        slug: lines
-        for slug, lines in REFERENCED_SKILLS.items()
-        if slug not in KNOWN_SKILLS
+        slug: lines for slug, lines in REFERENCED_SKILLS.items() if slug not in KNOWN_SKILLS
     }
     assert not phantoms, (
         "skill-enforcement.md names skill(s) with no skill directory "

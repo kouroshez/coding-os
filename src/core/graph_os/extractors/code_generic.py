@@ -477,7 +477,9 @@ def _ruby_edges(
                 cname = _ruby_call_name(node, cb)
                 if cname and cname not in _RUBY_NONCALL:
                     if node.child_by_field_name("receiver") is not None:
-                        _edge(result, cur_func or file_uid, _ext_unresolved_uid(cname), "calls", 0.3)
+                        _edge(
+                            result, cur_func or file_uid, _ext_unresolved_uid(cname), "calls", 0.3
+                        )
                     elif cname in func_index:
                         _edge(result, cur_func or file_uid, func_index[cname], "calls", 0.9)
                     else:

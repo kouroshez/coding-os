@@ -98,11 +98,7 @@ def test_scan_actually_covers_files() -> None:
 
 
 def _core_py_files() -> list[Path]:
-    return [
-        f
-        for f in (REPO_ROOT / "src" / "core").rglob("*.py")
-        if "__pycache__" not in f.parts
-    ]
+    return [f for f in (REPO_ROOT / "src" / "core").rglob("*.py") if "__pycache__" not in f.parts]
 
 
 def test_no_claude_agent_options_construction_in_core() -> None:

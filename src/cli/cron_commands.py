@@ -252,9 +252,7 @@ def cron_status() -> None:
         installed = _PLIST_DEST.exists()
         loaded = False
         if installed and system == "Darwin":
-            r = subprocess.run(
-                ["launchctl", "list", "com.codingos.nightly"], capture_output=True
-            )
+            r = subprocess.run(["launchctl", "list", "com.codingos.nightly"], capture_output=True)
             loaded = r.returncode == 0
 
     click.echo(f"installed : {installed}")

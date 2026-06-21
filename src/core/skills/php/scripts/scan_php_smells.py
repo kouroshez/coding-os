@@ -25,16 +25,34 @@ REQUEST = r"\$_(GET|POST|REQUEST|COOKIE)"
 RULES: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\beval\s*\("), "eval() — arbitrary code execution"),
     (re.compile(rf"\bextract\s*\(\s*{REQUEST}"), "extract() on request data — variable injection"),
-    (re.compile(rf"\b(system|exec|shell_exec|passthru|popen)\s*\([^)]*{REQUEST}"),
-     "shell exec with request data — command injection"),
-    (re.compile(rf"\bunserialize\s*\([^)]*{REQUEST}"), "unserialize() on request data — object-injection RCE"),
-    (re.compile(rf"\b(include|require)(_once)?\s*[^;]*{REQUEST}"),
-     "include/require with request path — file inclusion"),
-    (re.compile(r"\bmysql_query\s*\("), "mysql_query() — removed/legacy; use PDO prepared statements"),
-    (re.compile(rf"->query\s*\([^)]*{REQUEST}"), "request data concatenated into a query — SQL injection"),
-    (re.compile(rf"\becho\s+[^;]*{REQUEST}[^;]*;"), "echo of raw request data — XSS; escape with htmlspecialchars"),
-    (re.compile(r"\b(md5|sha1)\s*\(\s*\$(pass|pwd|password)", re.IGNORECASE),
-     "md5/sha1 for a password — use password_hash()"),
+    (
+        re.compile(rf"\b(system|exec|shell_exec|passthru|popen)\s*\([^)]*{REQUEST}"),
+        "shell exec with request data — command injection",
+    ),
+    (
+        re.compile(rf"\bunserialize\s*\([^)]*{REQUEST}"),
+        "unserialize() on request data — object-injection RCE",
+    ),
+    (
+        re.compile(rf"\b(include|require)(_once)?\s*[^;]*{REQUEST}"),
+        "include/require with request path — file inclusion",
+    ),
+    (
+        re.compile(r"\bmysql_query\s*\("),
+        "mysql_query() — removed/legacy; use PDO prepared statements",
+    ),
+    (
+        re.compile(rf"->query\s*\([^)]*{REQUEST}"),
+        "request data concatenated into a query — SQL injection",
+    ),
+    (
+        re.compile(rf"\becho\s+[^;]*{REQUEST}[^;]*;"),
+        "echo of raw request data — XSS; escape with htmlspecialchars",
+    ),
+    (
+        re.compile(r"\b(md5|sha1)\s*\(\s*\$(pass|pwd|password)", re.IGNORECASE),
+        "md5/sha1 for a password — use password_hash()",
+    ),
 ]
 
 STRICT_TYPES = re.compile(r"declare\s*\(\s*strict_types\s*=\s*1\s*\)")

@@ -98,8 +98,15 @@ class TestShimSurface:
     def test_sync_tasks_returns_board_and_legacy_keys(self, conn, project) -> None:
         _write(project, "TASK-001-a.md", _lean_card("TASK-001", "Alpha"))
         stats = task_sync.sync_tasks(conn, project)
-        for key in ("scanned", "upserted", "skipped_unchanged", "parse_errors",
-                    "new", "errors", "skipped"):
+        for key in (
+            "scanned",
+            "upserted",
+            "skipped_unchanged",
+            "parse_errors",
+            "new",
+            "errors",
+            "skipped",
+        ):
             assert key in stats
         assert stats["upserted"] == stats["new"] == 1
         assert stats["errors"] == 0

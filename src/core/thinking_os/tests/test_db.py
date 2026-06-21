@@ -1056,8 +1056,7 @@ class TestMigrationV35ScaleFoundation:
     def test_keyset_query_uses_index(self, migrated_conn: sqlite3.Connection) -> None:
         plan = _plan(
             migrated_conn,
-            "SELECT task_id FROM tasks WHERE status = ? "
-            "ORDER BY completed_at DESC LIMIT 10",
+            "SELECT task_id FROM tasks WHERE status = ? ORDER BY completed_at DESC LIMIT 10",
             ("complete",),
         )
         assert "idx_tasks_status_completed" in plan, plan
@@ -1086,12 +1085,8 @@ class TestMigrationV35ScaleFoundation:
         )
         assert "idx_task_deps_depends_on" in plan, plan
 
-    def test_trigger_maintains_junction_on_insert(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
-        _seed_task(
-            migrated_conn, "TASK-902", dependencies='["TASK-1", "TASK-2"]'
-        )
+    def test_trigger_maintains_junction_on_insert(self, migrated_conn: sqlite3.Connection) -> None:
+        _seed_task(migrated_conn, "TASK-902", dependencies='["TASK-1", "TASK-2"]')
         deps = {
             r[0]
             for r in migrated_conn.execute(
@@ -1305,9 +1300,13 @@ class TestV38BackfillRework:
         self._seed(conn, "TASK-RW", "success", reopened=True)
         conn.commit()
         _migrate_v38_backfill_rework_outcome(conn)
-        first = conn.execute("SELECT outcome FROM task_outcomes WHERE task_id='TASK-RW'").fetchone()[0]
+        first = conn.execute(
+            "SELECT outcome FROM task_outcomes WHERE task_id='TASK-RW'"
+        ).fetchone()[0]
         _migrate_v38_backfill_rework_outcome(conn)  # second run = no-op
-        second = conn.execute("SELECT outcome FROM task_outcomes WHERE task_id='TASK-RW'").fetchone()[0]
+        second = conn.execute(
+            "SELECT outcome FROM task_outcomes WHERE task_id='TASK-RW'"
+        ).fetchone()[0]
         conn.close()
         assert first == second == "rework"
 

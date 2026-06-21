@@ -21,8 +21,17 @@ USER_PROMPT_RE = re.compile(r"^USER\b", re.IGNORECASE | re.MULTILINE)
 # the version bump. A type it cannot parse silently drops the change from
 # CHANGELOG, so the title type prefix is validated here.
 CONVENTIONAL_TYPES = (
-    "feat", "fix", "docs", "perf", "refactor",
-    "build", "ci", "test", "chore", "style", "revert",
+    "feat",
+    "fix",
+    "docs",
+    "perf",
+    "refactor",
+    "build",
+    "ci",
+    "test",
+    "chore",
+    "style",
+    "revert",
 )
 CONVENTIONAL_TITLE_RE = re.compile(
     r"^(?:" + "|".join(CONVENTIONAL_TYPES) + r")(?:\([^)]+\))?!?: .+"

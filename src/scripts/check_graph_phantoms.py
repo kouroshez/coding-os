@@ -42,9 +42,7 @@ def _phantom_count() -> tuple[int, list[dict]]:
     )
     data = json.loads(proc.stdout).get("data", {})
     issues = data.get("issues", [])
-    phantom = sum(
-        int(i.get("count", 0)) for i in issues if i.get("category") == "orphaned_phantom"
-    )
+    phantom = sum(int(i.get("count", 0)) for i in issues if i.get("category") == "orphaned_phantom")
     samples = [i for i in issues if i.get("category") == "orphaned_phantom"]
     return phantom, samples
 

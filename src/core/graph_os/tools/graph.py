@@ -2176,8 +2176,7 @@ def cos_graph_search(
     scored.sort(key=lambda p: p[0], reverse=True)
     total = len(scored)
     results = [
-        {**NodeSummary.from_node(n).to_dict(), "score": round(s, 4)}
-        for s, n in scored[:top_k_eff]
+        {**NodeSummary.from_node(n).to_dict(), "score": round(s, 4)} for s, n in scored[:top_k_eff]
     ]
     return _ok(
         {"query": query, "results": results, "total_count": total},
@@ -2772,8 +2771,7 @@ def cos_graph_export(
                 if root_uid is not None
                 else None
             ),
-            "result_truncated": len(nodes) >= max_nodes
-            or max_nodes < max_nodes_requested,
+            "result_truncated": len(nodes) >= max_nodes or max_nodes < max_nodes_requested,
         },
     )
 
@@ -5205,8 +5203,7 @@ def cos_graph_doctor(
                         "count": pe_files,
                         "parse_error_total": pe_total,
                         "sample": [
-                            {"file_path": r[0], "parse_errors": int(r[1])}
-                            for r in pe_sample
+                            {"file_path": r[0], "parse_errors": int(r[1])} for r in pe_sample
                         ],
                     }
                 )

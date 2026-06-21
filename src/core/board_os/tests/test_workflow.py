@@ -285,9 +285,7 @@ def test_transition_restores_md_when_post_write_step_fails(
         )
 
     assert "status: icebox" in md.read_text(encoding="utf-8")
-    row = conn.execute(
-        "SELECT status FROM tasks WHERE task_id = ?", ("TASK-110",)
-    ).fetchone()
+    row = conn.execute("SELECT status FROM tasks WHERE task_id = ?", ("TASK-110",)).fetchone()
     assert row[0] == "icebox"
 
 
@@ -328,9 +326,9 @@ def test_transition_two_real_connections_exactly_one_wins(tmp_path: Path):
     assert len(winners) == 1, results
 
     final = db.get_connection(db_path)
-    status = final.execute(
-        "SELECT status FROM tasks WHERE task_id = ?", ("TASK-120",)
-    ).fetchone()[0]
+    status = final.execute("SELECT status FROM tasks WHERE task_id = ?", ("TASK-120",)).fetchone()[
+        0
+    ]
     final.close()
     assert status == "in_progress"
 

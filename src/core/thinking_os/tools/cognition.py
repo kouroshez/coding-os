@@ -426,9 +426,7 @@ def register_cos_ambiguity_check(mcp, db_path):
         # rows first (a pass leaves none → the gate clears) then record this check's.
         try:
             with sqlite3.connect(db_path) as conn:
-                conn.execute(
-                    "DELETE FROM ambiguity_violations WHERE session_id = ?", (session_id,)
-                )
+                conn.execute("DELETE FROM ambiguity_violations WHERE session_id = ?", (session_id,))
                 for v in violations:
                     conn.execute(
                         "INSERT INTO ambiguity_violations "
@@ -1237,9 +1235,7 @@ def _resolve_dispatch_model(
         (_empirical_model(complexity, db_path), "empirical"),
     ):
         if candidate:
-            logger.info(
-                "dispatch model resolved for %s: %s via %s", formula_id, candidate, source
-            )
+            logger.info("dispatch model resolved for %s: %s via %s", formula_id, candidate, source)
             return candidate
     return ""
 
@@ -1781,7 +1777,10 @@ def register_cos_classify_prompt(mcp, db_path):
         # lean profile may have disabled it. Surface the one-liner to re-enable
         # rather than letting the agent hit a module_disabled wall mid-plan.
         nudge = ""
-        if complexity in ("COMPLICATED", "COMPLEX") and _gated_module("cos_compose_chain") == "cognition":
+        if (
+            complexity in ("COMPLICATED", "COMPLEX")
+            and _gated_module("cos_compose_chain") == "cognition"
+        ):
             nudge = (
                 f"{complexity} work but the cognition module is OFF — role "
                 "composition / formula dispatch are unavailable. Enable it with "

@@ -61,7 +61,9 @@ def test_skips_when_marker_already_fresh(project, monkeypatch) -> None:
     import thinking_os.tools.learning as learning_mod
 
     calls: list[int] = []
-    monkeypatch.setattr(learning_mod, "learn_extract", lambda c, **k: calls.append(1) or {"extracted": []})
+    monkeypatch.setattr(
+        learning_mod, "learn_extract", lambda c, **k: calls.append(1) or {"extracted": []}
+    )
     marker = state_dir(tmp_path) / ".last-extract"
     marker.parent.mkdir(parents=True, exist_ok=True)
     touch_marker(marker)  # fresh marker — all 10 outcomes predate it
@@ -77,7 +79,9 @@ def test_extracts_when_marker_stale(project, monkeypatch) -> None:
     import thinking_os.tools.learning as learning_mod
 
     calls: list[int] = []
-    monkeypatch.setattr(learning_mod, "learn_extract", lambda c, **k: calls.append(1) or {"extracted": []})
+    monkeypatch.setattr(
+        learning_mod, "learn_extract", lambda c, **k: calls.append(1) or {"extracted": []}
+    )
 
     board_commands._record_brain_outcome_safe(conn, "TASK-9")  # marker absent
     assert calls == [1]  # extraction RAN because outcomes exist since the (absent) marker

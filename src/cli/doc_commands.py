@@ -49,11 +49,23 @@ def _nav_for(path: Path) -> str:
 
 
 @click.command("doc-new")
-@click.option("--layer", required=True, help="Doc layer: engineering / governance / architecture / playbooks / ...")
-@click.option("--path", "target", required=True, type=click.Path(), help="Target path, e.g. docs/engineering/foo.md")
+@click.option(
+    "--layer",
+    required=True,
+    help="Doc layer: engineering / governance / architecture / playbooks / ...",
+)
+@click.option(
+    "--path",
+    "target",
+    required=True,
+    type=click.Path(),
+    help="Target path, e.g. docs/engineering/foo.md",
+)
 @click.option("--title", default="", help="Doc title (default: derived from the filename).")
 @click.option("--domain", default="CORE", show_default=True, help="Domain tag for the header.")
-@click.option("--ssot/--no-ssot", default=True, show_default=True, help="Mark the doc as a source of truth.")
+@click.option(
+    "--ssot/--no-ssot", default=True, show_default=True, help="Mark the doc as a source of truth."
+)
 @click.option("--force", is_flag=True, help="Overwrite the file if it already exists.")
 def doc_new_cmd(layer: str, target: str, title: str, domain: str, ssot: bool, force: bool) -> None:
     """Scaffold a new doc with the canonical header, opening block, and nav breadcrumb."""

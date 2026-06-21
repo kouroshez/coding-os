@@ -242,10 +242,7 @@ def signals_from_prompt(
 
     # scope_size from prompt length + breadth keywords.
     words = len(text.split())
-    if (
-        _re.search(r"\b(everywhere|all |every |entire|whole|across)\b", text)
-        or words > 200
-    ):
+    if _re.search(r"\b(everywhere|all |every |entire|whole|across)\b", text) or words > 200:
         scope_size = "large"
     elif words < 12:
         scope_size = "small"
@@ -263,9 +260,7 @@ def signals_from_prompt(
         if _re.search(r"\b(p0|p1|outage|down|emergency|urgent|asap|hotfix)\b", text)
         else "normal"
     )
-    has_unknowns = bool(
-        _re.search(r"\b(unknown|not sure|unclear|investigate)\b", text)
-    )
+    has_unknowns = bool(_re.search(r"\b(unknown|not sure|unclear|investigate)\b", text))
 
     return TaskSignals(
         complexity=complexity

@@ -69,7 +69,9 @@ def test_no_done_heredoc_readloop_anywhere() -> None:
         if not root.is_dir():
             continue
         for sh in root.glob("*.sh"):
-            for i, line in enumerate(sh.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
+            for i, line in enumerate(
+                sh.read_text(encoding="utf-8", errors="ignore").splitlines(), 1
+            ):
                 if pat.search(line):
                     offenders.append(f"{sh.relative_to(repo)}:{i}: {line.strip()}")
     assert not offenders, "deadlock-prone `done <<<` read-loop(s):\n" + "\n".join(offenders)

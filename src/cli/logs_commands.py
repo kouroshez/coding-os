@@ -49,15 +49,22 @@ def _emit(result: dict, as_json: bool, level_label: str) -> None:
                 kv = {}
         if row.get("fingerprint"):
             kv["fp"] = row["fingerprint"]
-        click.echo(render("short", {
-            "ts": row["ts"],
-            "lvl": row["lvl"],
-            "scope": row["scope"],
-            "msg": row["msg"],
-            "kv": kv,
-        }))
+        click.echo(
+            render(
+                "short",
+                {
+                    "ts": row["ts"],
+                    "lvl": row["lvl"],
+                    "scope": row["scope"],
+                    "msg": row["msg"],
+                    "kv": kv,
+                },
+            )
+        )
     # Narration → stderr; rows (the result) → stdout.
-    click.echo(f"-- {result['count']} of {result['total']} shown (level>={level_label}) --", err=True)
+    click.echo(
+        f"-- {result['count']} of {result['total']} shown (level>={level_label}) --", err=True
+    )
 
 
 @click.command(name="logs")

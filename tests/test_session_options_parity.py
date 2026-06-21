@@ -4,6 +4,7 @@ Pins the empirically-validated chat-light policy: cos_* capability via
 programmatic mcp_servers, base tools kept, Write/Edit absent, destructive
 Bash deny floor, setting_sources=[].
 """
+
 import importlib.util
 import json
 from pathlib import Path
@@ -32,8 +33,12 @@ def _mcp_cwd(tmp_path):
 
 def test_chat_profile_capability_and_security(tmp_path):
     build = _load_builder()
-    o = build("chat", cwd=_mcp_cwd(tmp_path), model="claude-opus-4-8",
-              system_prompt={"type": "preset", "preset": "claude_code"})
+    o = build(
+        "chat",
+        cwd=_mcp_cwd(tmp_path),
+        model="claude-opus-4-8",
+        system_prompt={"type": "preset", "preset": "claude_code"},
+    )
     # P2 capability: cos_* registered programmatically + allow-listed
     assert "coding-os" in (o.mcp_servers or {})
     assert "mcp__coding-os__*" in o.allowed_tools
@@ -50,8 +55,14 @@ def test_chat_profile_capability_and_security(tmp_path):
 
 def test_chat_resume_sets_resume_and_fork(tmp_path):
     build = _load_builder()
-    o = build("chat_resume", cwd=_mcp_cwd(tmp_path), model=None,
-              system_prompt=None, resume="sid-123", fork=True)
+    o = build(
+        "chat_resume",
+        cwd=_mcp_cwd(tmp_path),
+        model=None,
+        system_prompt=None,
+        resume="sid-123",
+        fork=True,
+    )
     assert o.resume == "sid-123"
     assert o.fork_session is True
     assert "mcp__coding-os__*" in o.allowed_tools

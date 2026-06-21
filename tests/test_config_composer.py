@@ -66,7 +66,11 @@ def test_multi_stack_composition_order() -> None:
     s1 = {"swimlanes": [{"id": "frontend", "label": "FE"}]}
     s2 = {"swimlanes": [{"id": "backend", "label": "BE"}]}
     out = compose(base, [s1, s2], SCRUMBAN_SPEC)
-    assert [s["id"] for s in out["swimlanes"]] == ["docs", "frontend", "backend"]  # both stacks kept
+    assert [s["id"] for s in out["swimlanes"]] == [
+        "docs",
+        "frontend",
+        "backend",
+    ]  # both stacks kept
 
 
 def test_compose_coding_os_configs_writes_merged(tmp_path: Path) -> None:
@@ -86,9 +90,7 @@ def test_compose_coding_os_configs_writes_merged(tmp_path: Path) -> None:
 
     state = tmp_path / "proj" / ".coding-os"
     state.mkdir(parents=True)
-    written = compose_coding_os_configs(
-        tmp_path / "proj", state, ["mystack"], templates_dir=tdir
-    )
+    written = compose_coding_os_configs(tmp_path / "proj", state, ["mystack"], templates_dir=tdir)
     assert "rag-config.yaml" in written
     merged = yaml.safe_load((state / "rag-config.yaml").read_text())
     paths = {s["path"] for s in merged["sources"]}

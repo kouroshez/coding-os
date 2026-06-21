@@ -142,9 +142,9 @@ def gc_memory(
                 "edge_type = 'co_edit' AND weight <= 1.0 "
                 "AND updated_at < datetime('now', '-30 days')"
             )
-            n = conn.execute(
-                f"SELECT COUNT(*) FROM concept_graph WHERE {stale_where}"
-            ).fetchone()[0]
+            n = conn.execute(f"SELECT COUNT(*) FROM concept_graph WHERE {stale_where}").fetchone()[
+                0
+            ]
             stats["stale_co_edit_edges"] = int(n)
             if n and not dry_run:
                 conn.execute(f"DELETE FROM concept_graph WHERE {stale_where}")

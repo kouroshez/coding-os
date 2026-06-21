@@ -135,8 +135,10 @@ def config_skill_toggle(skill_name: str, body: dict = Body(...)) -> JSONResponse
     if not isinstance(enabled, bool):
         return JSONResponse(
             status_code=400,
-            content={"ok": False, "error": {"category": "validation",
-                                            "message": "body must be {'enabled': bool}"}},
+            content={
+                "ok": False,
+                "error": {"category": "validation", "message": "body must be {'enabled': bool}"},
+            },
         )
     try:
         import click as _click
@@ -201,7 +203,11 @@ def config_adapters() -> dict:
                     continue
                 is_default = bool(m.get("default"))
                 models.append(
-                    {"id": str(m["id"]), "label": str(m.get("label") or m["id"]), "default": is_default}
+                    {
+                        "id": str(m["id"]),
+                        "label": str(m.get("label") or m["id"]),
+                        "default": is_default,
+                    }
                 )
                 if is_default and not default_model:
                     default_model = str(m["id"])

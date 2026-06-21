@@ -126,9 +126,7 @@ def _namespace_segment(project_root: Path) -> str:
     return f"{ns}-"
 
 
-def _allocate_with_prefix(
-    conn: sqlite3.Connection, project_root: Path, id_prefix: str
-) -> str:
+def _allocate_with_prefix(conn: sqlite3.Connection, project_root: Path, id_prefix: str) -> str:
     # Atomic per-prefix counter: one INSERT…SELECT computes max(db, fs)+1 for
     # THIS id_prefix AND reserves the row, so SQLite's write lock serializes
     # concurrent local creators. The per-prefix max keeps each namespace an
@@ -193,9 +191,7 @@ class _LocalAllocator:
 
 class _NamespacedAllocator:
     def allocate(self, conn: sqlite3.Connection, project_root: Path) -> str:
-        return _allocate_with_prefix(
-            conn, project_root, "TASK-" + _namespace_segment(project_root)
-        )
+        return _allocate_with_prefix(conn, project_root, "TASK-" + _namespace_segment(project_root))
 
 
 _TASK_ID_ALLOCATORS: dict[str, object] = {
@@ -233,7 +229,9 @@ def _detect_forge(project_root: Path) -> str:
                 capture_output=True,
                 text=True,
                 timeout=3,
-            ).stdout.strip().lower()
+            )
+            .stdout.strip()
+            .lower()
         )
     except (OSError, subprocess.SubprocessError):
         return ""
@@ -277,9 +275,7 @@ def _normalize_external_ref(raw: str, project_root: Path) -> str | None:
 
 def cos_task_link(conn: sqlite3.Connection, task_id: str, ref: str) -> dict:
     """Link a task to a forge issue/PR via the optional external_ref field."""
-    row = conn.execute(
-        "SELECT file_path FROM tasks WHERE task_id = ?", (task_id,)
-    ).fetchone()
+    row = conn.execute("SELECT file_path FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
     if not row:
         return fail("not_found", f"task {task_id} not found")
     project_root = _project_root()
@@ -384,12 +380,7 @@ def _render_kind_aware_body(
         repro_body = (
             repro.strip()
             if repro and repro.strip()
-            else (
-                "1. (fill in: exact steps to reproduce)\n"
-                "2. ...\n"
-                "Expected: ...\n"
-                "Actual: ..."
-            )
+            else ("1. (fill in: exact steps to reproduce)\n2. ...\nExpected: ...\nActual: ...")
         )
         sections_to_render["Repro Steps"] = "## Repro Steps\n" + repro_body
 
@@ -1051,10 +1042,7 @@ def _keyset_column_page(
 
     ks_clause, ks_params = _keyset_filter(cursor)
     where = " AND ".join(col_clauses + ([ks_clause] if ks_clause else []))
-    query = (
-        f"{_BOARD_SELECT} WHERE {where} "
-        "ORDER BY completed_at DESC, task_id DESC LIMIT ?"
-    )
+    query = f"{_BOARD_SELECT} WHERE {where} ORDER BY completed_at DESC, task_id DESC LIMIT ?"
     rows = conn.execute(query, col_params + ks_params + [page_size + 1]).fetchall()
     has_more = len(rows) > page_size
     rows = rows[:page_size]
@@ -1302,9 +1290,7 @@ def cascade_ready_dependents(
                 dep
                 for dep in pending
                 if (
-                    conn.execute(
-                        "SELECT status FROM tasks WHERE task_id = ?", (dep,)
-                    ).fetchone()
+                    conn.execute("SELECT status FROM tasks WHERE task_id = ?", (dep,)).fetchone()
                     or (None,)
                 )[0]
                 in _TERMINAL_DEP_STATES
@@ -1331,9 +1317,7 @@ def cascade_ready_dependents(
         # be pulled (blocked→in_progress skips the icebox ready gate otherwise).
         if status == "blocked":
             move_env = json.loads(
-                cos_task_move(
-                    conn, task_id=dependent_id, to="icebox", agent_session=agent_session
-                )
+                cos_task_move(conn, task_id=dependent_id, to="icebox", agent_session=agent_session)
             )
             if not move_env.get("ok"):
                 report["still_blocked"].append(
@@ -1687,7 +1671,9 @@ def cos_task_ready(
                 "task_id": task_id,
                 "ready": ready,
                 "labels": labels,
-                "warnings": [f"no-op (label '{READY_LABEL}' already {'set' if ready else 'absent'})"],
+                "warnings": [
+                    f"no-op (label '{READY_LABEL}' already {'set' if ready else 'absent'})"
+                ],
             },
             meta={"layer": "tasks", "source": "board_os.cos_task_ready"},
         )
@@ -1783,9 +1769,18 @@ def _commits_referencing(task_id: str, project_root: Path) -> int | None:
 
     try:
         out = subprocess.run(
-            ["git", "-C", str(project_root), "log", "--all", "-E",
-             f"--max-count={_COMMIT_SCAN_CAP}",
-             "--grep", f"{task_id}([^0-9]|$)", "--oneline"],
+            [
+                "git",
+                "-C",
+                str(project_root),
+                "log",
+                "--all",
+                "-E",
+                f"--max-count={_COMMIT_SCAN_CAP}",
+                "--grep",
+                f"{task_id}([^0-9]|$)",
+                "--oneline",
+            ],
             capture_output=True,
             text=True,
             timeout=5,
@@ -1805,9 +1800,7 @@ _COMMIT_SCAN_CAP = 500
 _STRANDED_SCAN_LIMIT = 1000
 
 
-def _commits_referencing_batch(
-    task_ids: list[str], project_root: Path
-) -> dict[str, int | None]:
+def _commits_referencing_batch(task_ids: list[str], project_root: Path) -> dict[str, int | None]:
     """One `git log --all --grep(OR ...)` for many task-ids → {task_id: count}.
 
     Replaces N per-task subprocesses that each walk the full history. Values are
@@ -1826,8 +1819,17 @@ def _commits_referencing_batch(
         grep_args += ["--grep", f"{tid}([^0-9]|$)"]
     try:
         out = subprocess.run(
-            ["git", "-C", str(project_root), "log", "--all", "-E",
-             f"--max-count={_COMMIT_SCAN_CAP}", *grep_args, "--format=%s"],
+            [
+                "git",
+                "-C",
+                str(project_root),
+                "log",
+                "--all",
+                "-E",
+                f"--max-count={_COMMIT_SCAN_CAP}",
+                *grep_args,
+                "--format=%s",
+            ],
             capture_output=True,
             text=True,
             timeout=15,
@@ -1897,8 +1899,10 @@ def cos_task_reclaim(
 ) -> str:
     """Reclaim zombie in_progress/testing/emergency tasks (idle + owner inactive); testing->in_progress, else->icebox."""
     config = _current_config()
-    default_threshold_h = idle_hours if idle_hours is not None else (
-        config.workflow_policy.reclaim_idle_hours if config is not None else 24
+    default_threshold_h = (
+        idle_hours
+        if idle_hours is not None
+        else (config.workflow_policy.reclaim_idle_hours if config is not None else 24)
     )
 
     def _threshold_for(status: str) -> int:
@@ -1971,10 +1975,15 @@ def cos_task_reclaim(
         dest = "in_progress" if status == "testing" else "icebox"
         idle_h = round(idle_s / 3600, 1)
         if dry_run:
-            reclaimed.append({
-                "task_id": task_id, "previous_owner": owner, "idle_hours": idle_h,
-                "from_status": status, "to_status": dest,
-            })
+            reclaimed.append(
+                {
+                    "task_id": task_id,
+                    "previous_owner": owner,
+                    "idle_hours": idle_h,
+                    "from_status": status,
+                    "to_status": dest,
+                }
+            )
             continue
 
         file_path = project_root / rel if rel else None
@@ -2005,10 +2014,15 @@ def cos_task_reclaim(
             file_path=file_path,
         )
         if result.ok:
-            reclaimed.append({
-                "task_id": task_id, "previous_owner": owner, "idle_hours": idle_h,
-                "from_status": status, "to_status": dest,
-            })
+            reclaimed.append(
+                {
+                    "task_id": task_id,
+                    "previous_owner": owner,
+                    "idle_hours": idle_h,
+                    "from_status": status,
+                    "to_status": dest,
+                }
+            )
 
     return ok(
         {
@@ -2226,9 +2240,7 @@ def cos_task_claim_next(
     # A wider window than max_candidates: under contention the top few rows may
     # all be claimed by peers before this session wins one, so scan deeper.
     pick_env = json.loads(
-        cos_task_pick(
-            conn, swimlane=swimlane, priority_min=priority_min, max_candidates=50
-        )
+        cos_task_pick(conn, swimlane=swimlane, priority_min=priority_min, max_candidates=50)
     )
     if not pick_env.get("ok"):
         return fail("internal", "claim-next could not enumerate candidates")
@@ -2265,9 +2277,7 @@ def cos_task_claim_next(
 
 
 def _resolve_task_file(conn: sqlite3.Connection, task_id: str) -> Path | None:
-    row = conn.execute(
-        "SELECT file_path FROM tasks WHERE task_id = ?", (task_id,)
-    ).fetchone()
+    row = conn.execute("SELECT file_path FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
     if not row or not row[0]:
         return None
     candidate = _project_root() / row[0]
@@ -2334,9 +2344,7 @@ def cos_task_daily(
     blocked = conn.execute(
         f"{_BOARD_SELECT} WHERE status = 'blocked' ORDER BY priority LIMIT 200"
     ).fetchall()
-    icebox_total = conn.execute(
-        "SELECT COUNT(*) FROM tasks WHERE status = 'icebox'"
-    ).fetchone()[0]
+    icebox_total = conn.execute("SELECT COUNT(*) FROM tasks WHERE status = 'icebox'").fetchone()[0]
     icebox = conn.execute(
         f"{_BOARD_SELECT} WHERE status = 'icebox' ORDER BY last_transition_at ASC LIMIT 500"
     ).fetchall()
@@ -2539,7 +2547,7 @@ def cos_work_log_append(
     else:
         # Insert at the end of the Work Log section (before the next H2
         # heading if any, else at EOF), both anchored at line start.
-        nxt = re.search(r"(?m)^## ", content[head.end():])
+        nxt = re.search(r"(?m)^## ", content[head.end() :])
         insert_at = head.end() + nxt.start() if nxt else len(content)
         before = content[:insert_at].rstrip()
         after = content[insert_at:]
@@ -2785,9 +2793,10 @@ def _worklog_events(rel_path: str) -> list[dict]:
         date_s, actor, note = m.group(1), m.group(2).strip(), m.group(3).strip()
         try:
             # +i keeps same-day bullets in file order under the chronological sort.
-            at = int(
-                datetime.strptime(date_s, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp()
-            ) + i
+            at = (
+                int(datetime.strptime(date_s, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp())
+                + i
+            )
         except ValueError:
             at = 0
         out.append(

@@ -5,19 +5,28 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]
-                       / "src" / "core" / "skills" / "codebase-explorer" / "scripts"))
+sys.path.insert(
+    0,
+    str(
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "core"
+        / "skills"
+        / "codebase-explorer"
+        / "scripts"
+    ),
+)
 
 import outline as ol  # noqa: E402
 
-PY = '''
+PY = """
 class Foo:
     def method_a(self):
         pass
 
 def top_level():
     pass
-'''
+"""
 
 
 def test_python_classes_and_functions() -> None:
@@ -36,7 +45,9 @@ def test_python_nesting_depth() -> None:
 
 
 def test_ts_top_level_decls() -> None:
-    ts = "export class Service {}\nexport const config = 1;\ninterface User {}\nfunction helper() {}"
+    ts = (
+        "export class Service {}\nexport const config = 1;\ninterface User {}\nfunction helper() {}"
+    )
     items = ol.outline_ts(ts)
     kinds = {(i["kind"], i["name"]) for i in items}
     assert ("class", "Service") in kinds

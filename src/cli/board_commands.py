@@ -359,7 +359,18 @@ def _render_board_ascii(envelope: str) -> None:
 @click.option("--depends-on", default="", help="Comma-separated TASK-IDs")
 @click.option("--ready", is_flag=True, default=False, help="Mark the task pullable in one shot.")
 def task_create_cmd(
-    title, swimlane, kind, priority, appetite, epic, labels, outcome, acceptance, read_first, depends_on, ready
+    title,
+    swimlane,
+    kind,
+    priority,
+    appetite,
+    epic,
+    labels,
+    outcome,
+    acceptance,
+    read_first,
+    depends_on,
+    ready,
 ):
     from board_os import mcp_tools
 
@@ -499,7 +510,9 @@ def task_start_cmd(task_id, force):
 
 @click.command("task-ready", help="Toggle the 'ready' label that gates icebox→in_progress.")
 @click.argument("task_id")
-@click.option("--off", is_flag=True, default=False, help="Remove the ready label instead of adding it.")
+@click.option(
+    "--off", is_flag=True, default=False, help="Remove the ready label instead of adding it."
+)
 def task_ready_cmd(task_id, off):
     from board_os import mcp_tools
 
@@ -516,8 +529,12 @@ def task_ready_cmd(task_id, off):
     sys.exit(_print_envelope(envelope))
 
 
-@click.command("task-reclaim", help="Reclaim zombie in_progress tasks (idle + owner inactive) to icebox+ready.")
-@click.option("--idle-hours", type=int, default=0, help="Override the idle threshold (0 = config default).")
+@click.command(
+    "task-reclaim", help="Reclaim zombie in_progress tasks (idle + owner inactive) to icebox+ready."
+)
+@click.option(
+    "--idle-hours", type=int, default=0, help="Override the idle threshold (0 = config default)."
+)
 @click.option("--dry-run", is_flag=True, default=False, help="List candidates without moving them.")
 def task_reclaim_cmd(idle_hours, dry_run):
     from board_os import mcp_tools

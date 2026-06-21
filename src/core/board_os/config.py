@@ -369,9 +369,7 @@ def parse_config(data: dict[str, Any], source_path: Path | None = None) -> Scrum
     # given explicitly; an empty prefix under namespaced is derived at runtime.
     task_id_scheme = data.get("task_id_scheme", "sequential")
     if task_id_scheme not in ("sequential", "namespaced"):
-        errors.append(
-            f"task_id_scheme={task_id_scheme!r} must be 'sequential' or 'namespaced'"
-        )
+        errors.append(f"task_id_scheme={task_id_scheme!r} must be 'sequential' or 'namespaced'")
         task_id_scheme = "sequential"
     task_id_prefix = data.get("task_id_prefix", "") or ""
     if not isinstance(task_id_prefix, str):

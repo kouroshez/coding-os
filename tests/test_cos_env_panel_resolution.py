@@ -193,42 +193,62 @@ def _run_session_context(env_overrides: dict[str, str]) -> subprocess.CompletedP
 
 def test_panel_source_classified_ppid_when_no_session_var(tmp_path: Path) -> None:
     # (b) no runtime session-id var -> source classified ppid (the collision risk).
-    src = _source_field("COS_PANEL_ID_SOURCE", {"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "claude"})
+    src = _source_field(
+        "COS_PANEL_ID_SOURCE", {"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "claude"}
+    )
     assert src == "ppid"
 
 
 def test_panel_source_classified_session_with_runtime_id(tmp_path: Path) -> None:
     src = _source_field(
         "COS_PANEL_ID_SOURCE",
-        {"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "claude", "CLAUDE_CODE_SESSION_ID": "real-uuid-1"},
+        {
+            "COS_STATE_DIR": str(tmp_path),
+            "COS_AGENT": "claude",
+            "CLAUDE_CODE_SESSION_ID": "real-uuid-1",
+        },
     )
     assert src == "session"
 
 
 def test_two_runtime_sessions_isolate_panels(tmp_path: Path) -> None:
     # (a) two distinct runtime session ids -> two distinct panel ids.
-    a = _source({"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "claude", "CLAUDE_SESSION_ID": "sess-A"})
-    b = _source({"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "claude", "CLAUDE_SESSION_ID": "sess-B"})
+    a = _source(
+        {"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "claude", "CLAUDE_SESSION_ID": "sess-A"}
+    )
+    b = _source(
+        {"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "claude", "CLAUDE_SESSION_ID": "sess-B"}
+    )
     assert a == "sess-A" and b == "sess-B" and a != b
 
 
 def test_multi_adapter_isolated_agent_dirs(tmp_path: Path) -> None:
     # (e) claude + codex on the same project -> distinct COS_AGENT_DIR.
-    claude_dir = _source_field("COS_AGENT_DIR", {"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "claude"})
-    codex_dir = _source_field("COS_AGENT_DIR", {"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "codex"})
+    claude_dir = _source_field(
+        "COS_AGENT_DIR", {"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "claude"}
+    )
+    codex_dir = _source_field(
+        "COS_AGENT_DIR", {"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "codex"}
+    )
     assert claude_dir and codex_dir and claude_dir != codex_dir
 
 
 def test_ppid_fallback_emits_loud_warning(tmp_path: Path) -> None:
     # (b) no runtime session id -> session-context warns LOUD (never silent).
     proc = _run_session_context({"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "claude"})
-    assert "ppid fallback" in proc.stderr.lower(), f"expected loud ppid warning; stderr={proc.stderr!r}"
+    assert "ppid fallback" in proc.stderr.lower(), (
+        f"expected loud ppid warning; stderr={proc.stderr!r}"
+    )
 
 
 def test_runtime_session_id_no_false_warning(tmp_path: Path) -> None:
     # control: with a real session id the warning must NOT fire.
     proc = _run_session_context(
-        {"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "claude", "CLAUDE_CODE_SESSION_ID": "real-sess-xyz"}
+        {
+            "COS_STATE_DIR": str(tmp_path),
+            "COS_AGENT": "claude",
+            "CLAUDE_CODE_SESSION_ID": "real-sess-xyz",
+        }
     )
     assert "ppid fallback" not in proc.stderr.lower(), f"false alarm; stderr={proc.stderr!r}"
 
@@ -254,6 +274,8 @@ def test_sibling_fossil_rejected_on_session_mismatch(tmp_path: Path) -> None:
             "COS_PANEL_DIR": str(panel),
         }
     )
-    proc = subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True, timeout=20)
+    proc = subprocess.run(
+        ["bash", "-c", script], env=env, capture_output=True, text=True, timeout=20
+    )
     assert "VALID=false" in proc.stdout, f"sibling fossil must be rejected; out={proc.stdout!r}"
     assert "mismatch" in proc.stdout.lower()

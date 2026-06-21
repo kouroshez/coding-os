@@ -25,9 +25,7 @@ def _git(repo: Path, *args: str) -> None:
 def _repo_with_task(tmp_path: Path, task_id: str) -> Path:
     repo = tmp_path / "proj"
     (repo / "docs" / "tasks").mkdir(parents=True)
-    (repo / "docs" / "tasks" / f"{task_id}-demo.md").write_text(
-        f"# {task_id}\n\n## Work Log\n"
-    )
+    (repo / "docs" / "tasks" / f"{task_id}-demo.md").write_text(f"# {task_id}\n\n## Work Log\n")
     _git(repo, "init", "-q")
     _git(repo, "config", "user.email", "t@t.dev")
     _git(repo, "config", "user.name", "T")

@@ -150,9 +150,7 @@ class TestSectionSelection:
         # Not in fading section (outside window or never validated)
         assert "fading-never-validated" not in body
 
-    def test_stat_excluded_from_fading(
-        self, conn: sqlite3.Connection, fixed_now: datetime
-    ) -> None:
+    def test_stat_excluded_from_fading(self, conn: sqlite3.Connection, fixed_now: datetime) -> None:
         # a 'stat' sitting in the fading window must NOT surface as a fading lesson
         conn.execute(
             "INSERT INTO learned_patterns (pattern, memory_type, confidence, times_validated) "
@@ -213,7 +211,12 @@ class TestSectionSelection:
             "INSERT INTO learned_patterns (pattern, memory_type, confidence, impact_score) "
             "VALUES (?, ?, ?, ?)",
             [
-                ("INFRA domain succeeds at 100% (40/40 tasks) — reliable baseline", "stat", 0.85, 0.5),
+                (
+                    "INFRA domain succeeds at 100% (40/40 tasks) — reliable baseline",
+                    "stat",
+                    0.85,
+                    0.5,
+                ),
                 ("Recurring hook block: load graph-explorer first", "lesson", 0.6, 0.5),
             ],
         )

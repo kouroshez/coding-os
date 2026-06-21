@@ -7,6 +7,7 @@ Before the fix, both the index.lock wait and the commit-message contract
 silently no-op'd in every consumer; only the meta-repo (which has src/core/)
 masked the bug via its fallback path.
 """
+
 from __future__ import annotations
 
 import json
@@ -42,7 +43,9 @@ def _consumer_hooks_dir(tmp_path: Path) -> Path:
 
 def test_blocks_noncompliant_message_through_symlink(tmp_path: Path) -> None:
     hooks_dir = _consumer_hooks_dir(tmp_path)
-    proc = _run(hooks_dir / "enforce-commit-message.sh", 'git commit -m "not a conventional commit message"')
+    proc = _run(
+        hooks_dir / "enforce-commit-message.sh", 'git commit -m "not a conventional commit message"'
+    )
     assert proc.returncode == 2, (
         "expected the commit-message contract to BLOCK via symlink-resolved helper; "
         f"got rc={proc.returncode} stderr={proc.stderr!r}"
@@ -51,7 +54,10 @@ def test_blocks_noncompliant_message_through_symlink(tmp_path: Path) -> None:
 
 def test_allows_compliant_message_through_symlink(tmp_path: Path) -> None:
     hooks_dir = _consumer_hooks_dir(tmp_path)
-    proc = _run(hooks_dir / "enforce-commit-message.sh", 'git commit -m "fix(hooks): resolve helpers through symlink"')
+    proc = _run(
+        hooks_dir / "enforce-commit-message.sh",
+        'git commit -m "fix(hooks): resolve helpers through symlink"',
+    )
     assert proc.returncode == 0, (
         f"a compliant conventional-commit title should pass; got rc={proc.returncode} stderr={proc.stderr!r}"
     )
@@ -60,4 +66,6 @@ def test_allows_compliant_message_through_symlink(tmp_path: Path) -> None:
 def test_meta_repo_direct_invocation_still_blocks(tmp_path: Path) -> None:
     # Direct (non-symlink) invocation in the meta-repo must remain unchanged.
     proc = _run(HOOK, 'git commit -m "garbage message with no type"')
-    assert proc.returncode == 2, f"meta-repo behavior must be unchanged; got rc={proc.returncode} stderr={proc.stderr!r}"
+    assert proc.returncode == 2, (
+        f"meta-repo behavior must be unchanged; got rc={proc.returncode} stderr={proc.stderr!r}"
+    )

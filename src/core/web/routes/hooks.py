@@ -68,9 +68,7 @@ def _parse_hook_line(line: str) -> dict[str, Any] | None:
 
 @router.get("/list")
 def list_hooks(
-    adapter: str | None = Query(
-        None, description="Filter by adapter_scope (claude / codex)"
-    ),
+    adapter: str | None = Query(None, description="Filter by adapter_scope (claude / codex)"),
     event: str | None = Query(None, description="Filter by event (PreToolUse / Stop / …)"),
     _rl=Depends(make_rate_limit_dep("hooks.list")),
     _m=Depends(make_metrics_dep("hooks.list")),

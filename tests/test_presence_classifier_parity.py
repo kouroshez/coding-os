@@ -49,7 +49,12 @@ def test_ended_refines_board_offline():
 
 
 def test_idle_refines_board_offline_when_alive():
-    p = {"last_tool_at": NOW - 99999, "last_prompt_at": NOW - 99999, "started_at": NOW - 99999, "pid": ALIVE}
+    p = {
+        "last_tool_at": NOW - 99999,
+        "last_prompt_at": NOW - 99999,
+        "started_at": NOW - 99999,
+        "pid": ALIVE,
+    }
     assert presence.session_presence(p, NOW) == "offline"
     assert sessions._classify(p, NOW) == "idle"
 

@@ -271,13 +271,17 @@ def learn_extract(
         > 0
     )
 
-    success_domain_rows = conn.execute(
-        "SELECT domain, COUNT(*) AS total, "
-        "SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) AS success_count "
-        "FROM task_outcomes WHERE domain IS NOT NULL AND domain != '' "
-        "GROUP BY domain HAVING success_count >= ?",
-        (min_occurrences,),
-    ).fetchall() if _has_variance else []
+    success_domain_rows = (
+        conn.execute(
+            "SELECT domain, COUNT(*) AS total, "
+            "SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) AS success_count "
+            "FROM task_outcomes WHERE domain IS NOT NULL AND domain != '' "
+            "GROUP BY domain HAVING success_count >= ?",
+            (min_occurrences,),
+        ).fetchall()
+        if _has_variance
+        else []
+    )
     for row in success_domain_rows:
         d = dict(row)
         rate = d["success_count"] / d["total"] if d["total"] else 0
@@ -301,13 +305,17 @@ def learn_extract(
             )
         )
 
-    skill_success_rows = conn.execute(
-        "SELECT skills_used, COUNT(*) AS count "
-        "FROM task_outcomes "
-        "WHERE outcome = 'success' AND skills_used IS NOT NULL AND skills_used != '' "
-        "GROUP BY skills_used HAVING count >= ?",
-        (min_occurrences,),
-    ).fetchall() if _has_variance else []
+    skill_success_rows = (
+        conn.execute(
+            "SELECT skills_used, COUNT(*) AS count "
+            "FROM task_outcomes "
+            "WHERE outcome = 'success' AND skills_used IS NOT NULL AND skills_used != '' "
+            "GROUP BY skills_used HAVING count >= ?",
+            (min_occurrences,),
+        ).fetchall()
+        if _has_variance
+        else []
+    )
     for row in skill_success_rows:
         d = dict(row)
         confidence = min(0.8, 0.4 + d["count"] / 20.0)
@@ -822,7 +830,7 @@ def _humanize_signature(display: str) -> str:
     for jargon, plain in _JARGON_TRANSLATIONS:
         idx = low.find(jargon)
         if idx != -1:
-            out = out[:idx] + plain + out[idx + len(jargon):]
+            out = out[:idx] + plain + out[idx + len(jargon) :]
             low = out.lower()
     return out
 
@@ -921,7 +929,9 @@ def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3
 
 
 # A hook-log block line: "[<ts>] [<hook>] [block] … rule=<rule> …".
-_BLOCK_LINE_RE = re.compile(r"^\[(?P<ts>[^\]]+)\]\s+\[(?P<hook>[^\]]+)\]\s+\[block\]\s*(?P<rest>.*)$")
+_BLOCK_LINE_RE = re.compile(
+    r"^\[(?P<ts>[^\]]+)\]\s+\[(?P<hook>[^\]]+)\]\s+\[block\]\s*(?P<rest>.*)$"
+)
 _BLOCK_RULE_RE = re.compile(r"\brule=(\S+)")
 # Recency window shared by both friction miners: a failure/block only counts as
 # a recurring lesson if it recurs within this window. Old/resolved/renamed-rule
@@ -1028,7 +1038,9 @@ def _mine_hook_block_lessons(conn: sqlite3.Connection, *, min_occurrences: int =
 
 # A Conventional-Commit subject whose type means "something was wrong → fixed":
 # fix:/revert: (optional scope, optional !). The subject IS a recorded lesson.
-_FIX_COMMIT_RE = re.compile(r"^(?P<type>fix|revert)(?:\([^)]*\))?!?:\s*(?P<subject>.+)$", re.IGNORECASE)
+_FIX_COMMIT_RE = re.compile(
+    r"^(?P<type>fix|revert)(?:\([^)]*\))?!?:\s*(?P<subject>.+)$", re.IGNORECASE
+)
 
 # A one-off `fix:` subject is terse shorthand with no reusable rule — noise.
 # Only a fix that RECURS this many times is a systemic-gap signal. Reverts are
@@ -1062,9 +1074,20 @@ def _mine_commit_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) 
         return []
     try:
         proc = subprocess.run(
-            ["git", "-C", str(root), "log", f"--since={_LESSON_WINDOW_DAYS} days ago",
-             "--max-count=2000", "--no-merges", "--pretty=format:%s"],
-            capture_output=True, text=True, timeout=10, check=False,
+            [
+                "git",
+                "-C",
+                str(root),
+                "log",
+                f"--since={_LESSON_WINDOW_DAYS} days ago",
+                "--max-count=2000",
+                "--no-merges",
+                "--pretty=format:%s",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
         )
     except (OSError, subprocess.SubprocessError) as exc:
         logger.debug("commit mining skipped: %s", exc)
@@ -1092,7 +1115,9 @@ def _mine_commit_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) 
         subject = _clean_failure_text(cluster["subject"])
         if is_revert:
             # A revert is a recorded "we shipped this and undid it" — real signal.
-            pattern_text = f"Reverted before: {subject} → reconsider before re-introducing this change."
+            pattern_text = (
+                f"Reverted before: {subject} → reconsider before re-introducing this change."
+            )
         elif cluster["count"] >= _COMMIT_FIX_MIN_RECURRENCE:
             # The RECURRENCE is the signal (same thing keeps breaking), not the
             # subject itself. "(N occurrences)" so _pattern_identity dedups it.

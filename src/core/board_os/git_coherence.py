@@ -49,7 +49,10 @@ def detect_board_git_drift(project: Path, rows: list[tuple[str, str]]) -> GitDri
         )
     except (OSError, subprocess.SubprocessError) as exc:
         return GitDriftResult(
-            is_git_root=False, checked=0, skip_reason=f"git unavailable ({exc})", git_unavailable=True
+            is_git_root=False,
+            checked=0,
+            skip_reason=f"git unavailable ({exc})",
+            git_unavailable=True,
         )
     if top.returncode != 0 or Path(top.stdout.strip() or ".").resolve() != project.resolve():
         return GitDriftResult(is_git_root=False, checked=0, skip_reason="not a git work-tree root")
@@ -61,7 +64,17 @@ def detect_board_git_drift(project: Path, rows: list[tuple[str, str]]) -> GitDri
         proc = subprocess.run(
             # --untracked-files=all so a fully-untracked docs/tasks/ lists each
             # file (git collapses an all-untracked dir to one "?? docs/tasks/" line).
-            ["git", "-C", str(project), "status", "--porcelain", "--untracked-files=all", "-z", "--", "docs/tasks"],
+            [
+                "git",
+                "-C",
+                str(project),
+                "status",
+                "--porcelain",
+                "--untracked-files=all",
+                "-z",
+                "--",
+                "docs/tasks",
+            ],
             capture_output=True,
             text=True,
             timeout=30,

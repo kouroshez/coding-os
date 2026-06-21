@@ -125,9 +125,7 @@ def _migrated_db(tmp_path: Path) -> Path:
     return db
 
 
-def test_db_sink_writes_warn_plus(
-    temp_log_dir: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_db_sink_writes_warn_plus(temp_log_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("COS_LOG_DB_MIN_LEVEL", "WARN")
     db = _migrated_db(temp_log_dir)
     sinks.dispatch(_event())  # WARN
@@ -141,9 +139,7 @@ def test_db_sink_writes_warn_plus(
     assert rows[0][2]  # fingerprint computed at insert
 
 
-def test_db_sink_skips_below_min_level(
-    temp_log_dir: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_db_sink_skips_below_min_level(temp_log_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("COS_LOG_DB_MIN_LEVEL", "WARN")
     db = _migrated_db(temp_log_dir)
     event = _event()
@@ -165,9 +161,7 @@ def test_db_sink_fail_open_increments_dropped(
     assert (temp_log_dir / ".cos.log.jsonl").exists()  # jsonl tail still captured
 
 
-def test_db_sink_noop_without_db(
-    temp_log_dir: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_db_sink_noop_without_db(temp_log_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("COS_LOG_DB_MIN_LEVEL", "WARN")
     before = sinks.dropped_events()
     sinks.dispatch(_event())  # WARN — no db file → skipped, not dropped

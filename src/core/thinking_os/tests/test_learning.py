@@ -154,8 +154,13 @@ class TestFrictionLessons:
                 "INSERT INTO observations (session_id, tool_name, observation_type, "
                 "memory_type, impact_score, title, narrative, content_hash, created_at) "
                 f"VALUES (?, 'Edit', 'tool_failure', ?, 0.6, ?, ?, ?, {created})",
-                (session, memory_type, "[BLOCKED] Tool failure: Edit", narrative,
-                 f"h-{memory_type}-{session}-{i}"),
+                (
+                    session,
+                    memory_type,
+                    "[BLOCKED] Tool failure: Edit",
+                    narrative,
+                    f"h-{memory_type}-{session}-{i}",
+                ),
             )
         conn.commit()
 
@@ -163,7 +168,8 @@ class TestFrictionLessons:
         from tools.learning import _mine_friction_lessons
 
         self._seed_failures(
-            seeded_conn, 3,
+            seeded_conn,
+            3,
             "BLOCKED: editing src/core/x.py without the graph-explorer skill loaded",
         )
         lessons = _mine_friction_lessons(seeded_conn, min_occurrences=3)
@@ -185,10 +191,14 @@ class TestFrictionLessons:
     def test_re_mine_updates_not_duplicates(self, seeded_conn: sqlite3.Connection) -> None:
         from tools.learning import _mine_friction_lessons
 
-        self._seed_failures(seeded_conn, 2, "BLOCKED: write through symlink CLAUDE.md", session="ses-a")
+        self._seed_failures(
+            seeded_conn, 2, "BLOCKED: write through symlink CLAUDE.md", session="ses-a"
+        )
         _mine_friction_lessons(seeded_conn, min_occurrences=3)
         # one more occurrence of the SAME failure (count grows 2 -> 3)
-        self._seed_failures(seeded_conn, 1, "BLOCKED: write through symlink CLAUDE.md", session="ses-b")
+        self._seed_failures(
+            seeded_conn, 1, "BLOCKED: write through symlink CLAUDE.md", session="ses-b"
+        )
         _mine_friction_lessons(seeded_conn, min_occurrences=3)
         rows = seeded_conn.execute(
             "SELECT pattern FROM learned_patterns WHERE memory_type='lesson'"
@@ -196,7 +206,9 @@ class TestFrictionLessons:
         assert len(rows) == 1  # count-agnostic identity → single row, not a snapshot per run
 
     def test_learn_extract_includes_friction(self, seeded_conn: sqlite3.Connection) -> None:
-        self._seed_failures(seeded_conn, 2, "BLOCKED: missing doc anchor for this session", session="ses-x")
+        self._seed_failures(
+            seeded_conn, 2, "BLOCKED: missing doc anchor for this session", session="ses-x"
+        )
         learn_extract(seeded_conn, min_occurrences=3)
         lesson_count = seeded_conn.execute(
             "SELECT COUNT(*) FROM learned_patterns WHERE memory_type='lesson'"
@@ -228,7 +240,9 @@ class TestFrictionLessons:
             "Output does not match required schema: StructuredOutput root must have 'area'",
         )
         for idx, narrative in enumerate(noise):
-            self._seed_failures(seeded_conn, 3, narrative, memory_type="error", session=f"ses-n{idx}")
+            self._seed_failures(
+                seeded_conn, 3, narrative, memory_type="error", session=f"ses-n{idx}"
+            )
         assert _mine_friction_lessons(seeded_conn, min_occurrences=3) == []
 
     def test_noise_in_title_filtered(self, seeded_conn: sqlite3.Connection) -> None:
@@ -341,8 +355,14 @@ class TestCommitLessons:
 
         repo = self._make_repo(tmp_path)
         for _ in range(3):  # >= _COMMIT_FIX_MIN_RECURRENCE → systemic-gap signal
-            self._git(repo, "commit", "--allow-empty", "-q", "-m",
-                      "fix: handle null user in session lookup")
+            self._git(
+                repo,
+                "commit",
+                "--allow-empty",
+                "-q",
+                "-m",
+                "fix: handle null user in session lookup",
+            )
         self._git(repo, "commit", "--allow-empty", "-q", "-m", "feat: unrelated change")
         c = init_db(repo / ".coding-os" / "coding-os.db")
         try:
@@ -360,8 +380,14 @@ class TestCommitLessons:
 
         repo = self._make_repo(tmp_path)
         for _ in range(2):
-            self._git(repo, "commit", "--allow-empty", "-q", "-m",
-                      "fix: a one-off thing that happened twice")
+            self._git(
+                repo,
+                "commit",
+                "--allow-empty",
+                "-q",
+                "-m",
+                "fix: a one-off thing that happened twice",
+            )
         c = init_db(repo / ".coding-os" / "coding-os.db")
         try:
             assert _mine_commit_lessons(c) == []
@@ -372,7 +398,9 @@ class TestCommitLessons:
         from tools.learning import _mine_commit_lessons
 
         repo = self._make_repo(tmp_path)
-        self._git(repo, "commit", "--allow-empty", "-q", "-m", "revert: drop the broken cache layer")
+        self._git(
+            repo, "commit", "--allow-empty", "-q", "-m", "revert: drop the broken cache layer"
+        )
         c = init_db(repo / ".coding-os" / "coding-os.db")
         try:
             _mine_commit_lessons(c)  # a revert mints at any count
@@ -468,7 +496,9 @@ class TestHookBlockLessons:
         from tools.learning import _mine_hook_block_lessons
 
         log = tmp_path / ".hooks.log"
-        self._write_log(log, [self._block_line("enforce-skill", "graph-explorer") for _ in range(3)])
+        self._write_log(
+            log, [self._block_line("enforce-skill", "graph-explorer") for _ in range(3)]
+        )
         monkeypatch.setenv("COS_HOOK_LOG", str(log))
         lessons = _mine_hook_block_lessons(conn, min_occurrences=3)
         rows = conn.execute(
@@ -490,7 +520,9 @@ class TestHookBlockLessons:
         from tools.learning import _mine_hook_block_lessons
 
         log = tmp_path / ".hooks.log"
-        self._write_log(log, [self._block_line("enforce-skill", "stale", days_ago=120) for _ in range(5)])
+        self._write_log(
+            log, [self._block_line("enforce-skill", "stale", days_ago=120) for _ in range(5)]
+        )
         monkeypatch.setenv("COS_HOOK_LOG", str(log))
         assert _mine_hook_block_lessons(conn, min_occurrences=3) == []
 
@@ -507,9 +539,13 @@ class TestHookBlockLessons:
         from tools.learning import _mine_hook_block_lessons
 
         main = tmp_path / ".hooks.log"
-        self._write_log(main, ["[2026-06-08T10:00:00Z] [some-hook] [fire] agent=claude session=s task=t"] * 50)
+        self._write_log(
+            main, ["[2026-06-08T10:00:00Z] [some-hook] [fire] agent=claude session=s task=t"] * 50
+        )
         blk = tmp_path / ".hook-blocks.log"
-        self._write_log(blk, [self._block_line("enforce-skill", "graph-explorer") for _ in range(3)])
+        self._write_log(
+            blk, [self._block_line("enforce-skill", "graph-explorer") for _ in range(3)]
+        )
         monkeypatch.setenv("COS_HOOK_LOG", str(main))
         monkeypatch.setenv("COS_HOOK_BLOCK_LOG", str(blk))
         lessons = _mine_hook_block_lessons(conn, min_occurrences=3)
@@ -520,7 +556,9 @@ class TestHookBlockLessons:
         # log preferred), so 3 real blocks count as 3 — never 6 from summing both.
         from tools.learning import _mine_hook_block_lessons
 
-        mirrored = [self._block_line("thinking_os-gate", "gate-not-recorded", days_ago=d) for d in (0, 1, 2)]
+        mirrored = [
+            self._block_line("thinking_os-gate", "gate-not-recorded", days_ago=d) for d in (0, 1, 2)
+        ]
         main = tmp_path / ".hooks.log"
         blk = tmp_path / ".hook-blocks.log"
         self._write_log(main, mirrored)  # same 3 lines in both logs
@@ -1206,12 +1244,22 @@ class TestSemanticConsolidation:
         from tools.learning import _consolidate_semantic_duplicates
 
         _upsert_pattern(
-            conn, pattern="Always parametrize SQL queries to prevent injection",
-            memory_type="lesson", domain=None, source="friction", confidence=0.6, concepts="[]",
+            conn,
+            pattern="Always parametrize SQL queries to prevent injection",
+            memory_type="lesson",
+            domain=None,
+            source="friction",
+            confidence=0.6,
+            concepts="[]",
         )
         _upsert_pattern(
-            conn, pattern="Always use parametrized SQL queries to avoid injection attacks",
-            memory_type="lesson", domain="BACKEND", source="friction", confidence=0.5, concepts="[]",
+            conn,
+            pattern="Always use parametrized SQL queries to avoid injection attacks",
+            memory_type="lesson",
+            domain="BACKEND",
+            source="friction",
+            confidence=0.5,
+            concepts="[]",
         )
         before = conn.execute("SELECT COUNT(*) FROM learned_patterns").fetchone()[0]
         merged = _consolidate_semantic_duplicates(conn, threshold=0.75)
@@ -1224,12 +1272,22 @@ class TestSemanticConsolidation:
         from tools.learning import _consolidate_semantic_duplicates
 
         _upsert_pattern(
-            conn, pattern="Load the graph-explorer skill before editing core Python",
-            memory_type="lesson", domain=None, source="friction", confidence=0.6, concepts="[]",
+            conn,
+            pattern="Load the graph-explorer skill before editing core Python",
+            memory_type="lesson",
+            domain=None,
+            source="friction",
+            confidence=0.6,
+            concepts="[]",
         )
         _upsert_pattern(
-            conn, pattern="Use Decimal not float for money calculations",
-            memory_type="lesson", domain=None, source="friction", confidence=0.6, concepts="[]",
+            conn,
+            pattern="Use Decimal not float for money calculations",
+            memory_type="lesson",
+            domain=None,
+            source="friction",
+            confidence=0.6,
+            concepts="[]",
         )
         assert _consolidate_semantic_duplicates(conn, threshold=0.85) == 0
 
@@ -1255,8 +1313,13 @@ class TestGeneralizeLessons:
             "Bind SQL parameters instead of string building to stop injection",
         ):
             _upsert_pattern(
-                project_conn, pattern=p, memory_type="lesson", domain=None,
-                source="friction", confidence=0.6, concepts="[]",
+                project_conn,
+                pattern=p,
+                memory_type="lesson",
+                domain=None,
+                source="friction",
+                confidence=0.6,
+                concepts="[]",
             )
         res = generalize_lessons(project_conn, min_cluster=3, sim_threshold=0.4)
         assert len(res["drafts"]) >= 1
@@ -1269,8 +1332,13 @@ class TestGeneralizeLessons:
         from tools.learning import generalize_lessons
 
         _upsert_pattern(
-            project_conn, pattern="Use Decimal for money calculations", memory_type="lesson",
-            domain=None, source="friction", confidence=0.6, concepts="[]",
+            project_conn,
+            pattern="Use Decimal for money calculations",
+            memory_type="lesson",
+            domain=None,
+            source="friction",
+            confidence=0.6,
+            concepts="[]",
         )
         assert generalize_lessons(project_conn, min_cluster=3)["drafts"] == []
 

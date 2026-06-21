@@ -338,9 +338,7 @@ def hub_adapters() -> dict:
         reg = load_adapter_registry(adapters_dir())
     except Exception as exc:
         return _err("unavailable", f"adapter registry unavailable: {exc}", status=503)
-    adapters = [
-        {"id": a.id, "label": a.label} for a in sorted(reg.values(), key=lambda a: a.id)
-    ]
+    adapters = [{"id": a.id, "label": a.label} for a in sorted(reg.values(), key=lambda a: a.id)]
     return {
         "data": {"adapters": adapters, "count": len(adapters)},
         "meta": {"layer": "hub", "source": "hub.adapters"},
@@ -557,7 +555,9 @@ def _validate_init_inputs(
             return _err("validation", f"unknown module(s): {unknown_mods}"), {}
         kernel_mods = [m for m in disabled_modules if registry_modules[m].kernel]
         if kernel_mods:
-            return _err("validation", f"module(s) {kernel_mods} are kernel and cannot be disabled"), {}
+            return _err(
+                "validation", f"module(s) {kernel_mods} are kernel and cannot be disabled"
+            ), {}
     info["disabled_modules"] = disabled_modules
 
     # Argv allowlist (TASK-363): every value that reaches the subprocess argv
@@ -592,8 +592,13 @@ def hub_registry_validate_init(
     """Dry-run validation + merged-config preview for the onboarding wizard (TASK-358)."""
     resolved_agents = _resolve_agents(agent, agents)
     error, info = _validate_init_inputs(
-        name, parent_dir, stacks, preset, resolved_agents,
-        extra_skills=extra_skills, disabled_modules=disabled_modules,
+        name,
+        parent_dir,
+        stacks,
+        preset,
+        resolved_agents,
+        extra_skills=extra_skills,
+        disabled_modules=disabled_modules,
     )
     if error is not None:
         return error
@@ -750,8 +755,13 @@ def hub_registry_init(
     all_stacks = [s for s in ((stacks or []) + ([stack] if stack else [])) if s]
     resolved_agents = _resolve_agents(agent, agents)
     error, info = _validate_init_inputs(
-        name, parent_dir, all_stacks, preset, resolved_agents,
-        extra_skills=extra_skills, disabled_modules=disabled_modules,
+        name,
+        parent_dir,
+        all_stacks,
+        preset,
+        resolved_agents,
+        extra_skills=extra_skills,
+        disabled_modules=disabled_modules,
     )
     if error is not None:
         return error

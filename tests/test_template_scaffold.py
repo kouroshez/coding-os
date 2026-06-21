@@ -463,8 +463,8 @@ def test_no_engineering_doc_filename_collision_across_stacks() -> None:
                 collisions.append(f"{md.name}: {seen[md.name]} vs {stack.name}")
             else:
                 seen[md.name] = stack.name
-    assert not collisions, (
-        "Colliding engineering doc filenames across stacks:\n" + "\n".join(collisions)
+    assert not collisions, "Colliding engineering doc filenames across stacks:\n" + "\n".join(
+        collisions
     )
 
 
@@ -483,7 +483,16 @@ class TestTagDrivenDocs:
         project.mkdir()
         result = CliRunner().invoke(
             cli,
-            ["init", "--agent", "claude", "-d", str(project), "--yes", "--no-index", "--no-register"],
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project),
+                "--yes",
+                "--no-index",
+                "--no-register",
+            ],
         )
         assert result.exit_code == 0, result.output
         vision = (project / "docs" / "prd" / "01-snapshot-vision.md").read_text(encoding="utf-8")
@@ -515,7 +524,16 @@ class TestTagDrivenDocs:
         project.mkdir()
         result = CliRunner().invoke(
             cli,
-            ["init", "--agent", "claude", "-d", str(project), "--yes", "--no-index", "--no-register"],
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project),
+                "--yes",
+                "--no-index",
+                "--no-register",
+            ],
         )
         assert result.exit_code == 0, result.output
         assert not (project / "docs" / "prd" / "01-snapshot-vision.md").exists()
@@ -591,9 +609,7 @@ class TestStackBundleLint:
 
         fixtures = tmp_path / "templates"
         fixtures.mkdir()
-        _shutil.copytree(
-            Path("src/templates/_base"), fixtures / "_base", symlinks=True
-        )
+        _shutil.copytree(Path("src/templates/_base"), fixtures / "_base", symlinks=True)
         broken = fixtures / "brokenstack"
         broken.mkdir()
         (broken / "stack.yaml").write_text(
@@ -673,14 +689,27 @@ class TestNodeExpressStack:
         result = CliRunner().invoke(
             cli,
             [
-                "init", "--agent", "claude", "-d", str(project),
-                "--template", "node-express", "--yes", "--no-index", "--no-register",
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project),
+                "--template",
+                "node-express",
+                "--yes",
+                "--no-index",
+                "--no-register",
             ],
         )
         assert result.exit_code == 0, result.output
         backend = project / "src" / "backend"
-        for piece in ("package.json", "tsconfig.json", "src/index.ts",
-                      "src/routes/health.ts", "src/middleware/error-handler.ts"):
+        for piece in (
+            "package.json",
+            "tsconfig.json",
+            "src/index.ts",
+            "src/routes/health.ts",
+            "src/middleware/error-handler.ts",
+        ):
             assert (backend / piece).is_file(), piece
         assert "{{PROJECT_NAME}}" not in (backend / "package.json").read_text(encoding="utf-8")
 
@@ -703,16 +732,32 @@ class TestNodeExpressStack:
 
         project = tmp_path / "tscheck"
         project.mkdir()
-        assert CliRunner().invoke(
-            cli,
-            [
-                "init", "--agent", "claude", "-d", str(project),
-                "--template", "node-express", "--yes", "--no-index", "--no-register",
-            ],
-        ).exit_code == 0
+        assert (
+            CliRunner()
+            .invoke(
+                cli,
+                [
+                    "init",
+                    "--agent",
+                    "claude",
+                    "-d",
+                    str(project),
+                    "--template",
+                    "node-express",
+                    "--yes",
+                    "--no-index",
+                    "--no-register",
+                ],
+            )
+            .exit_code
+            == 0
+        )
         proc = subprocess.run(
-            [str(tsc), "--noEmit"], cwd=project / "src" / "backend",
-            capture_output=True, text=True, timeout=120,
+            [str(tsc), "--noEmit"],
+            cwd=project / "src" / "backend",
+            capture_output=True,
+            text=True,
+            timeout=120,
         )
         assert proc.returncode == 0, proc.stdout + proc.stderr
 
@@ -747,8 +792,16 @@ class TestVueNuxtStack:
         result = CliRunner().invoke(
             cli,
             [
-                "init", "--agent", "claude", "-d", str(project),
-                "--template", "vue-nuxt", "--yes", "--no-index", "--no-register",
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project),
+                "--template",
+                "vue-nuxt",
+                "--yes",
+                "--no-index",
+                "--no-register",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -756,7 +809,9 @@ class TestVueNuxtStack:
         for piece in ("nuxt.config.ts", "app.vue", "pages/index.vue", "package.json"):
             assert (frontend / piece).is_file(), piece
         index_page = (frontend / "pages" / "index.vue").read_text(encoding="utf-8")
-        assert "{{PROJECT_NAME}}" not in index_page  # placeholder resolved in .vue? (md/json/ts only)
+        assert (
+            "{{PROJECT_NAME}}" not in index_page
+        )  # placeholder resolved in .vue? (md/json/ts only)
 
         config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
         assert config["verify"]["frontend"] == "cd src/frontend && npm run lint && npm test"

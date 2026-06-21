@@ -114,7 +114,7 @@ CORPUS: dict[str, tuple[object, list[Scenario]]] = {
                 "// fn decoy() {} — commented out\n"
                 "struct Service { cache: HashMap<String, String> }\n"
                 "fn build() -> Service { validate(); remote::fetch(); Service { cache: HashMap::new() } }\n"
-                "fn validate() { let _msg = \"fn fake_fn() {}\"; }\n",
+                'fn validate() { let _msg = "fn fake_fn() {}"; }\n',
                 funcs={"build", "validate"},
                 classes={"Service"},
                 edges=[
@@ -133,10 +133,7 @@ CORPUS: dict[str, tuple[object, list[Scenario]]] = {
             Scenario(
                 "simple",
                 "s1.rb",
-                'require "set"\n'
-                "def helper; 1; end\n"
-                "def main; helper; end\n"
-                "class Point; end\n",
+                'require "set"\ndef helper; 1; end\ndef main; helper; end\nclass Point; end\n',
                 funcs={"helper", "main"},
                 classes={"Point"},
                 edges=[
@@ -548,8 +545,7 @@ CORPUS: dict[str, tuple[object, list[Scenario]]] = {
             Scenario(
                 "nested",
                 "s2.lua",
-                "local function validate() return true end\n"
-                "function run()\n  validate()\nend\n",
+                "local function validate() return true end\nfunction run()\n  validate()\nend\n",
                 funcs={"validate", "run"},
                 edges=[("calls", "::run", "::validate")],
             ),
@@ -788,9 +784,7 @@ CORPUS: dict[str, tuple[object, list[Scenario]]] = {
             Scenario(
                 "simple",
                 "s1.sh",
-                "source ./env.sh\n"
-                "helper() { echo hi; }\n"
-                "main() { helper; }\n",
+                "source ./env.sh\nhelper() { echo hi; }\nmain() { helper; }\n",
                 funcs={"helper", "main"},
                 edges=[
                     ("imports", "s1.sh", "env.sh"),
@@ -853,8 +847,13 @@ CONFIG_CORPUS: dict[str, tuple[object, list[Scenario]]] = {
                 # `on=push` pins the YAML-1.1 bool-key fix — safe_load used to
                 # mangle this hottest GitHub Actions key into `True=push`.
                 funcs={
-                    "name=ci", "on=push", "jobs=dict", "test=dict",
-                    "runs-on=ubuntu", "steps=list", "run=make test",
+                    "name=ci",
+                    "on=push",
+                    "jobs=dict",
+                    "test=dict",
+                    "runs-on=ubuntu",
+                    "steps=list",
+                    "run=make test",
                 },
             ),
             Scenario(
@@ -863,8 +862,12 @@ CONFIG_CORPUS: dict[str, tuple[object, list[Scenario]]] = {
                 "services:\n  api:\n    image: app:1\n    ports:\n      - 8080:8080\n"
                 "  db:\n    image: postgres:16\n",
                 funcs={
-                    "services=dict", "api=dict", "db=dict",
-                    "image=app:1", "image=postgres:16", "ports=list",
+                    "services=dict",
+                    "api=dict",
+                    "db=dict",
+                    "image=app:1",
+                    "image=postgres:16",
+                    "ports=list",
                 },
             ),
         ],
@@ -879,8 +882,11 @@ CONFIG_CORPUS: dict[str, tuple[object, list[Scenario]]] = {
                 '"devDependencies":{"vitest":"2"},'
                 '"scripts":{"build":"tsc","test":"vitest"}}',
                 funcs={
-                    "app", "npm:package:react", "npm:package:vitest",
-                    "npm:build", "npm:test",
+                    "app",
+                    "npm:package:react",
+                    "npm:package:vitest",
+                    "npm:build",
+                    "npm:test",
                 },
             ),
             Scenario(
@@ -916,9 +922,7 @@ def _config_labels(result) -> set[str]:
     return {n.label for n in result.nodes if n.kind in _CONFIG_KINDS and n.label}
 
 
-_CONFIG_CASES = [
-    (fmt, sc) for fmt, (_, scenarios) in CONFIG_CORPUS.items() for sc in scenarios
-]
+_CONFIG_CASES = [(fmt, sc) for fmt, (_, scenarios) in CONFIG_CORPUS.items() for sc in scenarios]
 _CONFIG_IDS = [f"{fmt}-{sc.name}" for fmt, sc in _CONFIG_CASES]
 
 
@@ -970,9 +974,7 @@ def _symbol_metrics(result, sc: Scenario) -> tuple[float, float, set[str]]:
         # constructors legitimately share the class name (java/c#)
         and n not in sc.classes
     }
-    precision = (
-        (len(extracted) - len(phantoms)) / len(extracted) if extracted else 1.0
-    )
+    precision = (len(extracted) - len(phantoms)) / len(extracted) if extracted else 1.0
     return recall, precision, phantoms
 
 
@@ -1050,9 +1052,7 @@ def compute_stats() -> dict[str, dict[str, float]]:
 # Threshold gates — these are the score, asserted
 # ---------------------------------------------------------------------------
 
-_ALL_CASES = [
-    (lang, sc) for lang, (_, scenarios) in CORPUS.items() for sc in scenarios
-]
+_ALL_CASES = [(lang, sc) for lang, (_, scenarios) in CORPUS.items() for sc in scenarios]
 _IDS = [f"{lang}-{sc.name}" for lang, sc in _ALL_CASES]
 
 
@@ -1142,8 +1142,10 @@ def test_kotlin_grammar_quirk_is_surfaced():
 
 if __name__ == "__main__":
     table = compute_stats()
-    print(f"{'lang':10} {'sym_recall':>10} {'precision':>10} {'edge_recall':>11} "
-          f"{'median_ms':>10} {'peak_kb':>8}")
+    print(
+        f"{'lang':10} {'sym_recall':>10} {'precision':>10} {'edge_recall':>11} "
+        f"{'median_ms':>10} {'peak_kb':>8}"
+    )
     for lang, row in table.items():
         print(
             f"{lang:10} {row['symbol_recall']:>10.2f} {row['precision']:>10.2f} "

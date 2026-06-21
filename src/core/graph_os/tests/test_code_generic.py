@@ -112,20 +112,60 @@ def test_lang_spec_node_types_exist_in_installed_grammars():
 
 
 _POLYGLOT_CASES = [
-    ("java", "tree_sitter_java", "A.java", "class C { void m(){} } interface I{}",
-     {"code:class:A.java::C", "code:function:A.java::m", "code:class:A.java::I"}),
-    ("c", "tree_sitter_c", "a.c", "struct S{int x;}; int main(){return 0;}",
-     {"code:class:a.c::S", "code:function:a.c::main"}),
-    ("cpp", "tree_sitter_cpp", "a.cpp", "class C{ void run(){} };",
-     {"code:class:a.cpp::C", "code:function:a.cpp::run"}),
-    ("c_sharp", "tree_sitter_c_sharp", "A.cs", "class C{ void M(){} } interface I{}",
-     {"code:class:A.cs::C", "code:function:A.cs::M", "code:class:A.cs::I"}),
-    ("scala", "tree_sitter_scala", "a.scala", "class C{ def m()={} }\nobject O{}\ntrait T{}",
-     {"code:class:a.scala::C", "code:function:a.scala::m", "code:class:a.scala::O", "code:class:a.scala::T"}),
-    ("kotlin", "tree_sitter_kotlin", "a.kt", "class C { fun m() {} }\nfun top() {}",
-     {"code:class:a.kt::C", "code:function:a.kt::m", "code:function:a.kt::top"}),
-    ("lua", "tree_sitter_lua", "a.lua", "function f() end\nlocal function gg() end",
-     {"code:function:a.lua::f", "code:function:a.lua::gg"}),
+    (
+        "java",
+        "tree_sitter_java",
+        "A.java",
+        "class C { void m(){} } interface I{}",
+        {"code:class:A.java::C", "code:function:A.java::m", "code:class:A.java::I"},
+    ),
+    (
+        "c",
+        "tree_sitter_c",
+        "a.c",
+        "struct S{int x;}; int main(){return 0;}",
+        {"code:class:a.c::S", "code:function:a.c::main"},
+    ),
+    (
+        "cpp",
+        "tree_sitter_cpp",
+        "a.cpp",
+        "class C{ void run(){} };",
+        {"code:class:a.cpp::C", "code:function:a.cpp::run"},
+    ),
+    (
+        "c_sharp",
+        "tree_sitter_c_sharp",
+        "A.cs",
+        "class C{ void M(){} } interface I{}",
+        {"code:class:A.cs::C", "code:function:A.cs::M", "code:class:A.cs::I"},
+    ),
+    (
+        "scala",
+        "tree_sitter_scala",
+        "a.scala",
+        "class C{ def m()={} }\nobject O{}\ntrait T{}",
+        {
+            "code:class:a.scala::C",
+            "code:function:a.scala::m",
+            "code:class:a.scala::O",
+            "code:class:a.scala::T",
+        },
+    ),
+    (
+        "kotlin",
+        "tree_sitter_kotlin",
+        "a.kt",
+        "class C { fun m() {} }\nfun top() {}",
+        {"code:class:a.kt::C", "code:function:a.kt::m", "code:function:a.kt::top"},
+    ),
+    (
+        "lua",
+        "tree_sitter_lua",
+        "a.lua",
+        "function f() end\nlocal function gg() end",
+        {"code:function:a.lua::f", "code:function:a.lua::gg"},
+    ),
 ]
 
 

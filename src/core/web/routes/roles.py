@@ -114,7 +114,9 @@ def _role_defs() -> list[dict[str, Any]]:
         try:
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         except Exception as exc:
-            logging.getLogger("coding_os.web.roles").debug("role yaml parse failed %s: %s", path, exc)
+            logging.getLogger("coding_os.web.roles").debug(
+                "role yaml parse failed %s: %s", path, exc
+            )
             continue
         if not isinstance(data, dict) or "id" not in data:
             continue

@@ -44,9 +44,7 @@ def test_cross_project_agents_groups_per_project(tmp_path: Path, monkeypatch) ->
     assert b["task"] == "TASK-BBB" and b["slug"] == "beta"
 
 
-def test_cross_project_agents_skips_projects_without_state_dir(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_cross_project_agents_skips_projects_without_state_dir(tmp_path: Path, monkeypatch) -> None:
     ghost = tmp_path / "ghost"  # registered but no .coding-os/ → skipped, never raises
     ghost.mkdir()
     fake = Registry(

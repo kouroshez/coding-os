@@ -116,9 +116,7 @@ class TestClaudeAdapter:
         assert (project / ".claude" / "skills" / "wordpress" / "SKILL.md").exists()
 
         config = project / ".coding-os.yaml"
-        config.write_text(
-            "disabled_skills:\n  - wordpress\n  - supabase\n", encoding="utf-8"
-        )
+        config.write_text("disabled_skills:\n  - wordpress\n  - supabase\n", encoding="utf-8")
         result = run_adapter_install("claude", project)
         assert result.returncode == 0, result.stderr
 

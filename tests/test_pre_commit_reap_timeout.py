@@ -23,17 +23,11 @@ HELPER = (
 
 
 def _run(script: str, timeout: int = 20) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["bash", "-c", script], capture_output=True, text=True, timeout=timeout
-    )
+    return subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=timeout)
 
 
 def test_reaps_hanging_command_within_grace():
-    script = (
-        f'source "{HELPER}"; '
-        "cos_run_with_reap_timeout 1 sleep 60; "
-        'echo "rc=$?"'
-    )
+    script = f'source "{HELPER}"; cos_run_with_reap_timeout 1 sleep 60; echo "rc=$?"'
     start = time.monotonic()
     res = _run(script)
     elapsed = time.monotonic() - start
@@ -48,9 +42,7 @@ def test_passthrough_success():
 
 
 def test_passthrough_failure_code():
-    res = _run(
-        f'source "{HELPER}"; cos_run_with_reap_timeout 5 bash -c "exit 7"; echo "rc=$?"'
-    )
+    res = _run(f'source "{HELPER}"; cos_run_with_reap_timeout 5 bash -c "exit 7"; echo "rc=$?"')
     assert "rc=7" in res.stdout
 
 
@@ -60,11 +52,7 @@ def test_reaps_grandchild_subtree(tmp_path):
     pidfile = tmp_path / "gc.pid"
     child = tmp_path / "child.sh"
     child.write_text(f'sleep 60 &\necho $! > "{pidfile}"\nwait\n')
-    script = (
-        f'source "{HELPER}"; '
-        f'cos_run_with_reap_timeout 1 bash "{child}"; '
-        "sleep 1"
-    )
+    script = f'source "{HELPER}"; cos_run_with_reap_timeout 1 bash "{child}"; sleep 1'
     _run(script, timeout=15)
     gc_pid = int(pidfile.read_text().strip())
     alive = True

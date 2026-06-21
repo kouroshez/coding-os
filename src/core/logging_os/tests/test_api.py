@@ -137,9 +137,11 @@ def test_error_with_exc_captures_type_and_stack(temp_state: Path) -> None:
         logging_os.error("cli.test", "operation failed", exc=exc)
     parsed = json.loads((temp_state / ".cos.log.jsonl").read_text().strip())
     assert parsed["exc"] == "ValueError"
-    row = sqlite3.connect(str(temp_state / "coding-os.db")).execute(
-        "SELECT exc_type, stack FROM log_events ORDER BY id DESC LIMIT 1"
-    ).fetchone()
+    row = (
+        sqlite3.connect(str(temp_state / "coding-os.db"))
+        .execute("SELECT exc_type, stack FROM log_events ORDER BY id DESC LIMIT 1")
+        .fetchone()
+    )
     assert row[0] == "ValueError"
     assert row[1] and "deep cause" in row[1]
 
@@ -164,9 +166,11 @@ def test_session_and_trace_stamped_from_env(
     monkeypatch.setenv("COS_TRACE_ID", "trace-1")
     _migrated_db(temp_state)
     logging_os.error("cli.test", "boom")
-    row = sqlite3.connect(str(temp_state / "coding-os.db")).execute(
-        "SELECT session_id, trace_id FROM log_events ORDER BY id DESC LIMIT 1"
-    ).fetchone()
+    row = (
+        sqlite3.connect(str(temp_state / "coding-os.db"))
+        .execute("SELECT session_id, trace_id FROM log_events ORDER BY id DESC LIMIT 1")
+        .fetchone()
+    )
     assert row[0] == "ses-xyz"
     assert row[1] == "trace-1"
 

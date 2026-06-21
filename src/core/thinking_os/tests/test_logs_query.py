@@ -16,12 +16,42 @@ except ImportError:  # path layout differs by runner
 def _db_with_events(tmp_path: Path) -> sqlite3.Connection:
     conn = init_db(tmp_path / "coding-os.db")
     rows = [
-        ("2026-06-05T01:00:00Z", "WARN", "cli.doctor", "disk almost full",
-         None, None, None, None, None, "fp1"),
-        ("2026-06-05T02:00:00Z", "ERROR", "thinking_os.server", "db migration v23 failed",
-         None, "RuntimeError", None, "sesA", None, "fp2"),
-        ("2026-06-05T03:00:00Z", "FATAL", "cli.main", "uv not on PATH",
-         None, None, None, "sesB", None, "fp3"),
+        (
+            "2026-06-05T01:00:00Z",
+            "WARN",
+            "cli.doctor",
+            "disk almost full",
+            None,
+            None,
+            None,
+            None,
+            None,
+            "fp1",
+        ),
+        (
+            "2026-06-05T02:00:00Z",
+            "ERROR",
+            "thinking_os.server",
+            "db migration v23 failed",
+            None,
+            "RuntimeError",
+            None,
+            "sesA",
+            None,
+            "fp2",
+        ),
+        (
+            "2026-06-05T03:00:00Z",
+            "FATAL",
+            "cli.main",
+            "uv not on PATH",
+            None,
+            None,
+            None,
+            "sesB",
+            None,
+            "fp3",
+        ),
     ]
     conn.executemany(
         "INSERT INTO log_events "

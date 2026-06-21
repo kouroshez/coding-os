@@ -101,9 +101,7 @@ def _deep_merge(base: Any, overlay: Any, log: _ConflictLog, path: str) -> Any:
     if isinstance(base, dict) and isinstance(overlay, dict):
         out = copy.deepcopy(base)
         for k, v in overlay.items():
-            out[k] = (
-                _deep_merge(out[k], v, log, f"{path}.{k}") if k in out else copy.deepcopy(v)
-            )
+            out[k] = _deep_merge(out[k], v, log, f"{path}.{k}") if k in out else copy.deepcopy(v)
         return out
     if isinstance(base, list) and isinstance(overlay, list):
         return _union_list(base, overlay)
@@ -337,7 +335,9 @@ def recompose_for_removed_stack(
         base = _load(base_dir / filename, fmt)
         overlays: list[dict[str, Any]] = []
         for stack_id in remaining_templates:
-            overlay = _load(_stack_scaffold_dir(stack_id, templates_dir) / ".coding-os" / filename, fmt)
+            overlay = _load(
+                _stack_scaffold_dir(stack_id, templates_dir) / ".coding-os" / filename, fmt
+            )
             if overlay is not None:
                 overlays.append(overlay)
         merged = compose(base or {}, overlays, spec)

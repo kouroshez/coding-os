@@ -429,12 +429,26 @@ class TestConsolidation:
         conn = init_db(db_path)
         try:
             self._insert(
-                conn, pattern="Dup", domain="X", confidence=0.8, decay_rate=0.1,
-                last_validated="now", times_validated=1, impact_score=0.5, access_count=3,
+                conn,
+                pattern="Dup",
+                domain="X",
+                confidence=0.8,
+                decay_rate=0.1,
+                last_validated="now",
+                times_validated=1,
+                impact_score=0.5,
+                access_count=3,
             )
             self._insert(
-                conn, pattern="Dup", domain="X", confidence=0.6, decay_rate=0.1,
-                last_validated="now", times_validated=2, impact_score=0.5, access_count=5,
+                conn,
+                pattern="Dup",
+                domain="X",
+                confidence=0.6,
+                decay_rate=0.1,
+                last_validated="now",
+                times_validated=2,
+                impact_score=0.5,
+                access_count=5,
             )
             conn.execute("UPDATE learned_patterns SET last_validated = datetime('now')")
             conn.commit()
@@ -459,8 +473,14 @@ class TestConsolidation:
         conn = init_db(db_path)
         try:
             self._insert(
-                conn, pattern="Dead", domain="X", confidence=0.10, decay_rate=0.1,
-                last_validated="now", times_validated=0, impact_score=0.5,
+                conn,
+                pattern="Dead",
+                domain="X",
+                confidence=0.10,
+                decay_rate=0.1,
+                last_validated="now",
+                times_validated=0,
+                impact_score=0.5,
                 promoted_to="archived",
             )
             conn.execute(
@@ -483,8 +503,14 @@ class TestConsolidation:
         conn = init_db(db_path)
         try:
             self._insert(
-                conn, pattern="Important", domain="X", confidence=0.10, decay_rate=0.1,
-                last_validated="now", times_validated=7, impact_score=0.9,
+                conn,
+                pattern="Important",
+                domain="X",
+                confidence=0.10,
+                decay_rate=0.1,
+                last_validated="now",
+                times_validated=7,
+                impact_score=0.9,
                 promoted_to="archived",
             )
             conn.execute(
@@ -501,13 +527,17 @@ class TestConsolidation:
         conn = init_db(db_path)
         try:
             self._insert(
-                conn, pattern="Recent", domain="X", confidence=0.10, decay_rate=0.1,
-                last_validated="now", times_validated=0, impact_score=0.5,
+                conn,
+                pattern="Recent",
+                domain="X",
+                confidence=0.10,
+                decay_rate=0.1,
+                last_validated="now",
+                times_validated=0,
+                impact_score=0.5,
                 promoted_to="archived",
             )
-            conn.execute(
-                "UPDATE learned_patterns SET last_accessed_at = datetime('now','-2 days')"
-            )
+            conn.execute("UPDATE learned_patterns SET last_accessed_at = datetime('now','-2 days')")
             conn.commit()
         finally:
             conn.close()

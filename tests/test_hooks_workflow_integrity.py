@@ -154,6 +154,7 @@ class TestEnforceTaskTransition:
         )
         assert rc == 0
 
+
 class TestSyncTaskCurrent:
     H = "sync-task-current.sh"
 
@@ -261,5 +262,3 @@ class TestNudgeTaskDiscovery:
         )
         assert rc == 0
         assert "task nudge" not in err
-
-

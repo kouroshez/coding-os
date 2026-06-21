@@ -5,15 +5,29 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]
-                       / "src" / "core" / "skills" / "incident-response" / "scripts"))
+sys.path.insert(
+    0,
+    str(
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "core"
+        / "skills"
+        / "incident-response"
+        / "scripts"
+    ),
+)
 
 import classify_severity as cs  # noqa: E402
 
 
 def _c(**kw) -> int:
-    base = dict(users_affected=0.0, data_loss=False, security_breach=False,
-                core_down=False, workaround=False)
+    base = dict(
+        users_affected=0.0,
+        data_loss=False,
+        security_breach=False,
+        core_down=False,
+        workaround=False,
+    )
     base.update(kw)
     return cs.classify(**base)[0]
 

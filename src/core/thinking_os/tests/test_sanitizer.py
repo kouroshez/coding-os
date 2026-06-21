@@ -422,9 +422,7 @@ class TestScrubUsername:
 
     def test_does_not_mangle_extending_username(self) -> None:
         # A DIFFERENT user whose name extends home's must be left intact.
-        assert (
-            scrub_username("/Users/alice2/x.py", home="/Users/alice") == "/Users/alice2/x.py"
-        )
+        assert scrub_username("/Users/alice2/x.py", home="/Users/alice") == "/Users/alice2/x.py"
 
     def test_sanitize_write_strips_username(self, tmp_db: sqlite3.Connection) -> None:
         sr = sanitize_write(

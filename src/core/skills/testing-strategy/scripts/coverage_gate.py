@@ -43,7 +43,9 @@ def parse_percent(path: Path) -> float:
         return percent_from_cobertura(text)
     # sniff
     stripped = text.lstrip()
-    return percent_from_coveragepy(text) if stripped.startswith("{") else percent_from_cobertura(text)
+    return (
+        percent_from_coveragepy(text) if stripped.startswith("{") else percent_from_cobertura(text)
+    )
 
 
 def main(argv: list[str]) -> int:

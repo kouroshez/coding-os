@@ -32,19 +32,24 @@ def _node_findings(node: dict, rows_threshold: int, estimate_ratio: float) -> li
     if ntype == "Seq Scan":
         big = (actual if actual is not None else plan_rows) or 0
         if big >= rows_threshold:
-            out.append(f"seq scan{where}: {big} rows — missing/unused index on the filtered column?")
+            out.append(
+                f"seq scan{where}: {big} rows — missing/unused index on the filtered column?"
+            )
 
     if plan_rows and actual is not None and plan_rows > 0:
         ratio = max(plan_rows, actual) / max(min(plan_rows, actual), 1)
         if ratio >= estimate_ratio:
-            out.append(f"estimate off{where}: planned {plan_rows} vs actual {actual} "
-                       f"({ratio:.0f}x) — stale stats (ANALYZE) or a bad correlation assumption")
+            out.append(
+                f"estimate off{where}: planned {plan_rows} vs actual {actual} "
+                f"({ratio:.0f}x) — stale stats (ANALYZE) or a bad correlation assumption"
+            )
 
     if ntype == "Nested Loop" and node.get("Plans"):
-        inner_rows = max((c.get("Actual Rows", c.get("Plan Rows", 0)) or 0)
-                         for c in node["Plans"])
+        inner_rows = max((c.get("Actual Rows", c.get("Plan Rows", 0)) or 0) for c in node["Plans"])
         if inner_rows >= rows_threshold:
-            out.append(f"nested loop over ~{inner_rows} inner rows — a hash/merge join may be cheaper")
+            out.append(
+                f"nested loop over ~{inner_rows} inner rows — a hash/merge join may be cheaper"
+            )
 
     return out
 

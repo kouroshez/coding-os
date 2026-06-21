@@ -7,14 +7,19 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]
-                       / "src" / "core" / "skills" / "typescript" / "scripts"))
+sys.path.insert(
+    0,
+    str(Path(__file__).resolve().parents[1] / "src" / "core" / "skills" / "typescript" / "scripts"),
+)
 
 import check_tsconfig as ct  # noqa: E402
 
 STRICT = {
-    "strict": True, "noUncheckedIndexedAccess": True, "noImplicitOverride": True,
-    "exactOptionalPropertyTypes": True, "noFallthroughCasesInSwitch": True,
+    "strict": True,
+    "noUncheckedIndexedAccess": True,
+    "noImplicitOverride": True,
+    "exactOptionalPropertyTypes": True,
+    "noFallthroughCasesInSwitch": True,
 }
 
 

@@ -249,7 +249,9 @@ def _get_model_by_name(name: str) -> Any:
             logger.warning(
                 "Embedding model %s not in local cache; runtime downloads are "
                 "disabled — set COS_ALLOW_MODEL_DOWNLOAD=1 once to vendor it. "
-                "Falling back to lexical search. (%s)", name, exc
+                "Falling back to lexical search. (%s)",
+                name,
+                exc,
             )
         else:
             logger.warning("Failed to load embedding model %s: %s", name, exc)
@@ -693,9 +695,7 @@ def enqueue_outbox(conn: sqlite3.Connection, source_table: str, source_id: int) 
         return False
 
 
-def drain_outbox(
-    conn: sqlite3.Connection, *, limit: int = 64, max_attempts: int = 3
-) -> dict:
+def drain_outbox(conn: sqlite3.Connection, *, limit: int = 64, max_attempts: int = 3) -> dict:
     """Embed up to `limit` pending outbox rows; remove on success, retry-bounded.
 
     Runs off the interactive path (Stop hook / cron). A row whose source text
@@ -733,8 +733,7 @@ def drain_outbox(
             drained += 1
         else:
             conn.execute(
-                "UPDATE embedding_outbox SET attempts = attempts + 1, last_error = ? "
-                "WHERE id = ?",
+                "UPDATE embedding_outbox SET attempts = attempts + 1, last_error = ? WHERE id = ?",
                 (str(res.get("reason"))[:200], oid),
             )
             failed += 1

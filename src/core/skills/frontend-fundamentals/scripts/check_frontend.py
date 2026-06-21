@@ -20,18 +20,30 @@ import sys
 from pathlib import Path
 
 RULES: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"\bkey=\{\s*(i|idx|index)\s*\}"),
-     "array index as key — breaks reconciliation on reorder/insert; use a stable id"),
-    (re.compile(r"\.map\((?:\([^)]*\)|\w+)\s*=>\s*<\w+(?![^>]*\bkey=)"),
-     "list item rendered without a key prop"),
-    (re.compile(r"\b\w+=\{\{"),
-     "inline object literal prop — new reference each render → child re-renders; hoist/useMemo"),
-    (re.compile(r"\b\w+=\{\s*\[[^\]]"),
-     "inline array literal prop — new reference each render; hoist/useMemo"),
-    (re.compile(r"dangerouslySetInnerHTML"),
-     "dangerouslySetInnerHTML — XSS risk; sanitize or avoid"),
-    (re.compile(r"useEffect\([^,]*\)\s*;"),
-     "useEffect with no dependency array — runs every render"),
+    (
+        re.compile(r"\bkey=\{\s*(i|idx|index)\s*\}"),
+        "array index as key — breaks reconciliation on reorder/insert; use a stable id",
+    ),
+    (
+        re.compile(r"\.map\((?:\([^)]*\)|\w+)\s*=>\s*<\w+(?![^>]*\bkey=)"),
+        "list item rendered without a key prop",
+    ),
+    (
+        re.compile(r"\b\w+=\{\{"),
+        "inline object literal prop — new reference each render → child re-renders; hoist/useMemo",
+    ),
+    (
+        re.compile(r"\b\w+=\{\s*\[[^\]]"),
+        "inline array literal prop — new reference each render; hoist/useMemo",
+    ),
+    (
+        re.compile(r"dangerouslySetInnerHTML"),
+        "dangerouslySetInnerHTML — XSS risk; sanitize or avoid",
+    ),
+    (
+        re.compile(r"useEffect\([^,]*\)\s*;"),
+        "useEffect with no dependency array — runs every render",
+    ),
 ]
 
 

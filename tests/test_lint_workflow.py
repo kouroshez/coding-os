@@ -5,8 +5,17 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]
-                       / "src" / "core" / "skills" / "deployment-cicd" / "scripts"))
+sys.path.insert(
+    0,
+    str(
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "core"
+        / "skills"
+        / "deployment-cicd"
+        / "scripts"
+    ),
+)
 
 import lint_workflow as lw  # noqa: E402
 
@@ -27,23 +36,31 @@ def test_good_workflow_clean() -> None:
 
 
 def test_moving_ref_flagged() -> None:
-    out = lw.scan_text("jobs:\n  t:\n    timeout-minutes: 5\n    steps:\n      - uses: actions/checkout@main\n",
-                       filename="x.yml")
+    out = lw.scan_text(
+        "jobs:\n  t:\n    timeout-minutes: 5\n    steps:\n      - uses: actions/checkout@main\n",
+        filename="x.yml",
+    )
     assert any("moving ref" in f for f in out)
 
 
 def test_echoed_secret_flagged() -> None:
-    out = lw.scan_text("jobs:\n  t:\n    timeout-minutes: 5\n    steps:\n      - run: echo ${{ secrets.TOKEN }}\n",
-                       filename="x.yml")
+    out = lw.scan_text(
+        "jobs:\n  t:\n    timeout-minutes: 5\n    steps:\n      - run: echo ${{ secrets.TOKEN }}\n",
+        filename="x.yml",
+    )
     assert any("secret echoed" in f for f in out)
 
 
 def test_missing_timeout_flagged() -> None:
-    out = lw.scan_text("jobs:\n  t:\n    steps:\n      - uses: actions/checkout@v4\n", filename="x.yml")
+    out = lw.scan_text(
+        "jobs:\n  t:\n    steps:\n      - uses: actions/checkout@v4\n", filename="x.yml"
+    )
     assert any("timeout-minutes" in f for f in out)
 
 
 def test_curl_bash_flagged() -> None:
-    out = lw.scan_text("jobs:\n  t:\n    timeout-minutes: 5\n    steps:\n      - run: curl https://x | bash\n",
-                       filename="x.yml")
+    out = lw.scan_text(
+        "jobs:\n  t:\n    timeout-minutes: 5\n    steps:\n      - run: curl https://x | bash\n",
+        filename="x.yml",
+    )
     assert any("curl | bash" in f for f in out)

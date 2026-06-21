@@ -93,9 +93,7 @@ def _disabled_module_skills(modules: dict[str, bool]) -> set[str]:
     return disabled_owned - enabled_owned
 
 
-def _gate_installed_skills(
-    context: dict, world: AggregatedWorld, modules: dict[str, bool]
-) -> None:
+def _gate_installed_skills(context: dict, world: AggregatedWorld, modules: dict[str, bool]) -> None:
     """Drop a disabled module's owned skills from the rendered `## Skills` list
     (INSTALLED_SKILLS) so a gated module leaves no orphaned skill mention (audit
     D2-2). No-op when nothing is disabled, so the all-on render is byte-identical."""
@@ -108,9 +106,7 @@ def _gate_installed_skills(
     context["substitutions"] = subs
 
 
-def render_agents_md(
-    world: AggregatedWorld, active_modules: dict[str, bool] | None = None
-) -> str:
+def render_agents_md(world: AggregatedWorld, active_modules: dict[str, bool] | None = None) -> str:
     """Render the full AGENTS.md by composing fragment templates.
 
     Sections are iterated in sorted order (already sorted by the

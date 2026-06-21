@@ -58,7 +58,17 @@ def test_fresh_project_first_edit_passes_then_grace_is_bounded(
     monkeypatch.setenv("COS_REGISTRY_PATH", str(tmp_path / "registry.json"))
     result = CliRunner().invoke(
         cli,
-        ["init", "--agent", "claude", "--name", "proj", "-d", str(tmp_path), "--no-git", "--no-index"],
+        [
+            "init",
+            "--agent",
+            "claude",
+            "--name",
+            "proj",
+            "-d",
+            str(tmp_path),
+            "--no-git",
+            "--no-index",
+        ],
     )
     assert result.exit_code == 0, result.output
 

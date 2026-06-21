@@ -73,7 +73,10 @@ def main(argv: list[str]) -> int:
 
     missing = scan(combined, args.schema)
     for name in missing:
-        print(f"  ✗ table '{name}': no ENABLE ROW LEVEL SECURITY — public via anon key", file=sys.stderr)
+        print(
+            f"  ✗ table '{name}': no ENABLE ROW LEVEL SECURITY — public via anon key",
+            file=sys.stderr,
+        )
     if args.as_json:
         print(json.dumps({"missing_rls": missing, "count": len(missing)}))
     else:

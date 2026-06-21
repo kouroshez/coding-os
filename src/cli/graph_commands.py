@@ -725,9 +725,7 @@ def register(cli: click.Group) -> None:
                 except Exception as exc:
                     click.echo(f"[graph-reindex]   ! retry {rel}: {exc}", err=True)
             errors -= recovered
-            click.echo(
-                f"[graph-reindex] retry pass: {recovered}/{len(failed_paths)} recovered"
-            )
+            click.echo(f"[graph-reindex] retry pass: {recovered}/{len(failed_paths)} recovered")
         duration = _time.monotonic() - started
 
         # Reconcile the graph to the current walk BEFORE reporting: file_index_state

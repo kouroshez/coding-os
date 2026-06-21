@@ -33,15 +33,16 @@ def _stub(tmp_path: Path) -> tuple[Path, Path]:
     out = tmp_path / "called.txt"
     stub = tmp_path / "stub.py"
     stub.write_text(
-        "import os, sys\n"
-        "open(os.environ['STUB_OUT'], 'a').write(repr(sys.argv[1:]) + '\\n')\n"
+        "import os, sys\nopen(os.environ['STUB_OUT'], 'a').write(repr(sys.argv[1:]) + '\\n')\n"
     )
     return stub, out
 
 
 def _run(repo: Path, stub: Path, out: Path) -> None:
     env = {**os.environ, "COS_WORKLOG_HELPER": str(stub), "STUB_OUT": str(out)}
-    subprocess.run(["bash", str(BODY)], cwd=repo, env=env, capture_output=True, text=True, check=True)
+    subprocess.run(
+        ["bash", str(BODY)], cwd=repo, env=env, capture_output=True, text=True, check=True
+    )
 
 
 def test_logs_code_files_for_a_task_commit(tmp_path):

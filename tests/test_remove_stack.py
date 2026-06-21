@@ -288,9 +288,7 @@ def test_remove_stack_no_regen_flag_leaves_agents_md_intact(tmp_path: Path) -> N
     _run_cli(["add-stack", "django", "-d", str(project)])
     before = (project / "AGENTS.md").read_text()
 
-    result = _run_cli(
-        ["remove-stack", "django", "-d", str(project), "--no-regen-agents-md"]
-    )
+    result = _run_cli(["remove-stack", "django", "-d", str(project), "--no-regen-agents-md"])
     assert result.returncode == 0
     assert (project / "AGENTS.md").read_text() == before
     # Config still updated even when AGENTS.md is left intact.

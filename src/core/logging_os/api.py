@@ -85,7 +85,9 @@ def fatal(scope: str, msg: str, exc: BaseException | None = None, **kv: Any) -> 
 _swallowed_count = 0
 
 
-def swallow_safe(scope: str, msg: str = "suppressed exception", *, exc: BaseException | None = None) -> None:
+def swallow_safe(
+    scope: str, msg: str = "suppressed exception", *, exc: BaseException | None = None
+) -> None:
     """For fire-and-forget paths: acknowledge a swallowed exception (debug log + counter) — never silent."""
     global _swallowed_count
     _swallowed_count += 1

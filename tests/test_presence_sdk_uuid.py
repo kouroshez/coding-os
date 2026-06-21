@@ -27,7 +27,17 @@ def test_sdk_uuid_is_captured(tmp_path):
     pw = _load()
     f = tmp_path / "ses-claude-x.json"
     rc = pw.main(
-        ["prog", str(f), "claude", "ses-claude-x", "123", "prompt", "1000", "claude-opus-4-8", "sdk-abc"]
+        [
+            "prog",
+            str(f),
+            "claude",
+            "ses-claude-x",
+            "123",
+            "prompt",
+            "1000",
+            "claude-opus-4-8",
+            "sdk-abc",
+        ]
     )
     assert rc == 0
     d = json.loads(f.read_text())

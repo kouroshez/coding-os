@@ -5,9 +5,18 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]
-                       / "src" / "templates" / "meta" / "skills"
-                       / "meta-engineering" / "scripts"))
+sys.path.insert(
+    0,
+    str(
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "templates"
+        / "meta"
+        / "skills"
+        / "meta-engineering"
+        / "scripts"
+    ),
+)
 
 import which_layer as wl  # noqa: E402
 

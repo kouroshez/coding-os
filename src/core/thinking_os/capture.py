@@ -381,12 +381,30 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
         narrative = narr_sr.cleaned
 
         cols = [
-            "session_id", "tool_name", "observation_type", "memory_type", "impact_score",
-            "title", "narrative", "files_modified", "cost_tokens", "content_hash", "concepts",
+            "session_id",
+            "tool_name",
+            "observation_type",
+            "memory_type",
+            "impact_score",
+            "title",
+            "narrative",
+            "files_modified",
+            "cost_tokens",
+            "content_hash",
+            "concepts",
         ]
         vals = [
-            session_id, tool_name, tool_name.lower(), memory_type, impact_score,
-            title, narrative, stored_path, cost_tokens, content_hash, concepts,
+            session_id,
+            tool_name,
+            tool_name.lower(),
+            memory_type,
+            impact_score,
+            title,
+            narrative,
+            stored_path,
+            cost_tokens,
+            content_hash,
+            concepts,
         ]
         # Stamp the active task (post-v39) so per-task rework signals are derivable.
         # Conditional so a not-yet-migrated DB still captures (column-absent window).

@@ -14,7 +14,9 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOK = REPO_ROOT / "src" / "core" / "hooks" / "warn-destructive-edit.sh"
 LOAD_BEARING_DOC = REPO_ROOT / "docs" / "00-index.md"  # under docs/, committed
-NON_LOAD_BEARING = REPO_ROOT / "pyproject.toml"  # committed, not docs/ nor an enforce_context_on glob
+NON_LOAD_BEARING = (
+    REPO_ROOT / "pyproject.toml"
+)  # committed, not docs/ nor an enforce_context_on glob
 
 
 def _run(payload: dict, env_extra: dict | None = None) -> tuple[int, str]:
@@ -37,7 +39,11 @@ def _run(payload: dict, env_extra: dict | None = None) -> tuple[int, str]:
 def _big_edit(file_path: Path, lines: int = 30) -> dict:
     return {
         "tool_name": "Edit",
-        "tool_input": {"file_path": str(file_path), "old_string": "line\n" * lines, "new_string": ""},
+        "tool_input": {
+            "file_path": str(file_path),
+            "old_string": "line\n" * lines,
+            "new_string": "",
+        },
     }
 
 
@@ -55,7 +61,11 @@ def test_large_deletion_of_load_bearing_warns() -> None:
 def test_small_edit_is_silent() -> None:
     payload = {
         "tool_name": "Edit",
-        "tool_input": {"file_path": str(LOAD_BEARING_DOC), "old_string": "a\nb\n", "new_string": ""},
+        "tool_input": {
+            "file_path": str(LOAD_BEARING_DOC),
+            "old_string": "a\nb\n",
+            "new_string": "",
+        },
     }
     code, err = _run(payload)
     assert code == 0
@@ -72,7 +82,10 @@ def test_non_load_bearing_file_is_silent() -> None:
 def test_write_new_file_is_silent() -> None:
     payload = {
         "tool_name": "Write",
-        "tool_input": {"file_path": str(REPO_ROOT / "docs" / "__nonexistent_guard_fixture__.md"), "content": ""},
+        "tool_input": {
+            "file_path": str(REPO_ROOT / "docs" / "__nonexistent_guard_fixture__.md"),
+            "content": "",
+        },
     }
     code, err = _run(payload)
     assert code == 0
@@ -124,7 +137,10 @@ def test_malformed_stdin_fails_open() -> None:
 @pytest.mark.skipif(not LOAD_BEARING_DOC.is_file(), reason="fixture doc absent")
 def test_write_overwrite_existing_load_bearing_warns() -> None:
     # wholesale overwrite of a committed multi-line doc with a tiny body = destruction
-    payload = {"tool_name": "Write", "tool_input": {"file_path": str(LOAD_BEARING_DOC), "content": "x"}}
+    payload = {
+        "tool_name": "Write",
+        "tool_input": {"file_path": str(LOAD_BEARING_DOC), "content": "x"},
+    }
     code, err = _run(payload)
     assert code == 0
     assert "destructive edit" in err
@@ -145,7 +161,11 @@ def test_threshold_boundary() -> None:
     # exactly MIN_LINES (12) removed -> flagged; one fewer -> silent
     at_threshold = {
         "tool_name": "Edit",
-        "tool_input": {"file_path": str(LOAD_BEARING_DOC), "old_string": "x\n" * 12, "new_string": ""},
+        "tool_input": {
+            "file_path": str(LOAD_BEARING_DOC),
+            "old_string": "x\n" * 12,
+            "new_string": "",
+        },
     }
     code, err = _run(at_threshold)
     assert code == 0
@@ -153,7 +173,11 @@ def test_threshold_boundary() -> None:
 
     below = {
         "tool_name": "Edit",
-        "tool_input": {"file_path": str(LOAD_BEARING_DOC), "old_string": "x\n" * 11, "new_string": ""},
+        "tool_input": {
+            "file_path": str(LOAD_BEARING_DOC),
+            "old_string": "x\n" * 11,
+            "new_string": "",
+        },
     }
     code, err = _run(below)
     assert code == 0
@@ -163,6 +187,8 @@ def test_threshold_boundary() -> None:
 @pytest.mark.skipif(not LOAD_BEARING_DOC.is_file(), reason="fixture doc absent")
 def test_min_lines_override_raises_the_bar() -> None:
     # a 30-line deletion is silent when the threshold is raised to 50
-    code, err = _run(_big_edit(LOAD_BEARING_DOC), env_extra={"COS_DESTRUCTIVE_GUARD_MIN_LINES": "50"})
+    code, err = _run(
+        _big_edit(LOAD_BEARING_DOC), env_extra={"COS_DESTRUCTIVE_GUARD_MIN_LINES": "50"}
+    )
     assert code == 0
     assert err.strip() == ""

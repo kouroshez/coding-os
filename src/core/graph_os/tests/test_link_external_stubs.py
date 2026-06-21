@@ -458,28 +458,54 @@ def _spine_fixture(backend: SqliteBackend) -> None:
         GraphNode(uid="folder:src", kind="folder", label="src", file_path="src"),
         GraphNode(uid="folder:src/core", kind="folder", label="core", file_path="src/core"),
         GraphNode(
-            uid="code:file:src/core/a.py", kind="code:file", label="a.py",
+            uid="code:file:src/core/a.py",
+            kind="code:file",
+            label="a.py",
             file_path="src/core/a.py",
         ),
         GraphNode(
-            uid="code:function:src/core/a.py::f", kind="code:function", label="f",
+            uid="code:function:src/core/a.py::f",
+            kind="code:function",
+            label="f",
             file_path="src/core/a.py",
         ),
         GraphNode(
-            uid="doc:file:docs/x.md", kind="doc:file", label="x.md", file_path="docs/x.md",
+            uid="doc:file:docs/x.md",
+            kind="doc:file",
+            label="x.md",
+            file_path="docs/x.md",
         ),
         GraphNode(uid="folder:docs", kind="folder", label="docs", file_path="docs"),
     ]
     edges = [
-        GraphEdge(source_uid="folder:src", target_uid="folder:src/core",
-                  edge_type="contains", extractor="t", confidence=1.0),
-        GraphEdge(source_uid="folder:src/core", target_uid="code:file:src/core/a.py",
-                  edge_type="contains", extractor="t", confidence=1.0),
-        GraphEdge(source_uid="code:file:src/core/a.py",
-                  target_uid="code:function:src/core/a.py::f",
-                  edge_type="contains", extractor="t", confidence=1.0),
-        GraphEdge(source_uid="folder:docs", target_uid="doc:file:docs/x.md",
-                  edge_type="contains", extractor="t", confidence=1.0),
+        GraphEdge(
+            source_uid="folder:src",
+            target_uid="folder:src/core",
+            edge_type="contains",
+            extractor="t",
+            confidence=1.0,
+        ),
+        GraphEdge(
+            source_uid="folder:src/core",
+            target_uid="code:file:src/core/a.py",
+            edge_type="contains",
+            extractor="t",
+            confidence=1.0,
+        ),
+        GraphEdge(
+            source_uid="code:file:src/core/a.py",
+            target_uid="code:function:src/core/a.py::f",
+            edge_type="contains",
+            extractor="t",
+            confidence=1.0,
+        ),
+        GraphEdge(
+            source_uid="folder:docs",
+            target_uid="doc:file:docs/x.md",
+            edge_type="contains",
+            extractor="t",
+            confidence=1.0,
+        ),
     ]
     backend.bulk_upsert(nodes, edges)
 
@@ -488,9 +514,7 @@ def test_bulk_closure_returns_full_ancestor_chain():
     conn = _migrated_conn()
     backend = SqliteBackend(conn=conn)
     _spine_fixture(backend)
-    ancestors, spine_edges = backend.contains_ancestors_bulk(
-        ["code:function:src/core/a.py::f"]
-    )
+    ancestors, spine_edges = backend.contains_ancestors_bulk(["code:function:src/core/a.py::f"])
     ancestor_uids = {n.uid for n in ancestors}
     assert ancestor_uids == {"folder:src", "folder:src/core", "code:file:src/core/a.py"}
     pairs = {(e.source_uid, e.target_uid) for e in spine_edges}
@@ -526,19 +550,40 @@ def test_bulk_closure_empty_input():
 def test_edges_among_returns_only_in_set_semantic_edges():
     conn = _migrated_conn()
     backend = SqliteBackend(conn=conn)
-    inside_a = GraphNode(uid="code:function:m.py::a", kind="code:function", label="a", file_path="m.py")
-    inside_b = GraphNode(uid="code:function:m.py::b", kind="code:function", label="b", file_path="m.py")
-    outside = GraphNode(uid="code:function:x.py::c", kind="code:function", label="c", file_path="x.py")
+    inside_a = GraphNode(
+        uid="code:function:m.py::a", kind="code:function", label="a", file_path="m.py"
+    )
+    inside_b = GraphNode(
+        uid="code:function:m.py::b", kind="code:function", label="b", file_path="m.py"
+    )
+    outside = GraphNode(
+        uid="code:function:x.py::c", kind="code:function", label="c", file_path="x.py"
+    )
     holder = GraphNode(uid="code:file:m.py", kind="code:file", label="m.py", file_path="m.py")
     backend.bulk_upsert(
         [inside_a, inside_b, outside, holder],
         [
-            GraphEdge(source_uid=inside_a.uid, target_uid=inside_b.uid, edge_type="calls",
-                      extractor="t", confidence=0.9),
-            GraphEdge(source_uid=inside_a.uid, target_uid=outside.uid, edge_type="calls",
-                      extractor="t", confidence=0.9),
-            GraphEdge(source_uid=holder.uid, target_uid=inside_a.uid, edge_type="contains",
-                      extractor="t", confidence=1.0),
+            GraphEdge(
+                source_uid=inside_a.uid,
+                target_uid=inside_b.uid,
+                edge_type="calls",
+                extractor="t",
+                confidence=0.9,
+            ),
+            GraphEdge(
+                source_uid=inside_a.uid,
+                target_uid=outside.uid,
+                edge_type="calls",
+                extractor="t",
+                confidence=0.9,
+            ),
+            GraphEdge(
+                source_uid=holder.uid,
+                target_uid=inside_a.uid,
+                edge_type="contains",
+                extractor="t",
+                confidence=1.0,
+            ),
         ],
     )
     edges = backend.edges_among([inside_a.uid, inside_b.uid, holder.uid])

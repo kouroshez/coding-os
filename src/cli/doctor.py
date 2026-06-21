@@ -111,6 +111,7 @@ def _scan_project_files(project: Path) -> set[str]:
             actual.add(rel)
     return actual
 
+
 CONFIG_FILE = ".coding-os.yaml"
 STATE_DIR_DEFAULT = ".coding-os"
 
@@ -950,9 +951,12 @@ def _check_runtime_errors(state: Path, report: DoctorReport) -> None:
 
         conn = sqlite3.connect(str(db_file))
         conn.row_factory = sqlite3.Row
-        if conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='log_events'"
-        ).fetchone() is None:
+        if (
+            conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='log_events'"
+            ).fetchone()
+            is None
+        ):
             report.checks.append(
                 CheckResult("runtime.recent_errors", SEV_PASS, "log_events not present (pre-v32)")
             )
@@ -979,15 +983,19 @@ def _check_runtime_errors(state: Path, report: DoctorReport) -> None:
     if n_fatal > 0:
         report.checks.append(
             CheckResult(
-                "runtime.recent_errors", SEV_FAIL,
-                f"{n_fatal} FATAL + {n_err} ERROR in last {window_h}h — run `cos errors`", detail,
+                "runtime.recent_errors",
+                SEV_FAIL,
+                f"{n_fatal} FATAL + {n_err} ERROR in last {window_h}h — run `cos errors`",
+                detail,
             )
         )
     elif n_err >= threshold:
         report.checks.append(
             CheckResult(
-                "runtime.recent_errors", SEV_WARN,
-                f"{n_err} ERROR in last {window_h}h — run `cos errors`", detail,
+                "runtime.recent_errors",
+                SEV_WARN,
+                f"{n_err} ERROR in last {window_h}h — run `cos errors`",
+                detail,
             )
         )
     else:
@@ -1020,9 +1028,7 @@ def _check_hub_code_fresh(report: DoctorReport) -> None:
             )
         )
     else:
-        report.checks.append(
-            CheckResult("hub.code_fresh", SEV_PASS, "hub fresh or not running")
-        )
+        report.checks.append(CheckResult("hub.code_fresh", SEV_PASS, "hub fresh or not running"))
 
 
 def _check_module_consistency(project: Path, report: DoctorReport) -> None:
@@ -1120,8 +1126,7 @@ def _check_module_skill_drift(project: Path, report: DoctorReport) -> None:
                 if name in enabled_owned:
                     continue
                 if any(
-                    (d / name / "SKILL.md").exists() or (d / name).is_symlink()
-                    for d in skills_dirs
+                    (d / name / "SKILL.md").exists() or (d / name).is_symlink() for d in skills_dirs
                 ):
                     drift.append(f"{name} (module '{mid}' off)")
         if drift:
@@ -1168,7 +1173,9 @@ def _check_module_command_drift(project: Path, report: DoctorReport) -> None:
                 if name in enabled_owned:
                     continue
                 cmd_file = f"{name}.md"
-                if any((d / cmd_file).exists() or (d / cmd_file).is_symlink() for d in command_dirs):
+                if any(
+                    (d / cmd_file).exists() or (d / cmd_file).is_symlink() for d in command_dirs
+                ):
                     drift.append(f"{name} (module '{mid}' off)")
         if drift:
             report.checks.append(
@@ -2592,9 +2599,7 @@ def _capture_tool_version(executable: str) -> str | None:
     if shutil.which(executable) is None:
         return None
     try:
-        proc = subprocess.run(
-            [executable, "--version"], capture_output=True, text=True, timeout=10
-        )
+        proc = subprocess.run([executable, "--version"], capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.TimeoutExpired):
         return None
     text = (proc.stdout or proc.stderr or "").strip()
@@ -2675,15 +2680,11 @@ def _check_bootstrap_uv(report: DoctorReport) -> None:
 def _check_bootstrap_sed(report: DoctorReport) -> None:
     banner = _capture_tool_version("sed")
     if banner is None:
-        report.checks.append(
-            CheckResult("bootstrap.sed_flavor", SEV_WARN, "sed not found on PATH")
-        )
+        report.checks.append(CheckResult("bootstrap.sed_flavor", SEV_WARN, "sed not found on PATH"))
         return
     flavor = "gnu" if "GNU" in banner else "bsd"
     report.checks.append(
-        CheckResult(
-            "bootstrap.sed_flavor", SEV_PASS, f"{flavor} sed detected", {"flavor": flavor}
-        )
+        CheckResult("bootstrap.sed_flavor", SEV_PASS, f"{flavor} sed detected", {"flavor": flavor})
     )
 
 

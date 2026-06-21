@@ -319,7 +319,9 @@ def module_enable(module_id: str) -> None:
     default=False,
     help="Disable the module but keep its skills linked (skip the skill cascade).",
 )
-@click.option("--yes", "-y", is_flag=True, default=False, help="Skip the skill-unlink confirmation.")
+@click.option(
+    "--yes", "-y", is_flag=True, default=False, help="Skip the skill-unlink confirmation."
+)
 def module_disable(module_id: str, keep_skills: bool, yes: bool) -> None:
     """Disable a module and regenerate dependent artifacts (unlinks its skills)."""
     import sys

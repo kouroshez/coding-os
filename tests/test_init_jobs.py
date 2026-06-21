@@ -46,7 +46,7 @@ def test_happy_path_phases_payload_and_counter(tmp_path: Path) -> None:
         "print('Initializing coding-os in /x');"
         "print('Installing claude adapter...');"
         "print('Composed 3 .coding-os config(s)');"
-        "print('{\"slug\": \"proj\", \"status\": \"ok\"}')"
+        'print(\'{"slug": "proj", "status": "ok"}\')'
     )
     job = init_jobs.start_job(_py(script), target, str(tmp_path), _parse_json_payload)
     snap = _wait_terminal(job)

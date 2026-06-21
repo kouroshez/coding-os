@@ -115,11 +115,7 @@ class TestCosEnv:
     def test_default_state_dir(self, tmp_path: Path) -> None:
         """Without COS_STATE_DIR, defaults to .coding-os."""
         script = 'source "{}"; echo "$COS_STATE_DIR"'.format(HOOKS_DIR / "cos-env.sh")
-        base_env = {
-            k: v
-            for k, v in os.environ.items()
-            if k not in ("CLAUDE_PROJECT_DIR",)
-        }
+        base_env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_PROJECT_DIR",)}
         result = subprocess.run(
             ["bash", "-c", script],
             capture_output=True,
@@ -780,7 +776,11 @@ class TestBlockProtectedFilesGovernanceEscape:
         payload = json.dumps(
             {
                 "tool_name": "Edit",
-                "tool_input": {"file_path": "/repo/AGENTS.md", "old_string": "x", "new_string": "y"},
+                "tool_input": {
+                    "file_path": "/repo/AGENTS.md",
+                    "old_string": "x",
+                    "new_string": "y",
+                },
             }
         )
         result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
@@ -793,7 +793,11 @@ class TestBlockProtectedFilesGovernanceEscape:
         payload = json.dumps(
             {
                 "tool_name": "Edit",
-                "tool_input": {"file_path": "/repo/AGENTS.md", "old_string": "x", "new_string": "y"},
+                "tool_input": {
+                    "file_path": "/repo/AGENTS.md",
+                    "old_string": "x",
+                    "new_string": "y",
+                },
             }
         )
         result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)

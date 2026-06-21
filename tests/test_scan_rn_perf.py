@@ -5,9 +5,18 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]
-                       / "src" / "templates" / "react-native" / "skills"
-                       / "react-native-patterns" / "scripts"))
+sys.path.insert(
+    0,
+    str(
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "templates"
+        / "react-native"
+        / "skills"
+        / "react-native-patterns"
+        / "scripts"
+    ),
+)
 
 import scan_rn_perf as rn  # noqa: E402
 
@@ -18,8 +27,10 @@ def test_clean_list() -> None:
 
 
 def test_inline_render_item_flagged() -> None:
-    out = rn.scan_text("<FlatList renderItem={({item}) => <Row item={item} />} keyExtractor={kx} />",
-                       filename="x.tsx")
+    out = rn.scan_text(
+        "<FlatList renderItem={({item}) => <Row item={item} />} keyExtractor={kx} />",
+        filename="x.tsx",
+    )
     assert any("inline renderItem" in f for f in out)
 
 

@@ -94,10 +94,7 @@ def _validate(data: dict, path: Path) -> list[str]:
     validator = _preset_schema_validator()
     if validator is None:
         return []
-    return [
-        f"{path.name}: {err.json_path}: {err.message}"
-        for err in validator.iter_errors(data)
-    ]
+    return [f"{path.name}: {err.json_path}: {err.message}" for err in validator.iter_errors(data)]
 
 
 def load_preset_registry(

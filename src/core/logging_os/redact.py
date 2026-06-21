@@ -7,17 +7,28 @@ from typing import Any
 # exotic secret than to mangle ordinary error text. Runs before EVERY sink so
 # nothing secret reaches the durable store (a secret there is permanent).
 _PATTERNS = [
-    re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._\-]{12,}"),                       # Bearer tokens
+    re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._\-]{12,}"),  # Bearer tokens
     re.compile(r"\beyJ[A-Za-z0-9_\-]{6,}\.[A-Za-z0-9_\-]{6,}\.[A-Za-z0-9_\-]{6,}"),  # JWT
     re.compile(r"\b(?:sk|pk|rk|ghp|gho|ghs|xox[baprs])[-_][A-Za-z0-9]{16,}"),  # API key prefixes
-    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),                                      # AWS access key id
-    re.compile(r"(?i)\b(?:password|passwd|secret|token|api[_-]?key|authorization)\s*[=:]\s*\S+"),  # k=v secrets
+    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),  # AWS access key id
+    re.compile(
+        r"(?i)\b(?:password|passwd|secret|token|api[_-]?key|authorization)\s*[=:]\s*\S+"
+    ),  # k=v secrets
 ]
 _REDACTED = "<redacted>"
 
 _SENSITIVE_KEYS = {
-    "password", "passwd", "secret", "token", "api_key", "apikey",
-    "authorization", "auth", "key", "access_token", "refresh_token",
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "authorization",
+    "auth",
+    "key",
+    "access_token",
+    "refresh_token",
 }
 
 
