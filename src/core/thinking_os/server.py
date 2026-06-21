@@ -135,6 +135,41 @@ def thinking_os_health() -> str:
             "reason": f"import_error: {exc}",
         }
 
+    # Constitution slice durability (TASK-497): the values layer is surfaced at
+    # every SessionStart directly from docs/governance/constitution.md — not from
+    # decaying agent memory — so it is non-decaying by construction. A missing file
+    # or absent SLICE markers would silently drop the slice; assert it here so
+    # `cos doctor` / health flags the regression like a dangling symlink. Fail-open.
+    try:
+        from pathlib import Path
+
+        const_path = (
+            Path(__file__).resolve().parents[3] / "docs" / "governance" / "constitution.md"
+        )
+        present = const_path.is_file()
+        slice_markers_ok = False
+        if present:
+            const_text = const_path.read_text(encoding="utf-8", errors="ignore")
+            slice_markers_ok = (
+                "<!-- SLICE:START -->" in const_text and "<!-- SLICE:END -->" in const_text
+            )
+        stats["constitution"] = {
+            "present": present,
+            "slice_markers_ok": slice_markers_ok,
+            "non_decaying": True,
+            "repair": None
+            if (present and slice_markers_ok)
+            else "restore docs/governance/constitution.md with <!-- SLICE:START/END --> markers so SessionStart can surface the values slice (TASK-491)",
+        }
+    except Exception as exc:  # pragma: no cover — defensive, never fail the health call
+        logger.debug("constitution health check failed: %s", exc)
+        stats["constitution"] = {
+            "present": False,
+            "slice_markers_ok": False,
+            "non_decaying": True,
+            "repair": f"check_error: {exc}",
+        }
+
     return ok(stats, meta={"layer": "health"})
 
 

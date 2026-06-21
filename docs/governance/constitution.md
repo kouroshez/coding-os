@@ -32,6 +32,10 @@ Before acting, ask which value the change serves. When two values conflict, the 
 
 > The aim (after Anthropic's *Teaching Claude Why*): you understand the situation well enough that you could construct any rule we would have written. Values internalized generalize out-of-distribution; rules merely imposed do not.
 
+## Durability
+
+This file is the single, **non-decaying** source of the values layer. SessionStart surfaces the `SLICE` block from here directly on every startup/resume — never from agent memory, so it cannot decay or be garbage-collected the way a low-confidence observation does. `cos_health` asserts the file and its `SLICE` markers are present and reports a missing slice like a dangling symlink to repair. This is the runtime analogue of the *Teaching Claude Why* finding that constitutional alignment must persist (there, through RL; here, through session churn and compaction).
+
 ## See also
 
 - [critical-rules.md](critical-rules.md) — the rules these values generate, with per-rule rationale (the mechanism layer).
