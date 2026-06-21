@@ -5,7 +5,7 @@ swimlane: cli
 kind: bug
 epic: null
 labels: [verify, tooling]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-05-21
