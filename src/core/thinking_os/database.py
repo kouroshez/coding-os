@@ -173,7 +173,17 @@ def project_root(start: Path | str | None = None) -> Path:
     if state:
         state_path = Path(state)
         if state_path.is_absolute():
-            return state_path.resolve().parent
+            parent = state_path.resolve().parent
+            # $HOME hard-stop: COS_STATE_DIR == $HOME/.coding-os is the global
+            # hub (set by `cos hub`), not a project root — its parent is $HOME.
+            # Reuse the shell's boundary instead of binding $HOME; fall through
+            # to the marker-walk (which has its own $HOME hard-stop).
+            try:
+                home = Path.home().resolve()
+            except (OSError, RuntimeError):
+                home = None
+            if home is None or parent != home:
+                return parent
     return _find_project_root_from_cwd(Path(start) if start else None)
 
 

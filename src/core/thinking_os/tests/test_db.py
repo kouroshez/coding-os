@@ -978,6 +978,25 @@ def test_project_root_precedence(tmp_path: Path, monkeypatch) -> None:
     assert project_root(sub) == root.resolve()
 
 
+def test_project_root_tier2_stops_below_home(tmp_path: Path, monkeypatch) -> None:
+    """TASK-506: an absolute COS_STATE_DIR == $HOME/.coding-os is the global hub,
+    not a project root — tier-2 must NOT return $HOME; it falls through to the
+    marker-walk (which has its own $HOME hard-stop)."""
+    from database import project_root
+
+    home = tmp_path / "home"
+    (home / ".coding-os").mkdir(parents=True)  # global-hub state
+    monkeypatch.delenv("COS_PROJECT_ROOT", raising=False)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("COS_STATE_DIR", str(home / ".coding-os"))  # absolute, == hub
+    # cwd start is a subdir under $HOME with no project .coding-os → walk falls
+    # back to that subdir, never $HOME.
+    sub = home / "proj" / "src"
+    sub.mkdir(parents=True)
+    got = project_root(sub).resolve()
+    assert got != home.resolve()
+
+
 # ---------------------------------------------------------------------------
 # Migration v35 — scale foundation (TASK-226)
 # ---------------------------------------------------------------------------

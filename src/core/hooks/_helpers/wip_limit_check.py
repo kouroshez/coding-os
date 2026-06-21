@@ -56,12 +56,9 @@ if target_path.exists():
 if os.environ.get("COS_WIP_OVERRIDE") == "1":
     sys.exit(0)
 
-try:
-    from thinking_os.database import project_root as _resolve_root  # type: ignore
+from _paths import resolve_project_root
 
-    project_root = _resolve_root()
-except ImportError:
-    project_root = Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())).resolve()
+project_root = resolve_project_root()
 try:
     config = load_config(project_root)
 except (FileNotFoundError, Exception):
