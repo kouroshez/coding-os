@@ -296,6 +296,12 @@ interface ModuleRow {
   tools: number;
 }
 
+interface DriftRow {
+  id: string;
+  severity: string;
+  message: string;
+}
+
 function ModulesTab() {
   const qc = useQueryClient();
   const { data, isLoading, error } = useApiGet<{ modules: ModuleRow[] }>(
@@ -304,10 +310,17 @@ function ModulesTab() {
   );
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
+  // A Hub toggle can strand a skill/command symlink or corrupt state; surface
+  // the same `cos doctor` drift checks so the UI that caused it shows it (HUB-PB2).
+  const { data: driftData } = useApiGet<{ drift: DriftRow[]; ok: boolean }>(
+    ['settings-modules-drift'],
+    '/api/settings/modules/drift',
+  );
 
   if (isLoading) return <StateRow>Loading modules…</StateRow>;
   if (error) return <StateRow>Could not load modules: {error.message}</StateRow>;
   const rows = data?.modules ?? [];
+  const drift = driftData?.drift ?? [];
 
   const toggle = async (row: ModuleRow) => {
     setBusyId(row.id);
@@ -317,6 +330,7 @@ function ModulesTab() {
         enabled: !row.enabled,
       });
       await invalidateApiQueries(qc, '/api/settings/modules');
+      await invalidateApiQueries(qc, '/api/settings/modules/drift');
     } catch (err) {
       setToggleError(err instanceof Error ? err.message : 'toggle failed');
     } finally {
@@ -335,6 +349,18 @@ function ModulesTab() {
         <p role="alert" className="mb-3 rounded border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-400">
           {toggleError}
         </p>
+      )}
+      {drift.length > 0 && (
+        <div role="alert" className="mb-3 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-300">
+          <div className="font-medium">⚠️ Module drift detected ({drift.length}) — a disabled module left an artifact behind</div>
+          <ul className="mt-1 list-disc pl-4 text-amber-200/90">
+            {drift.map((d) => (
+              <li key={d.id}>
+                <span className="font-mono">{d.id}</span>: {d.message}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       <Table head={['Module', 'State', 'Owns', 'Depends on', '']}>
         {rows.map((m) => (

@@ -87,6 +87,45 @@ def get_modules():
     return {"data": payload, "meta": {"layer": "settings", "source": "settings.modules"}}
 
 
+@router.get("/modules/drift")
+def get_module_drift():
+    """Non-PASS module drift (skill/command/state_integrity) for a Hub WARN banner.
+
+    Reuses the three existing `cos doctor` check functions verbatim — no new check
+    logic — so the toggle UI surfaces the drift its own cascade can produce
+    (HUB-PB2 / TASK-504).
+    """
+    try:
+        from cli.doctor import (
+            SEV_PASS,
+            DoctorReport,
+            _check_module_command_drift,
+            _check_module_skill_drift,
+            _check_subsystems_state_integrity,
+        )
+        from web._project_context import current_project_root
+
+        project = current_project_root()
+        report = DoctorReport(project_dir=str(project), agent=None, templates=[])
+        for check in (
+            _check_module_skill_drift,
+            _check_module_command_drift,
+            _check_subsystems_state_integrity,
+        ):
+            check(project, report)
+        drift = [
+            {"id": c.id, "severity": c.severity, "message": c.message}
+            for c in report.checks
+            if c.severity != SEV_PASS
+        ]
+    except Exception as exc:
+        return _module_error(503, "unavailable", f"module drift unavailable: {exc}", True)
+    return {
+        "data": {"drift": drift, "ok": not drift},
+        "meta": {"layer": "settings", "source": "settings.modules.drift"},
+    }
+
+
 @router.patch("/modules/{module_id}")
 def patch_module(module_id: str, body: dict = Body(...)):
     """Toggle a non-kernel module; regenerates dependent artifacts (TASK-354)."""
