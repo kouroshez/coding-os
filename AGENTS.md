@@ -28,6 +28,8 @@ Root entry point for agents working **ON** coding-os itself. Read first; re-read
 Agent-agnostic cognitive OS giving AI agents memory, structure, discipline. Python + Shell + Markdown; hexagonal (core → adapters → templates).
 P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANEL_DIR`/`$COS_DB_PATH`, never `.claude/` in core — [state-files.md](docs/engineering/state-files.md)) · P3 Minimal-context (3-10 files/task) · P4 Diff-first · P5 Dogfood · P6 Log-everything via `make` · P7 No-guessing (log unknowns to `docs/_meta/questions.md`) · P8 Adapter-SDK autonomy (never import an adapter SDK from `src/core/**`).
 
+> **Values SSOT:** [docs/governance/constitution.md](docs/governance/constitution.md) — the 8 values these principles + the rules below derive from (the *teach-why* layer; surfaced each session). Lead with the *why*; a rule understood generalizes where a rule merely imposed cracks.
+
 ## Critical Rules (index — full text + rationale in [critical-rules.md](docs/governance/critical-rules.md))
 
 | # | Rule |

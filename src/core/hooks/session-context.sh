@@ -305,6 +305,19 @@ fi
 # put a multi-thousand-token wall mid-chat; suppress it on compact
 # (src/core/rules/transparency-banner.md § SessionStart emission, state-files.md §S5).
 if [[ "$SOURCE" == "startup" || "$SOURCE" == "resume" ]]; then
+  # Constitution slice = the values layer the rules derive from (HIDDEN). Same
+  # startup/resume gate as the digest (suppressed on compact — the slice is
+  # already in working memory). SSOT is docs/governance/constitution.md; we
+  # surface only the delimited slice so the file stays the single source (TASK-491).
+  CONSTITUTION_DOC="${COS_PROJECT_ROOT:-$(pwd)}/docs/governance/constitution.md"
+  if [ -f "$CONSTITUTION_DOC" ]; then
+    CONSTITUTION_SLICE=$(sed -n '/<!-- SLICE:START -->/,/<!-- SLICE:END -->/p' "$CONSTITUTION_DOC" 2>/dev/null | grep -vE 'SLICE:(START|END)' || true)
+    if [ -n "$CONSTITUTION_SLICE" ]; then
+      _ss_append SS_HIDDEN "[Constitution] (values the rules derive from — full: docs/governance/constitution.md)
+${CONSTITUTION_SLICE}"
+    fi
+  fi
+
   # Agent digest: the always-active working-memory snapshot
   # (identity, top domains, beliefs, fading patterns, breakthroughs). The
   # digest was printed but never regenerated (cos_digest_regenerate had no
