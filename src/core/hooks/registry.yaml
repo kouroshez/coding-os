@@ -410,6 +410,17 @@ hooks:
         matcher: Write|Edit
         status_message: "🧭 Verifying graph-context marker for load-bearing file..."
 
+  - id: warn-destructive-edit
+    script: warn-destructive-edit.sh
+    description: Warn (strict-mode = block) before a large net-deletion/overwrite of a load-bearing file (docs/** + graph.enforce_context_on globs); surfaces the last commit + git pull command. Fail-open, self-throttling. Spec docs/engineering/destructive-edit-guard.md.
+    category: enforcement
+    phase: I
+    timeout: 10
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit|MultiEdit
+        status_message: "🛡️ Checking for destructive deletion of load-bearing content..."
+
   - id: enforce-rename-plan
     script: enforce-rename-plan.sh
     description: Warn (strict-mode = block) when an Edit performs an identifier-rename-shaped string swap without a prior cos_graph_rename_plan marker in this session.
