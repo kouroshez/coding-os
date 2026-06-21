@@ -42,3 +42,4 @@ references: []
 - 2026-06-21 [claude]: Edit AGENTS.md
 - 2026-06-21 [claude]: commit 99b4fc95a0 — feat(core): add coding-os Constitution (teach-why values layer) + surface slice at SessionStart
 - 2026-06-21 [claude]: Authored docs/governance/constitution.md (8 values, down-only links to critical-rules.md, delimited SLICE block, 39…
+- 2026-06-21 [claude]: committed 784a4f7e · 1 file
