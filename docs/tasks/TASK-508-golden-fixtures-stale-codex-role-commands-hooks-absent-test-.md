@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: icebox
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-21
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260620-223048-0760
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-508: Golden fixtures stale: codex role-* commands + hooks absent → test_golden_parity RED on main
 
 **Outcome (one sentence):** test_golden_parity passes again by recapturing the 8 stack goldens so they reflect the codex adapter's role-* commands + hooks that were added after the last capture, with no unintended content drift.
@@ -35,3 +34,4 @@ Run `COS_TEST_FORCE=1 uv run pytest tests/test_golden_parity.py -q`. Expected: p
 
 ## Work Log
 - 2026-06-21 [claude]: committed 8b1603c1 · 1 file
+- 2026-06-21 [claude]: Resolved externally: concurrent commit e45a5d58 ("test(golden): regenerate fixtures … committed-drift catch-up")…
