@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [governance, hooks, safety, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-21
 started: 2026-06-21
-completed: null
+completed: 2026-06-21
 agent_session: ses-claude-20260620-223021-5083
 depends_on: []
 blocked_by: []
@@ -42,3 +42,12 @@ references: []
 - 2026-06-21 [claude]: Edit registry.yaml
 - 2026-06-21 [claude]: Edit test_warn_destructive_edit.py
 - 2026-06-21 [claude]: commit 5592167099 — test(modularity): consumer-disable harness sheds skill/command/tool + pins DOC-4 gap (TASK-505)
+- 2026-06-21 [claude]: committed 04761faf · 7 files
+- 2026-06-21 [claude]: Edit graph_context_match.py
+- 2026-06-21 [claude]: Edit destructive_edit_check.py
+- 2026-06-21 [claude]: Edit destructive-edit-guard.md
+- 2026-06-21 [claude]: Edit test_warn_destructive_edit.py
+- 2026-06-21 [claude]: Edit destructive-edit-guard.md
+- 2026-06-21 [claude]: commit cd2086685a — fix(hooks): address review on destructive-edit guard — share matcher, align spec
+- 2026-06-21 [claude]: commit e45a5d584b — test(golden): regenerate fixtures for warn-destructive-edit hook + committed-drift catch-up
+- 2026-06-21 [claude]: Shipped warn-destructive-edit (PreToolUse Write|Edit|MultiEdit). Chose a thin warn-hook reusing the existing…

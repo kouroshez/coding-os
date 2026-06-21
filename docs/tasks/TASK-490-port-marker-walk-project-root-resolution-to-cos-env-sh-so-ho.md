@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [state-resolution, hooks, pre-launch, ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-20
-started: null
-completed: null
-agent_session: null
+started: 2026-06-20
+completed: 2026-06-20
+agent_session: ses-claude-20260620-223048-0760
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-490: Port marker-walk project-root resolution to cos-env.sh so hooks never create nested .coding-os when CLAUDE_PROJECT_DIR is unset
 
 **Outcome (one sentence):** cos-env.sh resolves the coding-os project root via a pure-Bash upward marker-walk that MIRRORS database.py::_find_project_root_from_cwd exactly (same _ROOT_MARKERS set + .coding-os/-co-location requirement) plus an explicit hard-stop below $HOME and /, used only when COS_STATE_DIR is the bare default AND CLAUDE_PROJECT_DIR/COS_PROJECT_ROOT are unset — so a hook firing from a subdir (cwd=src/backend) resolves COS_STATE_DIR to <root>/.coding-os instead of creating a stray nested .coding-os/, and shell and Python provably agree on one root (no split-brain), locked by a parity test.
@@ -58,3 +57,13 @@ make verify-hooks · uv run --extra rag pytest tests/test_hooks.py -q · python 
 - Consolidating the ~9 cwd-only Python resolvers + logging_os.config onto resolve_db_path, and adding the $HOME hard-stop to database.py. None CAUSE this bug; bundling widens blast radius on a max-symlink-reach src/core change.
 
 ## Work Log
+- 2026-06-21 [claude]: Edit cos-env.sh
+- 2026-06-21 [claude]: Edit test_hooks.py
+- 2026-06-21 [claude]: Edit test_hooks.py
+- 2026-06-21 [claude]: commit 13e48dc86e — fix(hooks): marker-walk project-root resolution in cos-env.sh (no nested .coding-os from subdirs)
+- 2026-06-21 [claude]: Ported database.py marker-walk to cos-env.sh (_cos_find_project_root, pure Bash, $HOME hard-stop, cd -P). +SSOT…
+- 2026-06-21 [claude]: Edit cos-env.sh
+- 2026-06-21 [claude]: Edit test_hooks.py
+- 2026-06-21 [claude]: commit ee334e2676 — fix(hooks): guard cos-env.sh root-walk against infinite loop on relative PWD
+- 2026-06-21 [claude]: Adversarial review (general-purpose agent) found a major infinite-loop bug on relative/stale $PWD (dirname fixpoint).…
+- 2026-06-21 [claude]: Status transitioned to complete via cos task-done.

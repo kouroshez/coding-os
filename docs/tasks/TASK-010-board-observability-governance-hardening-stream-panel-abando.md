@@ -5,7 +5,7 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [board, observability, governance]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-05-22

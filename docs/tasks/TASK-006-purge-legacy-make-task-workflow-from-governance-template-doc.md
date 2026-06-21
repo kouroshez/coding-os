@@ -5,7 +5,7 @@ swimlane: core
 kind: docs
 epic: null
 labels: [docs-update, governance, scrumban]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-05-21
