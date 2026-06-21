@@ -226,3 +226,62 @@ A third deep re-audit (8-dimension fan-out, adversarially verified against curre
 - **TASK-482 (doc-sync).** This register's §8.3 was stale — 9 already-landed findings still showed "open → TASK-47X"; now marked FIXED `<sha>`, with the P4-13 file citation corrected. Tool count reconciled to the **live-measured 87** across this doc + `mcp-schema-traps.md`.
 
 Still deliberately deferred (honest scope, not gaps): `module-owns-its-own-MCP` / community-MCP-tool seam (Extension Manager P3, DESIGN-stage) and all-on tool curation (revisit only with usage evidence, never by vibe).
+
+## 11. Pass-6 (2026-06-20) — independent closure re-verification + owner-demanded open items (TASK-500)
+
+Sixth pass — a 50-agent hostile-skeptic workflow (refute-by-default). Every Phase-A closure claim and Phase-B deep-dive finding was re-opened against current HEAD (`a222ab0d`) with real file:line evidence; the register's own claims were **not** trusted. Net: the over-claim pattern this audit chronically fought has **largely been broken at the mechanism layer** (35/36 closure claims fully verified, 1 partial), but **recurs at the docs and Hub-surface edges**. Two of the pass's own deep-dive findings were caught and refuted by the Phase-C verification layer — evidence the adversarial step works.
+
+### 11.1 Closure re-verification result (Phase A)
+
+| Cluster | Claims | Verified | Partial | Regressed/not_found |
+|---|---|---|---|---|
+| gate+logging (F1, F8, B-2, B-3, P4-1, P4-2) | 6 | 6 | 0 | 0 |
+| agents-md+rules (F2, F3, F4, TASK-480) | 4 | 4 | 0 | 0 |
+| hooks+goldens (F9, F10, F11, F5) | 4 | 3 | **1 (F5)** | 0 |
+| routing (F6, F12, F13, F16/P4-9) | 4 | 4 | 0 | 0 |
+| pass4-crashes+locks (P4-8,10,11,12,13,14/15) | 6 | 6 | 0 | 0 |
+| cascades (TASK-475,481,476,477) | 4 | 4 | 0 | 0 |
+| overlay (P4-3/6, B-7, TASK-479) | 3 | 3 | 0 | 0 |
+| **Total** | **36** | **35** | **1** | **0** |
+
+**True-closure rate ≈ 97%** — a sharp reversal of the prior "code-read pass over-claims closed" pattern. Caveats (noted, not counted as over-claims): F2's literal `TASK-452` task-id is unverifiable (no commit references it; the code state it describes is present + correct); F6 and F16 carry explicitly-deferred narrow edges (F6: a Hub-chat builder-failure can still leak a bare `sonnet` via `cognition.py:618-626` → `sdk_dispatcher.py:171`, which skips `_resolve_model_alias`; F16: routing ranking is still success-rate-only, no cost join).
+
+### 11.2 The one PARTIAL — F5 (half-saved safety hook)
+
+⚠️ **F5 — the install-time `bash -n` guard is real but does not eliminate the runtime fail-closed risk.** The cited fix is correct: [`install-adapter.sh:112`](../../src/core/scripts/install-adapter.sh) runs `bash -n` before symlinking each core hook (`:125` each dispatcher hook), skip+warn on a syntax-broken one. BUT: (1) Claude makes **direct** hook calls in [`settings.template.json:9`](../../src/adapters/claude/settings.template.json) (`block-secrets.sh`, no fail-open wrapper), so a hook that fails `bash -n` at runtime still exits `rc=2`=BLOCK on Claude — the R14 dispatcher fix is Codex-only by design; (2) `src/core/hooks/*.sh` are **live symlinks**, so a half-edited hook propagates instantly to already-linked consumers **without** re-running the installer — the install-time guard never re-fires; (3) no test exercises the `bash -n` skip path. Mitigated only by the convention-level atomic-edit protocol in `git-workflow.md`, not by code. **Status: open (low)** — accept as a documented residual or close via a regression test; do **not** add a runtime fail-open to Claude direct calls without owner sign-off (it changes safety-hook semantics).
+
+### 11.3 Two deep-dive findings REFUTED by Phase-C (over-claims in the audit, not the code)
+
+- **PB-1 ("tool-count 72 vs 87") — REFUTED; the count is genuinely 87.** Independent re-count: `server.py` registers **72** `cos_*` tools (via `name="cos_*"`) and [`cognition.py:1795`](../../src/core/thinking_os/tools/cognition.py) `register_all` registers a **second batch of 15** (the cognition family, incl. `cos_classify_prompt`) → **72 + 15 = 87**, matching §10's "live-measured 87". The orientation-phase "72" was an incomplete grep that missed the second `register_all` path — there is no discrepancy. (The deep-dive's own arithmetic was sloppy and was dropped; the structural fact — cognition registers via a second path — is real and now documented here.)
+- **DOC-1 ("no docs↔module map") — REFUTED.** It manufactured a "sixth docs dimension" by misreading the §9 five-dimension reframe. A docs axis (`Module.doc_tags`) was **already** tried and deliberately deleted with rationale (§5 / §5.1, zero readers). Do **not** re-add a `docs:` schema axis. **However, three concrete docs *leaks* (DOC-3/4/5 below) survived verification as real** — the axis is dead-by-design, the specific leaks are not.
+
+### 11.4 Confirmed-real finding register (Phase-B verified `real===true` only)
+
+Severity: 🔴 high · 🟡 medium · 🟢 low.
+
+| ID | Sev | Finding | Evidence (file:line) | Task |
+|---|---|---|---|---|
+| DOC-3 | 🟡 | Shipped governance docs reference disabled-module tools un-gated; `cos_doc_search` serves absent-tool guidance to a trimmed consumer | `scaffold/docs/governance/mcp-tool-inventory.md` header has `domain:DOCS` but **no `module:` tag**; `_apply_doc_conditions` wired at `main.py:871` but unused for graph/memory | **TASK-501** |
+| DOC-5 | 🟡 | `cos remove-stack` orphans the stack's scaffolded docs — §8.1 "full cascade" over-claim recurs at the docs axis | `remove_stack.py:224` deletes only `rules_dir.glob("{stack}-*.md")`; `templates/go/scaffold/docs/{playbooks/go-service.md, engineering/go-rules.md}` never deleted | **TASK-502** |
+| PB-3-tool | 🟡 | Default state advertises all 87 tools (gating is opt-out) — the owner's "too crowded → hallucination" IS the out-of-box experience | `tools/_shared.py` `_disabled_modules()` returns ∅ with no state file; `cos init` writes no disables; `subsystems.yaml` has no default-off field | owner-gated (§11.5) |
+| HUB-PB1 | 🟡 | Hub Skills tab is additive-only — can add community skills but cannot disable a core/stack skill the backend already supports | `ConfigPage.tsx` button hardwired to `add` (`s.extra` false for core/stack); `set_project_skill` fully supports disable | **TASK-503** |
+| HUB-PB2 | 🟡 | `modules.skill_drift`/`command_drift`/`state_integrity` never surface in the Hub — the toggle UI cannot show the drift its own cascade can produce | checks at `doctor.py:1095,1145,1191`; **zero hits** in `src/core/web/`; `DoctorPage` reads `/api/graph/doctor` (different producer) | **TASK-504** |
+| DOC-4 | 🟢 | Runtime `cos module disable` never strips module-tagged docs — `_apply_doc_conditions` is init-only | only callers `main.py:701,871` (both init); `toggle_and_regen` never strips docs; no `modules.doc_drift` check | backlog (defer runtime doc-delete; add doctor WARN) |
+| PB-4-hub | 🟢 | Hub discards the toggle's `regenerated` cascade notes (rollback/error feedback DOES reach the operator) | `ConfigPage.tsx` awaits `apiPatch` but discards body; CLI echoes each note `module_commands.py:302-304` | backlog |
+| PB-3-skills | 🟢 | `ModuleRow` drops the `skills` count the producer emits — Hub under-reports module blast radius | producer `module_commands.py:266` `"skills": len(m.skills)`; consumer `ConfigPage.tsx` interface omits `skills` | backlog |
+| PB-2-log | 🟢 | Startup log claims "14 tools" for cognition but `register_all` registers 15 (omits `cos_classify_prompt`) | `server.py:2226` "= 14 tools"; `cos_classify_prompt` registered `cognition.py:1814` | backlog (one-line) |
+| PB-6-kernel | 🟢 | 4 always-on kernel tools (classify/health/traceability/failure_pattern) unmapped-by-omission, not declared kernel; no tool↔module totality test (hooks have one at `test_cli.py:1605`) | `_shared.py` `if module.get("kernel"): continue`; `subsystems.yaml:66` kernel `tools:[]` | backlog (documentation-as-data + invariant test) |
+| PB-4-skillladder | 🟢 | ~9 of 22 graph tools (centrality, cycles, dead_code, diff, doctor, entrypoints, ranking, resolve, test_gap) carry no agent-facing guidance in any loaded skill/rule (corrected from the deep-dive's claimed 12) | `graph-explorer/SKILL.md` ladder vs `meta-graph-first.md` table; gating is all-or-nothing (`cos_graph_*`) | backlog (skill ladder, defer-curation) |
+| F5 | 🟢 | Half-saved live-symlinked safety hook still BLOCKs at runtime on Claude (see §11.2) | as §11.2 | **TASK-505** covers the harness; F5 residual accepted |
+
+### 11.5 Owner-gated decisions (RAPTOR / anti-overengineering applied)
+
+| Item | Recommendation | Rationale |
+|---|---|---|
+| **Default tool surface** (PB-3-tool — the "too-crowded" complaint) | **Curated default behind `--full`:** `cos init` writes a starter `subsystems-state.json` disabling the heaviest COMPLICATED+-only module(s) (`cognition`, ~15 tools) unless `--full`. | Highest leverage for the owner's complaint, **no new code** (reuses existing gating). Owner-gated because it changes first-run behavior. Opt-in flip (all modules off by default) rejected — too aggressive, breaks existing consumers. |
+| **Tool curation (merge/delete even all-on)** | **DEFER — keep §9.2.** | Highest blast-radius / lowest-leverage; no usage-telemetry source exists, so any merge now is by vibe (forbidden). Surface-removal + the curated default shed the crowding for free. |
+| **Docs axis as a module dimension** | **Fix the 3 concrete leaks (DOC-3/4/5) only; no `docs:` schema axis.** | The axis was tried and deleted with cause; heavy reference docs genuinely do not ship. Real cost = 3 specific leaks, each fixable by reusing wired mechanisms. |
+| **Q1-HYBRID (module→skill guidance coupling)** | **Keep LOCKED (§8.5); revisit owner-gated only.** | Skill cascade (TASK-475) already unlinks module-owned skills on disable; deeper guidance coupling has no proven need. Changing a locked decision unilaterally violates Rule 22. |
+| **Consumer-in-CI harness** | **BUILD one thin single-module integration test (TASK-505).** | The durable guard against the unit-passes-but-end-to-end-half-wired pattern; would have auto-caught DOC-4/DOC-5. Keep single-module, not a matrix (Raptor: smaller+correct). |
+
+**Pass-6 verdict:** the modularity machine is **genuinely built** (~97% true closure at the mechanism layer); the remaining work is **edge hygiene** — three docs leaks (TASK-501/502, DOC-4 backlog), Hub read-surface parity (TASK-503/504 + low backlog), a leaner default (owner-gated), and one durable end-to-end guard (TASK-505) — none of which are missing core machinery. Follow-up tasks: TASK-501..505 (filed, DoR-ready).
