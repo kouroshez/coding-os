@@ -77,20 +77,24 @@ token-burn the audit retirement removed):
 
 ```
 warning: destructive edit — removing N line(s) from <path>
-  last changed by <%h> "<commit subject>" (<author>, <date>)
-  before you overwrite/delete, confirm intent:  git log -L<a>,<b>:<path>   |   git show <sha>:<path>
+  last committed: <sha> "<commit subject>" (<author>, <date>)
+  inspect before you overwrite:  git show <sha>:<path>   |   git log -p -3 -- <path>
 ```
 
 Provenance is the **file-level last commit** (`git log -1 --format … -- <path>`),
-chosen for a predictable sub-200ms hot-path cost on repos of any size; deeper
-line-level attribution is the agent's PULL via the printed `git log -L`. In
-strict mode the same body is emitted and the hook exits 2 with a remediation
-footer (`set COS_DESTRUCTIVE_GUARD=warn to downgrade, or split the deletion`).
+chosen for a predictable sub-200ms hot-path cost on repos of any size. The two
+printed pull commands need **no computed line range** (the agent never knows the
+deleted region's absolute line numbers reliably): `git show <sha>:<path>` shows
+the prior whole-file content, `git log -p -3 -- <path>` shows recent diffs; for
+line-level authorship the agent runs `git blame` itself. In strict mode the same
+body is emitted with a `BLOCKED:` prefix and the hook exits 2 with a remediation
+footer (`split the deletion into a separate reviewed change, or set
+COS_DESTRUCTIVE_GUARD=warn`).
 
 ## What this does NOT catch (by design)
 
-- Semantic breakage / contract drift / blast radius → already `cos_graph_impact`
-  + `api-contract-discipline` + the verification matrix.
+- Semantic breakage / contract drift / blast radius → already covered by
+  `cos_graph_impact`, `api-contract-discipline`, and the verification matrix.
 - Whole-file `rm` / `git rm` (Bash surface) → partly `block-dangerous-commands`;
   a future extension may add a Bash matcher.
 - "Which session" attribution → git records the human committer only; closing

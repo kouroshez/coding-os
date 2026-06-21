@@ -119,3 +119,50 @@ def test_malformed_stdin_fails_open() -> None:
         cwd=str(REPO_ROOT),
     )
     assert proc.returncode == 0
+
+
+@pytest.mark.skipif(not LOAD_BEARING_DOC.is_file(), reason="fixture doc absent")
+def test_write_overwrite_existing_load_bearing_warns() -> None:
+    # wholesale overwrite of a committed multi-line doc with a tiny body = destruction
+    payload = {"tool_name": "Write", "tool_input": {"file_path": str(LOAD_BEARING_DOC), "content": "x"}}
+    code, err = _run(payload)
+    assert code == 0
+    assert "destructive edit" in err
+
+
+@pytest.mark.skipif(not LOAD_BEARING_DOC.is_file(), reason="fixture doc absent")
+def test_warning_surfaces_the_exact_pull_commands() -> None:
+    # guards against spec<->message drift: the message MUST carry the documented pull commands + provenance label
+    code, err = _run(_big_edit(LOAD_BEARING_DOC))
+    assert code == 0
+    assert "last committed:" in err
+    assert "git show " in err
+    assert "git log -p -3 -- " in err
+
+
+@pytest.mark.skipif(not LOAD_BEARING_DOC.is_file(), reason="fixture doc absent")
+def test_threshold_boundary() -> None:
+    # exactly MIN_LINES (12) removed -> flagged; one fewer -> silent
+    at_threshold = {
+        "tool_name": "Edit",
+        "tool_input": {"file_path": str(LOAD_BEARING_DOC), "old_string": "x\n" * 12, "new_string": ""},
+    }
+    code, err = _run(at_threshold)
+    assert code == 0
+    assert "destructive edit" in err
+
+    below = {
+        "tool_name": "Edit",
+        "tool_input": {"file_path": str(LOAD_BEARING_DOC), "old_string": "x\n" * 11, "new_string": ""},
+    }
+    code, err = _run(below)
+    assert code == 0
+    assert err.strip() == ""
+
+
+@pytest.mark.skipif(not LOAD_BEARING_DOC.is_file(), reason="fixture doc absent")
+def test_min_lines_override_raises_the_bar() -> None:
+    # a 30-line deletion is silent when the threshold is raised to 50
+    code, err = _run(_big_edit(LOAD_BEARING_DOC), env_extra={"COS_DESTRUCTIVE_GUARD_MIN_LINES": "50"})
+    assert code == 0
+    assert err.strip() == ""

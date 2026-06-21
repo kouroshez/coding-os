@@ -11,28 +11,25 @@ import fnmatch
 import sys
 
 
-def main(argv: list[str]) -> int:
-    if len(argv) != 3:
-        print("no")
-        return 0
-    config_path, fp = argv[1], argv[2]
+def matches(config_path: str, file_path: str) -> bool:
     try:
         import yaml
     except ImportError:
-        print("no")
-        return 0
+        return False
     try:
         with open(config_path, encoding="utf-8") as fh:
             data = yaml.safe_load(fh) or {}
     except OSError:
+        return False
+    patterns = ((data.get("graph") or {}).get("enforce_context_on")) or []
+    return any(fnmatch.fnmatchcase(file_path, pat) for pat in patterns)
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 3:
         print("no")
         return 0
-    patterns = ((data.get("graph") or {}).get("enforce_context_on")) or []
-    for pat in patterns:
-        if fnmatch.fnmatchcase(fp, pat):
-            print("yes")
-            return 0
-    print("no")
+    print("yes" if matches(argv[1], argv[2]) else "no")
     return 0
 
 

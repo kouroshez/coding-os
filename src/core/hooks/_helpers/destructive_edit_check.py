@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import fnmatch
 import json
 import os
 import subprocess
@@ -27,7 +26,33 @@ def _min_lines() -> int:
         return _DEFAULT_MIN_LINES
 
 
-def _net_removed(tool_name: str, tool_input: dict, abs_path: Path) -> int:
+def _matches_code_globs(config_path: str, file_path: str) -> bool:
+    try:
+        import graph_context_match  # shared SSOT for the enforce_context_on glob set
+
+        return graph_context_match.matches(config_path, file_path)
+    except Exception:
+        return False
+
+
+def _maybe_load_bearing(abs_str: str, config_path: str) -> bool:
+    posix = abs_str.replace(os.sep, "/")
+    if "/docs/" in posix:
+        return True
+    return _matches_code_globs(config_path, abs_str)
+
+
+def _is_load_bearing(rel: str, abs_str: str, config_path: str) -> bool:
+    if rel.startswith("docs/"):
+        if any(rel.startswith(x) for x in _DOCS_EXCLUDE):
+            return False
+        if "/archive/" in f"/{rel}":
+            return False
+        return True
+    return _matches_code_globs(config_path, abs_str)
+
+
+def _net_removed(tool_name: str, tool_input: dict, abs_path: Path, config_path: str) -> int:
     if tool_name == "Edit":
         old = tool_input.get("old_string", "") or ""
         new = tool_input.get("new_string", "") or ""
@@ -39,8 +64,10 @@ def _net_removed(tool_name: str, tool_input: dict, abs_path: Path) -> int:
             total -= (edit.get("new_string", "") or "").count("\n")
         return total
     if tool_name == "Write":
-        if not abs_path.is_file():
-            return 0  # creating a new file is never destruction
+        if "content" not in tool_input or not abs_path.is_file():
+            return 0  # creating a new file (or no content key) is never destruction
+        if not _maybe_load_bearing(str(abs_path), config_path):
+            return 0  # cheap path gate — never read a non-load-bearing file off the hot path
         try:
             old = abs_path.read_text(encoding="utf-8", errors="replace")
         except OSError:
@@ -48,25 +75,6 @@ def _net_removed(tool_name: str, tool_input: dict, abs_path: Path) -> int:
         new = tool_input.get("content", "") or ""
         return old.count("\n") - new.count("\n")
     return 0
-
-
-def _is_load_bearing(rel: str, abs_path: str, config_path: str) -> bool:
-    if rel.startswith("docs/"):
-        if "archive/" in rel or any(rel.startswith(x) for x in _DOCS_EXCLUDE):
-            return False
-        return True
-    try:
-        import yaml
-
-        with open(config_path, encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
-        patterns = ((data.get("graph") or {}).get("enforce_context_on")) or []
-    except (OSError, ImportError):
-        patterns = []
-    for pat in patterns:
-        if fnmatch.fnmatchcase(rel, pat) or fnmatch.fnmatchcase(abs_path, pat):
-            return True
-    return False
 
 
 def _provenance(root: str, rel: str) -> tuple[str, str, str, str] | None:
@@ -101,12 +109,14 @@ def main() -> int:
     if tool_name not in ("Edit", "MultiEdit", "Write") or not file_path:
         return _not_flagged()
 
+    config = sys.argv[1] if len(sys.argv) > 1 else ""
+
     try:
         abs_path = Path(file_path).resolve()
     except OSError:
         return _not_flagged()
 
-    removed = _net_removed(tool_name, tool_input, abs_path)
+    removed = _net_removed(tool_name, tool_input, abs_path, config)
     if removed < _min_lines():
         return _not_flagged()
 
@@ -128,7 +138,6 @@ def main() -> int:
     except ValueError:
         return _not_flagged()  # outside the repo
 
-    config = sys.argv[1] if len(sys.argv) > 1 else ""
     if not _is_load_bearing(rel, str(abs_path), config):
         return _not_flagged()
 
