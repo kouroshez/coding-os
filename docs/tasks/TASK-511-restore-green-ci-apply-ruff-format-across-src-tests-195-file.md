@@ -22,3 +22,4 @@ references: []
 
 ## Work Log
 - 2026-06-21 [claude]: commit 86a8f1421c — style: apply ruff format across src/ + tests/ (195-file drift)
+- 2026-06-21 [claude]: commit c6bf328bbb — chore(board): sync task files + add TASK-511 (CI ruff-format fix)
