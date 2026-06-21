@@ -46,9 +46,16 @@ COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 # the global hub at $HOME/.coding-os. Echoes the resolved root, or empty when none
 # is found at/below the $HOME boundary.
 _cos_find_project_root() {
-  local dir home_real first_state="" marker found_marker
+  local dir home_real first_state="" marker found_marker parent
   # Rule 5: resolve symlinks (macOS /tmp -> /private/tmp) before the $HOME compare.
-  dir="$(cd -P "${PWD}" 2>/dev/null && pwd -P)" || dir="${PWD}"
+  dir="$(cd -P "${PWD}" 2>/dev/null && pwd -P)" || dir=""
+  # Only an absolute, resolvable cwd is walkable. A relative/stale $PWD (cos-env.sh
+  # is SOURCED, so it inherits the parent's $PWD) would otherwise make dirname
+  # collapse to '.' — a fixpoint that spins forever. Bail to the relative default.
+  if [[ "$dir" != /* ]]; then
+    printf ''
+    return 0
+  fi
   home_real="$(cd -P "${HOME:-/dev/null}" 2>/dev/null && pwd -P)" || home_real="${HOME:-}"
   while [[ -n "$dir" && "$dir" != "/" ]]; do
     # Never inspect/accept $HOME or above — $HOME/.coding-os is the global hub.
@@ -73,7 +80,12 @@ _cos_find_project_root() {
         return 0
       fi
     fi
-    dir="$(dirname "$dir")"
+    parent="$(dirname "$dir")"
+    # dirname fixpoint ('/' or any path that cannot ascend) → stop, never spin.
+    if [[ "$parent" == "$dir" ]]; then
+      break
+    fi
+    dir="$parent"
   done
   # No marked root below the boundary → innermost bare .coding-os/ (never
   # lazy-create at cwd), else empty (caller keeps the relative default).

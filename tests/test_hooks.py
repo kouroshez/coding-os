@@ -190,6 +190,32 @@ class TestCosEnv:
         got = _resolve_cos_var("COS_STATE_DIR", str(sub), {"HOME": str(home)})
         assert got == os.path.realpath(str(root)) + "/.coding-os"
 
+    def test_marker_walk_terminates_on_relative_pwd(self, tmp_path: Path) -> None:
+        """Regression: cos-env.sh is SOURCED, so it inherits the parent's $PWD.
+        A relative/stale $PWD must not drive the upward walk into a dirname('.')
+        fixpoint that spins forever — it must bail to the relative default. The
+        subprocess timeout is the assertion that no infinite loop regressed."""
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in ("CLAUDE_PROJECT_DIR", "COS_PROJECT_ROOT", "COS_STATE_DIR")
+        }
+        env["HOME"] = str(tmp_path)
+        # Force an unresolvable RELATIVE $PWD inside the sourcing shell.
+        script = 'export PWD="relative_nonexistent_dir"; source "%s"; echo "$COS_STATE_DIR"' % (
+            HOOKS_DIR / "cos-env.sh"
+        )
+        result = subprocess.run(
+            ["bash", "-c", script],
+            capture_output=True,
+            text=True,
+            cwd=str(tmp_path),
+            env=env,
+            timeout=10,
+        )
+        assert result.returncode == 0
+        assert result.stdout.strip() == ".coding-os"
+
     def test_cos_project_root_escape_hatch(self, tmp_path: Path) -> None:
         """COS_PROJECT_ROOT explicitly anchors the state dir when set, even from
         an unrelated cwd."""
