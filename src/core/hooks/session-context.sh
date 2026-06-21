@@ -620,6 +620,17 @@ except OSError:
     WARN=" ⚠️ wip=${WIP_NUM} but task=none — cos task-start <ID>"
   fi
 
+  # CLEAR-1 self-bypass count (TASK-494): surface how many times this session
+  # self-exempted from the enforcement gates via a manual "CLEAR 1" gate write,
+  # so the cost of bypassing is visible rather than silent. Fail-open.
+  BYPASS_LOG="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.clear1-bypass-log"
+  if [ -f "$BYPASS_LOG" ]; then
+    BYPASS_N=$(wc -l < "$BYPASS_LOG" 2>/dev/null | tr -d ' ' || echo 0)
+    if [ -n "$BYPASS_N" ] && [ "$BYPASS_N" -gt 0 ] 2>/dev/null; then
+      WARN="${WARN} ℹ️ bypasses=${BYPASS_N} self-issued CLEAR-1"
+    fi
+  fi
+
   # Context-budget signal: the last usage record in the live transcript is
   # the session's true context size. Over COS_CONTEXT_BUDGET (default 200K)
   # surface an informational /compact hint to the USER — never a stop

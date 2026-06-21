@@ -139,7 +139,7 @@ if [[ ! -f "$ANCHOR_FILE" ]]; then
   echo "" >&2
   echo "  Bypass paths (use sparingly — logged):" >&2
   echo "  • trivial fix (typo, docstring):" >&2
-  echo "      bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1\"" >&2
+  echo "      bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1 <one-line why this is trivial>\"" >&2
   echo "  • genuinely exploratory / throwaway code:" >&2
   echo "      bash \".${COS_AGENT}/hooks/write-state.sh\" .task-current \"exploratory-<slug>\"" >&2
   echo "  • one-shot manual override (consumed on use):" >&2
