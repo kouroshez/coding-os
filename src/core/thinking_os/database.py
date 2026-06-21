@@ -83,9 +83,17 @@ def _find_project_root_from_cwd(start: Path | None = None) -> Path:
     project (the exact bug TASK-117 traced to nested .coding-os/).
     """
     cur = (start or Path.cwd()).resolve()
-    candidates = [cur, *cur.parents]
+    try:
+        home = Path.home().resolve()
+    except (OSError, RuntimeError):
+        home = None
     first_with_state: Path | None = None
-    for parent in candidates:
+    for parent in [cur, *cur.parents]:
+        # $HOME hard-stop: never inspect or accept $HOME/.coding-os (the global
+        # hub state, not a project root). Mirrors the boundary in
+        # cos-env.sh::_cos_find_project_root (TASK-498).
+        if home is not None and parent == home:
+            break
         try:
             if not (parent / STATE_DIRNAME).is_dir():
                 continue
@@ -141,6 +149,32 @@ def resolve_db_path(project_root: Path | str | None = None) -> Path:
     if bound is not None:
         return Path(bound) / STATE_DIRNAME / DB_FILENAME
     return _find_project_root_from_cwd() / STATE_DIRNAME / DB_FILENAME
+
+
+def project_root(start: Path | str | None = None) -> Path:
+    """Single source of truth for the project root directory (holds .coding-os/).
+
+    Precedence:
+    1. ``$COS_PROJECT_ROOT`` env var, when set (explicit override).
+    2. Parent of an absolute ``$COS_STATE_DIR`` — already resolved by
+       cos-env.sh, so honoring it means the shell's one resolution is reused
+       instead of re-walking.
+    3. Upward marker-walk from cwd (``_find_project_root_from_cwd``), which has
+       the $HOME hard-stop so the global hub at $HOME/.coding-os is never bound.
+
+    Use this instead of the ``os.environ.get("COS_PROJECT_ROOT") or os.getcwd()``
+    idiom that was duplicated across the CLI, board, web, background, and hook
+    helpers — that idiom mis-resolves from a subdirectory (TASK-498).
+    """
+    explicit = os.environ.get("COS_PROJECT_ROOT")
+    if explicit:
+        return Path(explicit).resolve()
+    state = os.environ.get("COS_STATE_DIR")
+    if state:
+        state_path = Path(state)
+        if state_path.is_absolute():
+            return state_path.resolve().parent
+    return _find_project_root_from_cwd(Path(start) if start else None)
 
 
 def migrate_legacy_db_filename(target: Path) -> bool:

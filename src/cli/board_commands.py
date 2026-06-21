@@ -34,7 +34,9 @@ if str(_REPO_ROOT) not in sys.path:
 
 
 def _project_root() -> Path:
-    return Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
+    from thinking_os.database import project_root
+
+    return project_root()
 
 
 def _db_conn() -> sqlite3.Connection:

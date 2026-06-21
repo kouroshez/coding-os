@@ -30,7 +30,9 @@ def current_project_root() -> Path:
     bound = _current_project.get()
     if bound is not None:
         return bound
-    return Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
+    from thinking_os.database import project_root
+
+    return project_root()
 
 
 def is_explicit_project_scope() -> bool:

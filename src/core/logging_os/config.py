@@ -37,15 +37,22 @@ LOG_BASENAME = ".cos.log"
 
 
 def _discover_project_root() -> Path | None:
-    # Walk up from the process CWD for a repo/project marker so the .coding-os
-    # state dir anchors to the PROJECT ROOT, not wherever the process happened to
-    # start. Returns None when no marker is found (caller keeps the CWD fallback).
+    # Walk up from the process CWD for a project marker so the .coding-os state
+    # dir anchors to the PROJECT ROOT, not wherever the process happened to start.
+    # Returns None when no marker is found (caller keeps the CWD fallback).
+    # Marker set + $HOME hard-stop mirror
+    # thinking_os.database._find_project_root_from_cwd (kept aligned by hand so
+    # logging_os stays dependency-free of thinking_os; TASK-498).
+    markers = (".git", ".coding-os.yaml", "pyproject.toml", "package.json", "go.mod", "AGENTS.md")
     try:
         here = Path.cwd().resolve()
-    except OSError:
+        home = Path.home().resolve()
+    except (OSError, RuntimeError):
         return None
     for parent in (here, *here.parents):
-        if (parent / ".git").exists() or (parent / "pyproject.toml").is_file():
+        if parent == home:  # never anchor at $HOME (the global hub lives there)
+            break
+        if any((parent / m).exists() for m in markers):
             return parent
     return None
 

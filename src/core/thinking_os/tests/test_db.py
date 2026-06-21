@@ -936,6 +936,48 @@ def test_find_project_root_falls_back_to_innermost_without_marker(
     assert _find_project_root_from_cwd(sub).resolve() == sub.resolve()
 
 
+def test_find_project_root_stops_below_home(tmp_path: Path, monkeypatch) -> None:
+    """TASK-498: $HOME/.coding-os is the global hub, never a project root. A
+    subdir under $HOME with no project .coding-os must NOT resolve to $HOME."""
+    from database import _find_project_root_from_cwd
+
+    home = tmp_path / "home"
+    (home / ".coding-os").mkdir(parents=True)  # global-hub state
+    (home / "pyproject.toml").write_text("", encoding="utf-8")  # home carries a marker
+    sub = home / "proj" / "src"
+    sub.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    got = _find_project_root_from_cwd(sub).resolve()
+    assert got != home.resolve()
+    assert got == sub.resolve()  # innermost-or-cwd fallback, never the hub
+
+
+def test_project_root_precedence(tmp_path: Path, monkeypatch) -> None:
+    """TASK-498: canonical project_root() = COS_PROJECT_ROOT > parent of an
+    absolute COS_STATE_DIR > upward marker-walk."""
+    from database import project_root
+
+    explicit = tmp_path / "explicit"
+    explicit.mkdir()
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(explicit))
+    assert project_root() == explicit.resolve()
+
+    monkeypatch.delenv("COS_PROJECT_ROOT", raising=False)
+    state = tmp_path / "viastate" / ".coding-os"
+    state.mkdir(parents=True)
+    monkeypatch.setenv("COS_STATE_DIR", str(state))
+    assert project_root() == (tmp_path / "viastate").resolve()
+
+    monkeypatch.setenv("COS_STATE_DIR", ".coding-os")  # relative → ignored, must walk
+    monkeypatch.setenv("HOME", str(tmp_path / "nohome"))
+    root = tmp_path / "walkroot"
+    (root / ".coding-os").mkdir(parents=True)
+    (root / ".coding-os.yaml").write_text("v\n", encoding="utf-8")
+    sub = root / "a" / "b"
+    sub.mkdir(parents=True)
+    assert project_root(sub) == root.resolve()
+
+
 # ---------------------------------------------------------------------------
 # Migration v35 — scale foundation (TASK-226)
 # ---------------------------------------------------------------------------

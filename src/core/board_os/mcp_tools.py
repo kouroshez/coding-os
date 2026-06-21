@@ -61,8 +61,10 @@ _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
 
 def _project_root() -> Path:
-    """Resolve the project root. Prefers cwd; falls back to repo root."""
-    return Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
+    """Resolve the project root via the canonical database.project_root()."""
+    from thinking_os.database import project_root
+
+    return project_root()
 
 
 def _current_config():

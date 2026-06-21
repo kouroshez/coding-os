@@ -77,7 +77,12 @@ if isinstance(labels, list):
             errors.append(f"label {lbl!r} collides with KIND_ENUM — move to `kind:` field")
 
 # Swimlane exists in config
-project_root = Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())).resolve()
+try:
+    from thinking_os.database import project_root as _resolve_root  # type: ignore
+
+    project_root = _resolve_root()
+except ImportError:
+    project_root = Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())).resolve()
 try:
     config = load_config(project_root)
 except (FileNotFoundError, Exception):

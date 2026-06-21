@@ -48,7 +48,6 @@ logger = logging.getLogger("coding_os.background")
 
 ENV_ENABLED = "COS_BACKGROUND_INDEX"
 ENV_INTERVAL = "COS_BACKGROUND_INTERVAL"
-ENV_PROJECT_ROOT = "COS_PROJECT_ROOT"
 
 DEFAULT_INTERVAL_SECONDS = 300  # 5 min between passes
 _MIN_INTERVAL_SECONDS = 30  # prevent accidental hot-loop
@@ -77,12 +76,12 @@ def _parse_interval() -> int:
 def _project_root() -> Path:
     """Resolve the project root for passing to indexer/task_sync.
 
-    Order: COS_PROJECT_ROOT env > cwd.
+    Delegates to the canonical database.project_root() (COS_PROJECT_ROOT >
+    absolute COS_STATE_DIR parent > upward marker-walk).
     """
-    raw = os.environ.get(ENV_PROJECT_ROOT, "")
-    if raw.strip():
-        return Path(raw).resolve()
-    return Path.cwd().resolve()
+    from thinking_os.database import project_root
+
+    return project_root()
 
 
 # ---------------------------------------------------------------------------

@@ -25,7 +25,12 @@ def main(argv: list[str]) -> int:
     if not file_path.exists():
         return 0
 
-    project_root = Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())).resolve()
+    try:
+        from thinking_os.database import project_root as _resolve_root  # type: ignore
+
+        project_root = _resolve_root()
+    except ImportError:
+        project_root = Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())).resolve()
     try:
         from thinking_os.database import resolve_db_path  # type: ignore
 
