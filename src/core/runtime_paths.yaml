@@ -26,6 +26,12 @@ runtime_files:
   - .coding-os/.fresh-init
   - .coding-os/.cos.log
   - .coding-os/.cos.log.jsonl
+  # Optional starter change-log; a gitignored runtime artifact (*.log), so a
+  # clean clone never ships it while a dev checkout may have a stray copy.
+  # Listed here so all loaders (doctor scan, manifest generator, golden
+  # capture) exclude it consistently — otherwise the manifest baked it in on a
+  # dev machine and doctor's manifest_fresh failed on the clean CI checkout.
+  - changes.log
 
 # Directory prefixes to ignore during scaffold scans — VCS, build output,
 # virtualenvs, node_modules, etc.
