@@ -3,6 +3,10 @@ name: CI
 on:
   push:
     branches: [main]
+    # Board-sync commits (pure docs/tasks/ churn) carry no code or docs that
+    # the gates check — skip the matrix for them to conserve Actions minutes.
+    paths-ignore:
+      - "docs/tasks/**"
   pull_request:
     branches: [main]
   # Allow manual re-runs without a push.
@@ -85,7 +89,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # macOS bills at 10× Actions minutes, so it ran on every push + every
+        # release-please PR sync and drained the monthly quota. Linux is
+        # case-sensitive — the stronger per-push gate (it catches the path-case
+        # bugs macOS's case-insensitive FS HIDES). per-push = Linux × 3 py;
+        # macOS moved to the nightly `test-python-macos` job below.
+        os: [ubuntu-latest]
         python: ["3.10", "3.11", "3.12"]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
@@ -106,6 +115,46 @@ jobs:
         run: uv sync --extra rag --extra graph_os
       - name: Install bash 5 (macOS)
         if: runner.os == 'macOS'
+        run: brew install bash
+      - name: Subsystem — thinking_os
+        run: uv run --extra rag pytest src/core/thinking_os/tests/ -q
+      - name: Subsystem — graph_os
+        run: uv run --extra graph_os pytest src/core/graph_os/tests/ -q
+      - name: Subsystem — board_os
+        run: uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q
+      - name: Subsystem — logging_os
+        run: uv run --extra rag pytest src/core/logging_os/tests/ -q
+      - name: Subsystem — scheduled
+        run: uv run --extra rag pytest src/core/scheduled/tests/ -q
+      - name: Cross-cutting tests (selected; skip slow scaffold tests)
+        run: uv run pytest tests/ -q -m 'not slow'
+
+  # ============================================================
+  # macOS smoke — nightly only (schedule/manual). macOS bills at 10×
+  # Actions minutes, so it stays off the per-push / per-PR path. Single
+  # Python (3.12) keeps the daily cost bounded; widen the matrix here if
+  # macOS-specific regressions start slipping through. NOT in ci-pass needs,
+  # so a per-push CI Pass never waits on it.
+  # ============================================================
+  test-python-macos:
+    name: pytest (macos-latest · py3.12) [nightly]
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: lint
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+      - name: Install deps
+        run: uv sync --extra rag --extra graph_os
+      - name: Install bash 5 (macOS)
         run: brew install bash
       - name: Subsystem — thinking_os
         run: uv run --extra rag pytest src/core/thinking_os/tests/ -q
