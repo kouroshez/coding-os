@@ -5,7 +5,7 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ci, release-unblock, case-sensitivity, manifest, embeddings, ready]
-status: testing
+status: blocked
 priority: P0
 appetite: 1d
 created: 2026-06-22
@@ -43,3 +43,27 @@ Clean clone on case-sensitive FS (or Linux CI), then run: `uv run pytest tests/t
 - 2026-06-22 [claude]: commit 548e62c4bf — fix(ci): exclude .coding-os/ + settings.local from golden parity check
 - 2026-06-22 [claude]: All 4 root causes fixed + verified on a clean case-sensitive APFS clone (CI-equivalent): golden PRD→prd rename +…
 - 2026-06-22 [claude]: commit 0aa607d6c3 — chore(board): add TASK-513 (restore green CI — Linux-only failures)
+- 2026-06-22 [claude]: commit 8567453e47 — chore(board): TASK-513 → testing + verification work-log
+- 2026-06-22 [claude]: Edit generate_manifest.py
+- 2026-06-22 [claude]: Edit runtime_paths.yaml
+- 2026-06-22 [claude]: Edit .gitignore
+- 2026-06-22 [claude]: Edit subsystems.yaml
+- 2026-06-22 [claude]: Edit test_cli.py
+- 2026-06-22 [claude]: Edit test_cli.py
+- 2026-06-22 [claude]: commit 6a36e1d2a6 — fix(ci): commit changes.log as a seeded scaffold file (gitignore swallowed it)
+- 2026-06-22 [claude]: commit bbd10d3adc — fix(ci): exclude __pycache__/.pyc from scaffold manifest + regen
+- 2026-06-22 [claude]: commit 933648ed65 — fix(ci): give warn-destructive-edit a module owner (kernel) — F9 invariant
+- 2026-06-22 [claude]: Edit ci.yml
+- 2026-06-22 [claude]: Edit ci.yml
+- 2026-06-22 [claude]: Edit ci.yml
+- 2026-06-22 [claude]: commit 286138a46c — ci: move macOS matrix to nightly-only + skip CI on board-sync commits
+- 2026-06-22 [claude]: Edit test_branding.py
+- 2026-06-22 [claude]: Edit test_no_phantom_tool_refs.py
+- 2026-06-22 [claude]: Edit test_link_commit_to_task.py
+- 2026-06-22 [claude]: Edit test_hub_settings_model_routing.py
+- 2026-06-22 [claude]: commit ea738e4c99 — test(ci): fix pre-existing tests/ failures unmasked once the pytest gate went green
+- 2026-06-22 [claude]: Edit ci-red-masking-cascade.md
+- 2026-06-22 [claude]: Edit github-actions-cost-macos-10x.md
+- 2026-06-22 [claude]: Edit dev-pollution-leaks-into-manifest.md
+- 2026-06-22 [claude]: Edit MEMORY.md
+- 2026-06-22 [claude]: CI was red across MANY masked layers; all fixed + verified locally (zero GitHub minutes). Recent: docs-lint links,…
