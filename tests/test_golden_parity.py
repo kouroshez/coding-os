@@ -39,21 +39,24 @@ SECTIONS: list[tuple[str, str, list[str]]] = [
 ]
 
 RUNTIME_PATHS = {
-    ".coding-os/coding-os.db",
-    ".coding-os/coding-os.db-shm",
-    ".coding-os/coding-os.db-wal",
-    ".coding-os/session-id",
-    ".coding-os/.thinking_os-gate",
-    ".coding-os/.task-current",
-    ".coding-os/.zoom-checkpoint",
-    ".coding-os/.last-verify",
-    ".coding-os/.fresh-init",
-    # gitignored + carries a wall-clock `stamped_at` → byte-comparing it
-    # false-fails parity on every capture. It is never committed, so it is
-    # a runtime artifact, not part of the scaffold contract.
-    ".coding-os/core-version.json",
+    # Deterministic permission allowlist cos init writes, but .gitignore keeps
+    # it out of the committed fixture; verified by the manifest/doctor layer
+    # (scaffold.manifest_fresh), not by golden parity. (TASK-513)
+    ".claude/settings.local.json",
 }
-IGNORED_PREFIXES = (".git/", "node_modules/", ".venv/", ".build/")
+IGNORED_PREFIXES = (
+    ".git/",
+    "node_modules/",
+    ".venv/",
+    ".build/",
+    # The whole .coding-os/ project-state dir is gitignored (DBs, session
+    # markers, the wall-clock core-version.json, plus deterministic config and
+    # the local stack copy under .coding-os/src/). None of it lands in the
+    # committed golden tree, so on a fresh clone it would false-fail parity as
+    # "extra in fresh". Its config is verified instead by the manifest/doctor
+    # layer; excluding it here keeps the path-set comparison clean. (TASK-513)
+    ".coding-os/",
+)
 
 
 def _scaffold(agent: str, templates: list[str], target: Path) -> None:
