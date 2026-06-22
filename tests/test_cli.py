@@ -1972,6 +1972,11 @@ class TestModuleCli:
                 "init",
                 "--agent",
                 "claude",
+                # all modules on — these tests assert the disable/enable round-trip
+                # against a clean baseline, which the default `standard` profile
+                # (cognition off) would pollute with cognition's disabled hooks.
+                "--profile",
+                "full",
                 "-d",
                 str(project),
                 "--yes",
@@ -2047,6 +2052,11 @@ class TestModuleLifecycle:
                 "init",
                 "--agent",
                 "claude",
+                # all modules on — test_update_migrates asserts the pre-module
+                # shape (no subsystems-state.json), which the default `standard`
+                # profile would break by writing state for its disabled modules.
+                "--profile",
+                "full",
                 "-d",
                 str(project),
                 "--yes",
