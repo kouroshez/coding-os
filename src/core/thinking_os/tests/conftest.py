@@ -86,6 +86,17 @@ def _stub_embedding_models(request: pytest.FixtureRequest):
         _os.environ.get("COS_TEST_REAL_EMBEDDINGS") == "1"
         or request.node.get_closest_marker("real_embeddings") is not None
     ):
+        import embeddings
+
+        # real_embeddings tests need the actual model weights, not just the
+        # sentence-transformers package (REQUIRES_RAG only checks the package).
+        # CI runs offline (HF_HUB_OFFLINE) with no vendored model, so the load
+        # returns None — skip rather than fail with empty-result assertions.
+        if embeddings._get_model() is None:
+            pytest.skip(
+                "real embedding model unavailable (offline / not vendored) — "
+                "set COS_ALLOW_MODEL_DOWNLOAD=1 to vendor it"
+            )
         yield
         return
     import embeddings
