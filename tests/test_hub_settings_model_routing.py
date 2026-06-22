@@ -122,21 +122,23 @@ class TestConfigSkillsExtras:
         payload = listing.json()
         assert all("extra" in row for row in payload["skills"]) or payload["skills"] == []
 
-        patched = client.patch("/api/config/skills/redis", json={"enabled": True})
-        assert patched.status_code == 200, patched.text
-        assert patched.json()["data"]["provenance"] == "core"
         import yaml as _yaml
 
+        # redis is a CORE skill — it ships enabled and round-trips through the
+        # `disabled_skills` opt-out list, NOT `extra_skills` (which is the
+        # community opt-IN list). Disabling it adds to disabled_skills.
+        disabled = client.patch("/api/config/skills/redis", json={"enabled": False})
+        assert disabled.status_code == 200, disabled.text
+        assert disabled.json()["data"]["provenance"] == "core"
         config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
-        assert "redis" in config["extra_skills"]
-
-        relisted = client.get("/api/config/skills").json()
-        assert "redis" in relisted["extra_skills"]
-
-        removed = client.patch("/api/config/skills/redis", json={"enabled": False})
-        assert removed.status_code == 200
-        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert "redis" in config["disabled_skills"]
         assert "redis" not in (config.get("extra_skills") or [])
+
+        # re-enabling removes it from the opt-out list — full round-trip.
+        restored = client.patch("/api/config/skills/redis", json={"enabled": True})
+        assert restored.status_code == 200
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert "redis" not in (config.get("disabled_skills") or [])
 
     def test_patch_validation_and_unknown_skill(self, module_client):
         client, project = module_client

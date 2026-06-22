@@ -46,6 +46,7 @@ _ALLOWLIST: frozenset[str] = frozenset(
         "cos_hook_error",  # proposed shared shell helper in the observability doc
         "cos_init_jobs_total",  # Prometheus funnel counter name (hub-architecture.md), not a tool
         "cos_root",  # example local variable in mcp-fast-path-entry.md prose
+        "cos_say_json",  # real helper FILE (_helpers/cos_say_json.py) referenced by filename; not harvested as a tool symbol
     }
 )
 

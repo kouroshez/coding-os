@@ -29,6 +29,14 @@ ALLOWED_PATHS: set[str] = {
     # Claude Code / Claude Agent SDK installed — descriptive install guidance for
     # a genuinely Claude-SDK-gated feature, not coding-os self-branding.
     "src/core/web/ui/src/pages/ChatLanding.tsx",
+    # More descriptive references to Anthropic's product, not coding-os
+    # self-branding: chat-status.ts's comment explains the status-animation
+    # style "the way Claude Code does"; OnboardingWizard names the Claude Code
+    # adapter alongside Codex; doctor_tokens.py's docstring says where Claude
+    # Code writes its transcript JSONL (mirrors the allowlisted doctor.py).
+    "src/core/web/ui/src/features/cognition/chat-status.ts",
+    "src/core/web/ui/src/pages/OnboardingWizard.tsx",
+    "src/cli/doctor_tokens.py",
 }
 
 FORBIDDEN_TOKENS: tuple[str, ...] = (

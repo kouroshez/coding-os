@@ -59,7 +59,13 @@ def test_links_commit_for_active_task(tmp_path):
     sha = subprocess.run(
         ["git", "rev-parse", "--short=10", "HEAD"], cwd=repo, capture_output=True, text=True
     ).stdout.strip()
-    code, out = _run(repo, 'git commit -m "work"')
+    # The real append helper (work_log_append.py) needs a migrated
+    # .coding-os/coding-os.db the hermetic repo lacks and returns 1, so the hook
+    # would take the append-failed path. Stub it (exit 0) per the module
+    # docstring so the linked=true branch — the behaviour under test — runs.
+    helper = tmp_path / "wl_stub.py"
+    helper.write_text("import sys\nsys.exit(0)\n", encoding="utf-8")
+    code, out = _run(repo, 'git commit -m "work"', helper=helper)
     assert code == 0
     assert "[worklog] commit" in out
     assert sha in out
