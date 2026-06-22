@@ -97,3 +97,10 @@ test-codeos/
 
 # ---- Logs -----------------------------------------------------------
 *.log
+# Exception: changes.log is a SEEDED starter file `cos init` writes into the
+# consumer (tests/test_cli.py::test_creates_scaffold_files + doctor's
+# scaffold.manifest_fresh assert it exists). The *.log rule above must not
+# swallow the committed template source or its golden snapshots, or a clean
+# CI checkout can't ship it.
+!src/templates/*/scaffold/changes.log
+!tests/golden/**/changes.log
