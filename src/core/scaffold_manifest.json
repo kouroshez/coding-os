@@ -185,6 +185,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -226,7 +227,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 219
+      "count": 220
     },
     "claude_angular": {
       "agent": "claude",
@@ -418,6 +419,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -473,7 +475,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 239
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -665,6 +667,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -713,7 +716,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 232
     },
     "claude_astro": {
       "agent": "claude",
@@ -903,6 +906,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -955,7 +959,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 234
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1143,6 +1147,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -1186,7 +1191,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 223
     },
     "claude_django": {
       "agent": "claude",
@@ -1380,6 +1385,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -1428,7 +1434,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 234
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1622,6 +1628,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -1665,7 +1672,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 228
+      "count": 229
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1857,6 +1864,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -1907,7 +1915,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 234
     },
     "claude_go": {
       "agent": "claude",
@@ -2104,6 +2112,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -2147,7 +2156,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 232
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2344,6 +2353,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -2387,7 +2397,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 232
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2575,6 +2585,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -2618,7 +2629,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 223
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2806,6 +2817,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -2849,7 +2861,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 223
     },
     "claude_laravel": {
       "agent": "claude",
@@ -3039,6 +3051,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -3087,7 +3100,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 230
     },
     "claude_meta": {
       "agent": "claude",
@@ -3287,36 +3300,31 @@
         ".coding-os/src/templates/meta/rules/meta-engineering.md",
         ".coding-os/src/templates/meta/skills/claude-sdk-integration/SKILL.md",
         ".coding-os/src/templates/meta/skills/claude-sdk-integration/assets/sdk-checklist.md",
-        ".coding-os/src/templates/meta/skills/claude-sdk-integration/scripts/__pycache__/check_model_ids.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/claude-sdk-integration/scripts/check_model_ids.py",
         ".coding-os/src/templates/meta/skills/graph-os-authoring/SKILL.md",
         ".coding-os/src/templates/meta/skills/graph-os-authoring/assets/graph-os-checklist.md",
-        ".coding-os/src/templates/meta/skills/graph-os-authoring/scripts/__pycache__/new_extractor.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/graph-os-authoring/scripts/new_extractor.py",
         ".coding-os/src/templates/meta/skills/hook-authoring/SKILL.md",
         ".coding-os/src/templates/meta/skills/hook-authoring/assets/hook-checklist.md",
         ".coding-os/src/templates/meta/skills/hook-authoring/scripts/new_hook.sh",
         ".coding-os/src/templates/meta/skills/mcp-tool-authoring/SKILL.md",
         ".coding-os/src/templates/meta/skills/mcp-tool-authoring/assets/mcp-tool-checklist.md",
-        ".coding-os/src/templates/meta/skills/mcp-tool-authoring/scripts/__pycache__/new_tool.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/mcp-tool-authoring/scripts/new_tool.py",
         ".coding-os/src/templates/meta/skills/meta-engineering/SKILL.md",
         ".coding-os/src/templates/meta/skills/meta-engineering/assets/meta-edit-checklist.md",
-        ".coding-os/src/templates/meta/skills/meta-engineering/scripts/__pycache__/which_layer.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/meta-engineering/scripts/which_layer.py",
         ".coding-os/src/templates/meta/skills/python-meta-server/SKILL.md",
         ".coding-os/src/templates/meta/skills/python-meta-server/assets/meta-server-checklist.md",
-        ".coding-os/src/templates/meta/skills/python-meta-server/scripts/__pycache__/check_envelope.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/python-meta-server/scripts/check_envelope.py",
         ".coding-os/src/templates/meta/skills/react-vite-hub/SKILL.md",
         ".coding-os/src/templates/meta/skills/react-vite-hub/assets/hub-ui-checklist.md",
-        ".coding-os/src/templates/meta/skills/react-vite-hub/scripts/__pycache__/check_vite_env.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/react-vite-hub/scripts/check_vite_env.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -3358,7 +3366,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 262
+      "count": 257
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3548,6 +3556,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -3600,7 +3609,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 234
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -3794,6 +3803,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -3850,7 +3860,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 242
     },
     "claude_node-express": {
       "agent": "claude",
@@ -4040,6 +4050,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -4089,7 +4100,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 231
     },
     "claude_python": {
       "agent": "claude",
@@ -4276,6 +4287,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -4319,7 +4331,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 221
+      "count": 222
     },
     "claude_rails": {
       "agent": "claude",
@@ -4511,6 +4523,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -4562,7 +4575,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 235
     },
     "claude_react-native": {
       "agent": "claude",
@@ -4758,13 +4771,13 @@
         ".coding-os/src/templates/react-native/skills/react-native-patterns/SKILL.md",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/assets/rn-review-checklist.md",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/references/list-performance.md",
-        ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/__pycache__/scan_rn_perf.cpython-310.pyc",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/scan_rn_perf.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -5000,6 +5013,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -5043,7 +5057,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 223
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5235,6 +5249,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -5284,7 +5299,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 233
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5472,6 +5487,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -5515,7 +5531,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 223
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -5707,6 +5723,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -5756,7 +5773,7 @@
         "src/backend/src/main/java/com/example/app/health/HealthStatus.java",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 233
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -5946,6 +5963,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -6001,7 +6019,7 @@
         "src/frontend/vite.config.ts",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 237
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6189,6 +6207,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -6232,7 +6251,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 222
+      "count": 223
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6422,6 +6441,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -6469,7 +6489,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 228
+      "count": 229
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -6657,6 +6677,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -6703,7 +6724,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 226
     },
     "codex_base": {
       "agent": "codex",
@@ -6892,6 +6913,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -6933,7 +6955,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 224
     },
     "codex_angular": {
       "agent": "codex",
@@ -7129,6 +7151,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -7184,7 +7207,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 243
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7380,6 +7403,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -7428,7 +7452,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 236
     },
     "codex_astro": {
       "agent": "codex",
@@ -7622,6 +7646,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -7674,7 +7699,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 238
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -7866,6 +7891,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -7909,7 +7935,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 227
     },
     "codex_django": {
       "agent": "codex",
@@ -8107,6 +8133,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -8155,7 +8182,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 238
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8353,6 +8380,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -8396,7 +8424,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 233
     },
     "codex_flutter": {
       "agent": "codex",
@@ -8592,6 +8620,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -8642,7 +8671,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 238
     },
     "codex_go": {
       "agent": "codex",
@@ -8843,6 +8872,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -8886,7 +8916,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 236
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9087,6 +9117,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -9130,7 +9161,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 236
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -9322,6 +9353,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -9365,7 +9397,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 227
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -9557,6 +9589,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -9600,7 +9633,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 227
     },
     "codex_laravel": {
       "agent": "codex",
@@ -9794,6 +9827,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -9842,7 +9876,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 234
     },
     "codex_meta": {
       "agent": "codex",
@@ -10047,35 +10081,30 @@
         ".coding-os/src/templates/meta/rules/meta-engineering.md",
         ".coding-os/src/templates/meta/skills/claude-sdk-integration/SKILL.md",
         ".coding-os/src/templates/meta/skills/claude-sdk-integration/assets/sdk-checklist.md",
-        ".coding-os/src/templates/meta/skills/claude-sdk-integration/scripts/__pycache__/check_model_ids.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/claude-sdk-integration/scripts/check_model_ids.py",
         ".coding-os/src/templates/meta/skills/graph-os-authoring/SKILL.md",
         ".coding-os/src/templates/meta/skills/graph-os-authoring/assets/graph-os-checklist.md",
-        ".coding-os/src/templates/meta/skills/graph-os-authoring/scripts/__pycache__/new_extractor.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/graph-os-authoring/scripts/new_extractor.py",
         ".coding-os/src/templates/meta/skills/hook-authoring/SKILL.md",
         ".coding-os/src/templates/meta/skills/hook-authoring/assets/hook-checklist.md",
         ".coding-os/src/templates/meta/skills/hook-authoring/scripts/new_hook.sh",
         ".coding-os/src/templates/meta/skills/mcp-tool-authoring/SKILL.md",
         ".coding-os/src/templates/meta/skills/mcp-tool-authoring/assets/mcp-tool-checklist.md",
-        ".coding-os/src/templates/meta/skills/mcp-tool-authoring/scripts/__pycache__/new_tool.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/mcp-tool-authoring/scripts/new_tool.py",
         ".coding-os/src/templates/meta/skills/meta-engineering/SKILL.md",
         ".coding-os/src/templates/meta/skills/meta-engineering/assets/meta-edit-checklist.md",
-        ".coding-os/src/templates/meta/skills/meta-engineering/scripts/__pycache__/which_layer.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/meta-engineering/scripts/which_layer.py",
         ".coding-os/src/templates/meta/skills/python-meta-server/SKILL.md",
         ".coding-os/src/templates/meta/skills/python-meta-server/assets/meta-server-checklist.md",
-        ".coding-os/src/templates/meta/skills/python-meta-server/scripts/__pycache__/check_envelope.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/python-meta-server/scripts/check_envelope.py",
         ".coding-os/src/templates/meta/skills/react-vite-hub/SKILL.md",
         ".coding-os/src/templates/meta/skills/react-vite-hub/assets/hub-ui-checklist.md",
-        ".coding-os/src/templates/meta/skills/react-vite-hub/scripts/__pycache__/check_vite_env.cpython-310.pyc",
         ".coding-os/src/templates/meta/skills/react-vite-hub/scripts/check_vite_env.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -10117,7 +10146,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 266
+      "count": 261
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -10311,6 +10340,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -10363,7 +10393,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 238
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -10561,6 +10591,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -10617,7 +10648,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 246
     },
     "codex_node-express": {
       "agent": "codex",
@@ -10811,6 +10842,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -10860,7 +10892,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 235
     },
     "codex_python": {
       "agent": "codex",
@@ -11051,6 +11083,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -11094,7 +11127,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 226
     },
     "codex_rails": {
       "agent": "codex",
@@ -11290,6 +11323,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -11341,7 +11375,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 239
     },
     "codex_react-native": {
       "agent": "codex",
@@ -11542,12 +11576,12 @@
         ".coding-os/src/templates/react-native/skills/react-native-patterns/SKILL.md",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/assets/rn-review-checklist.md",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/references/list-performance.md",
-        ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/__pycache__/scan_rn_perf.cpython-310.pyc",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/scan_rn_perf.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -11787,6 +11821,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -11830,7 +11865,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 227
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -12026,6 +12061,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -12075,7 +12111,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 237
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -12267,6 +12303,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -12310,7 +12347,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 227
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -12506,6 +12543,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -12555,7 +12593,7 @@
         "src/backend/src/main/java/com/example/app/health/HealthStatus.java",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 237
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -12749,6 +12787,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -12804,7 +12843,7 @@
         "src/frontend/vite.config.ts",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 241
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -12996,6 +13035,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -13039,7 +13079,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 226
+      "count": 227
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -13233,6 +13273,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -13280,7 +13321,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 233
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -13472,6 +13513,7 @@
         ".coding-os/subsystems-state.json.lock",
         "AGENTS.md",
         "Makefile",
+        "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -13518,7 +13560,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 230
     }
   }
 }

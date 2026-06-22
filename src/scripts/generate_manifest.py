@@ -108,6 +108,11 @@ def _collect_paths(root: Path) -> list[str]:
             continue
         if any(rel.startswith(prefix) for prefix in IGNORED_PREFIXES):
             continue
+        # Compiled-Python artifacts (gitignored) that a dev checkout may carry
+        # into a scaffolded project; never part of the committed scaffold
+        # contract, so a clean-clone regen never produces them. (TASK-513)
+        if "__pycache__/" in rel or rel.endswith(".pyc"):
+            continue
         paths.append(rel)
     return sorted(paths)
 
