@@ -5,7 +5,7 @@ swimlane: docs
 kind: docs
 epic: null
 labels: [adr, task-id, oss]
-status: complete
+status: archive
 priority: P2
 appetite: "1h"
 created: 2026-05-23

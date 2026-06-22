@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: null
 labels: [governance, hooks, git-workflow, post-mortem-TASK-012]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-05-22

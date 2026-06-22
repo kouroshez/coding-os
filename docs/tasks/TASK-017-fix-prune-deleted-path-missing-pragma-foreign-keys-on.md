@@ -5,7 +5,7 @@ swimlane: graph_os
 kind: bug
 epic: null
 labels: [graph, dangling-edges, sqlite-fk]
-status: complete
+status: archive
 priority: P1
 appetite: "1h"
 created: 2026-05-23

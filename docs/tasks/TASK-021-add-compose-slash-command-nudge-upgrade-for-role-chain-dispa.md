@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: null
 labels: [cognition, roles, ux]
-status: complete
+status: archive
 priority: P1
 appetite: "1h"
 created: 2026-05-23

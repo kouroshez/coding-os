@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: null
 labels: [memory, observability]
-status: complete
+status: archive
 priority: P1
 appetite: "1h"
 created: 2026-05-23

@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: null
 labels: [governance, hooks, hardening, post-TASK-014]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-05-23
