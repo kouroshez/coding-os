@@ -42,3 +42,4 @@ Clean clone on case-sensitive FS (or Linux CI), then run: `uv run pytest tests/t
 - 2026-06-22 [claude]: Edit test_golden_parity.py
 - 2026-06-22 [claude]: commit 548e62c4bf — fix(ci): exclude .coding-os/ + settings.local from golden parity check
 - 2026-06-22 [claude]: All 4 root causes fixed + verified on a clean case-sensitive APFS clone (CI-equivalent): golden PRD→prd rename +…
+- 2026-06-22 [claude]: commit 0aa607d6c3 — chore(board): add TASK-513 (restore green CI — Linux-only failures)
