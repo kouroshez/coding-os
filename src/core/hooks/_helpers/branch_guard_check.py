@@ -19,6 +19,7 @@ from triggering — substring matching in bash slipped on all of these
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
 import sys
@@ -232,8 +233,10 @@ _MSG = {
         "  'git pull --rebase origin main && git push origin main'.\n"
         "\n"
         "  See src/core/rules/git-workflow.md for the full rule.\n"
-        "  If the USER explicitly asked for this, re-run with\n"
-        "  COS_GIT_WORKFLOW=pr set for that command."
+        "  If the USER explicitly asked: enable pr-mode per-project (Hub →\n"
+        "  Config → Git) or export COS_GIT_WORKFLOW=pr session-wide — an inline\n"
+        "  'COS_GIT_WORKFLOW=pr git …' prefix does NOT work (the guard reads its\n"
+        "  own process env first)."
     ),
     "reset": (
         "BLOCKED: this 'git reset' would move HEAD — in trunk mode\n"
@@ -244,8 +247,9 @@ _MSG = {
         "  To undo the last commit: 'git revert HEAD' (new commit,\n"
         "  preserves history).\n"
         "\n"
-        "  See src/core/rules/git-workflow.md. Override:\n"
-        "  COS_GIT_WORKFLOW=pr."
+        "  See src/core/rules/git-workflow.md. pr-mode is enabled per-project\n"
+        "  (Hub → Config → Git) or by exporting COS_GIT_WORKFLOW=pr session-wide\n"
+        "  — an inline 'COS_GIT_WORKFLOW=pr git …' prefix does NOT work."
     ),
     "checkout-switch": (
         "BLOCKED: this 'git checkout' switches branches — coding-os\n"
@@ -256,8 +260,9 @@ _MSG = {
         "  To restore everything in cwd: 'git checkout .' is allowed.\n"
         "  To go to main: 'git switch main'.\n"
         "\n"
-        "  See src/core/rules/git-workflow.md. Override:\n"
-        "  COS_GIT_WORKFLOW=pr."
+        "  See src/core/rules/git-workflow.md. pr-mode is enabled per-project\n"
+        "  (Hub → Config → Git) or by exporting COS_GIT_WORKFLOW=pr session-wide\n"
+        "  — an inline 'COS_GIT_WORKFLOW=pr git …' prefix does NOT work."
     ),
     "switch-branch": (
         "BLOCKED: this 'git switch' moves off main — coding-os uses\n"
@@ -265,8 +270,9 @@ _MSG = {
         "\n"
         "  Only 'git switch main' is allowed in trunk mode.\n"
         "\n"
-        "  See src/core/rules/git-workflow.md. Override:\n"
-        "  COS_GIT_WORKFLOW=pr."
+        "  See src/core/rules/git-workflow.md. pr-mode is enabled per-project\n"
+        "  (Hub → Config → Git) or by exporting COS_GIT_WORKFLOW=pr session-wide\n"
+        "  — an inline 'COS_GIT_WORKFLOW=pr git …' prefix does NOT work."
     ),
     "rebase-history": (
         "BLOCKED: 'git rebase' rewrites history on the shared trunk —\n"
@@ -279,10 +285,39 @@ _MSG = {
         "  To undo a bad commit:\n"
         "    git revert HEAD                 (new commit, history intact)\n"
         "\n"
-        "  See src/core/rules/git-workflow.md. Override:\n"
-        "  COS_GIT_WORKFLOW=pr."
+        "  See src/core/rules/git-workflow.md. pr-mode is enabled per-project\n"
+        "  (Hub → Config → Git) or by exporting COS_GIT_WORKFLOW=pr session-wide\n"
+        "  — an inline 'COS_GIT_WORKFLOW=pr git …' prefix does NOT work."
     ),
 }
+
+
+def _all_segments(command: str) -> list[str]:
+    """Expand a normalized command into every executable segment: split on shell
+    separators, then unwrap nested `sh -c`/backtick subshells with bounded
+    recursion. Shared by the trunk and pr-mode evaluators."""
+    all_segments = _split_segments(command)
+    all_segments.extend(_extract_backticks(all_segments))
+    frontier = list(all_segments)
+    seen = set(all_segments)
+    for _ in range(8):  # depth cap — runaway recursion guard
+        layer = _extract_nested_shells(frontier) + _extract_backticks(frontier)
+        layer = [s for s in layer if s not in seen]
+        if not layer:
+            break
+        seen.update(layer)
+        all_segments.extend(layer)
+        frontier = layer
+    return all_segments
+
+
+def _tokenize(seg: str) -> list[str]:
+    try:
+        return shlex.split(seg, posix=True)
+    except ValueError:
+        # Unbalanced quotes — fall back to whitespace split so the dominant
+        # `git reset HEAD~1` form is still caught.
+        return seg.split()
 
 
 def _evaluate(command: str) -> tuple[str, str, str]:
@@ -297,29 +332,15 @@ def _evaluate(command: str) -> tuple[str, str, str]:
     if not command:
         return "allow", "", ""
 
-    # Build the full segment list with bounded recursion so multi-level
-    # `sh -c "sh -c '...'"` and backtick subshells are unwrapped.
-    all_segments = _split_segments(command)
-    all_segments.extend(_extract_backticks(all_segments))
-    frontier = list(all_segments)
-    seen = set(all_segments)
-    for _ in range(8):  # depth cap — runaway recursion guard
-        layer = _extract_nested_shells(frontier) + _extract_backticks(frontier)
-        layer = [s for s in layer if s not in seen]
-        if not layer:
-            break
-        seen.update(layer)
-        all_segments.extend(layer)
-        frontier = layer
+    segments = _all_segments(command)
+    if os.environ.get("COS_GIT_WORKFLOW", "trunk") == "pr":
+        return _evaluate_pr(segments)
+    return _evaluate_trunk(segments)
 
-    for seg in all_segments:
-        try:
-            tokens = shlex.split(seg, posix=True)
-        except ValueError:
-            # Unbalanced quotes — fall back to whitespace split so we can
-            # still catch the dominant `git reset HEAD~1` form.
-            tokens = seg.split()
-        tokens = _strip_env_vars(tokens)
+
+def _evaluate_trunk(segments: list[str]) -> tuple[str, str, str]:
+    for seg in segments:
+        tokens = _strip_env_vars(_tokenize(seg))
         if not tokens or tokens[0] != "git":
             continue
         tokens = _strip_git_globals(tokens[1:])
@@ -333,6 +354,128 @@ def _evaluate(command: str) -> tuple[str, str, str]:
         if reason:
             return "block", reason, message or ""
     return "allow", "", ""
+
+
+# ---------------------------------------------------------------------------
+# pr-mode policy (TASK-516) — COS_GIT_WORKFLOW=pr. A positive allow-list, NOT a
+# guard-kill: branches and worktrees are the isolation mechanism, so they pass;
+# what is BLOCKED is mutation of the SHARED integration checkout (direct commit,
+# HEAD-rewrite) and any push to a protected/integration branch. HEAD-rewrites
+# and commits are allowed when the command is scoped to a worktree.
+# SPEC: docs/playbooks/pr-workflow.md § 5.
+# ---------------------------------------------------------------------------
+def _protected_branches() -> set[str]:
+    raw = os.environ.get("COS_GIT_PROTECTED_BRANCHES", "production")
+    return {b for b in re.split(r"[,\s]+", raw) if b}
+
+
+def _is_worktree_path(path: str) -> bool:
+    if "/.coding-os/worktrees/" in path:
+        return True
+    root = os.environ.get("COS_WORKTREE_ROOT", "")
+    return bool(root) and (path == root or path.startswith(root.rstrip("/") + "/"))
+
+
+def _current_dir() -> str:
+    try:
+        return os.getcwd()
+    except OSError:
+        return ""  # cwd deleted out from under us — fall through to segment checks
+
+
+def _worktree_scoped(segments: list[str]) -> bool:
+    """True when the command operates inside a worktree: cwd is a worktree, or a
+    `cd <worktree>` / `git -C <worktree>` scopes the git op there. The cos pr CLI
+    always scopes worktree git ops explicitly, so this signal is reliable (§5)."""
+    cwd = _current_dir()
+    if cwd and _is_worktree_path(cwd):
+        return True
+    for seg in segments:
+        toks = _strip_env_vars(_tokenize(seg))
+        if not toks:
+            continue
+        if toks[0] == "cd" and len(toks) >= 2 and _is_worktree_path(toks[1]):
+            return True
+        if toks[0] == "git":
+            for i, t in enumerate(toks):
+                if t == "-C" and i + 1 < len(toks) and _is_worktree_path(toks[i + 1]):
+                    return True
+    return False
+
+
+def _push_targets(args: list[str], blocked: set[str]) -> bool:
+    for a in args:
+        if a.startswith("-"):
+            continue
+        dst = a.rsplit(":", 1)[-1] if ":" in a else a
+        if dst in blocked:
+            return True
+    return False
+
+
+def _evaluate_pr(segments: list[str]) -> tuple[str, str, str]:
+    worktree = _worktree_scoped(segments)
+    integration = os.environ.get("COS_GIT_INTEGRATION_BRANCH", "main")
+    blocked_push = _protected_branches() | {integration}
+    for seg in segments:
+        tokens = _strip_env_vars(_tokenize(seg))
+        if not tokens or tokens[0] != "git":
+            continue
+        tokens = _strip_git_globals(tokens[1:])
+        if not tokens:
+            continue
+        reason, message = _pr_check(tokens[0], tokens[1:], worktree, blocked_push)
+        if reason:
+            return "block", reason, message or ""
+    return "allow", "", ""
+
+
+def _pr_check(
+    subcmd: str, args: list[str], worktree: bool, blocked_push: set[str]
+) -> tuple[str | None, str | None]:
+    if subcmd == "push":
+        if _push_targets(args, blocked_push):
+            return "pr-protected-push", _PR_MSG["protected-push"]
+        return None, None
+    if subcmd == "commit":
+        if worktree:
+            return None, None
+        return "pr-shared-commit", _PR_MSG["shared-commit"]
+    if subcmd in {"reset", "rebase"}:
+        reason, _ = _DISPATCH[subcmd](args)
+        if reason is None:  # safe form (unstage/path/HEAD, rebase --abort/...)
+            return None, None
+        if worktree:
+            return None, None  # HEAD-rewrite is fine inside an isolated worktree
+        return "pr-shared-head-rewrite", _PR_MSG["shared-head"]
+    # checkout / switch / branch / worktree / everything else: branches and
+    # worktrees are the pr-mode isolation mechanism — allowed.
+    return None, None
+
+
+_PR_MSG = {
+    "shared-commit": (
+        "BLOCKED (pr-mode): direct commit on the shared integration checkout.\n"
+        "  Every change must be isolated in a worktree.\n"
+        "  To fix: 'cos pr open' (or 'cos pr open --adhoc' for no-task work),\n"
+        "  then commit inside the worktree.\n"
+        "  See docs/playbooks/pr-workflow.md § 5/§6."
+    ),
+    "shared-head": (
+        "BLOCKED (pr-mode): HEAD-rewrite (reset/rebase) on the shared\n"
+        "integration checkout corrupts the always-green integration line.\n"
+        "  HEAD-rewrites are allowed INSIDE a worktree — scope the op with\n"
+        "  'git -C <worktree>' or 'cd <worktree> && …'.\n"
+        "  See docs/playbooks/pr-workflow.md § 5."
+    ),
+    "protected-push": (
+        "BLOCKED (pr-mode): push targets a protected/integration branch.\n"
+        "  Agents push only to their own 'agents/*' branch, then open a PR.\n"
+        "  To fix: 'git push --force-with-lease -u origin HEAD' from the\n"
+        "  worktree branch, then open the PR ('cos pr open' / 'gh pr create').\n"
+        "  See docs/playbooks/pr-workflow.md § 5/§11."
+    ),
+}
 
 
 def main() -> int:

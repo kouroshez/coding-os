@@ -83,6 +83,12 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/block-shared-tree-edit.sh",
+            "statusMessage": "🌳 pr-mode: enforcing worktree edit isolation...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-task-transition.sh",
             "statusMessage": "🚦 Checking task status transition...",
             "timeout": 5

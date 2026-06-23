@@ -179,16 +179,63 @@ def test_allows_revert() -> None:
     assert code == 0
 
 
-# --- pr mode: branches + HEAD-moves permitted (future-team seam) ----------
+# --- pr mode: positive policy (TASK-516) — branches/worktrees pass, but the
+#     shared integration checkout + protected branches stay guarded ----------
+
+# A path containing the worktree marker; the gate only parses it, never runs it.
+_WT = "/tmp/repo/.coding-os/worktrees/slug/task-1"
+
+
+def test_pr_mode_allows_agents_branch_create() -> None:
+    code, _ = _run("git checkout -b agents/auth-timeout/abc", workflow="pr")
+    assert code == 0
 
 
 def test_pr_mode_allows_branch_create() -> None:
+    # Branches are the pr-mode isolation mechanism — any create is allowed.
     code, _ = _run("git checkout -b feature/foo", workflow="pr")
     assert code == 0
 
 
-def test_pr_mode_allows_reset_head_tilde() -> None:
-    code, _ = _run("git reset HEAD~1", workflow="pr")
+def test_pr_mode_allows_worktree_add() -> None:
+    code, _ = _run(f"git worktree add {_WT} origin/main", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_blocks_reset_on_shared_checkout() -> None:
+    code, err = _run("git reset HEAD~3", workflow="pr")
+    assert code == 2
+    assert "worktree" in err.lower()
+
+
+def test_pr_mode_allows_reset_in_worktree() -> None:
+    code, _ = _run(f"cd {_WT} && git reset HEAD~3", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_blocks_commit_on_shared_checkout() -> None:
+    code, err = _run("git commit -m wip", workflow="pr")
+    assert code == 2
+    assert "worktree" in err.lower()
+
+
+def test_pr_mode_allows_commit_in_worktree() -> None:
+    code, _ = _run(f"cd {_WT} && git commit -m wip", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_blocks_push_to_protected() -> None:
+    code, _ = _run("git push origin production", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_push_to_integration() -> None:
+    code, _ = _run("git push origin main", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_allows_push_agents_branch() -> None:
+    code, _ = _run("git push --force-with-lease -u origin HEAD", workflow="pr")
     assert code == 0
 
 
@@ -388,6 +435,16 @@ def test_blocks_rebase_in_nested_sh_c() -> None:
     assert code == 2
 
 
-def test_pr_mode_allows_rebase() -> None:
+def test_pr_mode_blocks_rebase_on_shared_checkout() -> None:
     code, _ = _run("git rebase main", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_allows_rebase_in_worktree_via_dash_C() -> None:
+    code, _ = _run(f"git -C {_WT} rebase FETCH_HEAD", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_allows_rebase_abort_anywhere() -> None:
+    code, _ = _run("git rebase --abort", workflow="pr")
     assert code == 0
