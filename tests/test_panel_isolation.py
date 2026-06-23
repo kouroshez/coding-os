@@ -9,6 +9,7 @@ shared at $COS_AGENT_DIR / $COS_STATE_DIR.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -313,6 +314,9 @@ _COS_ROUTING_VARS = (
     "CLAUDE_PROJECT_DIR",
     "COS_STATE_MISROUTE",
     "COS_WORKTREE_ROOT",
+    "COS_GIT_WORKFLOW",
+    "COS_GIT_INTEGRATION_BRANCH",
+    "COS_GIT_PROTECTED_BRANCHES",
 )
 
 
@@ -396,3 +400,70 @@ def test_worktree_git_recovery_without_project_root(tmp_path: Path) -> None:
         f"git-recovered worktree state must route to main repo, got {state_dir!r}"
     )
     assert misroute == "", "git recovery is not a misroute"
+
+
+# ============================================================
+# pr-mode enablement (TASK-518) — cos-env.sh reads hub-settings.json
+# git_settings.enabled and exports COS_GIT_WORKFLOW=pr (+ branch policy).
+# ============================================================
+
+
+def _resolve_git_env(env: dict[str, str], cwd: Path) -> tuple[str, str, str]:
+    script = (
+        f"source '{COS_ENV}' 2>/dev/null; "
+        'printf "%s|%s|%s" "${COS_GIT_WORKFLOW:-}" '
+        '"${COS_GIT_INTEGRATION_BRANCH:-}" "${COS_GIT_PROTECTED_BRANCHES:-}"'
+    )
+    proc = subprocess.run(
+        ["bash", "-c", script], env=env, cwd=str(cwd), capture_output=True, text=True
+    )
+    out = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "||"
+    workflow, integration, protected = (out.split("|") + ["", "", ""])[:3]
+    return workflow, integration, protected
+
+
+def test_pr_mode_enabled_exports_workflow_and_policy(tmp_path: Path) -> None:
+    """git_settings.enabled=true => COS_GIT_WORKFLOW=pr plus the integration +
+    protected branch policy, so every hook process sees the mode (§1)."""
+    state = tmp_path / ".coding-os"
+    state.mkdir(parents=True)
+    (state / "hub-settings.json").write_text(
+        json.dumps(
+            {
+                "git_settings": {
+                    "enabled": True,
+                    "integration_branch": "develop",
+                    "protected_branches": ["production", "release"],
+                }
+            }
+        )
+    )
+    env = _clean_env()
+    env["COS_STATE_DIR"] = str(state)
+    workflow, integration, protected = _resolve_git_env(env, tmp_path)
+    assert workflow == "pr"
+    assert integration == "develop"
+    assert protected == "production,release"
+
+
+def test_pr_mode_disabled_stays_trunk(tmp_path: Path) -> None:
+    state = tmp_path / ".coding-os"
+    state.mkdir(parents=True)
+    (state / "hub-settings.json").write_text(json.dumps({"git_settings": {"enabled": False}}))
+    env = _clean_env()
+    env["COS_STATE_DIR"] = str(state)
+    workflow, _, _ = _resolve_git_env(env, tmp_path)
+    assert workflow == "", "disabled git_settings must NOT export COS_GIT_WORKFLOW"
+
+
+def test_pr_mode_explicit_env_wins_over_settings(tmp_path: Path) -> None:
+    """An explicitly-exported COS_GIT_WORKFLOW is authoritative (the enablement
+    only fills an UNSET var) — never silently overridden by hub-settings.json."""
+    state = tmp_path / ".coding-os"
+    state.mkdir(parents=True)
+    (state / "hub-settings.json").write_text(json.dumps({"git_settings": {"enabled": True}}))
+    env = _clean_env()
+    env["COS_STATE_DIR"] = str(state)
+    env["COS_GIT_WORKFLOW"] = "trunk"
+    workflow, _, _ = _resolve_git_env(env, tmp_path)
+    assert workflow == "trunk"

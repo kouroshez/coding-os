@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
@@ -15,14 +15,15 @@ import { SubNav, subNavTabClass } from '@/layout/HubPrimitives';
  * kernel-override epic (a toggle must never edit the global registry).
  */
 
-type Tab = 'stacks' | 'skills' | 'mcp' | 'hooks' | 'modules';
-const TABS: Tab[] = ['stacks', 'skills', 'mcp', 'hooks', 'modules'];
+type Tab = 'stacks' | 'skills' | 'mcp' | 'hooks' | 'modules' | 'git';
+const TABS: Tab[] = ['stacks', 'skills', 'mcp', 'hooks', 'modules', 'git'];
 const TAB_LABEL: Record<Tab, string> = {
   stacks: 'Stacks',
   skills: 'Skills',
   mcp: 'MCP Servers',
   hooks: 'Hooks',
   modules: 'Modules',
+  git: 'Git',
 };
 
 export default function ConfigPage() {
@@ -63,6 +64,7 @@ export default function ConfigPage() {
           {tab === 'mcp' && <McpTab />}
           {tab === 'hooks' && <HooksTab />}
           {tab === 'modules' && <ModulesTab />}
+          {tab === 'git' && <GitTab />}
         </div>
       </div>
     </div>
@@ -397,6 +399,150 @@ function ModulesTab() {
           </tr>
         ))}
       </Table>
+    </>
+  );
+}
+
+// --------------------------------------------------------------------------
+// Git — pr-mode multi-agent workflow (settings-gated, default OFF). TASK-518.
+// Project-scoped config (each project has its own hub-settings.json), so it
+// lives in Config, not the hub-level Settings page where model_routing sits.
+// --------------------------------------------------------------------------
+
+interface GitSettings {
+  enabled: boolean;
+  integration_branch: string;
+  protected_branches: string[];
+}
+
+interface GitState {
+  remote: boolean;
+  gh: boolean;
+  required_check: boolean;
+  pr_ok: boolean;
+  missing: string[];
+}
+
+const inputClass =
+  'mt-1 w-full rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)]/40 px-2.5 py-1.5 text-sm text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none';
+
+function GitTab() {
+  const qc = useQueryClient();
+  const { data, isLoading, error } = useApiGet<{ settings: { git_settings: GitSettings } }>(
+    ['settings-git'],
+    '/api/settings',
+  );
+  const { data: state } = useApiGet<GitState>(['settings-git-state'], '/api/settings/git-state');
+
+  const [form, setForm] = useState<GitSettings | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const loaded = data?.settings?.git_settings;
+  // Seed the form once when settings arrive; deps gate the effect so it never loops.
+  useEffect(() => {
+    if (loaded && form === null) setForm(loaded);
+  }, [loaded, form]);
+
+  if (isLoading) return <StateRow>Loading git settings…</StateRow>;
+  if (error) return <StateRow>Could not load git settings: {error.message}</StateRow>;
+  if (!form) return <StateRow>Loading…</StateRow>;
+
+  const save = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await apiPatch('/api/settings', {
+        git_settings: {
+          enabled: form.enabled,
+          integration_branch: form.integration_branch.trim() || 'main',
+          protected_branches: form.protected_branches,
+        },
+      });
+      await invalidateApiQueries(qc, 'settings-git');
+      await invalidateApiQueries(qc, 'settings-git-state');
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <TabIntro>
+        pr-mode multi-agent git workflow. <strong className="text-[var(--cos-text)]">Off by default</strong>
+        {' '}— when enabled, agents isolate every change in a git worktree and integrate via PR +
+        required CI (consumer-only; coding-os itself stays trunk). Enabling persists
+        {' '}<span className="font-mono text-[11px]">COS_GIT_WORKFLOW=pr</span> into the agent env.
+      </TabIntro>
+
+      {state && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-[11px] text-[var(--cos-faint)]">capability:</span>
+          <Pill tone={state.remote ? 'ok' : 'muted'}>remote {state.remote ? '✓' : '—'}</Pill>
+          <Pill tone={state.gh ? 'ok' : 'muted'}>gh {state.gh ? '✓' : '—'}</Pill>
+          <Pill tone={state.required_check ? 'ok' : 'muted'}>required CI {state.required_check ? '✓' : '—'}</Pill>
+          <Pill tone={state.pr_ok ? 'ok' : 'muted'}>{state.pr_ok ? 'pr-ready' : 'degrades to trunk'}</Pill>
+        </div>
+      )}
+
+      <div className="space-y-4 rounded-xl border border-[var(--cos-border)] p-4">
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={form.enabled}
+            onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+            className="h-4 w-4 accent-[var(--cos-accent)] focus-visible:ring-2"
+            aria-label="Enable pr-mode"
+          />
+          <span className="text-sm font-medium text-[var(--cos-text)]">Enable pr-mode</span>
+        </label>
+
+        <label className="block">
+          <span className="text-xs font-medium text-[var(--cos-muted)]">Integration branch</span>
+          <input
+            value={form.integration_branch}
+            onChange={(e) => setForm({ ...form, integration_branch: e.target.value })}
+            placeholder="main"
+            className={inputClass}
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-xs font-medium text-[var(--cos-muted)]">
+            Protected branches (comma-separated — never agent-writable)
+          </span>
+          <input
+            value={form.protected_branches.join(', ')}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                protected_branches: e.target.value
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+              })
+            }
+            placeholder="production"
+            className={inputClass}
+          />
+        </label>
+
+        {saveError && (
+          <p role="alert" className="rounded border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-400">
+            {saveError}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={saving}
+          className="rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)] px-3 py-1.5 text-sm text-[var(--cos-text)] hover:border-[var(--cos-accent)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] disabled:opacity-40"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
     </>
   );
 }

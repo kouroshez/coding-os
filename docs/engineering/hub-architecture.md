@@ -154,6 +154,17 @@ unknown keys in the file survive untouched. Sections:
 | `trace_rotation` | `gzip_age_days`, `delete_age_days` | `auto-trace-rotate` hook |
 | `task_closure` | `mode` | board closure enforcement |
 | `model_routing` | `enabled` (default **false**), `orchestrator_model` | chat Auto picker (TASK-318) · agent-side routing hook (TASK-319) |
+| `git_settings` | `enabled` (default **false**), `integration_branch` (`main`), `protected_branches` (`["production"]`) | pr-mode enablement — surfaced in **Config → Git** (per-project), not Settings (TASK-518) |
+
+`git_settings.enabled=true` is the ONLY switch that turns pr-mode on: `cos-env.sh`
+reads it from this project's `hub-settings.json` and exports `COS_GIT_WORKFLOW=pr`
+(+ `COS_GIT_INTEGRATION_BRANCH` / `COS_GIT_PROTECTED_BRANCHES`) into every hook's
+process env — the only place `branch-guard` / `block-shared-tree-edit` / the
+`cos pr` executor can read the mode (an inline per-command override is broken).
+Default-off = byte-identical to trunk. It lives under the **Config** tab (not the
+hub-level **Settings** page) because it is per-project structure config; the
+read-only git-state row comes from `GET /api/settings/git-state`. Full flow:
+[docs/playbooks/pr-workflow.md § 1](../playbooks/pr-workflow.md) · [ADR-0013](../architecture/adr/0013-pr-mode-multi-agent-git-workflow-consumer-only.md).
 
 `model_routing.enabled=false` keeps the auto-routing feature fully inert
 everywhere — no UI option, no injected context, no dispatch change. The

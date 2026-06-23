@@ -18,6 +18,15 @@ _DEFAULTS: dict = {
     "budget_cap": {"enabled": False, "cap_usd": 5.0},
     "trace_rotation": {"gzip_age_days": 3, "delete_age_days": 30},
     "model_routing": {"enabled": False, "orchestrator_model": ""},
+    # pr-mode git workflow (TASK-518) — default OFF = byte-identical to trunk.
+    # enabled persists COS_GIT_WORKFLOW=pr into the agent env (cos-env.sh § pr-mode
+    # enablement); integration_branch + protected_branches feed branch-guard +
+    # the cos pr executor. SPEC: docs/playbooks/pr-workflow.md § 1.
+    "git_settings": {
+        "enabled": False,
+        "integration_branch": "main",
+        "protected_branches": ["production"],
+    },
 }
 
 
@@ -126,6 +135,20 @@ def get_module_drift():
     }
 
 
+@router.get("/git-state")
+def get_git_state():
+    """Read-only pr-mode capability (remote/gh/required-check) for the Config Git tab."""
+    try:
+        from cli.pr_commands import _integration_branch, _preflight
+        from web._project_context import current_project_root
+
+        repo = str(current_project_root())
+        cap = _preflight(repo, _integration_branch())
+    except Exception as exc:
+        return _module_error(503, "unavailable", f"git-state unavailable: {exc}", True)
+    return {"data": cap, "meta": {"layer": "settings", "source": "settings.git_state"}}
+
+
 @router.patch("/modules/{module_id}")
 def patch_module(module_id: str, body: dict = Body(...)):
     """Toggle a non-kernel module; regenerates dependent artifacts (TASK-354)."""
@@ -163,10 +186,17 @@ class _ModelRoutingIn(BaseModel):
     orchestrator_model: str = ""
 
 
+class _GitSettingsIn(BaseModel):
+    enabled: bool
+    integration_branch: str = "main"
+    protected_branches: list[str] = ["production"]
+
+
 class _PatchBody(BaseModel):
     budget_cap: _BudgetCapIn | None = None
     trace_rotation: _TraceRotationIn | None = None
     model_routing: _ModelRoutingIn | None = None
+    git_settings: _GitSettingsIn | None = None
 
 
 @router.patch("")
@@ -178,5 +208,7 @@ def patch_settings(body: _PatchBody):
         current["trace_rotation"] = body.trace_rotation.model_dump()
     if body.model_routing is not None:
         current["model_routing"] = body.model_routing.model_dump()
+    if body.git_settings is not None:
+        current["git_settings"] = body.git_settings.model_dump()
     _save(current)
     return {"data": {"settings": current, "env_overrides": _env_overrides()}}
