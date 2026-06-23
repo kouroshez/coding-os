@@ -649,6 +649,17 @@ hooks:
         matcher: Skill
         status_message: "🛠️ Tracking skill invocation..."
 
+  - id: pr-reap
+    script: pr-reap.sh
+    description: "pr-mode only — SessionStart orphan reaper: GC worktrees/branches/PRs of presence-offline sessions; drain the cleanup ledger. Inert in trunk."
+    category: safety
+    phase: "0"
+    timeout: 10
+    events:
+      - event: SessionStart
+        matcher: startup|resume
+        status_message: "🌳 pr-mode: reaping orphaned worktrees..."
+
   - id: session-context
     script: session-context.sh
     description: Loads session context + memory digest on session start / compact / resume.

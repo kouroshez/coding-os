@@ -23,6 +23,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import click
@@ -240,6 +241,9 @@ def pr_open(
     # Shared objects/refs/packed-refs across worktrees → background gc during a
     # peer's rebase is unsafe. Pin it off per worktree.
     _git(["config", "gc.auto", "0"], cwd=wt)
+    # Lock the worktree so a peer's `git worktree prune` cannot remove a live
+    # session's checkout (TASK-519 §2). Idempotent — a re-lock just errors.
+    _git(["worktree", "lock", str(wt), "--reason", f"pr-mode session {session}"], cwd=repo)
 
     _emit(
         {
@@ -386,10 +390,151 @@ def pr_cleanup(task_id: str | None, adhoc: bool, repo_opt: str | None, as_json: 
     branch = _branch_for(task_slug, session)
     wt = _worktree_root(repo) / f"{task_slug}-{session}"
 
+    _git(["worktree", "unlock", str(wt)], cwd=repo)  # release the pr-mode live-lock
     removed_wt = _git(["worktree", "remove", "--force", str(wt)], cwd=repo).returncode == 0
     deleted_branch = _git(["branch", "-D", branch], cwd=repo).returncode == 0
     _git(["worktree", "prune"], cwd=repo)
     _emit(
         {"worktree_removed": removed_wt, "branch_deleted": deleted_branch, "worktree": str(wt)},
+        as_json,
+    )
+
+
+# --------------------------------------------------------------------------- #
+# orphan reaper (TASK-519) — owner-independent GC keyed on presence-offline.
+# A crashed agent never cleans up after itself (the exact Rule-21 failure mode),
+# so an out-of-band sweep does it. SPEC: docs/playbooks/pr-workflow.md § 7.
+# --------------------------------------------------------------------------- #
+def _session_offline(session: str, repo: str) -> bool:
+    """Reapable when the owning session's presence says offline, or no presence
+    record exists at all (crashed). A live verdict on ANY agent keeps it."""
+    try:
+        from core.board_os.presence import session_presence
+    except Exception:
+        return False  # presence module absent → never reap (fail safe)
+    state_dir = Path(repo) / ".coding-os"
+    now = int(time.time())
+    for sess_dir in state_dir.glob("*/sessions"):
+        jf = sess_dir / f"{session}.json"
+        if not jf.is_file():
+            continue
+        try:
+            data = json.loads(jf.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return True  # unreadable presence for this session → treat as dead
+        if session_presence(data, now) != "offline":
+            return False
+    return True  # no live presence record anywhere → offline
+
+
+def _ledger_path(repo: str) -> Path:
+    return Path(repo) / ".coding-os" / ".pr-cleanup-ledger.json"
+
+
+def _ledger_load(repo: str) -> list[dict]:
+    path = _ledger_path(repo)
+    if not path.is_file():
+        return []
+    try:
+        return json.loads(path.read_text(encoding="utf-8")) or []
+    except (OSError, json.JSONDecodeError):
+        return []
+
+
+def _ledger_save(repo: str, entries: list[dict]) -> None:
+    path = _ledger_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(entries, indent=2), encoding="utf-8")
+    tmp.replace(path)  # atomic record-verify: the rename is the commit point
+
+
+def _ledger_record(repo: str, branch: str, remote_pending: bool, pr_pending: bool) -> None:
+    entries = [e for e in _ledger_load(repo) if e.get("branch") != branch]
+    entries.append({"branch": branch, "remote_pending": remote_pending, "pr_pending": pr_pending})
+    _ledger_save(repo, entries)
+
+
+def _drain_ledger(repo: str) -> list[str]:
+    """Retry the network-bound steps (remote delete + PR close) for entries an
+    offline/partial reap could not finish; drop the ones that now complete."""
+    entries = _ledger_load(repo)
+    if not entries:
+        return []
+    drained: list[str] = []
+    kept: list[dict] = []
+    for entry in entries:
+        branch = entry["branch"]
+        remote_pending = entry.get("remote_pending", False)
+        pr_pending = entry.get("pr_pending", False)
+        if remote_pending and _has_remote(repo):
+            remote_pending = _git(["push", "origin", "--delete", branch], cwd=repo).returncode != 0
+        if pr_pending and _gh_ready():
+            pr_pending = _run(["gh", "pr", "close", branch], cwd=repo).returncode != 0
+        if not remote_pending and not pr_pending:
+            drained.append(branch)
+        else:
+            kept.append({"branch": branch, "remote_pending": remote_pending, "pr_pending": pr_pending})
+    _ledger_save(repo, kept)
+    return drained
+
+
+def _reap_one(repo: str, wt: Path, branch: str) -> dict:
+    _git(["worktree", "unlock", str(wt)], cwd=repo)  # offline worktrees may be locked
+    removed = _git(["worktree", "remove", "--force", str(wt)], cwd=repo).returncode == 0
+    local = _git(["branch", "-D", branch], cwd=repo).returncode == 0
+    remote_pending = _has_remote(repo)
+    if remote_pending:
+        remote_pending = _git(["push", "origin", "--delete", branch], cwd=repo).returncode != 0
+    pr_pending = _gh_ready()
+    if pr_pending:
+        pr_pending = _run(["gh", "pr", "close", branch], cwd=repo).returncode != 0
+    _git(["worktree", "prune"], cwd=repo)
+    if remote_pending or pr_pending:
+        _ledger_record(repo, branch, remote_pending, pr_pending)  # drains on next online sweep
+    return {
+        "worktree": str(wt),
+        "branch": branch,
+        "worktree_removed": removed,
+        "local_deleted": local,
+        "remote_pending": remote_pending,
+        "pr_pending": pr_pending,
+    }
+
+
+@pr_group.command("reap", help="GC worktrees/branches/PRs of presence-offline sessions; drain the cleanup ledger.")
+@click.option("--repo", "repo_opt", default=None)
+@click.option("--dry-run", is_flag=True, help="Report what would be reaped; change nothing.")
+@click.option("--json", "as_json", is_flag=True)
+def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
+    repo = _resolve_repo(repo_opt)
+    wt_root = _worktree_root(repo)
+    drained = [] if dry_run else _drain_ledger(repo)
+    reaped: list[dict] = []
+    kept: list[dict] = []
+    if wt_root.is_dir():
+        for wt in sorted(p for p in wt_root.iterdir() if p.is_dir()):
+            branch = _git_out(["rev-parse", "--abbrev-ref", "HEAD"], cwd=wt)
+            if not branch.startswith("agents/"):
+                continue
+            session = branch.rsplit("/", 1)[-1]
+            if _session_offline(session, repo):
+                reaped.append(
+                    {"worktree": str(wt), "branch": branch, "would_reap": True}
+                    if dry_run
+                    else _reap_one(repo, wt, branch)
+                )
+            else:
+                if not dry_run:
+                    # Re-assert the lock so a peer's prune can't drop a live checkout (§2).
+                    _git(["worktree", "lock", str(wt), "--reason", "pr-mode live session"], cwd=repo)
+                kept.append({"worktree": str(wt), "branch": branch, "live": True})
+    _emit(
+        {
+            "reaped": len(reaped),
+            "kept_live": len(kept),
+            "ledger_drained": ",".join(drained) or "(none)",
+            "detail": reaped if as_json else f"{len(reaped)} reaped",
+        },
         as_json,
     )

@@ -42,6 +42,17 @@
             "statusMessage": "🔄 Recovering workflow context + MCP health..."
           }
         ]
+      },
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__SANDBOX__/.codex/hooks/pr-reap.sh",
+            "statusMessage": "🌳 pr-mode: reaping orphaned worktrees...",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [

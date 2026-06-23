@@ -63,6 +63,7 @@ modules:
       # core enforcement discipline (always on)
       - branch-guard
       - block-shared-tree-edit
+      - pr-reap
       - enforce-commit-message
       - enforce-scaffold-boundary
       - enforce-skill

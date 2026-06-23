@@ -589,6 +589,17 @@
         ]
       },
       {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/pr-reap.sh",
+            "statusMessage": "🌳 pr-mode: reaping orphaned worktrees...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "compact|resume",
         "hooks": [
           {

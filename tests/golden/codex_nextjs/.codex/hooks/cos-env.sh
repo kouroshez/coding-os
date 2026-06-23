@@ -174,6 +174,29 @@ if [[ -n "$_cos_in_wt" ]]; then
 fi
 unset _cos_in_wt
 
+# ---------------------------------------------------------------------------
+# pr-mode enablement (TASK-518) — when this project's Hub sets
+# git_settings.enabled=true in hub-settings.json, export COS_GIT_WORKFLOW=pr
+# (+ branch policy) into EVERY hook's process env. That env is the only place
+# branch-guard / block-shared-tree-edit / the cos pr executor can read the mode
+# (the inline per-command override is broken). Default OFF = byte-identical to
+# trunk. A cheap grep-gate keeps trunk projects (no git_settings key) at one
+# grep per hook; an explicitly-exported COS_GIT_WORKFLOW always wins.
+# SPEC: docs/playbooks/pr-workflow.md § 1.
+# ---------------------------------------------------------------------------
+if [[ -z "${COS_GIT_WORKFLOW:-}" && -f "${COS_STATE_DIR}/hub-settings.json" ]] \
+     && command -v jq >/dev/null 2>&1 \
+     && grep -q '"git_settings"' "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null; then
+  _cos_git_line="$(jq -r '[(.git_settings.enabled // false), (.git_settings.integration_branch // "main"), ((.git_settings.protected_branches // ["production"]) | join(","))] | @tsv' "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null || true)"
+  if [[ "$(printf '%s' "$_cos_git_line" | cut -f1)" == "true" ]]; then
+    # Split declare/assign so shellcheck SC2155 stays clean (return-value masking).
+    COS_GIT_INTEGRATION_BRANCH="$(printf '%s' "$_cos_git_line" | cut -f2)"
+    COS_GIT_PROTECTED_BRANCHES="$(printf '%s' "$_cos_git_line" | cut -f3)"
+    export COS_GIT_WORKFLOW="pr" COS_GIT_INTEGRATION_BRANCH COS_GIT_PROTECTED_BRANCHES
+  fi
+  unset _cos_git_line
+fi
+
 # Default DB filename is `coding-os.db`. Legacy `thinking_os.db` is auto-renamed
 # by src/core/thinking_os/database.py::migrate_legacy_db_filename() on first init_db()
 # call after the upgrade — no shell-side migration needed.

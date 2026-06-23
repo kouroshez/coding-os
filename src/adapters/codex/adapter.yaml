@@ -117,6 +117,7 @@ hook_dispatchers:
       - warn-graph-empty.sh
       - auto-brain-decay.sh
       - agent-presence.sh
+      - pr-reap.sh
   - event: SessionStart
     matcher: resume
     script: codex-sessionstart-dispatch.sh
@@ -133,6 +134,7 @@ hook_dispatchers:
       - warn-graph-empty.sh
       - auto-brain-decay.sh
       - agent-presence.sh
+      - pr-reap.sh
   - event: Stop
     matcher: ""
     script: codex-stop-dispatch.sh

@@ -2858,3 +2858,54 @@ class TestCosPr:
         res = runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(not_a_repo)])
         assert res.exit_code != 0
         assert "git repository" in res.output
+
+    # --- reaper (TASK-519) -------------------------------------------------
+
+    def test_reap_removes_offline_session_worktree(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)  # no network in the test
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)
+        # No presence record for the session => offline => reaped.
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" not in self._branches(repo)
+        assert "adhoc-ses-test-abc" not in self._worktrees(repo)
+
+    def test_reap_keeps_live_session_worktree(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import time
+
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        sess_dir = repo / ".coding-os" / "claude" / "sessions"
+        sess_dir.mkdir(parents=True, exist_ok=True)
+        (sess_dir / "ses-test-abc.json").write_text(
+            json.dumps(
+                {"session_id": "ses-test-abc", "last_tool_at": int(time.time()), "pid": os.getpid()}
+            )
+        )
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # live → kept
+
+    def test_reap_drains_cleanup_ledger(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        ledger = repo / ".coding-os" / ".pr-cleanup-ledger.json"
+        ledger.parent.mkdir(parents=True, exist_ok=True)
+        ledger.write_text(
+            json.dumps([{"branch": "agents/old/dead", "remote_pending": False, "pr_pending": False}])
+        )
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert json.loads(ledger.read_text()) == []  # completable entry drained
