@@ -54,6 +54,19 @@ def test_blocks_edit_on_shared_checkout_in_pr_mode(tmp_path: Path) -> None:
     assert "worktree" in err.lower()
 
 
+def test_blocks_edit_via_symlinked_repo_path_in_pr_mode(tmp_path: Path) -> None:
+    # finding 3 (Rule 5): REPO_ROOT resolves symlinks, so a file arriving via a
+    # symlinked parent (macOS /tmp → /private/tmp) must still be blocked.
+    real = tmp_path / "realrepo"
+    (real / ".coding-os").mkdir(parents=True)
+    (real / "src").mkdir(parents=True)
+    link = tmp_path / "linkrepo"
+    link.symlink_to(real)
+    code, err = _run(f"{link}/src/app.py", workflow="pr", state_dir=str(real / ".coding-os"))
+    assert code == 2
+    assert "worktree" in err.lower()
+
+
 def test_allows_edit_in_worktree_in_pr_mode(tmp_path: Path) -> None:
     repo, state = _repo(tmp_path)
     wt_file = f"{tmp_path}/.coding-os/worktrees/slug/wt/src/app.py"

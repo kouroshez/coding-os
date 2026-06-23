@@ -370,10 +370,18 @@ def _protected_branches() -> set[str]:
 
 
 def _is_worktree_path(path: str) -> bool:
-    if "/.coding-os/worktrees/" in path:
+    if not path:
+        return False
+    # Resolve symlinks before comparing (Rule 5: macOS /tmp ↔ /private/tmp); a
+    # missing tail still resolves its existing prefix, enough for the compare.
+    real = os.path.realpath(path)
+    if "/.coding-os/worktrees/" in real or "/.coding-os/worktrees/" in path:
         return True
     root = os.environ.get("COS_WORKTREE_ROOT", "")
-    return bool(root) and (path == root or path.startswith(root.rstrip("/") + "/"))
+    if not root:
+        return False
+    root_real = os.path.realpath(root)
+    return real == root_real or real.startswith(root_real.rstrip("/") + "/")
 
 
 def _current_dir() -> str:
@@ -384,47 +392,72 @@ def _current_dir() -> str:
 
 
 def _worktree_scoped(segments: list[str]) -> bool:
-    """True when the command operates inside a worktree: cwd is a worktree, or a
-    `cd <worktree>` / `git -C <worktree>` scopes the git op there. The cos pr CLI
-    always scopes worktree git ops explicitly, so this signal is reliable (§5)."""
+    # Worktree scope for a git op with NO explicit -C: the process cwd is a
+    # worktree, or a `cd <worktree>` in the command line moved into one. An op
+    # WITH -C is scoped per-op from its own target in _evaluate_pr (finding 5).
     cwd = _current_dir()
     if cwd and _is_worktree_path(cwd):
         return True
     for seg in segments:
         toks = _strip_env_vars(_tokenize(seg))
-        if not toks:
-            continue
-        if toks[0] == "cd" and len(toks) >= 2 and _is_worktree_path(toks[1]):
+        if toks and toks[0] == "cd" and len(toks) >= 2 and _is_worktree_path(toks[1]):
             return True
-        if toks[0] == "git":
-            for i, t in enumerate(toks):
-                if t == "-C" and i + 1 < len(toks) and _is_worktree_path(toks[i + 1]):
-                    return True
     return False
 
 
 def _push_targets(args: list[str], blocked: set[str]) -> bool:
+    # `--mirror` / `--all` push every local ref → can update the integration or a
+    # protected branch without naming it; treat as a protected-push (finding 15).
+    if any(a in {"--mirror", "--all"} for a in args):
+        return True
     for a in args:
         if a.startswith("-"):
             continue
         dst = a.rsplit(":", 1)[-1] if ":" in a else a
+        dst = dst.lstrip("+")  # `+main` force-refspec still targets `main`
         if dst in blocked:
             return True
     return False
 
 
+def _git_dir_target(global_tokens: list[str]) -> str | None:
+    # The path a git invocation is explicitly pointed at via -C / --work-tree /
+    # --git-dir (None = the ambient cwd). Scope is decided per git-op from THIS
+    # target, never command-globally, so `cd <wt> && git -C <main> reset` is
+    # judged against <main>, not the worktree cwd (finding 5).
+    i = 0
+    while i < len(global_tokens):
+        t = global_tokens[i]
+        if t in {"-C", "--work-tree", "--git-dir"} and i + 1 < len(global_tokens):
+            return global_tokens[i + 1]
+        matched_eq = [p for p in ("--work-tree=", "--git-dir=") if t.startswith(p)]
+        if matched_eq:
+            return t[len(matched_eq[0]):]
+        if t in _GLOBAL_OPTS_WITH_ARG:
+            i += 2
+            continue
+        if t in _GLOBAL_OPTS_NO_ARG or any(t.startswith(p) for p in _GLOBAL_LONG_EQ_PREFIXES):
+            i += 1
+            continue
+        break
+    return None
+
+
 def _evaluate_pr(segments: list[str]) -> tuple[str, str, str]:
-    worktree = _worktree_scoped(segments)
     integration = os.environ.get("COS_GIT_INTEGRATION_BRANCH", "main")
     blocked_push = _protected_branches() | {integration}
+    fallback_scope = _worktree_scoped(segments)  # cwd/cd, for ops with no -C
     for seg in segments:
         tokens = _strip_env_vars(_tokenize(seg))
         if not tokens or tokens[0] != "git":
             continue
-        tokens = _strip_git_globals(tokens[1:])
-        if not tokens:
+        global_tokens = tokens[1:]
+        c_target = _git_dir_target(global_tokens)
+        sub = _strip_git_globals(global_tokens)
+        if not sub:
             continue
-        reason, message = _pr_check(tokens[0], tokens[1:], worktree, blocked_push)
+        op_scope = _is_worktree_path(c_target) if c_target is not None else fallback_scope
+        reason, message = _pr_check(sub[0], sub[1:], op_scope, blocked_push)
         if reason:
             return "block", reason, message or ""
     return "allow", "", ""

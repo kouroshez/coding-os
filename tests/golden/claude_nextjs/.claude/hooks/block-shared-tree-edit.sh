@@ -46,6 +46,11 @@ case "$FILE" in
   /*) ;;
   *) FILE_ABS="$(pwd)/$FILE" ;;
 esac
+# Resolve symlinks in the parent path so the prefix compare against the resolved
+# REPO_ROOT holds under a symlinked repo path (Rule 5: /tmp ↔ /private/tmp). The
+# file may not exist yet (new file), so resolve its dirname, not the file itself.
+FILE_DIR="$(cd -P "$(dirname "$FILE_ABS")" 2>/dev/null && pwd -P)" || FILE_DIR=""
+[[ -n "$FILE_DIR" ]] && FILE_ABS="$FILE_DIR/$(basename "$FILE_ABS")"
 
 if [[ "$FILE_ABS" == "${REPO_ROOT}/"* ]]; then
   cos_log_hook block-shared-tree-edit block "rule=pr-shared-tree-edit"

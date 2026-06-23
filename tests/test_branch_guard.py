@@ -239,6 +239,36 @@ def test_pr_mode_allows_push_agents_branch() -> None:
     assert code == 0
 
 
+def test_pr_mode_blocks_shared_reset_via_explicit_C_from_worktree_cwd() -> None:
+    # finding 5: scope is per git-op — `git -C <main>` targets the shared checkout
+    # even when a `cd <worktree>` precedes it, so the HEAD-rewrite must BLOCK.
+    code, err = _run(f"cd {_WT} && git -C /tmp/repo reset HEAD~3", workflow="pr")
+    assert code == 2
+    assert "worktree" in err.lower()
+
+
+def test_pr_mode_allows_reset_via_explicit_C_into_worktree() -> None:
+    # the inverse: -C points at the worktree, so the op is worktree-scoped → allow,
+    # regardless of the shared-checkout cwd.
+    code, _ = _run(f"cd /tmp/repo && git -C {_WT} reset HEAD~3", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_blocks_push_mirror() -> None:
+    code, _ = _run("git push --mirror origin", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_push_all() -> None:
+    code, _ = _run("git push --all origin", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_push_force_refspec_integration() -> None:
+    code, _ = _run("git push origin +main", workflow="pr")
+    assert code == 2
+
+
 # --- hardening: bypass probes (must BLOCK after this task) -------
 
 
