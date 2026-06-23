@@ -4,7 +4,7 @@ title: "Hub git_settings (minimal, settings-gated, default-OFF): enabled + integ
 swimlane: core
 kind: feature
 epic: multi-agent-pr-mode
-labels: [pr-mode, hub, settings]
+labels: [pr-mode, hub, settings, ready]
 status: icebox
 priority: P2
 appetite: 1d

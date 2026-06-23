@@ -5,12 +5,12 @@ swimlane: core
 kind: docs
 epic: multi-agent-pr-mode
 labels: [pr-mode, governance, docs-update, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-22
 started: 2026-06-22
-completed: null
+completed: 2026-06-22
 agent_session: ses-claude-20260622-134704-4de9
 depends_on: []
 blocked_by: []
@@ -30,3 +30,4 @@ references: []
 - 2026-06-23 [claude]: Edit 0013-pr-mode-multi-agent-git-workflow-consumer-only.md
 - 2026-06-23 [claude]: Edit pr-workflow.md
 - 2026-06-23 [claude]: commit 66a84af978 — docs(pr-mode): ADR-0013 + pr-workflow playbook for consumer-only pr-mode
+- 2026-06-23 [claude]: Wrote ADR-0013 (consumer-only pr-mode; coding-os stays trunk) + docs/playbooks/pr-workflow.md (concrete spec for…

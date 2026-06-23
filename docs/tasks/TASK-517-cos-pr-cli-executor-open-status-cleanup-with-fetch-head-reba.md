@@ -4,7 +4,7 @@ title: "cos pr CLI executor: open/status/cleanup with FETCH_HEAD rebase, sha-pin
 swimlane: core
 kind: feature
 epic: multi-agent-pr-mode
-labels: [pr-mode, cli, executor]
+labels: [pr-mode, cli, executor, ready]
 status: icebox
 priority: P1
 appetite: 1d
