@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -2765,3 +2767,94 @@ class TestAdopt:
         assert second.exit_code == 0, second.output
         assert "already present" in second.output
         assert "sync" in second.output.lower()
+
+
+class TestCosPr:
+    """cos pr executor — worktree isolation, idempotency, capability degrade (TASK-517)."""
+
+    @staticmethod
+    def _init_repo(path: Path) -> None:
+        run = lambda *a: subprocess.run(  # noqa: E731 — terse local test helper
+            ["git", "-C", str(path), *a], check=True, capture_output=True, text=True
+        )
+        subprocess.run(["git", "init", "-q", "-b", "main", str(path)], check=True)
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        (path / "README.md").write_text("x", encoding="utf-8")
+        run("add", "-A")
+        run("commit", "-q", "-m", "init")
+
+    @pytest.fixture
+    def repo(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+        r = tmp_path / "repo"
+        r.mkdir()
+        self._init_repo(r)
+        monkeypatch.setenv("COS_WORKTREE_ROOT", str(tmp_path / "wt"))
+        monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-test-abc")
+        monkeypatch.delenv("COS_PANEL_DIR", raising=False)
+        return r
+
+    @staticmethod
+    def _branches(repo: Path) -> str:
+        return subprocess.run(
+            ["git", "-C", str(repo), "branch", "--list", "agents/*"],
+            capture_output=True, text=True,
+        ).stdout
+
+    @staticmethod
+    def _worktrees(repo: Path) -> str:
+        return subprocess.run(
+            ["git", "-C", str(repo), "worktree", "list"], capture_output=True, text=True
+        ).stdout
+
+    def test_open_adhoc_creates_worktree_and_branch(self, runner: CliRunner, repo: Path) -> None:
+        res = runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)
+        assert "adhoc-ses-test-abc" in self._worktrees(repo)
+
+    def test_open_task_namespaces_branch(self, runner: CliRunner, repo: Path) -> None:
+        res = runner.invoke(cli, ["pr", "open", "--task", "TASK-999", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/TASK-999/ses-test-abc" in self._branches(repo)
+
+    def test_open_is_idempotent(self, runner: CliRunner, repo: Path) -> None:
+        first = runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        second = runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        assert first.exit_code == 0, first.output
+        assert second.exit_code == 0, second.output
+
+    def test_open_worktree_lives_under_slugged_root(
+        self, runner: CliRunner, repo: Path, tmp_path: Path
+    ) -> None:
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt_root = tmp_path / "wt"
+        # COS_WORKTREE_ROOT/<repo-slug>/adhoc-<session>
+        slugged = [p for p in wt_root.iterdir() if p.is_dir() and p.name.startswith("repo-")]
+        assert slugged, "worktree must live under a per-repo slug dir"
+        assert (slugged[0] / "adhoc-ses-test-abc").is_dir()
+
+    def test_cleanup_removes_worktree_and_branch(self, runner: CliRunner, repo: Path) -> None:
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        res = runner.invoke(cli, ["pr", "cleanup", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" not in self._branches(repo)
+        assert "adhoc-ses-test-abc" not in self._worktrees(repo)
+
+    def test_preflight_degrades_without_remote(self, runner: CliRunner, repo: Path) -> None:
+        res = runner.invoke(cli, ["pr", "preflight", "--repo", str(repo)])
+        assert res.exit_code == 1, res.output  # no remote => not pr_ok
+        assert "degraded-trunk" in res.output
+
+    def test_submit_degrades_without_capability(self, runner: CliRunner, repo: Path) -> None:
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 1, res.output  # no remote/gh => degrade, not crash
+        assert "degraded-trunk" in res.output
+
+    def test_open_requires_git_repo(self, runner: CliRunner, tmp_path: Path) -> None:
+        not_a_repo = tmp_path / "plain"
+        not_a_repo.mkdir()
+        res = runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(not_a_repo)])
+        assert res.exit_code != 0
+        assert "git repository" in res.output

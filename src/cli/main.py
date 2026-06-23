@@ -1176,6 +1176,16 @@ try:
 except ImportError:
     pass  # board_os optional — don't break `cos` if deps missing.
 
+# pr-mode multi-agent git executor (cos pr open/submit/status/cleanup/preflight).
+try:
+    from cli.pr_commands import pr_group as _pr_group
+
+    cli.add_command(_pr_group)
+except ImportError as _pr_cli_exc:  # pragma: no cover — defensive
+    import logging as _logging
+
+    _logging.getLogger("coding_os.cli").debug("pr CLI unavailable: %s", _pr_cli_exc)
+
 # Scheduled jobs (CRON A/B).
 try:
     from cli.cron_commands import cron_cmd

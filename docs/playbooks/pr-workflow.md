@@ -35,13 +35,13 @@ pr-mode is **default OFF**. It activates only when a consumer sets, in its **own
 ```bash
 # Branch (board task):   agents/<task-slug>/<id>
 # Branch (no task):      agents/adhoc/<session-id>
-# Repo slug:             git rev-parse --show-toplevel | sed 's#/#-#g'
-#                        /Users/x/Project/foo  ->  -Users-x-Project-foo   (unique per path, readable)
-# Worktree root:         ${COS_WORKTREE_ROOT:-$HOME/.coding-os/worktrees/<repo-slug>}
-# Worktree path:         <root>/<task-slug>-<id>
+# Repo slug:             <repo-basename>-<sha8(realpath)>   (readable AND collision-free)
+#                        /Users/x/Project/foo  ->  foo-1a2b3c4d
+# Worktree root:         ${COS_WORKTREE_ROOT:-~/.coding-os/worktrees}/<repo-slug>
+# Worktree path:         <root>/<task-slug>-<session>
 ```
 
-- `<id>` is derived from the **atomic board claim** (`cos_task_claim_next` → unique `agent_session`), **not** a wall-clock timestamp (same-second agents collide).
+- `<session>` is the agent's session id (from the **atomic board claim** `cos_task_claim_next` → unique `agent_session`), **not** a wall-clock timestamp (same-second agents collide). Implemented by `cos pr` (src/cli/pr_commands.py): `cos pr open [--task | --adhoc]` isolates, `cos pr submit` publishes, `cos pr cleanup` GCs.
 - Worktrees live in **one central per-repo root outside every repo**. Never inside the repo (§Alternatives in ADR-0013: bundlers/watchers break on a second on-disk checkout). Never `../agent-worktrees` (resolves to the same parent for 100 repos).
 
 ## 3. The `$HOME` hard-stop fix (foundation — TASK-515)
