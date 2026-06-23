@@ -294,3 +294,105 @@ def test_gc_keeps_real_panel_with_recent_heartbeat(tmp_path: Path) -> None:
 
     _run_gc(env, "current-panel-3")
     assert live.exists(), "live panel with recent heartbeat must survive GC"
+
+
+# ============================================================
+# Worktree state routing (TASK-515 / pr-mode) — cos-env.sh § worktree block
+# Every worktree of one repo must share the MAIN repo's COS_STATE_DIR, and a
+# command that would bind worktree state to the global hub must be refused.
+# ============================================================
+
+_COS_ROUTING_VARS = (
+    "COS_STATE_DIR",
+    "COS_PROJECT_ROOT",
+    "COS_DB_PATH",
+    "COS_AGENT_DIR",
+    "COS_PANEL_DIR",
+    "COS_PANEL_ID",
+    "COS_SESSION_FILE",
+    "CLAUDE_PROJECT_DIR",
+    "COS_STATE_MISROUTE",
+    "COS_WORKTREE_ROOT",
+)
+
+
+def _clean_env() -> dict[str, str]:
+    """Env stripped of inherited coding-os routing vars so cos-env.sh resolves
+    COS_STATE_DIR from scratch — the real worktree-command condition."""
+    return {k: v for k, v in os.environ.items() if k not in _COS_ROUTING_VARS}
+
+
+def _resolve_state_dir(env: dict[str, str], cwd: Path) -> tuple[str, str]:
+    """Source cos-env.sh with env+cwd; return (COS_STATE_DIR, COS_STATE_MISROUTE)."""
+    script = (
+        f"source '{COS_ENV}' 2>/dev/null; "
+        'printf "%s|%s" "$COS_STATE_DIR" "${COS_STATE_MISROUTE:-}"'
+    )
+    proc = subprocess.run(
+        ["bash", "-c", script], env=env, cwd=str(cwd), capture_output=True, text=True
+    )
+    out = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "|"
+    state_dir, _, misroute = out.partition("|")
+    return state_dir, misroute
+
+
+def test_worktree_project_root_beats_claude_project_dir(tmp_path: Path) -> None:
+    """Given-1: cwd under a worktrees/ path + COS_PROJECT_ROOT exported to the
+    main repo => COS_STATE_DIR is the MAIN repo's .coding-os, even when
+    CLAUDE_PROJECT_DIR points at the worktree itself. This is the shared-state
+    guarantee every sibling worktree of the repo relies on."""
+    main_repo = tmp_path / "main"
+    (main_repo / ".coding-os").mkdir(parents=True)
+    wt = tmp_path / ".coding-os" / "worktrees" / "slug" / "task-1"
+    wt.mkdir(parents=True)
+
+    env = _clean_env()
+    env["COS_PROJECT_ROOT"] = str(main_repo)
+    env["CLAUDE_PROJECT_DIR"] = str(wt)  # runtime points it at the worktree; must NOT win
+    state_dir, misroute = _resolve_state_dir(env, wt)
+
+    assert state_dir == str(main_repo / ".coding-os"), (
+        f"worktree state must route to main repo, got {state_dir!r}"
+    )
+    assert misroute == "", "happy path must not flag a misroute"
+
+
+def test_worktree_misroute_to_hub_is_refused(tmp_path: Path) -> None:
+    """Given-2: cwd under a worktrees/ path with NO COS_PROJECT_ROOT and no
+    resolvable git main repo, inheriting the hub's COS_STATE_DIR
+    ($HOME/.coding-os). cos-env.sh must REFUSE — flag COS_STATE_MISROUTE and
+    steer off the hub — never silently bind worktree state to the global hub."""
+    fake_home = tmp_path / "home"
+    hub = fake_home / ".coding-os"
+    wt = hub / "worktrees" / "slug" / "task-1"
+    wt.mkdir(parents=True)
+
+    env = _clean_env()
+    env["HOME"] = str(fake_home)
+    env["COS_STATE_DIR"] = str(hub)  # inherited from `cos hub`; not a git repo => refuse
+    state_dir, misroute = _resolve_state_dir(env, wt)
+
+    assert misroute == "1", "misroute to the global hub must be flagged"
+    assert state_dir != str(hub), "must not silently bind worktree state to the hub"
+
+
+def test_worktree_git_recovery_without_project_root(tmp_path: Path) -> None:
+    """A real git worktree with NO COS_PROJECT_ROOT => cos-env.sh recovers the
+    main repo via `git rev-parse --git-common-dir` and routes state there."""
+    main_repo = tmp_path / "repo"
+    main_repo.mkdir()
+    (main_repo / ".coding-os").mkdir()
+    git = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
+    subprocess.run([*git, "init", "-q"], cwd=main_repo, check=True)
+    subprocess.run([*git, "commit", "-q", "--allow-empty", "-m", "init"], cwd=main_repo, check=True)
+    wt = tmp_path / ".coding-os" / "worktrees" / "slug" / "wt"
+    wt.parent.mkdir(parents=True)
+    subprocess.run([*git, "worktree", "add", "-q", str(wt)], cwd=main_repo, check=True)
+
+    env = _clean_env()
+    state_dir, misroute = _resolve_state_dir(env, wt)
+
+    assert os.path.realpath(state_dir) == os.path.realpath(str(main_repo / ".coding-os")), (
+        f"git-recovered worktree state must route to main repo, got {state_dir!r}"
+    )
+    assert misroute == "", "git recovery is not a misroute"
