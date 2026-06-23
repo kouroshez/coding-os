@@ -318,6 +318,23 @@ def pr_submit(
     if push.returncode != 0:
         raise click.ClickException(f"push rejected (lease/connectivity):\n{push.stderr.strip()}")
 
+    # Circuit-breaker — never pile a new PR past the open-PR cap. A red /
+    # quota-dead CI (TASK-513) would otherwise grow open PRs without bound (§8).
+    open_prs = _open_pr_count(repo)
+    if open_prs >= _env_int("COS_PR_MAX_OPEN", 5):
+        _emit(
+            {
+                "branch": branch,
+                "pushed": True,
+                "circuit_breaker": "open",
+                "open_prs": open_prs,
+                "cap": _env_int("COS_PR_MAX_OPEN", 5),
+                "action": "open-PR cap reached — not opening another PR; drain existing PRs first",
+            },
+            as_json,
+        )
+        sys.exit(1)
+
     pr = _run(
         [
             "gh", "pr", "create", "--base", integration, "--head", branch,
@@ -535,6 +552,130 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
             "kept_live": len(kept),
             "ledger_drained": ",".join(drained) or "(none)",
             "detail": reaped if as_json else f"{len(reaped)} reaped",
+        },
+        as_json,
+    )
+
+
+# --------------------------------------------------------------------------- #
+# bounded self-heal + autonomy circuit-breaker (TASK-520) — the autonomous loop
+# can never burn unbounded tokens / CI-quota. SPEC: docs/playbooks/pr-workflow.md § 8.
+# --------------------------------------------------------------------------- #
+def _heal_budget_path(repo: str) -> Path:
+    return Path(repo) / ".coding-os" / ".pr-heal-budget.json"
+
+
+def _heal_budget(repo: str) -> dict:
+    path = _heal_budget_path(repo)
+    if not path.is_file():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8")) or {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _heal_budget_save(repo: str, data: dict) -> None:
+    path = _heal_budget_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    tmp.replace(path)
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return max(1, int(os.environ.get(name, str(default))))
+    except ValueError:
+        return default
+
+
+def _open_pr_count(repo: str) -> int:
+    """Open agent PRs on the remote (0 when gh is unavailable — fail open so the
+    breaker never blocks a repo that simply has no gh)."""
+    if not _gh_ready():
+        return 0
+    out = _run(
+        ["gh", "pr", "list", "--search", "head:agents/", "--state", "open", "--json", "number"],
+        cwd=repo,
+    ).stdout
+    try:
+        return len(json.loads(out or "[]"))
+    except json.JSONDecodeError:
+        return 0
+
+
+def _escalate_blocked(repo: str, task_id: str | None, reason: str, attempts: int) -> bool:
+    """Move the task to blocked with the failure on its work log — reuses the
+    existing board ops, no new board concept. Best-effort (no board → False)."""
+    if not task_id:
+        return False
+    try:
+        from cli.board_commands import _agent_session_id, _db_conn
+        from core.board_os.mcp_tools import cos_task_move, cos_work_log_append
+
+        conn = _db_conn()
+        cos_work_log_append(
+            conn,
+            task_id=task_id,
+            summary=f"pr-mode self-heal budget exhausted after {attempts} attempts: {reason}",
+        )
+        env = json.loads(
+            cos_task_move(
+                conn,
+                task_id=task_id,
+                to="blocked",
+                reason=f"pr-mode heal budget exhausted ({reason})",
+                agent_session=_agent_session_id(),
+            )
+        )
+        return bool(env.get("ok"))
+    except Exception:
+        return False  # no board / unavailable → escalation signal still returned to caller
+
+
+@pr_group.command("heal", help="Record a self-heal attempt on a red PR; escalate to blocked when the budget is spent.")
+@click.option("--task", "task_id", default=None)
+@click.option("--adhoc", is_flag=True)
+@click.option("--repo", "repo_opt", default=None)
+@click.option("--reason", default="CI red", help="Failure summary recorded on escalation.")
+@click.option("--json", "as_json", is_flag=True)
+def pr_heal(
+    task_id: str | None, adhoc: bool, repo_opt: str | None, reason: str, as_json: bool
+) -> None:
+    repo = _resolve_repo(repo_opt)
+    session = _agent_session()
+    task_slug = "adhoc" if adhoc else _sanitize(task_id) if task_id else None
+    if task_slug is None:
+        raise click.ClickException("cos pr heal needs --task <id> or --adhoc.")
+    branch = _branch_for(task_slug, session)
+    budget = _heal_budget(repo)
+    count = int(budget.get(branch, 0)) + 1
+    budget[branch] = count
+    _heal_budget_save(repo, budget)
+    max_n = _env_int("COS_PR_HEAL_MAX", 3)
+
+    if count > max_n:
+        blocked = _escalate_blocked(repo, task_id, reason, count)
+        _emit(
+            {
+                "branch": branch,
+                "attempt": count,
+                "max": max_n,
+                "escalated": True,
+                "board_blocked": blocked,
+                "action": "STOP re-pushing — task escalated to blocked",
+            },
+            as_json,
+        )
+        sys.exit(2)
+    _emit(
+        {
+            "branch": branch,
+            "attempt": count,
+            "max": max_n,
+            "escalated": False,
+            "action": f"heal attempt {count}/{max_n} — fix and re-push",
         },
         as_json,
     )

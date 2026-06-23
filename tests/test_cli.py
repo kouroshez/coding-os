@@ -2909,3 +2909,46 @@ class TestCosPr:
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert json.loads(ledger.read_text()) == []  # completable entry drained
+
+    # --- self-heal budget + circuit-breaker (TASK-520) ---------------------
+
+    def test_heal_budget_escalates_after_max(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("COS_PR_HEAL_MAX", "2")
+        ok1 = runner.invoke(cli, ["pr", "heal", "--adhoc", "--repo", str(repo)])
+        ok2 = runner.invoke(cli, ["pr", "heal", "--adhoc", "--repo", str(repo)])
+        boom = runner.invoke(cli, ["pr", "heal", "--adhoc", "--repo", str(repo)])
+        assert ok1.exit_code == 0 and "1/2" in ok1.output
+        assert ok2.exit_code == 0 and "2/2" in ok2.output
+        # 3rd attempt exceeds the budget → escalate + non-zero "stop" signal.
+        assert boom.exit_code == 2, boom.output
+        assert "escalated" in boom.output.lower()
+        budget = json.loads((repo / ".coding-os" / ".pr-heal-budget.json").read_text())
+        assert budget["agents/adhoc/ses-test-abc"] == 3
+
+    @staticmethod
+    def _add_bare_remote(repo: Path, tmp_path: Path) -> None:
+        bare = tmp_path / "remote.git"
+        subprocess.run(["git", "init", "--bare", "-q", str(bare)], check=True)
+        g = ["git", "-C", str(repo)]
+        subprocess.run([*g, "remote", "add", "origin", str(bare)], check=True)
+        subprocess.run([*g, "push", "-q", "origin", "main"], check=True)
+
+    def test_submit_circuit_breaker_caps_open_prs(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.pr_commands as prc
+
+        self._add_bare_remote(repo, tmp_path)
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)  # pretend gh is ready
+        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
+        monkeypatch.setattr(prc, "_open_pr_count", lambda r: 5)  # already at the cap
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
+        res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 1, res.output  # breaker open → refuse the PR, push already done
+        assert "circuit_breaker" in res.output and "open" in res.output
