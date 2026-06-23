@@ -10,7 +10,7 @@ Read next: any of the entries below.
 
 <!-- BEGIN auto-index -->
 
-### Playbook (7)
+### Playbook (8)
 
 - [Playbook — Security Review (Per-Change Overlay)](security-review.md) — `ssot:true` · updated 2026-05-08
 - [Playbook — Authoring or Modifying an Adapter](adapter-authoring.md) — `ssot:true` · updated 2026-05-08
@@ -19,6 +19,7 @@ Read next: any of the entries below.
 - [Playbook — Authoring a Hook in `src/core/hooks/`](hook-authoring.md) — `ssot:true` · updated 2026-05-13
 - [Playbook — Authoring a Rich Skill in `src/core/skills/` and `src/templates/<stack>/skills/`](skill-authoring.md) — `ssot:true` · updated 2026-06-04
 - [Playbook — Authoring a Stack Template](template-authoring.md) — `ssot:true` · updated 2026-06-19
+- [Playbook — PR-Mode Multi-Agent Git Workflow (Consumer-Only)](pr-workflow.md) — `ssot:true` · updated 2026-06-22
 
 ### Reference (1)
 
