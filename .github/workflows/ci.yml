@@ -9,16 +9,23 @@ on:
       - "docs/tasks/**"
   pull_request:
     branches: [main]
+  # Merge queue (pr-mode) — GitHub serializes N agent PRs into main server-side
+  # and runs the required CI gate on the queued combination, so "two pass alone,
+  # break together" is caught before merge (fixes the rebase thundering-herd).
+  # SPEC: docs/playbooks/pr-workflow.md § 11.
+  merge_group:
   # Allow manual re-runs without a push.
   workflow_dispatch:
   # Nightly full slow-suite sweep (scaffold sandboxes, background loops).
   schedule:
     - cron: "0 7 * * *"
 
-# Cancel superseded runs for the same ref to keep CI minutes sane.
+# Cancel superseded PR runs for the same ref to keep CI minutes sane. NEVER
+# cancel a merge_group or push-to-main run — a queued merge-group check must
+# complete or the PR can never merge.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Default to restrictive permissions; jobs that need more bump explicitly.
 permissions:

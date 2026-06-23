@@ -2952,3 +2952,45 @@ class TestCosPr:
         res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
         assert res.exit_code == 1, res.output  # breaker open → refuse the PR, push already done
         assert "circuit_breaker" in res.output and "open" in res.output
+
+    # --- consumer-fixture dogfood: the full pr-mode loop (TASK-521) ---------
+
+    def test_dogfood_full_pr_loop(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """isolate → work → rebase+push → cleanup on a real fixture repo + bare
+        remote, with coding-os itself never flipping to pr-mode. The PR/auto-merge
+        steps degrade gracefully (no GitHub behind the bare remote)."""
+        import cli.pr_commands as prc
+
+        self._add_bare_remote(repo, tmp_path)
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)  # reach the push path
+        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
+        monkeypatch.setattr(prc, "_open_pr_count", lambda r: 0)
+
+        # isolate
+        opened = runner.invoke(cli, ["pr", "open", "--task", "TASK-DOG", "--repo", str(repo)])
+        assert opened.exit_code == 0, opened.output
+        assert "agents/TASK-DOG/ses-test-abc" in self._branches(repo)
+        wt = next((tmp_path / "wt").rglob("TASK-DOG-ses-test-abc"))
+
+        # work + commit inside the isolated worktree
+        (wt / "feature.txt").write_text("done", encoding="utf-8")
+        subprocess.run(["git", "-C", str(wt), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "-m", "feat: dogfood"], check=True)
+
+        # publish — rebase onto FETCH_HEAD + lease push reach the remote; the gh
+        # PR step degrades (no GitHub), but submit must not crash.
+        submitted = runner.invoke(cli, ["pr", "submit", "--task", "TASK-DOG", "--repo", str(repo)])
+        assert submitted.exit_code == 0, submitted.output
+        on_remote = subprocess.run(
+            ["git", "-C", str(repo), "ls-remote", "origin", "agents/TASK-DOG/ses-test-abc"],
+            capture_output=True, text=True,
+        ).stdout
+        assert "agents/TASK-DOG/ses-test-abc" in on_remote, "branch must reach the integration remote"
+
+        # cleanup — no orphan worktree or local branch left behind
+        cleaned = runner.invoke(cli, ["pr", "cleanup", "--task", "TASK-DOG", "--repo", str(repo)])
+        assert cleaned.exit_code == 0, cleaned.output
+        assert "agents/TASK-DOG/ses-test-abc" not in self._branches(repo)
+        assert "TASK-DOG-ses-test-abc" not in self._worktrees(repo)
