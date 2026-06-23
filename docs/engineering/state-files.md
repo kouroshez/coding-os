@@ -32,6 +32,16 @@ precedence, and **only** when `COS_STATE_DIR` is still the bare default
 5. **No match** → the relative `.coding-os` default (legacy behavior; no root
    could be proven, so we do not guess).
 
+**Worktree routing (pr-mode, TASK-515).** When `$PWD` is inside a git worktree
+under `~/.coding-os/worktrees/` (or `$COS_WORKTREE_ROOT`), the resolver overrides
+the precedence above: `$COS_PROJECT_ROOT` (exported by the `cos pr` dispatch) is
+authoritative, else the main repo is recovered git-natively via
+`git rev-parse --git-common-dir`. So every worktree of one repo shares that
+repo's single `$COS_STATE_DIR` (DB, board, presence, the `test-governor`
+`.test-run.lock`). If resolution would bind worktree state to the **global hub**
+(`$HOME/.coding-os`) it is **refused** (`COS_STATE_MISROUTE=1`, surfaced to
+stderr) rather than silently written. See [pr-workflow.md § 3](../playbooks/pr-workflow.md).
+
 **Root markers** (a `.coding-os/` is the *real* root only if one is co-located):
 `.git`, `.coding-os.yaml`, `pyproject.toml`, `package.json`, `go.mod`,
 `AGENTS.md`. This set is the **SSOT** in
