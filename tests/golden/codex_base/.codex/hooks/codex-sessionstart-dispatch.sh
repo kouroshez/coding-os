@@ -66,7 +66,8 @@ for delegate in \
   remind-daily.sh \
   warn-graph-empty.sh \
   auto-brain-decay.sh \
-  agent-presence.sh; do
+  agent-presence.sh \
+  pr-reap.sh; do
   DELEGATE_PATH="$(delegate_path "$delegate")"
   if DELEGATE_OUT="$(bash "$DELEGATE_PATH" <<< "$INPUT" 2>&1)"; then :; else
     cos_log_hook codex-sessionstart-dispatch warn "delegate=${delegate} source=${SOURCE}"

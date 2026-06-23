@@ -45,9 +45,9 @@ Mode read from `COS_GIT_WORKFLOW` (`cos-env.sh` / project config), default `trun
 | Mode | Branches | Publish path |
 |---|---|---|
 | `trunk` (default) | forbidden — `branch-guard.sh` blocks | commit + push to `main` |
-| `pr` | allowed — `branch-guard.sh` permits | ephemeral branch → push → PR → CI → auto-merge → delete |
+| `pr` | `agents/*` + worktrees allowed (positive policy) — shared-checkout HEAD-rewrites/commits + protected pushes still blocked | per-task worktree → PR → required CI → auto-merge → auto-cleanup |
 
-`pr` mode is the not-yet-implemented future-multi-developer seam (only the config key + hook mode-check exist). A branch is allowed in trunk mode ONLY when the **user explicitly asks** — the agent never branches on its own.
+`pr` mode is the **consumer-only opt-in** multi-agent workflow (default OFF), fully implemented across the `multi-agent-pr-mode` epic: enable per-project via the Hub **Config → Git** tab (`git_settings.enabled` → `cos-env.sh` exports `COS_GIT_WORKFLOW=pr` into every hook's process env — the inline per-command override does NOT work). The `cos pr` CLI (`open`/`submit`/`status`/`cleanup`/`reap`/`heal`/`preflight`) drives the loop; an owner-independent reaper GCs crashed-session orphans. **coding-os itself stays trunk** and dogfoods pr-mode through a consumer fixture (ADR-0013). Full spec: [docs/playbooks/pr-workflow.md](../../docs/playbooks/pr-workflow.md). A branch is allowed in trunk mode ONLY when the **user explicitly asks** — the agent never branches on its own.
 
 ## Always-allowed forms (the safe escape hatches)
 
