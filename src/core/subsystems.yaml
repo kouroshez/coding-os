@@ -62,6 +62,7 @@ modules:
       - validate-task-frontmatter
       # core enforcement discipline (always on)
       - branch-guard
+      - block-shared-tree-edit
       - enforce-commit-message
       - enforce-scaffold-boundary
       - enforce-skill

@@ -5,8 +5,9 @@
 # either (a) create a branch / worktree or (b) rewrite shared HEAD —
 # both classes can clobber a peer session's commits or scatter work
 # across phantom branches. The coding-os workflow commits directly to
-# main (see src/core/rules/git-workflow.md). Set COS_GIT_WORKFLOW=pr to
-# allow branches / HEAD-moves (future multi-developer mode).
+# main (see src/core/rules/git-workflow.md). COS_GIT_WORKFLOW=pr switches to a
+# positive pr-mode policy (consumer-only): agents/* branches + worktrees pass,
+# but the shared checkout and protected branches stay guarded — NOT a bypass.
 #
 # The actual parsing lives in _helpers/branch_guard_check.py — it
 # handles whitespace normalization, `git -C` / `git -c` global options,
@@ -39,10 +40,10 @@ if [[ "$TOOL" != "Bash" ]]; then
   exit 0
 fi
 
-# pr mode = branches + HEAD-moves allowed; the seam for future team workflows.
-if [[ "${COS_GIT_WORKFLOW:-trunk}" == "pr" ]]; then
-  exit 0
-fi
+# pr-mode is NOT a guard-kill. The command flows into branch_guard_check.py,
+# which applies a positive pr-mode policy: allow agents/* branch + worktree-add,
+# but still BLOCK HEAD-rewrites/commits on the shared integration checkout and
+# pushes to protected branches. SPEC: docs/playbooks/pr-workflow.md § 5.
 
 COMMAND=$(printf '%s' "$INPUT" | cos_json_field tool_input.command)
 [[ -z "$COMMAND" ]] && exit 0
@@ -73,7 +74,7 @@ if [[ ! -f "$HELPER" ]]; then
   cos_say error hook.branch_guard "branch-guard helper missing — failing closed on git command" 2>/dev/null || true
   cos_log_hook branch-guard block "rule=helper-missing"
   echo "BLOCKED: branch-guard helper missing ($HELPER) — cannot verify this git command; failing closed." >&2
-  echo "  Restore src/core/hooks/_helpers/branch_guard_check.py, or set COS_GIT_WORKFLOW=pr to bypass branch-guard." >&2
+  echo "  Restore src/core/hooks/_helpers/branch_guard_check.py (fail-closed: pr-mode does not bypass this guard)." >&2
   exit 2
 fi
 
@@ -92,7 +93,7 @@ if [[ "$HELPER_RC" -ne 0 || -z "$VERDICT_JSON" ]]; then
   cos_say error hook.branch_guard "branch-guard helper failed (rc=${HELPER_RC}) — failing closed on git command" detail="${HELPER_STDERR:0:200}" 2>/dev/null || true
   cos_log_hook branch-guard block "rule=helper-crash rc=${HELPER_RC}" || true
   echo "BLOCKED: branch-guard helper failed (rc=${HELPER_RC}) — cannot verify this git command; failing closed." >&2
-  echo "  Fix src/core/hooks/_helpers/branch_guard_check.py, or set COS_GIT_WORKFLOW=pr to bypass branch-guard." >&2
+  echo "  Fix src/core/hooks/_helpers/branch_guard_check.py (fail-closed: pr-mode does not bypass this guard)." >&2
   [[ -n "$HELPER_STDERR" ]] && echo "  helper stderr: ${HELPER_STDERR}" >&2
   exit 2
 fi
@@ -116,6 +117,6 @@ if [[ -n "$MESSAGE" ]]; then
   printf '%s\n' "$MESSAGE" >&2
 else
   echo "BLOCKED: coding-os trunk-based git workflow forbids this command." >&2
-  echo "  See src/core/rules/git-workflow.md. Override: COS_GIT_WORKFLOW=pr." >&2
+  echo "  See src/core/rules/git-workflow.md (pr-mode applies a positive policy, not a bypass)." >&2
 fi
 exit 2

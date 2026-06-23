@@ -92,6 +92,27 @@ _cos_find_project_root() {
   printf '%s' "$first_state"
 }
 
+# Resolve the MAIN repo root for a command running inside a git worktree, or
+# empty. A linked worktree's --git-common-dir points at <main>/.git, so its
+# parent is the main checkout. Used only when a worktree command lacks the
+# COS_PROJECT_ROOT fast-path (TASK-515 / pr-mode). Always returns 0 — this file
+# is SOURCED under the caller's `set -euo pipefail`, so a non-zero return from a
+# command-substitution assignment would kill the hook (mirrors
+# _cos_find_project_root's echo-empty-and-return-0 contract).
+# SPEC: docs/playbooks/pr-workflow.md § 3.
+_cos_main_repo_from_worktree() {
+  command -v git >/dev/null 2>&1 || { printf ''; return 0; }
+  local common
+  common="$(git rev-parse --git-common-dir 2>/dev/null)" || { printf ''; return 0; }
+  [[ -z "$common" ]] && { printf ''; return 0; }
+  common="$(cd -P "$common" 2>/dev/null && pwd -P)" || { printf ''; return 0; }
+  case "$common" in
+    */.git) printf '%s' "${common%/.git}" ;;
+    *)      printf '' ;;
+  esac
+  return 0
+}
+
 case "${COS_STATE_DIR}" in
   .coding-os | ./.coding-os)
     if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
@@ -107,6 +128,52 @@ case "${COS_STATE_DIR}" in
     fi
     ;;
 esac
+
+# ---------------------------------------------------------------------------
+# Worktree state routing + misroute guard (TASK-515 / pr-mode). A command
+# inside a git worktree under ~/.coding-os/worktrees/ must resolve state to the
+# MAIN repo, so every worktree of one repo shares its $COS_STATE_DIR (DB, board,
+# presence, the test-governor .test-run.lock). Runs AFTER the case so it also
+# corrects an INHERITED hub COS_STATE_DIR (e.g. a command spawned under
+# `cos hub`, whose env carries COS_STATE_DIR=$HOME/.coding-os). Cheap raw-string
+# gate first — only worktree cwds pay the resolution cost; the happy path
+# (COS_PROJECT_ROOT exported by the cos pr dispatch) never spawns git.
+# SPEC: docs/playbooks/pr-workflow.md § 3.
+# ---------------------------------------------------------------------------
+_cos_in_wt=""
+case "${PWD}" in
+  *"/.coding-os/worktrees/"*) _cos_in_wt=1 ;;
+esac
+if [[ -z "$_cos_in_wt" && -n "${COS_WORKTREE_ROOT:-}" && "${PWD}" == "${COS_WORKTREE_ROOT}"/* ]]; then
+  _cos_in_wt=1
+fi
+if [[ -n "$_cos_in_wt" ]]; then
+  # In a worktree the project root is unambiguously the MAIN repo. COS_PROJECT_ROOT
+  # is authoritative and beats whatever the case produced (CLAUDE_PROJECT_DIR or
+  # the walk can point at the worktree itself or the global hub).
+  _cos_main=""
+  if [[ -n "${COS_PROJECT_ROOT:-}" ]]; then
+    _cos_main="${COS_PROJECT_ROOT}"
+  else
+    _cos_main="$(_cos_main_repo_from_worktree)"
+  fi
+  if [[ -n "$_cos_main" && -d "${_cos_main}/.coding-os" ]]; then
+    COS_STATE_DIR="${_cos_main}/.coding-os"
+  else
+    # No main repo resolvable. If the case bound us to the global hub, REFUSE —
+    # never silently write worktree state into $HOME/.coding-os.
+    _cos_home_real="$(cd -P "${HOME:-/dev/null}" 2>/dev/null && pwd -P)" || _cos_home_real="${HOME:-}"
+    if [[ -n "$_cos_home_real" && "$COS_STATE_DIR" == "${_cos_home_real}/.coding-os" ]]; then
+      export COS_STATE_MISROUTE=1
+      printf 'cos-env: worktree state misroute — refusing to bind to the global hub (%s). Export COS_PROJECT_ROOT=<main-repo> for worktree commands (docs/playbooks/pr-workflow.md § 3).\n' "$COS_STATE_DIR" >&2
+      COS_STATE_DIR=".coding-os"
+    fi
+    unset _cos_home_real
+  fi
+  unset _cos_main
+fi
+unset _cos_in_wt
+
 # Default DB filename is `coding-os.db`. Legacy `thinking_os.db` is auto-renamed
 # by src/core/thinking_os/database.py::migrate_legacy_db_filename() on first init_db()
 # call after the upgrade — no shell-side migration needed.
