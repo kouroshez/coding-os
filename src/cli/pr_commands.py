@@ -452,18 +452,20 @@ def pr_cleanup(task_id: str | None, adhoc: bool, repo_opt: str | None, as_json: 
 # so an out-of-band sweep does it. SPEC: docs/playbooks/pr-workflow.md § 7.
 # --------------------------------------------------------------------------- #
 def _session_state(session: str, repo: str) -> str:
-    # Three-state liveness from presence records: "live" (a record says non-offline),
-    # "offline" (>=1 record, all offline), "unknown" (no matching record at all).
-    # The reaper reaps "offline" outright and "unknown" only when the worktree is
-    # also stale-by-age — a live agent's fresh worktree is never reaped (finding 1),
-    # yet a crashed / hookless / no-record orphan is still GC'd eventually (finding 2).
+    # Three-state liveness, reaped only on POSITIVE death evidence: "offline"
+    # (>=1 record, ALL proving death — ended_at set, or a recorded pid no longer
+    # alive on this host), "live" (a record whose owner could still be working),
+    # "unknown" (no matching record). session_presence()=="offline" is NOT the
+    # death oracle: it also fires for a PID-alive agent merely idle >30min (a long
+    # build or model turn), and reaping that destroys live uncommitted work
+    # (finding 1). The reaper reaps "offline" outright and "unknown" only when the
+    # worktree is also stale-by-age (finding 2).
     try:
-        from core.board_os.presence import session_presence
+        from core.board_os.presence import pid_alive
     except Exception:
         return "unknown"  # presence module absent → never positively offline
     state_dir = Path(repo) / ".coding-os"
-    now = int(time.time())
-    saw_offline = False
+    saw_dead = False
     for sess_dir in state_dir.glob("*/sessions"):
         jf = sess_dir / f"{session}.json"
         if not jf.is_file():
@@ -472,22 +474,44 @@ def _session_state(session: str, repo: str) -> str:
             data = json.loads(jf.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue  # unreadable (e.g. mid-write) → not proof of death; keep checking
-        if session_presence(data, now) != "offline":
-            return "live"  # live evidence anywhere → keep
-        saw_offline = True
-    return "offline" if saw_offline else "unknown"
+        pid = int(data.get("pid") or 0)
+        dead = data.get("ended_at") is not None or (pid > 0 and not pid_alive(pid))
+        if not dead:
+            return "live"  # alive owner (or no death proof) → keep, fail-safe
+        saw_dead = True
+    return "offline" if saw_dead else "unknown"
 
 
 def _worktree_stale(wt: Path) -> bool:
     # A no-presence-record orphan is reapable only once its worktree has been idle
-    # past COS_PR_ORPHAN_MAX_AGE (default 24h) — generous enough that a live agent
-    # whose presence file is not written yet is never caught.
+    # past COS_PR_ORPHAN_MAX_AGE (default 24h), measured by the NEWEST file mtime
+    # anywhere in the tree (excluding .git) — NOT the top-level dir mtime, which
+    # never moves when a live agent edits nested files like src/** (finding 2), so
+    # using it would reap a long-running agent's worktree mid-edit. Stops early on
+    # the first fresh file, so a live worktree costs only a shallow walk.
     max_age = _env_int("COS_PR_ORPHAN_MAX_AGE", 86400)
+    cutoff = time.time() - max_age
     try:
-        idle = time.time() - wt.stat().st_mtime
+        newest = wt.stat().st_mtime
     except OSError:
         return False  # can't determine age → keep (fail safe)
-    return idle > max_age
+    if newest > cutoff:
+        return False
+    for root, dirs, files in os.walk(wt):
+        if ".git" in dirs:
+            dirs.remove(".git")
+        for name in files:
+            if name == ".git":
+                continue  # linked-worktree .git pointer — creation metadata, not activity
+            try:
+                mtime = (Path(root) / name).stat().st_mtime
+            except OSError:
+                continue
+            if mtime > cutoff:
+                return False  # fresh activity anywhere → not stale
+            if mtime > newest:
+                newest = mtime
+    return (time.time() - newest) > max_age
 
 
 def _ledger_path(repo: str) -> Path:

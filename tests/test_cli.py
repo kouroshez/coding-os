@@ -2899,6 +2899,8 @@ class TestCosPr:
     ) -> None:
         # finding 2: a no-presence-record orphan IS reaped once its worktree is idle
         # past COS_PR_ORPHAN_MAX_AGE — so crashed/hookless orphans don't leak forever.
+        # Staleness is the NEWEST file mtime in the tree, so age every file (not just
+        # the top-level dir, which is blind to nested edits).
         import time
 
         import cli.pr_commands as prc
@@ -2908,10 +2910,95 @@ class TestCosPr:
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
         old = time.time() - 3600
-        os.utime(wt, (old, old))  # age the worktree well past the threshold
+        for path in [wt, *wt.rglob("*")]:
+            try:
+                os.utime(path, (old, old))  # age the WHOLE tree past the threshold
+            except OSError:
+                pass
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "agents/adhoc/ses-test-abc" not in self._branches(repo)  # stale + no record → reaped
+
+    def test_reap_keeps_pid_alive_but_idle_session(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # finding D5-1: session_presence() reports "offline" for a PID-alive agent
+        # idle >30min (a long build / model turn), but that is NOT death — the reaper
+        # must KEEP it. Reaping on the idle pill destroys live uncommitted work.
+        import time
+
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        sess_dir = repo / ".coding-os" / "claude" / "sessions"
+        sess_dir.mkdir(parents=True, exist_ok=True)
+        stale = int(time.time()) - 9999  # well past PRESENT_WINDOW_SECS → presence "offline"
+        (sess_dir / "ses-test-abc.json").write_text(
+            json.dumps(
+                {
+                    "session_id": "ses-test-abc",
+                    "pid": os.getpid(),  # alive
+                    "last_tool_at": stale,
+                    "last_prompt_at": stale,
+                    "started_at": stale,
+                }
+            ),
+            encoding="utf-8",
+        )
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # alive pid → kept
+
+    def test_reap_keeps_no_record_orphan_with_fresh_subdir_edit(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # finding D5-2: the age fallback must track activity by the NEWEST file mtime,
+        # not the top-level dir mtime (which never moves on nested src/** edits). A
+        # no-record orphan with a fresh nested file is a live agent → KEEP it.
+        import time
+
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        old = time.time() - 3600
+        for path in [wt, *wt.rglob("*")]:
+            try:
+                os.utime(path, (old, old))  # age the ENTIRE tree (top dir + every file)...
+            except OSError:
+                pass
+        nested = wt / "src" / "deep"
+        nested.mkdir(parents=True, exist_ok=True)
+        (nested / "live.py").write_text("x = 1\n", encoding="utf-8")  # ...but one nested edit is fresh
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # fresh nested edit → kept
+
+    def test_reap_removes_dead_pid_session(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # A recorded pid that is no longer alive on this host is positive death
+        # evidence → reaped (even with no ended_at).
+        import time
+
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        sess_dir = repo / ".coding-os" / "claude" / "sessions"
+        sess_dir.mkdir(parents=True, exist_ok=True)
+        (sess_dir / "ses-test-abc.json").write_text(
+            json.dumps(
+                {"session_id": "ses-test-abc", "pid": 2147483646, "last_tool_at": int(time.time()) - 9999}
+            ),
+            encoding="utf-8",
+        )
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" not in self._branches(repo)  # dead pid → reaped
 
     def test_pr_close_keeps_entry_when_list_fails(
         self, repo: Path, monkeypatch: pytest.MonkeyPatch

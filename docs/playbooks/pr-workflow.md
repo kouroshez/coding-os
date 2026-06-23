@@ -92,7 +92,7 @@ A consumer may say "fix X, don't make a task." pr-mode still isolates the change
 
 ## 7. Orphan reaper — owner-independent GC (TASK-519)
 
-The dying agent cannot be trusted to clean up (the exact Rule-21 failure mode). A reaper runs **independently of the worktree's owner** — on `SessionStart` and/or cron — and GCs dead-agent worktrees / local branches / abandoned PRs whose owning `agent_session` is `presence`-**offline**. It reuses `presence.py` for liveness and never touches a worktree whose owner is still live.
+The dying agent cannot be trusted to clean up (the exact Rule-21 failure mode). A reaper runs **independently of the worktree's owner** — on `SessionStart` and/or cron — and GCs dead-agent worktrees / local branches / abandoned PRs. It **never touches a worktree whose owner is still live**, so liveness must be judged on *positive death evidence*, not the soft idle pill: a session is reaped only when its presence record sets `ended_at` **or** its recorded `pid` is no longer alive on this host. `presence.py`'s `session_presence()=="offline"` is **not** used as the death oracle — it also fires for a PID-alive agent merely idle >30min (a long build or model turn), and reaping that would destroy live uncommitted work. A no-presence-record orphan ("unknown") is GC'd only once its worktree is idle past `COS_PR_ORPHAN_MAX_AGE` (default 24h), measured by the **newest file mtime anywhere in the tree** (the top-level dir mtime alone is blind to nested `src/**` edits).
 
 ## 8. Bounded self-heal + circuit-breaker (TASK-520)
 
