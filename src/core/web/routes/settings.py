@@ -202,13 +202,16 @@ class _PatchBody(BaseModel):
 @router.patch("")
 def patch_settings(body: _PatchBody):
     current = _load()
-    if body.budget_cap is not None:
-        current["budget_cap"] = body.budget_cap.model_dump()
-    if body.trace_rotation is not None:
-        current["trace_rotation"] = body.trace_rotation.model_dump()
-    if body.model_routing is not None:
-        current["model_routing"] = body.model_routing.model_dump()
-    if body.git_settings is not None:
-        current["git_settings"] = body.git_settings.model_dump()
+    # Merge each provided section field-by-field (exclude_unset) so a partial
+    # PATCH never resets unspecified fields to their model defaults (finding 12).
+    sections = {
+        "budget_cap": body.budget_cap,
+        "trace_rotation": body.trace_rotation,
+        "model_routing": body.model_routing,
+        "git_settings": body.git_settings,
+    }
+    for name, model in sections.items():
+        if model is not None:
+            current[name] = {**current.get(name, {}), **model.model_dump(exclude_unset=True)}
     _save(current)
     return {"data": {"settings": current, "env_overrides": _env_overrides()}}

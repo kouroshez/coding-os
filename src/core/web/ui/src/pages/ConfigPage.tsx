@@ -432,7 +432,11 @@ function GitTab() {
     ['settings-git'],
     '/api/settings',
   );
-  const { data: state } = useApiGet<GitState>(['settings-git-state'], '/api/settings/git-state');
+  const {
+    data: state,
+    isLoading: stateLoading,
+    error: stateError,
+  } = useApiGet<GitState>(['settings-git-state'], '/api/settings/git-state');
 
   const [form, setForm] = useState<GitSettings | null>(null);
   const [saving, setSaving] = useState(false);
@@ -476,15 +480,21 @@ function GitTab() {
         {' '}<span className="font-mono text-[11px]">COS_GIT_WORKFLOW=pr</span> into the agent env.
       </TabIntro>
 
-      {state && (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="text-[11px] text-[var(--cos-faint)]">capability:</span>
-          <Pill tone={state.remote ? 'ok' : 'muted'}>remote {state.remote ? '✓' : '—'}</Pill>
-          <Pill tone={state.gh ? 'ok' : 'muted'}>gh {state.gh ? '✓' : '—'}</Pill>
-          <Pill tone={state.required_check ? 'ok' : 'muted'}>required CI {state.required_check ? '✓' : '—'}</Pill>
-          <Pill tone={state.pr_ok ? 'ok' : 'muted'}>{state.pr_ok ? 'pr-ready' : 'degrades to trunk'}</Pill>
-        </div>
-      )}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="text-[11px] text-[var(--cos-faint)]">capability:</span>
+        {stateLoading && <Pill tone="muted">checking…</Pill>}
+        {!stateLoading && stateError && !state && (
+          <Pill tone="muted">unavailable — git/gh probe failed</Pill>
+        )}
+        {state && (
+          <>
+            <Pill tone={state.remote ? 'ok' : 'muted'}>remote {state.remote ? '✓' : '—'}</Pill>
+            <Pill tone={state.gh ? 'ok' : 'muted'}>gh {state.gh ? '✓' : '—'}</Pill>
+            <Pill tone={state.required_check ? 'ok' : 'muted'}>required CI {state.required_check ? '✓' : '—'}</Pill>
+            <Pill tone={state.pr_ok ? 'ok' : 'muted'}>{state.pr_ok ? 'pr-ready' : 'degrades to trunk'}</Pill>
+          </>
+        )}
+      </div>
 
       <div className="space-y-4 rounded-xl border border-[var(--cos-border)] p-4">
         <label className="flex items-center gap-3">

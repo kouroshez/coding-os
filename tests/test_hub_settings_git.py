@@ -63,6 +63,27 @@ def test_git_settings_patch_leaves_other_sections(client):
     assert after["model_routing"] == before["model_routing"]
 
 
+def test_git_settings_partial_patch_preserves_own_fields(client):
+    # finding 12: a partial PATCH MERGES — it must not reset unspecified
+    # git_settings fields to their model defaults.
+    client.patch(
+        "/api/settings",
+        json={
+            "git_settings": {
+                "enabled": True,
+                "integration_branch": "develop",
+                "protected_branches": ["prod", "release"],
+            }
+        },
+    )
+    # second PATCH touches only `enabled`; integration_branch + protected must survive
+    client.patch("/api/settings", json={"git_settings": {"enabled": False}})
+    gs = client.get("/api/settings").json()["data"]["settings"]["git_settings"]
+    assert gs["enabled"] is False
+    assert gs["integration_branch"] == "develop"
+    assert gs["protected_branches"] == ["prod", "release"]
+
+
 def test_git_state_endpoint_reports_capability(client):
     # No git repo at the project root => not pr_ok; the endpoint must still
     # answer (degrade signal), never 500.
