@@ -5,7 +5,7 @@ swimlane: thinking_os
 kind: bug
 epic: null
 labels: [envelope, extractor, coverage-bug]
-status: complete
+status: archive
 priority: P1
 appetite: "2h"
 created: 2026-05-24

@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: null
 labels: [ui, observability, alarm]
-status: complete
+status: archive
 priority: P2
 appetite: "30m"
 created: 2026-05-23
