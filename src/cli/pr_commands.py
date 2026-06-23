@@ -26,6 +26,11 @@ import sys
 import time
 from pathlib import Path
 
+try:
+    import fcntl
+except ImportError:  # non-POSIX (Windows) — the reaper lock degrades to a no-op
+    fcntl = None  # type: ignore[assignment]
+
 import click
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -36,10 +41,30 @@ if str(_REPO_ROOT) not in sys.path:
 # --------------------------------------------------------------------------- #
 # subprocess + git/gh helpers
 # --------------------------------------------------------------------------- #
-def _run(args: list[str], *, cwd: str | Path | None = None) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        args, cwd=str(cwd) if cwd else None, capture_output=True, text=True, check=False
-    )
+def _run(
+    args: list[str], *, cwd: str | Path | None = None, timeout: int | None = None
+) -> subprocess.CompletedProcess[str]:
+    # Bound every gh/git call so a stalled network can never wedge the agent's
+    # turn loop (the executor must stay non-blocking) — review finding 10.
+    if timeout is None:
+        try:
+            timeout = max(1, int(os.environ.get("COS_PR_SUBPROCESS_TIMEOUT", "120")))
+        except ValueError:
+            timeout = 120
+    try:
+        return subprocess.run(
+            args,
+            cwd=str(cwd) if cwd else None,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        out = exc.stdout if isinstance(exc.stdout, str) else ""
+        return subprocess.CompletedProcess(
+            args, returncode=124, stdout=out, stderr=f"timed out after {timeout}s"
+        )
 
 
 def _git(args: list[str], *, cwd: str | Path) -> subprocess.CompletedProcess[str]:
@@ -57,12 +82,10 @@ def _toplevel(start: str | Path) -> str | None:
 
 
 def _sanitize(token: str) -> str:
-    """Branch/path-safe token (keep [A-Za-z0-9._-], collapse the rest to '-')."""
     return re.sub(r"[^A-Za-z0-9._-]+", "-", token).strip("-") or "x"
 
 
 def _repo_slug(repo_root: str) -> str:
-    """`<basename>-<sha8(realpath)>` — readable AND collision-free per checkout."""
     real = os.path.realpath(repo_root)
     digest = hashlib.sha256(real.encode()).hexdigest()[:8]
     return f"{_sanitize(Path(real).name)}-{digest}"
@@ -85,7 +108,9 @@ def _agent_session() -> str:
     except Exception:  # board_os optional — never break `cos pr` on its absence
         sid = None
     sid = sid or os.environ.get("COS_AGENT_SESSION_ID") or os.environ.get("COS_PANEL_ID")
-    return _sanitize(sid) if sid else "nosession"
+    # Unique per process when no session id resolves — a shared constant would
+    # collide branches/worktrees across concurrent agents (review finding 6).
+    return _sanitize(sid) if sid else f"pid-{os.getpid()}"
 
 
 # --------------------------------------------------------------------------- #
@@ -104,8 +129,7 @@ def _gh_ready() -> bool:
 
 
 def _has_required_check(repo: str, integration: str) -> bool:
-    """True only when the integration branch has a required status check — the
-    precondition for arming auto-merge safely. Best-effort; False on any doubt."""
+    # precondition for safely arming auto-merge; best-effort, False on any doubt
     if not _gh_ready():
         return False
     slug = _git_out(["config", "--get", "remote.origin.url"], cwd=repo)
@@ -300,6 +324,25 @@ def pr_submit(
         )
         sys.exit(1)
 
+    # Circuit-breaker BEFORE any push — refuse past the per-session open-PR cap
+    # so a red / quota-dead CI (TASK-513) can't grow open PRs without bound, and
+    # a capped submit never orphans a pushed branch with no PR (§8, findings 7/9).
+    cap_max = _env_int("COS_PR_MAX_OPEN", 5)
+    open_prs = _open_pr_count(repo, session)
+    if open_prs >= cap_max:
+        _emit(
+            {
+                "branch": branch,
+                "pushed": False,
+                "circuit_breaker": "open",
+                "open_prs": open_prs,
+                "cap": cap_max,
+                "action": "open-PR cap reached — not pushing; drain existing PRs first",
+            },
+            as_json,
+        )
+        sys.exit(1)
+
     # Rebase onto the PINNED fetched ref (FETCH_HEAD), never the shared moving
     # branch — branch-guard permits this because the op is worktree-scoped (§5).
     _git(["fetch", "origin", integration], cwd=wt)
@@ -310,30 +353,15 @@ def pr_submit(
             f"rebase onto origin/{integration} conflicted — resolve in the worktree, then retry."
         )
 
-    # sha-pinned lease: pin to the branch's CURRENT remote sha so we never
-    # clobber a concurrent push; empty lease for a first push.
+    # sha-pinned lease: refresh origin/<branch> first so the lease pins to its
+    # TRUE current remote sha (no-op on a first push); empty lease for a first
+    # push. With --force-if-includes this never clobbers a concurrent push.
+    _git(["fetch", "origin", branch], cwd=wt)
     remote_sha = _git_out(["rev-parse", f"origin/{branch}"], cwd=wt)
     lease = f"--force-with-lease={branch}:{remote_sha}" if remote_sha else f"--force-with-lease={branch}"
     push = _git(["push", lease, "--force-if-includes", "-u", "origin", branch], cwd=wt)
     if push.returncode != 0:
         raise click.ClickException(f"push rejected (lease/connectivity):\n{push.stderr.strip()}")
-
-    # Circuit-breaker — never pile a new PR past the open-PR cap. A red /
-    # quota-dead CI (TASK-513) would otherwise grow open PRs without bound (§8).
-    open_prs = _open_pr_count(repo)
-    if open_prs >= _env_int("COS_PR_MAX_OPEN", 5):
-        _emit(
-            {
-                "branch": branch,
-                "pushed": True,
-                "circuit_breaker": "open",
-                "open_prs": open_prs,
-                "cap": _env_int("COS_PR_MAX_OPEN", 5),
-                "action": "open-PR cap reached — not opening another PR; drain existing PRs first",
-            },
-            as_json,
-        )
-        sys.exit(1)
 
     pr = _run(
         [
@@ -411,6 +439,7 @@ def pr_cleanup(task_id: str | None, adhoc: bool, repo_opt: str | None, as_json: 
     removed_wt = _git(["worktree", "remove", "--force", str(wt)], cwd=repo).returncode == 0
     deleted_branch = _git(["branch", "-D", branch], cwd=repo).returncode == 0
     _git(["worktree", "prune"], cwd=repo)
+    _heal_budget_clear(repo, branch)  # branch is done — drop its heal budget (finding 8)
     _emit(
         {"worktree_removed": removed_wt, "branch_deleted": deleted_branch, "worktree": str(wt)},
         as_json,
@@ -423,14 +452,17 @@ def pr_cleanup(task_id: str | None, adhoc: bool, repo_opt: str | None, as_json: 
 # so an out-of-band sweep does it. SPEC: docs/playbooks/pr-workflow.md § 7.
 # --------------------------------------------------------------------------- #
 def _session_offline(session: str, repo: str) -> bool:
-    """Reapable when the owning session's presence says offline, or no presence
-    record exists at all (crashed). A live verdict on ANY agent keeps it."""
+    # Reapable ONLY with positive evidence the owner is dead: at least one
+    # presence record says "offline" and none say live. No matching record at all
+    # (token mismatch, or a just-opened worktree before its first presence write)
+    # → keep, so the reaper can never cost a live agent uncommitted work (finding 1).
     try:
         from core.board_os.presence import session_presence
     except Exception:
         return False  # presence module absent → never reap (fail safe)
     state_dir = Path(repo) / ".coding-os"
     now = int(time.time())
+    saw_offline = False
     for sess_dir in state_dir.glob("*/sessions"):
         jf = sess_dir / f"{session}.json"
         if not jf.is_file():
@@ -438,10 +470,11 @@ def _session_offline(session: str, repo: str) -> bool:
         try:
             data = json.loads(jf.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
-            return True  # unreadable presence for this session → treat as dead
+            continue  # unreadable (e.g. mid-write) → not proof of death; keep checking
         if session_presence(data, now) != "offline":
-            return False
-    return True  # no live presence record anywhere → offline
+            return False  # live evidence anywhere → keep
+        saw_offline = True
+    return saw_offline
 
 
 def _ledger_path(repo: str) -> Path:
@@ -473,27 +506,44 @@ def _ledger_record(repo: str, branch: str, remote_pending: bool, pr_pending: boo
 
 
 def _drain_ledger(repo: str) -> list[str]:
-    """Retry the network-bound steps (remote delete + PR close) for entries an
-    offline/partial reap could not finish; drop the ones that now complete."""
+    # Retry the network-bound steps (remote delete + PR close) for entries an
+    # offline/partial reap could not finish; drop the ones that now complete.
     entries = _ledger_load(repo)
     if not entries:
         return []
     drained: list[str] = []
     kept: list[dict] = []
     for entry in entries:
-        branch = entry["branch"]
+        branch = entry.get("branch")
+        if not branch:
+            continue  # malformed/legacy entry — skip rather than abort the drain
         remote_pending = entry.get("remote_pending", False)
         pr_pending = entry.get("pr_pending", False)
         if remote_pending and _has_remote(repo):
             remote_pending = _git(["push", "origin", "--delete", branch], cwd=repo).returncode != 0
         if pr_pending and _gh_ready():
-            pr_pending = _run(["gh", "pr", "close", branch], cwd=repo).returncode != 0
+            pr_pending = not _pr_close(repo, branch)
         if not remote_pending and not pr_pending:
             drained.append(branch)
         else:
             kept.append({"branch": branch, "remote_pending": remote_pending, "pr_pending": pr_pending})
     _ledger_save(repo, kept)
     return drained
+
+
+def _pr_close(repo: str, branch: str) -> bool:
+    # True when the branch has no open PR (already drained) or the close succeeds
+    # — so a branch that never had a PR can't churn the ledger forever (finding 11).
+    listing = _run(
+        ["gh", "pr", "list", "--head", branch, "--state", "open", "--json", "number"], cwd=repo
+    )
+    try:
+        has_open = bool(json.loads(listing.stdout or "[]"))
+    except json.JSONDecodeError:
+        has_open = True  # unparseable listing → assume a PR may exist and try to close
+    if not has_open:
+        return True
+    return _run(["gh", "pr", "close", branch], cwd=repo).returncode == 0
 
 
 def _reap_one(repo: str, wt: Path, branch: str) -> dict:
@@ -503,10 +553,9 @@ def _reap_one(repo: str, wt: Path, branch: str) -> dict:
     remote_pending = _has_remote(repo)
     if remote_pending:
         remote_pending = _git(["push", "origin", "--delete", branch], cwd=repo).returncode != 0
-    pr_pending = _gh_ready()
-    if pr_pending:
-        pr_pending = _run(["gh", "pr", "close", branch], cwd=repo).returncode != 0
+    pr_pending = _gh_ready() and not _pr_close(repo, branch)
     _git(["worktree", "prune"], cwd=repo)
+    _heal_budget_clear(repo, branch)  # owner is gone — drop its heal budget (finding 8)
     if remote_pending or pr_pending:
         _ledger_record(repo, branch, remote_pending, pr_pending)  # drains on next online sweep
     return {
@@ -525,36 +574,53 @@ def _reap_one(repo: str, wt: Path, branch: str) -> dict:
 @click.option("--json", "as_json", is_flag=True)
 def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
     repo = _resolve_repo(repo_opt)
-    wt_root = _worktree_root(repo)
-    drained = [] if dry_run else _drain_ledger(repo)
-    reaped: list[dict] = []
-    kept: list[dict] = []
-    if wt_root.is_dir():
-        for wt in sorted(p for p in wt_root.iterdir() if p.is_dir()):
-            branch = _git_out(["rev-parse", "--abbrev-ref", "HEAD"], cwd=wt)
-            if not branch.startswith("agents/"):
-                continue
-            session = branch.rsplit("/", 1)[-1]
-            if _session_offline(session, repo):
-                reaped.append(
-                    {"worktree": str(wt), "branch": branch, "would_reap": True}
-                    if dry_run
-                    else _reap_one(repo, wt, branch)
+    # One reaper per repo at a time — pr-reap.sh backgrounds this on EVERY
+    # SessionStart, so N concurrent sessions would otherwise double-GC the same
+    # orphan and clobber each other's ledger writes (finding 2). A peer holding
+    # the lock already covers this repo, so we bow out cleanly.
+    # Closing the fd on context exit releases the flock.
+    lock_path = Path(repo) / ".coding-os" / ".pr-reap.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "w", encoding="utf-8") as lock_fd:
+        if fcntl is not None:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                _emit(
+                    {"reaped": 0, "kept_live": 0, "ledger_drained": "(skipped: reaper already running)"},
+                    as_json,
                 )
-            else:
-                if not dry_run:
-                    # Re-assert the lock so a peer's prune can't drop a live checkout (§2).
-                    _git(["worktree", "lock", str(wt), "--reason", "pr-mode live session"], cwd=repo)
-                kept.append({"worktree": str(wt), "branch": branch, "live": True})
-    _emit(
-        {
-            "reaped": len(reaped),
-            "kept_live": len(kept),
-            "ledger_drained": ",".join(drained) or "(none)",
-            "detail": reaped if as_json else f"{len(reaped)} reaped",
-        },
-        as_json,
-    )
+                return
+        wt_root = _worktree_root(repo)
+        drained = [] if dry_run else _drain_ledger(repo)
+        reaped: list[dict] = []
+        kept: list[dict] = []
+        if wt_root.is_dir():
+            for wt in sorted(p for p in wt_root.iterdir() if p.is_dir()):
+                branch = _git_out(["rev-parse", "--abbrev-ref", "HEAD"], cwd=wt)
+                if not branch.startswith("agents/"):
+                    continue
+                session = branch.rsplit("/", 1)[-1]
+                if _session_offline(session, repo):
+                    reaped.append(
+                        {"worktree": str(wt), "branch": branch, "would_reap": True}
+                        if dry_run
+                        else _reap_one(repo, wt, branch)
+                    )
+                else:
+                    if not dry_run:
+                        # Re-assert the lock so a peer's prune can't drop a live checkout (§2).
+                        _git(["worktree", "lock", str(wt), "--reason", "pr-mode live session"], cwd=repo)
+                    kept.append({"worktree": str(wt), "branch": branch, "live": True})
+        _emit(
+            {
+                "reaped": len(reaped),
+                "kept_live": len(kept),
+                "ledger_drained": ",".join(drained) or "(none)",
+                "detail": reaped if as_json else f"{len(reaped)} reaped",
+            },
+            as_json,
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -583,6 +649,15 @@ def _heal_budget_save(repo: str, data: dict) -> None:
     tmp.replace(path)
 
 
+def _heal_budget_clear(repo: str, branch: str) -> None:
+    # Drop a branch's heal count on success/cleanup so a later re-open is never
+    # pre-escalated by a stale count and the file can't grow unbounded (finding 8).
+    budget = _heal_budget(repo)
+    if branch in budget:
+        del budget[branch]
+        _heal_budget_save(repo, budget)
+
+
 def _env_int(name: str, default: int) -> int:
     try:
         return max(1, int(os.environ.get(name, str(default))))
@@ -590,24 +665,25 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
-def _open_pr_count(repo: str) -> int:
-    """Open agent PRs on the remote (0 when gh is unavailable — fail open so the
-    breaker never blocks a repo that simply has no gh)."""
+def _open_pr_count(repo: str, session: str) -> int:
+    # Open PRs for THIS session only (branch agents/<task>/<session>) — the cap is
+    # per-session (playbook §8), so a peer's PRs never starve this agent and a
+    # stray human agents/* branch never inflates it (finding 7). Fail open (0)
+    # when gh is unavailable so the breaker never blocks a gh-less repo.
     if not _gh_ready():
         return 0
     out = _run(
-        ["gh", "pr", "list", "--search", "head:agents/", "--state", "open", "--json", "number"],
+        ["gh", "pr", "list", "--search", "head:agents/", "--state", "open", "--json", "headRefName"],
         cwd=repo,
     ).stdout
     try:
-        return len(json.loads(out or "[]"))
+        prs = json.loads(out or "[]")
     except json.JSONDecodeError:
         return 0
+    return sum(1 for p in prs if str(p.get("headRefName", "")).rsplit("/", 1)[-1] == session)
 
 
 def _escalate_blocked(repo: str, task_id: str | None, reason: str, attempts: int) -> bool:
-    """Move the task to blocked with the failure on its work log — reuses the
-    existing board ops, no new board concept. Best-effort (no board → False)."""
     if not task_id:
         return False
     try:

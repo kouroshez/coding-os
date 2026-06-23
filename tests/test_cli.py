@@ -2869,11 +2869,30 @@ class TestCosPr:
         monkeypatch.setattr(prc, "_gh_ready", lambda: False)  # no network in the test
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         assert "agents/adhoc/ses-test-abc" in self._branches(repo)
-        # No presence record for the session => offline => reaped.
+        # A presence record that positively says offline (ended) => reaped.
+        sess_dir = repo / ".coding-os" / "claude" / "sessions"
+        sess_dir.mkdir(parents=True, exist_ok=True)
+        (sess_dir / "ses-test-abc.json").write_text(
+            json.dumps({"session_id": "ses-test-abc", "ended_at": 1}), encoding="utf-8"
+        )
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "agents/adhoc/ses-test-abc" not in self._branches(repo)
         assert "adhoc-ses-test-abc" not in self._worktrees(repo)
+
+    def test_reap_keeps_session_without_presence_record(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Fail-safe (finding 1): with no matching presence record the reaper must
+        # NOT destroy the worktree — absence of a record is not proof of death.
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # no record → kept
+        assert "adhoc-ses-test-abc" in self._worktrees(repo)
 
     def test_reap_keeps_live_session_worktree(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
@@ -2943,15 +2962,17 @@ class TestCosPr:
         self._add_bare_remote(repo, tmp_path)
         monkeypatch.setattr(prc, "_gh_ready", lambda: True)  # pretend gh is ready
         monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
-        monkeypatch.setattr(prc, "_open_pr_count", lambda r: 5)  # already at the cap
+        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 5)  # already at the cap
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
         subprocess.run(
             ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
         )
         res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
-        assert res.exit_code == 1, res.output  # breaker open → refuse the PR, push already done
+        assert res.exit_code == 1, res.output  # breaker open → refuse BEFORE pushing (finding 9)
         assert "circuit_breaker" in res.output and "open" in res.output
+        # the breaker is checked before the push, so nothing was pushed
+        assert "pushed: False" in res.output
 
     # --- consumer-fixture dogfood: the full pr-mode loop (TASK-521) ---------
 
@@ -2966,7 +2987,7 @@ class TestCosPr:
         self._add_bare_remote(repo, tmp_path)
         monkeypatch.setattr(prc, "_gh_ready", lambda: True)  # reach the push path
         monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
-        monkeypatch.setattr(prc, "_open_pr_count", lambda r: 0)
+        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
 
         # isolate
         opened = runner.invoke(cli, ["pr", "open", "--task", "TASK-DOG", "--repo", str(repo)])
