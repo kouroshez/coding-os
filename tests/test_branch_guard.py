@@ -11,7 +11,9 @@ HOOK = Path(__file__).resolve().parent.parent / "src" / "core" / "hooks" / "bran
 
 
 def _run(command: str, *, tool: str = "Bash", workflow: str | None = None) -> tuple[int, str]:
-    env = {k: v for k, v in os.environ.items() if k != "COS_GIT_WORKFLOW"}
+    # strip both so an inherited COS_WORKTREE_ROOT can't flip the per-op scope tests
+    _drop = {"COS_GIT_WORKFLOW", "COS_WORKTREE_ROOT"}
+    env = {k: v for k, v in os.environ.items() if k not in _drop}
     if workflow is not None:
         env["COS_GIT_WORKFLOW"] = workflow
     proc = subprocess.run(

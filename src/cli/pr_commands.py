@@ -451,15 +451,16 @@ def pr_cleanup(task_id: str | None, adhoc: bool, repo_opt: str | None, as_json: 
 # A crashed agent never cleans up after itself (the exact Rule-21 failure mode),
 # so an out-of-band sweep does it. SPEC: docs/playbooks/pr-workflow.md § 7.
 # --------------------------------------------------------------------------- #
-def _session_offline(session: str, repo: str) -> bool:
-    # Reapable ONLY with positive evidence the owner is dead: at least one
-    # presence record says "offline" and none say live. No matching record at all
-    # (token mismatch, or a just-opened worktree before its first presence write)
-    # → keep, so the reaper can never cost a live agent uncommitted work (finding 1).
+def _session_state(session: str, repo: str) -> str:
+    # Three-state liveness from presence records: "live" (a record says non-offline),
+    # "offline" (>=1 record, all offline), "unknown" (no matching record at all).
+    # The reaper reaps "offline" outright and "unknown" only when the worktree is
+    # also stale-by-age — a live agent's fresh worktree is never reaped (finding 1),
+    # yet a crashed / hookless / no-record orphan is still GC'd eventually (finding 2).
     try:
         from core.board_os.presence import session_presence
     except Exception:
-        return False  # presence module absent → never reap (fail safe)
+        return "unknown"  # presence module absent → never positively offline
     state_dir = Path(repo) / ".coding-os"
     now = int(time.time())
     saw_offline = False
@@ -472,9 +473,21 @@ def _session_offline(session: str, repo: str) -> bool:
         except (OSError, json.JSONDecodeError):
             continue  # unreadable (e.g. mid-write) → not proof of death; keep checking
         if session_presence(data, now) != "offline":
-            return False  # live evidence anywhere → keep
+            return "live"  # live evidence anywhere → keep
         saw_offline = True
-    return saw_offline
+    return "offline" if saw_offline else "unknown"
+
+
+def _worktree_stale(wt: Path) -> bool:
+    # A no-presence-record orphan is reapable only once its worktree has been idle
+    # past COS_PR_ORPHAN_MAX_AGE (default 24h) — generous enough that a live agent
+    # whose presence file is not written yet is never caught.
+    max_age = _env_int("COS_PR_ORPHAN_MAX_AGE", 86400)
+    try:
+        idle = time.time() - wt.stat().st_mtime
+    except OSError:
+        return False  # can't determine age → keep (fail safe)
+    return idle > max_age
 
 
 def _ledger_path(repo: str) -> Path:
@@ -537,6 +550,8 @@ def _pr_close(repo: str, branch: str) -> bool:
     listing = _run(
         ["gh", "pr", "list", "--head", branch, "--state", "open", "--json", "number"], cwd=repo
     )
+    if listing.returncode != 0:
+        return False  # couldn't list (timeout/error) → keep the ledger entry, retry later
     try:
         has_open = bool(json.loads(listing.stdout or "[]"))
     except json.JSONDecodeError:
@@ -601,7 +616,9 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
                 if not branch.startswith("agents/"):
                     continue
                 session = branch.rsplit("/", 1)[-1]
-                if _session_offline(session, repo):
+                state = _session_state(session, repo)
+                reapable = state == "offline" or (state == "unknown" and _worktree_stale(wt))
+                if reapable:
                     reaped.append(
                         {"worktree": str(wt), "branch": branch, "would_reap": True}
                         if dry_run

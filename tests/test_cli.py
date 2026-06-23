@@ -2883,16 +2883,51 @@ class TestCosPr:
     def test_reap_keeps_session_without_presence_record(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        # Fail-safe (finding 1): with no matching presence record the reaper must
-        # NOT destroy the worktree — absence of a record is not proof of death.
+        # Fail-safe (finding 1): a FRESH worktree with no matching presence record
+        # must NOT be reaped — absence of a record is not proof of death.
         import cli.pr_commands as prc
 
         monkeypatch.setattr(prc, "_gh_ready", lambda: False)
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
-        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # no record → kept
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # fresh + no record → kept
         assert "adhoc-ses-test-abc" in self._worktrees(repo)
+
+    def test_reap_removes_stale_no_record_orphan(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # finding 2: a no-presence-record orphan IS reaped once its worktree is idle
+        # past COS_PR_ORPHAN_MAX_AGE — so crashed/hookless orphans don't leak forever.
+        import time
+
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")  # 1s staleness threshold
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        old = time.time() - 3600
+        os.utime(wt, (old, old))  # age the worktree well past the threshold
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" not in self._branches(repo)  # stale + no record → reaped
+
+    def test_pr_close_keeps_entry_when_list_fails(
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # review finding 1: a failed `gh pr list` (timeout rc!=0, empty stdout) must
+        # NOT be read as "no open PR" — _pr_close returns False so the ledger entry
+        # is kept for a later retry instead of silently dropped (PR leak).
+        import cli.pr_commands as prc
+
+        def fake_run(args, **kw):
+            if args[:3] == ["gh", "pr", "list"]:
+                return subprocess.CompletedProcess(args, 124, "", "timed out")
+            return subprocess.CompletedProcess(args, 0, "", "")
+
+        monkeypatch.setattr(prc, "_run", fake_run)
+        assert prc._pr_close(str(repo), "agents/x/y") is False
 
     def test_reap_keeps_live_session_worktree(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
