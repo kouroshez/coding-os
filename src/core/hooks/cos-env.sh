@@ -113,6 +113,23 @@ _cos_main_repo_from_worktree() {
   return 0
 }
 
+# _cos_helpers_dir — physical path to _helpers/, resolved through this file's
+# own symlink chain. Consumers (and the meta-repo's own .claude/hooks/) symlink
+# cos-env.sh but NOT _helpers/, so a $(dirname)-relative path lands in a dir with
+# no helpers and the python fallbacks silently no-op — a fail-OPEN gap. readlink
+# to the real file's dir finds _helpers/. Defined here (before the worktree-
+# routing + pr-mode-enablement blocks below call it) so it is already in scope.
+_cos_helpers_dir() {
+  local src dir
+  src="${BASH_SOURCE[0]}"
+  while [ -L "$src" ]; do
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    [[ "$src" != /* ]] && src="${dir}/${src}"
+  done
+  printf '%s' "$(cd -P "$(dirname "$src")" && pwd)/_helpers"
+}
+
 case "${COS_STATE_DIR}" in
   .coding-os | ./.coding-os)
     if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
@@ -200,9 +217,18 @@ unset _cos_in_wt
 # SPEC: docs/playbooks/pr-workflow.md § 1.
 # ---------------------------------------------------------------------------
 if [[ -z "${COS_GIT_WORKFLOW:-}" && -f "${COS_STATE_DIR}/hub-settings.json" ]] \
-     && command -v jq >/dev/null 2>&1 \
      && grep -q '"git_settings"' "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null; then
-  _cos_git_line="$(jq -r '[(.git_settings.enabled // false), (.git_settings.integration_branch // "main"), ((.git_settings.protected_branches // ["production"]) | join(",")), (.git_settings.autonomy_level // "draft")] | @tsv' "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null || true)"
+  # jq fast-path, python3 fallback — a host WITHOUT jq must still honor an
+  # enabled project (the old `command -v jq` precondition silently downgraded
+  # it to trunk). Both emit one tab-separated line: enabled\tintegration\t
+  # protected(csv)\tautonomy. python3 is a hard dep of coding-os.
+  if command -v jq >/dev/null 2>&1; then
+    _cos_git_line="$(jq -r '[(.git_settings.enabled // false), (.git_settings.integration_branch // "main"), ((.git_settings.protected_branches // ["production"]) | join(",")), (.git_settings.autonomy_level // "draft")] | @tsv' "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null || true)"
+  elif command -v python3 >/dev/null 2>&1; then
+    _cos_git_line="$(python3 "$(_cos_helpers_dir)/git_settings_fields.py" "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null || true)"
+  else
+    _cos_git_line=""
+  fi
   if [[ "$(printf '%s' "$_cos_git_line" | cut -f1)" == "true" ]]; then
     # Split declare/assign so shellcheck SC2155 stays clean (return-value masking).
     COS_GIT_INTEGRATION_BRANCH="$(printf '%s' "$_cos_git_line" | cut -f2)"
@@ -510,24 +536,6 @@ cos_current_task() {
 # Claude Code does NOT render PostToolUse stdout, so this aggregation is
 # the only reliable way to surface PostToolUse activity in the chat UI.
 # Fail-open: never aborts the parent hook on logging failure.
-# ---------------------------------------------------------------------------
-# _cos_helpers_dir — physical path to _helpers/, resolved through this file's
-# own symlink chain. Consumers (and the meta-repo's own .claude/hooks/) symlink
-# cos-env.sh but NOT _helpers/, so a $(dirname)-relative path lands in a dir
-# with no helpers and the python fallbacks silently no-op — a fail-OPEN gap for
-# cos_json_field. readlink to the real file's dir finds _helpers/. On demand.
-# ---------------------------------------------------------------------------
-_cos_helpers_dir() {
-  local src dir
-  src="${BASH_SOURCE[0]}"
-  while [ -L "$src" ]; do
-    dir="$(cd -P "$(dirname "$src")" && pwd)"
-    src="$(readlink "$src")"
-    [[ "$src" != /* ]] && src="${dir}/${src}"
-  done
-  printf '%s' "$(cd -P "$(dirname "$src")" && pwd)/_helpers"
-}
-
 # ---------------------------------------------------------------------------
 cos_record_activity() {
   local category="${1:-}"
