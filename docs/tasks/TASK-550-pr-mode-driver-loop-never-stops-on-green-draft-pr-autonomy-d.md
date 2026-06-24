@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: pr-mode-hardening
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
-completed: null
+completed: 2026-06-24
 agent_session: ses-claude-20260624-034200-e9e7
 depends_on: []
 blocked_by: []
@@ -37,3 +37,5 @@ Actual: the `passing` row says "re-poll next turn — do nothing else"; with aut
 
 ## Work Log
 - 2026-06-24 [claude]: Edit SKILL.md
+- 2026-06-24 [claude]: committed d19895df · 7 files
+- 2026-06-24 [claude]: Status transitioned to complete via cos task-done.
