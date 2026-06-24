@@ -42,7 +42,15 @@ esac
 # classification below tests the REAL path (Rule 5: /tmp ↔ /private/tmp). The
 # file may not exist yet (new file), so resolve its dirname, not the file itself.
 FILE_DIR="$(cd -P "$(dirname "$FILE_ABS")" 2>/dev/null && pwd -P)" || FILE_DIR=""
-[[ -n "$FILE_DIR" ]] && FILE_ABS="$FILE_DIR/$(basename "$FILE_ABS")"
+if [[ -n "$FILE_DIR" ]]; then
+  FILE_ABS="$FILE_DIR/$(basename "$FILE_ABS")"
+elif command -v python3 >/dev/null 2>&1; then
+  # Parent dir doesn't exist yet (new nested file): collapse `..` lexically via
+  # os.path.realpath so a `..`-spoof can't keep a literal worktrees/ segment and
+  # slip through the worktree-allow below — matches the python sibling
+  # _is_worktree_path (review finding 4).
+  FILE_ABS="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$FILE_ABS" 2>/dev/null || printf '%s' "$FILE_ABS")"
+fi
 
 # A file under a worktree root IS the isolation target — allow. Classify the
 # RESOLVED path so a `..`-traversal spoof that escapes the worktree can't pass.
