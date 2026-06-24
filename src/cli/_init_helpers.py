@@ -487,8 +487,12 @@ def materialize_makefile_targets(project: Path, state: Path, world: AggregatedWo
         stacks_path.parent.mkdir(parents=True, exist_ok=True)
         stacks_path.write_text(rendered, encoding="utf-8")
 
+    # Wire the `-include` ONLY when a stack actually contributes targets. With an
+    # empty world (e.g. the meta stack) the .stacks file is just a placeholder, so
+    # adding an include to a hand-authored Makefile would dirty it on every `cos
+    # update` for no benefit — the line appears the moment a stack first contributes.
     makefile = project / "Makefile"
-    if makefile.exists():
+    if makefile.exists() and world.makefile_targets:
         state_rel = (
             state.relative_to(project).as_posix() if state.is_relative_to(project) else state.name
         )

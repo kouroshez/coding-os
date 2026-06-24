@@ -88,6 +88,17 @@ def test_empty_world_writes_placeholder(tmp_path: Path) -> None:
     assert "No stack-contributed" in (state / "Makefile.stacks").read_text(encoding="utf-8")
 
 
+def test_empty_world_does_not_wire_include(tmp_path: Path) -> None:
+    # A no-stack-target project (e.g. the meta-repo) must NOT get an -include for the
+    # placeholder wired into its hand-authored Makefile — that was the `cos update`
+    # dirty-Makefile pollution. The include only appears once a stack contributes.
+    state = _setup(tmp_path)
+    before = (tmp_path / "Makefile").read_text(encoding="utf-8")
+    materialize_makefile_targets(tmp_path, state, _world())
+    assert (tmp_path / "Makefile").read_text(encoding="utf-8") == before
+    assert "Makefile.stacks" not in (tmp_path / "Makefile").read_text(encoding="utf-8")
+
+
 def test_no_project_makefile_still_writes_stacks(tmp_path: Path) -> None:
     # fresh init writes the project Makefile separately; the helper must still
     # produce the include file when no Makefile exists yet.
