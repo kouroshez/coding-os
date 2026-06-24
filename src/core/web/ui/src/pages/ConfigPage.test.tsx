@@ -96,10 +96,15 @@ describe('ModulesTab (TASK-354)', () => {
 });
 
 describe('GitTab (TASK-552)', () => {
-  it('renders the read-only trunk banner for the meta-repo (slug coding-os)', () => {
+  it('renders the full editable tab plus a trunk caution for the meta-repo (slug coding-os)', () => {
     renderConfig('/p/coding-os/config?tab=git');
-    expect(screen.getByText('coding-os itself stays trunk.')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Enable pr-mode')).toBeNull();
+    // The configurator is NOT hidden on coding-os anymore — the full tab renders.
+    expect(screen.getByRole('checkbox', { name: 'Enable pr-mode' })).toBeInTheDocument();
+    expect(screen.getByText('Team + GitHub CI')).toBeInTheDocument();
+    // ...with one caution that enabling here flips the mother repo off trunk.
+    expect(screen.getByText(/viewing coding-os, the meta-repo/)).toBeInTheDocument();
+    // The old read-only dead-box banner is gone.
+    expect(screen.queryByText('coding-os itself stays trunk.')).toBeNull();
   });
 
   it('offers quick-start presets and per-field info controls on a consumer project', () => {

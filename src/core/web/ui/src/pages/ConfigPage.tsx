@@ -40,11 +40,7 @@ export default function ConfigPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <SubNav
-        tablist
-        ariaLabel="Configuration sections"
-        right={<span className="text-[11px] tracking-tight text-[var(--cos-faint)]">read-only</span>}
-      >
+      <SubNav tablist ariaLabel="Configuration sections">
         {TABS.map((t) => (
           <button
             key={t}
@@ -529,7 +525,8 @@ interface GitState {
 }
 
 // The meta-repo's own derived slug (cli.registry._derive_slug). coding-os
-// itself stays trunk (ADR-0013), so its Git tab is read-only.
+// ships trunk by default (ADR-0013); the Git tab stays fully editable but
+// shows one caution on this slug (enabling pr-mode flips the mother repo).
 const META_REPO_SLUG = 'coding-os';
 
 // One-click quick starts. A preset only fills the form (setForm) — the user
@@ -584,11 +581,12 @@ const inputClass =
 
 function GitTab() {
   const qc = useQueryClient();
-  // coding-os itself stays trunk (ADR-0013): render the tab read-only when the
-  // active project is the meta-repo (or no project is scoped). Read-only is a
-  // client-side gate — no project field is needed on the backend.
+  // coding-os ships trunk by default (ADR-0013), but the tab stays fully
+  // editable on every project — the trunk default is the saved enabled=false,
+  // not a hidden UI. On the meta-repo we surface one caution about the
+  // consequence of enabling (it would switch the mother repo off trunk).
   const { slug } = useScopedLink();
-  const readOnly = slug === null || slug === META_REPO_SLUG;
+  const isMetaRepo = slug === META_REPO_SLUG;
   const { data, isLoading, error } = useApiGet<{ settings: { git_settings: GitSettings } }>(
     ['settings-git'],
     '/api/settings',
@@ -623,7 +621,6 @@ function GitTab() {
     if (loaded && form === null) setForm(loaded);
   }, [loaded, form]);
 
-  if (readOnly) return <GitTabReadOnly settings={loaded} />;
   if (isLoading) return <StateRow>Loading git settings…</StateRow>;
   if (error) return <StateRow>Could not load git settings: {error.message}</StateRow>;
   if (!form) return <StateRow>Loading…</StateRow>;
@@ -683,6 +680,15 @@ function GitTab() {
         Request, so many agents never overwrite or block each other (consumer-only; coding-os itself
         stays trunk). Pick a quick start below, or set each field by hand — then Save.
       </TabIntro>
+
+      {isMetaRepo && (
+        <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-[var(--cos-muted)]">
+          <strong className="text-[var(--cos-text)]">You’re viewing coding-os, the meta-repo.</strong>{' '}
+          It ships trunk by default — enabling pr-mode here switches the mother repo off trunk. pr-mode
+          is meant for your consumer projects; the tab is fully editable, just enable it where you
+          intend to run agents.
+        </div>
+      )}
 
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-[11px] text-[var(--cos-faint)]">capability:</span>
@@ -980,25 +986,3 @@ function GitTab() {
 // Read-only state shown when the active project is the meta-repo (or none is
 // scoped). coding-os itself stays trunk (ADR-0013) — render a clear banner, not
 // a dead form: the consumer must pick a project to configure pr-mode.
-function GitTabReadOnly({ settings }: { settings?: GitSettings }) {
-  return (
-    <>
-      <TabIntro>pr-mode multi-agent git workflow.</TabIntro>
-      <div className="rounded-xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/40 p-5 text-sm text-[var(--cos-muted)]">
-        <p className="font-medium text-[var(--cos-text)]">coding-os itself stays trunk.</p>
-        <p className="mt-1.5 leading-relaxed">
-          pr-mode is for your <strong className="text-[var(--cos-text)]">consumer projects</strong> —
-          the meta-repo commits straight to <span className="font-mono">main</span> by design. Pick a
-          project from the switcher above, then open Config → Git there to enable the multi-agent
-          worktree + PR workflow.
-        </p>
-        {settings && (
-          <p className="mt-3 text-[11px] text-[var(--cos-faint)]">
-            Meta-repo setting (read-only): pr-mode is{' '}
-            <span className="font-mono">{settings.enabled ? 'on' : 'off'}</span>.
-          </p>
-        )}
-      </div>
-    </>
-  );
-}
