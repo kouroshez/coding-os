@@ -459,6 +459,14 @@ idempotency_key = f"order-{order.id}-{attempt}"
 idempotency_key = f"order-{order.id}-{attempt}"
 ```
 
+### Match the Target Density, Not the Neighbor
+
+The agent runtime tells you to *match the surrounding code's comment density*.
+That is a trap when the surrounding code is comment-heavy legacy — matching it
+multiplies the noise. Match the density THIS section targets (near-zero,
+WHY-only), not the neighbor's. A dense file is tech-debt to thin when you touch
+it, never the pattern to extend.
+
 ### No Provenance in Comments
 
 A comment explains *why the code is the way it is* in timeless terms. It MUST

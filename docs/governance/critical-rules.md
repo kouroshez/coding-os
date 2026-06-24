@@ -125,7 +125,11 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
   Long header blocks balloon every file and burn tokens on every read for
   zero runtime benefit. Past convention was wrong; legacy `PURPOSE / INPUT
   / OUTPUT / DEPENDENCIES / NOTES` blocks are a tech debt to be removed
-  when touching a file, not a pattern to extend.
+  when touching a file, not a pattern to extend. The agent runtime tells you
+  to *match the surrounding code's comment density* — when that neighbor is
+  comment-heavy legacy, match the density THIS rule targets (near-zero),
+  not the neighbor's: a dense file is debt to thin on touch, never a pattern
+  to copy. That imitation pull is the dogfood trap behind agent comment-spam.
 - **How:** No automated enforcement (was never in any active hook). Code
   review rejects new PURPOSE/INPUT/OUTPUT blocks; `block-bad-patterns.sh`
   already blocks bare `except: pass`-style noise.

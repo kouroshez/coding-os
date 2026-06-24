@@ -758,7 +758,7 @@ Every requirement, feature, or decision must satisfy these 7 criteria — if any
 **Light (Hackathon / Prototype / Student Portfolio — hours to days):**
 - Execute Formula 2 Steps 1–5 only (Problem → Actors → Goals → Scenarios → Decision Table)
 - Skip Formulas 8, 10, 11 entirely
-- Formula 5: Write code directly with inline comments as documentation
+- Formula 5: Write self-documenting code (clear names, small functions); comments by exception only (Rule 12 — WHY, never what), skip the separate doc artifacts at this intensity
 - Formula 9: Deploy to simplest possible platform (Vercel, Railway, etc.)
 
 **Standard (Most projects — weeks to months):**

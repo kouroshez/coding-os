@@ -46,7 +46,7 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 | 9 | Schema migrations append-only — new tables → vN+1, never edit past. |
 | 10 | Regenerate derived artifacts (`make regen-rules` / `manifest-regen` / `regen-adapter-templates`). |
 | 11 | No hardcoded stack/adapter literals in `src/cli/*.py` — data-driven from yaml. |
-| 12 | Comments by exception. NO internal-helper docstrings; ONE-line docstring on `@mcp.tool` only. |
+| 12 | Comments by exception. NO internal-helper docstrings; ONE-line docstring on `@mcp.tool` only; *why:* comments rot while names don't, and the runtime's "match surrounding density" makes comment-heavy legacy teach the opposite — thin it, never imitate it. |
 | 13 | Every `cos_*` returns `ok(data)` / `fail(category, message)` via `@safe_tool` ([envelope](docs/engineering/mcp-error-envelope.md)). |
 | 14 | Tasks are pointers — never inline doc content; axes: swimlane · kind · epic · labels. |
 | 15 | COMPLICATED+ → `cos_compose_chain` (11 roles; auto-fired by `auto-compose-roles.sh`; [claude-sdk.md](docs/adapters/claude-sdk.md)). |
