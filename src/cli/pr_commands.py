@@ -17,10 +17,12 @@ mid-loop. SPEC: docs/playbooks/pr-workflow.md.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
 import re
+import socket
 import subprocess
 import sys
 import time
@@ -74,6 +76,16 @@ def _git(args: list[str], *, cwd: str | Path) -> subprocess.CompletedProcess[str
 def _git_out(args: list[str], *, cwd: str | Path) -> str:
     proc = _git(args, cwd=cwd)
     return proc.stdout.strip() if proc.returncode == 0 else ""
+
+
+def _commit_count(cwd: str | Path, rev_range: str) -> int:
+    # 0 on any error (unresolved range) so the local-rung report fails toward
+    # "nothing to integrate" rather than a crash.
+    out = _git_out(["rev-list", "--count", rev_range], cwd=cwd)
+    try:
+        return int(out)
+    except ValueError:
+        return 0
 
 
 def _toplevel(start: str | Path) -> str | None:
@@ -414,16 +426,29 @@ def pr_submit(
     # capability probe so a repo with no remote is the intended mode, not a degrade.
     autonomy = _autonomy_level(repo)
     if autonomy == "local":
+        ahead = _commit_count(wt, f"{integration}..{branch}")
+        behind = _commit_count(wt, f"{branch}..{integration}")
+        if ahead == 0:
+            action = (
+                f"no commits to integrate yet — commit your work in {wt}, then re-run 'cos pr submit'."
+            )
+        else:
+            stale = f" branch is {behind} behind '{integration}' — rebase before integrating." if behind else ""
+            action = (
+                f"{ahead} commit(s) committed locally, not pushed (autonomy=local) — review with "
+                f"'git diff {integration}..{branch}', then integrate manually: "
+                f"'git switch {integration} && git merge --no-ff {branch}'.{stale}"
+            )
         _emit(
             {
                 "branch": branch,
                 "pushed": False,
                 "autonomy_level": "local",
                 "merge_status": "local",
-                "action": (
-                    f"committed locally, not pushed (autonomy=local) — review with "
-                    f"'git diff {integration}..{branch}' and integrate manually."
-                ),
+                "commits_ahead": ahead,
+                "behind": behind,
+                "stale": behind > 0,
+                "action": action,
             },
             as_json,
         )
@@ -446,15 +471,22 @@ def pr_submit(
     # a capped submit never orphans a pushed branch with no PR (§8, findings 7/9).
     cap_max = _env_int("COS_PR_MAX_OPEN", 5)
     open_prs = _open_pr_count(repo, session)
-    if open_prs >= cap_max:
+    # open_prs < 0 = could not determine (gh down / quota-dead) — fail SAFE and
+    # refuse the push rather than count it as "0 open PRs" (M1).
+    unknown = open_prs < 0
+    if unknown or open_prs >= cap_max:
         _emit(
             {
                 "branch": branch,
                 "pushed": False,
                 "circuit_breaker": "open",
-                "open_prs": open_prs,
+                "open_prs": "unknown" if unknown else open_prs,
                 "cap": cap_max,
-                "action": "open-PR cap reached — not pushing; drain existing PRs first",
+                "action": (
+                    "open-PR count unknown (gh down/quota) — not pushing; restore gh, then retry"
+                    if unknown
+                    else "open-PR cap reached — not pushing; drain existing PRs first"
+                ),
             },
             as_json,
         )
@@ -739,8 +771,8 @@ def pr_cleanup(
 # --------------------------------------------------------------------------- #
 def _session_state(session: str, repo: str) -> str:
     # Three-state liveness, reaped only on POSITIVE death evidence: "offline"
-    # (>=1 record, ALL proving death — ended_at set, or a recorded pid no longer
-    # alive on this host), "live" (a record whose owner could still be working),
+    # (>=1 record, ALL proving death — ended_at set, or a SAME-HOST recorded pid no
+    # longer alive), "live" (a record whose owner could still be working),
     # "unknown" (no matching record). session_presence()=="offline" is NOT the
     # death oracle: it also fires for a PID-alive agent merely idle >30min (a long
     # build or model turn), and reaping that destroys live uncommitted work
@@ -750,6 +782,7 @@ def _session_state(session: str, repo: str) -> str:
         from core.board_os.presence import pid_alive
     except Exception:
         return "unknown"  # presence module absent → never positively offline
+    this_host = socket.gethostname()
     state_dir = Path(repo) / ".coding-os"
     saw_dead = False
     for sess_dir in state_dir.glob("*/sessions"):
@@ -761,9 +794,14 @@ def _session_state(session: str, repo: str) -> str:
         except (OSError, json.JSONDecodeError):
             continue  # unreadable (e.g. mid-write) → not proof of death; keep checking
         pid = int(data.get("pid") or 0)
-        dead = data.get("ended_at") is not None or (pid > 0 and not pid_alive(pid))
+        # pid_alive is host-local: a foreign-host pid happening to be free here is
+        # NOT death (L5). Trust it only same-host; legacy records (no host) default
+        # to this host so pre-upgrade orphans still reap. ended_at is host-agnostic.
+        host = data.get("host") or this_host
+        same_host = host == this_host
+        dead = data.get("ended_at") is not None or (same_host and pid > 0 and not pid_alive(pid))
         if not dead:
-            return "live"  # alive owner (or no death proof) → keep, fail-safe
+            return "live"  # alive owner (or no same-host death proof) → keep, fail-safe
         saw_dead = True
     return "offline" if saw_dead else "unknown"
 
@@ -817,7 +855,9 @@ def _ledger_load(repo: str) -> list[dict]:
 def _ledger_save(repo: str, entries: list[dict]) -> None:
     path = _ledger_path(repo)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".json.tmp")
+    # pid-unique tmp so two concurrent writers can't replace() a name the other
+    # already renamed away (mirrors presence_write.py).
+    tmp = path.with_name(path.name + f".tmp.{os.getpid()}")
     tmp.write_text(json.dumps(entries, indent=2), encoding="utf-8")
     tmp.replace(path)  # atomic record-verify: the rename is the commit point
 
@@ -973,6 +1013,23 @@ def _heal_budget_path(repo: str) -> Path:
     return Path(repo) / ".coding-os" / ".pr-heal-budget.json"
 
 
+@contextlib.contextmanager
+def _heal_lock(repo: str):
+    # Serialize the heal-budget read-modify-write so concurrent agents can't clobber
+    # each other's counts (L4). DEDICATED lock file — never .pr-reap.lock — because
+    # _reap_one runs under the reap flock and calls _heal_budget_clear; reusing the
+    # reap lock would re-enter and deadlock. Degrades to a no-op on Windows (fcntl
+    # None); the lost-update there is acceptable (heal counts are advisory).
+    if fcntl is None:
+        yield
+        return
+    lock_path = Path(repo) / ".coding-os" / ".pr-heal.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "w", encoding="utf-8") as lock_fd:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        yield
+
+
 def _heal_budget(repo: str) -> dict:
     path = _heal_budget_path(repo)
     if not path.is_file():
@@ -986,7 +1043,9 @@ def _heal_budget(repo: str) -> dict:
 def _heal_budget_save(repo: str, data: dict) -> None:
     path = _heal_budget_path(repo)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".json.tmp")
+    # pid-unique tmp — a process-shared name races on replace() (mirrors
+    # presence_write.py).
+    tmp = path.with_name(path.name + f".tmp.{os.getpid()}")
     tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
     tmp.replace(path)
 
@@ -994,10 +1053,11 @@ def _heal_budget_save(repo: str, data: dict) -> None:
 def _heal_budget_clear(repo: str, branch: str) -> None:
     # Drop a branch's heal count on success/cleanup so a later re-open is never
     # pre-escalated by a stale count and the file can't grow unbounded (finding 8).
-    budget = _heal_budget(repo)
-    if branch in budget:
-        del budget[branch]
-        _heal_budget_save(repo, budget)
+    with _heal_lock(repo):
+        budget = _heal_budget(repo)
+        if branch in budget:
+            del budget[branch]
+            _heal_budget_save(repo, budget)
 
 
 def _env_int(name: str, default: int) -> int:
@@ -1010,18 +1070,24 @@ def _env_int(name: str, default: int) -> int:
 def _open_pr_count(repo: str, session: str) -> int:
     # Open PRs for THIS session only (branch agents/<task>/<session>) — the cap is
     # per-session (playbook §8), so a peer's PRs never starve this agent and a
-    # stray human agents/* branch never inflates it (finding 7). Fail open (0)
-    # when gh is unavailable so the breaker never blocks a gh-less repo.
+    # stray human agents/* branch never inflates it (finding 7). Returns -1 for
+    # "could not determine" (no gh, or `gh pr list` errored/timed out): the count
+    # is unknown in exactly the gh-down/quota-dead scenario the breaker exists for,
+    # so the submit caller must treat -1 as cap-reached and fail SAFE — counting it
+    # as 0 would let the unbounded push through (M1). A genuinely remote-less repo
+    # uses the `local` rung and never reaches this.
     if not _gh_ready():
-        return 0
-    out = _run(
+        return -1
+    proc = _run(
         ["gh", "pr", "list", "--search", "head:agents/", "--state", "open", "--json", "headRefName"],
         cwd=repo,
-    ).stdout
+    )
+    if proc.returncode != 0:
+        return -1
     try:
-        prs = json.loads(out or "[]")
+        prs = json.loads(proc.stdout or "[]")
     except json.JSONDecodeError:
-        return 0
+        return -1
     return sum(1 for p in prs if str(p.get("headRefName", "")).rsplit("/", 1)[-1] == session)
 
 
@@ -1067,10 +1133,13 @@ def pr_heal(
     if task_slug is None:
         raise click.ClickException("cos pr heal needs --task <id> or --adhoc.")
     branch = _branch_for(task_slug, session)
-    budget = _heal_budget(repo)
-    count = int(budget.get(branch, 0)) + 1
-    budget[branch] = count
-    _heal_budget_save(repo, budget)
+    # Read-modify-write under the dedicated heal flock so concurrent agents can't
+    # clobber the count (L4).
+    with _heal_lock(repo):
+        budget = _heal_budget(repo)
+        count = int(budget.get(branch, 0)) + 1
+        budget[branch] = count
+        _heal_budget_save(repo, budget)
     max_n = _env_int("COS_PR_HEAL_MAX", 3)
 
     if count > max_n:
