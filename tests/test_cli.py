@@ -3304,6 +3304,43 @@ class TestCosPr:
         # branch stays local — nothing was pushed (no remote even exists)
         assert "agents/adhoc/ses-test-abc" in self._branches(repo)
 
+    def test_submit_resolves_worktree_when_session_differs(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-541: open under session A, then submit under a DIFFERENT session id
+        # (the pid-fallback case). submit must resolve the real worktree+branch
+        # from disk, not re-derive a session-B path that never existed.
+        import cli.pr_commands as prc
+
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "local")  # commit-only — no remote needed
+        self._fake_gh(prc, monkeypatch)
+
+        monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-AAA")
+        runner.invoke(cli, ["pr", "open", "--task", "TASK-777", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("TASK-777-ses-AAA"))
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+
+        # submit under a different session id — must still find TASK-777-ses-AAA
+        monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-BBB")
+        res = runner.invoke(cli, ["pr", "submit", "--task", "TASK-777", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "branch: agents/TASK-777/ses-AAA" in res.output  # resolved from disk, not ses-BBB
+        assert "merge_status: local" in res.output
+
+    def test_cleanup_resolves_worktree_when_session_differs(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-541: cleanup under a different session id still removes the real
+        # worktree+branch (no work yet => recoverable => removes).
+        monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-AAA")
+        runner.invoke(cli, ["pr", "open", "--task", "TASK-888", "--repo", str(repo)])
+        assert "agents/TASK-888/ses-AAA" in self._branches(repo)
+
+        monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-BBB")
+        res = runner.invoke(cli, ["pr", "cleanup", "--task", "TASK-888", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/TASK-888/ses-AAA" not in self._branches(repo)  # the real branch was removed
+
     def test_git_state_lists_branches_current_and_remote(self, repo: Path) -> None:
         # TASK-534: real repo state for the Hub Git tab — local git only, so it
         # answers (current + branches) even with no remote configured.

@@ -220,6 +220,28 @@ def _branch_for(task_slug: str, session: str) -> str:
     return f"agents/{task_slug}/{session}"
 
 
+def _resolve_worktree(repo: str, task_slug: str, session: str) -> tuple[Path, str]:
+    # Find the worktree+branch `open` created, even when the session id differs
+    # across processes (the pid-<getpid> fallback gives a fresh value per process,
+    # TASK-541). Fast path: the session-derived path exists. Else scan this repo's
+    # worktree root for the task slug and read the real branch off the single match
+    # (the reaper derives it the same way); ambiguous/none falls back to the
+    # computed pair so the caller's existence check still surfaces a clear error.
+    root = _worktree_root(repo)
+    computed = root / f"{task_slug}-{session}"
+    if (computed / ".git").exists():
+        return computed, _branch_for(task_slug, session)
+    candidates = (
+        sorted(p for p in root.glob(f"{task_slug}-*") if (p / ".git").exists())
+        if root.exists()
+        else []
+    )
+    if len(candidates) == 1:
+        wt = candidates[0]
+        return wt, _git_out(["rev-parse", "--abbrev-ref", "HEAD"], cwd=wt) or _branch_for(task_slug, session)
+    return computed, _branch_for(task_slug, session)
+
+
 def _resolve_repo(repo_opt: str | None) -> str:
     repo = _toplevel(repo_opt or os.getcwd())
     if repo is None:
@@ -338,8 +360,7 @@ def pr_submit(
     task_slug = "adhoc" if adhoc else _sanitize(task_id) if task_id else None
     if task_slug is None:
         raise click.ClickException("cos pr submit needs --task <id> or --adhoc.")
-    branch = _branch_for(task_slug, session)
-    wt = _worktree_root(repo) / f"{task_slug}-{session}"
+    wt, branch = _resolve_worktree(repo, task_slug, session)
     if not (wt / ".git").exists():
         raise click.ClickException(f"no open worktree at {wt} — run 'cos pr open' first.")
 
@@ -620,8 +641,7 @@ def pr_cleanup(
     task_slug = "adhoc" if adhoc else _sanitize(task_id) if task_id else None
     if task_slug is None:
         raise click.ClickException("cos pr cleanup needs --task <id> or --adhoc.")
-    branch = _branch_for(task_slug, session)
-    wt = _worktree_root(repo) / f"{task_slug}-{session}"
+    wt, branch = _resolve_worktree(repo, task_slug, session)
 
     # Merge-gate (TASK-530): only destroy the worktree+branch once work has landed
     # (merged/closed) or is fully on origin; --force is the human override.

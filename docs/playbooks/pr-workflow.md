@@ -81,6 +81,8 @@ cos pr cleanup --task "$TASK"     # MERGE-GATED: refuses while the PR is still O
                                   # pushed branch): worktree remove + branch -D + prune.
 ```
 
+**Session-id robustness (TASK-541).** `open` names the worktree/branch `<task>-<id>` / `agents/<task>/<id>` from the session id; `submit` and `cleanup` re-derive that name to find the worktree. When no session id resolves, the id falls back to `pid-<getpid>` — which differs across the separate `cos pr` processes of one unit of work, so a re-derive would miss the worktree. To prevent that, `submit`/`cleanup` first try the session-derived path (fast path, unchanged) and, only on a miss, resolve the worktree+branch **from disk** by the task slug — the same way the reaper derives the branch from the checkout (§7). An ambiguous match (two worktrees for one task slug) falls back to the computed pair rather than guess.
+
 `gc.auto=0` is set in each worktree: worktrees share objects/refs/packed-refs, so background gc during a peer's rebase is unsafe.
 
 ## 5. Branch-guard in pr-mode — positive policy, not guard-kill (TASK-516)
