@@ -5,12 +5,12 @@ swimlane: core
 kind: security
 epic: pr-mode-p0-hardening
 labels: [pr-mode, branch-guard, critical, ready]
-status: testing
+status: complete
 priority: P0
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
-completed: null
+completed: 2026-06-24
 agent_session: ses-claude-20260623-225054-17eb
 depends_on: []
 blocked_by: []
@@ -40,3 +40,4 @@ A consumer runs 5+ autonomous agents in pr-mode. The branch-guard is the wall th
 - 2026-06-24 [claude]: Edit branch_guard_check.py
 - 2026-06-24 [claude]: Edit test_branch_guard.py
 - 2026-06-24 [claude]: Chose to make 'a worktree's HEAD is always a non-blocked branch' a hard invariant (block…
+- 2026-06-24 [claude]: committed c4f50569 · 3 files
