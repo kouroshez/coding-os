@@ -5,12 +5,12 @@ swimlane: docs
 kind: chore
 epic: pr-mode-hardening
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
-completed: null
+completed: 2026-06-24
 agent_session: ses-claude-20260624-034200-e9e7
 depends_on: []
 blocked_by: []
@@ -26,3 +26,4 @@ references: []
 - 2026-06-24 [claude]: Edit pr-workflow.md
 - 2026-06-24 [claude]: ADR-0013 Consequences: added GitHub-only forge limitation (non-GitHub = local rung, forge-adapter deferred) + Codex…
 - 2026-06-24 [claude]: commit 31a82ff5dd — fix(pr-mode): git-state probe honors form-selected integration branch
+- 2026-06-24 [claude]: committed b498ed39 · 2 files

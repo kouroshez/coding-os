@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: pr-mode-hardening
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
-completed: null
+completed: 2026-06-24
 agent_session: ses-claude-20260624-034200-e9e7
 depends_on: []
 blocked_by: []
@@ -38,3 +38,4 @@ In Config→Git with pr-mode on, change the Integration branch dropdown to a bra
 - 2026-06-24 [claude]: Edit ConfigPage.tsx
 - 2026-06-24 [claude]: Edit test_hub_settings_git.py
 - 2026-06-24 [claude]: Route get_git_state(integration: str | None) probes integration or _integration_branch(repo); ConfigPage GitTab…
+- 2026-06-24 [claude]: committed 31a82ff5 · 3 files
