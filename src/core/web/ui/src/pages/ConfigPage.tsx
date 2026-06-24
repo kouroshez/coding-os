@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import { apiPatch } from '@/lib/api-client';
 import { SubNav, subNavTabClass } from '@/layout/HubPrimitives';
+import { useScopedLink } from '@/lib/use-scoped-link';
 
 /**
  * Per-project Configuration surface. Shows what tech stacks, skills, MCP
@@ -108,6 +109,89 @@ function Pill({ tone, children }: { tone: 'ok' | 'muted'; children: ReactNode })
 
 function StateRow({ children }: { children: ReactNode }) {
   return <p className="px-1 py-6 text-sm text-[var(--cos-muted)]">{children}</p>;
+}
+
+// --------------------------------------------------------------------------
+// InfoTip — accessible ⓘ popover. Opens on hover AND click/focus, closes on
+// Esc, keyboard-reachable. Co-located here (the Git tab is its only consumer).
+// --------------------------------------------------------------------------
+
+function InfoTip({ label, children }: { label: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span
+      className="relative inline-flex"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        aria-label={`What is ${label}?`}
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setOpen(false);
+        }}
+        className="flex h-4 w-4 items-center justify-center rounded-full border border-[var(--cos-border)] text-[10px] font-semibold leading-none text-[var(--cos-faint)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none"
+      >
+        i
+      </button>
+      {open && (
+        <span
+          role="tooltip"
+          className="absolute left-0 top-5 z-20 w-72 rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)] px-3 py-2 text-[11px] font-normal leading-relaxed text-[var(--cos-muted)] shadow-xl"
+        >
+          {children}
+        </span>
+      )}
+    </span>
+  );
+}
+
+// --------------------------------------------------------------------------
+// Chip — small toggle/preset pill for branch selection (reused by both branch
+// fields). `active` styles the selected state; plain `onClick` for one-shots.
+// --------------------------------------------------------------------------
+
+function Chip({
+  active,
+  onClick,
+  children,
+  ariaLabel,
+}: {
+  active?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+  ariaLabel?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      aria-pressed={active}
+      className={`rounded-full border px-2.5 py-0.5 font-mono text-[11px] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none ${
+        active
+          ? 'border-[var(--cos-accent)] bg-[var(--cos-accent)]/15 text-[var(--cos-text)]'
+          : 'border-[var(--cos-border)] text-[var(--cos-muted)] hover:text-[var(--cos-text)]'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+// A field label with an inline InfoTip — used by every Git-tab control.
+function FieldLabel({ label, tip }: { label: ReactNode; tip: ReactNode }) {
+  const labelText = typeof label === 'string' ? label : 'this field';
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="text-xs font-medium text-[var(--cos-muted)]">{label}</span>
+      <InfoTip label={labelText}>{tip}</InfoTip>
+    </span>
+  );
 }
 
 // --------------------------------------------------------------------------
@@ -426,10 +510,10 @@ const AUTONOMY_OPTIONS: {
   hint: string;
   needsRemote: boolean;
 }[] = [
-  { value: 'local', label: 'Local — never pushes', hint: 'Agent commits in the worktree but never pushes; a human reviews the branch and integrates. Works with no remote.', needsRemote: false },
-  { value: 'draft', label: 'Draft — human merges', hint: 'Agent pushes + opens the PR; a human reviews and merges. Safe default.', needsRemote: true },
-  { value: 'auto_merge', label: 'Auto-merge on green CI', hint: 'Arms auto-merge when a required check exists; the PR merges itself once green.', needsRemote: true },
-  { value: 'autonomous', label: 'Autonomous — full lifecycle', hint: 'Auto-merge plus the driver loop cleans up the worktree after merge.', needsRemote: true },
+  { value: 'local', label: 'Local — never pushes', hint: 'Commits in the worktree; you review & merge. Works with no remote.', needsRemote: false },
+  { value: 'draft', label: 'Draft — opens a PR', hint: 'Pushes + opens a PR; you merge it. Needs a remote + GitHub.', needsRemote: true },
+  { value: 'auto_merge', label: 'Auto-merge — merges on green CI', hint: 'Pushes, opens a PR, merges itself once required CI passes. Needs a required status check.', needsRemote: true },
+  { value: 'autonomous', label: 'Autonomous — hands-off', hint: 'Auto-merge + cleans up its own worktree & branch after merge.', needsRemote: true },
 ];
 
 interface GitState {
@@ -444,17 +528,75 @@ interface GitState {
   remote_url: string;
 }
 
+// The meta-repo's own derived slug (cli.registry._derive_slug). coding-os
+// itself stays trunk (ADR-0013), so its Git tab is read-only.
+const META_REPO_SLUG = 'coding-os';
+
+// One-click quick starts. A preset only fills the form (setForm) — the user
+// reviews and Saves; the global default stays OFF. `recommended` flags the
+// multi-agent happy path with an accent badge.
+const QUICK_START_PRESETS: {
+  id: string;
+  label: string;
+  recommended?: boolean;
+  blurb: string;
+  apply: Pick<GitSettings, 'enabled' | 'integration_branch' | 'protected_branches' | 'autonomy_level'>;
+}[] = [
+  {
+    id: 'solo-local',
+    label: 'Solo / local',
+    blurb: 'One agent, or no GitHub. Agents isolate in worktrees; you review & merge. Works with no remote.',
+    apply: { enabled: true, integration_branch: 'main', protected_branches: [], autonomy_level: 'local' },
+  },
+  {
+    id: 'team-github-ci',
+    label: 'Team + GitHub CI',
+    recommended: true,
+    blurb: 'Agents open PRs into main and auto-merge once CI is green.',
+    apply: { enabled: true, integration_branch: 'main', protected_branches: ['production'], autonomy_level: 'auto_merge' },
+  },
+  {
+    id: 'main-dev-prod',
+    label: 'main → dev → prod',
+    blurb: 'Agents integrate to develop; main + production are human-only.',
+    apply: { enabled: true, integration_branch: 'develop', protected_branches: ['main', 'production'], autonomy_level: 'auto_merge' },
+  },
+];
+
+// Per-field info copy (what + how) — paraphrases pr-workflow.md.
+const FIELD_TIPS = {
+  enabled:
+    'Multi-agent safety mode. Each agent works in its own isolated git worktree (under ~/.coding-os/worktrees) and lands changes via a Pull Request — so 5+ agents never overwrite or block each other. Off = trunk: agents commit straight to the branch (fine for one agent, risky for many). coding-os itself always stays trunk.',
+  integration_branch:
+    'The branch agents merge their work into, via PR — they branch off it and target it. Usually main or develop. It stays always-green: broken code can’t reach it because CI gates the merge.',
+  protected_branches:
+    'Branches agents may NEVER write, push, or merge to — human-only (e.g. production). The branch-guard hook blocks every agent write to these. Leave empty if you have none.',
+  autonomy_level:
+    'How far an agent acts without you. Local: commits only, you merge. Draft: opens a PR, you click merge. Auto-merge: merges itself when CI is green. Autonomous: also cleans up after itself. Higher rungs need a remote + GitHub. CI always gates the merge — autonomy changes who clicks merge, never whether code is checked.',
+};
+
+// Common branch presets for the no-branch-list fallback chips.
+const INTEGRATION_BRANCH_CHIPS = ['main', 'develop', 'master'];
+const PROTECTED_BRANCH_CHIPS = ['production', 'main', 'release/*'];
+
 const inputClass =
   'mt-1 w-full rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)]/40 px-2.5 py-1.5 text-sm text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none';
 
 function GitTab() {
   const qc = useQueryClient();
+  // coding-os itself stays trunk (ADR-0013): render the tab read-only when the
+  // active project is the meta-repo (or no project is scoped). Read-only is a
+  // client-side gate — no project field is needed on the backend.
+  const { slug } = useScopedLink();
+  const readOnly = slug === null || slug === META_REPO_SLUG;
   const { data, isLoading, error } = useApiGet<{ settings: { git_settings: GitSettings } }>(
     ['settings-git'],
     '/api/settings',
   );
   const loaded = data?.settings?.git_settings;
   const [form, setForm] = useState<GitSettings | null>(null);
+  // Custom-branch add inputs for the no-branch-list fallback (controlled).
+  const [customProtected, setCustomProtected] = useState('');
   // Probe (incl. the gh-api required-check round-trip) only when pr-mode is on;
   // staleTime caches it so re-opening the tab doesn't re-round-trip (TASK-534).
   const probeEnabled = form ? form.enabled : !!loaded?.enabled;
@@ -481,6 +623,7 @@ function GitTab() {
     if (loaded && form === null) setForm(loaded);
   }, [loaded, form]);
 
+  if (readOnly) return <GitTabReadOnly settings={loaded} />;
   if (isLoading) return <StateRow>Loading git settings…</StateRow>;
   if (error) return <StateRow>Could not load git settings: {error.message}</StateRow>;
   if (!form) return <StateRow>Loading…</StateRow>;
@@ -522,14 +665,23 @@ function GitTab() {
         ? [...form.protected_branches, branch]
         : form.protected_branches.filter((x) => x !== branch),
     });
+  const isProtected = (branch: string) => form.protected_branches.includes(branch);
+  const toggleProtectedChip = (branch: string) => toggleProtected(branch, !isProtected(branch));
+  const clearProtected = () => setForm({ ...form, protected_branches: [] });
+  const addCustomProtected = () => {
+    const value = customProtected.trim();
+    if (value && !isProtected(value)) toggleProtected(value, true);
+    setCustomProtected('');
+  };
+  const applyPreset = (apply: GitSettings) => setForm({ ...form, ...apply });
 
   return (
     <>
       <TabIntro>
         pr-mode multi-agent git workflow. <strong className="text-[var(--cos-text)]">Off by default</strong>
-        {' '}— when enabled, agents isolate every change in a git worktree and integrate via PR +
-        required CI (consumer-only; coding-os itself stays trunk). Enabling persists
-        {' '}<span className="font-mono text-[11px]">COS_GIT_WORKFLOW=pr</span> into the agent env.
+        {' '}— when enabled, agents isolate every change in its own git worktree and land it via a Pull
+        Request, so many agents never overwrite or block each other (consumer-only; coding-os itself
+        stays trunk). Pick a quick start below, or set each field by hand — then Save.
       </TabIntro>
 
       <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -565,6 +717,40 @@ function GitTab() {
         </div>
       )}
 
+      <div className="mb-4">
+        <span className="text-xs font-medium text-[var(--cos-muted)]">Quick start</span>
+        <p className="mb-2 text-[11px] text-[var(--cos-faint)]">
+          One click fills the form below — review it, then Save. A preset never changes the global
+          default (which stays Off).
+        </p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {QUICK_START_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => applyPreset(preset.apply)}
+              className={`rounded-lg border p-3 text-left transition-colors focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none ${
+                preset.recommended
+                  ? 'border-[var(--cos-accent)] bg-[var(--cos-accent)]/10 hover:bg-[var(--cos-accent)]/15'
+                  : 'border-[var(--cos-border)] hover:border-[var(--cos-accent)]'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <span className="text-sm font-medium text-[var(--cos-text)]">{preset.label}</span>
+                {preset.recommended && (
+                  <span className="rounded-full bg-[var(--cos-accent)]/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--cos-accent)]">
+                    ★ Recommended
+                  </span>
+                )}
+              </span>
+              <span className="mt-1 block text-[11px] leading-relaxed text-[var(--cos-muted)]">
+                {preset.blurb}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="space-y-4 rounded-xl border border-[var(--cos-border)] p-4">
         <label className="flex items-center gap-3">
           <input
@@ -575,10 +761,11 @@ function GitTab() {
             aria-label="Enable pr-mode"
           />
           <span className="text-sm font-medium text-[var(--cos-text)]">Enable pr-mode</span>
+          <InfoTip label="Enable pr-mode">{FIELD_TIPS.enabled}</InfoTip>
         </label>
 
         <label className="block">
-          <span className="text-xs font-medium text-[var(--cos-muted)]">Integration branch</span>
+          <FieldLabel label="Integration branch" tip={FIELD_TIPS.integration_branch} />
           {hasBranchList ? (
             <select
               value={form.integration_branch}
@@ -597,19 +784,47 @@ function GitTab() {
               ))}
             </select>
           ) : (
-            // Fallback when no branch list (pr-mode off / no repo) — free text.
-            <input
-              value={form.integration_branch}
-              onChange={(e) => setForm({ ...form, integration_branch: e.target.value })}
-              placeholder="main"
-              className={inputClass}
-            />
+            // Fallback when no branch list (pr-mode off / no repo) — quick chips
+            // pick a common branch, free typing covers the rest. Never empty.
+            <>
+              <input
+                value={form.integration_branch}
+                onChange={(e) => setForm({ ...form, integration_branch: e.target.value })}
+                placeholder="main"
+                className={inputClass}
+                aria-label="Integration branch"
+              />
+              <span className="mt-1.5 flex flex-wrap gap-1.5">
+                {INTEGRATION_BRANCH_CHIPS.map((b) => (
+                  <Chip
+                    key={b}
+                    active={form.integration_branch.trim() === b}
+                    ariaLabel={`Set integration branch to ${b}`}
+                    onClick={() => setForm({ ...form, integration_branch: b })}
+                  >
+                    {b}
+                  </Chip>
+                ))}
+              </span>
+            </>
           )}
+          <span className="mt-1 block text-[11px] text-[var(--cos-faint)]">
+            Agents branch off this and open PRs back into it. Defaults to{' '}
+            <span className="font-mono">main</span>.
+          </span>
         </label>
 
         <div className="block">
-          <span className="text-xs font-medium text-[var(--cos-muted)]">
-            Protected branches (never agent-writable)
+          <span className="flex items-center justify-between">
+            <FieldLabel label="Protected branches" tip={FIELD_TIPS.protected_branches} />
+            <button
+              type="button"
+              onClick={clearProtected}
+              disabled={form.protected_branches.length === 0}
+              className="rounded border border-[var(--cos-border)] px-2 py-0.5 text-[10px] text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none disabled:opacity-40"
+            >
+              None
+            </button>
           </span>
           {hasBranchList ? (
             <div className="mt-1 max-h-40 space-y-1 overflow-auto rounded-md border border-[var(--cos-border)] p-2">
@@ -639,28 +854,57 @@ function GitTab() {
                 ))}
             </div>
           ) : (
-            // Fallback when no branch list — comma-separated free text.
-            <input
-              value={form.protected_branches.join(', ')}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  protected_branches: e.target.value
-                    .split(',')
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                })
-              }
-              placeholder="production"
-              className={inputClass}
-            />
+            // Fallback when no branch list — common toggle chips + custom add.
+            <span className="mt-1 flex flex-wrap gap-1.5">
+              {[...PROTECTED_BRANCH_CHIPS, ...form.protected_branches.filter((b) => !PROTECTED_BRANCH_CHIPS.includes(b))].map(
+                (b) => (
+                  <Chip
+                    key={b}
+                    active={isProtected(b)}
+                    ariaLabel={`${isProtected(b) ? 'Unprotect' : 'Protect'} ${b}`}
+                    onClick={() => toggleProtectedChip(b)}
+                  >
+                    {b}
+                  </Chip>
+                ),
+              )}
+            </span>
           )}
+          <span className="mt-2 flex gap-1.5">
+            <input
+              value={customProtected}
+              onChange={(e) => setCustomProtected(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addCustomProtected();
+                }
+              }}
+              placeholder="add a branch…"
+              aria-label="Add protected branch"
+              className="flex-1 rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)]/40 px-2.5 py-1 text-xs text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={addCustomProtected}
+              disabled={!customProtected.trim()}
+              className="rounded-md border border-[var(--cos-border)] px-2.5 py-1 text-xs text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none disabled:opacity-40"
+            >
+              Add
+            </button>
+          </span>
+          <span className="mt-1 block text-[11px] text-[var(--cos-faint)]">
+            {form.protected_branches.length === 0
+              ? 'None — no protected branches.'
+              : `Human-only: ${form.protected_branches.join(', ')}`}
+          </span>
         </div>
 
         <label className="block">
-          <span className="text-xs font-medium text-[var(--cos-muted)]">
-            Autonomy level (Trust Spectrum — how far the agent acts unattended)
-          </span>
+          <FieldLabel
+            label="Autonomy level"
+            tip={FIELD_TIPS.autonomy_level}
+          />
           <select
             value={form.autonomy_level}
             onChange={(e) => setForm({ ...form, autonomy_level: e.target.value as AutonomyLevel })}
@@ -728,6 +972,32 @@ function GitTab() {
         >
           {saving ? 'Saving…' : 'Save'}
         </button>
+      </div>
+    </>
+  );
+}
+
+// Read-only state shown when the active project is the meta-repo (or none is
+// scoped). coding-os itself stays trunk (ADR-0013) — render a clear banner, not
+// a dead form: the consumer must pick a project to configure pr-mode.
+function GitTabReadOnly({ settings }: { settings?: GitSettings }) {
+  return (
+    <>
+      <TabIntro>pr-mode multi-agent git workflow.</TabIntro>
+      <div className="rounded-xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/40 p-5 text-sm text-[var(--cos-muted)]">
+        <p className="font-medium text-[var(--cos-text)]">coding-os itself stays trunk.</p>
+        <p className="mt-1.5 leading-relaxed">
+          pr-mode is for your <strong className="text-[var(--cos-text)]">consumer projects</strong> —
+          the meta-repo commits straight to <span className="font-mono">main</span> by design. Pick a
+          project from the switcher above, then open Config → Git there to enable the multi-agent
+          worktree + PR workflow.
+        </p>
+        {settings && (
+          <p className="mt-3 text-[11px] text-[var(--cos-faint)]">
+            Meta-repo setting (read-only): pr-mode is{' '}
+            <span className="font-mono">{settings.enabled ? 'on' : 'off'}</span>.
+          </p>
+        )}
       </div>
     </>
   );

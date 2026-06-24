@@ -18,6 +18,26 @@ vi.mock('@/lib/hooks', () => ({
           { id: 'tasks', label: 'Task system', kernel: false, enabled: true, depends_on: ['docs'], hooks: 9, tools: 2 },
         ],
       },
+      '/api/settings': {
+        settings: {
+          git_settings: {
+            enabled: false,
+            integration_branch: 'main',
+            protected_branches: ['production'],
+            autonomy_level: 'draft',
+          },
+        },
+      },
+      '/api/settings/git-state': {
+        remote: false,
+        gh: false,
+        required_check: false,
+        pr_ok: false,
+        missing: [],
+        branches: [],
+        current_branch: 'main',
+        remote_url: '',
+      },
     };
     return { data: map[path] ?? null, isLoading: false, error: null };
   },
@@ -72,5 +92,40 @@ describe('ModulesTab (TASK-354)', () => {
     const toggle = screen.getByTestId('module-toggle-tasks');
     fireEvent.click(toggle);
     expect(apiPatch).toHaveBeenCalledWith('/api/settings/modules/tasks', { enabled: false });
+  });
+});
+
+describe('GitTab (TASK-552)', () => {
+  it('renders the read-only trunk banner for the meta-repo (slug coding-os)', () => {
+    renderConfig('/p/coding-os/config?tab=git');
+    expect(screen.getByText('coding-os itself stays trunk.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Enable pr-mode')).toBeNull();
+  });
+
+  it('offers quick-start presets and per-field info controls on a consumer project', () => {
+    renderConfig('/p/demo/config?tab=git');
+    expect(screen.getByRole('checkbox', { name: 'Enable pr-mode' })).toBeInTheDocument();
+    expect(screen.getByText('Team + GitHub CI')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'What is Integration branch?' })).toBeInTheDocument();
+  });
+
+  it('the None control clears protected branches and reads "None"', () => {
+    renderConfig('/p/demo/config?tab=git');
+    expect(screen.getByText('Human-only: production')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'None' }));
+    expect(screen.getByText('None — no protected branches.')).toBeInTheDocument();
+  });
+
+  it('Save sends the unchanged PATCH payload shape', () => {
+    renderConfig('/p/demo/config?tab=git');
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(apiPatch).toHaveBeenCalledWith('/api/settings', {
+      git_settings: {
+        enabled: false,
+        integration_branch: 'main',
+        protected_branches: ['production'],
+        autonomy_level: 'draft',
+      },
+    });
   });
 });
