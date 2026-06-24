@@ -575,7 +575,7 @@ def pr_submit(
 
 @pr_group.command("status", help="List this repo's pr-mode worktrees, branches, and open PRs.")
 @click.option("--repo", "repo_opt", default=None)
-@click.option("--branch", default=None, help="Report one agent branch's CI rollup (merged|red|pending|passing) — the driver-loop signal.")
+@click.option("--branch", default=None, help="Report one agent branch's CI rollup (merged|red|pending|passing|passing-unarmed|closed|none) — the driver-loop signal.")
 @click.option("--json", "as_json", is_flag=True)
 def pr_status(repo_opt: str | None, branch: str | None, as_json: bool) -> None:
     repo = _resolve_repo(repo_opt)
@@ -596,7 +596,7 @@ def pr_status(repo_opt: str | None, branch: str | None, as_json: bool) -> None:
     if _gh_ready():
         out = _run(
             ["gh", "pr", "list", "--search", "head:agents/", "--json",
-             "number,headRefName,state,mergedAt,statusCheckRollup"],
+             "number,headRefName,state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest"],
             cwd=repo,
         )
         if out.returncode == 0:
@@ -641,8 +641,8 @@ def _pr_state(repo: str, branch: str) -> str:
 
 
 def _rollup_state(pr: dict) -> str:
-    # merged|red|pending|passing|closed|none — one CI signal distilled from gh's
-    # statusCheckRollup for the autonomous driver loop (TASK-529).
+    # merged|red|pending|passing|passing-unarmed|closed|none — one CI signal
+    # distilled from gh's statusCheckRollup for the autonomous driver loop (TASK-529).
     if pr.get("mergedAt") or str(pr.get("state", "")).upper() == "MERGED":
         return "merged"
     if str(pr.get("state", "")).upper() == "CLOSED":
@@ -660,13 +660,22 @@ def _rollup_state(pr: dict) -> str:
         return "red"
     if any(waiting & fields(c) for c in checks):
         return "pending"
+    # Green — but only "passing" (auto-merge will land it) when auto-merge is armed
+    # AND the PR isn't a draft; else "passing-unarmed" so the driver STOPs for a human
+    # merge from the signal alone, never from a remembered submit merge_status (D5).
+    if pr.get("isDraft") or not pr.get("autoMergeRequest"):
+        return "passing-unarmed"
     return "passing"
 
 
 def _pr_ci_rollup(repo: str, branch: str) -> str:
     if not _gh_ready():
         return "unknown"
-    out = _run(["gh", "pr", "view", branch, "--json", "state,mergedAt,statusCheckRollup"], cwd=repo)
+    out = _run(
+        ["gh", "pr", "view", branch, "--json",
+         "state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest"],
+        cwd=repo,
+    )
     if out.returncode != 0:
         return "none"  # no PR for this branch (or gh error) → driver opens/submits
     try:

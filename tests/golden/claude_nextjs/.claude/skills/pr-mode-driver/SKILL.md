@@ -17,10 +17,10 @@ You are driving the **pr-mode autonomous loop** for a consumer repo (`COS_GIT_WO
 ## The one signal
 
 ```bash
-cos pr status --branch "$BRANCH" --json    # → {"ci_rollup": "merged|red|pending|passing|closed|none"}
+cos pr status --branch "$BRANCH" --json    # → {"ci_rollup": "merged|red|pending|passing|passing-unarmed|closed|none"}
 ```
 
-`ci_rollup` collapses `gh`'s `statusCheckRollup` + PR state into one value. Branch on it — nothing else.
+`ci_rollup` collapses `gh`'s `statusCheckRollup` + PR state + whether auto-merge is actually armed into one value. Branch on it — nothing else; the STOP decision needs no memory of the prior `cos pr submit`.
 
 ## The loop — ONE pass per turn (never busy-wait)
 
@@ -28,13 +28,13 @@ cos pr status --branch "$BRANCH" --json    # → {"ci_rollup": "merged|red|pendi
 |---|---|
 | `merged` | `cos pr cleanup --task "$TASK"` — removes the worktree + branch. **Done.** |
 | `red` | Heal (below). |
-| `passing` + auto-merge armed | Green; auto-merge will land it. Re-poll next turn — do nothing else. |
-| `passing` + **not** armed (draft / degraded-no-required-check) | **STOP** — needs a human merge (below). |
+| `passing` | Green AND auto-merge is armed — it will land itself. Re-poll next turn; do nothing else. |
+| `passing-unarmed` | Green but nothing will auto-land it (autonomy=draft, no required check, or a draft PR). **STOP** — needs a human merge (below). |
 | `pending` | Checks still running. Re-poll next turn. |
 | `none` | No PR yet → `cos pr submit` (or `cos pr open` if there's no worktree). |
 | `closed` | Closed unmerged (human/abandoned). Stop and surface to the user; do not auto-reopen. |
 
-**Green but no auto-merge → STOP, don't spin.** When `ci_rollup=passing` AND the last `cos pr submit` reported `merge_status` in {`draft`, `degraded-no-required-check`} (i.e. `auto_merge_armed=false`), nothing will land the PR on its own. Do NOT re-poll — at autonomy=draft that loops forever. Stop and tell the user: *"PR #N is green and needs a human merge (autonomy=draft) — merge it, or set autonomy_level=auto_merge in Hub Config→Git."*
+**`passing-unarmed` → STOP, don't spin.** The signal itself says nothing will land this PR on its own — you do NOT need to recall the prior `cos pr submit`, so this holds across `/clear`, `/compact`, and a reaper-recovered fresh session. Do NOT re-poll — at autonomy=draft that would loop forever. Stop and tell the user: *"PR #N is green and needs a human merge (auto-merge isn't armed — autonomy=draft, or no required status check on the integration branch) — merge it, or set autonomy_level=auto_merge with a required check in Hub Config→Git."*
 
 `passing` / `pending` mean **yield the turn and check again later**, not sleep-loop. Hooks and the turn loop drive this, not a daemon (Rule 21).
 

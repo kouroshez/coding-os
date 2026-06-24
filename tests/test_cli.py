@@ -3477,8 +3477,16 @@ class TestCosPr:
         assert prc._rollup_state(red) == "red"
         pend = {"state": "OPEN", "statusCheckRollup": [{"status": "IN_PROGRESS"}]}
         assert prc._rollup_state(pend) == "pending"
-        passing = {"state": "OPEN", "statusCheckRollup": [{"status": "COMPLETED", "conclusion": "SUCCESS"}]}
-        assert prc._rollup_state(passing) == "passing"
+        green = [{"status": "COMPLETED", "conclusion": "SUCCESS"}]
+        # green but auto-merge NOT armed (draft autonomy / no required check) → the
+        # signal-derivable STOP state, so the driver never re-polls forever (D5).
+        assert prc._rollup_state({"state": "OPEN", "statusCheckRollup": green}) == "passing-unarmed"
+        # green AND auto-merge armed (not a draft) → it will land itself.
+        armed = {"state": "OPEN", "statusCheckRollup": green, "autoMergeRequest": {"enabledAt": "x"}}
+        assert prc._rollup_state(armed) == "passing"
+        # green + armed but a GitHub draft PR → still won't auto-land → STOP state.
+        draft = {**armed, "isDraft": True}
+        assert prc._rollup_state(draft) == "passing-unarmed"
         # red wins over pending when both are present
         mixed = {"state": "OPEN", "statusCheckRollup": [{"status": "IN_PROGRESS"}, {"conclusion": "FAILURE"}]}
         assert prc._rollup_state(mixed) == "red"
@@ -3503,6 +3511,34 @@ class TestCosPr:
         res = runner.invoke(cli, ["pr", "status", "--branch", "agents/x/1", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "ci_rollup: red" in res.output
+
+    def test_pr_ci_rollup_requests_automerge_fields(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The STOP-on-green decision needs isDraft + autoMergeRequest in the gh query;
+        # drop them and every green PR misreads as passing-unarmed → never lands (D5).
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        captured: dict[str, list[str]] = {}
+        real_run = prc._run
+
+        def fake_run(args, **kw):
+            if args[:3] == ["gh", "pr", "view"]:
+                captured["args"] = args
+                green = [{"status": "COMPLETED", "conclusion": "SUCCESS"}]
+                payload = json.dumps(
+                    {"state": "OPEN", "statusCheckRollup": green, "autoMergeRequest": {"enabledAt": "x"}}
+                )
+                return subprocess.CompletedProcess(args, 0, stdout=payload, stderr="")
+            return real_run(args, **kw)
+
+        monkeypatch.setattr(prc, "_run", fake_run)
+        res = runner.invoke(cli, ["pr", "status", "--branch", "agents/x/1", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "ci_rollup: passing" in res.output and "passing-unarmed" not in res.output
+        json_arg = captured["args"][captured["args"].index("--json") + 1]
+        assert "isDraft" in json_arg and "autoMergeRequest" in json_arg
 
     # --- consumer-fixture dogfood: the full pr-mode loop (TASK-521) ---------
 
