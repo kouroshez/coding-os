@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: pr-mode-hardening
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
-completed: null
+completed: 2026-06-24
 agent_session: ses-claude-20260624-034200-e9e7
 depends_on: []
 blocked_by: []
@@ -38,3 +38,5 @@ Actual: `command -v jq` precondition fails → gate skipped → enabled project 
 
 ## Work Log
 - 2026-06-24 [claude]: Edit cos-env.sh
+- 2026-06-24 [claude]: committed bd61a589 · 2 files
+- 2026-06-24 [claude]: Status transitioned to complete via cos task-done.

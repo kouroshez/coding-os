@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: pr-mode-hardening
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
-completed: null
+completed: 2026-06-24
 agent_session: ses-claude-20260624-034200-e9e7
 depends_on: []
 blocked_by: []
@@ -40,3 +40,5 @@ Actual: line-152 guard short-circuits on CLAUDE_PROJECT_DIR → probe skipped �
 - 2026-06-24 [claude]: Edit cos-env.sh
 - 2026-06-24 [claude]: commit dbfa08632c — fix(pr-mode): submit fails safe on gh-down + honest local rung + heal-budget flock + pid-unique tmp
 - 2026-06-24 [claude]: Edit fixd_test.sh
+- 2026-06-24 [claude]: committed 421480f5 · 1 file
+- 2026-06-24 [claude]: Status transitioned to complete via cos task-done.

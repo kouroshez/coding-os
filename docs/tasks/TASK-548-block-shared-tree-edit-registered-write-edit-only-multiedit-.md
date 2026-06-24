@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: pr-mode-hardening
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
-completed: null
+completed: 2026-06-24
 agent_session: ses-claude-20260624-034200-e9e7
 depends_on: []
 blocked_by: []
@@ -40,3 +40,6 @@ Actual: ...
 
 ## Work Log
 - 2026-06-24 [claude]: Edit registry.yaml
+- 2026-06-24 [claude]: committed 4383523a · 17 files
+- 2026-06-24 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-24 [claude]: Verified: make verify-hooks clean; tests/test_golden_parity.py + test_adapter_parity.py + test_adapters.py 55 passed…

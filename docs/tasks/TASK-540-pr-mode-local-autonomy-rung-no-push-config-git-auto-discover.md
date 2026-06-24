@@ -45,3 +45,4 @@ references: []
 - 2026-06-24 [claude]: Edit test_hub_settings_git.py
 - 2026-06-24 [claude]: Shipped `local` rung: submit short-circuits before the capability probe (no remote needed), commit-only,…
 - 2026-06-24 [claude]: committed 53dcb48d · 6 files
+- 2026-06-24 [claude]: committed 389e9f2f · 3 files

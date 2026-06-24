@@ -5,7 +5,7 @@ swimlane: infra
 kind: spike
 epic: null
 labels: [graph_os, audit, exhaustive, mcp]
-status: complete
+status: archive
 priority: P1
 appetite: "2d"
 created: 2026-05-25
