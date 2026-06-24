@@ -33,6 +33,7 @@ def test_git_settings_defaults_off(client):
         "enabled": False,
         "integration_branch": "main",
         "protected_branches": ["production"],
+        "autonomy_level": "draft",
     }
 
 
@@ -42,6 +43,7 @@ def test_git_settings_patch_round_trips(client, tmp_path):
             "enabled": True,
             "integration_branch": "develop",
             "protected_branches": ["production", "release"],
+            "autonomy_level": "auto_merge",
         }
     }
     patched = client.patch("/api/settings", json=body).json()["data"]
@@ -84,6 +86,25 @@ def test_git_settings_partial_patch_preserves_own_fields(client):
     assert gs["protected_branches"] == ["prod", "release"]
 
 
+def test_git_settings_autonomy_level_defaults_draft_and_round_trips(client):
+    # TASK-533: safe default is draft; a partial PATCH of autonomy alone must
+    # not wipe sibling fields, and the level persists.
+    assert client.get("/api/settings").json()["data"]["settings"]["git_settings"][
+        "autonomy_level"
+    ] == "draft"
+    client.patch(
+        "/api/settings",
+        json={"git_settings": {"enabled": True, "integration_branch": "develop"}},
+    )
+    # enabled is the one required field on the model; the merge preserves the
+    # unspecified integration_branch via exclude_unset.
+    client.patch("/api/settings", json={"git_settings": {"enabled": True, "autonomy_level": "autonomous"}})
+    gs = client.get("/api/settings").json()["data"]["settings"]["git_settings"]
+    assert gs["autonomy_level"] == "autonomous"
+    assert gs["integration_branch"] == "develop"  # sibling survived the autonomy PATCH
+    assert gs["enabled"] is True
+
+
 def test_git_state_endpoint_reports_capability(client):
     # No git repo at the project root => not pr_ok; the endpoint must still
     # answer (degrade signal), never 500.
@@ -92,3 +113,6 @@ def test_git_state_endpoint_reports_capability(client):
     if resp.status_code == 200:
         cap = resp.json()["data"]
         assert set(cap) >= {"remote", "gh", "required_check", "pr_ok", "missing"}
+        # TASK-534: real git-state keys are merged in alongside the capability probe
+        assert set(cap) >= {"branches", "current_branch", "remote_url"}
+        assert isinstance(cap["branches"], list)

@@ -3174,6 +3174,7 @@ class TestCosPr:
         import cli.pr_commands as prc
 
         self._add_bare_remote(repo, tmp_path)
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")  # past draft → exercises the CI-gate path
         monkeypatch.setattr(prc, "_gh_ready", lambda: True)
         monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
         monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
@@ -3195,6 +3196,7 @@ class TestCosPr:
         import cli.pr_commands as prc
 
         self._add_bare_remote(repo, tmp_path)
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")  # draft never arms (TASK-533)
         monkeypatch.setattr(prc, "_gh_ready", lambda: True)
         monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
         monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
@@ -3211,6 +3213,40 @@ class TestCosPr:
         # armed exactly once, with the squash auto-merge form
         assert len(merge_calls) == 1, merge_calls
         assert merge_calls[0][:5] == ["gh", "pr", "merge", "--auto", "--squash"]
+
+    def test_submit_draft_autonomy_never_arms_even_with_required_check(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-533: default 'draft' opens the PR but never arms auto-merge,
+        # even when a required check exists — a human merges.
+        import cli.pr_commands as prc
+
+        self._add_bare_remote(repo, tmp_path)
+        monkeypatch.delenv("COS_GIT_AUTONOMY", raising=False)  # default = draft
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
+        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        self._fake_gh(prc, monkeypatch)  # gh pr merge => AssertionError if armed
+
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "merge_status: draft" in res.output
+        assert "auto_merge_armed: False" in res.output
+        assert "autonomy_level: draft" in res.output
+
+    def test_git_state_lists_branches_current_and_remote(self, repo: Path) -> None:
+        # TASK-534: real repo state for the Hub Git tab — local git only, so it
+        # answers (current + branches) even with no remote configured.
+        import cli.pr_commands as prc
+
+        subprocess.run(["git", "-C", str(repo), "branch", "develop"], check=True)
+        st = prc._git_state(str(repo))
+        assert st["current_branch"] == "main"
+        assert {"main", "develop"} <= set(st["branches"])
+        assert st["remote_url"] == ""
 
     # --- TASK-529: CI rollup signal for the autonomous driver loop ----------
 

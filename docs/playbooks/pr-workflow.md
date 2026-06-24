@@ -25,10 +25,12 @@ pr-mode is **default OFF**. It activates only when a consumer sets, in its **own
 
 ```jsonc
 // $COS_STATE_DIR/hub-settings.json   (per-project — each repo has its own)
-{ "git_settings": { "enabled": true, "integration_branch": "main", "protected_branches": ["production"] } }
+{ "git_settings": { "enabled": true, "integration_branch": "main", "protected_branches": ["production"], "autonomy_level": "draft" } }
 ```
 
-`cos-env.sh` reads `git_settings.enabled` and, when true, **exports `COS_GIT_WORKFLOW=pr` session-wide**. This is mandatory because **the inline form does not work**: `branch-guard.sh` reads its own process env *before* a command's `VAR=val cmd` prefix, so `COS_GIT_WORKFLOW=pr git …` is silently ignored. The toggle must persist into the adapter-injected environment exactly like `model_routing`. With the toggle off, nothing in this playbook fires and there is zero behavioural or token-cost difference.
+`cos-env.sh` reads `git_settings.enabled` and, when true, **exports `COS_GIT_WORKFLOW=pr` session-wide** (alongside `COS_GIT_INTEGRATION_BRANCH`, `COS_GIT_PROTECTED_BRANCHES`, and `COS_GIT_AUTONOMY`). This is mandatory because **the inline form does not work**: `branch-guard.sh` reads its own process env *before* a command's `VAR=val cmd` prefix, so `COS_GIT_WORKFLOW=pr git …` is silently ignored. The toggle must persist into the adapter-injected environment exactly like `model_routing`. With the toggle off, nothing in this playbook fires and there is zero behavioural or token-cost difference.
+
+`autonomy_level` (default `draft`) sets how far the agent acts unattended — the industry "Trust Spectrum" framing (§8). It exports as `COS_GIT_AUTONOMY` and is read by `cos pr submit`.
 
 ## 2. Naming & paths (the slug contract)
 
@@ -106,13 +108,20 @@ The dying agent cannot be trusted to clean up (the exact Rule-21 failure mode). 
 Autonomy is capped so a stuck agent cannot loop forever or flood the remote:
 
 - **Cap open PRs per session** (refuse to open the N+1th).
-- **CI-runnable probe** before relying on auto-merge — auto-merge is armed (`gh pr merge --auto --squash`) **only when a required status check exists** on the integration branch. With no required check GitHub silently no-ops `--auto`, so `cos pr submit` does NOT arm it: it emits an explicit `merge_status: degraded-no-required-check` naming the missing check (never a silent open PR). Autonomous merge with no CI gate is opt-in via `autonomy_level` (TASK-533).
+- **CI-runnable probe** before relying on auto-merge — auto-merge is armed (`gh pr merge --auto --squash`) **only when a required status check exists** on the integration branch. With no required check GitHub silently no-ops `--auto`, so `cos pr submit` does NOT arm it: it emits an explicit `merge_status: degraded-no-required-check` naming the missing check (never a silent open PR).
+- **Autonomy level — the Trust Spectrum (TASK-533).** `git_settings.autonomy_level` (exported as `COS_GIT_AUTONOMY`, read by `cos pr submit`) is how far the agent acts unattended:
+  - **`draft`** (default, safe) — submit opens the PR and **never** arms auto-merge, whatever the CI state; a human merges. `merge_status: draft`.
+  - **`auto_merge`** — submit arms `gh pr merge --auto --squash` **when a required check exists** (else `degraded-no-required-check`); the PR merges itself once green.
+  - **`autonomous`** — same arming as `auto_merge`, and additionally authorizes the driver loop (§ pr-mode-driver skill) to `cos pr cleanup` the worktree itself once the PR is merged.
+  - Levels above `draft` still honor the required-check gate — autonomy widens *who merges*, never *whether CI gates the merge*.
 - **Escalate-to-blocked** after N self-heal attempts on the same red PR: move the board task to `blocked` with the failure, stop retrying.
 - **Drive the loop on the CI rollup (TASK-529).** `cos pr status --branch <branch>` returns one `ci_rollup` signal — `merged | red | pending | passing | closed | none` — distilled from `gh`'s `statusCheckRollup`. The shipped `pr-mode-driver` skill encodes the poll→branch decision so a non-expert consumer's agent is *told* how to run the diagnose-fix-retry loop instead of remembering the blind heal counter: `merged` → `cos pr cleanup`; `red` → `cos pr heal` (charges the budget; escalates to `blocked` when spent) then fix in the worktree + re-`cos pr submit`; `pending`/`passing` → wait and re-poll next turn; `none` → open/submit.
 
 ## 9. Capability preflight & degrade (CLI lives in `src/cli`, never `src/core`)
 
 `cos pr preflight` checks: remote configured · `gh` installed + authenticated · a required CI check exists on the integration branch. Any miss → **degrade to trunk** with a one-line reason. `gh` is invoked only from `src/cli` (P2/P8: `src/core/**` symlinks reach every consumer and must stay agent/host-agnostic).
+
+The Hub **Config → Git** tab reads `GET /api/settings/git-state`, which returns the capability probe **and** the repo's real git-state (`branches`, `current_branch`, `remote_url`, from local git only — present even when `gh` is down). `integration_branch` renders as a dropdown and `protected_branches` as a multiselect sourced from that branch list, so a consumer cannot silently configure a non-existent branch (a stray value warns at save). The probe (which includes the gh-api required-check round-trip) is **skipped while pr-mode is disabled** and `staleTime`-cached so re-opening the tab does not re-round-trip (TASK-534).
 
 ## 10. Defense in depth (why broken code can't reach integration, why nothing orphans)
 

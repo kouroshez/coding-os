@@ -100,6 +100,11 @@ def _integration_branch() -> str:
     return os.environ.get("COS_GIT_INTEGRATION_BRANCH", "main")
 
 
+def _autonomy_level() -> str:
+    # Trust Spectrum (TASK-533): draft never arms auto-merge; auto_merge/autonomous do.
+    return os.environ.get("COS_GIT_AUTONOMY", "draft").strip() or "draft"
+
+
 def _agent_session() -> str:
     try:
         from cli.board_commands import _agent_session_id
@@ -156,6 +161,32 @@ def _preflight(repo: str, integration: str) -> dict:
         "required_check": required,
         "pr_ok": remote and gh,
         "missing": missing,
+    }
+
+
+def _branches(repo: str) -> list[str]:
+    # Local heads + origin remotes, de-duplicated to bare names — the source for
+    # the Hub branch dropdowns so a consumer can't pick a non-existent branch.
+    raw = _git_out(
+        ["for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes/origin"],
+        cwd=repo,
+    )
+    names: set[str] = set()
+    for line in raw.splitlines():
+        name = line.strip()
+        if not name or name.endswith("/HEAD") or name == "origin":
+            continue
+        names.add(name[len("origin/"):] if name.startswith("origin/") else name)
+    return sorted(names)
+
+
+def _git_state(repo: str) -> dict:
+    # Real repo state for the Config Git tab (TASK-534) — local git only, so it
+    # answers even when gh/remote are down (the capability probe degrades alone).
+    return {
+        "branches": _branches(repo),
+        "current_branch": _git_out(["rev-parse", "--abbrev-ref", "HEAD"], cwd=repo),
+        "remote_url": _git_out(["config", "--get", "remote.origin.url"], cwd=repo),
     }
 
 
@@ -371,8 +402,10 @@ def pr_submit(
         cwd=wt,
     )
     pr_ok = pr.returncode == 0
+    autonomy = _autonomy_level()
+    arm_allowed = autonomy in ("auto_merge", "autonomous")
     armed = False
-    if pr_ok and cap["required_check"]:
+    if pr_ok and arm_allowed and cap["required_check"]:
         # Auto-merge ONLY when a required check exists, else the PR merges with
         # no CI gate. Stays armed; merges itself once the check is green.
         armed = _run(["gh", "pr", "merge", "--auto", "--squash"], cwd=wt).returncode == 0
@@ -385,6 +418,13 @@ def pr_submit(
     elif not pr_ok:
         merge_status = "pr-create-failed"
         action = pr.stderr.strip() or "gh pr create failed — PR not opened; branch is pushed"
+    elif not arm_allowed:
+        # draft autonomy: the PR is intentionally human-merged, regardless of CI.
+        merge_status = "draft"
+        action = (
+            f"PR open in '{autonomy}' autonomy — a human merges it. Set "
+            f"autonomy_level=auto_merge in Hub Config→Git to arm auto-merge."
+        )
     elif not cap["required_check"]:
         merge_status = "degraded-no-required-check"
         action = (
@@ -404,6 +444,7 @@ def pr_submit(
             "pr_url": pr.stdout.strip() if pr_ok else "",
             "auto_merge_armed": armed,
             "required_check": cap["required_check"],
+            "autonomy_level": autonomy,
             "merge_status": merge_status,
             "action": action,
         },

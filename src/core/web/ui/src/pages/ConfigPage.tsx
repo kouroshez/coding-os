@@ -409,11 +409,20 @@ function ModulesTab() {
 // lives in Config, not the hub-level Settings page where model_routing sits.
 // --------------------------------------------------------------------------
 
+type AutonomyLevel = 'draft' | 'auto_merge' | 'autonomous';
+
 interface GitSettings {
   enabled: boolean;
   integration_branch: string;
   protected_branches: string[];
+  autonomy_level: AutonomyLevel;
 }
+
+const AUTONOMY_OPTIONS: { value: AutonomyLevel; label: string; hint: string }[] = [
+  { value: 'draft', label: 'Draft — human merges', hint: 'Agent opens the PR; a human reviews and merges. Safest.' },
+  { value: 'auto_merge', label: 'Auto-merge on green CI', hint: 'Arms auto-merge when a required check exists; the PR merges itself once green.' },
+  { value: 'autonomous', label: 'Autonomous — full lifecycle', hint: 'Auto-merge plus the driver loop cleans up the worktree after merge.' },
+];
 
 interface GitState {
   remote: boolean;
@@ -421,6 +430,10 @@ interface GitState {
   required_check: boolean;
   pr_ok: boolean;
   missing: string[];
+  // Real repo state (TASK-534) — sourced from local git, present even when gh is down.
+  branches: string[];
+  current_branch: string;
+  remote_url: string;
 }
 
 const inputClass =
@@ -432,16 +445,22 @@ function GitTab() {
     ['settings-git'],
     '/api/settings',
   );
+  const loaded = data?.settings?.git_settings;
+  const [form, setForm] = useState<GitSettings | null>(null);
+  // Probe (incl. the gh-api required-check round-trip) only when pr-mode is on;
+  // staleTime caches it so re-opening the tab doesn't re-round-trip (TASK-534).
+  const probeEnabled = form ? form.enabled : !!loaded?.enabled;
   const {
     data: state,
     isLoading: stateLoading,
     error: stateError,
-  } = useApiGet<GitState>(['settings-git-state'], '/api/settings/git-state');
+  } = useApiGet<GitState>(['settings-git-state'], '/api/settings/git-state', undefined, {
+    enabled: probeEnabled,
+    staleTimeMs: 60_000,
+  });
 
-  const [form, setForm] = useState<GitSettings | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const loaded = data?.settings?.git_settings;
   // Seed the form once when settings arrive; deps gate the effect so it never loops.
   useEffect(() => {
     if (loaded && form === null) setForm(loaded);
@@ -460,6 +479,7 @@ function GitTab() {
           enabled: form.enabled,
           integration_branch: form.integration_branch.trim() || 'main',
           protected_branches: form.protected_branches,
+          autonomy_level: form.autonomy_level,
         },
       });
       await invalidateApiQueries(qc, 'settings-git');
@@ -471,6 +491,23 @@ function GitTab() {
     }
   };
 
+  const branches = state?.branches ?? [];
+  const hasBranchList = branches.length > 0;
+  // Warn (never block) when a configured branch doesn't exist in the repo — the
+  // free-text trap that let a consumer silently set a non-existent branch.
+  const unknownBranches = hasBranchList
+    ? [form.integration_branch, ...form.protected_branches]
+        .map((b) => b.trim())
+        .filter((b) => b && !branches.includes(b))
+    : [];
+  const toggleProtected = (branch: string, on: boolean) =>
+    setForm({
+      ...form,
+      protected_branches: on
+        ? [...form.protected_branches, branch]
+        : form.protected_branches.filter((x) => x !== branch),
+    });
+
   return (
     <>
       <TabIntro>
@@ -480,13 +517,14 @@ function GitTab() {
         {' '}<span className="font-mono text-[11px]">COS_GIT_WORKFLOW=pr</span> into the agent env.
       </TabIntro>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-[11px] text-[var(--cos-faint)]">capability:</span>
-        {stateLoading && <Pill tone="muted">checking…</Pill>}
-        {!stateLoading && stateError && !state && (
+        {!probeEnabled && <Pill tone="muted">enable pr-mode to probe</Pill>}
+        {probeEnabled && stateLoading && <Pill tone="muted">checking…</Pill>}
+        {probeEnabled && !stateLoading && stateError && !state && (
           <Pill tone="muted">unavailable — git/gh probe failed</Pill>
         )}
-        {state && (
+        {probeEnabled && state && (
           <>
             <Pill tone={state.remote ? 'ok' : 'muted'}>remote {state.remote ? '✓' : '—'}</Pill>
             <Pill tone={state.gh ? 'ok' : 'muted'}>gh {state.gh ? '✓' : '—'}</Pill>
@@ -495,6 +533,22 @@ function GitTab() {
           </>
         )}
       </div>
+
+      {probeEnabled && state && (state.current_branch || state.remote_url) && (
+        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[var(--cos-faint)]">
+          {state.current_branch && (
+            <span>
+              current: <span className="font-mono text-[var(--cos-muted)]">{state.current_branch}</span>
+            </span>
+          )}
+          {state.remote_url && (
+            <span>
+              remote: <span className="font-mono text-[var(--cos-muted)]">{state.remote_url}</span>
+            </span>
+          )}
+          <span>{state.branches.length} branches</span>
+        </div>
+      )}
 
       <div className="space-y-4 rounded-xl border border-[var(--cos-border)] p-4">
         <label className="flex items-center gap-3">
@@ -510,33 +564,111 @@ function GitTab() {
 
         <label className="block">
           <span className="text-xs font-medium text-[var(--cos-muted)]">Integration branch</span>
-          <input
-            value={form.integration_branch}
-            onChange={(e) => setForm({ ...form, integration_branch: e.target.value })}
-            placeholder="main"
-            className={inputClass}
-          />
+          {hasBranchList ? (
+            <select
+              value={form.integration_branch}
+              onChange={(e) => setForm({ ...form, integration_branch: e.target.value })}
+              className={inputClass}
+              aria-label="Integration branch"
+            >
+              {(branches.includes(form.integration_branch)
+                ? branches
+                : [form.integration_branch, ...branches]
+              ).map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                  {branches.includes(b) ? '' : ' (not in repo)'}
+                </option>
+              ))}
+            </select>
+          ) : (
+            // Fallback when no branch list (pr-mode off / no repo) — free text.
+            <input
+              value={form.integration_branch}
+              onChange={(e) => setForm({ ...form, integration_branch: e.target.value })}
+              placeholder="main"
+              className={inputClass}
+            />
+          )}
         </label>
+
+        <div className="block">
+          <span className="text-xs font-medium text-[var(--cos-muted)]">
+            Protected branches (never agent-writable)
+          </span>
+          {hasBranchList ? (
+            <div className="mt-1 max-h-40 space-y-1 overflow-auto rounded-md border border-[var(--cos-border)] p-2">
+              {branches.map((b) => (
+                <label key={b} className="flex items-center gap-2 text-sm text-[var(--cos-text)]">
+                  <input
+                    type="checkbox"
+                    checked={form.protected_branches.includes(b)}
+                    onChange={(e) => toggleProtected(b, e.target.checked)}
+                    className="h-3.5 w-3.5 accent-[var(--cos-accent)] focus-visible:ring-2"
+                  />
+                  <span className="font-mono text-[12px]">{b}</span>
+                </label>
+              ))}
+              {form.protected_branches
+                .filter((b) => !branches.includes(b))
+                .map((b) => (
+                  <label key={b} className="flex items-center gap-2 text-sm text-[var(--cos-faint)]">
+                    <input
+                      type="checkbox"
+                      checked
+                      onChange={() => toggleProtected(b, false)}
+                      className="h-3.5 w-3.5 accent-[var(--cos-accent)] focus-visible:ring-2"
+                    />
+                    <span className="font-mono text-[12px]">{b} (not in repo)</span>
+                  </label>
+                ))}
+            </div>
+          ) : (
+            // Fallback when no branch list — comma-separated free text.
+            <input
+              value={form.protected_branches.join(', ')}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  protected_branches: e.target.value
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                })
+              }
+              placeholder="production"
+              className={inputClass}
+            />
+          )}
+        </div>
 
         <label className="block">
           <span className="text-xs font-medium text-[var(--cos-muted)]">
-            Protected branches (comma-separated — never agent-writable)
+            Autonomy level (Trust Spectrum — how far the agent acts unattended)
           </span>
-          <input
-            value={form.protected_branches.join(', ')}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                protected_branches: e.target.value
-                  .split(',')
-                  .map((s) => s.trim())
-                  .filter(Boolean),
-              })
-            }
-            placeholder="production"
+          <select
+            value={form.autonomy_level}
+            onChange={(e) => setForm({ ...form, autonomy_level: e.target.value as AutonomyLevel })}
             className={inputClass}
-          />
+            aria-label="Autonomy level"
+          >
+            {AUTONOMY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <span className="mt-1 block text-[11px] text-[var(--cos-faint)]">
+            {AUTONOMY_OPTIONS.find((o) => o.value === form.autonomy_level)?.hint}
+          </span>
         </label>
+
+        {unknownBranches.length > 0 && (
+          <p className="rounded border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-400">
+            Not in this repo: <span className="font-mono">{unknownBranches.join(', ')}</span> — double-check
+            before saving.
+          </p>
+        )}
 
         {saveError && (
           <p role="alert" className="rounded border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-400">

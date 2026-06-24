@@ -27,6 +27,10 @@ export interface UseApiGetOptions {
   enabled?: boolean;
   /** Polling interval in ms — translated to TanStack `refetchInterval`. */
   refetchIntervalMs?: number;
+  /** How long a result stays fresh (ms) — translated to TanStack `staleTime`.
+   *  Caches expensive probes (e.g. the gh-api git-state) so re-opening a tab
+   *  doesn't re-round-trip. */
+  staleTimeMs?: number;
   /**
    * Merge the envelope's sibling `meta` block into the returned object
    * (as `data.meta`) — apiGet returns `[data, meta]` and the default
@@ -58,6 +62,7 @@ export function useApiGet<T>(
     },
     enabled: options?.enabled ?? true,
     refetchInterval: options?.refetchIntervalMs,
+    staleTime: options?.staleTimeMs,
   });
 }
 

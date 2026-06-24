@@ -26,6 +26,9 @@ _DEFAULTS: dict = {
         "enabled": False,
         "integration_branch": "main",
         "protected_branches": ["production"],
+        # Trust Spectrum (TASK-533): draft = human merges; auto_merge = arm on
+        # green required check; autonomous = + driver auto-cleanup. Safe default.
+        "autonomy_level": "draft",
     },
 }
 
@@ -137,16 +140,17 @@ def get_module_drift():
 
 @router.get("/git-state")
 def get_git_state():
-    """Read-only pr-mode capability (remote/gh/required-check) for the Config Git tab."""
+    """Read-only pr-mode capability + real repo git-state (branches/current/remote) for the Config Git tab."""
     try:
-        from cli.pr_commands import _integration_branch, _preflight
+        from cli.pr_commands import _git_state, _integration_branch, _preflight
         from web._project_context import current_project_root
 
         repo = str(current_project_root())
         cap = _preflight(repo, _integration_branch())
+        state = _git_state(repo)
     except Exception as exc:
         return _module_error(503, "unavailable", f"git-state unavailable: {exc}", True)
-    return {"data": cap, "meta": {"layer": "settings", "source": "settings.git_state"}}
+    return {"data": {**cap, **state}, "meta": {"layer": "settings", "source": "settings.git_state"}}
 
 
 @router.patch("/modules/{module_id}")
@@ -190,6 +194,7 @@ class _GitSettingsIn(BaseModel):
     enabled: bool
     integration_branch: str = "main"
     protected_branches: list[str] = ["production"]
+    autonomy_level: str = "draft"
 
 
 class _PatchBody(BaseModel):

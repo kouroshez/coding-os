@@ -202,12 +202,13 @@ unset _cos_in_wt
 if [[ -z "${COS_GIT_WORKFLOW:-}" && -f "${COS_STATE_DIR}/hub-settings.json" ]] \
      && command -v jq >/dev/null 2>&1 \
      && grep -q '"git_settings"' "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null; then
-  _cos_git_line="$(jq -r '[(.git_settings.enabled // false), (.git_settings.integration_branch // "main"), ((.git_settings.protected_branches // ["production"]) | join(","))] | @tsv' "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null || true)"
+  _cos_git_line="$(jq -r '[(.git_settings.enabled // false), (.git_settings.integration_branch // "main"), ((.git_settings.protected_branches // ["production"]) | join(",")), (.git_settings.autonomy_level // "draft")] | @tsv' "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null || true)"
   if [[ "$(printf '%s' "$_cos_git_line" | cut -f1)" == "true" ]]; then
     # Split declare/assign so shellcheck SC2155 stays clean (return-value masking).
     COS_GIT_INTEGRATION_BRANCH="$(printf '%s' "$_cos_git_line" | cut -f2)"
     COS_GIT_PROTECTED_BRANCHES="$(printf '%s' "$_cos_git_line" | cut -f3)"
-    export COS_GIT_WORKFLOW="pr" COS_GIT_INTEGRATION_BRANCH COS_GIT_PROTECTED_BRANCHES
+    COS_GIT_AUTONOMY="$(printf '%s' "$_cos_git_line" | cut -f4)"
+    export COS_GIT_WORKFLOW="pr" COS_GIT_INTEGRATION_BRANCH COS_GIT_PROTECTED_BRANCHES COS_GIT_AUTONOMY
   fi
   unset _cos_git_line
 fi
