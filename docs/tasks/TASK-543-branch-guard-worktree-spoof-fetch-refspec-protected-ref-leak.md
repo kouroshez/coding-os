@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: pr-mode-hardening
 labels: [ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
-completed: null
+completed: 2026-06-24
 agent_session: ses-claude-20260624-034200-e9e7
 depends_on: []
 blocked_by: []
@@ -45,3 +45,5 @@ Actual: spoof path allowed via raw-string OR-arm; fetch has no arm so it passes.
 - 2026-06-24 [claude]: Edit test_block_shared_tree_edit.py
 - 2026-06-24 [claude]: Edit test_block_shared_tree_edit.py
 - 2026-06-24 [claude]: Verified: 6 new TASK-543 tests green (spoof/fetch-refspec/colon-free/trunk), full test_branch_guard.py 118 passed,…
+- 2026-06-24 [claude]: committed 284e35a0 · 4 files
+- 2026-06-24 [claude]: Status transitioned to complete via cos task-done.
