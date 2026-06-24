@@ -3281,6 +3281,29 @@ class TestCosPr:
         assert "auto_merge_armed: False" in res.output
         assert "autonomy_level: draft" in res.output
 
+    def test_submit_local_autonomy_never_pushes(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-540: the `local` rung commits in the worktree but never pushes —
+        # works with NO remote at all (the repo fixture has none) and short-circuits
+        # before the capability probe, so a missing remote is the mode, not a degrade.
+        import cli.pr_commands as prc
+
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "local")
+        self._fake_gh(prc, monkeypatch)  # any gh pr merge => AssertionError
+
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
+
+        assert res.exit_code == 0, res.output
+        assert "merge_status: local" in res.output
+        assert "pushed: False" in res.output
+        assert "autonomy_level: local" in res.output
+        # branch stays local — nothing was pushed (no remote even exists)
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)
+
     def test_git_state_lists_branches_current_and_remote(self, repo: Path) -> None:
         # TASK-534: real repo state for the Hub Git tab — local git only, so it
         # answers (current + branches) even with no remote configured.

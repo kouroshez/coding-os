@@ -409,7 +409,7 @@ function ModulesTab() {
 // lives in Config, not the hub-level Settings page where model_routing sits.
 // --------------------------------------------------------------------------
 
-type AutonomyLevel = 'draft' | 'auto_merge' | 'autonomous';
+type AutonomyLevel = 'local' | 'draft' | 'auto_merge' | 'autonomous';
 
 interface GitSettings {
   enabled: boolean;
@@ -418,10 +418,18 @@ interface GitSettings {
   autonomy_level: AutonomyLevel;
 }
 
-const AUTONOMY_OPTIONS: { value: AutonomyLevel; label: string; hint: string }[] = [
-  { value: 'draft', label: 'Draft — human merges', hint: 'Agent opens the PR; a human reviews and merges. Safest.' },
-  { value: 'auto_merge', label: 'Auto-merge on green CI', hint: 'Arms auto-merge when a required check exists; the PR merges itself once green.' },
-  { value: 'autonomous', label: 'Autonomous — full lifecycle', hint: 'Auto-merge plus the driver loop cleans up the worktree after merge.' },
+// Ordered low→high trust. `needsRemote` rungs push/PR and are unavailable when
+// the probe reports no remote+gh; `local` always works (TASK-540).
+const AUTONOMY_OPTIONS: {
+  value: AutonomyLevel;
+  label: string;
+  hint: string;
+  needsRemote: boolean;
+}[] = [
+  { value: 'local', label: 'Local — never pushes', hint: 'Agent commits in the worktree but never pushes; a human reviews the branch and integrates. Works with no remote.', needsRemote: false },
+  { value: 'draft', label: 'Draft — human merges', hint: 'Agent pushes + opens the PR; a human reviews and merges. Safe default.', needsRemote: true },
+  { value: 'auto_merge', label: 'Auto-merge on green CI', hint: 'Arms auto-merge when a required check exists; the PR merges itself once green.', needsRemote: true },
+  { value: 'autonomous', label: 'Autonomous — full lifecycle', hint: 'Auto-merge plus the driver loop cleans up the worktree after merge.', needsRemote: true },
 ];
 
 interface GitState {
@@ -652,15 +660,44 @@ function GitTab() {
             className={inputClass}
             aria-label="Autonomy level"
           >
-            {AUTONOMY_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
+            {AUTONOMY_OPTIONS.map((opt) => {
+              // Auto-discovery (TASK-540): a probe with no remote/gh disables the
+              // push/PR rungs — but keep a saved-yet-now-unsupported value
+              // selectable so a probe blip never silently rewrites the choice.
+              const unavailable = !!state && opt.needsRemote && !state.pr_ok;
+              return (
+                <option
+                  key={opt.value}
+                  value={opt.value}
+                  disabled={unavailable && opt.value !== form.autonomy_level}
+                >
+                  {opt.label}
+                  {unavailable ? ' — needs remote + gh' : ''}
+                </option>
+              );
+            })}
           </select>
           <span className="mt-1 block text-[11px] text-[var(--cos-faint)]">
             {AUTONOMY_OPTIONS.find((o) => o.value === form.autonomy_level)?.hint}
           </span>
+          {state && !state.pr_ok && form.autonomy_level !== 'local' && (
+            <p className="mt-1 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] text-amber-400">
+              This repo has no {!state.remote ? 'git remote' : 'gh auth'} — push/PR rungs
+              degrade to trunk at submit. Use <span className="font-mono">Local</span>, or run{' '}
+              <span className="font-mono">{!state.remote ? 'git remote add' : 'gh auth login'}</span>.
+            </p>
+          )}
+          {state &&
+            state.pr_ok &&
+            !state.required_check &&
+            (form.autonomy_level === 'auto_merge' || form.autonomy_level === 'autonomous') && (
+              <p className="mt-1 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] text-amber-400">
+                No required status check on{' '}
+                <span className="font-mono">{form.integration_branch}</span> — auto-merge will not
+                arm; the PR stays open for manual merge. Add a required check, or use{' '}
+                <span className="font-mono">Draft</span>/<span className="font-mono">Local</span>.
+              </p>
+            )}
         </label>
 
         {unknownBranches.length > 0 && (

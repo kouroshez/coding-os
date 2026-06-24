@@ -6,6 +6,7 @@ import json
 import logging
 import os
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
@@ -194,7 +195,10 @@ class _GitSettingsIn(BaseModel):
     enabled: bool
     integration_branch: str = "main"
     protected_branches: list[str] = ["production"]
-    autonomy_level: str = "draft"
+    # Trust Spectrum (TASK-540): local = no push at all; draft/auto_merge/autonomous
+    # push. Literal rejects a typo'd rung at the API edge instead of letting it
+    # reach cos-env → COS_GIT_AUTONOMY where it would silently behave as draft.
+    autonomy_level: Literal["local", "draft", "auto_merge", "autonomous"] = "draft"
 
 
 class _PatchBody(BaseModel):

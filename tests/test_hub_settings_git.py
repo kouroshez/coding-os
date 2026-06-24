@@ -105,6 +105,17 @@ def test_git_settings_autonomy_level_defaults_draft_and_round_trips(client):
     assert gs["enabled"] is True
 
 
+def test_git_settings_local_rung_accepted_and_invalid_rejected(client):
+    # TASK-540: `local` is the new lowest rung (agent never pushes); the Literal
+    # on _GitSettingsIn accepts it and rejects a typo'd rung at the API edge so a
+    # bad value never reaches cos-env → COS_GIT_AUTONOMY.
+    ok = client.patch("/api/settings", json={"git_settings": {"enabled": True, "autonomy_level": "local"}})
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["data"]["settings"]["git_settings"]["autonomy_level"] == "local"
+    bad = client.patch("/api/settings", json={"git_settings": {"enabled": True, "autonomy_level": "yolo"}})
+    assert bad.status_code == 422, bad.text
+
+
 def test_git_state_endpoint_reports_capability(client):
     # No git repo at the project root => not pr_ok; the endpoint must still
     # answer (degrade signal), never 500.

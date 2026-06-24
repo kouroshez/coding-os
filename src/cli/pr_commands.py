@@ -343,6 +343,25 @@ def pr_submit(
     if not (wt / ".git").exists():
         raise click.ClickException(f"no open worktree at {wt} — run 'cos pr open' first.")
 
+    # `local` rung (TASK-540): commit-only, never push. Short-circuits before the
+    # capability probe so a repo with no remote is the intended mode, not a degrade.
+    autonomy = _autonomy_level()
+    if autonomy == "local":
+        _emit(
+            {
+                "branch": branch,
+                "pushed": False,
+                "autonomy_level": "local",
+                "merge_status": "local",
+                "action": (
+                    f"committed locally, not pushed (autonomy=local) — review with "
+                    f"'git diff {integration}..{branch}' and integrate manually."
+                ),
+            },
+            as_json,
+        )
+        return
+
     cap = _preflight(repo, integration)
     if not cap["pr_ok"]:
         _emit(
@@ -402,7 +421,6 @@ def pr_submit(
         cwd=wt,
     )
     pr_ok = pr.returncode == 0
-    autonomy = _autonomy_level()
     arm_allowed = autonomy in ("auto_merge", "autonomous")
     armed = False
     if pr_ok and arm_allowed and cap["required_check"]:
