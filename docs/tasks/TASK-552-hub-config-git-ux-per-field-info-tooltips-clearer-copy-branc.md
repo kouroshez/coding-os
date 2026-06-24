@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: multi-agent-pr-mode
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
-completed: null
+completed: 2026-06-24
 agent_session: ses-claude-20260624-034200-e9e7
 depends_on: []
 blocked_by: []
@@ -86,3 +86,5 @@ When the tab is read-only, show a clear banner — "coding-os itself stays trunk
 - 2026-06-24 [claude]: Edit ConfigPage.test.tsx
 - 2026-06-24 [claude]: Edit ConfigPage.test.tsx
 - 2026-06-24 [claude]: Built InfoTip (hover+click+Esc, aria) + Chip + FieldLabel co-located in ConfigPage; quick-start preset row…
+- 2026-06-24 [claude]: committed b210bdce · 2 files
+- 2026-06-24 [claude]: Status transitioned to complete via cos task-done.
