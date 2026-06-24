@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 import sys
 
 
@@ -102,6 +103,9 @@ def main(argv: list[str]) -> int:
         "agent": agent,
         "session_id": sid,
         "pid": pid,
+        # Host of the recorded pid — the pr-mode reaper only treats a dead pid as
+        # death evidence when this matches its own host (pid_alive is host-local).
+        "host": socket.gethostname(),
         "started_at": prev.get("started_at"),
         "last_prompt_at": prev.get("last_prompt_at"),
         "last_tool_at": prev.get("last_tool_at"),
