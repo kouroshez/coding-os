@@ -140,14 +140,16 @@ def get_module_drift():
 
 
 @router.get("/git-state")
-def get_git_state():
+def get_git_state(integration: str | None = None):
     """Read-only pr-mode capability + real repo git-state (branches/current/remote) for the Config Git tab."""
     try:
         from cli.pr_commands import _git_state, _integration_branch, _preflight
         from web._project_context import current_project_root
 
         repo = str(current_project_root())
-        cap = _preflight(repo, _integration_branch(repo))
+        # Probe the branch the user is editing, not the saved one — else the
+        # required_check/pr_ok pills + auto_merge warning lie while editing (M2).
+        cap = _preflight(repo, integration or _integration_branch(repo))
         state = _git_state(repo)
     except Exception as exc:
         return _module_error(503, "unavailable", f"git-state unavailable: {exc}", True)

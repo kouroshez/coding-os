@@ -127,3 +127,29 @@ def test_git_state_endpoint_reports_capability(client):
         # TASK-534: real git-state keys are merged in alongside the capability probe
         assert set(cap) >= {"branches", "current_branch", "remote_url"}
         assert isinstance(cap["branches"], list)
+
+
+def test_git_state_probes_query_param_branch(client, monkeypatch):
+    # TASK-549/M2: ?integration=<x> must reach _preflight so the capability pills
+    # reflect the branch the user is editing, not the saved one. Stub _preflight +
+    # _git_state so the probe runs without a real repo/gh and capture the branch.
+    import cli.pr_commands as pr
+
+    seen: dict = {}
+
+    def fake_preflight(repo, integration):
+        seen["integration"] = integration
+        return {"remote": True, "gh": True, "required_check": True, "pr_ok": True, "missing": []}
+
+    monkeypatch.setattr(pr, "_preflight", fake_preflight)
+    monkeypatch.setattr(
+        pr, "_git_state", lambda repo: {"branches": [], "current_branch": "", "remote_url": ""}
+    )
+
+    assert client.get("/api/settings/git-state?integration=develop").status_code == 200
+    assert seen["integration"] == "develop"
+    # Absent param falls back to the saved/default branch (not the query value).
+    seen.clear()
+    monkeypatch.setattr(pr, "_integration_branch", lambda repo: "main")
+    assert client.get("/api/settings/git-state").status_code == 200
+    assert seen["integration"] == "main"

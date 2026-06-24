@@ -458,14 +458,21 @@ function GitTab() {
   // Probe (incl. the gh-api required-check round-trip) only when pr-mode is on;
   // staleTime caches it so re-opening the tab doesn't re-round-trip (TASK-534).
   const probeEnabled = form ? form.enabled : !!loaded?.enabled;
+  // Probe the branch the user is currently selecting, not the saved one — and
+  // key the cache by it so switching the dropdown refetches the required_check /
+  // pr_ok pills + the auto_merge warning for THAT branch (M2). staleTime still
+  // caches per-branch, so re-opening the tab on the same branch is a no-op.
+  const probeBranch = (form?.integration_branch ?? loaded?.integration_branch ?? 'main').trim() || 'main';
   const {
     data: state,
     isLoading: stateLoading,
     error: stateError,
-  } = useApiGet<GitState>(['settings-git-state'], '/api/settings/git-state', undefined, {
-    enabled: probeEnabled,
-    staleTimeMs: 60_000,
-  });
+  } = useApiGet<GitState>(
+    ['settings-git-state', probeBranch],
+    '/api/settings/git-state',
+    { integration: probeBranch },
+    { enabled: probeEnabled, staleTimeMs: 60_000 },
+  );
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);

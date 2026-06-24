@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: pr-mode-hardening
 labels: [ready]
-status: icebox
+status: testing
 priority: P2
 appetite: 1d
 created: 2026-06-24
-started: null
+started: 2026-06-24
 completed: null
-agent_session: null
+agent_session: ses-claude-20260624-034200-e9e7
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-549: pr-mode Hub git-state probe uses saved branch, not the form-selected one (capability pills lie)
 
 **Outcome (one sentence):** GET /api/settings/git-state accepts an optional `integration` query param and probes that branch; the Hub Config→Git tab passes the form-selected integration_branch and keys the React-Query cache by it, so the required_check / pr_ok pills and the auto_merge gating warning reflect the branch the user is editing, not the last-saved one.
@@ -35,3 +34,7 @@ In Config→Git with pr-mode on, change the Integration branch dropdown to a bra
 **Given** pr-mode is enabled and a user selects a different integration branch in the Config→Git dropdown, **When** the git-state probe runs, **Then** `_preflight` is called with the form-selected branch (verified via a route test asserting `?integration=<x>` reaches `_preflight`) and the required-CI pill + auto-merge warning reflect that branch, not the saved one.
 
 ## Work Log
+- 2026-06-24 [claude]: Edit settings.py
+- 2026-06-24 [claude]: Edit ConfigPage.tsx
+- 2026-06-24 [claude]: Edit test_hub_settings_git.py
+- 2026-06-24 [claude]: Route get_git_state(integration: str | None) probes integration or _integration_branch(repo); ConfigPage GitTab…
