@@ -38,7 +38,6 @@ W_ACCESS = 0.15
 
 
 def _days_since(dt_str: str | None) -> float:
-    """Return days since a datetime string, or 999 if None."""
     if not dt_str:
         return 999.0
     try:
@@ -52,22 +51,18 @@ def _days_since(dt_str: str | None) -> float:
 
 
 def _recency_score(days: float) -> float:
-    """Half-life decay: 1.0 at 0 days, 0.5 at 30 days."""
+    # half-life decay: 1.0 at 0 days, 0.5 at 30 days
     return 1.0 / (1.0 + days / 30.0)
 
 
 def _access_score(count: int) -> float:
-    """Normalize access count to 0-1 range."""
     return min(1.0, (count or 0) / 10.0)
 
 
 def _re_verify_recommended(files_modified: str | None, created_at: str | None) -> bool:
-    """True when the referenced file changed after the record was written.
-
-    A drift signal — the recalled memory may describe code that has since
-    changed, so the agent should Read the current file before trusting it.
-    See docs/engineering/learning-extraction.md (drift contract).
-    """
+    # Drift signal: True when the referenced file changed after the record was
+    # written — the memory may describe code that has since changed, so re-Read
+    # before trusting it. See docs/engineering/learning-extraction.md.
     if not files_modified or not created_at:
         return False
     from pathlib import Path
@@ -92,7 +87,6 @@ def _compute_score(
     impact: float,
     access_count: int,
 ) -> float:
-    """5-signal ranking score."""
     return (
         W_RELEVANCE * relevance
         + W_CONFIDENCE * min(1.0, max(0.0, confidence))
@@ -103,7 +97,6 @@ def _compute_score(
 
 
 def _boost_access(conn: sqlite3.Connection, table: str, row_id: int) -> None:
-    """Update access_count, last_accessed_at, and confidence on retrieval."""
     if table == "learned_patterns":
         conn.execute(
             "UPDATE learned_patterns SET "
@@ -132,13 +125,8 @@ def _boost_access(conn: sqlite3.Connection, table: str, row_id: int) -> None:
 
 
 def _blend_score(five_signal: float, semantic: float) -> float:
-    """Combine the existing 5-signal score with a semantic similarity score.
-
-    When semantic > 0 (the row had an embedding hit), blend 50/50.
-    When semantic == 0 (no hit), keep the 5-signal score unchanged so rows
-    that don't have embeddings rank exactly as before — preserving full
-    backward compatibility.
-    """
+    # 50/50 blend on an embedding hit; with no hit (semantic == 0) keep the
+    # 5-signal score unchanged so non-embedding rows rank exactly as before.
     if semantic <= 0.0:
         return five_signal
     return 0.5 * five_signal + 0.5 * semantic
@@ -152,18 +140,9 @@ def _augment_with_semantic(
     memory_type: str | None,
     overfetch: int,
 ) -> bool:
-    """Run an embedding similarity search and merge results into `candidates`.
-
-    Side effects:
-    - For candidates already in the list (from FTS5/LIKE), set their
-      `semantic_score` field if a matching embedding hit exists.
-    - For semantic-only hits (rows the FTS5/LIKE search missed), fetch the
-      row metadata and append a new candidate entry with the same shape.
-
-    Returns:
-        True if any semantic results were merged, False otherwise (graceful
-        fallback when embeddings unavailable).
-    """
+    # Merges embedding hits into `candidates` (mutates it): sets semantic_score on
+    # rows already present, appends semantic-only hits. Returns False (graceful
+    # fallback) when embeddings are unavailable.
     try:
         from embeddings import is_available, search_similar
     except ImportError as exc:
@@ -218,12 +197,7 @@ def _hydrate_row_for_semantic_hit(
     source_table: str,
     source_id: int,
 ) -> dict | None:
-    """Fetch a row from observations or learned_patterns and shape it like
-    the candidate dicts produced by the FTS5/LIKE branches.
-
-    Returns None for unknown source_table or missing rows so the caller can
-    skip cleanly.
-    """
+    # Shape a semantic-only hit like the FTS5/LIKE candidate dicts; None if the row is gone.
     if source_table == "observations":
         row = conn.execute(
             "SELECT id, title, memory_type, impact_score, created_at "
