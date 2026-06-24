@@ -103,8 +103,8 @@ describe('GitTab (TASK-552)', () => {
     expect(screen.getByText('Team + GitHub CI')).toBeInTheDocument();
     // ...with one caution that enabling here flips the mother repo off trunk.
     expect(screen.getByText(/viewing coding-os, the meta-repo/)).toBeInTheDocument();
-    // The old read-only dead-box banner is gone.
-    expect(screen.queryByText('coding-os itself stays trunk.')).toBeNull();
+    // Meta framing now lives ONLY in that amber caution — the intro/tooltip no longer leak it (TASK-560).
+    expect(screen.queryByText(/coding-os itself/)).toBeNull();
   });
 
   it('offers quick-start presets and per-field info controls on a consumer project', () => {
@@ -112,6 +112,9 @@ describe('GitTab (TASK-552)', () => {
     expect(screen.getByRole('checkbox', { name: 'Enable pr-mode' })).toBeInTheDocument();
     expect(screen.getByText('Team + GitHub CI')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'What is Integration branch?' })).toBeInTheDocument();
+    // A consumer must never see meta-repo framing (TASK-560): no amber caution, no "coding-os itself" leak.
+    expect(screen.queryByText(/viewing coding-os, the meta-repo/)).toBeNull();
+    expect(screen.queryByText(/coding-os itself/)).toBeNull();
   });
 
   it('highlights the preset that matches the form, not the Recommended one (TASK-555)', () => {

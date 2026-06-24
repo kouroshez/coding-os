@@ -572,7 +572,7 @@ const QUICK_START_PRESETS: {
 // Per-field info copy (what + how) — paraphrases pr-workflow.md.
 const FIELD_TIPS = {
   enabled:
-    'Multi-agent safety mode. Each agent works in its own isolated git worktree (under ~/.coding-os/worktrees) and lands changes via a Pull Request — so 5+ agents never overwrite or block each other. Off = trunk: agents commit straight to the branch (fine for one agent, risky for many). coding-os itself always stays trunk.',
+    'Multi-agent safety mode. Each agent works in its own isolated git worktree (under ~/.coding-os/worktrees) and lands changes via a Pull Request — so 5+ agents never overwrite or block each other. Off = trunk: agents commit straight to the branch (fine for one agent, risky for many).',
   integration_branch:
     'The branch agents merge their work into, via PR — they branch off it and target it. Usually main or develop. It stays always-green: broken code can’t reach it because CI gates the merge.',
   protected_branches:
@@ -683,7 +683,7 @@ function GitTab() {
   // Selected look keys on "matches the current form", NOT `recommended` — so the
   // Recommended card isn't pre-selected and a clicked preset reads as chosen.
   const sameSet = (a: string[], b: string[]) =>
-    a.length === b.length && [...a].sort().join(' ') === [...b].sort().join(' ');
+    a.length === b.length && [...a].sort().join('\u0000') === [...b].sort().join('\u0000');
   const isPresetActive = (apply: GitSettings) =>
     form.enabled === apply.enabled &&
     // normalize the integration branch the same way save() does, so a raw-typed
@@ -697,8 +697,8 @@ function GitTab() {
       <TabIntro>
         pr-mode multi-agent git workflow. <strong className="text-[var(--cos-text)]">Off by default</strong>
         {' '}— when enabled, agents isolate every change in its own git worktree and land it via a Pull
-        Request, so many agents never overwrite or block each other (consumer-only; coding-os itself
-        stays trunk). Pick a quick start below, or set each field by hand — then Save.
+        Request, so many agents never overwrite or block each other. Pick a quick start below, or set
+        each field by hand — then Save.
       </TabIntro>
 
       {isMetaRepo && (
