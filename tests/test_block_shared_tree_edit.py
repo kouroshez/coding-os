@@ -92,3 +92,26 @@ def test_inert_for_non_write_tool(tmp_path: Path) -> None:
     repo, state = _repo(tmp_path)
     code, _ = _run(f"{repo}/src/app.py", workflow="pr", state_dir=state, tool="Bash")
     assert code == 0
+
+
+def test_blocks_traversal_spoof_escaping_worktree_in_pr_mode(tmp_path: Path) -> None:
+    # TASK-543: a path with `/.coding-os/worktrees/` followed by `..` segments that
+    # escape back into the shared checkout must classify on the RESOLVED path, not
+    # the raw string — the spoof that the worktree allow-case used to wave through.
+    repo, state = _repo(tmp_path)
+    (Path(repo) / "src").mkdir(parents=True)
+    # The worktree dirs must exist for the `..` segments to resolve (cd -P walks them).
+    (Path(repo) / ".coding-os" / "worktrees" / "slug" / "wt").mkdir(parents=True)
+    spoof = f"{repo}/.coding-os/worktrees/slug/wt/../../../../src/app.py"
+    code, err = _run(spoof, workflow="pr", state_dir=state)
+    assert code == 2
+    assert "worktree" in err.lower()
+
+
+def test_allows_real_worktree_path_in_pr_mode(tmp_path: Path) -> None:
+    # The genuine worktree path (no escape) still passes after the reorder.
+    repo, state = _repo(tmp_path)
+    wt = Path(repo) / ".coding-os" / "worktrees" / "slug" / "wt" / "src"
+    wt.mkdir(parents=True)
+    code, _ = _run(f"{wt}/app.py", workflow="pr", state_dir=state)
+    assert code == 0

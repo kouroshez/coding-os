@@ -656,6 +656,46 @@ def test_pr_mode_allows_update_ref_agents() -> None:
     assert code == 0
 
 
+# --- TASK-543: worktree-spoof + fetch-refspec leaks --------------------------
+
+
+def test_pr_mode_blocks_reset_via_traversal_spoof_into_shared() -> None:
+    # `.../worktrees/x/../../../..` realpath-resolves OUT of the worktree into the
+    # shared checkout — the old raw-string OR-arm wrongly treated it as worktree.
+    code, err = _run(f"cd {_WT}/../../../.. && git reset HEAD~3", workflow="pr")
+    assert code == 2
+    assert "worktree" in err.lower()
+
+
+def test_pr_mode_blocks_fetch_refspec_to_integration() -> None:
+    code, err = _run("git fetch origin master:main", workflow="pr")
+    assert code == 2
+    assert "protected" in err.lower() or "ref" in err.lower()
+
+
+def test_pr_mode_blocks_fetch_delete_refspec_protected() -> None:
+    # `git fetch origin :production` updates/deletes the local protected ref.
+    code, _ = _run("git fetch origin :production", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_allows_colon_free_fetch() -> None:
+    # The legit pr-mode fetch never uses a colon — must NOT block.
+    code, _ = _run("git fetch origin main", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_allows_fetch_refspec_to_agents() -> None:
+    code, _ = _run("git fetch origin main:agents/x/1", workflow="pr")
+    assert code == 0
+
+
+def test_trunk_fetch_unchanged() -> None:
+    # The fetch arm is pr-only; trunk must stay byte-identical.
+    code, _ = _run("git fetch origin master:main")
+    assert code == 0
+
+
 # --- TASK-528 trunk-mode must stay byte-identical (no new blocks) ------------
 
 

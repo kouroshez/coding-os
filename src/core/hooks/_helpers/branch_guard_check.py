@@ -372,10 +372,11 @@ def _protected_branches() -> set[str]:
 def _is_worktree_path(path: str) -> bool:
     if not path:
         return False
-    # Resolve symlinks before comparing (Rule 5: macOS /tmp ↔ /private/tmp); a
-    # missing tail still resolves its existing prefix, enough for the compare.
+    # Resolve symlinks AND `..` segments before comparing (Rule 5: macOS /tmp ↔
+    # /private/tmp); test ONLY the resolved path — a raw arm let a spoof like
+    # `.../worktrees/x/../../../realmain` (resolves INTO the shared checkout) pass.
     real = os.path.realpath(path)
-    if "/.coding-os/worktrees/" in real or "/.coding-os/worktrees/" in path:
+    if "/.coding-os/worktrees/" in real:
         return True
     root = os.environ.get("COS_WORKTREE_ROOT", "")
     if not root:
@@ -606,6 +607,16 @@ def _pr_check(
     if subcmd == "update-ref":
         if _pr_update_ref_blocks(args, blocked_push):
             return "pr-protected-ref", _PR_MSG["protected-ref"]
+        return None, None
+    if subcmd == "fetch":
+        # `git fetch origin x:main` / `:production` writes a blocked LOCAL ref;
+        # legit pr-mode fetches never use a colon, so a refspec with one whose
+        # destination is blocked is the leak. Refs are global → scope is moot.
+        for a in args:
+            if a.startswith("-") or ":" not in a:
+                continue
+            if _unqualify_ref(a.rsplit(":", 1)[-1]) in blocked_push:
+                return "pr-protected-ref", _PR_MSG["protected-ref"]
         return None, None
     if subcmd in {"checkout", "switch"}:
         # -b/-B (checkout) or -b/-B/-c/-C (switch) force-create/reset a branch ref;
