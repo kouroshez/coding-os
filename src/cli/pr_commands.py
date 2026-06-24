@@ -470,7 +470,11 @@ def pr_submit(
     # so a red / quota-dead CI (TASK-513) can't grow open PRs without bound, and
     # a capped submit never orphans a pushed branch with no PR (§8, findings 7/9).
     cap_max = _env_int("COS_PR_MAX_OPEN", 5)
-    open_prs = _open_pr_count(repo, session)
+    # Count against the resolved branch's session, not the process session — under
+    # session-id drift (_resolve_worktree) `branch` carries the original session
+    # while `session` is a fresh pid-<getpid>; counting the latter reads 0 and
+    # bypasses the cap on exactly the branch being pushed (review finding 1).
+    open_prs = _open_pr_count(repo, branch.rsplit("/", 1)[-1])
     # open_prs < 0 = could not determine (gh down / quota-dead) — fail SAFE and
     # refuse the push rather than count it as "0 open PRs" (M1).
     unknown = open_prs < 0
@@ -724,6 +728,23 @@ def pr_cleanup(
     # Merge-gate (TASK-530): only destroy the worktree+branch once work has landed
     # (merged/closed) or is fully on origin; --force is the human override.
     if not force:
+        # Ownership gate (review finding 2): under session drift the single-candidate
+        # fallback in _resolve_worktree can resolve a live PEER's worktree (same task
+        # slug, different session) — destroying it would wipe active peer work. Refuse
+        # only when the owner session is provably LIVE; a drifted-gone ("unknown") or
+        # dead ("offline") owner still cleans up, preserving the TASK-541 drift path.
+        owner_session = branch.rsplit("/", 1)[-1]
+        if owner_session != session and _session_state(owner_session, repo) == "live":
+            _emit(
+                {
+                    "removed": False,
+                    "branch": branch,
+                    "owner_session": owner_session,
+                    "action": "worktree belongs to another live session — not removing; its owner or 'cos pr reap' will GC it, or re-run with --force",
+                },
+                as_json,
+            )
+            sys.exit(1)
         state = _pr_state(repo, branch)
         if state == "open":
             _emit(

@@ -3427,6 +3427,33 @@ class TestCosPr:
         assert res.exit_code == 0, res.output
         assert "agents/TASK-888/ses-AAA" not in self._branches(repo)  # the real branch was removed
 
+    def test_cleanup_refuses_live_peer_worktree_under_drift(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Review finding 2: the single-candidate fallback can resolve a LIVE peer's
+        # worktree (same task slug, different session). cleanup must refuse to destroy
+        # it (no peer data-loss) when the owner session is provably live — but the
+        # TASK-541 drift path (owner gone, "unknown") above still cleans up.
+        import os
+        import socket
+
+        monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-AAA")
+        runner.invoke(cli, ["pr", "open", "--task", "TASK-999", "--repo", str(repo)])
+        assert "agents/TASK-999/ses-AAA" in self._branches(repo)
+
+        # ses-AAA is provably live: a presence record carrying this (alive) pid + host.
+        sess_dir = repo / ".coding-os" / "panel-x" / "sessions"
+        sess_dir.mkdir(parents=True, exist_ok=True)
+        (sess_dir / "ses-AAA.json").write_text(
+            json.dumps({"pid": os.getpid(), "host": socket.gethostname()}), encoding="utf-8"
+        )
+
+        monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-BBB")
+        res = runner.invoke(cli, ["pr", "cleanup", "--task", "TASK-999", "--repo", str(repo)])
+        assert res.exit_code == 1, res.output
+        assert "another live session" in res.output
+        assert "agents/TASK-999/ses-AAA" in self._branches(repo)  # peer worktree NOT destroyed
+
     def test_git_state_lists_branches_current_and_remote(self, repo: Path) -> None:
         # TASK-534: real repo state for the Hub Git tab — local git only, so it
         # answers (current + branches) even with no remote configured.
