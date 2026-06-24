@@ -5,18 +5,17 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [tech-debt, comments, dogfood, ready]
-status: icebox
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-24
-started: null
-completed: null
-agent_session: null
+started: 2026-06-24
+completed: 2026-06-24
+agent_session: ses-claude-20260624-002336-1f4e
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-539: Continue internal-helper docstring sweep — learning.py, docs.py (thinking_os), board_os/mcp_tools.py, graph_os hot helpers
 
 **Outcome (one sentence):** Finish the Rule-12 internal-helper-docstring cleanup begun in TASK-538: remove or condense the remaining `def _helper` docstrings the imitation audit flagged — learning.py (19/25), docs.py (9/11) under src/core/thinking_os/tools, src/core/board_os/mcp_tools.py (29/53), and the graph_os hot helpers — converting genuine non-obvious WHY to a single terse comment, deleting what-restating docstrings, keeping @mcp.tool one-liners and module docstrings. Behavior-neutral.
@@ -33,3 +32,71 @@ references: []
 **Given** an agent later reads these files, **When** it calibrates comment density, **Then** "match surrounding density" no longer pulls it toward over-commenting.
 
 ## Work Log
+- 2026-06-24 [claude]: Edit _shared.py
+- 2026-06-24 [claude]: Edit docs.py
+- 2026-06-24 [claude]: Edit communities.py
+- 2026-06-24 [claude]: Edit _shared.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit communities.py
+- 2026-06-24 [claude]: Edit docs.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit docs.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit _shared.py
+- 2026-06-24 [claude]: Edit communities.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit communities.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit docs.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit communities.py
+- 2026-06-24 [claude]: Edit communities.py
+- 2026-06-24 [claude]: Edit docs.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit communities.py
+- 2026-06-24 [claude]: Edit docs.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit docs.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit docs.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit docs.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit learning.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Edit mcp_tools.py
+- 2026-06-24 [claude]: Workflow (5 agents, 1/file) swept internal-helper docstrings: learning.py 19, mcp_tools.py 29, docs.py 9,…
