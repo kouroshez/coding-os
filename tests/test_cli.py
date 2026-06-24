@@ -3053,6 +3053,50 @@ class TestCosPr:
         assert res.exit_code == 0, res.output
         assert "agents/adhoc/ses-test-abc" not in self._branches(repo)  # dead pid → reaped
 
+    def test_reap_preserves_dead_pid_unpushed_work(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-535: a dead-pid orphan with a LOCAL-ONLY commit (not on origin) + an
+        # uncommitted untracked file must be PRESERVED — bundled to the quarantine dir
+        # — before the worktree+branch are GC'd. The old `_reap_one` destroyed both
+        # unconditionally (the #1 data-loss risk); preservation is the safety net.
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)  # no remote/gh in the test
+        reaped_root = tmp_path / "reaped"
+        monkeypatch.setenv("COS_REAPED_ROOT", str(reaped_root))
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        # a local-only commit (never pushed) + an untracked uncommitted file — the work at risk
+        (wt / "feature.py").write_text("VALUE = 42\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(wt), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "-m", "feat: unpushed work"], check=True)
+        (wt / "dirty.txt").write_text("uncommitted", encoding="utf-8")
+        # positive death evidence: a recorded pid that is not alive on this host
+        sess_dir = repo / ".coding-os" / "claude" / "sessions"
+        sess_dir.mkdir(parents=True, exist_ok=True)
+        (sess_dir / "ses-test-abc.json").write_text(
+            json.dumps({"session_id": "ses-test-abc", "pid": 2147483646}), encoding="utf-8"
+        )
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        # worktree GC'd (disposable) + branch deleted (work is safe in the bundle)...
+        assert "adhoc-ses-test-abc" not in self._worktrees(repo)
+        assert "agents/adhoc/ses-test-abc" not in self._branches(repo)
+        # ...and the unpushed work is recoverable from the preserved bundle.
+        bundles = list(reaped_root.rglob("*.bundle"))
+        assert bundles, "reaper must preserve unpushed work as a bundle before GC"
+        subprocess.run(
+            ["git", "-C", str(repo), "fetch", str(bundles[0]),
+             "refs/heads/agents/adhoc/ses-test-abc:refs/recovered/x"],
+            check=True, capture_output=True, text=True,
+        )
+        log = subprocess.run(
+            ["git", "-C", str(repo), "log", "--oneline", "refs/recovered/x"],
+            capture_output=True, text=True,
+        ).stdout
+        assert "unpushed work" in log  # the agent's local-only commit survived
+
     def test_pr_close_keeps_entry_when_list_fails(
         self, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

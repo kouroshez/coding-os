@@ -569,6 +569,25 @@ def _branch_recoverable(repo: str, branch: str, integration: str) -> bool:
     return False
 
 
+def _preserve_reaped(repo: str, wt: Path, branch: str) -> str | None:
+    # gh-independent, offline-safe preservation before a reap destroys anything
+    # (TASK-535). Commit any uncommitted/untracked work onto the (doomed) branch —
+    # the worktree + branch are about to be GC'd, so mutating them is free, and
+    # `--no-verify` guarantees the capture can't be blocked by a consumer hook
+    # (a plain `git stash create` would silently drop untracked files, which is
+    # exactly the new files an agent creates). Then bundle the branch tip into a
+    # quarantine dir. Returns the bundle path, or None when the bundle failed.
+    if _git_out(["status", "--porcelain"], cwd=wt):
+        _git(["add", "-A"], cwd=wt)
+        _git(["commit", "-q", "--no-verify", "-m", f"chore: preserve reaped agent work ({branch})"], cwd=wt)
+    base = os.environ.get("COS_REAPED_ROOT") or str(Path.home() / ".coding-os" / "reaped")
+    qdir = Path(base) / _repo_slug(repo)
+    qdir.mkdir(parents=True, exist_ok=True)
+    bundle = qdir / f"{_sanitize(branch)}-{int(time.time())}.bundle"
+    ok = _git(["bundle", "create", str(bundle), branch], cwd=repo).returncode == 0
+    return str(bundle) if ok else None
+
+
 @pr_group.command("cleanup", help="Remove the worktree + delete the branch + prune (merge-gated; --force to override).")
 @click.option("--task", "task_id", default=None)
 @click.option("--adhoc", is_flag=True)
@@ -769,13 +788,25 @@ def _pr_close(repo: str, branch: str) -> bool:
 
 
 def _reap_one(repo: str, wt: Path, branch: str) -> dict:
+    # The worktree is a disposable checkout (always GC'd); the branch commits +
+    # uncommitted changes are the WORK and must survive (TASK-535). So: preserve
+    # whenever the branch is not already on origin/integration OR the tree is dirty,
+    # and delete the local branch ONLY once the work is safe — recoverable from a
+    # remote ref, or a recovery bundle was confirmed. If both fail, keep the branch.
+    integration = _integration_branch()
+    recoverable = _branch_recoverable(repo, branch, integration)
+    dirty = bool(_git_out(["status", "--porcelain"], cwd=wt))
+    preserved = _preserve_reaped(repo, wt, branch) if (not recoverable or dirty) else None
+    work_safe = recoverable or preserved is not None
+
     _git(["worktree", "unlock", str(wt)], cwd=repo)  # offline worktrees may be locked
     removed = _git(["worktree", "remove", "--force", str(wt)], cwd=repo).returncode == 0
-    local = _git(["branch", "-D", branch], cwd=repo).returncode == 0
-    remote_pending = _has_remote(repo)
-    if remote_pending:
-        remote_pending = _git(["push", "origin", "--delete", branch], cwd=repo).returncode != 0
-    pr_pending = _gh_ready() and not _pr_close(repo, branch)
+    local = remote_pending = pr_pending = False
+    if work_safe:
+        local = _git(["branch", "-D", branch], cwd=repo).returncode == 0
+        if _has_remote(repo):
+            remote_pending = _git(["push", "origin", "--delete", branch], cwd=repo).returncode != 0
+        pr_pending = _gh_ready() and not _pr_close(repo, branch)
     _git(["worktree", "prune"], cwd=repo)
     _heal_budget_clear(repo, branch)  # owner is gone — drop its heal budget (finding 8)
     if remote_pending or pr_pending:
@@ -787,6 +818,9 @@ def _reap_one(repo: str, wt: Path, branch: str) -> dict:
         "local_deleted": local,
         "remote_pending": remote_pending,
         "pr_pending": pr_pending,
+        "recoverable": recoverable,
+        "preserved": preserved,
+        "needs_attention": not work_safe,  # branch kept: not on origin AND bundle failed
     }
 
 
