@@ -5,12 +5,12 @@ swimlane: docs
 kind: docs
 epic: null
 labels: [governance, comments, dogfood, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
-completed: null
+completed: 2026-06-24
 agent_session: ses-claude-20260624-002336-1f4e
 depends_on: []
 blocked_by: []
@@ -34,3 +34,4 @@ references: []
 - 2026-06-24 [claude]: Edit formulas-en.md
 - 2026-06-24 [claude]: Edit AGENTS.md
 - 2026-06-24 [claude]: Verified: golden+adapter parity 11 passed (clean-code SKILL + role-implementer command propagation synced via make…
+- 2026-06-24 [claude]: committed ecebe025 · 17 files
