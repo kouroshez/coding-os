@@ -147,6 +147,21 @@ esac
 if [[ -z "$_cos_in_wt" && -n "${COS_WORKTREE_ROOT:-}" && "${PWD}" == "${COS_WORKTREE_ROOT}"/* ]]; then
   _cos_in_wt=1
 fi
+# Catches a custom-location worktree the raw-string gates miss; fast-path guard
+# keeps trunk hooks from forking git (pr-workflow.md § 3, TASK-531).
+if [[ -z "$_cos_in_wt" && -z "${COS_PROJECT_ROOT:-}" && -z "${CLAUDE_PROJECT_DIR:-}" ]]; then
+  _cos_wt_main="$(_cos_main_repo_from_worktree)"
+  if [[ -n "$_cos_wt_main" ]]; then
+    _cos_wt_top="$(git rev-parse --show-toplevel 2>/dev/null)" || _cos_wt_top=""
+    if [[ -n "$_cos_wt_top" ]]; then
+      _cos_wt_top="$(cd -P "$_cos_wt_top" 2>/dev/null && pwd -P)" || _cos_wt_top=""
+    fi
+    if [[ -n "$_cos_wt_top" && "$_cos_wt_top" != "$_cos_wt_main" ]]; then
+      _cos_in_wt=1
+    fi
+  fi
+  unset _cos_wt_main _cos_wt_top
+fi
 if [[ -n "$_cos_in_wt" ]]; then
   # In a worktree the project root is unambiguously the MAIN repo. COS_PROJECT_ROOT
   # is authoritative and beats whatever the case produced (CLAUDE_PROJECT_DIR or
@@ -160,13 +175,13 @@ if [[ -n "$_cos_in_wt" ]]; then
   if [[ -n "$_cos_main" && -d "${_cos_main}/.coding-os" ]]; then
     COS_STATE_DIR="${_cos_main}/.coding-os"
   else
-    # No main repo resolvable. If the case bound us to the global hub, REFUSE —
-    # never silently write worktree state into $HOME/.coding-os.
+    # main unresolvable: bind to the hub, never a worktree-relative .coding-os —
+    # that stray would be committed into the agent's own PR (TASK-531).
+    export COS_STATE_MISROUTE=1
+    printf 'cos-env: worktree state misroute — main repo unresolvable from %s; export COS_PROJECT_ROOT=<main-repo> for worktree commands (docs/playbooks/pr-workflow.md § 3).\n' "$PWD" >&2
     _cos_home_real="$(cd -P "${HOME:-/dev/null}" 2>/dev/null && pwd -P)" || _cos_home_real="${HOME:-}"
-    if [[ -n "$_cos_home_real" && "$COS_STATE_DIR" == "${_cos_home_real}/.coding-os" ]]; then
-      export COS_STATE_MISROUTE=1
-      printf 'cos-env: worktree state misroute — refusing to bind to the global hub (%s). Export COS_PROJECT_ROOT=<main-repo> for worktree commands (docs/playbooks/pr-workflow.md § 3).\n' "$COS_STATE_DIR" >&2
-      COS_STATE_DIR=".coding-os"
+    if [[ -n "$_cos_home_real" ]]; then
+      COS_STATE_DIR="${_cos_home_real}/.coding-os"
     fi
     unset _cos_home_real
   fi

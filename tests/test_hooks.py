@@ -226,6 +226,44 @@ class TestCosEnv:
         )
         assert got == str(custom / ".coding-os")
 
+    def test_worktree_custom_location_routes_to_main_git_native(self, tmp_path: Path) -> None:
+        """TASK-531: a worktree at a CUSTOM location (NOT under ~/.coding-os/worktrees)
+        with COS_PROJECT_ROOT / COS_WORKTREE_ROOT / CLAUDE_PROJECT_DIR all unset — a
+        fresh hook — must still route state to the MAIN repo via git-native detection
+        (--show-toplevel differs from --git-common-dir's parent), never a stray
+        .coding-os inside the worktree (which would land in the agent's PR)."""
+        home = tmp_path / "home"
+        home.mkdir()
+        main = tmp_path / "mainrepo"
+        main.mkdir()
+        (main / ".coding-os").mkdir()
+        run = lambda *a: subprocess.run(  # noqa: E731 — terse local test helper
+            ["git", "-C", str(main), *a], check=True, capture_output=True
+        )
+        subprocess.run(["git", "init", "-q", str(main)], check=True, capture_output=True)
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        (main / "f.txt").write_text("x", encoding="utf-8")
+        run("add", "-A")
+        run("commit", "-qm", "init")
+        wt = tmp_path / "custom_wt" / "task-1"  # custom root, not ~/.coding-os/worktrees
+        run("worktree", "add", "-q", str(wt))
+
+        script = 'source "%s"; echo "$COS_STATE_DIR"' % (HOOKS_DIR / "cos-env.sh")
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in ("CLAUDE_PROJECT_DIR", "COS_PROJECT_ROOT", "COS_WORKTREE_ROOT", "COS_STATE_DIR")
+        }
+        env["HOME"] = str(home)
+        result = subprocess.run(
+            ["bash", "-c", script], capture_output=True, text=True, cwd=str(wt), env=env, timeout=15
+        )
+        assert result.returncode == 0, result.stderr
+        got = result.stdout.strip()
+        assert got == os.path.realpath(str(main)) + "/.coding-os"  # routed to MAIN
+        assert os.path.realpath(str(wt)) not in got  # never bound inside the worktree
+
     def test_root_resolution_parity_with_database(self, tmp_path: Path) -> None:
         """cos-env.sh's walk must stay identical to the canonical Python resolver
         database.py::_find_project_root_from_cwd — same marker set AND same root
