@@ -1383,11 +1383,8 @@ def cos_task_move(
         if candidate.exists():
             file_path = candidate
         elif to == "complete" and not bypass_gates and not force:
-            # Fail CLOSED (TASK-532): the DB names a task file but it is absent on
-            # disk, so the DoD gate (verify-freshness / work-log / Read-First) can't
-            # run at all. A silent skip would let an unverifiable task close — the
-            # exact 523/524/525 desync. Block and name the file; --force /
-            # bypass_gates is the audited escape hatch.
+            # Fail CLOSED when the file is gone: the DoD gate can't run, and a
+            # silent skip would close an unverifiable task (TASK-532).
             return fail(
                 "validation",
                 f"task file not found — cannot verify DoD: {row[0]}. Re-materialize "

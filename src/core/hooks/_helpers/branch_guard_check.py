@@ -410,10 +410,8 @@ _SAFE_SEQUENCER_FLAGS = {"--abort", "--continue", "--skip", "--quit"}
 
 
 def _unqualify_ref(ref: str) -> str:
-    # `+refs/heads/main` → `main`, so the fully-qualified refspec form can't slip
-    # past a bare-name membership test. `+` (force) is stripped first; only the
-    # branch namespace is unwrapped (a `refs/tags/` push targets a tag, not a
-    # branch, so it is deliberately left intact).
+    # Map a `+force` / `refs/heads/` refspec to its bare branch name so it can't
+    # slip past a bare-name membership test (`refs/tags/` left intact — it's a tag).
     ref = ref.lstrip("+")
     if ref.startswith("refs/heads/"):
         return ref[len("refs/heads/"):]
@@ -435,31 +433,24 @@ def _push_targets(args: list[str], blocked: set[str]) -> bool:
 
 
 def _pr_branch_blocks(args: list[str], blocked: set[str]) -> bool:
-    # A `git branch` that creates / force-moves / deletes / renames / copies a
-    # BLOCKED branch ref. agents/* create and `-D agents/...` cleanup stay allowed
-    # — only a blocked-branch target trips. Worktree scope is irrelevant: branch
-    # refs are shared across every worktree via the common dir.
+    # Worktree scope is irrelevant — branch refs are shared across worktrees via
+    # the common dir, so a blocked target trips even from a worktree (agents/*
+    # create + `-D agents/...` cleanup still pass: only a blocked target trips).
     destructive = any(
         a in {"-d", "-D", "--delete", "-m", "-M", "--move", "-c", "-C", "--copy"}
         for a in args
     )
     positionals = [a for a in args if not a.startswith("-")]
     if not positionals:
-        return False  # bare `git branch` (list) — no target
-    if destructive:
-        # delete / rename / copy — any named blocked branch is at risk (rename
-        # ONTO main, delete main, …).
+        return False
+    if destructive:  # delete/rename/copy → any named blocked branch is at risk
         return any(_unqualify_ref(p) in blocked for p in positionals)
-    # force-move (`branch -f <b> [start]`) or bare create (`branch <b> [start]`):
-    # only the first positional is the ref being written; a blocked startpoint is
-    # harmless.
+    # force-move/create: only the written ref (first positional) matters
     return _unqualify_ref(positionals[0]) in blocked
 
 
 def _pr_update_ref_blocks(args: list[str], blocked: set[str]) -> bool:
-    # `git update-ref [-d] <ref> [<newvalue> [<oldvalue>]]` rewrites a ref
-    # directly. `--stdin` reads ref commands we cannot inspect → fail closed.
-    if "--stdin" in args:
+    if "--stdin" in args:  # feeds ref commands we can't inspect → fail closed
         return True
     positionals = [a for a in args if not a.startswith("-")]
     return bool(positionals) and _unqualify_ref(positionals[0]) in blocked
@@ -527,9 +518,8 @@ def _pr_check(
             return None, None  # HEAD-rewrite is fine inside an isolated worktree
         return "pr-shared-head-rewrite", _PR_MSG["shared-head"]
     if subcmd in {"merge", "cherry-pick"}:
-        # merge/cherry-pick advance the current branch's HEAD — on the shared
-        # integration checkout that lands code outside the PR+CI flow. In a
-        # worktree they only advance that worktree's own agents/* HEAD.
+        # advancing HEAD on the shared checkout lands code outside PR+CI; a
+        # worktree only advances its own agents/* HEAD, so it's allowed.
         if any(a in _SAFE_SEQUENCER_FLAGS for a in args):
             return None, None  # in-progress cleanup, not an advance
         if worktree:

@@ -377,10 +377,8 @@ def pr_submit(
         # no CI gate. Stays armed; merges itself once the check is green.
         armed = _run(["gh", "pr", "merge", "--auto", "--squash"], cwd=wt).returncode == 0
 
-    # Make the merge outcome EXPLICIT. A no-required-check repo silently no-ops
-    # `gh pr merge --auto`, so without this branch submit would strand an open PR
-    # with no signal — the deadlock this guards against. Autonomous no-CI merge
-    # is opt-in via autonomy_level (TASK-533), not the default.
+    # A no-required-check repo silently no-ops `gh pr merge --auto`; surface the
+    # outcome so submit never strands an open PR with no signal (TASK-527).
     if armed:
         merge_status = "auto-merge-armed"
         action = f"PR merges itself once the required check on '{integration}' is green"
@@ -445,9 +443,8 @@ def pr_status(repo_opt: str | None, as_json: bool) -> None:
 
 
 def _pr_state(repo: str, branch: str) -> str:
-    # PR state for <branch>'s head: "merged" | "closed" | "open" | "none" |
-    # "unknown" (gh absent / error / timeout). Drives the cleanup merge-gate so a
-    # still-open PR's worktree is not destroyed mid-flight (TASK-530).
+    # "merged" | "closed" | "open" | "none" | "unknown" — drives the cleanup
+    # merge-gate so an open PR's worktree isn't destroyed mid-flight (TASK-530).
     if not _gh_ready():
         return "unknown"
     listing = _run(
@@ -468,14 +465,11 @@ def _pr_state(repo: str, branch: str) -> str:
 
 
 def _branch_recoverable(repo: str, branch: str, integration: str) -> bool:
-    # True when every commit on the local branch is already reachable from an
-    # origin ref (origin/<branch> from submit's push, or origin/<integration>
-    # after merge) — so deleting the local branch loses nothing. The gh-independent
-    # safety net for cleanup when there is no PR / gh can't answer (TASK-530).
+    # gh-independent cleanup safety net: True when every branch commit is already
+    # reachable from an origin ref (or the local integration), so deleting the
+    # local branch loses nothing (TASK-530).
     if not _git_out(["rev-parse", "--verify", branch], cwd=repo):
-        return True  # branch ref already gone → nothing to lose
-    # No commits unique to the branch beyond the LOCAL integration line → nothing
-    # to lose (e.g. a freshly-opened worktree with no work yet).
+        return True
     if _git(["merge-base", "--is-ancestor", branch, integration], cwd=repo).returncode == 0:
         return True
     for ref in (f"origin/{branch}", f"origin/{integration}"):
@@ -501,10 +495,8 @@ def pr_cleanup(
     branch = _branch_for(task_slug, session)
     wt = _worktree_root(repo) / f"{task_slug}-{session}"
 
-    # Merge-gate (TASK-530): destroying the worktree + local branch is only safe
-    # once the work has landed (PR merged/closed) or is fully on origin. Refuse on
-    # an OPEN PR, or on an unpushed branch when there's no PR to judge — unless the
-    # human passes --force. The reaper (dead owner) stays unconditional by design.
+    # Merge-gate (TASK-530): only destroy the worktree+branch once work has landed
+    # (merged/closed) or is fully on origin; --force is the human override.
     if not force:
         state = _pr_state(repo, branch)
         if state == "open":
