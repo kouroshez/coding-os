@@ -5,18 +5,17 @@ swimlane: core
 kind: security
 epic: pr-mode-hardening
 labels: [pr-mode, branch-guard, critical, ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-23
-started: null
-completed: null
-agent_session: null
+started: 2026-06-23
+completed: 2026-06-23
+agent_session: ses-claude-20260623-175054-847a
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-528: branch-guard pr-policy leaks — refspec push, merge/cherry-pick, branch -f/update-ref mutate protected branches
 
 **Outcome (one sentence):** In pr-mode the positive policy fully walls the integration + protected branches against direct mutation outside the PR flow — full-ref refspec pushes are blocked by stripping refs/heads/ before the membership test; git merge/cherry-pick on the SHARED checkout are treated like reset/rebase (allowed only worktree-scoped); git branch -f/-D/-m and git update-ref targeting a blocked branch are blocked unless worktree-scoped; trunk mode stays byte-identical.
@@ -40,3 +39,11 @@ COS_GIT_WORKFLOW=pr COS_GIT_INTEGRATION_BRANCH=main COS_GIT_PROTECTED_BRANCHES=p
 - **And** `make verify-hooks` + `uv run pytest tests/test_branch_guard.py -q` are green with new probes.
 
 ## Work Log
+- 2026-06-24 [claude]: Deliberation: close the 3 branch-guard pr leaks by EXTENDING the positive allow-list (reuse…
+- 2026-06-24 [claude]: Edit pr-workflow.md
+- 2026-06-24 [claude]: Edit branch_guard_check.py
+- 2026-06-24 [claude]: Edit branch_guard_check.py
+- 2026-06-24 [claude]: Edit branch_guard_check.py
+- 2026-06-24 [claude]: Edit test_branch_guard.py
+- 2026-06-24 [claude]: commit 9cc7a1d979 — fix(pr-mode): branch-guard blocks refspec-push/merge/cherry-pick/branch-f/update-ref leaks
+- 2026-06-24 [claude]: Status transitioned to complete via cos task-done.

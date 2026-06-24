@@ -39,3 +39,4 @@ Drive the pr-mode loop with concurrent sessions on one consumer repo: a presence
 ## Work Log
 - 2026-06-23 [claude]: Shipped in commit 72955752 — reaper fail-safe + reap lock, session-id collision fix, breaker order/scope, heal-budget reset, subprocess timeouts.
 - 2026-06-24 [claude]: File re-materialized from DB metadata (TASK-532); original body unrecoverable (never persisted to disk / git).
+- 2026-06-24 [claude]: committed d8d81744 · 3 files

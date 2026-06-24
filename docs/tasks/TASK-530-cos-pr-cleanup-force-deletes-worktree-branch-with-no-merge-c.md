@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: pr-mode-hardening
 labels: [pr-mode, data-loss, cleanup, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-23
-started: null
-completed: null
-agent_session: null
+started: 2026-06-23
+completed: 2026-06-23
+agent_session: ses-claude-20260623-175054-847a
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-530: cos pr cleanup force-deletes worktree/branch with no merge check — gate on confirmed-merged unless --force
 
 **Outcome (one sentence):** cos pr cleanup refuses to remove the worktree + local branch unless the PR is confirmed merged (or closed), with an explicit --force escape hatch for the human — so an agent driving the documented loop linearly cannot destroy local unmerged work when CI is still running or red.
@@ -35,3 +34,12 @@ In a pr-mode worktree run `cos pr open` → edit → `cos pr submit` (PR opens, 
 - **And** `uv run pytest tests/test_cli.py -q` is green.
 
 ## Work Log
+- 2026-06-24 [claude]: Deliberation: gate cleanup on PR-state (merged/closed→remove, open→refuse) with a gh-independent fallback…
+- 2026-06-24 [claude]: Edit pr-workflow.md
+- 2026-06-24 [claude]: Edit pr-workflow.md
+- 2026-06-24 [claude]: Edit pr_commands.py
+- 2026-06-24 [claude]: Edit pr_commands.py
+- 2026-06-24 [claude]: Edit pr_commands.py
+- 2026-06-24 [claude]: Edit test_cli.py
+- 2026-06-24 [claude]: commit a6fa306fb2 — fix(pr-mode): cleanup merge-gated — refuse to destroy an open-PR/unpushed worktree without --force
+- 2026-06-24 [claude]: Status transitioned to complete via cos task-done.

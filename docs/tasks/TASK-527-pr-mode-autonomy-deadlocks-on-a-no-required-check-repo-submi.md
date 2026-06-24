@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: pr-mode-hardening
 labels: [pr-mode, autonomy, auto-merge, critical, ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-23
-started: null
-completed: null
-agent_session: null
+started: 2026-06-23
+completed: 2026-06-23
+agent_session: ses-claude-20260623-175054-847a
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-527: pr-mode autonomy deadlocks on a no-required-check repo — submit opens a PR that never auto-merges
 
 **Outcome (one sentence):** A fresh consumer with a remote + gh but no branch-protection/required-status-check never silently strands a PR — `cos pr submit` either falls back to an explicit `gh pr merge --squash` after the agent's own validate passed, or emits a clear degraded status naming the missing required-check; behavior is governed by the autonomy_level setting (TASK-533).
@@ -34,3 +33,9 @@ With a real remote + authenticated gh and NO ruleset/required check, run `cos pr
 - **And** `uv run pytest tests/test_cli.py -q` is green.
 
 ## Work Log
+- 2026-06-24 [claude]: Edit pr-workflow.md
+- 2026-06-24 [claude]: Deliberation: fix the SILENT deadlock minimally — submit now emits an explicit merge_status (auto-merge-armed |…
+- 2026-06-24 [claude]: Edit pr_commands.py
+- 2026-06-24 [claude]: Edit test_cli.py
+- 2026-06-24 [claude]: commit ed745e1d5d — fix(pr-mode): submit surfaces explicit merge_status, no silent PR strand on no-required-check repo
+- 2026-06-24 [claude]: Status transitioned to complete via cos task-done.
