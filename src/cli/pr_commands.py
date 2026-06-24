@@ -413,9 +413,14 @@ def pr_submit(
 
 @pr_group.command("status", help="List this repo's pr-mode worktrees, branches, and open PRs.")
 @click.option("--repo", "repo_opt", default=None)
+@click.option("--branch", default=None, help="Report one agent branch's CI rollup (merged|red|pending|passing) — the driver-loop signal.")
 @click.option("--json", "as_json", is_flag=True)
-def pr_status(repo_opt: str | None, as_json: bool) -> None:
+def pr_status(repo_opt: str | None, branch: str | None, as_json: bool) -> None:
     repo = _resolve_repo(repo_opt)
+    if branch:
+        # Single-branch CI signal the pr-mode-driver skill branches on (TASK-529).
+        _emit({"branch": branch, "ci_rollup": _pr_ci_rollup(repo, branch)}, as_json)
+        return
     wt_root = _worktree_root(repo)
     worktrees = []
     if wt_root.is_dir():
@@ -425,18 +430,27 @@ def pr_status(repo_opt: str | None, as_json: bool) -> None:
         for b in _git_out(["branch", "--list", "agents/*"], cwd=repo).splitlines()
         if b.strip()
     ]
-    prs = ""
+    pr_rows: list[dict] = []
     if _gh_ready():
-        prs = _run(
-            ["gh", "pr", "list", "--search", "head:agents/", "--json", "number,headRefName,state"],
+        out = _run(
+            ["gh", "pr", "list", "--search", "head:agents/", "--json",
+             "number,headRefName,state,mergedAt,statusCheckRollup"],
             cwd=repo,
-        ).stdout.strip()
+        )
+        if out.returncode == 0:
+            try:
+                pr_rows = json.loads(out.stdout or "[]")
+            except json.JSONDecodeError:
+                pr_rows = []
+    open_prs = ",".join(f"#{r.get('number')}:{r.get('headRefName')}" for r in pr_rows)
+    ci_rollup = ",".join(f"{r.get('headRefName')}={_rollup_state(r)}" for r in pr_rows)
     _emit(
         {
             "worktree_root": str(wt_root),
             "worktrees": ",".join(worktrees) or "(none)",
             "agent_branches": ",".join(branches) or "(none)",
-            "open_prs": prs or "(gh unavailable)",
+            "open_prs": open_prs or "(none/gh unavailable)",
+            "ci_rollup": ci_rollup or "(none)",
         },
         as_json,
     )
@@ -462,6 +476,42 @@ def _pr_state(repo: str, branch: str) -> str:
     if prs[0].get("mergedAt"):
         return "merged"
     return str(prs[0].get("state", "")).lower() or "unknown"
+
+
+def _rollup_state(pr: dict) -> str:
+    # merged|red|pending|passing|closed|none — one CI signal distilled from gh's
+    # statusCheckRollup for the autonomous driver loop (TASK-529).
+    if pr.get("mergedAt") or str(pr.get("state", "")).upper() == "MERGED":
+        return "merged"
+    if str(pr.get("state", "")).upper() == "CLOSED":
+        return "closed"
+    checks = pr.get("statusCheckRollup") or []
+    if not checks:
+        return "pending"
+    bad = {"FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"}
+    waiting = {"IN_PROGRESS", "QUEUED", "PENDING", "WAITING", "REQUESTED", "EXPECTED"}
+
+    def fields(check: dict) -> set[str]:  # CheckRun uses conclusion/status; StatusContext uses state
+        return {str(check.get(k) or "").upper() for k in ("conclusion", "status", "state")}
+
+    if any(bad & fields(c) for c in checks):
+        return "red"
+    if any(waiting & fields(c) for c in checks):
+        return "pending"
+    return "passing"
+
+
+def _pr_ci_rollup(repo: str, branch: str) -> str:
+    if not _gh_ready():
+        return "unknown"
+    out = _run(["gh", "pr", "view", branch, "--json", "state,mergedAt,statusCheckRollup"], cwd=repo)
+    if out.returncode != 0:
+        return "none"  # no PR for this branch (or gh error) → driver opens/submits
+    try:
+        pr = json.loads(out.stdout or "{}")
+    except json.JSONDecodeError:
+        return "unknown"
+    return _rollup_state(pr) if pr else "none"
 
 
 def _branch_recoverable(repo: str, branch: str, integration: str) -> bool:

@@ -108,6 +108,7 @@ Autonomy is capped so a stuck agent cannot loop forever or flood the remote:
 - **Cap open PRs per session** (refuse to open the N+1th).
 - **CI-runnable probe** before relying on auto-merge — auto-merge is armed (`gh pr merge --auto --squash`) **only when a required status check exists** on the integration branch. With no required check GitHub silently no-ops `--auto`, so `cos pr submit` does NOT arm it: it emits an explicit `merge_status: degraded-no-required-check` naming the missing check (never a silent open PR). Autonomous merge with no CI gate is opt-in via `autonomy_level` (TASK-533).
 - **Escalate-to-blocked** after N self-heal attempts on the same red PR: move the board task to `blocked` with the failure, stop retrying.
+- **Drive the loop on the CI rollup (TASK-529).** `cos pr status --branch <branch>` returns one `ci_rollup` signal — `merged | red | pending | passing | closed | none` — distilled from `gh`'s `statusCheckRollup`. The shipped `pr-mode-driver` skill encodes the poll→branch decision so a non-expert consumer's agent is *told* how to run the diagnose-fix-retry loop instead of remembering the blind heal counter: `merged` → `cos pr cleanup`; `red` → `cos pr heal` (charges the budget; escalates to `blocked` when spent) then fix in the worktree + re-`cos pr submit`; `pending`/`passing` → wait and re-poll next turn; `none` → open/submit.
 
 ## 9. Capability preflight & degrade (CLI lives in `src/cli`, never `src/core`)
 

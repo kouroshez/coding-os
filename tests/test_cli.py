@@ -3212,6 +3212,45 @@ class TestCosPr:
         assert len(merge_calls) == 1, merge_calls
         assert merge_calls[0][:5] == ["gh", "pr", "merge", "--auto", "--squash"]
 
+    # --- TASK-529: CI rollup signal for the autonomous driver loop ----------
+
+    def test_rollup_state_classification(self) -> None:
+        import cli.pr_commands as prc
+
+        assert prc._rollup_state({"mergedAt": "2026-06-24T00:00:00Z", "state": "MERGED"}) == "merged"
+        assert prc._rollup_state({"state": "CLOSED"}) == "closed"
+        assert prc._rollup_state({"state": "OPEN", "statusCheckRollup": []}) == "pending"
+        red = {"state": "OPEN", "statusCheckRollup": [{"status": "COMPLETED", "conclusion": "FAILURE"}]}
+        assert prc._rollup_state(red) == "red"
+        pend = {"state": "OPEN", "statusCheckRollup": [{"status": "IN_PROGRESS"}]}
+        assert prc._rollup_state(pend) == "pending"
+        passing = {"state": "OPEN", "statusCheckRollup": [{"status": "COMPLETED", "conclusion": "SUCCESS"}]}
+        assert prc._rollup_state(passing) == "passing"
+        # red wins over pending when both are present
+        mixed = {"state": "OPEN", "statusCheckRollup": [{"status": "IN_PROGRESS"}, {"conclusion": "FAILURE"}]}
+        assert prc._rollup_state(mixed) == "red"
+
+    def test_pr_status_branch_reports_ci_rollup(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        real_run = prc._run
+
+        def fake_run(args, **kw):
+            if args[:3] == ["gh", "pr", "view"]:
+                payload = json.dumps(
+                    {"state": "OPEN", "statusCheckRollup": [{"status": "COMPLETED", "conclusion": "FAILURE"}]}
+                )
+                return subprocess.CompletedProcess(args, 0, stdout=payload, stderr="")
+            return real_run(args, **kw)
+
+        monkeypatch.setattr(prc, "_run", fake_run)
+        res = runner.invoke(cli, ["pr", "status", "--branch", "agents/x/1", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "ci_rollup: red" in res.output
+
     # --- consumer-fixture dogfood: the full pr-mode loop (TASK-521) ---------
 
     def test_dogfood_full_pr_loop(
