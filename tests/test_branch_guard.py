@@ -237,7 +237,59 @@ def test_pr_mode_blocks_push_to_integration() -> None:
 
 
 def test_pr_mode_allows_push_agents_branch() -> None:
-    code, _ = _run("git push --force-with-lease -u origin HEAD", workflow="pr")
+    # The sanctioned push runs from INSIDE the worktree (HEAD is agents/* there).
+    code, _ = _run(f"cd {_WT} && git push --force-with-lease -u origin HEAD", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_blocks_push_heads_shorthand_protected() -> None:
+    # heads/<branch> is a valid refspec git resolves to refs/heads/<branch>; it must
+    # normalize like refs/heads/ or it slips the membership test (the confirmed bypass).
+    code, _ = _run("git push origin HEAD:heads/production", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_bare_push_from_shared_checkout() -> None:
+    # On the shared checkout the current branch IS integration; a bare/HEAD push
+    # advances it outside PR+CI.
+    code, _ = _run("git push", workflow="pr")
+    assert code == 2
+    code, _ = _run("git push -u origin HEAD", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_allows_explicit_agents_push_from_shared() -> None:
+    # Naming an explicit non-blocked destination refspec is provably safe even from shared.
+    code, _ = _run("git push origin HEAD:agents/auth/abc", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_blocks_push_default_matching() -> None:
+    # `-c push.default=matching` pushes every same-name branch incl. integration; the
+    # `-c` global is stripped before _pr_check, so it must be caught on the raw tokens.
+    code, _ = _run("git -c push.default=matching push", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_checkout_force_create_integration() -> None:
+    code, _ = _run("git checkout -B main", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_switch_force_create_protected() -> None:
+    code, _ = _run("git switch -C production", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_worktree_add_onto_protected() -> None:
+    # Checking the integration/protected line out into a worktree would let commits
+    # land on it via the worktree's own (otherwise-allowed) HEAD path.
+    code, _ = _run(f"git worktree add {_WT} main", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_allows_worktree_add_agents_branch() -> None:
+    code, _ = _run(f"git worktree add -b agents/auth/abc {_WT} origin/main", workflow="pr")
     assert code == 0
 
 

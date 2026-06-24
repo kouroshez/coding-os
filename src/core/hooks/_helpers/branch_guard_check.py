@@ -410,11 +410,15 @@ _SAFE_SEQUENCER_FLAGS = {"--abort", "--continue", "--skip", "--quit"}
 
 
 def _unqualify_ref(ref: str) -> str:
-    # Map a `+force` / `refs/heads/` refspec to its bare branch name so it can't
-    # slip past a bare-name membership test (`refs/tags/` left intact — it's a tag).
+    # Map a `+force` / `refs/heads/` / `heads/` refspec to its bare branch name so
+    # it can't slip past a bare-name membership test. The `heads/` shorthand is a
+    # valid push destination git resolves to `refs/heads/` server-side, so it MUST
+    # normalize too (`refs/tags/` left intact — it's a tag).
     ref = ref.lstrip("+")
     if ref.startswith("refs/heads/"):
         return ref[len("refs/heads/"):]
+    if ref.startswith("heads/"):
+        return ref[len("heads/"):]
     return ref
 
 
@@ -430,6 +434,68 @@ def _push_targets(args: list[str], blocked: set[str]) -> bool:
         if _unqualify_ref(dst) in blocked:  # bare/+force/refs-heads forms all map here
             return True
     return False
+
+
+def _push_names_explicit_dst(args: list[str]) -> bool:
+    # True when the push names at least one explicit destination ref that is not
+    # `HEAD` — i.e. it is provably NOT a bare/`HEAD`-only push that would advance
+    # whatever branch is currently checked out. `git push [remote] [refspec...]`:
+    # the first positional is the remote, the rest are refspecs.
+    positionals = [a for a in args if not a.startswith("-")]
+    for refspec in positionals[1:]:
+        dst = refspec.rsplit(":", 1)[-1] if ":" in refspec else refspec
+        if _unqualify_ref(dst) != "HEAD":
+            return True
+    return False
+
+
+def _has_unsafe_push_default(global_tokens: list[str]) -> bool:
+    # `git -c push.default=matching push` makes a bare push update every same-name
+    # branch (incl. the integration line) and `current` pushes whatever is checked
+    # out — both can advance a blocked branch a refspec check never sees. The `-c`
+    # global is stripped before _pr_check, so it is inspected here on the raw tokens.
+    i = 0
+    while i < len(global_tokens):
+        t = global_tokens[i]
+        kv = None
+        if t == "-c" and i + 1 < len(global_tokens):
+            kv = global_tokens[i + 1]
+            i += 2
+        elif t.startswith("-c="):
+            kv = t[len("-c="):]
+            i += 1
+        else:
+            i += 1
+            continue
+        key, _, val = kv.partition("=")
+        if key.strip() == "push.default" and val.strip() in {"matching", "current"}:
+            return True
+    return False
+
+
+def _created_ref(subcmd: str, args: list[str]) -> str:
+    # The branch ref a checkout/switch force-creates or resets via -b/-B (checkout)
+    # or -b/-B/-c/-C (switch). "" when none (a plain switch onto an existing branch
+    # writes no ref). Plain `git checkout main` is a read-only switch → not a ref write.
+    flags = {"-b", "-B"} if subcmd == "checkout" else {"-b", "-B", "-c", "-C"}
+    for i, a in enumerate(args):
+        if a in flags and i + 1 < len(args):
+            return _unqualify_ref(args[i + 1])
+    return ""
+
+
+def _worktree_add_branch(args: list[str]) -> str:
+    # The branch a `git worktree add` creates (`-b/-B <name>`) or checks out (the
+    # optional 2nd positional `git worktree add <path> <branch>`). "" when detached
+    # or based on a remote ref. Blocking this keeps the integration/protected line
+    # out of any worktree, so a worktree's HEAD is always a non-blocked branch.
+    for i, a in enumerate(args):
+        if a in {"-b", "-B"} and i + 1 < len(args):
+            return _unqualify_ref(args[i + 1])
+    positionals = [a for a in args if not a.startswith("-")]
+    if len(positionals) >= 2:  # add <path> <branch>
+        return _unqualify_ref(positionals[1])
+    return ""
 
 
 def _pr_branch_blocks(args: list[str], blocked: set[str]) -> bool:
@@ -494,6 +560,8 @@ def _evaluate_pr(segments: list[str]) -> tuple[str, str, str]:
             continue
         op_scope = _is_worktree_path(c_target) if c_target is not None else fallback_scope
         reason, message = _pr_check(sub[0], sub[1:], op_scope, blocked_push)
+        if not reason and sub[0] == "push" and _has_unsafe_push_default(global_tokens):
+            reason, message = "pr-protected-push", _PR_MSG["protected-push"]
         if reason:
             return "block", reason, message or ""
     return "allow", "", ""
@@ -504,6 +572,12 @@ def _pr_check(
 ) -> tuple[str | None, str | None]:
     if subcmd == "push":
         if _push_targets(args, blocked_push):
+            return "pr-protected-push", _PR_MSG["protected-push"]
+        # A bare / HEAD-only push from the shared checkout advances the integration
+        # line (its current branch is integration), outside PR+CI. Allow only when
+        # worktree-scoped (HEAD is agents/* there) or it names an explicit non-blocked
+        # destination refspec — the sanctioned `cos pr submit` does both.
+        if not worktree and not _push_names_explicit_dst(args):
             return "pr-protected-push", _PR_MSG["protected-push"]
         return None, None
     if subcmd == "commit":
@@ -533,8 +607,20 @@ def _pr_check(
         if _pr_update_ref_blocks(args, blocked_push):
             return "pr-protected-ref", _PR_MSG["protected-ref"]
         return None, None
-    # checkout / switch / worktree / everything else: branches and worktrees are
-    # the pr-mode isolation mechanism — allowed.
+    if subcmd in {"checkout", "switch"}:
+        # -b/-B (checkout) or -b/-B/-c/-C (switch) force-create/reset a branch ref;
+        # a blocked target is a protected-ref write (refs are global, like branch -f).
+        if _created_ref(subcmd, args) in blocked_push:
+            return "pr-protected-ref", _PR_MSG["protected-ref"]
+        return None, None
+    if subcmd == "worktree":
+        # `git worktree add -b|-B <blocked>` or `... <path> <blocked>` would create or
+        # check the integration/protected line out into a worktree — refuse it so a
+        # worktree HEAD is always a non-blocked branch (keeps the push rule above safe).
+        if args and args[0] == "add" and _worktree_add_branch(args[1:]) in blocked_push:
+            return "pr-protected-ref", _PR_MSG["protected-ref"]
+        return None, None
+    # everything else: branches and worktrees are the pr-mode isolation mechanism — allowed.
     return None, None
 
 
