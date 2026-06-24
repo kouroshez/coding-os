@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: pr-mode-hardening
 labels: [pr-mode, state-routing, worktree, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-23
-started: null
-completed: null
-agent_session: null
+started: 2026-06-23
+completed: 2026-06-23
+agent_session: ses-claude-20260623-175054-847a
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-531: cos-env worktree detection fails for custom COS_WORKTREE_ROOT + litters a stray .coding-os into the worktree
 
 **Outcome (one sentence):** Worktree detection + state routing is git-native (compare git rev-parse --git-common-dir parent vs --show-toplevel) so it works regardless of where the worktree lives, including a custom COS_WORKTREE_ROOT that fresh hook subprocesses never inherit; on an unresolvable/degraded route cos-env never falls back to a RELATIVE .coding-os and never writes a heartbeat under the worktree cwd (no stray .coding-os polluting the agent's own PR); the pr-workflow.md COS_PROJECT_ROOT 'export' wording is corrected to describe the git-native mechanism.
@@ -35,3 +34,14 @@ export COS_WORKTREE_ROOT=/tmp/wt; cos pr open creates /tmp/wt/<slug>; in a fresh
 - **And** `make verify-hooks` + `uv run pytest tests/test_cli.py -q` are green.
 
 ## Work Log
+- 2026-06-24 [claude]: Deliberation: make worktree detection git-native — add a fallback that fires only when BOTH dispatch fast-paths…
+- 2026-06-24 [claude]: Edit pr-workflow.md
+- 2026-06-24 [claude]: Edit cos-env.sh
+- 2026-06-24 [claude]: Edit cos-env.sh
+- 2026-06-24 [claude]: Edit test_hooks.py
+- 2026-06-24 [claude]: Edit cos-env.sh
+- 2026-06-24 [claude]: Edit cos-env.sh
+- 2026-06-24 [claude]: Edit comments-terse-why-only.md
+- 2026-06-24 [claude]: Edit MEMORY.md
+- 2026-06-24 [claude]: commit 1f8869b501 — fix(pr-mode): git-native worktree detection in cos-env — no stray .coding-os in the PR
+- 2026-06-24 [claude]: Status transitioned to complete via cos task-done.
