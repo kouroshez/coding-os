@@ -690,6 +690,25 @@ def test_pr_mode_allows_fetch_refspec_to_agents() -> None:
     assert code == 0
 
 
+def test_pr_mode_blocks_pull_refspec_to_integration() -> None:
+    # `git pull origin x:main` is fetch+merge with identical refspec syntax — it
+    # force-writes the local protected ref exactly like the fetch bypass (finding 3).
+    code, err = _run("git pull origin master:main", workflow="pr")
+    assert code == 2
+    assert "protected" in err.lower() or "ref" in err.lower()
+
+
+def test_pr_mode_blocks_pull_delete_refspec_protected() -> None:
+    code, _ = _run("git pull origin :production", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_allows_colon_free_pull() -> None:
+    # A plain pull (the documented trunk-integration step) has no colon — must NOT block.
+    code, _ = _run("git pull origin main", workflow="pr")
+    assert code == 0
+
+
 def test_trunk_fetch_unchanged() -> None:
     # The fetch arm is pr-only; trunk must stay byte-identical.
     code, _ = _run("git fetch origin master:main")

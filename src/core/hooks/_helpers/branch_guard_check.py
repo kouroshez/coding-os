@@ -608,10 +608,11 @@ def _pr_check(
         if _pr_update_ref_blocks(args, blocked_push):
             return "pr-protected-ref", _PR_MSG["protected-ref"]
         return None, None
-    if subcmd == "fetch":
-        # `git fetch origin x:main` / `:production` writes a blocked LOCAL ref;
-        # legit pr-mode fetches never use a colon, so a refspec with one whose
-        # destination is blocked is the leak. Refs are global → scope is moot.
+    if subcmd in {"fetch", "pull"}:
+        # `git fetch/pull origin x:main` / `:production` writes a blocked LOCAL ref
+        # (pull is fetch+merge with identical refspec syntax); legit pr-mode fetches
+        # never use a colon, so a refspec with one whose destination is blocked is the
+        # leak. Refs are global → scope is moot (review finding 3).
         for a in args:
             if a.startswith("-") or ":" not in a:
                 continue

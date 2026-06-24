@@ -153,3 +153,26 @@ def test_git_state_probes_query_param_branch(client, monkeypatch):
     monkeypatch.setattr(pr, "_integration_branch", lambda repo: "main")
     assert client.get("/api/settings/git-state").status_code == 200
     assert seen["integration"] == "main"
+
+
+def test_git_settings_fields_helper_matches_jq_on_malformed(tmp_path):
+    # The python3 fallback (cos-env.sh § pr-mode, jq-less hosts) must fail closed
+    # like jq: a non-dict git_settings or non-list protected_branches → emit nothing
+    # (host stays trunk); an explicit empty protected list (the Git tab "None" preset)
+    # is honored, not silently defaulted (review findings 5 + 6).
+    import subprocess
+
+    helper = _REPO_ROOT / "src" / "core" / "hooks" / "_helpers" / "git_settings_fields.py"
+
+    def run(payload: object) -> str:
+        f = tmp_path / "hub-settings.json"
+        f.write_text(json.dumps(payload), encoding="utf-8")
+        out = subprocess.run([sys.executable, str(helper), str(f)], capture_output=True, text=True)
+        assert out.returncode == 0, out.stderr  # never raises
+        return out.stdout
+
+    assert run({"git_settings": "yes"}) == ""  # non-dict → trunk
+    assert run({"git_settings": [1, 2]}) == ""
+    assert run({"git_settings": {"enabled": True, "protected_branches": "main"}}) == ""  # non-list → fail closed
+    assert run({"git_settings": {"enabled": True, "protected_branches": []}}).split("\t") == ["true", "main", "", "draft"]
+    assert run({"git_settings": {"enabled": True}}).split("\t") == ["true", "main", "production", "draft"]
