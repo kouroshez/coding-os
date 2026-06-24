@@ -377,6 +377,27 @@ def pr_submit(
         # no CI gate. Stays armed; merges itself once the check is green.
         armed = _run(["gh", "pr", "merge", "--auto", "--squash"], cwd=wt).returncode == 0
 
+    # Make the merge outcome EXPLICIT. A no-required-check repo silently no-ops
+    # `gh pr merge --auto`, so without this branch submit would strand an open PR
+    # with no signal — the deadlock this guards against. Autonomous no-CI merge
+    # is opt-in via autonomy_level (TASK-533), not the default.
+    if armed:
+        merge_status = "auto-merge-armed"
+        action = f"PR merges itself once the required check on '{integration}' is green"
+    elif not pr_ok:
+        merge_status = "pr-create-failed"
+        action = pr.stderr.strip() or "gh pr create failed — PR not opened; branch is pushed"
+    elif not cap["required_check"]:
+        merge_status = "degraded-no-required-check"
+        action = (
+            f"PR open but auto-merge NOT armed: no required status check on "
+            f"'{integration}'. Add a required check (pr-workflow.md §11) and re-run "
+            f"'cos pr submit', or merge the PR manually."
+        )
+    else:
+        merge_status = "arm-failed"
+        action = "required check exists but 'gh pr merge --auto' did not arm — check gh auth/permissions"
+
     _emit(
         {
             "branch": branch,
@@ -385,6 +406,8 @@ def pr_submit(
             "pr_url": pr.stdout.strip() if pr_ok else "",
             "auto_merge_armed": armed,
             "required_check": cap["required_check"],
+            "merge_status": merge_status,
+            "action": action,
         },
         as_json,
     )

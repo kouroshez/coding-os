@@ -3096,6 +3096,69 @@ class TestCosPr:
         # the breaker is checked before the push, so nothing was pushed
         assert "pushed: False" in res.output
 
+    # --- TASK-527: no-required-check repo must NOT silently strand a PR -------
+
+    @staticmethod
+    def _fake_gh(prc, monkeypatch, *, merge_calls: list | None = None):
+        """Route `gh pr create`/`gh pr merge` to fakes, real subprocess for git."""
+        real_run = prc._run
+
+        def fake_run(args, **kw):
+            if args[:3] == ["gh", "pr", "create"]:
+                return subprocess.CompletedProcess(args, 0, stdout="https://gh/pr/1\n", stderr="")
+            if args[:3] == ["gh", "pr", "merge"]:
+                if merge_calls is None:
+                    raise AssertionError("auto-merge must NOT arm without a required check")
+                merge_calls.append(args)
+                return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
+            return real_run(args, **kw)
+
+        monkeypatch.setattr(prc, "_run", fake_run)
+
+    def test_submit_emits_degraded_status_without_required_check(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.pr_commands as prc
+
+        self._add_bare_remote(repo, tmp_path)
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
+        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        self._fake_gh(prc, monkeypatch)  # gh pr merge => AssertionError if called
+
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        # explicit, actionable degraded status — never a silent open PR
+        assert "merge_status: degraded-no-required-check" in res.output
+        assert "auto_merge_armed: False" in res.output
+        assert "required status check" in res.output  # action names what's missing
+
+    def test_submit_arms_auto_merge_once_with_required_check(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.pr_commands as prc
+
+        self._add_bare_remote(repo, tmp_path)
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
+        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        merge_calls: list = []
+        self._fake_gh(prc, monkeypatch, merge_calls=merge_calls)
+
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "auto_merge_armed: True" in res.output
+        assert "merge_status: auto-merge-armed" in res.output
+        # armed exactly once, with the squash auto-merge form
+        assert len(merge_calls) == 1, merge_calls
+        assert merge_calls[0][:5] == ["gh", "pr", "merge", "--auto", "--squash"]
+
     # --- consumer-fixture dogfood: the full pr-mode loop (TASK-521) ---------
 
     def test_dogfood_full_pr_loop(

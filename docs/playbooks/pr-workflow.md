@@ -103,7 +103,7 @@ The dying agent cannot be trusted to clean up (the exact Rule-21 failure mode). 
 Autonomy is capped so a stuck agent cannot loop forever or flood the remote:
 
 - **Cap open PRs per session** (refuse to open the N+1th).
-- **CI-runnable probe** before relying on auto-merge — if required CI cannot run (quota exhausted, no runner), do not spin waiting on a merge that will never happen.
+- **CI-runnable probe** before relying on auto-merge — auto-merge is armed (`gh pr merge --auto --squash`) **only when a required status check exists** on the integration branch. With no required check GitHub silently no-ops `--auto`, so `cos pr submit` does NOT arm it: it emits an explicit `merge_status: degraded-no-required-check` naming the missing check (never a silent open PR). Autonomous merge with no CI gate is opt-in via `autonomy_level` (TASK-533).
 - **Escalate-to-blocked** after N self-heal attempts on the same red PR: move the board task to `blocked` with the failure, stop retrying.
 
 ## 9. Capability preflight & degrade (CLI lives in `src/cli`, never `src/core`)
