@@ -45,6 +45,7 @@ Backlog entries that are not yet started may live in `cos board` (icebox status)
 - Keep Work Log up to date as you go — one bullet per meaningful checkpoint. The CLI's `cos work-log TASK-NNN "note"` is preferred so the DB cache (`work_log_last_5`) stays fresh.
 - Use `Given / When / Then` for Acceptance criteria.
 - Move to `complete` only after Verification Matrix tests for the changed surface pass. Untested error paths fail the gate.
+- **A missing task file fails the DoD gate CLOSED.** When `to_status == complete` and the task's `.md` is absent on disk, the transition is BLOCKED (`task file not found — cannot verify DoD`) instead of silently skipping the verify-freshness / work-log / Read-First checks. A complete-transition must never be cheaper than one with a present file, so a DB row with no file can no longer close unverified (TASK-532).
 - **Direct `in_progress → complete` is blocked by default.** With `workflow_policy.block_in_progress_to_complete` (default on), the shortcut is rejected — route `in_progress → testing → complete` so the Verification Matrix runs. The state-machine edge stays legal (`force=True` / `cos task-move --force` overrides for genuine trivial work, and is audited). When the policy knob is off, `workflow.transition` falls back to the legacy soft warning instead of blocking.
 - Search the repo and the graph before creating any new file, pattern, or rule. Reuse beats reinvention.
 

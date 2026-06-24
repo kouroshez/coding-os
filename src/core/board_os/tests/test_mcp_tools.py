@@ -757,6 +757,32 @@ def test_move_wip_cap_rejection(project: Path, conn: sqlite3.Connection):
     assert "WIP cap" in env["error"]["message"]
 
 
+def test_move_to_complete_blocks_when_file_missing(project: Path, conn: sqlite3.Connection):
+    # TASK-532: a complete-transition must fail CLOSED when the DB names a file
+    # that is absent on disk — otherwise the DoD gate is silently skipped and an
+    # unverifiable task closes (the 523/524/525 desync).
+    _parse(mcp_tools.cos_task_create(conn, title="ghost", swimlane="core", kind="chore"))
+    mcp_tools.cos_task_move(conn, task_id="TASK-001", to="in_progress", force=True)
+    mcp_tools.cos_task_move(conn, task_id="TASK-001", to="testing", force=True)
+    row = conn.execute("SELECT file_path FROM tasks WHERE task_id='TASK-001'").fetchone()
+    (project / row[0]).unlink()  # file desyncs from the DB
+    env = _parse(mcp_tools.cos_task_move(conn, task_id="TASK-001", to="complete"))
+    assert env["ok"] is False
+    assert env["error"]["category"] == "validation"
+    assert "task file not found" in env["error"]["message"]
+
+
+def test_move_to_complete_force_overrides_missing_file(project: Path, conn: sqlite3.Connection):
+    # --force is the audited escape hatch — a missing file still closes under force.
+    _parse(mcp_tools.cos_task_create(conn, title="ghost2", swimlane="core", kind="chore"))
+    mcp_tools.cos_task_move(conn, task_id="TASK-001", to="in_progress", force=True)
+    mcp_tools.cos_task_move(conn, task_id="TASK-001", to="testing", force=True)
+    row = conn.execute("SELECT file_path FROM tasks WHERE task_id='TASK-001'").fetchone()
+    (project / row[0]).unlink()
+    env = _parse(mcp_tools.cos_task_move(conn, task_id="TASK-001", to="complete", force=True))
+    assert env["ok"] is True
+
+
 # ---------- cos_task_pick ----------
 
 
