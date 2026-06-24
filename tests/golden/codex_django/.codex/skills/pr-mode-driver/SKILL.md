@@ -28,10 +28,13 @@ cos pr status --branch "$BRANCH" --json    # → {"ci_rollup": "merged|red|pendi
 |---|---|
 | `merged` | `cos pr cleanup --task "$TASK"` — removes the worktree + branch. **Done.** |
 | `red` | Heal (below). |
-| `passing` | Green; auto-merge will land it. Re-poll next turn — do nothing else. |
+| `passing` + auto-merge armed | Green; auto-merge will land it. Re-poll next turn — do nothing else. |
+| `passing` + **not** armed (draft / degraded-no-required-check) | **STOP** — needs a human merge (below). |
 | `pending` | Checks still running. Re-poll next turn. |
 | `none` | No PR yet → `cos pr submit` (or `cos pr open` if there's no worktree). |
 | `closed` | Closed unmerged (human/abandoned). Stop and surface to the user; do not auto-reopen. |
+
+**Green but no auto-merge → STOP, don't spin.** When `ci_rollup=passing` AND the last `cos pr submit` reported `merge_status` in {`draft`, `degraded-no-required-check`} (i.e. `auto_merge_armed=false`), nothing will land the PR on its own. Do NOT re-poll — at autonomy=draft that loops forever. Stop and tell the user: *"PR #N is green and needs a human merge (autonomy=draft) — merge it, or set autonomy_level=auto_merge in Hub Config→Git."*
 
 `passing` / `pending` mean **yield the turn and check again later**, not sleep-loop. Hooks and the turn loop drive this, not a daemon (Rule 21).
 
