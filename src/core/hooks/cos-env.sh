@@ -113,6 +113,24 @@ _cos_main_repo_from_worktree() {
   return 0
 }
 
+# Cheap worktree pre-check (NO git fork): a linked worktree's root carries `.git`
+# as a FILE (a gitdir pointer), whereas a normal checkout has it as a directory.
+# Walk up at most 40 levels from PWD looking for a `.git` file — returns 0 (found)
+# so the git-fork probe below runs only for a plausible worktree, keeping normal
+# trunk hooks fork-free. Bounded + dirname-fixpoint guarded against infinite walk.
+_cos_has_dotgit_file() {
+  local dir="${PWD}" i=0
+  [[ "$dir" == /* ]] || return 1
+  while [[ -n "$dir" && "$dir" != "/" && $i -lt 40 ]]; do
+    [[ -f "$dir/.git" ]] && return 0
+    [[ -d "$dir/.git" ]] && return 1   # a real repo root — not a worktree
+    local parent; parent="$(dirname "$dir")"
+    [[ "$parent" == "$dir" ]] && break
+    dir="$parent"; i=$((i + 1))
+  done
+  return 1
+}
+
 # _cos_helpers_dir — physical path to _helpers/, resolved through this file's
 # own symlink chain. Consumers (and the meta-repo's own .claude/hooks/) symlink
 # cos-env.sh but NOT _helpers/, so a $(dirname)-relative path lands in a dir with
@@ -164,9 +182,14 @@ esac
 if [[ -z "$_cos_in_wt" && -n "${COS_WORKTREE_ROOT:-}" && "${PWD}" == "${COS_WORKTREE_ROOT}"/* ]]; then
   _cos_in_wt=1
 fi
-# Catches a custom-location worktree the raw-string gates miss; fast-path guard
-# keeps trunk hooks from forking git (pr-workflow.md § 3, TASK-531).
-if [[ -z "$_cos_in_wt" && -z "${COS_PROJECT_ROOT:-}" && -z "${CLAUDE_PROJECT_DIR:-}" ]]; then
+# Catches a custom-location worktree the raw-string gates miss. Short-circuit ONLY
+# on COS_PROJECT_ROOT (the authoritative fast-path) — the old CLAUDE_PROJECT_DIR
+# arm gated this OFF for every Claude Code hook, exactly when the probe is needed,
+# so a custom-location worktree misrouted state into itself (stray .coding-os in
+# the agent's PR). Trunk fast-path preserved by a cheap `.git`-FILE pre-check: a
+# linked worktree's root has `.git` as a file (gitdir pointer), a normal repo has
+# it as a directory — only the former forks git below. (pr-workflow.md § 3, TASK-531.)
+if [[ -z "$_cos_in_wt" && -z "${COS_PROJECT_ROOT:-}" ]] && _cos_has_dotgit_file; then
   _cos_wt_main="$(_cos_main_repo_from_worktree)"
   if [[ -n "$_cos_wt_main" ]]; then
     _cos_wt_top="$(git rev-parse --show-toplevel 2>/dev/null)" || _cos_wt_top=""
