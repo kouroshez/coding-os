@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: pr-mode-hardening
 labels: [ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
-completed: null
+completed: 2026-06-24
 agent_session: ses-claude-20260624-034200-e9e7
 depends_on: []
 blocked_by: []
@@ -52,3 +52,5 @@ Set git_settings.autonomy_level=local in hub-settings.json; run `cos pr submit` 
 - 2026-06-24 [claude]: Edit pr_commands.py
 - 2026-06-24 [claude]: Edit pr_commands.py
 - 2026-06-24 [claude]: Added _git_settings()/_main_repo_root() to pr_commands.py; _integration_branch(repo)/_autonomy_level(repo) now fall…
+- 2026-06-24 [claude]: committed 0a8af737 · 4 files
+- 2026-06-24 [claude]: Status transitioned to complete via cos task-done.
