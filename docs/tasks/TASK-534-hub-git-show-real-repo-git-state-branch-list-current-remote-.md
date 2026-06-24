@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: pr-mode-hardening
 labels: [pr-mode, hub, git-state, api-contract, ready]
-status: icebox
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-23
-started: null
-completed: null
-agent_session: null
+started: 2026-06-23
+completed: 2026-06-23
+agent_session: ses-claude-20260623-175054-847a
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-534: Hub Git: show real repo git-state (branch list / current / remote) + branch dropdowns instead of blind free-text
 
 **Outcome (one sentence):** The Config→Git tab loads and shows the project's ACTUAL git state (branch list, current branch, remote URL) — not just a pr-mode capability probe — and renders integration_branch as a dropdown + protected_branches as a multiselect sourced from that list, so a consumer cannot silently set a non-existent branch; the gh-api capability probe is cached (TanStack staleTime) and short-circuited when git_settings.enabled is false.
@@ -32,3 +31,4 @@ references: []
 - **And** the settings route tests + UI build are green.
 
 ## Work Log
+- 2026-06-24 [claude]: git-state endpoint now returns real branches/current_branch/remote_url (local git only — answers even when gh down)…

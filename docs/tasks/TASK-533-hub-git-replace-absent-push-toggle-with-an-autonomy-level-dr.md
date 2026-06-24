@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: pr-mode-hardening
 labels: [pr-mode, hub, autonomy-level, ready]
-status: icebox
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-23
-started: null
-completed: null
-agent_session: null
+started: 2026-06-23
+completed: 2026-06-23
+agent_session: ses-claude-20260623-175054-847a
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-533: Hub Git: replace absent push-toggle with an autonomy_level (Draft / Auto-merge / Autonomous) per the Trust Spectrum
 
 **Outcome (one sentence):** git_settings gains an autonomy_level enum (draft = agent opens PR, human merges; auto_merge = agent arms gh pr merge --auto on green; autonomous = full lifecycle incl. cleanup) that subsumes the user's 'does the agent push/merge itself' ask in the industry-standard Trust Spectrum framing (DeployHQ); cos pr submit honors it (draft never arms auto-merge), one Hub Config→Git control sets it with exclude_unset persistence, and the default is the safe 'draft'.
@@ -33,3 +32,33 @@ references: []
 - **And** `uv run pytest tests/test_cli.py -q` + the settings route tests are green.
 
 ## Work Log
+- 2026-06-24 [claude]: Edit pr-workflow.md
+- 2026-06-24 [claude]: Edit pr-workflow.md
+- 2026-06-24 [claude]: Edit settings.py
+- 2026-06-24 [claude]: Edit settings.py
+- 2026-06-24 [claude]: Edit cos-env.sh
+- 2026-06-24 [claude]: Edit pr_commands.py
+- 2026-06-24 [claude]: Edit pr_commands.py
+- 2026-06-24 [claude]: Edit pr_commands.py
+- 2026-06-24 [claude]: Edit ConfigPage.tsx
+- 2026-06-24 [claude]: Edit ConfigPage.tsx
+- 2026-06-24 [claude]: Edit ConfigPage.tsx
+- 2026-06-24 [claude]: Edit test_hub_settings_git.py
+- 2026-06-24 [claude]: Edit test_hub_settings_git.py
+- 2026-06-24 [claude]: Edit test_cli.py
+- 2026-06-24 [claude]: Edit test_cli.py
+- 2026-06-24 [claude]: Edit test_hub_settings_git.py
+- 2026-06-24 [claude]: Edit pr_commands.py
+- 2026-06-24 [claude]: Edit settings.py
+- 2026-06-24 [claude]: Edit hooks.ts
+- 2026-06-24 [claude]: Edit hooks.ts
+- 2026-06-24 [claude]: Edit ConfigPage.tsx
+- 2026-06-24 [claude]: Edit ConfigPage.tsx
+- 2026-06-24 [claude]: Edit ConfigPage.tsx
+- 2026-06-24 [claude]: Edit ConfigPage.tsx
+- 2026-06-24 [claude]: Edit ConfigPage.tsx
+- 2026-06-24 [claude]: Edit ConfigPage.tsx
+- 2026-06-24 [claude]: Edit test_cli.py
+- 2026-06-24 [claude]: Edit test_hub_settings_git.py
+- 2026-06-24 [claude]: commit 87bd5fec67 — feat(pr-mode): autonomy_level Trust Spectrum + real git-state in Hub Config→Git
+- 2026-06-24 [claude]: Added git_settings.autonomy_level (draft|auto_merge|autonomous) — settings defaults+model, cos-env exports…
