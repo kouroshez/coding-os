@@ -114,6 +114,18 @@ describe('GitTab (TASK-552)', () => {
     expect(screen.getByRole('button', { name: 'What is Integration branch?' })).toBeInTheDocument();
   });
 
+  it('highlights the preset that matches the form, not the Recommended one (TASK-555)', () => {
+    renderConfig('/p/demo/config?tab=git');
+    // Saved default (enabled=false) matches no preset → Recommended is NOT pre-selected.
+    const recommended = screen.getByRole('button', { name: /Team \+ GitHub CI/ });
+    expect(recommended).toHaveAttribute('aria-pressed', 'false');
+    // Clicking a preset fills the form → only that card reads as active/selected.
+    const mainDevProd = screen.getByRole('button', { name: /main → dev → prod/ });
+    fireEvent.click(mainDevProd);
+    expect(mainDevProd).toHaveAttribute('aria-pressed', 'true');
+    expect(recommended).toHaveAttribute('aria-pressed', 'false');
+  });
+
   it('the None control clears protected branches and reads "None"', () => {
     renderConfig('/p/demo/config?tab=git');
     expect(screen.getByText('Human-only: production')).toBeInTheDocument();

@@ -680,6 +680,17 @@ function GitTab() {
     setCustomProtected('');
   };
   const applyPreset = (apply: GitSettings) => setForm({ ...form, ...apply });
+  // Selected look keys on "matches the current form", NOT `recommended` — so the
+  // Recommended card isn't pre-selected and a clicked preset reads as chosen.
+  const sameSet = (a: string[], b: string[]) =>
+    a.length === b.length && [...a].sort().join(' ') === [...b].sort().join(' ');
+  const isPresetActive = (apply: GitSettings) =>
+    form.enabled === apply.enabled &&
+    // normalize the integration branch the same way save() does, so a raw-typed
+    // value with stray whitespace still matches its preset.
+    (form.integration_branch.trim() || 'main') === (apply.integration_branch.trim() || 'main') &&
+    form.autonomy_level === apply.autonomy_level &&
+    sameSet(form.protected_branches, apply.protected_branches);
 
   return (
     <>
@@ -739,30 +750,34 @@ function GitTab() {
           default (which stays Off).
         </p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {QUICK_START_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => applyPreset(preset.apply)}
-              className={`rounded-lg border p-3 text-left transition-colors focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none ${
-                preset.recommended
-                  ? 'border-[var(--cos-accent)] bg-[var(--cos-accent)]/10 hover:bg-[var(--cos-accent)]/15'
-                  : 'border-[var(--cos-border)] hover:border-[var(--cos-accent)]'
-              }`}
-            >
-              <span className="flex items-center gap-1.5">
-                <span className="text-sm font-medium text-[var(--cos-text)]">{preset.label}</span>
-                {preset.recommended && (
-                  <span className="rounded-full bg-[var(--cos-accent)]/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--cos-accent)]">
-                    ★ Recommended
-                  </span>
-                )}
-              </span>
-              <span className="mt-1 block text-[11px] leading-relaxed text-[var(--cos-muted)]">
-                {preset.blurb}
-              </span>
-            </button>
-          ))}
+          {QUICK_START_PRESETS.map((preset) => {
+            const active = isPresetActive(preset.apply);
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => applyPreset(preset.apply)}
+                className={`rounded-lg border p-3 text-left transition-colors focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none ${
+                  active
+                    ? 'border-[var(--cos-accent)] bg-[var(--cos-accent)]/10 hover:bg-[var(--cos-accent)]/15'
+                    : 'border-[var(--cos-border)] hover:border-[var(--cos-accent)]'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium text-[var(--cos-text)]">{preset.label}</span>
+                  {preset.recommended && (
+                    <span className="rounded-full bg-[var(--cos-accent)]/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--cos-accent)]">
+                      ★ Recommended
+                    </span>
+                  )}
+                </span>
+                <span className="mt-1 block text-[11px] leading-relaxed text-[var(--cos-muted)]">
+                  {preset.blurb}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
