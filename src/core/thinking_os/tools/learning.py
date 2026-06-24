@@ -32,7 +32,6 @@ _THROTTLE_WINDOW_SECONDS = 3600
 
 
 def _read_session_id_for_validate() -> str:
-    """Read active session id for throttle bookkeeping."""
     import os
     from pathlib import Path
 
@@ -68,7 +67,6 @@ def _has_recent_validation(
     session_id: str,
     pattern_id: int,
 ) -> bool:
-    """Return True when (session, pattern, was_helpful=1) was logged recently."""
     try:
         row = conn.execute(
             "SELECT 1 FROM pattern_validations "
@@ -90,7 +88,7 @@ def _log_validation(
     was_helpful: bool,
     was_throttled: bool,
 ) -> None:
-    """Append a row to pattern_validations. Fire-and-forget — never raises."""
+    # Fire-and-forget — never raises (audit row, must not break validation).
     try:
         conn.execute(
             "INSERT INTO pattern_validations "
@@ -463,12 +461,8 @@ def _collapse_duplicate_patterns(conn: sqlite3.Connection) -> int:
 def _consolidate_semantic_duplicates(
     conn: sqlite3.Connection, *, threshold: float = 0.85, dry_run: bool = False
 ) -> int:
-    """Merge semantically near-duplicate learned patterns so the corpus stays
-    sharp. Survivor = highest (confidence, times_validated, oldest id); the
-    loser's access_count + times_validated fold in, then it is deleted. Reuses
-    embeddings (dim-aware cosine skips mismatched-dim vectors); no-op when
-    embeddings are unavailable. Returns the number of merged (deleted) rows.
-    """
+    # Survivor = highest (confidence, times_validated, oldest id); loser's
+    # access_count + times_validated fold in before delete. No-op without embeddings.
     try:
         from embeddings import cosine_similarity, is_available
     except ImportError:
@@ -620,17 +614,9 @@ def _upsert_pattern(
     concepts: str,
     provenance: str | None = None,
 ) -> dict:
-    """Insert a new pattern or update existing one's confidence.
-
-    Runs the sanitizer on `pattern` before any DB write. A rejected
-    pattern returns `{"action": "rejected", ...}` and no row is created or
-    updated. Truncation is applied transparently (over-cap text is shortened,
-    operation proceeds).
-
-    Stamps `provenance` on every new row (derived from `source`
-    when not supplied). Keeps agent_self writes distinguishable from mined
-    data for later sycophancy analysis.
-    """
+    # Sanitizer runs before any DB write; a rejected pattern returns
+    # {"action": "rejected", ...} with no row touched. provenance keeps
+    # agent_self writes distinguishable from mined data for sycophancy analysis.
     if provenance is None:
         provenance = _SOURCE_TO_PROVENANCE.get(source, "agent_self")
     from sanitizer import sanitize_write
@@ -718,7 +704,7 @@ def _embed_pattern_safe(
     pattern: str,
     concepts: str,
 ) -> None:
-    """Embed a learned pattern row. Errors logged at debug level only."""
+    # Fire-and-forget: embeddings are optional enrichment — never fail the upsert.
     try:
         from embeddings import upsert_embedding
     except ImportError as exc:
@@ -774,7 +760,6 @@ def _friction_kind(title: str, narrative: str, memory_type: str) -> str:
 
 
 def _clean_failure_text(text: str) -> str:
-    """First line of a failure message with paths/ids stripped — human-readable."""
     line = (text or "").strip().split("\n", 1)[0]
     line = _ABS_PATH_RE.sub(r"\1", line)
     line = _TASKID_RE.sub("TASK-N", line)
@@ -783,7 +768,6 @@ def _clean_failure_text(text: str) -> str:
 
 
 def _failure_cluster_key(display: str) -> str:
-    """Count-agnostic key: lowercased, numbers→N, first 8 tokens of the message."""
     norm = re.sub(r"\d+", "N", display.lower())
     words = [w for w in _NONWORD_RE.split(norm) if w]
     return " ".join(words[:8])
@@ -803,7 +787,6 @@ _NOISE_FAILURE_MARKERS: tuple[str, ...] = (
 
 
 def _is_noise_failure(display: str) -> bool:
-    """True when a failure message is tool-fumble noise, not a learnable lesson."""
     low = display.lower()
     return any(marker in low for marker in _NOISE_FAILURE_MARKERS)
 
@@ -824,7 +807,6 @@ _JARGON_TRANSLATIONS: tuple[tuple[str, str], ...] = (
 
 
 def _humanize_signature(display: str) -> str:
-    """Rewrite known internal jargon in a failure/lesson signature to plain text."""
     out = display
     low = out.lower()
     for jargon, plain in _JARGON_TRANSLATIONS:
@@ -852,14 +834,7 @@ def pattern_tier(confidence: float, times_validated: int) -> str:
 
 
 def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) -> list[dict]:
-    """Mine actionable `lesson` patterns from recurring failure observations.
-
-    Reads `observations` rows captured for hook BLOCKs, tool failures, and
-    completion gaps (memory_type in 'hook_block'/'error'), clusters them by a
-    normalised signature, and upserts one lesson per cluster that recurs at
-    least `floor` times. Fire-and-forget: a missing table or column never
-    breaks extraction.
-    """
+    # Fire-and-forget: a missing observations table/column never breaks extraction.
     floor = max(1, min(min_occurrences, _FRICTION_MIN_OCCURRENCES))
     try:
         rows = conn.execute(
@@ -940,10 +915,8 @@ _LESSON_WINDOW_DAYS = 90
 
 
 def _hook_log_paths(conn: sqlite3.Connection) -> list[Path]:
-    """Block-mining log candidates, most-durable first: the block-only log
-    (retains blocks past the main log's cap) then the main hook log (recent,
-    un-rotated blocks). Both are read + line-deduped so a mirrored block counts
-    once. Env overrides win; otherwise derive from the project root."""
+    # Most-durable first: block-only log (survives the main log's cap) then the
+    # main hook log. Env overrides win; otherwise derive from the project root.
     paths: list[Path] = []
     blk = os.environ.get("COS_HOOK_BLOCK_LOG")
     main = os.environ.get("COS_HOOK_LOG")
@@ -960,14 +933,8 @@ def _hook_log_paths(conn: sqlite3.Connection) -> list[Path]:
 
 
 def _mine_hook_block_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) -> list[dict]:
-    """Mine recurring hook BLOCKs from the activity log into `lesson` patterns.
-
-    Hook BLOCKs (a PreToolUse hook exiting 2) are the richest friction signal
-    but never reach the observations table on Claude (PostToolUseFailure does
-    not fire). They ARE recorded in the append-only hook log as
-    ``[ts] [<hook>] [block] … rule=<rule>``, so we cluster recent ones here.
-    Fire-and-forget: a missing/garbled log never breaks extraction.
-    """
+    # Hook BLOCKs never reach the observations table on Claude (no PostToolUseFailure)
+    # but are in the append-only hook log — mine them there. Fire-and-forget.
     floor = max(1, min(min_occurrences, _FRICTION_MIN_OCCURRENCES))
     # Single source, not a merge: every block is mirrored to both logs, so the
     # block-only log is a strict superset of the main log's surviving blocks.
@@ -1049,7 +1016,6 @@ _COMMIT_FIX_MIN_RECURRENCE = 3
 
 
 def _commit_subject_key(subject: str) -> str:
-    """Stable cluster key for a commit subject: ids/hashes/digits normalised, first 8 tokens."""
     s = _TASKID_RE.sub("TASK-N", subject)
     s = _LONGHEX_RE.sub("<hash>", s)
     s = re.sub(r"\d+", "N", s.lower())
@@ -1058,15 +1024,9 @@ def _commit_subject_key(subject: str) -> str:
 
 
 def _mine_commit_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) -> list[dict]:
-    """Mine `fix:`/`revert:` commit subjects into `lesson` patterns.
-
-    The lessons a human values are discovered by reasoning and recorded in git
-    history, not in any signal table. A `fix:`/`revert:` commit IS a
-    "something was wrong → here is the correction". Cluster recurring subjects;
-    mint one lesson per subject seen >= floor times, or any single `revert:`
-    (a revert is always a real mistake). Read-only `git log`, bounded, no-op
-    outside a work-tree. Contract: docs/engineering/learning-extraction.md §5.
-    """
+    # A fix:/revert: commit IS a recorded "something was wrong → correction".
+    # Read-only git log, bounded, no-op outside a work-tree.
+    # Contract: docs/engineering/learning-extraction.md §5.
     import subprocess
 
     root = _derive_project_root(conn)
@@ -1516,9 +1476,8 @@ _GENERIC_INSIGHT_RE = re.compile(
 
 
 def _is_low_quality_insight(text: str) -> bool:
-    """A reusable lesson names a specific situation + rule. Reject ultra-terse
-    or generic 'be careful' insights that carry no transferable knowledge.
-    (Specific-but-short insights like 'Money must use Decimal' pass.)"""
+    # Reject ultra-terse / generic "be careful" slop with no transferable rule;
+    # specific-but-short insights like "Money must use Decimal" still pass.
     t = (text or "").strip()
     if len(t) < 8:
         return True
@@ -1705,12 +1664,8 @@ def _embed_narrative_and_pattern(
     what_failed: str,
     what_worked: str,
 ) -> None:
-    """Embed a breakthrough narrative + its derived pattern (RAG).
-
-    Fire-and-forget: any failure (missing module, missing table, model load
-    failure) is logged at debug level and swallowed. Embeddings are an
-    optional enrichment — they must never fail the narrative recording.
-    """
+    # Fire-and-forget: embeddings are optional enrichment — never fail the
+    # narrative recording (missing module/table/model load all swallowed).
     try:
         from embeddings import upsert_embedding
     except ImportError as exc:
@@ -1748,11 +1703,8 @@ def _slugify(text: str, max_len: int = 50) -> str:
 
 
 def _derive_project_root(conn: sqlite3.Connection) -> Path | None:
-    """Project root = parent of the .coding-os/ directory holding the DB.
-
-    Returns None for in-memory DBs or DBs outside the expected
-    <root>/.coding-os/coding-os.db layout.
-    """
+    # Root = parent of the .coding-os/ dir holding the DB. None for in-memory
+    # DBs or any DB outside the expected <root>/.coding-os/coding-os.db layout.
     rows = conn.execute("PRAGMA database_list").fetchall()
     for row in rows:
         db_path_str = row[2] if len(row) > 2 else None
@@ -1807,15 +1759,8 @@ def _file_back_narrative_safe(
     history_id: int,
     pattern_id: int,
 ) -> Path | None:
-    """Write a markdown narrative to `<root>/docs/insights/`.
-
-    Fire-and-forget: any failure is logged at debug level and swallowed.
-    Skipped silently when:
-      - DB is in-memory or not in the expected `<root>/.coding-os/` layout
-      - `<root>/docs/` does not exist (not a coding-os project layout)
-
-    Returns the written path, or None if skipped.
-    """
+    # Fire-and-forget write to <root>/docs/insights/; returns None (skipped)
+    # for in-memory DBs or when <root>/docs/ is absent. Never breaks recording.
     try:
         project_root = _derive_project_root(conn)
         if project_root is None:

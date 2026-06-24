@@ -61,7 +61,6 @@ _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
 
 def _project_root() -> Path:
-    """Resolve the project root via the canonical database.project_root()."""
     from thinking_os.database import project_root
 
     return project_root()
@@ -108,9 +107,8 @@ def _derive_ns_from_git(project_root: Path) -> str:
 
 
 def _namespace_segment(project_root: Path) -> str:
-    """The '<NS>-' id segment for the namespaced allocator: configured
-    task_id_prefix, else derived from git user.email; '' when no valid namespace
-    (degrades to TASK-NNN). The scheme gate lives in the dispatcher, not here."""
+    # '' when no valid namespace → caller degrades to plain TASK-NNN. The scheme
+    # gate lives in the dispatcher, not here.
     try:
         from board_os.config import load_config
 
@@ -346,16 +344,9 @@ def _render_kind_aware_body(
     acceptance: str | None = None,
     repro: str | None = None,
 ) -> str:
-    """Render the task body with placeholders that match the kind's DoR.
-
-    TASK-110+111. Sections that the kind explicitly opts
-    out of (e.g. chore drops Acceptance + Read First) are not emitted,
-    so the agent doesn't see prompts for fields that won't be required.
-
-    The DoR rules come from `transition-gates.yaml`; if the config is
-    unavailable (loader fails, edge case in fresh install), we fall back
-    to the historical full template so we never produce an empty body.
-    """
+    # Sections a kind opts out of (e.g. chore drops Acceptance + Read First) are
+    # NOT emitted so the agent isn't prompted for fields it won't need. Config
+    # unavailable (fresh install) → fall back to the full template, never empty.
     sections_to_render: dict[str, str] = {}
 
     try:
@@ -413,8 +404,6 @@ def _render_kind_aware_body(
 
 
 def _kind_outcome_placeholder(kind: str) -> str:
-    """Outcome placeholder text tuned to the kind so the agent sees an
-    example shaped like the kind's expected content."""
     by_kind = {
         "feature": "(fill in: one-sentence measurable outcome — e.g. 'Add OAuth login that issues 24h JWTs.')",
         "bug": "(fill in: one-sentence outcome — e.g. 'Stop double-charging users on retry of failed payments.')",
@@ -429,11 +418,6 @@ def _kind_outcome_placeholder(kind: str) -> str:
 
 
 def _next_steps_for_kind(kind: str) -> dict:
-    """Return the structured next-steps payload for cos_task_create.
-
-    TASK-110. Mirrors the active DoR rules so the agent
-    sees exactly what to fill before `cos task-start TASK-NN`.
-    """
     try:
         from board_os.transition_gates import load_gates_config
 
@@ -469,13 +453,8 @@ def _next_steps_for_kind(kind: str) -> dict:
 
 
 def _status_dwell_seconds(now: float, started_at, last_transition_at) -> int | None:
-    """Seconds the card has rested in its current status.
-
-    Reuses the reclaim derivation (max of started_at and the last
-    status-history transition) so dwell, reclaim idle, and SLA staleness
-    all agree on one "last activity" definition. None when no timestamp
-    signal exists (never started, no history) — callers render "—".
-    """
+    # Reuse the reclaim derivation (max of started_at and last transition) so
+    # dwell, reclaim idle, and SLA staleness share one "last activity" definition.
     last = max(int(started_at or 0), int(last_transition_at or 0))
     if last <= 0:
         return None
@@ -493,7 +472,6 @@ def _humanize_duration(seconds: int | None) -> str | None:
 
 
 def _task_card(row: sqlite3.Row | tuple) -> dict:
-    """Shape a DB row into a board card."""
     started_at = row[11] if len(row) > 11 else None
     completed_at = row[12] if len(row) > 12 else None
     last_transition_at = row[13] if len(row) > 13 else None
@@ -519,7 +497,6 @@ def _task_card(row: sqlite3.Row | tuple) -> dict:
 
 
 def _sla_threshold_seconds(status: str, config) -> int | None:
-    """SLA dwell budget for a status in seconds, or None when unbounded/disabled."""
     if config is None:
         return None
     policy = config.workflow_policy
@@ -535,11 +512,8 @@ def _sla_threshold_seconds(status: str, config) -> int | None:
 
 
 def _flag_stale(card: dict, config) -> dict:
-    """Annotate a card with stale=True + stale_reason when dwell exceeds its SLA.
-
-    Observability only — never mutates board state. Mutates the card dict in
-    place and returns it so callers can map over a list.
-    """
+    # Observability only — never mutates board state. Mutates the card dict in
+    # place and returns it so callers can map over a list.
     threshold = _sla_threshold_seconds(card.get("status", ""), config)
     dwell = card.get("status_dwell_seconds")
     if threshold is not None and dwell is not None and dwell > threshold:
@@ -565,26 +539,17 @@ def _last_log_line(work_log_json: str | None) -> str | None:
 
 
 def _agent_label(agent_session: str | None) -> str:
-    """Normalize work-log actor label to a readable agent name.
-
-    Detection logic lives in ``core.board_os._agent_runtime.detect_agent``
-    so cli/board_commands.py and this module share one code path (Wave 0
-    audit fix E2). The shell counterpart is core/hooks/cos-env.sh.
-    """
+    # Detection lives in _agent_runtime.detect_agent so cli/board_commands.py and
+    # this module share one code path; shell counterpart is core/hooks/cos-env.sh.
     from ._agent_runtime import detect_agent
 
     return detect_agent(agent_session)
 
 
 def _resolve_attribution(agent_session: str | None) -> str | None:
-    """Auto-fill agent_session for board mutators when caller passes None.
-
-    Without this, ``task_status_history.agent_session`` lands as NULL
-    and the board UI renders the green ``H`` glyph (human) for tasks
-    that were actually created by an MCP-driven agent. The resolver
-    reads ``$COS_SESSION_FILE`` (populated by every adapter via
-    ``core/hooks/session-context.sh``) so the fix is adapter-agnostic.
-    """
+    # Without this, task_status_history.agent_session is NULL and the board UI
+    # renders the human "H" glyph for agent-driven creates. Reads $COS_SESSION_FILE
+    # (set by every adapter via session-context.sh), so the fix is adapter-agnostic.
     from ._agent_runtime import resolve_agent_session
 
     return resolve_agent_session(agent_session)
@@ -595,15 +560,9 @@ def _assign_guard(
     agent_session: str | None,
     force: bool,
 ) -> str | None:
-    """Block a move when the task's `assignee` frontmatter names someone else.
-
-    Opt-in and backward-compatible: a task with no `assignee:` field — the
-    default — is movable by anyone. When `assignee` IS set, only that
-    session, or any session of the same agent, may move the card. This
-    stops one agent silently driving a task another agent (or a human)
-    parked. `force=True` or `COS_ASSIGN_OVERRIDE=1` bypasses. Returns an
-    error message, or None when the move is allowed.
-    """
+    # Opt-in + backward-compatible: no `assignee:` field → movable by anyone.
+    # When set, only that session (or any session of the same agent) may move it;
+    # force=True or COS_ASSIGN_OVERRIDE=1 bypasses. Returns an error msg or None.
     if force or os.environ.get("COS_ASSIGN_OVERRIDE") == "1":
         return None
     if file_path is None or not file_path.exists():
@@ -985,7 +944,6 @@ _BOARD_CURSOR_VERSION = "v1"
 
 
 def _encode_board_cursor(completed_at: int | None, task_id: str) -> str:
-    """Opaque, versioned keyset cursor over (completed_at, task_id)."""
     raw = json.dumps([_BOARD_CURSOR_VERSION, completed_at, task_id]).encode("utf-8")
     return base64.urlsafe_b64encode(raw).decode("ascii")
 
@@ -1005,9 +963,8 @@ def _decode_board_cursor(cursor: str | None) -> tuple[int | None, str] | None:
 
 
 def _keyset_filter(cursor: str | None) -> tuple[str, list]:
-    """SQL clause + params selecting rows strictly AFTER the cursor in
-    (completed_at DESC, task_id DESC) order. Handles NULL completed_at
-    (archive rows) which sort last."""
+    # Rows strictly AFTER the cursor in (completed_at DESC, task_id DESC) order;
+    # NULL completed_at (archive rows) sort last.
     decoded = _decode_board_cursor(cursor)
     if decoded is None:
         return "", []
@@ -1031,7 +988,6 @@ def _keyset_column_page(
     page_size: int,
     config,
 ) -> tuple[list[dict], str | None, int]:
-    """One keyset page of a paged column. Returns (cards, next_cursor, total)."""
     page_size = max(1, min(int(page_size), _PAGE_SIZE_HARD_MAX))
     col_clauses = list(base_clauses) + ["status = ?"]
     col_params = list(base_params) + [status]
@@ -1589,7 +1545,6 @@ def _labels_list_from_json(raw: object) -> list[str]:
 
 
 def _patch_labels_line(file_path: Path, labels: list[str]) -> None:
-    """Rewrite the frontmatter `labels:` flow-list in place (atomic)."""
     content = file_path.read_text(encoding="utf-8")
     flow = "[" + ", ".join(labels) + "]"
     fm_re = re.compile(r"^(---\s*\n.*?\n---\s*\n)", re.DOTALL)
@@ -1612,7 +1567,6 @@ def _ready_dor_check(
     file_path: Path,
     agent_session: str | None,
 ) -> tuple[list[dict[str, str]], str | None]:
-    """DoR gaps for a task body + a block reason when strict mode refuses `ready`."""
     from board_os.transition_gates import GatesConfigError, load_gates_config
     from board_os.transition_gates_validator import evaluate_dor, evaluate_override
     from board_os.workflow import _extract_kind_from_frontmatter
@@ -1732,13 +1686,9 @@ def cos_task_ready(
 
 
 def _active_session_ids(now: float, window: int = 1800) -> set[str]:
-    """Session ids with presence activity inside `window` seconds.
-
-    Reads the agent-presence JSON files under
-    `$COS_STATE_DIR/<agent>/sessions/*.json` (written by agent-presence.sh).
-    Missing / unreadable presence is treated as "no active sessions" so
-    reclaim falls back to the idle-only signal.
-    """
+    # Reads agent-presence JSON under $COS_STATE_DIR/<agent>/sessions/*.json
+    # (written by agent-presence.sh). Missing/unreadable presence → "no active
+    # sessions", so reclaim falls back to the idle-only signal.
     ids: set[str] = set()
     state_dir = os.environ.get("COS_STATE_DIR") or str(_project_root() / ".coding-os")
     base = Path(state_dir)
@@ -1765,14 +1715,9 @@ def _active_session_ids(now: float, window: int = 1800) -> set[str]:
 
 
 def _commits_referencing(task_id: str, project_root: Path) -> int | None:
-    """Count git commits whose message references this TASK-ID — the strongest
-    'work was actually done' signal for reconciliation.
-
-    Returns None when the count CANNOT be verified (no git repo / git missing /
-    error) so callers fail SAFE — they treat 'unverifiable' as 'has evidence'
-    and never auto-reclaim a task on a signal we could not check. The grep is
-    anchored with a trailing non-digit boundary so `TASK-215` does not also
-    match `TASK-2155` (substring over-match)."""
+    # None = unverifiable (no git / error) so callers fail SAFE — treat as "has
+    # evidence", never auto-reclaim on a signal we couldn't check. Trailing
+    # non-digit boundary stops TASK-215 also matching TASK-2155.
     import subprocess
 
     try:
@@ -1809,12 +1754,8 @@ _STRANDED_SCAN_LIMIT = 1000
 
 
 def _commits_referencing_batch(task_ids: list[str], project_root: Path) -> dict[str, int | None]:
-    """One `git log --all --grep(OR ...)` for many task-ids → {task_id: count}.
-
-    Replaces N per-task subprocesses that each walk the full history. Values are
-    None (for every id) when git is unavailable so callers fail SAFE (treat
-    'unverifiable' as 'has evidence'). Counts are capped at _COMMIT_SCAN_CAP.
-    """
+    # One history walk for many ids — replaces N per-task subprocesses. All-None
+    # when git is unavailable so callers fail SAFE (unverifiable = has evidence).
     import re
     import subprocess
 
@@ -1862,17 +1803,8 @@ def _has_work_log(work_log_json: object) -> bool:
 
 
 def _classify_stranded(status: str, commits: int | None, has_work_log: bool) -> str:
-    """Triage a stranded task by completion evidence (TASK-215).
-
-    likely_complete  — reached `testing` AND has committed/logged work: almost
-                       certainly finished, just never closed. Review -> done.
-    likely_abandoned — `in_progress` with VERIFIED zero commits and no work-log:
-                       nothing happened. Park or resume.
-    needs_review     — everything ambiguous.
-
-    `commits is None` means unverifiable (no git / error) — counted as evidence
-    so a task is never called abandoned on a signal we could not check (TASK-217).
-    """
+    # commits is None = unverifiable (no git / error) — counted AS evidence so a
+    # task is never called abandoned on a signal we couldn't check.
     has_commit_evidence = commits is None or commits > 0
     if status == "testing" and (has_commit_evidence or has_work_log):
         return "likely_complete"
@@ -2100,13 +2032,9 @@ _KEEP_LABELS = ("keep", "parked")
 
 
 def _archive_stale_sweep(conn: sqlite3.Connection, config) -> list[dict]:
-    """Auto-archive aged icebox / complete cards — the icebox OUTFLOW (RC6).
-
-    OFF by default: only runs for a status whose ``*_auto_archive_days`` knob is
-    > 0, so a fresh project never silently deletes backlog. A ``keep``/``parked``
-    label always exempts a card, and archive is reversible (archive->icebox is a
-    legal edge). Idempotent + fail-soft per card.
-    """
+    # OFF by default: runs only when a status's *_auto_archive_days knob is > 0,
+    # so a fresh project never silently deletes backlog. keep/parked labels exempt
+    # a card; archive is reversible (archive->icebox is legal). Fail-soft per card.
     if config is None:
         return []
     policy = config.workflow_policy
@@ -2589,7 +2517,6 @@ def _has_table(conn: sqlite3.Connection, name: str) -> bool:
 
 
 def _actor_view(agent_session: str | None) -> dict:
-    """Structured actor for a stored agent_session string (agent | human)."""
     from ._agent_runtime import detect_agent
 
     if not agent_session:
@@ -2603,7 +2530,6 @@ def _actor_view(agent_session: str | None) -> dict:
 
 
 def _git_commits_for_path(rel_path: str, *, limit: int = 50) -> list[dict]:
-    """Git log for one task file — the git-backed slice of task history. Fail-open."""
     import subprocess
 
     root = _project_root()
@@ -2643,12 +2569,9 @@ def _git_commits_for_path(rel_path: str, *, limit: int = 50) -> list[dict]:
 
 
 def _git_commits_by_task_id(task_id: str, *, exclude: set[str], limit: int = 50) -> list[dict]:
-    """Commits whose MESSAGE references the task id (`git log --all --grep`).
-
-    The actor-agnostic, retroactive link: it finds the commits that did a task's
-    work whether they were made from the Hub, a terminal, or by a human, and
-    without depending on session state, the work log, or the commit touching the
-    task .md. The `([^0-9]|$)` guard stops TASK-5 matching TASK-50. Fail-open."""
+    # Actor-agnostic retroactive link: matches commits by message regardless of
+    # source (Hub/terminal/human), without session state or a touch of the .md.
+    # The `([^0-9]|$)` guard stops TASK-5 matching TASK-50.
     import subprocess
 
     if not task_id:
@@ -2694,14 +2617,9 @@ def _git_commits_by_task_id(task_id: str, *, exclude: set[str], limit: int = 50)
 
 
 def _git_commits_from_worklog(rel_path: str, *, exclude: set[str], limit: int = 50) -> list[dict]:
-    """Commits referenced by 7-40 hex SHA in a task's Work Log — surfaces the code
-    commits that did the work but never touched the md file, so the History links
-    them WITHOUT needing the task id in the commit message. Candidates are validated
-    in ONE `git cat-file` batch: a non-object token (a session-id date like
-    `20260527`, a random hex string) is reported `missing` from an indexed oid
-    lookup, instead of a per-token `git show` that rev-parses, can stall the event
-    loop, and could surface a WRONG commit on a date↔short-sha collision. Only
-    objects of type `commit` survive. Fail-open."""
+    # Links work-log SHAs that never touched the .md. Validated in ONE indexed
+    # `git cat-file` batch (only type `commit` survives) instead of a per-token
+    # `git show` that can stall the loop and false-match a date↔short-sha collision.
     import re as _re
     import subprocess
 
@@ -2779,8 +2697,8 @@ def _git_commits_from_worklog(rel_path: str, *, exclude: set[str], limit: int = 
 
 
 def _worklog_events(rel_path: str) -> list[dict]:
-    """Work Log bullets parsed into timeline events so History and Work Log read as
-    one chronological story instead of two overlapping surfaces. Fail-open."""
+    # Parse Work Log bullets into timeline events so History and Work Log read as
+    # one chronological story instead of two overlapping surfaces.
     import re as _re
     from datetime import datetime, timezone
 
@@ -2948,7 +2866,6 @@ def _record_task_edit(
     actor_id: str | None,
     source: str,
 ) -> None:
-    """Append one actor-attributed field edit. Fail-open — never blocks the edit."""
     if not _has_table(conn, "task_edit_history"):
         return
     try:
@@ -3112,7 +3029,6 @@ def cos_task_edit(
 
 
 def _parse_since(since: str) -> float:
-    """Convert since='24h', '7d', '30m' into hours (float)."""
     m = re.match(r"^(\d+)([mhdw])$", since)
     if not m:
         return 24.0

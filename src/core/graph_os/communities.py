@@ -163,8 +163,7 @@ def communities_to_processes(
 
 
 def _signature(backend: GraphBackend) -> tuple[str, int]:
-    """Cache key — invalidates whenever the call/import edge count
-    changes.  Cheap (~one COUNT(*) per type)."""
+    # Cache key — invalidates whenever the call/import edge count changes.
     edge_count = sum(backend.count_edges(t) for t in ("calls", "imports"))
     return (backend.backend_id, int(edge_count))
 
@@ -181,14 +180,8 @@ def subgraph_input_truncated(backend: GraphBackend) -> bool:
 def _load_subgraph(
     backend: GraphBackend,
 ) -> tuple[dict[str, GraphNode], list[tuple[str, str]]]:
-    """Pull every node + every process edge into memory once.
-
-    The cap (``_SUBGRAPH_CAP`` per kind / edge-type) protects against
-    pathological repos. Above it the clustering is computed on a partial
-    slice — ``subgraph_input_truncated`` surfaces that to the envelope so
-    the result is never silently incomplete. Real coding-os graphs sit at
-    ~10k edges.
-    """
+    # Above _SUBGRAPH_CAP (per kind/edge-type) clustering is computed on a
+    # partial slice — subgraph_input_truncated() surfaces that to the envelope.
     nodes_by_uid: dict[str, GraphNode] = {}
     edges: list[tuple[str, str]] = []
     for kind in _PROCESS_MEMBER_KINDS:
@@ -233,8 +226,6 @@ def _detect_communities(
     max_communities: int,
     backend: GraphBackend,
 ) -> list[Community]:
-    """Run Louvain (or fall back to greedy modularity) and produce
-    Community records sorted by priority desc."""
     try:
         import networkx as nx  # type: ignore
     except ImportError:
@@ -335,7 +326,6 @@ def _step_order(
     edges_lookup: set[tuple[str, str]],
     entry_scores: dict[str, float],
 ) -> list[GraphNode]:
-    """DFS from the highest-entry-score anchor; tie-break by file path."""
     if not members:
         return []
     members_sorted = sorted(
@@ -384,8 +374,8 @@ def _priority_for(
 
 
 def _community_id(members: list[GraphNode]) -> str:
-    """Stable id derived from sorted member uids (so the same cluster
-    keeps its id across runs even when scores shift slightly)."""
+    # Sorted member uids → same cluster keeps its id across runs even when
+    # scores shift slightly.
     import hashlib
 
     if not members:
@@ -396,8 +386,6 @@ def _community_id(members: list[GraphNode]) -> str:
 
 
 def _community_name(anchor: GraphNode) -> str:
-    """Pick the anchor's label as the community name; fall back to the
-    last segment of its uid."""
     label = (anchor.label or "").strip()
     if label:
         return f"{label}-flow"
@@ -406,7 +394,6 @@ def _community_name(anchor: GraphNode) -> str:
 
 
 def _community_summary(members: list[GraphNode]) -> str:
-    """1-line: top 3 member labels joined with ' → '. No LLM needed."""
     labels = []
     for m in members[:3]:
         l = (m.label or m.uid.split("::")[-1] or m.uid).strip()

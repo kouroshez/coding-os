@@ -115,7 +115,6 @@ _BARE_YEAR_RE = re.compile(r"\b(20\d{2})\b")
 
 
 def _suggest_filters_from_query(query: str) -> dict[str, Any]:
-    """Heuristic query-time metadata extraction (non-binding hints)."""
     if not query:
         return {}
     text = query.lower()
@@ -170,7 +169,6 @@ _SWIMLANE_DOMAIN: dict[str, str] = {
 
 
 def _active_task_context() -> dict[str, str]:
-    """Read the active task's swimlane / kind from $COS_AGENT_DIR."""
     agent_dir_str = os.environ.get("COS_AGENT_DIR", "")
     if not agent_dir_str:
         return {}
@@ -196,7 +194,6 @@ def _build_metadata_filter(
     include_inactive: bool,
     table_alias: str = "",
 ) -> tuple[str, list[Any]]:
-    """Stage-1 RAG pre-filter SQL fragment + params."""
     p = table_alias if table_alias.endswith(".") or not table_alias else f"{table_alias}."
     if table_alias and not p.endswith("."):
         p = f"{table_alias}."
@@ -374,11 +371,7 @@ def _semantic_search(
     since_iso: str | None = None,
     include_inactive: bool = False,
 ) -> list[dict]:
-    """Embedding-based similarity search (previous default path).
-
-    Returns an empty list when embeddings are unavailable or nothing crosses
-    the threshold — callers route to lexical fallback on empty.
-    """
+    # Empty list is the fallback signal — callers route to lexical search on empty.
     try:
         from embeddings import is_available, search_similar
     except ImportError as exc:
@@ -461,12 +454,7 @@ def _lexical_search(
     since_iso: str | None = None,
     include_inactive: bool = False,
 ) -> list[dict]:
-    """FTS5 lexical search over document_chunks_fts (v9+).
-
-    Falls back to a LIKE query when the FTS virtual table is absent
-    (FTS5 unavailable or pre-v9). The LIKE path is intentionally scan-heavy
-    — acceptable because it is only a last-resort fallback.
-    """
+    # LIKE fallback (FTS absent / pre-v9) is intentionally scan-heavy — last-resort only.
     from database import has_document_chunks_fts  # avoid circular at module top
 
     overfetch = limit * _OVERFETCH_MULTIPLIER
@@ -499,7 +487,6 @@ def _fts_hydrate(
     since_iso: str | None = None,
     include_inactive: bool = False,
 ) -> list[dict]:
-    """FTS5 MATCH join back to document_chunks with priority boost."""
     md_clause, md_params = _build_metadata_filter(
         source_types=source_types,
         domain=domain,
@@ -554,7 +541,6 @@ def _like_hydrate(
     since_iso: str | None = None,
     include_inactive: bool = False,
 ) -> list[dict]:
-    """Final fallback: LIKE scan when neither embeddings nor FTS5 available."""
     like_pattern = f"%{query}%"
     params: list[Any] = [like_pattern, like_pattern]
     sql = (
@@ -651,7 +637,6 @@ _BULK_MAX_RESULTS = 50
 
 
 def _parse_frontmatter_block(text: str) -> dict[str, Any]:
-    """Parse the leading `<!-- key:value | … -->` block."""
     match = _FRONTMATTER_RE.match(text)
     if not match:
         return {}
@@ -682,7 +667,6 @@ def _parse_frontmatter_block(text: str) -> dict[str, Any]:
 
 
 def _parse_opening_block(text: str) -> dict[str, str]:
-    """Extract Purpose / Read when / Skip when / Read next (long OR short)."""
     out: dict[str, str] = {}
     for key, regex in _SHORT_OPENING_RE.items():
         match = regex.search(text)

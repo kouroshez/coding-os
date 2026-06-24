@@ -315,20 +315,9 @@ def _trim_list_key(body: dict, meta: dict, key: str) -> tuple[dict, dict, bool]:
 def _trim_coherent_subgraph(
     body: dict, meta: dict, *, budget_chars: int = TOKEN_BUDGET_CHARS
 ) -> tuple[dict, dict, bool]:
-    """Coherent shrink for cos_graph_export-shaped responses.
-
-    Strategy: binary-search the largest K such that the top-K nodes by
-    incident-degree, plus the subset of edges that connect kept nodes,
-    fit ``budget_chars``. Dropping nodes proportionally (instead of
-    edges-first then nodes-first) keeps the subgraph connected — the
-    Hub UI receives a coherent tree it can render, not 0 edges or 0
-    nodes.
-
-    ``budget_chars`` defaults to TOKEN_BUDGET_CHARS (32 KB). Graph-
-    export callers pass GRAPH_SUBGRAPH_BUDGET_CHARS (≈500 KB) so the
-    UI gets the full repo tree under normal load and only the most
-    pathological agent requests trip the coherent trim.
-    """
+    # Drop nodes proportionally (top-K by degree + edges between kept nodes),
+    # not edges-first, so the subgraph stays connected — the Hub UI must get a
+    # renderable tree, never 0 edges/0 nodes.
     nodes = body.get("nodes")
     edges = body.get("edges")
     if not isinstance(nodes, list) or not isinstance(edges, list):
@@ -791,7 +780,6 @@ _MODULE_GATE_CACHE: dict[str, Any] = {"map": None}
 
 
 def _tool_module_map() -> list[tuple[str, str]]:
-    """[(tool_name_or_prefix*, module_id)] from subsystems.yaml, cached."""
     if _MODULE_GATE_CACHE["map"] is not None:
         return _MODULE_GATE_CACHE["map"]
     pairs: list[tuple[str, str]] = []
@@ -829,7 +817,6 @@ def _disabled_modules() -> set[str]:
 
 
 def _gated_module(tool_name: str) -> str | None:
-    """Module id that disables `tool_name`, or None when the tool may run."""
     disabled = _disabled_modules()
     if not disabled:
         return None
