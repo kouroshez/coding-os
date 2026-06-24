@@ -83,12 +83,6 @@
           },
           {
             "type": "command",
-            "command": ".claude/hooks/block-shared-tree-edit.sh",
-            "statusMessage": "🌳 pr-mode: enforcing worktree edit isolation...",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": ".claude/hooks/enforce-task-transition.sh",
             "statusMessage": "🚦 Checking task status transition...",
             "timeout": 5
@@ -231,6 +225,23 @@
         ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-shared-tree-edit.sh",
+            "statusMessage": "🌳 pr-mode: enforcing worktree edit isolation...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/warn-destructive-edit.sh",
+            "statusMessage": "🛡️ Checking for destructive deletion of load-bearing content...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Read",
         "hooks": [
           {
@@ -243,17 +254,6 @@
             "type": "command",
             "command": ".claude/hooks/nudge-task-discovery.sh",
             "statusMessage": "🗂️ Suggesting cos task-show over a docs/tasks Read...",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": ".claude/hooks/warn-destructive-edit.sh",
-            "statusMessage": "🛡️ Checking for destructive deletion of load-bearing content...",
             "timeout": 10
           }
         ]

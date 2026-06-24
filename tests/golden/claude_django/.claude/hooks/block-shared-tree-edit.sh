@@ -28,14 +28,6 @@ esac
 FILE=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
 [[ -z "$FILE" ]] && exit 0
 
-# A file under a worktree root IS the isolation target — allow.
-case "$FILE" in
-  *"/.coding-os/worktrees/"*) exit 0 ;;
-esac
-if [[ -n "${COS_WORKTREE_ROOT:-}" && "$FILE" == "${COS_WORKTREE_ROOT}"/* ]]; then
-  exit 0
-fi
-
 # Block only files inside the shared integration checkout = the main repo root
 # (parent of COS_STATE_DIR). Edits elsewhere (scratch, ~/.config) pass through.
 REPO_ROOT="$(cd -P "$(dirname "${COS_STATE_DIR}")" 2>/dev/null && pwd -P)" || REPO_ROOT=""
@@ -46,11 +38,20 @@ case "$FILE" in
   /*) ;;
   *) FILE_ABS="$(pwd)/$FILE" ;;
 esac
-# Resolve symlinks in the parent path so the prefix compare against the resolved
-# REPO_ROOT holds under a symlinked repo path (Rule 5: /tmp ↔ /private/tmp). The
+# Resolve symlinks AND `..` in the parent path so the worktree / REPO_ROOT
+# classification below tests the REAL path (Rule 5: /tmp ↔ /private/tmp). The
 # file may not exist yet (new file), so resolve its dirname, not the file itself.
 FILE_DIR="$(cd -P "$(dirname "$FILE_ABS")" 2>/dev/null && pwd -P)" || FILE_DIR=""
 [[ -n "$FILE_DIR" ]] && FILE_ABS="$FILE_DIR/$(basename "$FILE_ABS")"
+
+# A file under a worktree root IS the isolation target — allow. Classify the
+# RESOLVED path so a `..`-traversal spoof that escapes the worktree can't pass.
+case "$FILE_ABS" in
+  *"/.coding-os/worktrees/"*) exit 0 ;;
+esac
+if [[ -n "${COS_WORKTREE_ROOT:-}" && "$FILE_ABS" == "${COS_WORKTREE_ROOT}"/* ]]; then
+  exit 0
+fi
 
 if [[ "$FILE_ABS" == "${REPO_ROOT}/"* ]]; then
   cos_log_hook block-shared-tree-edit block "rule=pr-shared-tree-edit"

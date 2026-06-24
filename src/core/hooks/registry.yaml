@@ -132,13 +132,13 @@ hooks:
 
   - id: block-shared-tree-edit
     script: block-shared-tree-edit.sh
-    description: "pr-mode only — blocks Write/Edit on the shared integration checkout so every change is isolated in a worktree. Inert in trunk mode."
+    description: "pr-mode only — blocks Write/Edit/MultiEdit on the shared integration checkout so every change is isolated in a worktree. Inert in trunk mode."
     category: safety
     phase: "0"
     timeout: 5
     events:
       - event: PreToolUse
-        matcher: Write|Edit
+        matcher: Write|Edit|MultiEdit
         status_message: "🌳 pr-mode: enforcing worktree edit isolation..."
 
   - id: enforce-task-transition
