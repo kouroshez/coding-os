@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
@@ -114,6 +114,17 @@ function StateRow({ children }: { children: ReactNode }) {
 
 function InfoTip({ label, children }: { label: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const tipId = useId();
+  // Esc dismisses even when opened by hover (the button isn't focused then) —
+  // WCAG 1.4.13. Window-level so it fires regardless of focus (review finding 8).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
   return (
     <span
       className="relative inline-flex"
@@ -123,13 +134,10 @@ function InfoTip({ label, children }: { label: string; children: ReactNode }) {
       <button
         type="button"
         aria-label={`What is ${label}?`}
-        aria-expanded={open}
+        aria-describedby={open ? tipId : undefined}
         onClick={() => setOpen((v) => !v)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') setOpen(false);
-        }}
         className="flex h-4 w-4 items-center justify-center rounded-full border border-[var(--cos-border)] text-[10px] font-semibold leading-none text-[var(--cos-faint)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none"
       >
         i
@@ -137,6 +145,7 @@ function InfoTip({ label, children }: { label: string; children: ReactNode }) {
       {open && (
         <span
           role="tooltip"
+          id={tipId}
           className="absolute left-0 top-5 z-20 w-72 rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)] px-3 py-2 text-[11px] font-normal leading-relaxed text-[var(--cos-muted)] shadow-xl"
         >
           {children}
@@ -982,7 +991,3 @@ function GitTab() {
     </>
   );
 }
-
-// Read-only state shown when the active project is the meta-repo (or none is
-// scoped). coding-os itself stays trunk (ADR-0013) — render a clear banner, not
-// a dead form: the consumer must pick a project to configure pr-mode.
