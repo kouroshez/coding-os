@@ -416,11 +416,16 @@ def _unqualify_ref(ref: str) -> str:
     # valid push destination git resolves to `refs/heads/` server-side, so it MUST
     # normalize too (`refs/tags/` left intact — it's a tag).
     ref = ref.lstrip("+")
-    if ref.startswith("refs/heads/"):
-        return ref[len("refs/heads/"):]
-    if ref.startswith("heads/"):
-        return ref[len("heads/"):]
-    return ref
+    # Strip the ref-namespace prefix REPEATEDLY: a doubled `refs/heads/refs/heads/x`
+    # (or `heads/heads/x`) must normalize to bare `x`, else the nested form slips the
+    # membership test and writes a protected branch (D1).
+    while True:
+        if ref.startswith("refs/heads/"):
+            ref = ref[len("refs/heads/"):]
+        elif ref.startswith("heads/"):
+            ref = ref[len("heads/"):]
+        else:
+            return ref
 
 
 def _push_targets(args: list[str], blocked: set[str]) -> bool:

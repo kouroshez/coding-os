@@ -249,6 +249,18 @@ def test_pr_mode_blocks_push_heads_shorthand_protected() -> None:
     assert code == 2
 
 
+def test_pr_mode_blocks_push_double_heads_prefix_protected() -> None:
+    # A doubled ref-namespace prefix must normalize to the bare name too — else
+    # refs/heads/refs/heads/production survives a one-level strip and slips the wall (D1).
+    code, _ = _run("git push origin HEAD:refs/heads/refs/heads/production", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_update_ref_double_prefix_protected() -> None:
+    code, _ = _run("git update-ref refs/heads/refs/heads/production HEAD", workflow="pr")
+    assert code == 2
+
+
 def test_pr_mode_blocks_bare_push_from_shared_checkout() -> None:
     # On the shared checkout the current branch IS integration; a bare/HEAD push
     # advances it outside PR+CI.

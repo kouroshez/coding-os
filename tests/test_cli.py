@@ -3097,6 +3097,73 @@ class TestCosPr:
         ).stdout
         assert "unpushed work" in log  # the agent's local-only commit survived
 
+    def test_has_required_check_scopes_cwd_to_repo(
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # D4: the gh api call must run with cwd=repo so {owner}/{repo} resolves from
+        # THIS repo's remote — a submit from another checkout would else probe the
+        # wrong repo's branch protection.
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        monkeypatch.setattr(
+            prc, "_git_out", lambda args, **kw: "https://github.com/o/r.git" if "config" in args else ""
+        )
+        captured: dict[str, object] = {}
+
+        def fake_run(args, **kw):
+            if args[:2] == ["gh", "api"]:
+                captured["cwd"] = kw.get("cwd")
+                return subprocess.CompletedProcess(args, 0, "{}", "")
+            return subprocess.CompletedProcess(args, 0, "", "")
+
+        monkeypatch.setattr(prc, "_run", fake_run)
+        assert prc._has_required_check(str(repo), "main") is True
+        assert captured["cwd"] == str(repo)
+
+    def test_preserve_reaped_returns_none_on_commit_failure(
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # D2: if the capture commit fails, the dirty work never reaches the branch —
+        # _preserve_reaped must return None (so the caller keeps the worktree) instead
+        # of bundling only the old tip and reporting success.
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(
+            prc, "_git_out", lambda args, **kw: "?? new.py" if args[:1] == ["status"] else ""
+        )
+
+        def fake_git(args, **kw):
+            rc = 1 if "commit" in args else 0
+            return subprocess.CompletedProcess(["git", *args], rc, "", "")
+
+        monkeypatch.setattr(prc, "_git", fake_git)
+        assert prc._preserve_reaped(str(repo), repo, "agents/x/y") is None
+
+    def test_reap_keeps_worktree_when_preservation_fails(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # D2: when preservation fails on a dead orphan with dirty work, the worktree may
+        # hold the ONLY copy — it must be KEPT (not force-removed), flagged needs_attention.
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prc, "_preserve_reaped", lambda r, w, b: None)  # simulate failure
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        (wt / "dirty.txt").write_text("uncommitted work at risk", encoding="utf-8")  # dirty → preserve needed
+        sess_dir = repo / ".coding-os" / "claude" / "sessions"
+        sess_dir.mkdir(parents=True, exist_ok=True)
+        (sess_dir / "ses-test-abc.json").write_text(
+            json.dumps({"session_id": "ses-test-abc", "pid": 2147483646}), encoding="utf-8"
+        )
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo), "--json"])
+        assert res.exit_code == 0, res.output
+        entry = json.loads(res.output)["detail"][0]
+        assert entry["worktree_removed"] is False and entry["needs_attention"] is True
+        assert "adhoc-ses-test-abc" in self._worktrees(repo)  # worktree KEPT on disk
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # branch KEPT
+
     def test_pr_close_keeps_entry_when_list_fails(
         self, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
