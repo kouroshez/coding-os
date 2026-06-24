@@ -65,6 +65,9 @@ cos pr open --task "$TASK"        # or: cos pr open --adhoc   (no board task —
 <edit files in the worktree>
 <repo validate cmd>               # npm run validate --if-present | make verify | the repo's declared command
 
+# (2.5) PEERS — advisory only: spot a live peer editing your files BEFORE you push (§10.7)
+cos pr conflicts                  # read-only; lists overlapping agents/* branches, never blocks
+
 # (3) COMMIT + REBASE onto FETCH_HEAD (never the shared moving ref) + PUSH (lease, never bare force)
 git add -A && git commit -m "<conventional msg>"
 git fetch origin <integration> && git rebase FETCH_HEAD
@@ -145,6 +148,9 @@ The probe also **drives the autonomy dropdown data-driven (TASK-540)**: rungs th
 4. **Autonomy safety** — self-heal budget + circuit-breaker (§8).
 5. **Cleanup** — live cleanup on merge (§4.5, merge-gated: `cos pr cleanup` refuses to destroy an OPEN-PR / unpushed worktree without `--force`) + owner-independent reaper (§7).
 6. **Protected wall + default-OFF** — `protected_branches` never agent-writable; whole engine inert until the consumer opts in (§1).
+7. **Conflict pre-detection (TASK-558)** — `cos pr conflicts` (read-only, advisory) reports when a live peer `agents/*` branch edits the same files (touched = `merge-base..branch` diff ∪ that worktree's uncommitted porcelain) — the early warning the merge queue (late, post-CI) doesn't give. It **never blocks**: two agents may legitimately edit one file in different places, and rebase-at-submit + the merge queue still catch a real conflict at land. Only branches that currently have a worktree appear, so it scopes to genuinely-concurrent agents.
+
+> **Why there is no separate "frozen base snapshot".** An agent branch forks the integration head at `open`; `cos pr submit` re-pins it (`git fetch + rebase FETCH_HEAD`) and the merge queue rebases again at land, so base drift is *integrated* before merge rather than frozen. `cos pr conflicts` measures overlap from the `merge-base` fork-point, which a moving integration head does not distort. A dedicated base-snapshot store would add persistent state with no consumer — deferred under Rule-of-Three (anti-overengineering), not overlooked.
 
 ## 11. One-time consumer repo setup
 

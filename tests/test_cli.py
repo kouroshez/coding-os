@@ -3607,6 +3607,64 @@ class TestCosPr:
         json_arg = captured["args"][captured["args"].index("--json") + 1]
         assert "isDraft" in json_arg and "autoMergeRequest" in json_arg
 
+    # --- cross-branch conflict pre-detection (TASK-558) --------------------
+
+    @staticmethod
+    def _mk_agent_branch(repo: Path, tmp_path: Path, branch: str, committed: dict[str, str]) -> Path:
+        wt = tmp_path / "wts" / branch.replace("/", "-")
+        wt.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            ["git", "-C", str(repo), "worktree", "add", "-b", branch, str(wt), "main"],
+            check=True, capture_output=True, text=True,
+        )
+        for name, content in committed.items():
+            (wt / name).write_text(content, encoding="utf-8")
+        if committed:
+            subprocess.run(["git", "-C", str(wt), "add", "-A"], check=True)
+            subprocess.run(
+                ["git", "-C", str(wt), "-c", "user.email=t@t", "-c", "user.name=t",
+                 "commit", "-q", "-m", f"work {branch}"], check=True,
+            )
+        return wt
+
+    def test_pr_conflicts_reports_cross_branch_overlap(
+        self, runner: CliRunner, repo: Path, tmp_path: Path
+    ) -> None:
+        # Two live agent branches editing foo.py → only the SHARED file is flagged,
+        # the per-branch-unique files are not. Advisory, exit 0.
+        self._mk_agent_branch(repo, tmp_path, "agents/a/s1", {"foo.py": "A\n", "only_a.py": "x\n"})
+        self._mk_agent_branch(repo, tmp_path, "agents/b/s2", {"foo.py": "B\n", "only_b.py": "y\n"})
+        res = runner.invoke(
+            cli, ["pr", "conflicts", "--branch", "agents/a/s1", "--repo", str(repo), "--json"]
+        )
+        assert res.exit_code == 0, res.output
+        conflicts = json.loads(res.output)["conflicts"]
+        assert conflicts == [{"branch": "agents/b/s2", "files": ["foo.py"]}]
+
+    def test_pr_conflicts_detects_uncommitted_overlap(
+        self, runner: CliRunner, repo: Path, tmp_path: Path
+    ) -> None:
+        # The target's STILL-UNCOMMITTED edit to bar.py overlaps a peer's committed
+        # bar.py — earliest pre-detection (touched = merge-base diff ∪ worktree porcelain).
+        a = self._mk_agent_branch(repo, tmp_path, "agents/a/s1", {})
+        (a / "bar.py").write_text("uncommitted A\n", encoding="utf-8")  # not committed
+        self._mk_agent_branch(repo, tmp_path, "agents/b/s2", {"bar.py": "B\n"})
+        res = runner.invoke(
+            cli, ["pr", "conflicts", "--branch", "agents/a/s1", "--repo", str(repo), "--json"]
+        )
+        assert res.exit_code == 0, res.output
+        conflicts = json.loads(res.output)["conflicts"]
+        assert conflicts and conflicts[0]["files"] == ["bar.py"]
+
+    def test_pr_conflicts_no_overlap_reads_none(
+        self, runner: CliRunner, repo: Path, tmp_path: Path
+    ) -> None:
+        self._mk_agent_branch(repo, tmp_path, "agents/a/s1", {"a.py": "x\n"})
+        self._mk_agent_branch(repo, tmp_path, "agents/b/s2", {"b.py": "y\n"})
+        res = runner.invoke(cli, ["pr", "conflicts", "--branch", "agents/a/s1", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "conflicts: (none)" in res.output and "no peer overlap" in res.output
+
     # --- consumer-fixture dogfood: the full pr-mode loop (TASK-521) ---------
 
     def test_dogfood_full_pr_loop(

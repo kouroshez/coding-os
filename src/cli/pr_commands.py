@@ -622,6 +622,87 @@ def pr_status(repo_opt: str | None, branch: str | None, as_json: bool) -> None:
     )
 
 
+def _agent_worktrees(repo: str) -> dict[str, Path]:
+    # Map each live agents/* branch → its worktree path from `git worktree list`.
+    # Only branches with a worktree appear, so this naturally scopes to the
+    # currently-checked-out (i.e. concurrently-active) agents.
+    result: dict[str, Path] = {}
+    cur: str | None = None
+    for line in _git_out(["worktree", "list", "--porcelain"], cwd=repo).splitlines():
+        if line.startswith("worktree "):
+            cur = line[len("worktree "):].strip()
+        elif line.startswith("branch ") and cur:
+            name = _unqualify_head(line[len("branch "):].strip())
+            if name.startswith("agents/"):
+                result[name] = Path(cur)
+    return result
+
+
+def _unqualify_head(ref: str) -> str:
+    return ref[len("refs/heads/"):] if ref.startswith("refs/heads/") else ref
+
+
+def _changed_files(repo: str, branch: str, integration: str, wt: Path | None) -> set[str]:
+    # The branch's "touched files" = committed diff since it forked the integration
+    # line (merge-base, so a moving integration head doesn't distort it) UNION the
+    # worktree's still-uncommitted paths (earliest possible pre-detection signal).
+    files: set[str] = set()
+    base = _git_out(["merge-base", integration, branch], cwd=repo) or integration
+    for line in _git_out(["diff", "--name-only", f"{base}..{branch}"], cwd=repo).splitlines():
+        if line.strip():
+            files.add(line.strip())
+    if wt is not None and (wt / ".git").exists():
+        for line in _git_out(["status", "--porcelain"], cwd=wt).splitlines():
+            path = line[3:].strip()
+            if " -> " in path:  # rename entry: 'old -> new' — the new path is what's edited
+                path = path.split(" -> ", 1)[1].strip()
+            path = path.strip('"')  # porcelain quotes paths containing special chars
+            if path:
+                files.add(path)
+    return files
+
+
+@pr_group.command("conflicts", help="Advisory: which live peer agent branch also edits your files (early-warning before a land-time conflict).")
+@click.option("--branch", default=None, help="Target agent branch (default: the current worktree's HEAD).")
+@click.option("--repo", "repo_opt", default=None)
+@click.option("--json", "as_json", is_flag=True)
+def pr_conflicts(branch: str | None, repo_opt: str | None, as_json: bool) -> None:
+    repo = _resolve_repo(repo_opt)
+    integration = _integration_branch(repo)
+    worktrees = _agent_worktrees(repo)
+    target = branch or _git_out(["rev-parse", "--abbrev-ref", "HEAD"], cwd=repo)
+    if not target.startswith("agents/"):
+        raise click.ClickException(
+            "not on an agents/* branch — pass --branch <agents/...> or run from inside an agent worktree."
+        )
+    target_files = _changed_files(repo, target, integration, worktrees.get(target))
+    overlaps: list[dict] = []
+    for peer, peer_wt in sorted(worktrees.items()):
+        if peer == target:
+            continue
+        shared = sorted(target_files & _changed_files(repo, peer, integration, peer_wt))
+        if shared:
+            overlaps.append({"branch": peer, "files": shared})
+    # Advisory ONLY — overlap is a heads-up, never a block: two agents may legitimately
+    # touch one file in different places; the rebase-at-submit + merge queue catch a
+    # real conflict at land. Always exit 0.
+    _emit(
+        {
+            "branch": target,
+            "changed_files": len(target_files),
+            "conflicts": overlaps
+            if as_json
+            else ("; ".join(f"{o['branch']}={','.join(o['files'])}" for o in overlaps) or "(none)"),
+            "advisory": (
+                "peer overlap — coordinate or expect a rebase at land"
+                if overlaps
+                else "no peer overlap"
+            ),
+        },
+        as_json,
+    )
+
+
 def _pr_state(repo: str, branch: str) -> str:
     # "merged" | "closed" | "open" | "none" | "unknown" — drives the cleanup
     # merge-gate so an open PR's worktree isn't destroyed mid-flight (TASK-530).
