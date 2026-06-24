@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: pr-mode-p0-hardening
 labels: [pr-mode, data-loss, reaper, critical, ready]
-status: testing
+status: complete
 priority: P0
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
-completed: null
+completed: 2026-06-24
 agent_session: ses-claude-20260623-225054-17eb
 depends_on: []
 blocked_by: []
@@ -40,3 +40,4 @@ _reap_one (src/cli/pr_commands.py:771-790) calls `git worktree remove --force` +
 - 2026-06-24 [claude]: Edit pr_commands.py
 - 2026-06-24 [claude]: Edit test_cli.py
 - 2026-06-24 [claude]: Chose preserve-before-GC (WIP-commit add -A --no-verify → git bundle to ~/.coding-os/reaped, COS_REAPED_ROOT…
+- 2026-06-24 [claude]: committed d8563e81 · 3 files
