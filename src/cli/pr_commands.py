@@ -444,12 +444,55 @@ def pr_status(repo_opt: str | None, as_json: bool) -> None:
     )
 
 
-@pr_group.command("cleanup", help="Remove the worktree + delete the branch + prune (post-merge).")
+def _pr_state(repo: str, branch: str) -> str:
+    # PR state for <branch>'s head: "merged" | "closed" | "open" | "none" |
+    # "unknown" (gh absent / error / timeout). Drives the cleanup merge-gate so a
+    # still-open PR's worktree is not destroyed mid-flight (TASK-530).
+    if not _gh_ready():
+        return "unknown"
+    listing = _run(
+        ["gh", "pr", "list", "--head", branch, "--state", "all", "--json", "state,mergedAt"],
+        cwd=repo,
+    )
+    if listing.returncode != 0:
+        return "unknown"
+    try:
+        prs = json.loads(listing.stdout or "[]")
+    except json.JSONDecodeError:
+        return "unknown"
+    if not prs:
+        return "none"
+    if prs[0].get("mergedAt"):
+        return "merged"
+    return str(prs[0].get("state", "")).lower() or "unknown"
+
+
+def _branch_recoverable(repo: str, branch: str, integration: str) -> bool:
+    # True when every commit on the local branch is already reachable from an
+    # origin ref (origin/<branch> from submit's push, or origin/<integration>
+    # after merge) — so deleting the local branch loses nothing. The gh-independent
+    # safety net for cleanup when there is no PR / gh can't answer (TASK-530).
+    if not _git_out(["rev-parse", "--verify", branch], cwd=repo):
+        return True  # branch ref already gone → nothing to lose
+    # No commits unique to the branch beyond the LOCAL integration line → nothing
+    # to lose (e.g. a freshly-opened worktree with no work yet).
+    if _git(["merge-base", "--is-ancestor", branch, integration], cwd=repo).returncode == 0:
+        return True
+    for ref in (f"origin/{branch}", f"origin/{integration}"):
+        if _git(["merge-base", "--is-ancestor", branch, ref], cwd=repo).returncode == 0:
+            return True
+    return False
+
+
+@pr_group.command("cleanup", help="Remove the worktree + delete the branch + prune (merge-gated; --force to override).")
 @click.option("--task", "task_id", default=None)
 @click.option("--adhoc", is_flag=True)
 @click.option("--repo", "repo_opt", default=None)
+@click.option("--force", is_flag=True, help="Remove even if the PR is open / the branch is unpushed (human override).")
 @click.option("--json", "as_json", is_flag=True)
-def pr_cleanup(task_id: str | None, adhoc: bool, repo_opt: str | None, as_json: bool) -> None:
+def pr_cleanup(
+    task_id: str | None, adhoc: bool, repo_opt: str | None, force: bool, as_json: bool
+) -> None:
     repo = _resolve_repo(repo_opt)
     session = _agent_session()
     task_slug = "adhoc" if adhoc else _sanitize(task_id) if task_id else None
@@ -458,13 +501,47 @@ def pr_cleanup(task_id: str | None, adhoc: bool, repo_opt: str | None, as_json: 
     branch = _branch_for(task_slug, session)
     wt = _worktree_root(repo) / f"{task_slug}-{session}"
 
+    # Merge-gate (TASK-530): destroying the worktree + local branch is only safe
+    # once the work has landed (PR merged/closed) or is fully on origin. Refuse on
+    # an OPEN PR, or on an unpushed branch when there's no PR to judge — unless the
+    # human passes --force. The reaper (dead owner) stays unconditional by design.
+    if not force:
+        state = _pr_state(repo, branch)
+        if state == "open":
+            _emit(
+                {
+                    "removed": False,
+                    "branch": branch,
+                    "pr_state": "open",
+                    "action": "PR still open — not removing; merge/close it, or re-run with --force",
+                },
+                as_json,
+            )
+            sys.exit(1)
+        if state in {"none", "unknown"} and not _branch_recoverable(repo, branch, _integration_branch()):
+            _emit(
+                {
+                    "removed": False,
+                    "branch": branch,
+                    "pr_state": state,
+                    "action": "branch has local commits not on origin — 'cos pr submit' first, or --force to discard",
+                },
+                as_json,
+            )
+            sys.exit(1)
+
     _git(["worktree", "unlock", str(wt)], cwd=repo)  # release the pr-mode live-lock
     removed_wt = _git(["worktree", "remove", "--force", str(wt)], cwd=repo).returncode == 0
     deleted_branch = _git(["branch", "-D", branch], cwd=repo).returncode == 0
     _git(["worktree", "prune"], cwd=repo)
     _heal_budget_clear(repo, branch)  # branch is done — drop its heal budget (finding 8)
     _emit(
-        {"worktree_removed": removed_wt, "branch_deleted": deleted_branch, "worktree": str(wt)},
+        {
+            "worktree_removed": removed_wt,
+            "branch_deleted": deleted_branch,
+            "worktree": str(wt),
+            "forced": force,
+        },
         as_json,
     )
 

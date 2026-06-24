@@ -73,7 +73,10 @@ gh pr create --base <integration> --head "$(git branch --show-current)" --title 
 gh pr merge --auto --squash       # merges itself once required CI is green; CI red => PR simply does not merge
 
 # (5) CLEANUP on merge (this is what prevents orphans)
-cos pr cleanup --task "$TASK"     # git worktree remove <wt>; git branch -D agents/<task>/<id>; git worktree prune
+cos pr cleanup --task "$TASK"     # MERGE-GATED: refuses while the PR is still OPEN, or
+                                  # when the branch has local commits not on origin,
+                                  # unless --force. On a merged/closed PR (or a fully
+                                  # pushed branch): worktree remove + branch -D + prune.
 ```
 
 `gc.auto=0` is set in each worktree: worktrees share objects/refs/packed-refs, so background gc during a peer's rebase is unsafe.
@@ -116,7 +119,7 @@ Autonomy is capped so a stuck agent cannot loop forever or flood the remote:
 2. **Hook guards** — branch-guard positive policy (§5) blocks HEAD-rewrites on shared tree + protected-branch writes.
 3. **CI gate** — required status check + merge queue ("two pass alone, break together" caught before merge); broken code never merges.
 4. **Autonomy safety** — self-heal budget + circuit-breaker (§8).
-5. **Cleanup** — live cleanup on merge (§4.5) + owner-independent reaper (§7).
+5. **Cleanup** — live cleanup on merge (§4.5, merge-gated: `cos pr cleanup` refuses to destroy an OPEN-PR / unpushed worktree without `--force`) + owner-independent reaper (§7).
 6. **Protected wall + default-OFF** — `protected_branches` never agent-writable; whole engine inert until the consumer opts in (§1).
 
 ## 11. One-time consumer repo setup

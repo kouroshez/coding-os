@@ -2837,9 +2837,62 @@ class TestCosPr:
     def test_cleanup_removes_worktree_and_branch(self, runner: CliRunner, repo: Path) -> None:
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         res = runner.invoke(cli, ["pr", "cleanup", "--adhoc", "--repo", str(repo)])
-        assert res.exit_code == 0, res.output
+        assert res.exit_code == 0, res.output  # no work yet → recoverable → removes
         assert "agents/adhoc/ses-test-abc" not in self._branches(repo)
         assert "adhoc-ses-test-abc" not in self._worktrees(repo)
+
+    # --- TASK-530: cleanup is merge-gated (no silent destruction of live work) --
+
+    def test_cleanup_refuses_open_pr_without_force(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_pr_state", lambda r, b: "open")
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        res = runner.invoke(cli, ["pr", "cleanup", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 1, res.output
+        assert "pr_state: open" in res.output
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # kept
+
+    def test_cleanup_force_removes_open_pr(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_pr_state", lambda r, b: "open")
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        res = runner.invoke(cli, ["pr", "cleanup", "--adhoc", "--force", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" not in self._branches(repo)
+
+    def test_cleanup_removes_merged_pr(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_pr_state", lambda r, b: "merged")
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        res = runner.invoke(cli, ["pr", "cleanup", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" not in self._branches(repo)
+
+    def test_cleanup_refuses_unpushed_branch_with_no_pr(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)  # no gh => _pr_state "unknown"
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        # a local-only commit, never submitted/pushed — must be protected
+        (wt / "x.txt").write_text("wip", encoding="utf-8")
+        subprocess.run(["git", "-C", str(wt), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "-m", "wip"], check=True)
+        res = runner.invoke(cli, ["pr", "cleanup", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 1, res.output
+        assert "not on origin" in res.output
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # kept
 
     def test_preflight_degrades_without_remote(self, runner: CliRunner, repo: Path) -> None:
         res = runner.invoke(cli, ["pr", "preflight", "--repo", str(repo)])
