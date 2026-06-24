@@ -3327,6 +3327,92 @@ class TestCosPr:
         assert "branch: agents/TASK-777/ses-AAA" in res.output  # resolved from disk, not ses-BBB
         assert "merge_status: local" in res.output
 
+    # --- TASK-542: cos pr self-reads git_settings from hub-settings.json --------
+
+    @staticmethod
+    def _write_git_settings(repo: Path, **git_settings: object) -> None:
+        # The Hub writes this; the CLI shell never receives COS_GIT_* (cos-env.sh
+        # exports those only into hook subprocesses), so submit/open must self-read.
+        state = repo / ".coding-os"
+        state.mkdir(parents=True, exist_ok=True)
+        (state / "hub-settings.json").write_text(
+            json.dumps({"git_settings": git_settings}), encoding="utf-8"
+        )
+
+    def test_submit_reads_local_autonomy_from_settings_file(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # autonomy_level=local on disk + NO env var → submit takes the local path.
+        import cli.pr_commands as prc
+
+        monkeypatch.delenv("COS_GIT_AUTONOMY", raising=False)
+        self._write_git_settings(repo, enabled=True, autonomy_level="local")
+        self._fake_gh(prc, monkeypatch)  # any gh pr merge => AssertionError
+
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "merge_status: local" in res.output
+        assert "pushed: False" in res.output
+        assert "autonomy_level: local" in res.output
+
+    def test_env_autonomy_overrides_settings_file(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Explicit env var wins over the file: file=local but env=auto_merge → not local.
+        import cli.pr_commands as prc
+
+        self._add_bare_remote(repo, tmp_path)
+        self._write_git_settings(repo, enabled=True, autonomy_level="local")
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
+        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        merge_calls: list = []
+        self._fake_gh(prc, monkeypatch, merge_calls=merge_calls)
+
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "autonomy_level: auto_merge" in res.output  # env beat the file
+        assert "pushed: True" in res.output
+        assert len(merge_calls) == 1  # auto-merge armed — not the local path
+
+    def test_open_reads_integration_branch_from_settings_file(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # integration_branch=develop on disk + NO env var → worktree bases on develop.
+        monkeypatch.delenv("COS_GIT_INTEGRATION_BRANCH", raising=False)
+        subprocess.run(["git", "-C", str(repo), "branch", "develop"], check=True)
+        self._write_git_settings(repo, enabled=True, integration_branch="develop")
+
+        res = runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "integration: develop" in res.output
+
+    def test_settings_resolve_from_main_repo_inside_worktree(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Run the helper with cwd INSIDE a linked worktree (repo arg = the worktree
+        # path): --git-common-dir must resolve back to the MAIN repo's settings file.
+        import cli.pr_commands as prc
+
+        monkeypatch.delenv("COS_GIT_AUTONOMY", raising=False)
+        self._write_git_settings(repo, enabled=True, autonomy_level="autonomous")
+        wt = tmp_path / "linked-wt"
+        subprocess.run(
+            ["git", "-C", str(repo), "worktree", "add", "-q", "--detach", str(wt), "main"],
+            check=True,
+        )
+        # repo arg is the worktree, but the settings live only in the MAIN repo
+        assert not (wt / ".coding-os").exists()
+        assert prc._autonomy_level(str(wt)) == "autonomous"
+        assert Path(prc._main_repo_root(str(wt))).resolve() == repo.resolve()
+
     def test_cleanup_resolves_worktree_when_session_differs(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

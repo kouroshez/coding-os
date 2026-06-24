@@ -30,7 +30,7 @@ pr-mode is **default OFF**. It activates only when a consumer sets, in its **own
 
 `cos-env.sh` reads `git_settings.enabled` and, when true, **exports `COS_GIT_WORKFLOW=pr` session-wide** (alongside `COS_GIT_INTEGRATION_BRANCH`, `COS_GIT_PROTECTED_BRANCHES`, and `COS_GIT_AUTONOMY`). This is mandatory because **the inline form does not work**: `branch-guard.sh` reads its own process env *before* a command's `VAR=val cmd` prefix, so `COS_GIT_WORKFLOW=pr git …` is silently ignored. The toggle must persist into the adapter-injected environment exactly like `model_routing`. With the toggle off, nothing in this playbook fires and there is zero behavioural or token-cost difference.
 
-`autonomy_level` (default `draft`) sets how far the agent acts unattended — the industry "Trust Spectrum" framing (§8). It exports as `COS_GIT_AUTONOMY` and is read by `cos pr submit`.
+`autonomy_level` (default `draft`) sets how far the agent acts unattended — the industry "Trust Spectrum" framing (§8). `cos pr submit`/`open` resolve `autonomy_level` + `integration_branch` themselves: an explicit `COS_GIT_AUTONOMY` / `COS_GIT_INTEGRATION_BRANCH` env var always wins, else the CLI **self-reads `git_settings` straight from the consumer's `hub-settings.json`**. This self-read is required because `cos-env.sh` exports the `COS_GIT_*` vars only into **hook** subprocesses — the agent's `cos pr` command shell carries none, so without it the saved rung/branch would be silently ignored (TASK-542). Inside a linked worktree the CLI resolves the **main** repo's settings file via `git rev-parse --git-common-dir`'s parent (§3), so every worktree of one repo honors the one shared config.
 
 ## 2. Naming & paths (the slug contract)
 

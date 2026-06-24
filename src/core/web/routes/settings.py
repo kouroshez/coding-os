@@ -147,7 +147,7 @@ def get_git_state():
         from web._project_context import current_project_root
 
         repo = str(current_project_root())
-        cap = _preflight(repo, _integration_branch())
+        cap = _preflight(repo, _integration_branch(repo))
         state = _git_state(repo)
     except Exception as exc:
         return _module_error(503, "unavailable", f"git-state unavailable: {exc}", True)

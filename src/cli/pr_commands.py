@@ -96,13 +96,59 @@ def _worktree_root(repo_root: str) -> Path:
     return Path(base) / _repo_slug(repo_root)
 
 
-def _integration_branch() -> str:
-    return os.environ.get("COS_GIT_INTEGRATION_BRANCH", "main")
+def _main_repo_root(repo: str) -> str:
+    # The main checkout owns the one hub-settings.json every worktree shares. A
+    # linked worktree's --git-common-dir resolves (relative to the worktree) to
+    # <main>/.git, whose parent is the main repo; the main checkout returns a bare
+    # ".git" and the parent collapses to repo itself. SPEC: pr-workflow.md § 3.
+    common = _git_out(["rev-parse", "--git-common-dir"], cwd=repo)
+    if not common:
+        return repo
+    common_path = Path(common)
+    if not common_path.is_absolute():
+        common_path = (Path(repo) / common_path).resolve()
+    return str(common_path.parent) if common_path.name == ".git" else repo
 
 
-def _autonomy_level() -> str:
-    # Trust Spectrum (TASK-533): draft never arms auto-merge; auto_merge/autonomous do.
-    return os.environ.get("COS_GIT_AUTONOMY", "draft").strip() or "draft"
+def _git_settings(repo: str) -> dict:
+    # Self-read the consumer's git_settings: cos-env.sh exports COS_GIT_* only into
+    # hook subprocesses, so the agent's `cos pr` shell has none — without this the
+    # configured rung/branch is silently ignored. Best-effort: any read error falls
+    # through to the env/default in the callers below.
+    settings_path = Path(_main_repo_root(repo)) / ".coding-os" / "hub-settings.json"
+    if not settings_path.exists():
+        return {}
+    try:
+        raw = json.loads(settings_path.read_text())
+    except Exception:
+        return {}
+    section = raw.get("git_settings")
+    return section if isinstance(section, dict) else {}
+
+
+def _integration_branch(repo: str | None = None) -> str:
+    # Explicit env var always wins; else the consumer's saved integration_branch.
+    env = os.environ.get("COS_GIT_INTEGRATION_BRANCH")
+    if env:
+        return env
+    if repo is not None:
+        branch = _git_settings(repo).get("integration_branch")
+        if isinstance(branch, str) and branch:
+            return branch
+    return "main"
+
+
+def _autonomy_level(repo: str | None = None) -> str:
+    # Trust Spectrum: draft never arms auto-merge; auto_merge/autonomous do.
+    # Explicit env var wins; else the consumer's saved autonomy_level.
+    env = os.environ.get("COS_GIT_AUTONOMY")
+    if env and env.strip():
+        return env.strip()
+    if repo is not None:
+        level = _git_settings(repo).get("autonomy_level")
+        if isinstance(level, str) and level.strip():
+            return level.strip()
+    return "draft"
 
 
 def _agent_session() -> str:
@@ -265,7 +311,7 @@ def pr_group() -> None:
 @click.option("--json", "as_json", is_flag=True, help="Emit JSON.")
 def pr_preflight(repo_opt: str | None, integration: str | None, as_json: bool) -> None:
     repo = _resolve_repo(repo_opt)
-    integration = integration or _integration_branch()
+    integration = integration or _integration_branch(repo)
     cap = _preflight(repo, integration)
     _emit({**cap, "mode": "pr" if cap["pr_ok"] else "degraded-trunk"}, as_json)
     sys.exit(0 if cap["pr_ok"] else 1)
@@ -281,7 +327,7 @@ def pr_open(
     task_id: str | None, adhoc: bool, repo_opt: str | None, integration: str | None, as_json: bool
 ) -> None:
     repo = _resolve_repo(repo_opt)
-    integration = integration or _integration_branch()
+    integration = integration or _integration_branch(repo)
     session = _agent_session()
 
     if adhoc:
@@ -355,7 +401,7 @@ def pr_submit(
     as_json: bool,
 ) -> None:
     repo = _resolve_repo(repo_opt)
-    integration = integration or _integration_branch()
+    integration = integration or _integration_branch(repo)
     session = _agent_session()
     task_slug = "adhoc" if adhoc else _sanitize(task_id) if task_id else None
     if task_slug is None:
@@ -366,7 +412,7 @@ def pr_submit(
 
     # `local` rung (TASK-540): commit-only, never push. Short-circuits before the
     # capability probe so a repo with no remote is the intended mode, not a degrade.
-    autonomy = _autonomy_level()
+    autonomy = _autonomy_level(repo)
     if autonomy == "local":
         _emit(
             {
@@ -658,7 +704,7 @@ def pr_cleanup(
                 as_json,
             )
             sys.exit(1)
-        if state in {"none", "unknown"} and not _branch_recoverable(repo, branch, _integration_branch()):
+        if state in {"none", "unknown"} and not _branch_recoverable(repo, branch, _integration_branch(repo)):
             _emit(
                 {
                     "removed": False,
@@ -831,7 +877,7 @@ def _reap_one(repo: str, wt: Path, branch: str) -> dict:
     # whenever the branch is not already on origin/integration OR the tree is dirty,
     # and delete the local branch ONLY once the work is safe — recoverable from a
     # remote ref, or a recovery bundle was confirmed. If both fail, keep the branch.
-    integration = _integration_branch()
+    integration = _integration_branch(repo)
     recoverable = _branch_recoverable(repo, branch, integration)
     dirty = bool(_git_out(["status", "--porcelain"], cwd=wt))
     preserved = _preserve_reaped(repo, wt, branch) if (not recoverable or dirty) else None
