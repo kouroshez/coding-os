@@ -480,3 +480,149 @@ def test_pr_mode_allows_rebase_in_worktree_via_dash_C() -> None:
 def test_pr_mode_allows_rebase_abort_anywhere() -> None:
     code, _ = _run("git rebase --abort", workflow="pr")
     assert code == 0
+
+
+# --- TASK-528: pr-policy leak probes — refspec push / merge / cherry-pick /
+#     branch -f / update-ref must NOT bypass the protected wall ---------------
+
+
+def test_pr_mode_blocks_push_fully_qualified_integration_refspec() -> None:
+    # `_push_targets` must strip refs/heads/ before the membership test.
+    code, _ = _run("git push origin HEAD:refs/heads/main", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_push_force_qualified_refspec() -> None:
+    code, _ = _run("git push origin +refs/heads/main", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_push_qualified_protected_refspec() -> None:
+    code, _ = _run("git push origin HEAD:refs/heads/production", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_push_delete_integration_refspec() -> None:
+    # `git push origin :refs/heads/main` deletes remote main — must BLOCK.
+    code, _ = _run("git push origin :refs/heads/main", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_merge_on_shared_checkout() -> None:
+    code, err = _run("git merge agents/auth/abc", workflow="pr")
+    assert code == 2
+    assert "worktree" in err.lower()
+
+
+def test_pr_mode_allows_merge_in_worktree() -> None:
+    code, _ = _run(f"cd {_WT} && git merge agents/auth/abc", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_blocks_cherry_pick_on_shared_checkout() -> None:
+    code, _ = _run("git cherry-pick abc1234", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_allows_cherry_pick_in_worktree_via_dash_C() -> None:
+    code, _ = _run(f"git -C {_WT} cherry-pick abc1234", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_allows_merge_abort_anywhere() -> None:
+    code, _ = _run("git merge --abort", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_allows_cherry_pick_continue_anywhere() -> None:
+    code, _ = _run("git cherry-pick --continue", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_blocks_branch_force_move_integration() -> None:
+    code, err = _run("git branch -f main HEAD~1", workflow="pr")
+    assert code == 2
+    assert "protected" in err.lower() or "ref" in err.lower()
+
+
+def test_pr_mode_blocks_branch_delete_integration() -> None:
+    code, _ = _run("git branch -D main", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_branch_rename_onto_integration() -> None:
+    code, _ = _run("git branch -m oldname main", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_branch_force_move_even_in_worktree() -> None:
+    # refs are shared across worktrees via the common dir → worktree scope is no
+    # protection for a direct ref rewrite of a blocked branch.
+    code, _ = _run(f"git -C {_WT} branch -f main HEAD~1", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_update_ref_integration() -> None:
+    code, _ = _run("git update-ref refs/heads/main HEAD~1", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_update_ref_delete_protected() -> None:
+    code, _ = _run("git update-ref -d refs/heads/production", workflow="pr")
+    assert code == 2
+
+
+def test_pr_mode_blocks_update_ref_stdin() -> None:
+    # `--stdin` reads ref commands we can't inspect → fail closed.
+    code, _ = _run("git update-ref --stdin", workflow="pr")
+    assert code == 2
+
+
+# --- TASK-528 false-positive probes — the agents/* flow must stay ALLOWED ----
+
+
+def test_pr_mode_allows_branch_delete_agents_cleanup() -> None:
+    # `cos pr cleanup` deletes the agent branch — must NOT block.
+    code, _ = _run("git branch -D agents/auth/abc", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_allows_branch_create_agents() -> None:
+    code, _ = _run("git branch agents/foo/123", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_allows_branch_force_create_agents_from_main() -> None:
+    # force-create an agents/* branch AT main's commit — startpoint main is a
+    # read-only source, not the ref being written, so this is allowed.
+    code, _ = _run("git branch -f agents/x/1 main", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_allows_update_ref_agents() -> None:
+    code, _ = _run("git update-ref refs/heads/agents/x/1 HEAD", workflow="pr")
+    assert code == 0
+
+
+# --- TASK-528 trunk-mode must stay byte-identical (no new blocks) ------------
+
+
+def test_trunk_push_refspec_unchanged() -> None:
+    # trunk's publish path IS push-to-main — the pr push guard must not leak in.
+    code, _ = _run("git push origin HEAD:refs/heads/main")
+    assert code == 0
+
+
+def test_trunk_merge_unchanged() -> None:
+    code, _ = _run("git merge feature-x")
+    assert code == 0
+
+
+def test_trunk_update_ref_unchanged() -> None:
+    code, _ = _run("git update-ref refs/heads/main HEAD~1")
+    assert code == 0
+
+
+def test_trunk_branch_force_unchanged() -> None:
+    code, _ = _run("git branch -f main HEAD~1")
+    assert code == 0

@@ -405,6 +405,21 @@ def _worktree_scoped(segments: list[str]) -> bool:
     return False
 
 
+# In-progress merge / cherry-pick cleanup flags — these don't advance a branch.
+_SAFE_SEQUENCER_FLAGS = {"--abort", "--continue", "--skip", "--quit"}
+
+
+def _unqualify_ref(ref: str) -> str:
+    # `+refs/heads/main` → `main`, so the fully-qualified refspec form can't slip
+    # past a bare-name membership test. `+` (force) is stripped first; only the
+    # branch namespace is unwrapped (a `refs/tags/` push targets a tag, not a
+    # branch, so it is deliberately left intact).
+    ref = ref.lstrip("+")
+    if ref.startswith("refs/heads/"):
+        return ref[len("refs/heads/"):]
+    return ref
+
+
 def _push_targets(args: list[str], blocked: set[str]) -> bool:
     # `--mirror` / `--all` push every local ref → can update the integration or a
     # protected branch without naming it; treat as a protected-push (finding 15).
@@ -414,10 +429,40 @@ def _push_targets(args: list[str], blocked: set[str]) -> bool:
         if a.startswith("-"):
             continue
         dst = a.rsplit(":", 1)[-1] if ":" in a else a
-        dst = dst.lstrip("+")  # `+main` force-refspec still targets `main`
-        if dst in blocked:
+        if _unqualify_ref(dst) in blocked:  # bare/+force/refs-heads forms all map here
             return True
     return False
+
+
+def _pr_branch_blocks(args: list[str], blocked: set[str]) -> bool:
+    # A `git branch` that creates / force-moves / deletes / renames / copies a
+    # BLOCKED branch ref. agents/* create and `-D agents/...` cleanup stay allowed
+    # — only a blocked-branch target trips. Worktree scope is irrelevant: branch
+    # refs are shared across every worktree via the common dir.
+    destructive = any(
+        a in {"-d", "-D", "--delete", "-m", "-M", "--move", "-c", "-C", "--copy"}
+        for a in args
+    )
+    positionals = [a for a in args if not a.startswith("-")]
+    if not positionals:
+        return False  # bare `git branch` (list) — no target
+    if destructive:
+        # delete / rename / copy — any named blocked branch is at risk (rename
+        # ONTO main, delete main, …).
+        return any(_unqualify_ref(p) in blocked for p in positionals)
+    # force-move (`branch -f <b> [start]`) or bare create (`branch <b> [start]`):
+    # only the first positional is the ref being written; a blocked startpoint is
+    # harmless.
+    return _unqualify_ref(positionals[0]) in blocked
+
+
+def _pr_update_ref_blocks(args: list[str], blocked: set[str]) -> bool:
+    # `git update-ref [-d] <ref> [<newvalue> [<oldvalue>]]` rewrites a ref
+    # directly. `--stdin` reads ref commands we cannot inspect → fail closed.
+    if "--stdin" in args:
+        return True
+    positionals = [a for a in args if not a.startswith("-")]
+    return bool(positionals) and _unqualify_ref(positionals[0]) in blocked
 
 
 def _git_dir_target(global_tokens: list[str]) -> str | None:
@@ -481,8 +526,25 @@ def _pr_check(
         if worktree:
             return None, None  # HEAD-rewrite is fine inside an isolated worktree
         return "pr-shared-head-rewrite", _PR_MSG["shared-head"]
-    # checkout / switch / branch / worktree / everything else: branches and
-    # worktrees are the pr-mode isolation mechanism — allowed.
+    if subcmd in {"merge", "cherry-pick"}:
+        # merge/cherry-pick advance the current branch's HEAD — on the shared
+        # integration checkout that lands code outside the PR+CI flow. In a
+        # worktree they only advance that worktree's own agents/* HEAD.
+        if any(a in _SAFE_SEQUENCER_FLAGS for a in args):
+            return None, None  # in-progress cleanup, not an advance
+        if worktree:
+            return None, None
+        return "pr-shared-head-rewrite", _PR_MSG["shared-head"]
+    if subcmd == "branch":
+        if _pr_branch_blocks(args, blocked_push):
+            return "pr-protected-ref", _PR_MSG["protected-ref"]
+        return None, None  # agents/* create + delete stay allowed
+    if subcmd == "update-ref":
+        if _pr_update_ref_blocks(args, blocked_push):
+            return "pr-protected-ref", _PR_MSG["protected-ref"]
+        return None, None
+    # checkout / switch / worktree / everything else: branches and worktrees are
+    # the pr-mode isolation mechanism — allowed.
     return None, None
 
 
@@ -495,10 +557,18 @@ _PR_MSG = {
         "  See docs/playbooks/pr-workflow.md § 5/§6."
     ),
     "shared-head": (
-        "BLOCKED (pr-mode): HEAD-rewrite (reset/rebase) on the shared\n"
-        "integration checkout corrupts the always-green integration line.\n"
-        "  HEAD-rewrites are allowed INSIDE a worktree — scope the op with\n"
+        "BLOCKED (pr-mode): HEAD-rewrite (reset/rebase/merge/cherry-pick) on the\n"
+        "shared integration checkout corrupts the always-green integration line.\n"
+        "  These are allowed INSIDE a worktree — scope the op with\n"
         "  'git -C <worktree>' or 'cd <worktree> && …'.\n"
+        "  See docs/playbooks/pr-workflow.md § 5."
+    ),
+    "protected-ref": (
+        "BLOCKED (pr-mode): this rewrites a protected/integration branch ref\n"
+        "directly (git branch -f/-D/-m / git update-ref). Branch refs are shared\n"
+        "across every worktree, so this corrupts the integration/production line\n"
+        "outside the PR+CI flow — worktree scope is NO protection here.\n"
+        "  Agents mutate only their own 'agents/*' branch; land changes via a PR.\n"
         "  See docs/playbooks/pr-workflow.md § 5."
     ),
     "protected-push": (

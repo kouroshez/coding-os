@@ -83,7 +83,11 @@ cos pr cleanup --task "$TASK"     # git worktree remove <wt>; git branch -D agen
 Replacing `exit 0`, pr-mode is a **positive allow-list**, keeping the guards that still matter:
 
 - **Allow:** `git worktree add`, branch create/checkout of `agents/*`, `push --force-with-lease` to `agents/*`.
-- **Still BLOCK:** HEAD-rewrites (`reset --hard`/`rebase`) on the **shared integration checkout**; any push/commit to an `integration_branch` or `protected_branches` entry; bare `--force`.
+- **Still BLOCK — the protected wall, every bypass shape, not just the obvious one:**
+  - **HEAD-rewrites** — `reset` / `rebase` / `merge` / `cherry-pick` — on the **shared integration checkout**; allowed only when the op is **worktree-scoped** (a worktree advances its own `agents/*` HEAD, never the integration line). `merge --abort` / `cherry-pick --continue` and the other in-progress cleanup flags are safe and pass.
+  - any **push** to an `integration_branch` / `protected_branches` entry, in **every refspec form** — bare (`origin main`), fully-qualified (`origin HEAD:refs/heads/main`), force (`+main` / `+refs/heads/main`), delete (`origin :refs/heads/main`), and `--mirror` / `--all`.
+  - any **direct ref rewrite** of a blocked branch — `git branch -f/-D/-m/-c <blocked>` or `git update-ref refs/heads/<blocked>` (incl. `--stdin`) — blocked **regardless of worktree**: refs are shared across every worktree via the common dir, so worktree scope is no protection here.
+  - bare `--force` push.
 - **Edit-isolation:** in pr-mode, `git commit` / Write / Edit against the **shared integration checkout** is blocked — every code change must happen in a worktree (so even no-task work isolates; see §6).
 
 ## 6. No-task work still isolates
