@@ -4,19 +4,18 @@ title: "pr-mode: cos pr cleanup must preserve before destroy \u2014 drifted-sess
 swimlane: core
 kind: bug
 epic: multi-agent-pr-mode
-labels: [pr-mode, data-loss, reaper, audit-2026-06-24]
-status: icebox
+labels: [pr-mode, data-loss, reaper, audit-2026-06-24, ready]
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-24
-started: null
-completed: null
-agent_session: null
+started: 2026-06-24
+completed: 2026-06-24
+agent_session: ses-claude-20260624-182639-f22b
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-561: pr-mode: cos pr cleanup must preserve before destroy — drifted-session cleanup can delete a live peer's uncommitted work
 
 **Outcome (one sentence):** cos pr cleanup never destroys a LIVE peer's worktree/uncommitted work under session-id drift. Preferred fix: the peer-protection gate (pr_commands.py:842) also refuses when _session_state is 'unknown' AND owner_session != session ("can't prove the owner is dead → don't touch a peer"); equivalently/additionally cleanup runs _preserve_reaped (git bundle) before `worktree remove --force`, mirroring the reaper hardening (TASK-535) that cleanup never received.
@@ -35,3 +34,12 @@ Audit probe probe_cleanup_peer.py reproduced end-to-end: peer-gate fires=False, 
 - **Then** it refuses (or git-bundle-preserves first) so the peer's UNCOMMITTED file survives, while the normal own-worktree merged-PR cleanup path still cleans up as before
 
 ## Work Log
+- 2026-06-25 [claude]: Deliberation: session-state cannot distinguish drifted-self (safe to clean, owner_session!=session + state 'unknown')…
+- 2026-06-25 [claude]: Edit pr-workflow.md
+- 2026-06-25 [claude]: Edit pr-workflow.md
+- 2026-06-25 [claude]: Edit pr-workflow.md
+- 2026-06-25 [claude]: Edit pr_commands.py
+- 2026-06-25 [claude]: Edit pr_commands.py
+- 2026-06-25 [claude]: Edit test_cli.py
+- 2026-06-25 [claude]: Edit pr_commands.py
+- 2026-06-25 [claude]: Shipped (7cfb7de8): pr_cleanup now runs _preserve_reaped before destroy when owner_session!=session AND tree dirty;…
