@@ -114,15 +114,24 @@ fi
 #   • no unpushed-commits nudge — push is deferred to task-close by the trunk
 #     workflow, so a per-turn "N unpushed" line would be noise that fights the rule.
 if command -v git >/dev/null 2>&1; then
-  _uncommitted_docs=$(git status --porcelain -- docs 2>/dev/null | grep -cE '\.md$' 2>/dev/null || true)
-  if [ "${_uncommitted_docs:-0}" -gt 0 ] 2>/dev/null; then
-    echo "advisory: ${_uncommitted_docs} uncommitted doc(s) under docs/ — commit so the audit trail matches the repo (git status -- docs)." >&2
+  # Anchor every status query to the repo TOP-LEVEL: a cwd-relative `git status`
+  # fired from a SUBDIR only sees that subtree, so root-level changes were missed
+  # entirely (TASK-566 J). Skip the block cleanly when not inside a repo.
+  _top=$(git rev-parse --show-toplevel 2>/dev/null || true)
+  if [ -n "$_top" ]; then
+    # Audit-trail docs: ANY uncommitted file under docs/ EXCEPT board churn under
+    # docs/tasks/. Count non-.md too — a png/json/asset under docs/ is audit trail
+    # and was previously counted by NEITHER advisory (TASK-566 N).
+    _uncommitted_docs=$(git -C "$_top" status --porcelain -- docs ':(exclude)docs/tasks' 2>/dev/null | grep -cE '.' 2>/dev/null || true)
+    if [ "${_uncommitted_docs:-0}" -gt 0 ] 2>/dev/null; then
+      echo "advisory: ${_uncommitted_docs} uncommitted doc(s) under docs/ — commit so the audit trail matches the repo (git status -- docs)." >&2
+    fi
+    # Non-docs code: porcelain entries outside docs/ (board churn under docs/tasks/
+    # is excluded, so this fires only on genuine code left uncommitted).
+    _uncommitted_code=$(git -C "$_top" status --porcelain -- . ':(exclude)docs' 2>/dev/null | grep -cE '.' 2>/dev/null || true)
+    if [ "${_uncommitted_code:-0}" -gt 0 ] 2>/dev/null; then
+      echo "advisory: ${_uncommitted_code} uncommitted code change(s) outside docs/ — commit each logical unit before ending the turn (git status)." >&2
+    fi
+    unset _uncommitted_docs _uncommitted_code 2>/dev/null || true
   fi
-  # Non-docs code: porcelain entries outside docs/ (board churn under docs/tasks/
-  # is excluded, so this fires only on genuine code left uncommitted).
-  _uncommitted_code=$(git status --porcelain -- . ':(exclude)docs' 2>/dev/null | grep -cE '.' 2>/dev/null || true)
-  if [ "${_uncommitted_code:-0}" -gt 0 ] 2>/dev/null; then
-    echo "advisory: ${_uncommitted_code} uncommitted code change(s) outside docs/ — commit each logical unit before ending the turn (git status)." >&2
-  fi
-  unset _uncommitted_docs _uncommitted_code 2>/dev/null || true
 fi

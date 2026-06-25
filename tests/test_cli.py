@@ -2894,6 +2894,27 @@ class TestCosPr:
         assert "not on origin" in res.output
         assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # kept
 
+    def test_cleanup_bundles_merged_branch_with_unpushed_commits(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-566 H: a merged/closed branch with a CLEAN tree but unpushed local
+        # commits used to skip BOTH gates (state not in none/unknown; tree not dirty)
+        # and `branch -D` discarded the commits with no bundle. It must now bundle first.
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_pr_state", lambda *a, **k: "merged")
+        monkeypatch.setenv("COS_REAPED_ROOT", str(tmp_path / "reaped"))
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        (wt / "x.txt").write_text("wip", encoding="utf-8")  # local-only, unrecoverable
+        subprocess.run(["git", "-C", str(wt), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "-m", "wip"], check=True)
+        # tree is now CLEAN (committed) — the exact gap the old dirty-only preserve missed
+        res = runner.invoke(cli, ["pr", "cleanup", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output  # deletes (was silent loss)
+        assert ".bundle" in res.output  # but the unpushed work was bundled first
+        assert "agents/adhoc/ses-test-abc" not in self._branches(repo)  # removed
+
     def test_preflight_degrades_without_remote(self, runner: CliRunner, repo: Path) -> None:
         res = runner.invoke(cli, ["pr", "preflight", "--repo", str(repo)])
         assert res.exit_code == 1, res.output  # no remote => not pr_ok

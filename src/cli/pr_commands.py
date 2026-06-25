@@ -863,7 +863,11 @@ def pr_cleanup(
                 as_json,
             )
             sys.exit(1)
-        if state in {"none", "unknown"} and not _branch_recoverable(repo, branch, _integration_branch(repo)):
+        recoverable = _branch_recoverable(repo, branch, _integration_branch(repo))
+        # Unpushed work with no landing PR: refuse and tell the user to submit, keeping
+        # the branch intact — friendlier than bundle+delete for an interactive cleanup,
+        # and the reaper is the GC path for a genuinely dead owner.
+        if state in {"none", "unknown"} and not recoverable:
             _emit(
                 {
                     "removed": False,
@@ -874,22 +878,24 @@ def pr_cleanup(
                 as_json,
             )
             sys.exit(1)
-        # A drifted/peer worktree with UNCOMMITTED work would still be force-removed
-        # here (the live-peer gate needs provable liveness, the merge-gate guards
-        # only committed work), so bundle it first like the reaper. A FAILED status
-        # is treated as "maybe dirty" so a transient git error can't read as clean
-        # and wipe peer work (review finding F).
-        owner_drifted = owner_session != session
+        # Preserve-before-destroy net (TASK-566 H): for any OTHER state (merged/closed)
+        # a branch that is unrecoverable (squash-merge, or extra local commits not on
+        # origin) or has a dirty tree must be bundled before `branch -D`. The old code
+        # bundled only a DIRTY drifted tree, so a CLEAN-tree merged branch with unpushed
+        # commits was discarded with NO bundle. A FAILED status reads as "maybe dirty"
+        # so a transient git error can't pass as clean and wipe work (review finding F).
+        # Mirrors _reap_one's safety arm — cleanup and reap no longer diverge.
         _status = _git(["status", "--porcelain"], cwd=wt)
-        if owner_drifted and (_status.returncode != 0 or _status.stdout.strip()):
+        dirty = _status.returncode != 0 or bool(_status.stdout.strip())
+        if not recoverable or dirty:
             _preserved_bundle = _preserve_reaped(repo, wt, branch)
             if _preserved_bundle is None:
                 _emit(
                     {
                         "removed": False,
                         "branch": branch,
-                        "owner_session": owner_session,
-                        "action": "drifted/peer worktree has uncommitted work and preservation failed — not removing; recover it manually. Re-running with --force DISCARDS this uncommitted work.",
+                        "pr_state": state,
+                        "action": "branch has unpushed commits or an uncommitted tree and preservation failed — recover it manually, or --force to discard.",
                     },
                     as_json,
                 )

@@ -992,7 +992,7 @@ class TestSessionEndUncommittedAdvisory:
     excludes docs/ board churn, stays fail-open, and does NOT duplicate the
     still-open-task nudge (that lives in warn-abandoned-task.sh)."""
 
-    def _run(self, tmp_path: Path, mutate) -> subprocess.CompletedProcess:
+    def _run(self, tmp_path: Path, mutate, run_subdir: str | None = None) -> subprocess.CompletedProcess:
         repo = tmp_path / "repo"
         (repo / "src").mkdir(parents=True)
         (repo / "docs" / "tasks").mkdir(parents=True)
@@ -1027,7 +1027,7 @@ class TestSessionEndUncommittedAdvisory:
             input='{"session_id": "test-sess-564"}',
             capture_output=True,
             text=True,
-            cwd=str(repo),
+            cwd=str(repo / run_subdir) if run_subdir else str(repo),
             timeout=20,
             env={
                 **os.environ,
@@ -1054,3 +1054,25 @@ class TestSessionEndUncommittedAdvisory:
         result = self._run(tmp_path, lambda repo: None)
         assert result.returncode == 0
         assert "uncommitted code change" not in result.stderr
+
+    def test_advises_from_subdir_about_root_change(self, tmp_path: Path) -> None:
+        # TASK-566 J: a Stop firing from a SUBDIR must still see a root-level change —
+        # the cwd-relative `git status -- .` only saw the subtree and missed it.
+        result = self._run(
+            tmp_path,
+            lambda repo: (repo / "rootcode.py").write_text("y = 1\n"),
+            run_subdir="src",
+        )
+        assert result.returncode == 0
+        assert "uncommitted code change" in result.stderr
+
+    def test_advises_on_non_md_docs_asset(self, tmp_path: Path) -> None:
+        # TASK-566 N: an uncommitted NON-.md file under docs/ (a png/json asset) was
+        # counted by neither advisory; the docs advisory must now surface it.
+        def mutate(repo: Path) -> None:
+            (repo / "docs" / "assets").mkdir(parents=True, exist_ok=True)
+            (repo / "docs" / "assets" / "diagram.png").write_text("PNGDATA\n")
+
+        result = self._run(tmp_path, mutate)
+        assert result.returncode == 0
+        assert "uncommitted doc(s)" in result.stderr
