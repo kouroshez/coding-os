@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [hooks, review-findings, branch-guard, block-secrets, audit-2026-06-24, ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-25
-started: null
-completed: null
-agent_session: null
+started: 2026-06-25
+completed: 2026-06-25
+agent_session: ses-claude-20260624-182639-f22b
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-567: git safety-gate bypasses found by the scorecard audit: block-secrets quote-splice + GIT_CONFIG override, force-push self-override, branch-guard filter-branch/symbolic-ref/commit -a
 
 **Outcome (one sentence):** Close the agent-reachable bypasses of the headline git safety gates that an 8-agent scorecard audit found and I re-verified live — block-secrets quote-splice + GIT_CONFIG override, force-push inline self-override, and branch-guard's missing filter-branch/symbolic-ref/commit-a — fixing them in the shared detectors so both trunk and pr-mode benefit.
@@ -40,3 +39,29 @@ All 4 re-verified live 2026-06-25 (HEAD ecd58284):
 - **Then** every existing branch_guard + TestBlockSecrets + block-dangerous test stays green, new regression tests cover each bypass shape, and `make verify-hooks` passes
 
 ## Work Log
+- 2026-06-25 [claude]: Plan: extract branch_guard's shlex tokenizer into shared _helpers/git_command_parse.py (Rule-of-Three: branch_guard +…
+- 2026-06-25 [claude]: Edit git_command_parse.py
+- 2026-06-25 [claude]: Edit check_git_bypass.py
+- 2026-06-25 [claude]: Edit block-secrets.sh
+- 2026-06-25 [claude]: Edit extract_commit_msg_arg.py
+- 2026-06-25 [claude]: Edit git_command_parse.py
+- 2026-06-25 [claude]: Edit check_git_bypass.py
+- 2026-06-25 [claude]: Edit branch_guard_check.py
+- 2026-06-25 [claude]: Edit branch_guard_check.py
+- 2026-06-25 [claude]: Edit branch_guard_check.py
+- 2026-06-25 [claude]: Edit branch_guard_check.py
+- 2026-06-25 [claude]: Edit verify_fixes.py
+- 2026-06-25 [claude]: Edit git_command_parse.py
+- 2026-06-25 [claude]: Edit git_command_parse.py
+- 2026-06-25 [claude]: Edit test_hooks.py
+- 2026-06-25 [claude]: Edit test_hooks.py
+- 2026-06-25 [claude]: Edit git_command_parse.py
+- 2026-06-25 [claude]: Edit branch_guard_check.py
+- 2026-06-25 [claude]: Edit branch_guard_check.py
+- 2026-06-25 [claude]: Edit branch_guard_check.py
+- 2026-06-25 [claude]: Edit block-dangerous-commands.sh
+- 2026-06-25 [claude]: Edit block-dangerous-commands.sh
+- 2026-06-25 [claude]: Edit verify_f3.py
+- 2026-06-25 [claude]: Edit test_hooks.py
+- 2026-06-25 [claude]: Edit test_hooks.py
+- 2026-06-25 [claude]: Shipped shared _helpers/git_command_parse.py (shlex tokenizer + commit_flags + quote-aware command_groups +…
