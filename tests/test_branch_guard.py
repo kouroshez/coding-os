@@ -850,3 +850,55 @@ def test_pr_mode_allows_branch_filter_forms() -> None:
 def test_pr_mode_blocks_update_ref_reflog_message_integration() -> None:
     code, _ = _run("git update-ref -m wip refs/heads/main HEAD~1", workflow="pr")
     assert code == 2
+
+
+# --- TASK-567 (F4): commit -a sweep + history-rewrite verbs ----------------
+
+
+def test_trunk_blocks_commit_dash_a() -> None:
+    # `git commit -a/--all` sweeps a concurrent session's WIP — trunk wants paths.
+    for cmd in ("git commit -a -m x", "git commit --all -m x", "git commit -am x"):
+        code, _ = _run(cmd)
+        assert code == 2, cmd
+
+
+def test_trunk_allows_explicit_and_amend_commit() -> None:
+    for cmd in (
+        "git commit -m x",
+        "git commit src/x.py -m x",
+        "git commit --amend -m x",
+        "git commit --allow-empty -m x",
+        'git commit -m "-a"',  # message is "-a", not the -a flag
+    ):
+        code, _ = _run(cmd)
+        assert code == 0, cmd
+
+
+def test_trunk_blocks_path_qualified_commit_dash_a() -> None:
+    # A path-qualified git still runs git — must not evade the -a sweep guard.
+    code, _ = _run("/usr/bin/git commit -a -m x")
+    assert code == 2
+
+
+def test_trunk_blocks_history_rewrite_verbs() -> None:
+    for cmd in (
+        "git filter-branch --tree-filter true HEAD",
+        "git filter-repo --path src",
+    ):
+        code, err = _run(cmd)
+        assert code == 2, cmd
+        assert "history" in err.lower()
+
+
+def test_trunk_blocks_symbolic_ref_write_allows_read() -> None:
+    code, _ = _run("git symbolic-ref HEAD refs/heads/other")
+    assert code == 2
+    for read in ("git symbolic-ref HEAD", "git symbolic-ref --short HEAD"):
+        code, _ = _run(read)
+        assert code == 0, read
+
+
+def test_pr_mode_blocks_history_rewrite_verbs() -> None:
+    # Parity: filter-branch rewrites the shared object db even in pr-mode.
+    code, _ = _run("git filter-branch --tree-filter true HEAD", workflow="pr")
+    assert code == 2

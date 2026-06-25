@@ -45,25 +45,33 @@ if [[ "$TOOL" == "Bash" ]]; then
     exit 2
   fi
 
-  # Block any git-commit that skips verify hooks — tested per shell-segment so a
-  # path/cd/env prefix or the `-n` short form can't slip past (the old anchored
-  # `^git commit … --no-verify` missed them, TASK-563). Fail-safe; clean commits pass.
-  COMMAND_NOQUOTES=$(printf '%s' "$COMMAND" | sed -E "s/\"[^\"]*\"//g; s/'[^']*'//g")
-  _skip_verify=0
-  while IFS= read -r _seg; do
-    echo "$_seg" | grep -qE '(^|[[:space:]])([^[:space:]]*/)?git([[:space:]]+[^[:space:]]+)*[[:space:]]+commit([[:space:]]|$)' || continue
-    if echo "$_seg" | grep -qE -- '--no-verify' \
-       || echo "$_seg" | grep -qE '[[:space:]]-[a-zA-Z]*n[a-zA-Z]*([[:space:]]|$)'; then
-      _skip_verify=1
-      break
-    fi
-  done <<< "$(printf '%s' "$COMMAND_NOQUOTES" | tr ';&|' '\n')"
-  # core.hooksPath disables hooks; block only an ASSIGNMENT (`-c core.hooksPath=`)
-  # or a `git config` write — so a read like `git log --grep core.hooksPath` passes.
-  if [[ "$_skip_verify" == 1 ]] \
-     || printf '%s' "$COMMAND_NOQUOTES" | grep -qiE '(^|[[:space:]])([^[:space:]]*/)?git[[:space:]][^;&|]*(core\.hookspath[[:space:]]*=|config[[:space:]][^;&|]*core\.hookspath)'; then
+  # Block any git-commit that skips the verify hooks (--no-verify / -n /
+  # core.hooksPath / GIT_CONFIG_* injection). Delegated to a shlex-tokenizing
+  # helper: the old bash regex ran over a quote-STRIPPED string, so a spliced
+  # `--no-ver"i"fy`, a quoted `"-n"`, or a `GIT_CONFIG_*` env prefix vanished
+  # from the scan yet bash still executed it (TASK-567). Resolve the helper
+  # through the file's PHYSICAL path so it works through the .claude/ symlink.
+  _bs_src="${BASH_SOURCE[0]}"
+  while [ -L "$_bs_src" ]; do
+    _bs_dir="$(cd -P "$(dirname "$_bs_src")" && pwd)"
+    _bs_src="$(readlink "$_bs_src")"
+    [[ "$_bs_src" != /* ]] && _bs_src="${_bs_dir}/${_bs_src}"
+  done
+  BYPASS_HELPER="$(cd -P "$(dirname "$_bs_src")" && pwd)/_helpers/check_git_bypass.py"
+  unset _bs_src _bs_dir
+  BYPASS_VERDICT=$(printf '%s' "$INPUT" | python3 "$BYPASS_HELPER" 2>/dev/null || echo error)
+  # Fail-closed but SCOPED: a helper crash blocks only when the raw command
+  # actually carries a commit/hooksPath/GIT_CONFIG token we could not verify.
+  if [ "$BYPASS_VERDICT" = "error" ]; then
+    case "$COMMAND" in
+      *commit*|*hooksPath*|*hookspath*|*GIT_CONFIG*) BYPASS_VERDICT='{"verdict":"block"}' ;;
+      *) BYPASS_VERDICT='{"verdict":"allow"}' ;;
+    esac
+  fi
+  if printf '%s' "$BYPASS_VERDICT" | grep -qE '"verdict": *"block"'; then
     cos_log_hook block-secrets block "tool=Bash rule=no-verify"
-    echo "BLOCKED: skipping git verify hooks (--no-verify / -n / core.hooksPath). Fix the underlying issue, don't bypass." >&2
+    _bs_msg=$(printf '%s' "$BYPASS_VERDICT" | cos_json_field message 2>/dev/null || echo "")
+    echo "${_bs_msg:-BLOCKED: skipping git verify hooks (--no-verify / -n / core.hooksPath). Fix the underlying issue, do not bypass.}" >&2
     exit 2
   fi
 fi

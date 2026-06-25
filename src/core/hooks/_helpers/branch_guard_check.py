@@ -24,6 +24,8 @@ import re
 import shlex
 import sys
 
+from git_command_parse import commit_flags, is_git_word, resolve_command
+
 # git global options that take the next token as their argument.
 _GLOBAL_OPTS_WITH_ARG = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
 # git global flags with no argument.
@@ -233,6 +235,36 @@ def _first_positional(args: list[str]) -> str | None:
     return None
 
 
+def _check_commit(args: list[str]) -> tuple[str | None, str | None]:
+    # Trunk requires explicit-path commits: `git commit -a/--all` stages every
+    # tracked modification, sweeping a concurrent session's WIP into this commit
+    # (git-workflow.md § The rule). Block the -a forms; `--amend`, `--author`,
+    # `--allow-empty`, `-m`, and explicit-path commits stay allowed.
+    short, longs = commit_flags(args)
+    if "a" in short or "--all" in longs:
+        return "commit-all-sweep", _MSG["commit-all"]
+    return None, None
+
+
+def _check_filter(args: list[str]) -> tuple[str | None, str | None]:
+    # `git filter-branch` / `filter-repo` rewrite the ENTIRE history of the
+    # current branch (= main in trunk) — every published commit is replaced,
+    # orphaning every peer. No safe in-place form on a shared trunk.
+    return "history-rewrite", _MSG["history-rewrite"]
+
+
+def _check_symbolic_ref(args: list[str]) -> tuple[str | None, str | None]:
+    # `git symbolic-ref HEAD <ref>` repoints HEAD (== a branch switch) and
+    # `--delete` detaches it — both move off main. A read form
+    # (`symbolic-ref HEAD`, `-q`, `--short`) names no target → allowed.
+    if any(a in {"-d", "--delete"} for a in args):
+        return "symbolic-ref-write", _MSG["protected-ref-rewrite"]
+    positionals = [a for a in args if not a.startswith("-")]
+    if len(positionals) >= 2:  # <name> <new-target> → a write
+        return "symbolic-ref-write", _MSG["protected-ref-rewrite"]
+    return None, None
+
+
 _DISPATCH = {
     "checkout": _check_checkout,
     "switch": _check_switch,
@@ -241,6 +273,10 @@ _DISPATCH = {
     "worktree": _check_worktree,
     "reset": _check_reset,
     "rebase": _check_rebase,
+    "commit": _check_commit,
+    "filter-branch": _check_filter,
+    "filter-repo": _check_filter,
+    "symbolic-ref": _check_symbolic_ref,
 }
 
 _MSG = {
@@ -317,6 +353,24 @@ _MSG = {
         "  preserves history. Feature-branch admin must not target main.\n"
         "  See src/core/rules/git-workflow.md for the full rule."
     ),
+    "commit-all": (
+        "BLOCKED: 'git commit -a/--all' stages every tracked modification —\n"
+        "in a multi-session checkout that sweeps another session's WIP into\n"
+        "your commit. Trunk requires EXPLICIT paths.\n"
+        "\n"
+        "  To fix: stage what you mean, then 'git commit <explicit paths>'.\n"
+        "  ('--amend', '--author', '--allow-empty', '-m' stay allowed.)\n"
+        "  See src/core/rules/git-workflow.md § The rule."
+    ),
+    "history-rewrite": (
+        "BLOCKED: 'git filter-branch' / 'filter-repo' rewrites the ENTIRE\n"
+        "history of the current branch — on trunk that replaces every published\n"
+        "commit on main and orphans every peer's work.\n"
+        "\n"
+        "  To undo specific commits: 'git revert <sha>' (new commits, history\n"
+        "  preserved). A genuine history scrub is a human, force-push operation\n"
+        "  done off the shared trunk. See src/core/rules/git-workflow.md."
+    ),
 }
 
 
@@ -368,8 +422,10 @@ def _evaluate(command: str) -> tuple[str, str, str]:
 
 def _evaluate_trunk(segments: list[str]) -> tuple[str, str, str]:
     for seg in segments:
-        tokens = _strip_env_vars(_tokenize(seg))
-        if not tokens or tokens[0] != "git":
+        # resolve_command strips a `VAR=val`/`env …` prefix; is_git_word accepts a
+        # path-qualified `/usr/bin/git` — both evaded the old `tokens[0] != "git"`.
+        _env, tokens = resolve_command(_tokenize(seg))
+        if not tokens or not is_git_word(tokens[0]):
             continue
         tokens = _strip_git_globals(tokens[1:])
         if not tokens:
@@ -623,8 +679,8 @@ def _evaluate_pr(segments: list[str]) -> tuple[str, str, str]:
     blocked_push = _protected_branches() | {integration}
     fallback_scope = _worktree_scoped(segments)  # cwd/cd, for ops with no -C
     for seg in segments:
-        tokens = _strip_env_vars(_tokenize(seg))
-        if not tokens or tokens[0] != "git":
+        _env, tokens = resolve_command(_tokenize(seg))
+        if not tokens or not is_git_word(tokens[0]):
             continue
         global_tokens = tokens[1:]
         c_target = _git_dir_target(global_tokens)
@@ -704,6 +760,16 @@ def _pr_check(
         if args and args[0] == "add" and _worktree_add_branch(args[1:]) in blocked_push:
             return "pr-protected-ref", _PR_MSG["protected-ref"]
         return None, None
+    if subcmd in {"filter-branch", "filter-repo"}:
+        # History rewrite touches the shared object db + refs even from a worktree —
+        # always blocked (parity with trunk's history-rewrite guard, BG-1/BG-2).
+        return "pr-shared-head-rewrite", _PR_MSG["shared-head"]
+    if subcmd == "symbolic-ref":
+        # Repointing a worktree's OWN HEAD is isolated; on the shared checkout it
+        # is an off-integration switch outside PR+CI.
+        if _check_symbolic_ref(args)[0] is None:
+            return None, None
+        return (None, None) if worktree else ("pr-shared-head-rewrite", _PR_MSG["shared-head"])
     # everything else: branches and worktrees are the pr-mode isolation mechanism — allowed.
     return None, None
 

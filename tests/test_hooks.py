@@ -664,6 +664,16 @@ class TestBlockSecrets:
             "git -c foo=bar commit -n",                 # -c <kv> global before commit (TASK-565)
             "git -c a.b=c commit --no-verify",          # value-taking global splits git…commit
             "git  commit -n -m x",                      # double space (non-contiguous git commit)
+            # TASK-567: quote-splice collapses to the real flag at exec time — the
+            # old quote-STRIPPED regex deleted the spliced char and missed these.
+            'git commit --no-ver"i"fy -m x',            # splice inside the flag
+            'git commit "--no-verify" -m x',            # whole flag quoted
+            'git commit "-n" -m x',                     # short form quoted
+            'git commit --"no-verify" -m x',            # partial quote
+            # TASK-567: GIT_CONFIG_* env injection disables core.hooksPath.
+            "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x",
+            "GIT_CONFIG_GLOBAL=/dev/null git commit -m x",
+            "env GIT_CONFIG_GLOBAL=/dev/null git commit -m x",
         ],
     )
     def test_blocks_no_verify_bypass_shapes(self, command: str) -> None:
@@ -681,6 +691,10 @@ class TestBlockSecrets:
             "git -c foo=bar commit -m x",               # clean commit WITH a -c global (TASK-565)
             "git log --grep core.hooksPath",            # read-only git mentioning the token
             "git commit-graph write",                   # 'commit' substring, not a commit
+            # TASK-567: a message body that merely MENTIONS the flag stays a value token.
+            'git commit -m "-n is the short form for --no-verify"',
+            # TASK-567: an UNRELATED GIT_CONFIG_* injection (not core.hooksPath) is fine.
+            "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=user.name GIT_CONFIG_VALUE_0=x git commit -m ok",
         ],
     )
     def test_allows_clean_commit_shapes(self, command: str) -> None:
@@ -709,6 +723,37 @@ class TestBlockDangerousCommands:
         )
         result = run_hook("block-dangerous-commands.sh", stdin=payload)
         assert result.returncode == 2
+
+    # TASK-567 (F3): an inline `COS_ALLOW_FORCE_PUSH_MAIN=1 git push …` prefix
+    # must NOT self-grant the override — the assignment has not executed when the
+    # PreToolUse hook reads its own env, so an agent cannot bypass from the
+    # command string. Only a real session-env export opens it.
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "COS_ALLOW_FORCE_PUSH_MAIN=1 git push --force origin main",
+            "cd x && COS_ALLOW_FORCE_PUSH_MAIN=1 git push --force origin main",
+        ],
+    )
+    def test_inline_force_push_override_is_rejected(self, command: str) -> None:
+        # Explicitly 0 in the process env: the ONLY way to grant the override is a
+        # real export — so this isolates whether the inline prefix self-grants it.
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
+        result = run_hook(
+            "block-dangerous-commands.sh", stdin=payload, env_overrides={"COS_ALLOW_FORCE_PUSH_MAIN": "0"}
+        )
+        assert result.returncode == 2
+
+    def test_session_export_force_push_override_allows(self) -> None:
+        payload = json.dumps(
+            {"tool_name": "Bash", "tool_input": {"command": "git push --force origin main"}}
+        )
+        result = run_hook(
+            "block-dangerous-commands.sh",
+            stdin=payload,
+            env_overrides={"COS_ALLOW_FORCE_PUSH_MAIN": "1"},
+        )
+        assert result.returncode == 0
 
     def test_allows_normal_git_push(self) -> None:
         payload = json.dumps(
