@@ -60,3 +60,28 @@ def test_render_for_adapter_replaces_group_with_dispatcher() -> None:
     assert len(hooks) == 1
     assert hooks[0]["command"].endswith("/codex-pretool-dispatch.sh")
     assert hooks[0]["statusMessage"] == "dispatch"
+
+
+def test_render_for_adapter_records_parity_deficit_not_silent_drop() -> None:
+    # A Write|Edit enforce gate a Bash-only adapter cannot fire must surface as
+    # a parity deficit, not vanish silently (N1) — and never leak into the
+    # emitted template.
+    registry = [
+        HookEntry(
+            id="enforce-skill",
+            script="enforce-skill.sh",
+            description="x",
+            category="enforcement",
+            phase="0",
+            events=[{"event": "PreToolUse", "matcher": "Write|Edit"}],
+        ),
+    ]
+    caps = AdapterCapabilities(agent_id="codex", by_event={"PreToolUse": ["Bash"]}, dispatchers={})
+
+    rendered = render_for_adapter(registry, caps)
+
+    deficits = rendered.get("_parity_deficits", [])
+    assert any(d["hook"] == "enforce-skill" for d in deficits)
+    assert deficits[0]["adapter"] == "codex"
+    # The deficit is a diagnostic, never part of the rendered hooks.
+    assert not rendered["hooks"]

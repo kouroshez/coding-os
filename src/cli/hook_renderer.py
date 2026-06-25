@@ -25,6 +25,7 @@ Usage (CLI, via `make regen-adapter-templates`):
 from __future__ import annotations
 
 import json
+import logging
 import sys
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -183,14 +184,20 @@ def load_adapter_capabilities(adapter_yaml: Path) -> AdapterCapabilities:
     )
 
 
+logger = logging.getLogger("cli.hook_renderer")
+
+
 def render_for_adapter(registry: list[HookEntry], caps: AdapterCapabilities) -> dict[str, Any]:
     """Walk the registry once, keep only events this adapter can fire.
 
     Output shape matches both Claude's settings.template.json and Codex's
     hooks.template.json — both use the same {"hooks": {event: [{matcher, hooks: [...]}]}}
-    structure.
+    structure. Hooks the adapter's hook_capabilities cannot fire are recorded
+    under the non-emitted ``_parity_deficits`` key (stripped before write) so a
+    dropped enforce gate is a visible report, not a silent skip (N1).
     """
     output: dict[str, Any] = {"hooks": {}}
+    parity_deficits: list[dict[str, str]] = []
     for idx, hook in enumerate(registry):
         # Adapter-scope filter: an entry tagged with a
         # specific adapter only renders for that adapter. Untagged
@@ -206,6 +213,20 @@ def render_for_adapter(registry: list[HookEntry], caps: AdapterCapabilities) -> 
             matcher = ev.get("matcher", "")
             rendered_matcher = caps.resolve_matcher(event, matcher)
             if rendered_matcher is None:
+                # The adapter cannot fire this {event, matcher}: record the gap
+                # instead of dropping it silently. A protected gate missing on
+                # an adapter is a parity DEFICIT the operator must see — even
+                # when it is a legitimate capability bound (Bash-only Codex).
+                parity_deficits.append(
+                    {
+                        "adapter": caps.agent_id,
+                        "hook": hook.id,
+                        "event": event,
+                        "matcher": matcher,
+                        "category": hook.category,
+                        "reason": "matcher not in adapter hook_capabilities",
+                    }
+                )
                 continue
 
             groups = output["hooks"].setdefault(event, [])
@@ -253,6 +274,8 @@ def render_for_adapter(registry: list[HookEntry], caps: AdapterCapabilities) -> 
         if timeout:
             entry["timeout"] = timeout
         group["hooks"] = [entry]
+    if parity_deficits:
+        output["_parity_deficits"] = parity_deficits
     return output
 
 
@@ -286,6 +309,10 @@ def render_all(
             continue  # adapter does not consume the hook registry
 
         rendered = render_for_adapter(registry, caps)
+        # Strip the parity-deficit report before writing — it is a diagnostic,
+        # never part of the rendered template (would pollute golden parity).
+        for deficit in rendered.pop("_parity_deficits", []):
+            logger.debug("hook parity-deficit: %s", deficit)
         target = adapter_yaml.parent / target_name
 
         if not dry_run:
