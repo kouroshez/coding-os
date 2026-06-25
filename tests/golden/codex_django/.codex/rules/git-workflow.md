@@ -9,6 +9,7 @@ Rationale (branch sprawl, no-custom-lock, atomic-hook-edit): [critical-rules.md 
 - **Never run** `git checkout -b`, `git branch <name>`, `git switch -c`,
   `git worktree add`. The `branch-guard.sh` hook BLOCKs these in trunk mode.
 - **Never run HEAD-moving commands** on the shared checkout: `git reset HEAD~N`/`<sha>`/`<branch>`, `git checkout`/`git switch <other-branch>`, `git rebase`. The hook BLOCKs these. Use `git restore <path>` for files, `git switch main` for branches. (In-progress rebase cleanup — `--abort`/`--continue`/`--skip`/`--quit` — stays allowed.)
+- **Never force-rewrite the integration ref directly** — `git branch -f/-M/-C/-D main`, `git branch -m <x> main`, or `git update-ref refs/heads/main`/`HEAD`. The hook BLOCKs these in trunk mode (parity with pr-mode); `merge` / `cherry-pick` / push-to-`main` stay allowed — that is the trunk publish path. Use `git revert <sha>` to undo, never a ref rewrite.
 - **To undo a published commit** use `git revert <sha>` — a new commit, history preserved.
 - **Commit directly to `main`** with **explicit paths** — `git commit <path>`, never a bare `git commit` / `git commit -a` (a bare commit sweeps another session's WIP).
 - **`git pull --rebase origin main` before every `git push`** — non-fast-forward reject means rebase and retry, never force.
@@ -55,7 +56,7 @@ None of these move HEAD, so the hook permits them:
 
 - **Unstage:** `git reset` (bare) / `git reset --mixed HEAD` / `git reset -- <path>`.
 - **Restore file content:** `git restore <path>` / `git checkout -- <path>` / `git checkout HEAD <path>` / `git checkout HEAD~1 -- <path>` / `git checkout .`.
-- **Branch admin:** `git checkout main` / `git switch main` (idempotent) · `git branch` / `git branch -d X` / `git branch -m` (list/delete/rename existing).
+- **Branch admin:** `git checkout main` / `git switch main` (idempotent) · `git branch` / `git branch -d X` / `git branch -m` (list/delete/rename existing) — allowed only on **non-protected** branches; the same ops targeting `main`/a protected branch are BLOCKed (see *The rule*).
 - **Undo a commit:** `git revert <sha>` — a new commit. Garbage-commit cleanup: `git revert HEAD --no-edit && git push origin main`.
 
 ## Commit Message Contract (Always Active)
@@ -77,7 +78,7 @@ Tables, file-path lists, and `Verification:`/`Tests:`/`Files:` headers hit the 3
 
 ### `--no-verify` is blocked for agents (no escape hatch)
 
-`block-secrets.sh` (PreToolUse Bash) BLOCKS any `git commit --no-verify`. The git-level `commit-msg` / `pre-commit` hooks still honor `--no-verify` for a **human** in a genuine emergency, but that path is unavailable to the agent. Under heavy concurrent-session load, split into per-directory commits rather than bypassing hooks.
+`block-secrets.sh` (PreToolUse Bash) BLOCKS any agent attempt to skip the git verify hooks — `git commit --no-verify` **and** the `-n` short form, a leading path / `cd …` / `env …` prefix (`/usr/bin/git commit --no-verify`, `cd d && git commit --no-verify`), and a `core.hooksPath` override (`git -c core.hooksPath=/dev/null commit`). The git-level `commit-msg` / `pre-commit` hooks still honor `--no-verify` for a **human** in a genuine emergency, but that path is unavailable to the agent. Under heavy concurrent-session load, split into per-directory commits rather than bypassing hooks.
 
 **Install (per repo, once):** `bash src/scripts/install-git-hooks.sh` installs `.git/hooks/pre-commit` + `commit-msg`.
 

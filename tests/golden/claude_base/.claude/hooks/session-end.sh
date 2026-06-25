@@ -105,13 +105,24 @@ if [ -f "$RECAP_PY" ] && [ -f "$COS_DB_PATH" ] && [ -n "$SESSION_ID" ]; then
   python3 "$RECAP_PY" "$COS_DB_PATH" "$SESSION_ID" 2>/dev/null || true
 fi
 
-# Uncommitted-doc advisory: surface uncommitted docs/**/*.md at
-# session end so the audit trail can't record doc truth the repo never committed.
-# Fire-and-forget — never blocks (exit stays 0 regardless).
+# Uncommitted-work advisory: surface work the agent may have forgotten to commit
+# at end-of-turn — docs/**/*.md (audit-trail truth) AND non-docs code (src/**,
+# tests/, …). Fire-and-forget — never blocks (exit stays 0 regardless). Two
+# deliberate scope limits (TASK-564):
+#   • no still-open-task nudge here — the sibling warn-abandoned-task.sh Stop hook
+#     already emits it (debounced per session); duplicating it would double-nudge.
+#   • no unpushed-commits nudge — push is deferred to task-close by the trunk
+#     workflow, so a per-turn "N unpushed" line would be noise that fights the rule.
 if command -v git >/dev/null 2>&1; then
   _uncommitted_docs=$(git status --porcelain -- docs 2>/dev/null | grep -cE '\.md$' 2>/dev/null || true)
   if [ "${_uncommitted_docs:-0}" -gt 0 ] 2>/dev/null; then
     echo "advisory: ${_uncommitted_docs} uncommitted doc(s) under docs/ — commit so the audit trail matches the repo (git status -- docs)." >&2
   fi
-  unset _uncommitted_docs
+  # Non-docs code: porcelain entries outside docs/ (board churn under docs/tasks/
+  # is excluded, so this fires only on genuine code left uncommitted).
+  _uncommitted_code=$(git status --porcelain -- . ':(exclude)docs' 2>/dev/null | grep -cE '.' 2>/dev/null || true)
+  if [ "${_uncommitted_code:-0}" -gt 0 ] 2>/dev/null; then
+    echo "advisory: ${_uncommitted_code} uncommitted code change(s) outside docs/ — commit each logical unit before ending the turn (git status)." >&2
+  fi
+  unset _uncommitted_docs _uncommitted_code 2>/dev/null || true
 fi
