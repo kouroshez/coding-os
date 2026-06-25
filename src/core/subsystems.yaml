@@ -102,7 +102,7 @@ modules:
   - id: graph
     label: "Knowledge graph — code/doc graph, structural queries"
     kernel: false
-    hooks: [enforce-graph-context, enforce-graph-first-read, enforce-rename-plan, nudge-graph-os, warn-graph-empty, verify-rename-callers, auto-reindex-shell-ops, auto-prune-deleted-files]
+    hooks: [enforce-graph-context, enforce-graph-first-read, enforce-rename-plan, nudge-graph-os, warn-graph-empty, verify-rename-callers, auto-graph-reconcile-shell]
     tools: ["cos_graph_*"]
     skills: [graph-explorer, graph-os-authoring]
     depends_on: []

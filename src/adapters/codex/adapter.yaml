@@ -155,8 +155,7 @@ hook_dispatchers:
     delegates:
       - remind-learn-validate.sh
       - record-verify-auto.sh
-      - auto-reindex-shell-ops.sh
-      - auto-prune-deleted-files.sh
+      - auto-graph-reconcile-shell.sh
       - search-verify-remaining.sh
       - advance-role.sh
       - sync-task-current.sh

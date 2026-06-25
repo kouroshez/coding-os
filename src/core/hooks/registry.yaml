@@ -359,16 +359,16 @@ hooks:
         matcher: Write|Edit
         status_message: "♻️ Checking cross-service reuse (src/shared/ nudge)..."
 
-  - id: auto-reindex-shell-ops
-    script: auto-reindex-shell-ops.sh
-    description: Catch bulk file ops (mv/cp/rm/git checkout/git restore) the Write/Edit hook misses; debounced full reindex in background so the graph stays fresh after a rename or branch switch.
+  - id: auto-graph-reconcile-shell
+    script: auto-graph-reconcile-shell.sh
+    description: PostToolUse Bash — single ordered reconciler (replaces auto-reindex-shell-ops + auto-prune-deleted-files). On rm/mv/cp/git/find of a tracked file it walks the touched paths once and prunes-if-gone THEN reindexes-if-present in one job, eliminating the N10 race where the two old hooks hit the graph DB in parallel; bulk ops schedule one debounced full reindex.
     category: retrieval
-    phase: I
+    phase: O
     timeout: 10
     events:
       - event: PostToolUse
         matcher: Bash
-        status_message: "🔁 Bulk shell op detected — scheduling graph reindex..."
+        status_message: "🔁 Reconciling graph for shell file op (prune + reindex)..."
 
   - id: auto-regen-doc-index
     script: auto-regen-doc-index.sh
@@ -380,17 +380,6 @@ hooks:
       - event: PostToolUse
         matcher: Write|Edit
         status_message: "📑 Regenerating affected docs/<dir>/00-index.md from frontmatter..."
-
-  - id: auto-prune-deleted-files
-    script: auto-prune-deleted-files.sh
-    description: PostToolUse Bash — when the agent runs rm/git rm/mv on a code or markdown file, prune graph_nodes (cascade to edges + evidence), document_chunks, file_index_state, and the `<file>.INDEX.md` sidecar. Counterpart to auto-reindex-docs.sh; closes the deleted-file zombie-row gap.
-    category: retrieval
-    phase: O
-    timeout: 10
-    events:
-      - event: PostToolUse
-        matcher: Bash
-        status_message: "🧹 Pruning graph + docs RAG state for deleted files..."
 
   # ── graph_os enforcement ──────────────────────────────
   - id: enforce-graph-first-read

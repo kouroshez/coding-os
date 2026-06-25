@@ -293,14 +293,8 @@
           },
           {
             "type": "command",
-            "command": ".claude/hooks/auto-reindex-shell-ops.sh",
-            "statusMessage": "🔁 Bulk shell op detected — scheduling graph reindex...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/auto-prune-deleted-files.sh",
-            "statusMessage": "🧹 Pruning graph + docs RAG state for deleted files...",
+            "command": ".claude/hooks/auto-graph-reconcile-shell.sh",
+            "statusMessage": "🔁 Reconciling graph for shell file op (prune + reindex)...",
             "timeout": 10
           },
           {

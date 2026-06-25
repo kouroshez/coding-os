@@ -32,10 +32,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -44,6 +43,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -87,6 +87,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -154,6 +155,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -227,7 +229,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 220
+      "count": 222
     },
     "claude_angular": {
       "agent": "claude",
@@ -261,10 +263,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -273,6 +274,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -316,6 +318,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -385,6 +388,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -475,7 +479,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 241
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -509,10 +513,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -521,6 +524,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -564,6 +568,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -633,6 +638,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -716,7 +722,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 234
     },
     "claude_astro": {
       "agent": "claude",
@@ -750,10 +756,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -762,6 +767,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -805,6 +811,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -873,6 +880,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -959,7 +967,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 236
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -993,10 +1001,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -1005,6 +1012,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -1048,6 +1056,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -1115,6 +1124,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -1191,7 +1201,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 225
     },
     "claude_django": {
       "agent": "claude",
@@ -1225,10 +1235,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -1237,6 +1246,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -1280,6 +1290,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -1348,6 +1359,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/python-django/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
@@ -1434,7 +1446,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 236
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1468,10 +1480,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -1480,6 +1491,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -1523,6 +1535,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -1591,6 +1604,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/python-fastapi/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
@@ -1672,7 +1686,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 231
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1706,10 +1720,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -1718,6 +1731,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -1761,6 +1775,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -1830,6 +1845,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -1915,7 +1931,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 236
     },
     "claude_go": {
       "agent": "claude",
@@ -1949,10 +1965,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -1961,6 +1976,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -2004,6 +2020,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -2073,6 +2090,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -2156,7 +2174,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 234
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2190,10 +2208,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -2202,6 +2219,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -2245,6 +2263,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -2314,6 +2333,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -2397,7 +2417,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 234
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2431,10 +2451,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -2443,6 +2462,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -2486,6 +2506,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -2553,6 +2574,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -2629,7 +2651,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 225
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2663,10 +2685,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -2675,6 +2696,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -2718,6 +2740,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -2785,6 +2808,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -2861,7 +2885,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 225
     },
     "claude_laravel": {
       "agent": "claude",
@@ -2895,10 +2919,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -2907,6 +2930,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -2950,6 +2974,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -3018,6 +3043,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -3100,7 +3126,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 232
     },
     "claude_meta": {
       "agent": "claude",
@@ -3134,10 +3160,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -3146,6 +3171,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -3189,6 +3215,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -3265,6 +3292,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/python-meta-server/SKILL.md",
         ".claude/skills/react-vite-hub/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
@@ -3366,7 +3394,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 259
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3400,10 +3428,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -3412,6 +3439,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -3455,6 +3483,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -3523,6 +3552,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -3609,7 +3639,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 236
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -3643,10 +3673,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -3655,6 +3684,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -3698,6 +3728,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -3767,6 +3798,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -3860,7 +3892,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 244
     },
     "claude_node-express": {
       "agent": "claude",
@@ -3894,10 +3926,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -3906,6 +3937,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -3949,6 +3981,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -4017,6 +4050,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -4100,7 +4134,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 233
     },
     "claude_python": {
       "agent": "claude",
@@ -4134,10 +4168,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -4146,6 +4179,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -4189,6 +4223,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -4256,6 +4291,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -4331,7 +4367,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 224
     },
     "claude_rails": {
       "agent": "claude",
@@ -4365,10 +4401,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -4377,6 +4412,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -4420,6 +4456,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -4488,6 +4525,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/rails/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
@@ -4575,7 +4613,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 237
     },
     "claude_react-native": {
       "agent": "claude",
@@ -4609,10 +4647,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -4621,6 +4658,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -4664,6 +4702,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -4732,6 +4771,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/react-native-mobile/SKILL.md",
         ".claude/skills/react-native-patterns/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
@@ -4825,7 +4865,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 243
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -4859,10 +4899,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -4871,6 +4910,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -4914,6 +4954,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -4981,6 +5022,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -5057,7 +5099,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 225
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5091,10 +5133,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -5103,6 +5144,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -5146,6 +5188,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -5214,6 +5257,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/rust/SKILL.md",
@@ -5299,7 +5343,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 235
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5333,10 +5377,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -5345,6 +5388,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -5388,6 +5432,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -5455,6 +5500,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -5531,7 +5577,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 225
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -5565,10 +5611,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -5577,6 +5622,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -5620,6 +5666,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -5688,6 +5735,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -5773,7 +5821,7 @@
         "src/backend/src/main/java/com/example/app/health/HealthStatus.java",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 235
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -5807,10 +5855,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -5819,6 +5866,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -5862,6 +5910,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -5929,6 +5978,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -6019,7 +6069,7 @@
         "src/frontend/vite.config.ts",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 239
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6053,10 +6103,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -6065,6 +6114,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -6108,6 +6158,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -6175,6 +6226,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -6251,7 +6303,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 223
+      "count": 225
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6285,10 +6337,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -6297,6 +6348,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -6340,6 +6392,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -6407,6 +6460,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -6489,7 +6543,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 231
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -6523,10 +6577,9 @@
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
-        ".claude/hooks/auto-prune-deleted-files.sh",
+        ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
-        ".claude/hooks/auto-reindex-shell-ops.sh",
         ".claude/hooks/auto-task-sync.sh",
         ".claude/hooks/auto-trace-rotate.sh",
         ".claude/hooks/block-bad-patterns.sh",
@@ -6535,6 +6588,7 @@
         ".claude/hooks/block-migration-conflict.sh",
         ".claude/hooks/block-protected-files.sh",
         ".claude/hooks/block-secrets.sh",
+        ".claude/hooks/block-shared-tree-edit.sh",
         ".claude/hooks/block-uv-heredoc.sh",
         ".claude/hooks/branch-guard.sh",
         ".claude/hooks/capture-observation.sh",
@@ -6578,6 +6632,7 @@
         ".claude/hooks/nudge-reuse-first.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
+        ".claude/hooks/pr-reap.sh",
         ".claude/hooks/reclaim-sweep.sh",
         ".claude/hooks/record-verify-auto.sh",
         ".claude/hooks/record-verify.sh",
@@ -6645,6 +6700,7 @@
         ".claude/skills/payments/SKILL.md",
         ".claude/skills/performance/SKILL.md",
         ".claude/skills/php/SKILL.md",
+        ".claude/skills/pr-mode-driver/SKILL.md",
         ".claude/skills/realtime-websockets/SKILL.md",
         ".claude/skills/redis/SKILL.md",
         ".claude/skills/search-infra/SKILL.md",
@@ -6724,7 +6780,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 228
     },
     "codex_base": {
       "agent": "codex",
@@ -6758,10 +6814,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -6770,6 +6825,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -6818,6 +6874,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -6883,6 +6940,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -6955,7 +7013,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 224
+      "count": 226
     },
     "codex_angular": {
       "agent": "codex",
@@ -6991,10 +7049,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -7003,6 +7060,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -7051,6 +7109,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -7118,6 +7177,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -7207,7 +7267,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 245
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7243,10 +7303,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -7255,6 +7314,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -7303,6 +7363,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -7370,6 +7431,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -7452,7 +7514,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 238
     },
     "codex_astro": {
       "agent": "codex",
@@ -7488,10 +7550,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -7500,6 +7561,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -7548,6 +7610,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -7614,6 +7677,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -7699,7 +7763,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -7735,10 +7799,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -7747,6 +7810,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -7795,6 +7859,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -7860,6 +7925,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -7935,7 +8001,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 229
     },
     "codex_django": {
       "agent": "codex",
@@ -7971,10 +8037,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -7983,6 +8048,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -8031,6 +8097,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -8097,6 +8164,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/python-django/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
@@ -8182,7 +8250,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8218,10 +8286,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -8230,6 +8297,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -8278,6 +8346,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -8344,6 +8413,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/python-fastapi/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
@@ -8424,7 +8494,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 235
     },
     "codex_flutter": {
       "agent": "codex",
@@ -8460,10 +8530,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -8472,6 +8541,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -8520,6 +8590,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -8587,6 +8658,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -8671,7 +8743,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "codex_go": {
       "agent": "codex",
@@ -8707,10 +8779,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -8719,6 +8790,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -8767,6 +8839,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -8834,6 +8907,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -8916,7 +8990,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 238
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -8952,10 +9026,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -8964,6 +9037,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -9012,6 +9086,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -9079,6 +9154,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -9161,7 +9237,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 238
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -9197,10 +9273,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -9209,6 +9284,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -9257,6 +9333,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -9322,6 +9399,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -9397,7 +9475,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 229
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -9433,10 +9511,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -9445,6 +9522,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -9493,6 +9571,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -9558,6 +9637,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -9633,7 +9713,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 229
     },
     "codex_laravel": {
       "agent": "codex",
@@ -9669,10 +9749,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -9681,6 +9760,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -9729,6 +9809,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -9795,6 +9876,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -9876,7 +9958,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 236
     },
     "codex_meta": {
       "agent": "codex",
@@ -9912,10 +9994,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -9924,6 +10005,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -9972,6 +10054,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -10046,6 +10129,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/python-meta-server/SKILL.md",
         ".codex/skills/react-vite-hub/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
@@ -10146,7 +10230,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 261
+      "count": 263
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -10182,10 +10266,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -10194,6 +10277,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -10242,6 +10326,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -10308,6 +10393,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -10393,7 +10479,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -10429,10 +10515,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -10441,6 +10526,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -10489,6 +10575,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -10556,6 +10643,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -10648,7 +10736,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 248
     },
     "codex_node-express": {
       "agent": "codex",
@@ -10684,10 +10772,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -10696,6 +10783,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -10744,6 +10832,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -10810,6 +10899,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -10892,7 +10982,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 237
     },
     "codex_python": {
       "agent": "codex",
@@ -10928,10 +11018,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -10940,6 +11029,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -10988,6 +11078,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -11053,6 +11144,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -11127,7 +11219,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 228
     },
     "codex_rails": {
       "agent": "codex",
@@ -11163,10 +11255,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -11175,6 +11266,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -11223,6 +11315,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -11289,6 +11382,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/rails/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
@@ -11375,7 +11469,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 241
     },
     "codex_react-native": {
       "agent": "codex",
@@ -11411,10 +11505,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -11423,6 +11516,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -11471,6 +11565,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -11537,6 +11632,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/react-native-mobile/SKILL.md",
         ".codex/skills/react-native-patterns/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
@@ -11629,7 +11725,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 247
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -11665,10 +11761,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -11677,6 +11772,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -11725,6 +11821,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -11790,6 +11887,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -11865,7 +11963,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 229
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -11901,10 +11999,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -11913,6 +12010,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -11961,6 +12059,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -12027,6 +12126,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/rust/SKILL.md",
@@ -12111,7 +12211,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 239
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -12147,10 +12247,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -12159,6 +12258,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -12207,6 +12307,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -12272,6 +12373,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -12347,7 +12449,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 229
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -12383,10 +12485,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -12395,6 +12496,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -12443,6 +12545,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -12509,6 +12612,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -12593,7 +12697,7 @@
         "src/backend/src/main/java/com/example/app/health/HealthStatus.java",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 239
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -12629,10 +12733,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -12641,6 +12744,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -12689,6 +12793,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -12754,6 +12859,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -12843,7 +12949,7 @@
         "src/frontend/vite.config.ts",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 243
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -12879,10 +12985,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -12891,6 +12996,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -12939,6 +13045,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -13004,6 +13111,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -13079,7 +13187,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 227
+      "count": 229
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -13115,10 +13223,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -13127,6 +13234,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -13175,6 +13283,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -13240,6 +13349,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -13321,7 +13431,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 235
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -13357,10 +13467,9 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
-        ".codex/hooks/auto-prune-deleted-files.sh",
+        ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
-        ".codex/hooks/auto-reindex-shell-ops.sh",
         ".codex/hooks/auto-task-sync.sh",
         ".codex/hooks/auto-trace-rotate.sh",
         ".codex/hooks/block-bad-patterns.sh",
@@ -13369,6 +13478,7 @@
         ".codex/hooks/block-migration-conflict.sh",
         ".codex/hooks/block-protected-files.sh",
         ".codex/hooks/block-secrets.sh",
+        ".codex/hooks/block-shared-tree-edit.sh",
         ".codex/hooks/block-uv-heredoc.sh",
         ".codex/hooks/branch-guard.sh",
         ".codex/hooks/capture-observation.sh",
@@ -13417,6 +13527,7 @@
         ".codex/hooks/nudge-reuse-first.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
+        ".codex/hooks/pr-reap.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -13482,6 +13593,7 @@
         ".codex/skills/payments/SKILL.md",
         ".codex/skills/performance/SKILL.md",
         ".codex/skills/php/SKILL.md",
+        ".codex/skills/pr-mode-driver/SKILL.md",
         ".codex/skills/realtime-websockets/SKILL.md",
         ".codex/skills/redis/SKILL.md",
         ".codex/skills/search-infra/SKILL.md",
@@ -13560,7 +13672,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 232
     }
   }
 }

@@ -32,13 +32,12 @@ run_delegate() {
 }
 
 # Order + set MUST match adapter.yaml::hook_dispatchers[PostToolUse].delegates
-# (asserted by tests/test_adapter_parity.py). auto-reindex-shell-ops
-# + auto-prune-deleted-files keep the codex graph fresh after shell mv/rm.
+# (asserted by tests/test_adapter_parity.py). auto-graph-reconcile-shell
+# keeps the codex graph fresh after shell mv/rm (prune + reindex in one job).
 for delegate in \
   remind-learn-validate.sh \
   record-verify-auto.sh \
-  auto-reindex-shell-ops.sh \
-  auto-prune-deleted-files.sh \
+  auto-graph-reconcile-shell.sh \
   search-verify-remaining.sh \
   advance-role.sh \
   sync-task-current.sh \
