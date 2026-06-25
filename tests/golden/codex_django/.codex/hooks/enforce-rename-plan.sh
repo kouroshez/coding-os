@@ -58,15 +58,16 @@ if ! [[ "$NEW" =~ ^[A-Za-z_][A-Za-z0-9_.]*$ ]]; then
   exit 0
 fi
 
-MARKER="${COS_AGENT_DIR:-.coding-os/claude}/.rename-plan-$OLD"
+# Written by cos_graph_rename_plan itself (graph_os.tools.graph), keyed on
+# the resolved symbol label — no manual marker step.
+MARKER="${COS_AGENT_DIR:-.coding-os/claude}/.graph/plan-$OLD"
 if [[ -f "$MARKER" ]]; then
   cos_log_hook enforce-rename-plan ok || true
   exit 0
 fi
 
 MSG="rename-plan missing for identifier '$OLD' → '$NEW'.
-  Call cos_graph_rename_plan first, then record:
-    bash ${BASH_SOURCE[0]%/*}/write-state.sh \"${MARKER#$(pwd)/}\" \"reviewed\""
+  Call cos_graph_rename_plan(<uid>, \"$NEW\") first — the MCP call records the consult itself."
 if [[ "$MODE" == "strict" ]]; then
   printf '%s\n' "$MSG" >&2
   cos_log_hook enforce-rename-plan block || true

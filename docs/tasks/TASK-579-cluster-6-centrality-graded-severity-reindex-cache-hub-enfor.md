@@ -32,3 +32,4 @@ references: []
 **Given** an edit to a 162-dependent node **When** graph-gate runs **Then** it blocks-by-default reading a local centrality cache (no MCP round-trip, micro-bench under ceiling); **Given** the Hub Config page **When** an operator opens it **Then** graph enforcement is viewable and flippable; **Given** harakat-bearing indexed text **When** searched **Then** it is found (round-trip test); **Given** a malicious node label **When** export renders **Then** it is escaped at the boundary and CI fails if output reaches an HTML sink; AND graph_os + web + hooks matrix suites green.
 
 ## Work Log
+- 2026-06-25 [claude]: Scope add (folded from C2/TASK-575): centrality-derived enforce_context_on population for consumer stacks…

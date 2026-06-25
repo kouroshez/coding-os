@@ -30,3 +30,4 @@ references: []
 - 2026-06-25 [claude]: Edit 0014-unified-graph-gate-enforced-dependency-check-before-edit.md
 - 2026-06-25 [claude]: Wrote ADR-0014 (unified graph-gate): marker contract MCP-written + freshness + GC, one event-keyed hook, data-driven…
 - 2026-06-25 [claude]: committed eb47932c · 2 files
+- 2026-06-25 [claude]: committed 8f326786 · 8 files

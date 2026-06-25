@@ -69,6 +69,11 @@ Thumbs.db
 # invariants, so it must exist on a fresh CI checkout — track this one
 # file (the rest of .coding-os/ stays runtime junk and stays ignored).
 !.coding-os/scrumban-config.yaml
+# rag-config.yaml now drives the data-driven graph-gate (enforce-graph-context.sh
+# + enforce-skill.sh read graph.enforce_context_on). Track it so the meta repo's
+# own enforcement is reproducible on every checkout — deleting the old hardcoded
+# *core/*.py literal (Rule 11) would otherwise narrow enforcement on a clone.
+!.coding-os/rag-config.yaml
 
 # ---- Adapter-generated output (live symlinks into src/core/) --------
 .claude/

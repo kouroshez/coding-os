@@ -173,6 +173,12 @@ if [[ "$SOURCE" == "startup" ]]; then
       CLEARED=$((CLEARED + 1))
     fi
   done
+  # Agent-scoped graph consult markers (.graph/ctx-* / plan-*). Prune by age,
+  # not wholesale: other live panels share this dir, and freshness binding
+  # already invalidates a marker whose file changed. 12h keeps a session warm.
+  if [ -d "${COS_AGENT_DIR}/.graph" ]; then
+    find "${COS_AGENT_DIR}/.graph" -type f -mmin +720 -delete 2>/dev/null || true
+  fi
   cos_log_hook session-context reset "cleared=${CLEARED} panel=${COS_PANEL_ID}"
 fi
 

@@ -1,0 +1,117 @@
+# RAG indexer configuration for coding-os Phase B.
+#
+# Edit this file to add or remove indexed paths and tune chunking per source.
+# Run `make docs-index` after edits to apply changes.
+#
+# Source schema:
+#   - path: relative to project root
+#     type: short label used by cos_doc_search filter (prd, architecture, ...)
+#     chunk_size: max chars per chunk (default 2000 ≈ 500 tokens)
+#     chunk_overlap: overlap between adjacent chunks (default 200)
+#     priority: ranking boost in [0.0, 1.0] (default 0.5)
+#     exclude: optional list of subpaths relative to `path`
+
+sources:
+  - path: docs/prd/
+    type: prd
+    chunk_size: 2000
+    chunk_overlap: 200
+
+  - path: docs/architecture/
+    type: architecture
+    exclude:
+      - adr/   # ADRs handled below as their own source
+
+  - path: docs/architecture/adr/
+    type: adr
+    chunk_size: 4000   # ADRs are short — usually one chunk per ADR fits
+
+  - path: docs/api-contracts/
+    type: api_contract
+
+  - path: docs/engineering/
+    type: engineering
+    priority: 0.7      # Engineering rules are high-actionability — boost ranking
+
+  - path: docs/ops/
+    type: ops
+
+  - path: docs/insights/
+    type: insight
+    priority: 0.8      # High-signal lessons filed back by cos_learn_narrative
+
+  - path: docs/workflow/
+    type: workflow
+    priority: 0.6      # SSOT references for src/core/rules/*.md (thinking_os, etc.)
+
+  - path: docs/governance/
+    type: governance
+    priority: 0.6      # Always-active rules — ALSO indexed so an agent can DISCOVER
+    exclude:           # a relevant rule via cos_doc_search even with no explicit link.
+      - _templates/    # doc skeletons, not knowledge
+      - archive/       # superseded historical docs
+
+  - path: docs/playbooks/
+    type: playbook
+    priority: 0.5      # Routing playbooks — also skill-loaded; indexed for discoverability.
+
+# Project-level excludes — paths under here are NEVER indexed regardless of source.
+# (governance + playbooks are now INDEXED above for searchability — their
+#  always-active / skill loading is unchanged; indexing only adds discovery.)
+exclude:
+  - docs/tasks/          # Task files surfaced via cos_task_* family
+  - docs/00-index.md     # Navigation hub
+  - docs/_meta/          # Nav/index meta — not content
+
+# ── Graph enforcement (Phase I.14) ────────────────────────────────────
+# Files matching these globs are considered "load-bearing" — editing
+# them without a prior cos_graph_context call triggers
+# enforce-graph-context.sh (default warn; promote to block via
+# COS_ENFORCE_GRAPH_CONTEXT=strict). Globs are fnmatch.fnmatchcase
+# against whatever path the agent passes to Write/Edit (absolute or
+# relative); leading "*" lets either form match.
+graph:
+  enforce_context_on:
+    # MCP server + tool surface — every cos_* tool consumer depends on this.
+    - "*core/thinking_os/server.py"
+    - "*core/thinking_os/db.py"
+    - "*core/thinking_os/dispatcher.py"
+    - "*core/thinking_os/tools/*.py"
+    - "*core/thinking_os/cognition.py"
+    - "*core/thinking_os/formula_composer.py"
+
+    # Knowledge-graph backbone itself.
+    - "*core/graph_os/backend.py"
+    - "*core/graph_os/backends/*.py"
+    - "*core/graph_os/tools/graph.py"
+    - "*core/graph_os/extractors/*.py"
+    - "*core/graph_os/ingest/*.py"
+    - "*core/graph_os/reindex_dispatch.py"
+
+    # Board-os core.
+    - "*core/board_os/parser.py"
+    - "*core/board_os/sync.py"
+    - "*core/board_os/workflow.py"
+
+    # CLI factory entry points — affect every consumer project.
+    - "*cli/main.py"
+    - "*cli/aggregator.py"
+    - "*cli/stack_registry.py"
+    - "*cli/adapter_registry.py"
+    - "*cli/hook_renderer.py"
+    - "*cli/setup.py"
+    - "*cli/update.py"
+
+    # Adapter dispatchers — agent-facing surface.
+    - "*adapters/claude/sdk_dispatcher.py"
+    - "*adapters/codex/sdk_dispatcher.py"
+    - "*adapters/claude/install.sh"
+    - "*adapters/codex/install.sh"
+
+    # Hook registry SSOT — propagates to every adapter template.
+    - "*core/hooks/registry.yaml"
+    - "*core/hooks/cos-env.sh"
+
+    # Rule SSOTs (regen targets — hand-edit causes drift).
+    - "*core/rules/dimension-registry.md"
+    - "*core/rules/skill-enforcement.md"

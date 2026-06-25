@@ -76,47 +76,35 @@ fi
 # Check skill matches file type (STATE_VALUE has all invoked skills)
 ALL_SKILLS="$STATE_VALUE"
 
-# Meta-stack guard: editing a meta-repo authoring path REQUIRES the
-# graph-explorer skill (clean-code alone is not enough) — closes the dogfood
-# gap where the agent bypasses graph by loading only clean-code. SSOT:
-# src/templates/meta/stack.yaml::skill_enforcement.
-#
-# Meta-scope gate (TASK-474 P4-14/15): the hook is symlinked verbatim into
-# consumers, where `*core/*.py` would wrongly match the consumer's OWN
-# src/core/*.py and demand a meta-only skill. Fire ONLY inside the coding-os
-# source tree, and self-skip when the graph module is disabled (the skill is gone).
-_in_meta_source_tree() {
-  local dir
-  dir=$(cd "$(dirname "$1")" 2>/dev/null && pwd) || return 1
-  while [[ "$dir" != "/" && -n "$dir" ]]; do
-    if [[ -d "$dir/src/templates/_base" && -d "$dir/src/adapters/claude" \
-          && -d "$dir/src/adapters/codex" ]]; then
-      return 0
-    fi
-    dir=$(dirname "$dir")
-  done
-  return 1
-}
-
-_graph_module_disabled() {
-  local state="${COS_STATE_DIR:-.coding-os}/subsystems-state.json"
-  [[ -f "$state" ]] || state="$(pwd)/.coding-os/subsystems-state.json"
-  [[ -f "$state" ]] || return 1
-  jq -e '(.disabled // []) | index("graph") != null' "$state" >/dev/null 2>&1
-}
-
-case "$FILE_PATH" in
-  *core/*.py|*cli/*.py|*adapters/*.py)
-    if _in_meta_source_tree "$FILE_PATH" && ! _graph_module_disabled \
-        && ! echo "$ALL_SKILLS" | grep -qiE "graph-explorer"; then
-      echo "BLOCKED: Editing meta-repo authoring path ($FILE_PATH) requires Skill graph-explorer." >&2
-      echo "  Reason: load-bearing src/core/cli/adapter file — call cos_graph_context first." >&2
+# Load-bearing guard: a file under the stack's graph.enforce_context_on globs
+# (rag-config.yaml — the same per-consumer SSOT enforce-graph-context reads)
+# REQUIRES graph-explorer; clean-code alone bypasses the graph layer and ships
+# the dogfood gap. Data-driven (Rule 11): no path/stack literal lives here, so
+# the verbatim-symlinked hook is correct in every consumer — an absent or empty
+# list is simply a no-op (no false demand for a meta-only skill in a consumer).
+if ! echo "$ALL_SKILLS" | grep -qiE "graph-explorer"; then
+  GRAPH_CONFIG="${COS_STATE_DIR:-.coding-os}/rag-config.yaml"
+  [[ -f "$GRAPH_CONFIG" ]] || GRAPH_CONFIG="$(pwd)/.coding-os/rag-config.yaml"
+  if [[ -f "$GRAPH_CONFIG" ]]; then
+    _src="${BASH_SOURCE[0]}"
+    while [ -L "$_src" ]; do
+      _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+      _src="$(readlink "$_src")"
+      [[ "$_src" != /* ]] && _src="$_dir/$_src"
+    done
+    HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
+    unset _src _dir
+    MATCH_HELPER="${HSRC}/_helpers/graph_context_match.py"
+    if [[ -f "$MATCH_HELPER" ]] \
+        && [[ "$(python3 "$MATCH_HELPER" "$GRAPH_CONFIG" "$FILE_PATH" 2>/dev/null || echo no)" == "yes" ]]; then
+      echo "BLOCKED: $FILE_PATH is a graph-enforced load-bearing file (rag-config enforce_context_on) — Skill graph-explorer is required (clean-code alone bypasses the graph layer)." >&2
+      echo "  Reason: structural edit on a load-bearing file — call cos_graph_context first." >&2
       echo "  Fix:    Skill skill: \"graph-explorer\"" >&2
       cos_log_hook enforce-skill block "rule=graph-explorer-required" || true
       exit 2
     fi
-    ;;
-esac
+  fi
+fi
 
 if [[ "$FILE_PATH" == *.py ]]; then
   if ! echo "$ALL_SKILLS" | grep -qiE "python|django|clean-code|graph-explorer"; then

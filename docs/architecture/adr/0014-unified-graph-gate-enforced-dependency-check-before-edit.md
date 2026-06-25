@@ -65,11 +65,11 @@ Codex fires Bash PreToolUse: add a Bash-mediated graph-gate delegate that parses
 | Cluster | Closes | Swimlane |
 |---|---|---|
 | C1 marker contract + freshness + GC + producer test | A1, A2, C3, C4, D2 (context envelope), SM1, SM2 | graph_os |
-| C2 consumer scope + data-driven (delete hardcode) | B1, B2, B3, B4, B5, D3 | core |
+| C2 data-driven graph-gate mechanism (delete hardcode) | B3, B4, B5, D3 (Rule-11 mechanism); meta config tracked | core |
 | C3 tool usability | N5, N6, N12, N13, D2 (impact/references/detect_changes envelopes), SM3 | graph_os |
 | C4 hook consolidation + reconcile + migration | N10, 4→1 merge, D3 render, SM6 | core |
 | C5 cross-adapter parity | N1, N2, N11 | core |
-| C6 severity cache + hub + learning + i18n + xss + test-dead-zone | D1, D4, N7, N8, N9, SM4, SM5, B6 | core |
+| C6 severity cache + hub + learning + i18n + xss + test-dead-zone + consumer population | D1, D4, N7, N8, N9, SM4, SM5, B6, B1, B2 (centrality-derived enforce_context_on + consumer graph-first rule) | core |
 
 ## Backward-compat & consumer migration (SM6)
 
