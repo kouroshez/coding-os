@@ -5,7 +5,7 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [graph_os, envelope, token-budget, bug-from-prod]
-status: complete
+status: archive
 priority: P0
 appetite: "2h"
 created: 2026-05-26

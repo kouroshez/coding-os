@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [graph_os, enterprise, deferred-from-032, validation, concurrency]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-05-26
