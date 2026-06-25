@@ -151,12 +151,30 @@ def _check_switch(args: list[str]) -> tuple[str | None, str | None]:
 
 
 def _check_branch(args: list[str]) -> tuple[str | None, str | None]:
-    # Block ONLY the create form `git branch <name> [<startpoint>]`. Any
-    # leading flag (-d/-D/-m/-M/-c/-C/-a/-r/-v/--list/…) means delete /
-    # rename / list / copy / show — all safe and HEAD-stable.
-    if not args or args[0].startswith("-"):
-        return None, None
-    return "branch-create", _MSG["branch-create"]
+    # Plain create form `git branch <name> [<startpoint>]` — trunk forbids new
+    # branches.
+    if args and not args[0].startswith("-"):
+        return "branch-create", _MSG["branch-create"]
+    # Force-rewrite / rename / copy / delete TARGETING the integration or a
+    # protected ref (branch -f/-M/-C/-D main) corrupts the shared line — block at
+    # parity with pr-mode (BG-1), reusing its refspec-normalizing blocker. Other
+    # flagged forms (-d/-m/-v/--list on a feature branch) stay allowed.
+    if _pr_branch_blocks(args, _trunk_protected_refs()):
+        return "protected-ref-rewrite", _MSG["protected-ref-rewrite"]
+    return None, None
+
+
+def _check_update_ref(args: list[str]) -> tuple[str | None, str | None]:
+    # `git update-ref` writes a ref directly; trunk previously had no checker for
+    # it (BG-2). Block writes/deletes of the integration/protected line OR HEAD
+    # (a direct HEAD move is an unguarded reset). Reuse pr-mode's blocker — it
+    # fails closed on --stdin — and add the HEAD guard on top.
+    positionals = [a for a in args if not a.startswith("-")]
+    if positionals and _unqualify_ref(positionals[0]) == "HEAD":
+        return "protected-ref-rewrite", _MSG["protected-ref-rewrite"]
+    if _pr_update_ref_blocks(args, _trunk_protected_refs()):
+        return "protected-ref-rewrite", _MSG["protected-ref-rewrite"]
+    return None, None
 
 
 def _check_worktree(args: list[str]) -> tuple[str | None, str | None]:
@@ -219,6 +237,7 @@ _DISPATCH = {
     "checkout": _check_checkout,
     "switch": _check_switch,
     "branch": _check_branch,
+    "update-ref": _check_update_ref,
     "worktree": _check_worktree,
     "reset": _check_reset,
     "rebase": _check_rebase,
@@ -288,6 +307,15 @@ _MSG = {
         "  See src/core/rules/git-workflow.md. pr-mode is enabled per-project\n"
         "  (Hub → Config → Git) or by exporting COS_GIT_WORKFLOW=pr session-wide\n"
         "  — an inline 'COS_GIT_WORKFLOW=pr git …' prefix does NOT work."
+    ),
+    "protected-ref-rewrite": (
+        "BLOCKED: this rewrites the protected integration ref directly\n"
+        "(git branch -f/-M/-C/-D main, git update-ref refs/heads/main or HEAD).\n"
+        "In trunk mode that clobbers the shared main line and every peer's history.\n"
+        "\n"
+        "  To undo a published commit: 'git revert <sha>' — a new commit that\n"
+        "  preserves history. Feature-branch admin must not target main.\n"
+        "  See src/core/rules/git-workflow.md for the full rule."
     ),
 }
 
@@ -367,6 +395,14 @@ def _evaluate_trunk(segments: list[str]) -> tuple[str, str, str]:
 def _protected_branches() -> set[str]:
     raw = os.environ.get("COS_GIT_PROTECTED_BRANCHES", "production")
     return {b for b in re.split(r"[,\s]+", raw) if b}
+
+
+def _trunk_protected_refs() -> set[str]:
+    # The refs trunk mode refuses to force-rewrite / rename / delete: the
+    # integration line (main) + any protected branch — the SAME set pr-mode
+    # guards, so neither mode is weaker than the other on ref integrity (BG-1/2).
+    integration = os.environ.get("COS_GIT_INTEGRATION_BRANCH", "main")
+    return _protected_branches() | {integration}
 
 
 def _is_worktree_path(path: str) -> bool:

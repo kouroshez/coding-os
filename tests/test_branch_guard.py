@@ -741,11 +741,50 @@ def test_trunk_merge_unchanged() -> None:
     assert code == 0
 
 
-def test_trunk_update_ref_unchanged() -> None:
-    code, _ = _run("git update-ref refs/heads/main HEAD~1")
+# --- TASK-562: trunk now guards the integration/protected ref at PARITY with
+#     pr-mode (force-rewrite / rename / delete / update-ref of main|production|
+#     HEAD). merge / cherry-pick / push-to-main stay ALLOWED — that is the trunk
+#     publish path (see test_trunk_merge_unchanged / test_trunk_push_refspec_unchanged).
+def test_trunk_blocks_branch_force_integration() -> None:
+    code, err = _run("git branch -f main HEAD~1")
+    assert code == 2
+    assert "main" in err or "protected" in err.lower()
+
+
+def test_trunk_blocks_branch_rename_onto_integration() -> None:
+    code, _ = _run("git branch -M oldname main")
+    assert code == 2
+
+
+def test_trunk_blocks_branch_delete_integration() -> None:
+    code, _ = _run("git branch -D main")
+    assert code == 2
+
+
+def test_trunk_blocks_update_ref_integration() -> None:
+    code, err = _run("git update-ref refs/heads/main HEAD~1")
+    assert code == 2
+    assert "main" in err or "protected" in err.lower()
+
+
+def test_trunk_blocks_update_ref_head() -> None:
+    # A direct HEAD move via update-ref is an unguarded reset — block it.
+    code, _ = _run("git update-ref HEAD HEAD~1")
+    assert code == 2
+
+
+def test_trunk_blocks_update_ref_delete_protected() -> None:
+    code, _ = _run("git update-ref -d refs/heads/production")
+    assert code == 2
+
+
+def test_trunk_allows_branch_rename_feature() -> None:
+    # Renaming a NON-protected feature branch (two positionals, neither blocked)
+    # stays legit branch admin in trunk.
+    code, _ = _run("git branch -m oldfeature newfeature")
     assert code == 0
 
 
-def test_trunk_branch_force_unchanged() -> None:
-    code, _ = _run("git branch -f main HEAD~1")
+def test_trunk_allows_update_ref_non_protected() -> None:
+    code, _ = _run("git update-ref refs/heads/feature-x HEAD")
     assert code == 0
