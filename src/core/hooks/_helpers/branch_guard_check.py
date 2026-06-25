@@ -21,14 +21,22 @@ from __future__ import annotations
 import json
 import os
 import re
-import shlex
 import sys
 
-from git_command_parse import commit_flags, is_git_word, resolve_command
+from git_command_parse import (
+    command_groups,
+    commit_flags,
+    is_git_word,
+    normalize,
+    resolve_command,
+    strip_env_vars,
+    strip_git_globals,
+)
 
-# git global options that take the next token as their argument.
+# Pre-subcommand git globals, kept local for the pr-mode-specific _git_dir_target
+# below (the shared tokenizer's strip_git_globals already drops them for the
+# subcommand lookup; this set lets _git_dir_target read the `-C`/--work-tree target).
 _GLOBAL_OPTS_WITH_ARG = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
-# git global flags with no argument.
 _GLOBAL_OPTS_NO_ARG = {
     "-p",
     "--paginate",
@@ -42,92 +50,7 @@ _GLOBAL_OPTS_NO_ARG = {
     "--noglob-pathspecs",
     "--icase-pathspecs",
 }
-# `--key=value` long options that bundle the arg.
 _GLOBAL_LONG_EQ_PREFIXES = ("--git-dir=", "--work-tree=", "--namespace=", "-c=")
-
-# Shells whose `-c <inner>` invocations we descend into.
-_NESTED_SHELLS = {"sh", "bash", "zsh", "dash"}
-
-
-def _looks_like_env_assignment(token: str) -> bool:
-    """`FOO=bar` (caller-set env var) — drop before reading the command name."""
-    if "=" not in token:
-        return False
-    name = token.split("=", 1)[0]
-    return bool(name) and bool(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name))
-
-
-def _strip_env_vars(tokens: list[str]) -> list[str]:
-    i = 0
-    while i < len(tokens) and _looks_like_env_assignment(tokens[i]):
-        i += 1
-    return tokens[i:]
-
-
-def _strip_git_globals(tokens: list[str]) -> list[str]:
-    """Drop `git`'s pre-subcommand globals so the next token is the subcommand."""
-    out: list[str] = []
-    i = 0
-    while i < len(tokens):
-        t = tokens[i]
-        if t in _GLOBAL_OPTS_WITH_ARG:
-            i += 2
-            continue
-        if t in _GLOBAL_OPTS_NO_ARG:
-            i += 1
-            continue
-        if any(t.startswith(p) for p in _GLOBAL_LONG_EQ_PREFIXES):
-            i += 1
-            continue
-        out.extend(tokens[i:])
-        break
-    return out
-
-
-# Crude segmenter: split on shell separators that start a new command.
-# Doesn't perfectly respect quoting, but quoted commands are recovered via
-# the `sh -c <quoted>` extractor below — together they cover the cases the
-# reviewer surfaced.
-_SEGMENT_SPLIT_RE = re.compile(r"&&|\|\||[;|()&]")
-
-
-def _split_segments(command: str) -> list[str]:
-    return [s.strip() for s in _SEGMENT_SPLIT_RE.split(command) if s.strip()]
-
-
-# Backtick command substitution `` `cmd` `` — extract inner. The negative
-# lookbehind skips ESCAPED backticks (`\``), which inside a `"..."` arg are
-# inert literals — bash does not execute them. This avoids false positives
-# on commit messages / docs that quote shell snippets like
-# `git commit -m "see \`git reset HEAD~1\` for unsafe form"`.
-_BACKTICK_RE = re.compile(r"(?<!\\)`([^`]+)`")
-
-
-def _extract_backticks(segments: list[str]) -> list[str]:
-    extra: list[str] = []
-    for seg in segments:
-        for m in _BACKTICK_RE.finditer(seg):
-            extra.extend(_split_segments(m.group(1)))
-    return extra
-
-
-def _extract_nested_shells(segments: list[str]) -> list[str]:
-    """For each `sh -c <inner>` / `bash -c <inner>` token sequence, return the
-    inner string split into its own segments. shlex unquotes the inner."""
-    extra: list[str] = []
-    for seg in segments:
-        try:
-            tokens = shlex.split(seg, posix=True)
-        except ValueError:
-            continue
-        # Skip leading env vars so `FOO=1 sh -c '...'` still matches.
-        tokens = _strip_env_vars(tokens)
-        if len(tokens) < 3:
-            continue
-        if tokens[0] in _NESTED_SHELLS and tokens[1] == "-c":
-            inner = tokens[2]
-            extra.extend(_split_segments(inner))
-    return extra
 
 
 def _check_checkout(args: list[str]) -> tuple[str | None, str | None]:
@@ -374,60 +297,27 @@ _MSG = {
 }
 
 
-def _all_segments(command: str) -> list[str]:
-    """Expand a normalized command into every executable segment: split on shell
-    separators, then unwrap nested `sh -c`/backtick subshells with bounded
-    recursion. Shared by the trunk and pr-mode evaluators."""
-    all_segments = _split_segments(command)
-    all_segments.extend(_extract_backticks(all_segments))
-    frontier = list(all_segments)
-    seen = set(all_segments)
-    for _ in range(8):  # depth cap — runaway recursion guard
-        layer = _extract_nested_shells(frontier) + _extract_backticks(frontier)
-        layer = [s for s in layer if s not in seen]
-        if not layer:
-            break
-        seen.update(layer)
-        all_segments.extend(layer)
-        frontier = layer
-    return all_segments
-
-
-def _tokenize(seg: str) -> list[str]:
-    try:
-        return shlex.split(seg, posix=True)
-    except ValueError:
-        # Unbalanced quotes — fall back to whitespace split so the dominant
-        # `git reset HEAD~1` form is still caught.
-        return seg.split()
-
-
 def _evaluate(command: str) -> tuple[str, str, str]:
-    """Returns (verdict, reason, message). verdict is 'allow' or 'block'."""
-    # Treat literal newlines as command separators BEFORE the whitespace
-    # collapse below would erase them — `git status\ngit reset HEAD~1`
-    # is two commands.
-    command = re.sub(r"\n+", "; ", command)
-    # Whitespace normalize — collapses tabs and multi-space runs that bash
-    # substring match would have missed.
-    command = " ".join(command.split())
-    if not command:
+    """Returns (verdict, reason, message). verdict is 'allow' or 'block'. Uses the
+    SHARED git_command_parse tokenizer (quote-aware AND `;`-aware) — no private
+    segmenter, so branch_guard and the commit/secret gates can never drift apart,
+    and a `;`/`(` inside a quoted commit message no longer false-splits (TASK-572)."""
+    groups = command_groups(normalize(command))
+    if not groups:
         return "allow", "", ""
-
-    segments = _all_segments(command)
     if os.environ.get("COS_GIT_WORKFLOW", "trunk") == "pr":
-        return _evaluate_pr(segments)
-    return _evaluate_trunk(segments)
+        return _evaluate_pr(groups)
+    return _evaluate_trunk(groups)
 
 
-def _evaluate_trunk(segments: list[str]) -> tuple[str, str, str]:
-    for seg in segments:
-        # resolve_command strips a `VAR=val`/`env …` prefix; is_git_word accepts a
-        # path-qualified `/usr/bin/git` — both evaded the old `tokens[0] != "git"`.
-        _env, tokens = resolve_command(_tokenize(seg))
+def _evaluate_trunk(groups: list[list[str]]) -> tuple[str, str, str]:
+    for g in groups:
+        # resolve_command strips a `VAR=val`/`env …`/`{` prefix; is_git_word accepts a
+        # path-qualified `/usr/bin/git`. `g` is already tokenized by command_groups.
+        _env, tokens = resolve_command(g)
         if not tokens or not is_git_word(tokens[0]):
             continue
-        tokens = _strip_git_globals(tokens[1:])
+        tokens = strip_git_globals(tokens[1:])
         if not tokens:
             continue
         subcmd, args = tokens[0], tokens[1:]
@@ -484,15 +374,15 @@ def _current_dir() -> str:
         return ""  # cwd deleted out from under us — fall through to segment checks
 
 
-def _worktree_scoped(segments: list[str]) -> bool:
+def _worktree_scoped(groups: list[list[str]]) -> bool:
     # Worktree scope for a git op with NO explicit -C: the process cwd is a
     # worktree, or a `cd <worktree>` in the command line moved into one. An op
     # WITH -C is scoped per-op from its own target in _evaluate_pr (finding 5).
     cwd = _current_dir()
     if cwd and _is_worktree_path(cwd):
         return True
-    for seg in segments:
-        toks = _strip_env_vars(_tokenize(seg))
+    for g in groups:
+        toks = strip_env_vars(g)
         if toks and toks[0] == "cd" and len(toks) >= 2 and _is_worktree_path(toks[1]):
             return True
     return False
@@ -674,17 +564,17 @@ def _git_dir_target(global_tokens: list[str]) -> str | None:
     return None
 
 
-def _evaluate_pr(segments: list[str]) -> tuple[str, str, str]:
+def _evaluate_pr(groups: list[list[str]]) -> tuple[str, str, str]:
     integration = os.environ.get("COS_GIT_INTEGRATION_BRANCH", "main")
     blocked_push = _protected_branches() | {integration}
-    fallback_scope = _worktree_scoped(segments)  # cwd/cd, for ops with no -C
-    for seg in segments:
-        _env, tokens = resolve_command(_tokenize(seg))
+    fallback_scope = _worktree_scoped(groups)  # cwd/cd, for ops with no -C
+    for g in groups:
+        _env, tokens = resolve_command(g)
         if not tokens or not is_git_word(tokens[0]):
             continue
         global_tokens = tokens[1:]
         c_target = _git_dir_target(global_tokens)
-        sub = _strip_git_globals(global_tokens)
+        sub = strip_git_globals(global_tokens)
         if not sub:
             continue
         op_scope = _is_worktree_path(c_target) if c_target is not None else fallback_scope

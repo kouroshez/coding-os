@@ -857,9 +857,12 @@ def test_pr_mode_blocks_update_ref_reflog_message_integration() -> None:
 
 def test_trunk_blocks_commit_dash_a() -> None:
     # `git commit -a/--all` sweeps a concurrent session's WIP — trunk wants paths.
+    # Assert the REASON (TASK-572): a block with the wrong gate's message would
+    # otherwise pass this test (the symbolic-ref/history message also exits 2).
     for cmd in ("git commit -a -m x", "git commit --all -m x", "git commit -am x"):
-        code, _ = _run(cmd)
+        code, err = _run(cmd)
         assert code == 2, cmd
+        assert "stages every tracked modification" in err, cmd
 
 
 def test_trunk_allows_explicit_and_amend_commit() -> None:
@@ -876,8 +879,9 @@ def test_trunk_allows_explicit_and_amend_commit() -> None:
 
 def test_trunk_blocks_path_qualified_commit_dash_a() -> None:
     # A path-qualified git still runs git — must not evade the -a sweep guard.
-    code, _ = _run("/usr/bin/git commit -a -m x")
+    code, err = _run("/usr/bin/git commit -a -m x")
     assert code == 2
+    assert "stages every tracked modification" in err
 
 
 def test_trunk_blocks_history_rewrite_verbs() -> None:
@@ -891,8 +895,9 @@ def test_trunk_blocks_history_rewrite_verbs() -> None:
 
 
 def test_trunk_blocks_symbolic_ref_write_allows_read() -> None:
-    code, _ = _run("git symbolic-ref HEAD refs/heads/other")
+    code, err = _run("git symbolic-ref HEAD refs/heads/other")
     assert code == 2
+    assert "protected integration ref" in err  # the symbolic-ref-write reason
     for read in ("git symbolic-ref HEAD", "git symbolic-ref --short HEAD"):
         code, _ = _run(read)
         assert code == 0, read

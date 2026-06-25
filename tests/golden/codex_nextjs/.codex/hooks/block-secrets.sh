@@ -49,16 +49,9 @@ if [[ "$TOOL" == "Bash" ]]; then
   # core.hooksPath / GIT_CONFIG_* injection). Delegated to a shlex-tokenizing
   # helper: the old bash regex ran over a quote-STRIPPED string, so a spliced
   # `--no-ver"i"fy`, a quoted `"-n"`, or a `GIT_CONFIG_*` env prefix vanished
-  # from the scan yet bash still executed it (TASK-567). Resolve the helper
-  # through the file's PHYSICAL path so it works through the .claude/ symlink.
-  _bs_src="${BASH_SOURCE[0]}"
-  while [ -L "$_bs_src" ]; do
-    _bs_dir="$(cd -P "$(dirname "$_bs_src")" && pwd)"
-    _bs_src="$(readlink "$_bs_src")"
-    [[ "$_bs_src" != /* ]] && _bs_src="${_bs_dir}/${_bs_src}"
-  done
-  BYPASS_HELPER="$(cd -P "$(dirname "$_bs_src")" && pwd)/_helpers/check_git_bypass.py"
-  unset _bs_src _bs_dir
+  # from the scan yet bash still executed it (TASK-567). `_cos_helpers_dir`
+  # (cos-env.sh) resolves the physical `_helpers/` through the .claude/ symlink.
+  BYPASS_HELPER="$(_cos_helpers_dir)/check_git_bypass.py"
   BYPASS_VERDICT=$(printf '%s' "$INPUT" | python3 "$BYPASS_HELPER" 2>/dev/null || echo error)
   # Fail-closed but SCOPED: a helper crash blocks only when the raw command
   # actually carries a commit/hooksPath/GIT_CONFIG token we could not verify.

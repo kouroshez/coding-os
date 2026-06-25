@@ -649,6 +649,29 @@ class TestBlockSecrets:
         result = run_hook("block-secrets.sh", stdin=payload)
         assert result.returncode == 0
 
+    def test_fail_closed_when_bypass_helper_crashes(self, tmp_path: Path) -> None:
+        # TASK-572: if check_git_bypass.py cannot run (a broken python3 shim), a
+        # git-commit command must FAIL CLOSED (block), never silently allow — a
+        # mutation flipping the error-default to allow would otherwise pass unseen.
+        shim = tmp_path / "bin"
+        shim.mkdir()
+        (shim / "python3").write_text("#!/bin/sh\nexit 1\n")
+        (shim / "python3").chmod(0o755)
+        env = {"PATH": f"{shim}:{os.environ.get('PATH', '')}"}
+        blocked = run_hook(
+            "block-secrets.sh",
+            stdin=json.dumps({"tool_name": "Bash", "tool_input": {"command": "git commit --no-verify -m x"}}),
+            env_overrides=env,
+        )
+        assert blocked.returncode == 2  # fail-closed on the unverifiable commit
+        # A non-commit git op under the same broken helper is scoped to allow.
+        allowed = run_hook(
+            "block-secrets.sh",
+            stdin=json.dumps({"tool_name": "Bash", "tool_input": {"command": "git add README.md"}}),
+            env_overrides=env,
+        )
+        assert allowed.returncode == 0
+
     # TASK-563: the anchored `^git commit … --no-verify` regex missed every shape
     # below; each must now BLOCK without breaking a clean `git commit`.
     @pytest.mark.parametrize(

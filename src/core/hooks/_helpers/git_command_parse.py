@@ -47,6 +47,10 @@ _GLOBAL_LONG_EQ_PREFIXES = ("--git-dir=", "--work-tree=", "--namespace=", "-c=")
 # so it must not read as a real invocation (the enforce-commit-message FP).
 _NESTED_SHELLS = {"sh", "bash", "zsh", "dash"}
 
+# Recursion bound for nested `sh -c`/backtick descent — 8 levels is far beyond any
+# realistic input; the cap only guards against a pathological/adversarial command.
+_MAX_NEST_DEPTH = 8
+
 
 def looks_like_env_assignment(token: str) -> bool:
     """`FOO=bar` (caller-set env var) — a leading run of these precedes the cmd."""
@@ -143,7 +147,7 @@ def all_segments(command: str) -> list[str]:
     segments.extend(extract_backticks(segments))
     frontier = list(segments)
     seen = set(segments)
-    for _ in range(8):  # depth cap — runaway recursion guard
+    for _ in range(_MAX_NEST_DEPTH):  # runaway recursion guard
         layer = extract_nested_shells(frontier) + extract_backticks(frontier)
         layer = [s for s in layer if s not in seen]
         if not layer:
@@ -320,7 +324,7 @@ def command_groups(command: str, _depth: int = 0) -> list[list[str]]:
             cur.append(t)
     if cur:
         groups.append(cur)
-    if _depth < 8:  # descend into nested commands, bounded
+    if _depth < _MAX_NEST_DEPTH:  # descend into nested commands, bounded
         for g in groups:
             g2 = strip_env_vars(g)
             if len(g2) >= 3 and g2[0] in _NESTED_SHELLS and g2[1] == "-c":
