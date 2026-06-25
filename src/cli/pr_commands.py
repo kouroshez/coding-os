@@ -873,6 +873,26 @@ def pr_cleanup(
                 as_json,
             )
             sys.exit(1)
+        # The live-peer gate fires only on PROVABLE liveness and the merge-gate
+        # protects only COMMITTED work, so a drifted/peer worktree with an
+        # UNCOMMITTED tree would still be force-removed — and session state cannot
+        # tell that case apart from a legitimate drifted-self cleanup. Mirror the
+        # reaper (_reap_one): bundle the dirty tree first, and keep the worktree if
+        # that fails rather than destroy the only copy. Own-worktree needs none of
+        # this — no peer's work is at stake.
+        owner_drifted = owner_session != session
+        if owner_drifted and _git_out(["status", "--porcelain"], cwd=wt):
+            if _preserve_reaped(repo, wt, branch) is None:
+                _emit(
+                    {
+                        "removed": False,
+                        "branch": branch,
+                        "owner_session": owner_session,
+                        "action": "drifted/peer worktree has uncommitted work and preservation failed — not removing; recover it manually, or re-run with --force",
+                    },
+                    as_json,
+                )
+                sys.exit(1)
 
     _git(["worktree", "unlock", str(wt)], cwd=repo)  # release the pr-mode live-lock
     removed_wt = _git(["worktree", "remove", "--force", str(wt)], cwd=repo).returncode == 0
