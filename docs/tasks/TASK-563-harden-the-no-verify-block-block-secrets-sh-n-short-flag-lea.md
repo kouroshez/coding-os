@@ -4,19 +4,18 @@ title: "Harden the --no-verify block (block-secrets.sh): -n short flag, leading 
 swimlane: core
 kind: bug
 epic: null
-labels: [hooks, commit-contract, audit-2026-06-24, safety-hook-edit]
-status: icebox
+labels: [hooks, commit-contract, audit-2026-06-24, safety-hook-edit, ready]
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-24
-started: null
-completed: null
-agent_session: null
+started: 2026-06-24
+completed: 2026-06-24
+agent_session: ses-claude-20260624-182639-f22b
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-563: Harden the --no-verify block (block-secrets.sh): -n short flag, leading path/cd/env prefix, and -c core.hooksPath all bypass the anchored regex
 
 **Outcome (one sentence):** block-secrets.sh blocks every agent form that skips git hooks at commit — `git commit -n`, a leading path / `cd … &&` / env-assignment prefix before `git`, and `git -c core.hooksPath=… commit` — not just the exact `^git commit … --no-verify`. The git-workflow.md "no escape hatch for agents" promise becomes true for the agent Bash path; the git-level commit-msg/pre-commit hooks remain the human backstop.
@@ -35,3 +34,9 @@ Audit GH-1 (CONFIRMED via scratchpad/nv.sh): block-secrets.sh:51 uses `grep -qE 
 - **Then** `make verify-hooks` passes and a regression test covers each bypass shape
 
 ## Work Log
+- 2026-06-25 [claude]: Edit block-secrets.sh
+- 2026-06-25 [claude]: Edit smoke_noverify.py
+- 2026-06-25 [claude]: Edit block-secrets.sh
+- 2026-06-25 [claude]: Edit test_hooks.py
+- 2026-06-25 [claude]: Edit git-workflow.md
+- 2026-06-25 [claude]: Replaced the anchored ^git commit…--no-verify grep with per-shell-segment detection (split on ;&|) so leading path /…
