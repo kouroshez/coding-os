@@ -934,3 +934,72 @@ class TestHookScriptPaths:
         assert "/thinking_os'" in src, (
             "auto-reindex-docs.sh sys.path.insert must use thinking_os/ (underscore)."
         )
+
+
+class TestSessionEndUncommittedAdvisory:
+    """TASK-564: session-end.sh advises on uncommitted NON-docs code at end-of-turn,
+    excludes docs/ board churn, stays fail-open, and does NOT duplicate the
+    still-open-task nudge (that lives in warn-abandoned-task.sh)."""
+
+    def _run(self, tmp_path: Path, mutate) -> subprocess.CompletedProcess:
+        repo = tmp_path / "repo"
+        (repo / "src").mkdir(parents=True)
+        (repo / "docs" / "tasks").mkdir(parents=True)
+        # Neutral hooks dir OUTSIDE the repo so a globally-installed core.hooksPath
+        # can't block the baseline commit and isn't seen by git status.
+        nohooks = tmp_path / "nohooks"
+        nohooks.mkdir()
+
+        def git(*args: str) -> None:
+            subprocess.run(["git", *args], cwd=str(repo), check=True, capture_output=True)
+
+        git("init", "-q")
+        git("config", "user.email", "t@example.com")
+        git("config", "user.name", "t")
+        git("config", "core.hooksPath", str(nohooks))
+        # Ignore state dirs cos-env/the hook may create so they don't read as
+        # uncommitted code and poison the advisory under test.
+        (repo / ".gitignore").write_text(".coding-os/\n.cos-state/\n")
+        (repo / "src" / "app.py").write_text("x = 1\n")
+        (repo / "docs" / "tasks" / "TASK-1.md").write_text("# task\n")
+        git("add", "-A")
+        git("commit", "-qm", "base")
+
+        state = repo / ".cos-state"
+        state.mkdir()
+        db = state / "coding-os.db"
+        db.write_text("")  # stub so session-end.sh proceeds past its DB gate
+
+        mutate(repo)
+        return subprocess.run(
+            ["bash", str(HOOKS_DIR / "session-end.sh")],
+            input='{"session_id": "test-sess-564"}',
+            capture_output=True,
+            text=True,
+            cwd=str(repo),
+            timeout=20,
+            env={
+                **os.environ,
+                "COS_DB_PATH": str(db),
+                "COS_AGENT": "claude",
+                "COS_PANEL_ID": "p564",
+            },
+        )
+
+    def test_advises_on_uncommitted_code(self, tmp_path: Path) -> None:
+        result = self._run(tmp_path, lambda repo: (repo / "src" / "app.py").write_text("x = 2\n"))
+        assert result.returncode == 0
+        assert "uncommitted code change" in result.stderr
+
+    def test_silent_when_only_board_files_changed(self, tmp_path: Path) -> None:
+        # docs/tasks board churn must NOT trip the code advisory (`:(exclude)docs`).
+        result = self._run(
+            tmp_path, lambda repo: (repo / "docs" / "tasks" / "TASK-1.md").write_text("# edited\n")
+        )
+        assert result.returncode == 0
+        assert "uncommitted code change" not in result.stderr
+
+    def test_silent_on_clean_tree(self, tmp_path: Path) -> None:
+        result = self._run(tmp_path, lambda repo: None)
+        assert result.returncode == 0
+        assert "uncommitted code change" not in result.stderr
