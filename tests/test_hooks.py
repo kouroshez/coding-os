@@ -674,6 +674,21 @@ class TestBlockSecrets:
             "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x",
             "GIT_CONFIG_GLOBAL=/dev/null git commit -m x",
             "env GIT_CONFIG_GLOBAL=/dev/null git commit -m x",
+            # TASK-571: `;`/newline/backtick/brace separators must split like `&&` —
+            # the shipped tokenizer demoted `;` to whitespace and swallowed it, so a
+            # one-token `true;` prefix bypassed the whole gate (critical regression).
+            "true; git commit --no-verify",
+            "git status; git commit --no-verify -m x",
+            "echo hi; git commit --no-verify",
+            "true\ngit commit --no-verify",
+            "x=`git commit --no-verify`",
+            "{ git commit --no-verify; }",
+            "true; git -c core.hooksPath=/dev/null commit -m x",
+            "true; GIT_CONFIG_GLOBAL=/dev/null git commit -m x",
+            # TASK-571: GIT_CONFIG_GLOBAL/SYSTEM redirecting to a CUSTOM file (not only
+            # /dev/null) can carry a hooksPath override — block the whole class.
+            "GIT_CONFIG_GLOBAL=/tmp/x.cfg git commit -m x",
+            "GIT_CONFIG_SYSTEM=/tmp/x.cfg git commit -m x",
         ],
     )
     def test_blocks_no_verify_bypass_shapes(self, command: str) -> None:
@@ -695,6 +710,16 @@ class TestBlockSecrets:
             'git commit -m "-n is the short form for --no-verify"',
             # TASK-567: an UNRELATED GIT_CONFIG_* injection (not core.hooksPath) is fine.
             "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=user.name GIT_CONFIG_VALUE_0=x git commit -m ok",
+            # TASK-571: an ATTACHED `-m<message>` whose value contains 'n' is NOT -n —
+            # real git reads `-mnope` as -m with message "nope" (the old commit_flags
+            # added every cluster letter and false-blocked these).
+            "git commit -mnope",
+            "git commit -mnow-fixing-things",
+            # TASK-571: a message containing `;` and parens must not split/false-block.
+            'git commit -m "refactor; drop (legacy) path"',
+            # TASK-571: `git config --get core.hooksPath` is a READ, sets nothing.
+            "git config --get core.hooksPath",
+            "git config --list",
         ],
     )
     def test_allows_clean_commit_shapes(self, command: str) -> None:
@@ -713,6 +738,43 @@ class TestBlockDangerousCommands:
         )
         result = run_hook("block-dangerous-commands.sh", stdin=payload)
         assert result.returncode == 2
+
+    # TASK-571: git ignores flag position and resolves qualified refspecs, so the
+    # force-push-to-main guard must catch every order/qualification, not just the
+    # canonical `--force` before `main`.
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "git push origin main --force",        # flag AFTER the refspec
+            "git push origin main -f",             # short flag after refspec
+            "git push -f origin main",
+            "git push origin +main",               # refspec force
+            "git push origin +HEAD:main",
+            "git push origin +refs/heads/main",    # fully-qualified force refspec
+        ],
+    )
+    def test_blocks_force_push_main_all_orders(self, command: str) -> None:
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
+        result = run_hook(
+            "block-dangerous-commands.sh", stdin=payload, env_overrides={"COS_ALLOW_FORCE_PUSH_MAIN": "0"}
+        )
+        assert result.returncode == 2
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "git push origin main",                          # normal (non-force) trunk publish
+            "git pull --rebase origin main && git push origin main",
+            "git push --force origin feature",               # force to a non-main branch
+            "git push --force-with-lease origin agents/x",   # the safe variant on a feature branch
+        ],
+    )
+    def test_allows_non_force_or_non_main_push(self, command: str) -> None:
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
+        result = run_hook(
+            "block-dangerous-commands.sh", stdin=payload, env_overrides={"COS_ALLOW_FORCE_PUSH_MAIN": "0"}
+        )
+        assert result.returncode == 0
 
     def test_blocks_rm_rf(self) -> None:
         payload = json.dumps(

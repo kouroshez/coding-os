@@ -902,3 +902,18 @@ def test_pr_mode_blocks_history_rewrite_verbs() -> None:
     # Parity: filter-branch rewrites the shared object db even in pr-mode.
     code, _ = _run("git filter-branch --tree-filter true HEAD", workflow="pr")
     assert code == 2
+
+
+# --- TASK-571: separator-prefixed dangerous ops still block (own segmenter) ---
+
+
+def test_trunk_blocks_semicolon_prefixed_ops() -> None:
+    # branch_guard uses its own `;`-aware _split_segments; a leading non-git word +
+    # `;` must NOT hide the dangerous git command (parity with the F-class fix).
+    for cmd in (
+        "true; git checkout -b feature/foo",
+        "git status; git commit -a -m x",
+        "echo done; git reset --hard HEAD~1",
+    ):
+        code, _ = _run(cmd)
+        assert code == 2, cmd

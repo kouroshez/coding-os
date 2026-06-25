@@ -57,15 +57,24 @@ def _env_disables_hooks(env: list[str]) -> bool:
     for name, val in keys.items():
         if name.startswith("GIT_CONFIG_KEY_") and val.strip().lower() == "core.hookspath":
             return True
-    for name in _HOOKS_ENV_NULL:
-        if name in keys and keys[name].strip() in {"", "/dev/null"}:
-            return True
-    return False
+    # ANY caller-supplied GIT_CONFIG_GLOBAL/SYSTEM on a commit redirects git's config
+    # file — not only `/dev/null`: a custom file containing `[core] hooksPath=/dev/null`
+    # disables the verify hooks just as effectively (TASK-571). An agent never sets
+    # these on a real commit, so blocking the whole class is safe (no false positive).
+    return any(name in keys for name in _HOOKS_ENV_NULL)
+
+
+_CONFIG_READ_FLAGS = {
+    "--get", "--get-all", "--get-regexp", "--get-urlmatch",
+    "-l", "--list", "--name-only",
+}
 
 
 def _config_writes_hooks_path(inv: GitInvocation) -> bool:
     if inv.subcmd != "config":
         return False
+    if any(a in _CONFIG_READ_FLAGS for a in inv.args):
+        return False  # a READ (`git config --get core.hooksPath`) sets nothing
     return any(a.split("=", 1)[0].strip().lower() == "core.hookspath" for a in inv.args)
 
 

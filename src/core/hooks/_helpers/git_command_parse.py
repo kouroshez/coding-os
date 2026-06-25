@@ -204,10 +204,21 @@ def commit_flags(args: list[str]) -> tuple[set[str], list[str]]:
             i += 1
             continue
         if len(a) >= 2 and a[0] == "-" and a[1:].isalpha():
-            short.update(a[1:])
-            if a[-1] in _COMMIT_VALUE_SHORT:  # consumes the next token as its value
-                i += 2
-                continue
+            # Scan the cluster char-by-char: a value-taking flag (m/F/C/c) consumes
+            # the REST of its own cluster as an ATTACHED value, so it and the chars
+            # after it are NOT flags. `-mn` = -m with message "n" → short {'m'} (NOT
+            # {'m','n'}, which falsely read as -n/--no-verify); `-mnope` = -m "nope".
+            # `-nm` = -n -m → {'n','m'}; if the value flag is last, the value is the
+            # next token. (Old code did short.update(a[1:]) → the -mn false-positive.)
+            j = 1
+            while j < len(a):
+                c = a[j]
+                short.add(c)
+                if c in _COMMIT_VALUE_SHORT:
+                    if j == len(a) - 1:  # value flag is last → value is the next token
+                        i += 1
+                    break
+                j += 1
             i += 1
             continue
         i += 1  # positional / a value token
@@ -242,15 +253,24 @@ def _unwrap_env(tokens: list[str]) -> tuple[list[str], list[str]]:
 
 
 def resolve_command(tokens: list[str]) -> tuple[list[str], list[str]]:
-    """Strip a leading `VAR=val` prefix AND an optional `env …` wrapper, returning
-    (env_assignments, command_tokens). So `FOO=1 env BAR=2 /usr/bin/git commit`
-    resolves to command word `/usr/bin/git` with env {FOO,BAR} captured."""
-    env, rest = partition_env(tokens)
-    if rest and os.path.basename(rest[0]) == "env":
-        env2, rest = _unwrap_env(rest)
-        env = env + env2
-        env3, rest = partition_env(rest)  # assignments after the env wrapper word
-        env = env + env3
+    """Strip a leading `VAR=val` prefix, a `{ …; }` brace-group opener, AND an
+    `env …` wrapper (in any order), returning (env_assignments, command_tokens).
+    So `{ FOO=1 env BAR=2 /usr/bin/git commit ...` resolves to command word
+    `/usr/bin/git` with env {FOO,BAR} captured. The brace strip closes a grouping
+    bypass: `{ git commit --no-verify; }` would otherwise read command word `{`."""
+    env: list[str] = []
+    rest = list(tokens)
+    while True:
+        e, rest = partition_env(rest)
+        env += e
+        if rest and rest[0] == "{":  # brace-group / command-list opener
+            rest = rest[1:]
+            continue
+        if rest and os.path.basename(rest[0]) == "env":
+            e2, rest = _unwrap_env(rest)
+            env += e2
+            continue
+        break
     return env, rest
 
 
@@ -265,14 +285,17 @@ def _is_operator(tok: str) -> bool:
 
 
 def _punct_tokens(command: str) -> list[str] | None:
-    """Quote-AWARE tokenization: splits on the shell operators `();<>|&` and on
-    `;`/whitespace while keeping quoted content (a commit message that contains
-    `(`, `;`, `|`) intact. None on unbalanced quotes. The crude `[;|()&]` regex
-    splitter corrupted `git commit -m "fix(hooks): x"` into `…-m "fix` because it
-    split INSIDE the quoted message; this does not."""
+    """Quote-AWARE tokenization: shlex(punctuation_chars=True) emits the shell
+    operators `();<>|&` — which ALREADY INCLUDES `;` — as standalone tokens while
+    keeping quoted content (a commit message containing `(`, `;`, `|`) intact.
+    None on unbalanced quotes.
+
+    DO NOT add `;` to lex.whitespace: `;` is already a punctuation operator, and
+    demoting it to whitespace makes shlex DROP it, so `foo; git commit --no-verify`
+    merges into ONE group whose first word is `foo` and the git command is never
+    seen — a critical verify-hook bypass (TASK-571; the regression this fixes)."""
     lex = shlex.shlex(command, posix=True, punctuation_chars=True)
     lex.whitespace_split = True
-    lex.whitespace = lex.whitespace + ";"
     try:
         return list(lex)
     except ValueError:
@@ -297,11 +320,16 @@ def command_groups(command: str, _depth: int = 0) -> list[list[str]]:
             cur.append(t)
     if cur:
         groups.append(cur)
-    if _depth < 8:  # descend into `sh -c <inner>` subshells, bounded
+    if _depth < 8:  # descend into nested commands, bounded
         for g in groups:
             g2 = strip_env_vars(g)
             if len(g2) >= 3 and g2[0] in _NESTED_SHELLS and g2[1] == "-c":
                 groups = groups + command_groups(g2[2], _depth + 1)
+        # Backtick substitution `cmd` EXECUTES cmd (unquoted / inside "…"); shlex
+        # leaves it glued (`echo \`git commit\`` → ['echo','`git','commit`']), so a
+        # `\`git commit --no-verify\`` would slip. Extract + recurse like sh -c.
+        for m in _BACKTICK_RE.finditer(command):
+            groups = groups + command_groups(m.group(1), _depth + 1)
     return groups
 
 

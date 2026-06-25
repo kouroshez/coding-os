@@ -43,18 +43,21 @@ if [[ "${COS_ALLOW_FORCE_PUSH_MAIN:-0}" == "1" ]]; then
   _FORCE_PUSH_OPT_IN=1
 fi
 if [[ "$_FORCE_PUSH_OPT_IN" != "1" ]]; then
-  if echo "$COMMAND" | grep -qE 'git push.*--force.*(main|master)'; then
+  # Force-push to main/master. git IGNORES flag position, so detect the push, the
+  # force flag, and the main/master target INDEPENDENTLY — the old `--force.*main`
+  # regex missed `git push origin main --force` / `... main -f` (flag AFTER refspec,
+  # TASK-571). `--force-with-lease` is the safe variant (and the pr-mode submit path)
+  # so the boundary `--force([space]|$)` deliberately excludes it.
+  if echo "$COMMAND" | grep -qE '(^|[[:space:];&|])git[[:space:]]+push' \
+     && echo "$COMMAND" | grep -qE '(--force([[:space:]]|$)|(^|[[:space:]])-f([[:space:]]|$))' \
+     && echo "$COMMAND" | grep -qE '(^|[[:space:]/+:])(main|master)([[:space:]]|$)'; then
     cos_log_hook block-dangerous-commands block "rule=force-push-main"
     echo "BLOCKED: Force push to main/master is extremely dangerous and can destroy shared history. Use a feature branch instead. (Override: export COS_ALLOW_FORCE_PUSH_MAIN=1 session-wide; an inline prefix is rejected.)" >&2
     exit 2
   fi
-  if echo "$COMMAND" | grep -qE 'git push.*-f.*(main|master)'; then
-    cos_log_hook block-dangerous-commands block "rule=force-push-main-short"
-    echo "BLOCKED: Force push to main/master is extremely dangerous. Use a feature branch instead. (Override: export COS_ALLOW_FORCE_PUSH_MAIN=1 session-wide; an inline prefix is rejected.)" >&2
-    exit 2
-  fi
-  # Refspec force: `git push origin +main` / `+HEAD:main` rewrites history too.
-  if echo "$COMMAND" | grep -qE 'git push[^|;&]*[[:space:]]\+([^[:space:]]*:)?(main|master)\b'; then
+  # Force via refspec: `+main` / `+HEAD:main` / `+refs/heads/main` (any qualifier —
+  # the old regex needed a colon, so the fully-qualified `+refs/heads/main` slipped).
+  if echo "$COMMAND" | grep -qE '(^|[[:space:];&|])git[[:space:]]+push[^|;&]*[[:space:]]\+[^[:space:]]*(main|master)\b'; then
     cos_log_hook block-dangerous-commands block "rule=force-push-main-refspec"
     echo "BLOCKED: force-push refspec (+main/+master) rewrites shared history. Use a feature branch instead. (Override: export COS_ALLOW_FORCE_PUSH_MAIN=1 session-wide; an inline prefix is rejected.)" >&2
     exit 2
