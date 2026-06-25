@@ -649,6 +649,39 @@ class TestBlockSecrets:
         result = run_hook("block-secrets.sh", stdin=payload)
         assert result.returncode == 0
 
+    # TASK-563: the anchored `^git commit … --no-verify` regex missed every shape
+    # below; each must now BLOCK without breaking a clean `git commit`.
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "git commit -n -m x",                       # -n short flag
+            "git commit -nm x",                         # bundled -n -m
+            "/usr/bin/git commit --no-verify",          # leading absolute path
+            "cd d && git commit --no-verify",           # cd … && prefix
+            "env GIT_X=1 git commit --no-verify",       # env-assignment prefix
+            "git -c core.hooksPath=/dev/null commit",   # hooks-disabling config
+            "git config core.hooksPath /dev/null",      # persistent hooks disable
+        ],
+    )
+    def test_blocks_no_verify_bypass_shapes(self, command: str) -> None:
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
+        result = run_hook("block-secrets.sh", stdin=payload)
+        assert result.returncode == 2
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "git commit -m x",                          # clean commit
+            "git commit --amend",                       # n-letters but no -n
+            'git commit -am "msg"',                     # -a -m bundle, no n
+            "git commit -m x && echo --no-verify",      # flag in an UNRELATED segment
+        ],
+    )
+    def test_allows_clean_commit_shapes(self, command: str) -> None:
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
+        result = run_hook("block-secrets.sh", stdin=payload)
+        assert result.returncode == 0
+
 
 class TestBlockDangerousCommands:
     def test_blocks_force_push_main(self) -> None:

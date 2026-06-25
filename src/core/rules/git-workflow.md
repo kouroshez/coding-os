@@ -78,7 +78,7 @@ Tables, file-path lists, and `Verification:`/`Tests:`/`Files:` headers hit the 3
 
 ### `--no-verify` is blocked for agents (no escape hatch)
 
-`block-secrets.sh` (PreToolUse Bash) BLOCKS any `git commit --no-verify`. The git-level `commit-msg` / `pre-commit` hooks still honor `--no-verify` for a **human** in a genuine emergency, but that path is unavailable to the agent. Under heavy concurrent-session load, split into per-directory commits rather than bypassing hooks.
+`block-secrets.sh` (PreToolUse Bash) BLOCKS any agent attempt to skip the git verify hooks — `git commit --no-verify` **and** the `-n` short form, a leading path / `cd …` / `env …` prefix (`/usr/bin/git commit --no-verify`, `cd d && git commit --no-verify`), and a `core.hooksPath` override (`git -c core.hooksPath=/dev/null commit`). The git-level `commit-msg` / `pre-commit` hooks still honor `--no-verify` for a **human** in a genuine emergency, but that path is unavailable to the agent. Under heavy concurrent-session load, split into per-directory commits rather than bypassing hooks.
 
 **Install (per repo, once):** `bash src/scripts/install-git-hooks.sh` installs `.git/hooks/pre-commit` + `commit-msg`.
 
