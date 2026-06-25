@@ -127,6 +127,17 @@ def _write_consult_marker(name: str, payload: dict[str, Any]) -> None:
         logger.debug("graph consult marker failed: %s", exc)
 
 
+def _file_freshness(backend_obj: GraphBackend, file_path: str | None) -> dict[str, Any] | None:
+    if not file_path:
+        return None
+    disk = _file_disk_hash(file_path)
+    file_node = backend_obj.get_node(f"code:file:{file_path}")
+    indexed = file_node.content_hash if file_node else None
+    if disk is None or indexed is None:
+        return None
+    return {"stale": disk != indexed, "disk_hash": disk, "indexed_hash": indexed}
+
+
 def _mark_file_consulted(
     backend_obj: GraphBackend, file_path: str | None, *, tool: str
 ) -> dict[str, Any] | None:
@@ -1546,6 +1557,20 @@ def cos_graph_impact(
             bucket = "context"
         tiers[bucket].append(_edge_to_dict(edge))
 
+    impact_meta: dict[str, Any] = {
+        "backend": be.backend_id,
+        "depth": depth,
+        "confidence_min": confidence_min,
+        "visit_limit": visit_limit,
+        "walk_truncated": truncated,
+        "semantic_scope": "transitive_depth_" + str(depth),
+        "expanded_from_file": expanded_from_file,
+        "resolved_from": resolved_from,
+    }
+    fresh = _file_freshness(be, root.file_path)
+    if fresh is not None:
+        impact_meta["stale"] = fresh["stale"]
+        impact_meta["freshness"] = fresh
     return _ok(
         {
             "root": NodeSummary.from_node(root).to_dict(),
@@ -1553,16 +1578,7 @@ def cos_graph_impact(
             "tiers": tiers,
             "impacted_count": max(0, len(nodes) - 1),
         },
-        meta={
-            "backend": be.backend_id,
-            "depth": depth,
-            "confidence_min": confidence_min,
-            "visit_limit": visit_limit,
-            "walk_truncated": truncated,
-            "semantic_scope": "transitive_depth_" + str(depth),
-            "expanded_from_file": expanded_from_file,
-            "resolved_from": resolved_from,
-        },
+        meta=impact_meta,
     )
 
 
@@ -2298,6 +2314,20 @@ def cos_graph_references(
     total = _count_edges_for(be, target_uid=canonical_uid, edge_types=parsed_kinds)
     truncated = total > len(edges)
 
+    references_meta: dict[str, Any] = {
+        "backend": be.backend_id,
+        "kinds": list(parsed_kinds),
+        "limit": limit,
+        "limit_clamped": limit_clamped,
+        "result_truncated": truncated,
+        "resolved_from": resolved_from,
+        "default_kinds_picked": defaults_were_picked,
+        "node_kind": node.kind,
+    }
+    fresh = _file_freshness(be, node.file_path)
+    if fresh is not None:
+        references_meta["stale"] = fresh["stale"]
+        references_meta["freshness"] = fresh
     return _ok(
         {
             "node": NodeSummary.from_node(node).to_dict(),
@@ -2305,16 +2335,7 @@ def cos_graph_references(
             "count": len(edges),
             "total_count": total,
         },
-        meta={
-            "backend": be.backend_id,
-            "kinds": list(parsed_kinds),
-            "limit": limit,
-            "limit_clamped": limit_clamped,
-            "result_truncated": truncated,
-            "resolved_from": resolved_from,
-            "default_kinds_picked": defaults_were_picked,
-            "node_kind": node.kind,
-        },
+        meta=references_meta,
     )
 
 
@@ -4316,6 +4337,12 @@ def cos_graph_dead_code(
         if (fp or "").endswith(".sh"):
             continue
         if not include_tests and _is_test_path(fp or ""):
+            continue
+        # Exception classes are caught / raised dynamically (`except FooError`,
+        # `raise cls()`, registry lookup) — an AST "zero inbound edges" reading
+        # is a false positive. PEP8 names them *Error/*Exception/*Warning; skip
+        # rather than nag a delete that would break the handlers that catch them.
+        if nkind in ("class", "code:class") and lab.endswith(("Error", "Exception", "Warning")):
             continue
         dead.append({"uid": uid, "kind": nkind, "label": lab, "file_path": fp})
 

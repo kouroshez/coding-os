@@ -103,7 +103,7 @@ def graph_impact(
     uid: str,
     direction: str = Query("downstream"),
     depth: int = Query(3),
-    confidence_min: float = Query(0.5),
+    confidence_min: float = Query(0.3),
     visit_limit: int = Query(500, ge=1, le=50_000),
     _rl=Depends(make_rate_limit_dep("graph.impact")),
     _m=Depends(make_metrics_dep("graph.impact")),

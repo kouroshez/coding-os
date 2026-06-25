@@ -276,6 +276,54 @@ class TestConsultMarker:
         assert json.loads(marker.read_text(encoding="utf-8"))["identifier"] == "foo"
 
 
+class TestClusterThreeUsability:
+    """Graph-tool usability fixes: dead_code FP, impact visit_limit + freshness."""
+
+    def test_dead_code_skips_exception_classes(self, seeded_backend):
+        seeded_backend.bulk_upsert(
+            [
+                GraphNode(
+                    uid="code:class:err.py::WidgetError",
+                    kind="code:class",
+                    label="WidgetError",
+                    file_path="err.py",
+                )
+            ],
+            [],
+        )
+        data = _assert_ok(graph.cos_graph_dead_code(kind="class"))
+        labels = {d["label"] for d in data["dead"]}
+        assert "WidgetError" not in labels, "exception classes must not be flagged dead (FP)"
+
+    def test_impact_accepts_visit_limit(self, seeded_backend):
+        data = _assert_ok(graph.cos_graph_impact("code:function:a.py::foo", visit_limit=10))
+        assert data["meta"]["visit_limit"] == 10
+
+    def test_impact_surfaces_freshness(self, seeded_backend, monkeypatch, tmp_path):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "t.py").write_text("value = 1\n", encoding="utf-8")
+        seeded_backend.bulk_upsert(
+            [
+                GraphNode(
+                    uid="code:file:t.py",
+                    kind="code:file",
+                    label="t.py",
+                    file_path="t.py",
+                    content_hash="0000000000000000",
+                ),
+                GraphNode(
+                    uid="code:function:t.py::g",
+                    kind="code:function",
+                    label="g",
+                    file_path="t.py",
+                ),
+            ],
+            [],
+        )
+        data = _assert_ok(graph.cos_graph_impact("code:function:t.py::g"))
+        assert data["meta"]["stale"] is True
+
+
 class TestContext:
     def test_happy_path(self, seeded_backend):
         data = _assert_ok(graph.cos_graph_context("code:function:a.py::foo"))

@@ -2402,7 +2402,8 @@ if _GRAPH_TOOLS_AVAILABLE:
         uid: str,
         direction: str = "downstream",
         depth: int = 3,
-        confidence_min: float = 0.5,
+        confidence_min: float = 0.3,
+        visit_limit: int = 500,
     ) -> str:
         """Group affected nodes by risk tier (will_break / should_review / context).
 
@@ -2416,13 +2417,15 @@ if _GRAPH_TOOLS_AVAILABLE:
             direction: "downstream" (callers — break if `uid` changes) |
                 "upstream" (deps `uid` calls/imports) | "both".
             depth: BFS hop limit (default 3).
-            confidence_min: Drop edges below this score (default 0.5).
+            confidence_min: Drop edges below this score (default 0.3, matching the function + HTTP route).
+            visit_limit: BFS node-visit cap (1..50000, default 500). Raise when meta.walk_truncated is true.
         """
         return _graph_tools.cos_graph_impact(
             uid,
             direction=str(direction),
             depth=int(depth),
             confidence_min=float(confidence_min),
+            visit_limit=int(visit_limit),
         )
 
     @mcp.tool(

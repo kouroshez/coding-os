@@ -298,7 +298,14 @@ def _trim_list_key(body: dict, meta: dict, key: str) -> tuple[dict, dict, bool]:
     if best_keep < original_n:
         meta[f"truncated_{key}_from"] = original_n
         meta[f"truncated_{key}_to"] = best_keep
+        # N5: a sibling `count` that mirrored the pre-trim list length would now
+        # lie (count=100 while the array holds 60). Reconcile it through every
+        # shrink step — but ONLY when it provably tracked THIS list (== original
+        # length), never a count describing a different key.
+        count_tracks_key = body.get("count") == original_n
         body = {**body, key: items[:best_keep]}
+        if count_tracks_key:
+            body["count"] = best_keep
         # The binary search probed fit with `meta` BEFORE these two marker
         # keys existed; committing them grows the envelope by ~50 bytes and
         # can push a borderline best_keep back over budget. Re-check the
@@ -309,6 +316,8 @@ def _trim_list_key(body: dict, meta: dict, key: str) -> tuple[dict, dict, bool]:
             best_keep -= 1
             meta[f"truncated_{key}_to"] = best_keep
             body = {**body, key: items[:best_keep]}
+            if count_tracks_key:
+                body["count"] = best_keep
     return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
 
 

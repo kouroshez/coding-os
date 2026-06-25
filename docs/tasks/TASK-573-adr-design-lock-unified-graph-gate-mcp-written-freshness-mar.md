@@ -31,3 +31,4 @@ references: []
 - 2026-06-25 [claude]: Wrote ADR-0014 (unified graph-gate): marker contract MCP-written + freshness + GC, one event-keyed hook, data-driven…
 - 2026-06-25 [claude]: committed eb47932c · 2 files
 - 2026-06-25 [claude]: committed 8f326786 · 8 files
+- 2026-06-25 [claude]: committed 50bca959 · 28 files
