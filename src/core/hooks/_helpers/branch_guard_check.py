@@ -169,7 +169,7 @@ def _check_update_ref(args: list[str]) -> tuple[str | None, str | None]:
     # it (BG-2). Block writes/deletes of the integration/protected line OR HEAD
     # (a direct HEAD move is an unguarded reset). Reuse pr-mode's blocker — it
     # fails closed on --stdin — and add the HEAD guard on top.
-    positionals = [a for a in args if not a.startswith("-")]
+    positionals = _update_ref_positionals(args)
     if positionals and _unqualify_ref(positionals[0]) == "HEAD":
         return "protected-ref-rewrite", _MSG["protected-ref-rewrite"]
     if _pr_update_ref_blocks(args, _trunk_protected_refs()):
@@ -540,27 +540,58 @@ def _worktree_add_branch(args: list[str]) -> str:
     return ""
 
 
+def _update_ref_positionals(args: list[str]) -> list[str]:
+    # Ref operands of `git update-ref`, dropping `-m <reason>`'s value (a reflog
+    # message, not a ref) so `update-ref -m main refs/heads/feature …` reads the
+    # ref operand, not the message (review finding B/D).
+    out: list[str] = []
+    skip = False
+    for a in args:
+        if skip:
+            skip = False
+            continue
+        if a in {"-m", "--reflog-message"}:
+            skip = True
+            continue
+        if not a.startswith("-"):
+            out.append(a)
+    return out
+
+
+def _is_branch_filter_flag(arg: str) -> bool:
+    # `git branch` selectors whose ref/pattern operand is a FILTER, not a ref to
+    # write — present ⇒ a read-only list query, so a protected ref named as the
+    # filter must NOT block (review finding C: `branch --contains/--merged main`).
+    return arg.split("=", 1)[0] in {
+        "--contains", "--no-contains", "--merged", "--no-merged",
+        "--points-at", "--list",
+    }
+
+
 def _pr_branch_blocks(args: list[str], blocked: set[str]) -> bool:
     # Worktree scope is irrelevant — branch refs are shared across worktrees via
     # the common dir, so a blocked target trips even from a worktree (agents/*
     # create + `-D agents/...` cleanup still pass: only a blocked target trips).
-    destructive = any(
-        a in {"-d", "-D", "--delete", "-m", "-M", "--move", "-c", "-C", "--copy"}
-        for a in args
-    )
+    if any(_is_branch_filter_flag(a) for a in args):
+        return False  # read-only list/filter form — the ref operand is a filter
     positionals = [a for a in args if not a.startswith("-")]
     if not positionals:
         return False
-    if destructive:  # delete/rename/copy → any named blocked branch is at risk
+    # Copy `-c/-C` writes only the TARGET (last positional); its source ref is
+    # read, not modified — `branch -c main backup` must not trip on `main`.
+    if any(a in {"-c", "-C", "--copy"} for a in args):
+        return _unqualify_ref(positionals[-1]) in blocked
+    # Delete `-d/-D` and rename `-m/-M` put EVERY named ref at risk.
+    if any(a in {"-d", "-D", "--delete", "-m", "-M", "--move"} for a in args):
         return any(_unqualify_ref(p) in blocked for p in positionals)
-    # force-move/create: only the written ref (first positional) matters
+    # Plain / force create-or-move: only the written ref (first positional).
     return _unqualify_ref(positionals[0]) in blocked
 
 
 def _pr_update_ref_blocks(args: list[str], blocked: set[str]) -> bool:
     if "--stdin" in args:  # feeds ref commands we can't inspect → fail closed
         return True
-    positionals = [a for a in args if not a.startswith("-")]
+    positionals = _update_ref_positionals(args)
     return bool(positionals) and _unqualify_ref(positionals[0]) in blocked
 
 

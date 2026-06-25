@@ -829,6 +829,7 @@ def pr_cleanup(
     if task_slug is None:
         raise click.ClickException("cos pr cleanup needs --task <id> or --adhoc.")
     wt, branch = _resolve_worktree(repo, task_slug, session)
+    _preserved_bundle: str | None = None  # set when a drifted/peer dirty tree is bundled
 
     # Merge-gate (TASK-530): only destroy the worktree+branch once work has landed
     # (merged/closed) or is fully on origin; --force is the human override.
@@ -873,22 +874,22 @@ def pr_cleanup(
                 as_json,
             )
             sys.exit(1)
-        # The live-peer gate fires only on PROVABLE liveness and the merge-gate
-        # protects only COMMITTED work, so a drifted/peer worktree with an
-        # UNCOMMITTED tree would still be force-removed — and session state cannot
-        # tell that case apart from a legitimate drifted-self cleanup. Mirror the
-        # reaper (_reap_one): bundle the dirty tree first, and keep the worktree if
-        # that fails rather than destroy the only copy. Own-worktree needs none of
-        # this — no peer's work is at stake.
+        # A drifted/peer worktree with UNCOMMITTED work would still be force-removed
+        # here (the live-peer gate needs provable liveness, the merge-gate guards
+        # only committed work), so bundle it first like the reaper. A FAILED status
+        # is treated as "maybe dirty" so a transient git error can't read as clean
+        # and wipe peer work (review finding F).
         owner_drifted = owner_session != session
-        if owner_drifted and _git_out(["status", "--porcelain"], cwd=wt):
-            if _preserve_reaped(repo, wt, branch) is None:
+        _status = _git(["status", "--porcelain"], cwd=wt)
+        if owner_drifted and (_status.returncode != 0 or _status.stdout.strip()):
+            _preserved_bundle = _preserve_reaped(repo, wt, branch)
+            if _preserved_bundle is None:
                 _emit(
                     {
                         "removed": False,
                         "branch": branch,
                         "owner_session": owner_session,
-                        "action": "drifted/peer worktree has uncommitted work and preservation failed — not removing; recover it manually, or re-run with --force",
+                        "action": "drifted/peer worktree has uncommitted work and preservation failed — not removing; recover it manually. Re-running with --force DISCARDS this uncommitted work.",
                     },
                     as_json,
                 )
@@ -905,6 +906,7 @@ def pr_cleanup(
             "branch_deleted": deleted_branch,
             "worktree": str(wt),
             "forced": force,
+            "preserved_bundle": _preserved_bundle,
         },
         as_json,
     )

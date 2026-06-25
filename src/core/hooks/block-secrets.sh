@@ -20,7 +20,7 @@ INPUT="$(cos_read_stdin_bounded 2)"
 # realistic casings (the deep grep below is case-insensitive). Write/Edit
 # payloads always carry "new_string"/"content", so they never match here.
 case "$INPUT" in
-  *"git add"*|*"git commit"*|*hooksPath*|*hookspath*|*new_string*|*'"content"'*) ;;
+  *"git add"*|*git*commit*|*hooksPath*|*hookspath*|*new_string*|*'"content"'*) ;;
   *) exit 0 ;;
 esac
 
@@ -45,27 +45,23 @@ if [[ "$TOOL" == "Bash" ]]; then
     exit 2
   fi
 
-  # Block any git-commit that skips the verify hooks, plus hook-disabling config.
-  # Strip quoted values first so a flag named inside a -m message is not a false
-  # match. Then test PER shell-segment (split on ; & |) so a leading path
-  # (/usr/bin/git), a `cd …`/`env …` prefix, or the `-n` short form is caught
-  # without attributing one segment's flag to another command. The anchored
-  # `^git commit … --no-verify` regex missed all of these (TASK-563). Blocking is
-  # fail-safe; the one thing we must not break is a clean `git commit`.
+  # Block any git-commit that skips verify hooks — tested per shell-segment so a
+  # path/cd/env prefix or the `-n` short form can't slip past (the old anchored
+  # `^git commit … --no-verify` missed them, TASK-563). Fail-safe; clean commits pass.
   COMMAND_NOQUOTES=$(printf '%s' "$COMMAND" | sed -E "s/\"[^\"]*\"//g; s/'[^']*'//g")
   _skip_verify=0
   while IFS= read -r _seg; do
-    echo "$_seg" | grep -qE '(^|[[:space:]])([^[:space:]]*/)?git([[:space:]]+-[^[:space:]]+)*[[:space:]]+commit([[:space:]]|$)' || continue
+    echo "$_seg" | grep -qE '(^|[[:space:]])([^[:space:]]*/)?git([[:space:]]+[^[:space:]]+)*[[:space:]]+commit([[:space:]]|$)' || continue
     if echo "$_seg" | grep -qE -- '--no-verify' \
        || echo "$_seg" | grep -qE '[[:space:]]-[a-zA-Z]*n[a-zA-Z]*([[:space:]]|$)'; then
       _skip_verify=1
       break
     fi
   done <<< "$(printf '%s' "$COMMAND_NOQUOTES" | tr ';&|' '\n')"
-  # `git -c core.hooksPath=…` (or `git config core.hooksPath …`) disables hooks
-  # for the whole invocation, so it skips verification without `--no-verify`.
+  # core.hooksPath disables hooks; block only an ASSIGNMENT (`-c core.hooksPath=`)
+  # or a `git config` write — so a read like `git log --grep core.hooksPath` passes.
   if [[ "$_skip_verify" == 1 ]] \
-     || printf '%s' "$COMMAND_NOQUOTES" | grep -qiE '(^|[[:space:]])([^[:space:]]*/)?git[[:space:]][^;&|]*core\.hookspath'; then
+     || printf '%s' "$COMMAND_NOQUOTES" | grep -qiE '(^|[[:space:]])([^[:space:]]*/)?git[[:space:]][^;&|]*(core\.hookspath[[:space:]]*=|config[[:space:]][^;&|]*core\.hookspath)'; then
     cos_log_hook block-secrets block "tool=Bash rule=no-verify"
     echo "BLOCKED: skipping git verify hooks (--no-verify / -n / core.hooksPath). Fix the underlying issue, don't bypass." >&2
     exit 2

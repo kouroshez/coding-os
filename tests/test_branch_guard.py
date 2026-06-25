@@ -788,3 +788,65 @@ def test_trunk_allows_branch_rename_feature() -> None:
 def test_trunk_allows_update_ref_non_protected() -> None:
     code, _ = _run("git update-ref refs/heads/feature-x HEAD")
     assert code == 0
+
+
+# --- TASK-565: code-review regressions — the ref/filter parser must not block
+#     read-only branch list forms or be fooled by `update-ref -m <reason>`. -------
+def test_trunk_allows_branch_filter_forms() -> None:
+    # `git branch --contains/--merged/--points-at main` are read-only LIST queries
+    # naming main as a FILTER, not a ref being written — must NOT block.
+    for cmd in (
+        "git branch --contains main",
+        "git branch --merged main",
+        "git branch --no-merged main",
+        "git branch --points-at main",
+        "git branch --list main",
+        "git branch -a --contains main",
+    ):
+        code, _ = _run(cmd)
+        assert code == 0, cmd
+
+
+def test_trunk_allows_branch_copy_from_protected() -> None:
+    # `git branch -c main backup` copies FROM main (source untouched) → allow.
+    code, _ = _run("git branch -c main backup")
+    assert code == 0
+
+
+def test_trunk_blocks_branch_copy_onto_protected() -> None:
+    # Copying ONTO main writes the protected ref → block.
+    code, _ = _run("git branch -c feature main")
+    assert code == 2
+
+
+def test_trunk_blocks_force_with_verbose_flag() -> None:
+    # `-v` must not mask a force-write of main (the filter-flag guard is narrow).
+    code, _ = _run("git branch -v -f main HEAD~1")
+    assert code == 2
+
+
+def test_trunk_blocks_update_ref_reflog_message_main() -> None:
+    # `-m <reason>` is a reflog message; the REF operand (main) still must block.
+    code, _ = _run("git update-ref -m wip refs/heads/main HEAD~1")
+    assert code == 2
+
+
+def test_trunk_allows_update_ref_reflog_message_feature() -> None:
+    # The reflog message 'HEAD'/'main' must not be misread as the ref operand.
+    for cmd in (
+        "git update-ref -m HEAD refs/heads/feature abc123",
+        "git update-ref -m main refs/heads/feature abc123",
+    ):
+        code, _ = _run(cmd)
+        assert code == 0, cmd
+
+
+def test_pr_mode_allows_branch_filter_forms() -> None:
+    # The shared _pr_branch_blocks fix benefits pr-mode too.
+    code, _ = _run("git branch --contains main", workflow="pr")
+    assert code == 0
+
+
+def test_pr_mode_blocks_update_ref_reflog_message_integration() -> None:
+    code, _ = _run("git update-ref -m wip refs/heads/main HEAD~1", workflow="pr")
+    assert code == 2

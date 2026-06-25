@@ -661,6 +661,9 @@ class TestBlockSecrets:
             "env GIT_X=1 git commit --no-verify",       # env-assignment prefix
             "git -c core.hooksPath=/dev/null commit",   # hooks-disabling config
             "git config core.hooksPath /dev/null",      # persistent hooks disable
+            "git -c foo=bar commit -n",                 # -c <kv> global before commit (TASK-565)
+            "git -c a.b=c commit --no-verify",          # value-taking global splits git…commit
+            "git  commit -n -m x",                      # double space (non-contiguous git commit)
         ],
     )
     def test_blocks_no_verify_bypass_shapes(self, command: str) -> None:
@@ -675,6 +678,9 @@ class TestBlockSecrets:
             "git commit --amend",                       # n-letters but no -n
             'git commit -am "msg"',                     # -a -m bundle, no n
             "git commit -m x && echo --no-verify",      # flag in an UNRELATED segment
+            "git -c foo=bar commit -m x",               # clean commit WITH a -c global (TASK-565)
+            "git log --grep core.hooksPath",            # read-only git mentioning the token
+            "git commit-graph write",                   # 'commit' substring, not a commit
         ],
     )
     def test_allows_clean_commit_shapes(self, command: str) -> None:

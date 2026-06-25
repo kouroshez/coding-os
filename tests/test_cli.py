@@ -3539,6 +3539,17 @@ class TestCosPr:
         assert res.exit_code == 0, res.output  # recoverable + preserved → still cleans up
         bundles = list((tmp_path / "reaped").rglob("*.bundle"))
         assert bundles, "uncommitted work must be bundled before the worktree is destroyed"
+        # D2: the bundle tip must actually CONTAIN the preserved file, not just the old
+        # branch tip — a bundle that captured nothing would still exist (TASK-565 / L).
+        head_sha = subprocess.run(
+            ["git", "-C", str(repo), "bundle", "list-heads", str(bundles[0])],
+            capture_output=True, text=True, check=True,
+        ).stdout.split()[0]
+        tree = subprocess.run(
+            ["git", "-C", str(repo), "ls-tree", "-r", "--name-only", head_sha],
+            capture_output=True, text=True, check=True,
+        ).stdout
+        assert "uncommitted.txt" in tree, f"bundle tip missing the preserved file; tree={tree!r}"
 
     def test_cleanup_keeps_worktree_when_drift_preservation_fails(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
