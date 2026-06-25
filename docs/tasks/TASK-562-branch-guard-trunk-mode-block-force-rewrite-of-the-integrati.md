@@ -4,19 +4,18 @@ title: "branch-guard trunk mode: block force-rewrite of the integration ref (bra
 swimlane: core
 kind: bug
 epic: null
-labels: [branch-guard, hooks, audit-2026-06-24, safety-hook-edit]
-status: icebox
+labels: [branch-guard, hooks, audit-2026-06-24, safety-hook-edit, ready]
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-24
-started: null
-completed: null
-agent_session: null
+started: 2026-06-24
+completed: 2026-06-24
+agent_session: ses-claude-20260624-182639-f22b
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-562: branch-guard trunk mode: block force-rewrite of the integration ref (branch -f/-M/-c, update-ref) — parity with pr-mode
 
 **Outcome (one sentence):** In trunk mode, branch_guard_check.py blocks the create-or-force-write forms of `git branch` (-f/-M/-C/-c targeting the integration/main ref) and gains an `update-ref` checker blocking writes/deletes of refs/heads/<integration> and HEAD, reusing the pr-mode _pr_branch_blocks / _pr_update_ref_blocks logic — closing the inversion where pr-mode is STRICTLY stronger than trunk on ref rewrite. merge/cherry-pick stay ALLOWED in trunk (intentional, byte-identical-trunk contract: test_trunk_merge_unchanged / TASK-528). git-workflow.md updated to list the newly-blocked forms.
@@ -35,3 +34,11 @@ Audit BG-1/BG-2 (CONFIRMED via probe): COS_GIT_WORKFLOW=trunk `git branch -f mai
 - **Then** new trunk regression tests mirror the pr cases and `make verify-hooks` passes
 
 ## Work Log
+- 2026-06-25 [claude]: Edit branch_guard_check.py
+- 2026-06-25 [claude]: Edit branch_guard_check.py
+- 2026-06-25 [claude]: Edit branch_guard_check.py
+- 2026-06-25 [claude]: Edit branch_guard_check.py
+- 2026-06-25 [claude]: Edit test_branch_guard.py
+- 2026-06-25 [claude]: Edit git-workflow.md
+- 2026-06-25 [claude]: Edit git-workflow.md
+- 2026-06-25 [claude]: Reused pr-mode's tested _pr_branch_blocks/_pr_update_ref_blocks for trunk instead of writing new ref-parsing logic…
