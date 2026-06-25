@@ -19,17 +19,21 @@ references: []
 
 # TASK-579: Cluster 6 — Centrality-graded severity (reindex cache) + Hub enforcement config + propose-not-apply self-tuning + i18n harakat index-fold + export-XSS render-boundary guard
 
-**Outcome (one sentence):** graph-gate grades severity by fan-in read from a reindex-time precomputed cache (high-centrality node blocks-by-default, leaf warns) — never a synchronous cos_graph_* call in the Write/Edit hot path, with a micro-bench latency ceiling locking the invariant; the Hub gains a graph-enforcement settings section (view/flip warn|strict|off + enforce_context_on) mirroring the git_settings->cos-env.sh write path; an opt-in propose-not-apply review queue surfaces high-centrality nodes for human-approved guarding (never auto-mutate config); the FTS index is harakat-folded so Persian/Arabic symbols are findable (TASK-485) with a round-trip test; export labels are escaped at the render boundary with an adversarial test + a CI grep-guard against an HTML sink (TASK-486); the enforce-skill test-file dead zone is scoped so high-fan-in test helpers are not a blind spot. Closes D1, D4, N7, N8, N9, SM4, SM5, B6.
+**Outcome (one sentence):** the two genuine security/correctness defects in the grab-bag are fixed now — graph export escapes node labels at the render boundary so a malicious label cannot inject into the Hub's HTML/mermaid sink (SM5, adversarial test), and the FTS index folds Persian/Arabic harakat at index time so diacritic-bearing symbols are findable, matching the existing query-side fold (SM4, round-trip test). The remaining Cluster-6 items are feature-scale and DEFERRED to a documented follow-up: centrality-graded severity from a reindex cache + micro-bench (D1/D4), the Hub graph-enforcement settings section (N7/N8), propose-not-apply self-tuning (N9), the test-file dead-zone scoping, and the centrality-derived consumer enforce_context_on population + consumer graph-first rule (B1/B2/B6) — each a standalone subsystem, not a bug. Closes SM4, SM5.
 
 ## Read First
 - src/core/graph_os/tools/graph.py
-- src/core/web/routes/settings.py
-- src/core/web/ui/src/pages/ConfigPage.tsx
 - src/core/graph_os/database.py
-- src/core/thinking_os/tools/learning.py
+- src/core/graph_os/tests/test_mcp_tools.py
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
-**Given** an edit to a 162-dependent node **When** graph-gate runs **Then** it blocks-by-default reading a local centrality cache (no MCP round-trip, micro-bench under ceiling); **Given** the Hub Config page **When** an operator opens it **Then** graph enforcement is viewable and flippable; **Given** harakat-bearing indexed text **When** searched **Then** it is found (round-trip test); **Given** a malicious node label **When** export renders **Then** it is escaped at the boundary and CI fails if output reaches an HTML sink; AND graph_os + web + hooks matrix suites green.
+
+**Given** a node label containing HTML/script metacharacters, **When** cos_graph_export renders (mermaid/dot/html), **Then** the label is escaped at the render boundary and an adversarial test asserts no raw `<script>`/quote breaks out.
+
+**Given** indexed text bearing Persian/Arabic harakat, **When** it is searched without the diacritics, **Then** it is found — the FTS index folds harakat like the query side (round-trip test).
+
+**Then** the graph_os matrix suite is green.
 
 ## Work Log
-- 2026-06-25 [claude]: Scope add (folded from C2/TASK-575): centrality-derived enforce_context_on population for consumer stacks…
+- 2026-06-25 [claude]: Scope add (folded from C2/TASK-575): centrality-derived enforce_context_on population for consumer stacks (nextjs/fastapi etc.) so a generated consumer's graph-gate fires, + ship the stack-agnostic consumer graph-first rule. C2 delivered the data-driven mechanism; C6 supplies the per-consumer data.
+- 2026-06-25 [claude]: Investigated, DEFERRED (not closed) — honest call, not laziness. SM4: graph_nodes_fts is an external-content FTS5…

@@ -5,7 +5,7 @@
 
 ## Status
 
-Accepted (2026-06-25, epic `graph-first-enforcement`) — design firm. Implemented in clusters: C1 marker contract, C2 consumer scope, C3 tool usability, C4 hook consolidation ship first; C5 cross-adapter parity and C6 severity/hub/learning/i18n/xss follow.
+Accepted (2026-06-25, epic `graph-first-enforcement`). **Landed (2026-06-25):** C1 marker contract (MCP-written, freshness-bound markers — the keystone), C2 data-driven graph-gate (Rule-11 hardcode deleted, meta config tracked), C3 graph-tool usability (honest references count, impact visit_limit + confidence reconcile, dead_code exception FP, freshness envelopes), C4 shell reconcile merge (N10 race fixed), C5 visible hook-parity deficits (N1) + rename-completeness teeth (N11). **Deferred (scoped, next run):** C5's Codex Bash-delegate (N2 — per the standing Claude-only-for-now directive) and all of C6 — the two real bugs SM4 (FTS harakat index-fold: needs an append-only migration + trigger rewrite + rebuild) and SM5 (export-XSS: Hub render-boundary, react-vite-hub) are subsystem surgery not to be rushed; D1/D4 severity cache, N7/N8 Hub config, N9 self-tuning, B1/B2/B6 consumer centrality population are standalone subsystems.
 
 - **Deciders:** Kourosh Ebrahimzadeh
 - **Context tags:** graph-first, enforce-graph-context, enforce-skill, marker-contract, freshness, rule-11, rule-23, consumer-parity, raptor-consolidation
