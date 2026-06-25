@@ -97,6 +97,54 @@ def _touch_session_marker() -> None:
         logger.debug("graph-call-seen marker failed: %s", exc)
 
 
+def _file_disk_hash(file_path: str) -> str | None:
+    try:
+        content = Path(file_path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+
+
+def _graph_marker_dir() -> Path:
+    # Agent-scoped, not panel-scoped: the shared MCP server resolves
+    # COS_AGENT_DIR but never the calling tab's panel. The content_hash
+    # binding below is what makes the wider scope safe — a marker counts
+    # only while the consulted content still matches disk, whoever read it.
+    agent_dir = os.environ.get("COS_AGENT_DIR")
+    if not agent_dir:
+        state_dir = os.environ.get("COS_STATE_DIR") or ".coding-os"
+        agent = os.environ.get("COS_AGENT") or "claude"
+        agent_dir = f"{state_dir}/{agent}"
+    return Path(agent_dir) / ".graph"
+
+
+def _write_consult_marker(name: str, payload: dict[str, Any]) -> None:
+    try:
+        marker_dir = _graph_marker_dir()
+        marker_dir.mkdir(parents=True, exist_ok=True)
+        (marker_dir / name).write_text(json.dumps(payload), encoding="utf-8")
+    except OSError as exc:
+        logger.debug("graph consult marker failed: %s", exc)
+
+
+def _mark_file_consulted(
+    backend_obj: GraphBackend, file_path: str | None, *, tool: str
+) -> dict[str, Any] | None:
+    if not file_path:
+        return None
+    disk = _file_disk_hash(file_path)
+    file_node = backend_obj.get_node(f"code:file:{file_path}")
+    indexed = file_node.content_hash if file_node else None
+    key = hashlib.sha1(file_path.encode("utf-8")).hexdigest()  # noqa: S324 non-crypto path key
+    _write_consult_marker(
+        f"ctx-{key}",
+        {"file": file_path, "content_hash": disk, "indexed_hash": indexed, "tool": tool},
+    )
+    if disk is None or indexed is None:
+        return None
+    return {"stale": disk != indexed, "disk_hash": disk, "indexed_hash": indexed}
+
+
 def _fail(
     category: str,
     message: str,
@@ -1356,6 +1404,10 @@ def cos_graph_context(
         ancestors, spine_edges = _contains_ancestors(be, leaf_uid=root.uid)
         payload["spine"] = [NodeSummary.from_node(a).to_dict() for a in ancestors]
         payload["spine_edges"] = [_edge_to_dict(e) for e in spine_edges]
+    freshness = _mark_file_consulted(be, root.file_path, tool="cos_graph_context")
+    if freshness is not None:
+        extra_meta["freshness"] = freshness
+        extra_meta["stale"] = freshness["stale"]
     return _ok(
         payload,
         meta={
@@ -3011,6 +3063,16 @@ def cos_graph_rename_plan(
     )
     risk = "high" if len(call_sites) > 20 else "medium" if call_sites else "low"
 
+    if root.label:
+        _write_consult_marker(
+            f"plan-{root.label}",
+            {
+                "identifier": root.label,
+                "uid": root.uid,
+                "new_name": new_name,
+                "tool": "cos_graph_rename_plan",
+            },
+        )
     return _ok(
         {
             "old_name": root.label,

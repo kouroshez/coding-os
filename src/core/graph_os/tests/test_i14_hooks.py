@@ -89,6 +89,58 @@ class TestEnforceGraphContext:
         )
         assert result.returncode == 0
 
+    def _write_marker(self, tmp_path: Path, rel: str, content_hash: str) -> Path:
+        import hashlib
+
+        agent_dir = tmp_path / ".coding-os" / "claude"
+        marker_dir = agent_dir / ".graph"
+        marker_dir.mkdir(parents=True, exist_ok=True)
+        key = hashlib.sha1(rel.encode("utf-8")).hexdigest()
+        (marker_dir / f"ctx-{key}").write_text(
+            json.dumps({"file": rel, "content_hash": content_hash}), encoding="utf-8"
+        )
+        return agent_dir
+
+    def test_passes_with_fresh_marker(self, tmp_path):
+        # A real cos_graph_context-written marker satisfies the hook with no
+        # hand-written step — even in strict mode (the A1/A2 round trip).
+        import hashlib
+
+        self._write_config(tmp_path, ["core/x.py"])
+        (tmp_path / "core").mkdir()
+        src = tmp_path / "core" / "x.py"
+        src.write_text("print('x')\n", encoding="utf-8")
+        content_hash = hashlib.sha256(b"print('x')\n").hexdigest()[:16]
+        agent_dir = self._write_marker(tmp_path, "core/x.py", content_hash)
+        result = _run_hook(
+            "enforce-graph-context.sh",
+            stdin=json.dumps({"tool_input": {"file_path": "core/x.py"}}),
+            env={"COS_ENFORCE_GRAPH_CONTEXT": "strict", "COS_AGENT_DIR": str(agent_dir)},
+            cwd=tmp_path,
+        )
+        assert result.returncode == 0
+
+    def test_rewarns_when_marker_stale(self, tmp_path):
+        # Marker recorded for old content; file changed since → treated as no
+        # consult, hook re-fires.
+        import hashlib
+
+        self._write_config(tmp_path, ["core/x.py"])
+        (tmp_path / "core").mkdir()
+        src = tmp_path / "core" / "x.py"
+        src.write_text("original\n", encoding="utf-8")
+        stale_hash = hashlib.sha256(b"original\n").hexdigest()[:16]
+        agent_dir = self._write_marker(tmp_path, "core/x.py", stale_hash)
+        src.write_text("changed since consult\n", encoding="utf-8")
+        result = _run_hook(
+            "enforce-graph-context.sh",
+            stdin=json.dumps({"tool_input": {"file_path": "core/x.py"}}),
+            env={"COS_ENFORCE_GRAPH_CONTEXT": "strict", "COS_AGENT_DIR": str(agent_dir)},
+            cwd=tmp_path,
+        )
+        assert result.returncode == 2
+        assert "stale" in result.stderr
+
 
 class TestEnforceRenamePlan:
     def test_warn_when_rename_without_plan(self, tmp_path):
@@ -120,6 +172,20 @@ class TestEnforceRenamePlan:
             cwd=tmp_path,
         )
         assert result.returncode == 2
+
+    def test_passes_with_plan_marker(self, tmp_path):
+        # The plan-<old> marker cos_graph_rename_plan writes satisfies the hook.
+        agent_dir = tmp_path / ".coding-os" / "claude"
+        marker_dir = agent_dir / ".graph"
+        marker_dir.mkdir(parents=True)
+        (marker_dir / "plan-foo").write_text("{}", encoding="utf-8")
+        result = _run_hook(
+            "enforce-rename-plan.sh",
+            stdin=json.dumps({"tool_input": {"old_string": "foo", "new_string": "bar"}}),
+            env={"COS_ENFORCE_RENAME_PLAN": "strict", "COS_AGENT_DIR": str(agent_dir)},
+            cwd=tmp_path,
+        )
+        assert result.returncode == 0
 
 
 class TestSkillPresent:

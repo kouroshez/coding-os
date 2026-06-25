@@ -60,16 +60,25 @@ if [[ "$MATCHED" != "yes" ]]; then
   exit 0
 fi
 
-MARKER="${COS_AGENT_DIR:-.coding-os/claude}/.graph-context-$(printf '%s' "$FILE_PATH" | sha1sum | awk '{print $1}')"
-if [[ -f "$MARKER" ]]; then
+# The marker is written by cos_graph_context itself (graph_os.tools.graph),
+# keyed on the repo-relative path + the file's content_hash at consult. The
+# helper re-hashes disk: a consult that went stale (file changed) is treated
+# as no consult, so the agent re-checks the current shape.
+MARKER_DIR="${COS_AGENT_DIR:-.coding-os/claude}/.graph"
+VERDICT="$(python3 "${HELPER%/*}/graph_marker_check.py" "$MARKER_DIR" "$FILE_PATH" "$(pwd)" 2>/dev/null || echo missing)"
+if [[ "$VERDICT" == "fresh" ]]; then
   cos_log_hook enforce-graph-context ok || true
   exit 0
 fi
 
-MSG="graph-context missing for $FILE_PATH.
-  Rule: call cos_graph_context before editing a load-bearing file.
-  Record the marker after reviewing:
-    bash ${BASH_SOURCE[0]%/*}/write-state.sh \"${MARKER#$(pwd)/}\" \"consulted\""
+if [[ "$VERDICT" == "stale" ]]; then
+  REASON="graph-context for $FILE_PATH is stale — the file changed since you ran cos_graph_context."
+else
+  REASON="graph-context missing for $FILE_PATH."
+fi
+MSG="$REASON
+  Rule: call cos_graph_context(\"$FILE_PATH\", depth=1) before editing a load-bearing file.
+  The MCP call records the consult itself — there is no manual marker step."
 if [[ "$MODE" == "strict" ]]; then
   printf '%s\n' "$MSG" >&2
   cos_log_hook enforce-graph-context block || true

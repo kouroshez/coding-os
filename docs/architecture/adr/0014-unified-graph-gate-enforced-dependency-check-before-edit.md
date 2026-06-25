@@ -32,7 +32,11 @@ Collapse "consult-before-edit" into **one graph-gate with markers the MCP layer 
 
 ### 1. Marker contract — machine-written, freshness-bound, one namespace, GC'd
 
-Extend the proven `_touch_session_marker` pattern (~5 lines each): `cos_graph_context(target)` and `cos_graph_rename_plan(uid)` write their own marker under one `$COS_PANEL_DIR/.graph/` namespace (`ctx-<sha>`, `plan-<old>`, plus the existing `seen`), **embedding the consulted target's `content_hash` + index epoch**. The hook stops emitting any "now hand-run `write-state.sh`" instruction — there is nothing left to forge. A marker is **invalid when the file's current `content_hash` ≠ the recorded one** (kills the freshness hole). The single panel-scoped namespace gets one SessionStart GC + an mtime sweep (kills the immortal-marker leak). Query envelopes (`impact`/`context`/`references`/`detect_changes`) gain a `meta.stale` / freshness field comparing disk hash to `file_index_state`; an unindexed/just-created file reports `unindexed`, never a false "0 dependents = safe".
+Extend the proven `_touch_session_marker` pattern (~5 lines each): `cos_graph_context(target)` and `cos_graph_rename_plan(uid)` write their own marker under one `$COS_AGENT_DIR/.graph/` namespace (`ctx-<sha1(repo-rel path)>`, `plan-<old>`, plus the existing `seen`), **embedding the consulted target's `content_hash`** (sha256[:16], matching the extractors) **+ index hash**. The hook stops emitting any "now hand-run `write-state.sh`" instruction — there is nothing left to forge. A marker is **invalid when the file's current `content_hash` ≠ the recorded one** (kills the freshness hole). The namespace gets an age-based GC in the SessionStart sweep (kills the immortal-marker leak).
+
+**Scope correction (as-built):** the namespace is **agent-scoped, not panel-scoped**. The shared MCP server process resolves `$COS_AGENT_DIR` but never the calling tab's `$COS_PANEL_DIR` (no panel id travels in an MCP call) — the original `_touch_session_marker` chose `$COS_AGENT_DIR` for exactly this reason. The `content_hash` binding is what makes the wider scope safe: a marker counts only while the consulted content still matches disk, so a stale cross-panel marker self-invalidates regardless of which tab wrote it. The marker key is the **repo-relative POSIX path on both sides** (producer + a portable Python `graph_marker_check.py` helper), removing the absolute-vs-relative mismatch that would otherwise make a producer-written marker never match the hook's hash.
+
+Query envelopes gain a `meta.stale` / freshness field comparing disk hash to `file_index_state`. C1 ships this on `cos_graph_context` (the primary, and the acceptance gate); the same field on `impact`/`references`/`detect_changes` folds into cluster C3's coverage-object work (one cohesive envelope pass, not four scattered edits).
 
 ### 2. One hook, event-keyed
 
@@ -60,9 +64,9 @@ Codex fires Bash PreToolUse: add a Bash-mediated graph-gate delegate that parses
 
 | Cluster | Closes | Swimlane |
 |---|---|---|
-| C1 marker contract + freshness + GC + producer test | A1, A2, C3, C4, D2, SM1, SM2 | graph_os |
+| C1 marker contract + freshness + GC + producer test | A1, A2, C3, C4, D2 (context envelope), SM1, SM2 | graph_os |
 | C2 consumer scope + data-driven (delete hardcode) | B1, B2, B3, B4, B5, D3 | core |
-| C3 tool usability | N5, N6, N12, N13, SM3 | graph_os |
+| C3 tool usability | N5, N6, N12, N13, D2 (impact/references/detect_changes envelopes), SM3 | graph_os |
 | C4 hook consolidation + reconcile + migration | N10, 4→1 merge, D3 render, SM6 | core |
 | C5 cross-adapter parity | N1, N2, N11 | core |
 | C6 severity cache + hub + learning + i18n + xss + test-dead-zone | D1, D4, N7, N8, N9, SM4, SM5, B6 | core |

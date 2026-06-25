@@ -227,6 +227,55 @@ class TestQuery:
         assert len(data["results"]) <= 1
 
 
+class TestConsultMarker:
+    """The MCP tool itself writes the marker the enforce hook reads — the
+    producer half of the graph-gate contract that A1/A2 left unverified."""
+
+    def test_context_writes_fresh_marker_and_flags_stale(
+        self, seeded_backend, monkeypatch, tmp_path
+    ):
+        import hashlib
+
+        monkeypatch.chdir(tmp_path)
+        agent_dir = tmp_path / ".coding-os" / "claude"
+        monkeypatch.setenv("COS_AGENT_DIR", str(agent_dir))
+        body = "print('hello')\n"
+        (tmp_path / "target.py").write_text(body, encoding="utf-8")
+        seeded_backend.bulk_upsert(
+            [
+                GraphNode(
+                    uid="code:file:target.py",
+                    kind="code:file",
+                    label="target.py",
+                    file_path="target.py",
+                    content_hash="0000000000000000",
+                )
+            ],
+            [],
+        )
+
+        data = _assert_ok(graph.cos_graph_context("code:file:target.py"))
+
+        disk = hashlib.sha256(body.encode("utf-8")).hexdigest()[:16]
+        key = hashlib.sha1("target.py".encode("utf-8")).hexdigest()
+        marker = agent_dir / ".graph" / f"ctx-{key}"
+        assert marker.is_file(), "cos_graph_context must write its own consult marker"
+        payload = json.loads(marker.read_text(encoding="utf-8"))
+        assert payload["file"] == "target.py"
+        assert payload["content_hash"] == disk
+        # indexed (0000…) != disk → a stale read surfaces meta.stale.
+        assert data["meta"]["stale"] is True
+        assert data["meta"]["freshness"]["disk_hash"] == disk
+
+    def test_rename_plan_writes_marker(self, seeded_backend, monkeypatch, tmp_path):
+        agent_dir = tmp_path / ".coding-os" / "claude"
+        monkeypatch.setenv("COS_AGENT_DIR", str(agent_dir))
+        _assert_ok(graph.cos_graph_rename_plan("code:function:a.py::foo", "foo_renamed"))
+        marker = agent_dir / ".graph" / "plan-foo"
+        assert marker.is_file(), "cos_graph_rename_plan must write its own consult marker"
+        assert json.loads(marker.read_text(encoding="utf-8"))["identifier"] == "foo"
+
+
 class TestContext:
     def test_happy_path(self, seeded_backend):
         data = _assert_ok(graph.cos_graph_context("code:function:a.py::foo"))

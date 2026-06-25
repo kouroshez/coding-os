@@ -31,3 +31,4 @@ references: []
 GIVEN a 110-edge hub WHEN references is called THEN count == array length and a coverage/incomplete flag is set (no silent lie); GIVEN cos_graph_impact via MCP THEN visit_limit is an accepted arg and confidence_min matches the HTTP route; GIVEN a caught-but-never-constructed exception class THEN dead_code does NOT flag it; AND graph_os matrix suite green; AND thinking_os server --test passes.
 
 ## Work Log
+- 2026-06-25 [claude]: Scope add (folded from C1/TASK-574 for cohesion): add meta.stale/freshness field (disk content_hash vs…
