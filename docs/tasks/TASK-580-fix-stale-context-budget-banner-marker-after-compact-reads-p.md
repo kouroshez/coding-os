@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-25
 started: 2026-06-25
-completed: null
+completed: 2026-06-25
 agent_session: ses-claude-20260625-194408-ec53
 depends_on: []
 blocked_by: []
@@ -39,3 +39,4 @@ Run /compact in a large session (e.g. 516k ctx). On the very next prompt the ban
 - 2026-06-26 [claude]: Edit test_context_budget.py
 - 2026-06-26 [claude]: Root-caused: last_context_tokens() scanned backward past the compact boundary to the last pre-compact usage record…
 - 2026-06-26 [claude]: committed 1022a4ab · 2 files
+- 2026-06-26 [claude]: Status transitioned to complete via cos task-done.
