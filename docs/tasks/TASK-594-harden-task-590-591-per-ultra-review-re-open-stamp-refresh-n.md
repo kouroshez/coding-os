@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: git-foundation-hardening
 labels: [pr-mode, test-governance, code-review, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-26
 started: 2026-06-26
-completed: null
+completed: 2026-06-26
 agent_session: ses-claude-20260625-235014-c028
 depends_on: []
 blocked_by: []
