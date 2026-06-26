@@ -43,3 +43,4 @@ Expected: count unchanged because `ON DELETE CASCADE` removed every dependent ed
 ## Work Log
 - 2026-05-23 — diagnosed via Wave-1 audit + direct schema check: `graph_edges_v12` declares FK with `ON DELETE CASCADE`, `SqliteBackend.__init__` sets `PRAGMA foreign_keys = ON` but the peer `src/scripts/prune_deleted_path.py` opens its own connection without the PRAGMA → CASCADE silently skipped on every PostToolUse Bash deletion. Reproduced behavior with a 5-line fixture (no-PRAGMA: edges orphan; PRAGMA-on: CASCADE fires). Added one-line `conn.execute("PRAGMA foreign_keys = ON")` + comment. graph_os matrix suite (642 passed, 16 skipped) clean.
 - 2026-05-23 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-26 [claude]: committed fe315933 · 2 files
