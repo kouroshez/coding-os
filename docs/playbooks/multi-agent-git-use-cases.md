@@ -67,8 +67,8 @@ Each row is an end-to-end multi-agent run with the epic's L2 hardening applied. 
 |---|---|---|
 | Worktree dependency/secret bootstrap (no `node_modules`/`.env` → validate fails) | critical | ✅ FIXED [TASK-593](../tasks/TASK-593-worktree-dependency-secret-bootstrap-cos-pr-open-creates-a-f.md) — opt-in `worktree_include` (symlink + git-exclude) + `worktree_setup_cmd` ([pr-workflow §4.1](pr-workflow.md)) |
 | CODEOWNERS / required-reviews auto-merge deadlock | high | ✅ FIXED [TASK-592](../tasks/TASK-592-pr-mode-auto-merge-deadlock-on-codeowners-required-reviews-h.md) — `reviewDecision`-driven `review-required` rollup + `auto-merge-armed-awaiting-review` submit status ([pr-workflow §8](pr-workflow.md)) |
-| test-governor lock redesign (PostToolUse-release) | medium | [TASK-590](../tasks/TASK-590-redesign-test-governor-concurrency-lock-host-global-pgrep-f-.md) |
-| Reaper liveness (skip live-but-idle via lock-reason pid) | medium | [TASK-591](../tasks/TASK-591-reaper-liveness-skip-age-reaping-a-live-but-idle-agent-via-t.md) |
+| test-governor lock redesign (PostToolUse-release) | medium | ✅ FIXED [TASK-590](../tasks/TASK-590-redesign-test-governor-concurrency-lock-host-global-pgrep-f-.md) — held = lock present within TTL; the owner-agent pid frees a crashed run early; no host-global `pgrep -f pytest` ([test-governance.md](../engineering/test-governance.md)) |
+| Reaper liveness (skip live-but-idle via lock-reason pid) | medium | ✅ FIXED [TASK-591](../tasks/TASK-591-reaper-liveness-skip-age-reaping-a-live-but-idle-agent-via-t.md) — `cos pr open` stamps owner=pid@host (from the presence record) into the worktree lock reason; the reaper keeps a live-owner unknown+stale worktree ([pr-workflow §7](pr-workflow.md)) |
 | Merge-queue arming + `_rollup_state` QUEUED branch · non-required checks inflating heal · fork PRs · LFS/signed-commits/Windows | low–medium | documented limitations (Rule-of-Three: file when a consumer hits them) |
 
 ## See also

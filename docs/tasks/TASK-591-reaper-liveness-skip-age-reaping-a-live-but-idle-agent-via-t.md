@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: git-foundation-hardening
 labels: [pr-mode, reaper, concurrency, split-from-585, ready]
-status: testing
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-26
 started: 2026-06-26
-completed: null
+completed: 2026-06-26
 agent_session: ses-claude-20260625-235014-c028
 depends_on: []
 blocked_by: []
@@ -42,3 +42,4 @@ Start a pr-mode worktree agent; remove/withhold its presence session JSON under 
 - 2026-06-26 [claude]: Edit test_cli.py
 - 2026-06-26 [claude]: commit 371ed93306 — fix(pr): reaper skips a live-but-presence-less worktree via the lock-owner pid
 - 2026-06-26 [claude]: Resolved the deferred design blocker: the owner pid is NOT taken from cos pr open's ephemeral process — it is read…
+- 2026-06-26 [claude]: commit 5dab8da87a — chore(board): move TASK-590/591 to testing (git-foundation-hardening)
