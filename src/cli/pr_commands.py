@@ -225,10 +225,23 @@ def _has_required_check(repo: str, integration: str) -> bool:
     return proc.returncode == 0
 
 
+def _unprotected_warning(integration: str) -> str:
+    return (
+        f"unprotected integration branch '{integration}': no GitHub branch protection / required "
+        f"check detected — the client-side branch-guard is the ONLY barrier, and any human, GUI, "
+        f"or hook-bypassed agent can push directly to '{integration}'. Set up a GitHub ruleset "
+        f"(require a PR + required status checks + block direct pushes) so the server enforces the "
+        f"wall (pr-workflow.md §11)."
+    )
+
+
 def _preflight(repo: str, integration: str) -> dict:
     remote = _has_remote(repo)
     gh = _gh_ready()
     required = _has_required_check(repo, integration) if (remote and gh) else False
+    # A reachable forge with no required check = the integration branch has no server-side
+    # wall, so the client branch-guard is the only barrier (the Layer-0 legibility gap).
+    unprotected_integration = remote and not required
     missing = [
         name
         for name, present in (("remote", remote), ("gh", gh), ("required-ci", required))
@@ -239,6 +252,7 @@ def _preflight(repo: str, integration: str) -> dict:
         "gh": gh,
         "required_check": required,
         "pr_ok": remote and gh,
+        "unprotected_integration": unprotected_integration,
         "missing": missing,
     }
 
@@ -346,7 +360,10 @@ def pr_preflight(repo_opt: str | None, integration: str | None, as_json: bool) -
     repo = _resolve_repo(repo_opt)
     integration = integration or _integration_branch(repo)
     cap = _preflight(repo, integration)
-    _emit({**cap, "mode": "pr" if cap["pr_ok"] else "degraded-trunk"}, as_json)
+    payload = {**cap, "mode": "pr" if cap["pr_ok"] else "degraded-trunk"}
+    if cap["unprotected_integration"]:
+        payload["warning"] = _unprotected_warning(integration)
+    _emit(payload, as_json)
     sys.exit(0 if cap["pr_ok"] else 1)
 
 
@@ -457,8 +474,9 @@ def pr_submit(
             stale = f" branch is {behind} behind '{integration}' — rebase before integrating." if behind else ""
             action = (
                 f"{ahead} commit(s) committed locally, not pushed (autonomy=local) — review with "
-                f"'git diff {integration}..{branch}', then integrate manually: "
-                f"'git switch {integration} && git merge --no-ff {branch}'.{stale}"
+                f"'git diff {integration}..{branch}', then a HUMAN integrates it in plain git "
+                f"OUTSIDE the agent (the agent is branch-guard-blocked from merging the shared "
+                f"checkout): 'git switch {integration} && git merge --no-ff {branch}'.{stale}"
             )
         _emit(
             {
@@ -593,21 +611,21 @@ def pr_submit(
         if board_blocked:
             action += " Task escalated to blocked — add a required check, then re-submit."
 
-    _emit(
-        {
-            "branch": branch,
-            "pushed": True,
-            "pr_created": pr_ok,
-            "pr_url": pr.stdout.strip() if pr_ok else "",
-            "auto_merge_armed": armed,
-            "required_check": cap["required_check"],
-            "autonomy_level": autonomy,
-            "merge_status": merge_status,
-            "board_blocked": board_blocked,
-            "action": action,
-        },
-        as_json,
-    )
+    payload = {
+        "branch": branch,
+        "pushed": True,
+        "pr_created": pr_ok,
+        "pr_url": pr.stdout.strip() if pr_ok else "",
+        "auto_merge_armed": armed,
+        "required_check": cap["required_check"],
+        "autonomy_level": autonomy,
+        "merge_status": merge_status,
+        "board_blocked": board_blocked,
+        "action": action,
+    }
+    if cap["unprotected_integration"]:
+        payload["warning"] = _unprotected_warning(integration)
+    _emit(payload, as_json)
 
 
 @pr_group.command("status", help="List this repo's pr-mode worktrees, branches, and open PRs.")
