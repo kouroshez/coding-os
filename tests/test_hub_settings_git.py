@@ -35,6 +35,8 @@ def test_git_settings_defaults_off(client):
         "integration_branch": "main",
         "protected_branches": ["production"],
         "autonomy_level": "draft",
+        "worktree_include": [],
+        "worktree_setup_cmd": "",
     }
 
 
@@ -45,6 +47,8 @@ def test_git_settings_patch_round_trips(client, tmp_path):
             "integration_branch": "develop",
             "protected_branches": ["production", "release"],
             "autonomy_level": "auto_merge",
+            "worktree_include": [".env", "node_modules"],
+            "worktree_setup_cmd": "npm ci",
         }
     }
     patched = client.patch("/api/settings", json=body).json()["data"]
@@ -274,8 +278,9 @@ def test_git_settings_jq_python_parity(tmp_path):
 
 
 def test_cos_env_warns_on_unreadable_git_settings(tmp_path):
-    # M1: a present-but-unparseable git_settings surfaces a one-time warning instead
-    # of a silent trunk downgrade.
+    # TASK-587b: a present-but-unparseable git_settings fails CLOSED to the stricter
+    # pr-mode (never a silent trunk downgrade that would let the agent push to main)
+    # and surfaces a one-time warning.
     import subprocess
 
     cos_env = _REPO_ROOT / "src" / "core" / "hooks" / "cos-env.sh"
@@ -294,5 +299,5 @@ def test_cos_env_warns_on_unreadable_git_settings(tmp_path):
         capture_output=True,
         text=True,
     )
-    assert "WF=unset" in out.stdout  # corrupt → stays trunk, not pr
+    assert "WF=pr" in out.stdout  # corrupt → fail CLOSED to stricter pr, not trunk
     assert "could not be parsed" in out.stderr, out.stderr

@@ -3887,3 +3887,75 @@ class TestCosPr:
         assert cleaned.exit_code == 0, cleaned.output
         assert "agents/TASK-DOG/ses-test-abc" not in self._branches(repo)
         assert "TASK-DOG-ses-test-abc" not in self._worktrees(repo)
+
+    # --- TASK-593: worktree dependency/secret bootstrap -----------------------
+
+    def test_open_no_bootstrap_config_is_noop(
+        self, runner: CliRunner, repo: Path, tmp_path: Path
+    ) -> None:
+        # No worktree_include / worktree_setup_cmd → byte-identical to today.
+        (repo / "node_modules").mkdir()
+        res = runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "bootstrap: (none)" in res.output
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        assert not (wt / "node_modules").exists()  # nothing linked without config
+
+    def test_open_bootstrap_symlinks_includes_and_runs_setup(
+        self, runner: CliRunner, repo: Path, tmp_path: Path
+    ) -> None:
+        # Declared gitignored paths are symlinked in + the setup command runs.
+        (repo / "node_modules").mkdir()
+        (repo / "node_modules" / "pkg").write_text("dep", encoding="utf-8")
+        (repo / ".env").write_text("SECRET=1", encoding="utf-8")
+        self._write_git_settings(
+            repo,
+            enabled=True,
+            worktree_include=["node_modules", ".env"],
+            worktree_setup_cmd="touch .setup-done",
+        )
+        res = runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        assert (wt / "node_modules").is_symlink()
+        assert (wt / ".env").is_symlink()
+        assert (wt / "node_modules" / "pkg").read_text() == "dep"  # link resolves
+        assert (wt / ".setup-done").exists()  # setup command ran in the worktree
+        assert "setup=ok" in res.output
+
+    def test_open_bootstrapped_symlink_does_not_leak_into_pr(
+        self, runner: CliRunner, repo: Path, tmp_path: Path
+    ) -> None:
+        # Regression: a symlink named after a trailing-slash gitignore pattern
+        # (node_modules/) is NOT matched by it and would otherwise show as untracked
+        # in the worktree → leak into the PR. The worktree exclude entry prevents it.
+        (repo / ".gitignore").write_text("node_modules/\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(repo), "add", ".gitignore"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "gitignore"], check=True)
+        (repo / "node_modules").mkdir()
+        (repo / "node_modules" / "pkg").write_text("dep", encoding="utf-8")
+        self._write_git_settings(repo, enabled=True, worktree_include=["node_modules"])
+
+        res = runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        assert (wt / "node_modules").is_symlink()
+        status = subprocess.run(
+            ["git", "-C", str(wt), "status", "--porcelain"], capture_output=True, text=True
+        ).stdout
+        assert "node_modules" not in status, f"linked dep leaked into the worktree: {status!r}"
+
+    def test_open_bootstrap_ignores_path_traversal(
+        self, runner: CliRunner, repo: Path, tmp_path: Path
+    ) -> None:
+        # Containment: an absolute or .. include path is skipped, never linked out.
+        (repo / "node_modules").mkdir()
+        self._write_git_settings(
+            repo, enabled=True, worktree_include=["../escape", "/etc/passwd", "node_modules"]
+        )
+        res = runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        assert not (wt.parent / "escape").exists()  # no link escaped the worktree
+        assert (wt / "node_modules").is_symlink()  # the safe one still linked
+        assert "linked=node_modules" in res.output

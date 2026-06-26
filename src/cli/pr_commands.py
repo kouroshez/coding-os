@@ -345,6 +345,100 @@ def _resolve_repo(repo_opt: str | None) -> str:
 
 
 # --------------------------------------------------------------------------- #
+# worktree dependency/secret bootstrap
+# --------------------------------------------------------------------------- #
+def _worktree_exclude(wt: Path) -> Path | None:
+    proc = _run(["git", "rev-parse", "--git-path", "info/exclude"], cwd=str(wt))
+    out = proc.stdout.strip()
+    if proc.returncode != 0 or not out:
+        return None
+    path = Path(out)
+    return path if path.is_absolute() else (wt / path)
+
+
+def _exclude_in_worktree(exclude: Path | None, rel: str) -> None:
+    # A symlink named after a trailing-slash gitignore pattern (node_modules/) is
+    # NOT matched by that pattern and would leak into the PR — so root-anchor the
+    # linked path in the worktree's git exclude. Shared common-dir file: dedup, and
+    # the entries are already-gitignored names so polluting it is harmless.
+    if exclude is None:
+        return
+    entry = f"/{rel}"
+    try:
+        existing = exclude.read_text().splitlines() if exclude.exists() else []
+        if entry not in existing:
+            with exclude.open("a") as handle:
+                handle.write(f"{entry}\n")
+    except OSError as exc:
+        click.echo(f"cos pr: could not update worktree exclude for {rel}: {exc}", err=True)
+
+
+def _run_setup(wt: Path, cmd: str) -> str:
+    # The consumer's one-time worktree setup (e.g. `npm ci`) — generous timeout, a
+    # real install legitimately exceeds the 120s gh/git default. Non-fatal: the
+    # worktree is usable, the agent just sees the warning at validate time.
+    try:
+        timeout = max(1, int(os.environ.get("COS_PR_SETUP_TIMEOUT", "600")))
+    except ValueError:
+        timeout = 600
+    proc = _run(["bash", "-lc", cmd], cwd=str(wt), timeout=timeout)
+    if proc.returncode != 0:
+        click.echo(
+            f"cos pr: worktree setup '{cmd}' failed (exit {proc.returncode}) — "
+            f"the validate command may fail until deps are installed.",
+            err=True,
+        )
+        return f"failed (exit {proc.returncode})"
+    return "ok"
+
+
+def _bootstrap_worktree(repo: str, wt: Path) -> dict:
+    # A fresh worktree is a clean checkout with NO gitignored deps (node_modules,
+    # .venv, Pods) and NO local secrets (.env), so the agent's first validate
+    # command fails. Opt-in per project (git_settings): symlink the declared
+    # gitignored paths in from the main checkout and run a one-time setup command.
+    # No config → no-op, byte-identical to no bootstrap.
+    settings = _git_settings(repo)
+    includes = settings.get("worktree_include")
+    setup_cmd = settings.get("worktree_setup_cmd")
+    linked: list[str] = []
+    if isinstance(includes, list) and includes:
+        main_root = Path(_main_repo_root(repo))
+        exclude = _worktree_exclude(wt)
+        for raw in includes:
+            if not isinstance(raw, str) or not raw.strip():
+                continue
+            rel = raw.strip()
+            # Containment — never link a path outside the worktree. Only the project
+            # owner writes this config (the agent is blocked from hub-settings.json),
+            # so this just guards the owner's own typo, but cheaply.
+            if rel.startswith("/") or ".." in Path(rel).parts:
+                continue
+            src, dst = main_root / rel, wt / rel
+            if not src.exists() or os.path.lexists(dst):
+                continue
+            try:
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                os.symlink(src, dst)
+            except OSError as exc:
+                click.echo(f"cos pr: could not link {rel}: {exc}", err=True)
+                continue
+            linked.append(rel)
+            _exclude_in_worktree(exclude, rel)
+    setup = _run_setup(wt, setup_cmd.strip()) if isinstance(setup_cmd, str) and setup_cmd.strip() else None
+    return {"linked": linked, "setup": setup}
+
+
+def _bootstrap_summary(bootstrap: dict) -> str:
+    parts = []
+    if bootstrap.get("linked"):
+        parts.append("linked=" + ",".join(bootstrap["linked"]))
+    if bootstrap.get("setup"):
+        parts.append("setup=" + bootstrap["setup"])
+    return " ".join(parts) or "(none)"
+
+
+# --------------------------------------------------------------------------- #
 # commands
 # --------------------------------------------------------------------------- #
 @click.group("pr", help="pr-mode multi-agent git executor (worktree → PR → CI → merge → cleanup).")
@@ -418,6 +512,9 @@ def pr_open(
     # session's checkout (TASK-519 §2). Idempotent — a re-lock just errors.
     _git(["worktree", "lock", str(wt), "--reason", f"pr-mode session {session}"], cwd=repo)
 
+    # Bootstrap deps/secrets only on a freshly created checkout.
+    bootstrap = _bootstrap_worktree(repo, wt) if not already else {"linked": [], "setup": None}
+
     _emit(
         {
             "worktree": str(wt),
@@ -427,6 +524,7 @@ def pr_open(
             "project_root": repo,
             "mode": "pr" if cap["pr_ok"] else "degraded-trunk",
             "missing": ",".join(cap["missing"]) or "(none)",
+            "bootstrap": _bootstrap_summary(bootstrap),
             "next": f"export COS_PROJECT_ROOT={repo}  # then edit inside {wt}",
         },
         as_json,

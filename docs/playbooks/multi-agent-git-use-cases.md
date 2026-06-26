@@ -65,7 +65,7 @@ Each row is an end-to-end multi-agent run with the epic's L2 hardening applied. 
 
 | Breakpoint | Severity | Task |
 |---|---|---|
-| Worktree dependency/secret bootstrap (no `node_modules`/`.env` → validate fails) | critical | [TASK-593](../tasks/TASK-593-worktree-dependency-secret-bootstrap-cos-pr-open-creates-a-f.md) |
+| Worktree dependency/secret bootstrap (no `node_modules`/`.env` → validate fails) | critical | ✅ FIXED [TASK-593](../tasks/TASK-593-worktree-dependency-secret-bootstrap-cos-pr-open-creates-a-f.md) — opt-in `worktree_include` (symlink + git-exclude) + `worktree_setup_cmd` ([pr-workflow §4.1](pr-workflow.md)) |
 | CODEOWNERS / required-reviews auto-merge deadlock | high | [TASK-592](../tasks/TASK-592-pr-mode-auto-merge-deadlock-on-codeowners-required-reviews-h.md) |
 | test-governor lock redesign (PostToolUse-release) | medium | [TASK-590](../tasks/TASK-590-redesign-test-governor-concurrency-lock-host-global-pgrep-f-.md) |
 | Reaper liveness (skip live-but-idle via lock-reason pid) | medium | [TASK-591](../tasks/TASK-591-reaper-liveness-skip-age-reaping-a-live-but-idle-agent-via-t.md) |

@@ -60,6 +60,8 @@ cos pr preflight || { echo "pr-mode unavailable — staying trunk"; exit 0; }
 cos pr open --task "$TASK"        # or: cos pr open --adhoc   (no board task — see §6)
 #   => git fetch origin <integration>; git worktree add -b agents/<task>/<id> <wt> origin/<integration>
 #      exports COS_PROJECT_ROOT=<main-repo> into the worktree shell
+#   => BOOTSTRAP (§4.1, opt-in): symlink git_settings.worktree_include paths
+#      (node_modules/.env/Pods) + run git_settings.worktree_setup_cmd, so (2) works
 
 # (2) WORK + VALIDATE with the repo's OWN check (stack-agnostic)
 <edit files in the worktree>
@@ -93,6 +95,19 @@ cos pr cleanup --task "$TASK"     # MERGE-GATED: refuses while the PR is still O
 **Preserve before destroy under drift (TASK-561).** The single-candidate from-disk resolution above can hand `cleanup` a *peer's* worktree (same task slug, different session) — and the live-peer gate only refuses when that owner is *provably* live (a presence record with an alive same-host pid); a peer with **no** presence record reads as `unknown` and so passes the gate, exactly as a legitimate drifted-self does. The two are indistinguishable by session state, so `cleanup` cannot decide safety from liveness alone. Instead it borrows the reaper's `_preserve_reaped` (§7): when the resolved worktree belongs to a different session (`owner_session != session`) **and** its tree is dirty, it bundles the uncommitted work to `~/.coding-os/reaped/<repo-slug>/` **before** `worktree remove --force`; if that preservation fails, it keeps the worktree (refuses, like `_reap_one`'s `needs_attention`) rather than destroy the only copy. A non-drifted own-worktree cleanup is unchanged (no peer can lose work that is yours), so the merged-PR fast path stays a plain remove.
 
 `gc.auto=0` is set in each worktree: worktrees share objects/refs/packed-refs, so background gc during a peer's rebase is unsafe.
+
+### 4.1 Worktree dependency/secret bootstrap (TASK-593, opt-in)
+
+A fresh worktree is a clean checkout: it has **no** gitignored dependencies (`node_modules`, `.venv`, `Pods`) and **no** local secrets (`.env`), so the agent's first validate command (step 2) fails on almost every real project. Two opt-in `git_settings` fields close this (default empty → **byte-identical no-op**):
+
+```json
+{ "git_settings": { "worktree_include": ["node_modules", ".env"], "worktree_setup_cmd": "npm ci" } }
+```
+
+- **`worktree_include`** — gitignored paths **symlinked** in from the main checkout when `open` creates a worktree (symlink, not copy: a copied `node_modules` is gigabytes). Each linked path is also written to the worktree's git **exclude** — a symlink named after a *trailing-slash* gitignore pattern (`node_modules/`) is otherwise **not** matched by it and would leak into the PR (verified). Containment: an absolute or `..` path is skipped. Use this for shared read-only deps + secrets.
+- **`worktree_setup_cmd`** — a one-time command run in the new worktree via `bash -lc` (login shell, so `nvm`/`asdf`-managed toolchains resolve), bounded by `COS_PR_SETUP_TIMEOUT` (default 600s). Use this for a fresh isolated install (`npm ci`, `uv sync`) instead of symlinking a mutable `node_modules`. Failure is **non-fatal** — the worktree stays usable and the agent sees a warning. Because the command runs arbitrary code, only the project owner sets it (the agent is blocked from writing `hub-settings.json` — §5 policy-file integrity); that write-guard is the consent boundary.
+
+`cos pr open` reports the result on its `bootstrap:` line (`linked=… setup=ok` | `(none)`). Bootstrap runs only on a freshly created worktree, never on idempotent re-open.
 
 ## 5. Branch-guard in pr-mode — positive policy, not guard-kill (TASK-516)
 

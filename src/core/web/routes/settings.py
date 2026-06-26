@@ -33,6 +33,11 @@ _DEFAULTS: dict = {
         # Trust Spectrum (TASK-533): draft = human merges; auto_merge = arm on
         # green required check; autonomous = + driver auto-cleanup. Safe default.
         "autonomy_level": "draft",
+        # Worktree bootstrap: gitignored paths to symlink into a fresh worktree +
+        # a one-time setup command, so the agent's first validate command works.
+        # Empty = no-op (byte-identical to no bootstrap).
+        "worktree_include": [],
+        "worktree_setup_cmd": "",
     },
 }
 
@@ -261,6 +266,10 @@ class _GitSettingsIn(BaseModel):
     # push. Literal rejects a typo'd rung at the API edge instead of letting it
     # reach cos-env → COS_GIT_AUTONOMY where it would silently behave as draft.
     autonomy_level: Literal["local", "draft", "auto_merge", "autonomous"] = "draft"
+    # Explicit fields so a PATCH persists them — an exclude_unset model_dump would
+    # else silently drop these as unknown keys.
+    worktree_include: list[str] = []
+    worktree_setup_cmd: str = ""
 
 
 class _PatchBody(BaseModel):
