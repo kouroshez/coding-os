@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import json
 import logging
 import os
+import tempfile
 from pathlib import Path
 from typing import Literal
 
@@ -35,28 +38,85 @@ _DEFAULTS: dict = {
 
 
 def _settings_path() -> Path:
+    # Project-scoped when a /api/p/<slug>/ request bound a root (mirror
+    # current_db_path): write the bound project's OWN .coding-os/hub-settings.json,
+    # never the Hub process's global COS_STATE_DIR — else a multi-project Hub
+    # collapses every project's settings into one shared file and a save for
+    # project A clobbers B (the toggle then never reaches A's agent).
+    from web._project_context import current_project_root, is_explicit_project_scope
+
+    if is_explicit_project_scope():
+        return current_project_root() / ".coding-os" / "hub-settings.json"
     state_dir = os.environ.get("COS_STATE_DIR") or ".coding-os"
     return Path(state_dir) / "hub-settings.json"
 
 
-def _load() -> dict:
+def _read_raw() -> tuple[dict, bool]:
+    # (raw, corrupt). corrupt=True only when the file EXISTS but is unparseable or
+    # not a JSON object — so a write path can refuse rather than clobber a present
+    # but momentarily-unreadable file with all-defaults.
     path = _settings_path()
-    raw: dict = {}
-    if path.exists():
-        try:
-            raw = json.loads(path.read_text())
-        except Exception as exc:
-            logger.debug("hub-settings.json load error: %s", exc)
-    merged: dict = {}
+    if not path.exists():
+        return {}, False
+    try:
+        data = json.loads(path.read_text())
+    except Exception as exc:
+        logger.debug("hub-settings.json load error: %s", exc)
+        return {}, True
+    if not isinstance(data, dict):
+        return {}, True
+    return data, False
+
+
+def _merge_defaults(raw: dict) -> dict:
+    # Start from raw so sections NOT in _DEFAULTS (e.g. task_closure, or any future
+    # subsystem's section) survive the round-trip; then overlay defaults for the
+    # known sections. Without the {**raw} seed, _load drops every unknown section
+    # and the next PATCH writes it away (silent data loss).
+    merged: dict = {**raw}
     for section, defaults in _DEFAULTS.items():
         merged[section] = {**defaults, **(raw.get(section) or {})}
     return merged
 
 
+def _load() -> dict:
+    raw, _ = _read_raw()
+    return _merge_defaults(raw)
+
+
 def _save(data: dict) -> None:
     path = _settings_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2))
+    # Atomic: write a sibling temp, fsync, then os.replace (atomic within a
+    # filesystem) so a concurrent reader (cos-env.sh jq, cos pr self-read) sees
+    # either the old or the new complete file, never a torn/empty one.
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".hub-settings.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as fh:
+            fh.write(json.dumps(data, indent=2))
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except Exception:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+        raise
+
+
+@contextlib.contextmanager
+def _settings_lock():
+    # Exclusive lock across a load→merge→save so two concurrent PATCHes (two Hub
+    # tabs, or git vs budget tab) cannot last-writer-wins clobber each other's
+    # section. Cross-process flock pairs with the atomic os.replace above.
+    path = _settings_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = path.with_name("hub-settings.lock")
+    with open(lock_path, "w") as lf:
+        try:
+            fcntl.flock(lf, fcntl.LOCK_EX)
+            yield
+        finally:
+            fcntl.flock(lf, fcntl.LOCK_UN)
 
 
 def _env_overrides() -> dict:
@@ -212,17 +272,30 @@ class _PatchBody(BaseModel):
 
 @router.patch("")
 def patch_settings(body: _PatchBody):
-    current = _load()
-    # Merge each provided section field-by-field (exclude_unset) so a partial
-    # PATCH never resets unspecified fields to their model defaults (finding 12).
-    sections = {
-        "budget_cap": body.budget_cap,
-        "trace_rotation": body.trace_rotation,
-        "model_routing": body.model_routing,
-        "git_settings": body.git_settings,
-    }
-    for name, model in sections.items():
-        if model is not None:
-            current[name] = {**current.get(name, {}), **model.model_dump(exclude_unset=True)}
-    _save(current)
+    with _settings_lock():
+        raw, corrupt = _read_raw()
+        if corrupt:
+            # Refuse rather than overwrite a present-but-unparseable file with
+            # all-defaults — that would silently reset the user's pr-mode config
+            # to trunk. Retryable: a torn read self-heals once the writer finishes.
+            return _module_error(
+                409,
+                "conflict",
+                "hub-settings.json is present but unreadable; refusing to overwrite. "
+                "Fix or remove the file, then retry.",
+                True,
+            )
+        current = _merge_defaults(raw)
+        # Merge each provided section field-by-field (exclude_unset) so a partial
+        # PATCH never resets unspecified fields to their model defaults (finding 12).
+        sections = {
+            "budget_cap": body.budget_cap,
+            "trace_rotation": body.trace_rotation,
+            "model_routing": body.model_routing,
+            "git_settings": body.git_settings,
+        }
+        for name, model in sections.items():
+            if model is not None:
+                current[name] = {**current.get(name, {}), **model.model_dump(exclude_unset=True)}
+        _save(current)
     return {"data": {"settings": current, "env_overrides": _env_overrides()}}

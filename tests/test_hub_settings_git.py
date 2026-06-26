@@ -176,3 +176,59 @@ def test_git_settings_fields_helper_matches_jq_on_malformed(tmp_path):
     assert run({"git_settings": {"enabled": True, "protected_branches": "main"}}) == ""  # non-list → fail closed
     assert run({"git_settings": {"enabled": True, "protected_branches": []}}).split("\t") == ["true", "main", "", "draft"]
     assert run({"git_settings": {"enabled": True}}).split("\t") == ["true", "main", "production", "draft"]
+
+
+def test_settings_path_is_project_scoped(tmp_path, monkeypatch):
+    # C1: a bound /api/p/<slug>/ request must resolve the project's OWN
+    # .coding-os/hub-settings.json — never the Hub process's global COS_STATE_DIR.
+    from web import _project_context as pc
+    from web.routes import settings as s
+
+    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path / "global"))
+    proj_a = tmp_path / "projA"
+    (proj_a / ".coding-os").mkdir(parents=True)
+    token = pc._current_project.set(proj_a)
+    try:
+        assert s._settings_path() == proj_a / ".coding-os" / "hub-settings.json"
+    finally:
+        pc._current_project.reset(token)
+    # Two distinct bound roots → two distinct files.
+    proj_b = tmp_path / "projB"
+    token = pc._current_project.set(proj_b)
+    try:
+        assert s._settings_path() == proj_b / ".coding-os" / "hub-settings.json"
+        assert s._settings_path() != proj_a / ".coding-os" / "hub-settings.json"
+    finally:
+        pc._current_project.reset(token)
+    # No request scope → falls back to the ambient COS_STATE_DIR.
+    assert s._settings_path() == Path(str(tmp_path / "global")) / "hub-settings.json"
+
+
+def test_unknown_section_survives_patch(client, tmp_path):
+    # C2: a section not in _DEFAULTS (e.g. task_closure) must survive a PATCH —
+    # _load must not drop it and the next save must not write it away.
+    f = tmp_path / "hub-settings.json"
+    f.write_text(json.dumps({"task_closure": {"keep": "me"}, "budget_cap": {"enabled": True, "cap_usd": 9.0}}))
+    client.patch("/api/settings", json={"git_settings": {"enabled": True}})
+    on_disk = json.loads(f.read_text())
+    assert on_disk["task_closure"] == {"keep": "me"}  # preserved
+    assert on_disk["git_settings"]["enabled"] is True  # the PATCH still applied
+
+
+def test_corrupt_file_patch_refuses_409(client, tmp_path):
+    # M9: a present-but-unparseable file must NOT be clobbered with all-defaults.
+    f = tmp_path / "hub-settings.json"
+    f.write_text("{not valid json")
+    resp = client.patch("/api/settings", json={"git_settings": {"enabled": True}})
+    assert resp.status_code == 409, resp.text
+    assert resp.json()["error"]["category"] == "conflict"
+    assert f.read_text() == "{not valid json"  # untouched
+
+
+def test_save_is_atomic_no_leftover_tmp(client, tmp_path):
+    # H1: the atomic write leaves a complete JSON file and no .tmp sibling.
+    client.patch("/api/settings", json={"git_settings": {"enabled": True, "integration_branch": "develop"}})
+    f = tmp_path / "hub-settings.json"
+    json.loads(f.read_text())  # complete, parseable
+    leftovers = list(tmp_path.glob(".hub-settings.*.tmp"))
+    assert leftovers == [], f"atomic write left temp files: {leftovers}"
