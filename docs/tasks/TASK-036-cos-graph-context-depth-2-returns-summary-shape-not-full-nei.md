@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [graph_os, envelope, agent-cost, enterprise]
-status: complete
+status: archive
 priority: P0
 appetite: "2h"
 created: 2026-05-26

@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [state-files, concurrency, multi-adapter, panel-isolation, enterprise-hardening]
-status: complete
+status: archive
 priority: P1
 appetite: "7d"
 created: 2026-05-26
