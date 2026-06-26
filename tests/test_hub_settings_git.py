@@ -7,6 +7,7 @@ Spec: docs/engineering/hub-architecture.md § Hub settings contract.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -232,3 +233,66 @@ def test_save_is_atomic_no_leftover_tmp(client, tmp_path):
     json.loads(f.read_text())  # complete, parseable
     leftovers = list(tmp_path.glob(".hub-settings.*.tmp"))
     assert leftovers == [], f"atomic write left temp files: {leftovers}"
+
+
+def test_git_settings_jq_python_parity(tmp_path):
+    # M3: the jq filter in cos-env.sh and the python3 fallback MUST emit identical
+    # TSV (modulo the trailing newline `$()` strips) for the same input — else a
+    # jq-host and a jq-less host diverge on which projects enable pr-mode.
+    import shutil
+    import subprocess
+
+    if shutil.which("jq") is None:
+        pytest.skip("jq not installed")
+    helper = _REPO_ROOT / "src" / "core" / "hooks" / "_helpers" / "git_settings_fields.py"
+    jq_filter = (
+        '[(.git_settings.enabled // false), '
+        '(.git_settings.integration_branch // "main"), '
+        '((.git_settings.protected_branches // ["production"]) | join(",")), '
+        '(.git_settings.autonomy_level // "draft")] | @tsv'
+    )
+    fixtures = [
+        {"git_settings": {"enabled": True}},
+        {"git_settings": {"enabled": True, "protected_branches": []}},
+        {"git_settings": {"enabled": True, "protected_branches": None}},
+        {"git_settings": {"enabled": True, "protected_branches": ["a", "b"]}},
+        {"git_settings": {"enabled": False, "integration_branch": "develop"}},
+        {"git_settings": {"enabled": True, "protected_branches": "main"}},  # non-list → fail closed
+        {"git_settings": "yes"},  # non-dict → fail closed
+        {"git_settings": {"enabled": True, "autonomy_level": "autonomous"}},
+    ]
+    f = tmp_path / "hub-settings.json"
+    for payload in fixtures:
+        f.write_text(json.dumps(payload), encoding="utf-8")
+        # Mirror cos-env.sh's `jq ... 2>/dev/null || true` (empty on error) and the
+        # `$(...)` trailing-newline strip.
+        jq = subprocess.run(["jq", "-r", jq_filter, str(f)], capture_output=True, text=True)
+        jq_out = jq.stdout.rstrip("\n") if jq.returncode == 0 else ""
+        py = subprocess.run([sys.executable, str(helper), str(f)], capture_output=True, text=True)
+        assert py.returncode == 0, py.stderr
+        assert py.stdout.rstrip("\n") == jq_out, f"parity drift on {payload}: py={py.stdout!r} jq={jq_out!r}"
+
+
+def test_cos_env_warns_on_unreadable_git_settings(tmp_path):
+    # M1: a present-but-unparseable git_settings surfaces a one-time warning instead
+    # of a silent trunk downgrade.
+    import subprocess
+
+    cos_env = _REPO_ROOT / "src" / "core" / "hooks" / "cos-env.sh"
+    state = tmp_path / ".coding-os"
+    state.mkdir()
+    (state / "hub-settings.json").write_text('{"git_settings": broken', encoding="utf-8")
+    env = {
+        "HOME": str(tmp_path / "home"),
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "COS_PROJECT_ROOT": str(tmp_path),
+        "COS_STATE_DIR": str(state),
+    }
+    out = subprocess.run(
+        ["bash", "-c", f'source "{cos_env}"; echo "WF=${{COS_GIT_WORKFLOW:-unset}}"'],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert "WF=unset" in out.stdout  # corrupt → stays trunk, not pr
+    assert "could not be parsed" in out.stderr, out.stderr

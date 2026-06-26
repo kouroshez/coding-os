@@ -239,7 +239,22 @@ unset _cos_in_wt
 # grep per hook; an explicitly-exported COS_GIT_WORKFLOW always wins.
 # SPEC: docs/playbooks/pr-workflow.md § 1.
 # ---------------------------------------------------------------------------
-if [[ -z "${COS_GIT_WORKFLOW:-}" && -f "${COS_STATE_DIR}/hub-settings.json" ]] \
+_cos_git_warn_once() {
+  # Debounced stderr warning (≤1/hour per condition per state dir) so a persistent
+  # corrupt/divergent git_settings surfaces without spamming every hook. Fail-open.
+  local key="$1" msg="$2" marker now last
+  marker="${COS_STATE_DIR}/.git-settings-warn-${key}"
+  now="$(date +%s 2>/dev/null || echo 0)"
+  if [[ -f "$marker" ]]; then
+    last="$(cat "$marker" 2>/dev/null || echo 0)"
+    if [[ $((now - last)) -lt 3600 ]]; then
+      return 0
+    fi
+  fi
+  printf '%s\n' "$msg" >&2 2>/dev/null || true
+  printf '%s' "$now" >"$marker" 2>/dev/null || true
+}
+if [[ -f "${COS_STATE_DIR}/hub-settings.json" ]] \
      && grep -q '"git_settings"' "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null; then
   # jq fast-path, python3 fallback — a host WITHOUT jq must still honor an
   # enabled project (the old `command -v jq` precondition silently downgraded
@@ -252,14 +267,26 @@ if [[ -z "${COS_GIT_WORKFLOW:-}" && -f "${COS_STATE_DIR}/hub-settings.json" ]] \
   else
     _cos_git_line=""
   fi
-  if [[ "$(printf '%s' "$_cos_git_line" | cut -f1)" == "true" ]]; then
+  _cos_git_enabled="$(printf '%s' "$_cos_git_line" | cut -f1)"
+  if [[ -z "${COS_GIT_WORKFLOW:-}" && "$_cos_git_enabled" == "true" ]]; then
     # Split declare/assign so shellcheck SC2155 stays clean (return-value masking).
     COS_GIT_INTEGRATION_BRANCH="$(printf '%s' "$_cos_git_line" | cut -f2)"
     COS_GIT_PROTECTED_BRANCHES="$(printf '%s' "$_cos_git_line" | cut -f3)"
     COS_GIT_AUTONOMY="$(printf '%s' "$_cos_git_line" | cut -f4)"
     export COS_GIT_WORKFLOW="pr" COS_GIT_INTEGRATION_BRANCH COS_GIT_PROTECTED_BRANCHES COS_GIT_AUTONOMY
+  elif [[ -z "${COS_GIT_WORKFLOW:-}" && -z "$_cos_git_line" ]]; then
+    # grep matched the git_settings key but no parser could read it (corrupt JSON, or
+    # neither jq nor python3) → the project runs as TRUNK, NOT the pr-mode the operator
+    # chose. Surface it once instead of a silent downgrade.
+    _cos_git_warn_once "unreadable" \
+      "cos-env: pr-mode requested (git_settings present) but hub-settings.json could not be parsed — running as TRUNK. Fix the file or install jq/python3. (docs/playbooks/pr-workflow.md § 1)"
+  elif [[ "${COS_GIT_WORKFLOW:-}" == "trunk" && "$_cos_git_enabled" == "true" ]]; then
+    # An inherited explicit COS_GIT_WORKFLOW=trunk wins over the file by design;
+    # surface the self-downgrade of the Hub policy instead of applying it silently.
+    _cos_git_warn_once "divergence" \
+      "cos-env: git_settings enables pr-mode but an inherited COS_GIT_WORKFLOW=trunk overrides it — running TRUNK. Unset COS_GIT_WORKFLOW to honor the Hub setting. (docs/playbooks/pr-workflow.md § 1)"
   fi
-  unset _cos_git_line
+  unset _cos_git_line _cos_git_enabled
 fi
 
 # Default DB filename is `coding-os.db`. Legacy `thinking_os.db` is auto-renamed
