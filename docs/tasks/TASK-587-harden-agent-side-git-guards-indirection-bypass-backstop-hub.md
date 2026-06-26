@@ -5,12 +5,12 @@ swimlane: core
 kind: security
 epic: git-foundation-hardening
 labels: [git, pr-mode, defense-in-depth, bypass, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-26
 started: 2026-06-26
-completed: null
+completed: 2026-06-26
 agent_session: ses-claude-20260625-235014-c028
 depends_on: []
 blocked_by: []
@@ -58,3 +58,5 @@ Adversary = a misaligned or prompt-injected agent (the client runtime is untrust
 - 2026-06-26 [claude]: Edit check_cosenv.sh
 - 2026-06-26 [claude]: Edit test_branch_guard.py
 - 2026-06-26 [claude]: Edit test_block_dangerous_commands.py
+- 2026-06-26 [claude]: commit 236f8ce912 — fix(hooks): close indirection, settings-write & pr-mode update-ref HEAD git-guard bypasses
+- 2026-06-26 [claude]: Closed 3 client-side guard holes (defense-in-depth; server branch protection stays the wall). 587a:…

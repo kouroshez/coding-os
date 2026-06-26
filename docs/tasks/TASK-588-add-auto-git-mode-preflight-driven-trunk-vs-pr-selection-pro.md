@@ -32,3 +32,4 @@ references: []
 **Given** git mode=auto and remote+gh+required-check present, **When** the agent works a task, **Then** it isolates in a worktree and publishes via PR (pr behavior). **Given** mode=auto and a local-only repo (no remote), **When** the agent works, **Then** it behaves as trunk (direct commit to the integration branch). **Given** mode=auto surfaced in Hub Config→Git, **When** the tab loads, **Then** the UI shows the resolved effective mode (trunk|pr) from the live preflight, not just the literal 'auto'. **Given** git mode unset (default), **When** any hook resolves COS_GIT_WORKFLOW, **Then** behavior stays byte-identical to trunk. Verify: uv run pytest tests/test_cli.py -q AND settings + ConfigPage tests green.
 
 ## Work Log
+- 2026-06-26 [claude]: DEFERRED / CUT per the over-engineering critic (Rule of Three). `auto` mode adds a new schema field + 5th TSV column…
