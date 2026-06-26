@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: git-foundation-hardening
 labels: [pr-mode, auto-merge, codeowners, critic-found, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-26
 started: 2026-06-26
-completed: null
+completed: 2026-06-26
 agent_session: ses-claude-20260625-235014-c028
 depends_on: []
 blocked_by: []
@@ -45,3 +45,4 @@ Configure a GitHub ruleset on main: require a PR + require 1 approving review + 
 - 2026-06-26 [claude]: Edit pr-workflow.md
 - 2026-06-26 [claude]: Edit pr-workflow.md
 - 2026-06-26 [claude]: Edit multi-agent-git-use-cases.md
+- 2026-06-26 [claude]: committed c32a5f74 · 4 files

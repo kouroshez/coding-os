@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: git-foundation-hardening
 labels: [pr-mode, worktree, bootstrap, critic-found, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-26
 started: 2026-06-26
-completed: null
+completed: 2026-06-26
 agent_session: ses-claude-20260625-235014-c028
 depends_on: []
 blocked_by: []
@@ -48,3 +48,4 @@ references: []
 - 2026-06-26 [claude]: Edit pr_commands.py
 - 2026-06-26 [claude]: Edit settings.py
 - 2026-06-26 [claude]: Edit settings.py
+- 2026-06-26 [claude]: committed a2635f46 · 6 files

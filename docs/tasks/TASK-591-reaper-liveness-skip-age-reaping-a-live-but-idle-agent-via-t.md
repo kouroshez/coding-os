@@ -33,3 +33,4 @@ Start a pr-mode worktree agent; remove/withhold its presence session JSON under 
 **Given** a pr-mode worktree whose presence record is absent but whose owner pid (from the worktree lock reason) is alive on this host, **When** the reaper sweeps past COS_PR_ORPHAN_MAX_AGE, **Then** it does NOT reap it. **Given** the owner pid is dead (or a foreign host), **When** the worktree is stale, **Then** it is reaped (work preserved first, unchanged). **Given** a legacy worktree with a lock reason lacking pid@host, **When** the reaper runs, **Then** behavior is unchanged (back-compat — falls through to the existing stale check). Verify: uv run pytest tests/test_cli.py::TestCosPr -q green + a new reaper test.
 
 ## Work Log
+- 2026-06-26 [claude]: DESIGN BLOCKER found (deferred, not rushed — same class as TASK-590/585a). The task premise 'stamp owner pid@host at…
