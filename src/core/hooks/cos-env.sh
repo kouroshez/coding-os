@@ -215,13 +215,20 @@ if [[ -n "$_cos_in_wt" ]]; then
   if [[ -n "$_cos_main" && -d "${_cos_main}/.coding-os" ]]; then
     COS_STATE_DIR="${_cos_main}/.coding-os"
   else
-    # main unresolvable: bind to the hub, never a worktree-relative .coding-os —
-    # that stray would be committed into the agent's own PR (TASK-531).
+    # main unresolvable: steer to a per-worktree QUARANTINE, never the global hub
+    # ($HOME/.coding-os) — binding there made every misrouted worktree share the
+    # hub's own state (DB/board/presence/locks) and collide with it and each other
+    # (TASK-582 regression of 1f8869b5). Also never a worktree-relative .coding-os —
+    # that stray gets committed into the agent's PR (TASK-531). The quarantine sits
+    # OFF the hub root and outside the checkout, keyed per worktree path; the
+    # misroute flag still fires so the operator sees the misconfig.
     export COS_STATE_MISROUTE=1
     printf 'cos-env: worktree state misroute — main repo unresolvable from %s; export COS_PROJECT_ROOT=<main-repo> for worktree commands (docs/playbooks/pr-workflow.md § 3).\n' "$PWD" >&2
     _cos_home_real="$(cd -P "${HOME:-/dev/null}" 2>/dev/null && pwd -P)" || _cos_home_real="${HOME:-}"
     if [[ -n "$_cos_home_real" ]]; then
-      COS_STATE_DIR="${_cos_home_real}/.coding-os"
+      _cos_wt_tag="$(printf '%s' "$PWD" | cksum 2>/dev/null | cut -d' ' -f1 2>/dev/null || true)"
+      COS_STATE_DIR="${_cos_home_real}/.coding-os-misrouted/${_cos_wt_tag:-orphan}"
+      unset _cos_wt_tag
     fi
     unset _cos_home_real
   fi

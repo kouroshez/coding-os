@@ -26,7 +26,7 @@ references:
 ## Read First
 - [src/scripts/prune_deleted_path.py](../../src/scripts/prune_deleted_path.py) — the bug (line 37 opens connection without PRAGMA)
 - [src/core/graph_os/backends/sqlite_backend.py](../../src/core/graph_os/backends/sqlite_backend.py) — reference connection bootstrap (does enable `foreign_keys = ON`, lines 84 + 91)
-- [src/core/hooks/auto-prune-deleted-files.sh](../../src/core/hooks/auto-prune-deleted-files.sh) — PostToolUse Bash hook that invokes the script after every `rm`/`git mv`
+- [src/core/hooks/auto-graph-reconcile-shell.sh](../../src/core/hooks/auto-graph-reconcile-shell.sh) (formerly `auto-prune-deleted-files.sh`) — PostToolUse Bash hook that invokes the script after every `rm`/`git mv`
 
 ## Repro Steps
 1. Pick any indexed file. Capture baseline: `sqlite3 .coding-os/coding-os.db "SELECT COUNT(*) FROM graph_edges_v12 e LEFT JOIN graph_nodes n ON n.id=e.source_id WHERE n.id IS NULL;"`.
