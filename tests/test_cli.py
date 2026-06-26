@@ -3051,6 +3051,75 @@ class TestCosPr:
         assert res.exit_code == 0, res.output
         assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # fresh nested edit → kept
 
+    def test_reap_keeps_stale_orphan_when_lock_owner_alive(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-591: a stale, presence-less worktree whose lock reason still names a
+        # LIVE owner pid (stamped at `pr open` from the then-present presence record)
+        # must NOT be reaped — the owner agent is alive, its record just rotated away.
+        import socket
+        import time
+
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
+        sess_dir = repo / ".coding-os" / "claude" / "sessions"
+        sess_dir.mkdir(parents=True, exist_ok=True)
+        rec = sess_dir / "ses-test-abc.json"
+        rec.write_text(  # PRESENT at open → `pr open` stamps owner=<pid>@<host>
+            json.dumps(
+                {"session_id": "ses-test-abc", "pid": os.getpid(), "host": socket.gethostname()}
+            ),
+            encoding="utf-8",
+        )
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        rec.unlink()  # record rotates away → _session_state == "unknown"
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        old = time.time() - 3600
+        for path in [wt, *wt.rglob("*")]:
+            try:
+                os.utime(path, (old, old))  # whole tree age-stale
+            except OSError:
+                pass
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # live lock-owner → kept
+
+    def test_reap_removes_stale_orphan_when_lock_owner_dead(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-591: a DEAD owner pid in the lock reason is no reason to keep — a
+        # stale presence-less worktree is reaped exactly as it would be with no stamp.
+        import socket
+        import time
+
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
+        sess_dir = repo / ".coding-os" / "claude" / "sessions"
+        sess_dir.mkdir(parents=True, exist_ok=True)
+        rec = sess_dir / "ses-test-abc.json"
+        rec.write_text(  # dead pid stamped at open (2147483646 is never alive)
+            json.dumps(
+                {"session_id": "ses-test-abc", "pid": 2147483646, "host": socket.gethostname()}
+            ),
+            encoding="utf-8",
+        )
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        rec.unlink()
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        old = time.time() - 3600
+        for path in [wt, *wt.rglob("*")]:
+            try:
+                os.utime(path, (old, old))
+            except OSError:
+                pass
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" not in self._branches(repo)  # dead owner → reaped
+
     def test_reap_removes_dead_pid_session(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

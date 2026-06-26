@@ -510,7 +510,7 @@ def pr_open(
     _git(["config", "gc.auto", "0"], cwd=wt)
     # Lock the worktree so a peer's `git worktree prune` cannot remove a live
     # session's checkout (TASK-519 §2). Idempotent — a re-lock just errors.
-    _git(["worktree", "lock", str(wt), "--reason", f"pr-mode session {session}"], cwd=repo)
+    _git(["worktree", "lock", str(wt), "--reason", _live_lock_reason(repo, session)], cwd=repo)
 
     # Bootstrap deps/secrets only on a freshly created checkout.
     bootstrap = _bootstrap_worktree(repo, wt) if not already else {"linked": [], "setup": None}
@@ -1174,6 +1174,66 @@ def _worktree_stale(wt: Path) -> bool:
     return (time.time() - newest) > max_age
 
 
+def _owner_pid_host(repo: str, session: str) -> tuple[int, str]:
+    # The agent runtime pid (the $PPID the presence hook records) + its host, read
+    # from THIS session's presence record while it still exists at `cos pr open`.
+    # Snapshotting it into the worktree lock reason lets the reaper recognise a
+    # live owner even after the presence record is later rotated or deleted.
+    state_dir = Path(repo) / ".coding-os"
+    for sess_dir in state_dir.glob("*/sessions"):
+        jf = sess_dir / f"{session}.json"
+        if not jf.is_file():
+            continue
+        try:
+            data = json.loads(jf.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        pid = int(data.get("pid") or 0)
+        if pid > 0:
+            return pid, data.get("host") or socket.gethostname()
+    return 0, ""
+
+
+def _live_lock_reason(repo: str, session: str) -> str:
+    # Worktree lock reason carrying owner=<pid>@<host> when derivable, so the
+    # reaper can skip a live owner whose presence record vanished. Falls back to
+    # the bare reason (back-compat) when no presence pid is available.
+    pid, host = _owner_pid_host(repo, session)
+    base = f"pr-mode session {session}"
+    return f"{base} owner={pid}@{host}" if pid > 0 else base
+
+
+def _worktree_lock_reason(repo: str, wt: Path) -> str:
+    # `git worktree list --porcelain` emits `locked <reason>` verbatim for a locked
+    # worktree; return the reason of the block whose path resolves to wt.
+    out = _git_out(["worktree", "list", "--porcelain"], cwd=repo)
+    target = wt.resolve()
+    current: Path | None = None
+    for line in out.splitlines():
+        if line.startswith("worktree "):
+            try:
+                current = Path(line[len("worktree ") :]).resolve()
+            except OSError:
+                current = None
+        elif line.startswith("locked") and current == target:
+            return line[len("locked") :].strip()
+    return ""
+
+
+def _lock_owner_alive(repo: str, wt: Path) -> bool:
+    # True when the lock reason names owner=<pid>@<host> alive on THIS host — the
+    # owner agent is still up despite a missing presence record, so an unknown +
+    # age-stale worktree must NOT be reaped (a foreign-host pid is never proof).
+    match = re.search(r"owner=(\d+)@(\S+)", _worktree_lock_reason(repo, wt))
+    if not match:
+        return False
+    try:
+        from core.board_os.presence import pid_alive
+    except Exception:
+        return False
+    return match.group(2) == socket.gethostname() and pid_alive(int(match.group(1)))
+
+
 def _ledger_path(repo: str) -> Path:
     return Path(repo) / ".coding-os" / ".pr-cleanup-ledger.json"
 
@@ -1325,7 +1385,11 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
                     continue
                 session = branch.rsplit("/", 1)[-1]
                 state = _session_state(session, repo)
-                reapable = state == "offline" or (state == "unknown" and _worktree_stale(wt))
+                reapable = state == "offline" or (
+                    state == "unknown"
+                    and _worktree_stale(wt)
+                    and not _lock_owner_alive(repo, wt)
+                )
                 if reapable:
                     reaped.append(
                         {"worktree": str(wt), "branch": branch, "would_reap": True}
@@ -1335,6 +1399,8 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
                 else:
                     if not dry_run:
                         # Re-assert the lock so a peer's prune can't drop a live checkout (§2).
+                        # A no-op when already locked (the common case), so it preserves the
+                        # owner=pid@host stamp the open wrote — that is what a later sweep reads.
                         _git(["worktree", "lock", str(wt), "--reason", "pr-mode live session"], cwd=repo)
                     kept.append({"worktree": str(wt), "branch": branch, "live": True})
         _emit(
