@@ -979,3 +979,79 @@ def test_trunk_blocks_semicolon_prefixed_ops() -> None:
     ):
         code, _ = _run(cmd)
         assert code == 2, cmd
+
+
+# --- TASK-587: shell-indirection backstop + pr-mode update-ref HEAD --------
+
+
+def test_pr_blocks_eval_wrapped_push_to_main() -> None:
+    code, _ = _run("eval 'git push origin main'", workflow="pr")
+    assert code == 2
+
+
+def test_pr_blocks_pipe_to_sh_push_to_main() -> None:
+    code, _ = _run("printf 'git push origin main' | sh", workflow="pr")
+    assert code == 2
+
+
+def test_pr_blocks_herestring_push_to_main() -> None:
+    code, _ = _run("sh <<< 'git push origin main'", workflow="pr")
+    assert code == 2
+
+
+def test_pr_blocks_xargs_push() -> None:
+    code, _ = _run("echo main | xargs git push origin", workflow="pr")
+    assert code == 2
+
+
+def test_trunk_blocks_eval_wrapped_branch_create() -> None:
+    code, _ = _run("eval 'git checkout -b feature/x'", workflow="trunk")
+    assert code == 2
+
+
+def test_trunk_blocks_pipe_to_sh_switch() -> None:
+    code, _ = _run("printf 'git switch other' | sh", workflow="trunk")
+    assert code == 2
+
+
+def test_indirection_allows_legit_eval() -> None:
+    code, _ = _run("eval 'echo hi'", workflow="pr")
+    assert code == 0
+
+
+def test_indirection_allows_xargs_git_add() -> None:
+    code, _ = _run("ls *.txt | xargs git add", workflow="pr")
+    assert code == 0
+
+
+def test_pr_blocks_update_ref_head_shared() -> None:
+    code, _ = _run("git update-ref HEAD deadbeef", workflow="pr")
+    assert code == 2
+
+
+def test_pr_blocks_update_ref_delete_head_shared() -> None:
+    code, _ = _run("git update-ref -d HEAD", workflow="pr")
+    assert code == 2
+
+
+def test_pr_blocks_update_ref_head_reflog_message() -> None:
+    code, _ = _run("git update-ref -m main HEAD deadbeef", workflow="pr")
+    assert code == 2
+
+
+def test_pr_allows_update_ref_feature() -> None:
+    code, _ = _run("git update-ref refs/heads/feature deadbeef", workflow="pr")
+    assert code == 0
+
+
+def test_pr_allows_update_ref_head_in_worktree() -> None:
+    code, _ = _run(
+        "git -C /private/tmp/x/.coding-os/worktrees/slug/task-1 update-ref HEAD deadbeef",
+        workflow="pr",
+    )
+    assert code == 0
+
+
+def test_pr_blocks_update_ref_stdin_unchanged() -> None:
+    code, _ = _run("git update-ref --stdin", workflow="pr")
+    assert code == 2

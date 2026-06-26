@@ -29,6 +29,7 @@ from git_command_parse import (
     commit_flags,
     is_git_word,
     normalize,
+    recover_indirect_commands,
     resolve_command,
     strip_env_vars,
     strip_git_globals,
@@ -298,7 +299,7 @@ _MSG = {
 }
 
 
-def _evaluate(command: str) -> tuple[str, str, str]:
+def _evaluate(command: str, _recover: bool = True) -> tuple[str, str, str]:
     """Returns (verdict, reason, message). verdict is 'allow' or 'block'. Uses the
     SHARED git_command_parse tokenizer (quote-aware AND `;`-aware) — no private
     segmenter, so branch_guard and the commit/secret gates can never drift apart,
@@ -307,8 +308,20 @@ def _evaluate(command: str) -> tuple[str, str, str]:
     if not groups:
         return "allow", "", ""
     if os.environ.get("COS_GIT_WORKFLOW", "trunk") == "pr":
-        return _evaluate_pr(groups)
-    return _evaluate_trunk(groups)
+        verdict = _evaluate_pr(groups)
+    else:
+        verdict = _evaluate_trunk(groups)
+    if verdict[0] == "block" or not _recover:
+        return verdict
+    # Shell-indirection backstop: a protected op hidden inside eval / pipe-into-sh /
+    # here-string / xargs is invisible to the tokenizer above. Recover each inner
+    # command string and re-evaluate it against the same rules — one level, since a
+    # recovered string is a plain git command.
+    for recovered in recover_indirect_commands(command):
+        r_verdict = _evaluate(recovered, _recover=False)
+        if r_verdict[0] == "block":
+            return r_verdict
+    return verdict
 
 
 def _evaluate_trunk(groups: list[list[str]]) -> tuple[str, str, str]:
@@ -631,6 +644,9 @@ def _pr_check(
             return "pr-protected-ref", _PR_MSG["protected-ref"]
         return None, None  # agents/* create + delete stay allowed
     if subcmd == "update-ref":
+        positionals = _update_ref_positionals(args)
+        if not worktree and positionals and _unqualify_ref(positionals[0]) == "HEAD":
+            return "pr-shared-head-rewrite", _PR_MSG["shared-head"]
         if _pr_update_ref_blocks(args, blocked_push):
             return "pr-protected-ref", _PR_MSG["protected-ref"]
         return None, None

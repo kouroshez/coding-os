@@ -72,3 +72,50 @@ def test_allows_safe_commands(cmd: str) -> None:
 )
 def test_blocks_force_push_main(cmd: str) -> None:
     assert _run(cmd) == 2, f"should BLOCK force-push: {cmd}"
+
+
+# --- TASK-587: policy-file write guard + shell-indirection force-push ------
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "echo bad > .coding-os/hub-settings.json",
+        "echo bad >> .coding-os/hub-settings.json",
+        "printf x | tee .coding-os/hub-settings.json",
+        "cp /tmp/x.json .coding-os/hub-settings.json",
+        "mv /tmp/x.json .coding-os/hub-settings.json",
+        "sed -i s/pr/trunk/ .coding-os/hub-settings.json",
+        "python3 -c \"open('.coding-os/hub-settings.json','w').write('{}')\"",
+        "echo x > ./sub/../.coding-os/hub-settings.json",
+    ],
+)
+def test_blocks_settings_policy_write(cmd: str) -> None:
+    assert _run(cmd) == 2, f"should BLOCK policy write: {cmd}"
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "cat .coding-os/hub-settings.json",
+        "jq . .coding-os/hub-settings.json",
+        "cp .coding-os/hub-settings.json /tmp/backup.json",
+        "python3 -c \"import json; json.load(open('.coding-os/hub-settings.json'))\"",
+        "grep git_settings .coding-os/hub-settings.json",
+        "echo x > .coding-os/other-file.json",
+    ],
+)
+def test_allows_settings_read_and_other(cmd: str) -> None:
+    assert _run(cmd) == 0, f"should ALLOW: {cmd}"
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "eval 'git push --force origin main'",
+        "printf 'git push origin main --force' | sh",
+        "eval 'git reset --hard'",
+    ],
+)
+def test_blocks_indirection_wrapped_dangerous(cmd: str) -> None:
+    assert _run(cmd) == 2, f"should BLOCK indirection-wrapped: {cmd}"

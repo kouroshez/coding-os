@@ -337,6 +337,50 @@ def command_groups(command: str, _depth: int = 0) -> list[list[str]]:
     return groups
 
 
+def recover_indirect_commands(command: str) -> list[str]:
+    """Un-glue command strings that shell indirection hides from the static
+    tokenizer, so a caller can re-evaluate them against its own rules. NOT a
+    shell interpreter — it only extracts already-quoted strings command_groups
+    left intact, for four constructs: `eval '<cmd>'`, a pipe / here-string
+    feeding a bare `sh`/`bash`, and `xargs git <verb>`. Returns plain command
+    strings (de-duped, order-preserved); the caller re-runs its ruleset on each."""
+    groups = command_groups(normalize(command))
+    # A bare `sh`/`bash` group (no `-c`) is a sink fed by a pipe or here-string;
+    # its stdin is the inner command, glued into a sibling group's token.
+    bare_shell = any(
+        len(resolve_command(g)[1]) == 1 and resolve_command(g)[1][0] in _NESTED_SHELLS
+        for g in groups
+    )
+    out: list[str] = []
+    for g in groups:
+        _env, rest = resolve_command(g)
+        if not rest:
+            continue
+        if rest[0] == "eval":  # `eval '<cmd>' …` — each arg is a command string
+            out.extend(rest[1:])
+            continue
+        if rest[0] == "xargs":  # `xargs … git <verb> …` — recover the git tail
+            for i, tok in enumerate(rest):
+                if i and is_git_word(tok):
+                    out.append(" ".join(rest[i:]))
+                    break
+            continue
+        if bare_shell:
+            if is_git_word(rest[0]):
+                out.append(" ".join(rest))
+            for tok in rest:
+                if " " in tok and any(is_git_word(w) for w in tok.split()):
+                    out.append(tok)
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for s in out:
+        s = s.strip()
+        if s and s not in seen:
+            seen.add(s)
+            deduped.append(s)
+    return deduped
+
+
 def git_invocations(command: str) -> list[GitInvocation]:
     """Every real `git` invocation in `command`, fully tokenized. A `git commit`
     that is actually an argument to `echo`/`python -c` (its command word is not
