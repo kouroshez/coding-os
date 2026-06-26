@@ -209,6 +209,76 @@ class TestRunLock:
         assert code == 0
 
 
+class TestRunLockLiveness:
+    """Lock liveness via owner-agent pid + the PostToolUse release leg, NOT a
+    host-global `pgrep -f pytest` (which phantom-holds across repos and
+    false-clears on wrapper/xdist argv)."""
+
+    @staticmethod
+    def _dead_pid() -> int:
+        proc = subprocess.Popen(["true"])
+        proc.wait()
+        return proc.pid  # reaped — no live process holds it
+
+    def test_crashed_owner_lock_frees_without_pgrep(self, state_dir: Path) -> None:
+        # Owner agent dead, lock past the old 120s grace but within TTL. The old
+        # pgrep path would read HELD (the test runner is itself a live pytest on
+        # this host); the pid-liveness path frees it — no cross-repo phantom hold.
+        lock = {
+            "suite": "test-thinking_os",
+            "agent": "codex",
+            "session_tail": "deadbeef",
+            "agent_pid": self._dead_pid(),
+            "started_ts": int(time.time()) - 200,
+        }
+        (state_dir / ".test-run.lock").write_text(json.dumps(lock), encoding="utf-8")
+        code, _ = _run_hook(GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir)
+        assert code == 0
+        new_lock = json.loads((state_dir / ".test-run.lock").read_text(encoding="utf-8"))
+        assert new_lock["agent"] != "codex"
+
+    def test_live_owner_lock_holds_regardless_of_argv(self, state_dir: Path) -> None:
+        # Owner agent alive → HELD even though no `pytest` argv is matched: the
+        # lock file is authoritative, so a `uv run`/xdist wrapper never false-clears.
+        lock = {
+            "suite": "test-thinking_os",
+            "agent": "codex",
+            "session_tail": "deadbeef",
+            "agent_pid": os.getpid(),
+            "started_ts": int(time.time()) - 200,
+        }
+        (state_dir / ".test-run.lock").write_text(json.dumps(lock), encoding="utf-8")
+        code, err = _run_hook(GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir)
+        assert code == 2
+        assert "codex" in err
+
+    def test_release_leg_frees_lock_then_governor_allows(self, state_dir: Path) -> None:
+        # Scenario 3: a long-lived panel's lock is released when pytest EXITS
+        # (PostToolUse), not held for the whole session.
+        lock = {
+            "suite": "test-thinking_os",
+            "agent": "codex",
+            "session_tail": "deadbeef",
+            "agent_pid": os.getpid(),
+            "started_ts": int(time.time()),
+        }
+        (state_dir / ".test-run.lock").write_text(json.dumps(lock), encoding="utf-8")
+        held, _ = _run_hook(GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir)
+        assert held == 2  # sibling blocked while the run is in flight
+        _run_hook(
+            AUTO_RECORD,
+            {"tool_input": {"command": BOARD_SUITE_CMD}, "tool_response": {"exit_code": 0}},
+            state_dir,
+        )
+        assert not (state_dir / ".test-run.lock").exists()
+        # FORCE bypasses the dedup gate (the release leg also recorded a PASS) so
+        # this isolates the concurrency lock: it is gone, so the sibling proceeds.
+        freed, _ = _run_hook(
+            GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir, COS_TEST_FORCE="1"
+        )
+        assert freed == 0  # released on pytest exit → sibling proceeds
+
+
 class TestInlineOverrides:
     """Env assignments inside the command string never reach the hook's own
     environment — the governor must honor the inline form it advertises."""
