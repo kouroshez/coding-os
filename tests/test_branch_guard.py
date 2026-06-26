@@ -10,12 +10,25 @@ from pathlib import Path
 HOOK = Path(__file__).resolve().parent.parent / "src" / "core" / "hooks" / "branch-guard.sh"
 
 
-def _run(command: str, *, tool: str = "Bash", workflow: str | None = None) -> tuple[int, str]:
+def _run(
+    command: str,
+    *,
+    tool: str = "Bash",
+    workflow: str | None = None,
+    extra_env: dict[str, str] | None = None,
+) -> tuple[int, str]:
     # strip both so an inherited COS_WORKTREE_ROOT can't flip the per-op scope tests
-    _drop = {"COS_GIT_WORKFLOW", "COS_WORKTREE_ROOT"}
+    _drop = {
+        "COS_GIT_WORKFLOW",
+        "COS_WORKTREE_ROOT",
+        "COS_GIT_PROTECTED_BRANCHES",
+        "COS_GIT_INTEGRATION_BRANCH",
+    }
     env = {k: v for k, v in os.environ.items() if k not in _drop}
     if workflow is not None:
         env["COS_GIT_WORKFLOW"] = workflow
+    if extra_env:
+        env.update(extra_env)
     proc = subprocess.run(
         ["bash", str(HOOK)],
         input=json.dumps({"tool_name": tool, "tool_input": {"command": command}}),
@@ -234,6 +247,33 @@ def test_pr_mode_blocks_push_to_protected() -> None:
 def test_pr_mode_blocks_push_to_integration() -> None:
     code, _ = _run("git push origin main", workflow="pr")
     assert code == 2
+
+
+def test_pr_mode_blocks_push_to_protected_branch_pattern() -> None:
+    code, _ = _run(
+        "git push origin release/v1",
+        workflow="pr",
+        extra_env={"COS_GIT_PROTECTED_BRANCHES": "release/*"},
+    )
+    assert code == 2
+
+
+def test_pr_mode_blocks_refspec_push_to_protected_branch_pattern() -> None:
+    code, _ = _run(
+        "git push origin HEAD:refs/heads/release/v1",
+        workflow="pr",
+        extra_env={"COS_GIT_PROTECTED_BRANCHES": "release/*"},
+    )
+    assert code == 2
+
+
+def test_pr_mode_allows_push_outside_protected_branch_pattern() -> None:
+    code, _ = _run(
+        "git push origin HEAD:release-candidate",
+        workflow="pr",
+        extra_env={"COS_GIT_PROTECTED_BRANCHES": "release/*"},
+    )
+    assert code == 0
 
 
 def test_pr_mode_allows_push_agents_branch() -> None:
@@ -636,6 +676,15 @@ def test_pr_mode_blocks_update_ref_delete_protected() -> None:
     assert code == 2
 
 
+def test_pr_mode_blocks_update_ref_protected_branch_pattern() -> None:
+    code, _ = _run(
+        "git update-ref refs/heads/release/v1 HEAD~1",
+        workflow="pr",
+        extra_env={"COS_GIT_PROTECTED_BRANCHES": "release/*"},
+    )
+    assert code == 2
+
+
 def test_pr_mode_blocks_update_ref_stdin() -> None:
     # `--stdin` reads ref commands we can't inspect → fail closed.
     code, _ = _run("git update-ref --stdin", workflow="pr")
@@ -775,6 +824,14 @@ def test_trunk_blocks_update_ref_head() -> None:
 
 def test_trunk_blocks_update_ref_delete_protected() -> None:
     code, _ = _run("git update-ref -d refs/heads/production")
+    assert code == 2
+
+
+def test_trunk_blocks_branch_delete_protected_branch_pattern() -> None:
+    code, _ = _run(
+        "git branch -D release/v1",
+        extra_env={"COS_GIT_PROTECTED_BRANCHES": "release/*"},
+    )
     assert code == 2
 
 

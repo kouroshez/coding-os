@@ -18,6 +18,7 @@ from triggering — substring matching in bash slipped on all of these
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import os
 import re
@@ -410,6 +411,13 @@ def _unqualify_ref(ref: str) -> str:
             return ref
 
 
+def _matches_blocked_ref(ref: str, blocked: set[str]) -> bool:
+    if not ref:
+        return False
+    bare = _unqualify_ref(ref)
+    return any(fnmatch.fnmatchcase(bare, _unqualify_ref(pattern)) for pattern in blocked)
+
+
 def _push_targets(args: list[str], blocked: set[str]) -> bool:
     # `--mirror` / `--all` push every local ref → can update the integration or a
     # protected branch without naming it; treat as a protected-push (finding 15).
@@ -419,7 +427,7 @@ def _push_targets(args: list[str], blocked: set[str]) -> bool:
         if a.startswith("-"):
             continue
         dst = a.rsplit(":", 1)[-1] if ":" in a else a
-        if _unqualify_ref(dst) in blocked:  # bare/+force/refs-heads forms all map here
+        if _matches_blocked_ref(dst, blocked):  # bare/+force/refs-heads forms all map here
             return True
     return False
 
@@ -526,19 +534,19 @@ def _pr_branch_blocks(args: list[str], blocked: set[str]) -> bool:
     # Copy `-c/-C` writes only the TARGET (last positional); its source ref is
     # read, not modified — `branch -c main backup` must not trip on `main`.
     if any(a in {"-c", "-C", "--copy"} for a in args):
-        return _unqualify_ref(positionals[-1]) in blocked
+        return _matches_blocked_ref(positionals[-1], blocked)
     # Delete `-d/-D` and rename `-m/-M` put EVERY named ref at risk.
     if any(a in {"-d", "-D", "--delete", "-m", "-M", "--move"} for a in args):
-        return any(_unqualify_ref(p) in blocked for p in positionals)
+        return any(_matches_blocked_ref(p, blocked) for p in positionals)
     # Plain / force create-or-move: only the written ref (first positional).
-    return _unqualify_ref(positionals[0]) in blocked
+    return _matches_blocked_ref(positionals[0], blocked)
 
 
 def _pr_update_ref_blocks(args: list[str], blocked: set[str]) -> bool:
     if "--stdin" in args:  # feeds ref commands we can't inspect → fail closed
         return True
     positionals = _update_ref_positionals(args)
-    return bool(positionals) and _unqualify_ref(positionals[0]) in blocked
+    return bool(positionals) and _matches_blocked_ref(positionals[0], blocked)
 
 
 def _git_dir_target(global_tokens: list[str]) -> str | None:
@@ -634,20 +642,24 @@ def _pr_check(
         for a in args:
             if a.startswith("-") or ":" not in a:
                 continue
-            if _unqualify_ref(a.rsplit(":", 1)[-1]) in blocked_push:
+            if _matches_blocked_ref(a.rsplit(":", 1)[-1], blocked_push):
                 return "pr-protected-ref", _PR_MSG["protected-ref"]
         return None, None
     if subcmd in {"checkout", "switch"}:
         # -b/-B (checkout) or -b/-B/-c/-C (switch) force-create/reset a branch ref;
         # a blocked target is a protected-ref write (refs are global, like branch -f).
-        if _created_ref(subcmd, args) in blocked_push:
+        if _matches_blocked_ref(_created_ref(subcmd, args), blocked_push):
             return "pr-protected-ref", _PR_MSG["protected-ref"]
         return None, None
     if subcmd == "worktree":
         # `git worktree add -b|-B <blocked>` or `... <path> <blocked>` would create or
         # check the integration/protected line out into a worktree — refuse it so a
         # worktree HEAD is always a non-blocked branch (keeps the push rule above safe).
-        if args and args[0] == "add" and _worktree_add_branch(args[1:]) in blocked_push:
+        if (
+            args
+            and args[0] == "add"
+            and _matches_blocked_ref(_worktree_add_branch(args[1:]), blocked_push)
+        ):
             return "pr-protected-ref", _PR_MSG["protected-ref"]
         return None, None
     if subcmd in {"filter-branch", "filter-repo"}:
