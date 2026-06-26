@@ -112,6 +112,11 @@ describe('GitTab (TASK-552)', () => {
     expect(screen.getByRole('checkbox', { name: 'Enable pr-mode' })).toBeInTheDocument();
     expect(screen.getByText('Team + GitHub CI')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'What is Integration branch?' })).toBeInTheDocument();
+    expect(screen.getByText(/shared-tree edits can still happen/)).toBeInTheDocument();
+    expect(screen.getByText(/Exact names and patterns are enforced/)).toBeInTheDocument();
+    expect(screen.getByText(/Draft, auto-merge, and autonomous publish through GitHub/)).toBeInTheDocument();
+    expect(screen.getByText('PR publish unavailable')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Protect release/*' })).toBeInTheDocument();
     // A consumer must never see meta-repo framing (TASK-560): no amber caution, no "coding-os itself" leak.
     expect(screen.queryByText(/viewing coding-os, the meta-repo/)).toBeNull();
     expect(screen.queryByText(/coding-os itself/)).toBeNull();

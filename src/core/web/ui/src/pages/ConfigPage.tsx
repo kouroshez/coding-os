@@ -576,9 +576,9 @@ const FIELD_TIPS = {
   integration_branch:
     'The branch agents merge their work into, via PR — they branch off it and target it. Usually main or develop. It stays always-green: broken code can’t reach it because CI gates the merge.',
   protected_branches:
-    'Branches agents may NEVER write, push, or merge to — human-only (e.g. production). The branch-guard hook blocks every agent write to these. Leave empty if you have none.',
+    'Branches agents may NEVER write, push, or merge to — human-only (e.g. production). Exact names and shell-style patterns such as release/* are enforced by branch-guard. Leave empty if you have none.',
   autonomy_level:
-    'How far an agent acts without you. Local: commits only, you merge. Draft: opens a PR, you click merge. Auto-merge: merges itself when CI is green. Autonomous: also cleans up after itself. Higher rungs need a remote + GitHub. CI always gates the merge — autonomy changes who clicks merge, never whether code is checked.',
+    'How far an agent acts without you. Local: commits only, you merge. Draft: opens a PR, you click merge. Auto-merge: merges itself when CI is green. Autonomous: also cleans up after itself. Higher rungs need a remote + GitHub gh today. CI always gates the merge — autonomy changes who clicks merge, never whether code is checked.',
 };
 
 // Common branch presets for the no-branch-list fallback chips.
@@ -587,6 +587,9 @@ const PROTECTED_BRANCH_CHIPS = ['production', 'main', 'release/*'];
 
 const inputClass =
   'mt-1 w-full rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)]/40 px-2.5 py-1.5 text-sm text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none';
+
+const isBranchPattern = (branch: string) =>
+  branch.includes('*') || branch.includes('?') || branch.includes('[');
 
 function GitTab() {
   const qc = useQueryClient();
@@ -677,9 +680,14 @@ function GitTab() {
   // Warn (never block) when a configured branch doesn't exist in the repo — the
   // free-text trap that let a consumer silently set a non-existent branch.
   const unknownBranches = hasBranchList
-    ? [form.integration_branch, ...form.protected_branches]
-        .map((b) => b.trim())
-        .filter((b) => b && !branches.includes(b))
+    ? [
+        ...(branches.includes(form.integration_branch.trim())
+          ? []
+          : [form.integration_branch.trim()].filter(Boolean)),
+        ...form.protected_branches
+          .map((b) => b.trim())
+          .filter((b) => b && !isBranchPattern(b) && !branches.includes(b)),
+      ]
     : [];
   const toggleProtected = (branch: string, on: boolean) =>
     setForm({
@@ -741,7 +749,9 @@ function GitTab() {
             <Pill tone={state.remote ? 'ok' : 'muted'}>remote {state.remote ? '✓' : '—'}</Pill>
             <Pill tone={state.gh ? 'ok' : 'muted'}>gh {state.gh ? '✓' : '—'}</Pill>
             <Pill tone={state.required_check ? 'ok' : 'muted'}>required CI {state.required_check ? '✓' : '—'}</Pill>
-            <Pill tone={state.pr_ok ? 'ok' : 'muted'}>{state.pr_ok ? 'pr-ready' : 'degrades to trunk'}</Pill>
+            <Pill tone={state.pr_ok ? 'ok' : 'muted'}>
+              {state.pr_ok ? 'pr-ready' : 'PR publish unavailable'}
+            </Pill>
           </>
         )}
       </div>
@@ -816,9 +826,9 @@ function GitTab() {
         <div className="space-y-1 text-[11px] text-[var(--cos-faint)]">
           {isMetaRepo && <p>Disabled on coding-os — the meta-repo stays trunk (ADR-0013).</p>}
           <p>
-            Enforced for the <strong className="text-[var(--cos-muted)]">agent</strong> only: pr-mode’s
-            branch/worktree guards bind agent tool-calls (Claude Code; Codex is Bash-only). Human git, or
-            git run from another tool, is not constrained — install the repo git hooks for that.
+            Agent-layer only: Claude gets edit + git guards; Codex gets Bash/git guards, so shared-tree
+            edits can still happen, but shared-tree commits/pushes are blocked. Human/plain git is outside
+            this hook wall; repo git hooks cover content and commit messages only.
           </p>
         </div>
 
@@ -907,7 +917,9 @@ function GitTab() {
                       onChange={() => toggleProtected(b, false)}
                       className="h-3.5 w-3.5 accent-[var(--cos-accent)] focus-visible:ring-2"
                     />
-                    <span className="font-mono text-[12px]">{b} (not in repo)</span>
+                    <span className="font-mono text-[12px]">
+                      {b} {isBranchPattern(b) ? '(pattern)' : '(not in repo)'}
+                    </span>
                   </label>
                 ))}
             </div>
@@ -956,6 +968,11 @@ function GitTab() {
               ? 'None — no protected branches.'
               : `Human-only: ${form.protected_branches.join(', ')}`}
           </span>
+          <span className="mt-1 block text-[11px] text-[var(--cos-faint)]">
+            Exact names and patterns are enforced; <span className="font-mono">release/*</span> covers{' '}
+            <span className="font-mono">release/v1</span>, not{' '}
+            <span className="font-mono">release-candidate</span>.
+          </span>
         </div>
 
         <label className="block">
@@ -988,6 +1005,11 @@ function GitTab() {
           </select>
           <span className="mt-1 block text-[11px] text-[var(--cos-faint)]">
             {AUTONOMY_OPTIONS.find((o) => o.value === form.autonomy_level)?.hint}
+          </span>
+          <span className="mt-1 block text-[11px] text-[var(--cos-faint)]">
+            Draft, auto-merge, and autonomous publish through GitHub{' '}
+            <span className="font-mono">gh</span> today. GitLab, Gitea, Forgejo,
+            Bitbucket, and self-hosted forges use <span className="font-mono">Local</span>.
           </span>
           {state && !state.pr_ok && form.autonomy_level !== 'local' && (
             <p className="mt-1 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] text-amber-400">
