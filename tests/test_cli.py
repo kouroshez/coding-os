@@ -3284,8 +3284,8 @@ class TestCosPr:
     # --- TASK-527: no-required-check repo must NOT silently strand a PR -------
 
     @staticmethod
-    def _fake_gh(prc, monkeypatch, *, merge_calls: list | None = None):
-        """Route `gh pr create`/`gh pr merge` to fakes, real subprocess for git."""
+    def _fake_gh(prc, monkeypatch, *, merge_calls: list | None = None, review_decision=None):
+        """Route `gh pr create`/`merge`/`view` to fakes, real subprocess for git."""
         real_run = prc._run
 
         def fake_run(args, **kw):
@@ -3296,6 +3296,9 @@ class TestCosPr:
                     raise AssertionError("auto-merge must NOT arm without a required check")
                 merge_calls.append(args)
                 return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
+            if args[:3] == ["gh", "pr", "view"]:
+                body = json.dumps({"reviewDecision": review_decision})
+                return subprocess.CompletedProcess(args, 0, stdout=body, stderr="")
             return real_run(args, **kw)
 
         monkeypatch.setattr(prc, "_run", fake_run)
@@ -3959,3 +3962,65 @@ class TestCosPr:
         assert not (wt.parent / "escape").exists()  # no link escaped the worktree
         assert (wt / "node_modules").is_symlink()  # the safe one still linked
         assert "linked=node_modules" in res.output
+
+    # --- TASK-592: review-required is a distinct signal, not silent auto-merge ---
+
+    def test_rollup_state_review_required_overrides_passing(self) -> None:
+        import cli.pr_commands as prc
+
+        green = [{"conclusion": "SUCCESS", "status": "COMPLETED"}]
+        armed = {"state": "OPEN", "statusCheckRollup": green, "autoMergeRequest": {"enabledAt": "x"}}
+        # Green + auto-merge armed, but the review gate is still open → review-required.
+        assert prc._rollup_state({**armed, "reviewDecision": "REVIEW_REQUIRED"}) == "review-required"
+        assert prc._rollup_state({**armed, "reviewDecision": "CHANGES_REQUESTED"}) == "review-required"
+        # No review gate (approved / not required) → unchanged passing signal.
+        assert prc._rollup_state({**armed, "reviewDecision": "APPROVED"}) == "passing"
+        assert prc._rollup_state({**armed, "reviewDecision": None}) == "passing"
+
+    def test_submit_auto_merge_armed_awaiting_review(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # auto_merge + required check + a required REVIEW: arming is correct (it lands
+        # once approved) but submit must surface the human-approval gate, not "will merge".
+        import cli.pr_commands as prc
+
+        self._add_bare_remote(repo, tmp_path)
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
+        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        merge_calls: list = []
+        self._fake_gh(prc, monkeypatch, merge_calls=merge_calls, review_decision="REVIEW_REQUIRED")
+
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "merge_status: auto-merge-armed-awaiting-review" in res.output
+        assert "review_required: True" in res.output
+        assert len(merge_calls) == 1  # auto-merge IS armed — it merges once approved
+        assert "approve" in res.output.lower()  # action tells a human to approve
+
+    def test_submit_auto_merge_armed_no_review_is_unchanged(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Regression: with NO review gate the normal armed path is byte-for-byte intact.
+        import cli.pr_commands as prc
+
+        self._add_bare_remote(repo, tmp_path)
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
+        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        merge_calls: list = []
+        self._fake_gh(prc, monkeypatch, merge_calls=merge_calls, review_decision=None)
+
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "merge_status: auto-merge-armed" in res.output
+        assert "awaiting-review" not in res.output
+        assert "review_required: False" in res.output

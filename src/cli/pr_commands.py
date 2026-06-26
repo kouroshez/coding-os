@@ -668,9 +668,21 @@ def pr_submit(
         # no CI gate. Stays armed; merges itself once the check is green.
         armed = _run(["gh", "pr", "merge", "--auto", "--squash"], cwd=wt).returncode == 0
 
+    # auto_merge + a required REVIEW (CODEOWNERS / ruleset) = armed but unmergeable
+    # until a human approves — surface it so submit never reports "will merge" while
+    # the PR silently waits on an approval the agent can't give.
+    review_required = armed and _pr_review_required(wt, branch)
+
     # A no-required-check repo silently no-ops `gh pr merge --auto`; surface the
-    # outcome so submit never strands an open PR with no signal (TASK-527).
-    if armed:
+    # outcome so submit never strands an open PR with no signal.
+    if armed and review_required:
+        merge_status = "auto-merge-armed-awaiting-review"
+        action = (
+            f"PR auto-merge armed, but '{integration}' requires an approving review — it "
+            f"stays open until a human approves, then merges itself. Approve the PR (the "
+            f"agent never self-approves)."
+        )
+    elif armed:
         merge_status = "auto-merge-armed"
         action = f"PR merges itself once the required check on '{integration}' is green"
     elif not pr_ok:
@@ -716,6 +728,7 @@ def pr_submit(
         "pr_url": pr.stdout.strip() if pr_ok else "",
         "auto_merge_armed": armed,
         "required_check": cap["required_check"],
+        "review_required": review_required,
         "autonomy_level": autonomy,
         "merge_status": merge_status,
         "board_blocked": board_blocked,
@@ -728,7 +741,7 @@ def pr_submit(
 
 @pr_group.command("status", help="List this repo's pr-mode worktrees, branches, and open PRs.")
 @click.option("--repo", "repo_opt", default=None)
-@click.option("--branch", default=None, help="Report one agent branch's CI rollup (merged|red|pending|passing|passing-unarmed|closed|none) — the driver-loop signal.")
+@click.option("--branch", default=None, help="Report one agent branch's CI rollup (merged|red|pending|review-required|passing|passing-unarmed|closed|none) — the driver-loop signal.")
 @click.option("--json", "as_json", is_flag=True)
 def pr_status(repo_opt: str | None, branch: str | None, as_json: bool) -> None:
     repo = _resolve_repo(repo_opt)
@@ -749,7 +762,7 @@ def pr_status(repo_opt: str | None, branch: str | None, as_json: bool) -> None:
     if _gh_ready():
         out = _run(
             ["gh", "pr", "list", "--search", "head:agents/", "--json",
-             "number,headRefName,state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest"],
+             "number,headRefName,state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest,reviewDecision"],
             cwd=repo,
         )
         if out.returncode == 0:
@@ -875,8 +888,8 @@ def _pr_state(repo: str, branch: str) -> str:
 
 
 def _rollup_state(pr: dict) -> str:
-    # merged|red|pending|passing|passing-unarmed|closed|none — one CI signal
-    # distilled from gh's statusCheckRollup for the autonomous driver loop (TASK-529).
+    # merged|red|pending|review-required|passing|passing-unarmed|closed|none — one CI
+    # signal distilled from gh's statusCheckRollup for the autonomous driver loop.
     if pr.get("mergedAt") or str(pr.get("state", "")).upper() == "MERGED":
         return "merged"
     if str(pr.get("state", "")).upper() == "CLOSED":
@@ -894,9 +907,15 @@ def _rollup_state(pr: dict) -> str:
         return "red"
     if any(waiting & fields(c) for c in checks):
         return "pending"
+    # Green checks — but a required review (branch protection / ruleset / CODEOWNERS)
+    # still blocks merge until a human approves. Distinct from passing-unarmed so the
+    # driver STOPs for an approval instead of spinning on an auto-merge that has been
+    # armed but can never fire while the review gate is open.
+    if str(pr.get("reviewDecision") or "").upper() in {"REVIEW_REQUIRED", "CHANGES_REQUESTED"}:
+        return "review-required"
     # Green — but only "passing" (auto-merge will land it) when auto-merge is armed
     # AND the PR isn't a draft; else "passing-unarmed" so the driver STOPs for a human
-    # merge from the signal alone, never from a remembered submit merge_status (D5).
+    # merge from the signal alone, never from a remembered submit merge_status.
     if pr.get("isDraft") or not pr.get("autoMergeRequest"):
         return "passing-unarmed"
     return "passing"
@@ -907,7 +926,7 @@ def _pr_ci_rollup(repo: str, branch: str) -> str:
         return "unknown"
     out = _run(
         ["gh", "pr", "view", branch, "--json",
-         "state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest"],
+         "state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest,reviewDecision"],
         cwd=repo,
     )
     if out.returncode != 0:
@@ -917,6 +936,20 @@ def _pr_ci_rollup(repo: str, branch: str) -> str:
     except json.JSONDecodeError:
         return "unknown"
     return _rollup_state(pr) if pr else "none"
+
+
+def _pr_review_required(wt: Path, branch: str) -> bool:
+    # Does THIS PR's review gate (branch protection / ruleset / CODEOWNERS) still
+    # block merge? Read the PR's own reviewDecision — authoritative where a probe of
+    # required_pull_request_reviews would miss ruleset- and CODEOWNERS-driven reviews.
+    out = _run(["gh", "pr", "view", branch, "--json", "reviewDecision"], cwd=wt)
+    if out.returncode != 0:
+        return False
+    try:
+        decision = json.loads(out.stdout or "{}").get("reviewDecision")
+    except json.JSONDecodeError:
+        return False
+    return str(decision or "").upper() in {"REVIEW_REQUIRED", "CHANGES_REQUESTED"}
 
 
 def _branch_recoverable(repo: str, branch: str, integration: str) -> bool:
