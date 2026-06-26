@@ -35,3 +35,4 @@ references: []
 ## Work Log
 - 2026-06-26 [claude]: commit aa60ad5a0d — chore(golden): refresh hook goldens for cos-env/block-dangerous/session-context drift
 - 2026-06-26 [claude]: Chose lock-file-presence + owner-agent-pid liveness over host-global pgrep: the existing PostToolUse release leg…
+- 2026-06-26 [claude]: committed e30931c7 · 1 file
