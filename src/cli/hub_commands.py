@@ -84,6 +84,32 @@ def _hub_health_ok(port: int) -> bool:
         return False
 
 
+def _port_accepts_connections(port: int) -> bool:
+    import socket
+
+    try:
+        with socket.create_connection((HUB_HOST, port), timeout=0.3):
+            return True
+    except OSError:
+        return False
+
+
+def _hub_listener_state(port: int) -> str:
+    if _hub_health_ok(port):
+        return "healthy"
+    if _port_accepts_connections(port):
+        return "occupied"
+    return "down"
+
+
+def _listener_label(state: str) -> str:
+    if state == "healthy":
+        return "responds to /health"
+    if state == "occupied":
+        return "accepts TCP connections but does not answer /health"
+    return "not listening"
+
+
 def _core_newest_mtime() -> tuple[float, Path | None]:
     """Newest mtime among the in-process core *.py the hub loads (skips tests/caches)."""
     from cli._resources import core_dir
@@ -200,6 +226,15 @@ def hub_start(port: int, foreground: bool, reload_: bool) -> None:
                 if _read_pid() is None:
                     break
         _pid_file().unlink(missing_ok=True)
+
+    listener_state = _hub_listener_state(port)
+    if listener_state != "down":
+        raise click.ClickException(
+            f"Hub port {HUB_HOST}:{port} has an unmanaged listener "
+            f"({_listener_label(listener_state)}) but no live hub.pid at {_pid_file()}. "
+            f"Stop that process or restore the pid file before running `cos hub start`. "
+            f"Inspect with `lsof -nP -iTCP:{port} -sTCP:LISTEN`."
+        )
 
     log = _log_file()
     log.touch(exist_ok=True)
@@ -330,7 +365,18 @@ def hub_status() -> None:
     """
     pid = _read_pid()
     if pid is None:
-        click.echo("Hub: not running")
+        listener_state = _hub_listener_state(DEFAULT_HUB_PORT)
+        if listener_state == "down":
+            click.echo("Hub: not running")
+        else:
+            click.echo(
+                f"Hub: unmanaged listener on http://{HUB_HOST}:{DEFAULT_HUB_PORT} "
+                f"({_listener_label(listener_state)}; no hub.pid)"
+            )
+            click.echo(f"  Logs: {_log_file()}")
+            click.echo(
+                "  Start guard: stop the listener or restore hub.pid before `cos hub start`"
+            )
     else:
         click.echo(f"Hub: running (pid {pid})")
         click.echo(f"  Logs: {_log_file()}")
