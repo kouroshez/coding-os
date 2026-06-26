@@ -38,3 +38,4 @@ Run /compact in a large session (e.g. 516k ctx). On the very next prompt the ban
 - 2026-06-25 [claude]: Edit context_budget.py
 - 2026-06-26 [claude]: Edit test_context_budget.py
 - 2026-06-26 [claude]: Root-caused: last_context_tokens() scanned backward past the compact boundary to the last pre-compact usage record…
+- 2026-06-26 [claude]: committed 1022a4ab · 2 files
