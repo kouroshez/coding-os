@@ -3322,6 +3322,46 @@ class TestCosPr:
         assert "auto_merge_armed: False" in res.output
         assert "required status check" in res.output  # action names what's missing
 
+    def test_unknown_autonomy_level_falls_back_to_draft(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # M2: a typo'd rung written outside the Hub API (CLI/hand-edit) must not
+        # silently behave as draft while masquerading as the typo — fall back to draft.
+        import cli.pr_commands as prc
+
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "auto-merge")  # hyphen typo
+        assert prc._autonomy_level() == "draft"
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "autonomous")  # valid rung survives
+        assert prc._autonomy_level() == "autonomous"
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "local")
+        assert prc._autonomy_level() == "local"
+
+    def test_submit_degraded_with_task_escalates_to_blocked(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # H3: auto_merge + no required check is a silent deadlock — with a real task
+        # it must escalate the board task to blocked, not just emit a stderr line.
+        import cli.pr_commands as prc
+
+        self._add_bare_remote(repo, tmp_path)
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
+        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        self._fake_gh(prc, monkeypatch)  # gh pr merge => AssertionError if armed
+        calls: list = []
+        monkeypatch.setattr(prc, "_escalate_blocked", lambda *a, **k: (calls.append(a) or True))
+
+        runner.invoke(cli, ["pr", "open", "--task", "TASK-999", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("TASK-999-ses-test-abc"))
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        res = runner.invoke(cli, ["pr", "submit", "--task", "TASK-999", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "merge_status: degraded-no-required-check" in res.output
+        assert "board_blocked: True" in res.output
+        assert calls, "degraded auto_merge with a task must call _escalate_blocked"
+        assert "TASK-999" in calls[0][1]  # task_id threaded to the escalation
+
     def test_submit_arms_auto_merge_once_with_required_check(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

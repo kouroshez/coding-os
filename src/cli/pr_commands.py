@@ -150,17 +150,34 @@ def _integration_branch(repo: str | None = None) -> str:
     return "main"
 
 
+_AUTONOMY_LEVELS = ("local", "draft", "auto_merge", "autonomous")
+
+
 def _autonomy_level(repo: str | None = None) -> str:
     # Trust Spectrum: draft never arms auto-merge; auto_merge/autonomous do.
-    # Explicit env var wins; else the consumer's saved autonomy_level.
+    # Explicit env var wins; else the consumer's saved autonomy_level. The Hub API
+    # edge validates the rung (Literal), but hub-settings.json can also be written
+    # by the CLI or by hand — so validate HERE, where the value is consumed, and
+    # fall back to the safe 'draft' on an unknown rung rather than letting a typo
+    # silently behave as draft while reporting itself as the typo'd value.
+    raw = ""
     env = os.environ.get("COS_GIT_AUTONOMY")
     if env and env.strip():
-        return env.strip()
-    if repo is not None:
+        raw = env.strip()
+    elif repo is not None:
         level = _git_settings(repo).get("autonomy_level")
         if isinstance(level, str) and level.strip():
-            return level.strip()
-    return "draft"
+            raw = level.strip()
+    if not raw:
+        return "draft"
+    if raw not in _AUTONOMY_LEVELS:
+        click.echo(
+            f"cos pr: unknown autonomy_level {raw!r} — falling back to 'draft' "
+            f"(valid: {', '.join(_AUTONOMY_LEVELS)})",
+            err=True,
+        )
+        return "draft"
+    return raw
 
 
 def _agent_session() -> str:
@@ -561,6 +578,21 @@ def pr_submit(
         merge_status = "arm-failed"
         action = "required check exists but 'gh pr merge --auto' did not arm — check gh auth/permissions"
 
+    # H3: auto_merge/autonomous + no required check = a silent deadlock (the PR will
+    # neither merge nor fail). Escalate the board task to blocked so a human adds the
+    # check, instead of leaving an open PR with only a non-fatal stderr line.
+    board_blocked = False
+    if merge_status == "degraded-no-required-check" and task_id:
+        board_blocked = _escalate_blocked(
+            repo,
+            task_id,
+            f"pr-mode auto-merge deadlock: autonomy={autonomy} but '{integration}' has no "
+            f"required status check — the PR will neither merge nor fail",
+            f"pr-mode auto-merge deadlock (no required check on '{integration}')",
+        )
+        if board_blocked:
+            action += " Task escalated to blocked — add a required check, then re-submit."
+
     _emit(
         {
             "branch": branch,
@@ -571,6 +603,7 @@ def pr_submit(
             "required_check": cap["required_check"],
             "autonomy_level": autonomy,
             "merge_status": merge_status,
+            "board_blocked": board_blocked,
             "action": action,
         },
         as_json,
@@ -1252,7 +1285,10 @@ def _open_pr_count(repo: str, session: str) -> int:
     return sum(1 for p in prs if str(p.get("headRefName", "")).rsplit("/", 1)[-1] == session)
 
 
-def _escalate_blocked(repo: str, task_id: str | None, reason: str, attempts: int) -> bool:
+def _escalate_blocked(repo: str, task_id: str | None, summary: str, move_reason: str) -> bool:
+    # Generic "move the board task to blocked + log why" — callers own the wording
+    # (heal: budget exhausted; submit: auto-merge deadlock) so the work-log line is
+    # accurate per cause rather than always reading "self-heal".
     if not task_id:
         return False
     try:
@@ -1260,17 +1296,13 @@ def _escalate_blocked(repo: str, task_id: str | None, reason: str, attempts: int
         from core.board_os.mcp_tools import cos_task_move, cos_work_log_append
 
         conn = _db_conn()
-        cos_work_log_append(
-            conn,
-            task_id=task_id,
-            summary=f"pr-mode self-heal budget exhausted after {attempts} attempts: {reason}",
-        )
+        cos_work_log_append(conn, task_id=task_id, summary=summary)
         env = json.loads(
             cos_task_move(
                 conn,
                 task_id=task_id,
                 to="blocked",
-                reason=f"pr-mode heal budget exhausted ({reason})",
+                reason=move_reason,
                 agent_session=_agent_session_id(),
             )
         )
@@ -1304,7 +1336,12 @@ def pr_heal(
     max_n = _env_int("COS_PR_HEAL_MAX", 3)
 
     if count > max_n:
-        blocked = _escalate_blocked(repo, task_id, reason, count)
+        blocked = _escalate_blocked(
+            repo,
+            task_id,
+            f"pr-mode self-heal budget exhausted after {count} attempts: {reason}",
+            f"pr-mode heal budget exhausted ({reason})",
+        )
         _emit(
             {
                 "branch": branch,
