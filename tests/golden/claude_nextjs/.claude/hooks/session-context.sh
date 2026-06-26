@@ -628,6 +628,15 @@ except OSError:
     WARN=" ⚠️ wip=${WIP_NUM} but task=none — cos task-start <ID>"
   fi
 
+  # State-misroute (TASK-585b): cos-env.sh exports COS_STATE_MISROUTE=1 when a
+  # command inside a worktree cannot resolve its main repo, so cognitive state
+  # (board, task, presence, work-log) binds to a quarantine dir invisible to the
+  # Hub and to siblings. cos-env warns only ONCE to stderr; surface it on EVERY
+  # turn so the operator fixes the misconfig instead of silently diverging.
+  if [ "${COS_STATE_MISROUTE:-0}" = "1" ]; then
+    WARN="${WARN} ⚠️ state misrouted — board/task state is going to a quarantine dir; export COS_PROJECT_ROOT=<main-repo>"
+  fi
+
   # CLEAR-1 self-bypass count (TASK-494): surface how many times this session
   # self-exempted from the enforcement gates via a manual "CLEAR 1" gate write,
   # so the cost of bypassing is visible rather than silent. Fail-open.

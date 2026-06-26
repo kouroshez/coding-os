@@ -282,11 +282,17 @@ if [[ -f "${COS_STATE_DIR}/hub-settings.json" ]] \
     COS_GIT_AUTONOMY="$(printf '%s' "$_cos_git_line" | cut -f4)"
     export COS_GIT_WORKFLOW="pr" COS_GIT_INTEGRATION_BRANCH COS_GIT_PROTECTED_BRANCHES COS_GIT_AUTONOMY
   elif [[ -z "${COS_GIT_WORKFLOW:-}" && -z "$_cos_git_line" ]]; then
-    # grep matched the git_settings key but no parser could read it (corrupt JSON, or
-    # neither jq nor python3) → the project runs as TRUNK, NOT the pr-mode the operator
-    # chose. Surface it once instead of a silent downgrade.
+    # grep matched the git_settings key but no parser could read it (corrupt/torn
+    # JSON, or neither jq nor python3). The file EXISTS and names git_settings, so
+    # the operator opted into pr-mode; a torn write must NOT silently re-enable
+    # trunk (where a direct push to main is legal). Fail CLOSED to pr-mode — the
+    # stricter posture — with safe-default policy, and warn once. (TASK-587b)
+    COS_GIT_INTEGRATION_BRANCH="${COS_GIT_INTEGRATION_BRANCH:-main}"
+    COS_GIT_PROTECTED_BRANCHES="${COS_GIT_PROTECTED_BRANCHES:-production}"
+    COS_GIT_AUTONOMY="${COS_GIT_AUTONOMY:-draft}"
+    export COS_GIT_WORKFLOW="pr" COS_GIT_INTEGRATION_BRANCH COS_GIT_PROTECTED_BRANCHES COS_GIT_AUTONOMY
     _cos_git_warn_once "unreadable" \
-      "cos-env: pr-mode requested (git_settings present) but hub-settings.json could not be parsed — running as TRUNK. Fix the file or install jq/python3. (docs/playbooks/pr-workflow.md § 1)"
+      "cos-env: git_settings present but hub-settings.json could not be parsed — failing CLOSED to pr-mode (stricter). Fix the file or install jq/python3 to restore the chosen mode. (docs/playbooks/pr-workflow.md § 1)"
   elif [[ "${COS_GIT_WORKFLOW:-}" == "trunk" && "$_cos_git_enabled" == "true" ]]; then
     # An inherited explicit COS_GIT_WORKFLOW=trunk wins over the file by design;
     # surface the self-downgrade of the Hub policy instead of applying it silently.
