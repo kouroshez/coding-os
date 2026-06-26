@@ -604,13 +604,11 @@ function GitTab() {
   const [form, setForm] = useState<GitSettings | null>(null);
   // Custom-branch add inputs for the no-branch-list fallback (controlled).
   const [customProtected, setCustomProtected] = useState('');
-  // Probe (incl. the gh-api required-check round-trip) only when pr-mode is on;
-  // staleTime caches it so re-opening the tab doesn't re-round-trip (TASK-534).
-  const probeEnabled = form ? form.enabled : !!loaded?.enabled;
-  // Probe the branch the user is currently selecting, not the saved one — and
-  // key the cache by it so switching the dropdown refetches the required_check /
-  // pr_ok pills + the auto_merge warning for THAT branch (M2). staleTime still
-  // caches per-branch, so re-opening the tab on the same branch is a no-op.
+  // Probe whenever the Git tab is open (NOT gated on `enabled`) so the capability
+  // pills + branch list are visible BEFORE the user commits to enabling — a user
+  // must not configure blind then discover at submit the repo can't do pr-mode (M8).
+  // Probe the branch being selected, keyed by it, so switching the dropdown
+  // refetches required_check / pr_ok for THAT branch; staleTime caches per-branch.
   const probeBranch = (form?.integration_branch ?? loaded?.integration_branch ?? 'main').trim() || 'main';
   const {
     data: state,
@@ -620,11 +618,12 @@ function GitTab() {
     ['settings-git-state', probeBranch],
     '/api/settings/git-state',
     { integration: probeBranch },
-    { enabled: probeEnabled, staleTimeMs: 60_000 },
+    { enabled: true, staleTimeMs: 60_000 },
   );
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [confirmEnable, setConfirmEnable] = useState(false);
   // Seed the form once when settings arrive; deps gate the effect so it never loops.
   useEffect(() => {
     if (loaded && form === null) setForm(loaded);
@@ -634,11 +633,25 @@ function GitTab() {
   if (error) return <StateRow>Could not load git settings: {error.message}</StateRow>;
   if (!form) return <StateRow>Loading…</StateRow>;
 
+  // First transition saved-disabled → enabled is the irreversible, wide-blast-radius
+  // change (git-workflow.md) — gate it behind an explicit confirm step (H5).
+  const willEnable = form.enabled && !loaded?.enabled;
+
   const save = async () => {
+    if (isMetaRepo && form.enabled) {
+      setSaveError(
+        'pr-mode cannot be enabled on coding-os — the meta-repo stays trunk (ADR-0013). Enable it on a consumer project instead.',
+      );
+      return;
+    }
+    if (willEnable && !confirmEnable) {
+      setConfirmEnable(true);
+      return;
+    }
     setSaving(true);
     setSaveError(null);
     try {
-      await apiPatch('/api/settings', {
+      const [resp] = await apiPatch<{ settings: { git_settings: GitSettings } }>('/api/settings', {
         git_settings: {
           enabled: form.enabled,
           integration_branch: form.integration_branch.trim() || 'main',
@@ -646,8 +659,12 @@ function GitTab() {
           autonomy_level: form.autonomy_level,
         },
       });
+      // Re-seed from the server-confirmed response so the form shows persisted
+      // truth (incl. any coercion), not the local pre-save state (M7).
+      if (resp?.settings?.git_settings) setForm(resp.settings.git_settings);
       await invalidateApiQueries(qc, 'settings-git');
       await invalidateApiQueries(qc, 'settings-git-state');
+      setConfirmEnable(false);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'save failed');
     } finally {
@@ -679,7 +696,10 @@ function GitTab() {
     if (value && !isProtected(value)) toggleProtected(value, true);
     setCustomProtected('');
   };
-  const applyPreset = (apply: GitSettings) => setForm({ ...form, ...apply });
+  // On the meta-repo a preset must not flip `enabled` on — pr-mode is hard-blocked
+  // there (the mother stays trunk); the preset's branch/autonomy choices still apply.
+  const applyPreset = (apply: GitSettings) =>
+    setForm({ ...form, ...apply, enabled: isMetaRepo ? false : apply.enabled });
   // Selected look keys on "matches the current form", NOT `recommended` — so the
   // Recommended card isn't pre-selected and a clicked preset reads as chosen.
   const sameSet = (a: string[], b: string[]) =>
@@ -712,12 +732,11 @@ function GitTab() {
 
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-[11px] text-[var(--cos-faint)]">capability:</span>
-        {!probeEnabled && <Pill tone="muted">enable pr-mode to probe</Pill>}
-        {probeEnabled && stateLoading && <Pill tone="muted">checking…</Pill>}
-        {probeEnabled && !stateLoading && stateError && !state && (
+        {stateLoading && <Pill tone="muted">checking…</Pill>}
+        {!stateLoading && stateError && !state && (
           <Pill tone="muted">unavailable — git/gh probe failed</Pill>
         )}
-        {probeEnabled && state && (
+        {state && (
           <>
             <Pill tone={state.remote ? 'ok' : 'muted'}>remote {state.remote ? '✓' : '—'}</Pill>
             <Pill tone={state.gh ? 'ok' : 'muted'}>gh {state.gh ? '✓' : '—'}</Pill>
@@ -727,7 +746,7 @@ function GitTab() {
         )}
       </div>
 
-      {probeEnabled && state && (state.current_branch || state.remote_url) && (
+      {state && (state.current_branch || state.remote_url) && (
         <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[var(--cos-faint)]">
           {state.current_branch && (
             <span>
@@ -786,13 +805,22 @@ function GitTab() {
           <input
             type="checkbox"
             checked={form.enabled}
+            disabled={isMetaRepo}
             onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
-            className="h-4 w-4 accent-[var(--cos-accent)] focus-visible:ring-2"
+            className="h-4 w-4 accent-[var(--cos-accent)] focus-visible:ring-2 disabled:opacity-40"
             aria-label="Enable pr-mode"
           />
           <span className="text-sm font-medium text-[var(--cos-text)]">Enable pr-mode</span>
           <InfoTip label="Enable pr-mode">{FIELD_TIPS.enabled}</InfoTip>
         </label>
+        <div className="space-y-1 text-[11px] text-[var(--cos-faint)]">
+          {isMetaRepo && <p>Disabled on coding-os — the meta-repo stays trunk (ADR-0013).</p>}
+          <p>
+            Enforced for the <strong className="text-[var(--cos-muted)]">agent</strong> only: pr-mode’s
+            branch/worktree guards bind agent tool-calls (Claude Code; Codex is Bash-only). Human git, or
+            git run from another tool, is not constrained — install the repo git hooks for that.
+          </p>
+        </div>
 
         <label className="block">
           <FieldLabel label="Integration branch" tip={FIELD_TIPS.integration_branch} />
@@ -994,13 +1022,44 @@ function GitTab() {
           </p>
         )}
 
+        {confirmEnable && (
+          <div
+            role="alertdialog"
+            aria-label="Confirm enabling pr-mode"
+            className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-[11px] leading-relaxed text-[var(--cos-muted)]"
+          >
+            <p className="text-[var(--cos-text)]">
+              Enabling pr-mode switches this project off trunk: agents will isolate every change in its
+              own git worktree and land it via a Pull Request. You can switch back by disabling it.
+            </p>
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => void save()}
+                disabled={saving}
+                className="rounded-md border border-amber-500/50 bg-amber-500/15 px-3 py-1.5 text-amber-300 hover:bg-amber-500/25 focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] disabled:opacity-40"
+              >
+                {saving ? 'Enabling…' : 'Confirm enable'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmEnable(false)}
+                disabled={saving}
+                className="rounded-md border border-[var(--cos-border)] px-3 py-1.5 text-[var(--cos-muted)] hover:border-[var(--cos-accent)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] disabled:opacity-40"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={() => void save()}
-          disabled={saving}
+          disabled={saving || confirmEnable}
           className="rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)] px-3 py-1.5 text-sm text-[var(--cos-text)] hover:border-[var(--cos-accent)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] disabled:opacity-40"
         >
-          {saving ? 'Saving…' : 'Save'}
+          {saving ? 'Saving…' : willEnable ? 'Enable pr-mode…' : 'Save'}
         </button>
       </div>
     </>

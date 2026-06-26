@@ -148,4 +148,24 @@ describe('GitTab (TASK-552)', () => {
       },
     });
   });
+
+  it('hard-blocks enabling pr-mode on the meta-repo (H5)', () => {
+    renderConfig('/p/coding-os/config?tab=git');
+    expect(screen.getByRole('checkbox', { name: 'Enable pr-mode' })).toBeDisabled();
+  });
+
+  it('gates the first enable behind an explicit confirm step (H5)', () => {
+    renderConfig('/p/demo/config?tab=git');
+    apiPatch.mockClear();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Enable pr-mode' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enable pr-mode…' }));
+    // First click only opens the confirm — it must NOT PATCH yet.
+    expect(apiPatch).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog', { name: 'Confirm enabling pr-mode' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm enable' }));
+    expect(apiPatch).toHaveBeenCalledWith(
+      '/api/settings',
+      expect.objectContaining({ git_settings: expect.objectContaining({ enabled: true }) }),
+    );
+  });
 });
