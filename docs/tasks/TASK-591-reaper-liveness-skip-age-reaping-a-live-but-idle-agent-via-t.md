@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: git-foundation-hardening
 labels: [pr-mode, reaper, concurrency, split-from-585, ready]
-status: icebox
+status: testing
 priority: P3
 appetite: 1d
 created: 2026-06-26
-started: null
+started: 2026-06-26
 completed: null
-agent_session: null
+agent_session: ses-claude-20260625-235014-c028
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-591: Reaper liveness: skip age-reaping a live-but-idle agent via the worktree lock-reason pid@host (no in-worktree marker)
 
 **Outcome (one sentence):** Split out of TASK-585. The reaper's 'unknown'-state age-fallback (_session_state returns 'unknown' when no presence record exists; reapable when _worktree_stale past 24h) can reap a still-alive agent whose presence record is missing — work is bundle-preserved first (so disruption, not data-loss, per the over-engineering critic), but a live agent's worktree+branch still vanish. Fix without an in-worktree .pr-owner file (which `git add -A` would commit into the PR): stamp the owner pid@host into the EXISTING `git worktree lock --reason` at `cos pr open` (pr_commands.py:~402), and in the reaper's 'unknown'+stale branch read the lock reason and skip when that pid is alive same-host (reuse presence.pid_alive). Reuses the already-present worktree lock; no new state file, no commit risk.
@@ -34,3 +33,12 @@ Start a pr-mode worktree agent; remove/withhold its presence session JSON under 
 
 ## Work Log
 - 2026-06-26 [claude]: DESIGN BLOCKER found (deferred, not rushed — same class as TASK-590/585a). The task premise 'stamp owner pid@host at…
+- 2026-06-26 [claude]: Edit pr_commands.py
+- 2026-06-26 [claude]: Edit pr_commands.py
+- 2026-06-26 [claude]: Edit pr_commands.py
+- 2026-06-26 [claude]: Edit pr_commands.py
+- 2026-06-26 [claude]: Edit wt_relock_probe.sh
+- 2026-06-26 [claude]: Edit pr_commands.py
+- 2026-06-26 [claude]: Edit test_cli.py
+- 2026-06-26 [claude]: commit 371ed93306 — fix(pr): reaper skips a live-but-presence-less worktree via the lock-owner pid
+- 2026-06-26 [claude]: Resolved the deferred design blocker: the owner pid is NOT taken from cos pr open's ephemeral process — it is read…
