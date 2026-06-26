@@ -120,14 +120,21 @@ Fires only when the Bash command is a pytest / make-verify invocation. Decision 
    for the current tree → BLOCK with `"<suite> green <N>min ago by <agent> — reuse,
    or COS_TEST_FORCE=1 to re-run"`.
 3. **Lock:** `$COS_STATE_DIR/.test-run.lock` is a JSON lockfile
-   `{suite, agent, session_tail, started_ts}` — NOT an `flock(1)` lock: the binary
-   does not exist on stock macOS, and a PreToolUse hook exits before pytest starts so
-   it could not hold an advisory lock across the run anyway. The governor treats the
-   lock as **held** iff it exists AND `now - started_ts < lock_ttl` (default 1800 s)
-   AND a live `pytest` process is visible (`pgrep -f pytest`). Held → BLOCK naming the
-   holder; stale (TTL exceeded or no live pytest) → overwrite and proceed. The
-   auto-record PostToolUse hook removes the lockfile when the suite command completes;
-   a crashed agent's lock self-expires via the TTL/liveness check.
+   `{suite, agent, session_tail, agent_pid, started_ts}` — NOT an `flock(1)` lock: the
+   binary does not exist on stock macOS, and a PreToolUse hook exits before pytest
+   starts so it could not hold an advisory lock across the run anyway. The governor
+   treats the lock as **held** iff it exists AND `now - started_ts < lock_ttl`
+   (default 1800 s); a sibling within that window is BLOCKed naming the holder. There
+   is **no** host-global `pgrep -f pytest` — it phantom-held across repos (repo A
+   blocked by repo B's unrelated pytest) and false-cleared on `uv run` / pytest-xdist
+   worker argv. Two early-release legs bound the hold: the auto-record PostToolUse hook
+   deletes the lockfile the instant THIS repo's pytest exits, and a lock whose
+   `agent_pid` (the owning panel's runtime `$PPID`) is no longer alive (`kill -0`) is
+   freed without waiting out the TTL. The owning panel also reclaims its own lock
+   immediately by `session_tail`. Tradeoff: a run whose tool call is interrupted with
+   no PostToolUse (e.g. a user Escape) leaves the lock until the TTL while the panel
+   stays alive, so a sibling waits up to `lock_ttl` — it errs SAFE (over-hold, never a
+   double-run).
 4. Otherwise allow; block messages recommend `nice -n 19` (macOS alt: `taskpolicy -b`).
 - Internal errors → fail-open (`exit 0`); the sweep check is the only fail-closed leg.
 
@@ -142,7 +149,7 @@ Fires only when the Bash command is a pytest / make-verify invocation. Decision 
 | Human pytest | ❌ | `make` targets call record-verify.sh; documented path |
 | CI | ❌ state dir absent | hooks fail-open; CI always runs everything |
 
-Edge scenarios: lock-holder crash → lockfile self-expires via TTL + pytest-liveness check (verified by test);
+Edge scenarios: lock-holder crash → lockfile frees on a dead `agent_pid` (`kill -0`) or self-expires via TTL (verified by test);
 new commit lands → `git_head` mismatch invalidates all prior PASSes; dirty-tree edit →
 `dirty_digest` mismatch invalidates; two agents, different suites → different ledger
 keys, lock still serializes the heavy runs intentionally (one suite at a time per host).

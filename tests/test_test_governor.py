@@ -159,7 +159,7 @@ class TestDedup:
 
 
 class TestRunLock:
-    def test_lock_in_grace_window_blocks(self, state_dir: Path) -> None:
+    def test_fresh_lock_within_ttl_blocks(self, state_dir: Path) -> None:
         lock = {
             "suite": "test-thinking_os",
             "agent": "codex",
@@ -191,8 +191,8 @@ class TestRunLock:
         assert lock["suite"] == "test-board_os"
 
     def test_own_session_lock_is_reclaimed(self, state_dir: Path) -> None:
-        # A failed run whose PostToolUse cleanup never fired must not
-        # self-block the same panel for the grace window (TASK-335).
+        # A failed run whose PostToolUse cleanup never fired must not self-block the
+        # same panel — the OUR-tail reclaim frees a lock carrying our own session_tail.
         lock = {
             "suite": "test-board_os",
             "agent": "claude",

@@ -3120,6 +3120,56 @@ class TestCosPr:
         assert res.exit_code == 0, res.output
         assert "agents/adhoc/ses-test-abc" not in self._branches(repo)  # dead owner → reaped
 
+    def test_reap_keeps_stale_orphan_with_non_ascii_host_in_lock(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-594: `git worktree list --porcelain` C-quotes a reason that carries a
+        # non-ASCII host, so _lock_owner_alive must key on the ASCII pid (not the
+        # quoted host) to still recognise the live owner and keep the worktree.
+        import time
+
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        subprocess.run(["git", "-C", str(repo), "worktree", "unlock", str(wt)], check=False)
+        subprocess.run(
+            ["git", "-C", str(repo), "worktree", "lock", str(wt),
+             "--reason", f"pr-mode session ses-test-abc owner={os.getpid()}@café-höst"],
+            check=True,
+        )
+        old = time.time() - 3600
+        for path in [wt, *wt.rglob("*")]:
+            try:
+                os.utime(path, (old, old))
+            except OSError:
+                pass
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # live pid parsed past the quote
+
+    def test_reopen_refreshes_owner_stamp(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-594: `git worktree lock` no-ops on an already-locked tree, so an
+        # idempotent re-open must unlock+relock to refresh the owner=<pid> stamp to
+        # the (possibly restarted) session's current pid.
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        sess_dir = repo / ".coding-os" / "claude" / "sessions"
+        sess_dir.mkdir(parents=True, exist_ok=True)
+        rec = sess_dir / "ses-test-abc.json"
+        rec.write_text(json.dumps({"session_id": "ses-test-abc", "pid": 11111}), encoding="utf-8")
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        assert "owner=11111" in prc._worktree_lock_reason(str(repo), wt)
+        rec.write_text(json.dumps({"session_id": "ses-test-abc", "pid": 22222}), encoding="utf-8")
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])  # idempotent re-open
+        assert "owner=22222" in prc._worktree_lock_reason(str(repo), wt)  # stamp refreshed
+
     def test_reap_removes_dead_pid_session(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

@@ -509,7 +509,12 @@ def pr_open(
     # peer's rebase is unsafe. Pin it off per worktree.
     _git(["config", "gc.auto", "0"], cwd=wt)
     # Lock the worktree so a peer's `git worktree prune` cannot remove a live
-    # session's checkout (TASK-519 §2). Idempotent — a re-lock just errors.
+    # session's checkout. On an idempotent re-open the tree is already locked and
+    # `git worktree lock` would no-op, stranding a previous (possibly dead) owner
+    # pid in the reason — unlock first so the stamp refreshes to THIS session's live
+    # pid (a peer reaper keeps a presence-live worktree regardless of the reason).
+    if already:
+        _git(["worktree", "unlock", str(wt)], cwd=repo)
     _git(["worktree", "lock", str(wt), "--reason", _live_lock_reason(repo, session)], cwd=repo)
 
     # Bootstrap deps/secrets only on a freshly created checkout.
@@ -1180,7 +1185,7 @@ def _owner_pid_host(repo: str, session: str) -> tuple[int, str]:
     # Snapshotting it into the worktree lock reason lets the reaper recognise a
     # live owner even after the presence record is later rotated or deleted.
     state_dir = Path(repo) / ".coding-os"
-    for sess_dir in state_dir.glob("*/sessions"):
+    for sess_dir in sorted(state_dir.glob("*/sessions")):
         jf = sess_dir / f"{session}.json"
         if not jf.is_file():
             continue
@@ -1221,17 +1226,21 @@ def _worktree_lock_reason(repo: str, wt: Path) -> str:
 
 
 def _lock_owner_alive(repo: str, wt: Path) -> bool:
-    # True when the lock reason names owner=<pid>@<host> alive on THIS host — the
-    # owner agent is still up despite a missing presence record, so an unknown +
-    # age-stale worktree must NOT be reaped (a foreign-host pid is never proof).
-    match = re.search(r"owner=(\d+)@(\S+)", _worktree_lock_reason(repo, wt))
+    # True when the lock reason names an owner=<pid> alive on THIS host — the owner
+    # agent is still up despite a missing presence record, so an unknown + age-stale
+    # worktree must NOT be reaped. Match the pid ONLY (not @host): when the reason
+    # carries a non-ASCII host, `git worktree list --porcelain` C-quotes the whole
+    # reason, which would corrupt a greedy host capture; the ASCII pid always parses.
+    # pid_alive is host-local, so a foreign-host pid simply isn't alive here and the
+    # reap proceeds (its work is bundle-preserved first).
+    match = re.search(r"owner=(\d+)", _worktree_lock_reason(repo, wt))
     if not match:
         return False
     try:
         from core.board_os.presence import pid_alive
     except Exception:
         return False
-    return match.group(2) == socket.gethostname() and pid_alive(int(match.group(1)))
+    return pid_alive(int(match.group(1)))
 
 
 def _ledger_path(repo: str) -> Path:
