@@ -5,13 +5,13 @@
 # skills, commands, role prompts, agent identity) to
 # src/core/scripts/install-adapter.sh, then performs Codex-specific
 # finalization (.codex/hooks.json render, project-local config.toml
-# with codex_hooks feature flag + MCP server entry).
+# with hooks feature flag + MCP server entry).
 #
 # Why Codex-specific finalization stays here:
 #   • hooks.json is generated from registry.yaml-rendered template via
 #     `make regen-adapter-templates`; install.sh just substitutes the
 #     absolute hooks path so commands resolve from any cwd.
-#   • Codex enables hooks via the `codex_hooks = true` flag in
+#   • Codex enables hooks via the `hooks = true` flag in
 #     `.codex/config.toml` (see developers.openai.com/codex/hooks).
 #   • MCP servers for Codex are project-scoped via the same TOML.
 set -euo pipefail
@@ -49,7 +49,7 @@ mkdir -p "${PROJECT_ROOT}/.codex"
 
 ENABLE_HELPER="${CODING_OS_ROOT}/adapters/codex/enable_codex_hooks.py"
 if [[ -x "$ENABLE_HELPER" || -f "$ENABLE_HELPER" ]]; then
-  HOOKS_STATUS="$(python3 "$ENABLE_HELPER" "$CODEX_CONFIG" 2>&1 || echo 'failed to enable codex_hooks (see stderr)')"
+  HOOKS_STATUS="$(python3 "$ENABLE_HELPER" "$CODEX_CONFIG" 2>&1 || echo 'failed to enable hooks (see stderr)')"
 else
   HOOKS_STATUS="helper missing at $ENABLE_HELPER"
 fi

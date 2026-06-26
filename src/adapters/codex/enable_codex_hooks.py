@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Idempotently enable Codex's `codex_hooks = true` feature flag.
+"""Idempotently enable Codex's `hooks = true` feature flag.
 
 Usage:
     python3 enable_codex_hooks.py <path-to-config.toml>
@@ -23,8 +23,9 @@ import sys
 from pathlib import Path
 
 SECTION_RE = re.compile(r"(?ms)^\[features\]\s*\n(?P<body>.*?)(?=^\[|\Z)")
-TRUE_RE = re.compile(r"(?m)^[ \t]*codex_hooks[ \t]*=[ \t]*true[ \t]*$")
-FALSE_RE = re.compile(r"(?m)^[ \t]*codex_hooks[ \t]*=[ \t]*false[ \t]*$")
+TRUE_RE = re.compile(r"(?m)^[ \t]*hooks[ \t]*=[ \t]*true[ \t]*$")
+FALSE_RE = re.compile(r"(?m)^[ \t]*hooks[ \t]*=[ \t]*false[ \t]*$")
+LEGACY_RE = re.compile(r"(?m)^[ \t]*codex_hooks[ \t]*=[ \t]*(?:true|false)[ \t]*\n?")
 
 
 def _status(path: Path, enabled: bool) -> str:
@@ -32,19 +33,36 @@ def _status(path: Path, enabled: bool) -> str:
     return f"{verb} in {path}"
 
 
+def _finish_body(body: str, has_next_section: bool) -> str:
+    body = body.strip("\n")
+    if not body.strip():
+        return ""
+    return body + ("\n\n" if has_next_section else "\n")
+
+
 def _update(path: Path, text: str) -> tuple[str, str]:
     """Return (new_text, status_message). Pure — no IO."""
     match = SECTION_RE.search(text)
     if match:
-        body = match.group("body")
+        old_body = match.group("body")
+        body = LEGACY_RE.sub("", old_body)
+        has_next_section = match.end("body") < len(text)
         if TRUE_RE.search(body):
-            return text, _status(path, enabled=False)
+            body = _finish_body(body, has_next_section)
+            if body == old_body:
+                return text, _status(path, enabled=False)
+            new_text = text[: match.start("body")] + body + text[match.end("body") :]
+            return new_text, _status(path, enabled=True)
         if FALSE_RE.search(body):
-            body = FALSE_RE.sub("codex_hooks = true", body, count=1)
+            body = FALSE_RE.sub("hooks = true", body, count=1)
         else:
-            if body and not body.endswith("\n"):
+            body = body.rstrip("\n")
+            if body:
                 body += "\n"
-            body += "codex_hooks = true\n"
+            body += "hooks = true"
+        body = _finish_body(body, has_next_section)
+        if body == old_body:
+            return text, _status(path, enabled=False)
         new_text = text[: match.start("body")] + body + text[match.end("body") :]
         return new_text, _status(path, enabled=True)
 
@@ -52,7 +70,7 @@ def _update(path: Path, text: str) -> tuple[str, str]:
         text += "\n"
     if text:
         text += "\n"
-    text += "[features]\ncodex_hooks = true\n"
+    text += "[features]\nhooks = true\n"
     return text, _status(path, enabled=True)
 
 

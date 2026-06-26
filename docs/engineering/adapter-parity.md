@@ -130,14 +130,14 @@ Two Codex wire-format details matter in practice:
 - `UserPromptSubmit` payloads carry `prompt`, not `source`. Hooks shared with `SessionStart` must not default that event to `startup`, or they'll rotate `session-id` / clear volatile state on every prompt submit.
 - `Stop` expects JSON on stdout when exiting 0. A dispatcher that succeeds silently should emit `{}` rather than plain text or an empty human banner.
 
-As of **April 18, 2026**, the Codex docs also require the feature flag below for hooks to fire at all:
+As of **June 25, 2026**, the Codex docs require the canonical feature flag below for hooks to fire at all:
 
 ```toml
 [features]
-codex_hooks = true
+hooks = true
 ```
 
-`src/adapters/codex/install.sh` now enables that flag idempotently in the project's `.codex/config.toml` so Codex hooks and MCP stay repo-scoped by default.
+`src/adapters/codex/install.sh` now enables that flag idempotently in the project's `.codex/config.toml` so Codex hooks and MCP stay repo-scoped by default. Older `codex_hooks` entries are migrated away because Codex still accepts them only as a deprecated alias and emits a warning at startup.
 
 Claude's runtime additionally emits:
 

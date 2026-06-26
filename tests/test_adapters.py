@@ -298,7 +298,7 @@ class TestCodexAdapter:
         content = codex_cfg.read_text()
         assert "[mcp_servers.coding-os]" in content
         assert "[features]" in content
-        assert "codex_hooks = true" in content
+        assert "hooks = true" in content
 
     def test_mcp_registration_idempotent(self, project: Path) -> None:
         # Running install twice must not duplicate the [mcp_servers.coding-os]
@@ -310,7 +310,8 @@ class TestCodexAdapter:
         assert codex_cfg.stat().st_size == size_after_first
         assert codex_cfg.read_text().count("[mcp_servers.coding-os]") == 1
         assert codex_cfg.read_text().count("[features]") == 1
-        assert codex_cfg.read_text().count("codex_hooks = true") == 1
+        assert codex_cfg.read_text().count("hooks = true") == 1
+        assert "codex_hooks" not in codex_cfg.read_text()
 
     def test_repairs_false_hooks_without_corrupting_next_section(self, project: Path) -> None:
         codex_cfg = project / ".codex" / "config.toml"
@@ -327,7 +328,8 @@ class TestCodexAdapter:
         run_adapter_install("codex", project)
 
         content = codex_cfg.read_text(encoding="utf-8")
-        assert "codex_hooks = true\n\n[mcp_servers.coding-os]" in content
+        assert "hooks = true\n\n[mcp_servers.coding-os]" in content
+        assert "codex_hooks" not in content
         assert content.count("[mcp_servers.coding-os]") == 1
 
     def test_repairs_stale_mcp_entry_in_place(self, project: Path) -> None:
@@ -335,7 +337,7 @@ class TestCodexAdapter:
         codex_cfg.parent.mkdir(parents=True, exist_ok=True)
         codex_cfg.write_text(
             "[features]\n"
-            "codex_hooks = true\n\n"
+            "hooks = true\n\n"
             "[mcp_servers.coding-os]\n"
             'command = "uv"\n'
             'args = ["run", "--directory", "/old/path", "python", "server.py"]\n',
