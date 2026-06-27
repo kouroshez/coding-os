@@ -1047,6 +1047,83 @@ class TestProjectAnatomy:
 
 
 # ---------------------------------------------------------------------------
+# Generated CI workflow — TASK-609 (render_ci_workflow, modules.cicd-gated)
+# ---------------------------------------------------------------------------
+
+
+class TestCiWorkflow:
+    def _world(self, *stacks: str):
+        return main_module._build_world("claude", tuple(stacks), Path("/tmp/ci-probe"))
+
+    def test_multi_stack_emits_language_matrix_delegating_to_make(self) -> None:
+        from cli.renderer import render_ci_workflow
+
+        out = render_ci_workflow(self._world("django", "nextjs"))
+        doc = yaml.safe_load(out)
+        verify = doc["jobs"]["verify"]
+        legs = {m["language"]: m["targets"] for m in verify["strategy"]["matrix"]["include"]}
+        assert legs["python"] == "lint-backend test-backend"
+        assert legs["typescript"] == "lint-frontend"
+        # Body delegates to make — never pins a ruff/pytest/eslint version.
+        assert "make ${{ matrix.targets }}" in out
+        assert verify["runs-on"] == "ubuntu-latest"
+
+    def test_macos_kept_off_per_push_path(self) -> None:
+        from cli.renderer import render_ci_workflow
+
+        out = render_ci_workflow(self._world("django", "nextjs"))
+        assert "macos" not in out.lower()  # github-actions-cost-macos-10x
+        assert 'paths-ignore: ["docs/tasks/**"]' in out
+
+    def test_adding_a_stack_auto_includes_its_language(self) -> None:
+        from cli.renderer import render_ci_workflow
+
+        one = render_ci_workflow(self._world("nextjs"))
+        two = render_ci_workflow(self._world("nextjs", "django"))
+        assert "language: python" not in one
+        assert "language: python" in two  # new stack's targets appear, no hand edit
+
+    def test_empty_world_renders_nothing(self) -> None:
+        from cli.renderer import render_ci_workflow
+
+        assert render_ci_workflow(self._world()) == ""
+
+    def test_materialize_writes_consumer_owned_file(self, tmp_path: Path) -> None:
+        from cli._init_helpers import materialize_ci_workflow
+
+        assert materialize_ci_workflow(tmp_path, self._world("django", "nextjs"))
+        ci = tmp_path / ".github" / "workflows" / "ci.yml"
+        assert ci.is_file() and not ci.is_symlink()  # init-strip, not a live symlink
+        assert not materialize_ci_workflow(tmp_path, self._world())  # empty → no write
+
+    def test_cicd_module_off_in_lean_profiles_on_in_full(self) -> None:
+        from cli.subsystems import load_profiles, load_subsystems
+
+        assert "cicd" in load_subsystems()
+        profiles, _ = load_profiles()
+        assert "cicd" in profiles["standard"] and "cicd" in profiles["core"]
+        assert "cicd" not in profiles["full"]
+
+    def test_full_profile_init_emits_ci_default_does_not(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        for profile, expected in (("full", True), ("standard", False)):
+            project = tmp_path / profile
+            project.mkdir()
+            result = runner.invoke(
+                cli,
+                [
+                    "init", "--agent", "claude", "-d", str(project),
+                    "--template", "django", "--template", "nextjs",
+                    "--profile", profile, "--no-index", "--no-register",
+                ],
+            )
+            assert result.exit_code == 0, result.output
+            ci = project / ".github" / "workflows" / "ci.yml"
+            assert ci.exists() is expected, f"{profile}: ci.yml exists={ci.exists()}, want {expected}"
+
+
+# ---------------------------------------------------------------------------
 # Regen-chain parameterization — TASK-355 (service-scoped glob propagation)
 # ---------------------------------------------------------------------------
 

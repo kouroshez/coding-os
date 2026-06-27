@@ -28,7 +28,11 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-from cli._init_helpers import ensure_agents_md, materialize_makefile_targets
+from cli._init_helpers import (
+    ensure_agents_md,
+    materialize_ci_workflow,
+    materialize_makefile_targets,
+)
 from cli._resources import (
     adapters_dir,
     core_dir,
@@ -536,6 +540,15 @@ def update(
                 # added/removed. User-authored Makefile targets are untouched.
                 if materialize_makefile_targets(project, project / STATE_DIR, world):
                     click.echo("  Refreshed .coding-os/Makefile.stacks")
+                    overall_changes = True
+                # Same delegation for the CI workflow — gated behind the cicd
+                # module so a lean profile never grows a .github/ surface.
+                from cli.subsystems import module_state
+
+                if module_state(project).get("cicd", True) and materialize_ci_workflow(
+                    project, world
+                ):
+                    click.echo("  Refreshed .github/workflows/ci.yml")
                     overall_changes = True
 
         # Symlinks still dangling AFTER re-link point at a source the current

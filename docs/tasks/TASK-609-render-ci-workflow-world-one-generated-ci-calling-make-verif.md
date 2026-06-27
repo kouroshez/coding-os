@@ -4,19 +4,18 @@ title: "render_ci_workflow(world): one generated CI calling make verify (init-st
 swimlane: cli
 kind: feature
 epic: stack-factory-v2
-labels: []
-status: icebox
+labels: [ready]
+status: complete
 priority: P2
 appetite: 2d
 created: 2026-06-27
-started: null
-completed: null
-agent_session: null
+started: 2026-06-27
+completed: 2026-06-27
+agent_session: ses-claude-20260626-165558-a565
 depends_on: [TASK-605, TASK-606, TASK-607, TASK-608]
 blocked_by: []
 references: []
 ---
-
 # TASK-609: render_ci_workflow(world): one generated CI calling make verify (init-strip, modules.cicd-gated)
 
 **Outcome (one sentence):** One generator emits a single .github/workflows/ci.yml at cos init whose body delegates to `make verify` — the structural twin of render_makefile_targets (renderer.py:194). Because it delegates it never rots with framework versions; because it reads AggregatedWorld, adding a stack/target auto-includes it. init-strip (consumer-owned), gated behind modules.cicd, macOS off the per-push path.
@@ -33,3 +32,17 @@ references: []
 **Then** `uv run pytest tests/test_cli.py -q` is green.
 
 ## Work Log
+- 2026-06-27 [claude]: Edit renderer.py
+- 2026-06-27 [claude]: Edit renderer.py
+- 2026-06-27 [claude]: Edit _init_helpers.py
+- 2026-06-27 [claude]: Edit main.py
+- 2026-06-27 [claude]: Edit main.py
+- 2026-06-27 [claude]: Edit subsystems.yaml
+- 2026-06-27 [claude]: Edit subsystems.yaml
+- 2026-06-27 [claude]: Edit update.py
+- 2026-06-27 [claude]: Edit update.py
+- 2026-06-27 [claude]: Deliberation: render_ci_workflow is a string-builder twin of render_makefile_targets (line-based, not yaml.dump —…
+- 2026-06-27 [claude]: Edit test_cli.py
+- 2026-06-27 [claude]: Edit template-authoring.md
+- 2026-06-27 [claude]: Done: render_ci_workflow (per-language matrix, ubuntu-only, body=make targets delegation) + materialize_ci_workflow…
+- 2026-06-27 [claude]: Status transitioned to complete via cos task-done.

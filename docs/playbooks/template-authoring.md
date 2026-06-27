@@ -139,6 +139,18 @@ adds its own manifest. `_is_exempt_from_work_surfaces` ([stack_lint.py](../../sr
 encodes the decision, so `cos stack-lint` never flags a library stack for a
 missing seed.
 
+### Generated CI workflow (TASK-609)
+
+`render_ci_workflow` ([renderer.py](../../src/cli/renderer.py)) — the structural
+twin of `render_makefile_targets` — emits a single consumer-owned
+`.github/workflows/ci.yml` at `cos init`/`cos update`, gated behind the `cicd`
+module (off in the `core`/`standard` profiles, on in `full`). One matrix leg per
+language, each installing that language's toolchain and running its generated
+make targets. Because the body delegates to `make`, it never pins a tool version,
+and adding a stack re-renders it with the new targets — no hand edit. macOS is
+kept off the per-push path (those runners bill at 10×). A stack contributes to CI
+simply by shipping a `verify:` block; no per-stack CI authoring is needed.
+
 ## Modularity gating — which mechanism, when
 
 There is **no single** toggle mechanism, and that is intentional: the three

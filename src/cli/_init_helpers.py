@@ -515,6 +515,25 @@ def materialize_makefile_targets(project: Path, state: Path, world: AggregatedWo
     return changed
 
 
+def materialize_ci_workflow(project: Path, world: AggregatedWorld) -> bool:
+    """Render the delegating CI workflow into <project>/.github/workflows/ci.yml.
+
+    Consumer-owned (a real file, not a live symlink) so the project keeps full
+    control. A world with no verifiable targets renders nothing → no file.
+    """
+    from cli.renderer import render_ci_workflow
+
+    rendered = render_ci_workflow(world)
+    if not rendered:
+        return False
+    ci_path = project / ".github" / "workflows" / "ci.yml"
+    changed = not ci_path.exists() or ci_path.read_text(encoding="utf-8") != rendered
+    if changed:
+        ci_path.parent.mkdir(parents=True, exist_ok=True)
+        ci_path.write_text(rendered, encoding="utf-8")
+    return changed
+
+
 def _ensure_stacks_include(makefile: Path, state_rel: str) -> bool:
     text = makefile.read_text(encoding="utf-8")
     if "Makefile.stacks" in text:

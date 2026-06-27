@@ -28,9 +28,9 @@ version: 1
 # (never drop a module another profile-enabled module depends on).
 default_profile: standard
 profiles:
-  core: { disabled: [memory, cognition, observability] }   # kernel + docs + tasks + graph
-  standard: { disabled: [cognition] }                       # + memory + observability (default)
-  full: { disabled: [] }                                    # everything (today's behaviour)
+  core: { disabled: [memory, cognition, observability, cicd] }   # kernel + docs + tasks + graph
+  standard: { disabled: [cognition, cicd] }                      # + memory + observability (default)
+  full: { disabled: [] }                                         # everything (today's behaviour)
 
 modules:
   - id: kernel
@@ -147,6 +147,16 @@ modules:
     label: "Hub extras — web UI conveniences beyond the API core"
     kernel: false
     hooks: [ensure-hub-up, warn-mcp-down]
+    tools: []
+    depends_on: []
+
+  - id: cicd
+    label: "CI/CD — generated GitHub Actions workflow that delegates to make"
+    kernel: false
+    # Owns no hooks/tools: it gates the .github/workflows/ci.yml render at init
+    # and update (cli.main / cli.update → materialize_ci_workflow). Off in the
+    # lean profiles; `--profile full` or an explicit enable turns it on.
+    hooks: []
     tools: []
     depends_on: []
 
