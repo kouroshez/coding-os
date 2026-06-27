@@ -55,6 +55,9 @@ routing_entries:
 rules:
   - {file: rules/backend.md, globs: ["src/backend/**/*.py"]}
 
+verify:
+  - {glob: "src/backend/**/*.py", suites: "lint-backend + test-backend", cmd: "cd src/backend && ruff check . && pytest -q"}
+
 dimensions:
   - {name: "Django model / schema", read_files: ["docs/engineering/backend-rules.md", "docs/playbooks/backend-api.md"]}
   - {name: "DRF endpoint",          read_files: ["docs/playbooks/backend-api.md", "docs/api-contracts/error-format.md"]}

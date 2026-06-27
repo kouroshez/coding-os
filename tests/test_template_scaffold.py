@@ -457,6 +457,72 @@ class TestLanguageConfigBundle:
 
 
 # ---------------------------------------------------------------------------
+# Bootable scaffold (work-surface stacks ship a runnable seed)
+# ---------------------------------------------------------------------------
+
+
+class TestBootableScaffold:
+    """fastapi/django ship a runnable seed under `src/backend/` — manifest +
+    entrypoint + sample test + .env + a `verify:` block — so `cos init` output
+    is green after a dependency install. The python library stack is exempt:
+    it ships a skeleton, not an app."""
+
+    _REPO = Path(__file__).resolve().parent.parent
+
+    @pytest.fixture(scope="class")
+    def fastapi_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "boot-fastapi", "fastapi")
+
+    @pytest.fixture(scope="class")
+    def django_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "boot-django", "django")
+
+    @pytest.fixture(scope="class")
+    def python_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "boot-python", "python")
+
+    def test_fastapi_ships_runnable_seed(self, fastapi_project: Path) -> None:
+        backend = fastapi_project / "src" / "backend"
+        pyproject = (backend / "pyproject.toml").read_text()
+        assert "fastapi" in pyproject
+        assert "[tool.pytest.ini_options]" in pyproject
+        main = (backend / "app" / "main.py").read_text()
+        assert "FastAPI" in main and "/health" in main
+        assert (backend / "tests" / "test_health.py").exists()
+        assert (backend / ".env.example").exists()
+
+    def test_fastapi_drops_stale_gitkeep(self, fastapi_project: Path) -> None:
+        # The empty-dir marker is negated once real files land under src/backend.
+        assert not (fastapi_project / "src" / "backend" / ".gitkeep").exists()
+
+    def test_django_ships_runnable_seed(self, django_project: Path) -> None:
+        backend = django_project / "src" / "backend"
+        pyproject = (backend / "pyproject.toml").read_text()
+        assert "django" in pyproject.lower()
+        assert "DJANGO_SETTINGS_MODULE" in pyproject
+        assert (backend / "manage.py").exists()
+        assert "INSTALLED_APPS" in (backend / "config" / "settings.py").read_text()
+        assert "health/" in (backend / "config" / "urls.py").read_text()
+        assert (backend / "tests" / "test_health.py").exists()
+        assert (backend / ".env.example").exists()
+
+    def test_python_library_is_seed_exempt(self, python_project: Path) -> None:
+        # Library stack ships a skeleton, not a runnable app: no forced service
+        # root, entrypoint, or app seed (decision recorded in stack_lint.py).
+        assert not (python_project / "src" / "backend").exists()
+        assert not (python_project / "manage.py").exists()
+        assert not (python_project / "src" / "app" / "main.py").exists()
+
+    @pytest.mark.parametrize("stack", ["fastapi", "django"])
+    def test_work_surface_stack_has_verify_block(self, stack: str) -> None:
+        data = yaml.safe_load((self._REPO / "src" / "templates" / stack / "stack.yaml").read_text())
+        verify = data.get("verify")
+        assert verify, f"{stack} must declare a verify: block"
+        cmd = verify[0]["cmd"]
+        assert "ruff check" in cmd and "pytest" in cmd
+
+
+# ---------------------------------------------------------------------------
 # Foundation map references
 # ---------------------------------------------------------------------------
 

@@ -106,6 +106,27 @@ design: **C#** is configured by the shared `_base` `.editorconfig` (`dotnet
 format` reads it), and **Java** keeps its Spotless config in `pom.xml` (the
 per-stack build manifest, row 13).
 
+### Bootable scaffold (work-surface stacks)
+
+A code-category stack is **bootable** when `cos init` produces a tree whose
+`verify:` command is green after only a dependency install — no hand-authoring.
+That means shipping, under the stack's `structure.root`, four things that line
+up with the factory rows above: a runtime manifest with real deps (row 13), an
+entrypoint, a sample test (row 15), and a `verify:` per-glob block (row 2). The
+manifest lives at the stack root, not the project root, so the linter/test
+runner discover it from the same directory the `verify:` cmd `cd`s into —
+e.g. `fastapi`/`django` put `pyproject.toml` + `app/`|`config/` + `tests/` under
+`src/backend/`, and `verify:` runs `cd src/backend && ruff check . && pytest -q`.
+This mirrors the nestjs reference (`src/backend/package.json` + `src/backend/src/`).
+Dep version pins stay conservative floors (exact pins are a separate per-stack
+firecrawl pass) so a fresh install resolves without a stale ceiling.
+
+`category: library` and `<lang>-plain` stacks are **exempt** (rows 13–15, per the
+line above): they ship a documented skeleton, not a runnable app — a consumer
+adds its own manifest. `_is_exempt_from_work_surfaces` ([stack_lint.py](../../src/cli/stack_lint.py))
+encodes the decision, so `cos stack-lint` never flags a library stack for a
+missing seed.
+
 ## Modularity gating — which mechanism, when
 
 There is **no single** toggle mechanism, and that is intentional: the three

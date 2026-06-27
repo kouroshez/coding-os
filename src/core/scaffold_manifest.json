@@ -1471,9 +1471,17 @@
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "pyproject.toml",
+        "src/backend/.env.example",
+        "src/backend/config/__init__.py",
+        "src/backend/config/settings.py",
+        "src/backend/config/urls.py",
+        "src/backend/config/wsgi.py",
+        "src/backend/manage.py",
+        "src/backend/pyproject.toml",
+        "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 247
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1714,9 +1722,14 @@
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "pyproject.toml",
+        "src/backend/.env.example",
+        "src/backend/app/__init__.py",
+        "src/backend/app/main.py",
+        "src/backend/pyproject.toml",
+        "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 239
     },
     "claude_flutter": {
       "agent": "claude",
@@ -8415,9 +8428,17 @@
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "pyproject.toml",
+        "src/backend/.env.example",
+        "src/backend/config/__init__.py",
+        "src/backend/config/settings.py",
+        "src/backend/config/urls.py",
+        "src/backend/config/wsgi.py",
+        "src/backend/manage.py",
+        "src/backend/pyproject.toml",
+        "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 251
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8662,9 +8683,14 @@
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "pyproject.toml",
+        "src/backend/.env.example",
+        "src/backend/app/__init__.py",
+        "src/backend/app/main.py",
+        "src/backend/pyproject.toml",
+        "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 243
     },
     "codex_flutter": {
       "agent": "codex",

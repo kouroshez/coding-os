@@ -44,6 +44,9 @@ makefile_targets:
   - {name: lint-backend, cmd: "cd src/backend && ruff check ."}
   - {name: test-backend, cmd: "cd src/backend && pytest -q"}
 
+verify:
+  - {glob: "src/backend/**/*.py", suites: "lint-backend + test-backend", cmd: "cd src/backend && ruff check . && pytest -q"}
+
 dimensions:
   - {name: "API endpoint",   read_files: ["docs/playbooks/fastapi-service.md", "docs/engineering/fastapi-rules.md"]}
   - {name: "Pydantic model", read_files: ["docs/engineering/fastapi-rules.md"]}
