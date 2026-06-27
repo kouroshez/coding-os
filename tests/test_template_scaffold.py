@@ -382,7 +382,9 @@ class TestLanguageConfigBundle:
 
     @pytest.fixture(scope="class")
     def ts_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
-        return _class_scaffold(tmp_path_factory, "lang-ts", "nextjs")
+        # typescript-plain keeps the bundle's makefile eslint form; the framework
+        # stacks (nextjs/react-native) moved to a per-stack-root npm script (607).
+        return _class_scaffold(tmp_path_factory, "lang-ts", "typescript-plain")
 
     @pytest.fixture(scope="class")
     def framework_ts_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
@@ -489,6 +491,14 @@ class TestBootableScaffold:
     def gofiber_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
         return _class_scaffold(tmp_path_factory, "boot-gofiber", "go-fiber")
 
+    @pytest.fixture(scope="class")
+    def nextjs_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "boot-nextjs", "nextjs")
+
+    @pytest.fixture(scope="class")
+    def reactnative_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "boot-rn", "react-native")
+
     def test_fastapi_ships_runnable_seed(self, fastapi_project: Path) -> None:
         backend = fastapi_project / "src" / "backend"
         pyproject = (backend / "pyproject.toml").read_text()
@@ -535,6 +545,23 @@ class TestBootableScaffold:
         assert "fiber.New" in main and "/health" in main
         assert (backend / "cmd" / "api" / "main_test.go").exists()
 
+    def test_nextjs_ships_runnable_seed(self, nextjs_project: Path) -> None:
+        frontend = nextjs_project / "src" / "frontend"
+        pkg = (frontend / "package.json").read_text()
+        assert '"next"' in pkg and '"type": "module"' in pkg
+        assert (frontend / "eslint.config.js").exists()
+        assert (frontend / "app" / "page.tsx").exists()
+        assert (frontend / "app" / "layout.tsx").exists()
+        assert (frontend / "lib" / "greeting.test.ts").exists()
+
+    def test_reactnative_migrates_eslintrc_to_flat(self, reactnative_project: Path) -> None:
+        mobile = reactnative_project / "src" / "mobile"
+        assert '"react-native"' in (mobile / "package.json").read_text()
+        assert (mobile / "eslint.config.js").exists()
+        assert not (mobile / ".eslintrc.cjs").exists()  # legacy config migrated
+        assert (mobile / "App.tsx").exists()
+        assert (mobile / "src" / "greeting.test.ts").exists()
+
     @pytest.mark.parametrize(
         "stack,tokens",
         [
@@ -542,6 +569,8 @@ class TestBootableScaffold:
             ("django", ("ruff check", "pytest")),
             ("go", ("go vet", "go test")),
             ("go-fiber", ("go vet", "go test")),
+            ("nextjs", ("npm run lint",)),
+            ("react-native", ("npm run lint", "npm test")),
         ],
     )
     def test_work_surface_stack_has_verify_block(self, stack: str, tokens: tuple) -> None:

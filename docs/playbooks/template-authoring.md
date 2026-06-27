@@ -121,6 +121,12 @@ Go stacks place `go.mod` + `cmd/api/main.go` + `*_test.go` under `src/backend/`
 (`go vet ./... && go test ./...`); the stdlib `go` seed needs no module download,
 the `go-fiber` seed pins `gofiber/fiber/v3` (consumer runs `go mod tidy`). This
 mirrors the nestjs reference (`src/backend/package.json` + `src/backend/src/`).
+Frontend/mobile stacks (`nextjs`/`react-native`) ship `package.json` (`"type":
+"module"`) + a flat `eslint.config.js` + `tsconfig.json` + a `vitest` sample
+under `src/frontend`|`src/mobile`, with the lint devDeps in that per-stack
+manifest so `cd src/<root> && npm run lint` resolves locally — the root
+`_base/lang/typescript` bundle stays the default for stacks without their own
+seed. (react-native's legacy `.eslintrc.cjs` was migrated to flat here.)
 Dep version pins stay conservative floors (exact pins are a separate per-stack
 firecrawl pass) so a fresh install resolves without a stale ceiling.
 

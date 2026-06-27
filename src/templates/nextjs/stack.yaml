@@ -74,4 +74,7 @@ skill_enforcement:
   - {globs: ["src/frontend/**/store/**/*.ts", "src/frontend/**/stores/**/*.ts", "src/frontend/**/hooks/use*.ts"], primary: nextjs-react, secondary: [state-management, clean-code, frontend-fundamentals]}
 
 makefile_targets:
-  - {name: lint-frontend, cmd: "npx --yes eslint . && npx --yes tsc --noEmit"}
+  - {name: lint-frontend, cmd: "cd src/frontend && npm run lint"}
+
+verify:
+  - {glob: "src/frontend/**/*.{ts,tsx}", suites: "lint-frontend", cmd: "cd src/frontend && npm run lint"}
