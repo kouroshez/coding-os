@@ -5,18 +5,17 @@ swimlane: cli
 kind: feature
 epic: stack-factory-v2
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 2d
 created: 2026-06-27
-started: null
-completed: null
-agent_session: null
+started: 2026-06-26
+completed: 2026-06-27
+agent_session: ses-claude-20260626-165558-a565
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-598: factory-standard v2 rows + stack-lint soft checks (anatomy, runnable-manifest, lint-config, reference-integrity)
 
 **Outcome (one sentence):** The 12-row TASK-361 factory contract gains rows for runtime-manifest/lint-config/sample-test/reference-integrity/CI/container, and `stack_lint.py` reports them as SOFT GAPs (exit 0) so the standard itself is complete and every real gap is auditable. SSOT-first fix that stops the gap recurring per-stack and defines the bar that T4-T12 fill.
@@ -33,3 +32,18 @@ references: []
 **Then** `uv run pytest tests/test_cli.py -q` and `make docs-lint` are green.
 
 ## Work Log
+- 2026-06-27 [claude]: Edit stack_lint.py
+- 2026-06-27 [claude]: Edit stack_lint.py
+- 2026-06-27 [claude]: Edit stack_lint.py
+- 2026-06-27 [claude]: Edit backend.md
+- 2026-06-27 [claude]: Edit frontend.md
+- 2026-06-27 [claude]: Edit backend.md
+- 2026-06-27 [claude]: Edit stack_lint.py
+- 2026-06-27 [claude]: Edit template-authoring.md
+- 2026-06-27 [claude]: Edit frontend.md
+- 2026-06-27 [claude]: Edit _init_helpers.py
+- 2026-06-27 [claude]: Edit _init_helpers.py
+- 2026-06-27 [claude]: Edit _init_helpers.py
+- 2026-06-27 [claude]: Edit check_gitignore.py
+- 2026-06-27 [claude]: Added 4 SOFT stack-lint checks (runtime-manifest, lint-config, reference-integrity, anatomy; exit 0) + factory rows…
+- 2026-06-27 [claude]: Status transitioned to complete via cos task-done.

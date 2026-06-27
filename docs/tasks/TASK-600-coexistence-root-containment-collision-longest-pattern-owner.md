@@ -5,18 +5,17 @@ swimlane: cli
 kind: bug
 epic: stack-factory-v2
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 2d
 created: 2026-06-27
-started: null
-completed: null
-agent_session: null
+started: 2026-06-27
+completed: 2026-06-27
+agent_session: ses-claude-20260626-165558-a565
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-600: coexistence: root-containment collision + longest-pattern owner match (fixes shipped t3-style)
 
 **Outcome (one sentence):** Nested-root stack collisions — shipped today as the t3-style preset (typescript-plain root `src` contains nextjs root `src/frontend`, both owning src/frontend/**/*.ts) — are detected and relocated/rejected, and owner resolution becomes specificity-deterministic instead of stack-list-order-arbitrary.
@@ -35,3 +34,15 @@ cat src/templates/_presets/t3-style.yaml shows stacks: [nextjs, typescript-plain
 **Then** `make verify-hooks` and `uv run pytest tests/test_cli.py -q` are green.
 
 ## Work Log
+- 2026-06-27 [claude]: Edit stack_registry.py
+- 2026-06-27 [claude]: Edit _enforce_scaffold_boundary.py
+- 2026-06-27 [claude]: Edit _enforce_scaffold_boundary.py
+- 2026-06-27 [claude]: Edit _enforce_scaffold_boundary.py
+- 2026-06-27 [claude]: Edit check_coexistence.py
+- 2026-06-27 [claude]: Edit check_coexistence.py
+- 2026-06-27 [claude]: Edit test_cli.py
+- 2026-06-27 [claude]: Edit test_cli.py
+- 2026-06-27 [claude]: Edit stack_registry.py
+- 2026-06-27 [claude]: Edit test_cli.py
+- 2026-06-27 [claude]: service_relocations now detects nested-root collisions, refined via the test suite: pure root-nesting was too…
+- 2026-06-27 [claude]: Status transitioned to complete via cos task-done.
