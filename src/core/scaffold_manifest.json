@@ -420,6 +420,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/angular/rules/frontend.md",
         ".coding-os/src/templates/angular/skills/angular/SKILL.md",
+        ".coding-os/src/templates/angular/skills/angular/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -483,7 +484,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 244
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -672,6 +673,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/aspnet-core/rules/backend.md",
         ".coding-os/src/templates/aspnet-core/skills/aspnet-core/SKILL.md",
+        ".coding-os/src/templates/aspnet-core/skills/aspnet-core/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -728,7 +730,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 237
     },
     "claude_astro": {
       "agent": "claude",
@@ -917,6 +919,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/astro/rules/frontend.md",
         ".coding-os/src/templates/astro/skills/astro/SKILL.md",
+        ".coding-os/src/templates/astro/skills/astro/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -978,7 +981,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 242
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1892,6 +1895,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/flutter/rules/mobile.md",
         ".coding-os/src/templates/flutter/skills/flutter/SKILL.md",
+        ".coding-os/src/templates/flutter/skills/flutter/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -1950,7 +1954,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 239
     },
     "claude_go": {
       "agent": "claude",
@@ -3103,6 +3107,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/laravel/rules/backend.md",
         ".coding-os/src/templates/laravel/skills/laravel/SKILL.md",
+        ".coding-os/src/templates/laravel/skills/laravel/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -3159,7 +3164,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 237
     },
     "claude_meta": {
       "agent": "claude",
@@ -3618,6 +3623,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/nestjs/rules/backend.md",
         ".coding-os/src/templates/nestjs/skills/nestjs/SKILL.md",
+        ".coding-os/src/templates/nestjs/skills/nestjs/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -3678,7 +3684,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 241
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -4122,6 +4128,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/node-express/rules/backend.md",
         ".coding-os/src/templates/node-express/skills/node-express/SKILL.md",
+        ".coding-os/src/templates/node-express/skills/node-express/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -4179,7 +4186,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 238
     },
     "claude_python": {
       "agent": "claude",
@@ -4603,6 +4610,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/rails/rules/backend.md",
         ".coding-os/src/templates/rails/skills/rails/SKILL.md",
+        ".coding-os/src/templates/rails/skills/rails/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -4662,7 +4670,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 240
     },
     "claude_react-native": {
       "agent": "claude",
@@ -4859,6 +4867,7 @@
         ".coding-os/src/templates/react-native/skills/react-native-mobile/versions.json",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/SKILL.md",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/assets/rn-review-checklist.md",
+        ".coding-os/src/templates/react-native/skills/react-native-patterns/references/anatomy.md",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/references/list-performance.md",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/scan_rn_perf.py",
         ".coding-os/subsystems-state.json",
@@ -4916,7 +4925,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 246
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -5341,6 +5350,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/rust-axum/rules/backend.md",
         ".coding-os/src/templates/rust-axum/skills/rust/SKILL.md",
+        ".coding-os/src/templates/rust-axum/skills/rust/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -5398,7 +5408,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 238
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5823,6 +5833,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/spring-boot/rules/backend.md",
         ".coding-os/src/templates/spring-boot/skills/spring-boot/SKILL.md",
+        ".coding-os/src/templates/spring-boot/skills/spring-boot/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -5883,7 +5894,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 241
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -6072,6 +6083,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/svelte-sveltekit/rules/frontend.md",
         ".coding-os/src/templates/svelte-sveltekit/skills/svelte/SKILL.md",
+        ".coding-os/src/templates/svelte-sveltekit/skills/svelte/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -6135,7 +6147,7 @@
         "src/frontend/vite.config.ts",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 244
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6560,6 +6572,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/vue-nuxt/rules/frontend.md",
         ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/SKILL.md",
+        ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -6615,7 +6628,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 236
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -7285,6 +7298,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/angular/rules/frontend.md",
         ".coding-os/src/templates/angular/skills/angular/SKILL.md",
+        ".coding-os/src/templates/angular/skills/angular/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -7347,7 +7361,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 248
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7541,6 +7555,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/aspnet-core/rules/backend.md",
         ".coding-os/src/templates/aspnet-core/skills/aspnet-core/SKILL.md",
+        ".coding-os/src/templates/aspnet-core/skills/aspnet-core/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -7596,7 +7611,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 241
     },
     "codex_astro": {
       "agent": "codex",
@@ -7790,6 +7805,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/astro/rules/frontend.md",
         ".coding-os/src/templates/astro/skills/astro/SKILL.md",
+        ".coding-os/src/templates/astro/skills/astro/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -7850,7 +7866,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 246
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -8781,6 +8797,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/flutter/rules/mobile.md",
         ".coding-os/src/templates/flutter/skills/flutter/SKILL.md",
+        ".coding-os/src/templates/flutter/skills/flutter/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -8838,7 +8855,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 243
     },
     "codex_go": {
       "agent": "codex",
@@ -10012,6 +10029,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/laravel/rules/backend.md",
         ".coding-os/src/templates/laravel/skills/laravel/SKILL.md",
+        ".coding-os/src/templates/laravel/skills/laravel/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -10067,7 +10085,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 241
     },
     "codex_meta": {
       "agent": "codex",
@@ -10535,6 +10553,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/nestjs/rules/backend.md",
         ".coding-os/src/templates/nestjs/skills/nestjs/SKILL.md",
+        ".coding-os/src/templates/nestjs/skills/nestjs/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -10594,7 +10613,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 245
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -11047,6 +11066,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/node-express/rules/backend.md",
         ".coding-os/src/templates/node-express/skills/node-express/SKILL.md",
+        ".coding-os/src/templates/node-express/skills/node-express/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -11103,7 +11123,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 242
     },
     "codex_python": {
       "agent": "codex",
@@ -11536,6 +11556,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/rails/rules/backend.md",
         ".coding-os/src/templates/rails/skills/rails/SKILL.md",
+        ".coding-os/src/templates/rails/skills/rails/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -11594,7 +11615,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 244
     },
     "codex_react-native": {
       "agent": "codex",
@@ -11796,6 +11817,7 @@
         ".coding-os/src/templates/react-native/skills/react-native-mobile/versions.json",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/SKILL.md",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/assets/rn-review-checklist.md",
+        ".coding-os/src/templates/react-native/skills/react-native-patterns/references/anatomy.md",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/references/list-performance.md",
         ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/scan_rn_perf.py",
         ".coding-os/subsystems-state.json",
@@ -11852,7 +11874,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 249
+      "count": 250
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -12286,6 +12308,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/rust-axum/rules/backend.md",
         ".coding-os/src/templates/rust-axum/skills/rust/SKILL.md",
+        ".coding-os/src/templates/rust-axum/skills/rust/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -12342,7 +12365,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 242
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -12776,6 +12799,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/spring-boot/rules/backend.md",
         ".coding-os/src/templates/spring-boot/skills/spring-boot/SKILL.md",
+        ".coding-os/src/templates/spring-boot/skills/spring-boot/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -12835,7 +12859,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 245
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -13029,6 +13053,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/svelte-sveltekit/rules/frontend.md",
         ".coding-os/src/templates/svelte-sveltekit/skills/svelte/SKILL.md",
+        ".coding-os/src/templates/svelte-sveltekit/skills/svelte/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -13091,7 +13116,7 @@
         "src/frontend/vite.config.ts",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 248
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -13525,6 +13550,7 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/src/templates/vue-nuxt/rules/frontend.md",
         ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/SKILL.md",
+        ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -13579,7 +13605,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 240
     },
     "codex_wordpress": {
       "agent": "codex",
