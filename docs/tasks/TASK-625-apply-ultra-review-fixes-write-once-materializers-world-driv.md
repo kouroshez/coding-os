@@ -5,12 +5,12 @@ swimlane: cli
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-27
 started: 2026-06-27
-completed: null
+completed: 2026-06-27
 agent_session: ses-claude-20260626-165558-a565
 depends_on: []
 blocked_by: []
@@ -50,3 +50,5 @@ references: []
 - 2026-06-27 [claude]: Edit test_cli.py
 - 2026-06-27 [claude]: Edit test_cli.py
 - 2026-06-27 [claude]: Applied 9 ultra-review findings: (#1/#2) both materializers now write-once (ensure_* idiom) — cos update never…
+- 2026-06-27 [claude]: committed d206735e · 6 files
+- 2026-06-27 [claude]: Status transitioned to complete via cos task-done.
