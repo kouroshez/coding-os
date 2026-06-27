@@ -69,10 +69,10 @@ shipped stack violates a hard rule.
 | 10 | Golden coverage | a `tests/golden/<agent>_<id>` section (capture with `make golden-capture SECTION=…`) | soft |
 | 11 | Regen chain run | `make regen-rules` + `make manifest-regen` + `make regen-adapter-templates` after edits (Rule 10) | manual |
 | 12 | Adapter capability note | hooks needing non-Bash matchers documented against `adapter.yaml::hook_capabilities` | manual |
-| 13 | Runtime manifest | a buildable manifest (`go.mod` / `package.json` / `pyproject.toml` / `composer.json` / …) under `scaffold/` for code categories | soft |
-| 14 | Lint config | a config for any linter named in a `VERIFY_<CATEGORY>` command — per-stack under `scaffold/`, or shared per-language under `_base/lang/<language>/` (`ruff.toml`/`eslint.config.*`/`.golangci.yml`/…) | soft |
+| 13 | Runtime manifest | a buildable manifest (`go.mod` / `package.json` / `pyproject.toml` / `composer.json` / …) under `scaffold/` for code categories | hard |
+| 14 | Lint config | a config for any linter named in a `VERIFY_<CATEGORY>` command — per-stack under `scaffold/`, or shared per-language under `_base/lang/<language>/` (`ruff.toml`/`eslint.config.*`/`.golangci.yml`/…) | hard |
 | 15 | Sample test | ≥1 runnable test in `scaffold/` so `cos init` output has a green starting point | soft |
-| 16 | Reference integrity | every `rules:` file and `DOMAIN_ROUTES` doc path resolves on disk (stack `scaffold/`, `_base`, or the repo) | soft |
+| 16 | Reference integrity | every `rules:` file and `DOMAIN_ROUTES` doc path resolves on disk (stack `scaffold/`, `_base`, or the repo) | hard |
 | 17 | CI/CD workflow | a generated workflow that runs `make verify` (rendered by `render_ci_workflow`, init-strip, `modules.cicd`-gated) | soft |
 | 18 | Containerization | a backend-only multi-stage `Dockerfile` skeleton + security-scan stub (rendered by `render_dockerfile`) | soft |
 

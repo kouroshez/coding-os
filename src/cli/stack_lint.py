@@ -173,7 +173,7 @@ def lint_stack(
     # link in the rendered ruleset; checked for every stack that declares rules.
     for rule in profile.rules:
         if not (stack_dir / rule.file).is_file():
-            report.soft.append(f"rules path '{rule.file}' does not resolve on disk")
+            report.hard.append(f"rules path '{rule.file}' does not resolve on disk")
 
     base_scaffold = templates_dir() / "_base" / "scaffold"
     # The dogfood (meta) stack routes to the repo's own docs/ rather than a
@@ -187,13 +187,13 @@ def lint_stack(
             or (repo_root / doc_path).is_file()
         )
         if not resolves:
-            report.soft.append(f"DOMAIN_ROUTES path '{doc_path}' does not resolve in scaffold")
+            report.hard.append(f"DOMAIN_ROUTES path '{doc_path}' does not resolve in scaffold")
 
     if not _is_exempt_from_work_surfaces(profile):
         if profile.category in _CODE_CATEGORIES:
             manifests = _RUNTIME_MANIFESTS.get(profile.language, ())
             if manifests and not _scaffold_has(scaffold, manifests):
-                report.soft.append(
+                report.hard.append(
                     f"no runtime manifest ({' / '.join(manifests)}) under scaffold/"
                 )
 
@@ -206,7 +206,7 @@ def lint_stack(
             if linter in verify_text and not (
                 _scaffold_has(scaffold, configs) or _scaffold_has(lang_bundle, configs)
             ):
-                report.soft.append(
+                report.hard.append(
                     f"verify names '{linter}' but no {linter} config ships (tool defaults)"
                 )
 

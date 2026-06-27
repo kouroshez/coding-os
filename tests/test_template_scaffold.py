@@ -892,6 +892,35 @@ class TestStackBundleLint:
             assert reports[stack_id].passed, reports[stack_id].hard
             assert not any("dimensions" in gap for gap in reports[stack_id].soft)
 
+    def test_factory_v2_completeness_checks_are_hard(self, tmp_path):
+        """TASK-611: post-backfill, runtime-manifest / lint-config / reference-
+        integrity block (HARD) instead of warn (soft), so a future stack can
+        never regress below the v2 bar."""
+        import shutil as _shutil
+
+        from cli.stack_lint import lint_all
+
+        fixtures = tmp_path / "templates"
+        fixtures.mkdir()
+        _shutil.copytree(Path("src/templates/_base"), fixtures / "_base", symlinks=True)
+        bare = fixtures / "barestack"
+        bare.mkdir()
+        (bare / "stack.yaml").write_text(
+            "version: 1\nid: barestack\nlabel: Bare\ncategory: backend\nlanguage: go\n"
+            "structure: {root: src/backend, tree: 'src/backend/'}\n"
+            "primary_skill: null\nskills: []\n"
+            "substitutions:\n"
+            "  DOMAIN_ROUTES: x\n  SKILL_ROUTES: x\n  ENGINEERING_RULE_ROUTING: x\n"
+            "  TOOL_ROUTING_IMPL: x\n  QUICK_ROUTING: x\n  STACK_REF_CODES: ''\n"
+            "  VERIFY_BACKEND_GLOB: x\n  VERIFY_BACKEND_SUITES: x\n  VERIFY_BACKEND: 'go vet ./...'\n",
+            encoding="utf-8",
+        )
+        report = lint_all(registry_dir=fixtures, golden_root=tmp_path / "no-goldens")["barestack"]
+        # go backend with no scaffold manifest now blocks, and never as a soft gap.
+        assert report.passed is False
+        assert any("no runtime manifest" in issue for issue in report.hard)
+        assert not any("no runtime manifest" in gap for gap in report.soft)
+
 
 # ---------------------------------------------------------------------------
 # node-express stack bundle — TASK-367
