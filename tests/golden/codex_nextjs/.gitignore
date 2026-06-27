@@ -1,0 +1,33 @@
+# Base .gitignore — language-agnostic baseline.
+# Each stack's scaffold appends its own toolchain-specific ignores.
+
+# Secrets & local environment
+.env
+.env.*
+!.env.example
+
+# Logs & OS cruft
+*.log
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Coding-OS local state (keep tracked config, ignore caches)
+.coding-os/.cache/
+.coding-os/*.local.*
+
+# Build & dependency artifacts (language-agnostic)
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+dist/
+build/
+out/
+target/
+coverage/
+.cache/

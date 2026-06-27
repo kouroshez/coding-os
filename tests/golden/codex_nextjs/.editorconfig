@@ -1,0 +1,36 @@
+# EditorConfig — https://editorconfig.org
+# Project-wide formatting baseline. Editors and several formatters
+# (dotnet format, Prettier fallback, most IDEs) read this as the source
+# of truth, so it must stay language-agnostic and minimal.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+max_line_length = 100
+
+[*.{py,pyi}]
+indent_size = 4
+
+[*.go]
+indent_style = tab
+
+[*.{rs,java,kt,kts,cs,gradle}]
+indent_size = 4
+
+[*.dart]
+indent_size = 2
+
+[*.md]
+# Two trailing spaces are a significant hard line break in Markdown.
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab
+
+[*.{yml,yaml,json,toml}]
+indent_size = 2
