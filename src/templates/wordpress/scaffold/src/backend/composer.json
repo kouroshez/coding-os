@@ -1,0 +1,15 @@
+{
+  "name": "coding-os/wordpress-scaffold",
+  "description": "WordPress plugin + theme scaffold (coding-os)",
+  "type": "project",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.2"
+  },
+  "require-dev": {
+    "squizlabs/php_codesniffer": "^3.10"
+  },
+  "scripts": {
+    "lint": "phpcs"
+  }
+}

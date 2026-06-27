@@ -6947,12 +6947,14 @@
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "phpcs.xml.dist",
+        "src/backend/composer.json",
+        "src/backend/phpcs.xml.dist",
         "src/backend/plugin/plugin.php",
         "src/backend/theme/functions.php",
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 235
     },
     "codex_base": {
       "agent": "codex",
@@ -14011,12 +14013,14 @@
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "phpcs.xml.dist",
+        "src/backend/composer.json",
+        "src/backend/phpcs.xml.dist",
         "src/backend/plugin/plugin.php",
         "src/backend/theme/functions.php",
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 239
     }
   }
 }

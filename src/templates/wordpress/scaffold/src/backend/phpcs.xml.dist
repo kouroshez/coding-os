@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!-- WordPress plugin + theme lint baseline (coding-os): PHP_CodeSniffer, PSR-12. -->
+<ruleset name="wordpress-scaffold">
+  <description>PHP_CodeSniffer baseline — PSR-12 (WordPress plugin + theme).</description>
+  <file>plugin</file>
+  <file>theme</file>
+  <arg name="colors"/>
+  <arg value="sp"/>
+  <rule ref="PSR12"/>
+  <exclude-pattern>*/vendor/*</exclude-pattern>
+</ruleset>

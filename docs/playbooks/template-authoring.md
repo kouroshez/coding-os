@@ -127,6 +127,9 @@ under `src/frontend`|`src/mobile`, with the lint devDeps in that per-stack
 manifest so `cd src/<root> && npm run lint` resolves locally — the root
 `_base/lang/typescript` bundle stays the default for stacks without their own
 seed. (react-native's legacy `.eslintrc.cjs` was migrated to flat here.)
+WordPress (`php`) ships `composer.json` (`composer lint` → PSR-12 phpcs) + a
+local `phpcs.xml.dist` scoped to `plugin/`+`theme/` under `src/backend/`; note
+`.php` is never placeholder-substituted (Blade's `{{ }}` would collide).
 Dep version pins stay conservative floors (exact pins are a separate per-stack
 firecrawl pass) so a fresh install resolves without a stale ceiling.
 

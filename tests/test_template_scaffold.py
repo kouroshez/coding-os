@@ -499,6 +499,10 @@ class TestBootableScaffold:
     def reactnative_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
         return _class_scaffold(tmp_path_factory, "boot-rn", "react-native")
 
+    @pytest.fixture(scope="class")
+    def wordpress_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "boot-wp", "wordpress")
+
     def test_fastapi_ships_runnable_seed(self, fastapi_project: Path) -> None:
         backend = fastapi_project / "src" / "backend"
         pyproject = (backend / "pyproject.toml").read_text()
@@ -562,6 +566,13 @@ class TestBootableScaffold:
         assert (mobile / "App.tsx").exists()
         assert (mobile / "src" / "greeting.test.ts").exists()
 
+    def test_wordpress_ships_composer_and_phpcs(self, wordpress_project: Path) -> None:
+        backend = wordpress_project / "src" / "backend"
+        composer = (backend / "composer.json").read_text()
+        assert '"lint"' in composer and "phpcs" in composer
+        assert (backend / "phpcs.xml.dist").exists()
+        assert (backend / "plugin" / "plugin.php").exists()
+
     @pytest.mark.parametrize(
         "stack,tokens",
         [
@@ -571,6 +582,7 @@ class TestBootableScaffold:
             ("go-fiber", ("go vet", "go test")),
             ("nextjs", ("npm run lint",)),
             ("react-native", ("npm run lint", "npm test")),
+            ("wordpress", ("composer lint",)),
         ],
     )
     def test_work_surface_stack_has_verify_block(self, stack: str, tokens: tuple) -> None:
