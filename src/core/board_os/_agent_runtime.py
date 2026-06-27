@@ -122,14 +122,31 @@ def _read_agent_marker_file() -> str:
 
 
 def _read_active_session_pointer() -> str:
-    """Read the agent-level ``.active-session`` pointer (the current panel).
+    """Read the freshest "who is calling" session pointer, panel-first.
 
-    The long-lived MCP server inherits a frozen/empty ``$COS_SESSION_FILE``,
-    so this disk pointer — refreshed by ``session-context.sh`` on every
-    prompt — is the freshest signal of which panel is calling. Resolved from
-    ``$COS_AGENT_DIR`` if set, else ``$COS_STATE_DIR``/``cwd`` + detected
-    agent. Best-effort: returns ``""`` on any miss.
+    ``$COS_PANEL_DIR/session-id`` names THIS panel and is refreshed every
+    prompt, so it is preferred over the agent-level ``.active-session``,
+    which is shared across sibling panels and resolves last-writer-wins —
+    the source of cross-panel attribution drift (one panel's board write
+    landing under another's session). Parity with
+    ``cli.board_commands._agent_session_id``. The agent-level pointer stays
+    as the fallback for callers without a panel dir. Best-effort: ``""`` on
+    any miss.
     """
+    panel_dir = os.environ.get("COS_PANEL_DIR")
+    if panel_dir:
+        try:
+            panel_value = (
+                (Path(panel_dir) / "session-id")
+                .read_text(encoding="utf-8", errors="ignore")
+                .strip()
+            )
+        except OSError as exc:
+            logger.debug("panel session-id read failed: %s", exc)
+            panel_value = ""
+        if panel_value:
+            return panel_value
+
     agent_dir = os.environ.get("COS_AGENT_DIR")
     if agent_dir:
         pointer = Path(agent_dir) / ".active-session"

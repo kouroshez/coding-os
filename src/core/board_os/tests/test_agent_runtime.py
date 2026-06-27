@@ -16,6 +16,10 @@ def _scrub_env(tmp_path, monkeypatch):
         "COS_AGENT",
         "COS_HUMAN_ACTOR",
         "COS_STATE_DIR",
+        "COS_PANEL_DIR",
+        "COS_AGENT_DIR",
+        "COS_SESSION_FILE",
+        "COS_SESSION_ID",
         "CLAUDECODE",
         "CLAUDE_CODE_SSE_PORT",
         "CLAUDE_CODE_ENTRYPOINT",
@@ -119,6 +123,31 @@ def test_resolve_prefers_active_session_pointer_over_synthetic(tmp_path, monkeyp
     monkeypatch.delenv("COS_SESSION_ID", raising=False)
     monkeypatch.setenv("COS_AGENT_DIR", str(agent_dir))
     assert ar.resolve_agent_session(None) == "ses-claude-20260605-PANEL-A"
+
+
+def test_resolve_prefers_panel_dir_over_agent_pointer(tmp_path, monkeypatch):
+    """Panel-first: $COS_PANEL_DIR/session-id names THIS panel and must beat
+    the agent-level .active-session, which is shared across sibling panels and
+    is last-writer-wins — the cross-panel attribution-drift source. Mirrors
+    cli.board_commands._agent_session_id."""
+    agent_dir = tmp_path / "claude"
+    agent_dir.mkdir()
+    (agent_dir / ".active-session").write_text("ses-claude-SIBLING\n")
+    panel_dir = agent_dir / "panels" / "MINE"
+    panel_dir.mkdir(parents=True)
+    (panel_dir / "session-id").write_text("ses-claude-MINE\n")
+    monkeypatch.setenv("COS_AGENT_DIR", str(agent_dir))
+    monkeypatch.setenv("COS_PANEL_DIR", str(panel_dir))
+    assert ar.resolve_agent_session(None) == "ses-claude-MINE"
+
+
+def test_resolve_falls_back_to_agent_pointer_when_panel_dir_empty(tmp_path, monkeypatch):
+    """No $COS_PANEL_DIR → behaviour is byte-identical to before (additive)."""
+    agent_dir = tmp_path / "claude"
+    agent_dir.mkdir()
+    (agent_dir / ".active-session").write_text("ses-claude-PANEL-A\n")
+    monkeypatch.setenv("COS_AGENT_DIR", str(agent_dir))
+    assert ar.resolve_agent_session(None) == "ses-claude-PANEL-A"
 
 
 def test_resolve_explicit_beats_active_session_pointer(tmp_path, monkeypatch):
