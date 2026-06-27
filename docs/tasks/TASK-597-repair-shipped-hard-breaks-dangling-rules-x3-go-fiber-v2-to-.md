@@ -5,38 +5,17 @@ swimlane: templates
 kind: bug
 epic: stack-factory-v2
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-27
 started: 2026-06-26
-completed: null
+completed: 2026-06-26
 agent_session: ses-claude-20260626-165558-a565
 depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-597: repair shipped hard-breaks: dangling rules x3, go-fiber v2 to v3, mvnw, astro content-seo link
-
----
-id: TASK-597
-title: "repair shipped hard-breaks: dangling rules x3, go-fiber v2 to v3, mvnw, astro content-seo link"
-swimlane: templates
-kind: bug
-epic: stack-factory-v2
-labels: [ready]
-status: icebox
-priority: P2
-appetite: 1d
-created: 2026-06-27
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
 # TASK-597: repair shipped hard-breaks: dangling rules x3, go-fiber v2 to v3, mvnw, astro content-seo link
 
 **Outcome (one sentence):** Four confirmed shipped breakages fixed so every stack's declared refs/commands resolve on a fresh consumer. All verified directly in source this session.
@@ -68,3 +47,27 @@ grep -n rules/ src/templates/{laravel,node-express,svelte-sveltekit}/stack.yaml 
 - 2026-06-27 [claude]: Edit maven-wrapper.properties
 - 2026-06-27 [claude]: Edit HealthServiceTest.java
 - 2026-06-27 [claude]: Fixed 4 shipped hard-breaks: (1) created laravel/node-express rules/backend.md + svelte-sveltekit rules/frontend.md…
+- 2026-06-27 [claude]: committed 3854a0a7 · 11 files
+- 2026-06-27 [claude]: Edit backend.md
+- 2026-06-27 [claude]: Edit scaffold-boundary.yaml
+- 2026-06-27 [claude]: Edit anatomy.md
+- 2026-06-27 [claude]: Edit anatomy.md
+- 2026-06-27 [claude]: Edit anatomy.md
+- 2026-06-27 [claude]: Edit anatomy.md
+- 2026-06-27 [claude]: Edit SKILL.md
+- 2026-06-27 [claude]: Edit SKILL.md
+- 2026-06-27 [claude]: Edit SKILL.md
+- 2026-06-27 [claude]: Edit SKILL.md
+- 2026-06-27 [claude]: Edit SKILL.md
+- 2026-06-27 [claude]: Edit SKILL.md
+- 2026-06-27 [claude]: Edit SKILL.md
+- 2026-06-27 [claude]: Edit fiber-rules.md
+- 2026-06-27 [claude]: Edit fiber-rules.md
+- 2026-06-27 [claude]: Edit fiber-rules.md
+- 2026-06-27 [claude]: Edit fiber-rules.md
+- 2026-06-27 [claude]: Edit fiber-service.md
+- 2026-06-27 [claude]: Edit fiber-service.md
+- 2026-06-27 [claude]: Edit fiber-service.md
+- 2026-06-27 [claude]: Edit new_endpoint.py
+- 2026-06-27 [claude]: Verified all 4 fork fixes in source (rules-path match, go-fiber v3 generator, mvnw 100755 + HealthServiceTest targets…
+- 2026-06-27 [claude]: Status transitioned to complete via cos task-done.
