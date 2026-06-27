@@ -534,6 +534,35 @@ def materialize_ci_workflow(project: Path, world: AggregatedWorld) -> bool:
     return changed
 
 
+def materialize_dockerfiles(project: Path, world: AggregatedWorld) -> bool:
+    """Write a Dockerfile + .dockerignore at every category=backend stack root.
+
+    Consumer-owned skeletons keyed by language base image. Frontend/mobile/library
+    stacks get none — a server image is meaningless there (flutter NA, TASK-610).
+    """
+    from cli._resources import templates_dir
+    from cli.renderer import render_dockerfile, render_dockerignore
+    from cli.stack_registry import load_stack_registry, resolve_relocated_profiles
+
+    registry = load_stack_registry(templates_dir())
+    changed = False
+    for profile in resolve_relocated_profiles(registry, world.stack_ids):
+        if profile.category != "backend":
+            continue
+        content = render_dockerfile(profile.language)
+        if not content:
+            continue
+        root = (profile.structure or {}).get("root", "").rstrip("/")
+        base = project / root if root else project
+        for name, text in (("Dockerfile", content), (".dockerignore", render_dockerignore())):
+            target = base / name
+            if not target.exists() or target.read_text(encoding="utf-8") != text:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(text, encoding="utf-8")
+                changed = True
+    return changed
+
+
 def _ensure_stacks_include(makefile: Path, state_rel: str) -> bool:
     text = makefile.read_text(encoding="utf-8")
     if "Makefile.stacks" in text:

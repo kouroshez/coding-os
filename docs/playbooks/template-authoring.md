@@ -151,6 +151,18 @@ and adding a stack re-renders it with the new targets — no hand edit. macOS is
 kept off the per-push path (those runners bill at 10×). A stack contributes to CI
 simply by shipping a `verify:` block; no per-stack CI authoring is needed.
 
+### Generated backend Dockerfile (TASK-610)
+
+`render_dockerfile` ([renderer.py](../../src/cli/renderer.py)) emits a multi-stage,
+non-root, healthchecked Dockerfile skeleton + `.dockerignore` at each
+`category: backend` stack root, keyed by the stack's language base image — and
+**only** there: frontend stacks build static assets and mobile (flutter /
+react-native) have no server image, so they get none. The skeleton's CMD /
+healthcheck target is the seam a consumer adjusts to its entrypoint. The
+generated CI carries a commented `# security-scan:` job stub as the documented
+seam; the scanner itself stays an agent skill (Rule 22 — no speculative
+machinery). Same `cicd`-module gate as the CI workflow.
+
 ## Modularity gating — which mechanism, when
 
 There is **no single** toggle mechanism, and that is intentional: the three

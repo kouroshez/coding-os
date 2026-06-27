@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 from cli._init_helpers import (
     ensure_agents_md,
     materialize_ci_workflow,
+    materialize_dockerfiles,
     materialize_makefile_targets,
 )
 from cli._resources import (
@@ -545,11 +546,13 @@ def update(
                 # module so a lean profile never grows a .github/ surface.
                 from cli.subsystems import module_state
 
-                if module_state(project).get("cicd", True) and materialize_ci_workflow(
-                    project, world
-                ):
-                    click.echo("  Refreshed .github/workflows/ci.yml")
-                    overall_changes = True
+                if module_state(project).get("cicd", True):
+                    if materialize_ci_workflow(project, world):
+                        click.echo("  Refreshed .github/workflows/ci.yml")
+                        overall_changes = True
+                    if materialize_dockerfiles(project, world):
+                        click.echo("  Refreshed backend Dockerfile(s)")
+                        overall_changes = True
 
         # Symlinks still dangling AFTER re-link point at a source the current
         # registry no longer ships (or a meta-repo path that no longer exists)

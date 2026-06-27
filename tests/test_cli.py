@@ -1124,6 +1124,66 @@ class TestCiWorkflow:
 
 
 # ---------------------------------------------------------------------------
+# Generated backend Dockerfiles — TASK-610 (render_dockerfile, backend-only)
+# ---------------------------------------------------------------------------
+
+
+class TestDockerfile:
+    def _world(self, *stacks: str):
+        return main_module._build_world("claude", tuple(stacks), Path("/tmp/df-probe"))
+
+    def test_backend_language_yields_multi_stage_non_root_skeleton(self) -> None:
+        from cli.renderer import render_dockerfile
+
+        out = render_dockerfile("python")
+        assert out.count("FROM ") >= 2  # multi-stage: build + runtime
+        assert "USER appuser" in out  # non-root
+        assert "EXPOSE" in out and "HEALTHCHECK" in out and "CMD" in out
+
+    def test_non_backend_language_yields_nothing(self) -> None:
+        from cli.renderer import render_dockerfile
+
+        assert render_dockerfile("flutter-dart-na") == ""
+
+    def test_materialize_writes_only_for_backend_roots(self, tmp_path: Path) -> None:
+        from cli._init_helpers import materialize_dockerfiles
+
+        assert materialize_dockerfiles(tmp_path, self._world("django", "nextjs"))
+        backend = tmp_path / "src" / "backend" / "Dockerfile"
+        assert backend.is_file() and not backend.is_symlink()  # consumer-owned, not a symlink
+        assert (tmp_path / "src" / "backend" / ".dockerignore").is_file()
+        assert not (tmp_path / "src" / "frontend" / "Dockerfile").exists()  # frontend: static build
+
+    def test_mobile_stack_gets_no_dockerfile(self, tmp_path: Path) -> None:
+        from cli._init_helpers import materialize_dockerfiles
+
+        materialize_dockerfiles(tmp_path, self._world("react-native"))
+        assert not list(tmp_path.rglob("Dockerfile"))  # flutter/react-native NA
+
+    def test_ci_carries_commented_security_scan_seam(self) -> None:
+        from cli.renderer import render_ci_workflow
+
+        out = render_ci_workflow(self._world("django"))
+        assert "# security-scan:" in out  # seam, scanner stays an agent skill (Rule 22)
+        assert "trivy" not in out.lower() and "grype" not in out.lower()  # nothing inlined
+
+    def test_full_profile_init_emits_backend_dockerfile(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        project = tmp_path / "withdf"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init", "--agent", "claude", "-d", str(project),
+                "--template", "django", "--profile", "full", "--no-index", "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert (project / "src" / "backend" / "Dockerfile").exists()
+
+
+# ---------------------------------------------------------------------------
 # Regen-chain parameterization — TASK-355 (service-scoped glob propagation)
 # ---------------------------------------------------------------------------
 

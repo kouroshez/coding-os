@@ -41,6 +41,7 @@ from cli._init_helpers import (
     ensure_gitignore,
     install_consumer_git_hooks,
     materialize_ci_workflow,
+    materialize_dockerfiles,
     materialize_makefile_targets,
     maybe_git_init,
     maybe_initial_commit,
@@ -2098,12 +2099,16 @@ def _run_scaffold_phase(
             )
             click.echo("  Generated Makefile")
 
-        # CI workflow — gated behind the `cicd` module (off in lean profiles).
-        # Delegates to the same make targets, so it never rots with tool versions.
+        # CI workflow + backend Dockerfiles — gated behind the `cicd` module
+        # (off in lean profiles). Both delegate to the generated artifacts, so
+        # they never rot with tool versions.
         from cli.subsystems import module_state
 
-        if module_state(project).get("cicd", True) and materialize_ci_workflow(project, world):
-            click.echo("  Generated .github/workflows/ci.yml")
+        if module_state(project).get("cicd", True):
+            if materialize_ci_workflow(project, world):
+                click.echo("  Generated .github/workflows/ci.yml")
+            if materialize_dockerfiles(project, world):
+                click.echo("  Generated backend Dockerfile(s)")
 
     # 9b. Aggregate scaffold-boundary.yaml from every installed stack so the
     # consumer-side enforce-scaffold-boundary.sh hook can enforce subtree
