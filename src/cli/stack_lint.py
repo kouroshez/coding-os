@@ -8,6 +8,7 @@ completeness is visible without blocking iteration.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -22,6 +23,53 @@ _CATEGORY_VERIFY_KEY = {
     "frontend": "VERIFY_FRONTEND",
     "mobile": "VERIFY_MOBILE",
 }
+
+# A code stack ships a buildable seed; map its language to the manifest names
+# that make `cos init` output compile/run without hand-wiring.
+_RUNTIME_MANIFESTS = {
+    "python": ("pyproject.toml", "setup.py", "setup.cfg", "requirements.txt"),
+    "go": ("go.mod",),
+    "typescript": ("package.json",),
+    "javascript": ("package.json",),
+    "rust": ("Cargo.toml",),
+    "java": ("pom.xml", "build.gradle", "build.gradle.kts"),
+    "kotlin": ("build.gradle.kts", "build.gradle", "pom.xml"),
+    "ruby": ("Gemfile",),
+    "php": ("composer.json",),
+    "dart": ("pubspec.yaml",),
+    "csharp": ("*.csproj",),
+}
+
+# A verify command that names a linter should ship that linter's config so the
+# rules are pinned, not left to whatever default the runner happens to have.
+_LINT_CONFIGS = {
+    "ruff": ("ruff.toml", ".ruff.toml", "pyproject.toml"),
+    "eslint": (
+        "eslint.config.js",
+        "eslint.config.mjs",
+        "eslint.config.cjs",
+        "eslint.config.ts",
+        ".eslintrc.json",
+        ".eslintrc.js",
+        ".eslintrc.cjs",
+        ".eslintrc.yml",
+        ".eslintrc.yaml",
+    ),
+    "golangci-lint": (".golangci.yml", ".golangci.yaml", ".golangci.toml"),
+    "rubocop": (".rubocop.yml",),
+    "phpcs": ("phpcs.xml", "phpcs.xml.dist"),
+    "prettier": (
+        ".prettierrc",
+        ".prettierrc.json",
+        ".prettierrc.yml",
+        ".prettierrc.yaml",
+        "prettier.config.js",
+        "prettier.config.mjs",
+    ),
+    "clippy": ("clippy.toml", ".clippy.toml"),
+}
+
+_DOC_ROUTE_RE = re.compile(r"docs/[\w./-]+\.md")
 
 
 @dataclass
@@ -48,6 +96,20 @@ def _skill_resolvable(profile: StackProfile, stack_dir: Path) -> bool:
         core_dir("skills") / profile.primary_skill / "SKILL.md",
     )
     return any(path.is_file() for path in candidates)
+
+
+def _scaffold_has(scaffold: Path, names: tuple[str, ...]) -> bool:
+    return scaffold.is_dir() and any(any(scaffold.rglob(name)) for name in names)
+
+
+def _verify_command_text(profile: StackProfile) -> str:
+    parts = [
+        value
+        for key, value in profile.substitutions.items()
+        if key.startswith("VERIFY_") and not key.endswith(("_GLOB", "_SUITES"))
+    ]
+    parts.extend(row.cmd for row in profile.verify)
+    return " ".join(parts).lower()
 
 
 def lint_stack(
@@ -103,6 +165,57 @@ def lint_stack(
         routes_to_playbook = "playbook" in profile.substitutions.get("DOMAIN_ROUTES", "").lower()
         if not has_docs and not routes_to_playbook:
             report.soft.append("no stack docs under scaffold/docs/ and no playbook routing")
+
+    # --- Factory standard v2: runtime-manifest / lint-config / reference-integrity ---
+    scaffold = stack_dir / "scaffold"
+
+    # Reference integrity — a declared rule file that doesn't resolve is a dead
+    # link in the rendered ruleset; checked for every stack that declares rules.
+    for rule in profile.rules:
+        if not (stack_dir / rule.file).is_file():
+            report.soft.append(f"rules path '{rule.file}' does not resolve on disk")
+
+    base_scaffold = templates_dir() / "_base" / "scaffold"
+    # The dogfood (meta) stack routes to the repo's own docs/ rather than a
+    # shipped scaffold copy — accept either location.
+    repo_root = templates_dir().parent.parent
+    routes = profile.substitutions.get("DOMAIN_ROUTES", "")
+    for doc_path in dict.fromkeys(_DOC_ROUTE_RE.findall(routes)):
+        resolves = (
+            (scaffold / doc_path).is_file()
+            or (base_scaffold / doc_path).is_file()
+            or (repo_root / doc_path).is_file()
+        )
+        if not resolves:
+            report.soft.append(f"DOMAIN_ROUTES path '{doc_path}' does not resolve in scaffold")
+
+    if not _is_exempt_from_work_surfaces(profile):
+        if profile.category in _CODE_CATEGORIES:
+            manifests = _RUNTIME_MANIFESTS.get(profile.language, ())
+            if manifests and not _scaffold_has(scaffold, manifests):
+                report.soft.append(
+                    f"no runtime manifest ({' / '.join(manifests)}) under scaffold/"
+                )
+
+        verify_text = _verify_command_text(profile)
+        for linter, configs in _LINT_CONFIGS.items():
+            if linter in verify_text and not _scaffold_has(scaffold, configs):
+                report.soft.append(
+                    f"verify names '{linter}' but no {linter} config ships (tool defaults)"
+                )
+
+        if profile.primary_skill:
+            skill_md = stack_dir / "skills" / profile.primary_skill / "SKILL.md"
+            anatomy = skill_md.parent / "references" / "anatomy.md"
+            if (
+                skill_md.is_file()
+                and "anatomy.md" in skill_md.read_text(encoding="utf-8", errors="ignore")
+                and not anatomy.is_file()
+            ):
+                report.soft.append(
+                    f"primary skill '{profile.primary_skill}' SKILL.md references "
+                    "anatomy.md but references/anatomy.md is missing"
+                )
 
     golden_root = golden_root if golden_root is not None else Path("tests/golden")
     if golden_root.is_dir():

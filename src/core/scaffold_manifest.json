@@ -849,6 +849,7 @@
         ".claude/hooks/write-state.sh",
         ".claude/rules/anti-overengineering.md",
         ".claude/rules/api-contract-discipline.md",
+        ".claude/rules/astro-frontend.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
         ".claude/rules/model-routing.md",
@@ -914,6 +915,7 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/astro/rules/frontend.md",
         ".coding-os/src/templates/astro/skills/astro/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
@@ -976,7 +978,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 241
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -3551,6 +3553,7 @@
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
         ".claude/rules/model-routing.md",
+        ".claude/rules/nestjs-backend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -3613,6 +3616,7 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/nestjs/rules/backend.md",
         ".coding-os/src/templates/nestjs/skills/nestjs/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
@@ -3674,7 +3678,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -6494,6 +6498,7 @@
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
+        ".claude/rules/vue-nuxt-frontend.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
         ".claude/skills/a11y/SKILL.md",
@@ -6553,6 +6558,7 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/vue-nuxt/rules/frontend.md",
         ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
@@ -6609,7 +6615,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 235
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -6736,6 +6742,7 @@
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
+        ".claude/rules/wordpress-backend.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
         ".claude/skills/a11y/SKILL.md",
@@ -6794,6 +6801,7 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/wordpress/rules/backend.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -6848,7 +6856,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 232
     },
     "codex_base": {
       "agent": "codex",
@@ -7716,6 +7724,7 @@
         ".codex/hooks/write-state.sh",
         ".codex/rules/anti-overengineering.md",
         ".codex/rules/api-contract-discipline.md",
+        ".codex/rules/astro-frontend.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
         ".codex/rules/model-routing.md",
@@ -7779,6 +7788,7 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/astro/rules/frontend.md",
         ".coding-os/src/templates/astro/skills/astro/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
@@ -7840,7 +7850,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 245
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -10462,6 +10472,7 @@
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
         ".codex/rules/model-routing.md",
+        ".codex/rules/nestjs-backend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -10522,6 +10533,7 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/nestjs/rules/backend.md",
         ".coding-os/src/templates/nestjs/skills/nestjs/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
@@ -10582,7 +10594,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 244
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -13453,6 +13465,7 @@
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
+        ".codex/rules/vue-nuxt-frontend.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
         ".codex/skills/api-design/SKILL.md",
@@ -13510,6 +13523,7 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/vue-nuxt/rules/frontend.md",
         ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
@@ -13565,7 +13579,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 239
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -13699,6 +13713,7 @@
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
+        ".codex/rules/wordpress-backend.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
         ".codex/skills/api-design/SKILL.md",
@@ -13755,6 +13770,7 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/wordpress/rules/backend.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -13808,7 +13824,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 236
     }
   }
 }

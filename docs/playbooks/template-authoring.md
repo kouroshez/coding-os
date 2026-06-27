@@ -69,11 +69,19 @@ shipped stack violates a hard rule.
 | 10 | Golden coverage | a `tests/golden/<agent>_<id>` section (capture with `make golden-capture SECTION=…`) | soft |
 | 11 | Regen chain run | `make regen-rules` + `make manifest-regen` + `make regen-adapter-templates` after edits (Rule 10) | manual |
 | 12 | Adapter capability note | hooks needing non-Bash matchers documented against `adapter.yaml::hook_capabilities` | manual |
+| 13 | Runtime manifest | a buildable manifest (`go.mod` / `package.json` / `pyproject.toml` / `composer.json` / …) under `scaffold/` for code categories | soft |
+| 14 | Lint config | a config for any linter named in a `VERIFY_<CATEGORY>` command (`ruff.toml`, `eslint.config.*`, `.golangci.yml`, `.rubocop.yml`, `phpcs.xml`, …) | soft |
+| 15 | Sample test | ≥1 runnable test in `scaffold/` so `cos init` output has a green starting point | soft |
+| 16 | Reference integrity | every `rules:` file and `DOMAIN_ROUTES` doc path resolves on disk (stack `scaffold/`, `_base`, or the repo) | soft |
+| 17 | CI/CD workflow | a generated workflow that runs `make verify` (rendered by `render_ci_workflow`, init-strip, `modules.cicd`-gated) | soft |
+| 18 | Containerization | a backend-only multi-stage `Dockerfile` skeleton + security-scan stub (rendered by `render_dockerfile`) | soft |
 
 Hard rows fail `cos stack-lint` (exit 1) and CI; soft rows are reported as
 GAP lines so a stack's completeness is visible without blocking iteration.
+Rows 13–14 and 16 are auto-checked today (soft); rows 15, 17, 18 are the
+documented bar the backfill + render generators fill, then become checkable.
 Plain-language stacks (`<lang>-plain`) and `category: library` are exempt
-from rows 5–8 by design — they ship skeletons, not work surfaces.
+from rows 5–8 and 13–15 by design — they ship skeletons, not work surfaces.
 
 ## Modularity gating — which mechanism, when
 
