@@ -2005,6 +2005,18 @@ DROP TABLE IF EXISTS experiment_log;
     logger.info("Migration v43 applied: experiment_log dropped (no writer, B5)")
 
 
+def _migrate_v44_dispatch_transcript(conn: sqlite3.Connection) -> None:
+    """Migration v44 — formula_dispatches.raw_transcript so a dispatched
+    sub-agent's chat/session is auditable, not just its summarized output."""
+    if not _table_exists(conn, "formula_dispatches"):
+        logger.info("Migration v44 skipped: formula_dispatches not present yet")
+        return
+    if not _column_exists_table(conn, "formula_dispatches", "raw_transcript"):
+        conn.execute("ALTER TABLE formula_dispatches ADD COLUMN raw_transcript TEXT")
+    conn.commit()
+    logger.info("Migration v44 applied: formula_dispatches gained raw_transcript")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2341,6 +2353,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         43,
         "Drop experiment_log — created in v1 but never wired (zero writers); speculative scaffolding removed (B5)",
         _migrate_v43_drop_experiment_log,
+    ),
+    (
+        44,
+        "formula_dispatches.raw_transcript — persist dispatched sub-agent transcript for audit",
+        _migrate_v44_dispatch_transcript,
     ),
 ]
 

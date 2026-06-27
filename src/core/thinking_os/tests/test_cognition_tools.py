@@ -396,3 +396,50 @@ class TestDispatchPersistenceDegradedPath:
                 ("sess-pass4-8b",),
             ).fetchone()[0]
         assert rows == 0  # invalid output is never persisted (T1.6)
+
+
+class TestDispatchTranscriptPersistence:
+    """A dispatched sub-agent's raw_transcript is persisted (migration v44) so
+    its chat/session is auditable, not just its summarized output (TASK-628)."""
+
+    def test_raw_transcript_is_stored_and_retrievable(self, db_path):
+        from tools.cognition import _persist_dispatch_output
+
+        # free-form id → no output schema → no validation → row is inserted.
+        _persist_dispatch_output(
+            session_id="sess-tx-1",
+            task_marker="TASK-628",
+            persona_id="p1",
+            formula_id="free-form-xyz",
+            output_json={"ok": True},
+            status="ok",
+            latency_ms=7,
+            db_path=db_path,
+            raw_transcript="USER: hi\nAGENT: done",
+        )
+        with sqlite3.connect(db_path) as conn:
+            tx = conn.execute(
+                "SELECT raw_transcript FROM formula_dispatches WHERE session_id = ?",
+                ("sess-tx-1",),
+            ).fetchone()[0]
+        assert tx == "USER: hi\nAGENT: done"
+
+    def test_transcript_is_null_when_absent(self, db_path):
+        from tools.cognition import _persist_dispatch_output
+
+        _persist_dispatch_output(
+            session_id="sess-tx-2",
+            task_marker="TASK-628",
+            persona_id="p1",
+            formula_id="free-form-xyz",
+            output_json={"ok": True},
+            status="ok",
+            latency_ms=7,
+            db_path=db_path,
+        )
+        with sqlite3.connect(db_path) as conn:
+            tx = conn.execute(
+                "SELECT raw_transcript FROM formula_dispatches WHERE session_id = ?",
+                ("sess-tx-2",),
+            ).fetchone()[0]
+        assert tx is None

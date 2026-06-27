@@ -58,12 +58,14 @@ def cognition_group() -> None:
 @click.option("--backtrack", is_flag=True, default=False, help="Show backtrack events only")
 @click.option("--since", default=None, help="Show entries since duration ago (e.g. 1h, 30m, 2d)")
 @click.option("--limit", default=20, show_default=True, help="Max rows to return")
+@click.option("--transcript", is_flag=True, help="Include each dispatch's raw sub-agent transcript")
 def cognition_log(
     formula: str | None,
     persona: str | None,
     backtrack: bool,
     since: str | None,
     limit: int,
+    transcript: bool,
 ) -> None:
     """Show recent formula dispatches, persona selections, and backtrack events."""
     db = _db_path()
@@ -83,6 +85,7 @@ def cognition_log(
             cutoff=cutoff,
             limit=limit,
             backtrack_only=backtrack,
+            transcript=transcript,
         )
         if not backtrack:
             _print_persona_selections(conn, persona=persona, cutoff=cutoff, limit=limit)
@@ -97,6 +100,7 @@ def _print_dispatches(
     cutoff: str | None,
     limit: int,
     backtrack_only: bool,
+    transcript: bool = False,
 ) -> None:
     """Print formula_dispatches or backtrack_events rows."""
     if backtrack_only:
@@ -116,7 +120,10 @@ def _print_dispatches(
             where.append("ts >= ?")
             params.append(cutoff)
 
-        sql = "SELECT session_id, task_marker, persona_id, formula_id, status, latency_ms, ts FROM formula_dispatches"
+        cols = "session_id, task_marker, persona_id, formula_id, status, latency_ms, ts"
+        if transcript:
+            cols += ", raw_transcript"
+        sql = f"SELECT {cols} FROM formula_dispatches"
         if where:
             sql += " WHERE " + " AND ".join(where)
         sql += " ORDER BY ts DESC LIMIT ?"
@@ -137,6 +144,10 @@ def _print_dispatches(
             click.echo(
                 f"  {r['ts']:<20} {r['formula_id']:<8} {r['persona_id']:<22} {r['status']:<10} {ms!s:>6}"
             )
+            if transcript:
+                tx = r["raw_transcript"]
+                click.echo("    transcript:")
+                click.echo(tx if tx else "      (none)")
         click.echo(f"{'─' * 72}\n")
     except sqlite3.OperationalError:
         click.echo(

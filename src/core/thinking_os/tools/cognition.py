@@ -1027,6 +1027,7 @@ def _persist_dispatch_output(
     status: str,
     latency_ms: int,
     db_path: str,
+    raw_transcript: str | None = None,
 ) -> int:
     bundle = _load_bundle(session_id, task_marker, persona_id)
     # Data-driven role → bundle field + Pydantic class resolution.
@@ -1093,8 +1094,8 @@ def _persist_dispatch_output(
                 "output_hash, latency_ms, status, ts, "
                 "cost_usd, budget_usd, usage_jsonb, model_usage_jsonb, "
                 "tool_calls_jsonb, tool_failures_jsonb, "
-                "sub_session_id, model, checkpoints_jsonb, error) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "sub_session_id, model, checkpoints_jsonb, error, raw_transcript) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     session_id,
                     task_marker,
@@ -1115,6 +1116,7 @@ def _persist_dispatch_output(
                     meta.get("model"),
                     _jsonb(meta.get("checkpoints")),
                     str(meta.get("error"))[:1000] if meta.get("error") else None,
+                    raw_transcript[:50000] if raw_transcript else None,
                 ),
             )
     except Exception as exc:
@@ -1392,6 +1394,7 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                 status=result.status,
                 latency_ms=result.latency_ms,
                 db_path=db_path,
+                raw_transcript=result.raw_transcript,
             )
 
         # T2.5 + T8.4: emit dispatch cost and duration as coding-os metrics
@@ -1557,6 +1560,7 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
                     status=outcome.status,
                     latency_ms=outcome.latency_ms,
                     db_path=db_path,
+                    raw_transcript=outcome.raw_transcript,
                 )
                 ok_count += 1
             results.append(

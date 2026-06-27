@@ -21,7 +21,7 @@ placeholder_scan:
   - docs/governance/_templates
   - docs/_meta
 schema:
-  expected_version: 42
+  expected_version: 44
   expected_tables:
   - agent_metrics
   - ambiguity_violations
@@ -33,6 +33,7 @@ schema:
   - document_chunks_fts_data
   - document_chunks_fts_docsize
   - document_chunks_fts_idx
+  - embedding_outbox
   - embeddings
   - file_index_state
   - formula_dispatches
