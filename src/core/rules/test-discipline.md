@@ -34,6 +34,17 @@ If a single file affects two rows, run both — still cheaper than full sweep.
 
 When debugging one failure: `pytest path/to/test_file.py::TestClass::test_name -v`. Resist the urge to "just run the file" until the named test passes. Re-run the file only after the targeted test goes green.
 
+## Test cadence — *when* to run what (the matrix says *which*, not *when*)
+
+So a task doesn't drown in re-runs or idle-wait on test output:
+
+1. **During dev → one targeted test.** Iterate with `pytest path::Class::test` (see *Single-test targeting* above), not the whole file/suite per edit. Re-running a suite the ledger already shows green "to be sure" is the anti-pattern, not the safe choice.
+2. **At task close → the matrix suite ONCE.** Run the Verification-Matrix command for what changed exactly once, right before `cos task-move --to testing`; the verify-ledger then dedups it for the next agent on the same tree.
+3. **Heavy suite (>~60s) → background it, never idle-wait.** Launch with `Bash` `run_in_background`, then keep reading / diffing / writing the next unit of work — the agent must not sit blocked on test output. **Caveat:** after backgrounding, do read/diff/write only — do **not** start a second `pytest` until the first exits, or the `test-governor` run-lock BLOCKs it as a concurrent holder (one heavy run per host). The background run re-notifies you on exit; act on the result then.
+4. **docs-lint → at close, not per-message.** Work-log churn touches `docs/tasks/**` every turn, but the verify-ledger already excludes `docs/tasks/` from its freshness digest — so a per-message `make docs-lint` is pure latency that changes no outcome. Lint once at task close, or when you actually edit a non-task `.md`.
+
+Batch heavy suites across tasks where you can: park one in `testing`, finish a sibling, run the heavy suite once for the batch — don't pay the scaffold cost per task.
+
 ## When full sweep IS allowed
 
 - Pre-merge / pre-release final gate
