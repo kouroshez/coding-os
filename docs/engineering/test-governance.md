@@ -9,7 +9,7 @@
 ## Problem
 
 Multiple concurrent agent sessions each finish a task and re-run heavy pytest suites.
-The suite is 4,110 tests / 289 files; `tests/` alone holds 1,316 integration-heavy tests
+The suite is ~4,850 tests / 327 files; `tests/` alone holds 1,316 integration-heavy tests
 (36 files scaffold `cos init`/`install.sh` sandboxes, 40 spawn subprocesses, 23 spawn
 nested `uv run`). thinking_os tests import torch via `embeddings.py` (~2 GB RSS per
 pytest process; only 7/56 files mock embeddings). Two concurrent full runs swap an

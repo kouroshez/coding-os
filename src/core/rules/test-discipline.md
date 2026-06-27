@@ -2,7 +2,7 @@
 
 > **Hard rule:** Run only the Verification Matrix command for what changed. Never `pytest tests/ -q` mid-task — the `test-governor` hook BLOCKs it without an audited override.
 
-The suite is ~4,110 test functions across 289 files; the matrix suites alone sum to ~28 min wall-clock, so a full sweep mid-task melts a laptop running concurrent sessions. Measurements + spec: [test-governance.md](../../docs/engineering/test-governance.md).
+The suite is ~4,850 test functions across 327 files; the matrix suites alone sum to ~28 min wall-clock, so a full sweep mid-task melts a laptop running concurrent sessions. Measurements + spec: [test-governance.md](../../docs/engineering/test-governance.md).
 
 ## Enforcement + the verify ledger (no longer convention-only)
 
