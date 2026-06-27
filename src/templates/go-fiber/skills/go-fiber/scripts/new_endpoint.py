@@ -54,12 +54,12 @@ def main() -> int:
         ),
         pkg_dir / "handler.go": (
             f"package {pkg_name}\n\n"
-            f'import "github.com/gofiber/fiber/v2"\n\n'
+            f'import "github.com/gofiber/fiber/v3"\n\n'
             f"type Handler struct {{ Service *Service }}\n\n"
             f"func NewHandler(s *Service) *Handler {{ return &Handler{{Service: s}} }}\n\n"
-            f"func (h *Handler) Create(c *fiber.Ctx) error {{\n"
+            f"func (h *Handler) Create(c fiber.Ctx) error {{\n"
             f"    var req {type_name}Request\n"
-            f"    if err := c.BodyParser(&req); err != nil {{\n"
+            f"    if err := c.Bind().Body(&req); err != nil {{\n"
             f'        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{{"error": err.Error()}})\n'
             f"    }}\n"
             f"    resp, err := h.Service.Create(c.UserContext(), req)\n"
@@ -75,7 +75,7 @@ def main() -> int:
             f'    "net/http/httptest"\n'
             f'    "strings"\n'
             f'    "testing"\n\n'
-            f'    "github.com/gofiber/fiber/v2"\n'
+            f'    "github.com/gofiber/fiber/v3"\n'
             f")\n\n"
             f"func TestCreate_ReturnsCreated(t *testing.T) {{\n"
             f"    app := fiber.New()\n"

@@ -184,6 +184,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -229,7 +231,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 224
     },
     "claude_angular": {
       "agent": "claude",
@@ -420,6 +422,8 @@
         ".coding-os/src/templates/angular/skills/angular/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -479,7 +483,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 243
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -670,6 +674,8 @@
         ".coding-os/src/templates/aspnet-core/skills/aspnet-core/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -722,7 +728,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 236
     },
     "claude_astro": {
       "agent": "claude",
@@ -911,6 +917,8 @@
         ".coding-os/src/templates/astro/skills/astro/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -950,6 +958,7 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/astro-app.md",
+        "docs/playbooks/content-seo.md",
         "docs/playbooks/research-validation.md",
         "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
@@ -967,7 +976,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 239
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1154,6 +1163,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -1201,7 +1212,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 227
     },
     "claude_django": {
       "agent": "claude",
@@ -1394,6 +1405,8 @@
         ".coding-os/src/templates/django/skills/python-django/scripts/new_endpoint.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -1446,7 +1459,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 238
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1639,6 +1652,8 @@
         ".coding-os/src/templates/fastapi/skills/python-fastapi/scripts/new_endpoint.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -1686,7 +1701,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 233
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1877,6 +1892,8 @@
         ".coding-os/src/templates/flutter/skills/flutter/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -1931,7 +1948,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 238
     },
     "claude_go": {
       "agent": "claude",
@@ -2127,6 +2144,8 @@
         ".coding-os/src/templates/go/skills/go-patterns/versions.json",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -2174,7 +2193,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 236
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2370,6 +2389,8 @@
         ".coding-os/src/templates/go-fiber/skills/go-fiber/versions.json",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -2417,7 +2438,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 236
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2604,6 +2625,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -2651,7 +2674,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 227
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2838,6 +2861,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -2881,11 +2906,13 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "src/backend/.mvn/wrapper/maven-wrapper.properties",
+        "src/backend/mvnw",
         "src/backend/pom.xml",
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 229
     },
     "claude_laravel": {
       "agent": "claude",
@@ -3007,6 +3034,7 @@
         ".claude/rules/anti-overengineering.md",
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
+        ".claude/rules/laravel-backend.md",
         ".claude/rules/memory.md",
         ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
@@ -3071,9 +3099,12 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/laravel/rules/backend.md",
         ".coding-os/src/templates/laravel/skills/laravel/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -3126,7 +3157,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 236
     },
     "claude_meta": {
       "agent": "claude",
@@ -3349,6 +3380,8 @@
         ".coding-os/src/templates/meta/skills/react-vite-hub/scripts/check_vite_env.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -3394,7 +3427,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 259
+      "count": 261
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3583,6 +3616,8 @@
         ".coding-os/src/templates/nestjs/skills/nestjs/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -3639,7 +3674,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 238
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -3832,6 +3867,8 @@
         ".coding-os/src/templates/nextjs/skills/nextjs-react/scripts/new_component.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -3892,7 +3929,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 246
     },
     "claude_node-express": {
       "agent": "claude",
@@ -4016,6 +4053,7 @@
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
         ".claude/rules/model-routing.md",
+        ".claude/rules/node-express-backend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -4078,9 +4116,12 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/node-express/rules/backend.md",
         ".coding-os/src/templates/node-express/skills/node-express/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -4134,7 +4175,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 237
     },
     "claude_python": {
       "agent": "claude",
@@ -4320,6 +4361,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -4367,7 +4410,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 224
+      "count": 226
     },
     "claude_rails": {
       "agent": "claude",
@@ -4558,6 +4601,8 @@
         ".coding-os/src/templates/rails/skills/rails/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -4613,7 +4658,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 239
     },
     "claude_react-native": {
       "agent": "claude",
@@ -4814,6 +4859,8 @@
         ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/scan_rn_perf.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -4865,7 +4912,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 245
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -5052,6 +5099,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -5099,7 +5148,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 227
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5290,6 +5339,8 @@
         ".coding-os/src/templates/rust-axum/skills/rust/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -5343,7 +5394,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 237
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5530,6 +5581,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -5577,7 +5630,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 227
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -5768,6 +5821,8 @@
         ".coding-os/src/templates/spring-boot/skills/spring-boot/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -5813,15 +5868,18 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "src/backend/.mvn/wrapper/maven-wrapper.properties",
+        "src/backend/mvnw",
         "src/backend/pom.xml",
         "src/backend/src/main/java/com/example/app/Application.java",
         "src/backend/src/main/java/com/example/app/common/GlobalExceptionHandler.java",
         "src/backend/src/main/java/com/example/app/health/HealthController.java",
         "src/backend/src/main/java/com/example/app/health/HealthService.java",
         "src/backend/src/main/java/com/example/app/health/HealthStatus.java",
+        "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 240
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -5945,6 +6003,7 @@
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
         ".claude/rules/model-routing.md",
+        ".claude/rules/svelte-sveltekit-frontend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -6007,9 +6066,12 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/svelte-sveltekit/rules/frontend.md",
         ".coding-os/src/templates/svelte-sveltekit/skills/svelte/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -6069,7 +6131,7 @@
         "src/frontend/vite.config.ts",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 243
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6256,6 +6318,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -6303,7 +6367,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 225
+      "count": 227
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6492,6 +6556,8 @@
         ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -6543,7 +6609,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 233
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -6730,6 +6796,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -6780,7 +6848,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 228
+      "count": 230
     },
     "codex_base": {
       "agent": "codex",
@@ -6969,6 +7037,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -7013,7 +7083,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 228
     },
     "codex_angular": {
       "agent": "codex",
@@ -7209,6 +7279,8 @@
         ".coding-os/src/templates/angular/skills/angular/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -7267,7 +7339,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 247
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7463,6 +7535,8 @@
         ".coding-os/src/templates/aspnet-core/skills/aspnet-core/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -7514,7 +7588,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "codex_astro": {
       "agent": "codex",
@@ -7708,6 +7782,8 @@
         ".coding-os/src/templates/astro/skills/astro/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -7746,6 +7822,7 @@
         "docs/ops/runbooks/00-index.md",
         "docs/playbooks/00-index.md",
         "docs/playbooks/astro-app.md",
+        "docs/playbooks/content-seo.md",
         "docs/playbooks/research-validation.md",
         "docs/playbooks/security-review.md",
         "docs/prd/00-index.md",
@@ -7763,7 +7840,7 @@
         "src/frontend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 243
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -7955,6 +8032,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -8001,7 +8080,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 231
     },
     "codex_django": {
       "agent": "codex",
@@ -8199,6 +8278,8 @@
         ".coding-os/src/templates/django/skills/python-django/scripts/new_endpoint.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -8250,7 +8331,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 242
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8448,6 +8529,8 @@
         ".coding-os/src/templates/fastapi/skills/python-fastapi/scripts/new_endpoint.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -8494,7 +8577,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 237
     },
     "codex_flutter": {
       "agent": "codex",
@@ -8690,6 +8773,8 @@
         ".coding-os/src/templates/flutter/skills/flutter/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -8743,7 +8828,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 242
     },
     "codex_go": {
       "agent": "codex",
@@ -8944,6 +9029,8 @@
         ".coding-os/src/templates/go/skills/go-patterns/versions.json",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -8990,7 +9077,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9191,6 +9278,8 @@
         ".coding-os/src/templates/go-fiber/skills/go-fiber/versions.json",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -9237,7 +9326,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -9429,6 +9518,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -9475,7 +9566,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 231
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -9667,6 +9758,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -9709,11 +9802,13 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "src/backend/.mvn/wrapper/maven-wrapper.properties",
+        "src/backend/mvnw",
         "src/backend/pom.xml",
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 233
     },
     "codex_laravel": {
       "agent": "codex",
@@ -9842,6 +9937,7 @@
         ".codex/rules/anti-overengineering.md",
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
+        ".codex/rules/laravel-backend.md",
         ".codex/rules/memory.md",
         ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
@@ -9904,9 +10000,12 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/laravel/rules/backend.md",
         ".coding-os/src/templates/laravel/skills/laravel/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -9958,7 +10057,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 240
     },
     "codex_meta": {
       "agent": "codex",
@@ -10186,6 +10285,8 @@
         ".coding-os/src/templates/meta/skills/react-vite-hub/scripts/check_vite_env.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -10230,7 +10331,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 263
+      "count": 265
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -10424,6 +10525,8 @@
         ".coding-os/src/templates/nestjs/skills/nestjs/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -10479,7 +10582,7 @@
         "src/backend/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 242
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -10677,6 +10780,8 @@
         ".coding-os/src/templates/nextjs/skills/nextjs-react/scripts/new_component.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -10736,7 +10841,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 248
+      "count": 250
     },
     "codex_node-express": {
       "agent": "codex",
@@ -10867,6 +10972,7 @@
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
         ".codex/rules/model-routing.md",
+        ".codex/rules/node-express-backend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -10927,9 +11033,12 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/node-express/rules/backend.md",
         ".coding-os/src/templates/node-express/skills/node-express/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -10982,7 +11091,7 @@
         "src/backend/types/express-bootstrap.d.ts",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 241
     },
     "codex_python": {
       "agent": "codex",
@@ -11173,6 +11282,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11219,7 +11330,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 228
+      "count": 230
     },
     "codex_rails": {
       "agent": "codex",
@@ -11415,6 +11526,8 @@
         ".coding-os/src/templates/rails/skills/rails/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11469,7 +11582,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 243
     },
     "codex_react-native": {
       "agent": "codex",
@@ -11675,6 +11788,8 @@
         ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/scan_rn_perf.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11725,7 +11840,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 249
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -11917,6 +12032,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11963,7 +12080,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 231
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -12159,6 +12276,8 @@
         ".coding-os/src/templates/rust-axum/skills/rust/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -12211,7 +12330,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 241
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -12403,6 +12522,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -12449,7 +12570,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 231
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -12645,6 +12766,8 @@
         ".coding-os/src/templates/spring-boot/skills/spring-boot/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -12689,15 +12812,18 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "src/backend/.mvn/wrapper/maven-wrapper.properties",
+        "src/backend/mvnw",
         "src/backend/pom.xml",
         "src/backend/src/main/java/com/example/app/Application.java",
         "src/backend/src/main/java/com/example/app/common/GlobalExceptionHandler.java",
         "src/backend/src/main/java/com/example/app/health/HealthController.java",
         "src/backend/src/main/java/com/example/app/health/HealthService.java",
         "src/backend/src/main/java/com/example/app/health/HealthStatus.java",
+        "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 244
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -12828,6 +12954,7 @@
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
         ".codex/rules/model-routing.md",
+        ".codex/rules/svelte-sveltekit-frontend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -12888,9 +13015,12 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/svelte-sveltekit/rules/frontend.md",
         ".coding-os/src/templates/svelte-sveltekit/skills/svelte/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -12949,7 +13079,7 @@
         "src/frontend/vite.config.ts",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 247
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -13141,6 +13271,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -13187,7 +13319,7 @@
         "src/shared/README.md",
         "tsconfig.json"
       ],
-      "count": 229
+      "count": 231
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -13381,6 +13513,8 @@
         ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/SKILL.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -13431,7 +13565,7 @@
         "src/frontend/pages/index.vue",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 237
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -13623,6 +13757,8 @@
         ".coding-os/scrumban-config.yaml",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
+        ".editorconfig",
+        ".gitignore",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -13672,7 +13808,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 234
     }
   }
 }
