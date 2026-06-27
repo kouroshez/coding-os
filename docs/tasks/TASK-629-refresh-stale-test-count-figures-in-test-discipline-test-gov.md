@@ -5,12 +5,12 @@ swimlane: docs
 kind: chore
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-27
 started: 2026-06-27
-completed: null
+completed: 2026-06-27
 agent_session: ses-claude-20260627-161919-30e5
 depends_on: []
 blocked_by: []
@@ -23,3 +23,4 @@ references: []
 ## Work Log
 - 2026-06-27 [claude]: Edit test-discipline.md
 - 2026-06-27 [claude]: Edit test-governance.md
+- 2026-06-27 [claude]: committed e03f87cf · 8 files

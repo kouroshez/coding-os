@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-27
 started: 2026-06-27
-completed: null
+completed: 2026-06-27
 agent_session: ses-claude-20260627-161919-30e5
 depends_on: []
 blocked_by: []
@@ -32,3 +32,4 @@ Audit 2026-06: warn-abandoned-task.sh:34-38 debounces on SESSION_ID substring on
 ## Work Log
 - 2026-06-27 [claude]: Edit warn-abandoned-task.sh
 - 2026-06-27 [claude]: Edit test_warn_abandoned_task.py
+- 2026-06-27 [claude]: committed 50f41d50 · 8 files

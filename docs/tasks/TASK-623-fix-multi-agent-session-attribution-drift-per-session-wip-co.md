@@ -5,12 +5,12 @@ swimlane: "board_os"
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-27
 started: 2026-06-27
-completed: null
+completed: 2026-06-27
 agent_session: ses-claude-20260627-161919-30e5
 depends_on: []
 blocked_by: []
@@ -39,3 +39,4 @@ Dogfooded 2026-06-27: `cos task-start TASK-622` from session 30e5 bound agent_se
 - 2026-06-27 [claude]: Edit test_agent_runtime.py
 - 2026-06-27 [claude]: Edit conftest.py
 - 2026-06-27 [claude]: Root-caused M1+M2 to ONE defect: MCP _read_active_session_pointer read agent-shared $COS_AGENT_DIR/.active-session…
+- 2026-06-27 [claude]: committed 6b48e05d · 3 files
