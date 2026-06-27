@@ -7,6 +7,21 @@ import sys
 from pathlib import Path
 
 
+def _resolve_owner(stacks: list, rel_path: str) -> dict | None:
+    # Longest matching pattern wins: when two stacks' roots nest (e.g. `src/**`
+    # and `src/frontend/**/*.ts` both match), the more specific pattern is the
+    # true owner. First-match-in-list-order would hand the file to whichever
+    # stack happened to come first in the boundary file — arbitrary.
+    owner = None
+    best_len = -1
+    for stack in stacks:
+        for pattern in stack.get("file_patterns") or []:
+            if fnmatch.fnmatch(rel_path, pattern) and len(pattern) > best_len:
+                best_len = len(pattern)
+                owner = stack
+    return owner
+
+
 def main() -> int:
     if len(sys.argv) < 3:
         return 0
@@ -29,14 +44,7 @@ def main() -> int:
     if not stacks:
         return 0
 
-    owning_stack = None
-    for stack in stacks:
-        for pattern in stack.get("file_patterns") or []:
-            if fnmatch.fnmatch(rel_path, pattern):
-                owning_stack = stack
-                break
-        if owning_stack:
-            break
+    owning_stack = _resolve_owner(stacks, rel_path)
 
     violator = None
     for stack in stacks:

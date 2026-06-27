@@ -466,6 +466,17 @@ def plain_stack_by_language(stacks: dict[str, StackProfile]) -> dict[str, str]:
     return {**fallback, **plain}
 
 
+def _roots_collide(root_a: str, lang_a: str, root_b: str, lang_b: str) -> bool:
+    if root_a == root_b:
+        return True  # two stacks rooted at the same path always collide
+    # A nested root only collides when the two stacks own the SAME file types
+    # (same language): a TS language-layer at `src` legitimately CONTAINS a Go
+    # backend at `src/backend` (.ts vs .go never overlap), but it collides with
+    # a Next.js app at `src/frontend` — both then own `src/frontend/**/*.ts`.
+    nested = root_a.startswith(root_b + "/") or root_b.startswith(root_a + "/")
+    return nested and lang_a == lang_b
+
+
 def service_relocations(
     stacks: dict[str, StackProfile] | StackLoadResult,
     templates: tuple[str, ...] | list[str],
@@ -473,20 +484,25 @@ def service_relocations(
     """stack-id → src/services/<id> for selected stacks whose structure.root collides.
 
     Anatomy contract (project-anatomy.md § Multi-backend relocation rule):
-    single-owner roots are untouched; every collision participant relocates."""
-    owners: dict[str, list[str]] = {}
+    single-owner roots are untouched; every collision participant relocates. A
+    collision is roots that EQUAL, or NEST while sharing a language (so the inner
+    and outer stack would own the same files) — the shipped t3-style nest of
+    typescript-plain (`src`) over nextjs (`src/frontend`) is the motivating case."""
+    entries: list[tuple[str, str, str]] = []
     for name in templates:
         profile = stacks[name] if name in stacks else None
-        root = (profile.structure or {}).get("root") if profile else None
-        if root:
-            owners.setdefault(root.rstrip("/"), []).append(name)
-    relocations: dict[str, str] = {}
-    for stack_ids in owners.values():
-        if len(stack_ids) < 2:
+        if profile is None:
             continue
-        for stack_id in stack_ids:
-            relocations[stack_id] = f"src/services/{stack_id}"
-    return relocations
+        root = (profile.structure or {}).get("root")
+        if root:
+            entries.append((name, root.rstrip("/"), profile.language or ""))
+    colliding: dict[str, None] = {}
+    for index, (id_a, root_a, lang_a) in enumerate(entries):
+        for id_b, root_b, lang_b in entries[index + 1 :]:
+            if _roots_collide(root_a, lang_a, root_b, lang_b):
+                colliding[id_a] = None
+                colliding[id_b] = None
+    return {stack_id: f"src/services/{stack_id}" for stack_id in colliding}
 
 
 def relocate_profile(profile: StackProfile, new_root: str) -> StackProfile:

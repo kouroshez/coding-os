@@ -968,6 +968,20 @@ class TestProjectAnatomy:
         # Single owner → untouched.
         assert main_module._service_relocations(("go-plain", "nextjs")) == {}
 
+    def test_nested_roots_compute_service_relocations(self) -> None:
+        # typescript-plain root `src` CONTAINS nextjs root `src/frontend`, both
+        # typescript — a nested same-language collision exact-root grouping
+        # missed (shipped t3-style); both own src/frontend/**/*.ts.
+        relocations = main_module._service_relocations(("typescript-plain", "nextjs"))
+        assert relocations == {
+            "typescript-plain": "src/services/typescript-plain",
+            "nextjs": "src/services/nextjs",
+        }
+        # A nested root of a DIFFERENT language is the language-layer pattern, not
+        # a collision: typescript-plain (`src`, .ts) legitimately contains
+        # go-plain (`src/backend`, .go) — no overlap, no relocation.
+        assert main_module._service_relocations(("typescript-plain", "go-plain")) == {}
+
     def test_multi_backend_init_relocates_to_services(
         self, runner: CliRunner, tmp_path: Path
     ) -> None:
@@ -1119,6 +1133,24 @@ class TestRegenChainRelocation:
         # Owned writes inside each service stay allowed.
         assert _verdict("src/services/fastapi/app/api.py") == 0
         assert _verdict("src/services/go-fiber/internal/handler.go") == 0
+
+    def test_boundary_longest_pattern_owner_resolution(self) -> None:
+        import importlib.util
+
+        repo_root = Path(__file__).resolve().parent.parent
+        helper = repo_root / "src" / "core" / "hooks" / "_enforce_scaffold_boundary.py"
+        spec = importlib.util.spec_from_file_location("_boundary_owner_t600", helper)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        broad = {"stack": "typescript-plain", "file_patterns": ["src/**"]}
+        specific = {"stack": "nextjs", "file_patterns": ["src/frontend/**/*.ts"]}
+        # Most-specific (longest) pattern wins regardless of stack list order —
+        # not first-match-in-list (which would flip with the order below).
+        assert module._resolve_owner([broad, specific], "src/frontend/app/page.ts")["stack"] == "nextjs"
+        assert module._resolve_owner([specific, broad], "src/frontend/app/page.ts")["stack"] == "nextjs"
+        # A path only the broad pattern matches still resolves to the broad stack.
+        assert module._resolve_owner([broad, specific], "src/backend/x.go")["stack"] == "typescript-plain"
 
     def test_skill_primer_remaps_relocated_globs(self, composed_project: Path) -> None:
         import importlib.util
