@@ -40,3 +40,4 @@ references: []
 - 2026-06-27 [claude]: Edit stack-factory-v2-epic.md
 - 2026-06-27 [claude]: Done: dropped typescript-plain from t3-style.yaml ([nextjs]); added…
 - 2026-06-27 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-27 [claude]: committed cf0b33a3 · 3 files
