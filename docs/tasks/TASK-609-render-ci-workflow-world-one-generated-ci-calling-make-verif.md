@@ -46,3 +46,4 @@ references: []
 - 2026-06-27 [claude]: Edit template-authoring.md
 - 2026-06-27 [claude]: Done: render_ci_workflow (per-language matrix, ubuntu-only, body=make targets delegation) + materialize_ci_workflow…
 - 2026-06-27 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-27 [claude]: committed d5519e24 · 7 files
