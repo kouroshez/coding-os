@@ -42,6 +42,9 @@ makefile_targets:
   - {name: lint-go, cmd: "cd src/backend && go vet ./..."}
   - {name: test-go, cmd: "cd src/backend && go test ./..."}
 
+verify:
+  - {glob: "src/backend/**/*.go", suites: "lint-go + test-go", cmd: "cd src/backend && go vet ./... && go test ./..."}
+
 dimensions:
   - {name: "HTTP handler", read_files: ["docs/playbooks/go-service.md"]}
   - {name: "Concurrency", read_files: ["docs/engineering/go-rules.md"]}

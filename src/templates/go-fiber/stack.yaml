@@ -45,6 +45,9 @@ makefile_targets:
   - {name: lint-backend, cmd: "cd src/backend && go vet ./... && golangci-lint run"}
   - {name: test-backend, cmd: "cd src/backend && go test ./..."}
 
+verify:
+  - {glob: "src/backend/**/*.go", suites: "lint-backend + test-backend", cmd: "cd src/backend && go vet ./... && go test ./..."}
+
 dimensions:
   - {name: "Fiber handler",    read_files: ["docs/playbooks/fiber-service.md", "docs/engineering/fiber-rules.md"]}
   - {name: "Middleware / auth", read_files: ["docs/engineering/fiber-rules.md"]}

@@ -481,6 +481,14 @@ class TestBootableScaffold:
     def python_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
         return _class_scaffold(tmp_path_factory, "boot-python", "python")
 
+    @pytest.fixture(scope="class")
+    def go_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "boot-go", "go")
+
+    @pytest.fixture(scope="class")
+    def gofiber_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "boot-gofiber", "go-fiber")
+
     def test_fastapi_ships_runnable_seed(self, fastapi_project: Path) -> None:
         backend = fastapi_project / "src" / "backend"
         pyproject = (backend / "pyproject.toml").read_text()
@@ -513,13 +521,36 @@ class TestBootableScaffold:
         assert not (python_project / "manage.py").exists()
         assert not (python_project / "src" / "app" / "main.py").exists()
 
-    @pytest.mark.parametrize("stack", ["fastapi", "django"])
-    def test_work_surface_stack_has_verify_block(self, stack: str) -> None:
+    def test_go_ships_runnable_seed(self, go_project: Path) -> None:
+        backend = go_project / "src" / "backend"
+        assert (backend / "go.mod").exists()
+        assert "/health" in (backend / "cmd" / "api" / "main.go").read_text()
+        assert (backend / "cmd" / "api" / "main_test.go").exists()
+        assert not (backend / ".gitkeep").exists()
+
+    def test_gofiber_ships_fiber_v3_seed(self, gofiber_project: Path) -> None:
+        backend = gofiber_project / "src" / "backend"
+        assert "gofiber/fiber/v3" in (backend / "go.mod").read_text()
+        main = (backend / "cmd" / "api" / "main.go").read_text()
+        assert "fiber.New" in main and "/health" in main
+        assert (backend / "cmd" / "api" / "main_test.go").exists()
+
+    @pytest.mark.parametrize(
+        "stack,tokens",
+        [
+            ("fastapi", ("ruff check", "pytest")),
+            ("django", ("ruff check", "pytest")),
+            ("go", ("go vet", "go test")),
+            ("go-fiber", ("go vet", "go test")),
+        ],
+    )
+    def test_work_surface_stack_has_verify_block(self, stack: str, tokens: tuple) -> None:
         data = yaml.safe_load((self._REPO / "src" / "templates" / stack / "stack.yaml").read_text())
         verify = data.get("verify")
         assert verify, f"{stack} must declare a verify: block"
         cmd = verify[0]["cmd"]
-        assert "ruff check" in cmd and "pytest" in cmd
+        for tok in tokens:
+            assert tok in cmd, f"{stack} verify missing {tok!r}"
 
 
 # ---------------------------------------------------------------------------

@@ -2222,9 +2222,12 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "src/backend/cmd/api/main.go",
+        "src/backend/cmd/api/main_test.go",
+        "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 240
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2468,9 +2471,12 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "src/backend/cmd/api/main.go",
+        "src/backend/cmd/api/main_test.go",
+        "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 240
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -9191,9 +9197,12 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "src/backend/cmd/api/main.go",
+        "src/backend/cmd/api/main_test.go",
+        "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 244
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9441,9 +9450,12 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "src/backend/cmd/api/main.go",
+        "src/backend/cmd/api/main_test.go",
+        "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 244
     },
     "codex_go-plain": {
       "agent": "codex",

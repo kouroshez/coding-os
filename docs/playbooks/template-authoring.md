@@ -117,7 +117,10 @@ manifest lives at the stack root, not the project root, so the linter/test
 runner discover it from the same directory the `verify:` cmd `cd`s into —
 e.g. `fastapi`/`django` put `pyproject.toml` + `app/`|`config/` + `tests/` under
 `src/backend/`, and `verify:` runs `cd src/backend && ruff check . && pytest -q`.
-This mirrors the nestjs reference (`src/backend/package.json` + `src/backend/src/`).
+Go stacks place `go.mod` + `cmd/api/main.go` + `*_test.go` under `src/backend/`
+(`go vet ./... && go test ./...`); the stdlib `go` seed needs no module download,
+the `go-fiber` seed pins `gofiber/fiber/v3` (consumer runs `go mod tidy`). This
+mirrors the nestjs reference (`src/backend/package.json` + `src/backend/src/`).
 Dep version pins stay conservative floors (exact pins are a separate per-stack
 firecrawl pass) so a fresh install resolves without a stale ceiling.
 
