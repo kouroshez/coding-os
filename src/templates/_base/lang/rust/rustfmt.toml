@@ -1,0 +1,3 @@
+# Rust format baseline (coding-os language bundle): rustfmt (stable keys only).
+edition = "2021"
+max_width = 100

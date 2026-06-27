@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!-- PHP lint baseline (coding-os language bundle): PHP_CodeSniffer, PSR-12. -->
+<ruleset name="coding-os">
+  <description>PHP_CodeSniffer baseline — PSR-12.</description>
+  <file>src</file>
+  <arg name="colors"/>
+  <arg value="sp"/>
+  <rule ref="PSR12"/>
+  <exclude-pattern>*/vendor/*</exclude-pattern>
+</ruleset>

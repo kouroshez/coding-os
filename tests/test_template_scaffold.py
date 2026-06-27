@@ -392,6 +392,14 @@ class TestLanguageConfigBundle:
     def go_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
         return _class_scaffold(tmp_path_factory, "lang-go", "go-plain")
 
+    @pytest.fixture(scope="class")
+    def ruby_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "lang-ruby", "rails")
+
+    @pytest.fixture(scope="class")
+    def java_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "lang-java", "java-plain")
+
     def test_python_ships_pyproject_with_ruff_and_pytest(self, python_project: Path) -> None:
         pyproject = python_project / "pyproject.toml"
         assert pyproject.exists(), "python language bundle must ship pyproject.toml"
@@ -428,9 +436,24 @@ class TestLanguageConfigBundle:
         assert "eslint ." in makefile  # eslint added
         assert "npm run lint" in makefile  # framework check (svelte-check) kept
 
-    def test_go_gets_no_language_config_bundle(self, go_project: Path) -> None:
+    def test_go_ships_golangci_v2_config(self, go_project: Path) -> None:
+        golangci = go_project / ".golangci.yml"
+        assert golangci.exists(), "go language bundle must ship .golangci.yml"
+        assert 'version: "2"' in golangci.read_text()  # v2 schema, not legacy v1
+
+    def test_ruby_ships_rubocop_config(self, ruby_project: Path) -> None:
+        assert (ruby_project / ".rubocop.yml").exists()
+
+    def test_cross_language_isolation(self, go_project: Path) -> None:
+        # A go project gets its own bundle but never another language's config.
         assert not (go_project / "eslint.config.js").exists()
         assert not (go_project / "pyproject.toml").exists()
+        assert not (go_project / ".rubocop.yml").exists()
+
+    def test_language_without_bundle_gets_nothing(self, java_project: Path) -> None:
+        # Java has no _base/lang/java bundle (Spotless lives in pom.xml).
+        for name in ("eslint.config.js", "pyproject.toml", ".golangci.yml", ".rubocop.yml"):
+            assert not (java_project / name).exists()
 
 
 # ---------------------------------------------------------------------------

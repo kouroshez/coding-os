@@ -1,0 +1,16 @@
+# Ruby lint/format baseline (coding-os language bundle): RuboCop.
+# Discovered by `rubocop` walking up from the target directory.
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.2
+  Exclude:
+    - 'db/schema.rb'
+    - 'vendor/**/*'
+    - 'bin/**/*'
+    - 'tmp/**/*'
+
+Style/Documentation:
+  Enabled: false
+
+Metrics/MethodLength:
+  Max: 20

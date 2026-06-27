@@ -1,0 +1,20 @@
+# Go lint baseline (coding-os language bundle): golangci-lint v2 schema.
+# Discovered by `golangci-lint run` walking up from the analyzed package.
+version: "2"
+run:
+  timeout: 5m
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - misspell
+  exclusions:
+    generated: lax
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+formatters:
+  enable:
+    - gofmt
+    - goimports

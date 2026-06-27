@@ -96,6 +96,16 @@ stack-specific dependency manifest (row 13, with deps) stays per-stack; the
 bundle's `pyproject.toml` carries tool config only, so a python stack still
 ships its own `requirements.txt`/deps without colliding.
 
+Shipped bundles: `python/` (pyproject `[tool.ruff]`+`[tool.pytest.ini_options]`),
+`typescript/` (eslint flat v9, `.prettierrc.json`, `vitest.config.ts`,
+`tsconfig.json`), `go/.golangci.yml` (v2 schema), `rust/` (`clippy.toml` +
+`rustfmt.toml`), `ruby/.rubocop.yml`, `php/phpcs.xml.dist`,
+`dart/analysis_options.yaml` (flutter_lints). The linters walk up from
+`src/<root>/` to find these at the project root. Two languages have no bundle by
+design: **C#** is configured by the shared `_base` `.editorconfig` (`dotnet
+format` reads it), and **Java** keeps its Spotless config in `pom.xml` (the
+per-stack build manifest, row 13).
+
 ## Modularity gating — which mechanism, when
 
 There is **no single** toggle mechanism, and that is intentional: the three

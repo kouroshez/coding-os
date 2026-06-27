@@ -1913,6 +1913,7 @@
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
+        "analysis_options.yaml",
         "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
@@ -1964,7 +1965,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 240
     },
     "claude_go": {
       "agent": "claude",
@@ -2162,6 +2163,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".golangci.yml",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -2209,7 +2211,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 237
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2407,6 +2409,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".golangci.yml",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -2454,7 +2457,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 237
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2643,6 +2646,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".golangci.yml",
         ".mcp.json",
         "AGENTS.md",
         "Makefile",
@@ -2690,7 +2694,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 228
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -3167,6 +3171,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "phpcs.xml.dist",
         "src/backend/app/Exceptions/Handler.php",
         "src/backend/app/Http/Controllers/HealthController.php",
         "src/backend/composer.json",
@@ -3174,7 +3179,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 238
     },
     "claude_meta": {
       "agent": "claude",
@@ -4640,6 +4645,7 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".rubocop.yml",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -4694,7 +4700,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 241
     },
     "claude_react-native": {
       "agent": "claude",
@@ -5143,6 +5149,7 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".rubocop.yml",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -5189,7 +5196,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 228
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5387,6 +5394,7 @@
         "AGENTS.md",
         "Makefile",
         "changes.log",
+        "clippy.toml",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -5428,6 +5436,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "rustfmt.toml",
         "src/backend/Cargo.toml",
         "src/backend/src/app.rs",
         "src/backend/src/error.rs",
@@ -5436,7 +5445,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5629,6 +5638,7 @@
         "AGENTS.md",
         "Makefile",
         "changes.log",
+        "clippy.toml",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -5668,11 +5678,12 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "rustfmt.toml",
         "src/backend/Cargo.toml",
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 229
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -6903,12 +6914,13 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "phpcs.xml.dist",
         "src/backend/plugin/plugin.php",
         "src/backend/theme/functions.php",
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 233
     },
     "codex_base": {
       "agent": "codex",
@@ -8853,6 +8865,7 @@
         ".gitignore",
         "AGENTS.md",
         "Makefile",
+        "analysis_options.yaml",
         "changes.log",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
@@ -8904,7 +8917,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 244
     },
     "codex_go": {
       "agent": "codex",
@@ -9107,6 +9120,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".golangci.yml",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -9153,7 +9167,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 241
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9356,6 +9370,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".golangci.yml",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -9402,7 +9417,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 241
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -9596,6 +9611,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".golangci.yml",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -9642,7 +9658,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 232
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -10127,6 +10143,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "phpcs.xml.dist",
         "src/backend/app/Exceptions/Handler.php",
         "src/backend/app/Http/Controllers/HealthController.php",
         "src/backend/composer.json",
@@ -10134,7 +10151,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 242
     },
     "codex_meta": {
       "agent": "codex",
@@ -11624,6 +11641,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".rubocop.yml",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11678,7 +11696,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 245
     },
     "codex_react-native": {
       "agent": "codex",
@@ -12135,6 +12153,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".rubocop.yml",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -12181,7 +12200,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 232
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -12383,6 +12402,7 @@
         "AGENTS.md",
         "Makefile",
         "changes.log",
+        "clippy.toml",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -12424,6 +12444,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "rustfmt.toml",
         "src/backend/Cargo.toml",
         "src/backend/src/app.rs",
         "src/backend/src/error.rs",
@@ -12432,7 +12453,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 244
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -12629,6 +12650,7 @@
         "AGENTS.md",
         "Makefile",
         "changes.log",
+        "clippy.toml",
         "docs/00-index.md",
         "docs/_meta/feature-dependency-tree.md",
         "docs/_meta/foundation-map.md",
@@ -12668,11 +12690,12 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "rustfmt.toml",
         "src/backend/Cargo.toml",
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 233
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -13923,12 +13946,13 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "phpcs.xml.dist",
         "src/backend/plugin/plugin.php",
         "src/backend/theme/functions.php",
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 237
     }
   }
 }

@@ -1,0 +1,7 @@
+# Dart/Flutter lint baseline (coding-os language bundle).
+# Activates the recommended Flutter lints; needs flutter_lints as a dev_dependency.
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # Tune project rules here; see https://dart.dev/tools/linter-rules.
