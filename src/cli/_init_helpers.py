@@ -518,48 +518,58 @@ def materialize_makefile_targets(project: Path, state: Path, world: AggregatedWo
 def materialize_ci_workflow(project: Path, world: AggregatedWorld) -> bool:
     """Render the delegating CI workflow into <project>/.github/workflows/ci.yml.
 
-    Consumer-owned (a real file, not a live symlink) so the project keeps full
-    control. A world with no verifiable targets renders nothing → no file.
+    Consumer-owned and write-once (the `ensure_*` idiom): written when absent,
+    never overwritten — a `cos update` keeps any consumer edits. A world with no
+    verifiable targets renders nothing → no file.
     """
     from cli.renderer import render_ci_workflow
 
+    ci_path = project / ".github" / "workflows" / "ci.yml"
+    if ci_path.exists():
+        return False
     rendered = render_ci_workflow(world)
     if not rendered:
         return False
-    ci_path = project / ".github" / "workflows" / "ci.yml"
-    changed = not ci_path.exists() or ci_path.read_text(encoding="utf-8") != rendered
-    if changed:
-        ci_path.parent.mkdir(parents=True, exist_ok=True)
-        ci_path.write_text(rendered, encoding="utf-8")
-    return changed
+    ci_path.parent.mkdir(parents=True, exist_ok=True)
+    ci_path.write_text(rendered, encoding="utf-8")
+    return True
 
 
 def materialize_dockerfiles(project: Path, world: AggregatedWorld) -> bool:
     """Write a Dockerfile + .dockerignore at every category=backend stack root.
 
-    Consumer-owned skeletons keyed by language base image. Frontend/mobile/library
-    stacks get none — a server image is meaningless there (flutter NA, TASK-610).
+    World-driven (overlay + relocation aware): the backend roots come from
+    `world.anatomy`, the language from the matching verify row's glob — so a bare
+    or exempt backend (no verify row, e.g. a `*-plain` stack) gets none, like
+    frontend/mobile/library. Consumer-owned and write-once: never overwrites an
+    existing file, so a `cos update` keeps the consumer's CMD/entrypoint edits.
     """
-    from cli._resources import templates_dir
-    from cli.renderer import render_dockerfile, render_dockerignore
-    from cli.stack_registry import load_stack_registry, resolve_relocated_profiles
+    from cli.renderer import language_for_glob, render_dockerfile, render_dockerignore
 
-    registry = load_stack_registry(templates_dir())
-    changed = False
-    for profile in resolve_relocated_profiles(registry, world.stack_ids):
-        if profile.category != "backend":
+    language_by_root: dict[str, str] = {}
+    for row in world.verify_rows:
+        if "/**" not in row.glob:
             continue
-        content = render_dockerfile(profile.language)
+        language = language_for_glob(row.glob)
+        if language:
+            language_by_root.setdefault(row.glob.split("/**", 1)[0].rstrip("/"), language)
+
+    changed = False
+    for entry in world.anatomy:
+        if entry.category != "backend":
+            continue
+        root = entry.root.rstrip("/")
+        content = render_dockerfile(language_by_root.get(root, ""))
         if not content:
             continue
-        root = (profile.structure or {}).get("root", "").rstrip("/")
         base = project / root if root else project
         for name, text in (("Dockerfile", content), (".dockerignore", render_dockerignore())):
             target = base / name
-            if not target.exists() or target.read_text(encoding="utf-8") != text:
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_text(text, encoding="utf-8")
-                changed = True
+            if target.exists():
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(text, encoding="utf-8")
+            changed = True
     return changed
 
 

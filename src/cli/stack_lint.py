@@ -179,6 +179,10 @@ def lint_stack(
     # The dogfood (meta) stack routes to the repo's own docs/ rather than a
     # shipped scaffold copy — accept either location.
     repo_root = templates_dir().parent.parent
+    # A repo-root doc (meta/dogfood routing) is only reachable from an editable
+    # checkout; a packaged install ships no docs/ tree, so a non-resolution there
+    # is unknowable, not a real dangling ref — don't HARD-fail on it.
+    repo_docs_present = (repo_root / "docs").is_dir()
     routes = profile.substitutions.get("DOMAIN_ROUTES", "")
     for doc_path in dict.fromkeys(_DOC_ROUTE_RE.findall(routes)):
         resolves = (
@@ -186,7 +190,7 @@ def lint_stack(
             or (base_scaffold / doc_path).is_file()
             or (repo_root / doc_path).is_file()
         )
-        if not resolves:
+        if not resolves and not (doc_path.startswith("docs/") and not repo_docs_present):
             report.hard.append(f"DOMAIN_ROUTES path '{doc_path}' does not resolve in scaffold")
 
     if not _is_exempt_from_work_surfaces(profile):

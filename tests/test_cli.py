@@ -1122,6 +1122,18 @@ class TestCiWorkflow:
             ci = project / ".github" / "workflows" / "ci.yml"
             assert ci.exists() is expected, f"{profile}: ci.yml exists={ci.exists()}, want {expected}"
 
+    def test_materialize_is_write_once_preserving_consumer_edits(self, tmp_path: Path) -> None:
+        # TASK-625: write-once (the ensure_* idiom) — cos update must never
+        # clobber a consumer's ci.yml edits.
+        from cli._init_helpers import materialize_ci_workflow
+
+        world = self._world("django", "nextjs")
+        assert materialize_ci_workflow(tmp_path, world)
+        ci = tmp_path / ".github" / "workflows" / "ci.yml"
+        ci.write_text("# consumer added a deploy job\n", encoding="utf-8")
+        assert materialize_ci_workflow(tmp_path, world) is False  # second call is a no-op
+        assert ci.read_text(encoding="utf-8") == "# consumer added a deploy job\n"
+
 
 # ---------------------------------------------------------------------------
 # Generated backend Dockerfiles — TASK-610 (render_dockerfile, backend-only)
@@ -1181,6 +1193,22 @@ class TestDockerfile:
         )
         assert result.exit_code == 0, result.output
         assert (project / "src" / "backend" / "Dockerfile").exists()
+
+    def test_go_skeleton_builds_all_packages_and_is_write_once(self, tmp_path: Path) -> None:
+        # TASK-625: go build must use ./... (works for cmd/api AND root main.go,
+        # e.g. go-plain) not the framework-specific ./cmd/api; and the Dockerfile
+        # is write-once so cos update keeps the consumer's CMD/entrypoint edits.
+        from cli._init_helpers import materialize_dockerfiles
+        from cli.renderer import render_dockerfile
+
+        assert "go build -o /out/server ./..." in render_dockerfile("go")
+        assert "./cmd/api" not in render_dockerfile("go")
+        world = self._world("go")
+        assert materialize_dockerfiles(tmp_path, world)
+        dockerfile = tmp_path / "src" / "backend" / "Dockerfile"
+        dockerfile.write_text("# consumer set the real CMD\n", encoding="utf-8")
+        assert materialize_dockerfiles(tmp_path, world) is False  # write-once
+        assert dockerfile.read_text(encoding="utf-8") == "# consumer set the real CMD\n"
 
 
 # ---------------------------------------------------------------------------

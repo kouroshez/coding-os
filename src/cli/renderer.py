@@ -289,10 +289,15 @@ _CI_LANGUAGE_INSTALL: dict[str, str] = {
     "typescript": "npm install",
     "go": "go mod download",
     "php": "composer install",
+    "ruby": "bundle install",
+    "rust": "cargo fetch",
+    "java": "./mvnw -q -B dependency:go-offline",
+    "csharp": "dotnet restore",
+    "dart": "dart pub get",
 }
 
 
-def _language_for_glob(glob: str) -> str:
+def language_for_glob(glob: str) -> str:
     tail = glob.rsplit("/", 1)[-1]
     if "." not in tail:
         return ""
@@ -316,16 +321,17 @@ def render_ci_workflow(world: AggregatedWorld) -> str:
     targets_by_language: dict[str, list[str]] = {}
     roots_by_language: dict[str, list[str]] = {}
     for row in world.verify_rows:
-        language = _language_for_glob(row.glob)
+        language = language_for_glob(row.glob)
         if not language:
             continue
         for suite in row.suites.split("+"):
             name = suite.strip()
             if name in runnable and name not in targets_by_language.setdefault(language, []):
                 targets_by_language.setdefault(language, []).append(name)
-        root = row.glob.split("/**", 1)[0].rstrip("/")
-        if root and root not in roots_by_language.setdefault(language, []):
-            roots_by_language[language].append(root)
+        if "/**" in row.glob:
+            root = row.glob.split("/**", 1)[0].rstrip("/")
+            if root and root not in roots_by_language.setdefault(language, []):
+                roots_by_language[language].append(root)
 
     languages = [lang for lang in targets_by_language if targets_by_language[lang]]
     if not languages:
@@ -437,7 +443,7 @@ WORKDIR /src
 COPY go.mod ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -o /out/server ./cmd/api
+RUN CGO_ENABLED=0 go build -o /out/server ./...
 
 FROM gcr.io/distroless/static-debian12 AS runtime
 COPY --from=build /out/server /server
@@ -508,6 +514,7 @@ RUN useradd appuser && chown -R appuser /app
 USER appuser
 EXPOSE 3000
 HEALTHCHECK CMD ruby -rnet/http -e "Net::HTTP.get(URI('http://localhost:3000/health'))" || exit 1
+# Adjust to your entrypoint (rails: bin/rails server -b 0.0.0.0; rack: rackup).
 CMD ["ruby", "app.rb"]
 """,
     "rust": """\

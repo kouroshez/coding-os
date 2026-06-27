@@ -151,7 +151,7 @@ modules:
     depends_on: []
 
   - id: cicd
-    label: "CI/CD — generated GitHub Actions workflow that delegates to make"
+    label: "CI/CD — generated GitHub Actions workflow + backend Dockerfiles"
     kernel: false
     # Owns no hooks/tools: it gates the .github/workflows/ci.yml render at init
     # and update (cli.main / cli.update → materialize_ci_workflow). Off in the
