@@ -31,27 +31,31 @@ case "$SESSION_ID" in
   *[!A-Za-z0-9-]*) exit 0 ;;
 esac
 
-# Per-session debounce — warn at most once per session-id.
-MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.abandoned-task-warned"  # panel-first: matches session-context panel-scope clear
-if [ -f "$MARKER" ] && grep -qF "$SESSION_ID" "$MARKER" 2>/dev/null; then
-  exit 0
-fi
-
-# Widened from in_progress-only: `testing` is where the
-# testing-first protocol parks near-done work, so it is the status a task most
-# often dies in — yet it was previously invisible to this warning.
+# Compute the open set FIRST so the debounce can re-arm when it changes.
+# `testing` is included: the testing-first protocol parks near-done work there,
+# so it is the status a task most often dies in.
 STUCK="$(sqlite3 "$COS_DB_PATH" \
   "SELECT group_concat(task_id || ' (' || status || ')', ', ') FROM tasks
    WHERE status IN ('in_progress','testing') AND agent_session = '$SESSION_ID';" \
   2>/dev/null || true)"
+[ -n "$STUCK" ] || exit 0
 
-if [ -n "$STUCK" ]; then
-  echo "$SESSION_ID" > "$MARKER"
-  cos_log_hook warn-abandoned-task warn || true
-  MSG="[board] Task(s) still open for this session: ${STUCK}. Close each with \`cos task-done\` (or park via \`cos task-move --to blocked\`) — a task left in in_progress/testing is stranded on the board with no owner action."
-  printf '{"hookSpecificOutput":{"hookEventName":"Stop","additionalContext":%s}}\n' \
-    "$(printf '%s' "$MSG" | jq -R -s '.')"
+# Debounce keyed on (session-id, open-set), not session-id alone — so the nudge
+# re-arms on a state-change (in_progress→testing, or a close+open) instead of
+# going silent for the whole session after the first warning (the "85%-done
+# then stopped" gap). An unchanged open-set stays debounced (no alarm fatigue).
+MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.abandoned-task-warned"  # panel-first: matches session-context panel-scope clear
+STUCK_SIG=$(printf '%s' "$STUCK" | cksum | cut -d' ' -f1)
+DEBOUNCE_KEY="${SESSION_ID}:${STUCK_SIG}"
+if [ -f "$MARKER" ] && grep -qF "$DEBOUNCE_KEY" "$MARKER" 2>/dev/null; then
+  exit 0
 fi
+
+echo "$DEBOUNCE_KEY" >> "$MARKER"
+cos_log_hook warn-abandoned-task warn || true
+MSG="[board] Task(s) still open for this session: ${STUCK}. Close each with \`cos task-done\` (or park via \`cos task-move --to blocked\`) — a task left in in_progress/testing is stranded on the board with no owner action."
+printf '{"hookSpecificOutput":{"hookEventName":"Stop","additionalContext":%s}}\n' \
+  "$(printf '%s' "$MSG" | jq -R -s '.')"
 
 cos_log_hook warn-abandoned-task ok || true
 exit 0
