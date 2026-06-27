@@ -982,6 +982,42 @@ class TestProjectAnatomy:
         # go-plain (`src/backend`, .go) — no overlap, no relocation.
         assert main_module._service_relocations(("typescript-plain", "go-plain")) == {}
 
+    def test_every_shipped_preset_composes_to_disjoint_boundaries(self) -> None:
+        # A bad preset must never ship green: for every _presets/*.yaml, the
+        # composed scaffold must own disjoint file trees. Real backend services
+        # that share a root legitimately relocate to src/services/<id>
+        # (hexagonal-product), but a *-plain language layer carries no service —
+        # only the language-driven _base/lang config — so relocating one is the
+        # redundant-stack smell (shipped t3-style: typescript-plain nested under
+        # nextjs, both typescript). Reuses the production collision predicate.
+        from cli._resources import templates_dir
+        from cli.preset_registry import load_preset_registry
+        from cli.stack_registry import _roots_collide, load_stack_registry, resolve_relocated_profiles
+
+        td = templates_dir()
+        registry = load_stack_registry(td)
+        presets = load_preset_registry(td, include_user=False).presets
+
+        for pid, profile in presets.items():
+            stacks = tuple(profile.stacks)
+            relocations = main_module._service_relocations(stacks)
+            relocated_plain = sorted(s for s in relocations if s.endswith("-plain"))
+            assert not relocated_plain, (
+                f"preset '{pid}': language-layer {relocated_plain} collides and would "
+                f"relocate as a service — drop the redundant *-plain (another stack already "
+                f"owns that language) or give it a non-src root"
+            )
+            profiles = resolve_relocated_profiles(registry, stacks)
+            roots = [(p.id, (p.structure or {}).get("root", "").rstrip("/")) for p in profiles]
+            for index, (id_a, root_a) in enumerate(roots):
+                for id_b, root_b in roots[index + 1 :]:
+                    lang_a = registry[id_a].language if id_a in registry.keys() else ""
+                    lang_b = registry[id_b].language if id_b in registry.keys() else ""
+                    assert not _roots_collide(root_a, lang_a, root_b, lang_b), (
+                        f"preset '{pid}': roots {id_a}={root_a!r} and {id_b}={root_b!r} "
+                        f"overlap after resolution — ambiguous file_pattern owner"
+                    )
+
     def test_multi_backend_init_relocates_to_services(
         self, runner: CliRunner, tmp_path: Path
     ) -> None:
@@ -2320,7 +2356,7 @@ class TestFlagshipHexagonalPreset:
 class TestPresetCatalogV1:
     CATALOG = {
         "ai-saas": ["nextjs", "fastapi"],
-        "t3-style": ["nextjs", "typescript-plain"],
+        "t3-style": ["nextjs"],
         "pern": ["node-express", "nextjs"],
         "django-next": ["django", "nextjs"],
         "rn-api": ["react-native", "fastapi"],

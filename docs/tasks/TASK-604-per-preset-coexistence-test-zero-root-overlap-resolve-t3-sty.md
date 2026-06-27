@@ -4,19 +4,18 @@ title: "per-preset coexistence test (zero root overlap) + resolve t3-style neste
 swimlane: cli
 kind: test
 epic: stack-factory-v2
-labels: []
-status: icebox
+labels: [ready]
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-27
-started: null
-completed: null
-agent_session: null
+started: 2026-06-27
+completed: 2026-06-27
+agent_session: ses-claude-20260626-165558-a565
 depends_on: [TASK-600]
 blocked_by: []
 references: []
 ---
-
 # TASK-604: per-preset coexistence test (zero root overlap) + resolve t3-style nested-root
 
 **Outcome (one sentence):** A test runs boundary aggregation across every _presets/*.yaml stack-list and asserts zero overlapping roots + zero ambiguous owner, so a bad preset can never ship green; and the t3-style preset's nested-root is resolved per the T13 (TASK-600) containment primitive.
@@ -32,3 +31,12 @@ references: []
 **Then** `uv run pytest tests/test_cli.py -q` is green.
 
 ## Work Log
+- 2026-06-27 [claude]: Deliberation: probed all 17 presets — only t3-style + hexagonal-product collide. hexagonal (go+go-fiber+fastapi on…
+- 2026-06-27 [claude]: Edit t3-style.yaml
+- 2026-06-27 [claude]: Edit test_cli.py
+- 2026-06-27 [claude]: Edit stack_registry.py
+- 2026-06-27 [claude]: Edit test_cli.py
+- 2026-06-27 [claude]: Edit stack-factory-v2-epic.md
+- 2026-06-27 [claude]: Edit stack-factory-v2-epic.md
+- 2026-06-27 [claude]: Done: dropped typescript-plain from t3-style.yaml ([nextjs]); added…
+- 2026-06-27 [claude]: Status transitioned to complete via cos task-done.

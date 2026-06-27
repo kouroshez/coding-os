@@ -486,8 +486,8 @@ def service_relocations(
     Anatomy contract (project-anatomy.md § Multi-backend relocation rule):
     single-owner roots are untouched; every collision participant relocates. A
     collision is roots that EQUAL, or NEST while sharing a language (so the inner
-    and outer stack would own the same files) — the shipped t3-style nest of
-    typescript-plain (`src`) over nextjs (`src/frontend`) is the motivating case."""
+    and outer stack would own the same files) — an ad-hoc typescript-plain over
+    nextjs init (`src` containing `src/frontend`) is the motivating case."""
     entries: list[tuple[str, str, str]] = []
     for name in templates:
         profile = stacks[name] if name in stacks else None
