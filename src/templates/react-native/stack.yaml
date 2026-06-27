@@ -62,6 +62,6 @@ skill_enforcement:
   - {globs: ["src/mobile/**/components/**/*.{ts,tsx}", "src/mobile/**/screens/**/*.{ts,tsx}"], primary: react-native-patterns, secondary: [clean-code, react-native-mobile, state-management, performance]}
 
 makefile_targets:
-  - {name: lint-mobile,  cmd: "cd src/mobile && npm run lint"}
+  - {name: lint-mobile,  cmd: "npx --yes eslint . && npx --yes tsc --noEmit"}
   - {name: test-mobile,  cmd: "cd src/mobile && npm test"}
   - {name: build-mobile, cmd: "cd src/mobile && npm run build"}

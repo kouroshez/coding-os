@@ -70,7 +70,7 @@ shipped stack violates a hard rule.
 | 11 | Regen chain run | `make regen-rules` + `make manifest-regen` + `make regen-adapter-templates` after edits (Rule 10) | manual |
 | 12 | Adapter capability note | hooks needing non-Bash matchers documented against `adapter.yaml::hook_capabilities` | manual |
 | 13 | Runtime manifest | a buildable manifest (`go.mod` / `package.json` / `pyproject.toml` / `composer.json` / …) under `scaffold/` for code categories | soft |
-| 14 | Lint config | a config for any linter named in a `VERIFY_<CATEGORY>` command (`ruff.toml`, `eslint.config.*`, `.golangci.yml`, `.rubocop.yml`, `phpcs.xml`, …) | soft |
+| 14 | Lint config | a config for any linter named in a `VERIFY_<CATEGORY>` command — per-stack under `scaffold/`, or shared per-language under `_base/lang/<language>/` (`ruff.toml`/`eslint.config.*`/`.golangci.yml`/…) | soft |
 | 15 | Sample test | ≥1 runnable test in `scaffold/` so `cos init` output has a green starting point | soft |
 | 16 | Reference integrity | every `rules:` file and `DOMAIN_ROUTES` doc path resolves on disk (stack `scaffold/`, `_base`, or the repo) | soft |
 | 17 | CI/CD workflow | a generated workflow that runs `make verify` (rendered by `render_ci_workflow`, init-strip, `modules.cicd`-gated) | soft |
@@ -82,6 +82,19 @@ Rows 13–14 and 16 are auto-checked today (soft); rows 15, 17, 18 are the
 documented bar the backfill + render generators fill, then become checkable.
 Plain-language stacks (`<lang>-plain`) and `category: library` are exempt
 from rows 5–8 and 13–15 by design — they ship skeletons, not work surfaces.
+
+### Language config bundle (`_base/lang/<language>/`)
+
+Toolchain config that is the same for every stack of a language lives **once**
+here, not copied into each stack's `scaffold/`. `_overlay_scaffold` selects the
+bundle by each active stack's `language:` and overlays it **last**, so a stack's
+own `scaffold/` config still wins. Shipped today: `python/pyproject.toml`
+(`[tool.ruff]` + `[tool.pytest.ini_options]`) and `typescript/` (`eslint.config.js`
+flat v9, `.prettierrc.json`, `vitest.config.ts`, `tsconfig.json`). This is the
+SSOT for ruff/eslint/prettier defaults — tune rules here, never per-stack. A
+stack-specific dependency manifest (row 13, with deps) stays per-stack; the
+bundle's `pyproject.toml` carries tool config only, so a python stack still
+ships its own `requirements.txt`/deps without colliding.
 
 ## Modularity gating — which mechanism, when
 

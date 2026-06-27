@@ -44,12 +44,12 @@ rules:
   - {file: rules/frontend.md, globs: ["src/frontend/**/*.{vue,ts}"]}
 
 makefile_targets:
-  - {name: lint-frontend,  cmd: "cd src/frontend && npm run lint"}
+  - {name: lint-frontend,  cmd: "npx --yes eslint . && cd src/frontend && npm run lint"}
   - {name: test-frontend,  cmd: "cd src/frontend && npm test"}
   - {name: build-frontend, cmd: "cd src/frontend && npm run build"}
 
 verify:
-  - {glob: "src/frontend/**/*.{vue,ts}", suites: "lint-frontend + test-frontend", cmd: "cd src/frontend && npm run lint && npm test"}
+  - {glob: "src/frontend/**/*.{vue,ts}", suites: "lint-frontend + test-frontend", cmd: "npx --yes eslint . && cd src/frontend && npm run lint && npm test"}
 
 dimensions:
   - {name: "Nuxt page / route",   read_files: ["docs/playbooks/nuxt-app.md", "docs/engineering/nuxt-rules.md"]}

@@ -57,11 +57,11 @@ rules:
   - {file: rules/frontend.md, globs: ["src/frontend/**/*.{ts,tsx,astro}"]}
 
 makefile_targets:
-  - {name: lint-frontend,  cmd: "cd src/frontend && npm run lint"}
+  - {name: lint-frontend,  cmd: "npx --yes eslint . && cd src/frontend && npm run lint"}
   - {name: build-frontend, cmd: "cd src/frontend && npm run build"}
 
 verify:
-  - {glob: "src/frontend/**/*.{ts,astro}", suites: "lint-frontend + build-frontend", cmd: "cd src/frontend && npm run lint && npm run build"}
+  - {glob: "src/frontend/**/*.{ts,astro}", suites: "lint-frontend + build-frontend", cmd: "npx --yes eslint . && cd src/frontend && npm run lint && npm run build"}
 
 dimensions:
   - {name: "Component / island",       read_files: ["docs/playbooks/astro-app.md", "docs/engineering/astro-rules.md"]}

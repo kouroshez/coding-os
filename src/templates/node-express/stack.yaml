@@ -46,11 +46,11 @@ rules:
   - {file: rules/backend.md, globs: ["src/backend/**/*.ts"]}
 
 makefile_targets:
-  - {name: lint-backend, cmd: "cd src/backend && npm run lint"}
+  - {name: lint-backend, cmd: "npx --yes eslint . && cd src/backend && npm run lint"}
   - {name: test-backend, cmd: "cd src/backend && npm test"}
 
 verify:
-  - {glob: "src/backend/**/*.ts", suites: "lint-backend + test-backend", cmd: "cd src/backend && npm run lint && npm test"}
+  - {glob: "src/backend/**/*.ts", suites: "lint-backend + test-backend", cmd: "npx --yes eslint . && cd src/backend && npm run lint && npm test"}
 
 dimensions:
   - {name: "Express route",       read_files: ["docs/playbooks/express-service.md", "docs/engineering/express-rules.md"]}

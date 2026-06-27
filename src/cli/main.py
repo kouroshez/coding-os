@@ -816,6 +816,19 @@ def _overlay_scaffold(
         if candidate.exists():
             sources.append((candidate, name))
 
+    # Per-language toolchain config (ruff/pytest, eslint/prettier/vitest) lives once
+    # under _base/lang/<language>/, selected by each active stack's declared language.
+    # Overlaid LAST so a stack's own scaffold config wins the idempotent first-write.
+    seen_languages: set[str] = set()
+    for name in templates:
+        language = registry[name].language if name in registry.keys() else ""
+        if not language or language in seen_languages:
+            continue
+        seen_languages.add(language)
+        lang_dir = TEMPLATES_DIR / "_base" / "lang" / language
+        if lang_dir.exists():
+            sources.append((lang_dir, None))
+
     relocations = _service_relocations(templates)
 
     from cli.subsystems import module_state

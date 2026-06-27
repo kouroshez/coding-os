@@ -1,0 +1,19 @@
+# Python toolchain baseline (coding-os language bundle): ruff lint+format + pytest.
+# Consumer-editable — tune as the project grows; ruff/pytest auto-discover this file.
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".coding-os", "migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "C4"]
+# ruff format owns line wrapping, so E501 (line-too-long) stays off in lint.
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+addopts = "-q --strict-markers"
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["src"]

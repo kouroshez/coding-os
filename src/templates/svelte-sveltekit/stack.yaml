@@ -52,12 +52,12 @@ rules:
   - {file: rules/frontend.md, globs: ["src/frontend/**/*.{svelte,ts}"]}
 
 makefile_targets:
-  - {name: lint-frontend,  cmd: "cd src/frontend && npm run lint"}
+  - {name: lint-frontend,  cmd: "npx --yes eslint . && cd src/frontend && npm run lint"}
   - {name: test-frontend,  cmd: "cd src/frontend && npm test"}
   - {name: build-frontend, cmd: "cd src/frontend && npm run build"}
 
 verify:
-  - {glob: "src/frontend/**/*.{svelte,ts}", suites: "lint-frontend + test-frontend", cmd: "cd src/frontend && npm run lint && npm test"}
+  - {glob: "src/frontend/**/*.{svelte,ts}", suites: "lint-frontend + test-frontend", cmd: "npx --yes eslint . && cd src/frontend && npm run lint && npm test"}
 
 dimensions:
   - {name: "Svelte component",  read_files: ["docs/playbooks/svelte-sveltekit-app.md", "docs/engineering/svelte-sveltekit-rules.md"]}

@@ -56,12 +56,12 @@ rules:
   - {file: rules/frontend.md, globs: ["src/frontend/**/*.{ts,html,css}"]}
 
 makefile_targets:
-  - {name: lint-frontend,  cmd: "cd src/frontend && npm run lint"}
+  - {name: lint-frontend,  cmd: "npx --yes eslint . && cd src/frontend && npm run lint"}
   - {name: build-frontend, cmd: "cd src/frontend && npm run build"}
   - {name: test-frontend,  cmd: "cd src/frontend && npm test"}
 
 verify:
-  - {glob: "src/frontend/**/*.ts", suites: "lint-frontend + test-frontend", cmd: "cd src/frontend && npm run lint && npm test"}
+  - {glob: "src/frontend/**/*.ts", suites: "lint-frontend + test-frontend", cmd: "npx --yes eslint . && cd src/frontend && npm run lint && npm test"}
 
 dimensions:
   - {name: "Angular component",     read_files: ["docs/playbooks/angular-app.md", "docs/engineering/angular-rules.md"]}

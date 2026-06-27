@@ -34,10 +34,10 @@ routing_entries:
 rules: []
 
 makefile_targets:
-  - {name: lint-ts, cmd: "npx --yes tsc --noEmit"}
+  - {name: lint-ts, cmd: "npx --yes eslint . && npx --yes tsc --noEmit"}
 
 verify:
-  - {glob: "src/**/*.ts", suites: "lint-ts", cmd: "npx --yes tsc --noEmit"}
+  - {glob: "src/**/*.ts", suites: "lint-ts", cmd: "npx --yes eslint . && npx --yes tsc --noEmit"}
 
 dimensions: []
 

@@ -367,6 +367,73 @@ class TestMultiTemplate:
 
 
 # ---------------------------------------------------------------------------
+# Per-language toolchain config bundle (TASK-602)
+# ---------------------------------------------------------------------------
+
+
+class TestLanguageConfigBundle:
+    """`_base/lang/<language>/` overlays ruff/pytest (python) and
+    eslint/prettier/vitest/tsconfig (typescript) into every consumer of that
+    language, selected by stack.yaml `language:` and overlaid last."""
+
+    @pytest.fixture(scope="class")
+    def python_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "lang-python", "django")
+
+    @pytest.fixture(scope="class")
+    def ts_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "lang-ts", "nextjs")
+
+    @pytest.fixture(scope="class")
+    def framework_ts_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "lang-svelte", "svelte-sveltekit")
+
+    @pytest.fixture(scope="class")
+    def go_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "lang-go", "go-plain")
+
+    def test_python_ships_pyproject_with_ruff_and_pytest(self, python_project: Path) -> None:
+        pyproject = python_project / "pyproject.toml"
+        assert pyproject.exists(), "python language bundle must ship pyproject.toml"
+        text = pyproject.read_text()
+        assert "[tool.ruff]" in text
+        assert "[tool.pytest.ini_options]" in text
+
+    def test_python_lint_target_uses_configured_ruff(self, python_project: Path) -> None:
+        makefile = python_project / ".coding-os" / "Makefile.stacks"
+        assert makefile.exists()
+        assert "ruff" in makefile.read_text()
+
+    def test_ts_ships_flat_eslint_config(self, ts_project: Path) -> None:
+        eslint = ts_project / "eslint.config.js"
+        assert eslint.exists(), "ts language bundle must ship eslint.config.js"
+        assert "typescript-eslint" in eslint.read_text()
+
+    def test_ts_ships_prettier_vitest_tsconfig(self, ts_project: Path) -> None:
+        assert (ts_project / ".prettierrc.json").exists()
+        assert (ts_project / "vitest.config.ts").exists()
+        assert (ts_project / "tsconfig.json").exists()
+
+    def test_ts_lint_target_runs_eslint_and_typecheck(self, ts_project: Path) -> None:
+        makefile = (ts_project / ".coding-os" / "Makefile.stacks").read_text()
+        assert "eslint ." in makefile
+        assert "tsc --noEmit" in makefile
+
+    def test_framework_ts_gets_bundle_and_keeps_framework_check(
+        self, framework_ts_project: Path
+    ) -> None:
+        # The bundle adds eslint even where the stack's own check is framework-aware.
+        assert (framework_ts_project / "eslint.config.js").exists()
+        makefile = (framework_ts_project / ".coding-os" / "Makefile.stacks").read_text()
+        assert "eslint ." in makefile  # eslint added
+        assert "npm run lint" in makefile  # framework check (svelte-check) kept
+
+    def test_go_gets_no_language_config_bundle(self, go_project: Path) -> None:
+        assert not (go_project / "eslint.config.js").exists()
+        assert not (go_project / "pyproject.toml").exists()
+
+
+# ---------------------------------------------------------------------------
 # Foundation map references
 # ---------------------------------------------------------------------------
 

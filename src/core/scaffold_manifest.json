@@ -426,6 +426,7 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -470,6 +471,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/frontend/angular.json",
         "src/frontend/package.json",
         "src/frontend/src/app/app.component.ts",
@@ -482,9 +484,11 @@
         "src/frontend/src/main.ts",
         "src/frontend/src/styles.css",
         "src/frontend/tsconfig.json",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 244
+      "count": 248
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -925,6 +929,7 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -970,6 +975,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/frontend/astro.config.mjs",
         "src/frontend/package.json",
         "src/frontend/src/components/Greeting.astro",
@@ -979,9 +985,11 @@
         "src/frontend/src/pages/api/health.ts",
         "src/frontend/src/pages/index.astro",
         "src/frontend/tsconfig.json",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 242
+      "count": 246
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1462,9 +1470,10 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 239
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1704,9 +1713,10 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 234
     },
     "claude_flutter": {
       "agent": "claude",
@@ -3432,9 +3442,10 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 261
+      "count": 262
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3629,6 +3640,7 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -3673,6 +3685,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/backend/nest-cli.json",
         "src/backend/package.json",
         "src/backend/src/app.module.ts",
@@ -3682,9 +3695,11 @@
         "src/backend/src/health/health.service.ts",
         "src/backend/src/main.ts",
         "src/backend/tsconfig.json",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 241
+      "count": 245
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -3880,6 +3895,7 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -3937,9 +3953,12 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
-        "src/shared/README.md"
+        "eslint.config.js",
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 246
+      "count": 250
     },
     "claude_node-express": {
       "agent": "claude",
@@ -4134,6 +4153,7 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -4178,15 +4198,18 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/backend/package.json",
         "src/backend/src/index.ts",
         "src/backend/src/middleware/error-handler.ts",
         "src/backend/src/routes/health.ts",
         "src/backend/tsconfig.json",
         "src/backend/types/express-bootstrap.d.ts",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 238
+      "count": 242
     },
     "claude_python": {
       "agent": "claude",
@@ -4419,9 +4442,10 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 227
     },
     "claude_rails": {
       "agent": "claude",
@@ -4875,6 +4899,7 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -4921,11 +4946,14 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/mobile/.eslintrc.cjs",
         "src/mobile/tsconfig.json",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 246
+      "count": 250
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -6089,6 +6117,7 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -6133,6 +6162,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/frontend/package.json",
         "src/frontend/src/app.html",
         "src/frontend/src/hooks.server.ts",
@@ -6145,9 +6175,11 @@
         "src/frontend/svelte.config.js",
         "src/frontend/tsconfig.json",
         "src/frontend/vite.config.ts",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 244
+      "count": 248
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6337,6 +6369,7 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -6379,11 +6412,13 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/index.ts",
         "src/shared/README.md",
-        "tsconfig.json"
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 227
+      "count": 230
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6578,6 +6613,7 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -6622,13 +6658,16 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/frontend/app.vue",
         "src/frontend/nuxt.config.ts",
         "src/frontend/package.json",
         "src/frontend/pages/index.vue",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 236
+      "count": 240
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -7303,6 +7342,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -7347,6 +7387,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/frontend/angular.json",
         "src/frontend/package.json",
         "src/frontend/src/app/app.component.ts",
@@ -7359,9 +7400,11 @@
         "src/frontend/src/main.ts",
         "src/frontend/src/styles.css",
         "src/frontend/tsconfig.json",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 248
+      "count": 252
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7810,6 +7853,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -7855,6 +7899,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/frontend/astro.config.mjs",
         "src/frontend/package.json",
         "src/frontend/src/components/Greeting.astro",
@@ -7864,9 +7909,11 @@
         "src/frontend/src/pages/api/health.ts",
         "src/frontend/src/pages/index.astro",
         "src/frontend/tsconfig.json",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 246
+      "count": 250
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -8355,9 +8402,10 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 243
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8601,9 +8649,10 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 238
     },
     "codex_flutter": {
       "agent": "codex",
@@ -10357,9 +10406,10 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 265
+      "count": 266
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -10558,6 +10608,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -10602,6 +10653,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/backend/nest-cli.json",
         "src/backend/package.json",
         "src/backend/src/app.module.ts",
@@ -10611,9 +10663,11 @@
         "src/backend/src/health/health.service.ts",
         "src/backend/src/main.ts",
         "src/backend/tsconfig.json",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 245
+      "count": 249
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -10813,6 +10867,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -10870,9 +10925,12 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
-        "src/shared/README.md"
+        "eslint.config.js",
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 250
+      "count": 254
     },
     "codex_node-express": {
       "agent": "codex",
@@ -11071,6 +11129,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11115,15 +11174,18 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/backend/package.json",
         "src/backend/src/index.ts",
         "src/backend/src/middleware/error-handler.ts",
         "src/backend/src/routes/health.ts",
         "src/backend/tsconfig.json",
         "src/backend/types/express-bootstrap.d.ts",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 242
+      "count": 246
     },
     "codex_python": {
       "agent": "codex",
@@ -11360,9 +11422,10 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 231
     },
     "codex_rails": {
       "agent": "codex",
@@ -11824,6 +11887,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11870,11 +11934,14 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/mobile/.eslintrc.cjs",
         "src/mobile/tsconfig.json",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 250
+      "count": 254
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -13058,6 +13125,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -13102,6 +13170,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/frontend/package.json",
         "src/frontend/src/app.html",
         "src/frontend/src/hooks.server.ts",
@@ -13114,9 +13183,11 @@
         "src/frontend/svelte.config.js",
         "src/frontend/tsconfig.json",
         "src/frontend/vite.config.ts",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 248
+      "count": 252
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -13310,6 +13381,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -13352,11 +13424,13 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/index.ts",
         "src/shared/README.md",
-        "tsconfig.json"
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 231
+      "count": 234
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -13555,6 +13629,7 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".prettierrc.json",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -13599,13 +13674,16 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "eslint.config.js",
         "src/frontend/app.vue",
         "src/frontend/nuxt.config.ts",
         "src/frontend/package.json",
         "src/frontend/pages/index.vue",
-        "src/shared/README.md"
+        "src/shared/README.md",
+        "tsconfig.json",
+        "vitest.config.ts"
       ],
-      "count": 240
+      "count": 244
     },
     "codex_wordpress": {
       "agent": "codex",

@@ -198,8 +198,14 @@ def lint_stack(
                 )
 
         verify_text = _verify_command_text(profile)
+        # Lint configs (ruff/eslint/prettier) ship once per language under
+        # _base/lang/<language>/ and overlay into every consumer of that language,
+        # so a config there satisfies the row as fully as a per-stack one.
+        lang_bundle = templates_dir() / "_base" / "lang" / profile.language
         for linter, configs in _LINT_CONFIGS.items():
-            if linter in verify_text and not _scaffold_has(scaffold, configs):
+            if linter in verify_text and not (
+                _scaffold_has(scaffold, configs) or _scaffold_has(lang_bundle, configs)
+            ):
                 report.soft.append(
                     f"verify names '{linter}' but no {linter} config ships (tool defaults)"
                 )
