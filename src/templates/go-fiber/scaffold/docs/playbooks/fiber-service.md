@@ -64,15 +64,15 @@ Errors wrap with `%w` so the central handler + `errors.Is` work.
 
 ```go
 func CreateOrder(svc *service.Orders) fiber.Handler {
-    return func(c *fiber.Ctx) error {
+    return func(c fiber.Ctx) error {
         var req CreateOrderRequest
-        if err := c.BodyParser(&req); err != nil {
+        if err := c.Bind().Body(&req); err != nil {
             return fiber.NewError(fiber.StatusBadRequest, "invalid body")
         }
         if err := validate.Struct(&req); err != nil {
             return fiber.NewError(fiber.StatusUnprocessableEntity, err.Error())
         }
-        order, err := svc.Create(c.UserContext(), req)
+        order, err := svc.Create(c.Context(), req)
         if err != nil {
             return err
         }
@@ -134,8 +134,8 @@ Any `vet` warning is a blocker. Any test failure is a blocker.
 
 ## Common Gotchas
 
-- **Parse then validate** — never return from `BodyParser` failure without `validate.Struct`. A valid JSON with garbage field values passes `BodyParser` but fails `validate.Struct`.
-- **Context propagation** — if you call a goroutine from a handler, derive its context from `c.UserContext()` AND handle cancellation, otherwise the client disconnecting leaks work.
+- **Parse then validate** — never return from `c.Bind().Body()` failure without `validate.Struct`. A valid JSON with garbage field values binds cleanly but fails `validate.Struct`.
+- **Context propagation** — if you call a goroutine from a handler, derive its context from `c.Context()` AND handle cancellation, otherwise the client disconnecting leaks work.
 - **Error envelope** — if you see raw `{"message": "..."}` in a response, someone skipped the central `ErrorHandler` registration. Check `fiber.Config{ErrorHandler: ...}` in `main.go`.
 - **Handler → DB shortcut** — resist the urge. When you're tempted, add a service method. Handlers orchestrate; services decide.
 

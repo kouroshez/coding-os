@@ -1,7 +1,7 @@
 <!-- domain:GOFIBER | layer:reference | ssot:true | updated:2026-04-29 -->
 # Go + Fiber Anatomy
 
-> P: Canonical file map and entity recipes for the Go + Fiber v2 stack.
+> P: Canonical file map and entity recipes for the Go + Fiber v3 stack.
 > R: Adding any `.go` file under `src/backend/` or `cmd/`, or routing a backend task.
 > S: Working on frontend / mobile / web code.
 > N: [SKILL.md](../SKILL.md), [scaffold-boundary.yaml](../../../scaffold-boundary.yaml)
@@ -19,7 +19,7 @@ SSOT: [`src/templates/go-fiber/scaffold-boundary.yaml`](../../../scaffold-bounda
 | Pattern | Location | Naming | Imports from | Description |
 |---|---|---|---|---|
 | App entry | `cmd/<service>/main.go` | `main.go` | `internal/...` | Wires fiber.New() |
-| Fiber handler | `internal/<domain>/handler.go` | `handler.go` | `..service` | `func(c *fiber.Ctx) error` |
+| Fiber handler | `internal/<domain>/handler.go` | `handler.go` | `..service` | `func(c fiber.Ctx) error` |
 | Middleware | `internal/middleware/<name>.go` | `<name>.go` | `fiber.Handler` | Auth, logging, etc. |
 | Service | `internal/<domain>/service.go` | `service.go` | `..repo` | Business logic |
 | Repository | `internal/<domain>/repo.go` | `repo.go` | `database/sql` | DB access |
@@ -42,7 +42,7 @@ SSOT: [`src/templates/go-fiber/scaffold-boundary.yaml`](../../../scaffold-bounda
   3. `internal/<domain>/handler_test.go`
 - **Steps:**
   1. Handler returns `fiber.Handler`; constructor takes the service.
-  2. Bind body via `c.BodyParser(&req)`; validate via tags.
+  2. Bind body via `c.Bind().Body(&req)`; validate via tags.
   3. Call into service; map sentinel errors to status codes via a single helper.
   4. Use `c.Status(code).JSON(envelope)` — never write raw bytes.
   5. Test with `app.Test(req)` + table-driven cases.
@@ -68,7 +68,7 @@ SSOT: [`src/templates/go-fiber/scaffold-boundary.yaml`](../../../scaffold-bounda
   2. `internal/<domain>/service_test.go`
 - **Steps:**
   1. Constructor `NewService(repo Repo) *Service`.
-  2. Methods take `context.Context` first; pass `c.UserContext()` from handler.
+  2. Methods take `context.Context` first; pass `c.Context()` from handler.
   3. Wrap errors with `fmt.Errorf("...: %w", err)`.
   4. Mock the repo via interface in tests.
 

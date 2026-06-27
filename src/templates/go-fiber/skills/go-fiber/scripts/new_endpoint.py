@@ -62,7 +62,7 @@ def main() -> int:
             f"    if err := c.Bind().Body(&req); err != nil {{\n"
             f'        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{{"error": err.Error()}})\n'
             f"    }}\n"
-            f"    resp, err := h.Service.Create(c.UserContext(), req)\n"
+            f"    resp, err := h.Service.Create(c.Context(), req)\n"
             f"    if err != nil {{\n"
             f'        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{{"error": err.Error()}})\n'
             f"    }}\n"

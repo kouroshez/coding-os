@@ -1,7 +1,7 @@
 <!-- domain:BACKEND | layer:reference | ssot:true | updated:{{DATE}} -->
 # Fiber Engineering Rules
 
-Purpose: Canonical rules for Fiber v2 backend code in this project.
+Purpose: Canonical rules for Fiber v3 backend code in this project.
 Read when: Writing or reviewing any Go file under `src/backend/`.
 Skip when: Task is frontend-only or infra-only (no Fiber code).
 Read next: `docs/playbooks/fiber-service.md`, `docs/api-contracts/error-format.md`
@@ -12,9 +12,9 @@ Read next: `docs/playbooks/fiber-service.md`, `docs/api-contracts/error-format.m
 
 Every handler returns `error` and follows this shape:
 
-1. **Parse** — `c.BodyParser` / `c.QueryParser` / `c.ParamsParser`. On parse failure return `fiber.NewError(400, "invalid body")`.
+1. **Parse** — `c.Bind().Body()` / `c.Bind().Query()` / `c.Bind().URI()` (v3 binding API). On parse failure return `fiber.NewError(400, "invalid body")`.
 2. **Validate** — `validate.Struct(&dto)` with `go-playground/validator` tags. Failure → `fiber.NewError(422, err.Error())`.
-3. **Delegate** — call a service with `c.UserContext()`.
+3. **Delegate** — call a service with `c.Context()`.
 4. **Respond** — `c.Status(code).JSON(payload)` for success, `return err` for failure (the central `ErrorHandler` renders the envelope).
 
 No handler calls the database directly. No handler runs business logic inline.
@@ -37,7 +37,7 @@ The central `ErrorHandler` wired into `fiber.New(fiber.Config{ErrorHandler: ...}
 
 ## Context Propagation
 
-- `c.UserContext()` (or `c.Context()` in pre-v2.43 code) is the *only* context passed into downstream calls.
+- `c.Context()` (v3 returns the request `context.Context`) is the *only* context passed into downstream calls.
 - Never `context.Background()` inside a handler scope — cancellations must flow from client disconnect all the way to the DB driver.
 - Background workers get their own root context, cancelled via `app.ShutdownWithContext`.
 
@@ -67,7 +67,7 @@ Business logic never lives in middleware. Middleware handles only: panic recover
 - `app.Test(httptest.NewRequest(...))` is the canonical pattern — no external server, no HTTP client.
 - Every handler ships with a table-driven test covering happy + at least two error paths (validation failure, service error).
 - Test fixtures live in `testdata/`; reset the DB via `testmain.go` global setup, not per-test.
-- No mocks for `*fiber.Ctx` — use the real app through `app.Test()`.
+- No mocks for `fiber.Ctx` — use the real app through `app.Test()`.
 
 ## Project Layout
 

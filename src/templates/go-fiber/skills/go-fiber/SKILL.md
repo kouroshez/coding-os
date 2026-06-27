@@ -19,7 +19,7 @@ REQUIRED BACKGROUND: This skill `depends_on: [clean-code, backend-fundamentals]`
 - [ ] Read `docs/engineering/fiber-rules.md` — canonical Fiber policy
 - [ ] If touching HTTP handlers: read `docs/playbooks/fiber-service.md`
 - [ ] If touching request parsing: read `docs/api-contracts/error-format.md`
-- [ ] Confirm Fiber version in `go.mod` (v2 assumed unless stated otherwise)
+- [ ] Confirm Fiber version in `go.mod` (v3, Go 1.25+; see references/fiber-v3-patterns.md)
 - [ ] `go vet ./...` clean before editing
 
 ## Handler Pattern
@@ -28,10 +28,10 @@ Every handler has the same signature and lifecycle:
 
 ```go
 func ListOrders(svc *service.Orders) fiber.Handler {
-    return func(c *fiber.Ctx) error {
+    return func(c fiber.Ctx) error {
         // 1. Parse + validate
         var q ListQuery
-        if err := c.QueryParser(&q); err != nil {
+        if err := c.Bind().Query(&q); err != nil {
             return fiber.NewError(fiber.StatusBadRequest, "invalid query")
         }
         if err := validate.Struct(&q); err != nil {
@@ -39,7 +39,7 @@ func ListOrders(svc *service.Orders) fiber.Handler {
         }
 
         // 2. Call the service with a context (cancellation propagates)
-        orders, err := svc.List(c.UserContext(), q)
+        orders, err := svc.List(c.Context(), q)
         if err != nil {
             return err  // central error handler renders the envelope
         }
@@ -56,7 +56,7 @@ func ListOrders(svc *service.Orders) fiber.Handler {
 **Rules:**
 - No business logic inside the handler. Orchestrate only.
 - No direct DB calls. Handler → service → repository.
-- Always pass `c.UserContext()` downstream — never `context.Background()`.
+- Always pass `c.Context()` downstream — never `context.Background()`.
 
 ## Error Envelope
 
@@ -64,7 +64,7 @@ Central error handler in `app.Config{}`:
 
 ```go
 app := fiber.New(fiber.Config{
-    ErrorHandler: func(c *fiber.Ctx, err error) error {
+    ErrorHandler: func(c fiber.Ctx, err error) error {
         code := fiber.StatusInternalServerError
         msg  := "internal error"
         if e, ok := err.(*fiber.Error); ok {
@@ -189,9 +189,9 @@ Never import `handlers` from `services` (back-edge). Services are the leaf of th
 
 ## Anti-Patterns (hard no)
 
-- `c.BodyParser(&req)` without follow-up `validate.Struct(&req)`
+- `c.Bind().Body(&req)` without follow-up `validate.Struct(&req)`
 - Returning `fmt.Errorf("bad request")` from a handler — use `fiber.NewError(status, msg)` so the central handler picks up the code.
-- Using `context.Background()` inside handler scope — always `c.UserContext()`.
+- Using `context.Background()` inside handler scope — always `c.Context()`.
 - Mixing goroutines with Fiber without a context-derived cancellation.
 - Global DB pool held in a package-level `var db *sql.DB` — inject it via the service constructor.
 

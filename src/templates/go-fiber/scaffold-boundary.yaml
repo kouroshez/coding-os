@@ -22,5 +22,5 @@ forbids_writing_in:
 
 notes:
   - "Go module root is src/backend/ (go.mod lives there). Hexagonal: cmd → internal handler → service → repo."
-  - "Fiber v2 handler signature: `func(c *fiber.Ctx) error`."
+  - "Fiber v3 handler signature: `func(c fiber.Ctx) error`."
   - "Race detector mandatory on CI (`go test -race`)."
