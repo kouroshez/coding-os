@@ -36,3 +36,8 @@ jobs:
           (cd src/backend && pip install -e '.[test]')
       - name: verify
         run: make ${{ matrix.targets }}
+  # security-scan:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - run: echo 'wire an image/dependency scanner here'
