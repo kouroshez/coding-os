@@ -86,6 +86,13 @@ class TestImports:
         r = _extract("import { type Props, useState } from './x';")
         assert any(e.edge_type == "imports" for e in r.edges)
 
+    def test_aliased_inline_type_only_import(self):
+        # `{ type Foo as Bar }` is compile-time only — the `type ` marker must
+        # survive the alias split, so no runtime `imports` edge is emitted.
+        r = _extract("import { type Foo as Bar } from './types';")
+        assert [e for e in r.edges if e.edge_type == "imports"] == []
+        assert any(e.edge_type == "imports_type" for e in r.edges)
+
     def test_export_from_emits_re_exports(self):
         r = _extract("export { foo } from './bar';")
         edges = [e for e in r.edges if e.edge_type == "re_exports"]

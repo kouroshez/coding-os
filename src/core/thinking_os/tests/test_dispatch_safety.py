@@ -113,8 +113,3 @@ class TestCostRoutedDispatch:
     def test_no_downgrade_when_flag_off(self, monkeypatch) -> None:
         monkeypatch.delenv("COS_ROUTER_REVIEWER_CHEAPER", raising=False)
         assert cognition._resolve_dispatch_model("reviewer", "s", {}, "opus", "COMPLICATED", None) == "opus"
-
-    def test_build_request_adapter_hint_off_by_default(self, monkeypatch) -> None:
-        monkeypatch.delenv("COS_ROUTER_ADAPTER_HINTS", raising=False)
-        req = cognition._build_dispatch_request("implementer", "s", "TASK-1", "p", "standard", None, complexity="CLEAR")
-        assert req.adapter is None

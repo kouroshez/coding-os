@@ -191,7 +191,7 @@ if [ -f "$RISK_REGISTER" ]; then
       ERRORS=$((ERRORS + 1))
       continue
     fi
-    review_by=$(echo "$line" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
+    review_by=$(echo "$line" | grep -oE 'review-by:[[:space:]]*[0-9]{4}-[0-9]{2}-[0-9]{2}' | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
     if [[ "$review_by" < "$today" ]]; then
       echo "ERROR: risk-register.md: $rid review-by $review_by is past-due — re-triage or close" >&2
       ERRORS=$((ERRORS + 1))

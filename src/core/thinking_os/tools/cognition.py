@@ -130,15 +130,15 @@ def _save_bundle(session_id: str, bundle: Any) -> None:
     path = _bundle_path(session_id)
     payload = bundle.model_dump_json(indent=2)
     # flock-serialize concurrent writers so a parallel run can't interleave a
-    # half-written bundle (the EvidenceBundle is the dispatch's durable record).
+    # half-written bundle. flush+fsync BEFORE the lock drops — close() releases
+    # the lock, and a buffered write would otherwise hit disk after LOCK_UN.
     with path.open("a+") as fh:
         fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
-        try:
-            fh.seek(0)
-            fh.truncate()
-            fh.write(payload)
-        finally:
-            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+        fh.seek(0)
+        fh.truncate()
+        fh.write(payload)
+        fh.flush()
+        os.fsync(fh.fileno())
 
 
 # ---------------------------------------------------------------------------
@@ -1248,12 +1248,18 @@ def _resolve_dispatch_model(
         (model.strip(), "explicit"),
         (hint_pref.get(level, ""), "preset_hint"),
         (role_pref.get(level, ""), "role_pref"),
-        (_empirical_model(complexity, db_path), "empirical"),
     ):
         if candidate:
             logger.info("dispatch model resolved for %s: %s via %s", formula_id, candidate, source)
             resolved = candidate
             break
+    if not resolved:
+        # Empirical is the expensive tier (sqlite connect + bandit query/sampling)
+        # — consult it lazily, only when the static tiers all miss.
+        empirical = _empirical_model(complexity, db_path)
+        if empirical:
+            logger.info("dispatch model resolved for %s: %s via empirical", formula_id, empirical)
+            resolved = empirical
     # Cost-routed independent reviewer: a review role runs one tier cheaper than
     # the generator. Gated by COS_ROUTER_REVIEWER_CHEAPER (default off, unchanged).
     if resolved and os.environ.get("COS_ROUTER_REVIEWER_CHEAPER"):
@@ -1296,10 +1302,6 @@ def _build_dispatch_request(
         formula_id, session_id, meta, model, complexity, db_path
     )
 
-    from tools.routing import route_adapter_hint
-
-    adapter_hint = route_adapter_hint(complexity) or None
-
     return _disp.DispatchRequest(
         formula_id=formula_id,
         agent_file=str(agent_path if agent_path.exists() else agent_file_rel),
@@ -1311,7 +1313,6 @@ def _build_dispatch_request(
         session_id=session_id,
         long_context=bool(meta.get("long_context", False)),
         model=resolved_model or None,
-        adapter=adapter_hint,
     )
 
 

@@ -21,7 +21,6 @@ from tools.routing import (
     _data_confidence,
     _sample_beta,
     recalculate_weights,
-    route_adapter_hint,
     route_model,
     route_model_bandit,
     route_skill,
@@ -233,6 +232,20 @@ class TestRouteModelBandit:
             for _ in range(20):
                 assert 0.0 <= _sample_beta(a, b) <= 1.0
 
+    def test_confidence_is_selected_model_posterior_mean(self, warm_conn, monkeypatch) -> None:
+        monkeypatch.setenv("COS_ROUTER_BANDIT", "1")
+        r = route_model_bandit(warm_conn, complexity="COMPLICATED", domain="BACKEND")
+        assert 0.0 <= r["confidence"] <= 1.0  # a posterior mean, not a raw sample
+        sel = next(s for s in r["model_stats"] if s["model"] == r["recommended_model"])
+        assert r["confidence"] == round(sel["alpha"] / (sel["alpha"] + sel["beta"]), 2)
+
+    def test_large_cost_tilt_keeps_confidence_in_unit_interval(self, warm_conn, monkeypatch) -> None:
+        monkeypatch.setenv("COS_ROUTER_BANDIT", "1")
+        monkeypatch.setenv("COS_ROUTER_COST_TILT", "9")  # sinks every tilted score far below 0
+        r = route_model_bandit(warm_conn, complexity="COMPLICATED", domain="BACKEND")
+        assert 0.0 <= r["confidence"] <= 1.0  # -inf seed always selects a real model
+        assert r["recommended_model"] in {"opus", "sonnet"}
+
 
 class TestCostRouting:
     def test_reviewer_model_downgrades_one_tier(self) -> None:
@@ -241,15 +254,6 @@ class TestCostRouting:
         assert reviewer_model("haiku") == "haiku"
         assert reviewer_model("claude-opus-4-8") == "sonnet"
         assert reviewer_model("") == ""
-
-    def test_adapter_hint_off_by_default(self, monkeypatch) -> None:
-        monkeypatch.delenv("COS_ROUTER_ADAPTER_HINTS", raising=False)
-        assert route_adapter_hint("CLEAR") == ""
-
-    def test_adapter_hint_codex_for_clear_when_on(self, monkeypatch) -> None:
-        monkeypatch.setenv("COS_ROUTER_ADAPTER_HINTS", "1")
-        assert route_adapter_hint("CLEAR") == "codex"
-        assert route_adapter_hint("COMPLICATED") == ""
 
 
 # ---------------------------------------------------------------------------

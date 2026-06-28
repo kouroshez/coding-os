@@ -171,8 +171,8 @@ def cost_anomaly(db_path: str | Path, *, z_threshold: float = 3.5) -> dict:
     if mad > 0:
         scale = mad / 0.6745
     else:
-        # MAD=0 when >half the sessions share the median cost (common — most cost ~0);
-        # fall back to a mean-absolute-deviation modified-z so a lone spike still flags.
+        # MAD=0 when >half the (cost-bearing) sessions share the median cost; fall
+        # back to a mean-absolute-deviation modified-z so a lone spike still flags.
         mean_ad = sum(deviations) / len(deviations)
         if mean_ad <= 0:
             return {"ok": True, "n": n, "median": round(med, 6), "mad": 0.0, "outliers": []}
@@ -180,7 +180,7 @@ def cost_anomaly(db_path: str | Path, *, z_threshold: float = 3.5) -> dict:
     outliers = []
     for sid, c in costs:
         z = (c - med) / scale
-        if abs(z) > z_threshold:
+        if z > z_threshold:  # upper tail only — a cheap session is not a cost overrun
             outliers.append({"session_id": sid, "cost_usd": round(c, 6), "modified_z": round(z, 2)})
     outliers.sort(key=lambda o: abs(o["modified_z"]), reverse=True)
     return {"ok": not outliers, "n": n, "median": round(med, 6), "mad": round(mad, 6), "outliers": outliers}

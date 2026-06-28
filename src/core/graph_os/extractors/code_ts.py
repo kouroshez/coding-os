@@ -1078,7 +1078,7 @@ def _extract_imports(
                         "source_module": module,
                         "imported": local,
                         "extractor": eid,
-                        "type_only": type_only,
+                        "type_only": type_only or name.startswith("type "),
                     },
                 )
             )
@@ -1173,9 +1173,15 @@ def _parse_clause(clause: str) -> list[str]:
             name = part.strip()
             if not name:
                 continue
-            # Drop `as alias` — keep local name.
+            # Preserve an inline `type ` marker across the `as`-alias split, else
+            # `{ type Foo as Bar }` loses it and is misread as a runtime import.
+            is_type = name.startswith("type ")
+            if is_type:
+                name = name[5:].strip()
             if " as " in name:
                 name = name.split(" as ")[-1].strip()
+            if is_type:
+                name = "type " + name
             names.append(name)
         return names
     if clause.startswith("*"):

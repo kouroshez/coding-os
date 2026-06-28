@@ -232,8 +232,9 @@ def route_model_bandit(
         tilt = 0.0
 
     best_model = fallback
-    best_theta = -1.0
-    best_score = -2.0
+    best_score = float("-inf")
+    best_alpha = 1.0
+    best_beta = 1.0
     model_stats = []
     for row in rows:
         d = dict(row)
@@ -254,14 +255,20 @@ def route_model_bandit(
         )
         if score > best_score:
             best_score = score
-            best_theta = theta
+            best_alpha = alpha
+            best_beta = beta
             best_model = d["model"]
 
+    # Confidence is the SELECTED model's posterior mean — deterministic for a given
+    # history and always in [0,1] (the -inf seed guarantees a real selection even
+    # under a large cost-tilt). The random Thompson draw drives only the arg-max
+    # (exposed per-model as model_stats[*].sampled_theta).
+    confidence = best_alpha / (best_alpha + best_beta)
     return {
         "recommended_model": best_model,
-        "confidence": round(best_theta, 2),
+        "confidence": round(confidence, 2),
         "reason": (
-            f"Thompson-sampled {best_model} (theta={best_theta:.3f}) over "
+            f"Thompson-sampled {best_model} (posterior mean {confidence:.3f}) over "
             f"{len(rows)} model(s) for {complexity}"
             + (f" {domain}" if domain else "")
             + (f", cost-tilt {tilt}" if tilt else "")
@@ -287,15 +294,6 @@ def reviewer_model(generator_model: str) -> str:
         if tier in m:
             return cheaper
     return generator_model
-
-
-def route_adapter_hint(complexity: str) -> str:
-    # Cross-adapter routing hint: mechanical / low-complexity buckets can run on
-    # a cheaper runtime (Codex). Gated by COS_ROUTER_ADAPTER_HINTS so the default
-    # (one adapter per session) is unchanged unless an operator opts in.
-    if not os.environ.get("COS_ROUTER_ADAPTER_HINTS"):
-        return ""
-    return "codex" if (complexity or "").strip().upper() == "CLEAR" else ""
 
 
 # ---------------------------------------------------------------------------

@@ -2571,7 +2571,7 @@ _DEFAULT_NOISE_KINDS: frozenset[str] = frozenset(
 # semantic relationship lands in the result.
 _AUTO_BLEND_BUCKETS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("calls", ("calls", "constructs")),
-    ("imports", ("imports", "re_exports")),
+    ("imports", ("imports", "imports_type", "re_exports")),
     ("inherit", ("inherits_from", "implements", "extends")),
     ("handle", ("handles_route", "handles_tool", "handles_event", "dispatches", "defines_route")),
     ("type", ("has_param_type", "returns_type", "field_of_type", "accesses_field")),

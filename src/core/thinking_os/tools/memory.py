@@ -298,14 +298,20 @@ def _mmr_select(candidates: list[dict], limit: int, lam: float = MMR_LAMBDA) -> 
     # Maximal Marginal Relevance: greedily pick the candidate maximizing
     # lam*relevance - (1-lam)*max token-Jaccard similarity to the already-picked
     # set, so near-duplicate memories don't crowd the slice. Relevance is the
-    # RRF-fused score; similarity is over title+concepts tokens.
+    # RRF-fused score MIN-MAX normalized to [0,1] so it stays commensurate with
+    # the [0,1] Jaccard penalty — raw RRF reciprocal-rank values (~0.01-0.03)
+    # would otherwise be swamped by the diversity term. Sim is over title+concepts.
     pool = list(candidates)
     sig = {id(c): _tokenize(f"{c.get('title') or ''} {c.get('concepts') or ''}") for c in pool}
+    scores = [c.get("score", 0.0) for c in pool]
+    lo, hi = (min(scores), max(scores)) if scores else (0.0, 0.0)
+    span = hi - lo
+    rel = {id(c): ((c.get("score", 0.0) - lo) / span if span > 0 else 1.0) for c in pool}
     selected: list[dict] = []
     while pool and len(selected) < limit:
         best = max(
             pool,
-            key=lambda c: lam * c.get("score", 0.0)
+            key=lambda c: lam * rel[id(c)]
             - (1.0 - lam) * max((_jaccard(sig[id(c)], sig[id(s)]) for s in selected), default=0.0),
         )
         selected.append(best)

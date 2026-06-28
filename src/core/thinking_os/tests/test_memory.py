@@ -574,6 +574,21 @@ class TestRankFusionDiversity:
         assert ids[0] == 1  # highest relevance first
         assert ids[1] == 3  # diverse beats the near-duplicate for the 2nd slot
 
+    def test_mmr_keeps_relevant_near_dup_over_irrelevant_distinct(self) -> None:
+        # Realistic RRF magnitudes (~0.015-0.033): a clearly-more-relevant near-
+        # duplicate must NOT be demoted below a far-less-relevant distinct row
+        # (regression guard for the un-normalized-relevance MMR bug).
+        top = {"source_table": "observations", "id": 1, "title": "cookie samesite flag",
+               "concepts": "auth session", "score": 0.0328}
+        near = {"source_table": "observations", "id": 2, "title": "samesite cookie attribute",
+                "concepts": "auth session", "score": 0.0320}
+        distinct = {"source_table": "observations", "id": 3, "title": "rate limit window",
+                    "concepts": "perf throughput", "score": 0.0150}
+        picked = _mmr_select([top, near, distinct], limit=2)
+        ids = [c["id"] for c in picked]
+        assert ids[0] == 1
+        assert ids[1] == 2  # the relevant near-dup beats the irrelevant distinct row
+
 
 @REQUIRES_RAG
 class TestMemorySearchSemantic:

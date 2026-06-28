@@ -2787,7 +2787,7 @@ def doctor(
 
         proj = Path(project_dir).resolve()
         token_report = analyze_tokens(proj, days=tokens_days)
-        cost_report = analyze_dispatch_cost(proj / ".coding-os" / "coding-os.db")
+        cost_report = analyze_dispatch_cost(proj)
         if output_format == "json":
             click.echo(json.dumps({**token_report, "dispatch_cost": cost_report}, indent=2))
         else:

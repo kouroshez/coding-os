@@ -195,7 +195,7 @@ def format_tokens_text(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def analyze_dispatch_cost(db_path: Path | str) -> dict[str, Any]:
+def analyze_dispatch_cost(project: Path | str) -> dict[str, Any]:
     """Cost-anomaly + burn-rate over formula_dispatches — distinct from transcript tokens."""
     try:
         from cli._resources import core_dir
@@ -204,9 +204,11 @@ def analyze_dispatch_cost(db_path: Path | str) -> dict[str, Any]:
         if core not in sys.path:
             sys.path.insert(0, core)
         from thinking_os import budget
+        from thinking_os.database import resolve_db_path
     except Exception:
         return {"found": False}
-    db = Path(db_path)
+    # Honor the $COS_DB_PATH override (Rule 1 / P2) like every other DB site.
+    db = resolve_db_path(Path(project))
     if not db.exists():
         return {"found": False}
     return {
