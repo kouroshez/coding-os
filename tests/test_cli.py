@@ -3383,6 +3383,71 @@ class TestCosPr:
         assert res.exit_code == 0, res.output
         assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # live pid parsed past the quote
 
+    def test_reap_lists_worktrees_once_per_sweep(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-617: the sweep must run `git worktree list` ONCE, not once per candidate.
+        # The old _lock_owner_alive forked the full porcelain list per unknown+stale
+        # worktree → O(K·N) on a path pr-reap.sh backgrounds at every SessionStart.
+        import time
+
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
+        for sid in ("ses-test-1", "ses-test-2", "ses-test-3"):
+            monkeypatch.setenv("COS_AGENT_SESSION_ID", sid)
+            runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        old = time.time() - 3600
+        for wt in (tmp_path / "wt").rglob("adhoc-ses-test-*"):
+            for path in [wt, *wt.rglob("*")]:
+                try:
+                    os.utime(path, (old, old))
+                except OSError:
+                    pass
+        counts = {"wl": 0}
+        real_git_out = prc._git_out
+
+        def counting(args, **kw):
+            if args[:2] == ["worktree", "list"]:
+                counts["wl"] += 1
+            return real_git_out(args, **kw)
+
+        monkeypatch.setattr(prc, "_git_out", counting)
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert counts["wl"] == 1, f"expected ONE worktree-list call for the sweep, got {counts['wl']}"
+
+    def test_reap_removes_stale_orphan_with_foreign_host_owner(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-617: owner liveness is host-local. A lock reason whose owner pid is
+        # stamped on a FOREIGN host is no proof of life here — even when that pid number
+        # is alive on THIS host (os.getpid()) — so the stale orphan is still reaped.
+        import time
+
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        subprocess.run(["git", "-C", str(repo), "worktree", "unlock", str(wt)], check=False)
+        subprocess.run(
+            ["git", "-C", str(repo), "worktree", "lock", str(wt),
+             "--reason", f"pr-mode session ses-test-abc owner={os.getpid()}@some-foreign-host"],
+            check=True,
+        )
+        old = time.time() - 3600
+        for path in [wt, *wt.rglob("*")]:
+            try:
+                os.utime(path, (old, old))
+            except OSError:
+                pass
+        res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
+        assert res.exit_code == 0, res.output
+        assert "agents/adhoc/ses-test-abc" not in self._branches(repo)  # foreign host → reaped
+
     def test_reopen_refreshes_owner_stamp(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

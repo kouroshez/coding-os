@@ -1272,22 +1272,52 @@ def _worktree_lock_reason(repo: str, wt: Path) -> str:
     return ""
 
 
-def _lock_owner_alive(repo: str, wt: Path) -> bool:
+def _worktree_index(repo: str) -> dict[Path, dict]:
+    # One `git worktree list --porcelain` dump → {resolved path: {"branch","locked"}}.
+    # The reaper sweep reads branch + lock reason from this instead of re-forking the
+    # full list (and a rev-parse) per candidate — O(N) per sweep, not O(K·N), on a
+    # path pr-reap.sh backgrounds at every SessionStart.
+    index: dict[Path, dict] = {}
+    cur: Path | None = None
+    for line in _git_out(["worktree", "list", "--porcelain"], cwd=repo).splitlines():
+        if line.startswith("worktree "):
+            try:
+                cur = Path(line[len("worktree "):].strip()).resolve()
+            except OSError:
+                cur = None
+            if cur is not None:
+                index[cur] = {"branch": "", "locked": ""}
+        elif cur is not None and cur in index:
+            if line.startswith("branch "):
+                index[cur]["branch"] = _unqualify_head(line[len("branch "):].strip())
+            elif line.startswith("locked"):
+                index[cur]["locked"] = line[len("locked"):].strip()
+    return index
+
+
+def _lock_owner_alive(repo: str, wt: Path, reason: str | None = None) -> bool:
     # True when the lock reason names an owner=<pid> alive on THIS host — the owner
     # agent is still up despite a missing presence record, so an unknown + age-stale
-    # worktree must NOT be reaped. Match the pid ONLY (not @host): when the reason
-    # carries a non-ASCII host, `git worktree list --porcelain` C-quotes the whole
-    # reason, which would corrupt a greedy host capture; the ASCII pid always parses.
-    # pid_alive is host-local, so a foreign-host pid simply isn't alive here and the
-    # reap proceeds (its work is bundle-preserved first).
-    match = re.search(r"owner=(\d+)", _worktree_lock_reason(repo, wt))
+    # worktree must NOT be reaped. Pass `reason` from a hoisted _worktree_index to skip
+    # the per-candidate porcelain fork. Owner liveness is host-local: a pid only proves
+    # life on the host that stamped it, so a CLEAN host token (ASCII, no C-quote
+    # artifacts) that differs from ours is a FOREIGN owner → never a keep (a foreign pid
+    # could collide with a live local pid). A non-ASCII host gets the whole reason
+    # C-quoted by git, so an unclean/empty host falls back to the pid-only check (a live
+    # local owner with a mangled host is not wrongly reaped); the reap preserves work first.
+    text = reason if reason is not None else _worktree_lock_reason(repo, wt)
+    match = re.search(r"owner=(\d+)(?:@(\S+))?", text)
     if not match:
+        return False
+    pid, host = int(match.group(1)), (match.group(2) or "")
+    host_is_clean = bool(host) and '"' not in host and "\\" not in host
+    if host_is_clean and host != socket.gethostname():
         return False
     try:
         from core.board_os.presence import pid_alive
     except Exception:
         return False
-    return pid_alive(int(match.group(1)))
+    return pid_alive(pid)
 
 
 def _ledger_path(repo: str) -> Path:
@@ -1434,9 +1464,11 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
         drained = [] if dry_run else _drain_ledger(repo)
         reaped: list[dict] = []
         kept: list[dict] = []
+        wt_index = _worktree_index(repo)  # one porcelain dump for the whole sweep
         if wt_root.is_dir():
             for wt in sorted(p for p in wt_root.iterdir() if p.is_dir()):
-                branch = _git_out(["rev-parse", "--abbrev-ref", "HEAD"], cwd=wt)
+                entry = wt_index.get(wt.resolve(), {})
+                branch = entry.get("branch") or _git_out(["rev-parse", "--abbrev-ref", "HEAD"], cwd=wt)
                 if not branch.startswith("agents/"):
                     continue
                 session = branch.rsplit("/", 1)[-1]
@@ -1444,7 +1476,7 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
                 reapable = state == "offline" or (
                     state == "unknown"
                     and _worktree_stale(wt)
-                    and not _lock_owner_alive(repo, wt)
+                    and not _lock_owner_alive(repo, wt, reason=entry.get("locked", ""))
                 )
                 if reapable:
                     reaped.append(
