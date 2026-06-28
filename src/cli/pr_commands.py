@@ -829,6 +829,53 @@ def _changed_files(repo: str, branch: str, integration: str, wt: Path | None) ->
     return files
 
 
+@pr_group.command("triage", help="Ranked digest of all open agents/* PRs (ci + review + conflict + age) — review the highest-value, lowest-risk first.")
+@click.option("--repo", "repo_opt", default=None)
+@click.option("--json", "as_json", is_flag=True)
+def pr_triage(repo_opt: str | None, as_json: bool) -> None:
+    repo = _resolve_repo(repo_opt)
+    if not _gh_ready():
+        _emit({"open": 0, "quick_merge": 0, "prs": [], "action": "gh unavailable — cannot triage open PRs"}, as_json)
+        return
+    out = _run(
+        ["gh", "pr", "list", "--state", "open", "--search", "head:agents/", "--json",
+         "number,headRefName,state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest,"
+         "reviewDecision,mergeable,createdAt", "--limit", "100"],
+        cwd=repo,
+    )
+    rows: list[dict] = []
+    if out.returncode == 0:
+        try:
+            rows = json.loads(out.stdout or "[]")
+        except json.JSONDecodeError:
+            rows = []
+    agent_rows = [r for r in rows if str(r.get("headRefName", "")).startswith("agents/")]
+    entries = sorted((_triage_entry(r) for r in agent_rows), key=lambda e: (e["rank"], e["created_at"]))
+    quick = sum(1 for e in entries if e["category"] == "quick-merge")
+    if not entries:
+        _emit({"open": 0, "quick_merge": 0, "prs": [], "action": "no open agent PRs — nothing to triage"}, as_json)
+        return
+    if as_json:
+        _emit(
+            {"open": len(entries), "quick_merge": quick, "prs": entries,
+             "action": "review in listed order; quick-merge rows are green + conflict-free + no required review"},
+            as_json,
+        )
+        return
+    lines = [f"{len(entries)} open agent PR(s) — review in this order ({quick} safe quick-merge):"]
+    for e in entries:
+        flag = "  ✅ quick-merge" if e["category"] == "quick-merge" else ""
+        lines.append(
+            f"  #{e['number']} {e['branch']} — {e['category']} "
+            f"(ci={e['ci_rollup']}, review_required={e['review_required']}, conflict={e['conflict']}){flag}"
+        )
+    lines.append(
+        "Tip: to leave the hot path entirely, set autonomy_level=auto_merge with a required check "
+        "(docs/playbooks/pr-mode-ci-economics.md)."
+    )
+    click.echo("\n".join(lines))
+
+
 @pr_group.command("conflicts", help="Advisory: which live peer agent branch also edits your files (early-warning before a land-time conflict).")
 @click.option("--branch", default=None, help="Target agent branch (default: the current worktree's HEAD).")
 @click.option("--repo", "repo_opt", default=None)
@@ -988,6 +1035,40 @@ def _merge_queue_entry(repo: str, number: int | None) -> dict:
         return {}
     pull = ((data.get("data") or {}).get("repository") or {}).get("pullRequest") or {}
     return pull.get("mergeQueueEntry") or {}
+
+
+def _triage_entry(pr: dict) -> dict:
+    # One ranked triage row for an open agents/* PR. Rank orders the human's
+    # review queue to minimise time-to-unblock: safe quick-merges first (just
+    # click merge), then the ones needing a real review, then conflict/red (need
+    # work), then CI still running (no human action yet). created_at breaks ties
+    # oldest-first so the backlog drains FIFO.
+    rollup = _rollup_state(pr)  # already folds a blocking reviewDecision into "review-required"
+    conflict = str(pr.get("mergeable") or "").upper() == "CONFLICTING"
+    review_required = rollup == "review-required"
+    green = rollup in ("passing", "passing-unarmed")
+    if green and not conflict:
+        category, rank = "quick-merge", 0  # green + clean + no required review → safe one-click
+    elif review_required and not conflict:
+        category, rank = "needs-review", 1
+    elif conflict:
+        category, rank = "conflict", 2  # needs a rebase before it can land
+    elif rollup == "red":
+        category, rank = "red", 3
+    elif rollup in ("pending", "queued"):
+        category, rank = "waiting", 4
+    else:
+        category, rank = rollup, 5
+    return {
+        "rank": rank,
+        "category": category,
+        "branch": pr.get("headRefName", ""),
+        "number": pr.get("number"),
+        "ci_rollup": rollup,
+        "review_required": review_required,
+        "conflict": conflict,
+        "created_at": pr.get("createdAt", ""),
+    }
 
 
 def _pr_review_required(wt: Path, branch: str) -> bool:

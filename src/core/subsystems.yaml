@@ -64,6 +64,7 @@ modules:
       - branch-guard
       - block-shared-tree-edit
       - pr-reap
+      - nudge-git-mode
       - enforce-commit-message
       - enforce-scaffold-boundary
       - enforce-skill

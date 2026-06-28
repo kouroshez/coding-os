@@ -4333,6 +4333,70 @@ class TestCosPr:
         assert res.exit_code == 0, res.output
         assert "ci_rollup: red" in res.output
 
+    def test_pr_triage_ranks_open_prs(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-618: cos pr triage emits ONE digest of open agents/* PRs ranked to
+        # minimise the human's time-to-unblock — quick-merge (green+clean+no review)
+        # first, then needs-review, conflict, red, waiting; non-agent PRs excluded.
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        green = [{"status": "COMPLETED", "conclusion": "SUCCESS"}]
+        running = [{"status": "IN_PROGRESS"}]
+        failing = [{"conclusion": "FAILURE"}]
+        rows = [
+            {"number": 1, "headRefName": "agents/t/a", "state": "OPEN",
+             "statusCheckRollup": running, "mergeable": "MERGEABLE", "createdAt": "2026-01-01T00:00:00Z"},
+            {"number": 2, "headRefName": "agents/t/b", "state": "OPEN",
+             "statusCheckRollup": failing, "mergeable": "MERGEABLE", "createdAt": "2026-01-01T00:00:00Z"},
+            {"number": 3, "headRefName": "agents/t/c", "state": "OPEN",
+             "statusCheckRollup": green, "mergeable": "CONFLICTING", "createdAt": "2026-01-01T00:00:00Z"},
+            {"number": 4, "headRefName": "agents/t/d", "state": "OPEN", "statusCheckRollup": green,
+             "mergeable": "MERGEABLE", "reviewDecision": "REVIEW_REQUIRED",
+             "autoMergeRequest": {"enabledAt": "x"}, "createdAt": "2026-01-01T00:00:00Z"},
+            {"number": 5, "headRefName": "agents/t/e", "state": "OPEN",
+             "statusCheckRollup": green, "mergeable": "MERGEABLE", "createdAt": "2026-01-01T00:00:00Z"},
+            {"number": 6, "headRefName": "feature/x", "state": "OPEN",  # non-agent → excluded
+             "statusCheckRollup": green, "mergeable": "MERGEABLE", "createdAt": "2026-01-01T00:00:00Z"},
+        ]
+        real_run = prc._run
+
+        def fake_run(args, **kw):
+            if args[:3] == ["gh", "pr", "list"]:
+                return subprocess.CompletedProcess(args, 0, stdout=json.dumps(rows), stderr="")
+            return real_run(args, **kw)
+
+        monkeypatch.setattr(prc, "_run", fake_run)
+        res = runner.invoke(cli, ["pr", "triage", "--repo", str(repo), "--json"])
+        assert res.exit_code == 0, res.output
+        data = json.loads(res.output)
+        assert data["open"] == 5  # the non-agent PR is excluded
+        assert data["quick_merge"] == 1
+        assert [e["category"] for e in data["prs"]] == [
+            "quick-merge", "needs-review", "conflict", "red", "waiting"
+        ]
+        assert data["prs"][0]["branch"] == "agents/t/e"  # the safe one-click, surfaced first
+
+    def test_pr_triage_empty_report(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        real_run = prc._run
+
+        def fake_run(args, **kw):
+            if args[:3] == ["gh", "pr", "list"]:
+                return subprocess.CompletedProcess(args, 0, stdout="[]", stderr="")
+            return real_run(args, **kw)
+
+        monkeypatch.setattr(prc, "_run", fake_run)
+        res = runner.invoke(cli, ["pr", "triage", "--repo", str(repo), "--json"])
+        assert res.exit_code == 0, res.output
+        data = json.loads(res.output)
+        assert data["open"] == 0 and data["prs"] == []
+
     def test_pr_ci_rollup_requests_automerge_fields(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
