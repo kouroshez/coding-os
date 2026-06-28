@@ -32,6 +32,7 @@ _SUBSYSTEMS_PATH = _core_dir() / "subsystems.yaml"
 class Module:
     id: str
     label: str
+    hint: str = ""
     kernel: bool = False
     hooks: tuple[str, ...] = ()
     tools: tuple[str, ...] = ()
@@ -61,6 +62,7 @@ def load_subsystems(path: Path | None = None) -> dict[str, Module]:
         module = Module(
             id=str(raw["id"]),
             label=str(raw.get("label") or raw["id"]),
+            hint=str(raw.get("hint") or ""),
             kernel=bool(raw.get("kernel", False)),
             hooks=tuple(str(h) for h in raw.get("hooks") or ()),
             tools=tuple(str(t) for t in raw.get("tools") or ()),

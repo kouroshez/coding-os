@@ -15,7 +15,7 @@ vi.mock('@/lib/hooks', () => ({
       '/api/settings/modules': {
         modules: [
           { id: 'kernel', label: 'Kernel', kernel: true, enabled: true, depends_on: [], hooks: 6, tools: 0 },
-          { id: 'tasks', label: 'Task system', kernel: false, enabled: true, depends_on: ['docs'], hooks: 9, tools: 2 },
+          { id: 'tasks', label: 'Task system', hint: 'Enable for the Scrumban board.', kernel: false, enabled: true, depends_on: ['docs'], hooks: 9, tools: 2 },
         ],
       },
       '/api/settings': {
@@ -92,6 +92,11 @@ describe('ModulesTab (TASK-354)', () => {
     const toggle = screen.getByTestId('module-toggle-tasks');
     fireEvent.click(toggle);
     expect(apiPatch).toHaveBeenCalledWith('/api/settings/modules/tasks', { enabled: false });
+  });
+
+  it('surfaces the per-module hint for discovery', () => {
+    renderConfig('/p/demo/config?tab=modules');
+    expect(screen.getByText('Enable for the Scrumban board.')).toBeInTheDocument();
   });
 });
 

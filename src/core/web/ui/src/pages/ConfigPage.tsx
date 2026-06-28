@@ -380,6 +380,7 @@ function HooksTab() {
 interface ModuleRow {
   id: string;
   label: string;
+  hint?: string;
   kernel: boolean;
   enabled: boolean;
   depends_on: string[];
@@ -459,6 +460,9 @@ function ModulesTab() {
             <td className="px-3 py-2">
               <div className="font-medium text-[var(--cos-text)]">{m.id}</div>
               <div className="text-[10px] text-[var(--cos-faint)]">{m.label}</div>
+              {m.hint && (
+                <div className="mt-0.5 max-w-md text-[10px] leading-snug text-[var(--cos-muted)]">{m.hint}</div>
+              )}
             </td>
             <td className="px-3 py-2">
               {m.kernel ? (

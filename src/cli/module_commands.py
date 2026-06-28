@@ -258,6 +258,7 @@ def module_state_payload(project: Path) -> dict:
             {
                 "id": m.id,
                 "label": m.label,
+                "hint": m.hint,
                 "kernel": m.kernel,
                 "enabled": state[m.id],
                 "depends_on": list(m.depends_on),

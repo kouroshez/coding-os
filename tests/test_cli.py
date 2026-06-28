@@ -1104,6 +1104,27 @@ class TestCiWorkflow:
         assert "cicd" in profiles["standard"] and "cicd" in profiles["core"]
         assert "cicd" not in profiles["full"]
 
+    def test_lite_profile_is_kernel_only_and_dependency_safe(self) -> None:
+        from cli.subsystems import load_profiles, load_subsystems
+
+        modules = load_subsystems()
+        profiles, _ = load_profiles()
+        lite = set(profiles["lite"])
+        toggleable = {m.id for m in modules.values() if not m.kernel and not m.hidden}
+        assert toggleable <= lite, f"lite leaves a toggleable module on: {toggleable - lite}"
+        for m in modules.values():
+            if m.id in lite:
+                continue
+            assert not (set(m.depends_on) & lite), f"{m.id} depends on a lite-disabled module"
+
+    def test_module_payload_includes_hint(self, tmp_path: Path) -> None:
+        from cli.module_commands import module_state_payload
+
+        payload = module_state_payload(tmp_path)
+        assert payload["modules"], "no modules in payload"
+        assert all("hint" in m for m in payload["modules"]), "hint missing from module payload"
+        assert any(m["hint"] for m in payload["modules"])
+
     def test_full_profile_init_emits_ci_default_does_not(
         self, runner: CliRunner, tmp_path: Path
     ) -> None:

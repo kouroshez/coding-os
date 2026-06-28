@@ -7,7 +7,8 @@
 # are non-disableable regardless of module membership (TASK-256 layer);
 # `kernel: true` additionally pins the whole module.
 #
-# Schema: id, label, kernel, hooks[], tools[], skills[], commands[], depends_on[], hidden.
+# Schema: id, label, hint, kernel, hooks[], tools[], skills[], commands[], depends_on[], hidden.
+# `hint` = one-line "when to enable" surfaced in the Hub Config → Modules tab (discovery UX).
 # `tools` trailing '*' = MCP prefix family (tools/_shared.py gate).
 # `commands` = slash-command stems (core/commands/<name>.md) UNAMBIGUOUSLY owned
 # by this module; disabling it unlinks them from the adapter commands dir
@@ -28,6 +29,7 @@ version: 1
 # (never drop a module another profile-enabled module depends on).
 default_profile: standard
 profiles:
+  lite: { disabled: [docs, tasks, graph, memory, cognition, observability, hub-extras, cicd] }  # kernel-only: discipline + safety, ~zero MCP tools (MCP-averse adopters)
   core: { disabled: [memory, cognition, observability, cicd] }   # kernel + docs + tasks + graph
   standard: { disabled: [cognition, cicd] }                      # + memory + observability (default)
   full: { disabled: [] }                                         # everything (today's behaviour)
@@ -35,6 +37,7 @@ profiles:
 modules:
   - id: kernel
     label: "Kernel — state, env, session lifecycle + always-on safety/enforcement discipline"
+    hint: "Always on — lifecycle + the non-negotiable safety/enforcement discipline surface."
     kernel: true
     # Lifecycle + the non-negotiable discipline surface. Safety-category hooks
     # are non-disableable regardless of module (project_overrides filters them);
@@ -87,6 +90,7 @@ modules:
 
   - id: docs
     label: "Docs system — SSOT docs, doc search, doc hygiene"
+    hint: "Enable for SSOT doc search (cos_doc_*) + the doc-anchor / docs-first discipline."
     kernel: false
     hooks: [enforce-doc-anchor, enforce-doc-sync, nudge-docs-first, check-doc-size, auto-regen-doc-index, auto-reindex-docs]
     tools: ["cos_doc_*"]
@@ -94,6 +98,7 @@ modules:
 
   - id: tasks
     label: "Task system — Scrumban board, lifecycle, work logs"
+    hint: "Enable for the Scrumban board, task lifecycle gates, and work logs (cos_task_*)."
     kernel: false
     hooks: [enforce-task-start, enforce-task-body, nudge-task-discovery, warn-abandoned-task, remind-daily, auto-task-sync, sync-task-current, link-commit-to-task, reclaim-sweep, capture-work-log]
     tools: ["cos_task_*", cos_work_log_append]
@@ -103,6 +108,7 @@ modules:
 
   - id: graph
     label: "Knowledge graph — code/doc graph, structural queries"
+    hint: "Enable for structural code/doc queries — callers, blast radius, rename (cos_graph_*)."
     kernel: false
     hooks: [enforce-graph-context, enforce-graph-first-read, enforce-rename-plan, nudge-graph-os, warn-graph-empty, verify-rename-callers, auto-graph-reconcile-shell]
     tools: ["cos_graph_*"]
@@ -111,6 +117,7 @@ modules:
 
   - id: memory
     label: "Agent memory — observations, learning, recall"
+    hint: "Enable for cross-session recall + the learning loop (cos_search, cos_learn_*)."
     kernel: false
     hooks: [enforce-memory-check, capture-observation, jit-recall, nudge-learn-narrative, remind-learn-validate, auto-brain-decay, drain-embedding-outbox, check-capture-worked]
     tools: [cos_search, cos_observation_record, cos_timeline, cos_details, "cos_learn_*", "cos_retrieval_*", cos_promote, cos_digest_regenerate]
@@ -120,6 +127,7 @@ modules:
 
   - id: cognition
     label: "Cognition — role composition, reasoning primers + workflow nudges"
+    hint: "Enable for role-chain composition + reasoning primers (adds per-session token cost)."
     kernel: false
     # The optional reasoning-assist surface: session primers, role chain
     # composition, and soft nudges. Toggle off to cut the per-session token
@@ -137,6 +145,7 @@ modules:
 
   - id: observability
     label: "Observability — session tracing, transcript + tool-failure capture"
+    hint: "Enable for session tracing, metrics, and tool-failure / transcript capture (cos_metric_*)."
     kernel: false
     hooks: [auto-trace-rotate, capture-tool-failure, record-verify-auto, snapshot-transcript]
     # Session metrics, log query, trajectory snapshots, presence. Internal
@@ -147,6 +156,7 @@ modules:
 
   - id: hub-extras
     label: "Hub extras — web UI conveniences beyond the API core"
+    hint: "Enable for web-UI conveniences (ensure-hub-up, MCP-down banner) beyond the API core."
     kernel: false
     hooks: [ensure-hub-up, warn-mcp-down]
     tools: []
@@ -154,6 +164,7 @@ modules:
 
   - id: cicd
     label: "CI/CD — generated GitHub Actions workflow + backend Dockerfiles"
+    hint: "Enable to render a GitHub Actions workflow + backend Dockerfiles at init/update."
     kernel: false
     # Owns no hooks/tools: it gates the .github/workflows/ci.yml render at init
     # and update (cli.main / cli.update → materialize_ci_workflow). Off in the
