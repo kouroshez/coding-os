@@ -712,6 +712,16 @@ class TestBlockSecrets:
             # /dev/null) can carry a hooksPath override — block the whole class.
             "GIT_CONFIG_GLOBAL=/tmp/x.cfg git commit -m x",
             "GIT_CONFIG_SYSTEM=/tmp/x.cfg git commit -m x",
+            # TASK-612: git resolves any unambiguous long-option prefix, so a
+            # --no-verify ABBREVIATION skips the verify hooks just as well — the old
+            # literal `--no-verify` match missed every prefix from the --no-verbose
+            # disambiguation point onward.
+            "git commit --no-veri -m x",                # min unambiguous prefix
+            "git commit --no-verif -m x",
+            'git commit --no-ver"i"fy -m x',            # already covered above; abbrev sibling
+            'git commit --no-ver"i" -m x',              # splice collapses to --no-veri
+            "cd d && git commit --no-veri -m x",        # compound prefix
+            "true; git commit --no-veri -m x",          # separator prefix
         ],
     )
     def test_blocks_no_verify_bypass_shapes(self, command: str) -> None:
@@ -743,6 +753,12 @@ class TestBlockSecrets:
             # TASK-571: `git config --get core.hooksPath` is a READ, sets nothing.
             "git config --get core.hooksPath",
             "git config --list",
+            # TASK-612: `--no-ver` is AMBIGUOUS between --no-verify and --no-verbose,
+            # so git itself rejects it — the gate must NOT block (no false positive),
+            # and `--no-verbose`/`--no-edit` are unrelated --no-* options.
+            "git commit --no-ver -m x",
+            "git commit --no-verbose -m x",
+            "git commit --no-edit",
         ],
     )
     def test_allows_clean_commit_shapes(self, command: str) -> None:
@@ -808,6 +824,47 @@ class TestBlockDangerousCommands:
         )
         result = run_hook("block-dangerous-commands.sh", stdin=payload)
         assert result.returncode == 2
+
+    # TASK-612: git resolves any unambiguous long-option prefix and accepts split
+    # short clusters, so `reset --hard` / `clean -f` must match by SHAPE — the old
+    # literal greps (`git reset --hard`, `git clean\s+-[a-z]*f`) missed the
+    # abbreviation (`--har`, `--for`, `--f`) and the split cluster (`-d -f`).
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "git reset --hard",                  # exact
+            "git reset --har HEAD~1",            # --hard abbrev
+            "git reset --ha",                    # shorter abbrev
+            "git clean -f",                      # exact short
+            "git clean -fd",                     # bundled short
+            "git clean -df build",               # bundled, other order
+            "git clean -d -f",                   # split cluster
+            "git clean -x -d -f",                # fully split
+            "git clean --force",                 # exact long
+            "git clean --for",                   # long abbrev
+            "git clean --f",                     # min long abbrev
+        ],
+    )
+    def test_blocks_git_destructive_abbreviations(self, command: str) -> None:
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
+        result = run_hook("block-dangerous-commands.sh", stdin=payload)
+        assert result.returncode == 2
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "git clean -n",                      # dry-run short — no force
+            "git clean --dry-run",               # dry-run long
+            "git clean -d",                      # remove dirs but NOT forced
+            "git clean -i",                      # interactive, no force
+            "git reset --soft HEAD~1",           # soft reset is not the data-loss --hard
+            "git reset --mixed HEAD",            # default mode, no -hard
+        ],
+    )
+    def test_allows_non_destructive_git_clean_reset(self, command: str) -> None:
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
+        result = run_hook("block-dangerous-commands.sh", stdin=payload)
+        assert result.returncode == 0
 
     # TASK-567 (F3): an inline `COS_ALLOW_FORCE_PUSH_MAIN=1 git push …` prefix
     # must NOT self-grant the override — the assignment has not executed when the

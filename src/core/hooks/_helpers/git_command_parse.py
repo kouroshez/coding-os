@@ -229,6 +229,30 @@ def commit_flags(args: list[str]) -> tuple[set[str], list[str]]:
     return short, longs
 
 
+def abbrev_resolves(arg: str, target: str, siblings: frozenset[str]) -> bool:
+    """True when long option `arg` is the abbreviation git would resolve to
+    `target` — closing the whole bypass class where a guard matched a hardcoded
+    literal (`--hard`, `--no-verify`, `--force`) while git accepts ANY unambiguous
+    prefix (`--har`, `--no-veri`, `--for`).
+
+    git's own rule (parse-options.c): an `--abbrev` matches `--canonical` when it
+    is a prefix of it AND of exactly one option in the set. So `arg` resolves to
+    `target` iff it is a prefix of `target` and a prefix of NO other sibling — an
+    ambiguous-too-short prefix (`--no-ver`, both `--no-verify` and `--no-verbose`)
+    or an unrelated flag (`--no-verbose`) returns False, exactly as git rejects /
+    routes them. `siblings` is `target`'s competitors for the same prefix; pass the
+    handful that actually collide, not git's full option table (the only ones that
+    change a verdict). An exact `arg == target` always resolves."""
+    arg = arg.split("=", 1)[0]  # `--hard=...` is malformed but normalize anyway
+    if not arg.startswith("--") or len(arg) <= 2:
+        return False
+    if arg == target:
+        return True
+    if not target.startswith(arg):
+        return False
+    return not any(sib != target and sib.startswith(arg) for sib in siblings)
+
+
 def _unwrap_env(tokens: list[str]) -> tuple[list[str], list[str]]:
     """`env [-i|-u NAME|--] [NAME=VAL]... cmd args` → (captured NAME=VAL, [cmd, …]).
     A leading `env` wrapper otherwise hides the real command word (`env GIT_X=1

@@ -25,6 +25,7 @@ import re
 import sys
 
 from git_command_parse import (
+    abbrev_resolves,
     command_groups,
     commit_flags,
     is_git_word,
@@ -129,24 +130,45 @@ def _check_rebase(args: list[str]) -> tuple[str | None, str | None]:
 
 
 def _check_reset(args: list[str]) -> tuple[str | None, str | None]:
-    # Strip leading reset flags.
-    rest: list[str] = []
-    seen_non_flag = False
+    # Path-mode reset (`-p`, `--patch`, `--pathspec-from-file`, `--` separator)
+    # stages/unstages hunks — it NEVER moves HEAD, so it is always safe. git
+    # resolves any unambiguous prefix, so test `--pa…`/`--pat…` etc. by resolution,
+    # not a literal (`git reset --pa` → --patch was a bypass of the old `in {…}` set).
     for a in args:
-        if not seen_non_flag and a in {"--soft", "--mixed", "--keep", "--patch", "--hard"}:
-            continue
-        seen_non_flag = True
-        rest.append(a)
+        if a == "--" or a == "-p":
+            return None, None
+        if a.startswith("--") and (
+            abbrev_resolves(a, "--patch", _RESET_LONGS)
+            or abbrev_resolves(a, "--pathspec-from-file", _RESET_LONGS)
+            or abbrev_resolves(a, "--pathspec-file-nul", _RESET_LONGS)
+        ):
+            return None, None
+    # Strip ALL leading mode flags incl. abbreviations (`--har`→--hard,
+    # `--so`→--soft) and any other non-positional option, so the first POSITIONAL
+    # is reached — the old code stripped only a hardcoded literal set, so `--har`
+    # read as the first positional, hit the `startswith("--")` path-restore arm,
+    # and the HEAD-move slipped (the bypass this closes).
+    rest = [a for a in args if not a.startswith("-")]
     if not rest:
-        return None, None
+        return None, None  # `git reset [--mode]` with no target — unstage, no HEAD move
     first = rest[0]
-    if first == "--" or first.startswith("--"):
-        return None, None  # path-restore form
     if first == "HEAD":
-        return None, None  # HEAD or HEAD <path>
-    if first.startswith(("HEAD~", "HEAD^", "HEAD@")):
-        return "reset-head-rewrite", _MSG["reset"]
+        return None, None  # `reset HEAD` / `reset --mode HEAD` — HEAD does not move
     return "reset-head-rewrite", _MSG["reset"]
+
+
+# `git reset`'s long options — the competitor set for prefix disambiguation. A
+# mode/HEAD-mover vs a path-mode marker only needs the options that share a prefix
+# with the path-mode ones, but the full short list keeps `abbrev_resolves` honest
+# if git adds a colliding option (e.g. a future `--pat*`).
+_RESET_LONGS = frozenset(
+    {
+        "--soft", "--mixed", "--hard", "--merge", "--keep", "--patch",
+        "--quiet", "--no-quiet", "--refresh", "--no-refresh", "--stdin",
+        "--pathspec-from-file", "--pathspec-file-nul", "--intent-to-add",
+        "--recurse-submodules",
+    }
+)
 
 
 # Accepts `-` (previous branch/ref) as a positional arg, plus any

@@ -18,16 +18,38 @@ from __future__ import annotations
 import json
 import sys
 
-from git_command_parse import GitInvocation, commit_flags, git_invocations
+from git_command_parse import (
+    GitInvocation,
+    abbrev_resolves,
+    commit_flags,
+    git_invocations,
+)
 
 _HOOKS_ENV_NULL = {"GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM"}
 
+# `git commit`'s `--no-*` long options — the competitors that decide whether an
+# abbreviation resolves to --no-verify. `--no-verbose` shares the `--no-ver`
+# prefix, so `--no-ver` is ambiguous (git itself rejects it) and only `--no-veri`
+# and longer resolve to --no-verify; the rest never collide but are listed so the
+# disambiguation stays correct as git's option set grows.
+_COMMIT_NO_LONGS = frozenset(
+    {
+        "--no-verify", "--no-verbose", "--no-edit", "--no-amend", "--no-status",
+        "--no-post-rewrite", "--no-gpg-sign", "--no-signoff",
+        "--no-progress", "--no-renames",
+    }
+)
+
 
 def _commit_skips_verify(inv: GitInvocation) -> bool:
-    # The only `git commit` n-short-flag is `-n` (= --no-verify); a quoted message
-    # body is dropped by commit_flags, so a message mentioning --no-verify is safe.
+    # `-n` short flag, or any long option that git would resolve to --no-verify —
+    # the literal `--no-verify` match missed `--no-veri`/`--no-verif` (git accepts
+    # any unambiguous prefix). A quoted message body is dropped by commit_flags, so
+    # a message mentioning the flag stays safe.
     short, longs = commit_flags(inv.args)
-    return "n" in short or "--no-verify" in longs
+    if "n" in short:
+        return True
+    return any(abbrev_resolves(lg, "--no-verify", _COMMIT_NO_LONGS) for lg in longs)
 
 
 def _hooks_path_in_globals(globals_: list[str]) -> bool:

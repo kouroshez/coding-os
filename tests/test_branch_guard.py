@@ -7,6 +7,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
 HOOK = Path(__file__).resolve().parent.parent / "src" / "core" / "hooks" / "branch-guard.sh"
 
 
@@ -121,6 +123,26 @@ def test_blocks_reset_to_remote_ref() -> None:
     assert code == 2
 
 
+# TASK-612: git resolves any unambiguous long-option prefix, so a mode-flag
+# ABBREVIATION (`--har`→--hard, `--so`→--soft) must strip like the full flag —
+# the old hardcoded `{--soft,--mixed,--keep,--patch,--hard}` set let `--har`
+# read as the first positional and slip through the path-restore arm.
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git reset --har HEAD~1",   # --hard abbrev
+        "git reset --so HEAD~2",    # --soft abbrev
+        "git reset --ha HEAD~1",    # shorter --hard abbrev
+        "git reset --mer HEAD~1",   # --merge abbrev
+        "git reset --ke HEAD~3",    # --keep abbrev
+        "cd src && git reset --har HEAD~1",  # compound prefix
+    ],
+)
+def test_blocks_reset_mode_abbreviation_head_move(command: str) -> None:
+    code, _ = _run(command)
+    assert code == 2
+
+
 def test_blocks_checkout_other_branch() -> None:
     code, err = _run("git checkout feature-x")
     assert code == 2
@@ -159,6 +181,26 @@ def test_allows_reset_mixed_head() -> None:
 def test_allows_reset_path() -> None:
     # `git reset -- foo.py` unstages one path; HEAD does not move.
     code, _ = _run("git reset -- foo.py")
+    assert code == 0
+
+
+# TASK-612: path-mode reset (`-p`/`--patch`/`--pathspec-from-file`, any unambiguous
+# prefix) stages hunks and NEVER moves HEAD, and `--mode HEAD` resets the index to
+# HEAD with no move — both must stay allowed after the abbreviation-aware rewrite
+# (`git reset -p` was a pre-existing FALSE BLOCK the rewrite also fixes).
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git reset -p",                       # interactive patch — false-blocked before
+        "git reset --patch",                  # long form
+        "git reset --pat",                    # --patch abbrev
+        "git reset --pathspec-from-file f",   # explicit path-mode
+        "git reset --soft HEAD",              # mode + HEAD = no move
+        "git reset --har HEAD",               # abbrev mode + HEAD = still no move
+    ],
+)
+def test_allows_reset_path_mode_and_head(command: str) -> None:
+    code, _ = _run(command)
     assert code == 0
 
 

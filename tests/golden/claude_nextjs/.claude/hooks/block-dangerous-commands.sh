@@ -156,18 +156,27 @@ if echo "$COMMAND" | grep -qE 'manage\.py migrate.*--settings.*production'; then
   exit 2
 fi
 
-# Block git reset --hard without user confirmation
-if echo "$COMMAND_SCAN" | grep -qE 'git reset --hard'; then
-  cos_log_hook block-dangerous-commands block "rule=reset-hard"
-  echo "BLOCKED: git reset --hard discards all uncommitted changes permanently. Consider 'git stash' instead, or ask the user to confirm." >&2
-  exit 2
-fi
-
-# Block git clean -f (deletes untracked files)
-if echo "$COMMAND_SCAN" | grep -qE 'git clean\s+-[a-z]*f'; then
-  cos_log_hook block-dangerous-commands block "rule=git-clean-force"
-  echo "BLOCKED: git clean -f permanently deletes untracked files. Ask the user to confirm which files should be removed." >&2
-  exit 2
+# Block destructive `git reset --hard` / `git clean -f`. Delegated to a
+# shlex-correct helper so a long-option ABBREVIATION (`reset --har`, `clean
+# --for`/`--f`) or a split short cluster (`clean -d -f`) can't slip the old
+# literal greps — git resolves any unambiguous prefix. Fed COMMAND_SCAN so a
+# recovered-indirection git op is scanned too. Fails OPEN on helper error;
+# branch-guard is the fail-closed twin for the HEAD-moving reset.
+if echo "$COMMAND_SCAN" | grep -qE 'git[[:space:]]+(reset|clean)'; then
+  DESTRUCTIVE_VERDICT=$(
+    jq -n --arg c "$COMMAND_SCAN" '{tool_name:"Bash",tool_input:{command:$c}}' \
+      | python3 "$(_resolve_helper check_git_destructive.py)" 2>/dev/null || echo allow
+  )
+  if [ "$DESTRUCTIVE_VERDICT" = "reset-hard" ]; then
+    cos_log_hook block-dangerous-commands block "rule=reset-hard"
+    echo "BLOCKED: git reset --hard discards all uncommitted changes permanently. Consider 'git stash' instead, or ask the user to confirm." >&2
+    exit 2
+  fi
+  if [ "$DESTRUCTIVE_VERDICT" = "clean-force" ]; then
+    cos_log_hook block-dangerous-commands block "rule=git-clean-force"
+    echo "BLOCKED: git clean -f permanently deletes untracked files. Ask the user to confirm which files should be removed." >&2
+    exit 2
+  fi
 fi
 
 exit 0
