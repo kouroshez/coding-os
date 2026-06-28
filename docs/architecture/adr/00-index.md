@@ -2,7 +2,7 @@
 
 <!-- BEGIN auto-index -->
 
-### Adr (14)
+### Adr (15)
 
 - [ADR-0001: Adopt Python src-layout](0001-src-layout.md) — `ssot:true` · updated 2026-04-15
 - [ADR-0005: board_os — file-first Scrumban with DB sync, not DB-first](0005-board-os-file-first-scrumban.md) — `ssot:true` · updated 2026-04-20
@@ -18,5 +18,6 @@
 - [ADR-0012: A lighthouse consumer (streamos) breaks the dogfood monoculture](0012-lighthouse-consumer-breaks-the-dogfood-monoculture.md) — `ssot:true` · updated 2026-06-20
 - [ADR-0013: PR-mode multi-agent git workflow is consumer-only; coding-os stays trunk](0013-pr-mode-multi-agent-git-workflow-consumer-only.md) — `ssot:true` · updated 2026-06-22
 - [ADR-0014: Unified graph-gate — a verifiable, consumer-facing dependency check before edits](0014-unified-graph-gate-enforced-dependency-check-before-edit.md) — `ssot:true` · updated 2026-06-25
+- [ADR-0015: Kernel scope boundaries — capabilities we deliberately will not build](0015-kernel-scope-boundaries-deliberately-excluded-capabilities.md) — `ssot:true` · updated 2026-06-28
 
 <!-- END auto-index -->

@@ -1,10 +1,10 @@
-<!-- domain:INFRA | layer:adr | ssot:true | updated:2026-06-05 -->
+<!-- domain:INFRA | layer:adr | ssot:true | updated:2026-06-28 -->
 ---
 title: "ADR: Role dispatch stays opt-in; role chain is single-agent guidance"
 domain: INFRA
 layer: adr
-status: accepted
-updated: 2026-06-05
+status: accepted — partially revived
+updated: 2026-06-28
 ---
 
 # ADR: Role dispatch stays opt-in; the role chain is single-agent guidance
@@ -14,6 +14,18 @@ updated: 2026-06-05
 Accepted (2026-06-05). Supersedes the "Phase 9" deferral framing in
 the roles-dead forensic review (2026-05, since retired) by making the
 decision explicit rather than open.
+
+**Partially revived (2026-06-28).** Both prerequisites named in *When to
+revisit* below shipped — a per-chain budget ceiling (`COS_CHAIN_BUDGET_USD`)
+and an `fcntl.flock` write-lock around the EvidenceBundle — alongside the
+cost-routing substrate (a Thompson-sampling Beta-Bernoulli router; cost-aware
+dispatch-model resolution + a one-tier-cheaper independent reviewer +
+a Codex adapter hint) and a budget-capped autonomous repair loop. All of it is
+**flag-gated and off by default** (`COS_ROUTER_BANDIT`, `COS_ROUTER_REVIEWER_CHEAPER`,
+`COS_ROUTER_ADAPTER_HINTS`, `COS_REPAIRER`) — the single-agent inline path stays
+the correct default. Still deferred: auto-firing dispatch, always-on parallel
+orchestration, and a composer chain-entry for the repairer. Scope boundaries that
+stay excluded: [ADR-0015](../architecture/adr/0015-kernel-scope-boundaries-deliberately-excluded-capabilities.md).
 
 ## Context
 
