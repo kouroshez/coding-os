@@ -306,6 +306,28 @@ class TestMemorySearch:
         assert result["count"] > 0
         assert result["source"] == "fts5"
 
+    def test_title_hit_outranks_body_hit(self, conn: sqlite3.Connection) -> None:
+        # AC2: column-weighted bm25 (title weighted 3x) must lift a title match
+        # above a body (narrative) match for the same rare term.
+        if not has_fts5_table(conn):
+            pytest.skip("FTS5 not available")
+        rows = [
+            ("kombucha brewing guide", "unrelated body text here"),  # term in TITLE
+            ("a generic note title", "a paragraph mentioning kombucha once"),  # term in BODY
+        ]
+        rows += [(f"noise note {i}", f"unrelated body number {i}") for i in range(8)]
+        for title, narrative in rows:
+            conn.execute(
+                "INSERT INTO observations (session_id, tool_name, title, narrative, concepts, "
+                "memory_type, impact_score) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                ("s", "Read", title, narrative, "[]", "discovery", 0.5),
+            )
+        conn.commit()
+        result = memory_search(conn, query="kombucha", use_fts5=True)
+        assert result["source"].startswith("fts5")
+        titles = [r["title"] for r in result["results"]]
+        assert titles[0] == "kombucha brewing guide"
+
     def test_like_fallback(self, seeded_conn: sqlite3.Connection) -> None:
         result = memory_search(seeded_conn, query="Django", use_fts5=False)
         assert result["count"] > 0
@@ -516,7 +538,7 @@ class TestMemoryPromote:
 # ---------------------------------------------------------------------------
 
 import embeddings  # noqa: E402
-from tools.memory import _blend_score  # noqa: E402
+from tools.memory import _jaccard, _mmr_select, _rrf_fuse, _tokenize  # noqa: E402
 
 REQUIRES_RAG = pytest.mark.skipif(
     not embeddings.is_available(),
@@ -524,21 +546,33 @@ REQUIRES_RAG = pytest.mark.skipif(
 )
 
 
-class TestBlendScore:
-    def test_no_semantic_returns_five_signal(self) -> None:
-        assert _blend_score(0.7, 0.0) == 0.7
+class TestRankFusionDiversity:
+    def test_tokenize_and_jaccard(self) -> None:
+        assert _tokenize("Cookie SameSite-flag") == {"cookie", "samesite", "flag"}
+        assert _jaccard({"a", "b"}, {"a", "b"}) == pytest.approx(1.0)
+        assert _jaccard({"a", "b", "c"}, {"a"}) == pytest.approx(1 / 3)
+        assert _jaccard(set(), {"a"}) == 0.0
 
-    def test_negative_semantic_returns_five_signal(self) -> None:
-        assert _blend_score(0.7, -0.1) == 0.7
+    def test_rrf_rewards_presence_in_both_lists(self) -> None:
+        both = {"source_table": "observations", "id": 1, "score": 1.0, "semantic_score": 0.9}
+        lex_only = {"source_table": "observations", "id": 2, "score": 0.9, "semantic_score": 0.0}
+        sem_only = {"source_table": "observations", "id": 3, "score": 0.1, "semantic_score": 0.95}
+        _rrf_fuse([both, lex_only, sem_only])
+        # a row ranked in BOTH lexical and semantic lists fuses above one in only one
+        assert both["score"] > lex_only["score"]
+        assert both["score"] > sem_only["score"]
 
-    def test_blends_50_50(self) -> None:
-        assert _blend_score(0.6, 0.4) == pytest.approx(0.5)
-
-    def test_high_semantic_pulls_score_up(self) -> None:
-        # Five-signal alone says 0.3, semantic says 0.9 → blend pulls score up
-        result = _blend_score(0.3, 0.9)
-        assert result > 0.3
-        assert result == pytest.approx(0.6)
+    def test_mmr_drops_near_duplicate_from_slice(self) -> None:
+        top = {"source_table": "observations", "id": 1, "title": "cookie samesite flag",
+               "concepts": "auth session", "score": 1.0}
+        near = {"source_table": "observations", "id": 2, "title": "samesite cookie attribute",
+                "concepts": "auth session", "score": 0.6}
+        diverse = {"source_table": "observations", "id": 3, "title": "rate limit window",
+                   "concepts": "perf throughput", "score": 0.55}
+        picked = _mmr_select([top, near, diverse], limit=2)
+        ids = [c["id"] for c in picked]
+        assert ids[0] == 1  # highest relevance first
+        assert ids[1] == 3  # diverse beats the near-duplicate for the 2nd slot
 
 
 @REQUIRES_RAG

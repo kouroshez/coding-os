@@ -11,6 +11,7 @@ Thinking OS — MCP memory tools (TASK-142).
 from __future__ import annotations
 
 import logging
+import re
 import sqlite3
 from datetime import datetime, timezone
 from typing import Optional
@@ -30,6 +31,10 @@ W_CONFIDENCE = 0.25
 W_RECENCY = 0.15
 W_IMPACT = 0.15
 W_ACCESS = 0.15
+
+# Reciprocal Rank Fusion constant (standard k) + MMR diversity trade-off.
+RRF_K = 60
+MMR_LAMBDA = 0.7
 
 
 # ---------------------------------------------------------------------------
@@ -122,14 +127,6 @@ def _boost_access(conn: sqlite3.Connection, table: str, row_id: int) -> None:
 # ---------------------------------------------------------------------------
 # semantic augmentation helpers
 # ---------------------------------------------------------------------------
-
-
-def _blend_score(five_signal: float, semantic: float) -> float:
-    # 50/50 blend on an embedding hit; with no hit (semantic == 0) keep the
-    # 5-signal score unchanged so non-embedding rows rank exactly as before.
-    if semantic <= 0.0:
-        return five_signal
-    return 0.5 * five_signal + 0.5 * semantic
 
 
 def _augment_with_semantic(
@@ -255,6 +252,68 @@ def _hydrate_row_for_semantic_hit(
 
 
 # ---------------------------------------------------------------------------
+# rank fusion + diversity helpers
+# ---------------------------------------------------------------------------
+
+
+def _tokenize(text: str | None) -> set[str]:
+    return {t for t in re.split(r"\W+", (text or "").lower()) if t}
+
+
+def _jaccard(a: set[str], b: set[str]) -> float:
+    if not a or not b:
+        return 0.0
+    union = len(a | b)
+    return len(a & b) / union if union else 0.0
+
+
+def _rrf_fuse(candidates: list[dict], k: int = RRF_K) -> None:
+    # Reciprocal Rank Fusion of the lexical/quality ordering (by 5-signal score)
+    # and the semantic ordering (by embedding score), keyed on (source_table,
+    # id) so a row present in both lists fuses once instead of duplicating. Each
+    # candidate's score is replaced with the fused rank-reciprocal value.
+    if not candidates:
+        return
+
+    def _key(c: dict) -> tuple:
+        return (c["source_table"], c["id"])
+
+    lexical = sorted(candidates, key=lambda c: c.get("score", 0.0), reverse=True)
+    lex_rank = {_key(c): i for i, c in enumerate(lexical)}
+    semantic = sorted(
+        (c for c in candidates if c.get("semantic_score", 0.0) > 0.0),
+        key=lambda c: c["semantic_score"],
+        reverse=True,
+    )
+    sem_rank = {_key(c): i for i, c in enumerate(semantic)}
+    for c in candidates:
+        key = _key(c)
+        fused = 1.0 / (k + lex_rank[key] + 1)
+        if key in sem_rank:
+            fused += 1.0 / (k + sem_rank[key] + 1)
+        c["score"] = fused
+
+
+def _mmr_select(candidates: list[dict], limit: int, lam: float = MMR_LAMBDA) -> list[dict]:
+    # Maximal Marginal Relevance: greedily pick the candidate maximizing
+    # lam*relevance - (1-lam)*max token-Jaccard similarity to the already-picked
+    # set, so near-duplicate memories don't crowd the slice. Relevance is the
+    # RRF-fused score; similarity is over title+concepts tokens.
+    pool = list(candidates)
+    sig = {id(c): _tokenize(f"{c.get('title') or ''} {c.get('concepts') or ''}") for c in pool}
+    selected: list[dict] = []
+    while pool and len(selected) < limit:
+        best = max(
+            pool,
+            key=lambda c: lam * c.get("score", 0.0)
+            - (1.0 - lam) * max((_jaccard(sig[id(c)], sig[id(s)]) for s in selected), default=0.0),
+        )
+        selected.append(best)
+        pool = [c for c in pool if c is not best]
+    return selected
+
+
+# ---------------------------------------------------------------------------
 # thinking_os_search
 # ---------------------------------------------------------------------------
 
@@ -310,11 +369,12 @@ def memory_search(
         try:
             obs_rows = conn.execute(
                 "SELECT o.id, o.title, o.memory_type, o.impact_score, o.created_at, "
-                "o.concepts, o.access_count, o.files_modified, rank AS fts_rank "
+                "o.concepts, o.access_count, o.files_modified, "
+                "bm25(observations_fts, 3.0, 1.0, 1.0) AS fts_rank "
                 "FROM observations_fts f "
                 "JOIN observations o ON o.id = f.rowid "
                 "WHERE observations_fts MATCH ? "
-                "ORDER BY rank LIMIT ?",
+                "ORDER BY fts_rank LIMIT ?",
                 (query, limit * 3),
             ).fetchall()
         except sqlite3.OperationalError:
@@ -339,9 +399,11 @@ def memory_search(
         row_dict = dict(row)
         if memory_type and row_dict.get("memory_type") != memory_type:
             continue
-        # Normalize FTS5 rank (negative, closer to 0 = better)
+        # FTS5 bm25 is negative; a stronger match is more negative (larger abs).
+        # Map to a [0,1) relevance that increases with match strength so the
+        # title-weighted column boost actually lifts title hits above body hits.
         raw_rank = abs(row_dict.get("fts_rank", 0) or 0)
-        relevance = 1.0 / (1.0 + raw_rank) if use_fts5 else 0.5
+        relevance = (1.0 - 1.0 / (1.0 + raw_rank)) if use_fts5 else 0.5
         days = _days_since(row_dict.get("created_at"))
         score = _compute_score(
             relevance=relevance,
@@ -358,6 +420,7 @@ def memory_search(
                 "impact_score": row_dict.get("impact_score", 0.5),
                 "memory_type": row_dict.get("memory_type", "discovery"),
                 "source_table": "observations",
+                "concepts": row_dict.get("concepts"),
                 "score": score,
                 "semantic_score": 0.0,
                 "re_verify_recommended": _re_verify_recommended(
@@ -399,6 +462,7 @@ def memory_search(
                 "impact_score": row_dict.get("impact_score", 0.5),
                 "memory_type": row_dict.get("memory_type", "pattern"),
                 "source_table": "learned_patterns",
+                "concepts": row_dict.get("concepts"),
                 "score": score,
                 "semantic_score": 0.0,
             }
@@ -413,31 +477,25 @@ def memory_search(
         overfetch=limit * 3,
     )
 
-    # --- Sort by blended score, apply diversity filter ---
-    for c in candidates:
-        c["score"] = _blend_score(c.get("score", 0.0), c.get("semantic_score", 0.0))
+    # --- RRF-fuse lexical+semantic rankings, hard-dedup titles, MMR-diversify ---
+    _rrf_fuse(candidates)
     candidates.sort(key=lambda x: x["score"], reverse=True)
-    results: list[dict] = []
-    seen_keys: set[tuple] = set()
-    seen_titles: set[str] = set()
 
+    # Exact-title hard dedup first: auto-capture rows ("Modified <path>") recur
+    # once per edit, so an identical title can otherwise crowd out distinct hits.
+    # Candidates are score-sorted, so the first occurrence is the best.
+    deduped: list[dict] = []
+    seen_titles: set[str] = set()
     for c in candidates:
-        # Exact-title dedup: auto-capture rows ("Modified <path>") recur once
-        # per edit, so an identical title can appear many times and crowd out
-        # distinct hits. Candidates are already score-sorted, so the first
-        # occurrence is the best — skip later duplicates of the same title.
         title_key = (c.get("title") or "").strip().lower()
         if title_key and title_key in seen_titles:
             continue
-        key = (c["memory_type"], c.get("domain", ""))
-        if key in seen_keys and len(results) >= 2:
-            continue  # diversity: allow first 2, then skip duplicates
-        results.append(c)
-        seen_keys.add(key)
         if title_key:
             seen_titles.add(title_key)
-        if len(results) >= limit:
-            break
+        deduped.append(c)
+
+    # MMR then drops near-duplicate (non-identical) content from the slice.
+    results = _mmr_select(deduped, limit)
 
     # --- Graph expansion: find related nodes from concept_graph ---
     if results and len(results) < limit:
@@ -482,9 +540,10 @@ def memory_search(
             _boost_access(conn, r["source_table"], r["id"])
     conn.commit()
 
-    # --- Remove internal score from output ---
+    # --- Remove internal-only fields from output ---
     for r in results:
         r.pop("score", None)
+        r.pop("concepts", None)
 
     source_label = "fts5" if use_fts5 else "like"
     if semantic_used:
