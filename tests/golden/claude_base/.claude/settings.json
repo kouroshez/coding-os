@@ -48,6 +48,12 @@
           },
           {
             "type": "command",
+            "command": ".claude/hooks/warn-diff-size.sh",
+            "statusMessage": "📏 Checking staged diff size...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/search-enforce-inventory.sh",
             "statusMessage": "🔎 Running search inventory before bulk replace...",
             "timeout": 30

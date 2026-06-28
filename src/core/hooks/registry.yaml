@@ -421,6 +421,17 @@ hooks:
         matcher: Write|Edit|MultiEdit
         status_message: "🛡️ Checking for destructive deletion of load-bearing content..."
 
+  - id: warn-diff-size
+    script: warn-diff-size.sh
+    description: PreToolUse Bash — when a `git commit` is about to run, warn (never block) if the staged diff exceeds COS_DIFF_SIZE_THRESHOLD lines (default 400), nudging diff-minimal commits. Fail-open.
+    category: enforcement
+    phase: "0"
+    timeout: 10
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "📏 Checking staged diff size..."
+
   - id: enforce-rename-plan
     script: enforce-rename-plan.sh
     description: Warn (strict-mode = block) when an Edit performs an identifier-rename-shaped string swap without a prior cos_graph_rename_plan marker in this session.
