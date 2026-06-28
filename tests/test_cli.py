@@ -3806,6 +3806,82 @@ class TestCosPr:
         assert len(merge_calls) == 1, merge_calls
         assert merge_calls[0][:5] == ["gh", "pr", "merge", "--auto", "--squash"]
 
+    def test_auto_merge_loop_end_to_end(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-616: prove the FULL auto_merge lifecycle in CI without GitHub minutes —
+        # open → submit (push + create + arm) → status pending → passing → merged →
+        # cleanup. A stateful mock-gh advances the PR each rollup poll the way GitHub
+        # would: checks go green, the armed auto-merge then lands it, the branch is gone.
+        import cli.pr_commands as prc
+
+        self._add_bare_remote(repo, tmp_path)
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
+        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+
+        st = {"created": False, "armed": False, "merged": False, "polls": 0}
+        real_run = prc._run
+
+        def view(payload: object) -> subprocess.CompletedProcess:
+            return subprocess.CompletedProcess([], 0, stdout=json.dumps(payload), stderr="")
+
+        def fake_run(args, **kw):
+            head = args[:3]
+            if head == ["gh", "pr", "create"]:
+                st["created"] = True
+                return subprocess.CompletedProcess(args, 0, stdout="https://gh/pr/1\n", stderr="")
+            if head == ["gh", "pr", "merge"]:
+                st["armed"] = True
+                return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
+            if head == ["gh", "api", "graphql"]:  # no merge queue in this scenario
+                return view({"data": {"repository": {"pullRequest": {"mergeQueueEntry": None}}}})
+            if head == ["gh", "pr", "view"]:
+                fields = args[args.index("--json") + 1] if "--json" in args else ""
+                if "statusCheckRollup" not in fields:  # _pr_review_required probe (submit)
+                    return view({"reviewDecision": None})
+                st["polls"] += 1
+                if st["merged"]:
+                    return view({"number": 1, "state": "MERGED", "mergedAt": "2026-01-01T00:00:00Z"})
+                if st["polls"] == 1:  # checks still running
+                    return view({"number": 1, "state": "OPEN",
+                                 "statusCheckRollup": [{"status": "IN_PROGRESS"}]})
+                # checks green; an armed auto-merge fires right after this poll
+                pr = {"number": 1, "state": "OPEN",
+                      "statusCheckRollup": [{"status": "COMPLETED", "conclusion": "SUCCESS"}]}
+                if st["armed"]:
+                    pr["autoMergeRequest"] = {"enabledAt": "x"}
+                    st["merged"] = True
+                return view(pr)
+            if head == ["gh", "pr", "list"]:  # _pr_state for the cleanup merge-gate
+                if st["merged"]:
+                    return view([{"state": "MERGED", "mergedAt": "2026-01-01T00:00:00Z"}])
+                return view([{"state": "OPEN"}] if st["created"] else [])
+            return real_run(args, **kw)
+
+        monkeypatch.setattr(prc, "_run", fake_run)
+
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        sub = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
+        assert sub.exit_code == 0, sub.output
+        assert "auto_merge_armed: True" in sub.output
+
+        branch = "agents/adhoc/ses-test-abc"
+        rollups = []
+        for _ in range(3):  # one status poll per agent turn (the SKILL's loop)
+            r = runner.invoke(cli, ["pr", "status", "--branch", branch, "--repo", str(repo), "--json"])
+            assert r.exit_code == 0, r.output
+            rollups.append(json.loads(r.output)["ci_rollup"])
+        assert rollups == ["pending", "passing", "merged"], rollups
+
+        clean = runner.invoke(cli, ["pr", "cleanup", "--adhoc", "--repo", str(repo)])
+        assert clean.exit_code == 0, clean.output
+        assert "agents/adhoc/ses-test-abc" not in self._branches(repo)
+        assert "adhoc-ses-test-abc" not in self._worktrees(repo)
+
     def test_submit_draft_autonomy_never_arms_even_with_required_check(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

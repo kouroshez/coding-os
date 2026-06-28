@@ -185,6 +185,23 @@ The probe also **drives the autonomy dropdown data-driven (TASK-540)**: rungs th
 - **Agent token:** `Contents: read/write`, `Pull requests: read/write`, `Metadata: read`. No access to protected branches.
 - CI fires on `pull_request: [<integration>]` + `merge_group`; the repo's own validate command is the single source of truth.
 
+## 12. Live auto-merge validation (gated — run once when CI minutes are restored)
+
+The full `green → arm → merge → cleanup` loop is proven in CI **without GitHub minutes** by a stateful mock-gh integration test (`tests/test_cli.py::TestCosPr::test_auto_merge_loop_end_to_end`): a fake `gh` advances the PR through `pending → passing → merged` exactly as GitHub would, and the test asserts the rollup sequence and that `cos pr cleanup` removes the worktree+branch. The mock is the *daily* gate; it cannot catch a drift in GitHub's real API surface.
+
+So validate against a real forge **once** per gh/API-relevant change, on a throwaway protected test repo, when the billing gate is open (Linux runners / public repo / self-hosted — see [TASK-619 CI economics]):
+
+- [ ] Test repo configured per §11 (auto-merge ✅, auto-delete head ✅, ruleset with a required check + merge queue, agent token scoped).
+- [ ] `COS_GIT_AUTONOMY=auto_merge`; `cos pr preflight` reports `pr_ok` + `required_check`.
+- [ ] `cos pr open --adhoc` → worktree + `agents/adhoc/<sid>` branch created.
+- [ ] commit a trivial change → `cos pr submit --adhoc` → `auto_merge_armed: True`, `merge_status: auto-merge-armed`.
+- [ ] `cos pr status --branch <b> --json` returns `queued` (merge queue) or `pending` while the required check runs — driver does NOT re-submit.
+- [ ] check goes green → GitHub auto-merges → `cos pr status` returns `merged`.
+- [ ] head branch auto-deleted on the remote; `cos pr cleanup --adhoc` (or the reaper) removes the local worktree + branch; `cos pr status` shows no orphan.
+- [ ] one ejection case: stack a PR that breaks combined-with-main → confirm it surfaces as `red` (ejected) while a clean follower still merges (TASK-613).
+
+Record the run (repo, date, gh version, outcome) in the task work log; re-run only when `gh`/API fields the rollup reads change.
+
 ## See also
 
 - [ADR-0013](../architecture/adr/0013-pr-mode-multi-agent-git-workflow-consumer-only.md) — why consumer-only, why the reaper makes Rule 21 and pr-mode compatible.
