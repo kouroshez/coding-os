@@ -10,7 +10,7 @@ Read next: any of the entries below.
 
 <!-- BEGIN auto-index -->
 
-### Playbook (9)
+### Playbook (10)
 
 - [Playbook — Security Review (Per-Change Overlay)](security-review.md) — `ssot:true` · updated 2026-05-08
 - [Playbook — Authoring or Modifying an Adapter](adapter-authoring.md) — `ssot:true` · updated 2026-05-08
@@ -21,6 +21,7 @@ Read next: any of the entries below.
 - [Playbook — Authoring a Stack Template](template-authoring.md) — `ssot:true` · updated 2026-06-19
 - [Playbook — PR-Mode Multi-Agent Git Workflow (Consumer-Only)](pr-workflow.md) — `ssot:true` · updated 2026-06-22
 - [Playbook — Multi-Agent Git: Layered Defense & Real-World Use Cases](multi-agent-git-use-cases.md) — `ssot:true` · updated 2026-06-26
+- [Playbook — PR-Mode CI Economics (consumer cost guidance + reference workflow)](pr-mode-ci-economics.md) — `ssot:true` · updated 2026-06-27
 
 ### Reference (1)
 
