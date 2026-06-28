@@ -68,9 +68,23 @@ class TestImports:
         assert any(e.target_uid == "code:module:frontend/src/polyfill.ts" for e in edges)
 
     def test_type_only_import(self):
+        # type-only imports are compile-time only: no runtime `imports` edge,
+        # a distinct lower-confidence `imports_type` edge instead.
         r = _extract("import type { Props } from './types';")
-        edges = [e for e in r.edges if e.edge_type == "imports"]
-        assert edges
+        assert [e for e in r.edges if e.edge_type == "imports"] == []
+        type_edges = [e for e in r.edges if e.edge_type == "imports_type"]
+        assert len(type_edges) == 1
+        assert type_edges[0].confidence == 0.5
+
+    def test_inline_type_only_import(self):
+        r = _extract("import { type Props } from './types';")
+        assert [e for e in r.edges if e.edge_type == "imports"] == []
+        assert any(e.edge_type == "imports_type" for e in r.edges)
+
+    def test_mixed_inline_type_stays_runtime_import(self):
+        # a value name (useState) means the module IS a runtime dependency
+        r = _extract("import { type Props, useState } from './x';")
+        assert any(e.edge_type == "imports" for e in r.edges)
 
     def test_export_from_emits_re_exports(self):
         r = _extract("export { foo } from './bar';")

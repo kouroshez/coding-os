@@ -691,6 +691,36 @@ class TestCycles:
         finally:
             graph._BACKEND_SINGLETON = None
 
+    def test_type_only_import_loop_is_not_a_cycle(self, migrated_conn, monkeypatch):
+        # Type-only imports carry edge_type='imports_type', which the import
+        # cycle scan excludes — a loop formed only by them is no runtime cycle.
+        nodes = [
+            GraphNode(uid="code:module:a", kind="code:module", label="a", file_path="a.py"),
+            GraphNode(uid="code:module:b", kind="code:module", label="b", file_path="b.py"),
+        ]
+        edges = [
+            GraphEdge(
+                source_uid="code:module:a",
+                target_uid="code:module:b",
+                edge_type="imports_type",
+                extractor="test",
+                confidence=0.5,
+            ),
+            GraphEdge(
+                source_uid="code:module:b",
+                target_uid="code:module:a",
+                edge_type="imports_type",
+                extractor="test",
+                confidence=0.5,
+            ),
+        ]
+        _seed(migrated_conn, monkeypatch, nodes, edges)
+        try:
+            data = _ok(graph.cos_graph_cycles(scope="imports"))
+            assert data["total_count"] == 0
+        finally:
+            graph._BACKEND_SINGLETON = None
+
     def test_acyclic_call_graph_returns_empty(self, seeded):
         data = _ok(graph.cos_graph_cycles(scope="calls"))
         assert data["total_count"] == 0  # foo->bar->baz is a DAG

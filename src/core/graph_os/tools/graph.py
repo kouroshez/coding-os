@@ -2606,6 +2606,7 @@ _KNOWN_EDGE_TYPES: frozenset[str] = frozenset(
         "dispatches",
         "awaits",
         "imports",
+        "imports_type",
         "re_exports",
         "inherits_from",
         "implements",

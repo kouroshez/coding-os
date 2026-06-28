@@ -64,7 +64,7 @@ _IMPORT_RE = re.compile(
     r"""^\s*
     import
     \s+
-    (?:type\s+)?                                  # `import type`
+    (?P<type_only>type\s+)?                       # `import type` (captured to flag type-only)
     (?P<clause>
         \{[^{}]*\}                                 # { a, b as c }
       | [A-Za-z_$][\w$]*                           # default import
@@ -1055,22 +1055,30 @@ def _extract_imports(
         line = content[: match.start()].count("\n") + 1
         target_mod_uid = _resolve_module_uid(path, module)
 
-        for name in _parse_clause(clause):
+        names = _parse_clause(clause)
+        # Type-only imports (`import type {...}` or an all-`type` inline clause)
+        # are erased at compile time, so they are NOT a runtime module dependency.
+        value_names = [n for n in names if not n.startswith("type ")]
+        type_only = bool(match.group("type_only")) or (bool(names) and not value_names)
+
+        for name in names:
+            local = name[5:].strip() if name.startswith("type ") else name
             # E3: drop {line} from UID so import-shuffle doesn't spawn
             # duplicates. Line still carried in start_line.
-            imp_uid = f"code:import:{_normalize_path(path)}::{name}"
+            imp_uid = f"code:import:{_normalize_path(path)}::{local}"
             result.nodes.append(
                 GraphNode(
                     uid=imp_uid,
                     kind="code:import",
-                    label=f"import {name}",
+                    label=f"import {local}",
                     file_path=path,
                     start_line=line,
                     lang="ts",
                     metadata={
                         "source_module": module,
-                        "imported": name,
+                        "imported": local,
                         "extractor": eid,
+                        "type_only": type_only,
                     },
                 )
             )
@@ -1083,17 +1091,25 @@ def _extract_imports(
                     confidence=1.0,
                 )
             )
-            imported_names[name] = module
+            imported_names[local] = module
 
+        # Type-only imports get a distinct, lower-confidence `imports_type` edge
+        # that cos_graph_cycles excludes, instead of a phantom runtime `imports`
+        # edge; value imports are unchanged (edge_type='imports', confidence 0.9).
         result.edges.append(
             GraphEdge(
                 source_uid=module_uid_,
                 target_uid=target_mod_uid,
-                edge_type="imports",
+                edge_type="imports_type" if type_only else "imports",
                 extractor=eid,
-                confidence=0.9,
+                confidence=0.5 if type_only else 0.9,
                 source_span=f"{path}:{line}",
-                evidence=(EvidenceSignal(eid_signal_named, 0.9),),
+                evidence=(
+                    EvidenceSignal(
+                        "ts_type_only_import" if type_only else eid_signal_named,
+                        0.5 if type_only else 0.9,
+                    ),
+                ),
             )
         )
 
