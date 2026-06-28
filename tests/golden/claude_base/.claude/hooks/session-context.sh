@@ -598,6 +598,15 @@ except OSError:
   [[ -n "$ROLES_LEAD" ]] && PARTS="${PARTS} roles=${ROLES_LEAD}"
   [[ -n "$BLK_RECENT" ]] && PARTS="${PARTS} blocks=${BLK_RECENT}"
 
+  # verify-state: the most-recently-recorded matrix suite + result from the
+  # verify ledger, so the agent sees whether the close-gate is already
+  # satisfied without re-running. Agent-facing pulse only; one short field;
+  # fail-open (a missing/garbled ledger just omits it).
+  if [[ -f "${COS_STATE_DIR}/.last-verify.json" ]] && command -v jq >/dev/null 2>&1; then
+    _VERIFY=$(jq -r 'to_entries|map(select(.value.ts))|sort_by(.value.ts)|last|"\(.key)=\(.value.status)"' "${COS_STATE_DIR}/.last-verify.json" 2>/dev/null || true)
+    [[ -n "$_VERIFY" && "$_VERIFY" != "null=null" ]] && PARTS="${PARTS} verify=${_VERIFY}"
+  fi
+
   # Aggregated PostToolUse activity since the previous prompt — Claude Code
   # does not render PostToolUse stdout, so each PostToolUse hook calls
   # `cos_record_activity` (cos-env.sh) which appends to .turn-activity.log.

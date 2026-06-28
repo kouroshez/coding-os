@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [ready]
-status: icebox
+status: in_progress
 priority: P3
 appetite: 1d
 created: 2026-06-27
-started: null
+started: 2026-06-27
 completed: null
-agent_session: null
+agent_session: ses-claude-20260627-161919-30e5
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-631: Surface verify-state in the pulse/banner when a task is in testing (low priority)
 
 **Outcome (one sentence):** session-context.sh surfaces the recorded matrix-suite verify-state (from .last-verify.json) in the agent pulse, but ONLY when the current task is in `testing` status, so the agent sees whether the close-gate suite is fresh without paying banner token cost on every turn.
@@ -29,3 +28,5 @@ references: []
 - **Given** the current task is in testing AND .last-verify.json has a recent PASS **When** the pulse renders **Then** it shows verify=<suite>. - **Given** the task is not in testing **When** the pulse renders **Then** no verify field (no token cost). - **Given** no .last-verify.json **Then** the field is omitted gracefully.
 
 ## Work Log
+- 2026-06-28 [claude]: Edit session-context.sh
+- 2026-06-28 [claude]: Implemented in the agent-facing pulse (PARTS, not the user banner): session-context.sh now reads .last-verify.json…
