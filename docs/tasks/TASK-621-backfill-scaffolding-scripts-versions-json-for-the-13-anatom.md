@@ -5,18 +5,17 @@ swimlane: templates
 kind: feature
 epic: stack-factory-v2
 labels: [ready]
-status: icebox
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-27
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260626-165558-a565
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-621: backfill scaffolding scripts + versions.json for the 13 anatomy-completed stack skills
 
 **Outcome (one sentence):** The 13 stack skills that now ship references/anatomy.md (TASK-599) also get a scaffolding generator script + a versions.json with ACCURATE current pins, reaching full go-fiber parity (the last two completeness-bar artifacts).

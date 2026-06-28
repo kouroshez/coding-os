@@ -4,19 +4,18 @@ title: "bootable scaffold: go + go-fiber (go.mod + cmd/api/main.go + test + veri
 swimlane: templates
 kind: feature
 epic: stack-factory-v2
-labels: []
-status: icebox
+labels: [ready]
+status: complete
 priority: P2
 appetite: 2d
 created: 2026-06-27
-started: null
-completed: null
-agent_session: null
+started: 2026-06-27
+completed: 2026-06-27
+agent_session: ses-claude-20260626-165558-a565
 depends_on: [TASK-603]
 blocked_by: []
 references: []
 ---
-
 # TASK-606: bootable scaffold: go + go-fiber (go.mod + cmd/api/main.go + test + verify block)
 
 **Outcome (one sentence):** go and go-fiber become runnable seeds (today scaffold/src/backend = .gitkeep only — verified P0, `go test`/`go vet` fail). Each gets go.mod (go-fiber: fiber v3 + validator) + cmd/api/main.go with graceful shutdown + a *_test.go pulling the T5 (TASK-603) .golangci.yml, plus the missing `verify:` block.
@@ -33,3 +32,17 @@ references: []
 **Then** `uv run pytest tests/test_template_scaffold.py -q` is green.
 
 ## Work Log
+- 2026-06-27 [claude]: Edit template-authoring.md
+- 2026-06-27 [claude]: Edit go.mod
+- 2026-06-27 [claude]: Edit main.go
+- 2026-06-27 [claude]: Edit main_test.go
+- 2026-06-27 [claude]: Edit go.mod
+- 2026-06-27 [claude]: Edit main.go
+- 2026-06-27 [claude]: Edit main_test.go
+- 2026-06-27 [claude]: Edit stack.yaml
+- 2026-06-27 [claude]: Edit stack.yaml
+- 2026-06-27 [claude]: Edit test_template_scaffold.py
+- 2026-06-27 [claude]: Edit test_template_scaffold.py
+- 2026-06-27 [claude]: go + go-fiber bootable seeds under src/backend/cmd/api/ (go.mod, main.go health endpoint, main_test.go) + a verify:…
+- 2026-06-27 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-27 [claude]: Status transitioned to complete via cos task-done.

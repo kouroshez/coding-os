@@ -4,19 +4,18 @@ title: "bootable scaffold: fastapi + django + python (manifest + entrypoint + sa
 swimlane: templates
 kind: feature
 epic: stack-factory-v2
-labels: []
-status: icebox
+labels: [ready]
+status: complete
 priority: P2
 appetite: 2d
 created: 2026-06-27
-started: null
-completed: null
-agent_session: null
+started: 2026-06-27
+completed: 2026-06-27
+agent_session: ses-claude-20260626-165558-a565
 depends_on: [TASK-602]
 blocked_by: []
 references: []
 ---
-
 # TASK-605: bootable scaffold: fastapi + django + python (manifest + entrypoint + sample test + verify block)
 
 **Outcome (one sentence):** The three python-family stacks become runnable seeds (today .gitkeep/docs-only — verified P0). Each gets a pyproject.toml + entrypoint skeleton + a sample test pulling the T4 (TASK-602) ruff/pytest config, and django/fastapi gain the `verify:` per-glob block they currently lack.
@@ -33,3 +32,22 @@ references: []
 **Then** `uv run pytest tests/test_template_scaffold.py -q` is green.
 
 ## Work Log
+- 2026-06-27 [claude]: Edit template-authoring.md
+- 2026-06-27 [claude]: Edit pyproject.toml
+- 2026-06-27 [claude]: Edit __init__.py
+- 2026-06-27 [claude]: Edit main.py
+- 2026-06-27 [claude]: Edit test_health.py
+- 2026-06-27 [claude]: Edit .env.example
+- 2026-06-27 [claude]: Edit pyproject.toml
+- 2026-06-27 [claude]: Edit manage.py
+- 2026-06-27 [claude]: Edit __init__.py
+- 2026-06-27 [claude]: Edit settings.py
+- 2026-06-27 [claude]: Edit urls.py
+- 2026-06-27 [claude]: Edit wsgi.py
+- 2026-06-27 [claude]: Edit test_health.py
+- 2026-06-27 [claude]: Edit .env.example
+- 2026-06-27 [claude]: Edit stack.yaml
+- 2026-06-27 [claude]: Edit stack.yaml
+- 2026-06-27 [claude]: Edit test_template_scaffold.py
+- 2026-06-27 [claude]: Bootable seeds for fastapi + django shipped under src/backend/ (pyproject deps+ruff+pytest, app/main.py|config/…
+- 2026-06-27 [claude]: Status transitioned to complete via cos task-done.

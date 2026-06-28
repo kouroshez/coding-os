@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: git-foundation-hardening
 labels: [git, pr-mode, auto-mode, ready]
-status: icebox
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-26
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260625-235014-c028
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-588: Add `auto` git mode: preflight-driven trunk-vs-pr selection (protected remote → pr, local → trunk)
 
 **Outcome (one sentence):** Remove the manual per-project trunk-vs-pr choice while keeping the safe trunk floor: a consumer sets git mode to `auto`, and the system resolves the effective mode from the existing `_preflight` capability probe — pr (worktree→PR) when a usable remote+gh exist, trunk (direct commit) when local-only. Reuses _preflight; adds no new probing subsystem. This is the 'do the right thing' default the layered-defense analysis identified as the one real product gap.

@@ -4,19 +4,18 @@ title: "bootable scaffold: nextjs + react-native (package.json + entrypoint + sa
 swimlane: templates
 kind: feature
 epic: stack-factory-v2
-labels: []
-status: icebox
+labels: [ready]
+status: complete
 priority: P2
 appetite: 2d
 created: 2026-06-27
-started: null
-completed: null
-agent_session: null
+started: 2026-06-27
+completed: 2026-06-27
+agent_session: ses-claude-20260626-165558-a565
 depends_on: [TASK-602]
 blocked_by: []
 references: []
 ---
-
 # TASK-607: bootable scaffold: nextjs + react-native (package.json + entrypoint + sample test + verify block)
 
 **Outcome (one sentence):** nextjs and react-native become runnable seeds (today docs-only/.gitkeep — verified P0, no package.json so npm/next/jest all fail). Each gets package.json + framework config + entrypoint + a sample test pulling the T4 (TASK-602) eslint/test config, plus dev/e2e make targets and the missing `verify:` block.
@@ -33,3 +32,29 @@ references: []
 **Then** `uv run pytest tests/test_template_scaffold.py -q` is green.
 
 ## Work Log
+- 2026-06-27 [claude]: Edit package.json
+- 2026-06-27 [claude]: Edit eslint.config.js
+- 2026-06-27 [claude]: Edit tsconfig.json
+- 2026-06-27 [claude]: Edit vitest.config.ts
+- 2026-06-27 [claude]: Edit greeting.test.ts
+- 2026-06-27 [claude]: Edit layout.tsx
+- 2026-06-27 [claude]: Edit page.tsx
+- 2026-06-27 [claude]: Edit greeting.ts
+- 2026-06-27 [claude]: Edit package.json
+- 2026-06-27 [claude]: Edit eslint.config.js
+- 2026-06-27 [claude]: Edit tsconfig.json
+- 2026-06-27 [claude]: Edit vitest.config.ts
+- 2026-06-27 [claude]: Edit App.tsx
+- 2026-06-27 [claude]: Edit greeting.ts
+- 2026-06-27 [claude]: Edit greeting.test.ts
+- 2026-06-27 [claude]: Edit stack.yaml
+- 2026-06-27 [claude]: Edit stack.yaml
+- 2026-06-27 [claude]: Edit package.json
+- 2026-06-27 [claude]: Edit package.json
+- 2026-06-27 [claude]: Edit template-authoring.md
+- 2026-06-27 [claude]: Edit test_template_scaffold.py
+- 2026-06-27 [claude]: Edit test_template_scaffold.py
+- 2026-06-27 [claude]: Edit test_template_scaffold.py
+- 2026-06-27 [claude]: nextjs + react-native bootable seeds, self-contained per stack-root (mirrors 605/606): nextjs src/frontend/ =…
+- 2026-06-27 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-27 [claude]: Status transitioned to complete via cos task-done.

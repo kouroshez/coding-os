@@ -29,8 +29,8 @@ Read next: any of the entries below.
 
 ### Adr (2)
 
-- [ADR: Role dispatch stays opt-in; the role chain is single-agent guidance](adr-role-dispatch-deferral.md) — `ssot:true` · updated 2026-06-05
 - [ADR — Task ID Collision Resistance for OSS Multi-Contributor Flow](adr-task-id-collision-resistance.md) — `ssot:true` · updated 2026-06-09
+- [ADR: Role dispatch stays opt-in; the role chain is single-agent guidance](adr-role-dispatch-deferral.md) — `ssot:true` · updated 2026-06-28
 
 ### Reference (3)
 

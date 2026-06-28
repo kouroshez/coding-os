@@ -5,7 +5,7 @@ swimlane: infra
 kind: spike
 epic: null
 labels: [graph_os, audit, exhaustive, round-3, stress-test]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-05-26
