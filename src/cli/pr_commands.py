@@ -893,15 +893,14 @@ def _pr_state(repo: str, branch: str) -> str:
 
 
 def _rollup_state(pr: dict) -> str:
-    # merged|red|pending|review-required|passing|passing-unarmed|closed|none — one CI
-    # signal distilled from gh's statusCheckRollup for the autonomous driver loop.
+    # merged|red|queued|pending|review-required|passing|passing-unarmed|closed|none — one
+    # CI signal distilled from gh's statusCheckRollup (+ a GraphQL mergeQueueEntry probe
+    # injected by _pr_ci_rollup) for the autonomous driver loop.
     if pr.get("mergedAt") or str(pr.get("state", "")).upper() == "MERGED":
         return "merged"
     if str(pr.get("state", "")).upper() == "CLOSED":
         return "closed"
     checks = pr.get("statusCheckRollup") or []
-    if not checks:
-        return "pending"
     bad = {"FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"}
     waiting = {"IN_PROGRESS", "QUEUED", "PENDING", "WAITING", "REQUESTED", "EXPECTED"}
 
@@ -910,6 +909,18 @@ def _rollup_state(pr: dict) -> str:
 
     if any(bad & fields(c) for c in checks):
         return "red"
+    # Merge-queue membership (GraphQL mergeQueueEntry; gh pr view --json cannot supply it,
+    # so _pr_ci_rollup injects it). A queued PR's merge_group checks read as `waiting`
+    # below, so this MUST precede the waiting/no-checks arms — the driver waits on the
+    # queue, never re-submits. UNMERGEABLE = the queue will eject it → red, so only this
+    # PR is healed while followers keep merging. Absent entry → byte-unchanged (no queue).
+    mq_state = str((pr.get("mergeQueueEntry") or {}).get("state") or "").upper()
+    if mq_state == "UNMERGEABLE":
+        return "red"
+    if mq_state:  # QUEUED | AWAITING_CHECKS | MERGEABLE | LOCKED — in the queue, just wait
+        return "queued"
+    if not checks:
+        return "pending"
     if any(waiting & fields(c) for c in checks):
         return "pending"
     # Green checks — but a required review (branch protection / ruleset / CODEOWNERS)
@@ -931,7 +942,7 @@ def _pr_ci_rollup(repo: str, branch: str) -> str:
         return "unknown"
     out = _run(
         ["gh", "pr", "view", branch, "--json",
-         "state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest,reviewDecision"],
+         "number,state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest,reviewDecision"],
         cwd=repo,
     )
     if out.returncode != 0:
@@ -940,7 +951,43 @@ def _pr_ci_rollup(repo: str, branch: str) -> str:
         pr = json.loads(out.stdout or "{}")
     except json.JSONDecodeError:
         return "unknown"
-    return _rollup_state(pr) if pr else "none"
+    if not pr:
+        return "none"
+    state = _rollup_state(pr)
+    # A PR only enters the merge queue once green/running, so probe mergeQueueEntry only
+    # for the non-final verdicts — a merged/closed/red/review-required result is already
+    # authoritative, and skipping the probe there means a repo with NO merge queue makes
+    # zero extra calls for them (byte-unchanged). _merge_queue_entry fails open to {}.
+    if state in {"pending", "passing", "passing-unarmed"}:
+        entry = _merge_queue_entry(repo, pr.get("number"))
+        if entry:
+            pr["mergeQueueEntry"] = entry
+            return _rollup_state(pr)
+    return state
+
+
+def _merge_queue_entry(repo: str, number: int | None) -> dict:
+    # gh pr view --json has no mergeQueueEntry field (gh 2.95), so read it via GraphQL —
+    # gh resolves {owner}/{repo} from the repo's remote. Returns {} (not queued / no queue
+    # configured / gh error) so _rollup_state stays byte-unchanged where no queue exists.
+    if not number or not _gh_ready():
+        return {}
+    out = _run(
+        ["gh", "api", "graphql", "-F", "owner={owner}", "-F", "name={repo}",
+         "-F", f"number={int(number)}", "-f",
+         "query=query($owner:String!,$name:String!,$number:Int!){"
+         "repository(owner:$owner,name:$name){pullRequest(number:$number){"
+         "mergeQueueEntry{state position}}}}"],
+        cwd=repo,
+    )
+    if out.returncode != 0:
+        return {}
+    try:
+        data = json.loads(out.stdout or "{}")
+    except json.JSONDecodeError:
+        return {}
+    pull = ((data.get("data") or {}).get("repository") or {}).get("pullRequest") or {}
+    return pull.get("mergeQueueEntry") or {}
 
 
 def _pr_review_required(wt: Path, branch: str) -> bool:

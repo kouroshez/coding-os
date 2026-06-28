@@ -17,7 +17,7 @@ You are driving the **pr-mode autonomous loop** for a consumer repo (`COS_GIT_WO
 ## The one signal
 
 ```bash
-cos pr status --branch "$BRANCH" --json    # → {"ci_rollup": "merged|red|pending|passing|passing-unarmed|closed|none"}
+cos pr status --branch "$BRANCH" --json    # → {"ci_rollup": "merged|red|queued|pending|passing|passing-unarmed|closed|none"}
 ```
 
 `ci_rollup` collapses `gh`'s `statusCheckRollup` + PR state + whether auto-merge is actually armed into one value. Branch on it — nothing else; the STOP decision needs no memory of the prior `cos pr submit`.
@@ -31,12 +31,13 @@ cos pr status --branch "$BRANCH" --json    # → {"ci_rollup": "merged|red|pendi
 | `passing` | Green AND auto-merge is armed — it will land itself. Re-poll next turn; do nothing else. |
 | `passing-unarmed` | Green but nothing will auto-land it (autonomy=draft, no required check, or a draft PR). **STOP** — needs a human merge (below). |
 | `pending` | Checks still running. Re-poll next turn. |
+| `queued` | In the GitHub merge queue — the queue will land it (or eject it) on its own. Re-poll next turn; do **not** re-submit or re-arm. An ejected PR surfaces as `red` (only that PR is healed; followers keep merging). |
 | `none` | No PR yet → `cos pr submit` (or `cos pr open` if there's no worktree). |
 | `closed` | Closed unmerged (human/abandoned). Stop and surface to the user; do not auto-reopen. |
 
 **`passing-unarmed` → STOP, don't spin.** The signal itself says nothing will land this PR on its own — you do NOT need to recall the prior `cos pr submit`, so this holds across `/clear`, `/compact`, and a reaper-recovered fresh session. Do NOT re-poll — at autonomy=draft that would loop forever. Stop and tell the user: *"PR #N is green and needs a human merge (auto-merge isn't armed — autonomy=draft, or no required status check on the integration branch) — merge it, or set autonomy_level=auto_merge with a required check in Hub Config→Git."*
 
-`passing` / `pending` mean **yield the turn and check again later**, not sleep-loop. Hooks and the turn loop drive this, not a daemon (Rule 21).
+`passing` / `pending` / `queued` mean **yield the turn and check again later**, not sleep-loop. Hooks and the turn loop drive this, not a daemon (Rule 21).
 
 ## Heal — the red branch
 

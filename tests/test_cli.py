@@ -4094,6 +4094,83 @@ class TestCosPr:
         mixed = {"state": "OPEN", "statusCheckRollup": [{"status": "IN_PROGRESS"}, {"conclusion": "FAILURE"}]}
         assert prc._rollup_state(mixed) == "red"
 
+    def test_rollup_state_merge_queue(self) -> None:
+        # TASK-613: a PR in the GitHub merge queue reads as a DISTINCT `queued` (not
+        # pending) so the driver waits instead of re-submitting; an UNMERGEABLE entry
+        # (the queue will eject it) reads as red so only that PR is healed while
+        # followers keep merging. Signal = GraphQL mergeQueueEntry, injected by
+        # _pr_ci_rollup (gh pr view --json cannot supply it).
+        import cli.pr_commands as prc
+
+        green = [{"status": "COMPLETED", "conclusion": "SUCCESS"}]
+        running = [{"status": "IN_PROGRESS"}]
+        for st in ("QUEUED", "AWAITING_CHECKS", "MERGEABLE", "LOCKED"):
+            # queued wins over the waiting merge_group checks (which read as pending)…
+            pr = {"state": "OPEN", "statusCheckRollup": running, "mergeQueueEntry": {"state": st}}
+            assert prc._rollup_state(pr) == "queued", st
+            # …and over green-but-armed (in the queue, hasn't landed yet).
+            armed_q = {"state": "OPEN", "statusCheckRollup": green,
+                       "autoMergeRequest": {"enabledAt": "x"}, "mergeQueueEntry": {"state": st}}
+            assert prc._rollup_state(armed_q) == "queued", st
+        # ejected / will-be-ejected → red (heal only this PR).
+        ejected = {"state": "OPEN", "statusCheckRollup": green, "mergeQueueEntry": {"state": "UNMERGEABLE"}}
+        assert prc._rollup_state(ejected) == "red"
+        # a genuinely failing check still wins over a queue entry (defense in depth).
+        red_in_q = {"state": "OPEN", "statusCheckRollup": [{"conclusion": "FAILURE"}],
+                    "mergeQueueEntry": {"state": "AWAITING_CHECKS"}}
+        assert prc._rollup_state(red_in_q) == "red"
+        # back-compat: no entry (no merge queue) → byte-unchanged verdicts.
+        assert prc._rollup_state({"state": "OPEN", "statusCheckRollup": running}) == "pending"
+        assert prc._rollup_state({"state": "OPEN", "statusCheckRollup": green,
+                                  "autoMergeRequest": {"enabledAt": "x"}}) == "passing"
+        assert prc._rollup_state({"state": "OPEN", "statusCheckRollup": green,
+                                  "mergeQueueEntry": None}) == "passing-unarmed"
+
+    def test_pr_ci_rollup_merge_queue_probe(
+        self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-613: a pending/passing base verdict triggers the GraphQL mergeQueueEntry
+        # probe and upgrades to `queued`; a final verdict (red) skips the probe, so a
+        # repo with no merge queue makes zero extra calls (byte-unchanged).
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        real_run = prc._run
+        graphql = {"n": 0}
+
+        def fake_passing(args, **kw):
+            if args[:3] == ["gh", "pr", "view"]:
+                green = [{"status": "COMPLETED", "conclusion": "SUCCESS"}]
+                payload = json.dumps({"number": 7, "state": "OPEN", "statusCheckRollup": green,
+                                      "autoMergeRequest": {"enabledAt": "x"}})
+                return subprocess.CompletedProcess(args, 0, stdout=payload, stderr="")
+            if args[:3] == ["gh", "api", "graphql"]:
+                graphql["n"] += 1
+                payload = json.dumps(
+                    {"data": {"repository": {"pullRequest": {"mergeQueueEntry": {"state": "QUEUED"}}}}})
+                return subprocess.CompletedProcess(args, 0, stdout=payload, stderr="")
+            return real_run(args, **kw)
+
+        monkeypatch.setattr(prc, "_run", fake_passing)
+        assert prc._pr_ci_rollup(str(repo), "agents/x/1") == "queued"
+        assert graphql["n"] == 1  # probed because the base verdict was passing
+
+        graphql["n"] = 0
+
+        def fake_red(args, **kw):
+            if args[:3] == ["gh", "pr", "view"]:
+                payload = json.dumps({"number": 7, "state": "OPEN",
+                                      "statusCheckRollup": [{"conclusion": "FAILURE"}]})
+                return subprocess.CompletedProcess(args, 0, stdout=payload, stderr="")
+            if args[:3] == ["gh", "api", "graphql"]:
+                graphql["n"] += 1
+                return subprocess.CompletedProcess(args, 0, stdout="{}", stderr="")
+            return real_run(args, **kw)
+
+        monkeypatch.setattr(prc, "_run", fake_red)
+        assert prc._pr_ci_rollup(str(repo), "agents/x/1") == "red"
+        assert graphql["n"] == 0  # final verdict → no merge-queue probe
+
     def test_pr_status_branch_reports_ci_rollup(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
