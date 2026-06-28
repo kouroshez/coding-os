@@ -531,7 +531,11 @@ class ClaudeSDKDispatcher:
         # model decides to acknowledge before stopping. Even then the
         # post-stream handler treats a populated `structured_output`
         # as success regardless of subtype.
-        max_turns = 3 if output_format is not None else 1
+        max_turns = (
+            request.max_turns
+            if request.max_turns is not None
+            else (3 if output_format is not None else 1)
+        )
         opts_kwargs: dict[str, Any] = dict(
             system_prompt=system_prompt,
             max_turns=max_turns,

@@ -47,6 +47,10 @@ class DispatchRequest(BaseModel):
     # invariant: a mismatch logs a warning in get_dispatcher and dispatch
     # proceeds on the session adapter (dispatcher-contract.md rule 6).
     adapter: str | None = None
+    # Hop-cap on agentic turns for a single dispatch — defangs runaway recursive
+    # delegation. None = the adapter default (Claude: 3 with an output schema,
+    # else 1); an explicit value wins over that default.
+    max_turns: int | None = None
 
     @field_validator("formula_id")
     @classmethod

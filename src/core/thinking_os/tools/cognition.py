@@ -124,8 +124,20 @@ def _load_bundle(session_id: str, task_marker: str, persona_id: str) -> Any:
 
 
 def _save_bundle(session_id: str, bundle: Any) -> None:
+    import fcntl
+
     path = _bundle_path(session_id)
-    path.write_text(bundle.model_dump_json(indent=2))
+    payload = bundle.model_dump_json(indent=2)
+    # flock-serialize concurrent writers so a parallel run can't interleave a
+    # half-written bundle (the EvidenceBundle is the dispatch's durable record).
+    with path.open("a+") as fh:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        try:
+            fh.seek(0)
+            fh.truncate()
+            fh.write(payload)
+        finally:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
 
 
 # ---------------------------------------------------------------------------
@@ -1319,6 +1331,9 @@ def register_cos_dispatch_formula_run(mcp, db_path):
         gate = _budget.check(db_path)
         if not gate.allowed:
             return fail("budget", gate.reason)
+        chain_gate = _budget.chain_check(db_path, task_marker)
+        if not chain_gate.allowed:
+            return fail("budget", chain_gate.reason)
 
         try:
             req = _build_dispatch_request(
@@ -1481,6 +1496,9 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
         gate = _budget.check(db_path)
         if not gate.allowed:
             return fail("budget", gate.reason)
+        chain_gate = _budget.chain_check(db_path, task_marker)
+        if not chain_gate.allowed:
+            return fail("budget", chain_gate.reason)
 
         try:
             requests = [

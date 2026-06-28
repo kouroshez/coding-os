@@ -23,6 +23,7 @@ from pathlib import Path
 logger = logging.getLogger("coding_os.budget")
 
 ENV_VAR = "COS_DAILY_BUDGET_USD"
+CHAIN_ENV_VAR = "COS_CHAIN_BUDGET_USD"
 
 
 def _read_hub_settings_cap() -> float | None:
@@ -218,3 +219,52 @@ def cost_burn_rate(db_path: str | Path, *, window_days: int = 14) -> dict:
         "accelerating": bool(delta_pct is not None and delta_pct > 0),
         "partial_today": latest_day == _today_utc_date(),
     }
+
+
+def _read_chain_cap() -> float | None:
+    raw = os.environ.get(CHAIN_ENV_VAR)
+    if not raw:
+        return None
+    try:
+        v = float(raw)
+    except ValueError:
+        logger.debug("invalid %s=%r - ignoring", CHAIN_ENV_VAR, raw)
+        return None
+    return v if v > 0 else None
+
+
+def _chain_spent(db_path: str | Path, task_marker: str) -> float:
+    conn = _connect_ro(db_path)
+    if conn is None:
+        return 0.0
+    try:
+        try:
+            row = conn.execute(
+                "SELECT COALESCE(SUM(cost_usd), 0.0) FROM formula_dispatches WHERE task_marker = ?",
+                (task_marker,),
+            ).fetchone()
+        except sqlite3.OperationalError as exc:
+            logger.debug("chain budget query failed (schema?): %s", exc)
+            return 0.0
+        return float(row[0] or 0.0)
+    finally:
+        conn.close()
+
+
+def chain_check(
+    db_path: str | Path, task_marker: str, *, additional_estimate_usd: float = 0.0
+) -> BudgetGate:
+    """Per-chain (task_marker) USD ceiling over formula_dispatches; gate before another dispatch in the chain."""
+    cap = _read_chain_cap()
+    if cap is None or not task_marker:
+        return BudgetGate(allowed=True, cap_usd=cap, spent_usd=0.0)
+    spent = _chain_spent(db_path, task_marker)
+    projected = spent + max(0.0, float(additional_estimate_usd))
+    level = _budget_utilization_level(projected, cap)
+    if projected >= cap:
+        reason = (
+            f"per-chain budget exceeded for {task_marker}: spent ${spent:.4f} "
+            f"+ projected ${additional_estimate_usd:.4f} >= cap ${cap:.4f} (env {CHAIN_ENV_VAR})."
+        )
+        return BudgetGate(allowed=False, cap_usd=cap, spent_usd=spent, reason=reason, level=level)
+    return BudgetGate(allowed=True, cap_usd=cap, spent_usd=spent, level=level)
