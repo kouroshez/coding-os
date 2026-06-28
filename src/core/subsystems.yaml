@@ -81,6 +81,7 @@ modules:
       - remind-dogfood
       - warn-template-drift
       - warn-destructive-edit
+      - warn-diff-size
     tools: []
     depends_on: []
 
