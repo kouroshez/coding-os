@@ -93,16 +93,15 @@ fi
 
 # === UNIVERSAL RULES ===
 
-# Block bare TODOs without task reference (must be TODO: TASK-### or TODO(TASK-###))
-# Source: backend-rules.md § Comments, frontend-rules.md § Comments
-# Skip: test files may have legitimate TODOs; scaffold scripts under
-# src/templates/*/skills/*/scripts/ are user-facing placeholders where
-# bare TODOs are the entire point ("# TODO: implement your endpoint").
+# A committed TODO is untracked work — prefer `cos task-create` over a marker. This
+# blocks a bare marker; a task-ref only makes a transient mid-dev marker trackable
+# (remove before commit) — it is NOT comment provenance, which clean-code §4 forbids
+# in explanatory comments. Skip: tests + templates/*/skills/*/scripts/ placeholders.
 if [[ "$FILE_PATH" != *test* ]] && [[ "$FILE_PATH" != *spec* ]] \
    && [[ "$FILE_PATH" != *templates/*/skills/*/scripts/* ]]; then
   # Check if TODO exists but TASK-### does NOT exist in the same content
   if echo "$CONTENT" | grep -qiE '(//|#)\s*TODO' && ! echo "$CONTENT" | grep -qE 'TASK-[0-9]{3}'; then
-    echo "BLOCKED: Bare TODO without task reference. Use 'TODO: TASK-### description' format. See docs/engineering/backend-rules.md § Comments." >&2
+    echo "BLOCKED: bare TODO in committed code. Prefer 'cos task-create' over a marker; if a transient mid-dev marker is unavoidable make it trackable as 'TODO(TASK-###)' and remove before commit — a task-ref is a TODO-tracker, never provenance in an explanatory comment (clean-code §4 / Rule 12)." >&2
     exit 2
   fi
 fi

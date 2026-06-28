@@ -42,3 +42,14 @@ fi
 _TMP="${STATE_FILE}.tmp.$$"
 printf '%s %s\n' "$SESSION_ID" "$VALUE" > "$_TMP"
 mv -f "$_TMP" "$STATE_FILE"
+
+# CLEAR-1 self-bypass accountability (TASK-494): setting the gate to "CLEAR 1"
+# self-exempts the agent from six enforcement hooks (doc-anchor, skill, task-start,
+# memory-check, zoom, anti-ambiguity). Record each such write as an append-only,
+# per-session line so the bypass is visible (banner bypasses=N) and auditable
+# (retro) rather than a silent free pass. Fire-and-forget — never break the write.
+if [[ "$(basename "$STATE_FILE_INPUT")" == ".thinking_os-gate" && ( "$VALUE" == "CLEAR 1" || "$VALUE" == "CLEAR 1 "* ) ]]; then
+  _JUSTIF="${VALUE#CLEAR 1}"; _JUSTIF="${_JUSTIF# }"
+  printf '%s\t%s\n' "$SESSION_ID" "${_JUSTIF:-(no justification given)}" \
+    >> "$(dirname "$STATE_FILE")/.clear1-bypass-log" 2>/dev/null || true
+fi

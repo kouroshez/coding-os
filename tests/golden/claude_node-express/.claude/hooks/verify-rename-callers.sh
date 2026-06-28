@@ -10,10 +10,12 @@
 #   Closes the gap left by enforce-rename-plan (which verifies a *plan*
 #   exists, not that all *call sites* were updated).
 #
-# NON-BLOCKING
-#   Always exits 0. Surfacing >0 callers is a signal — the agent decides
-#   whether they're legitimate (e.g., docs referencing historical name)
-#   or a partial rename to finish.
+# ESCALATION (default warn, opt-in block)
+#   On unreplaced callers it records a durable `.rename-incomplete` marker
+#   (so the signal survives past this turn's stderr) and warns. Default stays
+#   non-blocking — >0 callers is a signal the agent judges (docs referencing a
+#   historical name, a BC shim). COS_VERIFY_RENAME_CALLERS=strict promotes the
+#   warning to a hard block (exit 2) for projects that enforce completeness.
 #
 # DESIGN NOTES
 #   - Skip when old_string is too short (<4 chars) or non-identifier-shaped
@@ -90,6 +92,13 @@ HITS="$(perl -e 'alarm shift; exec @ARGV' 5 git grep -l --word-regexp -- "$OLD" 
 COUNT=$(printf '%s\n' "$HITS" | grep -c .)
 cos_log_hook verify-rename-callers warn "old=${OLD} unreplaced_files=${COUNT}" 2>/dev/null || true
 
+# Escalation marker — durable record that a rename was left incomplete, so the
+# signal outlives this turn's stderr (a Stop-phase reviewer / retro can act on
+# it). Panel-scoped, appended; GC'd with the rest of panel state.
+MARKER_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os}}"
+mkdir -p "$MARKER_DIR" 2>/dev/null || true
+printf '%s\t%s\t%s\t%s\n' "$OLD" "$NEW" "$COUNT" "$FILE_PATH" >> "${MARKER_DIR}/.rename-incomplete" 2>/dev/null || true
+
 cat >&2 <<MSG
 🔁 Rename caller-check — \`${OLD}\` → \`${NEW}\`
    Edited: ${FILE_PATH}
@@ -103,4 +112,8 @@ $(printf '     - %s\n' $HITS)
    Verify with: cos verify --since HEAD --refs --no-tests
 MSG
 
+if [[ "${COS_VERIFY_RENAME_CALLERS:-warn}" == "strict" ]]; then
+  cos_log_hook verify-rename-callers block "old=${OLD} unreplaced_files=${COUNT}" 2>/dev/null || true
+  exit 2
+fi
 exit 0

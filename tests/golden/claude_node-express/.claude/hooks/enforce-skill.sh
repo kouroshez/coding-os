@@ -65,7 +65,7 @@ fi
 check_state "$SKILL_FILE" 7200  # 120 min
 
 if [[ "$STATE_VALID" != "true" ]]; then
-  echo "BLOCKED: No domain skill invoked for this session. Reason: $STATE_REASON" >&2
+  echo "BLOCKED: a domain skill carries the judgment this edit needs — code written without it ships debt. No domain skill invoked for this session. Reason: $STATE_REASON" >&2
   echo '  Backend .py  → Skill skill: "python-django"' >&2
   echo '  Frontend .tsx → Skill skill: "nextjs-react"' >&2
   echo '  Any code     → Skill skill: "clean-code"' >&2
@@ -76,21 +76,35 @@ fi
 # Check skill matches file type (STATE_VALUE has all invoked skills)
 ALL_SKILLS="$STATE_VALUE"
 
-# Meta-stack guard: editing any meta-repo authoring path REQUIRES the
-# graph-explorer skill (clean-code alone is not enough). This closes
-# the dogfood gap where the agent could bypass graph by loading only
-# clean-code. Source of truth: src/templates/meta/stack.yaml::skill_enforcement.
-case "$FILE_PATH" in
-  *core/*.py|*cli/*.py|*adapters/*.py)
-    if ! echo "$ALL_SKILLS" | grep -qiE "graph-explorer"; then
-      echo "BLOCKED: Editing meta-repo authoring path ($FILE_PATH) requires Skill graph-explorer." >&2
-      echo "  Reason: load-bearing src/core/cli/adapter file — call cos_graph_context first." >&2
+# Load-bearing guard: a file under the stack's graph.enforce_context_on globs
+# (rag-config.yaml — the same per-consumer SSOT enforce-graph-context reads)
+# REQUIRES graph-explorer; clean-code alone bypasses the graph layer and ships
+# the dogfood gap. Data-driven (Rule 11): no path/stack literal lives here, so
+# the verbatim-symlinked hook is correct in every consumer — an absent or empty
+# list is simply a no-op (no false demand for a meta-only skill in a consumer).
+if ! echo "$ALL_SKILLS" | grep -qiE "graph-explorer"; then
+  GRAPH_CONFIG="${COS_STATE_DIR:-.coding-os}/rag-config.yaml"
+  [[ -f "$GRAPH_CONFIG" ]] || GRAPH_CONFIG="$(pwd)/.coding-os/rag-config.yaml"
+  if [[ -f "$GRAPH_CONFIG" ]]; then
+    _src="${BASH_SOURCE[0]}"
+    while [ -L "$_src" ]; do
+      _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+      _src="$(readlink "$_src")"
+      [[ "$_src" != /* ]] && _src="$_dir/$_src"
+    done
+    HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
+    unset _src _dir
+    MATCH_HELPER="${HSRC}/_helpers/graph_context_match.py"
+    if [[ -f "$MATCH_HELPER" ]] \
+        && [[ "$(python3 "$MATCH_HELPER" "$GRAPH_CONFIG" "$FILE_PATH" 2>/dev/null || echo no)" == "yes" ]]; then
+      echo "BLOCKED: $FILE_PATH is a graph-enforced load-bearing file (rag-config enforce_context_on) — Skill graph-explorer is required (clean-code alone bypasses the graph layer)." >&2
+      echo "  Reason: structural edit on a load-bearing file — call cos_graph_context first." >&2
       echo "  Fix:    Skill skill: \"graph-explorer\"" >&2
       cos_log_hook enforce-skill block "rule=graph-explorer-required" || true
       exit 2
     fi
-    ;;
-esac
+  fi
+fi
 
 if [[ "$FILE_PATH" == *.py ]]; then
   if ! echo "$ALL_SKILLS" | grep -qiE "python|django|clean-code|graph-explorer"; then

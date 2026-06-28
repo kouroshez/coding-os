@@ -63,10 +63,13 @@ if [[ ! -f "$HELPER" ]]; then
   exit 2
 fi
 
-if python3 "$HELPER" "$payload"; then
+if HELPER_OUT=$(python3 "$HELPER" "$payload" 2>&1); then
     exit_code=0
 else
     exit_code=$?
+    # WHY first (the helper's own message already leads with BLOCKED); one BLOCKED line.
+    echo "WHY: cognitive state lives in the board DB + docs/tasks/ — a raw status edit desyncs them; use cos_task_move / cos task-done." >&2
+    printf '%s\n' "$HELPER_OUT" >&2
 fi
 cos_log_hook "enforce-task-transition" "$([[ $exit_code -eq 0 ]] && echo allow || echo block)" 2>/dev/null || true
 exit "$exit_code"

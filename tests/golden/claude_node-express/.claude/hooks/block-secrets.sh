@@ -13,13 +13,14 @@ cos_require_parser block-secrets
 INPUT="$(cos_read_stdin_bounded 2)"
 
 # Fast-path: this gate fires on EVERY Bash command. The Bash leg only ever
-# blocks `git add` of a secret file or `git commit --no-verify`; if the raw
-# payload mentions neither AND is not a Write/Edit (whose content we must
-# scan), there is nothing to deny — bail before any jq spawn. Write/Edit
-# payloads always carry "new_string"/"content", so they never match the
-# Bash-only short-circuit.
+# blocks `git add` of a secret file, a hook-skipping `git commit`
+# (--no-verify/-n), or a `core.hooksPath` override; if the raw payload mentions
+# none AND is not a Write/Edit (whose content we must scan), there is nothing to
+# deny — bail before any jq spawn. The hooksPath token is matched in its two
+# realistic casings (the deep grep below is case-insensitive). Write/Edit
+# payloads always carry "new_string"/"content", so they never match here.
 case "$INPUT" in
-  *"git add"*|*"git commit"*|*new_string*|*'"content"'*) ;;
+  *"git add"*|*git*commit*|*hooksPath*|*hookspath*|*new_string*|*'"content"'*) ;;
   *) exit 0 ;;
 esac
 
@@ -44,13 +45,26 @@ if [[ "$TOOL" == "Bash" ]]; then
     exit 2
   fi
 
-  # Block git commit --no-verify (skip hooks) — only match actual git commit commands.
-  # Strip quoted -m message values first so a "--no-verify" mentioned inside a commit
-  # message is not a false match (it blocked legitimate docs commits otherwise).
-  COMMAND_NOQUOTES=$(printf '%s' "$COMMAND" | sed -E "s/\"[^\"]*\"//g; s/'[^']*'//g")
-  if echo "$COMMAND_NOQUOTES" | grep -qE '^git commit\b.*--no-verify'; then
+  # Block any git-commit that skips the verify hooks (--no-verify / -n /
+  # core.hooksPath / GIT_CONFIG_* injection). Delegated to a shlex-tokenizing
+  # helper: the old bash regex ran over a quote-STRIPPED string, so a spliced
+  # `--no-ver"i"fy`, a quoted `"-n"`, or a `GIT_CONFIG_*` env prefix vanished
+  # from the scan yet bash still executed it (TASK-567). `_cos_helpers_dir`
+  # (cos-env.sh) resolves the physical `_helpers/` through the .claude/ symlink.
+  BYPASS_HELPER="$(_cos_helpers_dir)/check_git_bypass.py"
+  BYPASS_VERDICT=$(printf '%s' "$INPUT" | python3 "$BYPASS_HELPER" 2>/dev/null || echo error)
+  # Fail-closed but SCOPED: a helper crash blocks only when the raw command
+  # actually carries a commit/hooksPath/GIT_CONFIG token we could not verify.
+  if [ "$BYPASS_VERDICT" = "error" ]; then
+    case "$COMMAND" in
+      *commit*|*hooksPath*|*hookspath*|*GIT_CONFIG*) BYPASS_VERDICT='{"verdict":"block"}' ;;
+      *) BYPASS_VERDICT='{"verdict":"allow"}' ;;
+    esac
+  fi
+  if printf '%s' "$BYPASS_VERDICT" | grep -qE '"verdict": *"block"'; then
     cos_log_hook block-secrets block "tool=Bash rule=no-verify"
-    echo "BLOCKED: --no-verify skips safety hooks. Fix the underlying issue instead." >&2
+    _bs_msg=$(printf '%s' "$BYPASS_VERDICT" | cos_json_field message 2>/dev/null || echo "")
+    echo "${_bs_msg:-BLOCKED: skipping git verify hooks (--no-verify / -n / core.hooksPath). Fix the underlying issue, do not bypass.}" >&2
     exit 2
   fi
 fi

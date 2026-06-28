@@ -149,11 +149,13 @@ reason to under-budget a coverage-critical sweep. Pay the 50 ms.
 
 ## Enforcement
 
-- `enforce-graph-context.sh` — when editing a file under a path the
-  hook treats as load-bearing (the matcher is built into the script —
-  there is no `rag-config.yaml::graph.enforce_context_on` key today),
-  the hook warns if no `.graph-context-<uid>` marker exists in
-  `$COS_AGENT_DIR` for this session.
+- `enforce-graph-context.sh` — when editing a file matching one of the
+  `rag-config.yaml::graph.enforce_context_on` globs, the hook warns (or
+  blocks in strict mode) unless `cos_graph_context` wrote a *fresh*
+  `.graph/ctx-<sha>` marker this session (content-hash-bound — a consult
+  that went stale because the file changed no longer counts).
+  `enforce-skill.sh` reads the same glob list to require `graph-explorer`
+  on those files.
 - `enforce-rename-plan.sh` — if you attempt a multi-file rename-like
   Edit without a prior `cos_graph_rename_plan` in this session, the
   hook warns + suggests the command.

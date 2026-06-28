@@ -225,6 +225,23 @@
         ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-shared-tree-edit.sh",
+            "statusMessage": "🌳 pr-mode: enforcing worktree edit isolation...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/warn-destructive-edit.sh",
+            "statusMessage": "🛡️ Checking for destructive deletion of load-bearing content...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Read",
         "hooks": [
           {
@@ -276,14 +293,8 @@
           },
           {
             "type": "command",
-            "command": ".claude/hooks/auto-reindex-shell-ops.sh",
-            "statusMessage": "🔁 Bulk shell op detected — scheduling graph reindex...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/auto-prune-deleted-files.sh",
-            "statusMessage": "🧹 Pruning graph + docs RAG state for deleted files...",
+            "command": ".claude/hooks/auto-graph-reconcile-shell.sh",
+            "statusMessage": "🔁 Reconciling graph for shell file op (prune + reindex)...",
             "timeout": 10
           },
           {
@@ -572,6 +583,17 @@
         ]
       },
       {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/pr-reap.sh",
+            "statusMessage": "🌳 pr-mode: reaping orphaned worktrees...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "compact|resume",
         "hooks": [
           {
@@ -651,6 +673,11 @@
           {
             "type": "command",
             "command": ".claude/hooks/nudge-model-routing.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/nudge-git-mode.sh",
             "timeout": 10
           },
           {

@@ -26,18 +26,282 @@
 #     see live hook activity. Fail-open: never errors a hook even if the
 #     write fails.
 
-# Resolve from env, .coding-os.yaml, or defaults
+# Resolve $COS_STATE_DIR. Precedence (applied ONLY while it is the bare default):
+#   1. explicit non-default COS_STATE_DIR → verbatim
+#   2. $CLAUDE_PROJECT_DIR                 → $CLAUDE_PROJECT_DIR/.coding-os
+#   3. $COS_PROJECT_ROOT                   → $COS_PROJECT_ROOT/.coding-os
+#   4. upward marker-walk from $PWD        → <root>/.coding-os
+#   5. nothing found                       → relative .coding-os (legacy)
+# Why a walk: hooks often run with cwd != repo root (e.g. `cd src/backend &&
+# go build`); a bare relative ".coding-os" then lazily creates a STRAY
+# .coding-os/ at the subdir (the nested-.coding-os bug). CLAUDE_PROJECT_DIR is
+# unset under the VSCode native extension, so steps 3-4 are the runtime-
+# independent fix. SPEC: docs/engineering/state-files.md § Project-root resolution.
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
-# Claude often runs hook subprocesses with cwd != repo root. Default
-# relative ".coding-os" would then create the wrong tree (and an empty log at
-# the real project). Anchor to workspace when the IDE exports it.
+
+# Pure-Bash project-root finder (no python3 spawn — this runs on every hook).
+# DRIFT WARNING: mirrors src/core/thinking_os/database.py::_find_project_root_from_cwd
+# (its _ROOT_MARKERS + .coding-os/-co-location requirement); tests/test_hooks.py
+# asserts the two stay identical. The extra $HOME hard-stop here prevents binding
+# the global hub at $HOME/.coding-os. Echoes the resolved root, or empty when none
+# is found at/below the $HOME boundary.
+_cos_find_project_root() {
+  local dir home_real first_state="" marker found_marker parent
+  # Rule 5: resolve symlinks (macOS /tmp -> /private/tmp) before the $HOME compare.
+  dir="$(cd -P "${PWD}" 2>/dev/null && pwd -P)" || dir=""
+  # Only an absolute, resolvable cwd is walkable. A relative/stale $PWD (cos-env.sh
+  # is SOURCED, so it inherits the parent's $PWD) would otherwise make dirname
+  # collapse to '.' — a fixpoint that spins forever. Bail to the relative default.
+  if [[ "$dir" != /* ]]; then
+    printf ''
+    return 0
+  fi
+  home_real="$(cd -P "${HOME:-/dev/null}" 2>/dev/null && pwd -P)" || home_real="${HOME:-}"
+  while [[ -n "$dir" && "$dir" != "/" ]]; do
+    # Never inspect/accept $HOME or above — $HOME/.coding-os is the global hub.
+    if [[ -n "$home_real" && "$dir" == "$home_real" ]]; then
+      break
+    fi
+    if [[ -d "$dir/.coding-os" ]]; then
+      if [[ -z "$first_state" ]]; then
+        first_state="$dir"
+      fi
+      # Prefer a .coding-os/ co-located with a root marker (skips a stray nested
+      # .coding-os/). Marker set mirrors database.py::_ROOT_MARKERS.
+      found_marker=""
+      for marker in .git .coding-os.yaml pyproject.toml package.json go.mod AGENTS.md; do
+        if [[ -e "$dir/$marker" ]]; then
+          found_marker=1
+          break
+        fi
+      done
+      if [[ -n "$found_marker" ]]; then
+        printf '%s' "$dir"
+        return 0
+      fi
+    fi
+    parent="$(dirname "$dir")"
+    # dirname fixpoint ('/' or any path that cannot ascend) → stop, never spin.
+    if [[ "$parent" == "$dir" ]]; then
+      break
+    fi
+    dir="$parent"
+  done
+  # No marked root below the boundary → innermost bare .coding-os/ (never
+  # lazy-create at cwd), else empty (caller keeps the relative default).
+  printf '%s' "$first_state"
+}
+
+# Resolve the MAIN repo root for a command running inside a git worktree, or
+# empty. A linked worktree's --git-common-dir points at <main>/.git, so its
+# parent is the main checkout. Used only when a worktree command lacks the
+# COS_PROJECT_ROOT fast-path (TASK-515 / pr-mode). Always returns 0 — this file
+# is SOURCED under the caller's `set -euo pipefail`, so a non-zero return from a
+# command-substitution assignment would kill the hook (mirrors
+# _cos_find_project_root's echo-empty-and-return-0 contract).
+# SPEC: docs/playbooks/pr-workflow.md § 3.
+_cos_main_repo_from_worktree() {
+  command -v git >/dev/null 2>&1 || { printf ''; return 0; }
+  local common
+  common="$(git rev-parse --git-common-dir 2>/dev/null)" || { printf ''; return 0; }
+  [[ -z "$common" ]] && { printf ''; return 0; }
+  common="$(cd -P "$common" 2>/dev/null && pwd -P)" || { printf ''; return 0; }
+  case "$common" in
+    */.git) printf '%s' "${common%/.git}" ;;
+    *)      printf '' ;;
+  esac
+  return 0
+}
+
+# Cheap worktree pre-check (NO git fork): a linked worktree's root carries `.git`
+# as a FILE (a gitdir pointer), whereas a normal checkout has it as a directory.
+# Walk up at most 40 levels from PWD looking for a `.git` file — returns 0 (found)
+# so the git-fork probe below runs only for a plausible worktree, keeping normal
+# trunk hooks fork-free. Bounded + dirname-fixpoint guarded against infinite walk.
+_cos_has_dotgit_file() {
+  local dir="${PWD}" i=0
+  [[ "$dir" == /* ]] || return 1
+  while [[ -n "$dir" && "$dir" != "/" && $i -lt 40 ]]; do
+    [[ -f "$dir/.git" ]] && return 0
+    [[ -d "$dir/.git" ]] && return 1   # a real repo root — not a worktree
+    local parent; parent="$(dirname "$dir")"
+    [[ "$parent" == "$dir" ]] && break
+    dir="$parent"; i=$((i + 1))
+  done
+  return 1
+}
+
+# _cos_helpers_dir — physical path to _helpers/, resolved through this file's
+# own symlink chain. Consumers (and the meta-repo's own .claude/hooks/) symlink
+# cos-env.sh but NOT _helpers/, so a $(dirname)-relative path lands in a dir with
+# no helpers and the python fallbacks silently no-op — a fail-OPEN gap. readlink
+# to the real file's dir finds _helpers/. Defined here (before the worktree-
+# routing + pr-mode-enablement blocks below call it) so it is already in scope.
+_cos_helpers_dir() {
+  local src dir
+  src="${BASH_SOURCE[0]}"
+  while [ -L "$src" ]; do
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    [[ "$src" != /* ]] && src="${dir}/${src}"
+  done
+  printf '%s' "$(cd -P "$(dirname "$src")" && pwd)/_helpers"
+}
+
 case "${COS_STATE_DIR}" in
   .coding-os | ./.coding-os)
     if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
       COS_STATE_DIR="${CLAUDE_PROJECT_DIR}/.coding-os"
+    elif [[ -n "${COS_PROJECT_ROOT:-}" ]]; then
+      COS_STATE_DIR="${COS_PROJECT_ROOT}/.coding-os"
+    else
+      _cos_root="$(_cos_find_project_root)"
+      if [[ -n "$_cos_root" ]]; then
+        COS_STATE_DIR="${_cos_root}/.coding-os"
+      fi
+      unset _cos_root
     fi
     ;;
 esac
+
+# ---------------------------------------------------------------------------
+# Worktree state routing + misroute guard (TASK-515 / pr-mode). A command
+# inside a git worktree under ~/.coding-os/worktrees/ must resolve state to the
+# MAIN repo, so every worktree of one repo shares its $COS_STATE_DIR (DB, board,
+# presence, the test-governor .test-run.lock). Runs AFTER the case so it also
+# corrects an INHERITED hub COS_STATE_DIR (e.g. a command spawned under
+# `cos hub`, whose env carries COS_STATE_DIR=$HOME/.coding-os). Cheap raw-string
+# gate first — only worktree cwds pay the resolution cost; the happy path
+# (COS_PROJECT_ROOT exported by the cos pr dispatch) never spawns git.
+# SPEC: docs/playbooks/pr-workflow.md § 3.
+# ---------------------------------------------------------------------------
+_cos_in_wt=""
+case "${PWD}" in
+  *"/.coding-os/worktrees/"*) _cos_in_wt=1 ;;
+esac
+if [[ -z "$_cos_in_wt" && -n "${COS_WORKTREE_ROOT:-}" && "${PWD}" == "${COS_WORKTREE_ROOT}"/* ]]; then
+  _cos_in_wt=1
+fi
+# Catches a custom-location worktree the raw-string gates miss. Short-circuit ONLY
+# on COS_PROJECT_ROOT (the authoritative fast-path) — the old CLAUDE_PROJECT_DIR
+# arm gated this OFF for every Claude Code hook, exactly when the probe is needed,
+# so a custom-location worktree misrouted state into itself (stray .coding-os in
+# the agent's PR). Trunk fast-path preserved by a cheap `.git`-FILE pre-check: a
+# linked worktree's root has `.git` as a file (gitdir pointer), a normal repo has
+# it as a directory — only the former forks git below. (pr-workflow.md § 3, TASK-531.)
+if [[ -z "$_cos_in_wt" && -z "${COS_PROJECT_ROOT:-}" ]] && _cos_has_dotgit_file; then
+  _cos_wt_main="$(_cos_main_repo_from_worktree)"
+  if [[ -n "$_cos_wt_main" ]]; then
+    _cos_wt_top="$(git rev-parse --show-toplevel 2>/dev/null)" || _cos_wt_top=""
+    if [[ -n "$_cos_wt_top" ]]; then
+      _cos_wt_top="$(cd -P "$_cos_wt_top" 2>/dev/null && pwd -P)" || _cos_wt_top=""
+    fi
+    if [[ -n "$_cos_wt_top" && "$_cos_wt_top" != "$_cos_wt_main" ]]; then
+      _cos_in_wt=1
+    fi
+  fi
+  unset _cos_wt_main _cos_wt_top
+fi
+if [[ -n "$_cos_in_wt" ]]; then
+  # In a worktree the project root is unambiguously the MAIN repo. COS_PROJECT_ROOT
+  # is authoritative and beats whatever the case produced (CLAUDE_PROJECT_DIR or
+  # the walk can point at the worktree itself or the global hub).
+  _cos_main=""
+  if [[ -n "${COS_PROJECT_ROOT:-}" ]]; then
+    _cos_main="${COS_PROJECT_ROOT}"
+  else
+    _cos_main="$(_cos_main_repo_from_worktree)"
+  fi
+  if [[ -n "$_cos_main" && -d "${_cos_main}/.coding-os" ]]; then
+    COS_STATE_DIR="${_cos_main}/.coding-os"
+  else
+    # main unresolvable: steer to a per-worktree QUARANTINE, never the global hub
+    # ($HOME/.coding-os) — binding there made every misrouted worktree share the
+    # hub's own state (DB/board/presence/locks) and collide with it and each other
+    # (TASK-582 regression of 1f8869b5). Also never a worktree-relative .coding-os —
+    # that stray gets committed into the agent's PR (TASK-531). The quarantine sits
+    # OFF the hub root and outside the checkout, keyed per worktree path; the
+    # misroute flag still fires so the operator sees the misconfig.
+    export COS_STATE_MISROUTE=1
+    printf 'cos-env: worktree state misroute — main repo unresolvable from %s; export COS_PROJECT_ROOT=<main-repo> for worktree commands (docs/playbooks/pr-workflow.md § 3).\n' "$PWD" >&2
+    _cos_home_real="$(cd -P "${HOME:-/dev/null}" 2>/dev/null && pwd -P)" || _cos_home_real="${HOME:-}"
+    if [[ -n "$_cos_home_real" ]]; then
+      _cos_wt_tag="$(printf '%s' "$PWD" | cksum 2>/dev/null | cut -d' ' -f1 2>/dev/null || true)"
+      COS_STATE_DIR="${_cos_home_real}/.coding-os-misrouted/${_cos_wt_tag:-orphan}"
+      unset _cos_wt_tag
+    fi
+    unset _cos_home_real
+  fi
+  unset _cos_main
+fi
+unset _cos_in_wt
+
+# ---------------------------------------------------------------------------
+# pr-mode enablement (TASK-518) — when this project's Hub sets
+# git_settings.enabled=true in hub-settings.json, export COS_GIT_WORKFLOW=pr
+# (+ branch policy) into EVERY hook's process env. That env is the only place
+# branch-guard / block-shared-tree-edit / the cos pr executor can read the mode
+# (the inline per-command override is broken). Default OFF = byte-identical to
+# trunk. A cheap grep-gate keeps trunk projects (no git_settings key) at one
+# grep per hook; an explicitly-exported COS_GIT_WORKFLOW always wins.
+# SPEC: docs/playbooks/pr-workflow.md § 1.
+# ---------------------------------------------------------------------------
+_cos_git_warn_once() {
+  # Debounced stderr warning (≤1/hour per condition per state dir) so a persistent
+  # corrupt/divergent git_settings surfaces without spamming every hook. Fail-open.
+  local key="$1" msg="$2" marker now last
+  marker="${COS_STATE_DIR}/.git-settings-warn-${key}"
+  now="$(date +%s 2>/dev/null || echo 0)"
+  if [[ -f "$marker" ]]; then
+    last="$(cat "$marker" 2>/dev/null || echo 0)"
+    if [[ $((now - last)) -lt 3600 ]]; then
+      return 0
+    fi
+  fi
+  printf '%s\n' "$msg" >&2 2>/dev/null || true
+  printf '%s' "$now" >"$marker" 2>/dev/null || true
+}
+if [[ -f "${COS_STATE_DIR}/hub-settings.json" ]] \
+     && grep -q '"git_settings"' "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null; then
+  # jq fast-path, python3 fallback — a host WITHOUT jq must still honor an
+  # enabled project (the old `command -v jq` precondition silently downgraded
+  # it to trunk). Both emit one tab-separated line: enabled\tintegration\t
+  # protected(csv)\tautonomy. python3 is a hard dep of coding-os.
+  if command -v jq >/dev/null 2>&1; then
+    _cos_git_line="$(jq -r '[(.git_settings.enabled // false), (.git_settings.integration_branch // "main"), ((.git_settings.protected_branches // ["production"]) | join(",")), (.git_settings.autonomy_level // "draft")] | @tsv' "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null || true)"
+  elif command -v python3 >/dev/null 2>&1; then
+    _cos_git_line="$(python3 "$(_cos_helpers_dir)/git_settings_fields.py" "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null || true)"
+  else
+    _cos_git_line=""
+  fi
+  _cos_git_enabled="$(printf '%s' "$_cos_git_line" | cut -f1)"
+  if [[ -z "${COS_GIT_WORKFLOW:-}" && "$_cos_git_enabled" == "true" ]]; then
+    # Split declare/assign so shellcheck SC2155 stays clean (return-value masking).
+    COS_GIT_INTEGRATION_BRANCH="$(printf '%s' "$_cos_git_line" | cut -f2)"
+    COS_GIT_PROTECTED_BRANCHES="$(printf '%s' "$_cos_git_line" | cut -f3)"
+    COS_GIT_AUTONOMY="$(printf '%s' "$_cos_git_line" | cut -f4)"
+    export COS_GIT_WORKFLOW="pr" COS_GIT_INTEGRATION_BRANCH COS_GIT_PROTECTED_BRANCHES COS_GIT_AUTONOMY
+  elif [[ -z "${COS_GIT_WORKFLOW:-}" && -z "$_cos_git_line" ]]; then
+    # grep matched the git_settings key but no parser could read it (corrupt/torn
+    # JSON, or neither jq nor python3). The file EXISTS and names git_settings, so
+    # the operator opted into pr-mode; a torn write must NOT silently re-enable
+    # trunk (where a direct push to main is legal). Fail CLOSED to pr-mode — the
+    # stricter posture — with safe-default policy, and warn once. (TASK-587b)
+    COS_GIT_INTEGRATION_BRANCH="${COS_GIT_INTEGRATION_BRANCH:-main}"
+    COS_GIT_PROTECTED_BRANCHES="${COS_GIT_PROTECTED_BRANCHES:-production}"
+    COS_GIT_AUTONOMY="${COS_GIT_AUTONOMY:-draft}"
+    export COS_GIT_WORKFLOW="pr" COS_GIT_INTEGRATION_BRANCH COS_GIT_PROTECTED_BRANCHES COS_GIT_AUTONOMY
+    _cos_git_warn_once "unreadable" \
+      "cos-env: git_settings present but hub-settings.json could not be parsed — failing CLOSED to pr-mode (stricter). Fix the file or install jq/python3 to restore the chosen mode. (docs/playbooks/pr-workflow.md § 1)"
+  elif [[ "${COS_GIT_WORKFLOW:-}" == "trunk" && "$_cos_git_enabled" == "true" ]]; then
+    # An inherited explicit COS_GIT_WORKFLOW=trunk wins over the file by design;
+    # surface the self-downgrade of the Hub policy instead of applying it silently.
+    _cos_git_warn_once "divergence" \
+      "cos-env: git_settings enables pr-mode but an inherited COS_GIT_WORKFLOW=trunk overrides it — running TRUNK. Unset COS_GIT_WORKFLOW to honor the Hub setting. (docs/playbooks/pr-workflow.md § 1)"
+  fi
+  unset _cos_git_line _cos_git_enabled
+fi
+
 # Default DB filename is `coding-os.db`. Legacy `thinking_os.db` is auto-renamed
 # by src/core/thinking_os/database.py::migrate_legacy_db_filename() on first init_db()
 # call after the upgrade — no shell-side migration needed.
@@ -336,24 +600,6 @@ cos_current_task() {
 # the only reliable way to surface PostToolUse activity in the chat UI.
 # Fail-open: never aborts the parent hook on logging failure.
 # ---------------------------------------------------------------------------
-# _cos_helpers_dir — physical path to _helpers/, resolved through this file's
-# own symlink chain. Consumers (and the meta-repo's own .claude/hooks/) symlink
-# cos-env.sh but NOT _helpers/, so a $(dirname)-relative path lands in a dir
-# with no helpers and the python fallbacks silently no-op — a fail-OPEN gap for
-# cos_json_field. readlink to the real file's dir finds _helpers/. On demand.
-# ---------------------------------------------------------------------------
-_cos_helpers_dir() {
-  local src dir
-  src="${BASH_SOURCE[0]}"
-  while [ -L "$src" ]; do
-    dir="$(cd -P "$(dirname "$src")" && pwd)"
-    src="$(readlink "$src")"
-    [[ "$src" != /* ]] && src="${dir}/${src}"
-  done
-  printf '%s' "$(cd -P "$(dirname "$src")" && pwd)/_helpers"
-}
-
-# ---------------------------------------------------------------------------
 cos_record_activity() {
   local category="${1:-}"
   local detail="${2:-}"
@@ -439,6 +685,18 @@ cos_log_hook() {
       if [[ "$blk_lines" -gt $((COS_HOOK_LOG_MAX_LINES * 2)) ]]; then
         tail -n "$COS_HOOK_LOG_MAX_LINES" "$COS_HOOK_BLOCK_LOG" > "${COS_HOOK_BLOCK_LOG}.tmp" \
           && mv "${COS_HOOK_BLOCK_LOG}.tmp" "$COS_HOOK_BLOCK_LOG"
+      fi
+    fi
+
+    # F8 (TASK-447): make a BLOCK durable in the SQLite log_events store the
+    # logging_os sink owns so cos_log_query / error_sweep surface it — not just
+    # the text logs above. Reuse the shared shell→DB writer (DB-only here).
+    if [[ "$action" == "block" ]] && command -v python3 >/dev/null 2>&1; then
+      local _db_helper
+      _db_helper="$(_cos_helpers_dir)/cos_say_json.py"
+      if [[ -f "$_db_helper" ]]; then
+        python3 "$_db_helper" "$ts" "ERROR" "hook.${hook_name}" "${detail:-blocked}" \
+          "action=block session=${session} task=${task}" >/dev/null 2>&1 || true
       fi
     fi
 
@@ -739,9 +997,28 @@ cos_say() {
     ERROR) floor_value=40 ;;
     FATAL) floor_value=50 ;;
   esac
-  if [[ "$level_value" -lt "$floor_value" ]]; then
+  # Per-sink flooring (TASK-473): the console floor (COS_LOG_LEVEL) gates the
+  # human sinks (stderr/text/jsonl); the durable floor (COS_LOG_DB_MIN_LEVEL,
+  # re-applied inside cos_say_json.py) gates the log_events row independently.
+  # Short-circuit only when the event clears NEITHER floor — flooring at the
+  # console level alone here dropped a WARN before the durable store saw it.
+  local db_floor_name db_floor_value=30
+  db_floor_name="$(echo "${COS_LOG_DB_MIN_LEVEL:-WARN}" | tr '[:lower:]' '[:upper:]')"
+  case "$db_floor_name" in
+    DEBUG) db_floor_value=10 ;;
+    INFO)  db_floor_value=20 ;;
+    OK)    db_floor_value=21 ;;
+    WARN)  db_floor_value=30 ;;
+    ERROR) db_floor_value=40 ;;
+    FATAL) db_floor_value=50 ;;
+  esac
+  local min_floor="$floor_value"
+  [[ "$db_floor_value" -lt "$min_floor" ]] && min_floor="$db_floor_value"
+  if [[ "$level_value" -lt "$min_floor" ]]; then
     return 0
   fi
+  local below_console=0
+  [[ "$level_value" -lt "$floor_value" ]] && below_console=1
 
   local kv=""
   if [[ $# -gt 0 ]]; then
@@ -804,18 +1081,24 @@ cos_say() {
       ;;
   esac
 
-  printf '%s\n' "$stderr_line" >&2 2>/dev/null || true
+  # Human sinks respect the console floor; the durable log_events row was already
+  # written above by cos_say_json.py (gated by COS_LOG_DB_MIN_LEVEL) (TASK-473).
+  if [[ "$below_console" -eq 0 ]]; then
+    printf '%s\n' "$stderr_line" >&2 2>/dev/null || true
+  fi
 
   local log_file="${COS_LOG_FILE:-${COS_STATE_DIR}/.cos.log}"
-  {
-    mkdir -p "$(dirname "$log_file")" 2>/dev/null
-    printf '%s\n' "$short_line" >> "$log_file"
-  } 2>/dev/null || true
-
-  if [[ -n "$json_line" ]]; then
+  if [[ "$below_console" -eq 0 ]]; then
     {
-      printf '%s\n' "$json_line" >> "${log_file}.jsonl"
+      mkdir -p "$(dirname "$log_file")" 2>/dev/null
+      printf '%s\n' "$short_line" >> "$log_file"
     } 2>/dev/null || true
+
+    if [[ -n "$json_line" ]]; then
+      {
+        printf '%s\n' "$json_line" >> "${log_file}.jsonl"
+      } 2>/dev/null || true
+    fi
   fi
 
   return 0

@@ -14,6 +14,8 @@ allowed-tools:
 
 This skill enforces universal coding principles on every code change. It is stack-agnostic — same rules hold for Python backends, TypeScript frontends, Go services, and any other language the project uses. Stack-specific layering (Django ORM, FastAPI dependencies, Fiber middleware, React hooks) lives in the matching stack skill that depends on this one.
 
+> **Read the *why*, not just the diff.** Every rule below pairs the wrong shape (`BAD`) with the right one (`GOOD`) **and the reason the right one is right** — and the reason is the point. Internalize it and you apply the principle where no rule is written (the out-of-distribution case that no linter catches); copy the `GOOD` diff alone and you only pass the cases someone already enumerated. These tactics are the concrete expression of the project's [constitution](../../../../docs/governance/constitution.md) values — *smallest-correct-change*, *docs-are-the-contract*, *agent-agnostic* — which carry the WHY one level up. (This is the *Teaching Claude Why* finding applied to ourselves: a principle understood generalizes; a demonstration copied does not.)
+
 > **Strategic parent:** This skill enforces the *tactical* shape of code (naming, structure, error paths). The *strategic* anti-overengineering rule — reuse first, no speculation, diff-minimal, rule-of-three abstraction — lives in [src/core/rules/anti-overengineering.md](../../rules/anti-overengineering.md) and applies to every artifact (docs, hooks, skills, templates, tests, CLI), not just code. Read it before introducing a new abstraction.
 
 ## Pre-Code Checklist
@@ -456,6 +458,14 @@ idempotency_key = f"order-{order.id}-{attempt}"
 # Set the idempotency key to order id and attempt
 idempotency_key = f"order-{order.id}-{attempt}"
 ```
+
+### Match the Target Density, Not the Neighbor
+
+The agent runtime tells you to *match the surrounding code's comment density*.
+That is a trap when the surrounding code is comment-heavy legacy — matching it
+multiplies the noise. Match the density THIS section targets (near-zero,
+WHY-only), not the neighbor's. A dense file is tech-debt to thin when you touch
+it, never the pattern to extend.
 
 ### No Provenance in Comments
 

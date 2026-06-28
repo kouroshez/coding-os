@@ -6,6 +6,19 @@ set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
+# Resolve a _helpers/<name> path through THIS hook's symlink chain — the
+# .claude/.codex symlink points at the .sh only, not the _helpers/ tree, so a
+# $(dirname "$0")-relative path misses. Echoes the absolute helper path.
+_resolve_helper() {
+  local src="${BASH_SOURCE[0]}" dir
+  while [ -L "$src" ]; do
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    [[ "$src" != /* ]] && src="${dir}/${src}"
+  done
+  printf '%s' "$(cd -P "$(dirname "$src")" && pwd)/_helpers/$1"
+}
+
 # Fail-closed: a data-loss gate that cannot read the command must DENY,
 # not silently allow when jq is absent (observability-eye I8).
 cos_require_parser block-dangerous-commands
@@ -17,8 +30,10 @@ INPUT="$(cos_read_stdin_bounded 2)"
 # Every block below keys on one of these literals; if the raw payload mentions
 # none of them there is nothing to deny — bail before parsing. (`rm`/`mv` etc.
 # are still parsed properly downstream; this only short-circuits the no-match.)
+# Indirection tokens (eval/xargs/<<</|sh) and hub-settings.json are included so an
+# indirection-wrapped dangerous op or a policy-file write is never fast-skipped.
 case "$INPUT" in
-  *"git push"*|*"git reset"*|*"git clean"*|*rm*|*migrate*|*DROP*|*Drop*|*drop*) ;;
+  *"git push"*|*"git reset"*|*"git clean"*|*rm*|*migrate*|*DROP*|*Drop*|*drop*|*eval*|*xargs*|*"<<<"*|*"|sh"*|*"| sh"*|*"|bash"*|*"| bash"*|*hub-settings.json*) ;;
   *) exit 0 ;;
 esac
 
@@ -31,31 +46,64 @@ fi
 cos_log_hook block-dangerous-commands fire "tool=Bash"
 COMMAND=$(printf '%s' "$INPUT" | cos_json_field tool_input.command)
 
+# Block a Bash write to the git-policy file (TASK-587b): rewriting
+# .coding-os/hub-settings.json from a shell self-downgrades pr-mode -> trunk,
+# where a non-force push to main is legal. Gated on the basename so non-policy
+# commands skip the python spawn. Defense-in-depth — fails OPEN on helper error;
+# the authoritative wall is server-side branch protection.
+case "$COMMAND" in
+  *hub-settings.json*)
+    SET_VERDICT=$(printf '%s' "$INPUT" | python3 "$(_resolve_helper check_settings_write.py)" 2>/dev/null || echo allow)
+    if [ "$SET_VERDICT" = "block" ]; then
+      cos_log_hook block-dangerous-commands block "rule=settings-policy-write"
+      echo "BLOCKED: writing .coding-os/hub-settings.json from a shell flips the git workflow (pr<->trunk). Change git settings only via the Hub Config->Git tab — it is the policy file branch-guard reads on every hook." >&2
+      exit 2
+    fi
+    ;;
+esac
+
+# Shell-indirection recovery (TASK-587a): un-glue git commands hidden inside
+# eval / pipe-into-sh / here-string / xargs so the force-push / reset / clean
+# greps below see them. Gated on an indirection token so the common path spawns
+# no python. branch-guard is the fail-closed twin for the protected ops.
+COMMAND_SCAN="$COMMAND"
+case "$COMMAND" in
+  *eval*|*xargs*|*"<<<"*|*"|sh"*|*"| sh"*|*"|bash"*|*"| bash"*)
+    _RECOVERED=$(printf '%s' "$INPUT" | python3 "$(_resolve_helper recover_indirect.py)" 2>/dev/null || true)
+    [[ -n "$_RECOVERED" ]] && COMMAND_SCAN="$COMMAND"$'\n'"$_RECOVERED"
+    unset _RECOVERED
+    ;;
+esac
+
 # Block force push to main/master. Opt-in escape hatch for legitimate cases
-# (pre-public history scrub, secret removal, BFG-style cleanup): prefix the
-# command with COS_ALLOW_FORCE_PUSH_MAIN=1 (or export it before the call).
+# (pre-public history scrub, secret removal, BFG-style cleanup): EXPORT
+# COS_ALLOW_FORCE_PUSH_MAIN=1 into the session env before the call. An inline
+# `COS_ALLOW_FORCE_PUSH_MAIN=1 git push …` prefix does NOT work and is rejected
+# by design — the assignment has not executed when this PreToolUse hook reads
+# its own process env, so an agent cannot self-grant the override from the
+# command string (TASK-567 F3). Only a deliberate operator session-export opens it.
 _FORCE_PUSH_OPT_IN=0
 if [[ "${COS_ALLOW_FORCE_PUSH_MAIN:-0}" == "1" ]]; then
   _FORCE_PUSH_OPT_IN=1
 fi
-if echo "$COMMAND" | grep -qE '(^|[[:space:];&|])COS_ALLOW_FORCE_PUSH_MAIN=1\b'; then
-  _FORCE_PUSH_OPT_IN=1
-fi
 if [[ "$_FORCE_PUSH_OPT_IN" != "1" ]]; then
-  if echo "$COMMAND" | grep -qE 'git push.*--force.*(main|master)'; then
+  # Force-push to main/master. git IGNORES flag position, so detect the push, the
+  # force flag, and the main/master target INDEPENDENTLY — the old `--force.*main`
+  # regex missed `git push origin main --force` / `... main -f` (flag AFTER refspec,
+  # TASK-571). `--force-with-lease` is the safe variant (and the pr-mode submit path)
+  # so the boundary `--force([space]|$)` deliberately excludes it.
+  if echo "$COMMAND_SCAN" | grep -qE '(^|[[:space:];&|])git[[:space:]]+push' \
+     && echo "$COMMAND_SCAN" | grep -qE '(--force([[:space:]]|$)|(^|[[:space:]])-f([[:space:]]|$))' \
+     && echo "$COMMAND_SCAN" | grep -qE '(^|[[:space:]/+:])(main|master)([[:space:]]|$)'; then
     cos_log_hook block-dangerous-commands block "rule=force-push-main"
-    echo "BLOCKED: Force push to main/master is extremely dangerous and can destroy shared history. Use a feature branch instead. (Override: COS_ALLOW_FORCE_PUSH_MAIN=1)" >&2
+    echo "BLOCKED: Force push to main/master is extremely dangerous and can destroy shared history. Use a feature branch instead. (Override: export COS_ALLOW_FORCE_PUSH_MAIN=1 session-wide; an inline prefix is rejected.)" >&2
     exit 2
   fi
-  if echo "$COMMAND" | grep -qE 'git push.*-f.*(main|master)'; then
-    cos_log_hook block-dangerous-commands block "rule=force-push-main-short"
-    echo "BLOCKED: Force push to main/master is extremely dangerous. Use a feature branch instead. (Override: COS_ALLOW_FORCE_PUSH_MAIN=1)" >&2
-    exit 2
-  fi
-  # Refspec force: `git push origin +main` / `+HEAD:main` rewrites history too.
-  if echo "$COMMAND" | grep -qE 'git push[^|;&]*[[:space:]]\+([^[:space:]]*:)?(main|master)\b'; then
+  # Force via refspec: `+main` / `+HEAD:main` / `+refs/heads/main` (any qualifier —
+  # the old regex needed a colon, so the fully-qualified `+refs/heads/main` slipped).
+  if echo "$COMMAND_SCAN" | grep -qE '(^|[[:space:];&|])git[[:space:]]+push[^|;&]*[[:space:]]\+[^[:space:]]*(main|master)\b'; then
     cos_log_hook block-dangerous-commands block "rule=force-push-main-refspec"
-    echo "BLOCKED: force-push refspec (+main/+master) rewrites shared history. Use a feature branch instead. (Override: COS_ALLOW_FORCE_PUSH_MAIN=1)" >&2
+    echo "BLOCKED: force-push refspec (+main/+master) rewrites shared history. Use a feature branch instead. (Override: export COS_ALLOW_FORCE_PUSH_MAIN=1 session-wide; an inline prefix is rejected.)" >&2
     exit 2
   fi
 fi
@@ -82,20 +130,7 @@ case "$COMMAND" in
     ;;
 esac
 if [ "${RM_VERDICT:-}" != "allow" ]; then
-# Resolve the helper through the file's PHYSICAL location so it works through
-# the .claude/hooks/ symlink — `$(dirname "$0")/_helpers` does NOT (the symlink
-# points at the .sh only, not the _helpers tree). Same readlink dance as
-# branch-guard; the old form silently never ran (masked by `|| echo allow`).
-_rm_src="${BASH_SOURCE[0]}"
-while [ -L "$_rm_src" ]; do
-  _rm_dir="$(cd -P "$(dirname "$_rm_src")" && pwd)"
-  _rm_src="$(readlink "$_rm_src")"
-  [[ "$_rm_src" != /* ]] && _rm_src="${_rm_dir}/${_rm_src}"
-done
-RM_HELPER="$(cd -P "$(dirname "$_rm_src")" && pwd)/_helpers/check_dangerous_rm.py"
-unset _rm_src _rm_dir
-
-RM_VERDICT=$(printf '%s' "$INPUT" | python3 "$RM_HELPER" 2>/dev/null || echo error)
+RM_VERDICT=$(printf '%s' "$INPUT" | python3 "$(_resolve_helper check_dangerous_rm.py)" 2>/dev/null || echo error)
 fi
 # Fail-closed but SCOPED: a helper crash/absence (RM_VERDICT=error) blocks
 # only when the command actually contains a recursive rm we could not verify —
@@ -121,18 +156,27 @@ if echo "$COMMAND" | grep -qE 'manage\.py migrate.*--settings.*production'; then
   exit 2
 fi
 
-# Block git reset --hard without user confirmation
-if echo "$COMMAND" | grep -qE 'git reset --hard'; then
-  cos_log_hook block-dangerous-commands block "rule=reset-hard"
-  echo "BLOCKED: git reset --hard discards all uncommitted changes permanently. Consider 'git stash' instead, or ask the user to confirm." >&2
-  exit 2
-fi
-
-# Block git clean -f (deletes untracked files)
-if echo "$COMMAND" | grep -qE 'git clean\s+-[a-z]*f'; then
-  cos_log_hook block-dangerous-commands block "rule=git-clean-force"
-  echo "BLOCKED: git clean -f permanently deletes untracked files. Ask the user to confirm which files should be removed." >&2
-  exit 2
+# Block destructive `git reset --hard` / `git clean -f`. Delegated to a
+# shlex-correct helper so a long-option ABBREVIATION (`reset --har`, `clean
+# --for`/`--f`) or a split short cluster (`clean -d -f`) can't slip the old
+# literal greps — git resolves any unambiguous prefix. Fed COMMAND_SCAN so a
+# recovered-indirection git op is scanned too. Fails OPEN on helper error;
+# branch-guard is the fail-closed twin for the HEAD-moving reset.
+if echo "$COMMAND_SCAN" | grep -qE 'git[[:space:]]+(reset|clean)'; then
+  DESTRUCTIVE_VERDICT=$(
+    jq -n --arg c "$COMMAND_SCAN" '{tool_name:"Bash",tool_input:{command:$c}}' \
+      | python3 "$(_resolve_helper check_git_destructive.py)" 2>/dev/null || echo allow
+  )
+  if [ "$DESTRUCTIVE_VERDICT" = "reset-hard" ]; then
+    cos_log_hook block-dangerous-commands block "rule=reset-hard"
+    echo "BLOCKED: git reset --hard discards all uncommitted changes permanently. Consider 'git stash' instead, or ask the user to confirm." >&2
+    exit 2
+  fi
+  if [ "$DESTRUCTIVE_VERDICT" = "clean-force" ]; then
+    cos_log_hook block-dangerous-commands block "rule=git-clean-force"
+    echo "BLOCKED: git clean -f permanently deletes untracked files. Ask the user to confirm which files should be removed." >&2
+    exit 2
+  fi
 fi
 
 exit 0

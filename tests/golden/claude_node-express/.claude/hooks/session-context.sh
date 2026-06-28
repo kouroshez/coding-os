@@ -149,6 +149,7 @@ if [[ "$SOURCE" == "startup" ]]; then
     "${COS_PANEL_DIR}/.uv-heredoc-override" \
     "${COS_PANEL_DIR}/.zoom-prompt-suggested" \
     "${COS_PANEL_DIR}/.docs-first-nudged" \
+    "${COS_PANEL_DIR}/.git-mode-nudged" \
     "${COS_PANEL_DIR}/.roles-composed" \
     "${COS_PANEL_DIR}/.roles" \
     "${COS_PANEL_DIR}/.role" \
@@ -173,6 +174,12 @@ if [[ "$SOURCE" == "startup" ]]; then
       CLEARED=$((CLEARED + 1))
     fi
   done
+  # Agent-scoped graph consult markers (.graph/ctx-* / plan-*). Prune by age,
+  # not wholesale: other live panels share this dir, and freshness binding
+  # already invalidates a marker whose file changed. 12h keeps a session warm.
+  if [ -d "${COS_AGENT_DIR}/.graph" ]; then
+    find "${COS_AGENT_DIR}/.graph" -type f -mmin +720 -delete 2>/dev/null || true
+  fi
   cos_log_hook session-context reset "cleared=${CLEARED} panel=${COS_PANEL_ID}"
 fi
 
@@ -305,6 +312,21 @@ fi
 # put a multi-thousand-token wall mid-chat; suppress it on compact
 # (src/core/rules/transparency-banner.md § SessionStart emission, state-files.md §S5).
 if [[ "$SOURCE" == "startup" || "$SOURCE" == "resume" ]]; then
+  # Constitution slice = the values layer the rules derive from (HIDDEN). Same
+  # startup/resume gate as the digest (suppressed on compact — the slice is
+  # already in working memory). SSOT is docs/governance/constitution.md; we
+  # surface only the delimited slice so the file stays the single source (TASK-491).
+  CONSTITUTION_DOC="${COS_PROJECT_ROOT:-$(pwd)}/docs/governance/constitution.md"
+  if [ -f "$CONSTITUTION_DOC" ] && grep -q '<!-- SLICE:START -->' "$CONSTITUTION_DOC" 2>/dev/null && grep -q '<!-- SLICE:END -->' "$CONSTITUTION_DOC" 2>/dev/null; then
+    # Both markers required: a missing SLICE:END would make sed dump the rest of
+    # the file into the injection (unbounded tokens) — guard before extracting.
+    CONSTITUTION_SLICE=$(sed -n '/<!-- SLICE:START -->/,/<!-- SLICE:END -->/p' "$CONSTITUTION_DOC" 2>/dev/null | grep -vE 'SLICE:(START|END)' || true)
+    if [ -n "$CONSTITUTION_SLICE" ]; then
+      _ss_append SS_HIDDEN "[Constitution] (values the rules derive from — full: docs/governance/constitution.md)
+${CONSTITUTION_SLICE}"
+    fi
+  fi
+
   # Agent digest: the always-active working-memory snapshot
   # (identity, top domains, beliefs, fading patterns, breakthroughs). The
   # digest was printed but never regenerated (cos_digest_regenerate had no
@@ -577,6 +599,15 @@ except OSError:
   [[ -n "$ROLES_LEAD" ]] && PARTS="${PARTS} roles=${ROLES_LEAD}"
   [[ -n "$BLK_RECENT" ]] && PARTS="${PARTS} blocks=${BLK_RECENT}"
 
+  # verify-state: the most-recently-recorded matrix suite + result from the
+  # verify ledger, so the agent sees whether the close-gate is already
+  # satisfied without re-running. Agent-facing pulse only; one short field;
+  # fail-open (a missing/garbled ledger just omits it).
+  if [[ -f "${COS_STATE_DIR}/.last-verify.json" ]] && command -v jq >/dev/null 2>&1; then
+    _VERIFY=$(jq -r 'to_entries|map(select(.value.ts))|sort_by(.value.ts)|last|"\(.key)=\(.value.status)"' "${COS_STATE_DIR}/.last-verify.json" 2>/dev/null || true)
+    [[ -n "$_VERIFY" && "$_VERIFY" != "null=null" ]] && PARTS="${PARTS} verify=${_VERIFY}"
+  fi
+
   # Aggregated PostToolUse activity since the previous prompt — Claude Code
   # does not render PostToolUse stdout, so each PostToolUse hook calls
   # `cos_record_activity` (cos-env.sh) which appends to .turn-activity.log.
@@ -607,6 +638,34 @@ except OSError:
     WARN=" ⚠️ wip=${WIP_NUM} but task=none — cos task-start <ID>"
   fi
 
+  # State-misroute (TASK-585b): cos-env.sh exports COS_STATE_MISROUTE=1 when a
+  # command inside a worktree cannot resolve its main repo, so cognitive state
+  # (board, task, presence, work-log) binds to a quarantine dir invisible to the
+  # Hub and to siblings. cos-env warns only ONCE to stderr; surface it on EVERY
+  # turn so the operator fixes the misconfig instead of silently diverging.
+  if [ "${COS_STATE_MISROUTE:-0}" = "1" ]; then
+    WARN="${WARN} ⚠️ state misrouted — board/task state is going to a quarantine dir; export COS_PROJECT_ROOT=<main-repo>"
+  fi
+
+  # CLEAR-1 self-bypass count (TASK-494): surface how many times this session
+  # self-exempted from the enforcement gates via a manual "CLEAR 1" gate write,
+  # so the cost of bypassing is visible rather than silent. Fail-open.
+  BYPASS_LOG="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.clear1-bypass-log"
+  if [ -f "$BYPASS_LOG" ]; then
+    # Count only THIS session's bypass lines (col 1 = session id); the log stays
+    # append-only across sessions for /retro audit — don't truncate it (TASK-510).
+    _CUR_SID=$(tr -d '\n\r' < "${COS_SESSION_FILE:-/nonexistent}" 2>/dev/null || true)
+    if [ -n "$_CUR_SID" ]; then
+      BYPASS_N=$(grep -cF "${_CUR_SID}$(printf '\t')" "$BYPASS_LOG" 2>/dev/null || true)
+    else
+      BYPASS_N=$(wc -l < "$BYPASS_LOG" 2>/dev/null | tr -d ' ' || true)
+    fi
+    [ -z "$BYPASS_N" ] && BYPASS_N=0
+    if [ -n "$BYPASS_N" ] && [ "$BYPASS_N" -gt 0 ] 2>/dev/null; then
+      WARN="${WARN} ℹ️ bypasses=${BYPASS_N} self-issued CLEAR-1"
+    fi
+  fi
+
   # Context-budget signal: the last usage record in the live transcript is
   # the session's true context size. Over COS_CONTEXT_BUDGET (default 200K)
   # surface an informational /compact hint to the USER — never a stop
@@ -629,15 +688,19 @@ except OSError:
     # is absent (and never fabricate one), which is the correct turn-1 behaviour.
     USER_BANNER=""
   else
+    # pr-mode is the operator-relevant deviation from the trunk default, so surface
+    # it in the banner only when on (TASK-615); trunk stays uncluttered.
+    GIT_MODE_SEG=""
+    [ "${COS_GIT_WORKFLOW:-trunk}" = "pr" ] && GIT_MODE_SEG=" · git=pr"
     case "$TASK_MODE" in
       system)
         USER_BANNER=""
         ;;
       query|adhoc|chore)
-        USER_BANNER="🔔 ses=${SES_TAIL} · mode=${TASK_MODE}${WARN}"
+        USER_BANNER="🔔 ses=${SES_TAIL} · mode=${TASK_MODE}${GIT_MODE_SEG}${WARN}"
         ;;
       *)
-        USER_BANNER="🔔 ses=${SES_TAIL} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--} · roles=${ROLES_LEAD:--}${WARN}"
+        USER_BANNER="🔔 ses=${SES_TAIL} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--} · roles=${ROLES_LEAD:--}${GIT_MODE_SEG}${WARN}"
         ;;
     esac
   fi
