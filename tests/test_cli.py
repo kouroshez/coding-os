@@ -3965,6 +3965,82 @@ class TestCosPr:
         assert "auto_merge_armed: False" in res.output
         assert "autonomy_level: draft" in res.output
 
+    def test_autonomy_levels_include_local_autonomous(self) -> None:
+        # TASK-614: the rung must exist in BOTH the consumer-side tuple and the Hub
+        # settings Literal (settings.py is exercised by test_hub_settings_git).
+        import cli.pr_commands as prc
+
+        assert "local_autonomous" in prc._AUTONOMY_LEVELS
+
+    def test_pr_land_merges_to_local_integration_and_cleans_up(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-614: local_autonomous lands the agent branch onto LOCAL integration after
+        # a green verify, then removes the worktree+branch — zero push/PR/CI, no orphan.
+        import time
+
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "local_autonomous")
+        (repo / ".coding-os").mkdir(parents=True, exist_ok=True)
+        (repo / ".coding-os" / ".last-verify.json").write_text(
+            json.dumps({"cli": {"status": "PASS", "ts": int(time.time())}}), encoding="utf-8"
+        )
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        (wt / "landed.txt").write_text("work\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(wt), "add", "landed.txt"], check=True)
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "-m", "work"], check=True)
+
+        res = runner.invoke(cli, ["pr", "land", "--adhoc", "--repo", str(repo), "--json"])
+        assert res.exit_code == 0, res.output
+        assert json.loads(res.output)["landed"] is True
+        assert (repo / "landed.txt").exists()  # work landed on local main
+        assert "agents/adhoc/ses-test-abc" not in self._branches(repo)  # no orphan branch
+        assert "adhoc-ses-test-abc" not in self._worktrees(repo)  # no orphan worktree
+
+    def test_pr_land_refuses_without_green_verify(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-614: a RED/absent local verify must NOT land — the commit stays on the branch.
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "local_autonomous")
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "work"], check=True)
+
+        res = runner.invoke(cli, ["pr", "land", "--adhoc", "--repo", str(repo), "--json"])
+        assert res.exit_code == 1, res.output
+        data = json.loads(res.output)
+        assert data["landed"] is False and data["reason"] == "verify-not-green"
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # branch survives, nothing landed
+
+    def test_pr_land_aborts_on_conflict(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-614: a merge conflict → `merge --abort`, no land, surfaced; integration clean.
+        import time
+
+        monkeypatch.setenv("COS_GIT_AUTONOMY", "local_autonomous")
+        (repo / ".coding-os").mkdir(parents=True, exist_ok=True)
+        (repo / ".coding-os" / ".last-verify.json").write_text(
+            json.dumps({"cli": {"status": "PASS", "ts": int(time.time())}}), encoding="utf-8"
+        )
+        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
+        (wt / "c.txt").write_text("branch side\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(wt), "add", "c.txt"], check=True)
+        subprocess.run(["git", "-C", str(wt), "commit", "-q", "-m", "branch c"], check=True)
+        # a conflicting add of the SAME path on local main
+        (repo / "c.txt").write_text("main side\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(repo), "add", "c.txt"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "main c"], check=True)
+
+        res = runner.invoke(cli, ["pr", "land", "--adhoc", "--repo", str(repo), "--json"])
+        assert res.exit_code == 1, res.output
+        data = json.loads(res.output)
+        assert data["landed"] is False and data["reason"] == "merge-conflict"
+        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # not landed → branch survives
+        assert not (repo / ".git" / "MERGE_HEAD").exists()  # merge --abort left the tree clean
+        assert (repo / "c.txt").read_text() == "main side\n"  # integration unchanged
+
     def test_submit_local_autonomy_never_pushes(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

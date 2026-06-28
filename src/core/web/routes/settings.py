@@ -262,10 +262,13 @@ class _GitSettingsIn(BaseModel):
     enabled: bool
     integration_branch: str = "main"
     protected_branches: list[str] = ["production"]
-    # Trust Spectrum (TASK-540): local = no push at all; draft/auto_merge/autonomous
-    # push. Literal rejects a typo'd rung at the API edge instead of letting it
-    # reach cos-env → COS_GIT_AUTONOMY where it would silently behave as draft.
-    autonomy_level: Literal["local", "draft", "auto_merge", "autonomous"] = "draft"
+    # Trust Spectrum (TASK-540/614): local = commit-only; local_autonomous = land on
+    # LOCAL integration after a green verify, zero network; draft/auto_merge/autonomous
+    # push. Literal rejects a typo'd rung at the API edge instead of letting it reach
+    # cos-env → COS_GIT_AUTONOMY where it would silently behave as draft.
+    autonomy_level: Literal[
+        "local", "local_autonomous", "draft", "auto_merge", "autonomous"
+    ] = "draft"
     # Explicit fields so a PATCH persists them — an exclude_unset model_dump would
     # else silently drop these as unknown keys.
     worktree_include: list[str] = []

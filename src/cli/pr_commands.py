@@ -150,7 +150,7 @@ def _integration_branch(repo: str | None = None) -> str:
     return "main"
 
 
-_AUTONOMY_LEVELS = ("local", "draft", "auto_merge", "autonomous")
+_AUTONOMY_LEVELS = ("local", "local_autonomous", "draft", "auto_merge", "autonomous")
 
 
 def _autonomy_level(repo: str | None = None) -> str:
@@ -742,6 +742,112 @@ def pr_submit(
     if cap["unprotected_integration"]:
         payload["warning"] = _unprotected_warning(integration)
     _emit(payload, as_json)
+
+
+def _land_verify_ok(repo: str) -> bool:
+    # local_autonomous lands only after a GREEN local verify — read the same
+    # .last-verify.json freshness marker the DoD gate uses (most-recent PASS within
+    # the window). Absent / only-FAIL / stale → refuse to land (TASK-614).
+    path = Path(repo) / ".coding-os" / ".last-verify.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(data, dict):
+        return False
+    ttl = _env_int("COS_PR_LAND_VERIFY_TTL", 1800)
+    now = int(time.time())
+    for suite in data.values():
+        if isinstance(suite, dict) and suite.get("status") == "PASS":
+            ts = suite.get("ts")
+            if isinstance(ts, int) and 0 <= now - ts <= ttl:
+                return True
+    return False
+
+
+@pr_group.command(
+    "land",
+    help="local_autonomous: merge the agent branch onto LOCAL integration after a green "
+    "verify, then clean up (zero push/PR/CI).",
+)
+@click.option("--task", "task_id", default=None)
+@click.option("--adhoc", is_flag=True)
+@click.option("--repo", "repo_opt", default=None)
+@click.option("--integration", default=None)
+@click.option("--no-ff/--ff", "no_ff", default=True, help="--no-ff (default) keeps a merge commit; --ff for fast-forward only.")
+@click.option("--json", "as_json", is_flag=True)
+def pr_land(
+    task_id: str | None,
+    adhoc: bool,
+    repo_opt: str | None,
+    integration: str | None,
+    no_ff: bool,
+    as_json: bool,
+) -> None:
+    repo = _resolve_repo(repo_opt)
+    integration = integration or _integration_branch(repo)
+    session = _agent_session()
+    task_slug = "adhoc" if adhoc else _sanitize(task_id) if task_id else None
+    if task_slug is None:
+        raise click.ClickException("cos pr land needs --task <id> or --adhoc.")
+    wt, branch = _resolve_worktree(repo, task_slug, session)
+    if not (wt / ".git").exists():
+        raise click.ClickException(f"no open worktree at {wt} — run 'cos pr open' first.")
+
+    # A RED/absent local verify must NOT land — the rung's whole premise is "green first".
+    if not _land_verify_ok(repo):
+        _emit(
+            {
+                "branch": branch,
+                "landed": False,
+                "reason": "verify-not-green",
+                "action": "no recent green verify — run the matrix verify in the worktree, then re-run 'cos pr land'.",
+            },
+            as_json,
+        )
+        sys.exit(1)
+
+    ahead = _commit_count(wt, f"{integration}..{branch}")
+    if ahead == 0:
+        _emit(
+            {"branch": branch, "landed": False, "reason": "nothing-to-land",
+             "action": f"no commits ahead of '{integration}' — commit your work in the worktree first."},
+            as_json,
+        )
+        return
+
+    # Sanctioned land: merge onto LOCAL integration on the SHARED checkout. cos exports
+    # COS_PR_LAND so branch-guard recognises this path (an agent's raw `git merge` on the
+    # shared tree stays BLOCKED). Zero network — no push, no PR, no CI.
+    merge_args = ["merge", "--no-ff", branch, "-m", f"land {branch} (local_autonomous)"] if no_ff \
+        else ["merge", "--ff-only", branch]
+    os.environ["COS_PR_LAND"] = "1"
+    try:
+        merged = _git(merge_args, cwd=repo)
+        if merged.returncode != 0:
+            _git(["merge", "--abort"], cwd=repo)
+            _emit(
+                {"branch": branch, "landed": False, "reason": "merge-conflict",
+                 "action": f"merge of '{branch}' onto '{integration}' conflicted — aborted; "
+                           f"rebase the worktree onto '{integration}', re-verify, then retry 'cos pr land'."},
+                as_json,
+            )
+            sys.exit(1)
+        # Landed: the work is on integration, so the worktree+branch are safe to GC (no
+        # orphan). Unlock first — `pr open` locks the worktree with the owner stamp, and
+        # `worktree remove` refuses a locked tree (same as the reaper's _reap_one).
+        _git(["worktree", "unlock", str(wt)], cwd=repo)
+        _git(["worktree", "remove", "--force", str(wt)], cwd=repo)
+        _git(["branch", "-D", branch], cwd=repo)
+        _git(["worktree", "prune"], cwd=repo)
+    finally:
+        os.environ.pop("COS_PR_LAND", None)
+
+    _emit(
+        {"branch": branch, "landed": True, "integration": integration, "commits": ahead,
+         "action": f"merged {ahead} commit(s) onto local '{integration}'; worktree+branch removed (zero network)."},
+        as_json,
+    )
 
 
 @pr_group.command("status", help="List this repo's pr-mode worktrees, branches, and open PRs.")

@@ -1097,3 +1097,24 @@ def test_pr_allows_update_ref_head_in_worktree() -> None:
 def test_pr_blocks_update_ref_stdin_unchanged() -> None:
     code, _ = _run("git update-ref --stdin", workflow="pr")
     assert code == 2
+
+
+# TASK-614 — local_autonomous sanctioned land carve. `cos pr land` exports COS_PR_LAND
+# into the merge subprocess's env; branch-guard reads it from os.environ. A raw agent
+# merge on the shared checkout stays blocked, and an inline COS_PR_LAND=1 prefix cannot
+# forge it (resolve_command strips the assignment to _env, never os.environ).
+def test_pr_blocks_raw_agent_merge_on_shared_checkout() -> None:
+    code, _ = _run("git merge agents/t/1", workflow="pr")
+    assert code == 2
+
+
+def test_pr_allows_sanctioned_land_merge_with_env_signal() -> None:
+    code, _ = _run("git merge --no-ff agents/t/1", workflow="pr", extra_env={"COS_PR_LAND": "1"})
+    assert code == 0
+
+
+def test_pr_inline_cos_pr_land_prefix_cannot_forge_the_carve() -> None:
+    # The assignment is part of the command (stripped to _env), not the guard's own
+    # process env — so it must NOT unlock the merge.
+    code, _ = _run("COS_PR_LAND=1 git merge agents/t/1", workflow="pr")
+    assert code == 2
