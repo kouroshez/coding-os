@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-27
 started: 2026-06-27
-completed: null
+completed: 2026-06-27
 agent_session: ses-claude-20260627-161919-30e5
 depends_on: []
 blocked_by: []
@@ -30,3 +30,4 @@ references: []
 ## Work Log
 - 2026-06-28 [claude]: Edit session-context.sh
 - 2026-06-28 [claude]: Implemented in the agent-facing pulse (PARTS, not the user banner): session-context.sh now reads .last-verify.json…
+- 2026-06-28 [claude]: committed 63c17a8b · 7 files

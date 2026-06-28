@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-27
 started: 2026-06-27
-completed: null
+completed: 2026-06-27
 agent_session: ses-claude-20260627-161919-30e5
 depends_on: []
 blocked_by: []
@@ -36,3 +36,4 @@ verify-suites.yaml has NO entry for src/core/web/ui/** (vitest exists: package.j
 - 2026-06-28 [claude]: Edit verify-suites.yaml
 - 2026-06-28 [claude]: Edit record-verify-auto.sh
 - 2026-06-28 [claude]: Implemented: make ui-test target (cd src/core/web/ui && npm test = vitest run); test-web-ui suite in…
+- 2026-06-28 [claude]: committed 49e82216 · 9 files
