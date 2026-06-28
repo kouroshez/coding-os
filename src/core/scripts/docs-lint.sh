@@ -170,6 +170,35 @@ if [ -f "$DOCS_DIR/_meta/foundation-map.md" ] && [ ${#TARGETS[@]} -gt 1 ]; then
   done
 fi
 
+# Check 5: risk-register expiry + tracking discipline. Each active
+# `- `RISK-NNN`` line must carry review-by:YYYY-MM-DD + tracking:<ref>; a
+# past-due review-by is flagged for re-triage. YYYY-MM-DD sorts chronologically
+# as a string, so the date compare needs no parsing. Non-fatal (accumulates into
+# ERRORS, gated only under STRICT — `err` would exit on the first hit), so every
+# offending risk is reported in one pass. Empty register passes.
+RISK_REGISTER="$DOCS_DIR/governance/risk-register.md"
+if [ -f "$RISK_REGISTER" ]; then
+  today=$(date +%Y-%m-%d)
+  while IFS= read -r line; do
+    rid=$(echo "$line" | grep -oE 'RISK-[0-9]+' | head -1)
+    if ! echo "$line" | grep -qE 'review-by:[[:space:]]*[0-9]{4}-[0-9]{2}-[0-9]{2}'; then
+      echo "ERROR: risk-register.md: $rid missing 'review-by:YYYY-MM-DD'" >&2
+      ERRORS=$((ERRORS + 1))
+      continue
+    fi
+    if ! echo "$line" | grep -qE 'tracking:[[:space:]]*[^[:space:]]'; then
+      echo "ERROR: risk-register.md: $rid missing 'tracking:<task|issue>'" >&2
+      ERRORS=$((ERRORS + 1))
+      continue
+    fi
+    review_by=$(echo "$line" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
+    if [[ "$review_by" < "$today" ]]; then
+      echo "ERROR: risk-register.md: $rid review-by $review_by is past-due — re-triage or close" >&2
+      ERRORS=$((ERRORS + 1))
+    fi
+  done < <(grep -E '^- `RISK-[0-9]+`' "$RISK_REGISTER" 2>/dev/null || true)
+fi
+
 echo ""
 if [ $ERRORS -eq 0 ]; then
   ok "docs-lint markdown pass: $CHECKED file(s) checked, 0 errors, $WARNINGS warning(s)" >&2

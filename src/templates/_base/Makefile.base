@@ -202,6 +202,13 @@ verify-hooks: ## Syntax-check + shellcheck (warning level) on all hook scripts
 	else \
 	  echo "WARN: shellcheck not installed — install with 'brew install shellcheck' to enforce" >&2; \
 	fi
+	@MISSING=""; for f in $(COS_HOOKS)/block-*.sh; do \
+	  [ -e "$$f" ] || continue; \
+	  grep -q 'exit 2' "$$f" || MISSING="$$MISSING $$(basename $$f)"; \
+	done; \
+	if [ -n "$$MISSING" ]; then \
+	  echo "ERROR: block-* hook(s) missing 'exit 2' (enforcement disarmed):$$MISSING" >&2; exit 1; \
+	else echo "OK: all block-* hooks contain 'exit 2'"; fi
 
 .PHONY: cos-reindex
 cos-reindex: ## Re-embed all observations/patterns/outcomes (Phase B RAG)

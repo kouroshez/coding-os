@@ -10,10 +10,11 @@ Read next: Relevant ADR in `../architecture/adr/` or the domain architecture doc
 
 ## Active Risks
 
-<!-- Format: `RISK-NNN` Description (one line). Add owner and mitigation if known.
+<!-- Format (review-by + tracking are REQUIRED — `make docs-lint` flags a missing
+     field or a past-due review-by so tolerated risk is re-triaged, not accreted):
+       - `RISK-NNN` Description. owner: <name> · review-by: YYYY-MM-DD · tracking: TASK-NNN | #issue
      Example:
-     - `RISK-001` Backup automation needs operational owner before production.
-     - `RISK-002` Monitoring stack RAM footprint may exceed VPS budget.
+     - `RISK-001` Backup automation needs an owner before production. owner: ops · review-by: 2026-09-01 · tracking: TASK-123
 -->
 
 (empty — populate as risks are identified)
@@ -24,3 +25,4 @@ Read next: Relevant ADR in `../architecture/adr/` or the domain architecture doc
 - Once resolved, move the resolution into the relevant ADR, architecture doc, or change log entry and remove or downgrade the risk.
 - Historical risk analysis belongs in archive docs, not active architecture indexes.
 - Each risk needs an ID (`RISK-NNN`), a one-line description, and ideally an owner and mitigation plan.
+- Each risk MUST carry a `review-by: YYYY-MM-DD` date and a `tracking:` ref (task or issue); `make docs-lint` flags a missing field or a past-due `review-by` so a stale risk is re-triaged, not silently accumulated.
