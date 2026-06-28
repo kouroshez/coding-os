@@ -19,8 +19,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from database import init_db
 from tools.routing import (
     _data_confidence,
+    _sample_beta,
     recalculate_weights,
     route_model,
+    route_model_bandit,
     route_skill,
 )
 
@@ -189,6 +191,45 @@ class TestRouteModel:
         conn.commit()
         result = route_model(conn, complexity="COMPLICATED", domain="BACKEND")
         assert result["recommended_model"] == "haiku"
+
+
+class TestRouteModelBandit:
+    def test_flag_off_delegates_to_route_model(self, warm_conn, monkeypatch) -> None:
+        monkeypatch.delenv("COS_ROUTER_BANDIT", raising=False)
+        result = route_model_bandit(warm_conn, complexity="COMPLICATED", domain="BACKEND")
+        assert "method" not in result  # frequentist path, byte-identical
+        assert result["recommended_model"] == "opus"
+
+    def test_cold_start_delegates_even_when_flag_on(self, cold_conn, monkeypatch) -> None:
+        monkeypatch.setenv("COS_ROUTER_BANDIT", "1")
+        result = route_model_bandit(cold_conn, complexity="CLEAR")
+        assert "method" not in result  # cold-start delegates to route_model
+        assert result["confidence"] == 0.0
+
+    def test_warm_samples_thompson(self, warm_conn, monkeypatch) -> None:
+        monkeypatch.setenv("COS_ROUTER_BANDIT", "1")
+        result = route_model_bandit(warm_conn, complexity="COMPLICATED", domain="BACKEND")
+        assert result["method"] == "thompson"
+        assert result["recommended_model"] in {"opus", "sonnet"}
+        assert 0.0 <= result["confidence"] <= 1.0
+        for s in result["model_stats"]:
+            assert s["alpha"] >= 1 and s["beta"] >= 1  # Beta(1+success, 1+failure)
+
+    def test_warm_prefers_higher_success_model(self, warm_conn, monkeypatch) -> None:
+        import random
+
+        monkeypatch.setenv("COS_ROUTER_BANDIT", "1")
+        random.seed(42)
+        picks = [
+            route_model_bandit(warm_conn, complexity="COMPLICATED", domain="BACKEND")["recommended_model"]
+            for _ in range(50)
+        ]
+        assert picks.count("opus") > picks.count("sonnet")  # opus 90% beats sonnet 57%
+
+    def test_sample_beta_in_unit_interval(self) -> None:
+        for a, b in [(1.0, 1.0), (10.0, 2.0), (2.0, 10.0), (1.5, 1.5)]:
+            for _ in range(20):
+                assert 0.0 <= _sample_beta(a, b) <= 1.0
 
 
 # ---------------------------------------------------------------------------

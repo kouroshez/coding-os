@@ -13,6 +13,9 @@ and autonomous routing evolution:
 from __future__ import annotations
 
 import logging
+import math
+import os
+import random
 import sqlite3
 
 logger = logging.getLogger("thinking_os.routing")
@@ -86,28 +89,7 @@ def route_model(
     # orchestrator model (task_outcomes.model) for tasks done with no role
     # dispatch. The DISTINCT subquery collapses multiple same-model dispatches in
     # one task to a single data point so one task isn't double-counted per role.
-    conditions = ["t.complexity = ?"]
-    params: list = [complexity]
-    if domain:
-        conditions.append("t.domain = ?")
-        params.append(domain)
-    where = " AND ".join(conditions)
-
-    rows = conn.execute(
-        "SELECT model, "
-        "SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) AS successes, "
-        "COUNT(*) AS total FROM ("
-        "  SELECT DISTINCT t.task_id, COALESCE(fd.model, t.model) AS model, t.outcome "
-        "  FROM task_outcomes t "
-        "  LEFT JOIN formula_dispatches fd "
-        "    ON fd.task_marker = t.task_id AND fd.model IS NOT NULL "
-        f"  WHERE {where}"
-        ") per_task_model "
-        "WHERE model IS NOT NULL "
-        "GROUP BY model "
-        "HAVING total >= ?",
-        params + [MIN_SAMPLES_PER_BUCKET],
-    ).fetchall()
+    rows = _model_success_rows(conn, complexity, domain)
 
     if not rows:
         return {
@@ -154,6 +136,140 @@ def route_model(
         "fallback_model": fallback,
         "data_points": total,
         "model_stats": model_stats,
+    }
+
+
+def _model_success_rows(conn: sqlite3.Connection, complexity: str, domain: str | None) -> list:
+    # Per-model (successes, total) for a complexity/domain bucket. Credits the
+    # model that RAN the role (formula_dispatches.model by task_marker), falling
+    # back to the orchestrator (task_outcomes.model); DISTINCT collapses repeat
+    # same-model dispatches in one task. Shared by the frequentist + bandit paths.
+    conditions = ["t.complexity = ?"]
+    params: list = [complexity]
+    if domain:
+        conditions.append("t.domain = ?")
+        params.append(domain)
+    where = " AND ".join(conditions)
+    return conn.execute(
+        "SELECT model, "
+        "SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) AS successes, "
+        "COUNT(*) AS total FROM ("
+        "  SELECT DISTINCT t.task_id, COALESCE(fd.model, t.model) AS model, t.outcome "
+        "  FROM task_outcomes t "
+        "  LEFT JOIN formula_dispatches fd "
+        "    ON fd.task_marker = t.task_id AND fd.model IS NOT NULL "
+        f"  WHERE {where}"
+        ") per_task_model "
+        "WHERE model IS NOT NULL "
+        "GROUP BY model "
+        "HAVING total >= ?",
+        params + [MIN_SAMPLES_PER_BUCKET],
+    ).fetchall()
+
+
+def _sample_gamma(shape: float) -> float:
+    # Marsaglia-Tsang: shape>=1 directly; boost shape<1 via the x**(1/shape) trick.
+    if shape < 1.0:
+        return _sample_gamma(shape + 1.0) * (random.random() ** (1.0 / shape))
+    d = shape - 1.0 / 3.0
+    c = 1.0 / math.sqrt(9.0 * d)
+    while True:
+        x = random.gauss(0.0, 1.0)
+        v = (1.0 + c * x) ** 3
+        if v <= 0:
+            continue
+        u = random.random()
+        if u < 1.0 - 0.0331 * (x ** 4) or math.log(u) < 0.5 * x * x + d * (1.0 - v + math.log(v)):
+            return d * v
+
+
+def _sample_beta(a: float, b: float) -> float:
+    x = _sample_gamma(a)
+    y = _sample_gamma(b)
+    return x / (x + y) if (x + y) > 0 else 0.5
+
+
+def _model_cost_rank(model: str) -> float:
+    m = (model or "").lower()
+    if "opus" in m:
+        return 1.0
+    if "haiku" in m:
+        return 0.0
+    if "sonnet" in m:
+        return 0.5
+    return 0.5
+
+
+def route_model_bandit(
+    conn: sqlite3.Connection,
+    *,
+    complexity: str,
+    dimensions: int = 1,
+    domain: str | None = None,
+) -> dict:
+    """Thompson-sampling (Beta-Bernoulli) model router over the dispatch ledger; gated by COS_ROUTER_BANDIT.
+
+    Flag unset OR cold-start (< COLD_START_THRESHOLD outcomes) OR no warm bucket
+    delegates byte-for-byte to the frequentist route_model. Otherwise samples
+    theta ~ Beta(1+successes, 1+failures) per model and picks the max, with an
+    optional cost-tilt (COS_ROUTER_COST_TILT) nudging ties toward the cheaper tier.
+    """
+    if not os.environ.get("COS_ROUTER_BANDIT"):
+        return route_model(conn, complexity=complexity, dimensions=dimensions, domain=domain)
+
+    fallback = DEFAULT_MODELS.get(complexity, "sonnet")
+    total = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
+    if total < COLD_START_THRESHOLD:
+        return route_model(conn, complexity=complexity, dimensions=dimensions, domain=domain)
+
+    rows = _model_success_rows(conn, complexity, domain)
+    if not rows:
+        return route_model(conn, complexity=complexity, dimensions=dimensions, domain=domain)
+
+    try:
+        tilt = max(0.0, float(os.environ.get("COS_ROUTER_COST_TILT", "0") or "0"))
+    except ValueError:
+        tilt = 0.0
+
+    best_model = fallback
+    best_theta = -1.0
+    best_score = -2.0
+    model_stats = []
+    for row in rows:
+        d = dict(row)
+        successes = int(d["successes"] or 0)
+        n = int(d["total"] or 0)
+        alpha = 1.0 + successes
+        beta = 1.0 + max(0, n - successes)
+        theta = _sample_beta(alpha, beta)
+        score = theta - tilt * _model_cost_rank(d["model"])
+        model_stats.append(
+            {
+                "model": d["model"],
+                "alpha": alpha,
+                "beta": beta,
+                "sampled_theta": round(theta, 3),
+                "sample_size": n,
+            }
+        )
+        if score > best_score:
+            best_score = score
+            best_theta = theta
+            best_model = d["model"]
+
+    return {
+        "recommended_model": best_model,
+        "confidence": round(best_theta, 2),
+        "reason": (
+            f"Thompson-sampled {best_model} (theta={best_theta:.3f}) over "
+            f"{len(rows)} model(s) for {complexity}"
+            + (f" {domain}" if domain else "")
+            + (f", cost-tilt {tilt}" if tilt else "")
+        ),
+        "fallback_model": fallback,
+        "data_points": total,
+        "model_stats": model_stats,
+        "method": "thompson",
     }
 
 

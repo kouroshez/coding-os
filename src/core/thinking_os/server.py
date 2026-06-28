@@ -197,7 +197,7 @@ from tools.retrieve import (
     log_retrieval,
     log_router_decision,
 )
-from tools.routing import failure_pattern_query, route_model, route_skill
+from tools.routing import failure_pattern_query, route_model_bandit, route_skill
 from tools.tasks import task_by_filter, task_dependencies, task_dependents, task_search
 from tools.trajectory import trajectory_read, trajectory_snapshot
 
@@ -937,7 +937,7 @@ def cos_route_model(
     Returns:
         str: JSON with recommended_model, confidence, reason, fallback_model.
     """
-    result = route_model(
+    result = route_model_bandit(
         _db_conn,
         complexity=complexity,
         dimensions=dimensions,
