@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: icebox
+status: in_progress
 priority: P3
 appetite: 1d
 created: 2026-06-27
-started: null
+started: 2026-06-27
 completed: null
-agent_session: null
+agent_session: ses-claude-20260627-161919-30e5
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-630: Add test-web-ui (vitest) verify-suite — close the UI coverage hole (record-filter+golden)
 
 **Outcome (one sentence):** An edit under src/core/web/ui/** maps to a verify-suite (vitest) so the agent is gated/told to run UI tests at task-done, closing the F-TST-1 coverage hole where UI edits record no matrix verify. Done WITHOUT creating an unsatisfiable gate.
@@ -33,3 +32,7 @@ verify-suites.yaml has NO entry for src/core/web/ui/** (vitest exists: package.j
 - **Given** a src/core/web/ui/** change **When** the agent closes the task **Then** verify-suites maps it to test-web-ui and the gate is satisfiable. - **Given** the agent runs the suite command **When** it exits 0 **Then** record-verify-auto.sh records the PASS (so the gate is satisfiable, not a deadlock). - **Given** vitest is run via the suite command **Then** it is `make ui-test`, not a raw npm (record-verify-auto only matches make/pytest verbs).
 
 ## Work Log
+- 2026-06-28 [claude]: Edit Makefile
+- 2026-06-28 [claude]: Edit verify-suites.yaml
+- 2026-06-28 [claude]: Edit record-verify-auto.sh
+- 2026-06-28 [claude]: Implemented: make ui-test target (cd src/core/web/ui && npm test = vitest run); test-web-ui suite in…

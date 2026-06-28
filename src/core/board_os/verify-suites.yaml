@@ -44,6 +44,15 @@ suites:
       - "src/core/scheduled/**/*.py"
     command: "uv run --extra rag pytest src/core/scheduled/tests/ -q"
 
+  # Hub SPA (vitest). Command is `make ui-test`, NOT a raw npm: record-verify-auto.sh
+  # only records suites whose command matches a make/pytest verb, so a bare npm
+  # run would never satisfy the gate it triggers (it would deadlock the close).
+  test-web-ui:
+    paths:
+      - "src/core/web/ui/**/*.ts"
+      - "src/core/web/ui/**/*.tsx"
+    command: "make ui-test"
+
   verify-hooks:
     paths:
       - "src/core/hooks/*.sh"

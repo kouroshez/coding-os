@@ -18,7 +18,7 @@ INPUT="$(cos_read_stdin_bounded 2)"
 # before any jq spawn (fires on EVERY Bash tool call). The precise COMMAND-
 # level case below still gates the actual work.
 case "$INPUT" in
-  *pytest*|*"make verify-hooks"*|*"make docs-lint"*) ;;
+  *pytest*|*"make verify-hooks"*|*"make docs-lint"*|*"make ui-test"*) ;;
   *) exit 0 ;;
 esac
 
@@ -27,7 +27,7 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || ec
 
 # Cheap pre-filter — only suite-shaped commands reach the python matcher.
 case "$COMMAND" in
-  *pytest*|*"make verify-hooks"*|*"make docs-lint"*) ;;
+  *pytest*|*"make verify-hooks"*|*"make docs-lint"*|*"make ui-test"*) ;;
   *) exit 0 ;;
 esac
 case "$COMMAND" in
