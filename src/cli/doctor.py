@@ -2778,13 +2778,23 @@ def doctor(
 ) -> None:
     """Deep health check: scaffold, DB schema, adapter, manifest, MCP."""
     if tokens:
-        from cli.doctor_tokens import analyze_tokens, format_tokens_text
+        from cli.doctor_tokens import (
+            analyze_dispatch_cost,
+            analyze_tokens,
+            format_dispatch_cost_text,
+            format_tokens_text,
+        )
 
-        token_report = analyze_tokens(Path(project_dir).resolve(), days=tokens_days)
+        proj = Path(project_dir).resolve()
+        token_report = analyze_tokens(proj, days=tokens_days)
+        cost_report = analyze_dispatch_cost(proj / ".coding-os" / "coding-os.db")
         if output_format == "json":
-            click.echo(json.dumps(token_report, indent=2))
+            click.echo(json.dumps({**token_report, "dispatch_cost": cost_report}, indent=2))
         else:
             click.echo(format_tokens_text(token_report))
+            cost_text = format_dispatch_cost_text(cost_report)
+            if cost_text:
+                click.echo(cost_text)
         return
     if bootstrap:
         report = run_bootstrap_doctor()

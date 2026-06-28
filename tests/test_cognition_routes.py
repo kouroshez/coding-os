@@ -222,3 +222,44 @@ class TestChatPriming:
             {"type": "preset", "preset": "claude_code", "append": "BASE"}, str(tmp_path)
         )
         assert len(primed["append"]) < 2_200  # 2000-char intake cap + framing
+
+
+def test_cost_health_fails_open_without_db(client):
+    c, _ = client
+    resp = c.get("/api/cognition/cost/health")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert set(data) >= {"anomaly", "burn", "budget", "overall_ok"}
+    assert data["overall_ok"] is True
+    assert data["budget"]["level"] == "ok"
+
+
+def test_cost_health_flags_outlier_with_db(client):
+    from thinking_os.database import init_db, resolve_db_path
+    from web._project_context import current_project_root
+
+    c, _ = client
+    dbp = resolve_db_path(current_project_root())
+    dbp.parent.mkdir(parents=True, exist_ok=True)
+    conn = init_db(dbp)
+    for i in range(5):
+        conn.execute(
+            "INSERT INTO formula_dispatches "
+            "(session_id,task_marker,persona_id,formula_id,input_hash,status,ts,cost_usd) "
+            "VALUES (?,?,?,?,?,?,datetime('now'),?)",
+            (f"s{i}", "t", "p", "f", "h", "ok", 0.1),
+        )
+    conn.execute(
+        "INSERT INTO formula_dispatches "
+        "(session_id,task_marker,persona_id,formula_id,input_hash,status,ts,cost_usd) "
+        "VALUES (?,?,?,?,?,?,datetime('now'),?)",
+        ("spike", "t", "p", "f", "h", "ok", 9.0),
+    )
+    conn.commit()
+    conn.close()
+    resp = c.get("/api/cognition/cost/health")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["anomaly"]["ok"] is False
+    assert any(o["session_id"] == "spike" for o in data["anomaly"]["outliers"])
+    assert data["overall_ok"] is False

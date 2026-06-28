@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 import time
 from collections import Counter
 from pathlib import Path
@@ -191,4 +192,57 @@ def format_tokens_text(report: dict[str, Any]) -> str:
                 f"    {s['cache_read']:>16,} cache-read  {s['turns']:>5} turns  "
                 f"out={s['output']:>12,}  {s['name'][:8]}{tag}"
             )
+    return "\n".join(lines)
+
+
+def analyze_dispatch_cost(db_path: Path | str) -> dict[str, Any]:
+    """Cost-anomaly + burn-rate over formula_dispatches — distinct from transcript tokens."""
+    try:
+        from cli._resources import core_dir
+
+        core = str(core_dir())
+        if core not in sys.path:
+            sys.path.insert(0, core)
+        from thinking_os import budget
+    except Exception:
+        return {"found": False}
+    db = Path(db_path)
+    if not db.exists():
+        return {"found": False}
+    return {
+        "found": True,
+        "anomaly": budget.cost_anomaly(db),
+        "burn": budget.cost_burn_rate(db),
+    }
+
+
+def format_dispatch_cost_text(report: dict[str, Any]) -> str:
+    if not report.get("found"):
+        return ""
+    anomaly = report.get("anomaly", {})
+    burn = report.get("burn", {})
+    lines = ["", "Dispatch cost (formula_dispatches):"]
+    n = anomaly.get("n", 0)
+    if anomaly.get("outliers"):
+        lines.append(
+            f"  WARN: {len(anomaly['outliers'])} cost-outlier session(s) "
+            f"(modified-z > 3.5, median ${anomaly.get('median')}):"
+        )
+        for o in anomaly["outliers"][:5]:
+            lines.append(f"    {o['session_id'][:16]:16s}  ${o['cost_usd']:>10.4f}  z={o['modified_z']}")
+    elif n < 3:
+        lines.append(f"  anomaly: n={n} (<3) — need >=3 sessions with cost to flag outliers")
+    else:
+        lines.append(f"  OK: no cost outliers across {n} sessions (median ${anomaly.get('median')})")
+    if burn.get("days", 0) >= 2:
+        delta = burn.get("delta_pct")
+        partial = " (today, partial)" if burn.get("partial_today") else ""
+        flag = "WARN: accelerating" if burn.get("accelerating") else "OK"
+        delta_str = f"{delta:+.1f}%" if delta is not None else "n/a"
+        lines.append(
+            f"  {flag}: latest day {burn.get('latest_day')}{partial} "
+            f"${burn.get('latest_cost_usd')} vs prior-mean ${burn.get('prior_mean_usd')} ({delta_str})"
+        )
+    else:
+        lines.append("  burn-rate: insufficient daily history (<2 days)")
     return "\n".join(lines)

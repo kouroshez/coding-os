@@ -402,6 +402,46 @@ def dispatcher_cost_summary(
     )
 
 
+@router.get("/cost/health")
+def dispatcher_cost_health(
+    _rl=Depends(make_rate_limit_dep("cognition.cost_health")),
+    _m=Depends(make_metrics_dep("cognition.cost_health")),
+):
+    """Cost-health gauges over formula_dispatches: MAD anomaly, burn-rate, budget ladder."""
+    empty = {
+        "anomaly": {"ok": True, "n": 0, "outliers": []},
+        "burn": {"days": 0},
+        "budget": {"level": "ok", "cap_usd": None, "spent_usd": 0.0, "allowed": True},
+        "overall_ok": True,
+        "meta": {"layer": "cognition"},
+    }
+    db = _db_path()
+    if db is None:
+        return unwrap(json.dumps({"ok": True, "data": empty}))
+    try:
+        from thinking_os import budget
+
+        anomaly = budget.cost_anomaly(db)
+        burn = budget.cost_burn_rate(db)
+        gate = budget.check(db)
+        data = {
+            "anomaly": anomaly,
+            "burn": burn,
+            "budget": {
+                "level": gate.level,
+                "cap_usd": gate.cap_usd,
+                "spent_usd": round(gate.spent_usd, 6),
+                "allowed": gate.allowed,
+            },
+            "overall_ok": bool(anomaly.get("ok", True) and gate.level != "hard_stop"),
+            "meta": {"layer": "cognition"},
+        }
+        return unwrap(json.dumps({"ok": True, "data": data}))
+    except Exception as exc:
+        logger.debug("cost/health failed, failing open: %s", exc)
+        return unwrap(json.dumps({"ok": True, "data": empty}))
+
+
 @router.get("/dispatchers")
 def list_dispatchers(
     limit: int = Query(100, ge=1, le=1000),

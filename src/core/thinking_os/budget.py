@@ -2,7 +2,7 @@
 
 Reads env COS_DAILY_BUDGET_USD (float). If unset or <=0, gate disabled.
 Computes today's accumulated cost from formula_dispatches.cost_usd
-(date(created_at)=today UTC) and checks against the cap before allowing
+(date(ts)=today UTC) and checks against the cap before allowing
 a new dispatch.
 
 Always fail-closed — when in doubt, return BudgetGate(allowed=True) so
@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import os
 import sqlite3
+import statistics
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -50,6 +51,7 @@ class BudgetGate:
     cap_usd: float | None
     spent_usd: float
     reason: str = ""
+    level: str = "ok"  # utilization gauge: ok|info|warning|critical|hard_stop
 
 
 def _today_utc_date() -> str:
@@ -84,7 +86,7 @@ def _spent_today(db_path: str | Path) -> float:
             row = conn.execute(
                 "SELECT COALESCE(SUM(cost_usd), 0.0) "
                 "FROM formula_dispatches "
-                "WHERE date(created_at) = ?",
+                "WHERE date(ts) = ?",
                 (_today_utc_date(),),
             ).fetchone()
         except sqlite3.OperationalError as exc:
@@ -95,12 +97,30 @@ def _spent_today(db_path: str | Path) -> float:
         conn.close()
 
 
+def _budget_utilization_level(spent: float, cap: float | None) -> str:
+    # Gauge only — the fail-closed allow/deny stays in check(); this just labels
+    # how close spend is to the cap so callers can warn before the hard stop.
+    if not cap or cap <= 0:
+        return "ok"
+    pct = spent / cap
+    if pct >= 1.0:
+        return "hard_stop"
+    if pct >= 0.9:
+        return "critical"
+    if pct >= 0.75:
+        return "warning"
+    if pct >= 0.5:
+        return "info"
+    return "ok"
+
+
 def check(db_path: str | Path, *, additional_estimate_usd: float = 0.0) -> BudgetGate:
     cap = _read_cap() or _read_hub_settings_cap()
     if cap is None:
         return BudgetGate(allowed=True, cap_usd=None, spent_usd=0.0)
     spent = _spent_today(db_path)
     projected = spent + max(0.0, float(additional_estimate_usd))
+    level = _budget_utilization_level(projected, cap)
     if projected >= cap:
         reason = (
             f"daily budget exceeded: spent ${spent:.4f} "
@@ -108,5 +128,93 @@ def check(db_path: str | Path, *, additional_estimate_usd: float = 0.0) -> Budge
             f">= cap ${cap:.4f} (env {ENV_VAR}). "
             f"Reset at UTC midnight or unset {ENV_VAR}."
         )
-        return BudgetGate(allowed=False, cap_usd=cap, spent_usd=spent, reason=reason)
-    return BudgetGate(allowed=True, cap_usd=cap, spent_usd=spent)
+        return BudgetGate(allowed=False, cap_usd=cap, spent_usd=spent, reason=reason, level=level)
+    return BudgetGate(allowed=True, cap_usd=cap, spent_usd=spent, level=level)
+
+
+def _connect_ro(db_path: str | Path) -> sqlite3.Connection | None:
+    p = Path(db_path)
+    if not p.exists():
+        return None
+    try:
+        return sqlite3.connect(str(p))
+    except sqlite3.Error as exc:
+        logger.debug("cost analytics DB connect failed: %s", exc)
+        return None
+
+
+def cost_anomaly(db_path: str | Path, *, z_threshold: float = 3.5) -> dict:
+    """Median+MAD modified-z anomaly over per-session formula_dispatches cost (n>=3 guard)."""
+    conn = _connect_ro(db_path)
+    if conn is None:
+        return {"ok": True, "n": 0, "outliers": [], "reason": "no_db"}
+    try:
+        rows = conn.execute(
+            "SELECT session_id, COALESCE(SUM(cost_usd), 0.0) AS c "
+            "FROM formula_dispatches WHERE cost_usd IS NOT NULL "
+            "GROUP BY session_id"
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        logger.debug("cost_anomaly query failed (schema?): %s", exc)
+        return {"ok": True, "n": 0, "outliers": [], "reason": "schema"}
+    finally:
+        conn.close()
+    costs = [(str(sid), float(c or 0.0)) for sid, c in rows if c]
+    n = len(costs)
+    if n < 3:
+        return {"ok": True, "n": n, "outliers": [], "reason": "n<3"}
+    values = [c for _, c in costs]
+    med = statistics.median(values)
+    deviations = [abs(v - med) for v in values]
+    mad = statistics.median(deviations)
+    if mad > 0:
+        scale = mad / 0.6745
+    else:
+        # MAD=0 when >half the sessions share the median cost (common — most cost ~0);
+        # fall back to a mean-absolute-deviation modified-z so a lone spike still flags.
+        mean_ad = sum(deviations) / len(deviations)
+        if mean_ad <= 0:
+            return {"ok": True, "n": n, "median": round(med, 6), "mad": 0.0, "outliers": []}
+        scale = mean_ad * 1.253314
+    outliers = []
+    for sid, c in costs:
+        z = (c - med) / scale
+        if abs(z) > z_threshold:
+            outliers.append({"session_id": sid, "cost_usd": round(c, 6), "modified_z": round(z, 2)})
+    outliers.sort(key=lambda o: abs(o["modified_z"]), reverse=True)
+    return {"ok": not outliers, "n": n, "median": round(med, 6), "mad": round(mad, 6), "outliers": outliers}
+
+
+def cost_burn_rate(db_path: str | Path, *, window_days: int = 14) -> dict:
+    """Latest-day vs prior-window-mean daily-spend delta + accelerating flag over formula_dispatches."""
+    conn = _connect_ro(db_path)
+    if conn is None:
+        return {"days": 0, "reason": "no_db"}
+    try:
+        rows = conn.execute(
+            "SELECT date(ts) AS day, COALESCE(SUM(cost_usd), 0.0) AS c "
+            "FROM formula_dispatches WHERE cost_usd IS NOT NULL "
+            "AND ts >= datetime('now', ?) GROUP BY day ORDER BY day",
+            (f"-{int(window_days)} days",),
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        logger.debug("cost_burn_rate query failed (schema?): %s", exc)
+        return {"days": 0, "reason": "schema"}
+    finally:
+        conn.close()
+    daily = [(str(d), float(c or 0.0)) for d, c in rows]
+    if len(daily) < 2:
+        return {"days": len(daily), "reason": "insufficient"}
+    latest_day, latest_cost = daily[-1]
+    prior = [c for _, c in daily[:-1]]
+    prior_mean = sum(prior) / len(prior) if prior else 0.0
+    delta_pct = ((latest_cost - prior_mean) / prior_mean * 100.0) if prior_mean > 0 else None
+    return {
+        "days": len(daily),
+        "latest_day": latest_day,
+        "latest_cost_usd": round(latest_cost, 6),
+        "prior_mean_usd": round(prior_mean, 6),
+        "delta_pct": round(delta_pct, 1) if delta_pct is not None else None,
+        "accelerating": bool(delta_pct is not None and delta_pct > 0),
+        "partial_today": latest_day == _today_utc_date(),
+    }
