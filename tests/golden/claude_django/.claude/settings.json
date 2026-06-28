@@ -677,6 +677,11 @@
           },
           {
             "type": "command",
+            "command": ".claude/hooks/nudge-git-mode.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/nudge-task-discovery.sh",
             "timeout": 10
           },

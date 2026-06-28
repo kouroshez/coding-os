@@ -149,6 +149,7 @@ if [[ "$SOURCE" == "startup" ]]; then
     "${COS_PANEL_DIR}/.uv-heredoc-override" \
     "${COS_PANEL_DIR}/.zoom-prompt-suggested" \
     "${COS_PANEL_DIR}/.docs-first-nudged" \
+    "${COS_PANEL_DIR}/.git-mode-nudged" \
     "${COS_PANEL_DIR}/.roles-composed" \
     "${COS_PANEL_DIR}/.roles" \
     "${COS_PANEL_DIR}/.role" \
@@ -687,15 +688,19 @@ except OSError:
     # is absent (and never fabricate one), which is the correct turn-1 behaviour.
     USER_BANNER=""
   else
+    # pr-mode is the operator-relevant deviation from the trunk default, so surface
+    # it in the banner only when on (TASK-615); trunk stays uncluttered.
+    GIT_MODE_SEG=""
+    [ "${COS_GIT_WORKFLOW:-trunk}" = "pr" ] && GIT_MODE_SEG=" · git=pr"
     case "$TASK_MODE" in
       system)
         USER_BANNER=""
         ;;
       query|adhoc|chore)
-        USER_BANNER="🔔 ses=${SES_TAIL} · mode=${TASK_MODE}${WARN}"
+        USER_BANNER="🔔 ses=${SES_TAIL} · mode=${TASK_MODE}${GIT_MODE_SEG}${WARN}"
         ;;
       *)
-        USER_BANNER="🔔 ses=${SES_TAIL} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--} · roles=${ROLES_LEAD:--}${WARN}"
+        USER_BANNER="🔔 ses=${SES_TAIL} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--} · roles=${ROLES_LEAD:--}${GIT_MODE_SEG}${WARN}"
         ;;
     esac
   fi

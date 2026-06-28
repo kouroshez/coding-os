@@ -50,6 +50,10 @@ CLAUDE_ONLY_WHITELIST: set[str] = {
     # its directive purely via additionalContext stdout (TASK-319) — dead
     # weight as a Codex delegate until the dispatchers forward stdout.
     "nudge-model-routing.sh",
+    # Same as model-routing: the pr-mode nudge delivers its directive purely
+    # via additionalContext stdout (TASK-615) — dead weight as a Codex
+    # delegate until the dispatchers forward delegate stdout.
+    "nudge-git-mode.sh",
     # Work-log append hooks are Claude-only: Codex lacks reliable PostToolUse
     # delivery and records work/commits via explicit cos_work_log_append
     # (AGENTS.md). The git post-commit hook (TASK-175) still covers Codex

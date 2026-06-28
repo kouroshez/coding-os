@@ -1095,6 +1095,22 @@ hooks:
       - event: UserPromptSubmit
         matcher: ""
 
+  - id: nudge-git-mode
+    script: nudge-git-mode.sh
+    description: |
+      UserPromptSubmit nudge — pr-mode directive (TASK-615). When
+      COS_GIT_WORKFLOW=pr, injects a one-line additional-context directive
+      (once per session) telling the agent to start with `cos pr open` and
+      edit inside the worktree, so pr-mode is surfaced proactively instead of
+      learned by being block-shared-tree-edit BLOCKed. Trunk (default) =
+      silent exit, zero injected tokens. Contract: docs/playbooks/pr-workflow.md.
+    category: cognition
+    phase: I
+    timeout: 10
+    events:
+      - event: UserPromptSubmit
+        matcher: ""
+
   - id: nudge-task-discovery
     script: nudge-task-discovery.sh
     description: |
