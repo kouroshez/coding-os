@@ -273,6 +273,31 @@ def route_model_bandit(
     }
 
 
+_CHEAPER_TIER = {"opus": "sonnet", "sonnet": "haiku", "haiku": "haiku"}
+_REVIEW_ROLES = frozenset({"reviewer", "security_auditor", "observer"})
+
+
+def reviewer_model(generator_model: str) -> str:
+    # An independent reviewer needn't match the generator's tier — one rung
+    # cheaper keeps a second opinion affordable. Returns the bare cheaper tier
+    # (the adapter resolves the alias); matches by substring so "claude-opus-4-8"
+    # and "opus" both downgrade. Empty in -> empty out (caller default).
+    m = (generator_model or "").lower()
+    for tier, cheaper in _CHEAPER_TIER.items():
+        if tier in m:
+            return cheaper
+    return generator_model
+
+
+def route_adapter_hint(complexity: str) -> str:
+    # Cross-adapter routing hint: mechanical / low-complexity buckets can run on
+    # a cheaper runtime (Codex). Gated by COS_ROUTER_ADAPTER_HINTS so the default
+    # (one adapter per session) is unchanged unless an operator opts in.
+    if not os.environ.get("COS_ROUTER_ADAPTER_HINTS"):
+        return ""
+    return "codex" if (complexity or "").strip().upper() == "CLEAR" else ""
+
+
 # ---------------------------------------------------------------------------
 # cos_route_skill
 # ---------------------------------------------------------------------------

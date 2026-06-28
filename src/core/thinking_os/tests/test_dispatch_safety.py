@@ -100,3 +100,21 @@ class TestEvidenceBundleFlock:
         # flock guarantees every reader sees a complete, parseable bundle.
         data = json.loads((tmp_path / "b_ses-1.json").read_text())
         assert "pad" in data
+
+
+class TestCostRoutedDispatch:
+    def test_reviewer_downgrades_to_cheaper_tier_when_flagged(self, monkeypatch) -> None:
+        monkeypatch.setenv("COS_ROUTER_REVIEWER_CHEAPER", "1")
+        # explicit generator tier 'opus' on a review role -> one tier cheaper
+        assert cognition._resolve_dispatch_model("reviewer", "s", {}, "opus", "COMPLICATED", None) == "sonnet"
+        # a non-review role keeps the generator tier
+        assert cognition._resolve_dispatch_model("implementer", "s", {}, "opus", "COMPLICATED", None) == "opus"
+
+    def test_no_downgrade_when_flag_off(self, monkeypatch) -> None:
+        monkeypatch.delenv("COS_ROUTER_REVIEWER_CHEAPER", raising=False)
+        assert cognition._resolve_dispatch_model("reviewer", "s", {}, "opus", "COMPLICATED", None) == "opus"
+
+    def test_build_request_adapter_hint_off_by_default(self, monkeypatch) -> None:
+        monkeypatch.delenv("COS_ROUTER_ADAPTER_HINTS", raising=False)
+        req = cognition._build_dispatch_request("implementer", "s", "TASK-1", "p", "standard", None, complexity="CLEAR")
+        assert req.adapter is None

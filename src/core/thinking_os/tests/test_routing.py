@@ -21,9 +21,11 @@ from tools.routing import (
     _data_confidence,
     _sample_beta,
     recalculate_weights,
+    route_adapter_hint,
     route_model,
     route_model_bandit,
     route_skill,
+    reviewer_model,
 )
 
 # ---------------------------------------------------------------------------
@@ -230,6 +232,24 @@ class TestRouteModelBandit:
         for a, b in [(1.0, 1.0), (10.0, 2.0), (2.0, 10.0), (1.5, 1.5)]:
             for _ in range(20):
                 assert 0.0 <= _sample_beta(a, b) <= 1.0
+
+
+class TestCostRouting:
+    def test_reviewer_model_downgrades_one_tier(self) -> None:
+        assert reviewer_model("opus") == "sonnet"
+        assert reviewer_model("sonnet") == "haiku"
+        assert reviewer_model("haiku") == "haiku"
+        assert reviewer_model("claude-opus-4-8") == "sonnet"
+        assert reviewer_model("") == ""
+
+    def test_adapter_hint_off_by_default(self, monkeypatch) -> None:
+        monkeypatch.delenv("COS_ROUTER_ADAPTER_HINTS", raising=False)
+        assert route_adapter_hint("CLEAR") == ""
+
+    def test_adapter_hint_codex_for_clear_when_on(self, monkeypatch) -> None:
+        monkeypatch.setenv("COS_ROUTER_ADAPTER_HINTS", "1")
+        assert route_adapter_hint("CLEAR") == "codex"
+        assert route_adapter_hint("COMPLICATED") == ""
 
 
 # ---------------------------------------------------------------------------

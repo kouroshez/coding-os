@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import re
 import sqlite3
 from datetime import datetime, timezone
@@ -1216,11 +1217,11 @@ def _empirical_model(complexity: str, db_path) -> str:
     try:
         import sqlite3 as _sqlite3
 
-        from tools.routing import route_model
+        from tools.routing import route_model_bandit
 
         conn = _sqlite3.connect(db_path)
         try:
-            result = route_model(conn, complexity=complexity.strip().upper())
+            result = route_model_bandit(conn, complexity=complexity.strip().upper())
         finally:
             conn.close()
         if int(result.get("data_points") or 0) > 0:
@@ -1242,6 +1243,7 @@ def _resolve_dispatch_model(
     level = complexity.strip().lower()
     hint_pref = _preset_role_hint(session_id, formula_id, db_path).get("model_pref") or {}
     role_pref = meta.get("model_pref") or {}
+    resolved = ""
     for candidate, source in (
         (model.strip(), "explicit"),
         (hint_pref.get(level, ""), "preset_hint"),
@@ -1250,8 +1252,19 @@ def _resolve_dispatch_model(
     ):
         if candidate:
             logger.info("dispatch model resolved for %s: %s via %s", formula_id, candidate, source)
-            return candidate
-    return ""
+            resolved = candidate
+            break
+    # Cost-routed independent reviewer: a review role runs one tier cheaper than
+    # the generator. Gated by COS_ROUTER_REVIEWER_CHEAPER (default off, unchanged).
+    if resolved and os.environ.get("COS_ROUTER_REVIEWER_CHEAPER"):
+        from tools.routing import _REVIEW_ROLES, reviewer_model
+
+        if formula_id in _REVIEW_ROLES:
+            cheaper = reviewer_model(resolved)
+            if cheaper and cheaper != resolved:
+                logger.info("reviewer %s downgraded to cheaper tier %s", formula_id, cheaper)
+                resolved = cheaper
+    return resolved
 
 
 def _build_dispatch_request(
@@ -1283,6 +1296,10 @@ def _build_dispatch_request(
         formula_id, session_id, meta, model, complexity, db_path
     )
 
+    from tools.routing import route_adapter_hint
+
+    adapter_hint = route_adapter_hint(complexity) or None
+
     return _disp.DispatchRequest(
         formula_id=formula_id,
         agent_file=str(agent_path if agent_path.exists() else agent_file_rel),
@@ -1294,6 +1311,7 @@ def _build_dispatch_request(
         session_id=session_id,
         long_context=bool(meta.get("long_context", False)),
         model=resolved_model or None,
+        adapter=adapter_hint,
     )
 
 
