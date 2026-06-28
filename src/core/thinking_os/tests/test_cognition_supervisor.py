@@ -55,9 +55,11 @@ class TestRegistries:
         ]:
             assert fid in reg, f"Missing agent file for {fid}"
 
-    def test_agent_registry_has_11_formulas(self):
+    def test_agent_registry_has_expected_roles(self):
         reg = load_agent_registry()
-        assert len(reg) == 11
+        # 11 composable formula roles + the dispatch-only repairer (TASK-642).
+        assert len(reg) == 12
+        assert "repairer" in reg
 
 
 # ---------------------------------------------------------------------------
