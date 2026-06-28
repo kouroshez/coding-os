@@ -230,6 +230,47 @@ def test_corrupt_file_patch_refuses_409(client, tmp_path):
     assert f.read_text() == "{not valid json"  # untouched
 
 
+def test_multi_project_save_does_not_clobber_peer(tmp_path, monkeypatch):
+    # TASK-620 (C1): a multi-project Hub saving settings for project A must never
+    # touch project B's OWN .coding-os/hub-settings.json. Each bound root resolves
+    # its own file via current_project_root scope; a save to A leaves B byte-identical
+    # and B's unknown section (C2) survives.
+    from web import _project_context as pc
+    from web.routes import settings as s
+
+    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path / "global"))
+    proj_a = tmp_path / "projA"
+    (proj_a / ".coding-os").mkdir(parents=True)
+    proj_b = tmp_path / "projB"
+    (proj_b / ".coding-os").mkdir(parents=True)
+    b_file = proj_b / ".coding-os" / "hub-settings.json"
+    b_file.write_text(
+        json.dumps(
+            {"git_settings": {"enabled": True, "autonomy_level": "draft"}, "task_closure": {"keep": "me"}},
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    b_before = b_file.read_bytes()
+
+    token = pc._current_project.set(proj_a)
+    try:
+        assert s._settings_path() == proj_a / ".coding-os" / "hub-settings.json"
+        merged = s._merge_defaults(
+            {**s._load(), "git_settings": {"enabled": True, "autonomy_level": "auto_merge"}}
+        )
+        s._save(merged)
+    finally:
+        pc._current_project.reset(token)
+
+    a_loaded = json.loads((proj_a / ".coding-os" / "hub-settings.json").read_text())
+    assert a_loaded["git_settings"]["autonomy_level"] == "auto_merge"  # A applied
+    assert b_file.read_bytes() == b_before  # B byte-untouched (no clobber)
+    b_loaded = json.loads(b_file.read_text())
+    assert b_loaded["git_settings"]["autonomy_level"] == "draft"  # B unchanged
+    assert b_loaded["task_closure"] == {"keep": "me"}  # B's unknown section survives
+
+
 def test_save_is_atomic_no_leftover_tmp(client, tmp_path):
     # H1: the atomic write leaves a complete JSON file and no .tmp sibling.
     client.patch("/api/settings", json={"git_settings": {"enabled": True, "integration_branch": "develop"}})

@@ -249,3 +249,34 @@ def test_default_gates_yaml_round_trips() -> None:
 def test_default_path_resolves_to_yaml_in_module_dir() -> None:
     assert DEFAULT_GATES_PATH.name == "transition-gates.yaml"
     assert DEFAULT_GATES_PATH.parent.name == "board_os"
+
+
+# ────────────────────────────────────────────────────────────────────
+# DoD verify-state contract (TASK-620) — freshness gate, defense-in-depth
+# ────────────────────────────────────────────────────────────────────
+
+
+def test_verify_state_contract(tmp_path, monkeypatch) -> None:
+    # TASK-620: the DoD gate reads .last-verify.json for a recent PASS. It is a
+    # freshness gate (not tree-bound, not forge-proof — same actor writes it), so
+    # the contract is exactly: a recent PASS → (True, small age); no record →
+    # (False, None); only a non-PASS entry → (False, None).
+    import json
+    import time
+
+    from core.board_os import transition_gates_cli as cli
+
+    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+    path = tmp_path / ".last-verify.json"
+
+    # no record at all → not satisfied
+    assert cli._verify_state() == (False, None)
+
+    # a recent PASS → satisfied, age is small and non-negative
+    path.write_text(json.dumps({"cli": {"status": "PASS", "ts": int(time.time())}}), encoding="utf-8")
+    ok, age = cli._verify_state()
+    assert ok is True and age is not None and 0 <= age < 60
+
+    # only a FAIL entry → not satisfied (a red run never unlocks the close)
+    path.write_text(json.dumps({"cli": {"status": "FAIL", "ts": int(time.time())}}), encoding="utf-8")
+    assert cli._verify_state() == (False, None)

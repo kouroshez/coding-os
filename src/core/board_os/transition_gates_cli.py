@@ -74,7 +74,16 @@ def _load_body_for_task(task_id: str, file_path: Path | None) -> tuple[str, str]
 
 
 def _verify_state() -> tuple[bool, int | None]:
-    """Read .last-verify.json for the most recent successful suite."""
+    """Most-recent PASS in .last-verify.json (freshness gate, not a forge wall).
+
+    Intentionally keys on status==PASS + recency only, NOT git_head/dirty_digest:
+    the working tree legitimately changes between the verify run and task-close
+    (work-log edits + the code commit land between them), so binding the record to
+    the tree would block every honest close. The record is also written by the same
+    actor it gates (record-verify runs as the agent), so this is defense-in-depth —
+    it catches the FORGOTTEN run, not a deliberate forge. The real wall is the
+    server-side required CI check in pr-mode, not this local marker. (TASK-620)
+    """
     state_dir = os.environ.get("COS_STATE_DIR", ".coding-os")
     path = Path(state_dir) / ".last-verify.json"
     if not path.exists():

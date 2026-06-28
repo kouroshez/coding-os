@@ -3448,6 +3448,66 @@ class TestCosPr:
         assert res.exit_code == 0, res.output
         assert "agents/adhoc/ses-test-abc" not in self._branches(repo)  # foreign host → reaped
 
+    def test_concurrency_stress_reaper_no_double_reap_no_lost_work(
+        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # TASK-620: N threads hammering the reaper concurrently must (via the flock)
+        # reap each orphan at most once, leave no orphan branch, write no duplicate
+        # ledger entry, and never lose an unpushed commit (bundle-preserved first).
+        import threading
+        import time
+
+        import cli.pr_commands as prc
+
+        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
+        monkeypatch.setenv("COS_REAPED_ROOT", str(tmp_path / "reaped"))
+        monkeypatch.setattr(prc, "_emit", lambda *a, **k: None)  # silence stdout across threads
+
+        sessions = ["ses-s1", "ses-s2", "ses-s3"]
+        for sid in sessions:  # set up 3 offline orphan worktrees, distinct sessions
+            monkeypatch.setenv("COS_AGENT_SESSION_ID", sid)
+            runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
+        precious_wt = next((tmp_path / "wt").rglob("adhoc-ses-s1"))
+        subprocess.run(  # ses-s1 carries an unpushed commit that must NOT be lost
+            ["git", "-C", str(precious_wt), "commit", "-q", "--allow-empty", "-m", "precious work"],
+            check=True,
+        )
+        old = time.time() - 3600
+        for wt in (tmp_path / "wt").rglob("adhoc-ses-s*"):
+            for p in [wt, *wt.rglob("*")]:
+                try:
+                    os.utime(p, (old, old))
+                except OSError:
+                    pass
+
+        errors: list[str] = []
+
+        def worker(idx: int) -> None:
+            time.sleep(0.001 * (idx % 3))  # fixed, deterministic stagger
+            try:
+                prc.pr_reap.callback(str(repo), False, False)  # raw fn, not the Click wrapper
+            except Exception as exc:  # noqa: BLE001 — record, assert below
+                errors.append(repr(exc))
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=30)
+
+        assert not errors, errors  # no thread crashed under contention
+        assert not any(t.is_alive() for t in threads)  # all finished within 30s
+        remaining = [b for b in self._branches(repo).splitlines() if "adhoc-ses-s" in b]
+        assert not remaining, remaining  # every orphan reaped, none left
+        # the unpushed commit was bundle-preserved exactly (no lost work)
+        bundles = list((tmp_path / "reaped").rglob("*ses-s1*.bundle"))
+        assert bundles, "ses-s1's unpushed commit was not preserved"
+        # ledger holds no duplicate (branch) entry — no double-reap bookkeeping
+        ledger = prc._ledger_load(str(repo))
+        branches = [e.get("branch") for e in ledger]
+        assert len(branches) == len(set(branches)), ledger
+
     def test_reopen_refreshes_owner_stamp(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
