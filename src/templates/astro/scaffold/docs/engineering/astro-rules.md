@@ -24,8 +24,9 @@ Read next: [Astro App Playbook](../playbooks/astro-app.md)
    via `getCollection()`/`getEntry()` and consume the typed `data` — reading an
    undeclared frontmatter key is a build-blocking finding.
 5. **One error shaper** — only `src/lib/problem.ts` writes API error bodies
-   (RFC 9457 problem shape); endpoints return its result and log full detail
-   server-side, never leaking internals to the client.
+   (the canonical `{error:{code,message,request_id}}` envelope from
+   `docs/api-contracts/error-format.md`); endpoints return its result and log
+   full detail server-side, never leaking internals to the client.
 6. **Strict TypeScript** — `astro check` is the lint gate (extends
    `astro/tsconfigs/strict`); `any` requires a written justification at the site.
 7. **Build-time data** — `.astro` frontmatter runs at build (SSG); never assume

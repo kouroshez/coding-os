@@ -1,17 +1,30 @@
-// The ONLY error-response shaper for API endpoints (RFC 9457 problem shape,
-// per docs/api-contracts/error-format.md). Endpoints throw/return through
-// this helper; full detail goes to the server log, never to the client.
+const CODE_BY_STATUS: Record<number, string> = {
+  400: "VALIDATION_ERROR",
+  401: "UNAUTHORIZED",
+  403: "FORBIDDEN",
+  404: "NOT_FOUND",
+  405: "METHOD_NOT_ALLOWED",
+  409: "CONFLICT",
+  422: "UNPROCESSABLE_ENTITY",
+  429: "RATE_LIMITED",
+  503: "SERVICE_UNAVAILABLE",
+};
 
-export interface Problem {
-  type: string;
-  title: string;
-  status: number;
+export interface ErrorBody {
+  error: {
+    code: string;
+    message: string;
+    request_id: string;
+  };
 }
 
-export function problem(status: number, title: string): Response {
-  const body: Problem = { type: "about:blank", title, status };
+export function problem(status: number, message: string): Response {
+  const code = CODE_BY_STATUS[status] ?? "INTERNAL_ERROR";
+  const body: ErrorBody = {
+    error: { code, message, request_id: crypto.randomUUID() },
+  };
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/problem+json" },
+    headers: { "content-type": "application/json" },
   });
 }

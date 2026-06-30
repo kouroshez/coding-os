@@ -42,6 +42,7 @@ All API errors return JSON with this shape:
 | 401 | `TOKEN_EXPIRED` | Auth token expired, refresh needed |
 | 403 | `FORBIDDEN` | Authenticated but lacks permission |
 | 404 | `NOT_FOUND` | Resource does not exist or hidden by ACL |
+| 405 | `METHOD_NOT_ALLOWED` | HTTP method not supported on this route |
 | 409 | `CONFLICT` | State conflict (e.g. duplicate, version mismatch) |
 | 422 | `UNPROCESSABLE_ENTITY` | Semantically invalid (e.g. invalid state transition) |
 | 429 | `RATE_LIMITED` | Too many requests, retry after `Retry-After` header |
