@@ -16,6 +16,18 @@
 
 There is no flat `docs/tasks.md` index. Status is read from frontmatter, not from a top-level checkbox file.
 
+### Board↔git coherence
+
+Because the detail files are the durable, version-controlled truth and the DB is **gitignored** (`.coding-os/`), a DB task row whose `.md` is uncommitted — untracked or modified — is **drift**: the board knows about work a fresh clone would not. `src/core/board_os/git_coherence.py` (`detect_board_git_drift`) is the single detector behind three surfaces:
+
+- `cos doctor` — the on-demand `board.git_tracked` WARN check.
+- the nightly `board_coherence` maintenance task — files **one** idempotent `auto-git-drift` board task while drift persists, so no-hook personas see it without invoking the doctor.
+- the CI gate — fails on drift in the checked-out tree.
+
+Materialization churn (status transitions, work-log appends, `committed <sha>` commit links) re-writes `.md` files as a side-effect; this is **expected** and is deliberately excluded from the per-turn uncommitted-work nag (`session-end.sh`). It is reconciled in batches, not auto-committed per operation.
+
+**Auto-commit (autonomy-gated).** When the project's git autonomy permits unattended writes (`COS_GIT_AUTONOMY ∈ {local_autonomous, autonomous}`), the nightly `board_coherence` task commits the drift itself — staging **only** `docs/tasks/*.md` in one idempotent `chore(board): …` commit. The tasks-only scope is load-bearing: `_post_commit_body.sh` appends a `committed <sha>` work-log line only when a commit also carries non-task files, so a tasks-only commit no-ops that hook and the tree converges clean in a single pass. When autonomy does not permit it, the task only *files* the drift task and leaves the commit to a human or agent.
+
 ## Status States
 
 `icebox → in_progress → testing → complete`, plus `blocked` reachable from any state (and `emergency` / `archive` for the incident and retirement lanes).
