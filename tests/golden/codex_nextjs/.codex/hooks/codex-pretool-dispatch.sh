@@ -66,6 +66,7 @@ for delegate in \
   test-governor.sh \
   search-enforce-inventory.sh \
   nudge-task-discovery.sh \
+  warn-diff-size.sh \
   agent-presence.sh; do
   run_delegate "$delegate"
 done
