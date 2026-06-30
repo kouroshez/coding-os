@@ -36,3 +36,4 @@ grep -rlE '\{\{(PROJECT_NAME|DATE)\}\}' src/templates for .svelte/.cs/.dart/.rs/
 - 2026-06-30 [claude]: Edit vite.config.ts
 - 2026-06-30 [claude]: Edit package.json
 - 2026-06-30 [claude]: main.py _overlay_scaffold: allowlist->UTF-8 text-detection (binary copied verbatim); dead _PLACEHOLDER_SUFFIXES…
+- 2026-06-30 [claude]: committed f1fe3930 · 1 file

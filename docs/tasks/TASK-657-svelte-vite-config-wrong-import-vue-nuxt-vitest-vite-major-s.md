@@ -33,3 +33,4 @@ cos init --template svelte-sveltekit; cd src/frontend; npm i; npm run lint → s
 
 ## Work Log
 - 2026-06-30 [claude]: svelte vite.config: sveltekit from @sveltejs/kit/vite; vue-nuxt vitest ^3.0.0 (dedupes vite@6); golden recaptured;…
+- 2026-06-30 [claude]: committed ee42c5fe · 3 files
