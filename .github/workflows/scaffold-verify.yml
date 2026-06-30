@@ -55,7 +55,7 @@ jobs:
           version: "latest"
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
       - run: uv sync --extra rag
       - name: Scaffold
         run: uv run python -m cli.main init --agent claude --project-dir "$SV_DIR" --name app --template ${{ matrix.stack }} --no-git --force --no-register --no-index

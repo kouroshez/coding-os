@@ -25,7 +25,8 @@ Read next: [Astro Engineering Rules](../engineering/astro-rules.md), [Content & 
 
 1. A file under `pages/api/` exporting `GET`/`POST`/… is a server endpoint.
 2. Success returns a thin JSON `Response`; every error goes through the single
-   `lib/problem.ts` shaper (RFC 9457, [error-format](../api-contracts/error-format.md)) —
+   `lib/problem.ts` shaper (the canonical `{error:{code,message,request_id}}`
+   envelope, [error-format](../api-contracts/error-format.md)) —
    never build an error body inline.
 3. An endpoint needs `output: "hybrid"` (or `"server"`) in `astro.config.mjs`;
    keep static pages static.

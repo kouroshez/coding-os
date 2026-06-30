@@ -885,6 +885,7 @@ def _overlay_scaffold(
                 if skip_file:
                     continue
             dest.write_text(content, encoding="utf-8")
+            shutil.copymode(src_file, dest)
             copied += 1
 
     return copied
