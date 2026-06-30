@@ -319,10 +319,12 @@ def _run_error_sweep(
     return {"status": "ok", **result}
 
 
-# Autonomy rungs that permit the cron to commit unattended on the local
-# checkout (the PR rungs draft/auto_merge gate on a human-reviewed PR, so
-# board churn is left to file-a-task under them).
-_AUTO_COMMIT_AUTONOMY = ("local_autonomous", "autonomous")
+# Autonomy rungs that permit the cron to commit board churn unattended. The
+# commit is local-only (never pushes), so every rung where the agent is trusted
+# to commit on its own qualifies — `local` ("commits, never pushes") included.
+# Only `draft` (the conservative default: a human merges) and `auto_merge` (a
+# pure PR-merge rung) fall through to file-a-task instead.
+_AUTO_COMMIT_AUTONOMY = ("local", "local_autonomous", "autonomous")
 
 
 def _git_autonomy(project_root: Path) -> str:

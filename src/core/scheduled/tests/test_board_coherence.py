@@ -125,3 +125,17 @@ def test_autocommit_converges_in_one_pass(tmp_path: Path, monkeypatch) -> None:
     assert first.get("committed") is True, first
     second = _run_board_coherence(db_path, repo, dry_run=False)
     assert second.get("drift") is False, second  # one tasks-only pass cleaned it, no re-dirty
+
+
+def test_local_autonomy_also_autocommits(tmp_path: Path, monkeypatch) -> None:
+    # 'local' = "commits, never pushes" — the natural Hub choice — must also
+    # trigger board-churn auto-commit (gate-expansion regression, the rung the
+    # Hub dropdown actually offers for a no-remote trunk repo).
+    repo, db_path, conn = _repo_with_db(tmp_path)
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(repo))
+    monkeypatch.setenv("COS_GIT_AUTONOMY", "local")
+    _seed_drift(conn, "drift seed E")
+    conn.close()
+
+    r = _run_board_coherence(db_path, repo, dry_run=False)
+    assert r.get("committed") is True and r.get("sha"), r

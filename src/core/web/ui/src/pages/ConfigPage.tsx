@@ -502,7 +502,7 @@ function ModulesTab() {
 // lives in Config, not the hub-level Settings page where model_routing sits.
 // --------------------------------------------------------------------------
 
-type AutonomyLevel = 'local' | 'draft' | 'auto_merge' | 'autonomous';
+type AutonomyLevel = 'local' | 'local_autonomous' | 'draft' | 'auto_merge' | 'autonomous';
 
 interface GitSettings {
   enabled: boolean;
@@ -519,7 +519,8 @@ const AUTONOMY_OPTIONS: {
   hint: string;
   needsRemote: boolean;
 }[] = [
-  { value: 'local', label: 'Local — never pushes', hint: 'Commits in the worktree; you review & merge. Works with no remote.', needsRemote: false },
+  { value: 'local', label: 'Local — never pushes', hint: 'Commits locally, never pushes; you review & merge. Also auto-commits board churn on trunk. Works with no remote.', needsRemote: false },
+  { value: 'local_autonomous', label: 'Local autonomous — commits + lands locally', hint: 'Commits and lands on the local integration branch after a green verify; zero network. Drives trunk board-churn auto-commit.', needsRemote: false },
   { value: 'draft', label: 'Draft — opens a PR', hint: 'Pushes + opens a PR; you merge it. Needs a remote + GitHub.', needsRemote: true },
   { value: 'auto_merge', label: 'Auto-merge — merges on green CI', hint: 'Pushes, opens a PR, merges itself once required CI passes. Needs a required status check.', needsRemote: true },
   { value: 'autonomous', label: 'Autonomous — hands-off', hint: 'Auto-merge + cleans up its own worktree & branch after merge.', needsRemote: true },
