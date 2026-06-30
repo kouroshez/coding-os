@@ -7,7 +7,15 @@ from pathlib import Path
 
 sys.path.insert(
     0,
-    str(Path(__file__).resolve().parents[1] / "src" / "core" / "skills" / "wordpress" / "scripts"),
+    str(
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "templates"
+        / "wordpress"
+        / "skills"
+        / "wordpress"
+        / "scripts"
+    ),
 )
 
 import scan_wp_smells as sw  # noqa: E402

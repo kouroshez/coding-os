@@ -113,14 +113,14 @@ class TestClaudeAdapter:
         # re-installing must skip AND remove the disabled skill. Single store:
         # .coding-os.yaml::disabled_skills (no separate skill-overrides.json).
         run_adapter_install("claude", project)
-        assert (project / ".claude" / "skills" / "wordpress" / "SKILL.md").exists()
+        assert (project / ".claude" / "skills" / "redis" / "SKILL.md").exists()
 
         config = project / ".coding-os.yaml"
-        config.write_text("disabled_skills:\n  - wordpress\n  - supabase\n", encoding="utf-8")
+        config.write_text("disabled_skills:\n  - redis\n  - supabase\n", encoding="utf-8")
         result = run_adapter_install("claude", project)
         assert result.returncode == 0, result.stderr
 
-        assert not (project / ".claude" / "skills" / "wordpress").exists()
+        assert not (project / ".claude" / "skills" / "redis").exists()
         assert not (project / ".claude" / "skills" / "supabase").exists()
         assert (project / ".claude" / "skills" / "clean-code" / "SKILL.md").exists()
 

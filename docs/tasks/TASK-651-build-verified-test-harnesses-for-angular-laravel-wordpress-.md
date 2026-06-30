@@ -5,18 +5,17 @@ swimlane: templates
 kind: test
 epic: stack-completeness-v2
 labels: [sample-tests, stack-completeness, wave-2, ready]
-status: icebox
+status: archive
 priority: P2
 appetite: 3d
 created: 2026-06-30
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260630-012042-78c9
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-651: Build verified test harnesses for angular/laravel/wordpress scaffolds + promote sample-test gate to HARD
 
 **Outcome (one sentence):** angular (Karma), laravel (bootable app skeleton ~8 files), and wordpress (PHPUnit) scaffolds each ship a verified runnable sample test, then stack_lint's sample-test check is promoted from soft GAP to HARD with all 30 stacks green.
