@@ -5,18 +5,17 @@ swimlane: core
 kind: refactor
 epic: hook-consolidation
 labels: [hooks, graph-gate, consolidation, ready]
-status: icebox
+status: blocked
 priority: P2
 appetite: 2d
 created: 2026-06-30
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260628-125542-fc9a
 depends_on: [TASK-672]
 blocked_by: []
 references: []
 ---
-
 # TASK-676: Complete the deferred 4→1 graph-enforce-hook merge from TASK-577 (graph-gate consolidation)
 
 **Outcome (one sentence):** The deferred 4→1 graph-enforce-hook merge documented in TASK-577 lands: enforce-graph-first-read, enforce-graph-context, enforce-rename-plan, and verify-rename-callers collapse into one ordered graph-gate script (they already share the .graph/ marker namespace and graph_context_match helper), proven behavior-preserving by the F1 (TASK-672) harness.
