@@ -5,12 +5,12 @@ swimlane: cli
 kind: bug
 epic: stack-completeness-v2
 labels: [review, renderer, wave-2, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-30
 started: 2026-06-30
-completed: null
+completed: 2026-06-30
 agent_session: ses-claude-20260630-012042-78c9
 depends_on: []
 blocked_by: []
@@ -36,3 +36,5 @@ Ultra-code-review of the session diff CONFIRMED: (1) src/cli/main.py:887 _overla
 - 2026-06-30 [claude]: Edit scaffold-verify.yml
 - 2026-06-30 [claude]: Edit astro-app.md
 - 2026-06-30 [claude]: Edit package.json
+- 2026-06-30 [claude]: committed 81d5434b · 5 files
+- 2026-06-30 [claude]: Fixed renderer exec-bit (copymode, verified mvnw 0755), node-express Node>=21 (CI node22+engines), astro doc.…
