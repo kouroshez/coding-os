@@ -18,27 +18,16 @@ import os
 import re
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
+
+from scripts.golden_sections import SECTIONS
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GOLDEN_DIR = REPO_ROOT / "tests" / "golden"
 FIXTURE_NAME = "cos-golden-fixture"
 FROZEN_DATE = "2026-01-01"  # must match src/scripts/capture_golden.py
-
-# Must match src/scripts/capture_golden.py
-SECTIONS: list[tuple[str, str, list[str]]] = [
-    ("claude_base", "claude", []),
-    ("claude_django", "claude", ["django"]),
-    ("claude_nextjs", "claude", ["nextjs"]),
-    ("claude_node-express", "claude", ["node-express"]),
-    ("claude_vue-nuxt", "claude", ["vue-nuxt"]),
-    ("codex_base", "codex", []),
-    ("codex_django", "codex", ["django"]),
-    ("codex_nextjs", "codex", ["nextjs"]),
-]
 
 RUNTIME_PATHS = {
     # Deterministic permission allowlist cos init writes, but .gitignore keeps
