@@ -40,6 +40,26 @@ _RUNTIME_MANIFESTS = {
     "csharp": ("*.csproj",),
 }
 
+# A work-surface stack ships at least one runnable sample test so `cos init`
+# output is green on day one. Map language -> the filename globs the stack's
+# test runner discovers; languages that inline tests in the source file (Rust)
+# are matched by a content marker instead.
+_TEST_GLOBS = {
+    "python": ("test_*.py", "*_test.py"),
+    "go": ("*_test.go",),
+    "typescript": ("*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx"),
+    "javascript": ("*.test.js", "*.spec.js", "*.test.mjs"),
+    "java": ("*Test.java", "*Tests.java", "*IT.java"),
+    "kotlin": ("*Test.kt", "*Tests.kt"),
+    "ruby": ("*_test.rb", "*_spec.rb"),
+    "php": ("*Test.php",),
+    "dart": ("*_test.dart",),
+    "csharp": ("*Test.cs", "*Tests.cs"),
+}
+_TEST_MARKERS = {
+    "rust": (("*.rs",), ("#[cfg(test)]", "#[test]", "#[tokio::test]")),
+}
+
 # A verify command that names a linter should ship that linter's config so the
 # rules are pinned, not left to whatever default the runner happens to have.
 _LINT_CONFIGS = {
@@ -100,6 +120,23 @@ def _skill_resolvable(profile: StackProfile, stack_dir: Path) -> bool:
 
 def _scaffold_has(scaffold: Path, names: tuple[str, ...]) -> bool:
     return scaffold.is_dir() and any(any(scaffold.rglob(name)) for name in names)
+
+
+def _scaffold_has_sample_test(scaffold: Path, language: str) -> bool:
+    globs = _TEST_GLOBS.get(language, ())
+    if globs and _scaffold_has(scaffold, globs):
+        return True
+    src_globs, markers = _TEST_MARKERS.get(language, ((), ()))
+    if markers and scaffold.is_dir():
+        for src_glob in src_globs:
+            for path in scaffold.rglob(src_glob):
+                try:
+                    text = path.read_text(encoding="utf-8", errors="ignore")
+                except OSError:
+                    continue
+                if any(marker in text for marker in markers):
+                    return True
+    return False
 
 
 def _verify_command_text(profile: StackProfile) -> str:
@@ -199,6 +236,11 @@ def lint_stack(
             if manifests and not _scaffold_has(scaffold, manifests):
                 report.hard.append(
                     f"no runtime manifest ({' / '.join(manifests)}) under scaffold/"
+                )
+            if not _scaffold_has_sample_test(scaffold, profile.language):
+                report.soft.append(
+                    "no sample test under scaffold/ (a work-surface stack should "
+                    "ship ≥1 runnable sample test for a green day-one `cos init`)"
                 )
 
         verify_text = _verify_command_text(profile)

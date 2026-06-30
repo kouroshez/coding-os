@@ -997,15 +997,17 @@
         "src/frontend/src/components/Greeting.astro",
         "src/frontend/src/content/config.ts",
         "src/frontend/src/content/posts/hello.md",
+        "src/frontend/src/lib/problem.test.ts",
         "src/frontend/src/lib/problem.ts",
         "src/frontend/src/pages/api/health.ts",
         "src/frontend/src/pages/index.astro",
         "src/frontend/tsconfig.json",
+        "src/frontend/vitest.config.ts",
         "src/shared/README.md",
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 249
+      "count": 251
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -2004,9 +2006,10 @@
         "src/mobile/lib/services/health_service.dart",
         "src/mobile/lib/state/health_provider.dart",
         "src/mobile/pubspec.yaml",
+        "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 244
     },
     "claude_go": {
       "agent": "claude",
@@ -3765,14 +3768,16 @@
         "src/backend/src/common/all-exceptions.filter.ts",
         "src/backend/src/health/health.controller.ts",
         "src/backend/src/health/health.module.ts",
+        "src/backend/src/health/health.service.spec.ts",
         "src/backend/src/health/health.service.ts",
         "src/backend/src/main.ts",
         "src/backend/tsconfig.json",
+        "src/backend/vitest.config.ts",
         "src/shared/README.md",
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 248
+      "count": 250
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -4289,6 +4294,7 @@
         "src/backend/package.json",
         "src/backend/src/index.ts",
         "src/backend/src/middleware/error-handler.ts",
+        "src/backend/src/routes/health.test.ts",
         "src/backend/src/routes/health.ts",
         "src/backend/tsconfig.json",
         "src/backend/types/express-bootstrap.d.ts",
@@ -4296,7 +4302,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 245
+      "count": 246
     },
     "claude_python": {
       "agent": "claude",
@@ -4778,6 +4784,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "src/backend/.rspec",
         "src/backend/Gemfile",
         "src/backend/app/controllers/application_controller.rb",
         "src/backend/app/controllers/health_controller.rb",
@@ -4786,9 +4793,11 @@
         "src/backend/config/application.rb",
         "src/backend/config/boot.rb",
         "src/backend/config/routes.rb",
+        "src/backend/spec/rails_helper.rb",
+        "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 247
     },
     "claude_react-native": {
       "agent": "claude",
@@ -6289,6 +6298,7 @@
         "src/frontend/src/app.html",
         "src/frontend/src/hooks.server.ts",
         "src/frontend/src/lib/components/Greeting.svelte",
+        "src/frontend/src/lib/stores/count.test.ts",
         "src/frontend/src/lib/stores/count.ts",
         "src/frontend/src/routes/+layout.svelte",
         "src/frontend/src/routes/+page.svelte",
@@ -6297,11 +6307,12 @@
         "src/frontend/svelte.config.js",
         "src/frontend/tsconfig.json",
         "src/frontend/vite.config.ts",
+        "src/frontend/vitest.config.ts",
         "src/shared/README.md",
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 251
+      "count": 253
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6790,12 +6801,14 @@
         "src/frontend/app.vue",
         "src/frontend/nuxt.config.ts",
         "src/frontend/package.json",
+        "src/frontend/pages/index.test.ts",
         "src/frontend/pages/index.vue",
+        "src/frontend/vitest.config.ts",
         "src/shared/README.md",
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 243
+      "count": 245
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -8055,15 +8068,17 @@
         "src/frontend/src/components/Greeting.astro",
         "src/frontend/src/content/config.ts",
         "src/frontend/src/content/posts/hello.md",
+        "src/frontend/src/lib/problem.test.ts",
         "src/frontend/src/lib/problem.ts",
         "src/frontend/src/pages/api/health.ts",
         "src/frontend/src/pages/index.astro",
         "src/frontend/tsconfig.json",
+        "src/frontend/vitest.config.ts",
         "src/shared/README.md",
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 253
+      "count": 255
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -9078,9 +9093,10 @@
         "src/mobile/lib/services/health_service.dart",
         "src/mobile/lib/state/health_provider.dart",
         "src/mobile/pubspec.yaml",
+        "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 248
     },
     "codex_go": {
       "agent": "codex",
@@ -10867,14 +10883,16 @@
         "src/backend/src/common/all-exceptions.filter.ts",
         "src/backend/src/health/health.controller.ts",
         "src/backend/src/health/health.module.ts",
+        "src/backend/src/health/health.service.spec.ts",
         "src/backend/src/health/health.service.ts",
         "src/backend/src/main.ts",
         "src/backend/tsconfig.json",
+        "src/backend/vitest.config.ts",
         "src/shared/README.md",
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 252
+      "count": 254
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -11399,6 +11417,7 @@
         "src/backend/package.json",
         "src/backend/src/index.ts",
         "src/backend/src/middleware/error-handler.ts",
+        "src/backend/src/routes/health.test.ts",
         "src/backend/src/routes/health.ts",
         "src/backend/tsconfig.json",
         "src/backend/types/express-bootstrap.d.ts",
@@ -11406,7 +11425,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 249
+      "count": 250
     },
     "codex_python": {
       "agent": "codex",
@@ -11896,6 +11915,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
+        "src/backend/.rspec",
         "src/backend/Gemfile",
         "src/backend/app/controllers/application_controller.rb",
         "src/backend/app/controllers/health_controller.rb",
@@ -11904,9 +11924,11 @@
         "src/backend/config/application.rb",
         "src/backend/config/boot.rb",
         "src/backend/config/routes.rb",
+        "src/backend/spec/rails_helper.rb",
+        "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 248
+      "count": 251
     },
     "codex_react-native": {
       "agent": "codex",
@@ -13431,6 +13453,7 @@
         "src/frontend/src/app.html",
         "src/frontend/src/hooks.server.ts",
         "src/frontend/src/lib/components/Greeting.svelte",
+        "src/frontend/src/lib/stores/count.test.ts",
         "src/frontend/src/lib/stores/count.ts",
         "src/frontend/src/routes/+layout.svelte",
         "src/frontend/src/routes/+page.svelte",
@@ -13439,11 +13462,12 @@
         "src/frontend/svelte.config.js",
         "src/frontend/tsconfig.json",
         "src/frontend/vite.config.ts",
+        "src/frontend/vitest.config.ts",
         "src/shared/README.md",
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 255
+      "count": 257
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -13940,12 +13964,14 @@
         "src/frontend/app.vue",
         "src/frontend/nuxt.config.ts",
         "src/frontend/package.json",
+        "src/frontend/pages/index.test.ts",
         "src/frontend/pages/index.vue",
+        "src/frontend/vitest.config.ts",
         "src/shared/README.md",
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 247
+      "count": 249
     },
     "codex_wordpress": {
       "agent": "codex",

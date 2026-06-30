@@ -30,10 +30,10 @@ substitutions:
   DOMAIN_ROUTES: "Frontend→`docs/playbooks/astro-app.md`, Content→`docs/playbooks/astro-app.md`"
   SKILL_ROUTES: "Frontend→`astro`"
   ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/astro-rules.md`, Content→`docs/playbooks/astro-app.md`, Error format→`docs/api-contracts/error-format.md`"
-  TOOL_ROUTING_IMPL: "`lint-frontend`, `build-frontend`"
+  TOOL_ROUTING_IMPL: "`lint-frontend`, `test-frontend`, `build-frontend`"
   VERIFY_FRONTEND_GLOB: "`src/frontend/`"
-  VERIFY_FRONTEND_SUITES: "lint-frontend + build-frontend"
-  VERIFY_FRONTEND: "`cd src/frontend && npm run lint && npm run build`"
+  VERIFY_FRONTEND_SUITES: "lint-frontend + test-frontend + build-frontend"
+  VERIFY_FRONTEND: "`cd src/frontend && npm run lint && npm test && npm run build`"
   QUICK_ROUTING: |-
     - Astro component / island task → [Astro App Playbook](./playbooks/astro-app.md)
     - Page / route / API endpoint task → [Astro App Playbook](./playbooks/astro-app.md)
@@ -58,10 +58,11 @@ rules:
 
 makefile_targets:
   - {name: lint-frontend,  cmd: "npx --yes eslint . && cd src/frontend && npm run lint"}
+  - {name: test-frontend,  cmd: "cd src/frontend && npm test"}
   - {name: build-frontend, cmd: "cd src/frontend && npm run build"}
 
 verify:
-  - {glob: "src/frontend/**/*.{ts,astro}", suites: "lint-frontend + build-frontend", cmd: "npx --yes eslint . && cd src/frontend && npm run lint && npm run build"}
+  - {glob: "src/frontend/**/*.{ts,astro}", suites: "lint-frontend + test-frontend + build-frontend", cmd: "npx --yes eslint . && cd src/frontend && npm run lint && npm test && npm run build"}
 
 dimensions:
   - {name: "Component / island",       read_files: ["docs/playbooks/astro-app.md", "docs/engineering/astro-rules.md"]}
