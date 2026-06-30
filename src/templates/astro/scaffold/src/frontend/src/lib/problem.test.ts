@@ -19,7 +19,7 @@ describe("problem", () => {
 
 describe("health endpoint", () => {
   it("GET returns a thin ok body", async () => {
-    const res = GET({} as never);
+    const res = await GET({} as never);
 
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("application/json");
@@ -27,7 +27,7 @@ describe("health endpoint", () => {
   });
 
   it("ALL (non-GET) returns the canonical 405 error envelope", async () => {
-    const res = ALL({} as never);
+    const res = await ALL({} as never);
 
     expect(res.status).toBe(405);
     expect(res.headers.get("content-type")).toBe("application/json");
