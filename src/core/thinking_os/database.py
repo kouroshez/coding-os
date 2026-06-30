@@ -2036,6 +2036,24 @@ END;
     logger.info("Migration v45 applied: task child-table delete-cascade triggers")
 
 
+def _migrate_v46_log_event_class(conn: sqlite3.Connection) -> None:
+    """Migration v46 — log_events.event_class splits policy enforcement (hook
+    BLOCKs) from faults so error_sweep files only genuine bugs."""
+    if not _table_exists(conn, "log_events"):
+        logger.info("Migration v46 skipped: log_events not present yet")
+        return
+    if not _column_exists_table(conn, "log_events", "event_class"):
+        conn.execute(
+            "ALTER TABLE log_events ADD COLUMN event_class TEXT NOT NULL DEFAULT 'fault'"
+        )
+        conn.execute(
+            "UPDATE log_events SET event_class = 'policy' "
+            "WHERE scope LIKE 'hook.%' AND kv LIKE '%\"action\": \"block\"%'"
+        )
+    conn.commit()
+    logger.info("Migration v46 applied: log_events gained event_class")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2382,6 +2400,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         45,
         "Delete-cascade triggers: a pruned task removes its task_status_history / task_outcomes / task_edit_history rows (mirrors tasks_deps_ad)",
         _migrate_v45_task_child_cascade,
+    ),
+    (
+        46,
+        "log_events.event_class (fault|policy|audit) — hook BLOCKs are policy, not faults, so error_sweep stops mis-filing them as bugs",
+        _migrate_v46_log_event_class,
     ),
 ]
 

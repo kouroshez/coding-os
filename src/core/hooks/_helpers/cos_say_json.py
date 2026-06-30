@@ -45,6 +45,7 @@ def _persist_db_row(ts: str, level: str, scope: str, message: str, kv: dict[str,
                 "kv": kv,
                 "session_id": kv.get("session"),
                 "trace_id": kv.get("trace") or kv.get("trace_id"),
+                "event_class": "policy" if kv.get("action") == "block" else "fault",
             }
         )
     except Exception as exc:  # fail-open — a logging failure must never break the hook

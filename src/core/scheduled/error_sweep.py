@@ -13,9 +13,11 @@ _SEV = {"DEBUG": 10, "INFO": 20, "OK": 21, "WARN": 30, "ERROR": 40, "FATAL": 50}
 def rollup_fingerprints(conn: sqlite3.Connection) -> int:
     """Recompute log_fingerprints aggregates from log_events. Idempotent. Returns fingerprint count."""
     conn.row_factory = sqlite3.Row
+    has_class = any(r[1] == "event_class" for r in conn.execute("PRAGMA table_info(log_events)"))
+    class_filter = " AND COALESCE(event_class, 'fault') = 'fault'" if has_class else ""
     rows = conn.execute(
         "SELECT fingerprint, scope, exc_type, msg, lvl, ts, session_id "
-        "FROM log_events WHERE scope != ? AND lvl IN ('WARN', 'ERROR', 'FATAL')",
+        "FROM log_events WHERE scope != ? AND lvl IN ('WARN', 'ERROR', 'FATAL')" + class_filter,
         (SWEEP_SCOPE,),
     ).fetchall()
     agg: dict[str, dict] = {}
@@ -63,6 +65,12 @@ def rollup_fingerprints(conn: sqlite3.Connection) -> int:
                 len(a["sessions"]),
             ),
         )
+    # Reconcile: an open fingerprint with no remaining fault-class events (e.g.
+    # reclassified to policy) is stale — drop it so it is never filed as a bug.
+    open_fps = [r[0] for r in conn.execute("SELECT fingerprint FROM log_fingerprints WHERE status = 'open'")]
+    for fp in open_fps:
+        if fp not in agg:
+            conn.execute("DELETE FROM log_fingerprints WHERE fingerprint = ? AND status = 'open'", (fp,))
     conn.commit()
     return len(agg)
 

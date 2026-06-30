@@ -101,26 +101,34 @@ def dropped_events() -> int:
 def _insert_log_event(path: Path, event: dict[str, Any]) -> None:
     kv = event.get("kv") or {}
     exc_type = kv.get("exc")
+    base = (
+        event["ts"],
+        event["lvl"],
+        event["scope"],
+        event["msg"],
+        json.dumps(kv, ensure_ascii=False) if kv else None,
+        exc_type,
+        event.get("stack"),
+        event.get("session_id"),
+        event.get("trace_id"),
+        fingerprint(event["scope"], exc_type, event["msg"]),
+    )
+    cols = "ts, lvl, scope, msg, kv, exc_type, stack, session_id, trace_id, fingerprint"
     conn = sqlite3.connect(str(path), timeout=2.0)
     try:
         conn.execute("PRAGMA busy_timeout=2000")
-        conn.execute(
-            "INSERT INTO log_events "
-            "(ts, lvl, scope, msg, kv, exc_type, stack, session_id, trace_id, fingerprint) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                event["ts"],
-                event["lvl"],
-                event["scope"],
-                event["msg"],
-                json.dumps(kv, ensure_ascii=False) if kv else None,
-                exc_type,
-                event.get("stack"),
-                event.get("session_id"),
-                event.get("trace_id"),
-                fingerprint(event["scope"], exc_type, event["msg"]),
-            ),
-        )
+        try:
+            conn.execute(
+                f"INSERT INTO log_events ({cols}, event_class) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (*base, event.get("event_class", "fault")),
+            )
+        except sqlite3.OperationalError:
+            # pre-v46 DB without event_class — never drop an event over a column
+            conn.execute(
+                f"INSERT INTO log_events ({cols}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                base,
+            )
         conn.commit()
     finally:
         conn.close()
