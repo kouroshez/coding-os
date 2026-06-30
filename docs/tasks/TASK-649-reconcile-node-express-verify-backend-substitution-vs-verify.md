@@ -5,12 +5,12 @@ swimlane: templates
 kind: chore
 epic: stack-completeness-v2
 labels: [node-express, drift, wave-2, golden, ready]
-status: testing
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-30
 started: 2026-06-30
-completed: null
+completed: 2026-06-30
 agent_session: ses-claude-20260630-012042-78c9
 depends_on: []
 blocked_by: []
@@ -22,3 +22,4 @@ references: []
 
 ## Work Log
 - 2026-06-30 [claude]: verify[].cmd + makefile lint-backend: dropped dead npx-eslint prefix (no eslint config; lint==tsc); now ==…
+- 2026-06-30 [claude]: committed e2eaae36 · 1 file

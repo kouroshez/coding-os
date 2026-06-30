@@ -31,3 +31,4 @@ references: []
 **Given** the workflow drafts already produced (wf_6c9cf2f2), **When** building each harness, **Then** the verifier-flagged blockers are resolved: angular legacy Karma bootstrap + double initTestEnvironment, laravel missing base Controller/bootstrap, wordpress {{PROJECT_NAME}}-in-.php namespace + PSR-12.
 
 ## Work Log
+- 2026-06-30 [claude]: committed 4c6b6e0d · 17 files

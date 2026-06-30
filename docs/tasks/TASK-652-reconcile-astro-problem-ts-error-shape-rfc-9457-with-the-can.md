@@ -5,12 +5,12 @@ swimlane: templates
 kind: chore
 epic: stack-completeness-v2
 labels: [astro, error-envelope, drift, ready]
-status: testing
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-30
 started: 2026-06-30
-completed: null
+completed: 2026-06-30
 agent_session: ses-claude-20260630-012042-78c9
 depends_on: []
 blocked_by: []
@@ -22,3 +22,4 @@ references: []
 
 ## Work Log
 - 2026-06-30 [claude]: problem.ts RFC9457->canonical {error:{code,message,request_id}} (like nestjs); 405 registered in error-format.md;…
+- 2026-06-30 [claude]: committed 8ae1f46f · 12 files

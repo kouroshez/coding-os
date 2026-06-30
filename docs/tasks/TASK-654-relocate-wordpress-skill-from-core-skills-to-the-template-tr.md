@@ -5,12 +5,12 @@ swimlane: templates
 kind: bug
 epic: stack-completeness-v2
 labels: [wordpress, skill, drift, wave-2, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-30
 started: 2026-06-30
-completed: null
+completed: 2026-06-30
 agent_session: ses-claude-20260630-012042-78c9
 depends_on: []
 blocked_by: []
