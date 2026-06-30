@@ -5,12 +5,12 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-30
 started: 2026-06-30
-completed: null
+completed: 2026-06-30
 agent_session: ses-claude-20260628-125542-fc9a
 depends_on: []
 blocked_by: []
@@ -42,3 +42,24 @@ references: []
 - 2026-06-30 [claude]: Edit sim_fix1.py
 - 2026-06-30 [claude]: Edit test_sync.py
 - 2026-06-30 [claude]: Edit test_sync.py
+- 2026-06-30 [claude]: committed f9a709dd · 4 files
+- 2026-06-30 [claude]: Edit nightly.py
+- 2026-06-30 [claude]: Edit nightly.py
+- 2026-06-30 [claude]: Edit sim_fix2.py
+- 2026-06-30 [claude]: Edit memory_gc.py
+- 2026-06-30 [claude]: Edit memory_gc.py
+- 2026-06-30 [claude]: Edit database.py
+- 2026-06-30 [claude]: Edit database.py
+- 2026-06-30 [claude]: Edit sinks.py
+- 2026-06-30 [claude]: Edit cos_say_json.py
+- 2026-06-30 [claude]: Edit error_sweep.py
+- 2026-06-30 [claude]: Edit sim_fix4.py
+- 2026-06-30 [claude]: Edit apply_v46.py
+- 2026-06-30 [claude]: Edit error_sweep.py
+- 2026-06-30 [claude]: Edit reconcile_fps.py
+- 2026-06-30 [claude]: Edit sim_fix4_source.py
+- 2026-06-30 [claude]: Edit 00-index.md
+- 2026-06-30 [claude]: Edit derived-store-coherence-audit-2026-06-30.md
+- 2026-06-30 [claude]: commit d944209578 — fix(error-sweep): classify hook BLOCKs as policy via log_events.event_class
+- 2026-06-30 [claude]: Shipped all 4 coherence fixes (smallest-correct-change over a generic store-registry — anti-overengineering): (1)…
+- 2026-06-30 [claude]: Status transitioned to complete via cos task-done.
