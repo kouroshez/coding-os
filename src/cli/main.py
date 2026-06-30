@@ -559,13 +559,6 @@ def _apply_template(
 # src/cli/aggregator.py::aggregate() for the data-driven replacement.
 
 
-# Scaffold text files whose {{KEY}} placeholders are resolved at copy time.
-# Unknown keys are always left intact, so files with no placeholders are
-# byte-identical after the pass (plain-stack code skeletons need this —
-# go.mod / main.go / index.ts carry {{PROJECT_NAME}}; TASK-348).
-_PLACEHOLDER_SUFFIXES = {".md", ".go", ".mod", ".ts", ".tsx", ".json", ".vue"}
-
-
 def _resolve_placeholders(text: str, substitutions: dict[str, str]) -> str:
     """Replace `{{KEY}}` placeholders. Unknown keys are left intact for later overlay."""
     result = text
@@ -877,18 +870,21 @@ def _overlay_scaffold(
                 continue
 
             dest.parent.mkdir(parents=True, exist_ok=True)
-            if src_file.suffix in _PLACEHOLDER_SUFFIXES:
+            try:
                 content = src_file.read_text(encoding="utf-8")
-                content = _resolve_placeholders(content, substitutions)
-                if src_file.suffix == ".md":
-                    skip_file, content = _apply_doc_conditions(
-                        content, disabled_modules, active_stacks
-                    )
-                    if skip_file:
-                        continue
-                dest.write_text(content, encoding="utf-8")
-            else:
+            except (UnicodeDecodeError, ValueError):
+                # Binary asset (image, font, ...) — copy verbatim, never substitute.
                 shutil.copy2(src_file, dest)
+                copied += 1
+                continue
+            content = _resolve_placeholders(content, substitutions)
+            if src_file.suffix == ".md":
+                skip_file, content = _apply_doc_conditions(
+                    content, disabled_modules, active_stacks
+                )
+                if skip_file:
+                    continue
+            dest.write_text(content, encoding="utf-8")
             copied += 1
 
     return copied
