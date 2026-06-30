@@ -19,7 +19,7 @@ references: []
 
 # TASK-669: Extend verify-dedup to make-target commands with an early-exit before the run-lock acquire
 
-**Outcome (one sentence):** test-governor dedup covers make-target verify commands (not only bare pytest), and the dedup short-circuit runs BEFORE the run-lock acquire so a suite already green on the current tree exits early instead of contending for or starving on the host-global .test-run.lock.
+**Outcome (one sentence):** test-governor dedup covers make-target verify commands (not only bare pytest) so a suite already green on the current tree exits early — the lock-ordering half is ALREADY satisfied (dedup at test-governor.sh:92-105 returns before the lock at :107), so this task's only real work is extending SUITE detection to make-targets.
 
 ## Read First
 - src/core/hooks/test-governor.sh
@@ -28,7 +28,7 @@ references: []
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 - **Given** a make verify-target already recorded green on the current tree, **When** it is re-invoked, **Then** test-governor dedups it with an early exit, the same as a bare pytest re-run.
-- **Given** the dedup hit, **When** it short-circuits, **Then** it returns BEFORE acquiring .test-run.lock so a no-op never contends for the lock.
+- **Given** the dedup hit, **When** it short-circuits, **Then** it returns before acquiring .test-run.lock — already true today, so preserve it, do not re-architect the lock.
 - **Given** a tree change, **When** the suite is invoked, **Then** the recorded pass is invalidated and the run proceeds normally.
 
 ## Work Log

@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: hook-consolidation
 labels: [hooks, clear1, retro, ready]
-status: icebox
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-30
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260630-011740-9a32
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-673: Escalate CLEAR-1 self-bypass — count + surface repeated gate bypasses in retro (informational)
 
 **Outcome (one sentence):** Repeated CLEAR-1 self-bypasses (manual CLEAR 1 gate sets that skip doc-anchor/skill/task-start/memory-check enforcement) are counted and surfaced to retro with their recorded justifications from .clear1-bypass-log, so routing-around-the-discipline becomes a visible trend rather than a silent habit — informational only, never a new block.

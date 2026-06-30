@@ -5,18 +5,17 @@ swimlane: core
 kind: refactor
 epic: hook-consolidation
 labels: [hooks, nudge, dispatcher, ready]
-status: icebox
+status: archive
 priority: P2
 appetite: 2d
 created: 2026-06-30
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260630-011740-9a32
 depends_on: [TASK-672]
 blocked_by: []
 references: []
 ---
-
 # TASK-675: Merge the UserPromptSubmit nudge hooks into one read-stdin-once dispatcher (revive archived TASK-082, de-risked by F1)
 
 **Outcome (one sentence):** The UserPromptSubmit nudge hooks that each re-read prompt stdin separately (nudge-thinking-os, nudge-graph-os, nudge-docs-first, nudge-task-discovery, nudge-reuse-first, nudge-model-routing, nudge-git-mode) collapse into one read-stdin-once dispatcher, reviving the deliberately-archived TASK-082 now that the F1 (TASK-672) behavior-parity harness can prove the merge preserves each nudge's output.

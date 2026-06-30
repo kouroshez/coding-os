@@ -5,18 +5,17 @@ swimlane: "board_os"
 kind: feature
 epic: test-discipline
 labels: [tests, metrics, retro, ready]
-status: icebox
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-30
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260630-011740-9a32
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-671: Redundant-run metric — record verify-suite re-run rate to an append-only metrics table for retro
 
 **Outcome (one sentence):** A redundant-run metric records, to an append-only metrics table created by a new vN+1 migration, how often a verify-suite run is deduped or re-requested on an unchanged tree, so retro can quantify over-testing via cos_metric_trend instead of guessing — fire-and-forget, never blocking the run.
