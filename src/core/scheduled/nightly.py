@@ -319,16 +319,10 @@ def _run_error_sweep(
     return {"status": "ok", **result}
 
 
-# Autonomy rungs that permit the cron to commit board churn unattended. The
-# commit is local-only (never pushes), so every rung where the agent is trusted
-# to commit on its own qualifies — `local` ("commits, never pushes") included.
-# Only `draft` (the conservative default: a human merges) and `auto_merge` (a
-# pure PR-merge rung) fall through to file-a-task instead.
 _AUTO_COMMIT_AUTONOMY = ("local", "local_autonomous", "autonomous")
 
 
 def _git_autonomy(project_root: Path) -> str:
-    """Resolve git autonomy from env or the project's hub-settings.json; 'draft' on any miss."""
     env = os.environ.get("COS_GIT_AUTONOMY")
     if env and env.strip():
         return env.strip()
@@ -342,12 +336,7 @@ def _git_autonomy(project_root: Path) -> str:
     return "draft"
 
 
-def _commit_board_drift(project_root: Path, drifted: int) -> dict:
-    """Stage + commit ONLY docs/tasks/*.md in one idempotent tasks-only commit."""
-    # Tasks-only scope is load-bearing: _post_commit_body.sh appends a
-    # `committed <sha>` work-log line only when the commit also carries a
-    # non-task file, so a tasks-only commit no-ops that hook and the tree
-    # converges clean in a single pass with no re-dirty.
+def _commit_board_drift_tasks_only(project_root: Path, drifted: int) -> dict:
     import subprocess
 
     def _git(*args: str, timeout: int) -> subprocess.CompletedProcess:
@@ -373,7 +362,7 @@ def _commit_board_drift(project_root: Path, drifted: int) -> dict:
 
 
 def _run_board_coherence(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
-    """board_coherence — auto-commit board↔git drift (autonomy-gated) or file ONE idempotent task (TASK-436)."""
+    """board_coherence — auto-commit board↔git drift (autonomy-gated) or file an idempotent task."""
     from board_os.git_coherence import detect_board_git_drift, task_rows_from_db
 
     with sqlite3.connect(str(db_path), timeout=10) as conn:
@@ -392,18 +381,10 @@ def _run_board_coherence(db_path: Path, project_root: Path, *, dry_run: bool) ->
         if not drift.has_drift:
             return {"status": "ok", "drift": False}
 
-        # Remediation 1 (autonomy-gated): commit the drift ourselves. Only
-        # untracked/modified files are committable — a `missing` row (DB task
-        # whose .md was deleted) still needs human reconciliation, so fall
-        # through to filing a task whenever any file is missing.
         committable = len(drift.untracked) + len(drift.modified)
-        if (
-            committable
-            and not drift.missing
-            and not dry_run
-            and _git_autonomy(project_root) in _AUTO_COMMIT_AUTONOMY
-        ):
-            result = _commit_board_drift(project_root, committable)
+        autonomy_allows_commit = _git_autonomy(project_root) in _AUTO_COMMIT_AUTONOMY
+        if committable and not drift.missing and not dry_run and autonomy_allows_commit:
+            result = _commit_board_drift_tasks_only(project_root, committable)
             if result.get("committed"):
                 return {
                     "status": "ok",
@@ -414,8 +395,6 @@ def _run_board_coherence(db_path: Path, project_root: Path, *, dry_run: bool) ->
                 }
             logger.warning("[board_coherence] auto-commit failed: %s", result.get("error"))
 
-        # Remediation 2: file ONE idempotent auto-git-drift task. A second
-        # nightly pass on still-drifted state must NOT pile up duplicate tasks.
         existing = conn.execute(
             "SELECT task_id FROM tasks WHERE status NOT IN ('complete', 'archive') "
             "AND labels_json LIKE '%\"auto-git-drift\"%'"
@@ -444,9 +423,6 @@ def _run_board_coherence(db_path: Path, project_root: Path, *, dry_run: bool) ->
                 + " — commit the untracked/modified docs/tasks/*.md (or reconcile the DB rows) "
                 "so the board (DB) and git agree."
             ),
-            # ready=True runs the DoR gate, which rejects a task missing
-            # Acceptance/Read-First — without these the create returned a
-            # fail envelope and the cron silently reported filed:true / id:null.
             acceptance=(
                 "**Given** board↔git drift (untracked/modified/missing docs/tasks/*.md) "
                 "**When** the drifted files are committed (or the orphaned DB rows reconciled) "
