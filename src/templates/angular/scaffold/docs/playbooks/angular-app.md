@@ -4,7 +4,7 @@
 Purpose: The end-to-end recipe for adding or changing an Angular feature in {{PROJECT_NAME}}.
 Read when: Any task that adds a component, service, route, guard, or interceptor.
 Skip when: Backend/mobile work — see the relevant stack docs.
-Read next: [Angular Engineering Rules](../engineering/angular-rules.md), [Accessibility](../engineering/accessibility-web.md)
+Read next: [Angular Engineering Rules](../engineering/angular-rules.md), [Accessibility](../engineering/accessibility.md)
 
 > Nav: [Master Index](../00-index.md)
 

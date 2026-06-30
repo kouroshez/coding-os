@@ -41,12 +41,12 @@ substitutions:
   STACK_REF_CODES: |-
     - `REF:PLAYBOOK-ANGULAR` → `./playbooks/angular-app.md`
     - `REF:ANGULAR-RULES` → `./engineering/angular-rules.md`
-    - `REF:A11Y` → `./engineering/accessibility-web.md`
+    - `REF:A11Y` → `./engineering/accessibility.md`
 
 ref_codes:
   - {code: "REF:PLAYBOOK-ANGULAR", path: "./playbooks/angular-app.md",        desc: "Angular app playbook"}
   - {code: "REF:ANGULAR-RULES",    path: "./engineering/angular-rules.md",    desc: "Angular engineering rules"}
-  - {code: "REF:A11Y",             path: "./engineering/accessibility-web.md", desc: "Accessibility checklist"}
+  - {code: "REF:A11Y",             path: "./engineering/accessibility.md", desc: "Accessibility checklist"}
 
 routing_entries:
   - "Angular component / signal task → [Angular App Playbook](./playbooks/angular-app.md)"

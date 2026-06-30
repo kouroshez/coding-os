@@ -446,6 +446,7 @@
         "docs/architecture/00-index.md",
         "docs/architecture/adr/00-index.md",
         "docs/engineering/00-index.md",
+        "docs/engineering/accessibility.md",
         "docs/engineering/angular-rules.md",
         "docs/governance/00-index.md",
         "docs/governance/_templates/doc-cheat-sheet.md",
@@ -494,7 +495,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 251
+      "count": 252
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -7495,6 +7496,7 @@
         "docs/architecture/00-index.md",
         "docs/architecture/adr/00-index.md",
         "docs/engineering/00-index.md",
+        "docs/engineering/accessibility.md",
         "docs/engineering/angular-rules.md",
         "docs/governance/00-index.md",
         "docs/governance/_templates/doc-cheat-sheet.md",
@@ -7543,7 +7545,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 255
+      "count": 256
     },
     "codex_aspnet-core": {
       "agent": "codex",
