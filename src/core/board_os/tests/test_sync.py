@@ -139,7 +139,42 @@ def test_sync_one_records_status_change(project: Path, conn: sqlite3.Connection)
 def test_sync_missing_docs_tasks_dir(tmp_path: Path, conn: sqlite3.Connection):
     """Zero-file repo still syncs cleanly."""
     stats = sync_all(conn, project_root=tmp_path)
-    assert stats == {"scanned": 0, "upserted": 0, "skipped_unchanged": 0, "parse_errors": 0}
+    assert stats == {
+        "scanned": 0,
+        "upserted": 0,
+        "skipped_unchanged": 0,
+        "parse_errors": 0,
+        "pruned": 0,
+    }
+
+
+def test_sync_prunes_deleted_task_file(tmp_path: Path, conn: sqlite3.Connection):
+    """A deleted task file is pruned on full sync, cascading to child tables."""
+    tasks = tmp_path / "docs" / "tasks"
+    tasks.mkdir(parents=True)
+    body = (
+        '---\nid: {tid}\ntitle: "t"\nswimlane: infra\nkind: chore\n'
+        "status: icebox\npriority: P2\n---\n\n# {tid}: t\n\n"
+        "**Outcome (one sentence):** x.\n\n## Work Log\n"
+    )
+    (tasks / "TASK-8001-keep.md").write_text(body.format(tid="TASK-8001"))
+    gone = tasks / "TASK-8002-gone.md"
+    gone.write_text(body.format(tid="TASK-8002"))
+    sync_all(conn, project_root=tmp_path)
+    conn.execute(
+        "INSERT INTO task_status_history(task_id, old_status, new_status, transitioned_at) "
+        "VALUES ('TASK-8002', 'icebox', 'in_progress', CURRENT_TIMESTAMP)"
+    )
+    conn.commit()
+
+    gone.unlink()
+    stats = sync_all(conn, project_root=tmp_path)
+
+    assert stats["pruned"] == 1
+    q = "SELECT COUNT(*) FROM {} WHERE task_id = ?"
+    assert conn.execute(q.format("tasks"), ("TASK-8002",)).fetchone()[0] == 0
+    assert conn.execute(q.format("task_status_history"), ("TASK-8002",)).fetchone()[0] == 0
+    assert conn.execute(q.format("tasks"), ("TASK-8001",)).fetchone()[0] == 1
 
 
 def test_sync_one_on_lean_task_writes_epic(project: Path, conn: sqlite3.Connection):

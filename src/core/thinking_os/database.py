@@ -2017,6 +2017,25 @@ def _migrate_v44_dispatch_transcript(conn: sqlite3.Connection) -> None:
     logger.info("Migration v44 applied: formula_dispatches gained raw_transcript")
 
 
+def _migrate_v45_task_child_cascade(conn: sqlite3.Connection) -> None:
+    """Migration v45 — a deleted tasks row cascades to its child tables."""
+    conn.executescript(
+        """
+CREATE TRIGGER IF NOT EXISTS task_status_history_ad AFTER DELETE ON tasks BEGIN
+    DELETE FROM task_status_history WHERE task_id = old.task_id;
+END;
+CREATE TRIGGER IF NOT EXISTS task_outcomes_ad AFTER DELETE ON tasks BEGIN
+    DELETE FROM task_outcomes WHERE task_id = old.task_id;
+END;
+CREATE TRIGGER IF NOT EXISTS task_edit_history_ad AFTER DELETE ON tasks BEGIN
+    DELETE FROM task_edit_history WHERE task_id = old.task_id;
+END;
+"""
+    )
+    conn.commit()
+    logger.info("Migration v45 applied: task child-table delete-cascade triggers")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2358,6 +2377,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         44,
         "formula_dispatches.raw_transcript — persist dispatched sub-agent transcript for audit",
         _migrate_v44_dispatch_transcript,
+    ),
+    (
+        45,
+        "Delete-cascade triggers: a pruned task removes its task_status_history / task_outcomes / task_edit_history rows (mirrors tasks_deps_ad)",
+        _migrate_v45_task_child_cascade,
     ),
 ]
 

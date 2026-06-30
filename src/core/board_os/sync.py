@@ -270,6 +270,16 @@ def sync_one(
     return parsed
 
 
+def _prune_missing_tasks(conn: sqlite3.Connection, seen_paths: set[str]) -> int:
+    rows = conn.execute("SELECT task_id, file_path FROM tasks").fetchall()
+    gone = [r[0] for r in rows if r[1] and r[1] not in seen_paths]
+    for task_id in gone:
+        conn.execute("DELETE FROM tasks WHERE task_id = ?", (task_id,))
+    if gone:
+        conn.commit()
+    return len(gone)
+
+
 def sync_all(
     conn: sqlite3.Connection,
     project_root: Path | None = None,
@@ -280,15 +290,18 @@ def sync_all(
     project_root = (project_root or Path.cwd()).resolve()
     files = _iter_task_files(project_root)
 
-    stats = {"scanned": 0, "upserted": 0, "skipped_unchanged": 0, "parse_errors": 0}
+    stats = {"scanned": 0, "upserted": 0, "skipped_unchanged": 0, "parse_errors": 0, "pruned": 0}
+    seen_paths: set[str] = set()
 
     for path in files:
         stats["scanned"] += 1
+        rel_path = str(path.relative_to(project_root))
+        seen_paths.add(rel_path)
         if not force:
             mtime = path.stat().st_mtime
             row = conn.execute(
                 "SELECT mtime FROM tasks WHERE file_path = ?",
-                (str(path.relative_to(project_root)),),
+                (rel_path,),
             ).fetchone()
             if row and row[0] == mtime:
                 stats["skipped_unchanged"] += 1
@@ -298,5 +311,10 @@ def sync_all(
             stats["parse_errors"] += 1
         else:
             stats["upserted"] += 1
+
+    # Prune rows whose file vanished — but never from an empty/misdirected walk
+    # (a zero-file scan must not wipe the board).
+    if stats["scanned"] > 0:
+        stats["pruned"] = _prune_missing_tasks(conn, seen_paths)
 
     return stats
