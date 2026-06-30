@@ -1,0 +1,160 @@
+name: scaffold-verify
+
+# Scaffolds each stack with `cos init` and runs that stack's REAL lint + test
+# gate (npm run lint / npm test, ruff + pytest, go vet + go test) against the
+# generated project. `cos stack-lint` only checks a sample-test file EXISTS;
+# this gate proves it actually passes — closing the blind spot that shipped
+# TASK-655/656/657/658. The project is named `app` (never a language-reserved
+# word like `go`) so the module/package name is always valid.
+
+on:
+  pull_request:
+    paths:
+      - "src/templates/**"
+      - "src/cli/**"
+      - ".github/workflows/scaffold-verify.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/templates/**"
+      - "src/cli/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  SV_DIR: ${{ runner.temp }}/scaffold-verify
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { stack: astro, sub: src/frontend, prepare: "" }
+          - { stack: nextjs, sub: src/frontend, prepare: "" }
+          - { stack: react-native, sub: src/mobile, prepare: "" }
+          - { stack: nestjs, sub: src/backend, prepare: "" }
+          - { stack: node-express, sub: src/backend, prepare: "" }
+          - { stack: svelte-sveltekit, sub: src/frontend, prepare: "npx --yes svelte-kit sync" }
+          - { stack: vue-nuxt, sub: src/frontend, prepare: "npx --yes nuxt prepare" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: uv sync --extra rag
+      - name: Scaffold
+        run: uv run python -m cli.main init --agent claude --project-dir "$SV_DIR" --name app --template ${{ matrix.stack }} --no-git --force --no-register --no-index
+      - name: No leftover placeholders
+        run: |
+          if grep -rEl '\{\{(PROJECT_NAME|DATE|PROJECT_DESCRIPTION)\}\}' "$SV_DIR/app"; then
+            echo "::error::literal {{...}} placeholder leaked into the scaffolded project"
+            exit 1
+          fi
+      - name: Install
+        working-directory: ${{ env.SV_DIR }}/app/${{ matrix.sub }}
+        run: npm install
+      - name: Prepare
+        if: matrix.prepare != ''
+        working-directory: ${{ env.SV_DIR }}/app/${{ matrix.sub }}
+        run: ${{ matrix.prepare }}
+      - name: Lint gate
+        working-directory: ${{ env.SV_DIR }}/app/${{ matrix.sub }}
+        run: npm run lint
+      - name: Test gate
+        working-directory: ${{ env.SV_DIR }}/app/${{ matrix.sub }}
+        run: npm test
+
+  python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        stack: [django, fastapi]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - run: uv sync --extra rag
+      - name: Scaffold
+        run: uv run python -m cli.main init --agent claude --project-dir "$SV_DIR" --name app --template ${{ matrix.stack }} --no-git --force --no-register --no-index
+      - name: No leftover placeholders
+        run: |
+          if grep -rEl '\{\{(PROJECT_NAME|DATE|PROJECT_DESCRIPTION)\}\}' "$SV_DIR/app"; then
+            echo "::error::literal {{...}} placeholder leaked into the scaffolded project"
+            exit 1
+          fi
+      - name: Install
+        working-directory: ${{ env.SV_DIR }}/app/src/backend
+        run: |
+          uv venv .venv
+          uv pip install -e ".[test]"
+      - name: Lint gate
+        working-directory: ${{ env.SV_DIR }}/app/src/backend
+        run: uvx ruff check .
+      - name: Test gate
+        working-directory: ${{ env.SV_DIR }}/app/src/backend
+        run: .venv/bin/python -m pytest -q
+
+  go:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        stack: [go, go-fiber]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+      - run: uv sync --extra rag
+      - name: Scaffold
+        run: uv run python -m cli.main init --agent claude --project-dir "$SV_DIR" --name app --template ${{ matrix.stack }} --no-git --force --no-register --no-index
+      - name: No leftover placeholders
+        run: |
+          if grep -rEl '\{\{(PROJECT_NAME|DATE|PROJECT_DESCRIPTION)\}\}' "$SV_DIR/app"; then
+            echo "::error::literal {{...}} placeholder leaked into the scaffolded project"
+            exit 1
+          fi
+      - name: Lint gate
+        working-directory: ${{ env.SV_DIR }}/app/src/backend
+        run: go vet ./...
+      - name: Test gate
+        working-directory: ${{ env.SV_DIR }}/app/src/backend
+        run: go test ./...
+
+  # FOLLOW-UP — sample-test stacks whose toolchain was unavailable on the
+  # authoring host, so their gate commands are not yet empirically proven:
+  #   aspnet-core / csharp-plain  → actions/setup-dotnet@v4 ; dotnet test
+  #   spring-boot / java-plain    → actions/setup-java@v4   ; ./gradlew test (or mvn test)
+  #   rust-axum / rust-plain      → dtolnay/rust-toolchain  ; cargo clippy + cargo test
+  #   flutter                     → subosito/flutter-action ; flutter test
+  #   rails                       → ruby/setup-ruby@v1      ; bundle install + bundle exec rspec
+  # Add a job per toolchain once its exact gate is confirmed green (tracked by
+  # the stack-completeness-v2 epic) — do not ship unverified steps here.
