@@ -1,7 +1,7 @@
 <!-- domain:GO | layer:reference | ssot:true | updated:2026-04-29 -->
 # Go Anatomy
 
-> P: Canonical file map and entity recipes for the Go (stdlib + chi) stack.
+> P: Canonical file map and entity recipes for the Go (stdlib net/http) stack.
 > R: Adding any `.go` file under `src/backend/` or `cmd/`, or routing a backend task.
 > S: Working on frontend / mobile / web code.
 > N: [SKILL.md](../SKILL.md), [scaffold-boundary.yaml](../../../scaffold-boundary.yaml)
@@ -19,7 +19,7 @@ SSOT: [`src/templates/go/scaffold-boundary.yaml`](../../../scaffold-boundary.yam
 | Pattern | Location | Naming | Imports from | Description |
 |---|---|---|---|---|
 | App entry | `cmd/<service>/main.go` | `main.go` | `internal/...` | Wires deps, starts server |
-| HTTP handler | `internal/<domain>/handler.go` | `handler.go` | `..service` | chi handler |
+| HTTP handler | `internal/<domain>/handler.go` | `handler.go` | `..service` | net/http handler |
 | Service | `internal/<domain>/service.go` | `service.go` | `..repo` | Business logic |
 | Repository | `internal/<domain>/repo.go` | `repo.go` | `database/sql` | DB access |
 | Domain entity | `internal/<domain>/<entity>.go` | `<entity>.go` | `time` | Plain struct + methods |

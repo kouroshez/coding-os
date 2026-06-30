@@ -1,4 +1,4 @@
-"""Generate a Go (chi) HTTP handler scaffold per `references/anatomy.md`.
+"""Generate a Go (stdlib net/http) HTTP handler scaffold per `references/anatomy.md`.
 
 PURPOSE:      Emit handler + dto + service + test stubs in one shot.
 INPUT:        --domain <name>   — internal/<domain>/.
@@ -109,7 +109,7 @@ def main() -> int:
     for path, body in files.items():
         path.write_text(body, encoding="utf-8")
         print(f"OK: wrote {path}")
-    print(f"INFO: register the handler in cmd/<service>/main.go (chi router)")
+    print(f"INFO: register the handler in cmd/<service>/main.go (net/http ServeMux)")
     return 0
 
 

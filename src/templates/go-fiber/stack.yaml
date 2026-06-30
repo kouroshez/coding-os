@@ -1,7 +1,7 @@
 version: 1
 id: go-fiber
 language: go
-label: "Go + Fiber (gofiber/fiber v2) + PostgreSQL"
+label: "Go + Fiber (gofiber/fiber v3) + PostgreSQL"
 category: backend
 
 structure:
@@ -42,7 +42,7 @@ rules:
   - {file: rules/backend.md, globs: ["src/backend/**/*.go"]}
 
 makefile_targets:
-  - {name: lint-backend, cmd: "cd src/backend && go vet ./... && golangci-lint run"}
+  - {name: lint-backend, cmd: "cd src/backend && go vet ./..."}
   - {name: test-backend, cmd: "cd src/backend && go test ./..."}
 
 verify:

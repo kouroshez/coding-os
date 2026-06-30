@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Root shell for {{PROJECT_NAME}} — nav + a11y landmark; pages render in <slot/>.
+  // Root shell for {{PROJECT_NAME}} — nav + a11y landmark; pages render via {@render children()}.
   let { children } = $props();
 </script>
 

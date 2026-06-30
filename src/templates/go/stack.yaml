@@ -1,7 +1,7 @@
 version: 1
 id: go
 language: go
-label: "Go (stdlib + chi)"
+label: "Go (stdlib net/http)"
 category: backend
 
 structure:

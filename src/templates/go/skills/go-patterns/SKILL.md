@@ -2,7 +2,7 @@
 name: go-patterns
 tier: stack
 domain: [backend]
-description: Use when creating or modifying Go files under src/backend/ — HTTP handlers, services, stdlib net/http or chi routers, context propagation, and table-driven tests. Triggers on any .go file change under src/backend/. Covers idiomatic Go, error wrapping, context handling, and concurrency patterns.
+description: Use when creating or modifying Go files under src/backend/ — HTTP handlers, services, stdlib net/http routers, context propagation, and table-driven tests. Triggers on any .go file change under src/backend/. Covers idiomatic Go, error wrapping, context handling, and concurrency patterns.
 globs: "src/backend/**/*.go"
 depends_on:
   - clean-code

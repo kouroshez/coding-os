@@ -1,4 +1,4 @@
-# Scaffold boundary for the go stack (stdlib + chi).
+# Scaffold boundary for the go stack (stdlib net/http).
 # Schema: docs/governance/scaffold-boundary-contract.md
 
 version: 1
