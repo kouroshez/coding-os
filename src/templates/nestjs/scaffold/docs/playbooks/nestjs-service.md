@@ -11,7 +11,7 @@ Read next: [NestJS Engineering Rules](../engineering/nestjs-rules.md), [Error Fo
 ## Add an endpoint (the only sanctioned path)
 
 1. **Contract first** — define the request/response DTOs (class-validator);
-   error cases use the shared problem format ([error-format](../api-contracts/error-format.md)).
+   error cases use the shared error envelope ([error-format](../api-contracts/error-format.md)).
 2. **Module** — `src/backend/src/<feature>/<feature>.module.ts` declares the
    controller + providers and exports only what other modules need.
 3. **Controller** — `<feature>.controller.ts`: validate via DTO + pipe, call

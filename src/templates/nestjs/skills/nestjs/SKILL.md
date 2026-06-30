@@ -55,7 +55,7 @@ controller-layer-only change.
 ## Error handling
 
 - ONE global exception filter (`common/all-exceptions.filter.ts`) shapes every
-  error response (RFC 9457 problem shape per `docs/api-contracts/error-format.md`).
+  error response (the canonical envelope per `docs/api-contracts/error-format.md`).
   Unknown errors → 500 generic message, full detail to the logger only.
 
 ## Testing
