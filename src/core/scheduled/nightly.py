@@ -20,12 +20,15 @@ import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Bootstrap: make thinking_os importable (same as other standalone scripts)
+# Bootstrap: make the src/core packages importable when run as a file
 # ---------------------------------------------------------------------------
 _HERE = Path(__file__).resolve().parent
-_THINKING_OS = _HERE.parent / "thinking_os"
-if str(_THINKING_OS) not in sys.path:
-    sys.path.insert(0, str(_THINKING_OS))
+_CORE = _HERE.parent
+_SRC = _CORE.parent
+_THINKING_OS = _CORE / "thinking_os"
+for _bootstrap_path in (_SRC, _CORE, _THINKING_OS):
+    if str(_bootstrap_path) not in sys.path:
+        sys.path.insert(0, str(_bootstrap_path))
 
 from scheduled._activity import (  # noqa: E402
     outcomes_since_marker,
