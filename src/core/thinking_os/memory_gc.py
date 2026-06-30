@@ -37,6 +37,10 @@ def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
     return bool(row)
 
 
+def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
+    return any(r[1] == column for r in conn.execute(f"PRAGMA table_info({table})"))
+
+
 def gc_memory(
     db_path: str | Path | None = None,
     *,
@@ -150,7 +154,9 @@ def gc_memory(
                 conn.execute(f"DELETE FROM concept_graph WHERE {stale_where}")
 
         # ---- 3. Trash observations (captured during local experiments) ----
-        if _table_exists(conn, "observations"):
+        if _table_exists(conn, "observations") and _column_exists(
+            conn, "observations", "files_modified"
+        ):
             like_terms = " OR ".join("files_modified LIKE ?" for _ in TRASH_PATH_PREFIXES)
             like_params = [f"{p}%" for p in TRASH_PATH_PREFIXES]
             cur = conn.execute(

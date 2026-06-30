@@ -503,6 +503,33 @@ def _run_dep_reconcile(db_path: Path, project_root: Path, *, dry_run: bool) -> d
             os.environ["COS_PROJECT_ROOT"] = prev_root
 
 
+def _run_doc_reconcile(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
+    """doc_reconcile — prune document_chunks for docs deleted on disk (the edit
+    hook re-chunks single files but never sweeps deletions); reuses index_docs."""
+    config_path = project_root / ".coding-os" / "rag-config.yaml"
+    if not config_path.exists():
+        return {"status": "skipped", "reason": "no rag-config.yaml"}
+    if dry_run:
+        return {"status": "skipped", "reason": "dry_run"}
+    from thinking_os.doc_indexer import index_docs
+
+    with sqlite3.connect(str(db_path), timeout=30) as conn:
+        stats = index_docs(conn, config_path, project_root, force=False)
+    return {
+        "status": "ok",
+        "pruned": stats.get("deleted_files", 0),
+        "updated": stats.get("updated_files", 0),
+    }
+
+
+def _run_memory_gc(db_path: Path, *, dry_run: bool) -> dict:
+    """memory_gc — reclaim orphan embeddings + concept-graph edges + trash
+    observations (no FK/trigger covers embeddings when a source row is deleted)."""
+    from thinking_os.memory_gc import gc_memory
+
+    return gc_memory(db_path=db_path, dry_run=dry_run)
+
+
 def run_project(project: dict, *, dry_run: bool) -> dict:
     """Run all maintenance tasks for one project."""
     slug = project.get("slug", "?")
@@ -681,6 +708,30 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
     except Exception as exc:
         run["tasks"]["graph_reindex"] = {"status": "error", "error": str(exc)}
         logger.error("[%s] graph_reindex raised: %s", slug, exc)
+        errors += 1
+
+    # Task 5: doc_reconcile (prune chunks for deleted docs)
+    try:
+        t = _run_doc_reconcile(db_path, project_root, dry_run=dry_run)
+        run["tasks"]["doc_reconcile"] = t
+        logger.info("[%s] doc_reconcile → %s", slug, t.get("status"))
+        if t.get("status") == "error":
+            errors += 1
+    except Exception as exc:
+        run["tasks"]["doc_reconcile"] = {"status": "error", "error": str(exc)}
+        logger.error("[%s] doc_reconcile raised: %s", slug, exc)
+        errors += 1
+
+    # Task 6: memory_gc (orphan embeddings + trash observations)
+    try:
+        t = _run_memory_gc(db_path, dry_run=dry_run)
+        run["tasks"]["memory_gc"] = t
+        logger.info("[%s] memory_gc → %s", slug, t.get("status"))
+        if t.get("status") == "error":
+            errors += 1
+    except Exception as exc:
+        run["tasks"]["memory_gc"] = {"status": "error", "error": str(exc)}
+        logger.error("[%s] memory_gc raised: %s", slug, exc)
         errors += 1
 
     # Failure tracking
