@@ -8,14 +8,17 @@ structure:
   root: src/backend
   tree: |
     src/backend/
+    ├── Backend.sln             # solution (app + test projects); verify targets this
     ├── Backend.csproj
     ├── Program.cs              # WebApplication bootstrap (no business logic)
     ├── Common/                 # cross-cutting: exception middleware, problem shaper
     │   └── ExceptionHandlingMiddleware.cs
-    └── Features/               # one folder per domain
-        └── <Feature>/
-            ├── <Feature>Endpoints.cs   # thin — maps routes, delegates to the service
-            └── <Feature>Service.cs     # business logic (the only layer that thinks)
+    ├── Features/               # one folder per domain
+    │   └── <Feature>/
+    │       ├── <Feature>Endpoints.cs   # thin — maps routes, delegates to the service
+    │       └── <Feature>Service.cs     # business logic (the only layer that thinks)
+    └── tests/                  # xUnit project (Backend.Tests) — bootable green test
+        └── Backend.Tests/
   notes: "endpoints/controllers thin, services own logic; one global exception-handling middleware is the ONLY error-response shaper; DTOs validated before reaching a service; DI via the built-in container, never `new` a service"
 primary_skill: aspnet-core
 skills: [aspnet-core]
@@ -27,7 +30,7 @@ substitutions:
   TOOL_ROUTING_IMPL: "`lint-backend`, `test-backend`"
   VERIFY_BACKEND_GLOB: "`src/backend/`"
   VERIFY_BACKEND_SUITES: "lint-backend + test-backend"
-  VERIFY_BACKEND: "`cd src/backend && dotnet format --verify-no-changes && dotnet test`"
+  VERIFY_BACKEND: "`cd src/backend && dotnet format Backend.sln --verify-no-changes && dotnet test Backend.sln`"
   QUICK_ROUTING: |-
     - ASP.NET Core endpoint / controller task → [ASP.NET Core Service Playbook](./playbooks/aspnet-core-service.md)
     - Middleware / DI / DTO validation → [ASP.NET Core Service Playbook](./playbooks/aspnet-core-service.md)
@@ -46,11 +49,11 @@ rules:
   - {file: rules/backend.md, globs: ["src/backend/**/*.cs"]}
 
 makefile_targets:
-  - {name: lint-backend, cmd: "cd src/backend && dotnet format --verify-no-changes"}
-  - {name: test-backend, cmd: "cd src/backend && dotnet test"}
+  - {name: lint-backend, cmd: "cd src/backend && dotnet format Backend.sln --verify-no-changes"}
+  - {name: test-backend, cmd: "cd src/backend && dotnet test Backend.sln"}
 
 verify:
-  - {glob: "src/backend/**/*.cs", suites: "lint-backend + test-backend", cmd: "cd src/backend && dotnet format --verify-no-changes && dotnet test"}
+  - {glob: "src/backend/**/*.cs", suites: "lint-backend + test-backend", cmd: "cd src/backend && dotnet format Backend.sln --verify-no-changes && dotnet test Backend.sln"}
 
 dimensions:
   - {name: "ASP.NET Core endpoint",   read_files: ["docs/playbooks/aspnet-core-service.md", "docs/engineering/aspnet-core-rules.md"]}

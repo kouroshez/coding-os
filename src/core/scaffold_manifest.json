@@ -23,6 +23,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -81,6 +82,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -113,6 +115,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -231,7 +234,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 224
+      "count": 227
     },
     "claude_angular": {
       "agent": "claude",
@@ -256,6 +259,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -314,6 +318,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -346,6 +351,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -488,7 +494,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 248
+      "count": 251
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -513,6 +519,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -571,6 +578,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -603,6 +611,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -728,13 +737,16 @@
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/backend/Backend.csproj",
+        "src/backend/Backend.sln",
         "src/backend/Common/ExceptionHandlingMiddleware.cs",
         "src/backend/Features/Health/HealthEndpoints.cs",
         "src/backend/Features/Health/HealthService.cs",
         "src/backend/Program.cs",
+        "src/backend/tests/Backend.Tests/Backend.Tests.csproj",
+        "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 243
     },
     "claude_astro": {
       "agent": "claude",
@@ -759,6 +771,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -817,6 +830,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -849,6 +863,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -989,7 +1004,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 246
+      "count": 249
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1014,6 +1029,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -1072,6 +1088,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -1104,6 +1121,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -1225,7 +1243,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 230
     },
     "claude_django": {
       "agent": "claude",
@@ -1250,6 +1268,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -1308,6 +1327,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -1340,6 +1360,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -1481,7 +1502,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 250
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1506,6 +1527,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -1564,6 +1586,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -1596,6 +1619,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -1729,7 +1753,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 242
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1754,6 +1778,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -1812,6 +1837,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -1844,6 +1870,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -1978,7 +2005,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 243
     },
     "claude_go": {
       "agent": "claude",
@@ -2003,6 +2030,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -2061,6 +2089,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -2093,6 +2122,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -2227,7 +2257,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 243
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2252,6 +2282,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -2310,6 +2341,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -2342,6 +2374,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -2476,7 +2509,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 243
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2501,6 +2534,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -2559,6 +2593,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -2591,6 +2626,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -2713,7 +2749,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 228
+      "count": 231
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2738,6 +2774,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -2796,6 +2833,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -2828,6 +2866,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -2951,7 +2990,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 232
     },
     "claude_laravel": {
       "agent": "claude",
@@ -2976,6 +3015,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -3034,6 +3074,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -3066,6 +3107,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -3198,7 +3240,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 241
     },
     "claude_meta": {
       "agent": "claude",
@@ -3223,6 +3265,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -3281,6 +3324,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -3313,6 +3357,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -3469,7 +3514,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 262
+      "count": 265
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3494,6 +3539,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -3552,6 +3598,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -3584,6 +3631,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -3723,7 +3771,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 245
+      "count": 248
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -3748,6 +3796,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -3806,6 +3855,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -3838,6 +3888,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -3990,7 +4041,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 258
+      "count": 261
     },
     "claude_node-express": {
       "agent": "claude",
@@ -4015,6 +4066,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -4073,6 +4125,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -4105,6 +4158,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -4241,7 +4295,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 242
+      "count": 245
     },
     "claude_python": {
       "agent": "claude",
@@ -4266,6 +4320,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -4324,6 +4379,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -4356,6 +4412,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -4477,7 +4534,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 230
     },
     "claude_rails": {
       "agent": "claude",
@@ -4502,6 +4559,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -4560,6 +4618,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -4592,6 +4651,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -4727,7 +4787,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 244
     },
     "claude_react-native": {
       "agent": "claude",
@@ -4752,6 +4812,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -4810,6 +4871,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -4842,6 +4904,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -4991,7 +5054,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 255
+      "count": 258
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -5016,6 +5079,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -5074,6 +5138,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -5106,6 +5171,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -5228,7 +5294,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 228
+      "count": 231
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5253,6 +5319,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -5311,6 +5378,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -5343,6 +5411,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -5477,7 +5546,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 243
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5502,6 +5571,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -5560,6 +5630,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -5592,6 +5663,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -5715,7 +5787,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 232
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -5740,6 +5812,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -5798,6 +5871,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -5830,6 +5904,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -5965,7 +6040,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 244
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -5990,6 +6065,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -6048,6 +6124,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -6080,6 +6157,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -6222,7 +6300,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 248
+      "count": 251
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6247,6 +6325,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -6305,6 +6384,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -6337,6 +6417,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -6461,7 +6542,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 230
+      "count": 233
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6486,6 +6567,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -6544,6 +6626,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -6576,6 +6659,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -6710,7 +6794,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 240
+      "count": 243
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -6735,6 +6819,7 @@
         ".claude/commands/role-observer.md",
         ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
+        ".claude/commands/role-repairer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
         ".claude/commands/role-security_auditor.md",
@@ -6793,6 +6878,7 @@
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
+        ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
@@ -6825,6 +6911,7 @@
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
         ".claude/hooks/warn-destructive-edit.sh",
+        ".claude/hooks/warn-diff-size.sh",
         ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
@@ -6954,7 +7041,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 238
     },
     "codex_base": {
       "agent": "codex",
@@ -6977,6 +7064,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -7042,6 +7130,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -7074,6 +7163,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -7189,7 +7279,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 228
+      "count": 231
     },
     "codex_angular": {
       "agent": "codex",
@@ -7214,6 +7304,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -7279,6 +7370,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -7311,6 +7403,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -7450,7 +7543,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 252
+      "count": 255
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7475,6 +7568,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -7540,6 +7634,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -7572,6 +7667,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -7694,13 +7790,16 @@
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md",
         "src/backend/Backend.csproj",
+        "src/backend/Backend.sln",
         "src/backend/Common/ExceptionHandlingMiddleware.cs",
         "src/backend/Features/Health/HealthEndpoints.cs",
         "src/backend/Features/Health/HealthService.cs",
         "src/backend/Program.cs",
+        "src/backend/tests/Backend.Tests/Backend.Tests.csproj",
+        "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 247
     },
     "codex_astro": {
       "agent": "codex",
@@ -7725,6 +7824,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -7790,6 +7890,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -7822,6 +7923,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -7959,7 +8061,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 250
+      "count": 253
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -7984,6 +8086,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -8049,6 +8152,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -8081,6 +8185,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -8199,7 +8304,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 234
     },
     "codex_django": {
       "agent": "codex",
@@ -8224,6 +8329,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -8289,6 +8395,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -8321,6 +8428,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -8459,7 +8567,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 254
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8484,6 +8592,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -8549,6 +8658,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -8581,6 +8691,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -8711,7 +8822,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 246
     },
     "codex_flutter": {
       "agent": "codex",
@@ -8736,6 +8847,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -8801,6 +8913,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -8833,6 +8946,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -8964,7 +9078,7 @@
         "src/mobile/pubspec.yaml",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 247
     },
     "codex_go": {
       "agent": "codex",
@@ -8989,6 +9103,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -9054,6 +9169,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -9086,6 +9202,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -9217,7 +9334,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 247
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9242,6 +9359,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -9307,6 +9425,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -9339,6 +9458,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -9470,7 +9590,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 247
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -9495,6 +9615,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -9560,6 +9681,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -9592,6 +9714,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -9711,7 +9834,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 235
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -9736,6 +9859,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -9801,6 +9925,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -9833,6 +9958,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -9953,7 +10079,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 236
     },
     "codex_laravel": {
       "agent": "codex",
@@ -9978,6 +10104,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -10043,6 +10170,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -10075,6 +10203,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -10204,7 +10333,7 @@
         "src/backend/routes/api.php",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 245
     },
     "codex_meta": {
       "agent": "codex",
@@ -10229,6 +10358,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -10294,6 +10424,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -10326,6 +10457,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -10479,7 +10611,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 266
+      "count": 269
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -10504,6 +10636,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -10569,6 +10702,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -10601,6 +10735,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -10737,7 +10872,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 249
+      "count": 252
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -10762,6 +10897,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -10827,6 +10963,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -10859,6 +10996,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -11008,7 +11146,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 262
+      "count": 265
     },
     "codex_node-express": {
       "agent": "codex",
@@ -11033,6 +11171,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -11098,6 +11237,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -11130,6 +11270,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -11263,7 +11404,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 246
+      "count": 249
     },
     "codex_python": {
       "agent": "codex",
@@ -11288,6 +11429,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -11353,6 +11495,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -11385,6 +11528,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -11503,7 +11647,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 234
     },
     "codex_rails": {
       "agent": "codex",
@@ -11528,6 +11672,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -11593,6 +11738,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -11625,6 +11771,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -11757,7 +11904,7 @@
         "src/backend/config/routes.rb",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 248
     },
     "codex_react-native": {
       "agent": "codex",
@@ -11782,6 +11929,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -11847,6 +11995,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -11879,6 +12028,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -12025,7 +12175,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 259
+      "count": 262
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -12050,6 +12200,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -12115,6 +12266,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -12147,6 +12299,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -12266,7 +12419,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 235
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -12291,6 +12444,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -12356,6 +12510,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -12388,6 +12543,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -12519,7 +12675,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 247
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -12544,6 +12700,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -12609,6 +12766,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -12641,6 +12799,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -12761,7 +12920,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 236
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -12786,6 +12945,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -12851,6 +13011,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -12883,6 +13044,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -13015,7 +13177,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 248
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -13040,6 +13202,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -13105,6 +13268,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -13137,6 +13301,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -13276,7 +13441,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 252
+      "count": 255
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -13301,6 +13466,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -13366,6 +13532,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -13398,6 +13565,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -13519,7 +13687,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 234
+      "count": 237
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -13544,6 +13712,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -13609,6 +13778,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -13641,6 +13811,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -13772,7 +13943,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 244
+      "count": 247
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -13797,6 +13968,7 @@
         ".codex/commands/role-observer.md",
         ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
+        ".codex/commands/role-repairer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
         ".codex/commands/role-security_auditor.md",
@@ -13862,6 +14034,7 @@
         ".codex/hooks/link-commit-to-task.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
+        ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
@@ -13894,6 +14067,7 @@
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
         ".codex/hooks/warn-destructive-edit.sh",
+        ".codex/hooks/warn-diff-size.sh",
         ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
@@ -14020,7 +14194,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 242
     }
   }
 }
