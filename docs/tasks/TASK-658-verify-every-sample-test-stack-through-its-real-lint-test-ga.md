@@ -5,12 +5,12 @@ swimlane: infra
 kind: test
 epic: stack-completeness-v2
 labels: [ci, scaffold, wave-2, lint-gate, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-30
 started: 2026-06-30
-completed: null
+completed: 2026-06-30
 agent_session: ses-claude-20260630-012042-78c9
 depends_on: []
 blocked_by: []
@@ -34,3 +34,5 @@ references: []
 - 2026-06-30 [claude]: Edit go.mod
 - 2026-06-30 [claude]: Edit scaffold-verify.yml
 - 2026-06-30 [claude]: commit 91e5d256a6 — fix(templates): ship go-fiber go.sum so go vet/test pass on a fresh init
+- 2026-06-30 [claude]: committed 937ac128 · 1 file
+- 2026-06-30 [claude]: Swept nextjs/react-native/django/fastapi green; fixed go-fiber missing go.sum (verified); CI scaffold-verify matrix…
