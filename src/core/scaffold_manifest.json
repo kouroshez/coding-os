@@ -2501,9 +2501,10 @@
         "src/backend/cmd/api/main.go",
         "src/backend/cmd/api/main_test.go",
         "src/backend/go.mod",
+        "src/backend/go.sum",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 243
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -9575,9 +9576,10 @@
         "src/backend/cmd/api/main.go",
         "src/backend/cmd/api/main_test.go",
         "src/backend/go.mod",
+        "src/backend/go.sum",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 247
     },
     "codex_go-plain": {
       "agent": "codex",
