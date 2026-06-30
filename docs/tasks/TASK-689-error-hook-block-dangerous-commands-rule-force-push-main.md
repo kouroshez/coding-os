@@ -1,0 +1,31 @@
+---
+id: TASK-689
+title: "[error] hook.block-dangerous-commands: rule=force-push-main"
+swimlane: infra
+kind: bug
+epic: null
+labels: [fp:d4e17ae6fd7b4f60, auto-error, error-sweep, ready]
+status: archive
+priority: P2
+appetite: 1d
+created: 2026-06-30
+started: null
+completed: null
+agent_session: ses-claude-20260630-011740-9a32
+depends_on: []
+blocked_by: []
+references: []
+---
+# TASK-689: [error] hook.block-dangerous-commands: rule=force-push-main
+
+**Outcome (one sentence):** Recurring ERROR from hook.block-dangerous-commands (count=113, sessions=38, exc=None). First 2026-06-21T02:40:32Z, last 2026-06-28T03:04:19Z. Investigate: cos errors --scope hook.block-dangerous-commands
+
+## Read First
+- (no doc yet — exploratory)
+
+## Acceptance (G/W/T) — *this IS the Definition of Done*
+- **Given** ...
+- **When** ...
+- **Then** ...
+
+## Work Log

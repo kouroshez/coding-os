@@ -1,0 +1,31 @@
+---
+id: TASK-709
+title: "[error] hook.branch-guard: rule=history-rewrite"
+swimlane: infra
+kind: bug
+epic: null
+labels: [fp:0cd346aec7d800d6, auto-error, error-sweep, ready]
+status: archive
+priority: P2
+appetite: 1d
+created: 2026-06-30
+started: null
+completed: null
+agent_session: ses-claude-20260630-011740-9a32
+depends_on: []
+blocked_by: []
+references: []
+---
+# TASK-709: [error] hook.branch-guard: rule=history-rewrite
+
+**Outcome (one sentence):** Recurring ERROR from hook.branch-guard (count=36, sessions=18, exc=None). First 2026-06-25T04:27:18Z, last 2026-06-28T03:04:01Z. Investigate: cos errors --scope hook.branch-guard
+
+## Read First
+- (no doc yet — exploratory)
+
+## Acceptance (G/W/T) — *this IS the Definition of Done*
+- **Given** ...
+- **When** ...
+- **Then** ...
+
+## Work Log
