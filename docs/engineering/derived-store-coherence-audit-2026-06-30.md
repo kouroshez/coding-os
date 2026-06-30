@@ -1,3 +1,4 @@
+<!-- domain:META | layer:engineering | ssot:true | updated:2026-06-30 -->
 # Derived-Store Coherence Audit — 2026-06-30
 
 The `tasks` board drift (a deleted task file leaving a ghost row in the panel) is one
