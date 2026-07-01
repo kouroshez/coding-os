@@ -63,17 +63,26 @@ class TestClaudeAdapter:
         project.mkdir()
         return project
 
-    def test_install_succeeds(self, project: Path) -> None:
+    @pytest.fixture(scope="class")
+    def installed(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        # TASK-670: run the adapter install ONCE for this class's read-only
+        # assertions instead of per test. The mutating test (disabled-skills)
+        # keeps the per-test `project` fixture so it never corrupts this shared
+        # scaffold — a fresh mktemp dir also keeps the two fully isolated.
+        project = tmp_path_factory.mktemp("claude-adapter") / "myproject"
+        project.mkdir()
         result = run_adapter_install("claude", project)
         assert result.returncode == 0, f"Install failed: {result.stderr}"
+        return project
 
-    def test_creates_claude_dir(self, project: Path) -> None:
-        run_adapter_install("claude", project)
-        assert (project / ".claude").is_dir()
+    def test_install_succeeds(self, installed: Path) -> None:
+        assert (installed / ".claude").is_dir()
 
-    def test_symlinks_hooks(self, project: Path) -> None:
-        run_adapter_install("claude", project)
-        hooks_dir = project / ".claude" / "hooks"
+    def test_creates_claude_dir(self, installed: Path) -> None:
+        assert (installed / ".claude").is_dir()
+
+    def test_symlinks_hooks(self, installed: Path) -> None:
+        hooks_dir = installed / ".claude" / "hooks"
         assert hooks_dir.is_dir()
         hook_files = list(hooks_dir.glob("*.sh"))
         core_hook_count = len(list(CORE_HOOKS_DIR.glob("*.sh")))
@@ -83,9 +92,8 @@ class TestClaudeAdapter:
             assert hook.is_symlink()
             assert str(CORE_HOOKS_DIR) in str(hook.resolve())
 
-    def test_symlinks_rules(self, project: Path) -> None:
-        run_adapter_install("claude", project)
-        rules_dir = project / ".claude" / "rules"
+    def test_symlinks_rules(self, installed: Path) -> None:
+        rules_dir = installed / ".claude" / "rules"
         rule_files = list(rules_dir.glob("*.md"))
         core_rule_count = len(
             [p for p in CORE_RULES_DIR.glob("*.md") if p.name not in NON_ACTIVE_RULES]
@@ -97,9 +105,8 @@ class TestClaudeAdapter:
         for excluded in NON_ACTIVE_RULES:
             assert not (rules_dir / excluded).exists()
 
-    def test_symlinks_skills(self, project: Path) -> None:
-        run_adapter_install("claude", project)
-        skills_dir = project / ".claude" / "skills"
+    def test_symlinks_skills(self, installed: Path) -> None:
+        skills_dir = installed / ".claude" / "skills"
         skill_dirs = [d for d in skills_dir.iterdir() if d.is_dir()]
         core_skill_count = len(list(CORE_SKILLS_DIR.iterdir()))
         assert len(skill_dirs) == core_skill_count
@@ -112,6 +119,8 @@ class TestClaudeAdapter:
         # First install links everything; adding a disabled_skills opt-out then
         # re-installing must skip AND remove the disabled skill. Single store:
         # .coding-os.yaml::disabled_skills (no separate skill-overrides.json).
+        # MUTATES the project → keeps the per-test `project` fixture (never the
+        # shared `installed` scaffold).
         run_adapter_install("claude", project)
         assert (project / ".claude" / "skills" / "redis" / "SKILL.md").exists()
 
@@ -124,24 +133,21 @@ class TestClaudeAdapter:
         assert not (project / ".claude" / "skills" / "supabase").exists()
         assert (project / ".claude" / "skills" / "clean-code" / "SKILL.md").exists()
 
-    def test_generates_settings_json(self, project: Path) -> None:
-        run_adapter_install("claude", project)
-        settings = project / ".claude" / "settings.json"
+    def test_generates_settings_json(self, installed: Path) -> None:
+        settings = installed / ".claude" / "settings.json"
         assert settings.exists()
         data = json.loads(settings.read_text())
         assert "hooks" in data
 
-    def test_settings_references_correct_hooks_dir(self, project: Path) -> None:
-        run_adapter_install("claude", project)
-        settings = project / ".claude" / "settings.json"
+    def test_settings_references_correct_hooks_dir(self, installed: Path) -> None:
+        settings = installed / ".claude" / "settings.json"
         content = settings.read_text()
         assert ".claude/hooks" in content
         # No unresolved template placeholders
         assert "{{HOOKS_DIR}}" not in content
 
-    def test_creates_mcp_json(self, project: Path) -> None:
-        run_adapter_install("claude", project)
-        mcp_json = project / ".mcp.json"
+    def test_creates_mcp_json(self, installed: Path) -> None:
+        mcp_json = installed / ".mcp.json"
         assert mcp_json.exists()
         data = json.loads(mcp_json.read_text())
         assert "coding-os" in data["mcpServers"]

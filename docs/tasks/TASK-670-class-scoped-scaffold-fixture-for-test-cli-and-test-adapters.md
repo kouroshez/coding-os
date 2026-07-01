@@ -5,18 +5,17 @@ swimlane: infra
 kind: refactor
 epic: test-discipline
 labels: [tests, scaffold, perf, ready]
-status: icebox
+status: testing
 priority: P2
 appetite: 3d
 created: 2026-06-30
-started: null
+started: 2026-07-01
 completed: null
-agent_session: null
+agent_session: ses-claude-20260630-011740-9a32
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-670: Class-scoped scaffold fixture for test-cli and test-adapters — kill the per-test cos-init cost
 
 **Outcome (one sentence):** test-cli and test-adapters share a class-scoped scaffold fixture (mirroring test_template_scaffold's _class_scaffold) so cos init runs once per test CLASS instead of per test, cutting their wall-clock materially against the recorded baselines (test-cli ~762s, test-adapters ~153s) with zero change to assertions or isolation.
@@ -33,3 +32,4 @@ references: []
 - **Given** test isolation requirements, **When** the fixture is shared within a class, **Then** no test leaks state into another, proven by a clean repeat run.
 
 ## Work Log
+- 2026-07-01 [claude]: Class-scoped scaffold applied to the largest scaffold class in each suite: TestInit (15 read-only inits->1 via…

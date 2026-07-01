@@ -59,67 +59,75 @@ def initialized_project(runner: CliRunner, project_dir: Path) -> Path:
     return project_dir
 
 
+def _class_scaffold_cli(tmp_path_factory: pytest.TempPathFactory, name: str) -> Path:
+    """Scaffold one `cos init` claude project shared across a class of read-only
+    tests (TASK-670). Class-scoped fixtures run before the function-scoped
+    _stub_initial_indexing autouse, so this re-applies the index stubs + registry
+    isolation itself — otherwise init would load the embedding model and write the
+    real ~/.coding-os registry."""
+    base = tmp_path_factory.mktemp(name)
+    project = base / "test-project"
+    project.mkdir()
+    mp = pytest.MonkeyPatch()
+    mp.setenv("COS_REGISTRY_PATH", str(base / "registry.json"))
+    mp.setattr(main_module, "_initial_doc_index", lambda *a, **k: None)
+    mp.setattr(main_module, "_initial_graph_index", lambda *a, **k: None)
+    try:
+        result = CliRunner().invoke(cli, ["init", "--agent", "claude", "-d", str(project)])
+        assert result.exit_code == 0, f"init failed: {result.output}"
+    finally:
+        mp.undo()
+    return project
+
+
 # ---------------------------------------------------------------------------
 # init command
 # ---------------------------------------------------------------------------
 
 
 class TestInit:
-    def test_creates_state_directory(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        result = runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        assert result.exit_code == 0
-        assert (project_dir / ".coding-os").is_dir()
+    # TASK-670: the read-only init-property assertions below share one class-scoped
+    # `cos init` instead of one per test. Tests that need a *different* scaffold
+    # (template / codex / re-init / pre-populated) keep their own per-test init.
+    @pytest.fixture(scope="class")
+    def initialized(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold_cli(tmp_path_factory, "cli-init")
 
-    def test_creates_config_file(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        config_path = project_dir / ".coding-os.yaml"
-        assert config_path.exists()
+    def test_creates_state_directory(self, initialized: Path) -> None:
+        assert (initialized / ".coding-os").is_dir()
 
-    def test_config_contains_agent(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
+    def test_creates_config_file(self, initialized: Path) -> None:
+        assert (initialized / ".coding-os.yaml").exists()
+
+    def test_config_contains_agent(self, initialized: Path) -> None:
         import yaml
 
-        config = yaml.safe_load((project_dir / ".coding-os.yaml").read_text())
+        config = yaml.safe_load((initialized / ".coding-os.yaml").read_text())
         assert "claude" in config["agents"]
 
-    def test_initializes_database(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        db_path = project_dir / ".coding-os" / "coding-os.db"
+    def test_initializes_database(self, initialized: Path) -> None:
+        db_path = initialized / ".coding-os" / "coding-os.db"
         assert db_path.exists()
         assert db_path.stat().st_size > 0
 
-    def test_creates_scaffold_files(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
+    def test_creates_scaffold_files(self, initialized: Path) -> None:
         # Scrumban replaced the flat docs/tasks.md index (governance/docs-system.md);
         # canonical task state lives in docs/tasks/ + the board DB. Assert the
         # docs root exists and changes.log is seeded.
-        assert (project_dir / "docs").is_dir()
-        assert (project_dir / "changes.log").exists()
+        assert (initialized / "docs").is_dir()
+        assert (initialized / "changes.log").exists()
 
-    def test_creates_makefile(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        makefile = project_dir / "Makefile"
+    def test_creates_makefile(self, initialized: Path) -> None:
+        makefile = initialized / "Makefile"
         assert makefile.exists()
         content = makefile.read_text()
         assert "include .coding-os/Makefile.base" in content
 
-    def test_creates_agents_md(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        agents_md = project_dir / "AGENTS.md"
-        assert agents_md.exists()
+    def test_creates_agents_md(self, initialized: Path) -> None:
+        assert (initialized / "AGENTS.md").exists()
 
-    def test_creates_gitignore(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        result = runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        assert result.exit_code == 0
-        gitignore = project_dir / ".gitignore"
+    def test_creates_gitignore(self, initialized: Path) -> None:
+        gitignore = initialized / ".gitignore"
         assert gitignore.exists()
         body = gitignore.read_text()
         # runtime state ignored, tracked config carved back in
@@ -127,25 +135,20 @@ class TestInit:
         assert "*.db" in body
         assert "!.coding-os/rag-config.yaml" in body
 
-    def test_baseline_commit_excludes_runtime_db(
-        self, runner: CliRunner, project_dir: Path
-    ) -> None:
+    def test_baseline_commit_excludes_runtime_db(self, initialized: Path) -> None:
         import subprocess
 
-        project_dir.mkdir()
-        result = runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        assert result.exit_code == 0
-        if not (project_dir / ".git").exists():
+        if not (initialized / ".git").exists():
             pytest.skip("tmp nested in an existing git repo — init skipped git init")
         log = subprocess.run(
-            ["git", "-C", str(project_dir), "log", "--oneline"],
+            ["git", "-C", str(initialized), "log", "--oneline"],
             capture_output=True,
             text=True,
         )
         assert log.returncode == 0
         assert len(log.stdout.strip().splitlines()) == 1  # exactly one baseline commit
         tracked = subprocess.run(
-            ["git", "-C", str(project_dir), "ls-files"],
+            ["git", "-C", str(initialized), "ls-files"],
             capture_output=True,
             text=True,
         ).stdout
@@ -153,53 +156,40 @@ class TestInit:
         assert "coding-os.db" not in tracked  # mutating runtime DB never committed
         assert ".coding-os/rag-config.yaml" in tracked  # config IS versioned
 
-    def test_installs_consumer_git_hooks(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        result = runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        assert result.exit_code == 0
-        if not (project_dir / ".git").exists():
+    def test_installs_consumer_git_hooks(self, initialized: Path) -> None:
+        if not (initialized / ".git").exists():
             pytest.skip("tmp nested in an existing git repo — init skipped git init")
-        pre = project_dir / ".git" / "hooks" / "pre-commit"
-        msg = project_dir / ".git" / "hooks" / "commit-msg"
+        pre = initialized / ".git" / "hooks" / "pre-commit"
+        msg = initialized / ".git" / "hooks" / "commit-msg"
         assert pre.exists() and (pre.stat().st_mode & 0o111)  # executable
         assert msg.exists()
         # commit-msg body resolves the consumer's adapter hooks dir
         assert ".claude" in msg.read_text()
 
-    def test_claude_adapter_creates_settings(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        assert (project_dir / ".claude" / "settings.json").exists()
+    def test_claude_adapter_creates_settings(self, initialized: Path) -> None:
+        assert (initialized / ".claude" / "settings.json").exists()
 
-    def test_claude_adapter_symlinks_hooks(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        hooks_dir = project_dir / ".claude" / "hooks"
+    def test_claude_adapter_symlinks_hooks(self, initialized: Path) -> None:
+        hooks_dir = initialized / ".claude" / "hooks"
         assert hooks_dir.is_dir()
         hook_files = list(hooks_dir.glob("*.sh"))
         assert len(hook_files) >= 15  # At least 15 hooks should be symlinked
 
-    def test_claude_adapter_symlinks_rules(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        rules_dir = project_dir / ".claude" / "rules"
+    def test_claude_adapter_symlinks_rules(self, initialized: Path) -> None:
+        rules_dir = initialized / ".claude" / "rules"
         assert rules_dir.is_dir()
         rule_files = list(rules_dir.glob("*.md"))
         assert len(rule_files) >= 1
 
-    def test_claude_adapter_symlinks_skills(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        skills_dir = project_dir / ".claude" / "skills"
+    def test_claude_adapter_symlinks_skills(self, initialized: Path) -> None:
+        skills_dir = initialized / ".claude" / "skills"
         assert skills_dir.is_dir()
         # Each skill should have a SKILL.md
         skill_mds = list(skills_dir.glob("*/SKILL.md"))
         assert len(skill_mds) >= 4  # clean-code, thinking_os, codebase-explorer, worktree
 
-    def test_creates_mcp_json(self, runner: CliRunner, project_dir: Path) -> None:
-        project_dir.mkdir()
-        runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        mcp_json = project_dir / ".mcp.json"
+    def test_creates_mcp_json(self, initialized: Path) -> None:
+        mcp_json = initialized / ".mcp.json"
         assert mcp_json.exists()
         data = json.loads(mcp_json.read_text())
         assert "coding-os" in data.get("mcpServers", {})
