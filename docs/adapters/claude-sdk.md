@@ -1,4 +1,4 @@
-<!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-05-04 -->
+<!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-07-01 -->
 # Claude Adapter — Full Reference
 
 > P: Everything `src/adapters/claude/` does for a consumer project — install, hook rendering, MCP wiring, formula-agent dispatch, observability.
@@ -8,7 +8,7 @@
 
 > Nav: [Adapters Index](./00-index.md) | [Docs Index](../00-index.md)
 
-> SDK floor: `claude-agent-sdk>=0.2.95,<0.3.0` (bundles Claude CLI 2.1.170). CLI floor: `@anthropic-ai/claude-code>=2.1.119` (stable). Renamed 2026-05-04 from "Claude-SDK Dispatcher" to full adapter reference.
+> SDK floor: `claude-agent-sdk>=0.2.110,<0.3.0` (bundles Claude CLI 2.1.191). CLI floor: `@anthropic-ai/claude-code>=2.1.119` (stable). Renamed 2026-05-04 from "Claude-SDK Dispatcher" to full adapter reference.
 
 ## 1. The mRNA layer — what this adapter is
 

@@ -2,8 +2,8 @@
 name: claude-sdk-integration
 tier: stack
 domain: [infra]
-description: Use when authoring code that uses Anthropic's Claude SDK or the claude-agent-sdk inside the meta-repo — primarily src/adapters/claude/sdk_dispatcher.py and the formula composer pipeline that spawns Claude Code sub-sessions. Covers prompt caching, tool-use loop, model selection (Opus 4.7, Sonnet 4.6, Haiku 4.5), session lifecycle, error handling, and the dispatcher protocol contract every adapter must satisfy. Pairs with python-meta-server, meta-engineering, and the claude-api skill (when working on raw API).
-last_reviewed: "2026-05-11"
+description: Use when authoring code that uses Anthropic's Claude SDK or the claude-agent-sdk inside the meta-repo — primarily src/adapters/claude/sdk_dispatcher.py and the formula composer pipeline that spawns Claude Code sub-sessions. Covers prompt caching, tool-use loop, model selection (Fable 5, Opus 4.8, Sonnet 5, Haiku 4.5), session lifecycle, error handling, and the dispatcher protocol contract every adapter must satisfy. Pairs with python-meta-server, meta-engineering, and the claude-api skill (when working on raw API).
+last_reviewed: "2026-07-01"
 
 ---
 
@@ -69,10 +69,13 @@ question — never interleave dynamic content into the cached prefix.
 
 ### 2. Model selection
 
-Default: `claude-sonnet-4-6`. Promote to `claude-opus-4-8` only for:
+Default: `claude-sonnet-5`. Promote to `claude-opus-4-8` (or `claude-fable-5`
+for the most demanding reasoning) only for:
 - COMPLICATED+ tasks via `cos_compose_chain`.
 - Architect / refactorer roles.
-Never use older model IDs (3.x family) — retired.
+Current ids live in `src/adapters/claude/adapter.yaml::models` (the Hub
+picker SSOT) — check there, not this prose, before hardcoding an id.
+Never use retired model IDs (see platform.claude.com/docs/en/about-claude/model-deprecations).
 
 Haiku (`claude-haiku-4-5-20251001`) for cheap heuristic dispatches
 (formula composition, classification).

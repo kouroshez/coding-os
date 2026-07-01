@@ -19,20 +19,32 @@ import re
 import sys
 from pathlib import Path
 
-# Current generation (Claude 4.x). Update this map when the family rotates.
+# Current generation. Cross-check against src/adapters/claude/adapter.yaml::models
+# (the Hub picker SSOT) whenever the family rotates — this script stays a
+# self-contained stdlib literal (portable to every consumer project) rather
+# than reading that YAML, so the two must be updated together by hand.
 CURRENT = {
+    "fable": "claude-fable-5",
     "opus": "claude-opus-4-8",
-    "sonnet": "claude-sonnet-4-6",
+    "sonnet": "claude-sonnet-5",
     "haiku": "claude-haiku-4-5-20251001",
 }
 
 # Any claude model id that is NOT one of the current ids → likely stale.
 MODEL_ID = re.compile(r"claude-[a-z0-9.\-]*\d[a-z0-9.\-]*")
-CURRENT_IDS = set(CURRENT.values())
-# Tolerate the bare current ids + their dated variants.
-CURRENT_PREFIXES = tuple(
-    v.rsplit("-", 1)[0] if v[-1].isdigit() and "-2025" not in v else v for v in CURRENT_IDS
-)
+_DATE_SUFFIX = re.compile(r"-\d{8}$")
+
+# A pinned id may appear with or without its trailing snapshot date — e.g.
+# "claude-haiku-4-5-20251001" (Claude API ID) and "claude-haiku-4-5" (Claude
+# API alias) are both current. Tolerate that pairing only; a bare
+# "claude-sonnet-4-6" must NOT slip through as a tolerated variant of
+# "claude-sonnet-5" (that was the bug this checker exists to catch).
+CURRENT_IDS: set[str] = set()
+for _v in CURRENT.values():
+    CURRENT_IDS.add(_v)
+    _undated = _DATE_SUFFIX.sub("", _v)
+    if _undated != _v:
+        CURRENT_IDS.add(_undated)
 
 
 def _suggest(model_id: str) -> str:
@@ -50,7 +62,7 @@ def scan_text(text: str, *, filename: str = "?") -> list[str]:
             continue
         for m in MODEL_ID.finditer(line):
             mid = m.group(0)
-            if mid in CURRENT_IDS or any(mid.startswith(p) for p in CURRENT_PREFIXES):
+            if mid in CURRENT_IDS:
                 continue
             findings.append(
                 f"{filename}:{n}: stale model id '{mid}' — current is '{_suggest(mid)}'"

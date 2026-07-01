@@ -6,11 +6,13 @@ label: "Anthropic Claude Code"
 # runtime: in_process ⇒ runnable via the Claude Agent SDK inside Hub chat.
 runtime: in_process
 models:
+  - id: claude-fable-5
+    label: "Fable 5"
   - id: claude-opus-4-8
     label: "Opus 4.8"
     default: true
-  - id: claude-sonnet-4-6
-    label: "Sonnet 4.6"
+  - id: claude-sonnet-5
+    label: "Sonnet 5"
   - id: claude-haiku-4-5
     label: "Haiku 4.5"
 # Reasoning-effort levels the Claude Agent SDK accepts (EffortLevel) — shown in

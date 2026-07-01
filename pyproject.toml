@@ -28,7 +28,7 @@ dependencies = [
     # presence.py + cognition.py reading the transcript format directly;
     # promoting the dep finishes that pragmatic decision instead of
     # leaving a half-broken contract.
-    "claude-agent-sdk>=0.2.95,<0.3.0",
+    "claude-agent-sdk>=0.2.110,<0.3.0",
     "anyio>=4.0.0",
 ]
 authors = [

@@ -66,7 +66,7 @@ def test_adapters_groups_models_by_adapter(client):
 
     claude = adapters["claude"]
     assert claude["runtime"] == "in_process" and claude["available"] is True
-    assert len(claude["models"]) == 3
+    assert len(claude["models"]) == 4
     assert sum(1 for m in claude["models"] if m["default"]) == 1  # exactly one default
 
     for rid in ("codex",):  # declared, but no fabricated model IDs (P7)
