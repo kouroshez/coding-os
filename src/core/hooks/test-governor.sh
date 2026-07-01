@@ -21,11 +21,12 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cos_read_stdin_bounded 2)"
 
-# Fast-path: this governor only acts on pytest invocations. If the raw payload
-# never mentions "pytest" there is nothing to gate — bail before any jq spawn
-# (fires on EVERY Bash command).
+# Fast-path: this governor gates pytest invocations AND make-target verify
+# suites (verify-hooks / docs-lint / ui-test …) for dedup. If the raw payload
+# mentions neither "pytest" nor "make " there is nothing to gate — bail before
+# any jq spawn (fires on EVERY Bash command).
 case "$INPUT" in
-  *pytest*) ;;
+  *pytest*|*"make "*) ;;
   *) exit 0 ;;
 esac
 
@@ -33,7 +34,7 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || ec
 [[ -n "$COMMAND" ]] || exit 0
 
 case "$COMMAND" in
-  *pytest*) ;;
+  *pytest*|*"make "*) ;;
   *) exit 0 ;;
 esac
 case "$COMMAND" in
@@ -53,10 +54,11 @@ SUITE=$(echo "$MATCH" | jq -r '.suite // empty' 2>/dev/null || echo "")
 FRESH=$(echo "$MATCH" | jq -r '.fresh // false' 2>/dev/null || echo false)
 IS_PYTEST=$(echo "$MATCH" | jq -r '.pytest_invocation // false' 2>/dev/null || echo false)
 
-# Command merely MENTIONS pytest (echo/jq/heredoc payload) — not a run.
-# When the matcher itself was unavailable (MATCH={}), stay fail-open but
-# never write a lock for a non-verdict.
-if [[ "$IS_PYTEST" != "true" ]]; then
+# Not a pytest run AND not a recognised suite — the command merely MENTIONS the
+# trigger (echo/jq/heredoc payload), or MATCH was unavailable ({}). Bail fail-open.
+# A make-target verify suite (pytest_invocation=false but SUITE set) stays in for
+# dedup below (TASK-669).
+if [[ "$IS_PYTEST" != "true" && -z "$SUITE" ]]; then
   exit 0
 fi
 
@@ -101,6 +103,14 @@ if [[ -n "$SUITE" && "$FRESH" == "true" && "${COS_TEST_FORCE:-}" != "1" ]] && ! 
     echo "  Re-run anyway: COS_TEST_FORCE=1 <your command>"
   } >&2
   exit 2
+fi
+
+# Make-target verify suites (verify-hooks / docs-lint / ui-test) get dedup above
+# but NOT the pytest run-lock — the lock governs heavy pytest concurrency and
+# re-architecting it is out of scope (TASK-669). A non-pytest suite that survived
+# dedup just runs.
+if [[ "$IS_PYTEST" != "true" ]]; then
+  exit 0
 fi
 
 # ── 3. Concurrency lock (TTL + liveness; never queue-wait) ───────────

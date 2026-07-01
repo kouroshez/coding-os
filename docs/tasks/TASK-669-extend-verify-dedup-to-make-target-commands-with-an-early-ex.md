@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: test-discipline
 labels: [tests, governor, dedup, ready]
-status: icebox
+status: testing
 priority: P2
 appetite: 1d
 created: 2026-06-30
-started: null
+started: 2026-06-30
 completed: null
-agent_session: null
+agent_session: ses-claude-20260630-011740-9a32
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-669: Extend verify-dedup to make-target commands with an early-exit before the run-lock acquire
 
 **Outcome (one sentence):** test-governor dedup covers make-target verify commands (not only bare pytest) so a suite already green on the current tree exits early — the lock-ordering half is ALREADY satisfied (dedup at test-governor.sh:92-105 returns before the lock at :107), so this task's only real work is extending SUITE detection to make-targets.
@@ -32,3 +31,4 @@ references: []
 - **Given** a tree change, **When** the suite is invoked, **Then** the recorded pass is invalidated and the run proceeds normally.
 
 ## Work Log
+- 2026-07-01 [claude]: test-governor fast-paths + IS_PYTEST gate widened to make-target verify suites so a green make-verify dedups early…

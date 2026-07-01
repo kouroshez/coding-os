@@ -157,6 +157,36 @@ class TestDedup:
         code, _ = _run_hook(GOVERNOR, {"tool_input": {"command": BOARD_SUITE_CMD}}, state_dir)
         assert code == 0
 
+    # TASK-669 — dedup now covers make-target verify suites, not only bare pytest.
+    def test_make_target_fresh_pass_blocks_rerun(self, state_dir: Path) -> None:
+        _write_fresh_pass(state_dir, "verify-hooks")
+        code, err = _run_hook(GOVERNOR, {"tool_input": {"command": "make verify-hooks"}}, state_dir)
+        assert code == 2
+        assert "already green" in err
+
+    def test_make_target_dedup_returns_before_lock(self, state_dir: Path) -> None:
+        # Dedup short-circuits BEFORE the run-lock is written (criterion 2).
+        _write_fresh_pass(state_dir, "docs-lint")
+        code, _ = _run_hook(GOVERNOR, {"tool_input": {"command": "make docs-lint"}}, state_dir)
+        assert code == 2
+        assert not (state_dir / ".test-run.lock").exists()
+
+    def test_make_target_stale_runs_and_takes_no_pytest_lock(self, state_dir: Path) -> None:
+        # No recorded pass on this tree → runs; and a make-target never acquires
+        # the pytest run-lock (that lock governs heavy pytest concurrency only).
+        code, _ = _run_hook(GOVERNOR, {"tool_input": {"command": "make verify-hooks"}}, state_dir)
+        assert code == 0
+        assert not (state_dir / ".test-run.lock").exists()
+
+    def test_make_target_stale_v1_entry_allows(self, state_dir: Path) -> None:
+        # A PASS recorded on a different tree (no commit keys) is stale → runs.
+        entry = {"status": "PASS", "ts": int(time.time())}
+        (state_dir / ".last-verify.json").write_text(
+            json.dumps({"verify-hooks": entry}), encoding="utf-8"
+        )
+        code, _ = _run_hook(GOVERNOR, {"tool_input": {"command": "make verify-hooks"}}, state_dir)
+        assert code == 0
+
 
 class TestRunLock:
     def test_fresh_lock_within_ttl_blocks(self, state_dir: Path) -> None:

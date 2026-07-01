@@ -111,7 +111,7 @@ binary). Readers keep degrading gracefully: a v2-unaware reader sees the same
 
 ### test-governor (PreToolUse Bash — TASK-330, gate phase)
 
-Fires only when the Bash command is a pytest / make-verify invocation. Decision order:
+Fires when the Bash command is a pytest **or** make-target verify (`make verify-hooks` / `make docs-lint` / `make ui-test` …) invocation. Decision order — a make-target gets steps 1–2 but skips step 3 (the run-lock governs heavy pytest concurrency only, so re-architecting it for lints is out of scope, TASK-669):
 
 1. **Full sweep?** (bare `pytest tests/`, pytest with no path, or ≥3 testpaths) →
    BLOCK (`exit 2`) unless `COS_FULL_SWEEP_OK=1` and `COS_OVERRIDE_REASON` ≥ 15 chars
