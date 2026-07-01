@@ -706,14 +706,14 @@ class ClaudeSDKDispatcher:
         finally:
             _presence_write(project_root, "claude", sub_session_id, "end")
             # Derive the terminal status from what is known here: an early
-            # timeout/error sets dispatch_outcome; otherwise result_subtype
-            # carries the SDK error subtypes (error_max_budget_usd /
-            # error_max_turns / error_max_*) that the post-finally code turns
-            # into a status="error" DispatchResult. Reporting a flat "ok" here
-            # would mask budget/turn exhaustion in the trace.
+            # timeout/error sets dispatch_outcome; otherwise only the budget /
+            # max-turns subtypes become a status="error" DispatchResult below —
+            # error_max_structured_output_retries is recoverable (it falls
+            # through to regex extraction and can still return "ok"), so match
+            # those two exactly rather than any "error"-prefixed subtype.
             if dispatch_outcome is not None:
                 _final_status = dispatch_outcome.status
-            elif str(result_subtype or "").startswith("error"):
+            elif result_subtype in ("error_max_budget_usd", "error_max_turns"):
                 _final_status = "error"
             else:
                 _final_status = "ok"

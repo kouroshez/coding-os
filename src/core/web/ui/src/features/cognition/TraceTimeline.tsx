@@ -164,6 +164,9 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
     const onTrace = (ev: Event) => {
       try {
         setLiveEvents((cur) => [...cur, JSON.parse((ev as MessageEvent).data) as TraceEvent]);
+        // A trace event arriving means the tail recovered — clear any prior
+        // stream error so the banner doesn't stick after a transient blip.
+        setStreamError(null);
       } catch {
         // Malformed line — skip one event.
       }
@@ -192,13 +195,11 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
     const base = data?.events ?? [];
     const seen = new Set<string>();
     const merged: TraceEvent[] = [];
-    let i = 0;
     for (const e of [...base, ...liveEvents]) {
       // Dedup by span_id (always present from tracing.py); span_id-less lines
-      // (malformed/foreign) fall back to a positional key so two distinct events
-      // are never collapsed into one.
-      const key = typeof e.span_id === 'string' ? e.span_id : `nokey-${i}`;
-      i += 1;
+      // (malformed/foreign) dedup on their full content, so an identical event
+      // replayed by the SSE tail collapses while two distinct events don't.
+      const key = typeof e.span_id === 'string' ? e.span_id : JSON.stringify(e);
       if (seen.has(key)) continue;
       seen.add(key);
       merged.push(e);

@@ -151,5 +151,12 @@ describe('TraceTimeline producer contract', () => {
       }
     });
     expect(screen.getByText(/live tail interrupted: trace stream failed/i)).toBeInTheDocument();
+    // Recovery: a trace event arriving after the error clears the stuck banner.
+    act(() => {
+      for (const cb of hoisted.traceListeners) {
+        cb({ data: JSON.stringify({ kind: 'classify', ts: 2, span_id: 'sp-1' }) } as MessageEvent);
+      }
+    });
+    expect(screen.queryByText(/live tail interrupted/i)).toBeNull();
   });
 });

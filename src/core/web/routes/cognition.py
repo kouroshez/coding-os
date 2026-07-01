@@ -244,6 +244,8 @@ def _find_session_meta(
     state: Path, session_id: str, agent: str | None
 ) -> tuple[dict | None, str | None]:
     """Locate a session's .json metadata across all (or one) agent dir."""
+    if not _safe_seg(session_id) or (agent is not None and not _safe_seg(agent)):
+        return (None, None)
     if agent:
         p = state / agent / "sessions" / f"{session_id}.json"
         if p.exists():
@@ -365,6 +367,7 @@ async def stream_trace(
     log = target if target is not None else state / (agent or "claude") / "traces" / f"{session_id}.jsonl"
     poll_secs = float(os.environ.get("COS_TRACE_STREAM_POLL_MS", "750")) / 1000.0
     heartbeat_secs = 15.0
+    idle_terminate_secs = float(os.environ.get("COS_TRACE_STREAM_IDLE_TERMINATE_S", "30"))
 
     async def gen() -> AsyncGenerator[bytes, None]:
         yield f"event: connected\ndata: {json.dumps({'session_id': session_id})}\n\n".encode()
@@ -372,15 +375,23 @@ async def stream_trace(
         # session, then keeps tailing new lines.
         pos = 0
         last_beat = time.monotonic()
+        last_event = time.monotonic()
+        saw_completed = False
         try:
             while True:
                 events, pos = await asyncio.to_thread(_drain_trace_events, log, pos)
                 for evt in events:
                     yield f"event: trace\ndata: {json.dumps(evt, ensure_ascii=False)}\n\n".encode()
-                # Self-terminate once the run is done: a completed dispatch never
-                # appends more, so holding the poll open just leaks a server task
-                # and re-replays the whole backlog on every EventSource reconnect.
-                if any(isinstance(e, dict) and e.get("kind") == "dispatch_completed" for e in events):
+                if events:
+                    last_event = time.monotonic()
+                    if any(isinstance(e, dict) and e.get("kind") == "dispatch_completed" for e in events):
+                        saw_completed = True
+                # Self-terminate once a completion has been seen AND the trace has
+                # been idle for a grace period. A supervisor session emits one
+                # dispatch_completed per role in a chain, so terminating on the
+                # FIRST would drop later roles — the idle window ends a lone
+                # sub-session promptly while letting a multi-role run keep going.
+                elif saw_completed and (time.monotonic() - last_event) > idle_terminate_secs:
                     yield b"event: done\ndata: {}\n\n"
                     return
                 if time.monotonic() - last_beat > heartbeat_secs:

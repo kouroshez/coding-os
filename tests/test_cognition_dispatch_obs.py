@@ -75,12 +75,22 @@ def test_get_chat_falls_back_to_transcript(tmp_path, monkeypatch):
 
 
 def test_stream_trace_rejects_path_traversal(tmp_path, monkeypatch):
-    # Review fix #4: an `agent` query param with traversal chars is rejected 400
-    # before any filesystem join, closing the trace-file read-outside-state hole.
+    # An `agent` query param with traversal chars is rejected 400 before any
+    # filesystem join, closing the trace-file read-outside-state hole.
     monkeypatch.setattr(cognition, "_state_dir", lambda: tmp_path)
     with TestClient(create_app()) as c:
         r = c.get("/api/cognition/trace/ses-x/stream", params={"agent": "../../../../etc"})
     assert r.status_code == 400
+
+
+def test_get_trace_rejects_path_traversal(tmp_path, monkeypatch):
+    # The non-streaming get_trace shares the guard: a traversal `agent` reaches
+    # neither _find_trace_file nor _find_session_meta, so it 404s (no read
+    # outside the state dir) rather than leaking an out-of-state .json.
+    monkeypatch.setattr(cognition, "_state_dir", lambda: tmp_path)
+    with TestClient(create_app()) as c:
+        r = c.get("/api/cognition/trace/ses-x", params={"agent": "../../../../etc"})
+    assert r.status_code == 404
 
 
 def test_drain_trace_events_reads_and_tails(tmp_path):

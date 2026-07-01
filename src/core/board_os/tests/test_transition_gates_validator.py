@@ -267,9 +267,10 @@ def test_dod_blocks_when_acceptance_missing_for_risk_kind() -> None:
         assert any(m.code == "DOD_ACCEPTANCE_MISSING" for m in result.messages)
 
 
-def test_dod_unrecognized_kind_warns_not_blocks() -> None:
-    """Review fix #2: an unrecognised/legacy kind (no by_kind entry) is not
-    hard-blocked as a feature at complete — a missing acceptance only WARNs."""
+def test_dod_unrecognized_kind_blocks_symmetric_with_dor() -> None:
+    # An unrecognised/legacy kind inherits the default DoR (which requires the
+    # G/W/T Acceptance and blocks it at in_progress), so the DoD gate blocks it
+    # at complete too — the two gates stay symmetric.
     config = load_gates_config()
     result = evaluate_dod(
         "epic",  # not in the shipped definition_of_ready.by_kind
@@ -279,8 +280,7 @@ def test_dod_unrecognized_kind_warns_not_blocks() -> None:
         has_work_log=True,
         config=config,
     )
-    assert not result.blocked
-    assert result.verdict is Verdict.WARN
+    assert result.blocked
     assert any(m.code == "DOD_ACCEPTANCE_MISSING" for m in result.messages)
 
 
