@@ -53,6 +53,15 @@ def _full_body(*, with_repro: bool = False, with_threat: bool = False) -> str:
     return "\n\n".join(parts) + "\n"
 
 
+def _no_acceptance_body() -> str:
+    """A body with Outcome + Read First but NO Acceptance section."""
+    return (
+        "**Outcome (one sentence):** Ship the widget so users can frobnicate "
+        "the gadget end to end.\n\n"
+        "## Read First\n- [docs/phase-l10-plan.md](../phase-l10-plan.md)\n"
+    )
+
+
 def _placeholder_body() -> str:
     return (
         "**Outcome (one sentence):** (fill in: one-sentence measurable outcome)\n\n"
@@ -162,6 +171,7 @@ def test_dod_pass_when_all_satisfied(kind: str) -> None:
     config = load_gates_config()
     result = evaluate_dod(
         kind,
+        body=_full_body(),
         has_recent_verify=True,
         verify_age_seconds=60,
         has_work_log=True,
@@ -175,6 +185,7 @@ def test_dod_blocks_when_verify_missing_for_default_kinds() -> None:
     for kind in ("feature", "bug", "refactor", "test", "security", "spike", "chore"):
         result = evaluate_dod(
             kind,
+            body=_full_body(),
             has_recent_verify=False,
             verify_age_seconds=None,
             has_work_log=True,
@@ -189,6 +200,7 @@ def test_dod_docs_kind_skips_verify() -> None:
     config = load_gates_config()
     result = evaluate_dod(
         "docs",
+        body=_full_body(),
         has_recent_verify=False,
         verify_age_seconds=None,
         has_work_log=True,
@@ -201,6 +213,7 @@ def test_dod_blocks_on_stale_verify() -> None:
     config = load_gates_config()
     result = evaluate_dod(
         "feature",
+        body=_full_body(),
         has_recent_verify=True,
         verify_age_seconds=10_000,  # > 1800s default
         has_work_log=True,
@@ -214,6 +227,7 @@ def test_dod_warns_on_missing_work_log() -> None:
     config = load_gates_config()
     result = evaluate_dod(
         "feature",
+        body=_full_body(),
         has_recent_verify=True,
         verify_age_seconds=60,
         has_work_log=False,
@@ -228,12 +242,46 @@ def test_dod_chore_skips_work_log_warning() -> None:
     config = load_gates_config()
     result = evaluate_dod(
         "chore",
+        body=_full_body(),
         has_recent_verify=True,
         verify_age_seconds=60,
         has_work_log=False,
         config=config,
     )
     assert result.verdict is Verdict.PASS
+
+
+def test_dod_blocks_when_acceptance_missing_for_risk_kind() -> None:
+    """A risk kind completing without a well-formed Acceptance is BLOCKed."""
+    config = load_gates_config()
+    for kind in ("feature", "bug", "refactor", "test", "security"):
+        result = evaluate_dod(
+            kind,
+            body=_no_acceptance_body(),
+            has_recent_verify=True,
+            verify_age_seconds=60,
+            has_work_log=True,
+            config=config,
+        )
+        assert result.blocked, f"kind={kind} without acceptance must BLOCK"
+        assert any(m.code == "DOD_ACCEPTANCE_MISSING" for m in result.messages)
+
+
+def test_dod_warns_when_acceptance_missing_for_non_risk_kind() -> None:
+    """docs/chore opt out of Acceptance in DoR, so a missing block only WARNs."""
+    config = load_gates_config()
+    for kind in ("docs", "chore"):
+        result = evaluate_dod(
+            kind,
+            body=_no_acceptance_body(),
+            has_recent_verify=True,
+            verify_age_seconds=60,
+            has_work_log=True,
+            config=config,
+        )
+        assert result.verdict is Verdict.WARN, f"kind={kind} should WARN, not BLOCK"
+        assert not result.blocked
+        assert any(m.code == "DOD_ACCEPTANCE_MISSING" for m in result.messages)
 
 
 # ────────────────────────────────────────────────────────────────────

@@ -275,9 +275,40 @@ def evaluate_dor(
     return result
 
 
+def _acceptance_gap(kind: str, body: str, config: GatesConfig) -> Verdict | None:
+    """BLOCK / WARN / None for the DoD acceptance-completeness check.
+
+    Severity is derived from the SAME DoR config that decides whether a kind
+    has a binding Acceptance section, so there is no separate kind list to
+    drift: a kind whose DoR *requires* Acceptance BLOCKs on a missing/malformed
+    G/W/T; a kind that opts out (docs/chore/spike) only WARNs. None ⇒ the
+    section is present and well-formed.
+    """
+    dor = config.definition_of_ready.for_kind(kind)
+    kind_rule = dor.sections.get("Acceptance")
+    requires = kind_rule is not None and kind_rule.required
+    # Well-formedness tokens come from config (kind rule, else the default) —
+    # never hardcoded — so "well-formed" here matches what DoR enforced at
+    # in_progress.
+    rule = kind_rule or config.definition_of_ready.default.sections.get("Acceptance")
+    subitems = rule.required_subitems if rule else []
+    forbidden = rule.forbid_substrings if rule else []
+    text = _section_text_or_none(body, "Acceptance")
+    stripped = (text or "").strip()
+    well_formed = (
+        bool(stripped)
+        and all(token in stripped for token in subitems)
+        and not any(bad in stripped for bad in forbidden)
+    )
+    if well_formed:
+        return None
+    return Verdict.BLOCK if requires else Verdict.WARN
+
+
 def evaluate_dod(
     kind: str,
     *,
+    body: str,
     has_recent_verify: bool,
     verify_age_seconds: int | None,
     has_work_log: bool,
@@ -287,10 +318,28 @@ def evaluate_dod(
 
     The validator does not read the verify file or DB itself — it accepts
     booleans/ages from the caller. This keeps the validator pure and
-    testable without filesystem fixtures.
+    testable without filesystem fixtures. `body` is threaded in so the
+    acceptance-completeness gate can re-check the G/W/T section at complete.
     """
     result = ValidationResult()
     rules: DoDKindRules = config.definition_of_done.for_kind(kind)
+
+    if rules.require_acceptance_met:
+        gap = _acceptance_gap(kind, body, config)
+        if gap is not None:
+            result.add(
+                ValidationMessage(
+                    code="DOD_ACCEPTANCE_MISSING",
+                    severity=gap,
+                    field="Acceptance",
+                    message=(
+                        f"Definition of Done: kind={kind!r} is completing without a "
+                        f"well-formed Acceptance (Given/When/Then) section — the "
+                        f"acceptance criteria ARE the definition of done. Fill or fix "
+                        f"the Acceptance block before task-done."
+                    ),
+                ),
+            )
 
     if rules.require_verify:
         if not has_recent_verify:
@@ -441,6 +490,7 @@ def validate_transition(
     elif new_status == "complete":
         result = evaluate_dod(
             kind,
+            body=body,
             has_recent_verify=has_recent_verify,
             verify_age_seconds=verify_age_seconds,
             has_work_log=has_work_log,

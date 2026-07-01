@@ -88,6 +88,7 @@ class DoDKindRules(BaseModel):
     require_verify: bool = True
     verify_max_age_seconds: int = 1800
     require_work_log: bool = True
+    require_acceptance_met: bool = True
 
 
 class DoDConfig(BaseModel):
@@ -97,9 +98,11 @@ class DoDConfig(BaseModel):
     def for_kind(self, kind: str) -> DoDKindRules:
         if kind not in self.by_kind:
             return self.default
-        # DoD rules are flat — kind block overrides field-by-field.
+        # Strategic-merge: only the fields the kind block explicitly set
+        # override the default. exclude_unset keeps an unmentioned field on
+        # the default's value instead of clobbering it with the field default.
         merged = self.default.model_dump()
-        merged.update({k: v for k, v in self.by_kind[kind].model_dump().items() if v is not None})
+        merged.update(self.by_kind[kind].model_dump(exclude_unset=True))
         return DoDKindRules(**merged)
 
 

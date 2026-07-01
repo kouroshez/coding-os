@@ -5,7 +5,7 @@ swimlane: "board_os"
 kind: feature
 epic: task-lifecycle-integrity
 labels: [dod, gates, abandonment, ready]
-status: in_progress
+status: testing
 priority: P0
 appetite: 2d
 created: 2026-06-30
@@ -39,3 +39,19 @@ references: []
 - Settle first (COMPLICATED → zoom): acceptance-PRESENT is already DoR-enforced at in_progress, so A1's real new value is gating acceptance SATISFIED at complete — choose the mechanism (checkbox convention vs verify/work-log evidence) before coding, else the gate is a no-op.
 
 ## Work Log
+- 2026-07-01 [claude]: commit 1051f7c3e0 — chore(board): sync drifted task materializations to git
+- 2026-07-01 [claude]: Edit task-lifecycle.md
+- 2026-07-01 [claude]: Edit transition_gates.py
+- 2026-07-01 [claude]: Edit transition_gates_validator.py
+- 2026-07-01 [claude]: Edit transition_gates_validator.py
+- 2026-07-01 [claude]: Edit transition-gates.yaml
+- 2026-07-01 [claude]: Edit test_transition_gates_validator.py
+- 2026-07-01 [claude]: Edit test_transition_gates_validator.py
+- 2026-07-01 [claude]: Edit test_transition_gates_validator.py
+- 2026-07-01 [claude]: Edit test_transition_gates_validator.py
+- 2026-07-01 [claude]: Edit test_transition_gates_validator.py
+- 2026-07-01 [claude]: Edit test_transition_gates_validator.py
+- 2026-07-01 [claude]: Edit test_transition_gates_validator.py
+- 2026-07-01 [claude]: Edit test_transition_gates_validator.py
+- 2026-07-01 [claude]: Edit test_transition_gates.py
+- 2026-07-01 [claude]: evaluate_dod threads body + DOD_ACCEPTANCE_MISSING (BLOCK risk / WARN docs-chore via DoR-derived severity); fixed…

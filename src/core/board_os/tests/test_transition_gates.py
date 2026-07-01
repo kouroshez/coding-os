@@ -216,6 +216,27 @@ def test_shipped_yaml_dod_default_requires_verify() -> None:
     assert default_dod.verify_max_age_seconds == 1800
 
 
+def test_dod_for_kind_preserves_unset_field_from_default() -> None:
+    """A by_kind DoD block that sets only one field must not clobber an
+    unmentioned field back to its model default (the model_dump merge bug)."""
+    cfg = load_gates_from_str(
+        "version: 1\n"
+        "definition_of_done:\n"
+        "  default:\n"
+        "    require_acceptance_met: false\n"
+        "  by_kind:\n"
+        "    bug:\n"
+        "      require_work_log: false\n"
+    )
+    rules = cfg.definition_of_done.for_kind("bug")
+    # require_acceptance_met is unset in the bug block → inherits the default's
+    # explicit False, not the field default True.
+    assert rules.require_acceptance_met is False
+    assert rules.require_work_log is False
+    # require_verify was unset in both → field default True.
+    assert rules.require_verify is True
+
+
 # ────────────────────────────────────────────────────────────────────
 # Override policy
 # ────────────────────────────────────────────────────────────────────

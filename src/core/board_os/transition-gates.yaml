@@ -138,6 +138,12 @@ definition_of_done:
     require_verify: true
     verify_max_age_seconds: 1800
     require_work_log: true
+    # Re-check the Given/When/Then Acceptance section at `complete`. Severity
+    # is graduated from the DoR config: kinds that require Acceptance there
+    # (feature/bug/refactor/test/security) BLOCK on a missing/malformed block;
+    # kinds that opt out (docs/chore/spike) only WARN. Set false per kind to
+    # disable the check entirely.
+    require_acceptance_met: true
   by_kind:
     docs:
       require_verify: false
