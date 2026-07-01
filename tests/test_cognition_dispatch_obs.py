@@ -67,7 +67,20 @@ def test_get_chat_falls_back_to_transcript(tmp_path, monkeypatch):
     assert r.status_code == 200
     data = resp["data"]
     assert data["session"]["source"] == "dispatch_transcript"
+    # Review fix #5: the fallback session carries the fields ChatView reads so
+    # the title is real (not the raw id) and nothing renders undefined.
+    assert data["session"]["custom_title"]
+    assert "git_branch" in data["session"] and "cwd" in data["session"]
     assert "dispatched transcript body" in data["messages"][0]["blocks"][0]["text"]
+
+
+def test_stream_trace_rejects_path_traversal(tmp_path, monkeypatch):
+    # Review fix #4: an `agent` query param with traversal chars is rejected 400
+    # before any filesystem join, closing the trace-file read-outside-state hole.
+    monkeypatch.setattr(cognition, "_state_dir", lambda: tmp_path)
+    with TestClient(create_app()) as c:
+        r = c.get("/api/cognition/trace/ses-x/stream", params={"agent": "../../../../etc"})
+    assert r.status_code == 400
 
 
 def test_drain_trace_events_reads_and_tails(tmp_path):

@@ -213,10 +213,19 @@ def list_traces(
     )
 
 
+def _safe_seg(seg: str | None) -> bool:
+    # A path segment (session_id / agent) is safe iff it is a non-empty run of
+    # [A-Za-z0-9_-] — rejects '/', '..', and any traversal before it reaches a
+    # filesystem join. Session ids are ses-<agent>-<ts>-<pid>; agents are alnum.
+    return bool(seg) and all(c.isalnum() or c in "-_" for c in seg)
+
+
 def _find_trace_file(
     state: Path, session_id: str, agent: str | None
 ) -> tuple[Path | None, str | None]:
     """Locate a session's jsonl trace file across all (or one) agent dir."""
+    if not _safe_seg(session_id) or (agent is not None and not _safe_seg(agent)):
+        return (None, None)
     if agent:
         candidate = state / agent / "traces" / f"{session_id}.jsonl"
         return (candidate, agent) if candidate.exists() else (None, agent)
@@ -346,10 +355,13 @@ async def stream_trace(
     _m=Depends(make_metrics_dep("cognition.trace_stream")),
 ):
     """SSE: tail (and replay from the start) a session's append-only cognition trace jsonl."""
+    if not _safe_seg(session_id) or (agent is not None and not _safe_seg(agent)):
+        raise HTTPException(status_code=400, detail="invalid session_id or agent")
     state = _state_dir()
     target, _resolved_agent = _find_trace_file(state, session_id, agent)
     # The dispatch may not have created the file yet — resolve the canonical
-    # path so tailing begins the instant the first event lands.
+    # path so tailing begins the instant the first event lands. Segments are
+    # validated above, so this join cannot escape the state dir.
     log = target if target is not None else state / (agent or "claude") / "traces" / f"{session_id}.jsonl"
     poll_secs = float(os.environ.get("COS_TRACE_STREAM_POLL_MS", "750")) / 1000.0
     heartbeat_secs = 15.0
@@ -365,6 +377,12 @@ async def stream_trace(
                 events, pos = await asyncio.to_thread(_drain_trace_events, log, pos)
                 for evt in events:
                     yield f"event: trace\ndata: {json.dumps(evt, ensure_ascii=False)}\n\n".encode()
+                # Self-terminate once the run is done: a completed dispatch never
+                # appends more, so holding the poll open just leaks a server task
+                # and re-replays the whole backlog on every EventSource reconnect.
+                if any(isinstance(e, dict) and e.get("kind") == "dispatch_completed" for e in events):
+                    yield b"event: done\ndata: {}\n\n"
+                    return
                 if time.monotonic() - last_beat > heartbeat_secs:
                     yield f"event: heartbeat\ndata: {json.dumps({'ts': int(time.time())})}\n\n".encode()
                     last_beat = time.monotonic()
@@ -950,6 +968,18 @@ def _dispatch_transcript_chat(session_id: str) -> dict | None:
             "formula_id": row["formula_id"],
             "model": row["model"],
             "status": row["status"],
+            # Mirror the fields ChatView reads (custom_title ?? summary ?? id;
+            # git_branch/cwd/last_modified in the header) so the fallback renders
+            # a real title instead of the raw session id, and reads no undefined.
+            "custom_title": f"dispatch: {row['formula_id']} ({row['status']})",
+            "summary": None,
+            "first_prompt": None,
+            "last_modified": None,
+            "file_size": None,
+            "git_branch": None,
+            "cwd": None,
+            "tag": None,
+            "created_at": None,
         },
         "messages": [
             {

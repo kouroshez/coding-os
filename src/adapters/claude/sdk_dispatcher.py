@@ -289,7 +289,7 @@ def _presence_write(
 
 
 def _dispatch_trace_content_enabled() -> bool:
-    return os.environ.get("COS_DISPATCH_EVENT_CONTENT", "").strip().lower() in {"1", "true", "yes"}
+    return os.environ.get("COS_DISPATCH_EVENT_CONTENT", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _emit_dispatch_trace(
@@ -634,16 +634,21 @@ class ClaudeSDKDispatcher:
                         if isinstance(block, TextBlock):
                             transcript_parts.append(block.text)
                             _turn_texts.append(block.text)
-                    dispatch_turn_seq += 1
-                    _turn_data: dict[str, Any] = {
-                        "seq": dispatch_turn_seq,
-                        "chars": sum(len(t) for t in _turn_texts),
-                    }
-                    if _dispatch_trace_content_enabled():
-                        _turn_data["text"] = "".join(_turn_texts)
-                    _emit_dispatch_trace(
-                        sub_session_id, "dispatch_turn", request.formula_id, _turn_data
-                    )
+                    # Count + emit only text-bearing turns so `turns` tracks
+                    # reply turns (tool-only assistant messages are captured
+                    # separately in result_meta['tool_calls']); a pure tool
+                    # turn otherwise inflated the count with a chars=0 event.
+                    if _turn_texts:
+                        dispatch_turn_seq += 1
+                        _turn_data: dict[str, Any] = {
+                            "seq": dispatch_turn_seq,
+                            "chars": sum(len(t) for t in _turn_texts),
+                        }
+                        if _dispatch_trace_content_enabled():
+                            _turn_data["text"] = "".join(_turn_texts)
+                        _emit_dispatch_trace(
+                            sub_session_id, "dispatch_turn", request.formula_id, _turn_data
+                        )
                 elif isinstance(msg, ResultMessage):
                     # ResultMessage is emitted once per query, at the
                     # end. Capture every field the post-stream handler
@@ -700,14 +705,23 @@ class ClaudeSDKDispatcher:
                 )
         finally:
             _presence_write(project_root, "claude", sub_session_id, "end")
+            # Derive the terminal status from what is known here: an early
+            # timeout/error sets dispatch_outcome; otherwise result_subtype
+            # carries the SDK error subtypes (error_max_budget_usd /
+            # error_max_turns / error_max_*) that the post-finally code turns
+            # into a status="error" DispatchResult. Reporting a flat "ok" here
+            # would mask budget/turn exhaustion in the trace.
+            if dispatch_outcome is not None:
+                _final_status = dispatch_outcome.status
+            elif str(result_subtype or "").startswith("error"):
+                _final_status = "error"
+            else:
+                _final_status = "ok"
             _emit_dispatch_trace(
                 sub_session_id,
                 "dispatch_completed",
                 request.formula_id,
-                {
-                    "status": dispatch_outcome.status if dispatch_outcome else "ok",
-                    "turns": dispatch_turn_seq,
-                },
+                {"status": _final_status, "turns": dispatch_turn_seq},
             )
 
         # Programmatic-hook captures ride into result_meta so the

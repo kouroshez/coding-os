@@ -7,7 +7,7 @@ Read when: onboarding to hook authoring · deciding which hook governs a specifi
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
-**SSOT for registration:** [src/core/hooks/registry.yaml](../../src/core/hooks/registry.yaml). Adapter template files are GENERATED from it by `make regen-adapter-templates`. Never hand-edit `src/adapters/*/settings.template.json` or `src/adapters/*/hooks.template.json` — the `warn-template-drift.sh` hook catches drift.
+**SSOT for registration:** [src/core/hooks/registry.yaml](../../src/core/hooks/registry.yaml). Adapter template files are GENERATED from it by `make regen-adapter-templates`. Never hand-edit `src/adapters/*/settings.template.json` or `src/adapters/*/hooks.template.json` — the golden-parity tests (`test_adapter_parity`) fail if they drift from the registry.
 
 ## Effect classes — what the agent sees
 
@@ -98,13 +98,12 @@ Surface the right tool / discipline at prompt time so the agent never reaches a 
 
 Codex receives the same hooks via the `codex-userpromptsubmit-dispatch.sh` dispatcher (concurrent UserPromptSubmit triggers coalesced through `src/adapters/codex/adapter.yaml::hook_dispatchers`).
 
-### Meta (4 hooks) — BLOCK or WARN on governance docs
+### Meta (3 hooks) — BLOCK or WARN on governance docs
 
 | Hook | Event | Purpose |
 |---|---|---|
 | `check-agents-md-size` | PostToolUse after AGENTS.md edit | warn if size > 30 KB (context budget) |
 | `check-agents-md-refs` | PostToolUse after AGENTS.md edit | warn if referenced files/paths are missing |
-| `warn-template-drift` | PreToolUse on generated files | WARN if hand-editing `src/core/rules/dimension-registry.md`, `src/core/rules/skill-enforcement.md`, `src/core/scaffold_manifest.json`, or `tests/golden/**` (generated — regenerate instead) |
 | `warn-mcp-down` | SessionStart | WARN if thinking_os MCP can't be reached (session is cognitively blind) |
 
 ## Adding a new hook
@@ -122,7 +121,7 @@ Zero entries in `.coding-os/.hooks.log` for a hook you expected means the agent 
 
 1. `cos hooks-list --agent claude` (or codex) — is the hook registered for that runtime?
 2. Open `.claude/settings.json` (or `.codex/hooks.json`) — does the hook appear under the right matcher?
-3. If you edited `registry.yaml` mid-session and forgot `make regen-adapter-templates`, templates drift — `warn-template-drift` catches that on next PreToolUse.
+3. If you edited `registry.yaml` mid-session and forgot `make regen-adapter-templates`, templates drift — the golden-parity test (`test_adapter_parity`) catches that in CI.
 4. Runtime reload — Claude Code/Codex may need a restart to pick up new settings.
 
 ## Why log-only observability hooks don't surface in agent context

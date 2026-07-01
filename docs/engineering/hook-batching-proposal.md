@@ -35,7 +35,7 @@ latency: ~250 ms p50, ~500 ms p99.
 |---|---|---|
 | `pre-write-security.sh` | block-secrets, block-dangerous-commands, block-uv-heredoc, block-protected-files, block-migration-conflict, block-hardcoded-literals | All BLOCKING checks that can refuse the edit. Run first; fast-fail. |
 | `pre-write-gates.sh` | thinking_os-gate, enforce-task-start, enforce-doc-anchor, enforce-memory-check, enforce-skill, enforce-zoom, enforce-template, enforce-anti-ambiguity | Workflow gates (state-file based). Run only if security passed. |
-| `pre-write-domain.sh` | block-bad-patterns, enforce-graph-context, validate-task-frontmatter, enforce-wip-limit, enforce-task-body, warn-template-drift | Domain-specific lint / validation. Heaviest checks; run last. |
+| `pre-write-domain.sh` | block-bad-patterns, enforce-graph-context, validate-task-frontmatter, enforce-wip-limit, enforce-task-body | Domain-specific lint / validation. Heaviest checks; run last. |
 
 `agent-presence.sh` stays separate (lifecycle hook fired across many
 events; would not benefit from being merged into Write|Edit-only batch).

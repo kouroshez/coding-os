@@ -61,7 +61,8 @@ claude --version          # CLI on PATH
 
 `src/adapters/claude/settings.template.json` is **derived** from
 `src/core/hooks/registry.yaml` via `make regen-adapter-templates`. Hand-edits
-are caught by `src/core/hooks/warn-template-drift.sh`.
+are caught by the golden-parity tests (`test_adapter_parity`), which fail if the
+template drifts from the registry.
 
 Hook events declared (post-2026-05-04 hardening):
 

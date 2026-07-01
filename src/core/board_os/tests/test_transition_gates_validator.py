@@ -267,6 +267,23 @@ def test_dod_blocks_when_acceptance_missing_for_risk_kind() -> None:
         assert any(m.code == "DOD_ACCEPTANCE_MISSING" for m in result.messages)
 
 
+def test_dod_unrecognized_kind_warns_not_blocks() -> None:
+    """Review fix #2: an unrecognised/legacy kind (no by_kind entry) is not
+    hard-blocked as a feature at complete — a missing acceptance only WARNs."""
+    config = load_gates_config()
+    result = evaluate_dod(
+        "epic",  # not in the shipped definition_of_ready.by_kind
+        body=_no_acceptance_body(),
+        has_recent_verify=True,
+        verify_age_seconds=60,
+        has_work_log=True,
+        config=config,
+    )
+    assert not result.blocked
+    assert result.verdict is Verdict.WARN
+    assert any(m.code == "DOD_ACCEPTANCE_MISSING" for m in result.messages)
+
+
 def test_dod_warns_when_acceptance_missing_for_non_risk_kind() -> None:
     """docs/chore opt out of Acceptance in DoR, so a missing block only WARNs."""
     config = load_gates_config()

@@ -19,10 +19,10 @@ _HOOKS = _REPO / "src" / "core" / "hooks"
 _GOLDEN = _REPO / "tests" / "golden" / "hook_parity_baseline.json"
 
 # (case_id, hook_file, event, stdin_payload). Chosen for determinism: pure
-# stdin-driven observability/nudge hooks that fail-open without a DB, plus one
-# triggering case (nudge-thinking-os on a design-heavy prompt) so the golden has
-# discriminating power, not an all-zeros baseline. Each case runs in its own
-# fresh COS_AGENT_DIR so per-session debounce markers never cross-contaminate.
+# stdin-driven observability/nudge hooks that fail-open without a DB (each records
+# an exit-0 / no-output no-op signature), plus two safety-gate cases that MUST
+# block — those two supply the golden's discriminating power. Each case runs in its
+# own fresh COS_AGENT_DIR so per-session debounce markers never cross-contaminate.
 CASES: list[tuple[str, str, dict]] = [
     ("reentry-noop", "nudge-reentry.sh", {"user_prompt": "hi"}),
     ("abandoned-noop", "warn-abandoned-task.sh", {}),
@@ -52,15 +52,20 @@ CASES: list[tuple[str, str, dict]] = [
 
 
 def _signature(hook_file: str, payload: dict, agent_dir: Path) -> dict:
-    env = {
-        **os.environ,
-        "COS_AGENT_DIR": str(agent_dir),
-        "COS_STATE_DIR": str(agent_dir),
-        "COS_PANEL_ID": "parity",
-        # Non-existent DB so DB-gated branches fail-open deterministically
-        # instead of touching the real board.
-        "COS_DB_PATH": str(agent_dir / "no-such.db"),
-    }
+    # Strip any ambient COS_PANEL_* so a live agent session's panel dir cannot
+    # redirect the hooks' marker/debounce files and flip a case's signature (the
+    # hooks resolve markers via ${COS_PANEL_DIR:-$COS_AGENT_DIR}).
+    env = {k: v for k, v in os.environ.items() if not k.startswith("COS_PANEL")}
+    env.update(
+        {
+            "COS_AGENT_DIR": str(agent_dir),
+            "COS_STATE_DIR": str(agent_dir),
+            "COS_PANEL_ID": "parity",
+            # Non-existent DB so DB-gated branches fail-open deterministically
+            # instead of touching the real board.
+            "COS_DB_PATH": str(agent_dir / "no-such.db"),
+        }
+    )
     proc = subprocess.run(
         ["bash", str(_HOOKS / hook_file)],
         input=json.dumps(payload).encode(),

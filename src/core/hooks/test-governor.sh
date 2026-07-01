@@ -33,10 +33,13 @@ esac
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
 [[ -n "$COMMAND" ]] || exit 0
 
-case "$COMMAND" in
-  *pytest*|*"make "*) ;;
-  *) exit 0 ;;
-esac
+# Match `make ` only at a command-word boundary (start, or after a shell
+# separator) — a plain substring would also fire on cmake/gmake/remake, which
+# contain "make " and would then pay the match-command spawn for nothing.
+_MAKE_WORD_RE='(^|[[:space:]&|;(])make[[:space:]]'
+if [[ "$COMMAND" != *pytest* ]] && [[ ! "$COMMAND" =~ $_MAKE_WORD_RE ]]; then
+  exit 0
+fi
 case "$COMMAND" in
   *--collect-only*|*" --co"*) exit 0 ;;
 esac

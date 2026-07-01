@@ -92,7 +92,7 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 
 - **Rule:** Edit source, then run `make regen-rules` + `make manifest-regen` + `make regen-adapter-templates`. Never hand-edit derived files.
 - **Why:** `src/core/scaffold_manifest.json`, `src/core/rules/dimension-registry.md`, `src/core/rules/skill-enforcement.md`, `adapters/{claude,codex}/*.template.*`, `tests/golden/**` are generated.
-- **How:** Hook `regen-reminder.sh` (PostToolUse Write|Edit on source files) prints the regen command. `warn-template-drift.sh` flags hand-edits to derived files.
+- **How:** Hook `regen-reminder.sh` (PostToolUse Write|Edit on source files) prints the regen command; the golden-parity tests (`test_adapter_parity` / `test_golden_parity`) fail if a derived artifact drifts from its source.
 - **Where:** `Makefile`
 
 ## Rule 11 — No hardcoded stack/adapter literals in `src/cli/*.py`
@@ -253,7 +253,7 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 | 7 | Governance task name | block-protected-files.sh |
 | 8 | No bash heredoc with `uv run` | block-uv-heredoc.sh |
 | 9 | Append-only migrations | block-migration-conflict.sh |
-| 10 | Regenerate derived artifacts | regen-reminder.sh + warn-template-drift.sh |
+| 10 | Regenerate derived artifacts | regen-reminder.sh + golden-parity tests |
 | 11 | No hardcoded literals in cli/ | block-hardcoded-literals.sh |
 | 12 | Comments by exception | (none — convention) |
 | 13 | MCP envelope `ok`/`fail` | test_envelope.py |

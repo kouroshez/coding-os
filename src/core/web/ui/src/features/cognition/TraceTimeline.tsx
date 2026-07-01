@@ -148,13 +148,15 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
   // Default to the readable summary; raw cognition internals behind a toggle.
   const [mode, setMode] = useState<'summary' | 'raw'>('summary');
   const [liveEvents, setLiveEvents] = useState<TraceEvent[]>([]);
+  const [streamError, setStreamError] = useState<string | null>(null);
 
-  // Live tail — the dispatch/cognition trace SSE route (TASK-667) appends
-  // events the instant they land, on top of the initial fetch, so a running
-  // dispatch is watchable in real time. Deduped by span_id below so the
-  // replayed backlog never double-renders.
+  // Live tail — the dispatch/cognition trace SSE route appends events the
+  // instant they land, on top of the initial fetch, so a running dispatch is
+  // watchable in real time. A mid-stream backend error surfaces via streamError
+  // instead of silently freezing the tail.
   useEffect(() => {
     setLiveEvents([]);
+    setStreamError(null);
     const shared = acquireEventSource(
       resolveApiUrl(`/api/cognition/trace/${encodeURIComponent(sessionId)}/stream`),
     );
@@ -166,9 +168,22 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
         // Malformed line — skip one event.
       }
     };
+    const onStreamError = (ev: Event) => {
+      // Only surface the server's `event: error` frame (it carries data); a
+      // native reconnect blip (no data) is transient and must not false-alarm.
+      const data = (ev as MessageEvent).data;
+      if (typeof data !== 'string') return;
+      try {
+        setStreamError((JSON.parse(data)?.message as string) ?? 'trace stream error');
+      } catch {
+        setStreamError('trace stream error');
+      }
+    };
     es.addEventListener('trace', onTrace);
+    es.addEventListener('error', onStreamError);
     return () => {
       es.removeEventListener('trace', onTrace);
+      es.removeEventListener('error', onStreamError);
       shared.release();
     };
   }, [sessionId]);
@@ -177,8 +192,13 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
     const base = data?.events ?? [];
     const seen = new Set<string>();
     const merged: TraceEvent[] = [];
+    let i = 0;
     for (const e of [...base, ...liveEvents]) {
-      const key = typeof e.span_id === 'string' ? e.span_id : `${e.ts ?? ''}-${e.kind ?? ''}`;
+      // Dedup by span_id (always present from tracing.py); span_id-less lines
+      // (malformed/foreign) fall back to a positional key so two distinct events
+      // are never collapsed into one.
+      const key = typeof e.span_id === 'string' ? e.span_id : `nokey-${i}`;
+      i += 1;
       if (seen.has(key)) continue;
       seen.add(key);
       merged.push(e);
@@ -245,6 +265,11 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
           {events.length} event{events.length === 1 ? '' : 's'}
           {mode === 'raw' ? ` · ${filtered.length} shown` : ''}
         </p>
+        {streamError && (
+          <p className="mt-0.5 text-[10px] text-[var(--cos-danger,#e5484d)]" role="status">
+            ⚠ live tail interrupted: {streamError}
+          </p>
+        )}
         <div className="mt-1.5 flex items-center gap-2">
           <button
             type="button"

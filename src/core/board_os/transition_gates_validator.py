@@ -276,17 +276,16 @@ def evaluate_dor(
 
 
 def _acceptance_gap(kind: str, body: str, config: GatesConfig) -> Verdict | None:
-    """BLOCK / WARN / None for the DoD acceptance-completeness check.
-
-    Severity is derived from the SAME DoR config that decides whether a kind
-    has a binding Acceptance section, so there is no separate kind list to
-    drift: a kind whose DoR *requires* Acceptance BLOCKs on a missing/malformed
-    G/W/T; a kind that opts out (docs/chore/spike) only WARNs. None ⇒ the
-    section is present and well-formed.
-    """
+    # BLOCK / WARN / None for the DoD acceptance-completeness check. Severity is
+    # derived from the same DoR config that decides whether a kind has a binding
+    # Acceptance section (no separate kind list to drift): a *recognised* kind
+    # whose DoR requires Acceptance BLOCKs on a missing/malformed G/W/T; kinds
+    # that opt out (docs/chore/spike) or are unrecognised only WARN — so a
+    # kind-less/legacy card is never hard-blocked as if it were a feature.
     dor = config.definition_of_ready.for_kind(kind)
     kind_rule = dor.sections.get("Acceptance")
-    requires = kind_rule is not None and kind_rule.required
+    recognized = kind in config.definition_of_ready.by_kind
+    requires = recognized and kind_rule is not None and kind_rule.required
     # Well-formedness tokens come from config (kind rule, else the default) —
     # never hardcoded — so "well-formed" here matches what DoR enforced at
     # in_progress.

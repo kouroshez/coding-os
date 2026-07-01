@@ -92,7 +92,6 @@ wholesale after the sort and keep their own delegate order, declared in
 | `enforce-task-start` | PreToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
 | `enforce-zoom` | PreToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
 | `thinking_os-gate` | PreToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
-| `warn-template-drift` | PreToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
 | `capture-observation` | PostToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
 | `verify-changed-file` | PostToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
 | `check-agents-md-size` | PostToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |

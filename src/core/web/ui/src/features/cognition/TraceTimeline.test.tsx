@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   payload: null as unknown,
   traceListeners: [] as Array<(ev: MessageEvent) => void>,
+  errorListeners: [] as Array<(ev: MessageEvent) => void>,
 }));
 vi.mock('@/lib/hooks', () => ({
   useApiGet: () => ({ data: hoisted.payload, isLoading: false, error: null }),
@@ -20,6 +21,7 @@ vi.mock('@/lib/shared-event-source', () => ({
       readyState: 1,
       addEventListener: (type: string, cb: (ev: MessageEvent) => void) => {
         if (type === 'trace') hoisted.traceListeners.push(cb);
+        if (type === 'error') hoisted.errorListeners.push(cb);
       },
       removeEventListener: () => {},
     },
@@ -133,5 +135,21 @@ describe('TraceTimeline producer contract', () => {
     });
     expect(screen.getByText('Sub-agent finished live')).toBeInTheDocument();
     expect(screen.getByText('Dispatch began')).toBeInTheDocument();
+  });
+
+  it('surfaces a backend SSE error frame instead of silently freezing (review fix #6)', () => {
+    hoisted.errorListeners.length = 0;
+    renderTrace({
+      session_id: 'sess-1',
+      events: [{ kind: 'classify', ts: 1, span_id: 'sp-0' }],
+      count: 1,
+    });
+    expect(screen.queryByText(/live tail interrupted/i)).toBeNull();
+    act(() => {
+      for (const cb of hoisted.errorListeners) {
+        cb({ data: JSON.stringify({ message: 'trace stream failed' }) } as MessageEvent);
+      }
+    });
+    expect(screen.getByText(/live tail interrupted: trace stream failed/i)).toBeInTheDocument();
   });
 });
