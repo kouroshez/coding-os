@@ -5,12 +5,12 @@ swimlane: adapters
 kind: feature
 epic: null
 labels: [claude-sdk, hub, auth, settings, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 3h
 created: 2026-07-01
 started: 2026-07-01
-completed: null
+completed: 2026-07-01
 agent_session: ses-claude-20260701-140116-619f
 depends_on: []
 blocked_by: []
@@ -58,3 +58,4 @@ references: []
 - 2026-07-01 [claude]: committed 77437972 · 7 files
 - 2026-07-01 [claude]: commit ecba79cca7 — chore(hub-ui): regenerate api-types.ts (claude_auth schema + 2.5wk of route drift)
 - 2026-07-01 [claude]: Implemented via _claude_auth_env(cwd) in sdk_dispatcher.py — self-contained, reads hub-settings.json::claude_auth,…
+- 2026-07-01 [claude]: commit a78249fb81 — chore(board): sync TASK-756 (dual Claude auth mode) to testing
