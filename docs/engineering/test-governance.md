@@ -179,6 +179,42 @@ scaffold suites test-cli/test-template-scaffold are the promising candidates —
 in CI before adopting). No dependency added to pyproject — `uv run --with pytest-xdist`
 is the opt-in form.
 
+### testmon spike verdict (TASK-674 — measured 2026-07-01, `--with pytest-testmon --testmon`)
+
+Representative fast suite (`test_transition_gates_validator.py`, 56 tests); the full
+`thinking_os` / `cli` suites were not run twice (time-boxed 1d spike), but the analysis
+below covers them qualitatively — `cli`/`adapters` are exactly where testmon is weakest.
+
+| Run | Selected | Wall |
+|---|---|---|
+| 1 (cold, builds `.testmondata`) | 56 / 56 | 1.69 s |
+| 2 (unchanged tree) | 0 / 56 (all deselected) | 0.06 s |
+
+testmon works — it deselects tests no code change can reach and re-runs only the
+coverage-affected subset after an edit. But the win is **already delivered** and the costs
+land squarely against the no-xdist simplicity stance:
+
+- **Redundant full-suite re-runs are already blocked** by the commit-keyed verify-ledger
+  dedup (TASK-328/330, extended to make-targets in TASK-669) — the agent never re-runs a
+  green suite on an unchanged tree, so testmon's headline win is redundant with existing
+  infra. The finer per-test win inside a single edit-loop is already served by the
+  `pytest path::Class::test` targeted-test discipline.
+- **New mutable state** — a `.testmondata` (~127 KB) at the repo root: must be gitignored,
+  can desync/corrupt, and is per-checkout (worthless across the multi-session / CI split).
+- **Correctness risk** — coverage-based selection has false negatives: a test affected via
+  a path testmon can't trace (data files, env, non-imported deps, **subprocess scaffolds** —
+  the bulk of `test-cli`/`test-adapters`) is silently skipped, so a real regression slips.
+- **Conflicts with the deterministic matrix contract** — "run the matrix suite ONCE at
+  close" wants a full green signal; a testmon-selected subset weakens both that signal and
+  the verify-ledger's "suite green on this tree" semantics.
+
+Verdict: **DEFER.** The verify-ledger dedup + targeted-test discipline already cover the
+redundant-run cases without a new dependency, a mutable state file, or the false-negative
+risk — consistent with the no-xdist stance. No code shipped (no pyproject dep, no gitignore
+entry); `uv run --with pytest-testmon --testmon` stays the opt-in trial form. Revisit only
+if one suite grows so large that per-test selection within a single edit-loop becomes a
+bottleneck the targeted-test discipline can't absorb.
+
 ## Env vars introduced
 
 | Var | Consumer | Meaning |
