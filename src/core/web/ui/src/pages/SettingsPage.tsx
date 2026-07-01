@@ -20,10 +20,19 @@ interface ModelRouting {
   orchestrator_model: string;
 }
 
+// Masked shape returned by GET/PATCH — the raw key never crosses the wire
+// after being stored (settings.py::_masked_settings).
+interface ClaudeAuth {
+  mode: 'subscription' | 'api_key';
+  api_key_set: boolean;
+  api_key_preview: string;
+}
+
 interface Settings {
   budget_cap: BudgetCap;
   trace_rotation: TraceRotation;
   model_routing: ModelRouting;
+  claude_auth: ClaudeAuth;
 }
 
 interface SettingsPayload {
@@ -455,6 +464,83 @@ function ModelRoutingSection({
   );
 }
 
+function ClaudeAuthSection({
+  auth,
+  onModeChange,
+  apiKeyDraft,
+  onApiKeyDraftChange,
+}: {
+  auth: ClaudeAuth;
+  onModeChange: (mode: ClaudeAuth['mode']) => void;
+  apiKeyDraft: string | null;
+  onApiKeyDraftChange: (v: string | null) => void;
+}) {
+  const modeButton = (mode: ClaudeAuth['mode'], label: string) => (
+    <button
+      type="button"
+      onClick={() => onModeChange(mode)}
+      aria-pressed={auth.mode === mode}
+      className={[
+        'rounded border px-3 py-1.5 font-mono text-xs transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+        auth.mode === mode
+          ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+          : 'border-[var(--cos-border)] text-[var(--cos-muted)] hover:border-[var(--cos-text)] hover:text-[var(--cos-text)]',
+      ].join(' ')}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <section className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] p-5">
+      <SectionHeader
+        title="Claude Auth"
+        desc="How every Claude dispatch (chat + formula) authenticates. Subscription (default) uses the Claude Code CLI's own login — the common case for Pro/Max/Team users. API Key forwards a key you supply here as ANTHROPIC_API_KEY, which takes precedence over the CLI's login for this project."
+      />
+      <div className="divide-y divide-[var(--cos-border)]">
+        <FieldRow label="Auth mode">
+          <div className="flex gap-2">
+            {modeButton('subscription', 'Subscription (OAuth)')}
+            {modeButton('api_key', 'API Key')}
+          </div>
+        </FieldRow>
+        {auth.mode === 'api_key' && (
+          <FieldRow label="API key">
+            <input
+              type="password"
+              autoComplete="off"
+              value={apiKeyDraft ?? ''}
+              onChange={(e) => onApiKeyDraftChange(e.target.value)}
+              placeholder={
+                auth.api_key_set ? `configured (${auth.api_key_preview}) — leave blank to keep` : 'sk-ant-...'
+              }
+              className="w-72 rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1.5 font-mono text-xs text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            />
+            {auth.api_key_set && (
+              <button
+                type="button"
+                onClick={() => onApiKeyDraftChange('')}
+                className="text-[10px] text-[var(--cos-muted)] underline hover:text-[var(--cos-warn)]"
+              >
+                clear stored key
+              </button>
+            )}
+            {apiKeyDraft === '' && auth.api_key_set && (
+              <span className="text-[10px] text-[var(--cos-warn)]">will clear on save</span>
+            )}
+          </FieldRow>
+        )}
+      </div>
+      <p className="mt-3 text-[10px] leading-relaxed text-[var(--cos-muted)]">
+        The key is write-only past this form — reads only ever show{' '}
+        <code>api_key_set</code> + a last-4 preview, never the raw value.
+        Switching back to Subscription does not delete a stored key; it
+        just stops using it for this project.
+      </p>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const qc = useQueryClient();
   const { data, isLoading, error } = useApiGet<SettingsPayload>(
@@ -470,12 +556,18 @@ export default function SettingsPage() {
   const [budget, setBudget] = useState<BudgetCap | null>(null);
   const [trace, setTrace] = useState<TraceRotation | null>(null);
   const [routing, setRouting] = useState<ModelRouting | null>(null);
+  const [claudeAuth, setClaudeAuth] = useState<ClaudeAuth | null>(null);
+  // null = no change queued (omit api_key from the PATCH entirely); '' = explicit
+  // clear; non-empty = set/replace. Never pre-filled from the masked GET response.
+  const [claudeAuthApiKeyDraft, setClaudeAuthApiKeyDraft] = useState<string | null>(null);
 
   // Sync draft with server data on first load (not on every refetch)
   const serverSettings = data?.settings;
   const localBudget: BudgetCap = budget ?? serverSettings?.budget_cap ?? { enabled: false, cap_usd: 5.0 };
   const localTrace: TraceRotation = trace ?? serverSettings?.trace_rotation ?? { gzip_age_days: 3, delete_age_days: 30 };
   const localRouting: ModelRouting = routing ?? serverSettings?.model_routing ?? { enabled: false, orchestrator_model: '' };
+  const localClaudeAuth: ClaudeAuth =
+    claudeAuth ?? serverSettings?.claude_auth ?? { mode: 'subscription', api_key_set: false, api_key_preview: '' };
   const envOverrides = data?.env_overrides ?? {};
 
   const save = useCallback(async () => {
@@ -487,18 +579,26 @@ export default function SettingsPage() {
         budget_cap: localBudget,
         trace_rotation: localTrace,
         model_routing: localRouting,
+        claude_auth: {
+          mode: localClaudeAuth.mode,
+          // Omit the key entirely unless the user actually typed/cleared it —
+          // exclude_unset on the backend then preserves whatever is stored.
+          ...(claudeAuthApiKeyDraft !== null ? { api_key: claudeAuthApiKeyDraft } : {}),
+        },
       });
       await invalidateApiQueries(qc, '/api/settings');
       setBudget(result.settings.budget_cap);
       setTrace(result.settings.trace_rotation);
       setRouting(result.settings.model_routing);
+      setClaudeAuth(result.settings.claude_auth);
+      setClaudeAuthApiKeyDraft(null);
       setSaveNote('Settings saved.');
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'save failed');
     } finally {
       setSaving(false);
     }
-  }, [localBudget, localTrace, localRouting, qc]);
+  }, [localBudget, localTrace, localRouting, localClaudeAuth, claudeAuthApiKeyDraft, qc]);
 
   if (isLoading) {
     return (
@@ -646,6 +746,14 @@ export default function SettingsPage() {
         {/* Model Routing (Auto) */}
         <ModelRoutingSection routing={localRouting} onChange={setRouting} />
 
+        {/* Claude Auth (subscription vs API key) */}
+        <ClaudeAuthSection
+          auth={localClaudeAuth}
+          onModeChange={(mode) => setClaudeAuth({ ...localClaudeAuth, mode })}
+          apiKeyDraft={claudeAuthApiKeyDraft}
+          onApiKeyDraftChange={setClaudeAuthApiKeyDraft}
+        />
+
         {/* Scheduled Maintenance (per-project cron + responsive learning) */}
         <ScheduledMaintenanceSection />
 
@@ -669,6 +777,8 @@ export default function SettingsPage() {
               setBudget(serverSettings?.budget_cap ?? null);
               setTrace(serverSettings?.trace_rotation ?? null);
               setRouting(serverSettings?.model_routing ?? null);
+              setClaudeAuth(serverSettings?.claude_auth ?? null);
+              setClaudeAuthApiKeyDraft(null);
               setSaveNote(null);
               setSaveError(null);
             }}

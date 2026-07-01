@@ -2,7 +2,7 @@
 title: Claude Session-Options Builder
 domain: INFRA
 layer: reference
-updated: 2026-06-15
+updated: 2026-07-01
 ---
 
 # Claude Session-Options Builder (SSOT)
@@ -44,13 +44,20 @@ Profiles: `chat` · `chat_resume` · `author` · `onboard` · `dispatch`.
   auto-approve MCP).
 - If the profile permits Bash → `disallowed_tools` includes the
   `_DESTRUCTIVE_BASH_DENY` floor (**P3**).
+- `env` includes the Claude-auth override from `_claude_auth_env(cwd)`
+  (**TASK-756**) — `ANTHROPIC_API_KEY` set when Hub Settings → Claude Auth is
+  in `api_key` mode, explicitly cleared (not merely omitted) otherwise, so a
+  stray key in the Hub server's own shell can never silently override a
+  project's chosen subscription/API-key mode.
 
 **Per-profile deltas (the only variation):** tool allow/deny class,
 `max_turns`, `include_partial_messages`, `setting_sources`.
 
 **Derives from (never hardcoded):** MCP launch command ← `.mcp.json`
 (the installer's output); deny floor + MCP wildcard ← the module
-constants in `sdk_dispatcher.py`; model/effort ← caller.
+constants in `sdk_dispatcher.py`; model/effort ← caller; auth env ←
+`hub-settings.json::claude_auth` (adapter-resolved from `cwd`, not
+caller-supplied — see [claude-sdk.md](claude-sdk.md)).
 
 ## Layering (P4 / P8)
 

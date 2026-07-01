@@ -119,6 +119,35 @@ def _resolve_model_alias(model: str | None) -> str | None:
     return resolved
 
 
+def _hub_settings_path(cwd: str) -> Path:
+    state_dir = os.environ.get("COS_STATE_DIR")
+    if state_dir:
+        return Path(state_dir) / "hub-settings.json"
+    return Path(cwd or os.getcwd()) / ".coding-os" / "hub-settings.json"
+
+
+# Deterministic auth-mode override (TASK-756): Hub Settings → Claude Auth lets a
+# project pick "subscription" (default — the CLI's own OAuth session, byte-
+# identical to before this existed) or "api_key" (forward the user's key as
+# ANTHROPIC_API_KEY). Per platform.claude.com/docs/en/authentication, an API
+# key set on the subprocess env beats subscription OAuth in non-interactive/SDK
+# mode — so "subscription" mode must EXPLICITLY clear the var (not merely omit
+# it), or a stray ANTHROPIC_API_KEY already in the Hub server's own shell would
+# silently override the user's chosen mode. Always returns an override (never
+# {} = no-op) so this is a real switch, not a best-effort hint.
+def _claude_auth_env(cwd: str) -> dict[str, str]:
+    try:
+        data = json.loads(_hub_settings_path(cwd).read_text(encoding="utf-8"))
+        auth = data.get("claude_auth") if isinstance(data, dict) else None
+        if isinstance(auth, dict) and auth.get("mode") == "api_key":
+            key = auth.get("api_key")
+            if isinstance(key, str) and key:
+                return {"ANTHROPIC_API_KEY": key}
+    except (OSError, ValueError) as exc:
+        logger.debug("claude_auth resolution skipped for cwd=%r: %s", cwd, exc)
+    return {"ANTHROPIC_API_KEY": ""}
+
+
 def claude_session_options(
     profile: str,
     *,
@@ -154,6 +183,9 @@ def claude_session_options(
         allowed_tools=[*_CHAT_BASE_TOOLS, _DEFAULT_COS_MCP_ALLOW],
         # P3: destructive-Bash deny floor (rm -rf / force-push / sudo / pipe-to-sh).
         disallowed_tools=list(_DESTRUCTIVE_BASH_DENY),
+        # Hub Settings → Claude Auth (TASK-756): subscription OAuth by default,
+        # ANTHROPIC_API_KEY when the project opted into api_key mode.
+        env=_claude_auth_env(cwd),
     )
     if system_prompt is not None:
         opts["system_prompt"] = system_prompt
@@ -454,7 +486,10 @@ class ClaudeSDKDispatcher:
         # OTEL collector as the parent (D5 leaves the collector to
         # operators; we just propagate). OTEL_SERVICE_NAME identifies
         # the dispatcher distinctly from a normal claude-code session.
-        env: dict[str, str] = {}
+        # Hub Settings → Claude Auth (TASK-756) first, so an OTEL var can never
+        # shadow the ANTHROPIC_API_KEY override (disjoint key sets, but explicit
+        # ordering keeps the precedence obvious to a future reader).
+        env: dict[str, str] = _claude_auth_env(request.cwd or os.getcwd())
         for var in _OTEL_FORWARDED_VARS:
             value = os.environ.get(var)
             if value:

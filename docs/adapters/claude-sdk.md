@@ -145,6 +145,7 @@ ClaudeAgentOptions(
     effort="xhigh" if request.model.startswith(XHIGH_MODEL_PREFIXES) else None,
     skills=role_skills,                         # from agent frontmatter
     cwd=request.cwd,
+    env=_claude_auth_env(request.cwd),          # subscription vs api_key — §7.6
 )
 ```
 
@@ -223,6 +224,31 @@ agent can pick before calling the run tool.
 After successful dispatch, callers should NOT call `cos_supervise_record_output`
 manually — `cos_dispatch_formula_run` (in [src/core/thinking_os/tools/cognition.py](../../src/core/thinking_os/tools/cognition.py))
 persists the bundle and writes the `formula_dispatches` audit row.
+
+### 7.6 Auth mode — subscription OAuth vs API key (TASK-756)
+
+`ClaudeAgentOptions.env` always carries a resolved `ANTHROPIC_API_KEY`
+override, computed by `_claude_auth_env(cwd)` from
+`<cwd-or-$COS_STATE_DIR>/hub-settings.json::claude_auth`
+(Hub Settings → Claude Auth panel; `_ClaudeAuthIn` in
+[settings.py](../../src/core/web/routes/settings.py)):
+
+| `claude_auth.mode` | env forwarded | effect |
+|---|---|---|
+| `"subscription"` (default) | `ANTHROPIC_API_KEY=""` | explicit clear — the CLI subprocess falls through to its own stored OAuth session, per the [documented precedence](https://code.claude.com/docs/en/authentication#authentication-precedence) (subscription is priority 6, below the env var). |
+| `"api_key"` with a stored key | `ANTHROPIC_API_KEY=<key>` | beats subscription OAuth in non-interactive/SDK mode (precedence tier 3) — this is how the SDK subprocess is spawned, so the switch is deterministic, not a race with an approval prompt. |
+
+Applies uniformly to every `claude_session_options()` profile (chat +
+chat_resume) and to `dispatch()` (formula sub-sessions) — one resolver,
+read from the adapter so neither `cognition.py` nor the formula composer
+needs to know this setting exists (P8: the adapter owns its own auth
+seam). The explicit-clear-on-subscription branch exists because a stray
+`ANTHROPIC_API_KEY` already exported in the Hub server's own shell would
+otherwise silently win over a project that has *not* opted into
+API-key billing — merging `{}` (an omitted override) is not safe here.
+`hub-settings.json::claude_auth.api_key` is masked on every HTTP read
+(`api_key_set` + last-4 `api_key_preview` only) and the file is
+`chmod 0600` on every write.
 
 ## 8. Subagent skill inheritance
 

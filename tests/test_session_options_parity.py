@@ -17,11 +17,15 @@ DISPATCHER = REPO / "src" / "adapters" / "claude" / "sdk_dispatcher.py"
 pytest.importorskip("claude_agent_sdk")
 
 
-def _load_builder():
+def _load_module():
     spec = importlib.util.spec_from_file_location("cos_test_claude_sdk_dispatcher", DISPATCHER)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    return mod.claude_session_options
+    return mod
+
+
+def _load_builder():
+    return _load_module().claude_session_options
 
 
 def _mcp_cwd(tmp_path):
@@ -51,6 +55,50 @@ def test_chat_profile_capability_and_security(tmp_path):
     # latency-preserving + streaming
     assert o.setting_sources == []
     assert o.include_partial_messages is True
+    # TASK-756: no hub-settings.json → subscription default, explicitly cleared
+    assert o.env.get("ANTHROPIC_API_KEY") == ""
+
+
+def test_claude_auth_env_subscription_default(tmp_path):
+    """No hub-settings.json (the common case) → explicit clear, never a no-op."""
+    mod = _load_module()
+    assert mod._claude_auth_env(str(tmp_path)) == {"ANTHROPIC_API_KEY": ""}
+
+
+def test_claude_auth_env_subscription_explicit(tmp_path):
+    (tmp_path / ".coding-os").mkdir()
+    (tmp_path / ".coding-os" / "hub-settings.json").write_text(
+        json.dumps({"claude_auth": {"mode": "subscription", "api_key": "sk-ant-leftover"}})
+    )
+    mod = _load_module()
+    # mode="subscription" clears the key even if one happens to be stored —
+    # switching modes in the panel must not require also blanking the field.
+    assert mod._claude_auth_env(str(tmp_path)) == {"ANTHROPIC_API_KEY": ""}
+
+
+def test_claude_auth_env_api_key_mode(tmp_path):
+    (tmp_path / ".coding-os").mkdir()
+    (tmp_path / ".coding-os" / "hub-settings.json").write_text(
+        json.dumps({"claude_auth": {"mode": "api_key", "api_key": "sk-ant-abc123"}})
+    )
+    mod = _load_module()
+    assert mod._claude_auth_env(str(tmp_path)) == {"ANTHROPIC_API_KEY": "sk-ant-abc123"}
+
+
+def test_claude_auth_env_api_key_mode_without_key_clears(tmp_path):
+    (tmp_path / ".coding-os").mkdir()
+    (tmp_path / ".coding-os" / "hub-settings.json").write_text(
+        json.dumps({"claude_auth": {"mode": "api_key", "api_key": ""}})
+    )
+    mod = _load_module()
+    assert mod._claude_auth_env(str(tmp_path)) == {"ANTHROPIC_API_KEY": ""}
+
+
+def test_claude_auth_env_corrupt_settings_fails_safe(tmp_path):
+    (tmp_path / ".coding-os").mkdir()
+    (tmp_path / ".coding-os" / "hub-settings.json").write_text("not json")
+    mod = _load_module()
+    assert mod._claude_auth_env(str(tmp_path)) == {"ANTHROPIC_API_KEY": ""}
 
 
 def test_chat_resume_sets_resume_and_fork(tmp_path):
@@ -77,9 +125,7 @@ def test_unmigrated_profile_raises(tmp_path):
 
 def test_generic_agent_options_seam(tmp_path):
     """The non-profile seam core routes its remaining builds through (TASK-472)."""
-    spec = importlib.util.spec_from_file_location("cos_test_claude_sdk_dispatcher2", DISPATCHER)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    mod = _load_module()
     o = mod.claude_agent_options(
         cwd=str(tmp_path), model=None, max_turns=7, allowed_tools=["mcp__coding-os__*"]
     )

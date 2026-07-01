@@ -22,6 +22,13 @@ _DEFAULTS: dict = {
     "budget_cap": {"enabled": False, "cap_usd": 5.0},
     "trace_rotation": {"gzip_age_days": 3, "delete_age_days": 30},
     "model_routing": {"enabled": False, "orchestrator_model": ""},
+    # Claude auth mode (TASK-756): "subscription" (default) leaves the CLI's own
+    # OAuth session in charge — byte-identical to pre-existing behavior. "api_key"
+    # forwards api_key as ANTHROPIC_API_KEY into the dispatch subprocess env
+    # (sdk_dispatcher.py::_claude_auth_env), which the CLI's own documented
+    # precedence puts above subscription OAuth. api_key is masked on every read —
+    # see _masked_settings.
+    "claude_auth": {"mode": "subscription", "api_key": ""},
     # pr-mode git workflow (TASK-518) — default OFF = byte-identical to trunk.
     # enabled persists COS_GIT_WORKFLOW=pr into the agent env (cos-env.sh § pr-mode
     # enablement); integration_branch + protected_branches feed branch-guard +
@@ -101,6 +108,8 @@ def _save(data: dict) -> None:
             fh.write(json.dumps(data, indent=2))
             fh.flush()
             os.fsync(fh.fileno())
+        # Owner-only — this file now carries claude_auth.api_key (TASK-756).
+        os.chmod(tmp, 0o600)
         os.replace(tmp, path)
     except Exception:
         with contextlib.suppress(OSError):
@@ -137,9 +146,26 @@ def _env_overrides() -> dict:
     return overrides
 
 
+def _masked_settings(data: dict) -> dict:
+    # claude_auth.api_key is write-only past this point — a GET/PATCH response
+    # must never echo the raw secret back to the browser. api_key_set +
+    # api_key_preview (last 4 chars) let the UI show "a key is configured"
+    # without round-tripping a value the frontend could accidentally re-PATCH.
+    out = {**data}
+    auth = out.get("claude_auth")
+    if isinstance(auth, dict):
+        key = auth.get("api_key") or ""
+        out["claude_auth"] = {
+            "mode": auth.get("mode", "subscription"),
+            "api_key_set": bool(key),
+            "api_key_preview": f"...{key[-4:]}" if len(key) >= 4 else ("set" if key else ""),
+        }
+    return out
+
+
 @router.get("")
 def get_settings():
-    return {"data": {"settings": _load(), "env_overrides": _env_overrides()}}
+    return {"data": {"settings": _masked_settings(_load()), "env_overrides": _env_overrides()}}
 
 
 def _module_error(status: int, category: str, message: str, retryable: bool) -> JSONResponse:
@@ -275,11 +301,21 @@ class _GitSettingsIn(BaseModel):
     worktree_setup_cmd: str = ""
 
 
+class _ClaudeAuthIn(BaseModel):
+    mode: Literal["subscription", "api_key"] = "subscription"
+    # None = field omitted from the PATCH body → leave the stored key untouched
+    # (exclude_unset below drops it from the merge entirely). "" = explicit
+    # clear. Non-empty = set/replace. The frontend must never round-trip the
+    # masked preview back through this field.
+    api_key: str | None = None
+
+
 class _PatchBody(BaseModel):
     budget_cap: _BudgetCapIn | None = None
     trace_rotation: _TraceRotationIn | None = None
     model_routing: _ModelRoutingIn | None = None
     git_settings: _GitSettingsIn | None = None
+    claude_auth: _ClaudeAuthIn | None = None
 
 
 @router.patch("")
@@ -305,9 +341,10 @@ def patch_settings(body: _PatchBody):
             "trace_rotation": body.trace_rotation,
             "model_routing": body.model_routing,
             "git_settings": body.git_settings,
+            "claude_auth": body.claude_auth,
         }
         for name, model in sections.items():
             if model is not None:
                 current[name] = {**current.get(name, {}), **model.model_dump(exclude_unset=True)}
         _save(current)
-    return {"data": {"settings": current, "env_overrides": _env_overrides()}}
+    return {"data": {"settings": _masked_settings(current), "env_overrides": _env_overrides()}}
