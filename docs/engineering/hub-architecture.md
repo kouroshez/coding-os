@@ -212,6 +212,19 @@ clobbers sibling consumers) and must handle attaching to an already-OPEN
 source by checking `readyState`. A board tab holds 2 SSE connections
 (`/api/stream/events` + `/api/hooks/stream`), not 4.
 
+**Live dispatch observability (TASK-667).** A role-dispatch run (`sdk_dispatcher`)
+tees each turn — `dispatch_started` / `dispatch_turn` / `dispatch_completed` — to
+the append-only cognition trace sink (`thinking_os.tracing.emit`, keyed on the
+dispatch's `sub_session_id`), partial-message text off by default
+(`COS_DISPATCH_EVENT_CONTENT=1` to include it), fail-open so it never touches the
+returned EvidenceBundle. `GET /api/cognition/trace/{session_id}/stream` tails that
+jsonl over SSE (replays from the start, then live-tails — same `_drain_log` pattern
+as `/api/hooks/stream`); `TraceTimeline` consumes it to append events in real time.
+The dead `sdk_uuid` chat modal is resolved by a fallback in
+`GET /api/cognition/chat/{session_id}`: when the live SDK session is gone, it serves
+the dispatched sub-session's persisted `formula_dispatches.raw_transcript` instead of
+404ing.
+
 **Board stream event contract — a `task-updated` event means the status changed.**
 `/api/stream/events` emits a `task-updated` row from two producers: the
 authoritative DB watermark (`task_status_history`, `source: "db"`) and a

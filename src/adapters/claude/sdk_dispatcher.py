@@ -288,6 +288,26 @@ def _presence_write(
         logger.debug("SDK presence write failed for %s: %s", session_id, exc)
 
 
+def _dispatch_trace_content_enabled() -> bool:
+    return os.environ.get("COS_DISPATCH_EVENT_CONTENT", "").strip().lower() in {"1", "true", "yes"}
+
+
+def _emit_dispatch_trace(
+    session_id: str, kind: str, formula_id: str | None, data: dict[str, Any] | None = None
+) -> None:
+    # Tee a dispatch lifecycle/turn event to the append-only cognition trace
+    # sink (thinking_os.tracing) so the Hub can tail + replay the run. Fail-open:
+    # a tracing failure must never alter the returned EvidenceBundle or break the
+    # dispatch. Partial-message text rides along only when content is explicitly
+    # enabled (COS_DISPATCH_EVENT_CONTENT), off by default.
+    try:
+        from thinking_os.tracing import emit
+
+        emit(session_id, kind, data or {}, role=formula_id)
+    except Exception as exc:
+        logger.debug("dispatch trace emit skipped (%s): %s", kind, exc)
+
+
 class ClaudeSDKDispatcher:
     name = "claude-sdk"
 
@@ -590,9 +610,14 @@ class ClaudeSDKDispatcher:
         # (e.g. ClaudeAgentOptions raised). The matching "end" emits
         # in the finally block below.
         _presence_write(project_root, "claude", sub_session_id, "start")
+        _emit_dispatch_trace(
+            sub_session_id, "dispatch_started", request.formula_id, {"formula_id": request.formula_id}
+        )
+
+        dispatch_turn_seq = 0
 
         async def _run() -> None:
-            nonlocal result_subtype, structured_output
+            nonlocal result_subtype, structured_output, dispatch_turn_seq
             async for msg in query(prompt=user_prompt, options=options):
                 if isinstance(msg, UserMessage):
                     # Capture checkpoint UUIDs for file-checkpointing replay (T9.2)
@@ -604,9 +629,21 @@ class ClaudeSDKDispatcher:
                         logger.debug("UUID capture failed: %s", exc)
                 elif isinstance(msg, AssistantMessage):
                     _presence_write(project_root, "claude", sub_session_id, "tool")
+                    _turn_texts: list[str] = []
                     for block in msg.content:
                         if isinstance(block, TextBlock):
                             transcript_parts.append(block.text)
+                            _turn_texts.append(block.text)
+                    dispatch_turn_seq += 1
+                    _turn_data: dict[str, Any] = {
+                        "seq": dispatch_turn_seq,
+                        "chars": sum(len(t) for t in _turn_texts),
+                    }
+                    if _dispatch_trace_content_enabled():
+                        _turn_data["text"] = "".join(_turn_texts)
+                    _emit_dispatch_trace(
+                        sub_session_id, "dispatch_turn", request.formula_id, _turn_data
+                    )
                 elif isinstance(msg, ResultMessage):
                     # ResultMessage is emitted once per query, at the
                     # end. Capture every field the post-stream handler
@@ -663,6 +700,15 @@ class ClaudeSDKDispatcher:
                 )
         finally:
             _presence_write(project_root, "claude", sub_session_id, "end")
+            _emit_dispatch_trace(
+                sub_session_id,
+                "dispatch_completed",
+                request.formula_id,
+                {
+                    "status": dispatch_outcome.status if dispatch_outcome else "ok",
+                    "turns": dispatch_turn_seq,
+                },
+            )
 
         # Programmatic-hook captures ride into result_meta so the
         # `formula_dispatches` audit row records full tool history.

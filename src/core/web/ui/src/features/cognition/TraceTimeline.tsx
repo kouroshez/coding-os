@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
+import { resolveApiUrl } from '@/lib/api-client';
+import { acquireEventSource } from '@/lib/shared-event-source';
 import { useScopedLink } from '@/lib/use-scoped-link';
 
 interface TraceEvent {
@@ -145,8 +147,44 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
   const [kindFilter, setKindFilter] = useState<string>('all');
   // Default to the readable summary; raw cognition internals behind a toggle.
   const [mode, setMode] = useState<'summary' | 'raw'>('summary');
+  const [liveEvents, setLiveEvents] = useState<TraceEvent[]>([]);
 
-  const events = data?.events ?? [];
+  // Live tail — the dispatch/cognition trace SSE route (TASK-667) appends
+  // events the instant they land, on top of the initial fetch, so a running
+  // dispatch is watchable in real time. Deduped by span_id below so the
+  // replayed backlog never double-renders.
+  useEffect(() => {
+    setLiveEvents([]);
+    const shared = acquireEventSource(
+      resolveApiUrl(`/api/cognition/trace/${encodeURIComponent(sessionId)}/stream`),
+    );
+    const es = shared.source;
+    const onTrace = (ev: Event) => {
+      try {
+        setLiveEvents((cur) => [...cur, JSON.parse((ev as MessageEvent).data) as TraceEvent]);
+      } catch {
+        // Malformed line — skip one event.
+      }
+    };
+    es.addEventListener('trace', onTrace);
+    return () => {
+      es.removeEventListener('trace', onTrace);
+      shared.release();
+    };
+  }, [sessionId]);
+
+  const events = useMemo(() => {
+    const base = data?.events ?? [];
+    const seen = new Set<string>();
+    const merged: TraceEvent[] = [];
+    for (const e of [...base, ...liveEvents]) {
+      const key = typeof e.span_id === 'string' ? e.span_id : `${e.ts ?? ''}-${e.kind ?? ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(e);
+    }
+    return merged;
+  }, [data?.events, liveEvents]);
   const kinds = useMemo(() => {
     const s = new Set<string>();
     for (const e of events) s.add(e.kind ?? 'event');

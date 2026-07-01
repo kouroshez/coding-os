@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: live-observability
 labels: [hub, dispatch, sse, observability, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 2d
 created: 2026-06-30
-started: null
+started: 2026-06-30
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-667: Live dispatch observability — tee role-dispatch to an append-only run-event sink the Hub tails + replays; fix dead sdk_uuid modal link
 
 **Outcome (one sentence):** Role-dispatch runs (sdk_dispatcher) tee their stream to an append-only run-event jsonl sink that a Hub web route tails live over SSE and can replay, so every dispatched agent session is trackable and viewable in the web panel in real time, and the dead sdk_uuid modal link resolves to the persisted transcript — with the returned EvidenceBundle untouched.
@@ -33,3 +32,22 @@ references: []
 - **Given** a completed dispatch, **When** a user opens its row, **Then** the sdk_uuid links to the persisted transcript with no dead modal.
 
 ## Work Log
+- 2026-07-01 [claude]: Edit sdk_dispatcher.py
+- 2026-07-01 [claude]: Edit sdk_dispatcher.py
+- 2026-07-01 [claude]: Edit sdk_dispatcher.py
+- 2026-07-01 [claude]: Edit sdk_dispatcher.py
+- 2026-07-01 [claude]: Edit test_dispatch_trace.py
+- 2026-07-01 [claude]: Edit cognition.py
+- 2026-07-01 [claude]: Edit cognition.py
+- 2026-07-01 [claude]: Edit cognition.py
+- 2026-07-01 [claude]: Edit cognition.py
+- 2026-07-01 [claude]: Edit test_cognition_dispatch_obs.py
+- 2026-07-01 [claude]: Edit cognition.py
+- 2026-07-01 [claude]: Edit cognition.py
+- 2026-07-01 [claude]: Edit test_cognition_dispatch_obs.py
+- 2026-07-01 [claude]: Edit test_cognition_dispatch_obs.py
+- 2026-07-01 [claude]: Edit test_cognition_dispatch_obs.py
+- 2026-07-01 [claude]: Edit TraceTimeline.tsx
+- 2026-07-01 [claude]: Edit TraceTimeline.tsx
+- 2026-07-01 [claude]: Edit hub-architecture.md
+- 2026-07-01 [claude]: Tee dispatch turns to cognition trace sink (content off by default, fail-open); /api/cognition/trace/{id}/stream SSE…

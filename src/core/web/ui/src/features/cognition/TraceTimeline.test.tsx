@@ -1,12 +1,30 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock the data layer so we can feed a producer-shaped trace payload and
 // assert the timeline reads it the way thinking_os/tracing.py emits it.
-const hoisted = vi.hoisted(() => ({ payload: null as unknown }));
+const hoisted = vi.hoisted(() => ({
+  payload: null as unknown,
+  traceListeners: [] as Array<(ev: MessageEvent) => void>,
+}));
 vi.mock('@/lib/hooks', () => ({
   useApiGet: () => ({ data: hoisted.payload, isLoading: false, error: null }),
+}));
+// Trace SSE tail (TASK-667): capture the `trace` listener so a test can push a
+// live event, and keep jsdom (which ships no EventSource) from throwing.
+vi.mock('@/lib/api-client', () => ({ resolveApiUrl: (p: string) => p }));
+vi.mock('@/lib/shared-event-source', () => ({
+  acquireEventSource: () => ({
+    source: {
+      readyState: 1,
+      addEventListener: (type: string, cb: (ev: MessageEvent) => void) => {
+        if (type === 'trace') hoisted.traceListeners.push(cb);
+      },
+      removeEventListener: () => {},
+    },
+    release: () => {},
+  }),
 }));
 
 import TraceTimeline from './TraceTimeline';
@@ -82,5 +100,38 @@ describe('TraceTimeline producer contract', () => {
     expect(screen.getByText('Execute')).toBeInTheDocument();
     expect(screen.getByText('Sized the task')).toBeInTheDocument();
     expect(screen.getByText('Ran sub-agent')).toBeInTheDocument();
+  });
+
+  it('appends live trace events streamed over the SSE tail', () => {
+    hoisted.traceListeners.length = 0;
+    renderTrace({
+      session_id: 'sess-1',
+      events: [
+        {
+          kind: 'dispatch_started',
+          node: 'n-supervisor',
+          ts: 1,
+          span_id: 'sp-0',
+          data: { summary: 'Dispatch began' },
+        },
+      ],
+      count: 1,
+    });
+    expect(screen.queryByText('Sub-agent finished live')).toBeNull();
+    act(() => {
+      for (const cb of hoisted.traceListeners) {
+        cb({
+          data: JSON.stringify({
+            kind: 'dispatch_completed',
+            node: 'n-supervisor',
+            ts: 2,
+            span_id: 'sp-live-1',
+            data: { summary: 'Sub-agent finished live' },
+          }),
+        } as MessageEvent);
+      }
+    });
+    expect(screen.getByText('Sub-agent finished live')).toBeInTheDocument();
+    expect(screen.getByText('Dispatch began')).toBeInTheDocument();
   });
 });

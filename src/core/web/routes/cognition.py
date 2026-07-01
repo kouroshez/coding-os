@@ -9,6 +9,8 @@ import logging
 import os
 import sqlite3
 import sys
+import time
+from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any, Optional
 
@@ -307,6 +309,80 @@ def get_trace(
                 },
             }
         )
+    )
+
+
+def _drain_trace_events(log: Path, pos: int) -> tuple[list[dict[str, Any]], int]:
+    # Blocking stat + read (run on a worker thread by the SSE loop) — mirrors
+    # hooks.stream so a burst of trace lines never stalls the event loop.
+    if not log.exists():
+        return [], pos
+    size = log.stat().st_size
+    if size < pos:
+        pos = 0  # rotated
+    if size <= pos:
+        return [], pos
+    with log.open("r", encoding="utf-8", errors="ignore") as fh:
+        fh.seek(pos)
+        chunk = fh.read()
+        pos = fh.tell()
+    parsed: list[dict[str, Any]] = []
+    for line in chunk.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            parsed.append(json.loads(stripped))
+        except json.JSONDecodeError:
+            parsed.append({"raw": stripped})
+    return parsed, pos
+
+
+@router.get("/trace/{session_id}/stream")
+async def stream_trace(
+    session_id: str,
+    agent: str | None = Query(None),
+    _rl=Depends(make_rate_limit_dep("cognition.trace_stream")),
+    _m=Depends(make_metrics_dep("cognition.trace_stream")),
+):
+    """SSE: tail (and replay from the start) a session's append-only cognition trace jsonl."""
+    state = _state_dir()
+    target, _resolved_agent = _find_trace_file(state, session_id, agent)
+    # The dispatch may not have created the file yet — resolve the canonical
+    # path so tailing begins the instant the first event lands.
+    log = target if target is not None else state / (agent or "claude") / "traces" / f"{session_id}.jsonl"
+    poll_secs = float(os.environ.get("COS_TRACE_STREAM_POLL_MS", "750")) / 1000.0
+    heartbeat_secs = 15.0
+
+    async def gen() -> AsyncGenerator[bytes, None]:
+        yield f"event: connected\ndata: {json.dumps({'session_id': session_id})}\n\n".encode()
+        # Replay from position 0 so a viewer connecting mid-run sees the whole
+        # session, then keeps tailing new lines.
+        pos = 0
+        last_beat = time.monotonic()
+        try:
+            while True:
+                events, pos = await asyncio.to_thread(_drain_trace_events, log, pos)
+                for evt in events:
+                    yield f"event: trace\ndata: {json.dumps(evt, ensure_ascii=False)}\n\n".encode()
+                if time.monotonic() - last_beat > heartbeat_secs:
+                    yield f"event: heartbeat\ndata: {json.dumps({'ts': int(time.time())})}\n\n".encode()
+                    last_beat = time.monotonic()
+                await asyncio.sleep(poll_secs)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.exception("trace stream failed")
+            yield f"event: error\ndata: {json.dumps({'message': str(exc)})}\n\n".encode()
+
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
     )
 
 
@@ -844,6 +920,56 @@ def list_chats(
     )
 
 
+def _dispatch_transcript_chat(session_id: str) -> dict | None:
+    # Fall back to a dispatched sub-session's persisted transcript when the live
+    # Claude SDK session no longer exists on disk — resolves the dead sdk_uuid
+    # modal link (TASK-667). Keyed on formula_dispatches.sub_session_id (= the
+    # SDK session_id the UI links from). Read-only, fail-open.
+    db_path = _db_path()
+    if not db_path:
+        return None
+    try:
+        with sqlite3.connect(db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT formula_id, status, model, raw_transcript "
+                "FROM formula_dispatches "
+                "WHERE sub_session_id = ? AND raw_transcript IS NOT NULL "
+                "ORDER BY ts DESC LIMIT 1",
+                (session_id,),
+            ).fetchone()
+    except sqlite3.Error as exc:
+        logger.debug("dispatch transcript fallback query failed: %s", exc)
+        return None
+    if row is None or not row["raw_transcript"]:
+        return None
+    return {
+        "session": {
+            "session_id": session_id,
+            "source": "dispatch_transcript",
+            "formula_id": row["formula_id"],
+            "model": row["model"],
+            "status": row["status"],
+        },
+        "messages": [
+            {
+                "uuid": None,
+                "session_id": session_id,
+                "type": "assistant",
+                "role": "assistant",
+                "model": row["model"],
+                "stop_reason": None,
+                "usage": None,
+                "blocks": [{"type": "text", "text": row["raw_transcript"]}],
+                "parent_tool_use_id": None,
+            }
+        ],
+        "count": 1,
+        "offset": 0,
+        "meta": {"layer": "cognition", "source": "formula_dispatches"},
+    }
+
+
 @router.get("/chat/{session_id}")
 def get_chat(
     session_id: str,
@@ -865,6 +991,9 @@ def get_chat(
         # vanished" symptom, so log at warning (captured by logging_os), not debug.
         logger.warning("get_session_info(%s) failed: %s", session_id, exc)
     if info is None:
+        fallback = _dispatch_transcript_chat(session_id)
+        if fallback is not None:
+            return unwrap(json.dumps({"ok": True, "data": fallback}))
         raise HTTPException(status_code=404, detail=f"chat session {session_id!r} not found")
     try:
         messages = sdk.get_session_messages(session_id, directory=cwd, limit=limit, offset=offset)
