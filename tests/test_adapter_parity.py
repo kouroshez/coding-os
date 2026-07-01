@@ -54,6 +54,12 @@ CLAUDE_ONLY_WHITELIST: set[str] = {
     # via additionalContext stdout (TASK-615) — dead weight as a Codex
     # delegate until the dispatchers forward delegate stdout.
     "nudge-git-mode.sh",
+    # Same stdout-forwarding constraint: the re-entry nudge (TASK-666) delivers
+    # its whole effect via UserPromptSubmit additionalContext stdout, and its
+    # only side effect is a debounce marker — useless without the surfaced
+    # nudge. Dead weight as a Codex delegate until the dispatchers forward
+    # delegate stdout.
+    "nudge-reentry.sh",
     # Work-log append hooks are Claude-only: Codex lacks reliable PostToolUse
     # delivery and records work/commits via explicit cos_work_log_append
     # (AGENTS.md). The git post-commit hook (TASK-175) still covers Codex

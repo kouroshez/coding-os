@@ -704,6 +704,11 @@
           },
           {
             "type": "command",
+            "command": ".claude/hooks/nudge-reentry.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/agent-presence.sh",
             "timeout": 5
           }

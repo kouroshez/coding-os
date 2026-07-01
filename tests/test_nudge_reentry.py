@@ -1,0 +1,99 @@
+"""TASK-666 — nudge-reentry.sh UserPromptSubmit hook smoke tests."""
+
+from __future__ import annotations
+
+import json
+import os
+import sqlite3
+import subprocess
+from pathlib import Path
+
+HOOK = Path(__file__).resolve().parents[1] / "src" / "core" / "hooks" / "nudge-reentry.sh"
+
+
+def _make_db(tmp_path: Path, task_id: str, status: str, session: str) -> Path:
+    db = tmp_path / "coding-os.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE tasks (task_id TEXT, status TEXT, agent_session TEXT)")
+    conn.execute("INSERT INTO tasks VALUES (?, ?, ?)", (task_id, status, session))
+    conn.commit()
+    conn.close()
+    return db
+
+
+def _panel(tmp_path: Path, session: str, task_current: str | None = None) -> None:
+    panel = tmp_path / "panels" / "nr-panel"
+    panel.mkdir(parents=True, exist_ok=True)
+    (panel / "session-id").write_text(session, encoding="utf-8")
+    if task_current is not None:
+        (panel / ".task-current").write_text(task_current, encoding="utf-8")
+
+
+def _run(tmp_path: Path, db: Path) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(
+        ["bash", str(HOOK)],
+        input=b"{}",
+        capture_output=True,
+        env={
+            **os.environ,
+            "COS_DB_PATH": str(db),
+            "COS_AGENT_DIR": str(tmp_path),
+            "COS_PANEL_ID": "nr-panel",
+        },
+        timeout=10,
+    )
+
+
+def test_failopen_when_no_db(tmp_path: Path) -> None:
+    result = subprocess.run(
+        ["bash", str(HOOK)],
+        input=b"{}",
+        capture_output=True,
+        env={**os.environ, "COS_DB_PATH": str(tmp_path / "missing.db")},
+        timeout=10,
+    )
+    assert result.returncode == 0
+    assert result.stdout.strip() == b""
+
+
+def test_nudges_when_in_progress_unbound(tmp_path: Path) -> None:
+    db = _make_db(tmp_path, "TASK-99", "in_progress", "ses-claude-test")
+    _panel(tmp_path, "ses-claude-test")  # no .task-current → unbound
+    result = _run(tmp_path, db)
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["hookSpecificOutput"]["hookEventName"] == "UserPromptSubmit"
+    assert "TASK-99" in payload["hookSpecificOutput"]["additionalContext"]
+
+
+def test_silent_when_bound(tmp_path: Path) -> None:
+    db = _make_db(tmp_path, "TASK-99", "in_progress", "ses-claude-test")
+    _panel(tmp_path, "ses-claude-test", task_current="TASK-99")
+    result = _run(tmp_path, db)
+    assert result.returncode == 0
+    assert result.stdout.strip() == b""
+
+
+def test_nudges_on_mismatch(tmp_path: Path) -> None:
+    db = _make_db(tmp_path, "TASK-99", "in_progress", "ses-claude-test")
+    _panel(tmp_path, "ses-claude-test", task_current="TASK-42")  # bound to a different task
+    result = _run(tmp_path, db)
+    assert result.returncode == 0
+    assert "TASK-99" in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+
+
+def test_silent_when_no_in_progress(tmp_path: Path) -> None:
+    db = _make_db(tmp_path, "TASK-1", "complete", "ses-claude-test")
+    _panel(tmp_path, "ses-claude-test")
+    result = _run(tmp_path, db)
+    assert result.returncode == 0
+    assert result.stdout.strip() == b""
+
+
+def test_debounced_after_first_nudge(tmp_path: Path) -> None:
+    db = _make_db(tmp_path, "TASK-99", "in_progress", "ses-claude-test")
+    _panel(tmp_path, "ses-claude-test")
+    first = _run(tmp_path, db)
+    second = _run(tmp_path, db)
+    assert first.stdout.strip() != b""
+    assert second.stdout.strip() == b""

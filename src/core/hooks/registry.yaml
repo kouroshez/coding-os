@@ -711,6 +711,24 @@ hooks:
         matcher: ""
         status_message: "🩹 Checking for tasks left in_progress..."
 
+  - id: nudge-reentry
+    script: nudge-reentry.sh
+    description: |
+      UserPromptSubmit twin of warn-abandoned-task — softly reminds once per
+      (session, open-set) when this session holds an in_progress task not bound
+      to .task-current. Closes the re-entry blind spot the Stop-time hook cannot
+      cover (a turn that never reached Stop, or .task-current drifting from the
+      DB — common on Codex, whose MCP task-moves fire no .task-current sync).
+      Session-scoped, so a sibling session's WIP never false-triggers. Fail-open:
+      nudges via UserPromptSubmit additionalContext, never blocks. Debounced per
+      (session, in_progress-set) via .reentry-nudged.
+    category: observability
+    phase: O
+    timeout: 5
+    events:
+      - event: UserPromptSubmit
+        matcher: ""
+
   - id: drain-embedding-outbox
     script: drain-embedding-outbox.sh
     description: |

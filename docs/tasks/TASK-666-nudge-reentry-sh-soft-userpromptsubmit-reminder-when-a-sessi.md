@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: task-lifecycle-integrity
 labels: [hooks, reentry, abandonment, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 1d
 created: 2026-06-30
-started: null
+started: 2026-06-30
 completed: null
-agent_session: null
+agent_session: ses-claude-20260630-011740-9a32
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-666: nudge-reentry.sh — soft UserPromptSubmit reminder when a session starts new work holding an unbound in_progress task
 
 **Outcome (one sentence):** A new nudge-reentry.sh UserPromptSubmit hook softly reminds the agent, once per (session, open-set), when it begins a new prompt while holding an in_progress task not bound to .task-current — closing the re-entry blind spot the Stop-time warn-abandoned-task (TASK-627) cannot cover, fail-open and never blocking.
@@ -33,3 +32,4 @@ references: []
 - **Given** no in_progress task or a correctly-bound one, **When** a prompt arrives, **Then** the hook stays silent.
 
 ## Work Log
+- 2026-07-01 [claude]: Added nudge-reentry.sh (UserPromptSubmit twin of warn-abandoned-task, session-scoped, debounced); registered;…
