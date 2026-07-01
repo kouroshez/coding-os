@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [hooks, git-workflow, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1h
 created: 2026-07-01
 started: 2026-07-01
-completed: null
+completed: 2026-07-01
 agent_session: ses-claude-20260701-140116-619f
 depends_on: []
 blocked_by: []
@@ -37,3 +37,5 @@ Ran `git commit -m "$(cat <<'EOF'\ntitle line\n\nbody line\nEOF\n)" -- somefile`
 ## Work Log
 - 2026-07-01 [claude]: Edit extract_commit_msg_arg.py
 - 2026-07-01 [claude]: Edit test_extract_commit_msg_arg.py
+- 2026-07-01 [claude]: committed 7c573f13 · 2 files
+- 2026-07-01 [claude]: Root cause: git_command_parse.normalize() collapses every raw newline to "; " before tokenizing (correct for real…
