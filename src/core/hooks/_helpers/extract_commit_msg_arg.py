@@ -13,9 +13,26 @@ yield no message and defer to the git-level commit-msg hook, as before.
 
 from __future__ import annotations
 
+import re
 import sys
 
 from git_command_parse import git_invocations
+
+# `git_command_parse.normalize()` collapses every newline to `; ` before
+# tokenizing — correct for real statement separators, but a heredoc body
+# (`$(cat <<'EOF' ... EOF)`) has embedded newlines that are literal content,
+# not separators. shlex then hands `_messages` one intact-looking quoted
+# token that is actually still-unexpanded shell source (heredoc markers,
+# `$(...)`/backtick command substitution) rather than the string bash would
+# have produced. Validating that raw source AS IF it were the final message
+# is exactly the bug this module's docstring already promises not to have:
+# treat any such value as unparseable and defer, matching a plain `-m` value
+# that legitimately contains none of these constructs.
+_UNEXPANDED_RE = re.compile(r"\$\(|`|<<-?['\"]?\w")
+
+
+def _looks_unexpanded(value: str) -> bool:
+    return bool(_UNEXPANDED_RE.search(value))
 
 
 def _messages(args: list[str]) -> list[str]:
@@ -38,6 +55,8 @@ def _messages(args: list[str]) -> list[str]:
                 i += 2
                 continue
         i += 1
+    if any(_looks_unexpanded(v) for v in out):
+        return []  # can't cleanly resolve this invocation — defer, don't mis-validate
     return out
 
 
