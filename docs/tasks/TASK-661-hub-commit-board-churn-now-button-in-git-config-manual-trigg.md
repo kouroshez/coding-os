@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [hub, board-coherence, ux, ready]
-status: icebox
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-30
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260628-125542-fc9a
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-661: Hub: "Commit board churn now" button in Git config — manual trigger for the board-drift sweep
 
 **Outcome (one sentence):** A "Commit board churn now" button in the Hub Git config tab (under Autonomy) lets the user trigger the board-drift sweep on demand instead of waiting for the 03:00 cron — staging + committing only docs/tasks/*.md in one tasks-only commit (autonomy-independent: the click IS the consent) and showing the resulting sha + file count, or "tree clean / no drift".

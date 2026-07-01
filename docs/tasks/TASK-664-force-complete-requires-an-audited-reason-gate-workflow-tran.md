@@ -4,8 +4,8 @@ title: "Force-complete requires an audited reason \u2014 gate workflow.transitio
 swimlane: "board_os"
 kind: feature
 epic: task-lifecycle-integrity
-labels: [dod, force, audit, ready]
-status: blocked
+labels: [dod, force, audit]
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-30

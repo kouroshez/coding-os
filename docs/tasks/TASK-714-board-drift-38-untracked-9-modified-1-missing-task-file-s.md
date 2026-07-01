@@ -5,18 +5,17 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [auto-git-drift, board-coherence, ready]
-status: icebox
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-30
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260628-125542-fc9a
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-714: [board-drift] 38 untracked / 9 modified / 1 missing task file(s)
 
 **Outcome (one sentence):** board↔git drift — 38 untracked, 9 modified, 1 missing .md (DB row without a committed file) — commit the untracked/modified docs/tasks/*.md (or reconcile the DB rows) so the board (DB) and git agree.

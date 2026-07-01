@@ -4,8 +4,8 @@ title: "Complete the deferred 4\u21921 graph-enforce-hook merge from TASK-577 (g
 swimlane: core
 kind: refactor
 epic: hook-consolidation
-labels: [hooks, graph-gate, consolidation, ready]
-status: blocked
+labels: [hooks, graph-gate, consolidation]
+status: archive
 priority: P2
 appetite: 2d
 created: 2026-06-30

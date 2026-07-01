@@ -4,8 +4,8 @@ title: "Reason-gated in_progress\u2192blocked transition (evaluate_blocked, warn
 swimlane: "board_os"
 kind: feature
 epic: blocked-lane-management
-labels: [blocked, gates, taxonomy, ready]
-status: blocked
+labels: [blocked, gates, taxonomy]
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-30

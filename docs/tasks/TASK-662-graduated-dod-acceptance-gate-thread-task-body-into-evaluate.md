@@ -5,18 +5,17 @@ swimlane: "board_os"
 kind: feature
 epic: task-lifecycle-integrity
 labels: [dod, gates, abandonment, ready]
-status: icebox
+status: in_progress
 priority: P0
 appetite: 2d
 created: 2026-06-30
-started: null
+started: 2026-06-30
 completed: null
-agent_session: null
+agent_session: ses-claude-20260630-011740-9a32
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-662: Graduated DoD acceptance gate — thread task body into evaluate_dod; BLOCK unmet acceptance for risk kinds; fix for_kind model_dump clobber
 
 **Outcome (one sentence):** evaluate_dod receives the task body and BLOCKs an in_progress→complete transition when Acceptance (G/W/T) is missing or unsatisfied for risk kinds (bug/security/feature) — WARN for chore/docs — closing the DoR-rich/DoD-shallow asymmetry; the new require_acceptance_met DoDKindRules field survives a by_kind override because for_kind merges via model_dump(exclude_unset=True).
