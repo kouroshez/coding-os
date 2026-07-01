@@ -5,13 +5,13 @@ swimlane: core
 kind: refactor
 epic: hook-consolidation
 labels: [hooks, harness, parity, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-06-30
 started: 2026-06-30
-completed: null
-agent_session: ses-claude-20260630-011740-9a32
+completed: 2026-06-30
+agent_session: ses-claude-20260630-221108-17bf
 depends_on: []
 blocked_by: []
 references: []
@@ -34,3 +34,4 @@ references: []
 
 ## Work Log
 - 2026-07-01 [claude]: Built test_hook_parity.py (deterministic golden: 4 no-op + 2 block cases, catches signature divergence). Deleted…
+- 2026-07-01 [claude]: Status transitioned to complete via cos task-done.

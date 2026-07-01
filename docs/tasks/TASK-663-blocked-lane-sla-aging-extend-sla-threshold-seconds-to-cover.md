@@ -5,12 +5,12 @@ swimlane: "board_os"
 kind: feature
 epic: blocked-lane-management
 labels: [blocked, sla, staleness, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-30
 started: 2026-06-30
-completed: null
+completed: 2026-06-30
 agent_session: ses-claude-20260630-011740-9a32
 depends_on: []
 blocked_by: []
@@ -34,3 +34,5 @@ references: []
 
 ## Work Log
 - 2026-07-01 [claude]: _sla_threshold_seconds maps 'blocked'->workflow_policy.blocked_sla_hours (default 72h, config-driven, 0 disables);…
+- 2026-07-01 [claude]: committed fc8c5d1a · 5 files
+- 2026-07-01 [claude]: Status transitioned to complete via cos task-done.

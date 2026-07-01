@@ -5,12 +5,12 @@ swimlane: infra
 kind: spike
 epic: test-discipline
 labels: [tests, testmon, ready]
-status: testing
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-30
 started: 2026-07-01
-completed: null
+completed: 2026-07-01
 agent_session: ses-claude-20260630-011740-9a32
 depends_on: []
 blocked_by: []
@@ -22,3 +22,5 @@ references: []
 
 ## Work Log
 - 2026-07-01 [claude]: Spike measured testmon (run2 unchanged tree: 56 deselected, 0.06s) — works, but the win is redundant with the…
+- 2026-07-01 [claude]: committed e7c6dba9 · 1 file
+- 2026-07-01 [claude]: Status transitioned to complete via cos task-done.

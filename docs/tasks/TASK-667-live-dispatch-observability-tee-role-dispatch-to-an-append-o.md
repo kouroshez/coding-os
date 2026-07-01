@@ -53,3 +53,4 @@ references: []
 - 2026-07-01 [claude]: Tee dispatch turns to cognition trace sink (content off by default, fail-open); /api/cognition/trace/{id}/stream SSE…
 - 2026-07-01 [claude]: committed 82f308fd · 8 files
 - 2026-07-01 [claude]: Status transitioned to complete via cos task-done.
+- 2026-07-01 [claude]: committed d82ffdcc · 20 files

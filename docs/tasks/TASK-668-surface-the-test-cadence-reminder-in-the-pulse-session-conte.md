@@ -5,12 +5,12 @@ swimlane: core
 kind: chore
 epic: test-discipline
 labels: [tests, cadence, pulse, ready]
-status: testing
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-06-30
 started: 2026-07-01
-completed: null
+completed: 2026-07-01
 agent_session: ses-claude-20260630-011740-9a32
 depends_on: []
 blocked_by: []
@@ -22,3 +22,5 @@ references: []
 
 ## Work Log
 - 2026-07-01 [claude]: session-context appends a one-line [test-cadence] reminder to the agent-only pulse on formal-work modes (suppressed…
+- 2026-07-01 [claude]: committed b7b50365 · 3 files
+- 2026-07-01 [claude]: Status transitioned to complete via cos task-done.

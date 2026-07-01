@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: test-discipline
 labels: [tests, governor, dedup, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-30
 started: 2026-06-30
-completed: null
+completed: 2026-06-30
 agent_session: ses-claude-20260630-011740-9a32
 depends_on: []
 blocked_by: []
@@ -32,3 +32,5 @@ references: []
 
 ## Work Log
 - 2026-07-01 [claude]: test-governor fast-paths + IS_PYTEST gate widened to make-target verify suites so a green make-verify dedups early…
+- 2026-07-01 [claude]: committed 0d56c79f · 3 files
+- 2026-07-01 [claude]: Status transitioned to complete via cos task-done.
