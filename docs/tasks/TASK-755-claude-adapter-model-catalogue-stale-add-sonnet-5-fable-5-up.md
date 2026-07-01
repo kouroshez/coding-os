@@ -5,18 +5,17 @@ swimlane: adapters
 kind: bug
 epic: null
 labels: [claude-sdk, hub, model-picker, ready]
-status: "in_progress"
+status: complete
 priority: P1
 appetite: 2h
 created: 2026-07-01
 started: 2026-07-01
-completed: null
-agent_session: ses-claude-20260527-151803-0b9f
+completed: 2026-07-01
+agent_session: ses-claude-20260701-140116-619f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-755: Claude adapter model catalogue stale — add Sonnet 5 / Fable 5, upgrade claude-agent-sdk off a pre-launch bundled CLI
 
 **Outcome (one sentence):** Hub chat model picker shows every currently-GA Claude model (Fable 5, Opus 4.8, Sonnet 5, Haiku 4.5) and formula/chat dispatch can actually reach Sonnet 5, with every hardcoded model-id reference in the adapter, its skill docs, and its stale-id scanner brought back into sync with the single adapter.yaml SSOT.
@@ -38,3 +37,5 @@ Hub UI /model picker (src/core/web/routes/config.py::config_adapters reading src
 - **Given** the SDK pin changed, **When** docs/adapters/claude-sdk.md's SDK-floor line is checked, **Then** it matches the new pin + bundled CLI version.
 
 ## Work Log
+- 2026-07-01 [claude]: committed 12608aa0 · 8 files
+- 2026-07-01 [claude]: Verified live against platform.claude.com/docs (2026-07-01): added claude-fable-5 + claude-sonnet-5 to adapter.yaml…
