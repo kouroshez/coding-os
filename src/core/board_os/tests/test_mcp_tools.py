@@ -1417,6 +1417,49 @@ def test_board_flags_stale_testing_card(project: Path, conn: sqlite3.Connection)
     assert card["status_dwell_seconds"] >= 6 * 3600
 
 
+def test_board_flags_stale_blocked_card(project: Path, conn: sqlite3.Connection):
+    """TASK-663: a card parked in blocked past blocked_sla_hours is flagged stale
+    (observability only — it stays blocked, never auto-escalated to emergency)."""
+    mcp_tools.cos_task_create(
+        conn, title="Old blocked", swimlane="core", kind="bug", status="icebox"
+    )
+    _backdate_task(conn, "TASK-001", "blocked", 80 * 3600)  # > blocked_sla_hours (72h default)
+    env = _parse(mcp_tools.cos_task_board(conn, status_filter=["blocked"]))
+    card = next(c for c in env["data"]["cards"] if c["id"] == "TASK-001")
+    assert card["status"] == "blocked"  # never moved to emergency
+    assert card["stale"] is True
+    assert "blocked" in (card["stale_reason"] or "")
+
+
+def test_board_fresh_blocked_card_not_stale(project: Path, conn: sqlite3.Connection):
+    """TASK-663: a blocked card under the SLA is not stale."""
+    mcp_tools.cos_task_create(
+        conn, title="Fresh blocked", swimlane="core", kind="bug", status="icebox"
+    )
+    _backdate_task(conn, "TASK-001", "blocked", 10 * 3600)  # < 72h
+    env = _parse(mcp_tools.cos_task_board(conn, status_filter=["blocked"]))
+    card = next(c for c in env["data"]["cards"] if c["id"] == "TASK-001")
+    assert card["stale"] is False
+    assert card["stale_reason"] is None
+
+
+def test_sla_threshold_blocked_is_config_driven():
+    """TASK-663: the blocked threshold comes from config (no hardcode); 0 disables."""
+
+    class _Policy:
+        in_progress_sla_hours = 24
+        testing_sla_hours = 6
+        icebox_stale_days = 30
+        blocked_sla_hours = 5
+
+    class _Config:
+        workflow_policy = _Policy()
+
+    assert mcp_tools._sla_threshold_seconds("blocked", _Config()) == 5 * 3600
+    _Policy.blocked_sla_hours = 0
+    assert mcp_tools._sla_threshold_seconds("blocked", _Config()) is None
+
+
 def test_daily_reports_testing_and_icebox_summary(project: Path, conn: sqlite3.Connection):
     """RC3/RC6: daily surfaces testing cards and icebox depth/staleness."""
     # Fresh testing card — recent activity so reclaim leaves it; daily must REPORT it.

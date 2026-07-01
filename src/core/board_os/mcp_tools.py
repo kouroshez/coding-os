@@ -503,6 +503,7 @@ def _sla_threshold_seconds(status: str, config) -> int | None:
     hours = {
         "in_progress": policy.in_progress_sla_hours,
         "testing": policy.testing_sla_hours,
+        "blocked": policy.blocked_sla_hours,
     }.get(status)
     if hours is not None:
         return hours * 3600 if hours > 0 else None

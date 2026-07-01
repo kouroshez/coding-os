@@ -180,6 +180,10 @@ class WorkflowPolicy:
     in_progress_sla_hours: int = 24
     testing_sla_hours: int = 6
     icebox_stale_days: int = 30
+    # A card parked in `blocked` past this budget is flagged stale on board/daily
+    # so aging blockers surface (observability only — never auto-escalated to the
+    # emergency lane). 0 disables. Default 72h ≈ the "Day 3: surface" escalation rung.
+    blocked_sla_hours: int = 72
     # Auto-archive aged cards. A `keep`/`parked` label always exempts a card and
     # archive is reversible (archive->icebox is a legal edge).
     #   icebox  — OFF by default (0): never silently retire *unstarted* backlog.
@@ -354,6 +358,7 @@ def parse_config(data: dict[str, Any], source_path: Path | None = None) -> Scrum
         "in_progress_sla_hours",
         "testing_sla_hours",
         "icebox_stale_days",
+        "blocked_sla_hours",
         "icebox_auto_archive_days",
         "complete_auto_archive_days",
     ):

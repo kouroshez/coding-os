@@ -58,6 +58,9 @@ workflow_policy:
   in_progress_sla_hours: 24
   testing_sla_hours: 6
   icebox_stale_days: 30
+  # A card parked in `blocked` past this budget is flagged stale so aging
+  # blockers surface on board/daily (never auto-escalated to emergency).
+  blocked_sla_hours: 72
   # Auto-archive aged cards on a timer (SessionStart + nightly sweeps); a
   # `keep`/`parked` label always exempts, and archive is reversible (archive→icebox).
   #   icebox  = 0 (OFF): never silently retire unstarted backlog.
