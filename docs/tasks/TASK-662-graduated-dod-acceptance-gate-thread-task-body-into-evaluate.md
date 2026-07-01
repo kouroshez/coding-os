@@ -5,12 +5,12 @@ swimlane: "board_os"
 kind: feature
 epic: task-lifecycle-integrity
 labels: [dod, gates, abandonment, ready]
-status: testing
+status: complete
 priority: P0
 appetite: 2d
 created: 2026-06-30
 started: 2026-06-30
-completed: null
+completed: 2026-06-30
 agent_session: ses-claude-20260630-011740-9a32
 depends_on: []
 blocked_by: []
@@ -55,3 +55,5 @@ references: []
 - 2026-07-01 [claude]: Edit test_transition_gates_validator.py
 - 2026-07-01 [claude]: Edit test_transition_gates.py
 - 2026-07-01 [claude]: evaluate_dod threads body + DOD_ACCEPTANCE_MISSING (BLOCK risk / WARN docs-chore via DoR-derived severity); fixed…
+- 2026-07-01 [claude]: committed ae11594d · 6 files
+- 2026-07-01 [claude]: Status transitioned to complete via cos task-done.

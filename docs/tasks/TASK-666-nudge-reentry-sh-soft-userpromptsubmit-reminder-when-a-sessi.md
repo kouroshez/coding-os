@@ -5,13 +5,13 @@ swimlane: core
 kind: feature
 epic: task-lifecycle-integrity
 labels: [hooks, reentry, abandonment, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-30
 started: 2026-06-30
-completed: null
-agent_session: ses-claude-20260630-011740-9a32
+completed: 2026-06-30
+agent_session: ses-claude-20260630-221108-17bf
 depends_on: []
 blocked_by: []
 references: []
@@ -33,3 +33,5 @@ references: []
 
 ## Work Log
 - 2026-07-01 [claude]: Added nudge-reentry.sh (UserPromptSubmit twin of warn-abandoned-task, session-scoped, debounced); registered;…
+- 2026-07-01 [claude]: committed 94eb7b2d · 18 files
+- 2026-07-01 [claude]: Status transitioned to complete via cos task-done.
