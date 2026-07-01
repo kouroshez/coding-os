@@ -936,18 +936,6 @@ hooks:
         matcher: Write|Edit
         status_message: "🧬 Checking if meta-project dogfood refresh is needed..."
 
-  - id: warn-template-drift
-    script: warn-template-drift.sh
-    description: Transitional — warns if adapter template JSON is edited directly instead of registry.yaml. Delete when registry.yaml is the only write path.
-    category: meta
-    phase: G
-    timeout: 5
-    events:
-      - event: PreToolUse
-        matcher: Write|Edit
-        status_message: "⚠️ Adapter template edits — use registry.yaml..."
-
-
   # ── cognition (formula-agent supervisor) ───────────────────
   - id: enforce-anti-ambiguity
     script: enforce-anti-ambiguity.sh

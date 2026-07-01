@@ -188,12 +188,6 @@
             "command": "{{HOOKS_DIR}}/jit-recall.sh",
             "statusMessage": "🧠 Checking for a past lesson on this file...",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/warn-template-drift.sh",
-            "statusMessage": "⚠️ Adapter template edits — use registry.yaml...",
-            "timeout": 5
           }
         ]
       },

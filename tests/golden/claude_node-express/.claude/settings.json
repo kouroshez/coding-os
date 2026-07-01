@@ -188,12 +188,6 @@
             "command": ".claude/hooks/jit-recall.sh",
             "statusMessage": "🧠 Checking for a past lesson on this file...",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/warn-template-drift.sh",
-            "statusMessage": "⚠️ Adapter template edits — use registry.yaml...",
-            "timeout": 5
           }
         ]
       },

@@ -1,0 +1,32 @@
+{
+  "abandoned-noop": {
+    "additionalContext": false,
+    "exit": 0,
+    "stderr": false
+  },
+  "commit-msg-bad-block": {
+    "additionalContext": false,
+    "exit": 2,
+    "stderr": true
+  },
+  "docs-first-noop": {
+    "additionalContext": false,
+    "exit": 0,
+    "stderr": false
+  },
+  "reentry-noop": {
+    "additionalContext": false,
+    "exit": 0,
+    "stderr": false
+  },
+  "secrets-noverify-block": {
+    "additionalContext": false,
+    "exit": 2,
+    "stderr": true
+  },
+  "thinking-noop": {
+    "additionalContext": false,
+    "exit": 0,
+    "stderr": false
+  }
+}

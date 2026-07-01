@@ -5,13 +5,13 @@ swimlane: core
 kind: feature
 epic: live-observability
 labels: [hub, dispatch, sse, observability, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-06-30
 started: 2026-06-30
-completed: null
-agent_session: ses-claude-20260527-151803-0b9f
+completed: 2026-06-30
+agent_session: ses-claude-20260630-221108-17bf
 depends_on: []
 blocked_by: []
 references: []
@@ -51,3 +51,5 @@ references: []
 - 2026-07-01 [claude]: Edit TraceTimeline.tsx
 - 2026-07-01 [claude]: Edit hub-architecture.md
 - 2026-07-01 [claude]: Tee dispatch turns to cognition trace sink (content off by default, fail-open); /api/cognition/trace/{id}/stream SSE…
+- 2026-07-01 [claude]: committed 82f308fd · 8 files
+- 2026-07-01 [claude]: Status transitioned to complete via cos task-done.

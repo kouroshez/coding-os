@@ -82,7 +82,6 @@ modules:
       - check-agents-md-refs
       - check-agents-md-size
       - remind-dogfood
-      - warn-template-drift
       - warn-destructive-edit
       - warn-diff-size
     tools: []
