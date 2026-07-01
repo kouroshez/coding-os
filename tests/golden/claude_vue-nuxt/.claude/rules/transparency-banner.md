@@ -43,7 +43,7 @@ If `USER_BANNER` is not in the latest `additionalContext` (SessionStart with no 
 
 ## What's NOT in the banner (by design)
 
-The banner is limited to **cognitive state** (what the agent thinks it's doing), not **action history**. Per-tool counts live in the pulse `ACTIVITY` field, block/warn events already surface as stderr, and conversation summaries are the normal reply.
+The banner is limited to **cognitive state** (what the agent thinks it's doing), not **action history**. Per-tool counts live in the pulse `ACTIVITY` field, block/warn events already surface as stderr, and conversation summaries are the normal reply. On formal-work modes the agent-only pulse also carries a one-line `[test-cadence]` reminder (targeted test during dev · matrix suite once at close · background heavy suites, never idle-wait) so the [test-discipline](test-discipline.md) policy is in-band; it is suppressed for casual modes and never part of the visible banner (TASK-668).
 
 ## SessionStart emission — hidden agent context vs visible operator alerts
 

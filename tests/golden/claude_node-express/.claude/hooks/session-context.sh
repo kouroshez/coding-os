@@ -705,11 +705,22 @@ except OSError:
     esac
   fi
 
+  # TASK-668: fold the TASK-622 test-cadence policy into the agent-only pulse so
+  # it is seen in-band (agents skip test-discipline.md). Formal work only — casual
+  # chat never runs suites, so the reminder would be noise. Additive; the visible
+  # banner + its extraction marker are untouched (appended AFTER the banner line).
+  CADENCE=""
+  case "${TASK_MODE:-formal}" in
+    query|adhoc|chore|system) ;;
+    *) CADENCE="
+[test-cadence] targeted test during dev · matrix suite ONCE at close · background heavy (>60s) suites, never idle-wait · full sweep is pre-merge only" ;;
+  esac
+
   if [ -n "$USER_BANNER" ]; then
     CONTEXT="[coding-os pulse] ${PARTS}
-USER_BANNER (rule transparency-banner — echo as FIRST line of visible reply): ${USER_BANNER}"
+USER_BANNER (rule transparency-banner — echo as FIRST line of visible reply): ${USER_BANNER}${CADENCE}"
   else
-    CONTEXT="[coding-os pulse] ${PARTS}"
+    CONTEXT="[coding-os pulse] ${PARTS}${CADENCE}"
   fi
   printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
 fi
