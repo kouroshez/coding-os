@@ -85,12 +85,17 @@ class TestClaudeAdapter:
         hooks_dir = installed / ".claude" / "hooks"
         assert hooks_dir.is_dir()
         hook_files = list(hooks_dir.glob("*.sh"))
-        core_hook_count = len(list(CORE_HOOKS_DIR.glob("*.sh")))
-        assert len(hook_files) == core_hook_count
-        # Verify they are symlinks pointing to core
+        adapter_private_dir = ADAPTERS_DIR / "claude" / "hooks"
+        # Adapter-private hooks overlay core ones on name clash (D4), so the
+        # installed set is core ∪ adapter-private, not a plain sum.
+        core_names = {p.name for p in CORE_HOOKS_DIR.glob("*.sh")}
+        adapter_private = {p.name for p in adapter_private_dir.glob("*.sh")}
+        assert len(hook_files) == len(core_names | adapter_private)
+        # Verify they are symlinks pointing to core or the adapter-private layer
         for hook in hook_files:
             assert hook.is_symlink()
-            assert str(CORE_HOOKS_DIR) in str(hook.resolve())
+            resolved = str(hook.resolve())
+            assert str(CORE_HOOKS_DIR) in resolved or str(adapter_private_dir) in resolved
 
     def test_symlinks_rules(self, installed: Path) -> None:
         rules_dir = installed / ".claude" / "rules"

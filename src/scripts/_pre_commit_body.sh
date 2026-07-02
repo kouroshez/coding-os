@@ -34,6 +34,22 @@ fi
 FILE_COUNT=$(echo "$STAGED_FILES" | wc -l | tr -d ' ')
 echo "cos pre-commit: checking ${FILE_COUNT} staged file(s)..."
 
+# Committed agent memory (.agents/memory/**) travels to the remote — a leaked
+# credential there is public. Scan staged memory files for classic secret
+# shapes and BLOCK on any hit (fail-closed for this narrow, high-risk path).
+MEMORY_STAGED=$(echo "$STAGED_FILES" | grep -E '^\.agents/memory/' || true)
+if [[ -n "$MEMORY_STAGED" ]]; then
+  SECRET_RE='-----BEGIN [A-Z ]*PRIVATE KEY|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,}|xox[baprs]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{35}'
+  while IFS= read -r mem_file; do
+    [[ -f "$mem_file" ]] || continue
+    if git show ":$mem_file" 2>/dev/null | grep -qE "$SECRET_RE"; then
+      echo "cos pre-commit: BLOCKED — credential-shaped content in $mem_file" >&2
+      echo "  .agents/memory is committed and shared; remove the secret before committing." >&2
+      exit 1
+    fi
+  done <<< "$MEMORY_STAGED"
+fi
+
 # Delegate the per-file iteration to a single Python helper. The previous
 # bash-loop implementation (even with mktemp IPC) deadlocks git-commit's
 # hook environment beyond ~15 staged files — bash 5.x fork-bombs and

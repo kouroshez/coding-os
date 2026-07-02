@@ -357,6 +357,36 @@ the file's basename, warns with it (`🧠 [recall] …`) — the same warn surfa
 `enforce-graph-context` uses. Debounced once per (file, session), warn-only,
 fail-open. Codex skips it (no Write|Edit PreToolUse matcher) — correct, not a gap.
 
+## Versioned agent memory — `.agents/memory/` (portable, committed)
+
+The harness's own auto-memory lives machine-local under
+`~/.claude/projects/<slug>/memory/` — a fresh clone loses it. The durable home
+is **in-repo**: `.agents/memory/` (committed), with the harness dir turned
+into a symlink pointing at it. Contract:
+
+- **Link (claude adapter only):** `ensure-agent-memory-link.sh` (SessionStart,
+  `adapter_scope: claude`, fail-open) computes the harness slug from the repo
+  root path, migrates any existing real dir **without clobbering** (existing
+  repo files win), then symlinks `~/.claude/projects/<slug>/memory` →
+  `<repo>/.agents/memory`. Idempotent; self-repairs a wrong/dangling link.
+- **Mirror (Stop, claude adapter only):** `sync-agent-memory.sh` renders
+  Trusted-not-promoted lessons into `MEMORY.md` between
+  `<!-- cos:generated:start -->` / `<!-- cos:generated:end -->` markers —
+  manual notes outside the block always survive; the generated block is capped
+  at 200 lines (the harness reads ~200 lines of the index). Lesson text is
+  secret-redacted at render.
+- **Harvest:** foreign notes (anything outside the generated block, and other
+  `*.md` files in the dir) are minted as `learned_patterns` with
+  `source='import'` — content-hash ledger (`.harvested.json`, committed) plus
+  the generated-block marker guarantee an exported lesson is never re-imported.
+- **Other adapters** read `.agents/memory/MEMORY.md` via their instructions
+  file (no symlink — parity bounded by capability).
+- **Secret gate:** the human-path `pre-commit` body scans staged
+  `.agents/memory/**` for credential patterns; the agent path is covered by
+  render-time redaction + `block-secrets.sh`.
+- The operational DB (`.coding-os/`) stays machine-local and gitignored —
+  scoring/decay/validation state does not travel; distilled knowledge does.
+
 ## Promotion ladder — lesson → durable rule (human-gated)
 
 A **Trusted** lesson (`confidence ≥ 0.7 AND times_validated ≥ 3`) has earned a

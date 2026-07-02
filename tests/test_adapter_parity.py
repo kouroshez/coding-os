@@ -65,6 +65,12 @@ CLAUDE_ONLY_WHITELIST: set[str] = {
     # (AGENTS.md). The git post-commit hook (TASK-175) still covers Codex
     # commits that bundle the task .md, adapter-agnostically.
     "link-commit-to-task.sh",
+    # Versioned agent memory is a Claude-harness feature: the mirror/harvest
+    # targets ~/.claude/projects/<slug>/memory (registered adapter_scope:
+    # claude). Codex reads .agents/memory/MEMORY.md via its instructions
+    # file — no symlink or Stop-sync applies.
+    "sync-agent-memory.sh",
+    "ensure-agent-memory-link.sh",
 }
 
 

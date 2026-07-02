@@ -1220,3 +1220,40 @@ hooks:
       - event: SessionStart
         matcher: compact|resume
         status_message: "📋 Re-priming workflow-integrity rules card..."
+
+  - id: ensure-agent-memory-link
+    script: ensure-agent-memory-link.sh
+    adapter_scope: claude
+    description: |
+      SessionStart — turns the harness's machine-local memory dir
+      (~/.claude/projects/<slug>/memory) into a symlink onto the repo's
+      committed .agents/memory, migrating existing files without clobber.
+      Portable agent memory: a fresh clone reconnects on the first session.
+      Idempotent, self-repairing, fail-open. Spec:
+      docs/engineering/learning-extraction.md § Versioned agent memory.
+    category: observability
+    phase: "0"
+    timeout: 10
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🔗 Linking versioned agent memory..."
+      - event: SessionStart
+        matcher: resume
+        status_message: "🔗 Re-checking agent memory link..."
+
+  - id: sync-agent-memory
+    script: sync-agent-memory.sh
+    adapter_scope: claude
+    description: |
+      Stop — renders Trusted lessons into .agents/memory/MEMORY.md (generated
+      block, manual notes preserved) and harvests foreign notes back into
+      learned_patterns with a content-hash ledger so exported lessons are
+      never re-imported. Fail-open. Spec:
+      docs/engineering/learning-extraction.md § Versioned agent memory.
+    category: observability
+    phase: "0"
+    timeout: 30
+    events:
+      - event: Stop
+        matcher: ""
