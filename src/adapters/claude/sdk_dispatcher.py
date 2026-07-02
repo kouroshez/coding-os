@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -619,9 +620,12 @@ class ClaudeSDKDispatcher:
             opts_kwargs["max_budget_usd"] = float(request.max_budget_usd)
         if betas is not None:
             opts_kwargs["betas"] = betas
-        # T7.1: pass the pre-computed session id so the SDK session key matches
-        # the presence file key. Resumable via ClaudeAgentOptions(resume=...).
-        opts_kwargs["session_id"] = sub_session_id
+        # The CLI validates --session-id as a UUID, so the SDK gets a real
+        # UUID while presence/trace keys keep the readable sub_session_id;
+        # result_meta carries the mapping for resume debugging.
+        sdk_session_uuid = str(uuid.uuid4())
+        opts_kwargs["session_id"] = sdk_session_uuid
+        result_meta["sdk_session_id"] = sdk_session_uuid
         # T9.1: enable file checkpointing for roles that declare it in frontmatter.
         # Implements checkpoint/replay for edit-heavy roles (implementer/refactorer).
         if isinstance(agent_meta, dict) and agent_meta.get("enable_file_checkpointing"):
