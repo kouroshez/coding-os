@@ -49,3 +49,11 @@ Actual: ...
 - 2026-07-01 [claude]: Edit transition_gates_validator.py
 - 2026-07-01 [claude]: Edit test_transition_gates_validator.py
 - 2026-07-01 [claude]: Applied 12 of 15 code-review findings (all bugs): dispatch status/turn accuracy, trace SSE path-traversal guard +…
+- 2026-07-01 [claude]: Edit transition_gates_validator.py
+- 2026-07-01 [claude]: Edit test_transition_gates_validator.py
+- 2026-07-01 [claude]: Edit sdk_dispatcher.py
+- 2026-07-01 [claude]: Edit cognition.py
+- 2026-07-01 [claude]: Edit cognition.py
+- 2026-07-01 [claude]: Edit TraceTimeline.tsx
+- 2026-07-01 [claude]: Edit TraceTimeline.tsx
+- 2026-07-01 [claude]: Edit test_cognition_dispatch_obs.py

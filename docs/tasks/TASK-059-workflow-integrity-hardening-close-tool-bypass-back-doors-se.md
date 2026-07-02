@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: workflow-integrity
 labels: [enforcement, hooks, guardian, dx]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-02

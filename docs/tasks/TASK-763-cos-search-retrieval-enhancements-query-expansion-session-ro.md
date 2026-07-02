@@ -28,3 +28,4 @@ references: []
 - **Given** results dominated by one session, **When** round-robin applies, **Then** top-k spans multiple sessions
 
 ## Work Log
+- 2026-07-02 [claude]: committed c97bed41 · 1 file
