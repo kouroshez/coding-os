@@ -56,7 +56,17 @@ def auto_validate(session_id: str, db_path: str, suggestions_file: str) -> dict:
         return {"status": "no_suggestions"}
 
     from database import get_connection
-    from tools.learning import _clean_failure_text, _failure_cluster_key, learn_validate
+    from tools.learning import (
+        _clean_failure_text,
+        _failure_cluster_key,
+        _friction_kind,
+        learn_validate,
+    )
+
+    try:
+        from distill import cluster_fingerprint
+    except Exception:
+        cluster_fingerprint = None
 
     # Only failures recorded AT/AFTER the recall (suggestions file mtime) count.
     recall_at = datetime.fromtimestamp(sf.stat().st_mtime, tz=timezone.utc).strftime(
@@ -65,22 +75,50 @@ def auto_validate(session_id: str, db_path: str, suggestions_file: str) -> dict:
     conn = get_connection(db_path)
     try:
         rows = conn.execute(
-            "SELECT narrative, title FROM observations "
+            "SELECT narrative, title, memory_type FROM observations "
             "WHERE session_id = ? AND memory_type IN ('hook_block', 'error') "
             "  AND created_at >= ?",
             (session_id, recall_at),
         ).fetchall()
         failure_keys = []
+        failure_fingerprints = set()
         for r in rows:
             d = dict(r)
             key = _failure_cluster_key(_clean_failure_text(d["narrative"] or d["title"] or ""))
-            if key:
-                failure_keys.append(key)
+            if not key:
+                continue
+            failure_keys.append(key)
+            if cluster_fingerprint:
+                kind = _friction_kind(d["title"], d["narrative"], d["memory_type"])
+                failure_fingerprints.add(cluster_fingerprint(kind, key))
+
+        # A distilled lesson no longer contains the raw failure text, so
+        # substring-matching its display text alone would always report
+        # helpful=True. Match against the cluster fingerprint and the stored
+        # evidence samples too.
+        lesson_meta: dict[int, tuple[str, str]] = {}
+        try:
+            for row in conn.execute(
+                "SELECT id, distill_fingerprint, evidence_json FROM learned_patterns "
+                "WHERE id IN (%s)" % ",".join("?" * len(surfaced)),
+                [pid for pid, _ in surfaced],
+            ):
+                d = dict(row)
+                lesson_meta[d["id"]] = (
+                    d.get("distill_fingerprint") or "",
+                    _normalize_full(d.get("evidence_json") or ""),
+                )
+        except Exception:
+            lesson_meta = {}
 
         helpful = unhelpful = 0
         for pid, text in surfaced:
             lesson_norm = _normalize_full(text)
-            recurred = any(key in lesson_norm for key in failure_keys)
+            fingerprint, evidence_norm = lesson_meta.get(pid, ("", ""))
+            recurred = (fingerprint and fingerprint in failure_fingerprints) or any(
+                key in lesson_norm or (evidence_norm and key in evidence_norm)
+                for key in failure_keys
+            )
             learn_validate(conn, pattern_id=pid, was_helpful=not recurred)
             if recurred:
                 unhelpful += 1

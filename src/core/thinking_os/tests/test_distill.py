@@ -184,6 +184,46 @@ def test_legacy_template_row_adopted_and_archived(conn, monkeypatch) -> None:
     assert old_row["archived_at"] is not None
 
 
+def test_promoted_lesson_leaves_suggest_and_survives_remine(conn, monkeypatch) -> None:
+    from tools.learning import learn_suggest
+
+    stub = StubDispatcher(GOOD_OUTPUT)
+    monkeypatch.setattr(distill, "get_dispatcher", lambda: stub)
+
+    minted = _mint(conn, {"remaining": 20})
+    conn.execute(
+        "UPDATE learned_patterns SET promoted_to = 'rule:git-workflow.md', "
+        "confidence = 0.8, times_validated = 4 WHERE id = ?",
+        (minted["id"],),
+    )
+    conn.commit()
+
+    suggested_ids = [s["id"] for s in learn_suggest(conn)["suggestions"]]
+    assert minted["id"] not in suggested_ids
+
+    _mint(conn, {"remaining": 20})
+    row = _row(conn, minted["id"])
+    assert row["promoted_to"] == "rule:git-workflow.md"
+
+
+def test_archived_row_revives_on_remine(conn, monkeypatch) -> None:
+    stub = StubDispatcher(GOOD_OUTPUT)
+    monkeypatch.setattr(distill, "get_dispatcher", lambda: stub)
+
+    minted = _mint(conn, {"remaining": 20})
+    conn.execute(
+        "UPDATE learned_patterns SET promoted_to = 'archived', "
+        "archived_at = CURRENT_TIMESTAMP WHERE id = ?",
+        (minted["id"],),
+    )
+    conn.commit()
+
+    _mint(conn, {"remaining": 20})
+    row = _row(conn, minted["id"])
+    assert row["promoted_to"] is None
+    assert row["archived_at"] is None
+
+
 def test_kill_switch_disables_distillation(conn, monkeypatch) -> None:
     stub = StubDispatcher(GOOD_OUTPUT)
     monkeypatch.setattr(distill, "get_dispatcher", lambda: stub)

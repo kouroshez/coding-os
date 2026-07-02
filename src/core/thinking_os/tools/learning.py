@@ -682,15 +682,21 @@ def _upsert_pattern(
         # so bump times_validated — that count IS the consumer-facing signal
         # that replaced the duplicate snapshot rows.
         new_conf = max(existing["confidence"], confidence)
-        # Re-extraction is a positive signal: refresh recency AND revive (promoted_to=NULL)
-        # so a pattern a prior decay run archived becomes visible to suggest/digest again.
+        # Re-extraction is a positive signal: refresh recency AND revive a row a
+        # prior decay run archived. A REAL promotion (promoted_to='rule:…' /
+        # 'feedback:…') survives the re-mine — the knowledge now lives in the
+        # rule layer, and un-promoting it would put the same fact in two places.
         conn.execute(
             # Refresh memory_type too: a re-mine reclassifies a row whose class
             # changed (e.g. a legacy success baseline minted as 'pattern' becomes
             # 'stat'), so old garbage reclassifies on the next loop run.
             "UPDATE learned_patterns SET pattern = ?, memory_type = ?, confidence = ?, "
             "times_validated = times_validated + 1, last_validated = CURRENT_TIMESTAMP, "
-            "last_accessed_at = CURRENT_TIMESTAMP, promoted_to = NULL, archived_at = NULL, "
+            "last_accessed_at = CURRENT_TIMESTAMP, "
+            "promoted_to = CASE WHEN COALESCE(promoted_to, '') IN ('', 'archived') "
+            "  THEN NULL ELSE promoted_to END, "
+            "archived_at = CASE WHEN COALESCE(promoted_to, '') IN ('', 'archived') "
+            "  THEN NULL ELSE archived_at END, "
             "distill_fingerprint = COALESCE(?, distill_fingerprint), "
             "evidence_json = COALESCE(?, evidence_json) "
             "WHERE id = ?",
@@ -1312,7 +1318,11 @@ def learn_suggest(
     # --- Active patterns (confidence > 0.3) ---
     # Exclude stats — a success-rate baseline is observability, never a
     # suggestion to act on. See docs/engineering/learning-extraction.md.
-    conditions = ["confidence >= 0.3", "COALESCE(memory_type, '') != 'stat'"]
+    conditions = [
+        "confidence >= 0.3",
+        "COALESCE(memory_type, '') != 'stat'",
+        "promoted_to IS NULL",
+    ]
     params: list = []
     if domain:
         conditions.append("(domain = ? OR domain IS NULL)")
@@ -1362,6 +1372,7 @@ def learn_suggest(
         "confidence BETWEEN 0.2 AND 0.4",
         "times_validated >= 1",
         "COALESCE(memory_type, '') != 'stat'",
+        "promoted_to IS NULL",
     ]
     fading_params: list = []
     if domain:

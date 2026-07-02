@@ -357,6 +357,23 @@ the file's basename, warns with it (`🧠 [recall] …`) — the same warn surfa
 `enforce-graph-context` uses. Debounced once per (file, session), warn-only,
 fail-open. Codex skips it (no Write|Edit PreToolUse matcher) — correct, not a gap.
 
+## Promotion ladder — lesson → durable rule (human-gated)
+
+A **Trusted** lesson (`confidence ≥ 0.7 AND times_validated ≥ 3`) has earned a
+seat in the durable layer: `/retro` step 6 surfaces Trusted-not-promoted
+lessons, drafts content via `cos_promote(pattern_id, target)` and applies it
+ONLY on explicit human approval. Contract:
+
+- `cos_promote` stamps `promoted_to='{target}:{filename}'` and returns the
+  draft — it never writes files; the reviewer chooses the real destination.
+- **Promoted rows leave the belief surfaces**: digest (`_collect_beliefs`,
+  `_collect_fading`) and `cos_learn_suggest` filter `promoted_to IS NULL` —
+  the knowledge now lives in the rule layer, and surfacing it twice would put
+  the same fact in two places (SSOT).
+- A re-mine revives only `archived` rows; a real promotion survives re-mining.
+  If the friction recurs AFTER promotion, that is the rule failing — a retro
+  signal, not grounds to auto-resurrect the memory row.
+
 ## Generalization — episodic → semantic (human-gated)
 
 When several lessons recur on a shared theme, `generalize_lessons` (called at the
