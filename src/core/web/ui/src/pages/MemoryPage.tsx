@@ -19,6 +19,7 @@ interface PatternRow {
   tier: string; // Forming | Trusted | Fading — computed by pattern_tier()
   provenance: string;
   promoted_to: string | null;
+  evidence_json: string | null;
   last_validated: string | null;
   last_accessed_at: string | null;
   created_at: string;
@@ -42,6 +43,8 @@ interface RoiData {
   count: number;
   trend: string;
   delta_pct: number;
+  validations_30d: number;
+  helpful_rate_30d: number | null;
 }
 interface RoiEnvelope {
   ok: boolean;
@@ -55,13 +58,28 @@ function roiColor(trend: string): string {
 }
 // Plain-language read-out — the section must answer "is it working?" in words a
 // novice gets, and stay honest when there isn't enough history to judge a trend.
-function roiHeadline(trend: string, enough: boolean): string {
+// Direct outcome evidence (did surfaced lessons help?) outranks the stumble
+// trend once enough votes exist — MIN_VALIDATIONS guards against judging on noise.
+const MIN_VALIDATIONS = 5;
+
+function hasHelpfulSignal(roi: RoiData | null): roi is RoiData {
+  return !!roi && roi.validations_30d >= MIN_VALIDATIONS && roi.helpful_rate_30d !== null;
+}
+function roiHeadline(roi: RoiData | null, trend: string, enough: boolean): string {
+  if (hasHelpfulSignal(roi)) {
+    const pct = Math.round((roi.helpful_rate_30d as number) * 100);
+    if (pct >= 60) return `Yes — lessons are holding up (${pct}% rated helpful)`;
+    if (pct < 40) return `Lessons aren’t landing (${pct}% rated helpful)`;
+    return `Mixed — ${pct}% of surfaced lessons rated helpful`;
+  }
   if (!enough) return 'Too early to tell';
   if (trend === 'improving') return 'Yes — fewer stumbles lately';
   if (trend === 'worsening') return 'Stumbles ticked up recently';
   return 'Steady — stumbles aren’t rising';
 }
-function roiSentence(trend: string, enough: boolean): string {
+function roiSentence(roi: RoiData | null, trend: string, enough: boolean): string {
+  if (hasHelpfulSignal(roi))
+    return `Based on ${roi.validations_30d} validations in the last 30 days — a lesson counts as helpful when its failure did not recur after being surfaced.`;
   if (!enough)
     return 'coding-os needs a few more work sessions before it can tell whether the agent’s stumbles (blocked actions + errors) are trending down.';
   if (trend === 'improving')
@@ -78,6 +96,7 @@ function api(slug: string | undefined, path: string): string {
 
 // Confidence tier → colour. Meaning, not decoration. (See learning-extraction.md.)
 function tierStyle(tier: string): { bg: string; fg: string } {
+  if (tier === 'Promoted') return { bg: 'var(--cos-brand-tint)', fg: 'var(--cos-brand-text)' };
   if (tier === 'Trusted') return { bg: 'var(--cos-ok-tint)', fg: 'var(--cos-ok)' };
   if (tier === 'Fading') return { bg: 'var(--cos-warn-tint)', fg: 'var(--cos-warn)' };
   return { bg: 'var(--cos-overlay)', fg: 'var(--cos-muted)' }; // Forming
@@ -106,13 +125,25 @@ export function splitLesson(pattern: string): { situation: string; action: strin
   return { situation: situation || pattern.slice(0, arrow).trim(), action };
 }
 
+// Distilled lessons store the sanitized failure samples that justified them.
+function evidenceSamples(p: PatternRow): string[] {
+  if (!p.evidence_json) return [];
+  try {
+    const parsed = JSON.parse(p.evidence_json) as { samples?: unknown };
+    if (Array.isArray(parsed.samples)) return parsed.samples.map(String).slice(0, 3);
+  } catch {
+    /* malformed evidence is not worth an error surface */
+  }
+  return [];
+}
+
 // L1+L2+L3 progressive-disclosure card with 👍/👎 feedback (closes the loop).
 function LessonCard({ p, slug }: { p: PatternRow; slug: string | undefined }) {
   const [expanded, setExpanded] = useState(false);
   const [voted, setVoted] = useState<null | 'up' | 'down'>(null);
   const [busy, setBusy] = useState(false);
   const { situation, action } = splitLesson(p.pattern);
-  const tier = p.tier || 'Forming';
+  const tier = p.promoted_to && p.promoted_to !== 'archived' ? 'Promoted' : p.tier || 'Forming';
   const ts = tierStyle(tier);
 
   async function vote(helpful: boolean): Promise<void> {
@@ -141,11 +172,13 @@ function LessonCard({ p, slug }: { p: PatternRow; slug: string | undefined }) {
           className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
           style={{ backgroundColor: ts.bg, color: ts.fg }}
           title={
-            tier === 'Trusted'
-              ? 'Confirmed repeatedly'
-              : tier === 'Fading'
-                ? 'Decaying — up for re-validation'
-                : 'Seen, not yet confirmed'
+            tier === 'Promoted'
+              ? `Graduated into ${p.promoted_to}`
+              : tier === 'Trusted'
+                ? 'Confirmed repeatedly'
+                : tier === 'Fading'
+                  ? 'Decaying — up for re-validation'
+                  : 'Seen, not yet confirmed'
           }
         >
           {tier}
@@ -227,6 +260,18 @@ function LessonCard({ p, slug }: { p: PatternRow; slug: string | undefined }) {
             Source: {p.source ?? '—'} · Confidence: {Math.round((p.confidence ?? 0) * 100)}% ·
             Provenance: {p.provenance ?? '—'}
           </div>
+          {evidenceSamples(p).length > 0 && (
+            <div>
+              <span className="text-[var(--cos-text)]">Evidence:</span>
+              <ul className="mt-0.5 list-inside list-disc space-y-0.5">
+                {evidenceSamples(p).map((sample, i) => (
+                  <li key={i} className="break-all">
+                    {sample}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -365,7 +410,29 @@ export default function MemoryPage() {
     }
   }
 
-  const lessons = patterns.filter((p) => !isStat(p));
+  const isPromoted = (p: PatternRow): boolean =>
+    !!p.promoted_to && p.promoted_to !== 'archived';
+  const isArchived = (p: PatternRow): boolean => p.promoted_to === 'archived';
+  const lessons = patterns.filter((p) => !isStat(p) && !isArchived(p));
+  const promoted = lessons.filter(isPromoted);
+  const activeLessons = lessons.filter((p) => !isPromoted(p));
+  const lessonGroups: { label: string; hint: string; items: PatternRow[] }[] = [
+    {
+      label: 'Trusted',
+      hint: 'confirmed repeatedly — candidates for permanent rules',
+      items: activeLessons.filter((p) => (p.tier || 'Forming') === 'Trusted'),
+    },
+    {
+      label: 'Forming',
+      hint: 'seen, not yet confirmed',
+      items: activeLessons.filter((p) => (p.tier || 'Forming') === 'Forming'),
+    },
+    {
+      label: 'Fading',
+      hint: 'decaying — up for re-validation',
+      items: activeLessons.filter((p) => (p.tier || 'Forming') === 'Fading'),
+    },
+  ];
   const stats = patterns.filter(isStat);
   const showLessons = view !== 'stats';
   const showStats = view !== 'lessons';
@@ -464,10 +531,10 @@ export default function MemoryPage() {
               </span>
             </div>
             <p className="mt-1 text-sm font-medium text-[var(--cos-text)]">
-              {roiHeadline(roi.trend, enoughRoi)}
+              {roiHeadline(roi, roi.trend, enoughRoi)}
             </p>
             <p className="mt-0.5 text-xs text-[var(--cos-muted)]">
-              {roiSentence(roi.trend, enoughRoi)}
+              {roiSentence(roi, roi.trend, enoughRoi)}
             </p>
             <p className="mt-1.5 text-xs text-[var(--cos-muted)]">
               So far the agent has learned{' '}
@@ -498,14 +565,42 @@ export default function MemoryPage() {
           </section>
         )}
 
-        {showLessons && lessons.length > 0 && (
+        {showLessons && promoted.length > 0 && (
           <section className="space-y-2.5">
             <h2 className="text-sm font-semibold text-[var(--cos-text)]">
-              Lessons learned <span className="text-[var(--cos-muted)]">({lessons.length})</span>
+              Graduated to rules{' '}
+              <span className="font-normal text-[var(--cos-muted)]">
+                ({promoted.length}) — promoted out of memory into durable rules
+              </span>
             </h2>
-            {lessons.map((p) => (
+            {promoted.map((p) => (
               <LessonCard key={p.id} p={p} slug={slug} />
             ))}
+          </section>
+        )}
+
+        {showLessons && activeLessons.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold text-[var(--cos-text)]">
+              Lessons learned{' '}
+              <span className="text-[var(--cos-muted)]">({activeLessons.length})</span>
+            </h2>
+            {lessonGroups.map(
+              (group) =>
+                group.items.length > 0 && (
+                  <div key={group.label} className="space-y-2.5">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--cos-muted)]">
+                      {group.label}{' '}
+                      <span className="font-normal normal-case">
+                        ({group.items.length}) — {group.hint}
+                      </span>
+                    </h3>
+                    {group.items.map((p) => (
+                      <LessonCard key={p.id} p={p} slug={slug} />
+                    ))}
+                  </div>
+                ),
+            )}
           </section>
         )}
 

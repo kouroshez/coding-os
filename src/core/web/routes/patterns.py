@@ -53,8 +53,14 @@ def list_patterns(
             conditions.append("trust_tier = ?")
             params.append(trust_tier)
         where = (" WHERE " + " AND ".join(conditions)) if conditions else ""
+        table_columns = {
+            row[1] for row in conn.execute("PRAGMA table_info(learned_patterns)")
+        }
+        # evidence_json arrived in migration v47 — a consumer DB the migrator
+        # has not touched yet must still render the page.
+        columns = _COLUMNS + (", evidence_json" if "evidence_json" in table_columns else "")
         rows = conn.execute(
-            f"SELECT {_COLUMNS} FROM learned_patterns{where} "
+            f"SELECT {columns} FROM learned_patterns{where} "
             "ORDER BY confidence DESC, impact_score DESC LIMIT ?",
             params + [limit],
         ).fetchall()
@@ -69,6 +75,7 @@ def list_patterns(
     patterns = [dict(r) for r in rows]
     for p in patterns:
         p["tier"] = pattern_tier(p.get("confidence"), p.get("times_validated"))
+        p.setdefault("evidence_json", None)
     return unwrap(
         json.dumps(
             {
@@ -124,6 +131,20 @@ def learning_roi(
             "ORDER BY started DESC LIMIT ?",
             (limit,),
         ).fetchall()
+        # The direct outcome signal: did surfaced lessons actually help?
+        # (auto-validated at task-done + Hub thumbs). Stronger evidence than
+        # the stumble trend once enough votes exist.
+        try:
+            validation = conn.execute(
+                "SELECT COUNT(*) AS total, "
+                "SUM(CASE WHEN was_helpful THEN 1 ELSE 0 END) AS helpful "
+                "FROM pattern_validations "
+                "WHERE created_at >= datetime('now', '-30 days')"
+            ).fetchone()
+            validations_30d = validation["total"] or 0
+            helpful_30d = validation["helpful"] or 0
+        except sqlite3.OperationalError:
+            validations_30d = helpful_30d = 0
     finally:
         conn.close()
     sessions = [
@@ -137,6 +158,7 @@ def learning_roi(
         for r in reversed(rows)  # chronological for the sparkline
     ]
     trend, delta_pct = _roi_trend(sessions)
+    helpful_rate_30d = round(helpful_30d / validations_30d, 3) if validations_30d else None
     return unwrap(
         json.dumps(
             {
@@ -146,6 +168,8 @@ def learning_roi(
                     "count": len(sessions),
                     "trend": trend,
                     "delta_pct": delta_pct,
+                    "validations_30d": validations_30d,
+                    "helpful_rate_30d": helpful_rate_30d,
                     "meta": {"layer": "learning"},
                 },
             }
