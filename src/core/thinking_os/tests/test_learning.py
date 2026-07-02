@@ -237,6 +237,10 @@ class TestFrictionLessons:
             "File does not exist. Note: your current working directory is /x",
             "Refusing to write through symlink: /x/CLAUDE.md",
             "Output does not match required schema: StructuredOutput root must have 'area'",
+            "Error executing tool cos_task_create: 1 validation error for cos_task_createArguments",
+            "File content (31119 tokens) exceeds maximum allowed tokens (25000)",
+            "Tool 'firecrawl_scrape' execution failed: Scrape aborted after exceeding retry limit",
+            "MCP error -32602: Tool 'firecrawl_search' parameter validation failed",
         )
         for idx, narrative in enumerate(noise):
             self._seed_failures(

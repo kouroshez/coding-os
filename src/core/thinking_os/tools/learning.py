@@ -822,6 +822,12 @@ _NOISE_FAILURE_MARKERS: tuple[str, ...] = (
     "no such file or directory",
     "refusing to write through symlink",
     "structuredoutput",  # workflow-internal schema fumble, not a code lesson
+    "validation error for cos_",  # agent mis-called an MCP tool schema — fumble
+    "validation errors for cos_",
+    "exceeds maximum allowed",  # oversized Read/tool payload — operational refusal
+    "scrape aborted",  # external scraping engine refusal — environment, not code
+    "scraping engines failed",
+    "mcp error -",  # raw MCP transport error — infrastructure, not a lesson
 )
 
 

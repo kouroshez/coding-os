@@ -123,7 +123,8 @@ def distill_cluster(
         prompt=json.dumps(evidence, ensure_ascii=False),
         timeout_s=_CALL_TIMEOUT_S,
         max_budget_usd=_call_budget_usd(),
-        max_turns=1,
+        # max_turns stays unset: the adapter default (3 with an output schema)
+        # covers the structured-output retry loop; 1 kills the first retry.
         model=os.environ.get("COS_DISTILL_MODEL") or None,
     )
 
