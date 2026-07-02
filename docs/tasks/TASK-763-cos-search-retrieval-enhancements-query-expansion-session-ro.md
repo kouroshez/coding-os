@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: memory-v2
 labels: [memory, deferred]
-status: icebox
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-07-02
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260702-023419-c2e8
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-763: cos_search retrieval enhancements: query expansion + session round-robin (deferred)
 
 **Outcome (one sentence):** cos_search optionally expands the query into <=3 LLM-free variants and round-robins results across sessions, measured against retrieval-quality metrics before/after.
