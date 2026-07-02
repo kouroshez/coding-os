@@ -64,8 +64,11 @@ def _foreign_sections(memory_dir: Path) -> list[str]:
         text = GENERATED_BLOCK_RE.sub("", text)
         for chunk in re.split(r"\n(?=## )", text):
             chunk = chunk.strip()
-            if len(chunk) > 40:
-                sections.append(chunk[:2000])
+            # A harvestable note needs a heading AND a body — bare index
+            # headers, frontmatter and link lists carry no lesson.
+            if len(chunk) < 100 or "\n" not in chunk or chunk.startswith("---"):
+                continue
+            sections.append(chunk[:2000])
     return sections
 
 

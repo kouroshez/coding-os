@@ -336,10 +336,14 @@ def learn_extract(
     # Only runs when anatomy columns are present (migration v25).
     try:
         anat_rows = conn.execute(
+            # A bare root-cause count is a statistic, not a lesson — anatomy
+            # mints only when at least one recorded remedy pairs with the cause
+            # (learning-extraction.md § Anatomy from backtracks).
             "SELECT root_cause, COUNT(*) AS cnt, "
-            "       GROUP_CONCAT(DISTINCT from_formula) AS formulas "
+            "       GROUP_CONCAT(DISTINCT from_formula) AS formulas, "
+            "       MAX(corrective_action) AS remedy "
             "FROM backtrack_events "
-            "WHERE root_cause IS NOT NULL "
+            "WHERE root_cause IS NOT NULL AND COALESCE(corrective_action, '') != '' "
             "GROUP BY root_cause "
             "HAVING cnt >= ?",
             (min_occurrences,),
@@ -352,7 +356,7 @@ def learn_extract(
                 f"Recurring backtrack root cause '{d['root_cause']}' "
                 f"({d['cnt']} occurrences"
                 + (f"; formulas: {formulas_str[:60]}" if formulas_str else "")
-                + ")"
+                + f") → {str(d['remedy'])[:160]}"
             )
             extracted.append(
                 _upsert_pattern(
