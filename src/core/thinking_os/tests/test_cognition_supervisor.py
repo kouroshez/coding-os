@@ -57,9 +57,10 @@ class TestRegistries:
 
     def test_agent_registry_has_expected_roles(self):
         reg = load_agent_registry()
-        # 11 composable formula roles + the dispatch-only repairer (TASK-642).
-        assert len(reg) == 12
+        # 11 composable formula roles + dispatch-only cards: repairer, distiller.
+        assert len(reg) == 13
         assert "repairer" in reg
+        assert "distiller" in reg
 
 
 # ---------------------------------------------------------------------------

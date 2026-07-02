@@ -482,3 +482,11 @@ class ComposedChain(BaseModel):
     parallel_roles: list[str] = Field(default_factory=list)
     reason: str = ""
     advisory: str = ""
+
+
+class DistilledLesson(BaseModel):
+    """Output of the friction-cluster distiller (agents/distiller.md)."""
+
+    situation: str = Field(min_length=10, max_length=160)
+    action: str = Field(min_length=10, max_length=200)
+    why: str = Field(min_length=5, max_length=160)

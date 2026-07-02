@@ -290,6 +290,39 @@ that recency window, so a resolved/renamed-rule failure ages out and decays.
 No change to the hot path or any safety hook; works for every adapter because
 the log is the agent-agnostic SSOT for block events.
 
+## LLM distillation — the v2 producer for friction lessons
+
+Template text ("Recurring block (N×): hook — rule → satisfy the blocked rule")
+is a tautology, not knowledge. When an LLM is reachable, each **new** friction
+cluster is distilled once into a `situation → action — why` lesson:
+
+- **Port (reuse, P8-safe):** `dispatcher.get_dispatcher()` — the existing
+  `AgentDispatcher` protocol; the adapter implementation is loaded dynamically.
+  Core never imports an adapter SDK. Agent card: `agents/distiller.md`
+  (`structured_output: true`, `output_schema: cognition.DistilledLesson`,
+  no tools, `max_turns=1`).
+- **Idempotency:** cluster fingerprint `sha256(kind:signature)[:16]` stored in
+  `learned_patterns.distill_fingerprint` (migration v47). A cluster whose
+  fingerprint already exists is refreshed (counters bump) with **zero** LLM
+  calls — re-running the loop is free.
+- **Evidence in, evidence out:** the prompt carries up to 3 sanitized sample
+  block/failure messages; the row stores them in `evidence_json` so the Hub L3
+  layer can show *why* the lesson exists. Sanitization runs on both directions
+  (log lines → LLM, LLM output → DB).
+- **Birth volatile:** distilled lessons start at `confidence=0.5`,
+  `provenance='llm_distilled'` — never born Trusted; validation moves them.
+- **Legacy adoption:** the deterministic template text for the same cluster is
+  looked up; its `times_validated`/`access_count` migrate onto the distilled
+  row and the template row is `promoted_to='archived'` (invalidate, not delete).
+- **Caps + fallback (never blocks the nightly):** `COS_DISTILL_MAX_CLUSTERS`
+  (default 20) per run, `COS_DISTILL_BUDGET_USD` (default 0.25)/call — a
+  dispatched sub-session pays a base system-prompt cost, so the floor sits
+  above a raw completion — `timeout_s=60`; dispatcher
+  unavailable / headless-without-auth / any error → the template producer runs
+  unchanged (`provenance='friction'`). Kill switch: `COS_DISTILL_LLM=0`.
+  Model: `COS_DISTILL_MODEL` env (empty = adapter default) — no model id
+  literal in core.
+
 ## Active learning loop — auto-validation (closing learn→apply→confirm)
 
 A lesson is only "learned" if its confidence reflects whether it actually

@@ -373,10 +373,23 @@ def learn_extract(
     # the agent emits every session. Mined into actionable
     # `lesson` patterns so the loop learns from mistakes — not just success
     # statistics. Contract: docs/engineering/learning-extraction.md.
-    extracted.extend(_mine_friction_lessons(conn, min_occurrences=min_occurrences))
+    try:
+        distill_budget = int(os.environ.get("COS_DISTILL_MAX_CLUSTERS", "20"))
+    except ValueError:
+        distill_budget = 20
+    distill_state = {"remaining": max(0, distill_budget)}
+    extracted.extend(
+        _mine_friction_lessons(
+            conn, min_occurrences=min_occurrences, distill_state=distill_state
+        )
+    )
     # Hook BLOCKs live in the activity log (not observations) on Claude — mine
     # them too so the richest friction signal becomes a lesson.
-    extracted.extend(_mine_hook_block_lessons(conn, min_occurrences=min_occurrences))
+    extracted.extend(
+        _mine_hook_block_lessons(
+            conn, min_occurrences=min_occurrences, distill_state=distill_state
+        )
+    )
     # fix:/revert: commit subjects — the real engineering-lesson signal that
     # reasoning records in git history, not in any friction table (§5).
     extracted.extend(_mine_commit_lessons(conn, min_occurrences=min_occurrences))
@@ -612,6 +625,8 @@ def _upsert_pattern(
     confidence: float,
     concepts: str,
     provenance: str | None = None,
+    distill_fingerprint: str | None = None,
+    evidence_json: str | None = None,
 ) -> dict:
     # Sanitizer runs before any DB write; a rejected pattern returns
     # {"action": "rejected", ...} with no row touched. provenance keeps
@@ -643,13 +658,23 @@ def _upsert_pattern(
     # canonicalise candidate rows in the same domain.
     identity = _pattern_identity(pattern)
     existing = None
-    for cand in conn.execute(
-        "SELECT id, pattern, confidence, times_validated FROM learned_patterns WHERE domain IS ?",
-        (domain,),
-    ):
-        if _pattern_identity(cand["pattern"]) == identity:
-            existing = cand
-            break
+    if distill_fingerprint:
+        try:
+            existing = conn.execute(
+                "SELECT id, pattern, confidence, times_validated FROM learned_patterns "
+                "WHERE distill_fingerprint = ?",
+                (distill_fingerprint,),
+            ).fetchone()
+        except sqlite3.OperationalError:
+            existing = None
+    if existing is None:
+        for cand in conn.execute(
+            "SELECT id, pattern, confidence, times_validated FROM learned_patterns WHERE domain IS ?",
+            (domain,),
+        ):
+            if _pattern_identity(cand["pattern"]) == identity:
+                existing = cand
+                break
 
     if existing:
         # Update confidence (take the higher) and refresh the displayed text
@@ -665,9 +690,11 @@ def _upsert_pattern(
             # 'stat'), so old garbage reclassifies on the next loop run.
             "UPDATE learned_patterns SET pattern = ?, memory_type = ?, confidence = ?, "
             "times_validated = times_validated + 1, last_validated = CURRENT_TIMESTAMP, "
-            "last_accessed_at = CURRENT_TIMESTAMP, promoted_to = NULL, archived_at = NULL "
+            "last_accessed_at = CURRENT_TIMESTAMP, promoted_to = NULL, archived_at = NULL, "
+            "distill_fingerprint = COALESCE(?, distill_fingerprint), "
+            "evidence_json = COALESCE(?, evidence_json) "
             "WHERE id = ?",
-            (pattern, memory_type, new_conf, existing["id"]),
+            (pattern, memory_type, new_conf, distill_fingerprint, evidence_json, existing["id"]),
         )
         pattern_id = existing["id"]
         result = {"id": pattern_id, "pattern": pattern, "confidence": new_conf, "action": "updated"}
@@ -677,9 +704,19 @@ def _upsert_pattern(
         cursor = conn.execute(
             "INSERT INTO learned_patterns "
             "(pattern, memory_type, domain, source, confidence, concepts, provenance, "
-            "last_validated, last_accessed_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-            (pattern, memory_type, domain, source, confidence, concepts, provenance),
+            "distill_fingerprint, evidence_json, last_validated, last_accessed_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+            (
+                pattern,
+                memory_type,
+                domain,
+                source,
+                confidence,
+                concepts,
+                provenance,
+                distill_fingerprint,
+                evidence_json,
+            ),
         )
         pattern_id = cursor.lastrowid
         result = {
@@ -828,7 +865,134 @@ def pattern_tier(confidence: float, times_validated: int) -> str:
     return "Forming"
 
 
-def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) -> list[dict]:
+def _distill_safe(**kwargs) -> dict | None:
+    # Fire-and-forget: the distiller is optional enrichment — any failure
+    # (module missing, dispatcher down, headless without auth) falls back to
+    # the template producer.
+    try:
+        import distill
+
+        if not distill.enabled():
+            return None
+        return distill.distill_cluster(**kwargs)
+    except Exception as exc:
+        logger.debug("distillation skipped: %s", exc)
+        return None
+
+
+def _adopt_legacy_template(conn: sqlite3.Connection, template_text: str, new_id: int) -> None:
+    # A distilled lesson supersedes the template row for the same cluster:
+    # fold the old counters in, then invalidate (archive), never delete.
+    identity = _pattern_identity(template_text)
+    for cand in conn.execute(
+        "SELECT id, pattern, times_validated, access_count FROM learned_patterns "
+        "WHERE domain IS NULL AND COALESCE(promoted_to, '') != 'archived'",
+    ):
+        if cand["id"] == new_id or _pattern_identity(cand["pattern"]) != identity:
+            continue
+        conn.execute(
+            "UPDATE learned_patterns SET "
+            "times_validated = times_validated + ?, access_count = access_count + ? "
+            "WHERE id = ?",
+            (cand["times_validated"] or 0, cand["access_count"] or 0, new_id),
+        )
+        conn.execute(
+            "UPDATE learned_patterns SET promoted_to = 'archived', "
+            "archived_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (cand["id"],),
+        )
+        break
+
+
+def _mint_friction_lesson(
+    conn: sqlite3.Connection,
+    *,
+    kind: str,
+    cluster_key: str,
+    count: int,
+    template_text: str,
+    concepts: str,
+    hook: str = "",
+    rule: str = "",
+    samples: list[str] | None = None,
+    distill_state: dict | None = None,
+) -> dict:
+    # One write path for both friction miners: refresh an already-distilled
+    # cluster for free, distill a new one under the per-run budget, or fall
+    # back to the deterministic template.
+    fingerprint = None
+    try:
+        import distill
+
+        fingerprint = distill.cluster_fingerprint(kind, cluster_key)
+    except Exception as exc:
+        logger.debug("fingerprint unavailable: %s", exc)
+
+    if fingerprint:
+        try:
+            row = conn.execute(
+                "SELECT id, pattern FROM learned_patterns WHERE distill_fingerprint = ?",
+                (fingerprint,),
+            ).fetchone()
+        except sqlite3.OperationalError:
+            row = None
+        if row:
+            return _upsert_pattern(
+                conn,
+                pattern=row["pattern"],
+                memory_type="lesson",
+                domain=None,
+                source="friction",
+                confidence=0.5,
+                concepts=concepts,
+                provenance="llm_distilled",
+                distill_fingerprint=fingerprint,
+            )
+
+    budget_left = bool(distill_state) and distill_state.get("remaining", 0) > 0
+    if fingerprint and budget_left:
+        distill_state["remaining"] -= 1
+        distilled = _distill_safe(
+            kind=kind, signature=cluster_key, count=count, hook=hook, rule=rule, samples=samples
+        )
+        if distilled:
+            import distill
+
+            result = _upsert_pattern(
+                conn,
+                pattern=distill.lesson_text(distilled),
+                memory_type="lesson",
+                domain=None,
+                source="friction",
+                confidence=0.5,
+                concepts=concepts,
+                provenance="llm_distilled",
+                distill_fingerprint=fingerprint,
+                evidence_json=json.dumps(
+                    {"samples": distill.sanitize_samples(samples or []), "recurrences": count}
+                ),
+            )
+            if result.get("id"):
+                _adopt_legacy_template(conn, template_text, result["id"])
+            return result
+
+    return _upsert_pattern(
+        conn,
+        pattern=template_text,
+        memory_type="lesson",
+        domain=None,
+        source="friction",
+        confidence=min(0.85, 0.4 + count / 10.0),
+        concepts=concepts,
+    )
+
+
+def _mine_friction_lessons(
+    conn: sqlite3.Connection,
+    *,
+    min_occurrences: int = 3,
+    distill_state: dict | None = None,
+) -> list[dict]:
     # Fire-and-forget: a missing observations table/column never breaks extraction.
     floor = max(1, min(min_occurrences, _FRICTION_MIN_OCCURRENCES))
     try:
@@ -861,15 +1025,18 @@ def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3
                 "display": _humanize_signature(display),
                 "kind": _friction_kind(d["title"], d["narrative"], d["memory_type"]),
                 "files": set(),  # source-file basenames → concepts, for JIT recall
+                "samples": [],
             },
         )
         cluster["count"] += 1
+        if len(cluster["samples"]) < 3:
+            cluster["samples"].append(display)
         fm = d.get("files_modified") or ""
         if fm:
             cluster["files"].add(fm.rsplit("/", 1)[-1])
 
     lessons: list[dict] = []
-    for cluster in clusters.values():
+    for key, cluster in clusters.items():
         if cluster["count"] < floor:
             continue
         hint = _FRICTION_HINTS.get(cluster["kind"], _FRICTION_HINTS["error"])
@@ -880,13 +1047,14 @@ def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3
             f"({cluster['count']} occurrences): {cluster['display']} → {hint}"
         )
         lessons.append(
-            _upsert_pattern(
+            _mint_friction_lesson(
                 conn,
-                pattern=pattern_text,
-                memory_type="lesson",
-                domain=None,
-                source="friction",
-                confidence=min(0.85, 0.4 + cluster["count"] / 10.0),
+                kind=cluster["kind"],
+                cluster_key=key,
+                count=cluster["count"],
+                template_text=pattern_text,
+                samples=cluster["samples"],
+                distill_state=distill_state,
                 # file:<basename> tokens key JIT recall on the friction's source
                 # file (not basename-in-humanized-text, which never matched).
                 concepts=json.dumps(
@@ -927,7 +1095,12 @@ def _hook_log_paths(conn: sqlite3.Connection) -> list[Path]:
     return paths
 
 
-def _mine_hook_block_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) -> list[dict]:
+def _mine_hook_block_lessons(
+    conn: sqlite3.Connection,
+    *,
+    min_occurrences: int = 3,
+    distill_state: dict | None = None,
+) -> list[dict]:
     # Hook BLOCKs never reach the observations table on Claude (no PostToolUseFailure)
     # but are in the append-only hook log — mine them there. Fire-and-forget.
     floor = max(1, min(min_occurrences, _FRICTION_MIN_OCCURRENCES))
@@ -966,13 +1139,19 @@ def _mine_hook_block_lessons(conn: sqlite3.Connection, *, min_occurrences: int =
         except ValueError:
             continue  # unparseable timestamp — skip, don't guess
         hook = match.group("hook").strip()
-        rule_match = _BLOCK_RULE_RE.search(match.group("rest") or "")
+        rest = match.group("rest") or ""
+        rule_match = _BLOCK_RULE_RE.search(rest)
         rule = rule_match.group(1) if rule_match else ""
         key = f"{hook}:{rule}"
-        clusters.setdefault(key, {"count": 0, "hook": hook, "rule": rule})["count"] += 1
+        cluster = clusters.setdefault(
+            key, {"count": 0, "hook": hook, "rule": rule, "samples": []}
+        )
+        cluster["count"] += 1
+        if rest and len(cluster["samples"]) < 3:
+            cluster["samples"].append(rest)
 
     lessons: list[dict] = []
-    for cluster in clusters.values():
+    for key, cluster in clusters.items():
         if cluster["count"] < floor:
             continue
         subject = f"{cluster['hook']} — {cluster['rule']}" if cluster["rule"] else cluster["hook"]
@@ -981,13 +1160,16 @@ def _mine_hook_block_lessons(conn: sqlite3.Connection, *, min_occurrences: int =
             f"→ satisfy the blocked rule before retrying the action"
         )
         lessons.append(
-            _upsert_pattern(
+            _mint_friction_lesson(
                 conn,
-                pattern=pattern_text,
-                memory_type="lesson",
-                domain=None,
-                source="friction",
-                confidence=min(0.85, 0.4 + cluster["count"] / 10.0),
+                kind="hook_block",
+                cluster_key=key,
+                count=cluster["count"],
+                template_text=pattern_text,
+                hook=cluster["hook"],
+                rule=cluster["rule"],
+                samples=cluster["samples"],
+                distill_state=distill_state,
                 concepts=json.dumps(["lesson", "hook_block", cluster["hook"]]),
             )
         )

@@ -2054,6 +2054,18 @@ def _migrate_v46_log_event_class(conn: sqlite3.Connection) -> None:
     logger.info("Migration v46 applied: log_events gained event_class")
 
 
+def _migrate_v47_distill_columns(conn: sqlite3.Connection) -> None:
+    """Migration v47 — learned_patterns gains distill_fingerprint (idempotent
+    LLM distillation per friction cluster) and evidence_json (sanitized sample
+    failures backing the lesson)."""
+    if not _column_exists_table(conn, "learned_patterns", "distill_fingerprint"):
+        conn.execute("ALTER TABLE learned_patterns ADD COLUMN distill_fingerprint TEXT")
+    if not _column_exists_table(conn, "learned_patterns", "evidence_json"):
+        conn.execute("ALTER TABLE learned_patterns ADD COLUMN evidence_json TEXT")
+    conn.commit()
+    logger.info("Migration v47 applied: learned_patterns gained distill columns")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2405,6 +2417,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         46,
         "log_events.event_class (fault|policy|audit) — hook BLOCKs are policy, not faults, so error_sweep stops mis-filing them as bugs",
         _migrate_v46_log_event_class,
+    ),
+    (
+        47,
+        "learned_patterns.distill_fingerprint + evidence_json — idempotent LLM lesson distillation with auditable evidence",
+        _migrate_v47_distill_columns,
     ),
 ]
 
