@@ -13,7 +13,6 @@ Use when reading from agent memory or running the learn loop. Writes are automat
 ## Learn loop
 - [ ] `cos_learn_extract(min_occurrences=3)` to mint patterns from the task-outcome corpus.
 - [ ] After using a suggested pattern, `cos_learn_validate(pattern_id, was_helpful)` so confidence tracks reality.
-- [ ] Persistent rework on a domain+skill → `cos_learn_feedback(min_rework=3)` drafts guidance for human review.
 
 ## Hygiene
 - [ ] Confidence is system-computed — never expect a write-time confidence knob.

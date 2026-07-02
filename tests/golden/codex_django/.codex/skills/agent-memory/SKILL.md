@@ -10,13 +10,13 @@ last_reviewed: "2026-06-05"
 
 Purpose: turn the policy in [src/core/rules/memory.md](../../rules/memory.md) into mechanical recipes the agent can execute. The rule answers *when* and *what*; this skill answers *how* — the exact tool signatures, what is automatic vs explicit, and what the return envelopes look like. Every signature here is verified against [src/core/thinking_os/server.py](../../thinking_os/server.py); a CI drift-guard test fails if any drifts.
 
-Read when: recalling from memory (`cos_search`, `cos_details`, `cos_timeline`, `cos_learn_suggest`), running the learning loop (`cos_learn_extract` / `cos_learn_validate` / `cos_learn_feedback`), or understanding how observations get captured.
+Read when: recalling from memory (`cos_search`, `cos_details`, `cos_timeline`, `cos_learn_suggest`), running the learning loop (`cos_learn_extract` / `cos_learn_validate`), or understanding how observations get captured.
 
 Skip when: the query target is current code (use [graph-explorer](../graph-explorer/SKILL.md)) or current docs (use `cos_doc_search` per [search](../search/SKILL.md)). Memory is the third-priority retrieval layer.
 
 ## The mental model — writes are automatic, you mostly READ
 
-The single most important fact: **you do not hand-author observations.** Memory is written automatically by PostToolUse capture hooks — every `Write`/`Edit`/`MultiEdit` derives a sanitized, deduped, impact-scored observation ([capture.py](../../thinking_os/capture.py)), and separate hooks capture tool failures, completion gaps, and session events. Confidence on learned patterns is **system-computed** by brain-inspired LTP/LTD formulas, not a number you set. The agent's job is to **read** memory in the Orient phase and **reinforce** patterns via the learn loop. There is no freeform `record(title, body, confidence)` tool — by design.
+The single most important fact: **you do not hand-author observations.** Memory is written automatically by PostToolUse capture hooks — every `Write`/`Edit`/`MultiEdit` derives a sanitized, deduped, impact-scored observation ([capture.py](../../thinking_os/capture.py)), and separate hooks capture tool failures and session events. Confidence on learned patterns is **system-computed** by brain-inspired LTP/LTD formulas, not a number you set. The agent's job is to **read** memory in the Orient phase and **reinforce** patterns via the learn loop. There is no freeform `record(title, body, confidence)` tool — by design.
 
 ## The Decision Gate — before any memory call
 
@@ -92,7 +92,7 @@ Use when the question is "what's new" rather than "what's known about X". Surfac
 
 ### 1. Automatic capture (the default — you do nothing)
 
-A PostToolUse hook calls [capture.py](../../thinking_os/capture.py) after every `Write`/`Edit`/`MultiEdit`: it derives `title` (`Modified <path>` / `Created <path>`), `narrative`, `memory_type` (auto-detected from the path), `impact_score`, and `concepts` from the file and tool, runs them through the write sanitizer (rejects injection, truncates over-length), dedups within a 30s window, and inserts. Tool failures, completion gaps, and session events are captured by their own hooks. **The agent supplies nothing.**
+A PostToolUse hook calls [capture.py](../../thinking_os/capture.py) after every `Write`/`Edit`/`MultiEdit`: it derives `title` (`Modified <path>` / `Created <path>`), `narrative`, `memory_type` (auto-detected from the path), `impact_score`, and `concepts` from the file and tool, runs them through the write sanitizer (rejects injection, truncates over-length), dedups within a 30s window, and inserts. Tool failures and session events are captured by their own hooks. **The agent supplies nothing.**
 
 ### 2. Explicit single-file capture (rare)
 
@@ -117,7 +117,7 @@ This triggers the **same** auto-capture machinery for one file. Use it only when
 | `decision` | Trade-off chosen + reason |
 | `discovery` | Surprising fact about the system |
 
-## The Learning Loop (extract → suggest → validate → feedback)
+## The Learning Loop (extract → suggest → validate)
 
 The loop distills patterns from the corpus of task outcomes and lets the N-th session reuse them — the killer feature. Confidence moves automatically: a pattern that held gets reinforced (LTP), one that didn't decays (LTD).
 
@@ -129,19 +129,15 @@ cos_learn_suggest(domain=, complexity=)     # surface ranked patterns for the ac
         │
         ▼  agent uses a pattern, notes the outcome
 cos_learn_validate(pattern_id, was_helpful) # reinforce (LTP) or decay (LTD) its confidence
-        │
-        ▼  persistent rework on a domain+skill cluster
-cos_learn_feedback(min_rework=3)            # draft feedback files for human review (not auto-applied)
 ```
 
 ```python
 cos_learn_extract(min_occurrences=3)               # corpus-wide; NOT per-task
 cos_learn_suggest(domain="BACKEND", complexity="COMPLICATED", limit=5)
 cos_learn_validate(pattern_id=42, was_helpful=True)  # integer id + boolean
-cos_learn_feedback(min_rework=3)                    # returns drafts; caller writes + human confirms
 ```
 
-`cos_learn_extract`/`feedback` are corpus scans (no task argument). `cos_learn_validate` is how confidence changes — there is no write-time confidence knob.
+`cos_learn_extract` is a corpus scan (no task argument). `cos_learn_validate` is how confidence changes — there is no write-time confidence knob.
 
 ## Cross-session verification
 

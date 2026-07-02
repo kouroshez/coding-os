@@ -182,7 +182,6 @@ def thinking_os_health() -> str:
 from graph import query_related
 from tools.docs import doc_search, list_doc_headers, parse_doc_header
 from tools.learning import (
-    generate_feedback_drafts,
     learn_extract,
     learn_narrative,
     learn_suggest,
@@ -821,34 +820,6 @@ def cos_learn_validate(pattern_id: int, was_helpful: bool = True) -> str:
         str: JSON with old/new confidence and validation status.
     """
     result = learn_validate(_db_conn, pattern_id=pattern_id, was_helpful=was_helpful)
-    return ok(result, meta={"layer": "learning"})
-
-
-@mcp.tool(
-    name="cos_learn_feedback",
-    annotations={
-        "title": "Generate Feedback Drafts",
-        "readOnlyHint": True,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": False,
-    },
-)
-@safe_tool
-def cos_learn_feedback(min_rework: int = 3) -> str:
-    """Detect rework clusters and generate draft feedback content.
-
-    Scans task_outcomes for domain+skill combinations with 3+ reworks.
-    Returns draft content — caller writes files and updates MEMORY.md.
-    Human confirmation required before activation.
-
-    Args:
-        min_rework: Minimum rework tasks to trigger draft (default 3).
-
-    Returns:
-        str: JSON with drafts list [{filename, content, domain, skill, evidence}].
-    """
-    result = generate_feedback_drafts(_db_conn, min_rework=min_rework)
     return ok(result, meta={"layer": "learning"})
 
 

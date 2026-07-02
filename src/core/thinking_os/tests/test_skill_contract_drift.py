@@ -23,7 +23,6 @@ DOCUMENTED = {
     "cos_learn_suggest": {"domain", "complexity", "task_type", "limit"},
     "cos_learn_extract": {"min_occurrences"},
     "cos_learn_validate": {"pattern_id", "was_helpful"},
-    "cos_learn_feedback": {"min_rework"},
 }
 
 FICTIONAL = {"thinking_os_search", "thinking_os_details"}

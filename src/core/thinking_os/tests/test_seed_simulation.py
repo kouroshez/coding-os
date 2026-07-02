@@ -25,7 +25,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import get_db_stats, has_fts5_table, init_db
-from tools.learning import generate_feedback_drafts, learn_extract, learn_suggest, learn_validate
+from tools.learning import learn_extract, learn_suggest, learn_validate
 from tools.memory import memory_details, memory_promote, memory_search, memory_timeline
 from tools.metrics import metric_query, metric_record, metric_trend
 from tools.routing import route_model, route_skill
@@ -469,15 +469,6 @@ class TestLearningCycle:
 
         details = memory_details(seeded_conn, pattern_id=pid, source="learned_patterns")
         assert details["record"]["confidence"] >= 0.10
-
-
-class TestFeedback:
-    """Test feedback generation from rework clusters."""
-
-    def test_feedback_generates_drafts(self, seeded_conn: sqlite3.Connection):
-        result = generate_feedback_drafts(seeded_conn)
-        # With 200 outcomes biased toward BACKEND rework, should generate feedback
-        assert "drafts" in result
 
 
 class TestSearch:

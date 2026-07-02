@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-07 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-07-02 -->
 # Learning Extraction
 
 Purpose: Canonical contract for what `cos_learn_extract` produces — the
@@ -23,7 +23,7 @@ only patterns it could produce were tautologies — `INFRA domain succeeds at
 100% (177/177) — reliable baseline`, `Skill set '…' correlates with success`.
 After a year and millions of tokens the agent had "learned" four such rows,
 none of which is a lesson. Meanwhile the genuinely useful signal — the
-hook BLOCKs, tool failures, completion gaps, and rework→fix corrections every
+hook BLOCKs, tool failures, and rework→fix corrections every
 session emits — was captured into `observations` but **never read** by
 extraction.
 
@@ -40,7 +40,7 @@ an **observability stat** — visible in the Hub, never injected as a belief.
 
 | `memory_type` | Class | Source signal | Belief? |
 |---|---|---|---|
-| `lesson` | Friction → correction | `observations` rows with `memory_type IN ('hook_block','error')` + `completion_gap`; **`fix:`/`revert:` commit subjects** | ✅ |
+| `lesson` | Friction → correction | `observations` rows with `memory_type IN ('hook_block','error')`; **`fix:`/`revert:` commit subjects** | ✅ |
 | `anatomy` | Failure root cause + remedy | `backtrack_events` (`root_cause`, `corrective_action`) | ✅ |
 | `breakthrough` | Rework → success narrative | `outcome_history` (`is_breakthrough=1`, narrative fields) | ✅ |
 | `stat` | Success correlation / baseline | `task_outcomes` `GROUP BY domain/skill` | ❌ observability only |
@@ -55,9 +55,9 @@ and skill-correlation branches MUST write `memory_type='stat'`, never `pattern`.
 
 ### 1. Lessons from friction (primary)
 The abundant, automatic signal. `_mine_friction_lessons` reads
-`observations` where `memory_type IN ('hook_block','error')` plus
-`completion_gap` rows, clusters them by a **normalized signature**, and emits
-one `lesson` per cluster meeting the recurrence threshold.
+`observations` where `memory_type IN ('hook_block','error')`, clusters them
+by a **normalized signature**, and emits one `lesson` per cluster meeting the
+recurrence threshold.
 
 Normalization (so a cluster is stable across sessions and projects):
 - strip absolute paths → basename or `<path>`; strip line/col numbers, hex
@@ -81,9 +81,14 @@ signal, so `_is_noise_failure` drops a cluster whose message matches any of:
 file or directory" (wrong-path Reads), "refusing to write through symlink"
 (expected guard), and the workflow-internal `StructuredOutput` schema mismatch.
 These are *the agent tripping over its own tooling*, never an engineering lesson.
-The filter applies to both friction miners. Genuine `completion_gap` rows are
-**kept** — forgetting to close a task IS a real behavioural lesson — but their
-text is humanized (below).
+The filter applies to both friction miners.
+
+**No `completion_gap` observation class exists.** A task left open at session
+end is surfaced by the warn-only Stop hook (`warn-abandoned-task.sh`) and never
+persisted as an observation — the historical `completion_gap` writer was
+removed, so extraction reads only `hook_block`/`error` rows. Legacy
+`task_not_closed`-titled rows in old corpora still humanize via
+`_humanize_signature` until they age out of the 90-day window.
 
 **Humanized text (no model-jargon).** Per XAI guidance (Google PAIR / Microsoft
 HAX), a lesson must speak the user's language, not the model's. `_humanize_signature`

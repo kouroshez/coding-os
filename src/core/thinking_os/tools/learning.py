@@ -1,11 +1,10 @@
 """
-Thinking OS — MCP learning tools (TASK-144, TASK-147).
+Thinking OS — MCP learning tools.
 
-4 tools for pattern mining and rule suggestion:
+Pattern mining and rule suggestion:
   - cos_learn_extract: discover patterns from task outcomes
   - cos_learn_suggest: return relevant patterns for current context
   - cos_learn_validate: confirm/deny a pattern's usefulness
-  - generate_feedback_drafts: auto-generate feedback files from rework clusters (TASK-147)
 """
 
 from __future__ import annotations
@@ -370,8 +369,8 @@ def learn_extract(
         logger.debug("learn_extract: failure anatomy skipped: %s", exc)
 
     # --- Friction lessons ---
-    # The abundant, automatic learning signal: hook BLOCKs, tool failures, and
-    # completion gaps the agent emits every session. Mined into actionable
+    # The abundant, automatic learning signal: hook BLOCKs and tool failures
+    # the agent emits every session. Mined into actionable
     # `lesson` patterns so the loop learns from mistakes — not just success
     # statistics. Contract: docs/engineering/learning-extraction.md.
     extracted.extend(_mine_friction_lessons(conn, min_occurrences=min_occurrences))
@@ -731,7 +730,6 @@ _FRICTION_MIN_OCCURRENCES = 2
 # Plain-language corrective hint per friction kind — kept beginner-readable.
 _FRICTION_HINTS: dict[str, str] = {
     "hook_block": "satisfy the blocked rule before retrying the action",
-    "completion_gap": "resolve the gap (close/park the task or submit evidence) before ending the session",
     "schema_mismatch": "match the required output schema exactly before resubmitting",
     "error": "fix the failing precondition before retrying",
 }
@@ -750,8 +748,6 @@ def _friction_kind(title: str, narrative: str, memory_type: str) -> str:
     # which appears in unrelated remediation text (e.g. "--to blocked").
     title_l = (title or "").lower()
     narr_l = (narrative or "").lower()
-    if title_l.startswith("completion_gap") or "completion_gap" in title_l:
-        return "completion_gap"
     if "does not match required schema" in narr_l or ("schema" in narr_l and "property" in narr_l):
         return "schema_mismatch"
     if memory_type == "hook_block" or narr_l.startswith("blocked") or "[blocked]" in title_l:
@@ -802,7 +798,6 @@ _JARGON_TRANSLATIONS: tuple[tuple[str, str], ...] = (
     ("no evidencebundle", "no proof-of-completion was recorded"),
     ("task_not_closed", "left a task open"),
     ("does not match required schema", "the output's shape did not match what was required"),
-    ("completion_gap", "a loose end at session end"),
 )
 
 
@@ -1381,86 +1376,6 @@ def learn_validate(
         "new_confidence": round(new_conf, 4),
         "was_helpful": was_helpful,
     }
-
-
-# ---------------------------------------------------------------------------
-# Auto-feedback generation
-# ---------------------------------------------------------------------------
-
-FEEDBACK_THRESHOLD = 3  # minimum rework tasks to trigger feedback draft
-
-
-def generate_feedback_drafts(
-    conn: sqlite3.Connection,
-    *,
-    min_rework: int = FEEDBACK_THRESHOLD,
-) -> dict:
-    """Detect rework clusters and generate draft feedback files.
-
-    Scans task_outcomes for domain+skill combinations with 3+ reworks.
-    Returns draft feedback content (does NOT write files — caller handles I/O).
-
-    Args:
-        conn: SQLite connection.
-        min_rework: Minimum rework tasks to trigger a draft (default 3).
-
-    Returns:
-        Dict with drafts list.
-    """
-    rows = conn.execute(
-        "SELECT domain, skills_used, "
-        "SUM(CASE WHEN outcome = 'rework' THEN 1 ELSE 0 END) AS rework_count, "
-        "COUNT(*) AS total_count, "
-        "GROUP_CONCAT(CASE WHEN outcome = 'rework' THEN task_id END, ', ') AS rework_tasks "
-        "FROM task_outcomes "
-        "WHERE skills_used IS NOT NULL AND skills_used != '' "
-        "GROUP BY domain, skills_used "
-        "HAVING rework_count >= ?",
-        (min_rework,),
-    ).fetchall()
-
-    drafts: list[dict] = []
-
-    for row in rows:
-        d = dict(row)
-        domain = d["domain"] or "UNKNOWN"
-        skill = d["skills_used"] or "unknown"
-        rework_rate = d["rework_count"] / d["total_count"] if d["total_count"] > 0 else 0
-
-        slug = f"{domain.lower()}_{skill.replace('-', '_')}_rework"
-        filename = f"feedback_draft_{slug}.md"
-
-        content = (
-            f"---\n"
-            f"name: {slug}\n"
-            f"description: Auto-detected rework pattern in {domain} with {skill}\n"
-            f"type: feedback\n"
-            f"status: draft\n"
-            f"---\n\n"
-            f"{domain} tasks using {skill} have a {rework_rate:.0%} rework rate "
-            f"({d['rework_count']}/{d['total_count']} tasks).\n\n"
-            f"**Evidence:** {d['rework_tasks']}\n\n"
-            f"**Suggested rule:** Review {domain} {skill} tasks more carefully before marking done. "
-            f"Consider adding additional verification steps.\n\n"
-            f"**Why:** {d['rework_count']} tasks required rework, indicating a systematic gap.\n\n"
-            f"**How to apply:** When working on {domain} tasks with {skill}, "
-            f"double-check the verification matrix before closing.\n"
-        )
-
-        drafts.append(
-            {
-                "filename": filename,
-                "content": content,
-                "domain": domain,
-                "skill": skill,
-                "rework_count": d["rework_count"],
-                "total_count": d["total_count"],
-                "rework_rate": round(rework_rate, 2),
-                "evidence_tasks": d["rework_tasks"],
-            }
-        )
-
-    return {"drafts": drafts, "count": len(drafts)}
 
 
 # ---------------------------------------------------------------------------

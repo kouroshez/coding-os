@@ -64,7 +64,6 @@ Read next: any of the entries below.
 - [Agent Hub & Multi-Agent Orchestration](agent-hub-orchestration.md) — `ssot:true` · updated 2026-06-05
 - [logging_os — Central Log Helpers](logging_os.md) — `ssot:true` · updated 2026-06-05
 - [Extension Manager — Architecture & Security/Trust Model](extension-manager.md) — `ssot:true` · updated 2026-06-06
-- [Learning Extraction](learning-extraction.md) — `ssot:true` · updated 2026-06-07
 - [Observability Eye — Enterprise Error & Log Pipeline](observability-eye.md) — `ssot:true` · updated 2026-06-07
 - [Concept Graph (co_edit / concept_link)](concept-graph.md) — `ssot:true` · updated 2026-06-07
 - [Test Governance — Multi-Agent-Safe, Laptop-Safe Suite Execution](test-governance.md) — `ssot:true` · updated 2026-06-10
@@ -73,5 +72,6 @@ Read next: any of the entries below.
 - [Modularity / Auto-Sync Audit — June 2026](modularity-audit-2026-06.md) — `ssot:true` · updated 2026-06-19
 - [Destructive-Edit Guard — Friction Before Destruction](destructive-edit-guard.md) — `ssot:true` · updated 2026-06-21
 - [Derived-Store Coherence Audit — 2026-06-30](derived-store-coherence-audit-2026-06-30.md) — `ssot:true` · updated 2026-06-30
+- [Learning Extraction](learning-extraction.md) — `ssot:true` · updated 2026-07-02
 
 <!-- END auto-index -->

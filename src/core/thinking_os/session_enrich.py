@@ -156,22 +156,10 @@ def main() -> None:
                 model = marker.read_text().strip() or None
         model = model or "unknown"
 
-        # Real outcome, not a hardcoded 'success' literal. A session
-        # that recorded any completion_gap observation ended with unmet intent →
-        # 'partial'; otherwise 'success'. This is the only negative-signal
-        # source on the automated session path, so metric trends + the
-        # degeneracy diagnostic finally see variance.
+        # No automated negative-signal source exists at session scope;
+        # outcome variance is task-scoped via
+        # record_outcome._derive_rework/_derive_blocked.
         outcome = "success"
-        try:
-            gap = conn.execute(
-                "SELECT COUNT(*) FROM observations "
-                "WHERE session_id = ? AND observation_type = 'completion_gap'",
-                (session_id,),
-            ).fetchone()
-            if gap and gap[0]:
-                outcome = "partial"
-        except sqlite3.Error as exc:  # fail-open (Rule 6)
-            print(f"session_enrich.py: outcome derive failed: {exc}", file=sys.stderr)
 
         conn.execute(
             "INSERT INTO agent_metrics "

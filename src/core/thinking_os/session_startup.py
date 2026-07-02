@@ -30,15 +30,21 @@ def main() -> None:
 
         obs = conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
         pats = conn.execute("SELECT COUNT(*) FROM learned_patterns").fetchone()[0]
-        cost = conn.execute("SELECT COALESCE(SUM(cost_tokens), 0) FROM observations").fetchone()[0]
+        trusted = conn.execute(
+            "SELECT COUNT(*) FROM learned_patterns "
+            "WHERE confidence >= 0.7 AND times_validated >= 3 "
+            "AND COALESCE(memory_type, '') != 'stat' "
+            "AND COALESCE(promoted_to, '') != 'archived'"
+        ).fetchone()[0]
 
-        mem_tok = 700  # ~200 start + ~500 orient per task
-        budget = 800_000  # 1M context × 80% usable
-        pct = mem_tok / budget * 100
+        digest_path = Path(db_path).parent / "digest.md"
+        digest_tokens = 0
+        if digest_path.exists():
+            digest_tokens = len(digest_path.read_text(encoding="utf-8", errors="ignore")) // 4
+
         print(
-            f"[Memory] {obs} obs, {pats} patterns | "
-            f"~{mem_tok} tok/task ({pct:.4f}% of 800K context) | "
-            f"capture cost: {cost} tok"
+            f"[Memory] {obs} obs, {pats} patterns ({trusted} trusted) | "
+            f"digest ~{digest_tokens} tok injected at start"
         )
 
         # Episode chaining: show previous session context

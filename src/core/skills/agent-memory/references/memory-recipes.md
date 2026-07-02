@@ -45,7 +45,6 @@ supplied. Record discipline is about WHAT you edit, not a manual call.
 cos_learn_extract(min_occurrences=3)                 # corpus scan → mint learned_patterns
 cos_learn_suggest(domain=, complexity=, limit=5)     # surface ranked patterns for the active task
 cos_learn_validate(pattern_id=42, was_helpful=True)  # reinforce (LTP) / decay (LTD) confidence
-cos_learn_feedback(min_rework=3)                      # draft feedback files for human review
 ```
 
 Confidence is system-computed: validating a pattern that held raises it, one that

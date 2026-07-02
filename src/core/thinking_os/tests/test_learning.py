@@ -18,7 +18,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from database import init_db
 from tools.learning import (
     boost_success,
-    generate_feedback_drafts,
     learn_extract,
     learn_suggest,
     learn_validate,
@@ -1087,62 +1086,6 @@ class TestG6EvidenceBasedDefaults:
             (res["id"],),
         ).fetchone()
         assert row[0] == "agent_self"
-
-
-# ---------------------------------------------------------------------------
-# Auto-feedback generation
-# ---------------------------------------------------------------------------
-
-
-class TestFeedbackDrafts:
-    def test_empty_db(self, conn: sqlite3.Connection) -> None:
-        result = generate_feedback_drafts(conn)
-        assert result["count"] == 0
-        assert result["drafts"] == []
-
-    def test_below_threshold(self, conn: sqlite3.Connection) -> None:
-        # Only 2 reworks — below threshold of 3
-        for i in range(2):
-            conn.execute(
-                "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome, skills_used) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (f"TASK-{i}", "feat", "BACKEND", "CLEAR", "rework", "python-django"),
-            )
-        conn.commit()
-        result = generate_feedback_drafts(conn)
-        assert result["count"] == 0
-
-    def test_generates_draft(self, seeded_conn: sqlite3.Connection) -> None:
-        result = generate_feedback_drafts(seeded_conn, min_rework=3)
-        # seeded_conn has 3 BACKEND reworks with python-django
-        backend_drafts = [d for d in result["drafts"] if d["domain"] == "BACKEND"]
-        assert len(backend_drafts) >= 1
-
-    def test_draft_has_required_fields(self, seeded_conn: sqlite3.Connection) -> None:
-        result = generate_feedback_drafts(seeded_conn, min_rework=3)
-        if result["count"] > 0:
-            draft = result["drafts"][0]
-            assert "filename" in draft
-            assert "content" in draft
-            assert "domain" in draft
-            assert "skill" in draft
-            assert "evidence_tasks" in draft
-            assert "status: draft" in draft["content"]
-
-    def test_draft_content_format(self, seeded_conn: sqlite3.Connection) -> None:
-        result = generate_feedback_drafts(seeded_conn, min_rework=3)
-        if result["count"] > 0:
-            content = result["drafts"][0]["content"]
-            assert "---" in content  # frontmatter
-            assert "**Evidence:**" in content
-            assert "**Suggested rule:**" in content
-            assert "**Why:**" in content
-
-    def test_no_duplicate_for_same_cluster(self, seeded_conn: sqlite3.Connection) -> None:
-        r1 = generate_feedback_drafts(seeded_conn, min_rework=3)
-        r2 = generate_feedback_drafts(seeded_conn, min_rework=3)
-        # Same data should produce same drafts
-        assert r1["count"] == r2["count"]
 
 
 # ---------------------------------------------------------------------------

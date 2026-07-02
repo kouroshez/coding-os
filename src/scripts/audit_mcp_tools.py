@@ -204,12 +204,6 @@ async def test_learning():
     env, ms = await T("cos_learn_validate", pattern_id=PAT_ID, was_helpful=True)
     _rec("learning", "cos_learn_validate", env, ms=ms)
 
-    env, ms = await T("cos_learn_feedback", min_rework=1)
-    _rec("learning", "cos_learn_feedback", env, ms=ms)
-    if env.get("ok"):
-        d = _d(env)
-        print(f"    feedback_preview={str(d)[:120]}")
-
     env, ms = await T(
         "cos_learn_narrative",
         task_id=TASK_ID,

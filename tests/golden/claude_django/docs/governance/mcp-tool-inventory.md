@@ -25,7 +25,7 @@ Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.
      init too. Markers strip to byte-identical output when all modules are on. -->
 - **Health (1):** `cos_health` — DB stats, schema version, FTS5 status
 - **Memory (5):** `cos_search` (5-signal ranked), `cos_timeline` (chronological), `cos_details` (full record), `cos_promote` (pattern → rule), `cos_observation_record`
-- **Learning (5):** `cos_learn_extract`, `cos_learn_suggest`, `cos_learn_validate`, `cos_learn_feedback`, `cos_learn_narrative`
+- **Learning (4):** `cos_learn_extract`, `cos_learn_suggest`, `cos_learn_validate`, `cos_learn_narrative`
 - **Retrieval Quality (4):** `cos_retrieval_cite`, `cos_retrieval_learn`, `cos_retrieval_quality`, `cos_retrieval_enrichment_check`
 - **Metrics (3):** `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
 - **Routing & Roles (6):** `cos_route_model`, `cos_route_skill`, `cos_compose_chain`, `cos_role_info`, `cos_situation_detect`, `cos_classify_prompt`
