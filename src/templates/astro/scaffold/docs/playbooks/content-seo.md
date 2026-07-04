@@ -10,7 +10,7 @@ Read next: [Astro App Playbook](./astro-app.md), [Astro Engineering Rules](../en
 
 ## Content collections (the sanctioned path)
 
-- Define every collection schema with `defineCollection` + a zod schema in `src/content/config.ts`; frontmatter that fails the schema is a build error, not a silent default.
+- Define every collection with `defineCollection` + a Content Layer `loader` (`glob()`) + a zod schema in `src/content.config.ts`; frontmatter that fails the schema is a build error, not a silent default.
 - Query with `getCollection` / `getEntry`; never glob-import markdown by hand.
 - Keep rendered copy in the content entry — components receive typed props, they do not embed page prose.
 

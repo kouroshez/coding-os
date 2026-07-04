@@ -20,7 +20,8 @@ Read next: [Astro App Playbook](../playbooks/astro-app.md)
    components; the page/layout shell stays a static `.astro` file. Never wrap a
    whole page in a `client:*` island.
 4. **Content collections are the content SSOT** — every content type has a Zod
-   schema in `src/content/config.ts`; entries are validated at build. Pages read
+   schema + a Content Layer `loader` in `src/content.config.ts`; entries are
+   validated at build. Pages read
    via `getCollection()`/`getEntry()` and consume the typed `data` — reading an
    undeclared frontmatter key is a build-blocking finding.
 5. **One error shaper** — only `src/lib/problem.ts` writes API error bodies

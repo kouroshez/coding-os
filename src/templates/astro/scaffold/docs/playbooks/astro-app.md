@@ -28,13 +28,15 @@ Read next: [Astro Engineering Rules](../engineering/astro-rules.md), [Content & 
    `lib/problem.ts` shaper (the canonical `{error:{code,message,request_id}}`
    envelope, [error-format](../api-contracts/error-format.md)) —
    never build an error body inline.
-3. An endpoint needs `output: "hybrid"` (or `"server"`) in `astro.config.mjs`;
-   keep static pages static.
+3. An endpoint that must run at request time needs `export const prerender = false`
+   (with an adapter), or `output: "server"` in `astro.config.mjs`; keep static
+   pages static.
 
 ## Add a content collection
 
-1. Define the collection schema (Zod) in `src/content/config.ts` — that schema
-   is the content contract; frontmatter is validated at build time.
+1. Define the collection's Content Layer `loader` (`glob()`) + Zod schema in
+   `src/content.config.ts` — that schema is the content contract; frontmatter is
+   validated at build time.
 2. Add entries as `.md`/`.mdx` under `src/content/<collection>/`.
 3. Read with `getCollection()`; the returned `data` is typed from the schema —
    never read a frontmatter key the schema does not declare.
