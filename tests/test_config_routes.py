@@ -82,3 +82,54 @@ def test_adapters_groups_models_by_adapter(client):
     # Adapters tab shows this so the UI never guesses the wiring file.
     assert claude["mcp_config_paths"] == [".mcp.json"]
     assert adapters["codex"]["mcp_config_paths"] == [".codex/config.toml"]
+
+
+def test_skills_expose_installed_stacks_and_stack_membership(client):
+    # TASK-786: the Skills tab groups active skills by the installed stacks that
+    # use them, so the producer emits installed_stacks + a per-skill `stacks`.
+    r = client.get("/api/config/skills")
+    assert r.status_code == 200
+    body = r.json()
+    assert isinstance(body["installed_stacks"], list)
+    assert any(s["id"] == "meta" for s in body["installed_stacks"])  # meta-repo installs meta
+    for s in body["skills"]:
+        assert isinstance(s["stacks"], list)
+
+
+def test_mcp_catalog_lists_first_party_allowlist(client):
+    r = client.get("/api/config/mcp/catalog")
+    assert r.status_code == 200
+    body = r.json()
+    ids = {s["id"] for s in body["servers"]}
+    assert {"fetch", "git", "playwright"} <= ids  # curated first-party set
+    for s in body["servers"]:
+        assert {"id", "name", "command", "args", "installed"} <= set(s)
+
+
+def test_mutations_refuse_on_the_meta_repo(client):
+    # The TestClient resolves the project to the coding-os meta-repo (cwd), whose
+    # .coding-os.yaml is DNA — every install/add mutation must refuse (409).
+    assert client.post("/api/config/stacks/angular").status_code == 409
+    assert client.delete("/api/config/stacks/meta").status_code == 409
+    assert client.post("/api/config/adapters/codex").status_code == 409
+    assert client.post("/api/config/mcp", json={"id": "fetch"}).status_code == 409
+
+
+def test_mcp_add_rejects_units_off_the_allowlist(client, monkeypatch):
+    import web.routes.config as cfg  # the module the app actually serves
+
+    monkeypatch.setattr(cfg, "_is_meta_repo", lambda root: False)  # bypass the meta guard
+    r = client.post("/api/config/mcp", json={"id": "evil-server"})
+    assert r.status_code == 400
+    assert r.json()["error"]["category"] == "validation"
+
+
+def test_adapter_remove_refuses_the_last_adapter(client, monkeypatch, tmp_path):
+    import web.routes.config as cfg  # the module the app actually serves
+
+    (tmp_path / ".coding-os.yaml").write_text("agents:\n  - claude\n", encoding="utf-8")
+    monkeypatch.setattr(cfg, "_is_meta_repo", lambda root: False)
+    monkeypatch.setattr(cfg, "_project_root", lambda: tmp_path)
+    r = client.delete("/api/config/adapters/claude")
+    assert r.status_code == 409
+    assert "at least one adapter" in r.json()["error"]["message"]
