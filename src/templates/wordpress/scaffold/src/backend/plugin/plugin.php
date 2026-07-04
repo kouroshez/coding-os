@@ -13,6 +13,8 @@ if (!defined('ABSPATH')) {
     exit; // No direct access.
 }
 
+require_once __DIR__ . '/inc/health.php';
+
 // Register a namespaced REST route. Sanitize on input, escape on output,
 // and permission-check every callback (return true here = public read).
 add_action('rest_api_init', static function (): void {
@@ -20,7 +22,7 @@ add_action('rest_api_init', static function (): void {
         'methods' => 'GET',
         'permission_callback' => '__return_true',
         'callback' => static function (): WP_REST_Response {
-            return new WP_REST_Response(['status' => 'ok'], 200);
+            return new WP_REST_Response(cos_health_status(), 200);
         },
     ]);
 });

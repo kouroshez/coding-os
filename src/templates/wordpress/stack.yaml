@@ -45,9 +45,10 @@ rules:
 
 makefile_targets:
   - {name: lint-backend, cmd: "cd src/backend && composer lint"}
+  - {name: test-backend, cmd: "cd src/backend && composer test"}
 
 verify:
-  - {glob: "src/backend/**/*.php", suites: "lint-backend", cmd: "cd src/backend && composer lint"}
+  - {glob: "src/backend/**/*.php", suites: "lint-backend + test-backend", cmd: "cd src/backend && composer lint && composer test"}
 
 dimensions:
   - {name: "Theme template / hook", read_files: ["docs/playbooks/wordpress-service.md", "docs/engineering/wordpress-rules.md"]}

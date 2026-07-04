@@ -18,6 +18,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -76,6 +77,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -105,6 +107,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -233,7 +236,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 229
     },
     "claude_angular": {
       "agent": "claude",
@@ -253,6 +256,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -311,6 +315,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -340,6 +345,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -484,6 +490,7 @@
         "src/frontend/src/app/app.routes.ts",
         "src/frontend/src/app/core/global-error-handler.ts",
         "src/frontend/src/app/health/health.component.ts",
+        "src/frontend/src/app/health/health.service.spec.ts",
         "src/frontend/src/app/health/health.service.ts",
         "src/frontend/src/index.html",
         "src/frontend/src/main.ts",
@@ -493,7 +500,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 251
+      "count": 255
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -513,6 +520,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -571,6 +579,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -600,6 +609,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -744,7 +754,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 245
     },
     "claude_astro": {
       "agent": "claude",
@@ -764,6 +774,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -822,6 +833,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -851,6 +863,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -1003,7 +1016,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 250
+      "count": 253
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1023,6 +1036,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -1081,6 +1095,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -1110,6 +1125,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -1241,7 +1257,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 232
     },
     "claude_django": {
       "agent": "claude",
@@ -1261,6 +1277,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -1319,6 +1336,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -1348,6 +1366,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -1499,7 +1518,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 249
+      "count": 252
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1519,6 +1538,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -1577,6 +1597,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -1606,6 +1627,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -1749,7 +1771,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 244
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1769,6 +1791,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -1827,6 +1850,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -1856,6 +1880,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -2001,7 +2026,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 246
     },
     "claude_go": {
       "agent": "claude",
@@ -2021,6 +2046,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -2079,6 +2105,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -2108,6 +2135,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -2252,7 +2280,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 245
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2272,6 +2300,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -2330,6 +2359,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -2359,6 +2389,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -2504,7 +2535,7 @@
         "src/backend/go.sum",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 246
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2524,6 +2555,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -2582,6 +2614,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -2611,6 +2644,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -2743,7 +2777,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 233
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2763,6 +2797,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -2821,6 +2856,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -2850,6 +2886,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -2983,7 +3020,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 234
     },
     "claude_laravel": {
       "agent": "claude",
@@ -3003,6 +3040,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -3061,6 +3099,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -3090,6 +3129,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -3227,12 +3267,15 @@
         "phpcs.xml.dist",
         "src/backend/app/Exceptions/Handler.php",
         "src/backend/app/Http/Controllers/HealthController.php",
+        "src/backend/app/Support/HealthStatus.php",
         "src/backend/composer.json",
+        "src/backend/phpunit.xml",
         "src/backend/public/index.php",
         "src/backend/routes/api.php",
+        "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 246
     },
     "claude_meta": {
       "agent": "claude",
@@ -3252,6 +3295,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -3310,6 +3354,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -3339,6 +3384,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -3505,7 +3551,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 264
+      "count": 267
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3525,6 +3571,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -3583,6 +3630,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -3612,6 +3660,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -3763,7 +3812,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 249
+      "count": 252
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -3783,6 +3832,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -3841,6 +3891,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -3870,6 +3921,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -4032,7 +4084,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 260
+      "count": 263
     },
     "claude_node-express": {
       "agent": "claude",
@@ -4052,6 +4104,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -4110,6 +4163,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -4139,6 +4193,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -4286,7 +4341,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 245
+      "count": 248
     },
     "claude_python": {
       "agent": "claude",
@@ -4306,6 +4361,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -4364,6 +4420,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -4393,6 +4450,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -4524,7 +4582,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 232
     },
     "claude_rails": {
       "agent": "claude",
@@ -4544,6 +4602,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -4602,6 +4661,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -4631,6 +4691,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -4779,7 +4840,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 249
     },
     "claude_react-native": {
       "agent": "claude",
@@ -4799,6 +4860,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -4857,6 +4919,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -4886,6 +4949,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -5045,7 +5109,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 257
+      "count": 260
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -5065,6 +5129,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -5123,6 +5188,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -5152,6 +5218,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -5284,7 +5351,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 233
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5304,6 +5371,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -5362,6 +5430,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -5391,6 +5460,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -5535,7 +5605,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 245
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5555,6 +5625,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -5613,6 +5684,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -5642,6 +5714,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -5775,7 +5848,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 234
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -5795,6 +5868,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -5853,6 +5927,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -5882,6 +5957,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -6027,7 +6103,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 246
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -6047,6 +6123,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -6105,6 +6182,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -6134,6 +6212,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -6288,7 +6367,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 252
+      "count": 255
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6308,6 +6387,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -6366,6 +6446,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -6395,6 +6476,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -6529,7 +6611,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 232
+      "count": 235
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6549,6 +6631,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -6607,6 +6690,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -6636,6 +6720,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -6782,7 +6867,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 244
+      "count": 247
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -6802,6 +6887,7 @@
         ".claude/commands/role-architect.md",
         ".claude/commands/role-debugger.md",
         ".claude/commands/role-deployer.md",
+        ".claude/commands/role-distiller.md",
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
@@ -6860,6 +6946,7 @@
         ".claude/hooks/enforce-verify.sh",
         ".claude/hooks/enforce-wip-limit.sh",
         ".claude/hooks/enforce-zoom.sh",
+        ".claude/hooks/ensure-agent-memory-link.sh",
         ".claude/hooks/ensure-hub-up.sh",
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/jit-recall.sh",
@@ -6889,6 +6976,7 @@
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
         ".claude/hooks/snapshot-transcript.sh",
+        ".claude/hooks/sync-agent-memory.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-governor.sh",
@@ -7030,12 +7118,15 @@
         "phpcs.xml.dist",
         "src/backend/composer.json",
         "src/backend/phpcs.xml.dist",
+        "src/backend/phpunit.xml",
+        "src/backend/plugin/inc/health.php",
         "src/backend/plugin/plugin.php",
+        "src/backend/tests/HealthStatusTest.php",
         "src/backend/theme/functions.php",
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 250
     },
     "codex_base": {
       "agent": "codex",
@@ -7053,6 +7144,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -7272,7 +7364,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 231
     },
     "codex_angular": {
       "agent": "codex",
@@ -7292,6 +7384,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -7527,6 +7620,7 @@
         "src/frontend/src/app/app.routes.ts",
         "src/frontend/src/app/core/global-error-handler.ts",
         "src/frontend/src/app/health/health.component.ts",
+        "src/frontend/src/app/health/health.service.spec.ts",
         "src/frontend/src/app/health/health.service.ts",
         "src/frontend/src/index.html",
         "src/frontend/src/main.ts",
@@ -7536,7 +7630,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 255
+      "count": 257
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7556,6 +7650,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -7791,7 +7886,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 247
     },
     "codex_astro": {
       "agent": "codex",
@@ -7811,6 +7906,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -8054,7 +8150,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 254
+      "count": 255
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -8074,6 +8170,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -8296,7 +8393,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 234
     },
     "codex_django": {
       "agent": "codex",
@@ -8316,6 +8413,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -8558,7 +8656,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 253
+      "count": 254
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8578,6 +8676,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -8812,7 +8911,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 246
     },
     "codex_flutter": {
       "agent": "codex",
@@ -8832,6 +8931,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -9068,7 +9168,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 248
     },
     "codex_go": {
       "agent": "codex",
@@ -9088,6 +9188,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -9323,7 +9424,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 247
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9343,6 +9444,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -9579,7 +9681,7 @@
         "src/backend/go.sum",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 248
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -9599,6 +9701,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -9822,7 +9925,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 235
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -9842,6 +9945,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -10066,7 +10170,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 236
     },
     "codex_laravel": {
       "agent": "codex",
@@ -10086,6 +10190,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -10314,12 +10419,15 @@
         "phpcs.xml.dist",
         "src/backend/app/Exceptions/Handler.php",
         "src/backend/app/Http/Controllers/HealthController.php",
+        "src/backend/app/Support/HealthStatus.php",
         "src/backend/composer.json",
+        "src/backend/phpunit.xml",
         "src/backend/public/index.php",
         "src/backend/routes/api.php",
+        "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 248
     },
     "codex_meta": {
       "agent": "codex",
@@ -10339,6 +10447,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -10596,7 +10705,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 268
+      "count": 269
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -10616,6 +10725,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -10858,7 +10968,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 253
+      "count": 254
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -10878,6 +10988,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -11131,7 +11242,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 264
+      "count": 265
     },
     "codex_node-express": {
       "agent": "codex",
@@ -11151,6 +11262,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -11389,7 +11501,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 249
+      "count": 250
     },
     "codex_python": {
       "agent": "codex",
@@ -11409,6 +11521,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -11631,7 +11744,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 234
     },
     "codex_rails": {
       "agent": "codex",
@@ -11651,6 +11764,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -11890,7 +12004,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 250
+      "count": 251
     },
     "codex_react-native": {
       "agent": "codex",
@@ -11910,6 +12024,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -12160,7 +12275,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 261
+      "count": 262
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -12180,6 +12295,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -12403,7 +12519,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 235
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -12423,6 +12539,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -12658,7 +12775,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 247
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -12678,6 +12795,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -12902,7 +13020,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 236
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -12922,6 +13040,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -13158,7 +13277,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 248
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -13178,6 +13297,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -13423,7 +13543,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 256
+      "count": 257
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -13443,6 +13563,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -13668,7 +13789,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 236
+      "count": 237
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -13688,6 +13809,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -13925,7 +14047,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 248
+      "count": 249
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -13945,6 +14067,7 @@
         ".codex/commands/role-architect.md",
         ".codex/commands/role-debugger.md",
         ".codex/commands/role-deployer.md",
+        ".codex/commands/role-distiller.md",
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
@@ -14177,12 +14300,15 @@
         "phpcs.xml.dist",
         "src/backend/composer.json",
         "src/backend/phpcs.xml.dist",
+        "src/backend/phpunit.xml",
+        "src/backend/plugin/inc/health.php",
         "src/backend/plugin/plugin.php",
+        "src/backend/tests/HealthStatusTest.php",
         "src/backend/theme/functions.php",
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 248
+      "count": 252
     }
   }
 }

@@ -75,6 +75,7 @@ skill_enforcement:
 
 makefile_targets:
   - {name: lint-frontend, cmd: "cd src/frontend && npm run lint"}
+  - {name: test-frontend, cmd: "cd src/frontend && npm test"}
 
 verify:
-  - {glob: "src/frontend/**/*.{ts,tsx}", suites: "lint-frontend", cmd: "cd src/frontend && npm run lint"}
+  - {glob: "src/frontend/**/*.{ts,tsx}", suites: "lint-frontend + test-frontend", cmd: "cd src/frontend && npm run lint && npm test"}
