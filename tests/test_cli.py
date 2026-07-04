@@ -1053,7 +1053,7 @@ class TestCiWorkflow:
         verify = doc["jobs"]["verify"]
         legs = {m["language"]: m["targets"] for m in verify["strategy"]["matrix"]["include"]}
         assert legs["python"] == "lint-backend test-backend"
-        assert legs["typescript"] == "lint-frontend"
+        assert legs["typescript"] == "lint-frontend test-frontend"
         # Body delegates to make — never pins a ruff/pytest/eslint version.
         assert "make ${{ matrix.targets }}" in out
         assert verify["runs-on"] == "ubuntu-latest"
@@ -2250,7 +2250,7 @@ class TestModuleCli:
         monkeypatch.chdir(project)
         result = runner.invoke(cli, ["module", "disable", "docs"])
         assert result.exit_code != 0
-        assert "tasks → docs" in result.output
+        assert "required by enabled module(s) tasks" in result.output
 
     def test_disable_regenerates_agents_md_and_allowlist(
         self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
