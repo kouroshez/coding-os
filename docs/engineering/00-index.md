@@ -69,9 +69,9 @@ Read next: any of the entries below.
 - [Test Governance — Multi-Agent-Safe, Laptop-Safe Suite Execution](test-governance.md) — `ssot:true` · updated 2026-06-10
 - [Hub Threat Model — localhost trust boundary (TASK-363)](hub-threat-model.md) — `ssot:true` · updated 2026-06-11
 - [Project Anatomy — Polyglot Coexistence Contract](project-anatomy.md) — `ssot:true` · updated 2026-06-11
-- [Modularity / Auto-Sync Audit — June 2026](modularity-audit-2026-06.md) — `ssot:true` · updated 2026-06-19
 - [Destructive-Edit Guard — Friction Before Destruction](destructive-edit-guard.md) — `ssot:true` · updated 2026-06-21
 - [Derived-Store Coherence Audit — 2026-06-30](derived-store-coherence-audit-2026-06-30.md) — `ssot:true` · updated 2026-06-30
 - [Learning Extraction](learning-extraction.md) — `ssot:true` · updated 2026-07-02
+- [Modularity / Auto-Sync Audit — June 2026](modularity-audit-2026-06.md) — `ssot:true` · updated 2026-07-03
 
 <!-- END auto-index -->
