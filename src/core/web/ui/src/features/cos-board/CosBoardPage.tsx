@@ -9,6 +9,7 @@ import {
   type DragEvent,
   type ReactNode,
 } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import { apiGet, apiPost, apiPatch } from '@/lib/api-client';
@@ -371,6 +372,7 @@ export default function CosBoardPage() {
   const [createOpen, setCreateOpen] = useState<boolean>(false);
   const [agentOpen, setAgentOpen] = useState<boolean>(false);
   const [detailTask, setDetailTask] = useState<BoardListCard | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [dragging, setDragging] = useState<BoardListCard | null>(null);
   const [dragTarget, setDragTarget] = useState<string | null>(null);
@@ -429,6 +431,20 @@ export default function CosBoardPage() {
     () => allColumns.filter((c) => c.id !== 'archive' || tweaks.showArchive),
     [allColumns, tweaks.showArchive],
   );
+
+  // Deep-link focus: /workspace/board?task=TASK-NNN (e.g. from search) opens
+  // that task's drawer, then consumes the param so a later close doesn't
+  // re-open it. No-op until the card is present in the loaded board list.
+  useEffect(() => {
+    const focus = searchParams.get('task');
+    if (!focus) return;
+    const card = cards.find((c) => c.id === focus);
+    if (!card) return;
+    setDetailTask(card);
+    const next = new URLSearchParams(searchParams);
+    next.delete('task');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, cards, setSearchParams]);
 
   const filtered = useMemo<BoardListCard[]>(
     () =>

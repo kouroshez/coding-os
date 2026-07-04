@@ -70,7 +70,7 @@ Required sections in this order (template lives at `src/templates/task-detail.md
 - `## Outcome` — single sentence describing the externally visible result.
 - `## Read First` — annotated list of files and refs the executor should load before editing.
 - `## Acceptance` — numbered list, Given/When/Then format.
-- `## Work Log` — append-only bullets, newest at the bottom.
+- `## Work Log` — append-only bullets, newest at the bottom. `cos_task_edit` preserves this section on a body replace: the board editor strips it for display (it renders in the History timeline), so a save that omits it must never delete it.
 - `## Rollback` — one-paragraph plan for backing the change out.
 
 Optional sections:

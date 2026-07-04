@@ -173,7 +173,7 @@ export default function UnifiedSearch() {
     navigate(`${slugPrefix}/graph/${encodeURIComponent(uid)}`);
   };
   const openTask = (taskId: string) => {
-    navigate(`${slugPrefix}/board?task=${encodeURIComponent(taskId)}`);
+    navigate(`${slugPrefix}/workspace/board?task=${encodeURIComponent(taskId)}`);
   };
 
   return (

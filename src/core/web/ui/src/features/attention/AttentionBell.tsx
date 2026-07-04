@@ -8,7 +8,10 @@ import {
   summarizeStreamEvent,
 } from '@/lib/attention';
 
-const ATTENTION_EVENTS = ['dispatch-completed', 'agent-blocked', 'needs-input'] as const;
+// Only 'dispatch-completed' is emitted by /api/stream/events today (see
+// stream.py::_poll_tick). 'agent-blocked'/'needs-input' have no producer yet,
+// so subscribing to them is dead — re-add here once the stream emits them.
+const ATTENTION_EVENTS = ['dispatch-completed'] as const;
 const FEED_CAP = 30;
 
 interface FeedItem {

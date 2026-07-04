@@ -118,6 +118,45 @@ def test_create_task_title_with_double_quote_stays_valid_yaml(
     assert edited["ok"] is True
 
 
+def test_task_edit_preserves_work_log_on_body_replace(
+    project: Path, conn: sqlite3.Connection
+):
+    """TASK-773: the board drawer strips the ## Work Log section before PATCHing
+    the body, so a wholesale body replace must re-append it — else editing a
+    task through the UI silently deletes the system-managed log (data loss)."""
+    created = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Has a work log",
+            swimlane="core",
+            kind="feature",
+            outcome="A task whose body carries a Work Log.",
+        )
+    )
+    task_id = created["data"]["task_id"]
+    file_path = project / created["data"]["file_path"]
+
+    mcp_tools.cos_work_log_append(conn, task_id=task_id, summary="first checkpoint")
+    mcp_tools.cos_work_log_append(conn, task_id=task_id, summary="second checkpoint")
+    assert "## Work Log" in file_path.read_text(encoding="utf-8")
+
+    # The board editor sends a body with the Work Log stripped out.
+    edited = _parse(
+        mcp_tools.cos_task_edit(
+            conn,
+            task_id=task_id,
+            body="## Outcome\n\nUpdated outcome text — no work log here.\n",
+        )
+    )
+    assert edited["ok"] is True
+
+    after = file_path.read_text(encoding="utf-8")
+    assert "Updated outcome text" in after  # the edit landed
+    assert "## Work Log" in after  # and the log survived
+    assert "first checkpoint" in after
+    assert "second checkpoint" in after
+
+
 def test_create_attributes_human_when_session_is_human(project, conn):
     # The web manual-create path passes agent_session='human' so a
     # human-made task is attributed to the human, not the active agent panel.
