@@ -2,9 +2,10 @@ import type { ReactNode } from 'react';
 import { useEffect, useId, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { ChevronRight, Lock, Plus, Trash2 } from 'lucide-react';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
-import { apiPatch } from '@/lib/api-client';
-import { SubNav, subNavTabClass } from '@/layout/HubPrimitives';
+import { apiDelete, apiPatch, apiPost } from '@/lib/api-client';
+import { Banner, SubNav, subNavTabClass } from '@/layout/HubPrimitives';
 import { useScopedLink } from '@/lib/use-scoped-link';
 
 /**
@@ -107,6 +108,152 @@ function Pill({ tone, children }: { tone: 'ok' | 'muted'; children: ReactNode })
 
 function StateRow({ children }: { children: ReactNode }) {
   return <p className="px-1 py-6 text-sm text-[var(--cos-muted)]">{children}</p>;
+}
+
+// --------------------------------------------------------------------------
+// Config mutation chrome (TASK-786). The meta-repo ships every stack/adapter as
+// a template and installs none in the consumer sense, so install/remove is
+// disabled on its slug — parity with the Git-tab trunk caution.
+// --------------------------------------------------------------------------
+
+// The meta-repo's own derived slug (cli.registry._derive_slug). Mutations are
+// disabled on this slug; the Git tab keys its trunk caution off the same value.
+const META_REPO_SLUG = 'coding-os';
+
+function useConfigMutation(invalidate: string[]) {
+  const qc = useQueryClient();
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const run = async <T,>(id: string, fn: () => Promise<T>): Promise<T | null> => {
+    setBusyId(id);
+    setError(null);
+    try {
+      const out = await fn();
+      for (const key of invalidate) await invalidateApiQueries(qc, key);
+      return out;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'operation failed');
+      return null;
+    } finally {
+      setBusyId(null);
+    }
+  };
+  return { busyId, error, setError, run };
+}
+
+function SectionCard({
+  title,
+  subtitle,
+  count,
+  action,
+  children,
+}: {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  count?: number;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="mb-5 overflow-hidden rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/40">
+      <header className="flex items-center justify-between gap-3 border-b border-[var(--cos-border)] px-4 py-3">
+        <div className="min-w-0">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--cos-text)]">
+            {title}
+            {typeof count === 'number' && (
+              <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-normal text-[var(--cos-muted)]">
+                {count}
+              </span>
+            )}
+          </h3>
+          {subtitle && (
+            <p className="mt-0.5 max-w-2xl text-[11px] leading-relaxed text-[var(--cos-faint)]">{subtitle}</p>
+          )}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
+      </header>
+      <div className="divide-y divide-[var(--cos-border)]">{children}</div>
+    </section>
+  );
+}
+
+function ConfigRow({
+  title,
+  badges,
+  meta,
+  action,
+}: {
+  title: ReactNode;
+  badges?: ReactNode;
+  meta?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-white/[0.02]">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate text-sm font-medium text-[var(--cos-text)]">{title}</span>
+          {badges}
+        </div>
+        {meta && <div className="mt-0.5 text-[11px] leading-relaxed text-[var(--cos-faint)]">{meta}</div>}
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
+function EmptyRow({ children }: { children: ReactNode }) {
+  return <p className="px-4 py-6 text-center text-[13px] text-[var(--cos-muted)]">{children}</p>;
+}
+
+function CfgButton({
+  tone = 'ghost',
+  busy,
+  disabled,
+  onClick,
+  icon,
+  title,
+  children,
+}: {
+  tone?: 'primary' | 'ghost' | 'danger';
+  busy?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  icon?: ReactNode;
+  title?: string;
+  children: ReactNode;
+}) {
+  const palette =
+    tone === 'primary'
+      ? 'border-transparent bg-[var(--cos-accent)] text-white hover:opacity-90'
+      : tone === 'danger'
+        ? 'border-[var(--cos-border)] text-[var(--cos-muted)] hover:border-[var(--cos-err)] hover:text-[var(--cos-err)]'
+        : 'border-[var(--cos-border)] text-[var(--cos-muted)] hover:border-[var(--cos-accent)] hover:text-[var(--cos-text)]';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || busy}
+      title={title}
+      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] disabled:cursor-not-allowed disabled:opacity-40 ${palette}`}
+    >
+      {busy ? <span className="animate-pulse">…</span> : icon}
+      {children}
+    </button>
+  );
+}
+
+function MetaCaution({ what }: { what: string }) {
+  return (
+    <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-[var(--cos-muted)]">
+      <Lock size={13} aria-hidden className="mt-0.5 shrink-0 text-amber-400" />
+      <span>
+        <strong className="text-[var(--cos-text)]">This is coding-os, the meta-repo.</strong> It ships every{' '}
+        {what} as a template and installs none in the consumer sense — {what} management is disabled here.
+        Open a consumer project to add or remove.
+      </span>
+    </div>
+  );
 }
 
 // --------------------------------------------------------------------------
@@ -214,26 +361,114 @@ interface StackRow {
 }
 
 function StacksTab() {
+  const { slug } = useScopedLink();
+  const metaRepo = slug === META_REPO_SLUG;
   const { data, isLoading, error } = useApiGet<{ available: StackRow[]; installed: string[] }>(
     ['config-stacks'],
     '/api/config/stacks',
   );
+  const { busyId, error: mutError, setError, run } = useConfigMutation(['config-stacks', 'config-skills']);
+  const [showAdd, setShowAdd] = useState(false);
   if (isLoading) return <StateRow>Loading stacks…</StateRow>;
   if (error) return <StateRow>Could not load stacks: {error.message}</StateRow>;
-  const rows = data?.available ?? [];
+  const all = data?.available ?? [];
+  const installed = all.filter((s) => s.installed);
+  const available = all.filter((s) => !s.installed);
+  const install = (id: string) => run(id, () => apiPost(`/api/config/stacks/${id}`));
+  const remove = (id: string) => run(id, () => apiDelete(`/api/config/stacks/${id}`));
+  const rowMeta = (s: StackRow) => (
+    <>
+      <span className="capitalize">{s.category}</span>
+      {s.primary_skill && (
+        <>
+          {' · primary skill '}
+          <span className="font-mono">{s.primary_skill}</span>
+        </>
+      )}
+    </>
+  );
   return (
     <>
-      <TabIntro>Tech stacks available to this project. Installed stacks shape the agent’s skills and scaffold.</TabIntro>
-      <Table head={['Stack', 'Category', 'Primary skill', 'Status']}>
-        {rows.map((s) => (
-          <tr key={s.id} className="border-b border-[var(--cos-border)] last:border-0 hover:bg-white/[0.02]">
-            <td className="px-3 py-2 font-medium text-[var(--cos-text)]">{s.label || s.id}</td>
-            <td className="px-3 py-2 text-[var(--cos-muted)]">{s.category}</td>
-            <td className="px-3 py-2 text-[var(--cos-muted)]">{s.primary_skill ?? '—'}</td>
-            <td className="px-3 py-2">{s.installed ? <Pill tone="ok">Installed</Pill> : <Pill tone="muted">Available</Pill>}</td>
-          </tr>
-        ))}
-      </Table>
+      <TabIntro>
+        The tech stacks installed in this project — each layers its skills, scaffold, and rules onto the
+        agent. Add another with <span className="font-mono">+ Add stack</span>.
+      </TabIntro>
+      {metaRepo && <MetaCaution what="stack" />}
+      {mutError && (
+        <Banner kind="error" onDismiss={() => setError(null)}>
+          {mutError}
+        </Banner>
+      )}
+      <SectionCard
+        title="Installed"
+        count={installed.length}
+        action={
+          <CfgButton
+            tone="primary"
+            icon={<Plus size={13} aria-hidden />}
+            disabled={metaRepo}
+            title={metaRepo ? 'Disabled on the meta-repo' : undefined}
+            onClick={() => setShowAdd((v) => !v)}
+          >
+            Add stack
+          </CfgButton>
+        }
+      >
+        {installed.length === 0 ? (
+          <EmptyRow>No stacks installed yet.</EmptyRow>
+        ) : (
+          installed.map((s) => (
+            <ConfigRow
+              key={s.id}
+              title={s.label || s.id}
+              meta={rowMeta(s)}
+              badges={<Pill tone="ok">installed</Pill>}
+              action={
+                <CfgButton
+                  tone="danger"
+                  busy={busyId === s.id}
+                  disabled={metaRepo || (busyId !== null && busyId !== s.id)}
+                  title={metaRepo ? 'Disabled on the meta-repo' : `Remove ${s.label || s.id}`}
+                  onClick={() => remove(s.id)}
+                  icon={<Trash2 size={13} aria-hidden />}
+                >
+                  Remove
+                </CfgButton>
+              }
+            />
+          ))
+        )}
+      </SectionCard>
+      {showAdd && !metaRepo && (
+        <SectionCard
+          title="Available to add"
+          count={available.length}
+          subtitle="Installing a stack copies its scaffold + skills and regenerates AGENTS.md."
+        >
+          {available.length === 0 ? (
+            <EmptyRow>Every available stack is already installed.</EmptyRow>
+          ) : (
+            available.map((s) => (
+              <ConfigRow
+                key={s.id}
+                title={s.label || s.id}
+                meta={rowMeta(s)}
+                action={
+                  <CfgButton
+                    tone="primary"
+                    busy={busyId === s.id}
+                    disabled={busyId !== null && busyId !== s.id}
+                    onClick={() => install(s.id)}
+                    icon={<Plus size={13} aria-hidden />}
+                  >
+                    Install
+                  </CfgButton>
+                }
+              />
+            ))
+          )}
+        </SectionCard>
+      )}
     </>
   );
 }
@@ -245,70 +480,164 @@ interface SkillRow {
   globs: string | null;
   description?: string;
   extra?: boolean;
-  // Producer fields (config_skills) that let the Hub disable a core/stack skill,
-  // not just add a community one (HUB-PB1 / TASK-503).
+  // Producer fields (config_skills): provenance ("core" / "stack:<id>") + disabled
+  // let the Hub Enable/Disable a core/stack skill (HUB-PB1 / TASK-503); `stacks`
+  // is the installed stacks that use it, powering the grouped-by-stack view.
   provenance?: string;
   disabled?: boolean;
+  stacks?: string[];
+}
+
+interface InstalledStack {
+  id: string;
+  label: string;
+}
+
+function ProvenanceBadge({ skill }: { skill: SkillRow }) {
+  if (skill.extra) return <Pill tone="ok">yours</Pill>;
+  const prov = skill.provenance ?? 'core';
+  if (prov.startsWith('stack:')) return <Pill tone="muted">{prov.slice('stack:'.length)}</Pill>;
+  return <Pill tone="muted">core</Pill>;
 }
 
 function SkillsTab() {
-  const queryClient = useQueryClient();
-  const { data, isLoading, error } = useApiGet<{ skills: SkillRow[] }>(['config-skills'], '/api/config/skills');
+  const qc = useQueryClient();
+  const { data, isLoading, error } = useApiGet<{ skills: SkillRow[]; installed_stacks: InstalledStack[] }>(
+    ['config-skills'],
+    '/api/config/skills',
+  );
   const [pending, setPending] = useState<string | null>(null);
+  const [showMore, setShowMore] = useState(false);
   if (isLoading) return <StateRow>Loading skills…</StateRow>;
   if (error) return <StateRow>Could not load skills: {error.message}</StateRow>;
   const rows = data?.skills ?? [];
+  const installedStacks = data?.installed_stacks ?? [];
+
   // Core/stack skills ship by default → Enable/Disable via disabled_skills.
-  // Community skills are opt-in → add/remove via extra_skills. The PATCH route
-  // (set_project_skill) already routes by provenance; the UI just sends intent.
-  const isCoreStack = (s: SkillRow) => s.provenance === 'core' || s.provenance === 'stack';
-  const isOn = (s: SkillRow) => (isCoreStack(s) ? !s.disabled : !!s.extra);
+  // The PATCH route (set_project_skill) routes by provenance; the UI sends intent.
+  const isCoreStack = (s: SkillRow) => {
+    const prov = s.provenance ?? 'core';
+    return prov === 'core' || prov.startsWith('stack:');
+  };
   const toggle = async (skill: SkillRow) => {
     setPending(skill.name);
     try {
       const nextEnabled = isCoreStack(skill) ? !!skill.disabled : !skill.extra;
       await apiPatch(`/api/config/skills/${skill.name}`, { enabled: nextEnabled });
-      await invalidateApiQueries(queryClient, 'config-skills');
+      await invalidateApiQueries(qc, 'config-skills');
     } finally {
       setPending(null);
     }
   };
-  const stateLabel = (s: SkillRow) => {
-    if (pending === s.name) return '…';
-    if (isCoreStack(s)) return s.disabled ? 'off' : 'on ✓';
-    return s.extra ? 'extra ✓' : 'add';
-  };
-  const actionVerb = (s: SkillRow) =>
-    isCoreStack(s) ? (s.disabled ? 'Enable' : 'Disable') : s.extra ? 'Remove' : 'Add';
+  const actionVerb = (s: SkillRow) => (s.extra ? 'Remove' : s.disabled ? 'Enable' : 'Disable');
+  const actionTone = (s: SkillRow): 'primary' | 'ghost' | 'danger' =>
+    s.extra ? 'danger' : s.disabled ? 'primary' : 'ghost';
+
+  const skillRow = (s: SkillRow) => (
+    <ConfigRow
+      key={s.name}
+      title={<span className={s.disabled ? 'text-[var(--cos-faint)]' : undefined}>{s.name}</span>}
+      badges={
+        <>
+          <ProvenanceBadge skill={s} />
+          {s.disabled && <span className="text-[10px] text-[var(--cos-faint)]">disabled</span>}
+        </>
+      }
+      meta={
+        <>
+          {s.tier}
+          {s.domain.length > 0 && <> · {s.domain.join(', ')}</>}
+          {s.globs && (
+            <>
+              {' · '}
+              <span className="font-mono text-[10px]">{s.globs}</span>
+            </>
+          )}
+        </>
+      }
+      action={
+        <CfgButton
+          tone={actionTone(s)}
+          busy={pending === s.name}
+          onClick={() => void toggle(s)}
+          title={`${actionVerb(s)} ${s.name}`}
+        >
+          {actionVerb(s)}
+        </CfgButton>
+      }
+    />
+  );
+
+  const prov = (s: SkillRow) => s.provenance ?? 'core';
+  const shippedBy = (sid: string) => rows.filter((s) => s.provenance === `stack:${sid}`);
+  const coreActive = rows.filter((s) => prov(s) === 'core' && (s.stacks?.length ?? 0) > 0 && !s.extra);
+  const yourSkills = rows.filter((s) => s.extra);
+  const moreAvailable = rows.filter((s) => prov(s) === 'core' && (s.stacks?.length ?? 0) === 0 && !s.extra);
+
   return (
     <>
-      <TabIntro>Skills the agent can load. They are glob-gated — the agent loads one automatically before editing matching files. Core/stack skills ship by default; disable one to drop it for this project. “extra” marks community skills added beyond the stacks.</TabIntro>
-      <Table head={['Skill', 'Tier', 'Domain', 'Triggers on', 'State']}>
-        {rows.map((s) => (
-          <tr key={s.name} className="border-b border-[var(--cos-border)] last:border-0 hover:bg-white/[0.02]">
-            <td className="px-3 py-2 font-medium text-[var(--cos-text)]">{s.name}</td>
-            <td className="px-3 py-2 text-[var(--cos-muted)]">{s.tier}</td>
-            <td className="px-3 py-2 text-[var(--cos-muted)]">{s.domain.join(', ') || '—'}</td>
-            <td className="px-3 py-2 font-mono text-[10px] text-[var(--cos-faint)]">{s.globs ?? '—'}</td>
-            <td className="px-3 py-2">
-              <button
-                type="button"
-                disabled={pending === s.name}
-                onClick={() => void toggle(s)}
-                aria-label={`${actionVerb(s)} ${s.name}`}
-                aria-pressed={isOn(s)}
-                className={`rounded px-2 py-0.5 text-[10px] focus-visible:ring-2 ${
-                  isOn(s)
-                    ? 'bg-emerald-500/15 text-emerald-300'
-                    : 'bg-white/5 text-[var(--cos-faint)] hover:text-[var(--cos-muted)]'
-                }`}
-              >
-                {stateLabel(s)}
-              </button>
-            </td>
-          </tr>
-        ))}
-      </Table>
+      <TabIntro>
+        The skills active in this project, grouped by the stack that uses them. Skills are glob-gated — the
+        agent loads one automatically before editing matching files. Disable one to drop it for this project.
+      </TabIntro>
+
+      {installedStacks.map((stack) => {
+        const shipped = shippedBy(stack.id);
+        if (shipped.length === 0) return null;
+        return (
+          <SectionCard
+            key={stack.id}
+            title={`${stack.label} skills`}
+            count={shipped.length}
+            subtitle="Shipped by this stack."
+          >
+            {shipped.map(skillRow)}
+          </SectionCard>
+        );
+      })}
+
+      {coreActive.length > 0 && (
+        <SectionCard
+          title="Core skills · active"
+          count={coreActive.length}
+          subtitle="Kernel skills your installed stacks rely on."
+        >
+          {coreActive.map(skillRow)}
+        </SectionCard>
+      )}
+
+      {yourSkills.length > 0 && (
+        <SectionCard title="Your skills" count={yourSkills.length} subtitle="Added beyond the stacks.">
+          {yourSkills.map(skillRow)}
+        </SectionCard>
+      )}
+
+      {moreAvailable.length > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setShowMore((v) => !v)}
+            aria-expanded={showMore}
+            className="mb-3 flex items-center gap-1.5 rounded-lg border border-[var(--cos-border)] px-3 py-1.5 text-[11px] text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
+          >
+            <ChevronRight
+              size={13}
+              aria-hidden
+              className={`transition-transform ${showMore ? 'rotate-90' : ''}`}
+            />
+            {showMore ? 'Hide' : 'Show'} {moreAvailable.length} more available core skills
+          </button>
+          {showMore && (
+            <SectionCard
+              title="More available"
+              count={moreAvailable.length}
+              subtitle="Not tied to an installed stack — enable one to make it always-on here."
+            >
+              {moreAvailable.map(skillRow)}
+            </SectionCard>
+          )}
+        </>
+      )}
     </>
   );
 }
@@ -320,28 +649,118 @@ interface McpRow {
   managed: boolean;
 }
 
+interface McpCatalogRow {
+  id: string;
+  name: string;
+  description: string;
+  command: string;
+  args: string[];
+  installed: boolean;
+}
+
 function McpTab() {
+  const { slug } = useScopedLink();
+  const metaRepo = slug === META_REPO_SLUG;
   const { data, isLoading, error } = useApiGet<{ servers: McpRow[] }>(['config-mcp'], '/api/config/mcp');
+  const catalog = useApiGet<{ servers: McpCatalogRow[] }>(['config-mcp-catalog'], '/api/config/mcp/catalog');
+  const { busyId, error: mutError, setError, run } = useConfigMutation(['config-mcp', 'config-mcp-catalog']);
+  const [showAdd, setShowAdd] = useState(false);
   if (isLoading) return <StateRow>Loading MCP servers…</StateRow>;
   if (error) return <StateRow>Could not load MCP servers: {error.message}</StateRow>;
-  const rows = data?.servers ?? [];
+  const servers = data?.servers ?? [];
+  const catalogRows = catalog.data?.servers ?? [];
+  const add = (id: string) => run(id, () => apiPost('/api/config/mcp', { id }));
+  const remove = (name: string) => run(name, () => apiDelete(`/api/config/mcp/${name}`));
+  const cmdOf = (command: string | null, args: string[]) => [command, ...args].filter(Boolean).join(' ') || '—';
   return (
     <>
-      <TabIntro>Model Context Protocol servers the agent connects to in this project (from .mcp.json).</TabIntro>
-      {rows.length === 0 ? (
-        <StateRow>No MCP servers configured.</StateRow>
-      ) : (
-        <Table head={['Server', 'Command', 'Status']}>
-          {rows.map((s) => (
-            <tr key={s.name} className="border-b border-[var(--cos-border)] last:border-0 hover:bg-white/[0.02]">
-              <td className="px-3 py-2 font-medium text-[var(--cos-text)]">{s.name}</td>
-              <td className="px-3 py-2 font-mono text-[10px] text-[var(--cos-faint)]">
-                {[s.command, ...s.args].filter(Boolean).join(' ') || '—'}
-              </td>
-              <td className="px-3 py-2">{s.managed ? <Pill tone="ok">Managed by cos</Pill> : <Pill tone="muted">External</Pill>}</td>
-            </tr>
-          ))}
-        </Table>
+      <TabIntro>
+        Model Context Protocol servers this project’s agents connect to (from .mcp.json). Add a vetted
+        first-party server below — custom, remote (URL), and uploaded servers are handled by the
+        Marketplace (coming soon).
+      </TabIntro>
+      {metaRepo && <MetaCaution what="MCP server" />}
+      {mutError && (
+        <Banner kind="error" onDismiss={() => setError(null)}>
+          {mutError}
+        </Banner>
+      )}
+      <SectionCard
+        title="Configured"
+        count={servers.length}
+        action={
+          <CfgButton
+            tone="primary"
+            icon={<Plus size={13} aria-hidden />}
+            disabled={metaRepo}
+            title={metaRepo ? 'Disabled on the meta-repo' : undefined}
+            onClick={() => setShowAdd((v) => !v)}
+          >
+            Add server
+          </CfgButton>
+        }
+      >
+        {servers.length === 0 ? (
+          <EmptyRow>No MCP servers configured.</EmptyRow>
+        ) : (
+          servers.map((s) => (
+            <ConfigRow
+              key={s.name}
+              title={s.name}
+              badges={s.managed ? <Pill tone="ok">managed by cos</Pill> : <Pill tone="muted">external</Pill>}
+              meta={<span className="font-mono text-[10px]">{cmdOf(s.command, s.args)}</span>}
+              action={
+                s.managed ? undefined : (
+                  <CfgButton
+                    tone="danger"
+                    busy={busyId === s.name}
+                    disabled={metaRepo || (busyId !== null && busyId !== s.name)}
+                    onClick={() => remove(s.name)}
+                    icon={<Trash2 size={13} aria-hidden />}
+                  >
+                    Remove
+                  </CfgButton>
+                )
+              }
+            />
+          ))
+        )}
+      </SectionCard>
+      {showAdd && !metaRepo && (
+        <SectionCard
+          title="First-party servers"
+          count={catalogRows.length}
+          subtitle="Vetted stdio servers that need no secret. Custom / URL / uploaded servers go through the Extension Manager (coming soon)."
+        >
+          {catalog.isLoading ? (
+            <EmptyRow>Loading catalog…</EmptyRow>
+          ) : (
+            catalogRows.map((c) => (
+              <ConfigRow
+                key={c.id}
+                title={c.name}
+                badges={c.installed ? <Pill tone="ok">installed</Pill> : undefined}
+                meta={
+                  <>
+                    {c.description}
+                    <div className="mt-0.5 font-mono text-[10px]">{cmdOf(c.command, c.args)}</div>
+                  </>
+                }
+                action={
+                  <CfgButton
+                    tone="primary"
+                    busy={busyId === c.id}
+                    disabled={c.installed || (busyId !== null && busyId !== c.id)}
+                    onClick={() => add(c.id)}
+                    icon={<Plus size={13} aria-hidden />}
+                  >
+                    {c.installed ? 'Added' : 'Add'}
+                  </CfgButton>
+                }
+              />
+            ))
+          )}
+        </SectionCard>
       )}
     </>
   );
@@ -358,69 +777,150 @@ interface AdapterRow {
   label: string;
   runtime: string;
   available: boolean;
+  installed: boolean;
   glyph?: string | null;
   models: AdapterModel[];
   mcp_config_paths: string[];
 }
 
 function AdaptersTab() {
+  const { slug } = useScopedLink();
+  const metaRepo = slug === META_REPO_SLUG;
   const { data, isLoading, error } = useApiGet<{ adapters: AdapterRow[]; default_model: string }>(
     ['config-adapters'],
     '/api/config/adapters',
   );
+  const { busyId, error: mutError, setError, run } = useConfigMutation(['config-adapters']);
+  const [showAdd, setShowAdd] = useState(false);
   if (isLoading) return <StateRow>Loading adapters…</StateRow>;
   if (error) return <StateRow>Could not load adapters: {error.message}</StateRow>;
-  const rows = data?.adapters ?? [];
+  const all = data?.adapters ?? [];
+  const installed = all.filter((a) => a.installed);
+  const addable = all.filter((a) => !a.installed);
   const defaultModel = data?.default_model ?? '';
+  const add = (id: string) => run(id, () => apiPost(`/api/config/adapters/${id}`));
+  const remove = (id: string) => run(id, () => apiDelete(`/api/config/adapters/${id}`));
+  const glyphBox = (a: AdapterRow) =>
+    a.glyph ? (
+      <span className="inline-flex h-5 w-5 items-center justify-center rounded border border-[var(--cos-border)] font-mono text-[10px] text-[var(--cos-muted)]">
+        {a.glyph}
+      </span>
+    ) : null;
+  const adapterMeta = (a: AdapterRow) => (
+    <>
+      <span className="font-mono">{a.id}</span>
+      {a.mcp_config_paths.length > 0 && (
+        <>
+          {' · MCP → '}
+          <span className="font-mono">{a.mcp_config_paths.join(', ')}</span>
+        </>
+      )}
+      {a.models.length > 0 && (
+        <div className="mt-0.5">
+          {a.models.map((m) => `${m.label}${m.default ? ' (default)' : ''}`).join(', ')}
+        </div>
+      )}
+    </>
+  );
   return (
     <>
       <TabIntro>
-        Agent adapters wired for this project. The runnable one (in_process) drives Hub chat; a roadmap
-        adapter is declared but not yet runnable here. “Chat models” are the models each adapter declares;
-        “MCP wiring” is the config file each writes the coding-os MCP server into.
+        The agent adapters wired for this project. The runnable one (in_process) drives Hub chat; a roadmap
+        adapter is declared but not yet runnable here. Add another to run more than one agent side by side.
       </TabIntro>
-      <Table head={['Adapter', 'Runtime', 'Chat models', 'MCP wiring']}>
-        {rows.map((a) => (
-          <tr
-            key={a.id}
-            className="border-b border-[var(--cos-border)] align-top last:border-0 hover:bg-white/[0.02]"
-          >
-            <td className="px-3 py-2">
-              <div className="flex items-center gap-2">
-                {a.glyph && (
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded border border-[var(--cos-border)] font-mono text-[10px] text-[var(--cos-muted)]">
-                    {a.glyph}
-                  </span>
-                )}
-                <span className="font-medium text-[var(--cos-text)]">{a.label || a.id}</span>
-              </div>
-              <div className="mt-0.5 text-[10px] text-[var(--cos-faint)]">{a.id}</div>
-            </td>
-            <td className="px-3 py-2">
-              <Pill tone={a.available ? 'ok' : 'muted'}>{a.runtime}</Pill>
-            </td>
-            <td className="px-3 py-2">
-              {a.models.length === 0 ? (
-                <span className="text-[var(--cos-faint)]">— none declared</span>
-              ) : (
-                <ul className="space-y-0.5">
-                  {a.models.map((m) => (
-                    <li key={m.id} className="text-[var(--cos-muted)]">
-                      {m.label}
-                      {m.default && <span className="ml-1 text-[10px] text-[var(--cos-ok)]">✓ default</span>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </td>
-            <td className="px-3 py-2 font-mono text-[10px] text-[var(--cos-faint)]">
-              {a.mcp_config_paths.length > 0 ? a.mcp_config_paths.join(', ') : '—'}
-            </td>
-          </tr>
-        ))}
-      </Table>
+      {metaRepo && <MetaCaution what="adapter" />}
+      {mutError && (
+        <Banner kind="error" onDismiss={() => setError(null)}>
+          {mutError}
+        </Banner>
+      )}
+      <SectionCard
+        title="Installed"
+        count={installed.length}
+        action={
+          addable.length > 0 ? (
+            <CfgButton
+              tone="primary"
+              icon={<Plus size={13} aria-hidden />}
+              disabled={metaRepo}
+              title={metaRepo ? 'Disabled on the meta-repo' : undefined}
+              onClick={() => setShowAdd((v) => !v)}
+            >
+              Add adapter
+            </CfgButton>
+          ) : undefined
+        }
+      >
+        {installed.length === 0 ? (
+          <EmptyRow>No adapters installed.</EmptyRow>
+        ) : (
+          installed.map((a) => (
+            <ConfigRow
+              key={a.id}
+              title={
+                <span className="inline-flex items-center gap-2">
+                  {glyphBox(a)}
+                  {a.label || a.id}
+                </span>
+              }
+              badges={<Pill tone={a.available ? 'ok' : 'muted'}>{a.runtime}</Pill>}
+              meta={adapterMeta(a)}
+              action={
+                <CfgButton
+                  tone="danger"
+                  busy={busyId === a.id}
+                  disabled={metaRepo || installed.length <= 1 || (busyId !== null && busyId !== a.id)}
+                  title={
+                    metaRepo
+                      ? 'Disabled on the meta-repo'
+                      : installed.length <= 1
+                        ? 'A project needs at least one adapter'
+                        : `Remove ${a.label || a.id}`
+                  }
+                  onClick={() => remove(a.id)}
+                  icon={<Trash2 size={13} aria-hidden />}
+                >
+                  Remove
+                </CfgButton>
+              }
+            />
+          ))
+        )}
+      </SectionCard>
+      {showAdd && !metaRepo && addable.length > 0 && (
+        <SectionCard
+          title="Available to add"
+          count={addable.length}
+          subtitle="Adding an adapter runs its install.sh and renders its per-agent surface."
+        >
+          {addable.map((a) => (
+            <ConfigRow
+              key={a.id}
+              title={
+                <span className="inline-flex items-center gap-2">
+                  {glyphBox(a)}
+                  {a.label || a.id}
+                </span>
+              }
+              badges={<Pill tone={a.available ? 'ok' : 'muted'}>{a.runtime}</Pill>}
+              meta={adapterMeta(a)}
+              action={
+                <CfgButton
+                  tone="primary"
+                  busy={busyId === a.id}
+                  disabled={busyId !== null && busyId !== a.id}
+                  onClick={() => add(a.id)}
+                  icon={<Plus size={13} aria-hidden />}
+                >
+                  Add
+                </CfgButton>
+              }
+            />
+          ))}
+        </SectionCard>
+      )}
       {defaultModel && (
-        <p className="mt-3 text-[11px] text-[var(--cos-faint)]">
+        <p className="mt-1 text-[11px] text-[var(--cos-faint)]">
           Default chat model: <span className="font-mono text-[var(--cos-muted)]">{defaultModel}</span>
         </p>
       )}
@@ -436,26 +936,95 @@ interface HookRow {
   phase?: string | null;
 }
 
+function CollapsibleSection({
+  title,
+  count,
+  defaultOpen,
+  children,
+}: {
+  title: ReactNode;
+  count: number;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  return (
+    <section className="mb-3 overflow-hidden rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/40">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
+      >
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--cos-text)]">
+          <ChevronRight size={14} aria-hidden className={`transition-transform ${open ? 'rotate-90' : ''}`} />
+          {title}
+          <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-normal text-[var(--cos-muted)]">
+            {count}
+          </span>
+        </h3>
+      </button>
+      {open && (
+        <div className="divide-y divide-[var(--cos-border)] border-t border-[var(--cos-border)]">{children}</div>
+      )}
+    </section>
+  );
+}
+
+const HOOK_CATEGORY_ORDER = ['safety', 'enforcement', 'task', 'observability', 'reminder', 'other'];
+
 function HooksTab() {
   const { data, isLoading, error } = useApiGet<{ hooks: HookRow[] }>(['config-hooks'], '/api/hooks/list');
   if (isLoading) return <StateRow>Loading hooks…</StateRow>;
   if (error) return <StateRow>Could not load hooks: {error.message}</StateRow>;
   const rows = data?.hooks ?? [];
+  const byCategory = new Map<string, HookRow[]>();
+  for (const h of rows) {
+    const cat = h.category || 'other';
+    const bucket = byCategory.get(cat) ?? [];
+    bucket.push(h);
+    byCategory.set(cat, bucket);
+  }
+  const categories = [...byCategory.keys()].sort((a, b) => {
+    const rank = (c: string) => {
+      const i = HOOK_CATEGORY_ORDER.indexOf(c);
+      return i < 0 ? HOOK_CATEGORY_ORDER.length : i;
+    };
+    return rank(a) - rank(b) || a.localeCompare(b);
+  });
   return (
     <>
       <TabIntro>
-        Hooks that steer the agent inside its guardrails. {rows.length} registered. Safety hooks cannot be disabled.
+        The hooks that steer the agent inside its guardrails — {rows.length} registered, grouped by role.
+        These are DNA: read-only here (safety hooks can never be disabled).
       </TabIntro>
-      <Table head={['Hook', 'Event', 'Category', 'Phase']}>
-        {rows.map((h) => (
-          <tr key={h.name} className="border-b border-[var(--cos-border)] last:border-0 hover:bg-white/[0.02]">
-            <td className="px-3 py-2 font-medium text-[var(--cos-text)]">{h.name}</td>
-            <td className="px-3 py-2 text-[var(--cos-muted)]">{h.event}</td>
-            <td className="px-3 py-2 text-[var(--cos-muted)]">{h.category}</td>
-            <td className="px-3 py-2 text-[var(--cos-faint)]">{h.phase ?? '—'}</td>
-          </tr>
-        ))}
-      </Table>
+      {categories.map((cat) => (
+        <CollapsibleSection
+          key={cat}
+          title={<span className="capitalize">{cat}</span>}
+          count={byCategory.get(cat)!.length}
+          defaultOpen={cat === 'safety'}
+        >
+          {byCategory.get(cat)!.map((h, i) => (
+            <ConfigRow
+              key={`${h.name}-${h.event ?? ''}-${i}`}
+              title={h.name}
+              badges={h.event ? <Pill tone="muted">{h.event}</Pill> : undefined}
+              meta={
+                <>
+                  {h.matcher && (
+                    <>
+                      matcher <span className="font-mono">{h.matcher}</span>
+                      {' · '}
+                    </>
+                  )}
+                  phase {h.phase ?? '—'}
+                </>
+              }
+            />
+          ))}
+        </CollapsibleSection>
+      ))}
     </>
   );
 }
@@ -593,7 +1162,10 @@ function ModulesTab() {
               </td>
               <td className="px-3 py-2">
                 {m.kernel ? (
-                  <Pill tone="muted">kernel · locked</Pill>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--cos-accent)]/40 bg-[var(--cos-accent)]/10 px-2.5 py-0.5 text-[10px] font-medium text-[var(--cos-accent)]">
+                    <Lock size={11} aria-hidden />
+                    kernel · locked
+                  </span>
                 ) : (
                   <Pill tone={m.enabled ? 'ok' : 'muted'}>{m.enabled ? 'enabled' : 'disabled'}</Pill>
                 )}
@@ -668,10 +1240,9 @@ interface GitState {
   remote_url: string;
 }
 
-// The meta-repo's own derived slug (cli.registry._derive_slug). coding-os
-// ships trunk by default (ADR-0013); the Git tab stays fully editable but
-// shows one caution on this slug (enabling pr-mode flips the mother repo).
-const META_REPO_SLUG = 'coding-os';
+// META_REPO_SLUG is declared at the top of the file — coding-os ships trunk by
+// default (ADR-0013); the Git tab stays fully editable but shows one caution on
+// this slug (enabling pr-mode would flip the mother repo off trunk).
 
 // One-click quick starts. A preset only fills the form (setForm) — the user
 // reviews and Saves; the global default stays OFF. `recommended` flags the

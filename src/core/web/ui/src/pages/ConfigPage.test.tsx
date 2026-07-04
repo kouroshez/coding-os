@@ -9,8 +9,18 @@ vi.mock('@/lib/hooks', () => ({
         available: [{ id: 'meta', label: 'Meta', category: 'meta', primary_skill: 'graph-explorer', installed: true }],
         installed: ['meta'],
       },
-      '/api/config/skills': { skills: [{ name: 'clean-code', tier: 'universal', domain: ['all'], globs: '**/*' }] },
+      '/api/config/skills': {
+        skills: [
+          { name: 'clean-code', tier: 'universal', domain: ['all'], globs: '**/*', provenance: 'core', stacks: ['meta'] },
+        ],
+        installed_stacks: [{ id: 'meta', label: 'Meta' }],
+      },
       '/api/config/mcp': { servers: [{ name: 'coding-os', command: 'cos', args: ['server-start'], managed: true }] },
+      '/api/config/mcp/catalog': {
+        servers: [
+          { id: 'fetch', name: 'Fetch', description: 'Fetch a URL.', command: 'uvx', args: ['mcp-server-fetch'], installed: false },
+        ],
+      },
       '/api/config/adapters': {
         adapters: [
           {
@@ -18,6 +28,7 @@ vi.mock('@/lib/hooks', () => ({
             label: 'Anthropic Claude Code',
             runtime: 'in_process',
             available: true,
+            installed: true,
             glyph: 'Cl',
             models: [{ id: 'claude-opus-4-8', label: 'Opus 4.8', default: true }],
             mcp_config_paths: ['.mcp.json'],
@@ -27,6 +38,7 @@ vi.mock('@/lib/hooks', () => ({
             label: 'OpenAI Codex CLI',
             runtime: 'roadmap',
             available: false,
+            installed: false,
             glyph: 'Cx',
             models: [],
             mcp_config_paths: ['.codex/config.toml'],
@@ -106,12 +118,15 @@ describe('ConfigPage', () => {
     expect(screen.getByText('branch-guard')).toBeInTheDocument();
   });
 
-  it('opens the Adapters tab and shows runtime, models, and MCP wiring', () => {
+  it('opens the Adapters tab: installed adapter with MCP wiring, then reveals addable ones', () => {
     renderConfig('/p/demo/config?tab=adapters');
     expect(screen.getByText('Anthropic Claude Code')).toBeInTheDocument();
     expect(screen.getByText('in_process')).toBeInTheDocument();
-    expect(screen.getByText('Opus 4.8')).toBeInTheDocument();
     expect(screen.getByText('.mcp.json')).toBeInTheDocument();
+    // codex is declared but not installed → hidden until Add adapter is opened.
+    expect(screen.queryByText('OpenAI Codex CLI')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Add adapter' }));
+    expect(screen.getByText('OpenAI Codex CLI')).toBeInTheDocument();
     expect(screen.getByText('.codex/config.toml')).toBeInTheDocument();
   });
 });
