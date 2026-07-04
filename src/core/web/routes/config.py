@@ -318,11 +318,12 @@ def config_adapters() -> dict:
 
 
 # --------------------------------------------------------------------------
-# Mutations — stack install/remove, adapter add/remove, MCP add/remove. All
-# refuse to run on the coding-os meta-repo (its .coding-os.yaml is DNA, not a
-# consumer install) and append an audit row per mutation. MCP add is limited to
-# a first-party allow-list — arbitrary/custom/URL/uploaded MCP is the Extension
-# Manager (docs/engineering/extension-manager.md), which the Marketplace fronts.
+# Mutations — stack install/remove, adapter add/remove, MCP add/remove. Each
+# edits the ACTIVE project (current_project_root) and appends an audit row. They
+# run on coding-os too — the CLI already protects the hand-written AGENTS.md
+# there. MCP add is limited to a first-party allow-list; arbitrary/custom/URL/
+# uploaded MCP is the Extension Manager (docs/engineering/extension-manager.md),
+# which the Marketplace fronts.
 # --------------------------------------------------------------------------
 
 # Ids reach a subprocess argv or a file path, so restrict them to a slug — a
@@ -415,16 +416,6 @@ def _run_cos(args: list[str], timeout: int = 300) -> tuple[bool, dict, str]:
     return True, _parse_cos_json(proc.stdout or ""), ""
 
 
-def _is_meta_repo(root: Path) -> bool:
-    try:
-        from cli._init_helpers import is_coding_os_source_tree
-
-        return is_coding_os_source_tree(root)
-    except Exception as exc:
-        logger.debug("meta-repo probe failed: %s", exc)
-        return False
-
-
 def _fail(status: int, category: str, message: str) -> JSONResponse:
     return JSONResponse(
         status_code=status, content={"ok": False, "error": {"category": category, "message": message}}
@@ -433,18 +424,6 @@ def _fail(status: int, category: str, message: str) -> JSONResponse:
 
 def _ok(data: dict) -> JSONResponse:
     return JSONResponse(content={"ok": True, "data": data})
-
-
-def _meta_block(kind: str) -> JSONResponse | None:
-    """Refuse a mutation on the meta-repo — its config is DNA, not a consumer install."""
-    if _is_meta_repo(_project_root()):
-        return _fail(
-            409,
-            "conflict",
-            f"cannot {kind} on coding-os itself — the meta-repo ships every stack/adapter as a "
-            f"template and installs none in the consumer sense. Manage this on a consumer project.",
-        )
-    return None
 
 
 def _audit(root: Path, action: str, unit: str, detail: str = "") -> None:
@@ -463,11 +442,9 @@ def _audit(root: Path, action: str, unit: str, detail: str = "") -> None:
 
 @router.post("/stacks/{stack_id}")
 def config_stack_install(stack_id: str) -> JSONResponse:
-    """Install a stack into the project (cos add-stack); refuses on the meta-repo."""
+    """Install a stack into the active project (cos add-stack)."""
     if not _safe_id(stack_id):
         return _fail(400, "validation", "invalid stack id")
-    if (blocked := _meta_block("install a stack")) is not None:
-        return blocked
     root = _project_root()
     ok, payload, err = _run_cos(["add-stack", stack_id, "-d", str(root), "--format", "json"])
     if not ok:
@@ -481,11 +458,9 @@ def config_stack_install(stack_id: str) -> JSONResponse:
 
 @router.delete("/stacks/{stack_id}")
 def config_stack_remove(stack_id: str) -> JSONResponse:
-    """Remove a stack from the project (cos remove-stack); refuses on the meta-repo."""
+    """Remove a stack from the active project (cos remove-stack)."""
     if not _safe_id(stack_id):
         return _fail(400, "validation", "invalid stack id")
-    if (blocked := _meta_block("remove a stack")) is not None:
-        return blocked
     root = _project_root()
     ok, payload, err = _run_cos(["remove-stack", stack_id, "-d", str(root), "--format", "json"])
     if not ok:
@@ -496,11 +471,9 @@ def config_stack_remove(stack_id: str) -> JSONResponse:
 
 @router.post("/adapters/{agent}")
 def config_adapter_add(agent: str) -> JSONResponse:
-    """Add an agent adapter to the project (cos add-adapter); refuses on the meta-repo."""
+    """Add an agent adapter to the active project (cos add-adapter)."""
     if not _safe_id(agent):
         return _fail(400, "validation", "invalid adapter id")
-    if (blocked := _meta_block("add an adapter")) is not None:
-        return blocked
     root = _project_root()
     # Idempotent: don't re-run install or write a spurious audit row for a no-op.
     if agent in set(_project_config_skill_list("agents")):
@@ -516,11 +489,9 @@ def config_adapter_add(agent: str) -> JSONResponse:
 
 @router.delete("/adapters/{agent}")
 def config_adapter_remove(agent: str) -> JSONResponse:
-    """Remove an agent adapter from the project (never the last one); refuses on the meta-repo."""
+    """Remove an agent adapter from the active project (never the last one)."""
     if not _safe_id(agent):
         return _fail(400, "validation", "invalid adapter id")
-    if (blocked := _meta_block("remove an adapter")) is not None:
-        return blocked
     root = _project_root()
     cfg_path = root / ".coding-os.yaml"
     if not cfg_path.exists():
@@ -566,9 +537,7 @@ def config_mcp_catalog() -> dict:
 
 @router.post("/mcp")
 def config_mcp_add(body: dict = Body(...)) -> JSONResponse:
-    """Add a first-party allow-listed MCP server to the project's .mcp.json."""
-    if (blocked := _meta_block("add an MCP server")) is not None:
-        return blocked
+    """Add a first-party allow-listed MCP server to the active project's .mcp.json."""
     server_id = str(body.get("id") or "").strip()
     entry = next((s for s in _MCP_ALLOWLIST if s["id"] == server_id), None)
     if entry is None:
@@ -599,9 +568,7 @@ def config_mcp_add(body: dict = Body(...)) -> JSONResponse:
 
 @router.delete("/mcp/{name}")
 def config_mcp_remove(name: str) -> JSONResponse:
-    """Remove an MCP server from the project's .mcp.json (never the managed coding-os one)."""
-    if (blocked := _meta_block("remove an MCP server")) is not None:
-        return blocked
+    """Remove an MCP server from the active project's .mcp.json (never the managed coding-os one)."""
     if name == "coding-os":
         return _fail(409, "conflict", "the coding-os MCP server is managed by cos and cannot be removed here.")
     if not _safe_id(name):

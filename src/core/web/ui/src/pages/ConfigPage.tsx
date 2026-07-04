@@ -246,19 +246,6 @@ function CfgButton({
   );
 }
 
-function MetaCaution({ what }: { what: string }) {
-  return (
-    <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-[var(--cos-muted)]">
-      <Lock size={13} aria-hidden className="mt-0.5 shrink-0 text-amber-400" />
-      <span>
-        <strong className="text-[var(--cos-text)]">This is coding-os, the meta-repo.</strong> It ships every{' '}
-        {what} as a template and installs none in the consumer sense — {what} management is disabled here.
-        Open a consumer project to add or remove.
-      </span>
-    </div>
-  );
-}
-
 // --------------------------------------------------------------------------
 // InfoTip — accessible ⓘ popover. Opens on hover AND click/focus, closes on
 // Esc, keyboard-reachable. Co-located here (the Git tab is its only consumer).
@@ -364,8 +351,6 @@ interface StackRow {
 }
 
 function StacksTab() {
-  const { slug } = useScopedLink();
-  const metaRepo = slug === META_REPO_SLUG;
   const { data, isLoading, error } = useApiGet<{ available: StackRow[]; installed: string[] }>(
     ['config-stacks'],
     '/api/config/stacks',
@@ -396,7 +381,6 @@ function StacksTab() {
         The tech stacks installed in this project — each layers its skills, scaffold, and rules onto the
         agent. Add another with <span className="font-mono">+ Add stack</span>.
       </TabIntro>
-      {metaRepo && <MetaCaution what="stack" />}
       {mutError && (
         <Banner kind="error" onDismiss={() => setError(null)}>
           {mutError}
@@ -409,8 +393,6 @@ function StacksTab() {
           <CfgButton
             tone="primary"
             icon={<Plus size={13} aria-hidden />}
-            disabled={metaRepo}
-            title={metaRepo ? 'Disabled on the meta-repo' : undefined}
             onClick={() => setShowAdd((v) => !v)}
           >
             Add stack
@@ -430,8 +412,8 @@ function StacksTab() {
                 <CfgButton
                   tone="danger"
                   busy={busyId === s.id}
-                  disabled={metaRepo || (busyId !== null && busyId !== s.id)}
-                  title={metaRepo ? 'Disabled on the meta-repo' : `Remove ${s.label || s.id}`}
+                  disabled={busyId !== null && busyId !== s.id}
+                  title={`Remove ${s.label || s.id}`}
                   onClick={() => remove(s.id)}
                   icon={<Trash2 size={13} aria-hidden />}
                 >
@@ -442,7 +424,7 @@ function StacksTab() {
           ))
         )}
       </SectionCard>
-      {showAdd && !metaRepo && (
+      {showAdd && (
         <SectionCard
           title="Available to add"
           count={available.length}
@@ -535,6 +517,11 @@ function SkillsTab() {
   const actionVerb = (s: SkillRow) => (s.extra ? 'Remove' : s.disabled ? 'Enable' : 'Disable');
   const actionTone = (s: SkillRow): 'primary' | 'ghost' | 'danger' =>
     s.extra ? 'danger' : s.disabled ? 'primary' : 'ghost';
+  // Active = enforced/loaded for this project: shipped by a stack, used by an
+  // installed stack, or an explicit extra. A core skill no installed stack uses
+  // is idle (its globs never fire here) — it must NOT read as a green "on".
+  const isActive = (s: SkillRow) =>
+    !!s.extra || (s.provenance ?? '').startsWith('stack:') || (s.stacks?.length ?? 0) > 0;
 
   const skillRow = (s: SkillRow) => (
     <ConfigRow
@@ -545,9 +532,11 @@ function SkillsTab() {
           <ProvenanceBadge skill={s} />
           {!s.extra && (
             <span
-              className={`text-[10px] font-medium ${s.disabled ? 'text-[var(--cos-faint)]' : 'text-[var(--cos-ok)]'}`}
+              className={`text-[10px] font-medium ${
+                s.disabled || !isActive(s) ? 'text-[var(--cos-faint)]' : 'text-[var(--cos-ok)]'
+              }`}
             >
-              {s.disabled ? 'off' : 'on'}
+              {s.disabled ? 'off' : isActive(s) ? 'on' : 'idle'}
             </span>
           )}
         </>
@@ -642,7 +631,7 @@ function SkillsTab() {
             <SectionCard
               title="More available"
               count={moreAvailable.length}
-              subtitle="Core skills not used by an installed stack. They still load on matching files — disable one to drop it from this project."
+              subtitle="Catalog core skills that no installed stack enforces — they stay idle here (their globs never fire). Disable one to drop it from the project entirely."
             >
               {moreAvailable.map(skillRow)}
             </SectionCard>
@@ -670,8 +659,6 @@ interface McpCatalogRow {
 }
 
 function McpTab() {
-  const { slug } = useScopedLink();
-  const metaRepo = slug === META_REPO_SLUG;
   const [showAdd, setShowAdd] = useState(false);
   const { data, isLoading, error } = useApiGet<{ servers: McpRow[] }>(['config-mcp'], '/api/config/mcp');
   // Only fetch the allow-list catalog once the picker opens — its only render site.
@@ -696,7 +683,6 @@ function McpTab() {
         first-party server below — custom, remote (URL), and uploaded servers are handled by the
         Marketplace (coming soon).
       </TabIntro>
-      {metaRepo && <MetaCaution what="MCP server" />}
       {mutError && (
         <Banner kind="error" onDismiss={() => setError(null)}>
           {mutError}
@@ -709,8 +695,6 @@ function McpTab() {
           <CfgButton
             tone="primary"
             icon={<Plus size={13} aria-hidden />}
-            disabled={metaRepo}
-            title={metaRepo ? 'Disabled on the meta-repo' : undefined}
             onClick={() => setShowAdd((v) => !v)}
           >
             Add server
@@ -731,7 +715,7 @@ function McpTab() {
                   <CfgButton
                     tone="danger"
                     busy={busyId === s.name}
-                    disabled={metaRepo || (busyId !== null && busyId !== s.name)}
+                    disabled={busyId !== null && busyId !== s.name}
                     onClick={() => remove(s.name)}
                     icon={<Trash2 size={13} aria-hidden />}
                   >
@@ -743,7 +727,7 @@ function McpTab() {
           ))
         )}
       </SectionCard>
-      {showAdd && !metaRepo && (
+      {showAdd && (
         <SectionCard
           title="First-party servers"
           count={catalogRows.length}
@@ -801,8 +785,6 @@ interface AdapterRow {
 }
 
 function AdaptersTab() {
-  const { slug } = useScopedLink();
-  const metaRepo = slug === META_REPO_SLUG;
   const { data, isLoading, error } = useApiGet<{ adapters: AdapterRow[]; default_model: string }>(
     ['config-adapters'],
     '/api/config/adapters',
@@ -845,7 +827,6 @@ function AdaptersTab() {
         The agent adapters wired for this project. The runnable one (in_process) drives Hub chat; a roadmap
         adapter is declared but not yet runnable here. Add another to run more than one agent side by side.
       </TabIntro>
-      {metaRepo && <MetaCaution what="adapter" />}
       {mutError && (
         <Banner kind="error" onDismiss={() => setError(null)}>
           {mutError}
@@ -859,8 +840,6 @@ function AdaptersTab() {
             <CfgButton
               tone="primary"
               icon={<Plus size={13} aria-hidden />}
-              disabled={metaRepo}
-              title={metaRepo ? 'Disabled on the meta-repo' : undefined}
               onClick={() => setShowAdd((v) => !v)}
             >
               Add adapter
@@ -886,13 +865,11 @@ function AdaptersTab() {
                 <CfgButton
                   tone="danger"
                   busy={busyId === a.id}
-                  disabled={metaRepo || installed.length <= 1 || (busyId !== null && busyId !== a.id)}
+                  disabled={installed.length <= 1 || (busyId !== null && busyId !== a.id)}
                   title={
-                    metaRepo
-                      ? 'Disabled on the meta-repo'
-                      : installed.length <= 1
-                        ? 'A project needs at least one adapter'
-                        : `Remove ${a.label || a.id}`
+                    installed.length <= 1
+                      ? 'A project needs at least one adapter'
+                      : `Remove ${a.label || a.id}`
                   }
                   onClick={() => remove(a.id)}
                   icon={<Trash2 size={13} aria-hidden />}
@@ -904,7 +881,7 @@ function AdaptersTab() {
           ))
         )}
       </SectionCard>
-      {showAdd && !metaRepo && addable.length > 0 && (
+      {showAdd && addable.length > 0 && (
         <SectionCard
           title="Available to add"
           count={addable.length}
@@ -1179,7 +1156,7 @@ function ModulesTab() {
               </td>
               <td className="px-3 py-2">
                 {m.kernel ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--cos-accent)]/40 bg-[var(--cos-accent)]/10 px-2.5 py-0.5 text-[10px] font-medium text-[var(--cos-accent)]">
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--cos-accent)]/40 bg-[var(--cos-accent)]/10 px-2.5 py-0.5 text-[10px] font-medium text-[var(--cos-accent)]">
                     <Lock size={11} aria-hidden />
                     kernel · locked
                   </span>

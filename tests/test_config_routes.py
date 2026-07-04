@@ -109,19 +109,9 @@ def test_mcp_catalog_lists_first_party_allowlist(client):
         assert {"id", "name", "command", "args", "installed"} <= set(s)
 
 
-def test_mutations_refuse_on_the_meta_repo(client):
-    # The TestClient resolves the project to the coding-os meta-repo (cwd), whose
-    # .coding-os.yaml is DNA — every install/add mutation must refuse (409).
-    assert client.post("/api/config/stacks/angular").status_code == 409
-    assert client.delete("/api/config/stacks/meta").status_code == 409
-    assert client.post("/api/config/adapters/codex").status_code == 409
-    assert client.post("/api/config/mcp", json={"id": "fetch"}).status_code == 409
-
-
-def test_mcp_add_rejects_units_off_the_allowlist(client, monkeypatch):
-    import web.routes.config as cfg  # the module the app actually serves
-
-    monkeypatch.setattr(cfg, "_is_meta_repo", lambda root: False)  # bypass the meta guard
+def test_mcp_add_rejects_units_off_the_allowlist(client):
+    # Only first-party allow-listed servers may be added; anything else is 400
+    # (rejected before any file write).
     r = client.post("/api/config/mcp", json={"id": "evil-server"})
     assert r.status_code == 400
     assert r.json()["error"]["category"] == "validation"
@@ -131,7 +121,6 @@ def test_adapter_remove_refuses_the_last_adapter(client, monkeypatch, tmp_path):
     import web.routes.config as cfg  # the module the app actually serves
 
     (tmp_path / ".coding-os.yaml").write_text("agents:\n  - claude\n", encoding="utf-8")
-    monkeypatch.setattr(cfg, "_is_meta_repo", lambda root: False)
     monkeypatch.setattr(cfg, "_project_root", lambda: tmp_path)
     r = client.delete("/api/config/adapters/claude")
     assert r.status_code == 409
