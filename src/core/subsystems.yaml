@@ -103,6 +103,10 @@ modules:
     tools: ["cos_task_*", cos_work_log_append]
     skills: [task-driver]
     commands: [board, daily, retro, task]
+    # tasks→docs is NOT a code dependency (board_os imports nothing from docs); it
+    # is enforcement-locality — the docs-first code-write BLOCK gate (enforce-doc-anchor)
+    # lives in the docs module and consumes each task's Read First, so tasks-on/docs-off
+    # would silently strip that gate. Keep hard.
     depends_on: [docs]
 
   - id: graph

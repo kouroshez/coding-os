@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-19 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-07-03 -->
 # Modularity / Auto-Sync Audit — June 2026
 
 > P: The SSOT register for the 2026-06 modularity/auto-sync audit — every finding (F1–F16), its evidence, severity, verified status, and mapped task — plus the architecture verdict and the decisions locked with the owner.
@@ -305,3 +305,37 @@ The owner approved the curated default, shipped as a **profile system** (the ent
 - **Coherence nudge:** a COMPLICATED+ `cos_classify_prompt` with `cognition` off returns a `nudge` field naming `cos module enable cognition` (Rule 15) — no silent `module_disabled` wall mid-plan.
 - **Fixture safety:** `capture_golden.py` + `test_golden_parity._scaffold` pin `--profile full`, so a default-profile flip never silently shrinks the goldens; profile resolution is unit-tested separately.
 - **Why a profile system over a hardcoded default:** least-surface-by-default + progressive disclosure + data-driven extensibility (community profiles) + auditability (the active profile is recorded state) — the VSCode-profile / systemd-target precedent. The Raptor move: a 3-way dial over the *existing* toggle machinery, not new machinery (anti-overengineering — earned by 3 real consumer cohorts, not speculation).
+
+## 12. Pass-7 (2026-07-03) — 12-day-delta regression sweep + owner live-complaint re-answer (TASK-766)
+
+A seventh pass (31-agent workflow, refute-by-default) re-verified the F/P4/Pass-6 register against HEAD after a 12-day delta (the memory-v2 epic, dual-auth, model catalogue landed since the doc's 2026-06-21 pass-6). Purpose: catch what the delta broke and re-answer the owner's live complaints on current code. **The gate/render/cascade mechanism did not regress — but the delta silently broke two module-registry invariants, and it did so because the invariant tests were routed to the wrong verify-suite.**
+
+### 12.1 Delta regressions found + FIXED (`ef5d46f2`)
+
+| ID | Sev | Finding | Fix |
+|---|---|---|---|
+| D2-1 / D7-1 | 🔴 | **F9 hook-totality RED at HEAD.** memory-v2 added `ensure-agent-memory-link` + `sync-agent-memory` and the task-domain `nudge-reentry`, none owned by a module (`test_cli.py::TestSubsystems` failed). Runtime effect: these hooks fired even with `memory`/`tasks` disabled (`module_disabled_hook_ids` only lists owned hooks). | `ensure-agent-memory-link`+`sync-agent-memory` → `memory.hooks[]`, `nudge-reentry` → `tasks.hooks[]` (subsystems.yaml). |
+| D6-F1 | 🟡 | **Profile-resolution test RED.** `cicd` was added to the `standard`/`core` disabled sets but `test_module_gating_smoke.py:210` still asserted `{cognition}` — a full sweep was RED. | Assertion updated to match the shipped yaml (test-only; yaml behaviour was correct). |
+| D7-2 | 🟡 | **Root cause it landed silently:** `verify-suites.yaml` mapped `registry.yaml` → `make verify-hooks` (shell hygiene, can't run a Python invariant) and `subsystems.yaml` → **nothing**. A registry/subsystems edit never triggered the F9/profile tests. | New `test-modules` suite maps both files → `pytest tests/test_cli.py::TestSubsystems tests/test_module_gating_smoke.py`. |
+| D1-1 / D2-2 | 🟢 | **No reverse tool→module totality test** (the tool-side twin of the hook F9 invariant). An MCP tool registered without a subsystems entry is served on every profile with no test failure — the exact leak, one layer over. | Added `test_every_registered_tool_has_a_module_owner_or_is_kernel` with an explicit `_KERNEL_TOOLS = {classify, health, traceability, failure_pattern}` whitelist (Rule 22 — force-mapping the 2 ambiguous tools was rejected; the whitelist is the seam). |
+| D1-2 | ⚪ | `safe_tool` docstring cited a nonexistent test `test_module_gating_registry`. | Dropped the provenance clause (Rule 12). |
+
+### 12.2 Register RE-CONFIRMED at HEAD (no regression)
+
+F1 (gate keyed on registered MCP name), TASK-476/477 (startup `remove_tool` + cognition-15/observability-7 map), P4-10 (rollback re-derives allowlist), P4-11 (flock + per-pid temp), TASK-509 (profile validation, `default_profile=standard`) — all hold with byte-unchanged gating cores; the memory-v2 delta *tools* (`cos_promote`/`cos_digest_regenerate`/`cos_retrieval_*`) were correctly mapped to `memory` (only the *hooks* were missed). The live tool surface is **86** (the "~94" is a decorator-grep artifact — duplicate re-registrations + docstring examples + test fixtures).
+
+### 12.3 Owner live-complaint answers (adversarially verified, current code)
+
+- **"Adapter list is hardcoded (`MANIFEST_IDS`)" → data-driven, NOT hardcoded.** `cli/adapter_registry.py::load_adapter_registry` scans `src/adapters/*/adapter.yaml` with JSON-schema validation, `id==dirname`, duplicate-id detection, fail-hard(bundled)/fail-soft(overlay). `MANIFEST_IDS` is a **test fixture**; production `agentForSession(session, agentIds)` takes the manifest as a parameter (`useBoardStream.ts`). Adding `gemini` = drop a folder. One real production hardcode found: `RolesPage.tsx:130-131` agent `<option>`s (backend accepts any agent string) — low-severity hygiene (D3-F1). CLI `--agent` help text `(claude|codex)` is accurate at HEAD, latent future-rot only (D3-F2). `presence.ts` modelLabel regex is claude-only but falls back gracefully; misses single-integer ids (Sonnet 5) → raw (D3-F3, one-line).
+- **"Hub Config dependency display is unclear" → CONFIRMED real UX gap (D4).** `ModulesTab` shows only a forward **"Depends on"** column; the producer emits no `dependents`, so the `docs` row reads *"Depends on: —"* with a live Disable button that then throws the raw `tasks → docs` string (arrow direction contradicts the column's plain-language semantics). No cascade affordance; `ModuleRow` drops the `skills` count the producer already emits (PB-3-skills still open); the toggle handler discards the `regenerated` cascade notes (PB-4-hub still open). Positives: the drift banner (TASK-504) and the when-to-enable `hint` (TASK-636) are wired. Smallest-correct fix (no cascade machinery for one depth-1 edge): derive reverse-deps client-side → show "Required by" + pre-empt the doomed button; reword the refusal string; render the emitted `skills`. Filed as follow-up.
+- **"Does `tasks` really depend on `docs`?" → JUSTIFIED by enforcement-locality, not code (D5-1).** `board_os` imports zero `docs` symbols — task CRUD/board/lifecycle would run with `docs` off. The edge is kept deliberately because the docs-first BLOCK gate (`enforce-doc-anchor`, which consumes each task's *Read First*) lives in the `docs` module; `tasks`-on/`docs`-off would silently strip the code-write gate. Rationale now inlined at `subsystems.yaml`.
+- **"Too many tools → the agent hallucinates" → root cause is the all-on meta-repo, not a consumer defect (D6).** `cos init` (no flag) applies `default_profile=standard` → a fresh consumer sees **72** tools. The meta-repo ships `.coding-os/subsystems-state.json={"disabled":[]}` → **86** (all-on), which is what the owner sees working *inside* coding-os. The owner can lean their own dev surface with `.coding-os/subsystems-state.json={"disabled":["cognition"]}` (the tool gate has no meta guard); caveat: the hand-written AGENTS.md is intentionally not regenerated, so it will still name gated tools (a documented coherence trade-off, D6-F4).
+
+### 12.4 Refuted over-claims (adversarial step working)
+
+- **D6-F2 (audit doc PB-3-tool "stale") — REFUTED:** §11.7 already records the shipped lean default; no doc change needed.
+- **D6-F5 (`cos_traceability`/`cos_failure_pattern_query` "unowned bug") — REFUTED:** their always-on status is the documented Rule-22 decision (§11.4 PB-6-kernel); the new reverse-totality test whitelists them explicitly rather than force-mapping.
+
+### 12.5 Still open (owner-gated / backlog, none are missing core machinery)
+
+Hub Config UX polish (D4-1..6 — reverse-deps view, refusal wording, skills count, cascade-notes echo, test coverage — filed), the `RolesPage`/`presence.ts` adapter-hygiene one-liners (D3-F1/F3), and the structurally-open dogfood blind spot (meta-repo can't exercise its own section-surgery; TASK-505 harness stays thin/single-module by owner lock, D6-F3). **Pass-7 verdict: the modularity machine remains genuinely built; the delta's only real damage was two registry-invariant regressions, now fixed and re-fenced by the tool-owner test + `test-modules` verify-suite.**
