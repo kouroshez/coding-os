@@ -21,10 +21,10 @@ substitutions:
   DOMAIN_ROUTES: "Frontend→`docs/playbooks/frontend-ui.md`, Content→`docs/playbooks/content-seo.md`"
   SKILL_ROUTES: "Frontend→`nextjs-react`"
   ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/frontend-rules.md`, Rendering→`docs/engineering/frontend-rendering-rules.md`, Copy→`docs/engineering/copywriting-standard.md`, i18n→`docs/engineering/i18n-policy.md`, a11y→`docs/engineering/accessibility-web.md`, Format→`docs/engineering/formatting-rules.md`"
-  TOOL_ROUTING_IMPL: "`lint-frontend`, `build-frontend`"
+  TOOL_ROUTING_IMPL: "`lint-frontend`, `test-frontend`, `build-frontend`"
   VERIFY_FRONTEND_GLOB: "`src/frontend/`"
-  VERIFY_FRONTEND_SUITES: "lint-frontend"
-  VERIFY_FRONTEND: "`cd src/frontend && npm run lint`"
+  VERIFY_FRONTEND_SUITES: "lint-frontend + test-frontend"
+  VERIFY_FRONTEND: "`cd src/frontend && npm run lint && npm test`"
   QUICK_ROUTING: |-
     - UI / component task → [Frontend UI Playbook](./playbooks/frontend-ui.md)
     - Content / SEO / metadata task → [Content & SEO Playbook](./playbooks/content-seo.md)

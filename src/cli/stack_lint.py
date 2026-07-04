@@ -150,14 +150,16 @@ def _verify_command_text(profile: StackProfile) -> str:
 
 
 def _verify_runs_test(profile: StackProfile) -> bool:
-    # A stack that ships a sample test should name a test suite in its verify
-    # wiring. The `test-*` target convention (test-backend/test-frontend/...) is
-    # runner-agnostic, so this catches an un-run test whether the runner is
-    # pytest/vitest/rspec/phpunit/go test — where scanning the command for a
-    # runner binary would miss rspec/minitest.
-    suites = [value for key, value in profile.substitutions.items() if key.endswith("_SUITES")]
-    suites.extend(row.suites for row in profile.verify)
-    return "test" in " ".join(suites).lower()
+    # A stack that ships a sample test should name a test suite in the
+    # VERIFY_<DOMAIN>_SUITES substitution — the source the rendered AGENTS.md
+    # matrix and enforce-verify read, so a stale one silently tells the agent to
+    # skip the test. The `test-*` target convention is runner-agnostic
+    # (test-backend/test-frontend/...), catching an un-run test whether the
+    # runner is pytest/vitest/rspec/phpunit. Reading the substitution (not the
+    # verify: block) catches drift where the block was wired but the matrix left
+    # stale.
+    suites = " ".join(v for k, v in profile.substitutions.items() if k.endswith("_SUITES"))
+    return "test" in suites.lower()
 
 
 def lint_stack(

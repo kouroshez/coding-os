@@ -490,7 +490,6 @@
         "src/frontend/src/app/app.routes.ts",
         "src/frontend/src/app/core/global-error-handler.ts",
         "src/frontend/src/app/health/health.component.ts",
-        "src/frontend/src/app/health/health.service.spec.ts",
         "src/frontend/src/app/health/health.service.ts",
         "src/frontend/src/index.html",
         "src/frontend/src/main.ts",
@@ -500,7 +499,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 255
+      "count": 254
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -7620,7 +7619,6 @@
         "src/frontend/src/app/app.routes.ts",
         "src/frontend/src/app/core/global-error-handler.ts",
         "src/frontend/src/app/health/health.component.ts",
-        "src/frontend/src/app/health/health.service.spec.ts",
         "src/frontend/src/app/health/health.service.ts",
         "src/frontend/src/index.html",
         "src/frontend/src/main.ts",
@@ -7630,7 +7628,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 257
+      "count": 256
     },
     "codex_aspnet-core": {
       "agent": "codex",

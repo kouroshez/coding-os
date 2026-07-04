@@ -22,10 +22,10 @@ substitutions:
   DOMAIN_ROUTES: "Backend→`docs/playbooks/wordpress-service.md`"
   SKILL_ROUTES: "Backend→`wordpress`"
   ENGINEERING_RULE_ROUTING: "Backend→`docs/engineering/wordpress-rules.md`, Error format→`docs/api-contracts/error-format.md`"
-  TOOL_ROUTING_IMPL: "`lint-backend`"
+  TOOL_ROUTING_IMPL: "`lint-backend`, `test-backend`"
   VERIFY_BACKEND_GLOB: "`src/backend/`"
-  VERIFY_BACKEND_SUITES: "lint-backend"
-  VERIFY_BACKEND: "`cd src/backend && composer lint`"
+  VERIFY_BACKEND_SUITES: "lint-backend + test-backend"
+  VERIFY_BACKEND: "`cd src/backend && composer lint && composer test`"
   QUICK_ROUTING: |-
     - WordPress theme / hook task → [WordPress Playbook](./playbooks/wordpress-service.md)
     - Plugin / shortcode / REST route → [WordPress Playbook](./playbooks/wordpress-service.md)
