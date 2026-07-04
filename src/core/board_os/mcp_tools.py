@@ -2881,15 +2881,6 @@ def _record_task_edit(
         logger.debug("task_edit_history insert failed for %s.%s: %s", task_id, field, exc)
 
 
-def _extract_worklog_section(body: str) -> str:
-    head = re.search(r"(?m)^## Work Log[ \t]*$", body)
-    if head is None:
-        return ""
-    nxt = re.search(r"(?m)^## ", body[head.end() :])
-    end = head.end() + nxt.start() if nxt else len(body)
-    return body[head.start() : end].rstrip("\n")
-
-
 @safe_tool
 def cos_task_edit(
     conn: sqlite3.Connection,
@@ -2988,31 +2979,21 @@ def cos_task_edit(
         changed.append("labels")
 
     new_body = current_body
-    if body is not None:
-        incoming = body
-        # The board editor strips the system-managed "## Work Log" section (it
-        # renders in the History timeline) before PATCHing the body, so a
-        # wholesale replace would silently delete it. Preserve it: if the
-        # incoming body omits the section but the current one has it, re-append.
-        if not _extract_worklog_section(incoming) and current_body:
-            preserved = _extract_worklog_section(current_body)
-            if preserved:
-                incoming = incoming.rstrip("\n") + "\n\n" + preserved + "\n"
-        if incoming.strip() != current_body.strip():
-            import hashlib
+    if body is not None and body.strip() != current_body.strip():
+        import hashlib
 
-            new_body = incoming
-            _record_task_edit(
-                conn,
-                task_id=task_id,
-                field="body",
-                old=hashlib.sha1(current_body.encode("utf-8")).hexdigest()[:12],
-                new=hashlib.sha1(incoming.encode("utf-8")).hexdigest()[:12],
-                actor_type=actor_type,
-                actor_id=resolved_actor,
-                source=source,
-            )
-            changed.append("body")
+        new_body = body
+        _record_task_edit(
+            conn,
+            task_id=task_id,
+            field="body",
+            old=hashlib.sha1(current_body.encode("utf-8")).hexdigest()[:12],
+            new=hashlib.sha1(body.encode("utf-8")).hexdigest()[:12],
+            actor_type=actor_type,
+            actor_id=resolved_actor,
+            source=source,
+        )
+        changed.append("body")
 
     if not changed:
         return ok(

@@ -118,12 +118,12 @@ def test_create_task_title_with_double_quote_stays_valid_yaml(
     assert edited["ok"] is True
 
 
-def test_task_edit_preserves_work_log_on_body_replace(
+def test_task_edit_roundtrips_full_body_including_work_log(
     project: Path, conn: sqlite3.Connection
 ):
-    """TASK-773: the board drawer strips the ## Work Log section before PATCHing
-    the body, so a wholesale body replace must re-append it — else editing a
-    task through the UI silently deletes the system-managed log (data loss)."""
+    """TASK-773/775: the board drawer sends the FULL task body (Work Log kept),
+    so a plain cos_task_edit replace round-trips the Work Log in place — no
+    producer-side preservation, no section reorder, no phantom edit."""
     created = _parse(
         mcp_tools.cos_task_create(
             conn,
@@ -138,21 +138,18 @@ def test_task_edit_preserves_work_log_on_body_replace(
 
     mcp_tools.cos_work_log_append(conn, task_id=task_id, summary="first checkpoint")
     mcp_tools.cos_work_log_append(conn, task_id=task_id, summary="second checkpoint")
-    assert "## Work Log" in file_path.read_text(encoding="utf-8")
 
-    # The board editor sends a body with the Work Log stripped out.
-    edited = _parse(
-        mcp_tools.cos_task_edit(
-            conn,
-            task_id=task_id,
-            body="## Outcome\n\nUpdated outcome text — no work log here.\n",
-        )
+    # The editor keeps the full body (Work Log intact) and edits a human section.
+    full_body = file_path.read_text(encoding="utf-8").split("---", 2)[2]
+    edited = full_body.replace(
+        "A task whose body carries a Work Log.", "Edited outcome text."
     )
-    assert edited["ok"] is True
+    result = _parse(mcp_tools.cos_task_edit(conn, task_id=task_id, body=edited))
+    assert result["ok"] is True
 
     after = file_path.read_text(encoding="utf-8")
-    assert "Updated outcome text" in after  # the edit landed
-    assert "## Work Log" in after  # and the log survived
+    assert "Edited outcome text." in after  # the edit landed
+    assert "## Work Log" in after  # the log round-tripped in place
     assert "first checkpoint" in after
     assert "second checkpoint" in after
 

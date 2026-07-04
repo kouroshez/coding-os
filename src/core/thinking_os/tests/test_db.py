@@ -1032,11 +1032,12 @@ def test_resolve_db_path_bound_scope_beats_env(tmp_path: Path, monkeypatch) -> N
 
 
 def test_bare_home_refuses_project_db(tmp_path: Path, monkeypatch) -> None:
-    """TASK-770: cwd == $HOME with no project below must NOT anchor a project
-    DB inside the global hub state dir. _find_project_root_from_cwd returns
-    None at the bare-$HOME boundary and resolve_db_path raises rather than
-    minting $HOME/.coding-os/coding-os.db."""
-    from database import _find_project_root_from_cwd, resolve_db_path
+    """TASK-770/775: cwd == $HOME with no project below must NOT anchor a project
+    DB inside the global hub state dir. _find_project_root_from_cwd returns None
+    at the bare-$HOME boundary; resolve_db_path falls back to cwd (non-raising, so
+    its ImportError-only callers keep working), and init_db refuses to CREATE a DB
+    inside $HOME/.coding-os — the guard sits at the mkdir chokepoint."""
+    from database import _find_project_root_from_cwd, init_db, resolve_db_path
 
     home = tmp_path / "home"
     (home / ".coding-os").mkdir(parents=True)  # global hub state dir
@@ -1051,11 +1052,14 @@ def test_bare_home_refuses_project_db(tmp_path: Path, monkeypatch) -> None:
     sub.mkdir(parents=True)
     assert _find_project_root_from_cwd(sub) == sub.resolve()
 
-    # resolve_db_path with no scope / env / arg from bare $HOME fails loud
-    # instead of returning $HOME/.coding-os/coding-os.db.
+    # resolve_db_path no longer raises — it returns the cwd fallback path so
+    # callers that only catch ImportError are not broken by a new exception.
     monkeypatch.chdir(home)
+    assert resolve_db_path().name == "coding-os.db"
+    # The guard lives at the mkdir chokepoint: init_db refuses to create a
+    # project DB inside the global hub state dir.
     with pytest.raises(RuntimeError, match="global hub"):
-        resolve_db_path()
+        init_db(str(home / ".coding-os" / "coding-os.db"))
 
 
 # ---------------------------------------------------------------------------

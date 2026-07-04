@@ -3322,12 +3322,16 @@ export function TaskDetailDrawer({
 
   // Strip YAML frontmatter + leading H1 (drawer header already shows title).
   let body = '';
+  let editBody = '';
   if (data?.content) {
     const split = splitFrontmatter(data.content);
-    body = split.body.replace(/^\s*#\s+.+\n+/, '');
-    // Work Log now lives in the unified History timeline below — strip the
-    // duplicate "## Work Log" section from the rendered spec body.
-    body = body.replace(/\n##\s+Work Log[\s\S]*?(?=\n##\s|$)/i, '\n');
+    // editBody keeps the full spec (Work Log included) so a save round-trips it
+    // in place — the backend does a plain body replace, so the editor must send
+    // the section back or it would be dropped.
+    editBody = split.body.replace(/^\s*#\s+.+\n+/, '');
+    // The read-only render strips the "## Work Log" section (it renders in the
+    // History timeline below); only the editor keeps it.
+    body = editBody.replace(/\n##\s+Work Log[\s\S]*?(?=\n##\s|$)/i, '\n');
   }
 
   const isReady = labels.includes('ready');
@@ -3337,7 +3341,7 @@ export function TaskDetailDrawer({
     void invalidateApiQueries(qc, `/api/board/task/${task.id}/history`);
   };
   const enterEdit = () => {
-    setForm({ title, priority, swimlane, appetite, labels: labels.join(', '), body });
+    setForm({ title, priority, swimlane, appetite, labels: labels.join(', '), body: editBody });
     setSaveErr(null);
     setEditing(true);
   };

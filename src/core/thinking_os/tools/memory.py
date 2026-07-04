@@ -426,7 +426,7 @@ def memory_search(
             {
                 "id": row_dict["id"],
                 "title": (row_dict.get("title") or "")[:60],
-                "content": row_dict.get("title") or "",
+                **({"content": row_dict.get("title") or ""} if include_body else {}),
                 "confidence": 0.5,
                 "impact_score": row_dict.get("impact_score", 0.5),
                 "memory_type": row_dict.get("memory_type", "discovery"),
@@ -469,7 +469,7 @@ def memory_search(
             {
                 "id": row_dict["id"],
                 "title": (row_dict.get("pattern") or "")[:60],
-                "content": row_dict.get("pattern") or "",
+                **({"content": row_dict.get("pattern") or ""} if include_body else {}),
                 "confidence": row_dict.get("confidence", 0.5),
                 "impact_score": row_dict.get("impact_score", 0.5),
                 "memory_type": row_dict.get("memory_type", "pattern"),
@@ -556,8 +556,6 @@ def memory_search(
     for r in results:
         r.pop("score", None)
         r.pop("concepts", None)
-        if not include_body:
-            r.pop("content", None)
 
     source_label = "fts5" if use_fts5 else "like"
     if semantic_used:

@@ -140,9 +140,10 @@ def resolve_db_path(project_root: Path | str | None = None) -> Path:
     2. ``$COS_DB_PATH`` env var, when set (the CLI / MCP default override).
     3. ``<project_root>/.coding-os/coding-os.db`` when project_root given.
     4. Walk up from cwd to find the enclosing ``.coding-os/`` and use that
-       project root. Raises if the walk reaches the bare ``$HOME`` boundary
-       with no project below it — ``~/.coding-os/`` is the global hub state
-       dir, never a project DB.
+       project root, falling back to cwd when none is found. At the bare
+       ``$HOME`` boundary this yields ``$HOME/.coding-os/coding-os.db``, but
+       ``init_db`` refuses to CREATE a project DB inside the global hub state
+       dir — the guard sits at the mkdir chokepoint, not in this resolver.
 
     Only the Hub's ProjectScopeMiddleware binds ``_active_project_root``, so
     CLI / MCP callers skip step 1 and keep the prior ``$COS_DB_PATH`` behavior.
@@ -162,14 +163,7 @@ def resolve_db_path(project_root: Path | str | None = None) -> Path:
         return Path(explicit)
     if project_root is not None:
         return Path(project_root) / STATE_DIRNAME / DB_FILENAME
-    root = _find_project_root_from_cwd()
-    if root is None:
-        raise RuntimeError(
-            "no coding-os project found from cwd; set $COS_DB_PATH or run "
-            "inside a project — $HOME/.coding-os is the global hub state dir, "
-            "not a project DB"
-        )
-    return root / STATE_DIRNAME / DB_FILENAME
+    return (_find_project_root_from_cwd() or Path.cwd()) / STATE_DIRNAME / DB_FILENAME
 
 
 def project_root(start: Path | str | None = None) -> Path:
@@ -205,8 +199,9 @@ def project_root(start: Path | str | None = None) -> Path:
                 home = None
             if home is None or parent != home:
                 return parent
-    root = _find_project_root_from_cwd(Path(start) if start else None)
-    return root if root is not None else (Path(start) if start else Path.cwd()).resolve()
+    start_path = Path(start) if start else None
+    root = _find_project_root_from_cwd(start_path)
+    return root if root is not None else (start_path or Path.cwd()).resolve()
 
 
 def migrate_legacy_db_filename(target: Path) -> bool:
@@ -2703,6 +2698,18 @@ def get_db_stats(conn: sqlite3.Connection) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def _refuse_global_hub_db(target: Path) -> None:
+    try:
+        hub_state = (Path.home() / STATE_DIRNAME).resolve()
+    except (OSError, RuntimeError):
+        return
+    if target.parent.resolve() == hub_state:
+        raise RuntimeError(
+            f"refusing to create a project DB inside the global hub state dir "
+            f"({hub_state}) — set $COS_DB_PATH or run inside a project"
+        )
+
+
 def init_db(db_path: str | Path | None = None) -> sqlite3.Connection:
     """Open the DB, run migrations, return the live connection.
 
@@ -2718,6 +2725,7 @@ def init_db(db_path: str | Path | None = None) -> sqlite3.Connection:
     is a no-op when stats are current.
     """
     target = Path(db_path) if db_path else DEFAULT_DB_PATH
+    _refuse_global_hub_db(target)
     target.parent.mkdir(parents=True, exist_ok=True)
     migrate_legacy_db_filename(target)
     conn = get_connection(str(target))
