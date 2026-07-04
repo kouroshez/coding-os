@@ -14,8 +14,9 @@ vi.mock('@/lib/hooks', () => ({
       '/api/hooks/list': { hooks: [{ name: 'branch-guard', event: 'PreToolUse', category: 'safety', phase: '1' }] },
       '/api/settings/modules': {
         modules: [
-          { id: 'kernel', label: 'Kernel', kernel: true, enabled: true, depends_on: [], hooks: 6, tools: 0 },
-          { id: 'tasks', label: 'Task system', hint: 'Enable for the Scrumban board.', kernel: false, enabled: true, depends_on: ['docs'], hooks: 9, tools: 2 },
+          { id: 'kernel', label: 'Kernel', kernel: true, enabled: true, depends_on: [], hooks: 6, tools: 0, skills: 0 },
+          { id: 'docs', label: 'Docs system', hint: 'Enable for SSOT doc search.', kernel: false, enabled: true, depends_on: [], hooks: 6, tools: 1, skills: 0 },
+          { id: 'tasks', label: 'Task system', hint: 'Enable for the Scrumban board.', kernel: false, enabled: true, depends_on: ['docs'], hooks: 9, tools: 2, skills: 1 },
         ],
       },
       '/api/settings': {
@@ -97,6 +98,22 @@ describe('ModulesTab (TASK-354)', () => {
   it('surfaces the per-module hint for discovery', () => {
     renderConfig('/p/demo/config?tab=modules');
     expect(screen.getByText('Enable for the Scrumban board.')).toBeInTheDocument();
+  });
+
+  it('shows reverse dependencies and pre-empts disabling a depended-on module', () => {
+    renderConfig('/p/demo/config?tab=modules');
+    // docs is required by tasks → its Disable button is greyed out with a reason,
+    // instead of throwing a raw refusal only after the click.
+    const docsToggle = screen.getByTestId('module-toggle-docs');
+    expect(docsToggle).toBeDisabled();
+    expect(docsToggle.getAttribute('title')).toMatch(/tasks/);
+    // tasks has no dependents → its toggle stays actionable.
+    expect(screen.getByTestId('module-toggle-tasks')).not.toBeDisabled();
+  });
+
+  it('surfaces the module skills count the producer emits', () => {
+    renderConfig('/p/demo/config?tab=modules');
+    expect(screen.getByText(/1 skills/)).toBeInTheDocument();
   });
 });
 

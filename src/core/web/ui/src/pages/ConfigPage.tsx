@@ -386,6 +386,7 @@ interface ModuleRow {
   depends_on: string[];
   hooks: number;
   tools: number;
+  skills: number;
 }
 
 interface DriftRow {
@@ -413,6 +414,15 @@ function ModulesTab() {
   if (error) return <StateRow>Could not load modules: {error.message}</StateRow>;
   const rows = data?.modules ?? [];
   const drift = driftData?.drift ?? [];
+
+  // Reverse dependency edges, derived from the rows the API already returns —
+  // so the table SHOWS "what depends on this" and greys out a disable the
+  // backend would refuse, instead of surfacing a raw refusal only after a click.
+  const dependentsOf = (id: string) => rows.filter((r) => r.depends_on.includes(id)).map((r) => r.id);
+  const enabledDependentsOf = (id: string) =>
+    rows.filter((r) => r.enabled && r.depends_on.includes(id)).map((r) => r.id);
+  const disabledDepsOf = (m: ModuleRow) =>
+    m.depends_on.filter((d) => rows.some((r) => r.id === d && !r.enabled));
 
   const toggle = async (row: ModuleRow) => {
     setBusyId(row.id);
@@ -454,43 +464,57 @@ function ModulesTab() {
           </ul>
         </div>
       )}
-      <Table head={['Module', 'State', 'Owns', 'Depends on', '']}>
-        {rows.map((m) => (
-          <tr key={m.id} className="border-b border-[var(--cos-border)] last:border-0 hover:bg-white/[0.02]">
-            <td className="px-3 py-2">
-              <div className="font-medium text-[var(--cos-text)]">{m.id}</div>
-              <div className="text-[10px] text-[var(--cos-faint)]">{m.label}</div>
-              {m.hint && (
-                <div className="mt-0.5 max-w-md text-[10px] leading-snug text-[var(--cos-muted)]">{m.hint}</div>
-              )}
-            </td>
-            <td className="px-3 py-2">
-              {m.kernel ? (
-                <Pill tone="muted">kernel · locked</Pill>
-              ) : (
-                <Pill tone={m.enabled ? 'ok' : 'muted'}>{m.enabled ? 'enabled' : 'disabled'}</Pill>
-              )}
-            </td>
-            <td className="px-3 py-2 text-[var(--cos-muted)]">
-              {m.hooks} hooks · {m.tools} tools
-            </td>
-            <td className="px-3 py-2 text-[var(--cos-faint)]">{m.depends_on.join(', ') || '—'}</td>
-            <td className="px-3 py-2 text-right">
-              {!m.kernel && (
-                <button
-                  type="button"
-                  data-testid={`module-toggle-${m.id}`}
-                  onClick={() => void toggle(m)}
-                  disabled={busyId !== null}
-                  aria-pressed={m.enabled}
-                  className="rounded border border-[var(--cos-border)] px-2.5 py-1 text-[11px] text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] disabled:opacity-40"
-                >
-                  {busyId === m.id ? '…' : m.enabled ? 'Disable' : 'Enable'}
-                </button>
-              )}
-            </td>
-          </tr>
-        ))}
+      <Table head={['Module', 'State', 'Owns', 'Depends on', 'Required by', '']}>
+        {rows.map((m) => {
+          const dependents = dependentsOf(m.id);
+          const blockedBy = enabledDependentsOf(m.id);
+          const missingDeps = disabledDepsOf(m);
+          const disableBlocked = m.enabled && blockedBy.length > 0;
+          const enableBlocked = !m.enabled && missingDeps.length > 0;
+          const blockedReason = disableBlocked
+            ? `Required by ${blockedBy.join(', ')} — disable ${blockedBy.length > 1 ? 'them' : 'it'} first`
+            : enableBlocked
+              ? `Needs ${missingDeps.join(', ')} — enable ${missingDeps.length > 1 ? 'them' : 'it'} first`
+              : undefined;
+          return (
+            <tr key={m.id} className="border-b border-[var(--cos-border)] last:border-0 hover:bg-white/[0.02]">
+              <td className="px-3 py-2">
+                <div className="font-medium text-[var(--cos-text)]">{m.id}</div>
+                <div className="text-[10px] text-[var(--cos-faint)]">{m.label}</div>
+                {m.hint && (
+                  <div className="mt-0.5 max-w-md text-[10px] leading-snug text-[var(--cos-muted)]">{m.hint}</div>
+                )}
+              </td>
+              <td className="px-3 py-2">
+                {m.kernel ? (
+                  <Pill tone="muted">kernel · locked</Pill>
+                ) : (
+                  <Pill tone={m.enabled ? 'ok' : 'muted'}>{m.enabled ? 'enabled' : 'disabled'}</Pill>
+                )}
+              </td>
+              <td className="px-3 py-2 text-[var(--cos-muted)]">
+                {m.hooks} hooks · {m.tools} tools · {m.skills} skills
+              </td>
+              <td className="px-3 py-2 text-[var(--cos-faint)]">{m.depends_on.join(', ') || '—'}</td>
+              <td className="px-3 py-2 text-[var(--cos-faint)]">{dependents.join(', ') || '—'}</td>
+              <td className="px-3 py-2 text-right">
+                {!m.kernel && (
+                  <button
+                    type="button"
+                    data-testid={`module-toggle-${m.id}`}
+                    onClick={() => void toggle(m)}
+                    disabled={busyId !== null || disableBlocked || enableBlocked}
+                    title={blockedReason}
+                    aria-pressed={m.enabled}
+                    className="rounded border border-[var(--cos-border)] px-2.5 py-1 text-[11px] text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] disabled:opacity-40"
+                  >
+                    {busyId === m.id ? '…' : m.enabled ? 'Disable' : 'Enable'}
+                  </button>
+                )}
+              </td>
+            </tr>
+          );
+        })}
       </Table>
     </>
   );
