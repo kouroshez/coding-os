@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import shutil
 import subprocess
 import sys
@@ -136,7 +137,7 @@ def _skill_row(profile, *, provenance: str, extras: set, disabled: set, stacks: 
         "extra": profile.name in extras,
         # provenance + disabled let the Hub render Enable/Disable for core/stack
         # skills (opt-out via disabled_skills), not just the community add/remove
-        # path (HUB-PB1 / TASK-503). `stacks` powers the grouped-by-stack view.
+        # path; `stacks` powers the grouped-by-stack view.
         "provenance": provenance,
         "disabled": profile.name in disabled,
         "stacks": stacks,
@@ -317,13 +318,20 @@ def config_adapters() -> dict:
 
 
 # --------------------------------------------------------------------------
-# Mutations (TASK-786) — stack install/remove, adapter add/remove, MCP
-# add/remove. All refuse to run on the coding-os meta-repo (its .coding-os.yaml
-# is DNA, not a consumer install) and append an audit row per mutation. MCP add
-# is limited to a first-party allow-list — arbitrary/custom/URL/uploaded MCP is
-# the Extension Manager epic (docs/engineering/extension-manager.md), which the
-# Marketplace surface fronts.
+# Mutations — stack install/remove, adapter add/remove, MCP add/remove. All
+# refuse to run on the coding-os meta-repo (its .coding-os.yaml is DNA, not a
+# consumer install) and append an audit row per mutation. MCP add is limited to
+# a first-party allow-list — arbitrary/custom/URL/uploaded MCP is the Extension
+# Manager (docs/engineering/extension-manager.md), which the Marketplace fronts.
 # --------------------------------------------------------------------------
+
+# Ids reach a subprocess argv or a file path, so restrict them to a slug — a
+# leading dash can't then be parsed as a CLI option, nor a slash escape a path.
+_SLUG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
+def _safe_id(value: str) -> bool:
+    return bool(_SLUG_RE.match(value or ""))
 
 # Curated first-party stdio MCP servers (no secret / extra config needed). The
 # pre-Extension-Manager allow-list; the EM registry supersedes it with the
@@ -348,11 +356,55 @@ def _cos_bin() -> list[str]:
     return [found] if found else [sys.executable, "-m", "cli.main"]
 
 
-def _run_cos(args: list[str], cwd: Path, timeout: int = 300) -> tuple[bool, dict, str]:
-    """Run `cos <args>` in cwd; return (ok, last-json-object-on-stdout, error)."""
+def _cos_root() -> Path | None:
+    """coding-os package root — the safe cwd for the `python -m cli.main` fallback,
+    so a target project's own top-level cli/ can never shadow the real cos."""
+    try:
+        from cli.list_stacks import TEMPLATES_DIR
+
+        return TEMPLATES_DIR.parent.parent
+    except Exception as exc:
+        logger.debug("cos root resolution failed: %s", exc)
+        return None
+
+
+def _parse_cos_json(stdout: str) -> dict:
+    """Parse a `cos --format json` payload: whole stdout first (indent=2 is
+    multi-line), then the last `{`-prefixed line for single-line emitters."""
+    text = stdout.strip()
+    if not text:
+        return {}
+    try:
+        whole = json.loads(text)
+        if isinstance(whole, dict):
+            return whole
+    except json.JSONDecodeError:
+        pass
+    for line in reversed(text.splitlines()):
+        cand = line.strip()
+        if cand.startswith("{"):
+            try:
+                parsed = json.loads(cand)
+                if isinstance(parsed, dict):
+                    return parsed
+            except json.JSONDecodeError:
+                continue
+    return {}
+
+
+def _run_cos(args: list[str], timeout: int = 300) -> tuple[bool, dict, str]:
+    """Run `cos <args>` from the coding-os root; return (ok, json-payload, error).
+
+    The project is addressed via an explicit `-d <path>` arg, not cwd, so the
+    subprocess cwd stays on the coding-os tree (see _cos_root)."""
+    root = _cos_root()
     try:
         proc = subprocess.run(  # noqa: S603 — fixed argv, never shell=True
-            [*_cos_bin(), *args], capture_output=True, text=True, timeout=timeout, cwd=str(cwd)
+            [*_cos_bin(), *args],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=str(root) if root else None,
         )
     except subprocess.TimeoutExpired:
         return False, {}, f"'{' '.join(args)}' timed out after {timeout}s"
@@ -360,16 +412,7 @@ def _run_cos(args: list[str], cwd: Path, timeout: int = 300) -> tuple[bool, dict
         return False, {}, f"could not launch cos: {exc}"
     if proc.returncode != 0:
         return False, {}, (proc.stderr or proc.stdout or "command failed").strip()[-400:]
-    payload: dict = {}
-    for line in reversed((proc.stdout or "").strip().splitlines()):
-        cand = line.strip()
-        if cand.startswith("{"):
-            try:
-                payload = json.loads(cand)
-                break
-            except json.JSONDecodeError:
-                continue
-    return True, payload, ""
+    return True, _parse_cos_json(proc.stdout or ""), ""
 
 
 def _is_meta_repo(root: Path) -> bool:
@@ -421,12 +464,16 @@ def _audit(root: Path, action: str, unit: str, detail: str = "") -> None:
 @router.post("/stacks/{stack_id}")
 def config_stack_install(stack_id: str) -> JSONResponse:
     """Install a stack into the project (cos add-stack); refuses on the meta-repo."""
+    if not _safe_id(stack_id):
+        return _fail(400, "validation", "invalid stack id")
     if (blocked := _meta_block("install a stack")) is not None:
         return blocked
     root = _project_root()
-    ok, payload, err = _run_cos(["add-stack", stack_id, "-d", str(root), "--format", "json"], root)
+    ok, payload, err = _run_cos(["add-stack", stack_id, "-d", str(root), "--format", "json"])
     if not ok:
-        not_found = "not found" in err.lower()
+        # add_stack's registry-miss carries "not found — available:"; a missing
+        # .coding-os.yaml / render failure is internal, not a 404 for the id.
+        not_found = "not found — available" in err.lower()
         return _fail(404 if not_found else 400, "not_found" if not_found else "internal", err)
     _audit(root, "stack.install", stack_id, str(payload.get("status", "")))
     return _ok(payload)
@@ -435,10 +482,12 @@ def config_stack_install(stack_id: str) -> JSONResponse:
 @router.delete("/stacks/{stack_id}")
 def config_stack_remove(stack_id: str) -> JSONResponse:
     """Remove a stack from the project (cos remove-stack); refuses on the meta-repo."""
+    if not _safe_id(stack_id):
+        return _fail(400, "validation", "invalid stack id")
     if (blocked := _meta_block("remove a stack")) is not None:
         return blocked
     root = _project_root()
-    ok, payload, err = _run_cos(["remove-stack", stack_id, "-d", str(root), "--format", "json"], root)
+    ok, payload, err = _run_cos(["remove-stack", stack_id, "-d", str(root), "--format", "json"])
     if not ok:
         return _fail(400, "internal", err)
     _audit(root, "stack.remove", stack_id, str(payload.get("status", "")))
@@ -448,12 +497,18 @@ def config_stack_remove(stack_id: str) -> JSONResponse:
 @router.post("/adapters/{agent}")
 def config_adapter_add(agent: str) -> JSONResponse:
     """Add an agent adapter to the project (cos add-adapter); refuses on the meta-repo."""
+    if not _safe_id(agent):
+        return _fail(400, "validation", "invalid adapter id")
     if (blocked := _meta_block("add an adapter")) is not None:
         return blocked
     root = _project_root()
-    ok, _payload, err = _run_cos(["add-adapter", agent, "-d", str(root)], root)
+    # Idempotent: don't re-run install or write a spurious audit row for a no-op.
+    if agent in set(_project_config_skill_list("agents")):
+        return _ok({"agent": agent, "status": "already_installed"})
+    ok, _payload, err = _run_cos(["add-adapter", agent, "-d", str(root)])
     if not ok:
-        bad = "unknown agent" in err.lower() or "invalid" in err.lower() or "choice" in err.lower()
+        # click.Choice rejects an unknown agent with "is not one of".
+        bad = "is not one of" in err.lower()
         return _fail(404 if bad else 400, "not_found" if bad else "internal", err)
     _audit(root, "adapter.add", agent)
     return _ok({"agent": agent, "status": "added"})
@@ -462,6 +517,8 @@ def config_adapter_add(agent: str) -> JSONResponse:
 @router.delete("/adapters/{agent}")
 def config_adapter_remove(agent: str) -> JSONResponse:
     """Remove an agent adapter from the project (never the last one); refuses on the meta-repo."""
+    if not _safe_id(agent):
+        return _fail(400, "validation", "invalid adapter id")
     if (blocked := _meta_block("remove an adapter")) is not None:
         return blocked
     root = _project_root()
@@ -527,6 +584,8 @@ def config_mcp_add(body: dict = Body(...)) -> JSONResponse:
         data = json.loads(mcp.read_text(encoding="utf-8")) if mcp.exists() else {}
     except Exception as exc:
         return _fail(400, "internal", f"invalid .mcp.json: {exc}")
+    if not isinstance(data, dict):
+        return _fail(400, "internal", ".mcp.json is not an object")
     servers = data.setdefault("mcpServers", {})
     if not isinstance(servers, dict):
         return _fail(400, "internal", ".mcp.json mcpServers is not an object")
@@ -545,6 +604,8 @@ def config_mcp_remove(name: str) -> JSONResponse:
         return blocked
     if name == "coding-os":
         return _fail(409, "conflict", "the coding-os MCP server is managed by cos and cannot be removed here.")
+    if not _safe_id(name):
+        return _fail(400, "validation", "invalid MCP server id")
     root = _project_root()
     mcp = root / ".mcp.json"
     if not mcp.exists():
@@ -553,8 +614,8 @@ def config_mcp_remove(name: str) -> JSONResponse:
         data = json.loads(mcp.read_text(encoding="utf-8")) or {}
     except Exception as exc:
         return _fail(400, "internal", f"invalid .mcp.json: {exc}")
-    servers = data.get("mcpServers") or {}
-    if name not in servers:
+    servers = data.get("mcpServers") if isinstance(data, dict) else None
+    if not isinstance(servers, dict) or name not in servers:
         return _fail(404, "not_found", f"MCP server '{name}' is not configured")
     del servers[name]
     data["mcpServers"] = servers

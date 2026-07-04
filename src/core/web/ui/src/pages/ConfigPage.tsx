@@ -111,9 +111,9 @@ function StateRow({ children }: { children: ReactNode }) {
 }
 
 // --------------------------------------------------------------------------
-// Config mutation chrome (TASK-786). The meta-repo ships every stack/adapter as
-// a template and installs none in the consumer sense, so install/remove is
-// disabled on its slug — parity with the Git-tab trunk caution.
+// Config mutation chrome. The meta-repo ships every stack/adapter as a template
+// and installs none in the consumer sense, so install/remove is disabled on its
+// slug — parity with the Git-tab trunk caution.
 // --------------------------------------------------------------------------
 
 // The meta-repo's own derived slug (cli.registry._derive_slug). Mutations are
@@ -213,6 +213,7 @@ function CfgButton({
   onClick,
   icon,
   title,
+  ariaPressed,
   children,
 }: {
   tone?: 'primary' | 'ghost' | 'danger';
@@ -221,6 +222,7 @@ function CfgButton({
   onClick: () => void;
   icon?: ReactNode;
   title?: string;
+  ariaPressed?: boolean;
   children: ReactNode;
 }) {
   const palette =
@@ -235,6 +237,7 @@ function CfgButton({
       onClick={onClick}
       disabled={disabled || busy}
       title={title}
+      aria-pressed={ariaPressed}
       className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] disabled:cursor-not-allowed disabled:opacity-40 ${palette}`}
     >
       {busy ? <span className="animate-pulse">…</span> : icon}
@@ -481,8 +484,8 @@ interface SkillRow {
   description?: string;
   extra?: boolean;
   // Producer fields (config_skills): provenance ("core" / "stack:<id>") + disabled
-  // let the Hub Enable/Disable a core/stack skill (HUB-PB1 / TASK-503); `stacks`
-  // is the installed stacks that use it, powering the grouped-by-stack view.
+  // let the Hub Enable/Disable a core/stack skill; `stacks` is the installed
+  // stacks that use it, powering the grouped-by-stack view.
   provenance?: string;
   disabled?: boolean;
   stacks?: string[];
@@ -540,7 +543,13 @@ function SkillsTab() {
       badges={
         <>
           <ProvenanceBadge skill={s} />
-          {s.disabled && <span className="text-[10px] text-[var(--cos-faint)]">disabled</span>}
+          {!s.extra && (
+            <span
+              className={`text-[10px] font-medium ${s.disabled ? 'text-[var(--cos-faint)]' : 'text-[var(--cos-ok)]'}`}
+            >
+              {s.disabled ? 'off' : 'on'}
+            </span>
+          )}
         </>
       }
       meta={
@@ -559,6 +568,8 @@ function SkillsTab() {
         <CfgButton
           tone={actionTone(s)}
           busy={pending === s.name}
+          disabled={pending !== null && pending !== s.name}
+          ariaPressed={s.extra ? undefined : !s.disabled}
           onClick={() => void toggle(s)}
           title={`${actionVerb(s)} ${s.name}`}
         >
@@ -569,7 +580,7 @@ function SkillsTab() {
   );
 
   const prov = (s: SkillRow) => s.provenance ?? 'core';
-  const shippedBy = (sid: string) => rows.filter((s) => s.provenance === `stack:${sid}`);
+  const shippedBy = (sid: string) => rows.filter((s) => s.provenance === `stack:${sid}` && !s.extra);
   const coreActive = rows.filter((s) => prov(s) === 'core' && (s.stacks?.length ?? 0) > 0 && !s.extra);
   const yourSkills = rows.filter((s) => s.extra);
   const moreAvailable = rows.filter((s) => prov(s) === 'core' && (s.stacks?.length ?? 0) === 0 && !s.extra);
@@ -631,7 +642,7 @@ function SkillsTab() {
             <SectionCard
               title="More available"
               count={moreAvailable.length}
-              subtitle="Not tied to an installed stack — enable one to make it always-on here."
+              subtitle="Core skills not used by an installed stack. They still load on matching files — disable one to drop it from this project."
             >
               {moreAvailable.map(skillRow)}
             </SectionCard>
@@ -661,10 +672,16 @@ interface McpCatalogRow {
 function McpTab() {
   const { slug } = useScopedLink();
   const metaRepo = slug === META_REPO_SLUG;
-  const { data, isLoading, error } = useApiGet<{ servers: McpRow[] }>(['config-mcp'], '/api/config/mcp');
-  const catalog = useApiGet<{ servers: McpCatalogRow[] }>(['config-mcp-catalog'], '/api/config/mcp/catalog');
-  const { busyId, error: mutError, setError, run } = useConfigMutation(['config-mcp', 'config-mcp-catalog']);
   const [showAdd, setShowAdd] = useState(false);
+  const { data, isLoading, error } = useApiGet<{ servers: McpRow[] }>(['config-mcp'], '/api/config/mcp');
+  // Only fetch the allow-list catalog once the picker opens — its only render site.
+  const catalog = useApiGet<{ servers: McpCatalogRow[] }>(
+    ['config-mcp-catalog'],
+    '/api/config/mcp/catalog',
+    undefined,
+    { enabled: showAdd },
+  );
+  const { busyId, error: mutError, setError, run } = useConfigMutation(['config-mcp', 'config-mcp-catalog']);
   if (isLoading) return <StateRow>Loading MCP servers…</StateRow>;
   if (error) return <StateRow>Could not load MCP servers: {error.message}</StateRow>;
   const servers = data?.servers ?? [];

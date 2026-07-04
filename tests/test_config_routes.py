@@ -136,3 +136,22 @@ def test_adapter_remove_refuses_the_last_adapter(client, monkeypatch, tmp_path):
     r = client.delete("/api/config/adapters/claude")
     assert r.status_code == 409
     assert "at least one adapter" in r.json()["error"]["message"]
+
+
+def test_mutations_reject_option_injecting_ids(client):
+    # A leading-dash path param must be rejected before it reaches the CLI argv,
+    # where click would parse it as an option (e.g. add-stack --help).
+    assert client.post("/api/config/stacks/--help").status_code == 400
+    assert client.post("/api/config/adapters/-d").status_code == 400
+
+
+def test_parse_cos_json_handles_multiline_and_fallback():
+    import web.routes.config as cfg
+
+    # cos add-stack --format json emits json.dumps(indent=2) — multi-line.
+    multiline = '{\n  "status": "ok",\n  "files_copied": 3\n}'
+    assert cfg._parse_cos_json(multiline) == {"status": "ok", "files_copied": 3}
+    # single-line emitter mixed with noise → last {-prefixed line.
+    assert cfg._parse_cos_json('scaffolding…\n{"status": "noop"}')["status"] == "noop"
+    assert cfg._parse_cos_json("") == {}
+    assert cfg._parse_cos_json("not json at all") == {}
