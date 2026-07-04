@@ -130,6 +130,7 @@ def _scan_sessions(state: Path, agent_filter: str | None = None) -> list[dict[st
             sessions_by_key[(agent_name, sid)] = {
                 "agent": agent_name,
                 "session_id": sid,
+                "size_bytes": 0,
                 "started_at": started,
                 "last_prompt_at": payload.get("last_prompt_at"),
                 "last_tool_at": payload.get("last_tool_at"),

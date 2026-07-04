@@ -29,7 +29,7 @@ interface BoardResp {
   cards?: { task_id: string; title?: string; status?: string }[];
 }
 interface ChatsResp {
-  sessions?: { session_id?: string; sdk_uuid?: string; summary?: string; title?: string }[];
+  sessions?: { session_id?: string; summary?: string; custom_title?: string }[];
 }
 
 /** Global Cmd/Ctrl+K jump-to over projects, tasks and chat sessions. */
@@ -94,12 +94,12 @@ export default function CommandPalette() {
       try {
         const [chats] = await apiGet<ChatsResp>('/api/cognition/chats', { limit: 50 });
         for (const s of chats.sessions ?? []) {
-          const sid = s.session_id ?? s.sdk_uuid;
+          const sid = s.session_id;
           if (!sid) continue;
           next.push({
             type: 'chat',
             id: sid,
-            label: s.title ?? s.summary ?? sid,
+            label: s.custom_title ?? s.summary ?? sid,
             sub: 'chat session',
             target: scopedLink('workspace/chat', encodeURIComponent(sid)),
           });

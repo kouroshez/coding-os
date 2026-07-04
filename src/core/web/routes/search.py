@@ -108,6 +108,7 @@ def memory_search(
             limit=limit,
             memory_type=memory_type or None,
             use_fts5=has_fts5_table(conn),
+            include_body=True,
         )
         rids = log_retrieval(
             conn,

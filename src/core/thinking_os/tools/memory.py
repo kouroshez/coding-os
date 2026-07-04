@@ -333,6 +333,7 @@ def memory_search(
     use_fts5: bool = True,
     min_confidence: float = 0.0,
     since_days: int | None = None,
+    include_body: bool = False,
 ) -> dict:
     """Search observations and learned_patterns with 5-signal ranking.
 
@@ -354,6 +355,9 @@ def memory_search(
             de-cayed unvalidated patterns.
         since_days: Drop rows older than now-`since_days`. None = no cap.
             Common: 90 (one quarter) for "recent" queries.
+        include_body: When True, keep an untruncated `content` body on each
+            observation/pattern hit (the Hub search UI opts in; agents omit
+            it to stay lean).
 
     Returns:
         Dict with results list and metadata.
@@ -422,6 +426,7 @@ def memory_search(
             {
                 "id": row_dict["id"],
                 "title": (row_dict.get("title") or "")[:60],
+                "content": row_dict.get("title") or "",
                 "confidence": 0.5,
                 "impact_score": row_dict.get("impact_score", 0.5),
                 "memory_type": row_dict.get("memory_type", "discovery"),
@@ -464,6 +469,7 @@ def memory_search(
             {
                 "id": row_dict["id"],
                 "title": (row_dict.get("pattern") or "")[:60],
+                "content": row_dict.get("pattern") or "",
                 "confidence": row_dict.get("confidence", 0.5),
                 "impact_score": row_dict.get("impact_score", 0.5),
                 "memory_type": row_dict.get("memory_type", "pattern"),
@@ -550,6 +556,8 @@ def memory_search(
     for r in results:
         r.pop("score", None)
         r.pop("concepts", None)
+        if not include_body:
+            r.pop("content", None)
 
     source_label = "fts5" if use_fts5 else "like"
     if semantic_used:

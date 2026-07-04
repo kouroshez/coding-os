@@ -44,6 +44,7 @@ interface WipPayload {
   over_cap: boolean;
 }
 interface DailyTaskRow {
+  id?: string;
   task_id?: string;
   title?: string;
   status?: string;
@@ -275,8 +276,8 @@ function TaskList({ rows }: { rows: DailyTaskRow[] }) {
   return (
     <ul className="space-y-1">
       {rows.map((r, i) => (
-        <li key={`${r.task_id ?? i}`} className="flex items-center gap-2">
-          <span className="font-mono text-[10px] text-[var(--cos-muted)]">{r.task_id ?? '?'}</span>
+        <li key={`${r.id ?? r.task_id ?? i}`} className="flex items-center gap-2">
+          <span className="font-mono text-[10px] text-[var(--cos-muted)]">{r.id ?? r.task_id ?? '?'}</span>
           <span className="flex-1 truncate">{r.title ?? '—'}</span>
         </li>
       ))}
