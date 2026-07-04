@@ -82,7 +82,7 @@ Domain-aware enforcement via `enforce-verify.sh` — detects changed files and r
 | Changed files | Required suites | Make commands |
 |---|---|---|
 | (none) | (none) | `make verify` |
-| `src/frontend/` | lint-frontend | `cd src/frontend && npm run lint` |
+| `src/frontend/` | lint-frontend + test-frontend | `cd src/frontend && npm run lint && npm test` |
 | `docs/` | docs-lint | `make docs-lint` |
 | `.coding-os/hooks/` or `src/core/hooks/` | verify-hooks | `make verify-hooks` |
 
@@ -100,7 +100,7 @@ Frontend→`docs/engineering/frontend-rules.md`, Rendering→`docs/engineering/f
 
 Log: `log-latest [N]`, `log-write TYPE=t MSG="m" WHAT="w" FILES="f"`, `log-search QUERY="q"`.
 Health: `cos-health`, `verify-hooks`.
-Impl: `lint-frontend`, `build-frontend`
+Impl: `lint-frontend`, `test-frontend`, `build-frontend`
 
 ## Retrieval Routing (pick before you retrieve)
 

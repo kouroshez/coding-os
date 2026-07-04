@@ -6,7 +6,8 @@ Steps:
 3. Call `cos_failure_pattern_query(since_days=N, min_count=2)` to surface recurring failure modes.
 4. Call `cos_metric_trend(metric="time_to_solution", since_days=N)` to detect process drift.
 5. Read `$COS_PANEL_DIR/.clear1-bypass-log` (if present): each line is a self-issued `CLEAR 1` enforcement-bypass plus its justification. Report the count + justifications — a rising count means the discipline is being routed around, not internalized.
-6. Render in the template below. The action items are the only place the agent should *propose* content beyond the data — every line needs an owner placeholder + due-date placeholder (the user fills them in).
+6. Promotion candidates: call `cos_learn_suggest(limit=20)` and filter client-side to **Trusted, not yet promoted** lessons (`confidence ≥ 0.7 AND times_validated ≥ 3`; suggest already excludes promoted rows). For each candidate propose a destination (an existing rule file section, or a skill) and show the draft from `cos_promote(pattern_id, target)` — **apply NOTHING without explicit user approval**. On approval, write the returned content to the agreed destination (governance edit — needs the task marker); the tool already stamped `promoted_to`, which removes the row from digest/suggest.
+7. Render in the template below. The action items are the only place the agent should *propose* content beyond the data — every line needs an owner placeholder + due-date placeholder (the user fills them in).
 
 Template:
 ```markdown
@@ -26,6 +27,9 @@ Template:
 
 ### Self-issued CLEAR-1 bypasses ({count})
 - {justification} — what discipline was skipped, and was it warranted
+
+### Promotion candidates (Trusted lessons → durable rules; {count})
+- [#{pattern_id}] {lesson one-liner} — validated {N}×; proposed destination: {rule/skill path} — approve?
 
 ### Action items
 - [ ] {action} — @owner — due YYYY-MM-DD

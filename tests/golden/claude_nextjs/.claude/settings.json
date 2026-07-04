@@ -568,6 +568,12 @@
             "command": ".claude/hooks/warn-graph-empty.sh",
             "statusMessage": "🕸️  Checking graph_os index state...",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/ensure-agent-memory-link.sh",
+            "statusMessage": "🔗 Linking versioned agent memory...",
+            "timeout": 10
           }
         ]
       },
@@ -578,6 +584,12 @@
             "type": "command",
             "command": ".claude/hooks/remind-daily.sh",
             "statusMessage": "🗓️  Checking daily check-in recency...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/ensure-agent-memory-link.sh",
+            "statusMessage": "🔗 Re-checking agent memory link...",
             "timeout": 10
           }
         ]
@@ -752,6 +764,11 @@
             "type": "command",
             "command": ".claude/hooks/snapshot-transcript.sh",
             "statusMessage": "📑 Snapshotting session transcript...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/sync-agent-memory.sh",
             "timeout": 30
           },
           {

@@ -23,7 +23,7 @@ jobs:
       matrix:
         include:
           - language: typescript
-            targets: "lint-frontend"
+            targets: "lint-frontend test-frontend"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

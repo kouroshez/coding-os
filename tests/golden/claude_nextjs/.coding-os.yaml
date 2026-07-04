@@ -12,6 +12,6 @@ code_extensions:
 - jsx
 verify:
   backend: make verify
-  frontend: cd src/frontend && npm run lint
+  frontend: cd src/frontend && npm run lint && npm test
   docs: make docs-lint
 protected_files: []
