@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { useApiGet } from '@/lib/hooks';
+import { useScopedLink } from '@/lib/use-scoped-link';
 
 // alarm chip in the top bar. Silent when everything is green;
 // surfaces a clickable amber pill the moment graph_os reports issues or
@@ -20,6 +21,7 @@ interface LogSummaryResp {
 }
 
 export default function HealthAlarmBar() {
+  const { scopedLink } = useScopedLink();
   const doctor = useApiGet<DoctorResp>(['alarm-doctor'], '/api/graph/doctor', undefined, {
     refetchIntervalMs: 30000,
   });
@@ -65,7 +67,7 @@ export default function HealthAlarmBar() {
 
   return (
     <Link
-      to="/diagnostics/doctor"
+      to={scopedLink('diagnostics/doctor')}
       role="alert"
       aria-label={`system alarm: ${summary.join(', ')}`}
       className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${tone}`}

@@ -86,8 +86,9 @@ export default function LiveStatus() {
   const btnRef = useRef<HTMLButtonElement>(null);
 
   // Subscribe to the hook stream for the freshest "X firing now" tick —
-  // independent of the 4s polling interval. Reconnect on URL changes
-  // (per-project scope) via the resolveApiUrl indirection.
+  // independent of the 4s polling interval. The [slug] dep tears down and
+  // re-acquires the stream on a project-scope change, so resolveApiUrl
+  // re-resolves /api/hooks/stream to the newly-scoped path.
   useEffect(() => {
     const shared = acquireEventSource(resolveApiUrl('/api/hooks/stream'));
     const es = shared.source;
@@ -104,7 +105,7 @@ export default function LiveStatus() {
       es.removeEventListener('hook', onHook);
       shared.release();
     };
-  }, []);
+  }, [slug]);
 
   // Click-outside to close popover.
   useEffect(() => {
