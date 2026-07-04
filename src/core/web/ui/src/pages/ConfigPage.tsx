@@ -16,12 +16,13 @@ import { useScopedLink } from '@/lib/use-scoped-link';
  * kernel-override epic (a toggle must never edit the global registry).
  */
 
-type Tab = 'stacks' | 'skills' | 'mcp' | 'hooks' | 'modules' | 'git';
-const TABS: Tab[] = ['stacks', 'skills', 'mcp', 'hooks', 'modules', 'git'];
+type Tab = 'stacks' | 'skills' | 'mcp' | 'adapters' | 'hooks' | 'modules' | 'git';
+const TABS: Tab[] = ['stacks', 'skills', 'mcp', 'adapters', 'hooks', 'modules', 'git'];
 const TAB_LABEL: Record<Tab, string> = {
   stacks: 'Stacks',
   skills: 'Skills',
   mcp: 'MCP Servers',
+  adapters: 'Adapters',
   hooks: 'Hooks',
   modules: 'Modules',
   git: 'Git',
@@ -59,6 +60,7 @@ export default function ConfigPage() {
           {tab === 'stacks' && <StacksTab />}
           {tab === 'skills' && <SkillsTab />}
           {tab === 'mcp' && <McpTab />}
+          {tab === 'adapters' && <AdaptersTab />}
           {tab === 'hooks' && <HooksTab />}
           {tab === 'modules' && <ModulesTab />}
           {tab === 'git' && <GitTab />}
@@ -340,6 +342,87 @@ function McpTab() {
             </tr>
           ))}
         </Table>
+      )}
+    </>
+  );
+}
+
+interface AdapterModel {
+  id: string;
+  label: string;
+  default: boolean;
+}
+
+interface AdapterRow {
+  id: string;
+  label: string;
+  runtime: string;
+  available: boolean;
+  glyph?: string | null;
+  models: AdapterModel[];
+  mcp_config_paths: string[];
+}
+
+function AdaptersTab() {
+  const { data, isLoading, error } = useApiGet<{ adapters: AdapterRow[]; default_model: string }>(
+    ['config-adapters'],
+    '/api/config/adapters',
+  );
+  if (isLoading) return <StateRow>Loading adapters…</StateRow>;
+  if (error) return <StateRow>Could not load adapters: {error.message}</StateRow>;
+  const rows = data?.adapters ?? [];
+  const defaultModel = data?.default_model ?? '';
+  return (
+    <>
+      <TabIntro>
+        Agent adapters wired for this project. The runnable one (in_process) drives Hub chat; a roadmap
+        adapter is declared but not yet runnable here. “Chat models” are the models each adapter declares;
+        “MCP wiring” is the config file each writes the coding-os MCP server into.
+      </TabIntro>
+      <Table head={['Adapter', 'Runtime', 'Chat models', 'MCP wiring']}>
+        {rows.map((a) => (
+          <tr
+            key={a.id}
+            className="border-b border-[var(--cos-border)] align-top last:border-0 hover:bg-white/[0.02]"
+          >
+            <td className="px-3 py-2">
+              <div className="flex items-center gap-2">
+                {a.glyph && (
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded border border-[var(--cos-border)] font-mono text-[10px] text-[var(--cos-muted)]">
+                    {a.glyph}
+                  </span>
+                )}
+                <span className="font-medium text-[var(--cos-text)]">{a.label || a.id}</span>
+              </div>
+              <div className="mt-0.5 text-[10px] text-[var(--cos-faint)]">{a.id}</div>
+            </td>
+            <td className="px-3 py-2">
+              <Pill tone={a.available ? 'ok' : 'muted'}>{a.runtime}</Pill>
+            </td>
+            <td className="px-3 py-2">
+              {a.models.length === 0 ? (
+                <span className="text-[var(--cos-faint)]">— none declared</span>
+              ) : (
+                <ul className="space-y-0.5">
+                  {a.models.map((m) => (
+                    <li key={m.id} className="text-[var(--cos-muted)]">
+                      {m.label}
+                      {m.default && <span className="ml-1 text-[10px] text-[var(--cos-ok)]">✓ default</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </td>
+            <td className="px-3 py-2 font-mono text-[10px] text-[var(--cos-faint)]">
+              {a.mcp_config_paths.length > 0 ? a.mcp_config_paths.join(', ') : '—'}
+            </td>
+          </tr>
+        ))}
+      </Table>
+      {defaultModel && (
+        <p className="mt-3 text-[11px] text-[var(--cos-faint)]">
+          Default chat model: <span className="font-mono text-[var(--cos-muted)]">{defaultModel}</span>
+        </p>
       )}
     </>
   );

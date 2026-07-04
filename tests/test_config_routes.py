@@ -76,4 +76,9 @@ def test_adapters_groups_models_by_adapter(client):
 
     assert body["adapters"][0]["id"] == "claude"  # the runnable adapter leads
     for a in body["adapters"]:
-        assert {"id", "label", "runtime", "available", "models"} <= set(a)
+        assert {"id", "label", "runtime", "available", "models", "mcp_config_paths"} <= set(a)
+
+    # MCP wiring target per adapter (deduped mcp_launch.config_paths) — the
+    # Adapters tab shows this so the UI never guesses the wiring file.
+    assert claude["mcp_config_paths"] == [".mcp.json"]
+    assert adapters["codex"]["mcp_config_paths"] == [".codex/config.toml"]

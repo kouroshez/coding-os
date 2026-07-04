@@ -11,6 +11,29 @@ vi.mock('@/lib/hooks', () => ({
       },
       '/api/config/skills': { skills: [{ name: 'clean-code', tier: 'universal', domain: ['all'], globs: '**/*' }] },
       '/api/config/mcp': { servers: [{ name: 'coding-os', command: 'cos', args: ['server-start'], managed: true }] },
+      '/api/config/adapters': {
+        adapters: [
+          {
+            id: 'claude',
+            label: 'Anthropic Claude Code',
+            runtime: 'in_process',
+            available: true,
+            glyph: 'Cl',
+            models: [{ id: 'claude-opus-4-8', label: 'Opus 4.8', default: true }],
+            mcp_config_paths: ['.mcp.json'],
+          },
+          {
+            id: 'codex',
+            label: 'OpenAI Codex CLI',
+            runtime: 'roadmap',
+            available: false,
+            glyph: 'Cx',
+            models: [],
+            mcp_config_paths: ['.codex/config.toml'],
+          },
+        ],
+        default_model: 'claude-opus-4-8',
+      },
       '/api/hooks/list': { hooks: [{ name: 'branch-guard', event: 'PreToolUse', category: 'safety', phase: '1' }] },
       '/api/settings/modules': {
         modules: [
@@ -81,6 +104,15 @@ describe('ConfigPage', () => {
   it('opens directly to the Hooks tab from ?tab=hooks', () => {
     renderConfig('/p/demo/config?tab=hooks');
     expect(screen.getByText('branch-guard')).toBeInTheDocument();
+  });
+
+  it('opens the Adapters tab and shows runtime, models, and MCP wiring', () => {
+    renderConfig('/p/demo/config?tab=adapters');
+    expect(screen.getByText('Anthropic Claude Code')).toBeInTheDocument();
+    expect(screen.getByText('in_process')).toBeInTheDocument();
+    expect(screen.getByText('Opus 4.8')).toBeInTheDocument();
+    expect(screen.getByText('.mcp.json')).toBeInTheDocument();
+    expect(screen.getByText('.codex/config.toml')).toBeInTheDocument();
   });
 });
 

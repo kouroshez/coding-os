@@ -218,6 +218,15 @@ def config_adapters() -> dict:
                 "tool_labels": {str(k): str(v) for k, v in tool_labels.items()},
                 "idle_phrases": [str(x) for x in (cs.get("idle_phrases") or [])],
             }
+            ml = data.get("mcp_launch") if isinstance(data.get("mcp_launch"), dict) else {}
+            seen_paths: set[str] = set()
+            mcp_config_paths: list[str] = []
+            for cp in ml.get("config_paths") or []:
+                if isinstance(cp, dict) and cp.get("path"):
+                    path = str(cp["path"])
+                    if path not in seen_paths:
+                        seen_paths.add(path)
+                        mcp_config_paths.append(path)
             adapters.append(
                 {
                     "id": str(data.get("id") or manifest.parent.name),
@@ -230,6 +239,7 @@ def config_adapters() -> dict:
                     "default_effort": str(data.get("default_effort") or ""),
                     "chat_status": chat_status,
                     "models": models,
+                    "mcp_config_paths": mcp_config_paths,
                 }
             )
     except Exception as exc:
