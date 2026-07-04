@@ -249,6 +249,7 @@ def config_adapters() -> dict:
     """List agent adapters and the chat models each declares (adapter→models SSOT)."""
     adapters: list[dict] = []
     default_model = ""
+    installed_agents = set(_project_config_skill_list("agents"))
     try:
         from cli.list_stacks import TEMPLATES_DIR
 
@@ -290,12 +291,14 @@ def config_adapters() -> dict:
                     if path not in seen_paths:
                         seen_paths.add(path)
                         mcp_config_paths.append(path)
+            adapter_id = str(data.get("id") or manifest.parent.name)
             adapters.append(
                 {
-                    "id": str(data.get("id") or manifest.parent.name),
+                    "id": adapter_id,
                     "label": str(data.get("label") or manifest.parent.name),
                     "runtime": runtime,
                     "available": runtime == "in_process",
+                    "installed": adapter_id in installed_agents,
                     "glyph": presence.get("hub_glyph"),
                     "color": presence.get("hub_color"),
                     "efforts": [str(e) for e in (data.get("efforts") or [])],
