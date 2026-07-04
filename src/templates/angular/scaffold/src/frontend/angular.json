@@ -1,23 +1,50 @@
 {
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
+  "cli": {
+    "packageManager": "npm"
+  },
   "projects": {
     "{{PROJECT_NAME}}-frontend": {
       "projectType": "application",
       "root": "",
       "sourceRoot": "src",
+      "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:application",
+          "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
             "index": "src/index.html",
-            "tsConfig": "tsconfig.json",
+            "tsConfig": "tsconfig.app.json",
             "styles": ["src/styles.css"]
-          }
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                { "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" },
+                { "type": "anyComponentStyle", "maximumWarning": "4kB", "maximumError": "8kB" }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
         },
         "serve": {
-          "builder": "@angular-devkit/build-angular:dev-server"
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": { "buildTarget": "{{PROJECT_NAME}}-frontend:build:production" },
+            "development": { "buildTarget": "{{PROJECT_NAME}}-frontend:build:development" }
+          },
+          "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test"
         }
       }
     }

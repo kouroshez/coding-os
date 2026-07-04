@@ -490,16 +490,19 @@
         "src/frontend/src/app/app.routes.ts",
         "src/frontend/src/app/core/global-error-handler.ts",
         "src/frontend/src/app/health/health.component.ts",
+        "src/frontend/src/app/health/health.service.spec.ts",
         "src/frontend/src/app/health/health.service.ts",
         "src/frontend/src/index.html",
         "src/frontend/src/main.ts",
         "src/frontend/src/styles.css",
+        "src/frontend/tsconfig.app.json",
         "src/frontend/tsconfig.json",
+        "src/frontend/tsconfig.spec.json",
         "src/shared/README.md",
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 254
+      "count": 257
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -7619,16 +7622,19 @@
         "src/frontend/src/app/app.routes.ts",
         "src/frontend/src/app/core/global-error-handler.ts",
         "src/frontend/src/app/health/health.component.ts",
+        "src/frontend/src/app/health/health.service.spec.ts",
         "src/frontend/src/app/health/health.service.ts",
         "src/frontend/src/index.html",
         "src/frontend/src/main.ts",
         "src/frontend/src/styles.css",
+        "src/frontend/tsconfig.app.json",
         "src/frontend/tsconfig.json",
+        "src/frontend/tsconfig.spec.json",
         "src/shared/README.md",
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 256
+      "count": 259
     },
     "codex_aspnet-core": {
       "agent": "codex",
