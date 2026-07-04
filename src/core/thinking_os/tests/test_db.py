@@ -997,6 +997,40 @@ def test_project_root_tier2_stops_below_home(tmp_path: Path, monkeypatch) -> Non
     assert got != home.resolve()
 
 
+def test_resolve_db_path_bound_scope_beats_env(tmp_path: Path, monkeypatch) -> None:
+    """TASK-769: a per-request bound project scope (set only by the Hub's
+    ProjectScopeMiddleware) must win over an ambient $COS_DB_PATH — else every
+    scoped /api/p/<slug>/* request leaks onto the launch project's DB. CLI/MCP
+    callers never bind the ContextVar, so $COS_DB_PATH keeps its precedence."""
+    from database import (
+        reset_active_project_root,
+        resolve_db_path,
+        set_active_project_root,
+    )
+
+    launch_db = tmp_path / "launch" / ".coding-os" / "coding-os.db"
+    monkeypatch.setenv("COS_DB_PATH", str(launch_db))
+
+    # No bound scope → env wins (CLI/MCP behavior, unchanged); an explicit arg
+    # still does NOT override the env for non-web callers.
+    assert resolve_db_path() == launch_db
+    assert resolve_db_path(tmp_path / "other") == launch_db
+
+    # A bound per-request scope beats the env (the Hub scoping fix), whether or
+    # not an arg is passed (current_db_path passes the bound root as the arg).
+    scoped = tmp_path / "streamos"
+    expected = scoped / ".coding-os" / "coding-os.db"
+    token = set_active_project_root(scoped)
+    try:
+        assert resolve_db_path() == expected
+        assert resolve_db_path(scoped) == expected
+    finally:
+        reset_active_project_root(token)
+
+    # After reset, env precedence is restored — no leak across requests.
+    assert resolve_db_path() == launch_db
+
+
 # ---------------------------------------------------------------------------
 # Migration v35 — scale foundation (TASK-226)
 # ---------------------------------------------------------------------------

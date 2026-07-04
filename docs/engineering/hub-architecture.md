@@ -96,11 +96,13 @@ One uvicorn process serves every registered project. To prevent the first projec
 | `src/core/thinking_os/database.py::_active_project_root` (ContextVar) | per-request | `ProjectScopeMiddleware.dispatch` sets/resets via `set_active_project_root` / `reset_active_project_root` |
 | `src/core/graph_os/tools/graph.py::_BACKEND_SINGLETONS: dict[str, GraphBackend]` | resolved DB path (via `_current_db_key()`) | first miss for a given path opens a fresh backend |
 | `src/core/graph_os/backend.py::_BACKEND_CACHE` | `(choice, resolved_db_path)` tuple | same — different project → different cache key |
-| `src/core/thinking_os/database.py::resolve_db_path(project_root=None)` | inspects ContextVar when no arg passed | falls back to `$COS_DB_PATH` → `DEFAULT_DB_PATH` for MCP / CLI callers |
+| `src/core/thinking_os/database.py::resolve_db_path(project_root=None)` | bound `_active_project_root` ContextVar wins first | else `$COS_DB_PATH` → explicit arg → cwd-walk |
+
+Resolution precedence (SSOT — `resolve_db_path`): **bound scope → `$COS_DB_PATH` → explicit arg → cwd-walk.** The bound per-request scope is checked *before* the ambient `$COS_DB_PATH` because the Hub inherits a `$COS_DB_PATH` from whichever project directory it was launched in; if the env won, every `/api/p/<slug>/*` request would leak onto that one project's DB regardless of the slug.
 
 Contract:
-- `/api/p/<slug>/*` requests resolve via the registry, set both ContextVars (web-side `_current_project` + DB-side `_active_project_root`), then reset on `finally`.
-- MCP server and CLI callers never set the DB-side CV → `resolve_db_path()` returns `DEFAULT_DB_PATH` → behavior unchanged.
+- `/api/p/<slug>/*` requests resolve via the registry, set both ContextVars (web-side `_current_project` + DB-side `_active_project_root`), then reset on `finally`. The bound `_active_project_root` overrides any ambient `$COS_DB_PATH` for the life of that request.
+- MCP server and CLI callers never set the DB-side CV → the bound branch is skipped → `resolve_db_path()` honors `$COS_DB_PATH` (or the explicit arg / cwd-walk) exactly as before → behavior unchanged.
 - Tests that monkey-patch `graph_os.tools.graph._BACKEND_SINGLETON` (legacy slot) still work — when non-None it short-circuits the per-project lookup.
 
 `reset_backend()` (test-only) clears **both** the legacy slot and every entry in `_BACKEND_SINGLETONS`.

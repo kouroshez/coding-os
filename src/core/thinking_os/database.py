@@ -126,12 +126,18 @@ def resolve_db_path(project_root: Path | str | None = None) -> Path:
     """Single source of truth for the canonical SQLite DB path.
 
     Resolution priority:
-    1. ``$COS_DB_PATH`` env var, when set.
-    2. ``<project_root>/.coding-os/coding-os.db`` when project_root given.
-    3. ``<bound_root>/.coding-os/coding-os.db`` if a ProjectScopeMiddleware
-       request is in flight.
+    1. ``<bound_root>/.coding-os/coding-os.db`` when a ProjectScopeMiddleware
+       request has bound a per-request project scope. This wins over
+       ``$COS_DB_PATH`` because the Hub inherits that env var from the
+       directory it was launched in, so a scoped ``/api/p/<slug>/*`` request
+       must reach the slug's DB, not the launch project's.
+    2. ``$COS_DB_PATH`` env var, when set (the CLI / MCP default override).
+    3. ``<project_root>/.coding-os/coding-os.db`` when project_root given.
     4. Walk up from cwd to find the enclosing ``.coding-os/`` and use that
        project root — falls back to cwd only if no ancestor has one.
+
+    Only the Hub's ProjectScopeMiddleware binds ``_active_project_root``, so
+    CLI / MCP callers skip step 1 and keep the prior ``$COS_DB_PATH`` behavior.
 
     Use this helper instead of inlining the same fallback formula in
     ~30 different sites — a future filename change becomes one edit
@@ -140,14 +146,14 @@ def resolve_db_path(project_root: Path | str | None = None) -> Path:
     The path is returned even if the file does not exist yet — callers
     that need the file present should follow with ``init_db(path)``.
     """
+    bound = _active_project_root.get()
+    if bound is not None:
+        return Path(bound) / STATE_DIRNAME / DB_FILENAME
     explicit = os.environ.get("COS_DB_PATH")
     if explicit:
         return Path(explicit)
     if project_root is not None:
         return Path(project_root) / STATE_DIRNAME / DB_FILENAME
-    bound = _active_project_root.get()
-    if bound is not None:
-        return Path(bound) / STATE_DIRNAME / DB_FILENAME
     return _find_project_root_from_cwd() / STATE_DIRNAME / DB_FILENAME
 
 
