@@ -236,9 +236,9 @@ def set_module_enabled(
                     ok=False,
                     module_id=module_id,
                     reason=(
-                        f"cannot disable '{module_id}': enabled module(s) depend on it — "
-                        + ", ".join(f"{d} → {module_id}" for d in dependents)
-                        + ". Disable the dependent(s) first."
+                        f"cannot disable '{module_id}': required by enabled module(s) "
+                        + ", ".join(dependents)
+                        + f" — disable {'them' if len(dependents) > 1 else 'it'} first."
                     ),
                 )
         else:
@@ -248,9 +248,9 @@ def set_module_enabled(
                     ok=False,
                     module_id=module_id,
                     reason=(
-                        f"cannot enable '{module_id}': dependency chain not satisfied — "
-                        + ", ".join(f"{module_id} → {d} (disabled)" for d in missing)
-                        + ". Enable the dependency first."
+                        f"cannot enable '{module_id}': needs disabled module(s) "
+                        + ", ".join(missing)
+                        + f" — enable {'them' if len(missing) > 1 else 'it'} first."
                     ),
                 )
         if enabled:

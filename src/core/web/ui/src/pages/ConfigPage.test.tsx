@@ -45,7 +45,7 @@ vi.mock('@/lib/hooks', () => ({
   invalidateApiQueries: vi.fn(),
 }));
 
-const apiPatch = vi.fn().mockResolvedValue([{}]);
+const apiPatch = vi.fn().mockResolvedValue([{ regenerated: ['AGENTS.md regenerated'] }]);
 vi.mock('@/lib/api-client', () => ({
   apiPatch: (...args: unknown[]) => apiPatch(...args),
 }));
@@ -114,6 +114,12 @@ describe('ModulesTab (TASK-354)', () => {
   it('surfaces the module skills count the producer emits', () => {
     renderConfig('/p/demo/config?tab=modules');
     expect(screen.getByText(/1 skills/)).toBeInTheDocument();
+  });
+
+  it('shows the cascade regenerated notes after a successful toggle', async () => {
+    renderConfig('/p/demo/config?tab=modules');
+    fireEvent.click(screen.getByTestId('module-toggle-tasks'));
+    expect(await screen.findByText('AGENTS.md regenerated')).toBeInTheDocument();
   });
 });
 

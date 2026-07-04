@@ -403,6 +403,7 @@ function ModulesTab() {
   );
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
+  const [notes, setNotes] = useState<string[]>([]);
   // A Hub toggle can strand a skill/command symlink or corrupt state; surface
   // the same `cos doctor` drift checks so the UI that caused it shows it (HUB-PB2).
   const { data: driftData } = useApiGet<{ drift: DriftRow[]; ok: boolean }>(
@@ -427,10 +428,13 @@ function ModulesTab() {
   const toggle = async (row: ModuleRow) => {
     setBusyId(row.id);
     setToggleError(null);
+    setNotes([]);
     try {
-      await apiPatch(`/api/settings/modules/${encodeURIComponent(row.id)}`, {
-        enabled: !row.enabled,
-      });
+      const [data] = await apiPatch<{ regenerated?: string[] }>(
+        `/api/settings/modules/${encodeURIComponent(row.id)}`,
+        { enabled: !row.enabled },
+      );
+      setNotes(data?.regenerated ?? []);
       await invalidateApiQueries(qc, '/api/settings/modules');
       await invalidateApiQueries(qc, '/api/settings/modules/drift');
     } catch (err) {
@@ -460,6 +464,25 @@ function ModulesTab() {
               <li key={d.id}>
                 <span className="font-mono">{d.id}</span>: {d.message}
               </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {notes.length > 0 && (
+        <div className="mb-3 rounded border border-[var(--cos-border)] bg-white/[0.02] p-2 text-xs text-[var(--cos-muted)]">
+          <div className="flex items-center justify-between">
+            <span className="font-medium text-[var(--cos-text)]">Applied ({notes.length})</span>
+            <button
+              type="button"
+              onClick={() => setNotes([])}
+              className="text-[10px] text-[var(--cos-faint)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
+            >
+              dismiss
+            </button>
+          </div>
+          <ul className="mt-1 list-disc pl-4">
+            {notes.map((n, i) => (
+              <li key={i}>{n}</li>
             ))}
           </ul>
         </div>

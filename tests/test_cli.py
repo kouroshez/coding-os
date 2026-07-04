@@ -1958,19 +1958,19 @@ class TestSubsystems:
     def test_dependency_chain_refusals_both_directions(self, tmp_path: Path) -> None:
         from cli.subsystems import module_state, set_module_enabled
 
-        # Disable docs while tasks (dependent) is enabled → refusal with chain.
+        # Disable docs while tasks (dependent) is enabled → refusal names the dependent.
         blocked = set_module_enabled(tmp_path, "docs", False)
         assert blocked.ok is False
-        assert "tasks → docs" in blocked.reason
+        assert "required by enabled module(s) tasks" in blocked.reason
 
         # Disable the dependent first, then docs — both succeed.
         assert set_module_enabled(tmp_path, "tasks", False).ok is True
         assert set_module_enabled(tmp_path, "docs", False).ok is True
 
-        # Re-enabling tasks while docs is disabled → refusal with chain.
+        # Re-enabling tasks while docs is disabled → refusal names the missing dependency.
         reblocked = set_module_enabled(tmp_path, "tasks", True)
         assert reblocked.ok is False
-        assert "tasks → docs (disabled)" in reblocked.reason
+        assert "needs disabled module(s) docs" in reblocked.reason
 
         # Enable in dependency order — green; state reflects it.
         assert set_module_enabled(tmp_path, "docs", True).ok is True
