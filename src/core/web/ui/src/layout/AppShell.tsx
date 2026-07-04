@@ -9,6 +9,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
   SlidersHorizontal,
+  Store,
 } from 'lucide-react';
 import { useGraphStore } from '@/store/graph-store';
 import HealthAlarmBar from '@/layout/HealthAlarmBar';
@@ -42,6 +43,7 @@ const NAV = [
   { feature: 'graph', label: 'Graph', Icon: Network, end: false },
   { feature: 'cognition', label: 'Cognition', Icon: Brain, end: false },
   { feature: 'config', label: 'Config', Icon: SlidersHorizontal, end: false },
+  { feature: 'marketplace', label: 'Marketplace', Icon: Store, end: false },
   { feature: 'diagnostics', label: 'Diagnostics', Icon: HeartPulse, end: false },
 ] as const;
 

@@ -10,6 +10,7 @@ import HubHome from './pages/HubHome';
 import DashboardPage from './pages/DashboardPage';
 import ChatLanding from './pages/ChatLanding';
 import ConfigPage from './pages/ConfigPage';
+import MarketplacePage from './pages/MarketplacePage';
 import SettingsPage from './pages/SettingsPage';
 import ObservabilityPage from './pages/ObservabilityPage';
 import LogsPage from './pages/LogsPage';
@@ -39,6 +40,10 @@ export default function App() {
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<HubHome />} />
+
+          {/* Marketplace — Extension Manager catalog (coming soon). Global and
+              project-scoped both render the same coming-soon surface for now. */}
+          <Route path="/marketplace" element={<MarketplacePage />} />
 
           {/* Unified Workspace Hub (Global / Unscoped) */}
           <Route path="/workspace" element={<WorkspacePage />}>
@@ -78,6 +83,7 @@ export default function App() {
           <Route path="/p/:slug/cognition" element={<CognitionPage />} />
           <Route path="/p/:slug/cognition/:sessionId" element={<CognitionPage />} />
           <Route path="/p/:slug/config" element={<ConfigPage />} />
+          <Route path="/p/:slug/marketplace" element={<MarketplacePage />} />
 
           {/* Unified Workspace Hub (Project-Scoped) — chat-first landing */}
           <Route path="/p/:slug/workspace" element={<WorkspacePage />}>
