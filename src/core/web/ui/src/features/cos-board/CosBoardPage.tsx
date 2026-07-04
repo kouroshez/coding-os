@@ -1756,9 +1756,9 @@ function LiveStreamPanel({
     <div
       style={{
         position: 'fixed',
-        top: 110,
+        top: 160,
         right: 14,
-        bottom: 14,
+        bottom: 60,
         width: 380,
         zIndex: 50,
         background: 'var(--col-bg)',
@@ -1952,11 +1952,11 @@ function TweaksPanel({
     <div
       style={{
         position: 'fixed',
-        bottom: 16,
+        bottom: 60,
         right: 16,
         zIndex: 100,
         width: 280,
-        maxHeight: 'calc(100vh - 40px)',
+        maxHeight: 'calc(100vh - 220px)',
         overflowY: 'auto',
         background: 'var(--col-bg)',
         border: '1px solid var(--col-border)',
@@ -2176,9 +2176,9 @@ function LegendPanel({
     <div
       style={{
         position: 'fixed',
-        top: 110,
+        top: 160,
         right: 14,
-        bottom: 14,
+        bottom: 60,
         zIndex: 50,
         width: 280,
         background: 'var(--col-bg)',
