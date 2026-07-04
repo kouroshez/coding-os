@@ -6,10 +6,10 @@ import org.junit.jupiter.api.Test;
 
 class HealthServiceTest {
 
-    @Test
-    void statusReportsOk() {
-        HealthStatus result = new HealthService().status();
+  @Test
+  void statusReportsOk() {
+    HealthStatus result = new HealthService().status();
 
-        assertThat(result.status()).isEqualTo("ok");
-    }
+    assertThat(result.status()).isEqualTo("ok");
+  }
 }

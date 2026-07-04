@@ -9,8 +9,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class Application {
 
-    public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
-        System.out.println("{{PROJECT_NAME}} backend started (spring-boot)");
-    }
+  public static void main(String[] args) {
+    SpringApplication.run(Application.class, args);
+    System.out.println("{{PROJECT_NAME}} backend started (spring-boot)");
+  }
 }

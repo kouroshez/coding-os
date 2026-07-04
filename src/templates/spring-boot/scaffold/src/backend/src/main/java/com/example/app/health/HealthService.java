@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class HealthService {
 
-    public HealthStatus status() {
-        return new HealthStatus("ok");
-    }
+  public HealthStatus status() {
+    return new HealthStatus("ok");
+  }
 }

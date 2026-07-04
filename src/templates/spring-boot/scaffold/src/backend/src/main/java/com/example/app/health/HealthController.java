@@ -9,14 +9,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/health")
 public class HealthController {
 
-    private final HealthService health;
+  private final HealthService health;
 
-    public HealthController(HealthService health) {
-        this.health = health;
-    }
+  public HealthController(HealthService health) {
+    this.health = health;
+  }
 
-    @GetMapping
-    public HealthStatus check() {
-        return health.status();
-    }
+  @GetMapping
+  public HealthStatus check() {
+    return health.status();
+  }
 }
