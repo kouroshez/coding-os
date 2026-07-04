@@ -72,7 +72,7 @@ _ROOT_MARKERS = (
 )
 
 
-def _find_project_root_from_cwd(start: Path | None = None) -> Path:
+def _find_project_root_from_cwd(start: Path | None = None) -> Path | None:
     """Walk up from cwd to find the enclosing coding-os project root.
 
     .coding-os/ lives ONLY at the project root.  Anywhere we land —
@@ -111,14 +111,20 @@ def _find_project_root_from_cwd(start: Path | None = None) -> Path:
                 return parent
         except OSError:
             continue
-    # No marked root in the chain → innermost `.coding-os/` (never
-    # lazy-create a fresh one at cwd), else cwd.
-    return first_with_state if first_with_state is not None else cur
+    if first_with_state is not None:
+        return first_with_state
+    # No project `.coding-os/` below the $HOME boundary. A real subdir returns
+    # cwd so it can lazy-create locally — but $HOME itself is refused: its
+    # `.coding-os/` is the global hub state dir, and anchoring there mints a
+    # phantom project DB inside it. At bare $HOME there is no project → None.
+    if home is not None and cur == home:
+        return None
+    return cur
 
 
 DEFAULT_DB_PATH = Path(
     os.environ.get("COS_DB_PATH", "")
-    or str(_find_project_root_from_cwd() / STATE_DIRNAME / DB_FILENAME)
+    or str((_find_project_root_from_cwd() or Path.cwd()) / STATE_DIRNAME / DB_FILENAME)
 )
 
 
@@ -134,7 +140,9 @@ def resolve_db_path(project_root: Path | str | None = None) -> Path:
     2. ``$COS_DB_PATH`` env var, when set (the CLI / MCP default override).
     3. ``<project_root>/.coding-os/coding-os.db`` when project_root given.
     4. Walk up from cwd to find the enclosing ``.coding-os/`` and use that
-       project root — falls back to cwd only if no ancestor has one.
+       project root. Raises if the walk reaches the bare ``$HOME`` boundary
+       with no project below it — ``~/.coding-os/`` is the global hub state
+       dir, never a project DB.
 
     Only the Hub's ProjectScopeMiddleware binds ``_active_project_root``, so
     CLI / MCP callers skip step 1 and keep the prior ``$COS_DB_PATH`` behavior.
@@ -154,7 +162,14 @@ def resolve_db_path(project_root: Path | str | None = None) -> Path:
         return Path(explicit)
     if project_root is not None:
         return Path(project_root) / STATE_DIRNAME / DB_FILENAME
-    return _find_project_root_from_cwd() / STATE_DIRNAME / DB_FILENAME
+    root = _find_project_root_from_cwd()
+    if root is None:
+        raise RuntimeError(
+            "no coding-os project found from cwd; set $COS_DB_PATH or run "
+            "inside a project — $HOME/.coding-os is the global hub state dir, "
+            "not a project DB"
+        )
+    return root / STATE_DIRNAME / DB_FILENAME
 
 
 def project_root(start: Path | str | None = None) -> Path:
@@ -190,7 +205,8 @@ def project_root(start: Path | str | None = None) -> Path:
                 home = None
             if home is None or parent != home:
                 return parent
-    return _find_project_root_from_cwd(Path(start) if start else None)
+    root = _find_project_root_from_cwd(Path(start) if start else None)
+    return root if root is not None else (Path(start) if start else Path.cwd()).resolve()
 
 
 def migrate_legacy_db_filename(target: Path) -> bool:

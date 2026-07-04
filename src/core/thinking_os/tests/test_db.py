@@ -1031,6 +1031,33 @@ def test_resolve_db_path_bound_scope_beats_env(tmp_path: Path, monkeypatch) -> N
     assert resolve_db_path() == launch_db
 
 
+def test_bare_home_refuses_project_db(tmp_path: Path, monkeypatch) -> None:
+    """TASK-770: cwd == $HOME with no project below must NOT anchor a project
+    DB inside the global hub state dir. _find_project_root_from_cwd returns
+    None at the bare-$HOME boundary and resolve_db_path raises rather than
+    minting $HOME/.coding-os/coding-os.db."""
+    from database import _find_project_root_from_cwd, resolve_db_path
+
+    home = tmp_path / "home"
+    (home / ".coding-os").mkdir(parents=True)  # global hub state dir
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.delenv("COS_DB_PATH", raising=False)
+
+    # Bare $HOME → no project root → None (never $HOME itself).
+    assert _find_project_root_from_cwd(home) is None
+
+    # A real subdir under $HOME still lazy-resolves to cwd, never None.
+    sub = home / "scratch" / "here"
+    sub.mkdir(parents=True)
+    assert _find_project_root_from_cwd(sub) == sub.resolve()
+
+    # resolve_db_path with no scope / env / arg from bare $HOME fails loud
+    # instead of returning $HOME/.coding-os/coding-os.db.
+    monkeypatch.chdir(home)
+    with pytest.raises(RuntimeError, match="global hub"):
+        resolve_db_path()
+
+
 # ---------------------------------------------------------------------------
 # Migration v35 — scale foundation (TASK-226)
 # ---------------------------------------------------------------------------

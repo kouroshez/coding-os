@@ -103,6 +103,7 @@ Resolution precedence (SSOT — `resolve_db_path`): **bound scope → `$COS_DB_P
 Contract:
 - `/api/p/<slug>/*` requests resolve via the registry, set both ContextVars (web-side `_current_project` + DB-side `_active_project_root`), then reset on `finally`. The bound `_active_project_root` overrides any ambient `$COS_DB_PATH` for the life of that request.
 - MCP server and CLI callers never set the DB-side CV → the bound branch is skipped → `resolve_db_path()` honors `$COS_DB_PATH` (or the explicit arg / cwd-walk) exactly as before → behavior unchanged.
+- The final `cwd-walk` step never anchors on `$HOME`: `~/.coding-os/` is the **global hub state dir** (§ Three address spaces), never a project root. `_find_project_root_from_cwd` returns `None` at the bare-`$HOME` boundary, so `resolve_db_path()` raises instead of minting a phantom `~/.coding-os/coding-os.db` inside the hub dir. A real subdirectory under `$HOME` still resolves to cwd (unchanged) — only `$HOME` itself is refused.
 - Tests that monkey-patch `graph_os.tools.graph._BACKEND_SINGLETON` (legacy slot) still work — when non-None it short-circuits the per-project lookup.
 
 `reset_backend()` (test-only) clears **both** the legacy slot and every entry in `_BACKEND_SINGLETONS`.
