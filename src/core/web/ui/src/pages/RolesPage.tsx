@@ -54,6 +54,11 @@ function formatTs(ts?: number): string {
 export default function RolesPage() {
   const { slug } = useParams<{ slug?: string }>();
   const [agent, setAgent] = useState('claude');
+  const { data: adaptersData } = useApiGet<{ adapters: { id: string; label: string }[] }>(
+    ['hub-adapters'],
+    '/api/hub/adapters',
+  );
+  const adapters = adaptersData?.adapters ?? [];
   const { data: rolesData, isLoading: rolesLoading } = useApiGet<RolesPayload>(
     ['roles-list'],
     '/api/roles',
@@ -127,8 +132,11 @@ export default function RolesPage() {
               onChange={(e) => setAgent(e.target.value)}
               className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] px-1.5 py-1 text-[11px]"
             >
-              <option value="claude">claude</option>
-              <option value="codex">codex</option>
+              {(adapters.length ? adapters : [{ id: agent, label: agent }]).map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.id}
+                </option>
+              ))}
             </select>
           </div>
         </header>

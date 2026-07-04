@@ -62,11 +62,11 @@ export function agentStatus(state?: string | null): AgentStatus {
 /** "claude-opus-4-8[1m]" → "Opus 4.8 · 1M". Falls back to the raw id. */
 export function modelLabel(model?: string | null): string {
   if (!model) return 'Unknown runtime';
-  const m = model.match(/claude-([a-z]+)-(\d+)-(\d+)(?:\[(\w+)\])?/i);
+  const m = model.match(/claude-([a-z]+)-(\d+)(?:-(\d+))?(?:\[(\w+)\])?/i);
   if (!m) return model;
   const tier = titleCase(m[1]);
   const ctx = m[4] ? ` · ${m[4].toUpperCase()}` : '';
-  return `${tier} ${m[2]}.${m[3]}${ctx}`;
+  return `${tier} ${m[2]}${m[3] ? `.${m[3]}` : ''}${ctx}`;
 }
 
 const GATE_COLORS: Record<string, string> = {

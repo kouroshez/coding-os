@@ -11,6 +11,12 @@ describe('modelLabel', () => {
     expect(modelLabel('claude-sonnet-4-6')).toBe('Sonnet 4.6');
   });
 
+  it('handles a single-integer version id (Sonnet 5 / Fable 5)', () => {
+    expect(modelLabel('claude-sonnet-5')).toBe('Sonnet 5');
+    expect(modelLabel('claude-fable-5')).toBe('Fable 5');
+    expect(modelLabel('claude-haiku-4-5-20251001')).toBe('Haiku 4.5');
+  });
+
   it('falls back to the raw id for unknown shapes, and a friendly label for null', () => {
     expect(modelLabel('gpt-5')).toBe('gpt-5');
     expect(modelLabel(null)).toBe('Unknown runtime');
