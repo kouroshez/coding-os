@@ -20,7 +20,29 @@ from pathlib import Path
 import pytest
 
 import server
-from core.thinking_os.tools._shared import _gated_module
+from core.thinking_os.tools._shared import _gated_module, _tool_module_map
+
+# Registered cos_* tools that intentionally belong to NO module — always served
+# on every profile. Kept a small, explicit, reviewed list: adding a tool here is
+# a deliberate "this is kernel" decision, not an accident. classify=Record Gate
+# (core loop) · health=diagnostic · traceability/failure_pattern=ambiguous
+# ownership, not force-mapped (Rule 22, audit-2026-06 PB-6).
+_KERNEL_TOOLS = {
+    "cos_classify_prompt",
+    "cos_health",
+    "cos_traceability",
+    "cos_failure_pattern_query",
+}
+
+
+def _matches_a_module(tool_name: str) -> bool:
+    for pattern, _module_id in _tool_module_map():
+        if pattern.endswith("*"):
+            if tool_name.startswith(pattern[:-1]):
+                return True
+        elif tool_name == pattern:
+            return True
+    return False
 
 
 def _disable(tmp_path: Path, modules: list[str]) -> Path:
@@ -88,3 +110,20 @@ def test_every_subsystems_tool_name_is_registered(tmp_path) -> None:
                     f"subsystems.yaml module '{module['id']}' lists '{tool}' "
                     f"but it is not a registered MCP tool name"
                 )
+
+
+def test_every_registered_tool_has_a_module_owner_or_is_kernel() -> None:
+    """Reverse totality — the tool-side twin of the F9 hook-owner invariant.
+
+    Every registered cos_* tool must either match a subsystems.yaml module tool
+    family or be an explicit kernel tool. A tool added without a module owner
+    (the exact leak the memory-v2 delta produced on the hook side) then fails
+    here instead of silently surviving on a disabled-module surface."""
+    registered = {t.name for t in asyncio.run(server.mcp.list_tools())}
+    cos_tools = {n for n in registered if n.startswith("cos_")}
+    orphans = sorted(n for n in cos_tools if n not in _KERNEL_TOOLS and not _matches_a_module(n))
+    assert not orphans, (
+        f"registered cos_* tools with no module owner and not kernel: {orphans} — "
+        f"add each to its module's tools[] in subsystems.yaml, or (if intentionally "
+        f"always-on) to _KERNEL_TOOLS with a one-line rationale"
+    )

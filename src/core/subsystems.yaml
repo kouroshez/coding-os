@@ -99,7 +99,7 @@ modules:
     label: "Task system — Scrumban board, lifecycle, work logs"
     hint: "Enable for the Scrumban board, task lifecycle gates, and work logs (cos_task_*)."
     kernel: false
-    hooks: [enforce-task-start, enforce-task-body, nudge-task-discovery, warn-abandoned-task, remind-daily, auto-task-sync, sync-task-current, link-commit-to-task, reclaim-sweep, capture-work-log]
+    hooks: [enforce-task-start, enforce-task-body, nudge-task-discovery, warn-abandoned-task, nudge-reentry, remind-daily, auto-task-sync, sync-task-current, link-commit-to-task, reclaim-sweep, capture-work-log]
     tools: ["cos_task_*", cos_work_log_append]
     skills: [task-driver]
     commands: [board, daily, retro, task]
@@ -118,7 +118,7 @@ modules:
     label: "Agent memory — observations, learning, recall"
     hint: "Enable for cross-session recall + the learning loop (cos_search, cos_learn_*)."
     kernel: false
-    hooks: [enforce-memory-check, capture-observation, jit-recall, nudge-learn-narrative, remind-learn-validate, auto-brain-decay, drain-embedding-outbox, check-capture-worked]
+    hooks: [enforce-memory-check, capture-observation, jit-recall, nudge-learn-narrative, remind-learn-validate, auto-brain-decay, drain-embedding-outbox, check-capture-worked, ensure-agent-memory-link, sync-agent-memory]
     tools: [cos_search, cos_observation_record, cos_timeline, cos_details, "cos_learn_*", "cos_retrieval_*", cos_promote, cos_digest_regenerate]
     skills: [agent-memory]
     commands: [memory-search]

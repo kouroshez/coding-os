@@ -882,7 +882,7 @@ def safe_tool(
     tool name (e.g. `thinking_os_search` registered as `cos_search`) so the
     subsystems module gate keys on the name `subsystems.yaml` lists, not the
     internal function name. Without it the gate silently never fires for that
-    tool (the bug `test_module_gating_registry` guards against).
+    tool.
     """
 
     def decorate(target: Callable[..., str]) -> Callable[..., str]:

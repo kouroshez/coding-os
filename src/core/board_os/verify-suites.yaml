@@ -65,6 +65,18 @@ suites:
       - "src/cli/*.py"
     command: "uv run pytest tests/test_cli.py -q"
 
+  # The module registry is a cross-artifact SSOT: subsystems.yaml maps every
+  # hook/tool/skill/command to a module, and registry.yaml is its hook source.
+  # An edit to either must run the totality + profile invariants — a hook/tool
+  # added to registry without a module owner (F9) or a profile whose disabled
+  # set drifts from the yaml is caught here, not on a full sweep. registry.yaml
+  # matches both this and verify-hooks (match_suites returns all matches).
+  test-modules:
+    paths:
+      - "src/core/subsystems.yaml"
+      - "src/core/hooks/registry.yaml"
+    command: "uv run pytest tests/test_cli.py::TestSubsystems tests/test_module_gating_smoke.py -q"
+
   test-adapters:
     paths:
       - "src/adapters/**"

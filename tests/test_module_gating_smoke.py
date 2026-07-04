@@ -207,8 +207,8 @@ def test_profiles_resolve_to_expected_disabled_sets() -> None:
     assert default == "standard"
     assert set(profiles) >= {"core", "standard", "full"}
     assert resolve_profile("full") == []  # full = today's all-on behaviour
-    assert set(resolve_profile("standard")) == {"cognition"}
-    assert set(resolve_profile("core")) == {"memory", "cognition", "observability"}
+    assert set(resolve_profile("standard")) == {"cognition", "cicd"}
+    assert set(resolve_profile("core")) == {"memory", "cognition", "observability", "cicd"}
 
 
 def test_unknown_profile_raises() -> None:
