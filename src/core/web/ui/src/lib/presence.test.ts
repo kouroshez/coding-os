@@ -17,6 +17,11 @@ describe('modelLabel', () => {
     expect(modelLabel('claude-haiku-4-5-20251001')).toBe('Haiku 4.5');
   });
 
+  it('does not swallow a date suffix as the minor version', () => {
+    expect(modelLabel('claude-sonnet-5-20260101')).toBe('Sonnet 5');
+    expect(modelLabel('claude-opus-4-8[1m]')).toBe('Opus 4.8 · 1M');
+  });
+
   it('falls back to the raw id for unknown shapes, and a friendly label for null', () => {
     expect(modelLabel('gpt-5')).toBe('gpt-5');
     expect(modelLabel(null)).toBe('Unknown runtime');

@@ -430,11 +430,11 @@ function ModulesTab() {
     setToggleError(null);
     setNotes([]);
     try {
-      const [data] = await apiPatch<{ regenerated?: string[] }>(
+      const [resp] = await apiPatch<{ regenerated?: string[] }>(
         `/api/settings/modules/${encodeURIComponent(row.id)}`,
         { enabled: !row.enabled },
       );
-      setNotes(data?.regenerated ?? []);
+      setNotes(resp?.regenerated ?? []);
       await invalidateApiQueries(qc, '/api/settings/modules');
       await invalidateApiQueries(qc, '/api/settings/modules/drift');
     } catch (err) {

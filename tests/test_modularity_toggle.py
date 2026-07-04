@@ -447,7 +447,8 @@ class TestModuleStateHardening:
 
         # Disabling docs while tasks is still enabled must refuse (tasks needs docs).
         refuse_disable = set_module_enabled(tmp_path, "docs", False)
-        assert refuse_disable.ok is False and "depend on it" in refuse_disable.reason
+        assert refuse_disable.ok is False
+        assert "required by enabled module(s) tasks" in refuse_disable.reason
 
         # Bring docs down legitimately (disable tasks first), then re-enabling tasks
         # while docs stays disabled must refuse — validated from the re-read set.
@@ -455,7 +456,7 @@ class TestModuleStateHardening:
         assert set_module_enabled(tmp_path, "docs", False).ok is True
         refuse_enable = set_module_enabled(tmp_path, "tasks", True)
         assert refuse_enable.ok is False
-        assert "dependency chain not satisfied" in refuse_enable.reason
+        assert "needs disabled module(s) docs" in refuse_enable.reason
 
 
 class TestToggleRollbackAtomicity:

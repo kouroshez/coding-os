@@ -26,7 +26,7 @@ from core.thinking_os.tools._shared import _gated_module, _tool_module_map
 # on every profile. Kept a small, explicit, reviewed list: adding a tool here is
 # a deliberate "this is kernel" decision, not an accident. classify=Record Gate
 # (core loop) · health=diagnostic · traceability/failure_pattern=ambiguous
-# ownership, not force-mapped (Rule 22, audit-2026-06 PB-6).
+# ownership, deliberately not force-mapped.
 _KERNEL_TOOLS = {
     "cos_classify_prompt",
     "cos_health",
@@ -113,12 +113,11 @@ def test_every_subsystems_tool_name_is_registered(tmp_path) -> None:
 
 
 def test_every_registered_tool_has_a_module_owner_or_is_kernel() -> None:
-    """Reverse totality — the tool-side twin of the F9 hook-owner invariant.
+    """Reverse totality — the tool-side twin of the hook-owner invariant.
 
     Every registered cos_* tool must either match a subsystems.yaml module tool
     family or be an explicit kernel tool. A tool added without a module owner
-    (the exact leak the memory-v2 delta produced on the hook side) then fails
-    here instead of silently surviving on a disabled-module surface."""
+    then fails here instead of silently surviving on a disabled-module surface."""
     registered = {t.name for t in asyncio.run(server.mcp.list_tools())}
     cos_tools = {n for n in registered if n.startswith("cos_")}
     orphans = sorted(n for n in cos_tools if n not in _KERNEL_TOOLS and not _matches_a_module(n))

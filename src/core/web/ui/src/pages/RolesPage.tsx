@@ -132,7 +132,7 @@ export default function RolesPage() {
               onChange={(e) => setAgent(e.target.value)}
               className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] px-1.5 py-1 text-[11px]"
             >
-              {(adapters.length ? adapters : [{ id: agent, label: agent }]).map((a) => (
+              {(adapters.some((a) => a.id === agent) ? adapters : [{ id: agent, label: agent }, ...adapters]).map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.id}
                 </option>
