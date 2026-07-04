@@ -149,6 +149,17 @@ def _verify_command_text(profile: StackProfile) -> str:
     return " ".join(parts).lower()
 
 
+def _verify_runs_test(profile: StackProfile) -> bool:
+    # A stack that ships a sample test should name a test suite in its verify
+    # wiring. The `test-*` target convention (test-backend/test-frontend/...) is
+    # runner-agnostic, so this catches an un-run test whether the runner is
+    # pytest/vitest/rspec/phpunit/go test — where scanning the command for a
+    # runner binary would miss rspec/minitest.
+    suites = [value for key, value in profile.substitutions.items() if key.endswith("_SUITES")]
+    suites.extend(row.suites for row in profile.verify)
+    return "test" in " ".join(suites).lower()
+
+
 def lint_stack(
     profile: StackProfile, stack_dir: Path, golden_root: Path | None = None
 ) -> LintReport:
@@ -241,6 +252,11 @@ def lint_stack(
                 report.soft.append(
                     "no sample test under scaffold/ (a work-surface stack should "
                     "ship ≥1 runnable sample test for a green day-one `cos init`)"
+                )
+            elif not _verify_runs_test(profile):
+                report.soft.append(
+                    "ships a sample test but the verify command runs no test suite "
+                    "(the test is decorative — wire a test target into verify)"
                 )
 
         verify_text = _verify_command_text(profile)
