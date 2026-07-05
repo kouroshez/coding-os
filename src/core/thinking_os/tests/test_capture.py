@@ -480,3 +480,22 @@ class TestChangelogRecallExclusion:
         assert opt_in["results"]
         assert all(r["memory_type"] == "changelog" for r in opt_in["results"])
         conn.close()
+
+
+class TestExpiresAtStamp:
+    def test_changelog_capture_stamps_ttl(self, db_path: Path) -> None:
+        from datetime import datetime, timezone
+
+        capture_observation(
+            {"tool_name": "Write", "tool_input": {"file_path": "svc.py"}}, db_path
+        )
+        c = init_db(db_path)
+        row = c.execute(
+            "SELECT memory_type, expires_at FROM observations ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        c.close()
+        assert row[0] == "changelog"
+        assert row[1] is not None  # a TTL was stamped
+        exp = datetime.strptime(row[1], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        delta_days = (exp - datetime.now(timezone.utc)).days
+        assert 28 <= delta_days <= 30  # ~30d changelog TTL

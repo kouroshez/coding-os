@@ -281,11 +281,13 @@ def run_decay(
             else:
                 stats["decayed"] += 1
 
-        # --- Clean expired working memory ---
+        # --- Clean expired observations (any TTL'd class) ---
+        # Only rows that carry an expires_at are eligible; legacy rows have NULL
+        # expiry and are never touched here (their one-time sweep is owner-gated).
         if not dry_run:
             cursor = conn.execute(
                 "DELETE FROM observations "
-                "WHERE memory_type = 'working' AND expires_at IS NOT NULL AND expires_at < CURRENT_TIMESTAMP"
+                "WHERE expires_at IS NOT NULL AND expires_at < CURRENT_TIMESTAMP"
             )
             stats["working_memory_cleaned"] = cursor.rowcount
 

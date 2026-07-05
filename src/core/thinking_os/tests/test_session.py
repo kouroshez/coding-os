@@ -480,3 +480,19 @@ class TestSessionObserveWorker:
         assert w.enrich_session(conn, "ses-w") == 1
         assert w.enrich_session(conn, "ses-w") == 0  # promoted row left changelog — nothing to redo
         conn.close()
+
+    def test_promote_clears_expires_at(self, tmp_path: Path, monkeypatch) -> None:
+        import session_observe_worker as w
+
+        conn = self._db_with_changelog(tmp_path, [("Edit", "sig", 0.9)])
+        oid = self._first_id(conn)
+        conn.execute("UPDATE observations SET expires_at = '2099-01-01 00:00:00' WHERE id = ?", (oid,))
+        conn.commit()
+        enrich = self._enrichment(
+            [{"observation_id": oid, "narrative": "durable insight", "concepts": ["x"], "has_signal": True}]
+        )
+        monkeypatch.setattr(w, "observe_session", lambda evidence: enrich)
+        w.enrich_session(conn, "ses-w")
+        exp = conn.execute("SELECT expires_at FROM observations WHERE id = ?", (oid,)).fetchone()[0]
+        conn.close()
+        assert exp is None  # enriched discovery row is durable, off the changelog TTL

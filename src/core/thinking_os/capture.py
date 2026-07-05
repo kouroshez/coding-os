@@ -15,6 +15,7 @@ import json
 import os
 import sys
 import traceback
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -35,6 +36,26 @@ CAPTURE_TOOLS = {"Write", "Edit", "MultiEdit"}
 # alone (no judgment), so they are stored as a 'changelog' type that recall and
 # the digest hide; real semantic memory arrives via enrichment and mining.
 MECHANICAL_MEMORY_TYPE = "changelog"
+
+# Time-to-live per memory_type, in days; a class absent from the map (discovery,
+# error, decision) never expires. Mechanical changelog rows are the churny bulk,
+# so they age out fastest; enrichment promotes signal-bearing rows off changelog
+# and clears their expiry, keeping the durable insight permanent.
+_MEMORY_TTL_DAYS: dict[str, int] = {
+    "changelog": 30,
+    "config": 60,
+    "workflow": 60,
+    "pattern": 90,
+}
+
+
+def _expires_at_for(memory_type: str) -> str | None:
+    days = _MEMORY_TTL_DAYS.get(memory_type)
+    if days is None:
+        return None
+    # UTC, space-separated to match the DB's CURRENT_TIMESTAMP string comparison
+    # (isoformat's 'T' would sort/compare wrong against stored timestamps).
+    return (datetime.now(timezone.utc) + timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _estimate_impact(file_path: str) -> float:
@@ -390,6 +411,12 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
         if _observations_has_task_id(conn):
             cols.append("task_id")
             vals.append(_read_current_task())
+        # Stamp a TTL so decay can GC aged mechanical rows. expires_at is v1, so no
+        # column guard needed; only classes with a TTL (changelog today) are stamped.
+        expires_at = _expires_at_for(memory_type)
+        if expires_at is not None:
+            cols.append("expires_at")
+            vals.append(expires_at)
         placeholders = ", ".join("?" * len(vals))
         cursor = conn.execute(
             f"INSERT INTO observations ({', '.join(cols)}) VALUES ({placeholders})",

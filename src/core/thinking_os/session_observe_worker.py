@@ -77,8 +77,10 @@ def enrich_session(conn: sqlite3.Connection, session_id: str) -> int:
             continue
         concepts = json.dumps([str(c)[:40] for c in obs.concepts[:8]], ensure_ascii=False)
         cur = conn.execute(
-            "UPDATE observations SET narrative = ?, concepts = ?, memory_type = 'discovery' "
-            "WHERE id = ? AND memory_type = 'changelog'",
+            # Clear expires_at: an enriched discovery row is durable, not on the
+            # changelog TTL, so decay must not GC it.
+            "UPDATE observations SET narrative = ?, concepts = ?, memory_type = 'discovery', "
+            "expires_at = NULL WHERE id = ? AND memory_type = 'changelog'",
             (narrative, concepts, obs.observation_id),
         )
         promoted += cur.rowcount

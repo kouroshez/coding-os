@@ -544,3 +544,25 @@ class TestConsolidation:
 
         result = run_decay(db_path, archive_prune_days=90)
         assert result["pruned"] == 0  # accessed within window survives
+
+
+class TestExpiredObservationGC:
+    def test_decay_gcs_expired_and_spares_null(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "gc.db"
+        c = init_db(db_path)
+        c.execute(
+            "INSERT INTO observations (session_id, tool_name, title, memory_type, expires_at) "
+            "VALUES ('s', 'Edit', 'expired-row', 'changelog', '2000-01-01 00:00:00')"
+        )
+        c.execute(
+            "INSERT INTO observations (session_id, tool_name, title, memory_type, expires_at) "
+            "VALUES ('s', 'Edit', 'permanent-row', 'discovery', NULL)"
+        )
+        c.commit()
+        c.close()
+        run_decay(db_path)
+        c2 = init_db(db_path)
+        titles = [r[0] for r in c2.execute("SELECT title FROM observations").fetchall()]
+        c2.close()
+        assert "expired-row" not in titles  # past-expiry row GC'd
+        assert "permanent-row" in titles  # NULL-expiry legacy row spared
