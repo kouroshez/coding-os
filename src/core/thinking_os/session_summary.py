@@ -16,7 +16,14 @@ import sqlite3
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+_HERE = Path(__file__).resolve().parent
+# The session-end hook runs this as a file under an interpreter without the
+# editable-install finder, so put src/ on sys.path for `from core.logging_os`
+# and thinking_os/ for `from database` — else ModuleNotFoundError, swallowed silently.
+_SRC = _HERE.parents[1]
+for _bootstrap_path in (_SRC, _HERE):
+    if str(_bootstrap_path) not in sys.path:
+        sys.path.insert(0, str(_bootstrap_path))
 
 from database import DEFAULT_DB_PATH, get_connection
 

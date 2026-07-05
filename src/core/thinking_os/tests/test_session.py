@@ -160,6 +160,21 @@ class TestSessionEndSummary:
         assert elapsed < 4.0
 
 
+class TestSessionSummaryEntrypointSmoke:
+    def test_runs_as_direct_subprocess(self) -> None:
+        script = Path(__file__).resolve().parents[1] / "session_summary.py"
+        # -S drops site so the editable-install finder can't resolve `core` for us —
+        # keeps the script's own sys.path bootstrap load-bearing (else false-green).
+        result = subprocess.run(
+            [sys.executable, "-S", str(script)],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "No module named" not in result.stderr
+
+
 class TestSessionContextHook:
     def test_hook_syntax(self) -> None:
         """session-context.sh should have valid bash syntax."""
