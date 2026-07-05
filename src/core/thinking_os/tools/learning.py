@@ -448,7 +448,7 @@ def _collapse_duplicate_patterns(conn: sqlite3.Connection) -> int:
     # (identity, domain) group is a single row, this is a no-op. Returns the
     # number of rows deleted.
     rows = conn.execute(
-        "SELECT id, pattern, domain, confidence, times_validated FROM learned_patterns"
+        "SELECT id, pattern, domain, confidence, times_seen, times_validated FROM learned_patterns"
     ).fetchall()
     groups: dict[tuple[str, object], list] = {}
     for r in rows:
@@ -457,15 +457,18 @@ def _collapse_duplicate_patterns(conn: sqlite3.Connection) -> int:
     for members in groups.values():
         if len(members) < 2:
             continue
-        survivor = max(members, key=lambda m: (m["times_validated"], m["confidence"], m["id"]))
+        # Survivor = the most-established row by occurrences; fold BOTH counters so
+        # neither the occurrence total (times_seen) nor real validations are lost.
+        survivor = max(members, key=lambda m: ((m["times_seen"] or 0), m["confidence"], m["id"]))
         losers = [m["id"] for m in members if m["id"] != survivor["id"]]
         conn.execute(
-            "UPDATE learned_patterns SET pattern = ?, confidence = ?, "
+            "UPDATE learned_patterns SET pattern = ?, confidence = ?, times_seen = ?, "
             "times_validated = ?, last_validated = CURRENT_TIMESTAMP WHERE id = ?",
             (
                 survivor["pattern"],
                 max(m["confidence"] for m in members),
-                sum(m["times_validated"] for m in members) + len(losers),
+                sum((m["times_seen"] or 0) for m in members) + len(losers),
+                sum((m["times_validated"] or 0) for m in members),
                 survivor["id"],
             ),
         )
@@ -477,8 +480,8 @@ def _collapse_duplicate_patterns(conn: sqlite3.Connection) -> int:
 def _consolidate_semantic_duplicates(
     conn: sqlite3.Connection, *, threshold: float = 0.85, dry_run: bool = False
 ) -> int:
-    # Survivor = highest (confidence, times_validated, oldest id); loser's
-    # access_count + times_validated fold in before delete. No-op without embeddings.
+    # Survivor = highest (confidence, times_seen, oldest id); loser's access_count
+    # + times_seen + times_validated fold in before delete. No-op without embeddings.
     try:
         from embeddings import cosine_similarity, is_available
     except ImportError:
@@ -487,7 +490,7 @@ def _consolidate_semantic_duplicates(
         return 0
     try:
         rows = conn.execute(
-            "SELECT lp.id, lp.confidence, lp.times_validated, lp.access_count, e.embedding "
+            "SELECT lp.id, lp.confidence, lp.times_seen, lp.times_validated, lp.access_count, e.embedding "
             "FROM learned_patterns lp JOIN embeddings e "
             "  ON e.source_table = 'learned_patterns' AND e.source_id = lp.id "
             "WHERE lp.promoted_to IS NULL AND lp.archived_at IS NULL"
@@ -500,7 +503,7 @@ def _consolidate_semantic_duplicates(
     if len(items) < 2:
         return 0
     # Stronger row first → it becomes the survivor of any similar pair.
-    items.sort(key=lambda x: (-(x["confidence"] or 0.0), -(x["times_validated"] or 0), x["id"]))
+    items.sort(key=lambda x: (-(x["confidence"] or 0.0), -(x["times_seen"] or 0), x["id"]))
 
     removed: set[int] = set()
     merged = 0
@@ -517,8 +520,14 @@ def _consolidate_semantic_duplicates(
             if not dry_run:
                 conn.execute(
                     "UPDATE learned_patterns SET access_count = COALESCE(access_count, 0) + ?, "
+                    "times_seen = COALESCE(times_seen, 0) + ?, "
                     "times_validated = COALESCE(times_validated, 0) + ? WHERE id = ?",
-                    (cand["access_count"] or 0, cand["times_validated"] or 0, survivor["id"]),
+                    (
+                        cand["access_count"] or 0,
+                        cand["times_seen"] or 0,
+                        cand["times_validated"] or 0,
+                        survivor["id"],
+                    ),
                 )
                 conn.execute("DELETE FROM learned_patterns WHERE id = ?", (cand["id"],))
                 conn.execute(
@@ -682,9 +691,10 @@ def _upsert_pattern(
 
     if existing:
         # Update confidence (take the higher) and refresh the displayed text
-        # to the latest counts. Each re-mining is a positive re-confirmation,
-        # so bump times_validated — that count IS the consumer-facing signal
-        # that replaced the duplicate snapshot rows.
+        # to the latest counts. Each re-mining is a recurrence, so bump
+        # times_seen — the occurrence count; times_validated stays reserved for
+        # real validation events (_boost_success / _log_validation) so trust
+        # ranking is not inflated by mere re-extraction.
         new_conf = max(existing["confidence"], confidence)
         # Re-extraction is a positive signal: refresh recency AND revive a row a
         # prior decay run archived. A REAL promotion (promoted_to='rule:…' /
@@ -695,7 +705,7 @@ def _upsert_pattern(
             # changed (e.g. a legacy success baseline minted as 'pattern' becomes
             # 'stat'), so old garbage reclassifies on the next loop run.
             "UPDATE learned_patterns SET pattern = ?, memory_type = ?, confidence = ?, "
-            "times_validated = times_validated + 1, last_validated = CURRENT_TIMESTAMP, "
+            "times_seen = COALESCE(times_seen, 0) + 1, last_validated = CURRENT_TIMESTAMP, "
             "last_accessed_at = CURRENT_TIMESTAMP, "
             "promoted_to = CASE WHEN COALESCE(promoted_to, '') IN ('', 'archived') "
             "  THEN NULL ELSE promoted_to END, "
@@ -901,16 +911,16 @@ def _adopt_legacy_template(conn: sqlite3.Connection, template_text: str, new_id:
     # fold the old counters in, then invalidate (archive), never delete.
     identity = _pattern_identity(template_text)
     for cand in conn.execute(
-        "SELECT id, pattern, times_validated, access_count FROM learned_patterns "
+        "SELECT id, pattern, times_seen, times_validated, access_count FROM learned_patterns "
         "WHERE domain IS NULL AND COALESCE(promoted_to, '') != 'archived'",
     ):
         if cand["id"] == new_id or _pattern_identity(cand["pattern"]) != identity:
             continue
         conn.execute(
-            "UPDATE learned_patterns SET "
+            "UPDATE learned_patterns SET times_seen = COALESCE(times_seen, 0) + ?, "
             "times_validated = times_validated + ?, access_count = access_count + ? "
             "WHERE id = ?",
-            (cand["times_validated"] or 0, cand["access_count"] or 0, new_id),
+            (cand["times_seen"] or 0, cand["times_validated"] or 0, cand["access_count"] or 0, new_id),
         )
         conn.execute(
             "UPDATE learned_patterns SET promoted_to = 'archived', "

@@ -35,7 +35,7 @@ def conn(tmp_path: Path) -> sqlite3.Connection:
 def _add_trusted(connection: sqlite3.Connection, text: str) -> None:
     connection.execute(
         "INSERT INTO learned_patterns "
-        "(pattern, memory_type, source, confidence, times_validated) "
+        "(pattern, memory_type, source, confidence, times_seen) "
         "VALUES (?, 'lesson', 'friction', 0.8, 4)",
         (text,),
     )

@@ -2110,6 +2110,16 @@ def _migrate_v48_reclassify_mechanical_observations(conn: sqlite3.Connection) ->
     )
 
 
+def _migrate_v49_add_times_seen(conn: sqlite3.Connection) -> None:
+    conn.execute("ALTER TABLE learned_patterns ADD COLUMN times_seen INTEGER DEFAULT 0")
+    cur = conn.execute("UPDATE learned_patterns SET times_seen = COALESCE(times_validated, 0)")
+    conn.commit()
+    logger.info(
+        "Migration v49 applied: learned_patterns gained times_seen; backfilled %d row(s) from times_validated",
+        cur.rowcount,
+    )
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2471,6 +2481,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         48,
         "Reclassify mechanical auto-capture observations (write/edit/multiedit) to memory_type=changelog so recall exclusion is complete; forward-only, re-derivable from files_modified",
         _migrate_v48_reclassify_mechanical_observations,
+    ),
+    (
+        49,
+        "learned_patterns.times_seen — split the conflated times_validated: occurrence re-mines / dedup folds move to times_seen; times_validated reserved for real validation events",
+        _migrate_v49_add_times_seen,
     ),
 ]
 

@@ -678,11 +678,12 @@ class TestPatternIdentityDedup:
         assert second["action"] == "updated"
         assert second["id"] == first["id"]
         rows = seeded_conn.execute(
-            "SELECT pattern, times_validated FROM learned_patterns WHERE domain = 'INFRA'"
+            "SELECT pattern, times_seen, times_validated FROM learned_patterns WHERE domain = 'INFRA'"
         ).fetchall()
         assert len(rows) == 1  # one row, not two snapshots
         assert "83/83" in rows[0]["pattern"]  # text refreshed to latest count
-        assert rows[0]["times_validated"] == 1  # re-confirmation bumped
+        assert rows[0]["times_seen"] == 1  # re-mine bumped the occurrence counter
+        assert (rows[0]["times_validated"] or 0) == 0  # not a real validation
 
     def test_collapse_merges_legacy_snapshots(self, seeded_conn: sqlite3.Connection) -> None:
         from tools.learning import _collapse_duplicate_patterns
@@ -1525,3 +1526,41 @@ class TestFileBackNarrative:
         )
         assert first == second
         assert "v2-updated" in second.read_text(encoding="utf-8")
+
+
+class TestTimesSeenSplit:
+    def test_remine_bumps_times_seen_not_times_validated(self, conn: sqlite3.Connection) -> None:
+        conn.row_factory = sqlite3.Row
+        from tools.learning import _upsert_pattern
+
+        kw = dict(memory_type="pattern", domain="BACKEND", source="mined", confidence=0.6, concepts="[]")
+        first = _upsert_pattern(conn, pattern="Always use the services layer for DB writes", **kw)
+        pid = first["id"]
+        assert first["action"] == "created"
+        for _ in range(2):
+            _upsert_pattern(conn, pattern="Always use the services layer for DB writes", **kw)
+        row = conn.execute(
+            "SELECT times_seen, times_validated FROM learned_patterns WHERE id = ?", (pid,)
+        ).fetchone()
+        assert row["times_seen"] == 2  # two re-mines are occurrences, not validations
+        assert (row["times_validated"] or 0) == 0  # never really validated
+
+    def test_collapse_folds_times_seen_into_survivor(self, conn: sqlite3.Connection) -> None:
+        conn.row_factory = sqlite3.Row
+        from tools.learning import _collapse_duplicate_patterns
+
+        for seen in (2, 5):
+            conn.execute(
+                "INSERT INTO learned_patterns (pattern, memory_type, domain, source, confidence, "
+                "concepts, times_seen, times_validated) "
+                "VALUES (?, 'pattern', 'BACKEND', 'mined', 0.6, '[]', ?, 0)",
+                ("Prefer composition over inheritance", seen),
+            )
+        conn.commit()
+        removed = _collapse_duplicate_patterns(conn)
+        assert removed == 1
+        rows = conn.execute(
+            "SELECT times_seen FROM learned_patterns WHERE pattern = 'Prefer composition over inheritance'"
+        ).fetchall()
+        assert len(rows) == 1
+        assert rows[0]["times_seen"] == 2 + 5 + 1  # summed occurrences + 1 collapsed loser

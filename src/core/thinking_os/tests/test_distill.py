@@ -136,7 +136,7 @@ def test_idempotent_second_run_makes_no_llm_call(conn, monkeypatch) -> None:
     assert stub.calls == 1
     assert second["id"] == first["id"]
     row = _row(conn, first["id"])
-    assert row["times_validated"] >= 1
+    assert row["times_seen"] >= 1  # re-mine bumps the occurrence counter, not validations
 
 
 def test_budget_exhausted_falls_back_to_template(conn, monkeypatch) -> None:

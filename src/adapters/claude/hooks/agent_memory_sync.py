@@ -25,8 +25,8 @@ LEDGER_NAME = ".harvested.json"
 
 def _trusted_lessons(conn) -> list[dict]:
     rows = conn.execute(
-        "SELECT pattern, times_validated FROM learned_patterns "
-        "WHERE confidence >= 0.7 AND times_validated >= 3 "
+        "SELECT pattern, times_seen FROM learned_patterns "
+        "WHERE confidence >= 0.7 AND times_seen >= 3 "
         "AND COALESCE(memory_type, '') != 'stat' AND promoted_to IS NULL "
         "ORDER BY confidence * COALESCE(impact_score, 0.5) DESC "
         "LIMIT 60"
@@ -40,7 +40,7 @@ def render_mirror(memory_dir: Path, lessons: list[dict]) -> None:
     lines = [GENERATED_START, "## Trusted lessons (auto-generated)", ""]
     for lesson in lessons:
         text, _ = redact_secrets((lesson["pattern"] or "").strip())
-        lines.append(f"- {text} _(seen {lesson['times_validated']}×)_")
+        lines.append(f"- {text} _(seen {lesson['times_seen']}×)_")
         if len(lines) >= MAX_GENERATED_LINES - 1:
             break
     lines.append(GENERATED_END)

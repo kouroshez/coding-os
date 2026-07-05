@@ -109,6 +109,20 @@ class TestSchemaVersioning:
         assert len(applied_2) == 0
         assert get_schema_version(fresh_conn) == len(MIGRATIONS)
 
+    def test_v49_backfills_times_seen_from_times_validated(self) -> None:
+        from database import _migrate_v49_add_times_seen
+
+        conn = sqlite3.connect(":memory:")
+        conn.execute(
+            "CREATE TABLE learned_patterns (id INTEGER PRIMARY KEY, times_validated INTEGER DEFAULT 0)"
+        )
+        conn.execute("INSERT INTO learned_patterns (times_validated) VALUES (7)")
+        conn.commit()
+        _migrate_v49_add_times_seen(conn)
+        seen = conn.execute("SELECT times_seen FROM learned_patterns").fetchone()[0]
+        conn.close()
+        assert seen == 7
+
     def test_version_table_records_description(self, migrated_conn: sqlite3.Connection) -> None:
         row = migrated_conn.execute(
             "SELECT description FROM schema_version WHERE version = 1"
