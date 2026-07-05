@@ -336,6 +336,21 @@ class TestNightlyMain:
         assert state.get("consecutive_failures", 0) == 0
 
 
+class TestNightlyEntrypointSmoke:
+    def test_script_runs_as_direct_subprocess(self) -> None:
+        import subprocess
+
+        script = Path(__file__).resolve().parents[1] / "nightly.py"
+        result = subprocess.run(
+            [sys.executable, str(script), "--help"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "nightly maintenance" in result.stdout
+
+
 # ---------------------------------------------------------------------------
 # graph_reindex_if_stale (Task 4 — added 2026-05-18)
 # ---------------------------------------------------------------------------
