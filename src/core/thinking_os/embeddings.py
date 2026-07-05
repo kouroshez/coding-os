@@ -174,12 +174,18 @@ def doc_similarity_floor(model_name: str | None = None) -> float:
 
 
 # Calibrated cosine floor for AGENT-MEMORY semantic search (cos_search over
-# observations + learned_patterns) and short task records. Sits between doc
-# chunks (0.50) and code symbols (0.60); BGE-M3 noise floor ~0.55. MiniLM keeps
-# its legacy 0.05 (it barely separates, so a hard floor only costs recall).
+# observations + learned_patterns) and short task records. Measured 2026-07 on
+# the dogfood corpus: genuine synonym matches on short memory text land ~0.50-0.62
+# (a marketplace task at 0.51, a Celery obs at 0.50) while unrelated rows sit
+# <=0.40 — so 0.45 clears real signal with margin below the lowest genuine hit
+# and above the noise cluster. This floor is LOWER than doc chunks (0.50) and
+# code symbols (0.60): short natural-language memory rows separate at lower
+# cosines than either, so borrowing the code-symbol 0.55 (the prior value) just
+# filtered genuine recall. MiniLM keeps its legacy 0.05 (it barely separates, so
+# a hard floor only costs recall).
 _MEMORY_FLOORS: dict[str, float] = {
     "all-MiniLM-L6-v2": 0.05,
-    "BAAI/bge-m3": 0.55,
+    "BAAI/bge-m3": 0.45,
 }
 
 

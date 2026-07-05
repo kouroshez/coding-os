@@ -614,6 +614,7 @@ class TestMemorySearchSemantic:
         seeded_conn.commit()
         return seeded_conn
 
+    @pytest.mark.real_embeddings
     def test_search_source_label_includes_semantic(
         self, embedded_seeded_conn: sqlite3.Connection
     ) -> None:
@@ -625,6 +626,7 @@ class TestMemorySearchSemantic:
         # Source label should advertise semantic was used
         assert "semantic" in result.get("source", "")
 
+    @pytest.mark.real_embeddings
     def test_semantic_finds_synonym_match(self, embedded_seeded_conn: sqlite3.Connection) -> None:
         """A query with no keyword overlap should still find a related row
         through semantic similarity (not just FTS5/LIKE)."""
@@ -655,6 +657,7 @@ class TestMemorySearchSemantic:
         )
         assert result["count"] > 0
 
+    @pytest.mark.real_embeddings
     def test_semantic_only_hit_is_appended(self, embedded_seeded_conn: sqlite3.Connection) -> None:
         """A row that the FTS5/LIKE path misses but semantic finds should
         appear in the result list."""
