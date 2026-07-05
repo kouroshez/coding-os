@@ -11,13 +11,17 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from cognition_schemas import DistilledLesson
+from cognition_schemas import DistilledLesson, SessionEnrichment
 from dispatcher import DispatchRequest, get_dispatcher
 from sanitizer import redact_secrets, scrub_username
 
 logger = logging.getLogger("coding_os.distill")
 
 _AGENT_FILE = Path(__file__).resolve().parent / "agents" / "distiller.md"
+# Under agents/internal/ so the non-recursive agents/*.md globs (formula
+# registry, /role-* command generation, composer) never pick it up — this card
+# is dispatched only by explicit path from observe_session, never composed.
+_OBSERVER_FILE = Path(__file__).resolve().parent / "agents" / "internal" / "session_observer.md"
 _MAX_SAMPLE_CHARS = 300
 _MAX_SAMPLES = 3
 _CALL_TIMEOUT_S = 60.0
@@ -38,6 +42,13 @@ def cluster_fingerprint(kind: str, signature: str) -> str:
 
 def enabled() -> bool:
     return os.environ.get("COS_DISTILL_LLM", "1") != "0"
+
+
+def enrich_enabled() -> bool:
+    # Default OFF — per-session semantic enrichment costs a dispatch per session,
+    # so the owner opts in with a token budget (unlike friction distillation,
+    # which is on by default because it fires only on recurring friction).
+    return os.environ.get("COS_ENRICH_LLM", "0") == "1"
 
 
 def sanitize_samples(samples: list[str]) -> list[str]:
@@ -150,3 +161,32 @@ def distill_cluster(
 
 def lesson_text(distilled: dict[str, str]) -> str:
     return f"{distilled['situation']} → {distilled['action']} — {distilled['why']}"
+
+
+def observe_session(evidence: dict[str, Any]) -> SessionEnrichment | None:
+    """Distill one session's mechanical changelog rows into a SessionEnrichment, or None."""
+    if not enrich_enabled():
+        return None
+
+    request = DispatchRequest(
+        formula_id="session_observer",
+        agent_file=str(_OBSERVER_FILE),
+        prompt=json.dumps(evidence, ensure_ascii=False),
+        timeout_s=_CALL_TIMEOUT_S,
+        max_budget_usd=_call_budget_usd(),
+        model=os.environ.get("COS_ENRICH_MODEL") or os.environ.get("COS_DISTILL_MODEL") or None,
+    )
+
+    try:
+        result = _run_dispatch(request)
+    except Exception as exc:
+        logger.debug("observe_session dispatch failed: %s", exc)
+        return None
+    if result is None or result.status != "ok" or not result.output_json:
+        return None
+
+    try:
+        return SessionEnrichment.model_validate(result.output_json)
+    except Exception as exc:
+        logger.debug("session enrichment rejected by schema: %s", exc)
+        return None

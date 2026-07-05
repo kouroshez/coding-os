@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -46,6 +47,44 @@ def apply_session_facts(conn, session_id, facts) -> bool:
     return cur.rowcount > 0
 
 
+def _gate_complexity(gate_path: Path) -> str:
+    try:
+        if not gate_path.exists():
+            return ""
+        tokens = gate_path.read_text().strip().split()
+    except OSError:
+        return ""
+    for token in tokens:
+        if token in ("CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC", "CONFUSION"):
+            return token
+    return ""
+
+
+def _maybe_spawn_observer(session_id: str, db_path: str, gate_path: Path) -> None:
+    # Item A: hand the slow per-session LLM enrichment to a detached worker that
+    # outlives this hook's 2s bound (Popen returns immediately; setsid keeps the
+    # child alive past the kill). Default OFF; scoped to COMPLICATED/COMPLEX
+    # sessions to bound token cost. The env fast-path mirrors distill.enrich_enabled
+    # so the disabled default returns before paying distill's cold import.
+    if os.environ.get("COS_ENRICH_LLM", "0") != "1":
+        return
+    if _gate_complexity(gate_path) not in ("COMPLICATED", "COMPLEX"):
+        return
+    try:
+        worker = Path(__file__).resolve().parent / "session_observe_worker.py"
+        if not worker.exists():
+            return
+        subprocess.Popen(
+            [sys.executable, str(worker), session_id, db_path],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except Exception as exc:  # fire-and-forget (Rule 6)
+        print(f"session_enrich.py: observer spawn skipped: {exc}", file=sys.stderr)
+
+
 def main() -> None:
     if len(sys.argv) < 4:
         sys.exit(0)
@@ -59,6 +98,10 @@ def main() -> None:
     conn.execute("PRAGMA journal_mode = WAL")
 
     gate_path = Path(os.environ.get("COS_STATE_DIR", ".coding-os") + "/.thinking_os-gate")
+
+    # Spawn the detached enrichment worker first, so it is already setsid-detached
+    # before any slow step below risks tripping this hook's 2s kill.
+    _maybe_spawn_observer(session_id, db_path, gate_path)
 
     # ── Step 1: Populate semantic fields in session_summaries ──
     try:

@@ -499,3 +499,19 @@ class SessionSummaryFacts(BaseModel):
     learned: str = Field(default="", max_length=400)
     next_steps: str = Field(default="", max_length=400)
     has_signal: bool = False
+
+
+class ObservationEnrichment(BaseModel):
+    """One mechanical observation distilled into recallable semantic fields."""
+
+    observation_id: int
+    narrative: str = Field(default="", max_length=400)
+    concepts: list[str] = Field(default_factory=list, max_length=8)
+    has_signal: bool = False
+
+
+class SessionEnrichment(BaseModel):
+    """Full output of the session observer (agents/session_observer.md)."""
+
+    observations: list[ObservationEnrichment] = Field(default_factory=list, max_length=20)
+    summary: SessionSummaryFacts = Field(default_factory=SessionSummaryFacts)
