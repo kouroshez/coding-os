@@ -490,3 +490,12 @@ class DistilledLesson(BaseModel):
     situation: str = Field(min_length=10, max_length=160)
     action: str = Field(min_length=10, max_length=200)
     why: str = Field(min_length=5, max_length=160)
+
+
+class SessionSummaryFacts(BaseModel):
+    """Session-level narrative distilled by the session observer (item A)."""
+
+    investigated: str = Field(default="", max_length=400)
+    learned: str = Field(default="", max_length=400)
+    next_steps: str = Field(default="", max_length=400)
+    has_signal: bool = False

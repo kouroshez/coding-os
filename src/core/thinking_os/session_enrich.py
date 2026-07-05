@@ -20,6 +20,32 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+def _has_session_signal(facts) -> bool:
+    if facts is None or not getattr(facts, "has_signal", False):
+        return False
+    return bool((getattr(facts, "learned", "") or "").strip())
+
+
+def apply_session_facts(conn, session_id, facts) -> bool:
+    if not _has_session_signal(facts):
+        return False
+    cur = conn.execute(
+        "UPDATE session_summaries SET "
+        "investigated = COALESCE(investigated, ?), "
+        "learned = COALESCE(learned, ?), "
+        "next_steps = COALESCE(next_steps, ?) "
+        "WHERE session_id = ?",
+        (
+            (facts.investigated or "").strip() or None,
+            (facts.learned or "").strip() or None,
+            (facts.next_steps or "").strip() or None,
+            session_id,
+        ),
+    )
+    conn.commit()
+    return cur.rowcount > 0
+
+
 def main() -> None:
     if len(sys.argv) < 4:
         sys.exit(0)
@@ -69,29 +95,12 @@ def main() -> None:
         if not completed:
             completed = None
 
-        learned = None
-        try:
-            edge_rows = conn.execute(
-                "SELECT source, target, weight FROM concept_graph "
-                "WHERE evidence = ? AND edge_type = 'co_edit' "
-                "ORDER BY weight DESC LIMIT 3",
-                (session_id,),
-            ).fetchall()
-            if edge_rows:
-                pairs = [
-                    f"{Path(r['source']).name} <-> {Path(r['target']).name}" for r in edge_rows
-                ]
-                learned = "Co-edited: " + "; ".join(pairs)
-        except Exception as exc:  # fail-open (Rule 6)
-            print(f"session_enrich.py: enrichment step failed: {exc}", file=sys.stderr)
-
         conn.execute(
             "UPDATE session_summaries SET "
             "request = COALESCE(request, ?), "
-            "completed = COALESCE(completed, ?), "
-            "learned = COALESCE(learned, ?) "
-            "WHERE session_id = ? AND (request IS NULL OR completed IS NULL)",
-            (request_str, completed, learned, session_id),
+            "completed = COALESCE(completed, ?) "
+            "WHERE session_id = ?",
+            (request_str, completed, session_id),
         )
         conn.commit()
     except Exception as exc:  # fail-open (Rule 6)
