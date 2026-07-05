@@ -739,7 +739,7 @@ hooks:
       when the outbox is empty (the common case).
     category: retrieval
     phase: "0"
-    timeout: 30
+    timeout: 60
     events:
       - event: Stop
         matcher: ""

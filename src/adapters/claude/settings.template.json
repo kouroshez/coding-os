@@ -729,7 +729,7 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/drain-embedding-outbox.sh",
             "statusMessage": "🧮 Draining deferred embeddings...",
-            "timeout": 30
+            "timeout": 60
           },
           {
             "type": "command",

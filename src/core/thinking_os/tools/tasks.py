@@ -216,7 +216,7 @@ def task_search(
     status: str | None = None,
     domain: str | None = None,
     limit: int = 10,
-    threshold: float = 0.1,
+    threshold: float | None = None,
 ) -> list[dict]:
     """Semantic task search with optional status/domain filters.
 
@@ -230,7 +230,8 @@ def task_search(
         status: Optional status filter (open/wip/done/blocked).
         domain: Optional domain filter (BACKEND/FRONTEND/DOCS/...).
         limit: Maximum results (1-100, default 10).
-        threshold: Minimum cosine similarity for semantic hits (default 0.1).
+        threshold: Minimum cosine similarity for semantic hits. None (default)
+            resolves to the model-calibrated memory floor.
 
     Returns:
         List of task dicts with `score` field, sorted by score descending
@@ -240,6 +241,10 @@ def task_search(
         return []
 
     limit = max(1, min(int(limit), _MAX_LIMIT))
+    if threshold is None:
+        from embeddings import memory_similarity_floor
+
+        threshold = memory_similarity_floor()
 
     semantic_hits = _try_semantic_search(conn, query, limit * _OVERFETCH_MULTIPLIER, threshold)
 

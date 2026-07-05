@@ -141,7 +141,7 @@ def _augment_with_semantic(
     # rows already present, appends semantic-only hits. Returns False (graceful
     # fallback) when embeddings are unavailable.
     try:
-        from embeddings import is_available, search_similar
+        from embeddings import is_available, memory_similarity_floor, search_similar
     except ImportError as exc:
         logger.debug("Semantic augmentation unavailable (module missing): %s", exc)
         return False
@@ -155,7 +155,7 @@ def _augment_with_semantic(
             query=query,
             source_tables=["observations", "learned_patterns"],
             limit=overfetch,
-            threshold=0.05,
+            threshold=memory_similarity_floor(),
         )
     except sqlite3.OperationalError as exc:
         logger.debug("Semantic augmentation skipped (table missing): %s", exc)

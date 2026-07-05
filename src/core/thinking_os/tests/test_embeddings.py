@@ -552,3 +552,49 @@ class TestTextHash:
 
     def test_hash_different_inputs_differ(self) -> None:
         assert embeddings._compute_text_hash("a") != embeddings._compute_text_hash("b")
+
+
+class TestMemorySimilarityFloor:
+    def test_bge_m3_floor(self) -> None:
+        assert embeddings.memory_similarity_floor("BAAI/bge-m3") == 0.55
+
+    def test_unknown_model_falls_back_to_legacy(self) -> None:
+        assert embeddings.memory_similarity_floor("some-unknown-model") == 0.05
+
+
+class TestDrainOutboxReconciliation:
+    def test_already_embedded_row_reconciled_without_model(self, tmp_db) -> None:
+        tmp_db.execute(
+            "INSERT INTO embeddings (source_table, source_id, text_hash, embedding) "
+            "VALUES ('observations', 42, 'h', ?)",
+            (b"\x00\x00\x00",),
+        )
+        tmp_db.execute(
+            "INSERT INTO embedding_outbox (source_table, source_id, enqueued_at) "
+            "VALUES ('observations', 42, 0)"
+        )
+        tmp_db.commit()
+
+        with patch("embeddings.is_available", return_value=False):
+            result = embeddings.drain_outbox(tmp_db, limit=10)
+
+        assert result["status"] == "unavailable"
+        remaining = tmp_db.execute(
+            "SELECT COUNT(*) FROM embedding_outbox WHERE source_table = 'observations' AND source_id = 42"
+        ).fetchone()[0]
+        assert remaining == 0
+
+    def test_unembedded_row_survives_when_model_unavailable(self, tmp_db) -> None:
+        tmp_db.execute(
+            "INSERT INTO embedding_outbox (source_table, source_id, enqueued_at) "
+            "VALUES ('observations', 99, 0)"
+        )
+        tmp_db.commit()
+
+        with patch("embeddings.is_available", return_value=False):
+            embeddings.drain_outbox(tmp_db, limit=10)
+
+        remaining = tmp_db.execute(
+            "SELECT COUNT(*) FROM embedding_outbox WHERE source_id = 99"
+        ).fetchone()[0]
+        assert remaining == 1

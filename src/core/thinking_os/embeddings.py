@@ -173,6 +173,21 @@ def doc_similarity_floor(model_name: str | None = None) -> float:
     return _DOC_FLOORS.get(model_name or active_model_name(), 0.05)
 
 
+# Calibrated cosine floor for AGENT-MEMORY semantic search (cos_search over
+# observations + learned_patterns) and short task records. Sits between doc
+# chunks (0.50) and code symbols (0.60); BGE-M3 noise floor ~0.55. MiniLM keeps
+# its legacy 0.05 (it barely separates, so a hard floor only costs recall).
+_MEMORY_FLOORS: dict[str, float] = {
+    "all-MiniLM-L6-v2": 0.05,
+    "BAAI/bge-m3": 0.55,
+}
+
+
+def memory_similarity_floor(model_name: str | None = None) -> float:
+    """Calibrated cosine floor for agent-memory + task semantic search."""
+    return _MEMORY_FLOORS.get(model_name or active_model_name(), 0.05)
+
+
 def migration_status(conn: sqlite3.Connection, target_model: str | None = None) -> dict:
     """Report re-embedding progress toward target_model (cutover-gate input)."""
     target = target_model or active_model_name()
@@ -695,13 +710,25 @@ def enqueue_outbox(conn: sqlite3.Connection, source_table: str, source_id: int) 
         return False
 
 
-def drain_outbox(conn: sqlite3.Connection, *, limit: int = 64, max_attempts: int = 3) -> dict:
+def drain_outbox(conn: sqlite3.Connection, *, limit: int = 128, max_attempts: int = 3) -> dict:
     """Embed up to `limit` pending outbox rows; remove on success, retry-bounded.
 
     Runs off the interactive path (Stop hook / cron). A row whose source text
     is gone is dropped; a transient embed failure increments attempts and keeps
     last_error, and is abandoned after max_attempts so the queue can't wedge.
     """
+    # Self-heal: drop outbox rows already satisfied by an embedding (any path may
+    # have embedded them). Model-free, so it runs even when the encoder is down —
+    # otherwise these rows leak in the queue forever.
+    try:
+        conn.execute(
+            "DELETE FROM embedding_outbox WHERE EXISTS ("
+            "SELECT 1 FROM embeddings e WHERE e.source_table = embedding_outbox.source_table "
+            "AND e.source_id = embedding_outbox.source_id)"
+        )
+        conn.commit()
+    except sqlite3.OperationalError as exc:
+        logger.debug("outbox reconcile skipped (no table?): %s", exc)
     if not is_available():
         return {"status": "unavailable", "drained": 0, "failed": 0, "remaining": 0}
     try:
