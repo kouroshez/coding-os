@@ -341,8 +341,11 @@ class TestNightlyEntrypointSmoke:
         import subprocess
 
         script = Path(__file__).resolve().parents[1] / "nightly.py"
+        # -S drops site so the editable-install finder can't resolve `scheduled`
+        # for us — this keeps the script's own sys.path bootstrap load-bearing
+        # (without -S the finder masks a broken bootstrap and the test is a false-green).
         result = subprocess.run(
-            [sys.executable, str(script), "--help"],
+            [sys.executable, "-S", str(script), "--help"],
             capture_output=True,
             text=True,
             timeout=60,
