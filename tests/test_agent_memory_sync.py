@@ -54,6 +54,8 @@ def test_mirror_renders_trusted_and_preserves_manual_notes(conn, tmp_path: Path)
     assert "cos:generated:start" in content
     assert "git show branch:path" in content
     assert "keep me" in content
+    assert "_(seen 4×)_" in content
+    assert "_(validated" not in content
 
 
 def test_mirror_rerender_updates_block_only(conn, tmp_path: Path) -> None:
