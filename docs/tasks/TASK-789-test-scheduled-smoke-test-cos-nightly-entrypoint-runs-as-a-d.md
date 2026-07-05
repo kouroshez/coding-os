@@ -36,3 +36,6 @@ references: []
 - 2026-07-05 [claude]: Edit mutation_proof.py
 - 2026-07-05 [claude]: commit 9ee046f5df — test(scheduled): smoke-test cos-nightly entrypoint runs as a direct script
 - 2026-07-05 [claude]: Smoke test added + committed (9ee046f5): TestNightlyEntrypointSmoke runs `python nightly.py --help` via subprocess,…
+- 2026-07-05 [claude]: Edit test_nightly.py
+- 2026-07-05 [claude]: commit 5fcf70e75e — fix(test): -S in nightly smoke test so the editable finder can't mask a broken bootstrap
+- 2026-07-05 [claude]: False-green fixed + committed (5fcf70e7): added -S to the subprocess so the editable-install finder can't resolve…
