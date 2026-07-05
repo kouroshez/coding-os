@@ -60,6 +60,7 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 | 23 | Trunk-based git — commit direct to `main`, never branch ([git-workflow.md](src/core/rules/git-workflow.md)); *why:* branches sprawl and `src/core/` reaches every consumer via live symlinks, so history stays linear and reviewable. |
 | 24 | Commit msg: title ≤100 chars · body ≤3 lines · no agent attribution / Co-Authored-By / quoted prompts; *why:* git log is permanent and release-please parses the title into the changelog. |
 | 25 | Cognitive-state mutations via semantic ops only — `cos_task_move`/`cos task-done`/`cos_classify_prompt`; lookup via `cos task-show`/`cos_task_search`, never raw ls/grep/Edit; *why:* the board DB and docs/tasks/ files desync if edited by hand. |
+| 26 | Verify by executing, not reading — never claim done / hand the user a command you did not run **this session**; a green proxy suite (`pytest`) ≠ the delivered executable runs — smoke-run entrypoints (`--help`/`--dry-run`) before `task-move --to testing` ([test-discipline.md](src/core/rules/test-discipline.md)); *why:* reading code isn't verification, and shipping a broken deliverable under a "done" claim is autonomy's highest-damage failure. |
 
 ## Core Loop — Classify · Orient · Plan · Execute · Verify
 

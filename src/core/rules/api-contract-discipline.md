@@ -38,3 +38,4 @@ Both checks are cheap. Either one alone is sufficient. **Skipping both is a crit
 
 - [docs/engineering/mcp-error-envelope.md](../../docs/engineering/mcp-error-envelope.md) — `ok` / `fail` envelope contract
 - `cos_graph_contracts` MCP tool — list of HTTP/MCP/event handlers in the graph
+- [test-discipline.md § Run the deliverable](test-discipline.md) — the runtime/behaviour sibling of this rule (Critical Rule 26: don't guess a *behaviour* contract — verify by executing, not by reading)

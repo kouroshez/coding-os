@@ -239,6 +239,15 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 
 ---
 
+## Rule 26 — Verify by executing, not by reading (run the deliverable before claiming done)
+
+- **Rule:** Never claim a deliverable "works" / "done", and never hand the user a command or assert a behaviour, unless you executed it **this session against the real artifact**. Reading code — a CLI flag name, an import path, a config key — is not verification; running it is. A green proxy suite (`pytest`) verifies units, not that the delivered executable runs: for anything runnable (a standalone script, a `cos`/`make` command, an installed entrypoint) smoke-run it end-to-end (`--help` / `--dry-run` / a real invocation) before `cos task-move --to testing`. This generalizes the producer-truth discipline of Rule 19 and its sibling `api-contract-discipline.md` ("don't guess a field name — verify against the producer") from **data** contracts to **runtime / behaviour** contracts.
+- **Why:** The proximate incident — an agent shipped `src/core/scheduled/nightly.py`, saw its pytest suite pass, then handed the user `python3 nightly.py …` which crashed `ModuleNotFoundError` (the direct-run path was never exercised; the `--slug` flag was guessed from the click parameter name instead of `--help`). Proxy-green ≠ artifact-runs; reading ≠ running. In an autonomous system this false-confidence failure is the highest-frequency, highest-damage class: it ships a broken deliverable under a "done" claim, and the human is the one who finds the crash.
+- **How:** Convention reinforced at the close ritual — no hook can read a natural-language "done" claim (hooks see tool calls, not prose), so this is agent-internalized discipline: before `cos task-move --to testing` the agent must have executed the runnable deliverable, not only its pytest proxy. When a **new runnable entrypoint** is added, add a smoke test (`--help` / `import`) inside its suite so the discipline is machine-checked — `enforce-verify.sh` only knows pytest/make suites, so the executable path must be smoke-covered inside one of them.
+- **Where:** `src/core/rules/test-discipline.md § Run the deliverable`, sibling doctrine `src/core/rules/api-contract-discipline.md`.
+
+---
+
 ## Rule Index (quick lookup)
 
 | # | Rule | Hook |
@@ -269,3 +278,4 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 | 23 | Trunk-based git workflow | branch-guard.sh |
 | 24 | Commit message contract | enforce-commit-message.sh + commit-msg hook |
 | 25 | Semantic state ops, no hand-edit | enforce-task-transition.sh |
+| 26 | Verify by executing, not reading | (none — convention; smoke-test new entrypoints) |

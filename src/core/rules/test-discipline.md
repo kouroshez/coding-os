@@ -30,6 +30,18 @@ A tree change auto-invalidates recorded passes. Slow-marked tests (314: `test_ba
 
 If a single file affects two rows, run both — still cheaper than full sweep.
 
+## Run the deliverable, not just its proxy (Critical Rule 26)
+
+The matrix maps a changed file to a **pytest** suite. For a runnable artifact — a standalone script, a `cos`/`make` command, an installed entrypoint (`[project.scripts]`) — a green suite proves the *units* import under the test harness, **not** that the delivered executable runs. The two paths differ: `pytest` puts the package on `sys.path`; `python path/to/script.py` does not, so an import that passes under test still crashes as `ModuleNotFoundError` when the script is run directly (the `nightly.py` incident).
+
+Before `cos task-move --to testing`, and before you hand the user a command or claim a behaviour:
+
+- **Smoke-run the artifact you built** end-to-end — `--help`, `--dry-run`, or a real invocation — from the same entry the user/cron uses. Reading the code (a click flag, an import path) is not a substitute; `--slug` vs `--project` is settled by running `--help`, never by reading the parameter name.
+- **A command you paste to the user is a claim.** Only paste one you executed this session.
+- **New runnable entrypoint → add a smoke test** to its suite (`--help`, or `python -c "import <module>"` via `subprocess`), so `enforce-verify.sh` — which only knows pytest/make suites — actually covers the executable path, not just the units.
+
+This is the runtime-contract sibling of [api-contract-discipline.md](api-contract-discipline.md) (don't guess a *data* contract — verify against the producer): don't guess a *behaviour* contract — verify by executing.
+
 ## Single-test targeting
 
 When debugging one failure: `pytest path/to/test_file.py::TestClass::test_name -v`. Resist the urge to "just run the file" until the named test passes. Re-run the file only after the targeted test goes green.
