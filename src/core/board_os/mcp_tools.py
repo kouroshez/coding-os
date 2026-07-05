@@ -2477,7 +2477,7 @@ def cos_work_log_append(
     # Match the heading anchored at line start, not a `## Work Log` mention
     # inside prose (e.g. an Acceptance bullet) which a plain substring search
     # would hit first — landing the entry ABOVE the real section.
-    head = re.search(r"(?m)^## Work Log[ \t]*$", content)
+    head = _WORKLOG_HEADING_RE.search(content)
     if head is None:
         # Append a Work Log section at the end.
         new_content = content.rstrip() + f"\n\n{marker}\n{line}\n"
@@ -2881,6 +2881,22 @@ def _record_task_edit(
         logger.debug("task_edit_history insert failed for %s.%s: %s", task_id, field, exc)
 
 
+_WORKLOG_HEADING_RE = re.compile(r"(?im)^##[ \t]+Work Log[ \t]*$")
+
+
+def _worklog_span(body: str) -> str:
+    m = _WORKLOG_HEADING_RE.search(body)
+    if m is None:
+        return ""
+    nxt = re.search(r"(?m)^## ", body[m.end() :])
+    end = m.end() + nxt.start() if nxt else len(body)
+    return body[m.start() : end].rstrip("\n")
+
+
+def _strip_leading_h1(body: str) -> str:
+    return re.sub(r"^\s*#\s+.+\n+", "", body.lstrip("\n")).strip()
+
+
 @safe_tool
 def cos_task_edit(
     conn: sqlite3.Connection,
@@ -2979,21 +2995,37 @@ def cos_task_edit(
         changed.append("labels")
 
     new_body = current_body
-    if body is not None and body.strip() != current_body.strip():
-        import hashlib
+    if body is not None:
+        incoming = body
+        # The board drawer's body is a snapshot; a cos_work_log_append can land
+        # between its fetch and this save. Swap the client's (possibly stale)
+        # "## Work Log" for the FRESH on-disk section in place, so a concurrent
+        # append is never lost and the section never reorders.
+        fresh_wl = _worklog_span(current_body)
+        if fresh_wl:
+            stale_wl = _worklog_span(incoming)
+            if stale_wl and stale_wl != fresh_wl:
+                incoming = incoming.replace(stale_wl, fresh_wl, 1)
+            elif not stale_wl:
+                incoming = incoming.rstrip("\n") + "\n\n" + fresh_wl + "\n"
+        # Compare H1-normalized: the drawer strips the leading H1 (the write
+        # path re-prepends the canonical one), so a body that differs only by
+        # that H1 must not record a phantom body change.
+        if _strip_leading_h1(incoming) != _strip_leading_h1(current_body):
+            import hashlib
 
-        new_body = body
-        _record_task_edit(
-            conn,
-            task_id=task_id,
-            field="body",
-            old=hashlib.sha1(current_body.encode("utf-8")).hexdigest()[:12],
-            new=hashlib.sha1(body.encode("utf-8")).hexdigest()[:12],
-            actor_type=actor_type,
-            actor_id=resolved_actor,
-            source=source,
-        )
-        changed.append("body")
+            new_body = incoming
+            _record_task_edit(
+                conn,
+                task_id=task_id,
+                field="body",
+                old=hashlib.sha1(current_body.encode("utf-8")).hexdigest()[:12],
+                new=hashlib.sha1(incoming.encode("utf-8")).hexdigest()[:12],
+                actor_type=actor_type,
+                actor_id=resolved_actor,
+                source=source,
+            )
+            changed.append("body")
 
     if not changed:
         return ok(

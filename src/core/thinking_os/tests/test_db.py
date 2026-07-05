@@ -1032,11 +1032,12 @@ def test_resolve_db_path_bound_scope_beats_env(tmp_path: Path, monkeypatch) -> N
 
 
 def test_bare_home_refuses_project_db(tmp_path: Path, monkeypatch) -> None:
-    """TASK-770/775: cwd == $HOME with no project below must NOT anchor a project
-    DB inside the global hub state dir. _find_project_root_from_cwd returns None
-    at the bare-$HOME boundary; resolve_db_path falls back to cwd (non-raising, so
-    its ImportError-only callers keep working), and init_db refuses to CREATE a DB
-    inside $HOME/.coding-os — the guard sits at the mkdir chokepoint."""
+    """TASK-770/775/787: cwd == $HOME with no project below must NOT anchor a
+    project DB inside the global hub state dir. _find_project_root_from_cwd returns
+    None at the bare-$HOME boundary; resolve_db_path RAISES there — the ONE
+    complete guard, since every DB-open path (incl. the graph backend / cognition
+    route that connect directly) funnels through it — and init_db adds a second
+    guard for the DEFAULT_DB_PATH / explicit-path route that skips the resolver."""
     from database import _find_project_root_from_cwd, init_db, resolve_db_path
 
     home = tmp_path / "home"
@@ -1052,12 +1053,12 @@ def test_bare_home_refuses_project_db(tmp_path: Path, monkeypatch) -> None:
     sub.mkdir(parents=True)
     assert _find_project_root_from_cwd(sub) == sub.resolve()
 
-    # resolve_db_path no longer raises — it returns the cwd fallback path so
-    # callers that only catch ImportError are not broken by a new exception.
+    # resolve_db_path is the ONE complete guard — every DB-open path funnels
+    # through it — so it raises at bare $HOME rather than mint a phantom DB.
     monkeypatch.chdir(home)
-    assert resolve_db_path().name == "coding-os.db"
-    # The guard lives at the mkdir chokepoint: init_db refuses to create a
-    # project DB inside the global hub state dir.
+    with pytest.raises(RuntimeError, match="global hub state dir"):
+        resolve_db_path()
+    # init_db adds a second guard for the DEFAULT_DB_PATH / explicit-path route.
     with pytest.raises(RuntimeError, match="global hub"):
         init_db(str(home / ".coding-os" / "coding-os.db"))
 

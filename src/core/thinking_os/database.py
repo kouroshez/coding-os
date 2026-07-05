@@ -139,11 +139,15 @@ def resolve_db_path(project_root: Path | str | None = None) -> Path:
        must reach the slug's DB, not the launch project's.
     2. ``$COS_DB_PATH`` env var, when set (the CLI / MCP default override).
     3. ``<project_root>/.coding-os/coding-os.db`` when project_root given.
-    4. Walk up from cwd to find the enclosing ``.coding-os/`` and use that
-       project root, falling back to cwd when none is found. At the bare
-       ``$HOME`` boundary this yields ``$HOME/.coding-os/coding-os.db``, but
-       ``init_db`` refuses to CREATE a project DB inside the global hub state
-       dir — the guard sits at the mkdir chokepoint, not in this resolver.
+    4. Walk up from cwd to find the enclosing ``.coding-os/``. RAISES at the
+       bare ``$HOME`` boundary (no project below it): ``~/.coding-os/`` is the
+       global hub state dir, and every DB-open path funnels through this
+       resolver, so raising here is the ONE complete guard against minting a
+       phantom ``$HOME/.coding-os/coding-os.db`` — the graph ``SqliteBackend``
+       and cognition route ``sqlite3.connect`` directly to this path and would
+       otherwise bypass ``init_db``'s guard. Fail-loud at a bare-``$HOME``
+       misconfiguration beats a silent phantom; set ``$COS_DB_PATH`` or run
+       inside a project. Do NOT weaken this to a cwd fallback.
 
     Only the Hub's ProjectScopeMiddleware binds ``_active_project_root``, so
     CLI / MCP callers skip step 1 and keep the prior ``$COS_DB_PATH`` behavior.
@@ -163,7 +167,17 @@ def resolve_db_path(project_root: Path | str | None = None) -> Path:
         return Path(explicit)
     if project_root is not None:
         return Path(project_root) / STATE_DIRNAME / DB_FILENAME
-    return (_find_project_root_from_cwd() or Path.cwd()) / STATE_DIRNAME / DB_FILENAME
+    root = _find_project_root_from_cwd()
+    if root is None:
+        # Bare $HOME, no project below (see step 4). Every DB-open path resolves
+        # through here, so raising is the complete guard — direct-connect
+        # callers (graph SqliteBackend, cognition route) bypass init_db.
+        raise RuntimeError(
+            "no coding-os project found from cwd; set $COS_DB_PATH or run "
+            "inside a project — $HOME/.coding-os is the global hub state dir, "
+            "not a project DB"
+        )
+    return root / STATE_DIRNAME / DB_FILENAME
 
 
 def project_root(start: Path | str | None = None) -> Path:

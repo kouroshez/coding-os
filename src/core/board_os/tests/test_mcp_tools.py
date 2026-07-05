@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import sqlite3
 import time
 from pathlib import Path
@@ -118,12 +119,12 @@ def test_create_task_title_with_double_quote_stays_valid_yaml(
     assert edited["ok"] is True
 
 
-def test_task_edit_roundtrips_full_body_including_work_log(
+def test_task_edit_swaps_fresh_work_log_and_skips_phantom_body_edit(
     project: Path, conn: sqlite3.Connection
 ):
-    """TASK-773/775: the board drawer sends the FULL task body (Work Log kept),
-    so a plain cos_task_edit replace round-trips the Work Log in place — no
-    producer-side preservation, no section reorder, no phantom edit."""
+    """TASK-773/775/787: the board drawer body is a snapshot. cos_task_edit swaps
+    in the FRESH on-disk Work Log (a concurrent cos_work_log_append is never lost)
+    and records no phantom body edit when only the stripped H1 differs."""
     created = _parse(
         mcp_tools.cos_task_create(
             conn,
@@ -137,21 +138,32 @@ def test_task_edit_roundtrips_full_body_including_work_log(
     file_path = project / created["data"]["file_path"]
 
     mcp_tools.cos_work_log_append(conn, task_id=task_id, summary="first checkpoint")
-    mcp_tools.cos_work_log_append(conn, task_id=task_id, summary="second checkpoint")
 
-    # The editor keeps the full body (Work Log intact) and edits a human section.
-    full_body = file_path.read_text(encoding="utf-8").split("---", 2)[2]
-    edited = full_body.replace(
-        "A task whose body carries a Work Log.", "Edited outcome text."
+    # The drawer snapshots the body H1-stripped (like editBody), Work Log = [first].
+    snapshot = re.sub(
+        r"^\s*#\s+.+\n+",
+        "",
+        file_path.read_text(encoding="utf-8").split("---", 2)[2].lstrip("\n"),
     )
-    result = _parse(mcp_tools.cos_task_edit(conn, task_id=task_id, body=edited))
-    assert result["ok"] is True
+    # A concurrent agent appends a second line AFTER the snapshot.
+    mcp_tools.cos_work_log_append(conn, task_id=task_id, summary="second (concurrent)")
 
+    # Saving the stale snapshot: only the stripped H1 differs → no phantom body
+    # edit, and the concurrent line is swapped in (not overwritten).
+    r1 = _parse(mcp_tools.cos_task_edit(conn, task_id=task_id, body=snapshot))
+    assert r1["ok"] is True
+    assert "body" not in r1["data"]["changed"]
     after = file_path.read_text(encoding="utf-8")
-    assert "Edited outcome text." in after  # the edit landed
-    assert "## Work Log" in after  # the log round-tripped in place
+    assert "second (concurrent)" in after  # fresh log survived the save
     assert "first checkpoint" in after
-    assert "second checkpoint" in after
+
+    # A real spec edit IS recorded and keeps the fresh Work Log in place.
+    edited = snapshot.replace("A task whose body carries a Work Log.", "Edited outcome.")
+    r2 = _parse(mcp_tools.cos_task_edit(conn, task_id=task_id, body=edited))
+    assert "body" in r2["data"]["changed"]
+    after2 = file_path.read_text(encoding="utf-8")
+    assert "Edited outcome." in after2
+    assert "second (concurrent)" in after2
 
 
 def test_create_attributes_human_when_session_is_human(project, conn):
