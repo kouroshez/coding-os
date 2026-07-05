@@ -17,7 +17,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from capture import (
     _compute_content_hash,
-    _detect_memory_type,
     _estimate_impact,
     _read_session_id,
     capture_observation,
@@ -93,26 +92,6 @@ class TestHotPathOutbox:
         n = c.execute("SELECT COUNT(*) FROM embedding_outbox").fetchone()[0]
         c.close()
         assert n == 1
-
-
-class TestMemoryTypeDetection:
-    def test_backend(self) -> None:
-        assert _detect_memory_type("backend/apps/products/models.py") == "pattern"
-
-    def test_frontend(self) -> None:
-        assert _detect_memory_type("frontend/src/components/Button.tsx") == "pattern"
-
-    def test_docs(self) -> None:
-        assert _detect_memory_type("docs/governance/agent-workflow.md") == "config"
-
-    def test_claude_config(self) -> None:
-        assert _detect_memory_type(".claude/settings.json") == "config"
-
-    def test_infrastructure(self) -> None:
-        assert _detect_memory_type("infrastructure/scripts/task-done.sh") == "workflow"
-
-    def test_unknown_default(self) -> None:
-        assert _detect_memory_type("random/file.txt") == "discovery"
 
 
 class TestImpactScoring:
@@ -200,7 +179,7 @@ class TestDataIntegrity:
         assert row["tool_name"] == "Edit"
         assert "models.py" in row["title"]
         assert row["files_modified"] == "backend/apps/products/models.py"
-        assert row["memory_type"] == "pattern"
+        assert row["memory_type"] == "changelog"
         assert row["impact_score"] >= 0.6
         assert row["cost_tokens"] > 0
 
@@ -266,12 +245,23 @@ class TestContentHashDedup:
         h2 = _compute_content_hash("Edit", "test.py")
         assert h1 != h2
 
-    def test_duplicate_within_30s_deduped(self, db_path: Path) -> None:
+    def test_duplicate_same_session_deduped(self, db_path: Path) -> None:
         data = {"tool_name": "Write", "tool_input": {"file_path": "dedup_test.py"}}
         r1 = capture_observation(data, db_path=db_path)
         r2 = capture_observation(data, db_path=db_path)
+        r3 = capture_observation(data, db_path=db_path)
         assert r1["status"] == "captured"
         assert r2["status"] == "deduped"
+        assert r3["status"] == "deduped"
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT memory_type FROM observations WHERE files_modified = ?",
+            ("dedup_test.py",),
+        ).fetchall()
+        conn.close()
+        assert len(rows) == 1
+        assert rows[0]["memory_type"] == "changelog"
 
     def test_different_files_same_window_both_captured(self, db_path: Path) -> None:
         r1 = capture_observation(
@@ -463,3 +453,30 @@ class TestTaskIdStamp:
         count = conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
         conn.close()
         assert count == 1  # inserted despite the missing task_id column
+
+
+class TestChangelogRecallExclusion:
+    def test_changelog_hidden_but_opt_in_visible(self, db_path: Path) -> None:
+        from tools.memory import memory_search
+
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+        conn.executemany(
+            "INSERT INTO observations (session_id, tool_name, observation_type, "
+            "memory_type, title, narrative, concepts) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+                ("s", "Edit", "edit", "changelog", "Modified parser.py", "edit", "parser"),
+                ("s", "Manual", "discovery", "discovery", "Parser insight", "why parser changed", "parser"),
+            ],
+        )
+        conn.commit()
+
+        hidden = memory_search(conn, query="parser", limit=10)
+        types = {r.get("memory_type") for r in hidden["results"]}
+        assert "changelog" not in types
+        assert "discovery" in types
+
+        opt_in = memory_search(conn, query="parser", limit=10, memory_type="changelog")
+        assert opt_in["results"]
+        assert all(r["memory_type"] == "changelog" for r in opt_in["results"])
+        conn.close()

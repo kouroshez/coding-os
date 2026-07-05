@@ -21,7 +21,7 @@ logger = logging.getLogger("thinking_os.memory")
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-VALID_MEMORY_TYPES = {"pattern", "workflow", "error", "decision", "discovery", "config", "working"}
+VALID_MEMORY_TYPES = {"pattern", "workflow", "error", "decision", "discovery", "config", "working", "changelog"}
 VALID_SOURCES = {"observations", "learned_patterns", "task_outcomes"}
 VALID_PROMOTE_TARGETS = {"feedback", "rule"}
 
@@ -180,7 +180,11 @@ def _augment_with_semantic(
         new_candidate = _hydrate_row_for_semantic_hit(conn, hit["source_table"], hit["source_id"])
         if new_candidate is None:
             continue
-        if memory_type and new_candidate.get("memory_type") != memory_type:
+        mt = new_candidate.get("memory_type")
+        if memory_type:
+            if mt != memory_type:
+                continue
+        elif mt == "changelog":
             continue
         new_candidate["semantic_score"] = hit["score"]
         candidates.append(new_candidate)
@@ -366,6 +370,12 @@ def memory_search(
         return {"results": [], "count": 0, "source": "empty_query"}
 
     limit = max(1, min(20, limit))
+    # Mechanical 'changelog' breadcrumbs are hidden from recall unless explicitly
+    # requested (audit opt-in). Filtered in SQL so they never consume the LIMIT*3
+    # fetch budget and crowd out real hits.
+    _hide_changelog = memory_type != "changelog"
+    _cl_fts = " AND COALESCE(o.memory_type, '') != 'changelog'" if _hide_changelog else ""
+    _cl_like = " AND COALESCE(memory_type, '') != 'changelog'" if _hide_changelog else ""
     like_pattern = f"%{query}%"
     candidates: list[dict] = []
     since_clause = ""
@@ -383,7 +393,7 @@ def memory_search(
                 "bm25(observations_fts, 3.0, 1.0, 1.0) AS fts_rank "
                 "FROM observations_fts f "
                 "JOIN observations o ON o.id = f.rowid "
-                "WHERE observations_fts MATCH ? "
+                "WHERE observations_fts MATCH ?" + _cl_fts + " "
                 "ORDER BY fts_rank LIMIT ?",
                 (query, limit * 3),
             ).fetchall()
@@ -397,6 +407,7 @@ def memory_search(
             "access_count, files_modified, 0.5 AS fts_rank "
             "FROM observations "
             "WHERE (title LIKE ? OR narrative LIKE ? OR concepts LIKE ?)"
+            + _cl_like
             + since_clause
             + " ORDER BY created_at DESC LIMIT ?",
             (like_pattern, like_pattern, like_pattern, *since_param, limit * 3),
@@ -493,9 +504,9 @@ def memory_search(
     _rrf_fuse(candidates)
     candidates.sort(key=lambda x: x["score"], reverse=True)
 
-    # Exact-title hard dedup first: auto-capture rows ("Modified <path>") recur
-    # once per edit, so an identical title can otherwise crowd out distinct hits.
-    # Candidates are score-sorted, so the first occurrence is the best.
+    # Exact-title hard dedup: identical titles (duplicate discovery rows, or the
+    # same mechanical breadcrumb recurring across sessions) can otherwise crowd
+    # out distinct hits. Candidates are score-sorted, so the first occurrence wins.
     deduped: list[dict] = []
     seen_titles: set[str] = set()
     for c in candidates:
@@ -628,6 +639,7 @@ def memory_timeline(
     if domain:
         obs_conditions.append("(concepts LIKE ? OR title LIKE ?)")
         obs_params.extend([f"%{domain}%", f"%{domain}%"])
+    obs_conditions.append("COALESCE(memory_type, '') != 'changelog'")
     obs_where = " AND ".join(obs_conditions)
 
     obs_rows = conn.execute(

@@ -31,31 +31,10 @@ from impact import calculate_impact
 # in tool_input.edits[]).
 CAPTURE_TOOLS = {"Write", "Edit", "MultiEdit"}
 
-# Static memory-type rules. Per-agent prefixes (.claude/, .codex/, ...) are
-# resolved dynamically from adapter manifests so core/ stays agent-agnostic.
-_STATIC_MEMORY_TYPE_MAP = [
-    ("backend/", "pattern"),
-    ("frontend/", "pattern"),
-    ("docs/", "config"),
-    (".coding-os/", "config"),
-    ("infrastructure/", "workflow"),
-    ("tests/", "pattern"),
-]
-
-DEFAULT_MEMORY_TYPE = "discovery"
-
-
-def _detect_memory_type(file_path: str) -> str:
-    """Auto-detect memory type from file path."""
-    from _agent_markers import agent_state_prefixes
-
-    for prefix, mtype in _STATIC_MEMORY_TYPE_MAP:
-        if prefix in file_path:
-            return mtype
-    for prefix in agent_state_prefixes():
-        if prefix in file_path:
-            return "config"
-    return DEFAULT_MEMORY_TYPE
+# Auto-capture rows are mechanical file-edit breadcrumbs derived from the path
+# alone (no judgment), so they are stored as a 'changelog' type that recall and
+# the digest hide; real semantic memory arrives via enrichment and mining.
+MECHANICAL_MEMORY_TYPE = "changelog"
 
 
 def _estimate_impact(file_path: str) -> float:
@@ -332,22 +311,22 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
         else f"Created {display_path}"
     )
     narrative = _build_narrative(tool_name, file_path)
-    memory_type = _detect_memory_type(file_path)
+    memory_type = MECHANICAL_MEMORY_TYPE
     impact_score = calculate_impact(file_path=file_path, tool_name=tool_name)
     session_id = _read_session_id()
     cost_tokens = _estimate_tokens(input_data)
     concepts = json.dumps(extract_concepts(file_path=file_path))
 
-    # Content hash dedup: skip duplicate observations within 30s window
+    # One row per (tool, file, session): a file edited repeatedly in a session
+    # collapses to a single changelog breadcrumb instead of N near-duplicates.
     content_hash = _compute_content_hash(tool_name, file_path)
 
     conn = get_connection(path)
     try:
-        # Check for duplicate within 30s window
         existing = conn.execute(
             "SELECT id FROM observations "
-            "WHERE content_hash = ? AND created_at >= datetime('now', '-30 seconds')",
-            (content_hash,),
+            "WHERE content_hash = ? AND session_id = ?",
+            (content_hash, session_id),
         ).fetchone()
         if existing:
             return {"status": "deduped", "existing_id": existing[0]}

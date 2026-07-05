@@ -2097,6 +2097,19 @@ def _migrate_v47_distill_columns(conn: sqlite3.Connection) -> None:
     logger.info("Migration v47 applied: learned_patterns gained distill columns")
 
 
+def _migrate_v48_reclassify_mechanical_observations(conn: sqlite3.Connection) -> None:
+    cur = conn.execute(
+        "UPDATE observations SET memory_type = 'changelog' "
+        "WHERE observation_type IN ('write', 'edit', 'multiedit') "
+        "AND COALESCE(memory_type, '') != 'changelog'"
+    )
+    conn.commit()
+    logger.info(
+        "Migration v48 applied: reclassified %d mechanical observation(s) to changelog",
+        cur.rowcount,
+    )
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2453,6 +2466,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         47,
         "learned_patterns.distill_fingerprint + evidence_json — idempotent LLM lesson distillation with auditable evidence",
         _migrate_v47_distill_columns,
+    ),
+    (
+        48,
+        "Reclassify mechanical auto-capture observations (write/edit/multiedit) to memory_type=changelog so recall exclusion is complete; forward-only, re-derivable from files_modified",
+        _migrate_v48_reclassify_mechanical_observations,
     ),
 ]
 
