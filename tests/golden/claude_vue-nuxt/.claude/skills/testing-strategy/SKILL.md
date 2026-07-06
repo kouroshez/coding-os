@@ -47,6 +47,7 @@ Targets are guidance, not law. A library has more unit + property than a deploym
 | **Integration** | <1s | Wiring bugs | DB queries (real DB, not mock), service composition |
 | **Contract** | <100ms | Producer/consumer drift | API schemas, MCP envelope, event payloads |
 | **E2E** | 5–60s | Full-stack regressions | One golden path per critical user flow |
+| **Smoke / run-the-deliverable** | seconds | Import/entry crashes the unit suite hides (e.g. `ModuleNotFoundError` when run as a file) | Every new runnable entrypoint — `--help` / `--dry-run` / `python -c "import x"`, from the same entry the user or cron uses |
 | **Mutation / Fuzz** | minutes (offline) | Tests that don't actually test | Quarterly audit, security-critical code |
 
 ### Unit tests — the workhorse

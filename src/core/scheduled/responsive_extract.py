@@ -19,8 +19,11 @@ from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
 _CORE = _HERE.parent
+_SRC = _CORE.parent
 _THINKING_OS = _CORE / "thinking_os"
-for _p in (str(_CORE), str(_THINKING_OS)):
+# src/ FIRST so `from core.<pkg>` resolves — a hook-invoked as-file script has no
+# editable install to lean on. Then core/ + thinking_os/ for flat sibling imports.
+for _p in (str(_SRC), str(_CORE), str(_THINKING_OS)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 

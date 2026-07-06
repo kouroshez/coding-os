@@ -99,6 +99,15 @@ verify: verify-hooks verify-install test-mcp ## Run all verification checks
 	@echo ""
 	@echo "All checks passed."
 
+.PHONY: smoke
+smoke: ## Run-the-deliverable smoke: execute each as-file script (proves entrypoints run, not just import)
+	@echo "Running smoke scripts (run-the-deliverable)..."
+	@uv run --extra rag --extra graph_os python src/scripts/smoke_db_connections.py
+	@uv run --extra rag --extra graph_os python src/scripts/smoke_uid_resolver.py
+	@uv run --extra rag --extra graph_os python src/scripts/smoke_doc_header.py
+	@uv run --extra rag --extra graph_os python src/scripts/smoke_graph_e2e.py
+	@echo "Smoke OK. (smoke_sdk_dispatch.py is opt-in — it makes a real API call.)"
+
 .PHONY: verify-claude
 verify-claude: ## Claude-only fast subset: dispatcher + adapter + skill + branding tests (~30s)
 	@echo "Running Claude-only verification subset..."

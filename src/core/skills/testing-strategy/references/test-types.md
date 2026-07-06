@@ -16,6 +16,7 @@
 | integration | modules + a real dependency (DB, queue) | 10s–100s ms | moderate |
 | contract | producer/consumer agree on a shape | fast | per API boundary |
 | end-to-end | a full user journey across the stack | seconds | few, critical only |
+| smoke / run-the-deliverable | the shipped entrypoint actually runs (not just imports under pytest) | seconds | every new script / CLI / cron entry |
 | property-based | invariants over generated inputs | medium | for logic with many cases |
 | mutation | the tests actually catch bugs | slow | periodic audit |
 | fuzz | crashes on malformed input | slow | parsers, untrusted input |

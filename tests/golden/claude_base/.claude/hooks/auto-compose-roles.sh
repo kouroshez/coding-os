@@ -38,8 +38,11 @@ fi
 
 GATE_CLASS=$(printf '%s' "$GATE_VALUE" | awk '{print $1}')
 GATE_DIMS=$(printf '%s' "$GATE_VALUE" | awk '{print $2}')
+# CLEAR passes too: the helper composes a role chain only for COMPLICATED/
+# COMPLEX but surfaces learn_suggest recall for ANY formal gate, so simple
+# tasks also feed .learn-suggestions (the validation loop's only input).
 case "$GATE_CLASS" in
-  COMPLICATED|COMPLEX) ;;
+  CLEAR|COMPLICATED|COMPLEX) ;;
   *) exit 0 ;;
 esac
 

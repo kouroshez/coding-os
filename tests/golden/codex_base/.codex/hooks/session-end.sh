@@ -52,22 +52,30 @@ fi
 run_bounded_python() {
   local script="$1"
   local timeout_s="${2:-2}"
-  python3 -c '
+  local rc
+  rc=$(python3 -c '
 import subprocess
 import sys
 
 script, timeout_s, *args = sys.argv[1:]
 try:
-    subprocess.run(
+    p = subprocess.run(
         [sys.executable, script, *args],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         timeout=float(timeout_s),
         check=False,
     )
+    print(p.returncode)
 except Exception:
     pass
-' "$script" "$timeout_s" "$SESSION_ID" "$ACTIVE_TASK" "$COS_DB_PATH" >/dev/null 2>&1 || true
+' "$script" "$timeout_s" "$SESSION_ID" "$ACTIVE_TASK" "$COS_DB_PATH" 2>/dev/null || true)
+  # A broken as-file script exits non-zero but its stderr is DEVNULL'd — leave
+  # one breadcrumb in `cos hooks-log` so the failure is visible. A timeout (no
+  # rc printed) or a clean exit stays silent.
+  if [[ "$rc" =~ ^[1-9][0-9]*$ ]]; then
+    cos_log_hook session-end child-failed "script=$(basename "$script") rc=${rc}" 2>/dev/null || true
+  fi
 }
 
 # Find scripts in coding-os core — physical path resolves symlinked installs.

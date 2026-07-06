@@ -115,6 +115,16 @@ in the next session without waiting for the nightly daemon. The shared
 idempotent (whichever runs first resets the counter). When
 `enabled=false` the responsive trigger is a no-op.
 
+> **As-file bootstrap invariant.** A script a hook runs *as a file*
+> (`python3 path/to/x.py`, e.g. `session-end.sh` → `responsive_extract.py`) —
+> not as an installed module — must self-bootstrap `src/` onto `sys.path` at
+> import time, because the editable install is absent in delivered/consumer
+> environments. Use the `[_SRC, _CORE, _THINKING_OS]` prelude (src/ first) so
+> `from core.<pkg>` resolves; `responsive_extract.py` is the canonical shape.
+> `session-end.sh`'s `run_bounded_python` now logs a `child-failed` breadcrumb
+> to `cos hooks-log` on a non-zero child rc, so a broken bootstrap is visible
+> instead of silently swallowed.
+
 ### Error handling
 
 - Per-project `try/except` — one failed project never aborts the run

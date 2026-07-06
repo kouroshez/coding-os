@@ -172,6 +172,8 @@ fi
 
 This pattern keeps the Bash hook thin, makes the Python testable, and centralizes stdin parsing in one place.
 
+**As-file bootstrap invariant.** A helper a hook runs *as a file* (`python3 x.py`) — not as an installed module — must self-bootstrap `src/` onto `sys.path` at import time; the editable install is absent in delivered/consumer environments, so `from core.<pkg>` (and package-qualified sibling imports) fail otherwise. Use the src/-first prelude (`_SRC = …/src`, then `_CORE`, then the module dir); `src/core/scheduled/responsive_extract.py` is the canonical shape. When you bound such a call (e.g. `run_bounded_python`), log a breadcrumb on a non-zero child rc so a broken bootstrap surfaces in `cos hooks-log` instead of being swallowed by `stderr→DEVNULL`.
+
 ## State Files (`$COS_AGENT_DIR/*`)
 
 Hooks communicate via session-scoped state files:
