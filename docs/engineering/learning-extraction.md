@@ -107,8 +107,14 @@ signature is preserved for the UI's opt-in detail layer.
 
 ### 2. Anatomy from backtracks
 The v25 `backtrack_events` columns (`root_cause`, `corrective_action`) are
-mined into `anatomy` lessons that pair the cause with the remedy — not a bare
-`GROUP BY root_cause` count.
+mined into `anatomy` lessons that pair a recurring cause with its remedy —
+never a bare `GROUP BY root_cause` count. The remedy is the one the agent
+recorded on the backtrack, or — when none was recorded — the canonical
+corrective action for that root cause (the `CANONICAL_REMEDIES` map, the SSOT
+shared with `cos_backtrack_log`'s suggestion). A cause with neither a recorded
+nor a canonical remedy is skipped, so the cause↔remedy pairing invariant holds
+while the loop still closes on the abundant remedy-less backtracks the agent
+emits in practice.
 
 ### 3. Breakthroughs from rework→success
 When `outcome_history` carries `is_breakthrough=1` with narrative fields, the

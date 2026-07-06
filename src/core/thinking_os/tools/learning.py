@@ -335,28 +335,33 @@ def learn_extract(
     # Mine structured backtrack_events for recurring root_cause patterns.
     # Only runs when anatomy columns are present (migration v25).
     try:
+        from tools.cognition import CANONICAL_REMEDIES
+
         anat_rows = conn.execute(
-            # A bare root-cause count is a statistic, not a lesson — anatomy
-            # mints only when at least one recorded remedy pairs with the cause
-            # (learning-extraction.md § Anatomy from backtracks).
+            # Anatomy pairs a recurring cause with its remedy — the one the agent
+            # recorded, else the canonical corrective action for that cause. Never
+            # a bare count (learning-extraction.md § Anatomy from backtracks).
             "SELECT root_cause, COUNT(*) AS cnt, "
             "       GROUP_CONCAT(DISTINCT from_formula) AS formulas, "
             "       MAX(corrective_action) AS remedy "
             "FROM backtrack_events "
-            "WHERE root_cause IS NOT NULL AND COALESCE(corrective_action, '') != '' "
+            "WHERE root_cause IS NOT NULL "
             "GROUP BY root_cause "
             "HAVING cnt >= ?",
             (min_occurrences,),
         ).fetchall()
         for row in anat_rows:
             d = dict(row)
+            remedy = (d["remedy"] or "").strip() or CANONICAL_REMEDIES.get(d["root_cause"], "")
+            if not remedy:
+                continue  # no recorded nor canonical remedy — skip, never a bare count
             confidence = min(0.85, d["cnt"] / 20.0 + 0.3)
             formulas_str = d["formulas"] or ""
             pattern_text = (
                 f"Recurring backtrack root cause '{d['root_cause']}' "
                 f"({d['cnt']} occurrences"
                 + (f"; formulas: {formulas_str[:60]}" if formulas_str else "")
-                + f") → {str(d['remedy'])[:160]}"
+                + f") → {remedy[:160]}"
             )
             extracted.append(
                 _upsert_pattern(

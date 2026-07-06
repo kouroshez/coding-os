@@ -16,6 +16,20 @@ from tools._shared import _gated_module, fail, ok, safe_tool
 
 logger = logging.getLogger("coding_os.tools.cognition")
 
+# Canonical corrective action per backtrack root cause — the SSOT shared by
+# cos_backtrack_log (returned as the agent's next-step suggestion) and
+# learn_extract's anatomy mining (the remedy paired with a recurring cause that
+# carries no recorded remedy). Keys match the backtrack root_cause enum.
+CANONICAL_REMEDIES: dict[str, str] = {
+    "wrong_model": "Use cos_route_model to select the right model before re-dispatching.",
+    "scope_too_large": "Decompose via cos_task_create and pick the smallest slice.",
+    "missing_context": "Run cos_doc_search or cos_search to load relevant context first.",
+    "tool_failure": "Run cos_health to verify permissions/env vars, then retry with explicit paths.",
+    "spec_ambiguity": "Log open questions via cos_discovery and resolve with user before implementing.",
+    "env_mismatch": "Run cos doctor to validate environment config, then restart the session.",
+    "other": "Re-classify the problem (Cynefin gate) and review the Anti-Paralysis advisory.",
+}
+
 
 # Lazy import of cognition — avoids circular at module load time
 def _cog():
@@ -546,24 +560,7 @@ def register_cos_backtrack_log(mcp, db_path):
         root_cause: str = "",
         corrective_action: str = "",
     ) -> str:
-        _VALID_ROOT_CAUSES = {
-            "wrong_model",
-            "scope_too_large",
-            "missing_context",
-            "tool_failure",
-            "spec_ambiguity",
-            "env_mismatch",
-            "other",
-        }
-        _SUGGESTED_ACTIONS: dict[str, str] = {
-            "wrong_model": "Use cos_route_model to select the right model before re-dispatching.",
-            "scope_too_large": "Decompose via cos_task_create and pick the smallest slice.",
-            "missing_context": "Run cos_doc_search or cos_search to load relevant context first.",
-            "tool_failure": "Run cos_health to verify permissions/env vars, then retry with explicit paths.",
-            "spec_ambiguity": "Log open questions via cos_discovery and resolve with user before implementing.",
-            "env_mismatch": "Run cos doctor to validate environment config, then restart the session.",
-            "other": "Re-classify the problem (Cynefin gate) and review the Anti-Paralysis advisory.",
-        }
+        _VALID_ROOT_CAUSES = set(CANONICAL_REMEDIES)
 
         # Silently clear invalid root_cause to avoid polluting the enum
         if root_cause and root_cause not in _VALID_ROOT_CAUSES:
@@ -629,7 +626,7 @@ def register_cos_backtrack_log(mcp, db_path):
             advisory = f"Anti-Paralysis: {count} backtracks. Review scope if pattern continues."
 
         # C2: concrete next step for the supplied root_cause
-        suggested_action = _SUGGESTED_ACTIONS.get(root_cause, "") if root_cause else ""
+        suggested_action = CANONICAL_REMEDIES.get(root_cause, "") if root_cause else ""
 
         # emit trace event for replay
         try:
