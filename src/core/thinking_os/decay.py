@@ -43,7 +43,7 @@ CONFIDENCE_FLOOR = 0.1
 def effective_decay_rate(
     *,
     base_rate: float,
-    times_validated: int,
+    times_seen: int,
     impact_score: float,
     last_accessed_days: float | None,
 ) -> float:
@@ -51,7 +51,9 @@ def effective_decay_rate(
 
     Args:
         base_rate: Pattern's decay_rate column (default 0.1).
-        times_validated: Number of successful validations.
+        times_seen: Occurrence count — how established the pattern is. Anti-
+            forgetting keys on established-ness, not validation, so a much-seen
+            pattern survives the honest times_validated reset.
         impact_score: Digital amygdala score (0.0-1.0).
         last_accessed_days: Days since last access (None if never accessed).
 
@@ -60,8 +62,8 @@ def effective_decay_rate(
     """
     rate = base_rate
 
-    # Deep encoding: frequently validated patterns decay 70% slower
-    if times_validated >= 5:
+    # Deep encoding: frequently-seen (established) patterns decay 70% slower
+    if times_seen >= 5:
         rate *= 0.3
 
     # Emotional tag: high-impact patterns decay 50% slower
@@ -180,9 +182,9 @@ def run_decay(
     Args:
         db_path: Path to SQLite DB. Defaults to DEFAULT_DB_PATH.
         dry_run: If True, compute but don't write changes.
-        archive_prune_days: Hard-delete archived, at-floor, lightly-validated
+        archive_prune_days: Hard-delete archived, at-floor, seldom-seen
             patterns not accessed within this window — caps unbounded growth
-            without touching deeply-validated (times_validated>=5) memory.
+            without touching established (times_seen>=5) memory.
 
     Returns:
         Dict with stats: total_patterns, decayed, archived, unchanged,
@@ -209,9 +211,9 @@ def run_decay(
         # --- Prune long-dead archived patterns (caps unbounded growth) ---
         # Runs BEFORE this run's archiving so a freshly-archived pattern gets a
         # full grace window. Targets only patterns archived in a PRIOR run that
-        # are at-floor, lightly-validated, and dormant (no access / validation /
-        # creation within archive_prune_days). Deeply-validated patterns
-        # (times_validated>=5) survive even when archived — they may resurface.
+        # are at-floor, seldom-seen, and dormant (no access / validation /
+        # creation within archive_prune_days). Established patterns
+        # (times_seen>=5) survive even when archived — they may resurface.
         if not dry_run:
             # Grace window is time-since-archived (archived_at). Legacy rows archived
             # before v33 have NULL archived_at → fall back to the old COALESCE date so
@@ -220,7 +222,7 @@ def run_decay(
                 "DELETE FROM learned_patterns "
                 "WHERE promoted_to = 'archived' "
                 "AND confidence <= ? "
-                "AND COALESCE(times_validated, 0) < 5 "
+                "AND COALESCE(times_seen, 0) < 5 "
                 "AND COALESCE(archived_at, last_accessed_at, last_validated, created_at) "
                 "    < datetime('now', ?)",
                 (CONFIDENCE_FLOOR + 0.001, f"-{int(archive_prune_days)} days"),
@@ -229,7 +231,7 @@ def run_decay(
 
         # --- Decay learned_patterns ---
         rows = conn.execute(
-            "SELECT id, confidence, decay_rate, impact_score, times_validated, "
+            "SELECT id, confidence, decay_rate, impact_score, times_seen, "
             "last_validated, last_accessed_at "
             "FROM learned_patterns WHERE promoted_to IS NULL OR promoted_to != 'archived'"
         ).fetchall()
@@ -245,7 +247,7 @@ def run_decay(
 
             eff_rate = effective_decay_rate(
                 base_rate=d["decay_rate"] or 0.1,
-                times_validated=d["times_validated"] or 0,
+                times_seen=d["times_seen"] or 0,
                 impact_score=d["impact_score"] or 0.5,
                 last_accessed_days=days_accessed,
             )

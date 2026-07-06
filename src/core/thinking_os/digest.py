@@ -238,13 +238,13 @@ def _collect_stats(conn: sqlite3.Connection, *, limit: int) -> list[dict]:
 
 
 def _collect_fading(conn: sqlite3.Connection, *, limit: int) -> list[dict]:
-    """Patterns whose confidence sits in the fading window and were once validated."""
+    """Patterns whose confidence sits in the fading window and are established."""
     try:
         rows = conn.execute(
             "SELECT pattern, confidence "
             "FROM learned_patterns "
             "WHERE confidence BETWEEN ? AND ? "
-            "  AND times_validated >= 1 "
+            "  AND times_seen >= 1 "
             "  AND COALESCE(memory_type, '') != 'stat' "
             "  AND promoted_to IS NULL "
             "ORDER BY confidence ASC LIMIT ?",

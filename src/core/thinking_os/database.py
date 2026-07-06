@@ -2120,6 +2120,32 @@ def _migrate_v49_add_times_seen(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_v50_reset_times_validated_from_ledger(conn: sqlite3.Connection) -> None:
+    # v49 moved occurrence counts to times_seen but left the historical
+    # times_validated values inflated by the pre-split re-mine/dedup bumps (up to
+    # 534, with zero real validations behind them). Rebuild the counter from the
+    # pattern_validations ledger — the append-only record of genuine validations
+    # (was_helpful, non-throttled) — so pattern_tier's "Trusted" reflects real
+    # confirmation. An empty ledger resets every row to 0; trust is then re-earned
+    # by the now-firing validation loop.
+    try:
+        cur = conn.execute(
+            "UPDATE learned_patterns SET times_validated = ("
+            "  SELECT COUNT(*) FROM pattern_validations pv "
+            "  WHERE pv.pattern_id = learned_patterns.id "
+            "    AND pv.was_helpful = 1 AND COALESCE(pv.was_throttled, 0) = 0"
+            ")"
+        )
+    except sqlite3.OperationalError:
+        # No ledger table → no real validations exist; honest baseline is 0.
+        cur = conn.execute("UPDATE learned_patterns SET times_validated = 0")
+    conn.commit()
+    logger.info(
+        "Migration v50 applied: rebuilt times_validated from pattern_validations ledger (%d row(s))",
+        cur.rowcount,
+    )
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2486,6 +2512,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         49,
         "learned_patterns.times_seen — split the conflated times_validated: occurrence re-mines / dedup folds move to times_seen; times_validated reserved for real validation events",
         _migrate_v49_add_times_seen,
+    ),
+    (
+        50,
+        "Rebuild times_validated from the pattern_validations ledger — retire the pre-split inflated values so pattern_tier 'Trusted' reflects genuine validations; trust is re-earned by the firing loop",
+        _migrate_v50_reset_times_validated_from_ledger,
     ),
 ]
 

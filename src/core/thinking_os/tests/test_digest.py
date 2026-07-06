@@ -9,7 +9,7 @@ Contract:
   - Empty DB still produces a valid tiny digest (non-empty, no crash).
   - Pattern selection respects confidence windows:
       * Active Beliefs require confidence ≥ _ACTIVE_MIN.
-      * Fading uses [_FADING_MIN, _FADING_MAX] and times_validated ≥ 1.
+      * Fading uses [_FADING_MIN, _FADING_MAX] and times_seen ≥ 1.
       * Breakthroughs only last 7 days.
 """
 
@@ -136,10 +136,10 @@ class TestSectionSelection:
 
     def test_fading_window(self, conn: sqlite3.Connection, fixed_now: datetime) -> None:
         conn.executemany(
-            "INSERT INTO learned_patterns (pattern, confidence, times_validated) VALUES (?, ?, ?)",
+            "INSERT INTO learned_patterns (pattern, confidence, times_seen) VALUES (?, ?, ?)",
             [
                 ("fading-in-window", _FADING_MIN + 0.05, 2),
-                ("fading-never-validated", _FADING_MIN + 0.05, 0),
+                ("fading-never-seen", _FADING_MIN + 0.05, 0),
                 ("above-fading", _FADING_MAX + 0.01, 2),
                 ("below-fading", _FADING_MIN - 0.01, 2),
             ],
@@ -147,18 +147,18 @@ class TestSectionSelection:
         conn.commit()
         body = render(conn, now=fixed_now)
         assert "fading-in-window" in body
-        # Not in fading section (outside window or never validated)
-        assert "fading-never-validated" not in body
+        # Not in fading section (outside window or never seen)
+        assert "fading-never-seen" not in body
 
     def test_stat_excluded_from_fading(self, conn: sqlite3.Connection, fixed_now: datetime) -> None:
         # a 'stat' sitting in the fading window must NOT surface as a fading lesson
         conn.execute(
-            "INSERT INTO learned_patterns (pattern, memory_type, confidence, times_validated) "
+            "INSERT INTO learned_patterns (pattern, memory_type, confidence, times_seen) "
             "VALUES ('FRONTEND domain succeeds at 90% — reliable baseline', 'stat', ?, 2)",
             (_FADING_MIN + 0.05,),
         )
         conn.execute(
-            "INSERT INTO learned_patterns (pattern, memory_type, confidence, times_validated) "
+            "INSERT INTO learned_patterns (pattern, memory_type, confidence, times_seen) "
             "VALUES ('fading real lesson', 'lesson', ?, 2)",
             (_FADING_MIN + 0.05,),
         )

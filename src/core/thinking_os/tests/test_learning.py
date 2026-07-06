@@ -735,9 +735,9 @@ class TestLearnSuggest:
         assert "INFRA only pattern" in patterns
 
     def test_fading_patterns_surface(self, seeded_conn: sqlite3.Connection) -> None:
-        # Create a fading pattern (0.2-0.4 confidence, validated)
+        # Create a fading pattern (0.2-0.4 confidence, established via times_seen)
         seeded_conn.execute(
-            "INSERT INTO learned_patterns (pattern, domain, confidence, times_validated, "
+            "INSERT INTO learned_patterns (pattern, domain, confidence, times_seen, "
             "last_validated) VALUES (?, ?, ?, ?, datetime('now', '-15 days'))",
             ("Fading BACKEND pattern", "BACKEND", 0.3, 2),
         )
@@ -1544,6 +1544,24 @@ class TestTimesSeenSplit:
         ).fetchone()
         assert row["times_seen"] == 2  # two re-mines are occurrences, not validations
         assert (row["times_validated"] or 0) == 0  # never really validated
+
+    def test_remine_does_not_raise_penalized_confidence(self, conn: sqlite3.Connection) -> None:
+        conn.row_factory = sqlite3.Row
+        from tools.learning import _upsert_pattern
+
+        kw = dict(memory_type="pattern", domain="BACKEND", source="mined", concepts="[]")
+        pid = _upsert_pattern(conn, pattern="Guard None before deref", confidence=0.4, **kw)["id"]
+        # A validation (LTD) penalized the belief down to 0.2.
+        conn.execute("UPDATE learned_patterns SET confidence = 0.2 WHERE id = ?", (pid,))
+        conn.commit()
+        # A re-mine arriving with HIGHER extract confidence must not resurrect it:
+        # confidence is validation-owned; re-extraction only bumps times_seen.
+        _upsert_pattern(conn, pattern="Guard None before deref", confidence=0.9, **kw)
+        row = conn.execute(
+            "SELECT confidence, times_seen FROM learned_patterns WHERE id = ?", (pid,)
+        ).fetchone()
+        assert row["confidence"] == pytest.approx(0.2)  # LTD survives re-extraction
+        assert row["times_seen"] == 1
 
     def test_collapse_folds_times_seen_into_survivor(self, conn: sqlite3.Connection) -> None:
         conn.row_factory = sqlite3.Row

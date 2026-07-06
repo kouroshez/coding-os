@@ -123,6 +123,33 @@ class TestSchemaVersioning:
         conn.close()
         assert seen == 7
 
+    def test_v50_rebuilds_times_validated_from_ledger(self) -> None:
+        from database import _migrate_v50_reset_times_validated_from_ledger
+
+        conn = sqlite3.connect(":memory:")
+        conn.execute(
+            "CREATE TABLE learned_patterns (id INTEGER PRIMARY KEY, times_validated INTEGER DEFAULT 0)"
+        )
+        conn.execute(
+            "CREATE TABLE pattern_validations (id INTEGER PRIMARY KEY, pattern_id INTEGER, "
+            "was_helpful INTEGER, was_throttled INTEGER DEFAULT 0)"
+        )
+        # p1: inflated pre-split counter, no real validations → honest zero.
+        # p2: inflated counter, ledger has 2 helpful + 1 throttled + 1 unhelpful → 2.
+        conn.executemany(
+            "INSERT INTO learned_patterns (id, times_validated) VALUES (?, ?)", [(1, 500), (2, 500)]
+        )
+        conn.executemany(
+            "INSERT INTO pattern_validations (pattern_id, was_helpful, was_throttled) VALUES (?, ?, ?)",
+            [(2, 1, 0), (2, 1, 0), (2, 1, 1), (2, 0, 0)],
+        )
+        conn.commit()
+        _migrate_v50_reset_times_validated_from_ledger(conn)
+        rows = dict(conn.execute("SELECT id, times_validated FROM learned_patterns").fetchall())
+        conn.close()
+        assert rows[1] == 0  # no ledger rows → inflated value retired to honest zero
+        assert rows[2] == 2  # only helpful, non-throttled validations count
+
     def test_version_table_records_description(self, migrated_conn: sqlite3.Connection) -> None:
         row = migrated_conn.execute(
             "SELECT description FROM schema_version WHERE version = 1"

@@ -695,12 +695,12 @@ def _upsert_pattern(
                 break
 
     if existing:
-        # Update confidence (take the higher) and refresh the displayed text
-        # to the latest counts. Each re-mining is a recurrence, so bump
-        # times_seen — the occurrence count; times_validated stays reserved for
-        # real validation events (_boost_success / _log_validation) so trust
-        # ranking is not inflated by mere re-extraction.
-        new_conf = max(existing["confidence"], confidence)
+        # Confidence is owned by validation (LTP/LTD), not re-extraction: a
+        # re-mine bumps times_seen (the occurrence count) and refreshes the text,
+        # but must NOT raise confidence — otherwise re-mining resurrects a belief
+        # that learn_validate penalized, and LTD could never lower a bad pattern.
+        # First-insert seeds the prior; validation moves it from there.
+        new_conf = existing["confidence"]
         # Re-extraction is a positive signal: refresh recency AND revive a row a
         # prior decay run archived. A REAL promotion (promoted_to='rule:…' /
         # 'feedback:…') survives the re-mine — the knowledge now lives in the
@@ -1395,7 +1395,9 @@ def learn_suggest(
     # --- Fading patterns (spaced repetition) ---
     fading_conditions = [
         "confidence BETWEEN 0.2 AND 0.4",
-        "times_validated >= 1",
+        # Established-ness (occurrence), not validation: after the honest
+        # times_validated reset a "seen" pattern still resurfaces for review.
+        "times_seen >= 1",
         "COALESCE(memory_type, '') != 'stat'",
         "promoted_to IS NULL",
     ]

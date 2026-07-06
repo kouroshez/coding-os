@@ -63,6 +63,32 @@ class TestRecordComposeTraces:
         roles_state.record_compose_traces(object(), "ses-rec-2")
 
 
+class TestRecallFiresForFormalGates:
+    def test_clear_gate_writes_learn_suggestions(self, tmp_path: Path, monkeypatch) -> None:
+        # Recall must fire for a CLEAR formal gate, not only COMPLICATED/COMPLEX —
+        # otherwise simple tasks never feed .learn-suggestions and the validation
+        # loop's pattern_validations ledger stays empty (TASK-802).
+        from database import init_db
+
+        db = tmp_path / "cos.db"
+        conn = init_db(str(db))
+        conn.execute(
+            "INSERT INTO learned_patterns (pattern, memory_type, domain, confidence, times_seen) "
+            "VALUES ('Prefer explicit paths in shell hooks', 'pattern', NULL, 0.8, 3)"
+        )
+        conn.commit()
+        conn.close()
+        monkeypatch.setenv("COS_DB_PATH", str(db))
+        panel_dir = tmp_path / "panel"
+        panel_dir.mkdir()
+
+        line = auto_compose._recall_patterns("CLEAR", str(panel_dir))
+
+        assert line.startswith("[recall]")
+        suggestions = (panel_dir / ".learn-suggestions").read_text(encoding="utf-8")
+        assert "Prefer explicit paths in shell hooks" in suggestions
+
+
 class TestAutoComposeEmitsTrace:
     def test_compose_roles_stamps_markers_and_emits_trace(
         self, tmp_path: Path, monkeypatch

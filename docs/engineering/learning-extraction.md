@@ -204,12 +204,18 @@ the channel for a real "what I learned" with a why.
 ## Confidence, decay, validation
 - Lessons start at a recurrence-derived confidence and **decay** like any
   pattern (`decay.py`) — a trap that stops recurring fades.
-- `times_validated` rises on re-mine (re-confirmation) and on explicit
-  `cos_learn_validate`; `times_violated` rises on negative validation.
+- Two separate counters (split in v49; honest baseline rebuilt from the ledger
+  in v50): `times_seen` is the **occurrence** count — bumped on every re-mine /
+  dedup fold — and drives established-ness (fading surfacing, decay
+  anti-forgetting, digest listing). `times_validated` rises **only** on an
+  explicit helpful `cos_learn_validate` (logged to the append-only
+  `pattern_validations` ledger); `times_violated` rises on negative validation.
+  **Confidence is validation-owned:** a re-mine bumps `times_seen` but never
+  raises confidence, so an LTD penalty survives re-extraction.
 - Stats are never ranked into beliefs, so their confidence is informational.
 - **Consolidation:** the nightly decay run merges semantically near-duplicate
   lessons (embeddings cosine ≥ `COS_CONSOLIDATION_THRESHOLD`, default 0.85) into
-  the strongest survivor (highest confidence → times_validated → oldest), folding
+  the strongest survivor (highest confidence → times_seen → oldest), folding
   the loser's counts — so the corpus stays sharp instead of fragmenting into
   micro-variants. No-op when embeddings are unavailable.
 
@@ -267,6 +273,13 @@ NIST AI-RMF); the page must teach a *novice* the memory system, not dump rows. P
 - **Trusted** — `confidence ≥ 0.7 AND times_validated ≥ 3` (confirmed repeatedly).
 - **Fading** — `0.2 ≤ confidence ≤ 0.4 AND times_validated ≥ 1` (was learned, decaying — up for re-validation).
 - **Forming** — everything else (seen, not yet confirmed).
+
+> The tier *labels* above read `times_validated` (genuine validation); the
+> fading *surfacing* queries (`cos_learn_suggest`, digest `_collect_fading`,
+> decay anti-forgetting) read `times_seen` (established-ness). So an
+> established-but-unvalidated pattern is surfaced for review yet never
+> mislabelled "Trusted" until it is really validated — the honest-trust contract
+> the v50 ledger reset restores.
 
 ## Hook BLOCK lessons (mined from the activity log)
 

@@ -155,7 +155,7 @@ class TestEffectiveDecayRate:
     def test_base_rate_passthrough(self) -> None:
         rate = effective_decay_rate(
             base_rate=0.1,
-            times_validated=0,
+            times_seen=0,
             impact_score=0.5,
             last_accessed_days=30,
         )
@@ -164,7 +164,7 @@ class TestEffectiveDecayRate:
     def test_deep_encoding_reduces_rate(self) -> None:
         rate = effective_decay_rate(
             base_rate=0.1,
-            times_validated=5,
+            times_seen=5,
             impact_score=0.5,
             last_accessed_days=30,
         )
@@ -173,7 +173,7 @@ class TestEffectiveDecayRate:
     def test_high_impact_reduces_rate(self) -> None:
         rate = effective_decay_rate(
             base_rate=0.1,
-            times_validated=0,
+            times_seen=0,
             impact_score=0.8,
             last_accessed_days=30,
         )
@@ -182,7 +182,7 @@ class TestEffectiveDecayRate:
     def test_deep_and_high_impact_stacks(self) -> None:
         rate = effective_decay_rate(
             base_rate=0.1,
-            times_validated=5,
+            times_seen=5,
             impact_score=0.8,
             last_accessed_days=30,
         )
@@ -191,7 +191,7 @@ class TestEffectiveDecayRate:
     def test_recently_accessed_zero_rate(self) -> None:
         rate = effective_decay_rate(
             base_rate=0.1,
-            times_validated=0,
+            times_seen=0,
             impact_score=0.5,
             last_accessed_days=3,
         )
@@ -200,7 +200,7 @@ class TestEffectiveDecayRate:
     def test_never_accessed_uses_base(self) -> None:
         rate = effective_decay_rate(
             base_rate=0.1,
-            times_validated=0,
+            times_seen=0,
             impact_score=0.5,
             last_accessed_days=None,
         )
@@ -209,7 +209,7 @@ class TestEffectiveDecayRate:
     def test_exactly_7_days_is_protected(self) -> None:
         rate = effective_decay_rate(
             base_rate=0.1,
-            times_validated=0,
+            times_seen=0,
             impact_score=0.5,
             last_accessed_days=7,
         )
@@ -218,7 +218,7 @@ class TestEffectiveDecayRate:
     def test_8_days_not_protected(self) -> None:
         rate = effective_decay_rate(
             base_rate=0.1,
-            times_validated=0,
+            times_seen=0,
             impact_score=0.5,
             last_accessed_days=8,
         )
@@ -479,7 +479,7 @@ class TestConsolidation:
                 confidence=0.10,
                 decay_rate=0.1,
                 last_validated="now",
-                times_validated=0,
+                times_seen=0,
                 impact_score=0.5,
                 promoted_to="archived",
             )
@@ -499,7 +499,7 @@ class TestConsolidation:
         finally:
             conn.close()
 
-    def test_keeps_deeply_validated_archived(self, db_path: Path) -> None:
+    def test_keeps_deeply_seen_archived(self, db_path: Path) -> None:
         conn = init_db(db_path)
         try:
             self._insert(
@@ -509,7 +509,7 @@ class TestConsolidation:
                 confidence=0.10,
                 decay_rate=0.1,
                 last_validated="now",
-                times_validated=7,
+                times_seen=7,
                 impact_score=0.9,
                 promoted_to="archived",
             )
@@ -521,7 +521,7 @@ class TestConsolidation:
             conn.close()
 
         result = run_decay(db_path, archive_prune_days=90)
-        assert result["pruned"] == 0  # times_validated>=5 survives
+        assert result["pruned"] == 0  # times_seen>=5 (established) survives
 
     def test_keeps_recently_accessed_archived(self, db_path: Path) -> None:
         conn = init_db(db_path)
@@ -533,7 +533,7 @@ class TestConsolidation:
                 confidence=0.10,
                 decay_rate=0.1,
                 last_validated="now",
-                times_validated=0,
+                times_seen=0,
                 impact_score=0.5,
                 promoted_to="archived",
             )

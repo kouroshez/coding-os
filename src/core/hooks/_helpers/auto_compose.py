@@ -1,14 +1,16 @@
 """Auto-compose a role chain + surface recall from the recorded complexity gate.
 
 Called by auto-compose-roles.sh (UserPromptSubmit). Reads the panel's
-.thinking_os-gate (CLASS DIMS), and for COMPLICATED/COMPLEX classifications:
+.thinking_os-gate (CLASS DIMS):
 
-  1. composes a role chain via formula_composer and stamps .roles/.role so the
-     Hub Roles panel + the session banner reflect real activity — closing the
-     dead-trigger gap where cos_compose_chain was never auto-invoked (TASK-055);
-  2. runs learn_suggest and writes the hits to .learn-suggestions so the Orient
-     recall arc fires automatically and remind-learn-validate stops no-opping
-     on an empty input (the read-back half of the learning loop).
+  1. for COMPLICATED/COMPLEX, composes a role chain via formula_composer and
+     stamps .roles/.role so the Hub Roles panel + the session banner reflect
+     real activity — closing the dead-trigger gap where cos_compose_chain was
+     never auto-invoked;
+  2. for ANY formal gate (CLEAR included), runs learn_suggest and writes the
+     hits to .learn-suggestions so the Orient recall arc fires and
+     remind-learn-validate has input to validate — the read-back half of the
+     learning loop, and the only feeder of the pattern_validations ledger.
 
 Prints one context line per produced signal (roles + recall); prints nothing
 on any miss/error (the hook always exits 0).
@@ -191,7 +193,7 @@ def main(argv: list[str]) -> int:
     if len(argv) < 3:
         return 0
     gate_class = (argv[1] or "").upper()
-    if gate_class not in _COMPOSE_CLASSES:
+    if not gate_class:
         return 0
     try:
         dims = int(argv[2])
@@ -207,12 +209,18 @@ def main(argv: list[str]) -> int:
     except (OSError, ValueError):
         prompt = ""
 
+    # Role composition is a COMPLICATED/COMPLEX concern, but recall must fire for
+    # ANY formal gate (CLEAR included) — else the abundant simple tasks never
+    # populate .learn-suggestions and the validation loop stays starved (its
+    # pattern_validations ledger empty).
+    compose_line = (
+        _compose_roles(gate_class, dims, agent_dir, prompt)
+        if gate_class in _COMPOSE_CLASSES
+        else ""
+    )
     out_lines = [
         line
-        for line in (
-            _compose_roles(gate_class, dims, agent_dir, prompt),
-            _recall_patterns(gate_class, agent_dir),
-        )
+        for line in (compose_line, _recall_patterns(gate_class, agent_dir))
         if line
     ]
     if out_lines:
