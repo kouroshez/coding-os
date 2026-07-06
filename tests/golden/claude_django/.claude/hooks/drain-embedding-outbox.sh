@@ -14,7 +14,11 @@ cos_log_hook drain-embedding-outbox enter || true
 
 [ -f "${COS_DB_PATH:-}" ] || exit 0
 
-python3 "$(dirname "$0")/_helpers/drain_embedding_outbox.py" 2>/dev/null || true
+# The drain imports the rag extra (sentence_transformers); bare python3 usually
+# lacks it, which silently no-ops the drain. Resolve the cos venv interpreter.
+RAG_PY="$(cos_resolve_python 2>/dev/null || echo python3)"
+[ -n "$RAG_PY" ] || RAG_PY=python3
+"$RAG_PY" "$(dirname "$0")/_helpers/drain_embedding_outbox.py" 2>/dev/null || true
 
 cos_log_hook drain-embedding-outbox ok || true
 exit 0

@@ -622,6 +622,23 @@ cos_record_activity() {
   return 0
 }
 
+# Echo a python interpreter that can import cos's installed extras (the `rag`
+# group: sentence_transformers). Bare python3 usually lacks them; the `cos`
+# entry point's shebang points at the venv that has them. Falls back to python3.
+cos_resolve_python() {
+  local gc ac py
+  gc="$(command -v cos 2>/dev/null || true)"
+  if [[ -z "$gc" ]]; then command -v python3 2>/dev/null || true; return; fi
+  ac="$gc"
+  if [[ -L "$gc" ]]; then
+    ac="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$gc" 2>/dev/null || echo "$gc")"
+  fi
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$ac" 2>/dev/null || true)"
+  if [[ -z "$py" || ! -x "$py" ]]; then py="$(dirname "$ac")/python3"; fi
+  [[ -x "$py" ]] || py="$(command -v python3 2>/dev/null || true)"
+  printf '%s\n' "$py"
+}
+
 # Elapsed wall-time (ms) since this hook sourced cos-env.sh. Pure integer-µs
 # math on the two $EPOCHREALTIME strings (sec.usec) — no float, no locale,
 # no awk. Echoes a non-negative integer; empty when T0 / now is unavailable

@@ -56,7 +56,9 @@ def test_onboarder_excluded_from_formula_registry():
     from thinking_os.cognition import load_agent_registry
 
     reg = load_agent_registry()
-    # chat_only roles are kept OUT of the formula registry so the 11-formula
-    # contract (test_agent_registry_has_11_formulas) holds.
+    # onboarder (chat_only) is excluded; the registry keeps the 11 composable
+    # roles + 2 dispatch-only cards (repairer, distiller) = 13. The 11-role
+    # contract is the formula CHAIN, not the registry size — see the chain test
+    # above. Kept in lockstep with test_agent_registry_has_expected_roles.
     assert "onboarder" not in reg
-    assert len(reg) == 11
+    assert len(reg) == 13

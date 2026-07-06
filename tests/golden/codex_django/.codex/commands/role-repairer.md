@@ -3,7 +3,6 @@ id: repairer
 name: "Autonomous Repair (verify-suite fitness)"
 formula_ref: repairer
 attach_phases: [EXECUTE]
-canonical_order: 12
 intensity_min: standard
 model_pref:
   clear: haiku
