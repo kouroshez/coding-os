@@ -4805,3 +4805,24 @@ class TestCosPr:
         assert "merge_status: auto-merge-armed" in res.output
         assert "awaiting-review" not in res.output
         assert "review_required: False" in res.output
+
+
+class TestBrainSweepChangelog:
+    def test_help_lists_owner_gated_flags(self, runner: CliRunner) -> None:
+        result = runner.invoke(cli, ["brain-sweep-changelog", "--help"])
+        assert result.exit_code == 0
+        assert "dry-run by default" in result.output
+        for flag in ("--confirm", "--undo", "--vacuum", "--grace-days"):
+            assert flag in result.output
+
+    def test_dry_run_dispatches_end_to_end(
+        self, runner: CliRunner, initialized_project: Path
+    ) -> None:
+        # The wrapper subprocesses memory_gc.py; CliRunner can't capture that
+        # child's stdout, so exit 0 is the contract here (the JSON shape + the
+        # archive/undo cycle are asserted in test_brain_hardening). Default is a
+        # dry run — it must never mutate.
+        result = runner.invoke(
+            cli, ["brain-sweep-changelog", "-d", str(initialized_project)]
+        )
+        assert result.exit_code == 0, result.output

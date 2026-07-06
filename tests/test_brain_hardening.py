@@ -108,12 +108,55 @@ def test_brain_decay_cli_registered() -> None:
     src = (REPO / "src" / "cli" / "main.py").read_text()
     assert "brain_decay_cmd" in src
     assert "brain_gc_cmd" in src
+    assert "brain_sweep_changelog_cmd" in src
 
 
 def test_brain_commands_module_has_decay_and_gc() -> None:
     src = (REPO / "src" / "cli" / "brain_commands.py").read_text()
     assert "def brain_decay(" in src
     assert "def brain_gc(" in src
+    assert "def brain_sweep_changelog(" in src
+
+
+def test_sweep_changelog_dry_run_confirm_undo(tmp_path: Path) -> None:
+    sys.path.insert(0, str(BRAIN))
+    import memory_gc  # type: ignore
+
+    db = _seed_db(tmp_path)
+    conn = sqlite3.connect(str(db))
+    rows = [
+        (1, "edit", "changelog", "-40 days"),  # legacy → swept
+        (2, "write", "changelog", "-40 days"),  # legacy → swept
+        (3, "edit", "changelog", "-1 days"),  # within grace → protected
+        (4, "tool_failure", "changelog", "-40 days"),  # mining fuel → protected
+    ]
+    for oid, otype, mtype, age in rows:
+        conn.execute(
+            "INSERT INTO observations (id, session_id, observation_type, memory_type, title, created_at) "
+            "VALUES (?, 's', ?, ?, 'row', datetime('now', ?))",
+            (oid, otype, mtype, age),
+        )
+    conn.commit()
+    conn.close()
+
+    dry = memory_gc.sweep_changelog(str(db), dry_run=True, grace_days=14)
+    assert dry["matched"] == 2 and dry["deleted"] == 0  # reports only, no write
+
+    done = memory_gc.sweep_changelog(
+        str(db), dry_run=False, grace_days=14, archive_dir=tmp_path / "arch"
+    )
+    assert done["deleted"] == 2 and Path(done["archive_path"]).exists()
+    conn = sqlite3.connect(str(db))
+    survivors = {r[0] for r in conn.execute("SELECT id FROM observations")}
+    conn.close()
+    assert survivors == {3, 4}  # recent + tool_failure survive
+
+    undone = memory_gc.undo_sweep(str(db), done["archive_path"])
+    assert undone["restored"] == 2
+    conn = sqlite3.connect(str(db))
+    restored = {r[0] for r in conn.execute("SELECT id FROM observations")}
+    conn.close()
+    assert restored == {1, 2, 3, 4}  # byte-for-byte restore
 
 
 # --------------------------------------------------------------------------

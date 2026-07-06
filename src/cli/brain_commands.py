@@ -274,3 +274,53 @@ def brain_gc(project_dir: str, dry_run: bool) -> None:
         args.append("--dry-run")
     rc = _run_brain_module(GC_SCRIPT, args, project=project)
     sys.exit(rc)
+
+
+@click.command("brain-sweep-changelog")
+@click.option(
+    "--project-dir",
+    "-d",
+    default=".",
+    help="Project directory (default: current)",
+)
+@click.option(
+    "--confirm",
+    is_flag=True,
+    default=False,
+    help="Archive-first then delete the matched rows (default: dry-run report only).",
+)
+@click.option(
+    "--undo",
+    default=None,
+    metavar="ARCHIVE",
+    help="Restore rows from a prior sweep archive (path to the .jsonl.gz).",
+)
+@click.option(
+    "--vacuum",
+    is_flag=True,
+    default=False,
+    help="VACUUM the DB to reclaim bytes (exclusive lock — run at quiescence).",
+)
+@click.option(
+    "--grace-days",
+    type=int,
+    default=14,
+    help="Protect rows newer than N days (default 14).",
+)
+def brain_sweep_changelog(
+    project_dir: str, confirm: bool, undo: str | None, vacuum: bool, grace_days: int
+) -> None:
+    """Retire legacy mechanical changelog rows (owner-invoked; dry-run by default)."""
+    project = _resolve_project_dir(project_dir)
+    args = ["--project-root", str(project)]
+    if undo:
+        args += ["--undo", undo]
+    elif vacuum:
+        args.append("--vacuum")
+    else:
+        args.append("--sweep-changelog")
+        if confirm:
+            args.append("--confirm")
+        args += ["--grace-days", str(grace_days)]
+    rc = _run_brain_module(GC_SCRIPT, args, project=project)
+    sys.exit(rc)
