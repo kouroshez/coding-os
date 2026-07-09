@@ -5,18 +5,17 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [ready]
-status: icebox
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-07-05
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260704-210156-0ee9
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-792: fix: 2 pre-existing test_evo_smoke failures (learn_extract failure-pattern + cross-persona root-cause mining)
 
 **Outcome (one sentence):** Two thinking_os suite tests fail on a clean tree (unrelated to any recent change): test_evo_smoke.py::TestS4DebuggerMultiBacktrack::test_failure_patterns_extracted_by_learn_extract and TestS8MultiPersonaFailureCorrelation::test_cross_persona_root_cause_mined. Root-cause and fix (or quarantine with a tracked reason) so the test-thinking_os matrix gate is honestly green again.
