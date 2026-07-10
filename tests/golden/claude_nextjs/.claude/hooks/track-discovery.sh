@@ -32,7 +32,7 @@ TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 # Only scan Write/Edit — these carry agent-authored prose in file_contents
 # (for Write) or new_string (for Edit). Skip binary/content-free tools.
 case "$TOOL" in
-  Write|Edit|TodoWrite) ;;
+  Write|Edit) ;;
   *) exit 0 ;;
 esac
 
@@ -44,9 +44,6 @@ case "$TOOL" in
     ;;
   Edit)
     BODY=$(echo "$INPUT" | jq -r '.tool_input.new_string // empty' 2>/dev/null || echo "")
-    ;;
-  TodoWrite)
-    BODY=$(echo "$INPUT" | jq -r '.tool_input.todos // [] | tostring' 2>/dev/null || echo "")
     ;;
 esac
 

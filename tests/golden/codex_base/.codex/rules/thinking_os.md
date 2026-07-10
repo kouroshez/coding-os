@@ -22,6 +22,8 @@ Run for EVERY non-trivial request, not just coding.
 
 `CLASSIFY (dry) → MAP (dry) → ORIENT (read) → PLAN (think) → EXECUTE (do)`. Key principle: **think before reading, read before coding** — Classify and Map do zero file reads; Orient is the only phase that reads; Plan synthesizes; Execute implements the smallest correct change [P1, P4]. For COMPLICATED/COMPLEX, Zoom In/Out (≤3 cycles, 10 Thinking Tools) runs *within* Plan. Phase-by-phase checklists, the Four Laws (Golden / Sequence / Zoom / Evolution), and Continuous-Monitoring reframe triggers live in the SKILL.
 
+**Progress tracking in EXECUTE — one SSOT, one scratchpad.** The task **Work Log** (`cos_work_log_append`, one bullet per meaningful checkpoint) is the *persistent* record of progress — it survives the session, shows on the board, and is what the next agent inherits; the **Acceptance (G/W/T)** lines are the Definition of Done. A runtime `TodoWrite` (or equivalent) is allowed only as an *ephemeral, in-turn scratchpad* to stay on-track across a long multi-step EXECUTE within a single turn — never a substitute for the Work Log and never a second place a fact lives (P1 SSOT). Do not build a checklist/subtask field inside tasks — Acceptance + Work Log already carry that, and duplicating it is the drift bug Rule 22 forbids.
+
 ## Record Gate (Mandatory Before Code Changes)
 
 After the Complexity Gate, record the classification before any Write/Edit on `.py`/`.ts`/`.tsx` — a hook BLOCKs code writes until then. **Prefer `cos_classify_prompt`** (it classifies, records, traces, and returns `recorded` + a fallback command); use the raw form below only when it returns `recorded=false`:

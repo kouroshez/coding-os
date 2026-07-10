@@ -41,4 +41,4 @@ Convention — no hook reliably detects over-engineering. Backed by self-review,
 
 ## See also
 
-[api-contract-discipline.md](api-contract-discipline.md) (producer shape) · [test-discipline.md](test-discipline.md) (matrix not full sweep) · [clean-code SKILL](../skills/clean-code/SKILL.md) (tactical naming) · [simplify SKILL](../skills/simplify/SKILL.md) (reuse loop) · [critical-rules.md § Rule 22](../../docs/governance/critical-rules.md#rule-22--anti-overengineering) (rationale).
+[api-contract-discipline.md](api-contract-discipline.md) (producer shape) · [test-discipline.md](test-discipline.md) (matrix not full sweep) · [clean-code SKILL](../skills/clean-code/SKILL.md) (tactical naming) · [critical-rules.md § Rule 22](../../docs/governance/critical-rules.md#rule-22--anti-overengineering) (rationale).

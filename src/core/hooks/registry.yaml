@@ -962,8 +962,8 @@ hooks:
   - id: track-discovery
     script: track-discovery.sh
     description: |
-      Discovery Protocol auto-trigger. Scans Write/Edit/TodoWrite
-      output for discovery signal phrases (new actor, missing dependency,
+      Discovery Protocol auto-trigger. Scans Write/Edit output for
+      discovery signal phrases (new actor, missing dependency,
       undocumented behavior, etc.). On ≥2 matches, emits a non-blocking
       reminder to call cos_discovery with impact assessment + decision.
       Reminder cooldown: 5 minutes per session to avoid spam.
@@ -973,7 +973,7 @@ hooks:
     timeout: 5
     events:
       - event: PostToolUse
-        matcher: "Write|Edit|TodoWrite"
+        matcher: "Write|Edit"
         status_message: "🔍 Scanning for discoveries..."
 
   - id: capture-tool-failure
