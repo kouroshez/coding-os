@@ -6,17 +6,13 @@
 #   1. session-context.sh         — same workflow banner Claude shows on prompts.
 #   2. classify-task-mode.sh      — write $COS_AGENT_DIR/.task-mode (persona-aware
 #                                   enforcement; docs/engineering/task-mode-matrix.md).
-#   3. detect-exhaustive-intent.sh— write $COS_AGENT_DIR/.intent.json so the Stop
-#                                   completion guardian enforces exhaustive intent
-#                                   on Codex too (its side effect, not the nudge,
-#                                   is what matters since stdout is discarded here).
-#   4. nudge-thinking-os.sh       — heuristic Complexity Gate nudge.
-#   5. nudge-graph-os.sh          — graph_os discovery nudge for structural Qs.
-#   6. nudge-task-discovery.sh    — cos task-show over docs/tasks reads.
-#   7. nudge-docs-first.sh        — docs-first SSOT discovery (declared in
+#   3. nudge-thinking-os.sh       — heuristic Complexity Gate nudge.
+#   4. nudge-graph-os.sh          — graph_os discovery nudge for structural Qs.
+#   5. nudge-task-discovery.sh    — cos task-show over docs/tasks reads.
+#   6. nudge-docs-first.sh        — docs-first SSOT discovery (declared in
 #                                   adapter.yaml; was missing from this loop).
-#   8. auto-compose-roles.sh      — compose role chain + learn-suggestions.
-#   9. agent-presence.sh          — mark the session "active" for the live panel.
+#   7. auto-compose-roles.sh      — compose role chain + learn-suggestions.
+#   8. agent-presence.sh          — mark the session "active" for the live panel.
 #
 # Note: stdout is discarded (Codex UserPromptSubmit injection contract is not
 # yet confirmed), so delegates contribute via their state-file side effects.
@@ -54,7 +50,6 @@ run_delegate() {
 for delegate in \
   session-context.sh \
   classify-task-mode.sh \
-  detect-exhaustive-intent.sh \
   nudge-thinking-os.sh \
   nudge-graph-os.sh \
   nudge-task-discovery.sh \

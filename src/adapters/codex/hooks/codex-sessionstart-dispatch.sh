@@ -52,17 +52,15 @@ trap 'rm -f "$CAPTURED_FILE"' EXIT
 EXTRACT="$HOOK_DIR/../../../core/hooks/_helpers/extract_additional_context.py"
 
 # Delegate order: workflow banner → MCP/extras health → prime cards
-# (intent / rules / required-skill / audit-resume) → daily + graph nudges →
-# memory decay → presence. Prime cards mirror Claude's SessionStart set so a
-# resumed Codex session re-enters with the same workflow-integrity context.
+# (rules / required-skill) → daily + graph nudges → memory decay → presence.
+# Prime cards mirror Claude's SessionStart set so a resumed Codex session
+# re-enters with the same workflow-integrity context.
 for delegate in \
   session-context.sh \
   warn-mcp-down.sh \
   check-mcp-extras.sh \
-  intent-primer.sh \
   rules-primer.sh \
   session-skill-primer.sh \
-  inject-resume-prompt.sh \
   remind-daily.sh \
   warn-graph-empty.sh \
   auto-brain-decay.sh \

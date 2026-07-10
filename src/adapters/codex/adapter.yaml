@@ -110,10 +110,8 @@ hook_dispatchers:
       - session-context.sh
       - warn-mcp-down.sh
       - check-mcp-extras.sh
-      - intent-primer.sh
       - rules-primer.sh
       - session-skill-primer.sh
-      - inject-resume-prompt.sh
       - remind-daily.sh
       - warn-graph-empty.sh
       - auto-brain-decay.sh
@@ -127,10 +125,8 @@ hook_dispatchers:
       - session-context.sh
       - warn-mcp-down.sh
       - check-mcp-extras.sh
-      - intent-primer.sh
       - rules-primer.sh
       - session-skill-primer.sh
-      - inject-resume-prompt.sh
       - remind-daily.sh
       - warn-graph-empty.sh
       - auto-brain-decay.sh
@@ -167,7 +163,6 @@ hook_dispatchers:
     delegates:
       - session-context.sh
       - classify-task-mode.sh
-      - detect-exhaustive-intent.sh
       - nudge-thinking-os.sh
       - nudge-graph-os.sh
       - nudge-task-discovery.sh
