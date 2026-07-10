@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ci, rule-11, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 2h
 created: 2026-07-10
-started: null
-completed: null
-agent_session: null
+started: 2026-07-09
+completed: 2026-07-09
+agent_session: ses-claude-20260709-202023-30fe
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-807: Guard suite red: hardcoded claude-opus-4-8 in tools/routing.py fails test_no_hardcoded_anthropic (2 cases)
 
 **Outcome (one sentence):** tests/test_no_hardcoded_anthropic.py passes fully: the inline 'claude-opus-4-8' literal in src/core/thinking_os/tools/routing.py (and its echo in tests/test_routing.py) is replaced by a data-driven source (DispatchRequest.model / role frontmatter / adapter.yaml) or, if the compatibility gate is genuinely intentional, the path is added to ALLOWED_MODEL_PATHS with a documented reason.
@@ -32,3 +31,8 @@ Run: uv run pytest tests/test_no_hardcoded_anthropic.py -q → 2 failed (tools/r
 - **Given** cos_route_model with no history, **When** cold-start defaults resolve, **Then** the default model comes from adapter.yaml, not an inline literal.
 
 ## Work Log
+- 2026-07-10 [claude]: Edit routing.py
+- 2026-07-10 [claude]: Edit test_routing.py
+- 2026-07-10 [claude]: Edit no-parking-actionable-findings.md
+- 2026-07-10 [claude]: commit 0ba07f272e — fix(core): drop hardcoded claude-opus-4-8 literals that broke the anthropic guard suite
+- 2026-07-10 [claude]: Status transitioned to complete via cos task-done.
