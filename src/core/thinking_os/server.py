@@ -3,11 +3,8 @@
 Coding OS — Thinking OS MCP Server (stdio transport).
 
 Agent-agnostic self-learning system for AI coding agents.
-Tools are organized into modules under tools/:
-  - memory.py   — search, timeline, details, promote
-  - metrics.py  — record, query, trend
-  - learning.py — extract, suggest, validate, feedback, narrative
-  - routing.py  — model routing, skill routing
+Tools live in the modules under tools/; board_os and graph_os tools are
+mounted onto the same FastMCP server when their packages are importable.
 """
 
 from __future__ import annotations
@@ -1234,9 +1231,10 @@ def cos_doc_header(path: str) -> str:
     candidate = (path or "").strip()
     if not candidate:
         return fail("validation", "path is required")
+    root_dir = project_root().resolve()
     target = Path(candidate)
     if not target.is_absolute():
-        target = (Path.cwd() / target).resolve()
+        target = (root_dir / target).resolve()
     else:
         try:
             target = target.resolve()
@@ -1245,9 +1243,8 @@ def cos_doc_header(path: str) -> str:
     # Path-traversal guard. The MCP server is trusted today,
     # but a future external client must never read files outside the
     # project root via this tool.
-    project_root = Path.cwd().resolve()
     try:
-        target.relative_to(project_root)
+        target.relative_to(root_dir)
     except ValueError:
         return fail(
             "permission",
@@ -1285,18 +1282,18 @@ def cos_doc_headers_by(
 ) -> str:
     """Bulk header-only scan filtered by frontmatter."""
     cap = max(1, min(int(limit) if limit else 50, 200))
+    root_dir = project_root().resolve()
     root_path = Path(root) if root else Path("docs")
     if not root_path.is_absolute():
-        root_path = (Path.cwd() / root_path).resolve()
+        root_path = (root_dir / root_path).resolve()
     else:
         try:
             root_path = root_path.resolve()
         except OSError as exc:
             return fail("validation", f"cannot resolve root: {exc}")
     # Path-traversal guard — root must stay inside project.
-    project_root = Path.cwd().resolve()
     try:
-        root_path.relative_to(project_root)
+        root_path.relative_to(root_dir)
     except ValueError:
         return fail("permission", f"root escapes project root: {root}")
     if not root_path.exists():
@@ -2197,7 +2194,7 @@ try:
     from tools.cognition import register_all as _register_cognition_tools
 
     _register_cognition_tools(mcp, str(_DEFAULT_DB_PATH))
-    logger.info("Cognition tools registered (9 supervisor + 3 routing + 2 dispatch = 14 tools)")
+    logger.info("Cognition tools registered")
 except Exception as _cog_exc:  # pragma: no cover
     logger.warning("cognition tools unavailable: %s", _cog_exc)
 
@@ -3039,6 +3036,10 @@ else:
         "cos_graph_communities",
         "cos_graph_centrality",
         "cos_graph_ranking",
+        "cos_graph_cycles",
+        "cos_graph_dead_code",
+        "cos_graph_test_gap",
+        "cos_graph_diff",
         "cos_graph_doctor",
     ):
 
