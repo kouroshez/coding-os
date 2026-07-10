@@ -130,6 +130,7 @@ claude-sdk = []
 cos = "cli.main:cli"
 coding-os = "cli.main:cli"
 cos-nightly = "scheduled.nightly:main"
+cos-mcp-start = "cli.mcp_start:main"
 
 [project.urls]
 Homepage = "https://github.com/kouroshez/coding-os"

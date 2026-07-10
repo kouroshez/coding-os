@@ -319,9 +319,10 @@ def cognition_trace_replay(session_id: str) -> None:
     regression tests.
     """
     import sys
-    from pathlib import Path as _Path
 
-    core = _Path(__file__).resolve().parent.parent.parent / "src" / "core" / "thinking_os"
+    from cli._resources import core_dir
+
+    core = core_dir("thinking_os")
     if str(core) not in sys.path:
         sys.path.insert(0, str(core))
     import tracing

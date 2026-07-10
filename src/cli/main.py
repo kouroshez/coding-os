@@ -57,7 +57,6 @@ from cli.brain_commands import (
     brain_gc as brain_gc_cmd,
     brain_sweep_changelog as brain_sweep_changelog_cmd,
     docs_index as docs_index_cmd,
-    graph_reindex as graph_reindex_cmd,
     reindex as reindex_cmd,
     task_sync as task_sync_cmd,
 )
@@ -1112,7 +1111,6 @@ cli.add_command(remove_stack_cmd)
 cli.add_command(docs_index_cmd)
 cli.add_command(task_sync_cmd)
 cli.add_command(reindex_cmd)
-cli.add_command(graph_reindex_cmd)
 cli.add_command(brain_decay_cmd)
 cli.add_command(brain_gc_cmd)
 cli.add_command(brain_sweep_changelog_cmd)
