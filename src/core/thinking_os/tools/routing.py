@@ -287,8 +287,9 @@ _REVIEW_ROLES = frozenset({"reviewer", "security_auditor", "observer"})
 def reviewer_model(generator_model: str) -> str:
     # An independent reviewer needn't match the generator's tier — one rung
     # cheaper keeps a second opinion affordable. Returns the bare cheaper tier
-    # (the adapter resolves the alias); matches by substring so "claude-opus-4-8"
-    # and "opus" both downgrade. Empty in -> empty out (caller default).
+    # (the adapter resolves the alias); matches by substring so a fully
+    # qualified model id and its bare tier alias both downgrade. Empty in ->
+    # empty out (caller default).
     m = (generator_model or "").lower()
     for tier, cheaper in _CHEAPER_TIER.items():
         if tier in m:

@@ -252,7 +252,7 @@ class TestCostRouting:
         assert reviewer_model("opus") == "sonnet"
         assert reviewer_model("sonnet") == "haiku"
         assert reviewer_model("haiku") == "haiku"
-        assert reviewer_model("claude-opus-4-8") == "sonnet"
+        assert reviewer_model("some-vendor-opus-full-id") == "sonnet"
         assert reviewer_model("") == ""
 
 
