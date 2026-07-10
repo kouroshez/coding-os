@@ -57,7 +57,7 @@ The renderer reads [registry.yaml](../../src/core/hooks/registry.yaml), filters 
 | Docs/task/skill gates | yes | yes for file edits | Codex edit dispatcher preserves fail-closed exit `2`. |
 | Post-edit capture/index/reminders | yes | yes | Advisory after the patch has applied. |
 | Prompt cognition/context | yes | yes | Dispatcher output must not be discarded. |
-| Session start/recovery | yes | yes | `startup`, `resume`, and `compact` are supported. |
+| Session start/recovery | yes | yes | `startup`, `resume`, `compact`, and `clear` are supported. |
 | Presence on tool failure | yes | no | No Codex `PostToolUseFailure` event. |
 | Presence on subagents | yes | yes | Start and stop are shared. |
 | Skill-use telemetry | yes | no | Codex has skills but not a `Skill` tool hook. |
@@ -80,6 +80,8 @@ safety -> enforcement -> cognition -> task -> retrieval
 ```
 
 The registry renderer owns category ordering. `adapter.yaml::hook_dispatchers` owns the corresponding delegate order for a coalesced Codex group. `tests/test_adapter_parity.py` requires each dispatcher loop to equal its manifest delegate set.
+
+Before inserting a dispatcher, the renderer removes a declared delegate only when the union of matching dispatchers covers every token in that direct group's matcher. This prevents `startup|resume` from running twice when both sources are coalesced, without dropping the `resume` behavior when only `startup` has a dispatcher. Unrelated MCP matchers remain direct.
 
 For edit events, one patch may affect several paths. The adapter runs the ordered delegate list for each path and stops immediately on a PreToolUse block. This is intentionally stricter than checking only the first file in a patch.
 

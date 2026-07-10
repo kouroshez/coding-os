@@ -202,8 +202,12 @@ class TestCodexAdapter:
         for hook in hook_files:
             assert hook.is_symlink()
         assert (hooks_dir / "codex-pretool-dispatch.sh").exists()
+        assert (hooks_dir / "codex-preedit-dispatch.sh").exists()
+        assert (hooks_dir / "codex-postedit-dispatch.sh").exists()
         assert (hooks_dir / "codex-sessionstart-dispatch.sh").exists()
         assert (hooks_dir / "codex-stop-dispatch.sh").exists()
+        assert (hooks_dir / "codex-normalize-edit.py").is_symlink()
+        assert (hooks_dir / "codex-merge-hook-output.py").is_symlink()
 
     def test_generates_hooks_json(self, project: Path) -> None:
         run_adapter_install("codex", project)

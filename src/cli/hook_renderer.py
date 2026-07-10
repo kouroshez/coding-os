@@ -58,6 +58,18 @@ CATEGORY_PRECEDENCE: dict[str, int] = {
 _CATEGORY_PRECEDENCE_TAIL = 99
 
 
+def _matcher_tokens(matcher: str) -> set[str]:
+    return {token.strip() for token in matcher.split("|") if token.strip()} or {""}
+
+
+def _matchers_overlap(left: str, right: str) -> bool:
+    return bool(_matcher_tokens(left) & _matcher_tokens(right))
+
+
+def _command_script(entry: dict[str, Any]) -> str:
+    return str(entry.get("command", "")).rsplit("/", 1)[-1]
+
+
 @dataclass(frozen=True)
 class HookEntry:
     """One hook declaration from registry.yaml.
@@ -258,6 +270,26 @@ def render_for_adapter(registry: list[HookEntry], caps: AdapterCapabilities) -> 
             for e in group["hooks"]:
                 del e["_sort"]
 
+    for event, groups in output["hooks"].items():
+        event_dispatchers = [
+            (matcher, set(dispatcher.get("delegates") or []))
+            for (dispatcher_event, matcher), dispatcher in caps.dispatchers.items()
+            if dispatcher_event == event
+        ]
+        for group in groups:
+            group_matcher = str(group.get("matcher", ""))
+            group_tokens = _matcher_tokens(group_matcher)
+            retained = []
+            for entry in group["hooks"]:
+                script = _command_script(entry)
+                covered_tokens: set[str] = set()
+                for matcher, delegates in event_dispatchers:
+                    if script in delegates and _matchers_overlap(group_matcher, matcher):
+                        covered_tokens.update(group_tokens & _matcher_tokens(matcher))
+                if not group_tokens <= covered_tokens:
+                    retained.append(entry)
+            group["hooks"] = retained
+
     for (event, matcher), dispatcher in caps.dispatchers.items():
         groups = output["hooks"].setdefault(event, [])
         group = next((g for g in groups if g.get("matcher", "") == matcher), None)
@@ -274,6 +306,12 @@ def render_for_adapter(registry: list[HookEntry], caps: AdapterCapabilities) -> 
         if timeout:
             entry["timeout"] = timeout
         group["hooks"] = [entry]
+    for event in list(output["hooks"]):
+        output["hooks"][event] = [
+            group for group in output["hooks"][event] if group.get("hooks")
+        ]
+        if not output["hooks"][event]:
+            del output["hooks"][event]
     if parity_deficits:
         output["_parity_deficits"] = parity_deficits
     return output

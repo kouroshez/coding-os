@@ -17,6 +17,8 @@ presence:
     - UserPromptSubmit
     - PreToolUse
     - PostToolUse
+    - SubagentStart
+    - SubagentStop
     - Stop
 settings_file: ".codex/hooks.json"
 hooks_dir: ".codex/hooks"
@@ -29,7 +31,9 @@ supports_settings_json: true
 install_script: install.sh
 
 cli_binary: codex
-sdk_package: openai
+sdk_package: openai-codex
+sdk_optional_extra: codex-sdk
+auth_env_vars: [CODEX_API_KEY, OPENAI_API_KEY]
 
 # Env vars the Codex CLI runtime exports.  Same purpose as the field on
 # the Claude adapter — keeps agent detection data-driven (rule #11).
@@ -63,23 +67,25 @@ default_settings: {}
 
 hook_registry_output: hooks.template.json
 
-# Hook capabilities — see adapters/claude/adapter.yaml for shape docs.
-# Codex CLI exposes fewer PreToolUse matchers than Claude (Bash only,
-# per developers.openai.com/codex/hooks — Write/Edit trigger is Claude-
-# specific). As of 2026-04-18, Codex SessionStart supports `startup`
-# and `resume` sources, but not Claude's `compact`.
-# When Codex expands its hook surface, update this list and `cos
-# hooks-list --agent codex` will reflect the new coverage with no other
-# code changes needed.
 hook_capabilities:
   PreToolUse:
-    matchers: [Bash]
+    matchers: [Bash, Edit, "mcp__coding-os__cos_task_move", "mcp__coding-os__cos_task_create", "mcp__coding-os__cos_work_log_append"]
   PostToolUse:
-    matchers: [Bash]
+    matchers: [Bash, Edit, "mcp__coding-os__cos_backtrack_log", "mcp__coding-os__cos_task_move"]
   Stop:
     matchers: [""]
+  SubagentStart:
+    matchers: [""]
+  SubagentStop:
+    matchers: [""]
   SessionStart:
-    matchers: [startup, resume]
+    matchers: [startup, "compact|resume", clear]
+  PreCompact:
+    matchers: [""]
+  PostCompact:
+    matchers: [""]
+  PermissionRequest:
+    matchers: [""]
   UserPromptSubmit:
     matchers: [""]
 
@@ -102,6 +108,33 @@ hook_dispatchers:
       - nudge-task-discovery.sh
       - warn-diff-size.sh
       - agent-presence.sh
+  - event: PreToolUse
+    matcher: Edit
+    script: codex-preedit-dispatch.sh
+    delegates:
+      - block-secrets.sh
+      - block-bad-patterns.sh
+      - block-protected-files.sh
+      - block-shared-tree-edit.sh
+      - enforce-task-transition.sh
+      - block-migration-conflict.sh
+      - block-hardcoded-literals.sh
+      - validate-task-frontmatter.sh
+      - enforce-wip-limit.sh
+      - enforce-template.sh
+      - thinking_os-gate.sh
+      - enforce-scaffold-boundary.sh
+      - enforce-task-start.sh
+      - enforce-doc-anchor.sh
+      - enforce-memory-check.sh
+      - enforce-skill.sh
+      - enforce-zoom.sh
+      - enforce-graph-context.sh
+      - warn-destructive-edit.sh
+      - enforce-rename-plan.sh
+      - enforce-task-body.sh
+      - enforce-anti-ambiguity.sh
+      - jit-recall.sh
   - event: SessionStart
     matcher: startup
     script: codex-sessionstart-dispatch.sh
@@ -118,9 +151,24 @@ hook_dispatchers:
       - agent-presence.sh
       - pr-reap.sh
   - event: SessionStart
-    matcher: resume
+    matcher: "compact|resume"
     script: codex-sessionstart-dispatch.sh
     status_message: "🔄 Recovering workflow context + MCP health..."
+    delegates:
+      - session-context.sh
+      - warn-mcp-down.sh
+      - check-mcp-extras.sh
+      - rules-primer.sh
+      - session-skill-primer.sh
+      - remind-daily.sh
+      - warn-graph-empty.sh
+      - auto-brain-decay.sh
+      - agent-presence.sh
+      - pr-reap.sh
+  - event: SessionStart
+    matcher: clear
+    script: codex-sessionstart-dispatch.sh
+    status_message: "Loading clean session context..."
     delegates:
       - session-context.sh
       - warn-mcp-down.sh
@@ -157,6 +205,28 @@ hook_dispatchers:
       - advance-role.sh
       - sync-task-current.sh
       - agent-presence.sh
+  - event: PostToolUse
+    matcher: Edit
+    script: codex-postedit-dispatch.sh
+    delegates:
+      - lint-task.sh
+      - enforce-doc-sync.sh
+      - verify-rename-callers.sh
+      - advance-role.sh
+      - track-discovery.sh
+      - auto-reindex-docs.sh
+      - auto-regen-doc-index.sh
+      - auto-task-sync.sh
+      - capture-observation.sh
+      - capture-work-log.sh
+      - agent-presence.sh
+      - nudge-reuse-first.sh
+      - check-doc-size.sh
+      - regen-reminder.sh
+      - test-first-reminder.sh
+      - check-agents-md-size.sh
+      - check-agents-md-refs.sh
+      - remind-dogfood.sh
   - event: UserPromptSubmit
     matcher: ""
     script: codex-userpromptsubmit-dispatch.sh
@@ -165,6 +235,9 @@ hook_dispatchers:
       - classify-task-mode.sh
       - nudge-thinking-os.sh
       - nudge-graph-os.sh
+      - nudge-model-routing.sh
+      - nudge-git-mode.sh
+      - nudge-reentry.sh
       - nudge-task-discovery.sh
       - nudge-docs-first.sh
       - auto-compose-roles.sh

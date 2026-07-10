@@ -1703,6 +1703,51 @@ class TestSkillCatalog:
         assert all(e["validated"] for e in catalog["skills"])
 
 
+class TestDoctorAgentSdk:
+    def test_codex_optional_sdk_uses_data_driven_probe(
+        self, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import importlib.metadata
+
+        def missing_package(name: str):
+            raise importlib.metadata.PackageNotFoundError(name)
+
+        class FakeResult:
+            stdout = "codex-cli 0.144.1"
+            stderr = ""
+
+        monkeypatch.setenv("COS_AGENT", "codex")
+        monkeypatch.delenv("CODEX_API_KEY", raising=False)
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.setattr(importlib.metadata, "version", missing_package)
+        monkeypatch.setattr(shutil, "which", lambda _: "/usr/bin/codex")
+        monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: FakeResult())
+
+        result = runner.invoke(cli, ["doctor", "--agent-sdk"])
+
+        assert result.exit_code == 0, result.output
+        assert "OpenAI Codex CLI SDK compatibility report" in result.output
+        assert "openai-codex not installed" in result.output
+        assert "uv sync --extra codex-sdk" in result.output
+        assert "CODEX_API_KEY, OPENAI_API_KEY" in result.output
+        assert "CLI fallback remains available" in result.output
+
+    def test_legacy_claude_sdk_flag_remains_an_alias(
+        self, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import importlib.metadata
+
+        monkeypatch.setenv("COS_AGENT", "codex")
+        monkeypatch.setattr(importlib.metadata, "version", lambda _: "0.1.0b3")
+        monkeypatch.setattr(shutil, "which", lambda _: None)
+
+        result = runner.invoke(cli, ["doctor", "--claude-sdk"])
+
+        assert result.exit_code == 0, result.output
+        assert "OpenAI Codex CLI SDK compatibility report" in result.output
+        assert "openai-codex = 0.1.0b3" in result.output
+
+
 # ---------------------------------------------------------------------------
 # doctor --bootstrap — TASK-347 (preflight prerequisite checks)
 # ---------------------------------------------------------------------------

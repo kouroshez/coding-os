@@ -2472,12 +2472,7 @@ def _format_json(report: DoctorReport, *, strict: bool) -> str:
     return json.dumps(payload, indent=2)
 
 
-def _probe_claude_sdk() -> None:
-    """Print agent SDK + CLI compatibility report (T14.4).
-
-    Reads `src/adapters/<id>/adapter.yaml::{cli_binary, sdk_package}` so
-    this file stays free of hardcoded adapter literals (Rule 11).
-    """
+def _probe_agent_sdk() -> None:
     import importlib.metadata
     import os
     import shutil
@@ -2498,6 +2493,7 @@ def _probe_claude_sdk() -> None:
     adapter = yaml.safe_load(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
     cli_binary = adapter.get("cli_binary") or target_id
     sdk_package = adapter.get("sdk_package") or ""
+    sdk_optional_extra = adapter.get("sdk_optional_extra") or ""
     label = adapter.get("label") or target_id
 
     click.echo(f"{label} SDK compatibility report")
@@ -2508,7 +2504,13 @@ def _probe_claude_sdk() -> None:
             sdk_version = importlib.metadata.version(sdk_package)
             click.echo(f"  [OK]   {sdk_package} = {sdk_version}")
         except importlib.metadata.PackageNotFoundError:
-            click.echo(f"  [FAIL] {sdk_package} not installed (uv sync --extra rag)")
+            if sdk_optional_extra:
+                click.echo(
+                    f"  [WARN] {sdk_package} not installed "
+                    f"(uv sync --extra {sdk_optional_extra}; CLI fallback remains available)"
+                )
+            else:
+                click.echo(f"  [FAIL] {sdk_package} not installed (uv sync --extra rag)")
     else:
         click.echo("  [SKIP] no sdk_package declared in adapter.yaml")
 
@@ -2525,24 +2527,37 @@ def _probe_claude_sdk() -> None:
     else:
         click.echo(f"  [WARN] {cli_binary} CLI not on PATH")
 
-    # API key auth
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        click.echo("  [OK]   ANTHROPIC_API_KEY set")
-    elif os.environ.get("ANTHROPIC_AUTH_TOKEN"):
-        click.echo("  [OK]   ANTHROPIC_AUTH_TOKEN set")
+    auth_env_vars = [str(name) for name in adapter.get("auth_env_vars", []) if name]
+    configured_auth = [name for name in auth_env_vars if os.environ.get(name)]
+    if configured_auth:
+        click.echo(f"  [OK]   {configured_auth[0]} set")
+    elif auth_env_vars:
+        click.echo(
+            f"  [WARN] none of {', '.join(auth_env_vars)} set "
+            "(CLI-managed login may still be valid)"
+        )
     else:
-        click.echo("  [WARN] no Anthropic auth env var set")
+        click.echo("  [SKIP] no auth_env_vars declared in adapter.yaml")
 
-    # CLAUDECODE markers (live session detection)
-    if os.environ.get("CLAUDECODE"):
-        click.echo(f"  [OK]   CLAUDECODE = {os.environ.get('CLAUDECODE')!r}")
+    for marker in adapter.get("runtime_env_markers", []):
+        value = os.environ.get(str(marker))
+        if value:
+            click.echo(f"  [OK]   {marker} = {value!r}")
 
-    # MCP server registration check
-    mcp_json = Path(".mcp.json")
-    if mcp_json.exists():
-        click.echo(f"  [OK]   .mcp.json present ({mcp_json.resolve()})")
+    mcp_paths: list[Path] = []
+    for entry in adapter.get("mcp_launch", {}).get("config_paths", []):
+        if not isinstance(entry, dict) or not entry.get("path"):
+            continue
+        base = Path.home() if entry.get("scope") == "home" else Path.cwd()
+        mcp_paths.append(base / str(entry["path"]))
+    present_mcp_paths = [path for path in mcp_paths if path.exists()]
+    if present_mcp_paths:
+        click.echo(f"  [OK]   MCP config present ({present_mcp_paths[0].resolve()})")
+    elif mcp_paths:
+        expected = ", ".join(str(path) for path in mcp_paths)
+        click.echo(f"  [WARN] MCP config missing ({expected})")
     else:
-        click.echo("  [WARN] .mcp.json missing (cos init not run?)")
+        click.echo("  [SKIP] no MCP config paths declared in adapter.yaml")
 
 
 def _probe_otel() -> None:
@@ -2722,11 +2737,12 @@ def run_bootstrap_doctor() -> DoctorReport:
     help="Preflight prerequisite checks (python/bash/git/uv/sed) — no project needed",
 )
 @click.option(
+    "--agent-sdk",
     "--claude-sdk",
-    "claude_sdk",
+    "agent_sdk",
     is_flag=True,
     default=False,
-    help="Print Claude SDK + CLI compat report and exit",
+    help="Print the active adapter SDK + CLI compatibility report and exit",
 )
 @click.option(
     "--ignore",
@@ -2769,7 +2785,7 @@ def doctor(
     manifest: str | None,
     otel: bool,
     bootstrap: bool,
-    claude_sdk: bool,
+    agent_sdk: bool,
     ignore_globs: tuple[str, ...],
     explain_id: str | None,
     tokens: bool,
@@ -2806,8 +2822,8 @@ def doctor(
     if otel:
         _probe_otel()
         return
-    if claude_sdk:
-        _probe_claude_sdk()
+    if agent_sdk:
+        _probe_agent_sdk()
         return
     if explain_id:
         click.echo(_explain_check(explain_id))

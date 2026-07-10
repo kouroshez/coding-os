@@ -1,48 +1,46 @@
 #!/usr/bin/env bash
-# Codex UserPromptSubmit dispatcher — coalesces delegates so sequencing
-# is deterministic (Codex fires matching hooks concurrently otherwise).
-#
-# Delegates (order matters):
-#   1. session-context.sh         — same workflow banner Claude shows on prompts.
-#   2. classify-task-mode.sh      — write $COS_AGENT_DIR/.task-mode (persona-aware
-#                                   enforcement; docs/engineering/task-mode-matrix.md).
-#   3. nudge-thinking-os.sh       — heuristic Complexity Gate nudge.
-#   4. nudge-graph-os.sh          — graph_os discovery nudge for structural Qs.
-#   5. nudge-task-discovery.sh    — cos task-show over docs/tasks reads.
-#   6. nudge-docs-first.sh        — docs-first SSOT discovery (declared in
-#                                   adapter.yaml; was missing from this loop).
-#   7. auto-compose-roles.sh      — compose role chain + learn-suggestions.
-#   8. agent-presence.sh          — mark the session "active" for the live panel.
-#
-# Note: stdout is discarded (Codex UserPromptSubmit injection contract is not
-# yet confirmed), so delegates contribute via their state-file side effects.
-# Fail-open: any delegate failure is logged but does not block the prompt.
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "${SCRIPT_DIR}/cos-env.sh" 2>/dev/null || true
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "${HOOK_DIR}/cos-env.sh" 2>/dev/null || source "${HOOK_DIR}/../../../core/hooks/cos-env.sh" 2>/dev/null || true
+if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cat 2>/dev/null || true)"
+if command -v cos_panel_upgrade_from_payload >/dev/null 2>&1; then
+  cos_panel_upgrade_from_payload "$INPUT" >/dev/null 2>&1 || true
+fi
+WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-userprompt.XXXXXX")"
+trap 'rm -rf "$WORK_DIR"' EXIT
+OUTPUTS=()
+RUN_INDEX=0
 
 delegate_path() {
   local name="$1"
-  if [[ -x "${SCRIPT_DIR}/${name}" ]]; then
-    echo "${SCRIPT_DIR}/${name}"
+  if [[ -f "${HOOK_DIR}/${name}" ]]; then
+    printf '%s\n' "${HOOK_DIR}/${name}"
   else
-    # Fall back to the core hook — always available via symlink/install.
-    echo "${SCRIPT_DIR}/${name}"
+    printf '%s\n' "${HOOK_DIR}/../../../core/hooks/${name}"
   fi
 }
 
 run_delegate() {
   local name="$1"
-  local path
+  local path output error rc
   path="$(delegate_path "$name")"
   if [[ ! -x "$path" ]]; then
     return 0
   fi
-  if ! printf '%s' "$INPUT" | bash "$path" >/dev/null 2>&1; then
-    cos_log_hook codex-userpromptsubmit-dispatch warn "delegate=${name} failed"
+  RUN_INDEX=$((RUN_INDEX + 1))
+  output="$WORK_DIR/$RUN_INDEX.out"
+  error="$WORK_DIR/$RUN_INDEX.err"
+  set +e
+  bash "$path" <<<"$INPUT" >"$output" 2>"$error"
+  rc=$?
+  set -e
+  [[ -s "$output" ]] && OUTPUTS+=("$output")
+  [[ -s "$error" ]] && cat "$error" >&2
+  if [[ "$rc" -ne 0 ]]; then
+    cos_log_hook codex-userpromptsubmit-dispatch warn "delegate=${name} rc=${rc}"
   fi
   return 0
 }
@@ -52,6 +50,9 @@ for delegate in \
   classify-task-mode.sh \
   nudge-thinking-os.sh \
   nudge-graph-os.sh \
+  nudge-model-routing.sh \
+  nudge-git-mode.sh \
+  nudge-reentry.sh \
   nudge-task-discovery.sh \
   nudge-docs-first.sh \
   auto-compose-roles.sh \
@@ -59,4 +60,14 @@ for delegate in \
   run_delegate "$delegate"
 done
 
-exit 0
+MERGER="$HOOK_DIR/codex-merge-hook-output.py"
+if [[ ! -f "$MERGER" ]]; then
+  SCRIPT_SOURCE="${BASH_SOURCE[0]}"
+  while [[ -L "$SCRIPT_SOURCE" ]]; do
+    SOURCE_DIR="$(cd -P "$(dirname "$SCRIPT_SOURCE")" && pwd)"
+    SCRIPT_SOURCE="$(readlink "$SCRIPT_SOURCE")"
+    [[ "$SCRIPT_SOURCE" != /* ]] && SCRIPT_SOURCE="$SOURCE_DIR/$SCRIPT_SOURCE"
+  done
+  MERGER="$(cd -P "$(dirname "$SCRIPT_SOURCE")" && pwd)/codex-merge-hook-output.py"
+fi
+python3 "$MERGER" UserPromptSubmit "${OUTPUTS[@]}"

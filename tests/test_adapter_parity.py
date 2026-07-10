@@ -36,30 +36,6 @@ CODEX_COMPATIBLE_MATCHERS = {"Bash", ""}
 # Explicit whitelist of hooks that are legitimately Claude-only. Add
 # with a comment explaining why (usually a platform limit).
 CLAUDE_ONLY_WHITELIST: set[str] = {
-    # The 3-layer intent-enforcement hooks deliver their entire effect
-    # via stdout JSON (additionalContext / {"decision":"block"}) with
-    # exit 0. Codex's coalescing dispatchers (codex-userpromptsubmit-
-    # dispatch.sh, codex-stop-dispatch.sh) route delegate stdout to
-    # /dev/null — so wiring these as Codex delegates would run them as
-    # no-ops. Effective Codex support needs the dispatchers to forward
-    # delegate stdout — tracked in
-    "detect-exhaustive-intent.sh",
-    "verify-completion-claim.sh",
-    "prevent-premature-done.sh",
-    # Same stdout-forwarding constraint: the model-routing nudge delivers
-    # its directive purely via additionalContext stdout (TASK-319) — dead
-    # weight as a Codex delegate until the dispatchers forward stdout.
-    "nudge-model-routing.sh",
-    # Same as model-routing: the pr-mode nudge delivers its directive purely
-    # via additionalContext stdout (TASK-615) — dead weight as a Codex
-    # delegate until the dispatchers forward delegate stdout.
-    "nudge-git-mode.sh",
-    # Same stdout-forwarding constraint: the re-entry nudge (TASK-666) delivers
-    # its whole effect via UserPromptSubmit additionalContext stdout, and its
-    # only side effect is a debounce marker — useless without the surfaced
-    # nudge. Dead weight as a Codex delegate until the dispatchers forward
-    # delegate stdout.
-    "nudge-reentry.sh",
     # Work-log append hooks are Claude-only: Codex lacks reliable PostToolUse
     # delivery and records work/commits via explicit cos_work_log_append
     # (AGENTS.md). The git post-commit hook (TASK-175) still covers Codex

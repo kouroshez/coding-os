@@ -62,6 +62,111 @@ def test_render_for_adapter_replaces_group_with_dispatcher() -> None:
     assert hooks[0]["statusMessage"] == "dispatch"
 
 
+def test_dispatcher_removes_delegates_from_overlapping_composite_matchers() -> None:
+    registry = [
+        HookEntry(
+            id="remind-daily",
+            script="remind-daily.sh",
+            description="x",
+            category="reminder",
+            phase="0",
+            events=[{"event": "SessionStart", "matcher": "resume"}],
+        ),
+        HookEntry(
+            id="pr-reap",
+            script="pr-reap.sh",
+            description="x",
+            category="meta",
+            phase="0",
+            events=[{"event": "SessionStart", "matcher": "startup|resume"}],
+        ),
+    ]
+    delegates = ["remind-daily.sh", "pr-reap.sh"]
+    caps = AdapterCapabilities(
+        agent_id="codex",
+        by_event={"SessionStart": ["startup", "compact|resume"]},
+        dispatchers={
+            ("SessionStart", "startup"): {
+                "script": "codex-sessionstart-dispatch.sh",
+                "delegates": delegates,
+            },
+            ("SessionStart", "compact|resume"): {
+                "script": "codex-sessionstart-dispatch.sh",
+                "delegates": delegates,
+            },
+        },
+    )
+
+    groups = render_for_adapter(registry, caps)["hooks"]["SessionStart"]
+
+    assert [group["matcher"] for group in groups] == ["startup", "compact|resume"]
+    assert all(
+        group["hooks"][0]["command"].endswith("/codex-sessionstart-dispatch.sh")
+        for group in groups
+    )
+
+
+def test_dispatcher_keeps_same_script_on_non_overlapping_matcher() -> None:
+    registry = [
+        HookEntry(
+            id="sync-task-current",
+            script="sync-task-current.sh",
+            description="x",
+            category="task",
+            phase="0",
+            events=[
+                {"event": "PostToolUse", "matcher": "Bash"},
+                {"event": "PostToolUse", "matcher": "mcp__coding-os__cos_task_move"},
+            ],
+        )
+    ]
+    caps = AdapterCapabilities(
+        agent_id="codex",
+        by_event={"PostToolUse": ["Bash", "mcp__coding-os__cos_task_move"]},
+        dispatchers={
+            ("PostToolUse", "Bash"): {
+                "script": "codex-posttool-dispatch.sh",
+                "delegates": ["sync-task-current.sh"],
+            }
+        },
+    )
+
+    groups = render_for_adapter(registry, caps)["hooks"]["PostToolUse"]
+
+    mcp_group = next(
+        group for group in groups if group["matcher"] == "mcp__coding-os__cos_task_move"
+    )
+    assert mcp_group["hooks"][0]["command"].endswith("/sync-task-current.sh")
+
+
+def test_dispatcher_does_not_drop_partially_covered_composite_matcher() -> None:
+    registry = [
+        HookEntry(
+            id="recover",
+            script="recover.sh",
+            description="x",
+            category="task",
+            phase="0",
+            events=[{"event": "SessionStart", "matcher": "startup|resume"}],
+        )
+    ]
+    caps = AdapterCapabilities(
+        agent_id="codex",
+        by_event={"SessionStart": ["startup", "resume"]},
+        dispatchers={
+            ("SessionStart", "startup"): {
+                "script": "startup-dispatch.sh",
+                "delegates": ["recover.sh"],
+            }
+        },
+    )
+
+    groups = render_for_adapter(registry, caps)["hooks"]["SessionStart"]
+
+    composite = next(group for group in groups if group["matcher"] == "startup|resume")
+    assert composite["hooks"][0]["command"].endswith("/recover.sh")
+
+
 def test_render_for_adapter_records_parity_deficit_not_silent_drop() -> None:
     # A Write|Edit enforce gate a Bash-only adapter cannot fire must surface as
     # a parity deficit, not vanish silently (N1) — and never leak into the

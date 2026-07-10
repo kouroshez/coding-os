@@ -147,7 +147,7 @@ Every adapter dispatcher MUST:
 6. Forward `model`; surface unsupported budget, context, tool, or turn controls instead of silently dropping them.
 7. Never retry on another backend after a provider turn may have started; duplicate execution is worse than a visible error.
 
-The Codex CLI backend additionally MUST use the current non-interactive surface (`codex exec`), write the prompt to stdin, parse JSONL events, and run formula output in a read-only sandbox with approvals disabled. The optional Python SDK is beta and selected explicitly until its schema stays compatible with the stable CLI.
+The Codex CLI backend additionally MUST use the current non-interactive surface (`codex exec`), write the prompt to stdin, parse JSONL events, and run formula output in a read-only sandbox with approvals disabled. Formula dispatch ignores user configuration, disables hooks, and clears MCP servers so host customizations cannot recurse into or mutate a supervised sub-run. The optional Python SDK is beta and selected explicitly until its schema stays compatible with the stable CLI.
 
 ## Adding a new adapter dispatcher
 

@@ -59,11 +59,20 @@
     },
     "cli_binary": {
       "type": "string",
-      "description": "Executable name discoverable on PATH for this agent (e.g. \"claude\"). Consumed by src/cli/doctor.py::_probe_claude_sdk so that file stays free of hardcoded adapter literals (rule #11). Optional — defaults to the adapter id when missing."
+      "description": "Executable name discoverable on PATH for this agent (e.g. \"claude\"). Consumed by src/cli/doctor.py::_probe_agent_sdk so that file stays free of hardcoded adapter literals (rule #11). Optional — defaults to the adapter id when missing."
     },
     "sdk_package": {
       "type": "string",
       "description": "Importable Python package whose installed version doctor reports for this adapter (e.g. \"claude-agent-sdk\"). Empty string = no SDK to probe."
+    },
+    "sdk_optional_extra": {
+      "type": ["string", "null"],
+      "description": "Optional-dependency group that installs sdk_package. When set, a missing SDK is a warning because the adapter may retain a CLI fallback."
+    },
+    "auth_env_vars": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Provider authentication environment variables reported by the generic SDK doctor. CLI-managed login may also be valid."
     },
     "default_settings": {
       "type": "object",

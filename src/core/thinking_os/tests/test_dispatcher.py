@@ -289,6 +289,25 @@ def _import_codex_sdk_dispatcher_module():
     return module
 
 
+def _codex_jsonl(payload: dict) -> str:
+    import json
+
+    return "\n".join(
+        [
+            json.dumps(
+                {
+                    "type": "item.completed",
+                    "item": {
+                        "type": "agent_message",
+                        "text": f"```json\n{json.dumps(payload)}\n```",
+                    },
+                }
+            ),
+            json.dumps({"type": "turn.completed", "usage": {"input_tokens": 10}}),
+        ]
+    )
+
+
 def test_codex_sdk_dispatcher_name():
     mod = _import_codex_sdk_dispatcher_module()
     d = mod.CodexSDKDispatcher()
@@ -334,7 +353,6 @@ def test_codex_sdk_dispatcher_error_when_unavailable(monkeypatch, tmp_path):
 
 
 def test_codex_sdk_dispatcher_mocked_success(monkeypatch, tmp_path):
-    """Mock subprocess.run to simulate a successful codex run."""
     import shutil
     import subprocess
 
@@ -342,14 +360,19 @@ def test_codex_sdk_dispatcher_mocked_success(monkeypatch, tmp_path):
     mod = _import_codex_sdk_dispatcher_module()
     d = mod.CodexSDKDispatcher()
 
-    fake_output = '```json\n{"summary": "done", "risks": []}\n```'
+    captured: dict = {}
 
     class FakeResult:
         returncode = 0
-        stdout = fake_output
+        stdout = _codex_jsonl({"summary": "done", "risks": []})
         stderr = ""
 
-    monkeypatch.setattr(subprocess, "run", lambda *a, **kw: FakeResult())
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["kwargs"] = kwargs
+        return FakeResult()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
 
     agent_file = tmp_path / "F2_test.md"
     agent_file.write_text("---\nid: F2\n---\n\nTest formula.")
@@ -364,6 +387,16 @@ def test_codex_sdk_dispatcher_mocked_success(monkeypatch, tmp_path):
     assert result.output_json.get("summary") == "done"
     assert result.dispatcher_name == "codex-sdk"
     assert result.latency_ms >= 0
+    assert captured["cmd"][:4] == ["/usr/bin/codex", "--ask-for-approval", "never", "exec"]
+    assert "--json" in captured["cmd"]
+    assert "--ephemeral" in captured["cmd"]
+    assert "--ignore-user-config" in captured["cmd"]
+    assert captured["cmd"][captured["cmd"].index("--disable") + 1] == "hooks"
+    config_at = captured["cmd"].index("--config")
+    assert captured["cmd"][config_at + 1] == "mcp_servers={}"
+    assert captured["cmd"][-1] == "-"
+    assert "analyse" in captured["kwargs"]["input"]
+    assert '"task": "review"' in captured["kwargs"]["input"]
 
 
 def test_codex_sdk_dispatcher_mocked_timeout(monkeypatch, tmp_path):
@@ -391,7 +424,6 @@ def test_codex_sdk_dispatcher_mocked_timeout(monkeypatch, tmp_path):
 
 
 def test_codex_sdk_dispatcher_nonzero_rc(monkeypatch, tmp_path):
-    """Non-zero return code → error result."""
     import shutil
     import subprocess
 
@@ -412,6 +444,193 @@ def test_codex_sdk_dispatcher_nonzero_rc(monkeypatch, tmp_path):
     result = asyncio.run(d.dispatch(req))
     assert result.status == "error"
     assert "rc=1" in (result.error or "")
+
+
+def test_codex_sdk_dispatcher_surfaces_jsonl_failure(monkeypatch, tmp_path):
+    import json
+    import shutil
+    import subprocess
+
+    monkeypatch.setattr(shutil, "which", lambda _: "/usr/bin/codex")
+    mod = _import_codex_sdk_dispatcher_module()
+
+    class FakeResult:
+        returncode = 1
+        stdout = json.dumps(
+            {"type": "turn.failed", "error": {"message": "provider usage exhausted"}}
+        )
+        stderr = ""
+
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: FakeResult())
+    agent_file = tmp_path / "F_provider_error.md"
+    agent_file.write_text("---\nid: F\n---\n\nReturn JSON.")
+    result = asyncio.run(
+        mod.CodexSDKDispatcher().dispatch(
+            DispatchRequest(formula_id="reviewer", agent_file=str(agent_file), prompt="review")
+        )
+    )
+    assert result.status == "error"
+    assert result.error == "provider usage exhausted"
+
+
+def test_codex_sdk_dispatcher_rejects_missing_json(monkeypatch, tmp_path):
+    import json
+    import shutil
+    import subprocess
+
+    monkeypatch.setattr(shutil, "which", lambda _: "/usr/bin/codex")
+    mod = _import_codex_sdk_dispatcher_module()
+    dispatcher = mod.CodexSDKDispatcher()
+
+    class FakeResult:
+        returncode = 0
+        stdout = json.dumps(
+            {
+                "type": "item.completed",
+                "item": {"type": "agent_message", "text": "no structured result"},
+            }
+        )
+        stderr = ""
+
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: FakeResult())
+    agent_file = tmp_path / "F_missing_json.md"
+    agent_file.write_text("---\nid: F\n---\n\nReturn JSON.")
+    result = asyncio.run(
+        dispatcher.dispatch(
+            DispatchRequest(formula_id="reviewer", agent_file=str(agent_file), prompt="review")
+        )
+    )
+    assert result.status == "error"
+    assert "no usable EvidenceBundle JSON" in (result.error or "")
+
+
+def test_codex_sdk_dispatcher_rejects_unenforceable_budget(monkeypatch, tmp_path):
+    import shutil
+    import subprocess
+
+    monkeypatch.setattr(shutil, "which", lambda _: "/usr/bin/codex")
+    called = False
+
+    def fake_run(*args, **kwargs):
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    mod = _import_codex_sdk_dispatcher_module()
+    agent_file = tmp_path / "F_budget.md"
+    agent_file.write_text("---\nid: F\n---\n\nReturn JSON.")
+    result = asyncio.run(
+        mod.CodexSDKDispatcher().dispatch(
+            DispatchRequest(
+                formula_id="reviewer",
+                agent_file=str(agent_file),
+                prompt="review",
+                max_budget_usd=0.25,
+            )
+        )
+    )
+    assert result.status == "error"
+    assert "cannot enforce" in (result.error or "")
+    assert called is False
+
+
+def test_codex_sdk_dispatcher_forwards_output_schema(monkeypatch, tmp_path):
+    import json
+    import shutil
+    import subprocess
+
+    monkeypatch.setattr(shutil, "which", lambda _: "/usr/bin/codex")
+    captured: dict = {}
+
+    class FakeResult:
+        returncode = 0
+        stdout = _codex_jsonl({"summary": "done"})
+        stderr = ""
+
+    def fake_run(cmd, **kwargs):
+        schema_path = Path(cmd[cmd.index("--output-schema") + 1])
+        captured["schema"] = json.loads(schema_path.read_text())
+        return FakeResult()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    mod = _import_codex_sdk_dispatcher_module()
+    agent_file = tmp_path / "F_schema.md"
+    agent_file.write_text(
+        "---\nid: F\nstructured_output: true\n"
+        "output_schema: cognition.ReviewerOutput\n---\n\nReturn JSON."
+    )
+    result = asyncio.run(
+        mod.CodexSDKDispatcher().dispatch(
+            DispatchRequest(formula_id="reviewer", agent_file=str(agent_file), prompt="review")
+        )
+    )
+    assert result.status == "ok"
+    assert captured["schema"]["type"] == "object"
+
+
+def test_codex_python_sdk_backend(monkeypatch, tmp_path):
+    import shutil
+    import sys
+    import types
+
+    monkeypatch.setenv("COS_CODEX_DISPATCH_BACKEND", "python-sdk")
+    monkeypatch.setattr(shutil, "which", lambda _: "/usr/bin/codex")
+    captured: dict = {}
+    fake_module = types.ModuleType("openai_codex")
+
+    class FakeConfig:
+        def __init__(self, **kwargs):
+            captured["config"] = kwargs
+
+    class FakeCodex:
+        def __init__(self, config):
+            captured["client_config"] = config
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def thread_start(self, **kwargs):
+            captured["thread"] = kwargs
+            return FakeThread()
+
+    class FakeThread:
+        async def run(self, prompt, **kwargs):
+            captured["prompt"] = prompt
+            captured["run"] = kwargs
+            return types.SimpleNamespace(
+                status="completed",
+                error=None,
+                items=[],
+                usage=None,
+                final_response='```json\n{"summary": "sdk"}\n```',
+            )
+
+    fake_module.ApprovalMode = types.SimpleNamespace(deny_all="deny_all")
+    fake_module.Sandbox = types.SimpleNamespace(read_only="read_only")
+    fake_module.AsyncCodex = FakeCodex
+    fake_module.CodexConfig = FakeConfig
+    monkeypatch.setitem(sys.modules, "openai_codex", fake_module)
+
+    mod = _import_codex_sdk_dispatcher_module()
+    agent_file = tmp_path / "F_sdk.md"
+    agent_file.write_text("---\nid: F\n---\n\nReturn JSON.")
+    result = asyncio.run(
+        mod.CodexSDKDispatcher().dispatch(
+            DispatchRequest(formula_id="reviewer", agent_file=str(agent_file), prompt="review")
+        )
+    )
+    assert result.status == "ok"
+    assert result.output_json == {"summary": "sdk"}
+    assert captured["config"]["codex_bin"] == "/usr/bin/codex"
+    assert captured["config"]["config_overrides"] == (
+        "features.hooks=false",
+        "mcp_servers={}",
+    )
+    assert captured["thread"]["approval_mode"] == "deny_all"
+    assert captured["thread"]["sandbox"] == "read_only"
 
 
 # ---------------------------------------------------------------------------
@@ -605,11 +824,12 @@ def _codex_dispatch_argv(monkeypatch, tmp_path, model):
 
     class FakeResult:
         returncode = 0
-        stdout = '{"answer": 1}'
+        stdout = _codex_jsonl({"answer": 1})
         stderr = ""
 
     def fake_run(cmd, **kwargs):
         captured["cmd"] = cmd
+        captured["input"] = kwargs["input"]
         return FakeResult()
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -620,16 +840,18 @@ def _codex_dispatch_argv(monkeypatch, tmp_path, model):
         formula_id="documenter", agent_file=str(agent_file), prompt="go", model=model
     )
     asyncio.run(dispatcher.dispatch(req))
-    return captured["cmd"]
+    return captured
 
 
 def test_codex_forwards_model_flag(monkeypatch, tmp_path):
-    cmd = _codex_dispatch_argv(monkeypatch, tmp_path, model="gpt-5-codex")
+    captured = _codex_dispatch_argv(monkeypatch, tmp_path, model="gpt-5-codex")
+    cmd = captured["cmd"]
     flag_at = cmd.index("--model")
     assert cmd[flag_at + 1] == "gpt-5-codex"
-    assert cmd[-1].startswith("---") or len(cmd[-1]) > 20  # prompt stays last
+    assert cmd[-1] == "-"
+    assert "Model forward formula" in captured["input"]
 
 
 def test_codex_omits_model_flag_when_unset(monkeypatch, tmp_path):
-    cmd = _codex_dispatch_argv(monkeypatch, tmp_path, model=None)
-    assert "--model" not in cmd
+    captured = _codex_dispatch_argv(monkeypatch, tmp_path, model=None)
+    assert "--model" not in captured["cmd"]

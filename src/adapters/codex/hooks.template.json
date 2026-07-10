@@ -9,6 +9,48 @@
             "command": "{{HOOKS_DIR}}/codex-pretool-dispatch.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/codex-preedit-dispatch.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_task_move",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/inject-mcp-caller-session.sh",
+            "statusMessage": "🪪 Attributing task move to this panel...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_task_create",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/inject-mcp-caller-session.sh",
+            "statusMessage": "🪪 Attributing task create to this panel...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_work_log_append",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/inject-mcp-caller-session.sh",
+            "statusMessage": "🪪 Attributing work-log to this panel...",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -18,6 +60,37 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/codex-posttool-dispatch.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/codex-postedit-dispatch.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_task_move",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/sync-task-current.sh",
+            "statusMessage": "📌 Syncing .task-current...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_backtrack_log",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/track-backtrack.sh",
+            "statusMessage": "↩️ Backtrack counter updated...",
+            "timeout": 5
           }
         ]
       }
@@ -34,7 +107,7 @@
         ]
       },
       {
-        "matcher": "resume",
+        "matcher": "compact|resume",
         "hooks": [
           {
             "type": "command",
@@ -44,13 +117,12 @@
         ]
       },
       {
-        "matcher": "startup|resume",
+        "matcher": "clear",
         "hooks": [
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/pr-reap.sh",
-            "statusMessage": "🌳 pr-mode: reaping orphaned worktrees...",
-            "timeout": 10
+            "command": "{{HOOKS_DIR}}/codex-sessionstart-dispatch.sh",
+            "statusMessage": "Loading clean session context..."
           }
         ]
       }
@@ -75,6 +147,30 @@
             "command": "{{HOOKS_DIR}}/codex-stop-dispatch.sh",
             "statusMessage": "📝 Finalizing session recap + memory enrichment...",
             "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 5
           }
         ]
       }

@@ -128,6 +128,10 @@ if [[ -d "${CODING_OS_ROOT}/adapters/${ADAPTER}/hooks" ]]; then
     fi
     ln -sf "$hook" "${PROJECT_ROOT}/${AGENT_DIR}/hooks/${name}"
   done
+  for helper in "${CODING_OS_ROOT}/adapters/${ADAPTER}/hooks/"*.py; do
+    name=$(basename "$helper")
+    ln -sf "$helper" "${PROJECT_ROOT}/${AGENT_DIR}/hooks/${name}"
+  done
 fi
 
 # ---------------------------------------------------------------------------

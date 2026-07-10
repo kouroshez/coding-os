@@ -126,6 +126,10 @@ web = []
 # `uv sync --extra claude-sdk` continue to work via this alias.
 claude-sdk = []
 
+codex-sdk = [
+    "openai-codex>=0.1.0b3,<0.2.0",
+]
+
 [project.scripts]
 cos = "cli.main:cli"
 coding-os = "cli.main:cli"

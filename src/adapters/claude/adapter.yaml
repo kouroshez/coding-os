@@ -76,6 +76,7 @@ install_script: install.sh
 # version doctor reports.
 cli_binary: claude
 sdk_package: claude-agent-sdk
+auth_env_vars: [ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN]
 
 # Env vars the Claude Code runtime exports to hook subprocesses / the CLI
 # shell.  Consumed by cli/board_commands.py::_detect_agent_runtime so the

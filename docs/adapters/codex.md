@@ -18,7 +18,7 @@ The following was verified on 2026-07-10 against package registries, the install
 |---|---|---|---|
 | Codex CLI | installed `0.144.1` | stable `0.144.1` | Primary production backend. No upgrade needed. |
 | TypeScript Codex SDK | not a repo dependency | `@openai/codex-sdk` `0.144.1` | Do not add a Node-to-Python bridge. The SDK itself wraps `codex exec` and JSONL. |
-| Python Codex SDK | not yet a repo dependency | `openai-codex` `0.1.0b3` | Optional beta backend only; never replace the stable CLI automatically. |
+| Python Codex SDK | optional `codex-sdk` extra | `openai-codex` `0.1.0b3` | Optional beta backend only; never replace the stable CLI automatically. |
 | Generic Python OpenAI SDK | not a repo dependency | `openai` `2.45.0` | Do not add it for Codex dispatch. It is an API client, not the Codex thread runtime. |
 | Claude Agent SDK | locked `0.2.110` | `0.2.115` | Comparison baseline only; a Claude patch refresh is independent of Codex parity. |
 
@@ -57,10 +57,12 @@ The current exception is Hub chat: `src/core/web/routes/cognition.py` imports `c
 The stable CLI backend runs one ephemeral, read-only formula turn:
 
 ```text
-codex exec --json --ephemeral --sandbox read-only --ask-for-approval never -
+codex --ask-for-approval never exec --ignore-user-config --disable hooks --config 'mcp_servers={}' --json --ephemeral --sandbox read-only -
 ```
 
 `request.model` adds `--model <id>`. The composed prompt is written to stdin, avoiding command-line length limits and process-list exposure. The adapter parses JSONL and takes the last completed `agent_message` as the final response. It then extracts the EvidenceBundle JSON block into `DispatchResult.output_json`.
+
+User configuration is ignored and formula hooks plus MCP servers are disabled for the sub-run. This prevents recursive lifecycle hooks and removes external mutation paths that a read-only filesystem sandbox cannot constrain. Roles that opt into structured output pass their Pydantic schema through CLI `--output-schema` or SDK `output_schema`.
 
 The former invocation, `codex --no-interactive --json <prompt>`, is not valid on current Codex. Non-interactive execution is the `exec` subcommand, and `--no-interactive` is not a current flag.
 
@@ -72,7 +74,7 @@ The optional Python SDK backend uses `AsyncCodex` with:
 - `thread.run()` for one turn;
 - an outer timeout owned by the adapter.
 
-No Codex backend currently enforces `max_budget_usd`. A request that supplies it must surface an explicit warning; silently dropping it violates the dispatcher contract.
+No Codex backend currently enforces `max_budget_usd`. A request that supplies it fails before dispatch; silently dropping a financial ceiling violates the dispatcher contract.
 
 ## Capability Matrix
 
@@ -85,14 +87,14 @@ Parity means equivalent kernel outcomes, not identical provider APIs.
 | Slash-command Markdown | `.claude/commands` | Codex custom prompts are deprecated; skills are the supported replacement | degraded, migrate to skills |
 | MCP client | stdio/HTTP through Claude config | stdio/HTTP through `.codex/config.toml` | native |
 | Formula dispatch | Claude Agent SDK | stable CLI plus optional Python SDK | implemented by adapter |
-| Structured output | SDK output format | CLI `--output-schema` / SDK output schema | native, adapter currently extracts EvidenceBundle JSON |
+| Structured output | SDK output format | CLI `--output-schema` / SDK output schema | native and wired |
 | Session continuation | SDK resume | CLI `exec resume` / SDK thread resume | native, not required by one-turn formula dispatch |
 | Sandbox | SDK permissions and tools | `read-only`, `workspace-write`, `danger-full-access` | native |
-| Per-tool allowlist | SDK `allowed_tools`/`disallowed_tools` | no equivalent Python SDK argument | degraded; sandbox + hooks + MCP policy |
+| Per-tool allowlist | SDK `allowed_tools`/`disallowed_tools` | no equivalent Python SDK argument | degraded; formula runs narrow to read-only with MCP disabled |
 | Pre/Post Bash hooks | native | native | parity |
-| Pre/Post file-edit hooks | `Write`/`Edit` payload | `apply_patch`, alias-matched as `Edit`, patch in `tool_input.command` | adapter translation required |
+| Pre/Post file-edit hooks | `Write`/`Edit` payload | `apply_patch`, alias-matched as `Edit`, patch in `tool_input.command` | adapter translation implemented |
 | MCP tool hooks | native matchers | native MCP tool-name matchers | parity |
-| Prompt context injection | `UserPromptSubmit` output | `UserPromptSubmit.additionalContext` | parity when dispatcher forwards output |
+| Prompt context injection | `UserPromptSubmit` output | `UserPromptSubmit.additionalContext` | parity |
 | Compact lifecycle | SessionStart compact plus SDK hooks | SessionStart compact, PreCompact, PostCompact | Codex has the required events |
 | Subagent lifecycle | start/stop | start/stop | parity for shared events |
 | Tool-failure hook | `PostToolUseFailure` | no matching Codex event | impossible today; observe error items instead |
@@ -144,7 +146,7 @@ Adding a directory is easy. Shipping an adapter that preserves safety, lifecycle
 
 ## Delivery Plan
 
-### Phase A - Current Adapter Closure
+### Phase A - Current Adapter Closure (completed 2026-07-10)
 
 - Correct the stable CLI dispatcher and JSONL parsing.
 - Add the latest Python SDK as an optional beta extra, with explicit backend selection and active-binary override.

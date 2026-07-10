@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Codex Stop dispatcher: sequence end-of-session hooks without invalid stdout.
 set -euo pipefail
 
 HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -9,64 +8,65 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then
 fi
 
 INPUT=$(cat)
+if command -v cos_panel_upgrade_from_payload >/dev/null 2>&1; then
+  cos_panel_upgrade_from_payload "$INPUT" >/dev/null 2>&1 || true
+fi
 cos_log_hook codex-stop-dispatch fire
+
+WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-stop.XXXXXX")"
+trap 'rm -rf "$WORK_DIR"' EXIT
+OUTPUTS=()
+RUN_INDEX=0
 
 delegate_path() {
   local delegate="$1"
   if [[ -f "$HOOK_DIR/$delegate" ]]; then
-    echo "$HOOK_DIR/$delegate"
+    printf '%s\n' "$HOOK_DIR/$delegate"
   else
-    echo "$HOOK_DIR/../../../core/hooks/$delegate"
+    printf '%s\n' "$HOOK_DIR/../../../core/hooks/$delegate"
   fi
 }
 
 run_delegate() {
   local delegate="$1"
   local stdout_file stderr_file rc
-  stdout_file=$(mktemp "${TMPDIR:-/tmp}/codex-stop-out.XXXXXX")
-  stderr_file=$(mktemp "${TMPDIR:-/tmp}/codex-stop-err.XXXXXX")
+  RUN_INDEX=$((RUN_INDEX + 1))
+  stdout_file="$WORK_DIR/$RUN_INDEX.out"
+  stderr_file="$WORK_DIR/$RUN_INDEX.err"
 
   set +e
   bash "$(delegate_path "$delegate")" <<< "$INPUT" >"$stdout_file" 2>"$stderr_file"
   rc=$?
   set -e
 
-  if [[ "$rc" -eq 0 ]]; then
-    if [[ -s "$stdout_file" ]]; then
-      cos_log_hook codex-stop-dispatch warn "delegate=${delegate} dropped_stdout=true"
-    fi
-    if [[ -s "$stderr_file" ]]; then
-      cat "$stderr_file" >&2
-    fi
-    rm -f "$stdout_file" "$stderr_file"
-    return 0
-  fi
+  [[ -s "$stdout_file" ]] && OUTPUTS+=("$stdout_file")
   if [[ -s "$stderr_file" ]]; then
     cat "$stderr_file" >&2
   fi
+  if [[ "$rc" -eq 0 ]]; then
+    return 0
+  fi
   if [[ "$rc" -eq 2 ]]; then
     cos_log_hook codex-stop-dispatch block "delegate=${delegate}"
-    rm -f "$stdout_file" "$stderr_file"
     exit 2
   fi
 
   cos_log_hook codex-stop-dispatch warn "delegate=${delegate} rc=${rc}"
-  rm -f "$stdout_file" "$stderr_file"
   return 0
 }
 
-# Set MUST match adapter.yaml::hook_dispatchers[Stop].delegates (asserted by
-# tests/test_adapter_parity.py). verify-completion-claim +
-# prevent-premature-done are intentionally ABSENT: they emit their effect via
-# exit-0 stdout JSON ({"decision":"block"} / additionalContext) which this
-# dispatcher drops, so wiring them would be silent no-ops. Forwarding that
-# stdout is its own scoped task — until then they stay Claude-only.
 for delegate in session-end.sh warn-abandoned-task.sh nudge-learn-narrative.sh check-capture-worked.sh auto-trace-rotate.sh snapshot-transcript.sh drain-embedding-outbox.sh agent-presence.sh; do
   run_delegate "$delegate"
 done
 
-# Stop hooks in Codex currently expect JSON on stdout when exiting 0.
-# An empty object means "success, no continuation requested".
-printf '{}\n'
-
-exit 0
+MERGER="$HOOK_DIR/codex-merge-hook-output.py"
+if [[ ! -f "$MERGER" ]]; then
+  SCRIPT_SOURCE="${BASH_SOURCE[0]}"
+  while [[ -L "$SCRIPT_SOURCE" ]]; do
+    SOURCE_DIR="$(cd -P "$(dirname "$SCRIPT_SOURCE")" && pwd)"
+    SCRIPT_SOURCE="$(readlink "$SCRIPT_SOURCE")"
+    [[ "$SCRIPT_SOURCE" != /* ]] && SCRIPT_SOURCE="$SOURCE_DIR/$SCRIPT_SOURCE"
+  done
+  MERGER="$(cd -P "$(dirname "$SCRIPT_SOURCE")" && pwd)/codex-merge-hook-output.py"
+fi
+python3 "$MERGER" Stop "${OUTPUTS[@]}"
