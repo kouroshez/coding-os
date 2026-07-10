@@ -1,26 +1,25 @@
-<!-- domain:CORE | layer:engineering | ssot:false | updated:2026-05-08 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-07-10 -->
 # Dispatcher Contract
 
-Purpose: TODO — one-line statement of why 'Dispatcher Contract' exists.
-Read when: TODO — concrete trigger that sends an agent here.
-Skip when: TODO — when another doc is the right choice instead.
-Read next: TODO — 1-3 follow-up doc links.
+Purpose: Define the provider-neutral request/result protocol and the adapter-owned execution responsibilities for formula agents.
+Read when: changing `DispatchRequest`, `DispatchResult`, an adapter dispatcher, or cross-adapter routing.
+Skip when: changing an interactive provider UI that never invokes formula dispatch.
+Read next: [Codex adapter](../adapters/codex.md), [Claude SDK](../adapters/claude-sdk.md), [adapter parity](adapter-parity.md).
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
-> **Source of truth.** When this doc and the code disagree, the code wins —
-> open a PR to update this doc, then merge.
+> **Source of truth.** Update this contract before extending dispatcher behavior. A disagreement is drift to repair, not permission for the code to redefine the contract silently.
 
 ## Purpose
 
 Formula agents (F1..F11) need to run **somewhere**. The runtime is different
 per agent CLI:
 
-| Agent  | Spawn channel                              | SDK kind             |
-|--------|--------------------------------------------|----------------------|
-| Claude | `claude-agent-sdk.query()` (in-process)    | Python library       |
-| Codex  | `codex --no-interactive --json` subprocess | CLI binary           |
-| any    | `DefaultDispatcher` (DB-only fallback)     | n/a — inline only    |
+| Agent  | Spawn channel | SDK kind |
+|--------|---------------|----------|
+| Claude | `claude-agent-sdk.query()` | required Python library |
+| Codex  | default `codex exec --json`; optional `openai-codex` app-server | stable CLI plus opt-in beta Python SDK |
+| any    | `DefaultDispatcher` (DB-only fallback) | n/a - inline only |
 
 The contract here is the **agent-agnostic shape** every dispatcher must
 satisfy so the supervisor (`cos_supervise`, `cos_dispatch_formula`) does not
@@ -48,6 +47,7 @@ class DispatchRequest(BaseModel):
     max_budget_usd: float | None
     long_context: bool
     adapter: str | None        # target-runtime HINT (e.g. "codex"); see below
+    max_turns: int | None      # adapter-owned cap when the runtime supports it
 
 class DispatchResult(BaseModel):
     formula_id: str
@@ -82,7 +82,7 @@ class AgentDispatcher(Protocol):
 
 ```
 ┌──────────────────────────────────────────┐
-│ src/core/thinking_os/dispatcher.py           │   agent-agnostic
+│ src/core/thinking_os/dispatcher.py       │   agent-agnostic
 │   • DispatchRequest / DispatchResult     │
 │   • AgentDispatcher Protocol             │
 │   • get_dispatcher() factory             │
@@ -93,13 +93,12 @@ class AgentDispatcher(Protocol):
                   │ importlib (path-based; no static link)
    ┌──────────────┼───────────────────────────┐
    ▼              ▼                            ▼
-src/adapters/     adapters/      src/core/thinking_os/
-claude/       codex/             dispatchers/
-sdk_dispatcher.py                default.py
-   │              │                            │
-   ▼              ▼                            ▼
-claude-agent-sdk  codex CLI            DB-only fallback
-(in-proc)         (subprocess)         (skipped)
+src/adapters/claude/  src/adapters/codex/  src/core/thinking_os/dispatchers/
+sdk_dispatcher.py     sdk_dispatcher.py    default.py
+   │                     │                   │
+   ▼                     ▼                   ▼
+claude-agent-sdk     codex CLI default     DB-only fallback
+                     Python SDK opt-in     (skipped)
 ```
 
 **Why three implementations and not one:** the SDKs are different runtimes,
@@ -145,6 +144,10 @@ Every adapter dispatcher MUST:
 4. Return `status="error"` (not raise) on FileNotFoundError, SDK import
    failure, subprocess rc≠0, parse failure, etc.
 5. Set `dispatcher_name` to the same string as `self.name`.
+6. Forward `model`; surface unsupported budget, context, tool, or turn controls instead of silently dropping them.
+7. Never retry on another backend after a provider turn may have started; duplicate execution is worse than a visible error.
+
+The Codex CLI backend additionally MUST use the current non-interactive surface (`codex exec`), write the prompt to stdin, parse JSONL events, and run formula output in a read-only sandbox with approvals disabled. The optional Python SDK is beta and selected explicitly until its schema stays compatible with the stable CLI.
 
 ## Adding a new adapter dispatcher
 
@@ -161,5 +164,5 @@ Every adapter dispatcher MUST:
 | File                                              | What it covers                          |
 |---------------------------------------------------|-----------------------------------------|
 | `src/core/thinking_os/tests/test_dispatcher.py`       | Protocol shape, factory, default path   |
-| `tests/test_codex_dispatchers.py`                 | Codex subprocess path                   |
+| `src/core/thinking_os/tests/test_dispatcher.py`   | Codex CLI/SDK paths and request parity  |
 | `tests/test_adapter_parity.py`                    | Hook + dispatcher parity across agents  |
