@@ -5,7 +5,7 @@ swimlane: adapters
 kind: feature
 epic: null
 labels: [codex, adapter, openai-sdk, parity, research, ready]
-status: in_progress
+status: testing
 priority: P1
 appetite: 3d
 created: 2026-07-10
@@ -42,3 +42,5 @@ references: []
 
 ## Work Log
 - 2026-07-10 [codex]: Baseline audit: CLI 0.144.1 equals npm stable; TS SDK 0.144.1 wraps CLI; Python SDK latest is 0.1.0b3 beta and pins…
+- 2026-07-10 [codex]: committed 3aca2b27 · 2 files
+- 2026-07-10 [codex]: Implemented commit c0e18705: stable codex exec JSONL dispatcher, optional openai-codex 0.1.0b3 backend using system…
