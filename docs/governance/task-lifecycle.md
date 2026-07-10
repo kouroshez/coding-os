@@ -11,7 +11,7 @@
 ## SSOT and Mirrors
 
 - `docs/tasks/TASK-###-slug.md` — **canonical detail file**. One per active or completed task. File frontmatter and body are the source of truth.
-- `src/core/board_os/db.py` (table `tasks`) — **derived mirror**. Mtime-incremental sync from the detail files; never edited by hand.
+- the `tasks` table in `.coding-os/coding-os.db` (schema: `src/core/thinking_os/database.py` migrations) — **derived mirror**. Mtime-incremental sync from the detail files; never edited by hand.
 - `cos board` / `cos board --web` — **live view** rendered from the DB.
 
 There is no flat `docs/tasks.md` index. Status is read from frontmatter, not from a top-level checkbox file.
@@ -87,7 +87,7 @@ Optional sections:
 | `swimlane` | yes | agent-defined; common: `infra`, `frontend`, `docs`, `research` |
 | `kind` | yes | one of `feature · bug · chore · spike · docs · refactor · test · security` |
 | `status` | yes | `icebox · in_progress · testing · blocked · complete · emergency · archive` |
-| `priority` | yes | `P1 · P2 · P3` |
+| `priority` | yes | `P0 · P1 · P2 · P3` |
 | `appetite` | yes | shape-up budget, e.g. `30m · 2h · 1d · 2w` |
 | `epic`, `labels` | no | grouping helpers |
 | `depends_on`, `blocked_by` | no | task IDs |

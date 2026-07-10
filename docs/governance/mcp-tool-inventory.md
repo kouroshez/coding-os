@@ -10,7 +10,7 @@ Read next: The domain playbook matching your task type.
 
 ## Runtime Snapshot
 
-- Verified on `2026-05-25`
+- Verified on `2026-07-09`
 - Standard runtime must match this doc before it is treated as available truth
 - Agent checks available tools via its session's deferred tool list
 
@@ -32,10 +32,11 @@ Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.
   - `cos_graph_cycles` = circular dependencies as strongly-connected components (scope=imports module-level design smell | calls)
   - `cos_graph_test_gap` = prod function/method/class with zero inbound edge from a test source (untested symbols)
   - `cos_graph_diff` = graph blast-radius of a git revision range (base..head → changed files → affected symbols + downstream)
-- **Board / Tasks (19):** `cos_task_board`, `cos_task_show`, `cos_task_create`, `cos_task_move`, `cos_task_ready`, `cos_task_reclaim`, `cos_task_reconcile`, `cos_task_pick`, `cos_task_claim_next` (atomic select+claim — N racing sessions each get a distinct runnable task or `claimed:null`), `cos_task_search`, `cos_task_by_filter`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_wip_check`, `cos_task_daily`, `cos_task_retro`, `cos_task_reposition`, `cos_work_log_append`, `cos_task_link` (set the optional `external_ref` forge issue/PR link — metadata, not the id)
+- **Board / Tasks (22):** `cos_task_board`, `cos_task_show`, `cos_task_create`, `cos_task_move`, `cos_task_ready`, `cos_task_reclaim`, `cos_task_reconcile`, `cos_task_pick`, `cos_task_claim_next` (atomic select+claim — N racing sessions each get a distinct runnable task or `claimed:null`), `cos_task_search`, `cos_task_by_filter`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_wip_check`, `cos_task_daily`, `cos_task_retro`, `cos_task_reposition`, `cos_task_edit` (attributed field/body edit), `cos_task_history` (merged actor-attributed timeline), `cos_work_log_append`, `cos_task_link` (set the optional `external_ref` forge issue/PR link — metadata, not the id), `cos_presence_query` (active agent sessions from presence files)
 - **Cognition (5):** `cos_supervise`, `cos_supervise_record_output`, `cos_dispatch_formula`, `cos_dispatch_formula_run`, `cos_dispatch_parallel_run`
-- **Analysis (4):** `cos_analyze_task`, `cos_ambiguity_check`, `cos_backtrack_log`, `cos_discovery`
+- **Analysis (5):** `cos_analyze_task`, `cos_ambiguity_check`, `cos_backtrack_log`, `cos_discovery`, `cos_failure_pattern_query` (aggregated backtrack root-cause anatomy)
 - **Logs (1):** `cos_log_query` — durable WARN+ error store query (level floor / scope glob / since / search / session / fingerprint); the agent's "what is broken now"
+- **Trajectory (2):** `cos_trajectory_snapshot`, `cos_trajectory_read` — per-session project phase/focus/decisions persistence feeding SessionStart enrichment
 - **Misc (3):** `cos_traceability`, `cos_takeover`, `cos_digest_regenerate`
 
 ## Recommended External MCPs

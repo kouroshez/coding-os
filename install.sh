@@ -20,7 +20,7 @@
 #   COS_REPO_URL   Git URL to clone when run outside a checkout.
 set -euo pipefail
 
-REPO_URL="${COS_REPO_URL:-https://github.com/coding-os/coding-os.git}"
+REPO_URL="${COS_REPO_URL:-https://github.com/kouroshez/coding-os.git}"
 HUB_PORT="${COS_HUB_PORT:-9188}"
 HUB_HOST="127.0.0.1"
 

@@ -18,7 +18,7 @@
 
 - [Docs-First Protocol](governance/docs-first-protocol.md) — **read before any code edit** · SSOT direction enforced by Rule 0 + 19
 - [Docs System](governance/docs-system.md) — frontmatter, layers, lifecycle
-- [Critical Rules](governance/critical-rules.md) — full text + rationale (Rules 0–21)
+- [Critical Rules](governance/critical-rules.md) — full text + rationale (Rules 0–26)
 - [Agent Workflow](governance/agent-workflow.md) — domain routing, Scrumban task protocol
 - [Task Lifecycle](governance/task-lifecycle.md)
 - [Anatomy Contract](governance/anatomy-contract.md)

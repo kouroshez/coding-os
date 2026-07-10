@@ -42,7 +42,7 @@ to `conduct@coding-os.dev`.
 | Add an agent adapter               | See `docs/playbooks/adapter-authoring.md`       |
 | Add a hook                         | See `docs/playbooks/hook-authoring.md`          |
 | Add an MCP tool                    | See `docs/playbooks/mcp-tool-authoring.md`      |
-| Just say hello / ask a question    | Open a [Discussion](https://github.com/kouroshebra/coding-os/discussions) |
+| Just say hello / ask a question    | Open a [Discussion](https://github.com/kouroshez/coding-os/discussions) |
 
 ## Development Setup
 
@@ -61,7 +61,7 @@ server defined in `.mcp.json`.
 ### Option A — native install (recommended for daily work)
 
 ```bash
-git clone https://github.com/kouroshebra/coding-os.git
+git clone https://github.com/kouroshez/coding-os.git
 cd coding-os
 uv tool install --editable .          # installs the `cos` CLI globally
 uv sync --extra rag                   # installs Python deps incl. semantic search
@@ -112,7 +112,7 @@ The repo ships a production-shaped `Dockerfile` + `docker-compose.yml`
 that bake the Hub into a single non-root container on port 9188.
 
 ```bash
-git clone https://github.com/kouroshebra/coding-os.git
+git clone https://github.com/kouroshez/coding-os.git
 cd coding-os
 docker compose up                     # → http://127.0.0.1:9188
 ```

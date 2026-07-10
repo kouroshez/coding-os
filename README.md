@@ -30,7 +30,7 @@ Linux: replace `brew install …` with your distro's package manager
 
 ```bash
 # 1. Install the `cos` CLI globally
-git clone https://github.com/kouroshebra/coding-os.git
+git clone https://github.com/kouroshez/coding-os.git
 cd coding-os
 uv tool install --editable .
 
@@ -560,7 +560,7 @@ CI runs the matrix on every PR. See `.github/workflows/ci.yml`.
 | Hub rejects the meta-repo checkout with `sits inside … already a coding-os project` | A stray `.coding-os/` exists higher up (e.g. `~/.coding-os/` from a test run) — fixed 2026-05-23: only **registered** ancestors block | Update + restart Hub: `git pull && cos hub stop && cos hub start`. If still blocking, the ancestor is genuinely registered: `cos registry remove <ancestor-path>` |
 
 Still stuck? Run `cos doctor --verbose` and open a
-[discussion](https://github.com/kouroshebra/coding-os/discussions)
+[discussion](https://github.com/kouroshez/coding-os/discussions)
 with the output attached.
 
 ## Support / Community
@@ -568,11 +568,11 @@ with the output attached.
 If coding-os saves you time, a star helps others find it. These links also
 live in the Hub footer (never inside the new-project Composer).
 
-- ★ Star / follow on GitHub: <https://github.com/kouroshebra/coding-os>
+- ★ Star / follow on GitHub: <https://github.com/kouroshez/coding-os>
 - Sponsor (GitHub Sponsors): <https://github.com/sponsors/kouroshebra> <!-- TODO(TASK-372): verify Sponsors enabled -->
 - Buy Me a Coffee: <https://www.buymeacoffee.com/TODO-handle> <!-- TODO(TASK-372): real handle pending -->
 - Support via crypto: wallet address pending <!-- TODO(TASK-372) -->
-- Questions / ideas: <https://github.com/kouroshebra/coding-os/discussions>
+- Questions / ideas: <https://github.com/kouroshez/coding-os/discussions>
 
 ## License
 
