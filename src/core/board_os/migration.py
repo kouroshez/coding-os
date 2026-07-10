@@ -29,14 +29,6 @@ from board_os.parser import ParsedTask, is_lean_format, parse_task
 logger = logging.getLogger("coding_os.board_os.migration")
 
 
-_LEGACY_STATUS_MAP = {
-    "open": "ready",
-    "wip": "in_progress",
-    "done": "complete",
-    "blocked": "blocked",
-}
-
-
 @dataclass
 class MigrationReport:
     scanned: int = 0

@@ -322,7 +322,10 @@ def _render_lean_frontmatter(fields: dict) -> str:
             if not val:
                 lines.append(f"{key}: []")
             else:
-                inner = ", ".join(str(v) for v in val)
+                inner = ", ".join(
+                    _format_yaml_scalar_token(v) if isinstance(v, str) else str(v)
+                    for v in val
+                )
                 lines.append(f"{key}: [{inner}]")
         elif isinstance(val, str):
             # Route every string scalar through the shared YAML-safe quoter so a

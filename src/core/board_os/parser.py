@@ -39,14 +39,6 @@ _OUTCOME_RE = re.compile(
     re.DOTALL,
 )
 
-_LEGACY_STATUS_MAP = {
-    "open": "ready",
-    "wip": "in_progress",
-    "done": "complete",
-    "blocked": "blocked",
-}
-
-
 @dataclass(frozen=True)
 class ParsedTask:
     task_id: str
@@ -312,8 +304,8 @@ def _parse_legacy_fallback(content: str, source_str: str | None) -> ParsedTask |
         swimlane=(getattr(result, "domain", None) or "").lower() or "",
         kind="",
         epic=None,
-        labels=(),
-        status="ready",
+        labels=("ready",),
+        status="icebox",
         priority="P2",
         appetite="1d",
         depends_on=deps,
