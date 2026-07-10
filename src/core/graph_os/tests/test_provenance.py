@@ -54,16 +54,31 @@ class TestExtractorMapping:
             ("code_ts@v1", "regex"),
             ("code_ts_ts@v1", "tree-sitter"),
             ("code_go@v1", "regex"),
+            ("code_go@v2", "tree-sitter"),
             ("code_go_ts@v1", "tree-sitter"),
             ("code_shell@v1", "regex"),
+            ("code_shell@v2", "tree-sitter"),
             ("code_yaml@v1", "parser"),
+            ("code_json@v1", "parser"),
+            ("code_toml@v1", "parser"),
+            ("code_generic@v1", "tree-sitter"),
             ("contracts@v1", "regex"),
             ("md_links@v1", "parser"),
             ("task_deps@v1", "parser"),
+            ("groups.cross_repo@v1", "text-search"),
         ],
     )
     def test_known_ids(self, extractor_id: str, expected: str):
         assert provenance_for(extractor_id) == expected
+
+    def test_every_registered_extractor_has_provenance(self):
+        from graph_os.extractors import registered_extractor_ids
+
+        registered = registered_extractor_ids()
+        if not registered:
+            pytest.skip("extractor registry unavailable (import failure)")
+        unmapped = {ext for ext in registered if provenance_for(ext) == "unknown"}
+        assert not unmapped, f"live extractors missing from _EXTRACTOR_PROVENANCE: {sorted(unmapped)}"
 
     def test_every_mapping_in_closed_vocabulary(self):
         # No registry entry may emit a value outside PROVENANCE_VALUES.

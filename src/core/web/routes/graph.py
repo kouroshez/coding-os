@@ -241,21 +241,26 @@ def graph_export(
     else:
         ek = [k.strip() for k in exclude_kinds.split(",") if k.strip()]
 
-    # Signature-based cache: the key is (max(graph_nodes.updated_at),
+    # Signature-based cache: the key is (node/edge freshness signature,
     # query params). A re-index bumps the signature so callers never
     # see stale data; identical repeat requests (Graph-tab depth toggle,
     # view-mode tab swap) hit the cache and return in ~1 ms instead of
     # paying the 200-900 ms producer cost. Bypasses cleanly when the
     # signature can't be computed (DB down etc.).
     def _signature() -> int:
-        # Cheap (<1 ms) probe — covers the only mutation paths that
-        # matter for export shape: node + edge counts and the latest
-        # node updated_at. Re-index bumps all three.
+        # Cheap (<1 ms) probe — covers the mutation paths that matter for
+        # export shape: node/edge counts and both latest updated_at values,
+        # so an edge-only re-resolution also bumps the signature.
         from thinking_os.database import get_pooled_conn, resolve_db_path
 
         conn = get_pooled_conn(resolve_db_path())
-        cur = conn.execute("SELECT COALESCE(MAX(updated_at), 0) FROM graph_nodes")
-        return int(cur.fetchone()[0])
+        cur = conn.execute(
+            "SELECT COALESCE(MAX(updated_at), 0), COUNT(*),"
+            " (SELECT COALESCE(MAX(updated_at), 0) FROM graph_edges_v12),"
+            " (SELECT COUNT(*) FROM graph_edges_v12)"
+            " FROM graph_nodes"
+        )
+        return hash(tuple(int(v) for v in cur.fetchone()))
 
     cache_key = (
         format,

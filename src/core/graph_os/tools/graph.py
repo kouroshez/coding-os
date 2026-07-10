@@ -1,4 +1,4 @@
-"""graph_os — the 17 cos_graph_* MCP tools (I.8).
+"""graph_os — the cos_graph_* MCP tool implementations.
 
 DEPENDS:  graph_os.types, graph_os.backend, graph_os.backends.*.
 """
@@ -1157,7 +1157,7 @@ def _bulk_nodes(backend: GraphBackend, uids: Sequence[str]) -> dict[str, GraphNo
 
 
 # ---------------------------------------------------------------------------
-# The 17 tools
+# The tools
 # ---------------------------------------------------------------------------
 
 
