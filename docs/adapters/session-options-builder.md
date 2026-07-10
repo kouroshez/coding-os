@@ -1,10 +1,4 @@
----
-title: Claude Session-Options Builder
-domain: INFRA
-layer: reference
-updated: 2026-07-01
----
-
+<!-- domain:INFRA | layer:reference | ssot:true | updated:2026-07-10 -->
 # Claude Session-Options Builder (SSOT)
 
 > **Purpose:** One function — `claude_session_options(profile, …)` in
@@ -61,10 +55,22 @@ caller-supplied — see [claude-sdk.md](claude-sdk.md)).
 
 ## Layering (P4 / P8)
 
-The builder lives in the adapter (it owns the `claude_agent_sdk`
-import). Core/web loads it via the existing dynamic adapter-load seam
-(the `thinking_os.dispatcher` importlib pattern), so `src/core/**`
-never imports `claude_agent_sdk` directly.
+The builder lives in the adapter (it owns SDK **construction**). Core/web
+loads it via the existing dynamic adapter-load seam (the
+`thinking_os.dispatcher` importlib pattern), so `src/core/**` never
+constructs `ClaudeAgentOptions` — that is the enforced P8 boundary
+(guard: `tests/test_no_hardcoded_anthropic.py::test_no_claude_agent_options_construction_in_core`).
+
+Three lazy, fail-soft `claude_agent_sdk` imports remain in core/web as a
+documented carve-out — each degrades to a typed `unavailable` envelope or
+a non-SDK fallback when the SDK is absent, and none constructs SDK types:
+
+- `src/core/web/routes/cognition.py::_claude_sdk` — chat/transcript module access.
+- `src/core/web/routes/presence.py::_latest_claude_chat_uuid` — transcript project-key helper.
+- `src/core/web/routes/roles.py::_dispatch_available` — dispatch capability probe.
+
+Moving these behind the seam is deliberately deferred (Rule 22 — no
+speculation): it pays only when a second adapter ships a chat runtime.
 
 ## Anti-recurrence
 
