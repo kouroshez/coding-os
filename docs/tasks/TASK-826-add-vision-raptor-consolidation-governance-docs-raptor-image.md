@@ -30,3 +30,4 @@ references: []
 - 2026-07-16 [claude]: Edit raptor-consolidation.md
 - 2026-07-16 [claude]: Edit vision.md
 - 2026-07-16 [claude]: Created docs/governance/vision.md (product vision + operator contract: challenge-me, adversarial self-review) and…
+- 2026-07-16 [claude]: committed 4b5b8b41 · 4 files
