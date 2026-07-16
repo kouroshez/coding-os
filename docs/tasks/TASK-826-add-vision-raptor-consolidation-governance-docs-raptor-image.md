@@ -5,12 +5,12 @@ swimlane: docs
 kind: docs
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-16
 started: 2026-07-16
-completed: null
+completed: 2026-07-16
 agent_session: ses-claude-20260716-180747-21b8
 depends_on: []
 blocked_by: []
@@ -31,3 +31,5 @@ references: []
 - 2026-07-16 [claude]: Edit vision.md
 - 2026-07-16 [claude]: Created docs/governance/vision.md (product vision + operator contract: challenge-me, adversarial self-review) and…
 - 2026-07-16 [claude]: committed 4b5b8b41 · 4 files
+- 2026-07-16 [claude]: committed 86256599 · 2 files
+- 2026-07-16 [claude]: Status transitioned to complete via cos task-done.

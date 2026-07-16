@@ -24,7 +24,7 @@ commands drive the board; hooks enforce the discipline.
     ```
 
     Shows yesterday's progress, today's candidate tasks, blockers, and WIP status.
-    (Slash-command equivalent: `/daily`.)
+    (Also available as a slash command — see the Commands section below.)
 
 2. **Pick or create a task**
 

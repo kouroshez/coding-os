@@ -1,69 +1,33 @@
 # Test Discipline (Always Active)
 
-> **Hard rule:** Run only the Verification Matrix command for what changed. Never `pytest tests/ -q` mid-task — the `test-governor` hook BLOCKs it without an audited override.
+> **Hard rule:** Run only the Verification-Matrix command for what changed (SSOT: **AGENTS.md § Verification Matrix** — deliberately not duplicated here). Never `pytest tests/` mid-task — the `test-governor` hook BLOCKs it without an audited override. The suite is ~4,850 tests / ~28 min wall-clock; a full sweep melts a laptop running concurrent sessions. Measurements + spec: [test-governance.md](../../docs/engineering/test-governance.md). If one file matches two matrix rows, run both — still cheaper than a sweep.
 
-The suite is ~4,850 test functions across 327 files; the matrix suites alone sum to ~28 min wall-clock, so a full sweep mid-task melts a laptop running concurrent sessions. Measurements + spec: [test-governance.md](../../docs/engineering/test-governance.md).
+## Enforcement + the verify ledger
 
-## Enforcement + the verify ledger (no longer convention-only)
-
-Three mechanisms back this rule (spec: [test-governance.md](../../docs/engineering/test-governance.md)):
-
-1. **Dedup** — suite runs auto-record to `$COS_STATE_DIR/.last-verify.json` (keyed on git_head + dirty_digest). Re-running a suite already green on the same tree within TTL is BLOCKed; force with `COS_TEST_FORCE=1 <command>`.
-2. **Run lock** — one heavy pytest run per machine (`$COS_STATE_DIR/.test-run.lock`, TTL + liveness); a concurrent attempt is BLOCKed naming the holder.
-3. **Full-sweep gate** — bare `pytest`, `pytest tests/`, or ≥3 test roots is BLOCKed unless `COS_FULL_SWEEP_OK=1 COS_OVERRIDE_REASON='...≥15 chars'` (audited). Prefix heavy runs with `nice -n 19`.
-
-A tree change auto-invalidates recorded passes. Slow-marked tests (314: `test_background.py`, scaffold sandboxes) run via `make test-slow` pre-merge, not mid-task.
-
-## Match changed files → command (single source: AGENTS.md Verification Matrix)
-
-| Changed | Command |
-|---|---|
-| `src/core/thinking_os/**.py` | `uv run --extra rag pytest src/core/thinking_os/tests/ -q -m 'not slow'` |
-| `src/core/thinking_os/database.py` | `uv run --extra rag pytest src/core/thinking_os/tests/test_db.py -q` |
-| `src/core/graph_os/**` | `uv run --extra graph_os pytest src/core/graph_os/tests/ -q` |
-| `src/core/board_os/**` | `uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q` |
-| `src/core/hooks/*.sh` | `make verify-hooks` |
-| `src/adapters/**` | `uv run pytest tests/test_adapters.py tests/test_adapter_parity.py -q` |
-| `src/cli/*.py` | `uv run pytest tests/test_cli.py -q` |
-| `src/templates/**/scaffold/**` | `uv run pytest tests/test_template_scaffold.py -q` |
-| `docs/**/*.md` | `make docs-lint` |
-
-If a single file affects two rows, run both — still cheaper than full sweep.
+1. **Dedup** — suite passes auto-record to `$COS_STATE_DIR/.last-verify.json` (keyed on git_head + dirty digest); re-running a suite already green on the same tree is BLOCKed — force with `COS_TEST_FORCE=1`. A tree change auto-invalidates.
+2. **Run lock** — one heavy pytest per machine (`$COS_STATE_DIR/.test-run.lock`, TTL + liveness); a concurrent attempt is BLOCKed naming the holder.
+3. **Full-sweep gate** — bare `pytest`, `pytest tests/`, or ≥3 test roots BLOCKed unless `COS_FULL_SWEEP_OK=1 COS_OVERRIDE_REASON='...≥15 chars'` (audited). Prefix heavy runs with `nice -n 19`. Slow-marked tests (314) run pre-merge via `make test-slow`, not mid-task.
 
 ## Run the deliverable, not just its proxy (Critical Rule 26)
 
-The matrix maps a changed file to a **pytest** suite. For a runnable artifact — a standalone script, a `cos`/`make` command, an installed entrypoint (`[project.scripts]`) — a green suite proves the *units* import under the test harness, **not** that the delivered executable runs. The two paths differ: `pytest` puts the package on `sys.path`; `python path/to/script.py` does not, so an import that passes under test still crashes as `ModuleNotFoundError` when the script is run directly (the `nightly.py` incident).
+A green pytest suite proves the *units* import under the harness — **not** that the delivered executable runs: `pytest` puts the package on `sys.path`; `python path/to/script.py` does not, so an import that passes under test still crashes as `ModuleNotFoundError` when run directly (the `nightly.py` incident). Before `cos task-move --to testing` and before handing the user any command or claiming a behaviour:
 
-Before `cos task-move --to testing`, and before you hand the user a command or claim a behaviour:
+- **Smoke-run the artifact end-to-end** — `--help`, `--dry-run`, or a real invocation, from the same entry the user/cron uses. Reading the code is not verification; `--slug` vs `--project` is settled by running `--help`, never by reading the parameter name.
+- **A command you paste to the user is a claim** — only paste one you executed this session.
+- **New runnable entrypoint → add a smoke test** to its suite (`--help` or `python -c "import <module>"` via subprocess) so `enforce-verify.sh` covers the executable path, not just the units.
 
-- **Smoke-run the artifact you built** end-to-end — `--help`, `--dry-run`, or a real invocation — from the same entry the user/cron uses. Reading the code (a click flag, an import path) is not a substitute; `--slug` vs `--project` is settled by running `--help`, never by reading the parameter name.
-- **A command you paste to the user is a claim.** Only paste one you executed this session.
-- **New runnable entrypoint → add a smoke test** to its suite (`--help`, or `python -c "import <module>"` via `subprocess`), so `enforce-verify.sh` — which only knows pytest/make suites — actually covers the executable path, not just the units.
+Runtime sibling of [api-contract-discipline.md](api-contract-discipline.md): don't guess a *behaviour* contract — verify by executing.
 
-This is the runtime-contract sibling of [api-contract-discipline.md](api-contract-discipline.md) (don't guess a *data* contract — verify against the producer): don't guess a *behaviour* contract — verify by executing.
+## Test cadence — the matrix says *which*, this says *when*
 
-## Single-test targeting
+1. **During dev → ONE targeted test:** `pytest path/to/test.py::TestClass::test_name -v`; re-run the file only after the named test goes green. Re-running a ledger-green suite "to be sure" is the anti-pattern, not the safe choice.
+2. **At task close → the matrix suite ONCE,** right before `cos task-move --to testing`; the ledger dedups it for the next agent on the same tree.
+3. **Heavy suite (>~60s) → background it** (`run_in_background`) and keep reading/diffing/writing — never idle-wait. Don't start a second pytest until the first exits (run lock names you as the concurrent holder). Batch heavy suites across sibling tasks: park one in `testing`, finish a sibling, run once for the batch.
+4. **docs-lint → once at close** (the ledger excludes `docs/tasks/` churn — per-message lint is pure latency), or when a non-task `.md` actually changes.
 
-When debugging one failure: `pytest path/to/test_file.py::TestClass::test_name -v`. Resist the urge to "just run the file" until the named test passes. Re-run the file only after the targeted test goes green.
+## Full sweep is allowed only for
 
-## Test cadence — *when* to run what (the matrix says *which*, not *when*)
-
-So a task doesn't drown in re-runs or idle-wait on test output:
-
-1. **During dev → one targeted test.** Iterate with `pytest path::Class::test` (see *Single-test targeting* above), not the whole file/suite per edit. Re-running a suite the ledger already shows green "to be sure" is the anti-pattern, not the safe choice.
-2. **At task close → the matrix suite ONCE.** Run the Verification-Matrix command for what changed exactly once, right before `cos task-move --to testing`; the verify-ledger then dedups it for the next agent on the same tree.
-3. **Heavy suite (>~60s) → background it, never idle-wait.** Launch with `Bash` `run_in_background`, then keep reading / diffing / writing the next unit of work — the agent must not sit blocked on test output. **Caveat:** after backgrounding, do read/diff/write only — do **not** start a second `pytest` until the first exits, or the `test-governor` run-lock BLOCKs it as a concurrent holder (one heavy run per host). The background run re-notifies you on exit; act on the result then.
-4. **docs-lint → at close, not per-message.** Work-log churn touches `docs/tasks/**` every turn, but the verify-ledger already excludes `docs/tasks/` from its freshness digest — so a per-message `make docs-lint` is pure latency that changes no outcome. Lint once at task close, or when you actually edit a non-task `.md`.
-
-Batch heavy suites across tasks where you can: park one in `testing`, finish a sibling, run the heavy suite once for the batch — don't pay the scaffold cost per task.
-
-## When full sweep IS allowed
-
-- Pre-merge / pre-release final gate
-- Cross-cutting refactor that touched ≥3 verification-matrix rows
-- User explicitly asked: "run all tests"
-
-In those cases say so out loud before launching ("Running full sweep — expect ~30 min") and run it with the audited override under `nice`:
+Pre-merge / pre-release final gate · a cross-cutting refactor touching ≥3 matrix rows · explicit user ask ("run all tests"). Say so out loud first ("Running full sweep — expect ~30 min"), then:
 
 ```bash
 COS_FULL_SWEEP_OK=1 COS_OVERRIDE_REASON='pre-merge final gate' nice -n 19 uv run pytest tests/ -q
@@ -71,11 +35,4 @@ COS_FULL_SWEEP_OK=1 COS_OVERRIDE_REASON='pre-merge final gate' nice -n 19 uv run
 
 ## Before writing any test/script/function/feature
 
-P1 SSOT — check existing first (`cos_graph_context`/`cos_search` for code, `cos_doc_search` for spec, grep/find for the symbol). Found it? Reuse. See [anti-overengineering.md](anti-overengineering.md) § Reuse-First.
-
-## Anti-patterns (do not)
-
-- `pytest tests/` after every edit
-- `pytest tests/test_cli.py tests/test_adapters.py tests/test_persona_integration.py` "just to be safe"
-- Per-file timing sweeps to "see what's slow" — read this file instead
-- Re-running a green test "to make sure"
+P1 reuse-first: check `cos_graph_context`/`cos_search` (code), `cos_doc_search` (spec), grep (literal) — found it → reuse ([anti-overengineering.md](anti-overengineering.md) § Reuse-First).

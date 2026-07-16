@@ -60,13 +60,22 @@ INPUT="$(cos_read_stdin_bounded 2)"
 
 # Parse all four payload fields in ONE jq spawn (was four separate jq calls,
 # each a ~30ms process startup; this hook fires on EVERY tool call + lifecycle
-# event). Tab-separated so a missing field stays an empty column. jq -r on an
-# array with @tsv keeps null → "".
+# event). Empty fields carry a sentinel: bash `read` treats TAB as whitespace
+# IFS, so consecutive tabs COLLAPSE and a missing .model silently shifted
+# every later column left (sdk_uuid ended up holding the transcript path,
+# killing the sid→chat bridge). The sentinel keeps columns positional.
+_PRES_EMPTY="__COS_EMPTY__"
 _PRES_FIELDS=""
 if [[ -n "$INPUT" ]]; then
-  _PRES_FIELDS=$(printf '%s' "$INPUT" | jq -r '[.hook_event_name, .model, .session_id, .transcript_path] | map(. // "") | @tsv' 2>/dev/null || true)
+  _PRES_FIELDS=$(printf '%s' "$INPUT" | jq -r --arg e "$_PRES_EMPTY" \
+    '[.hook_event_name, .model, .session_id, .transcript_path] | map(if . == null or . == "" then $e else . end) | @tsv' \
+    2>/dev/null || true)
 fi
 IFS=$'\t' read -r EVENT_RAW HOOK_MODEL HOOK_SDK_UUID HOOK_TRANSCRIPT <<< "$_PRES_FIELDS"
+[[ "$EVENT_RAW" == "$_PRES_EMPTY" ]] && EVENT_RAW=""
+[[ "$HOOK_MODEL" == "$_PRES_EMPTY" ]] && HOOK_MODEL=""
+[[ "$HOOK_SDK_UUID" == "$_PRES_EMPTY" ]] && HOOK_SDK_UUID=""
+[[ "$HOOK_TRANSCRIPT" == "$_PRES_EMPTY" ]] && HOOK_TRANSCRIPT=""
 
 # Derive the logical event.  Prefer the explicit hook_event_name field
 # Claude Code sends; fall back to `$1` so the script stays testable

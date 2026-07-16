@@ -1,5 +1,7 @@
 # Memory Policy
 
+> **Scope — `memory` module.** Active only when the `memory` subsystem is enabled. With it disabled, this policy is inert and the `cos_search` / `cos_observation_record` / `cos_learn_*` tools it references are gated (`module_disabled`); a lean profile unlinks this file entirely (defense-in-depth: the rule stays honest even in the mid-toggle window).
+>
 > Canonical layering SSOT (the *why*): [docs/governance/wrapper-derivation.md](../../docs/governance/wrapper-derivation.md). This rule is the operational policy.
 
 ## The Four Layers (mandatory mental model)
