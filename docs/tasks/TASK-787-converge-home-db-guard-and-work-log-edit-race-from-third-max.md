@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-04
 started: 2026-07-04
-completed: null
+completed: 2026-07-04
 agent_session: ses-claude-20260703-210450-473d
 depends_on: []
 blocked_by: []
@@ -45,3 +45,5 @@ Third max-effort /code-review of 955678c4+ca567ef1 found: database.py init_db gu
 - 2026-07-04 [claude]: Edit test_mcp_tools.py
 - 2026-07-04 [claude]: Edit test_mcp_tools.py
 - 2026-07-04 [claude]: Third max-effort review converged the $HOME guard + Work Log edit (prior two rounds oscillated). RESTORED…
+- 2026-07-05 [claude]: committed cee1116c · 6 files
+- 2026-07-05 [claude]: Status transitioned to complete via cos task-done.

@@ -5,7 +5,7 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [cognition, embeddings, enterprise, offline, privacy, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-07

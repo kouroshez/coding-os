@@ -5,7 +5,7 @@ swimlane: core
 kind: refactor
 epic: graph-coverage-hardening
 labels: [ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-09
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-295: Align graph tombstone contract with hard-delete reality (no node-deletion ledger)
 
 **Outcome (one sentence):** The graph-os-authoring skill claimed removed symbols are tombstoned (deleted_at, 90d compaction) but delete_nodes_for_file hard-deletes with no deleted_at column; for a HEAD-of-tree code graph hard-delete is correct, so align the docs to reality with a written rationale and keep the deletion trail proportionate.

@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: retrieval-routing-fix
 labels: [routing, hooks, agent-confusion, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-09

@@ -5,7 +5,7 @@ swimlane: docs
 kind: feature
 epic: doc-system-v2
 labels: [taxonomy, lint, doc-system]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-04

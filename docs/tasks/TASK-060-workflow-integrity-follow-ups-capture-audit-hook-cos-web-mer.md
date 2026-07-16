@@ -5,7 +5,7 @@ swimlane: core
 kind: chore
 epic: workflow-integrity
 labels: [cleanup, hooks, documentation]
-status: complete
+status: archive
 priority: P3
 appetite: "1d"
 created: 2026-06-02

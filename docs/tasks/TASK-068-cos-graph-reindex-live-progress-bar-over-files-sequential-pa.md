@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [graph_os, cli, ux]
-status: complete
+status: archive
 priority: P3
 appetite: "2h"
 created: 2026-06-04

@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: ui-design-system
 labels: [ui, dark-mode, contrast, a11y, board, ready]
-status: complete
+status: archive
 priority: P0
 appetite: "1d"
 created: 2026-06-05

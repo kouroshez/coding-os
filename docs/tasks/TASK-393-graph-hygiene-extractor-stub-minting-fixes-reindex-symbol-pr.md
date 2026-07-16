@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [graph-os, hygiene, doctor, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-11
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-393: Graph hygiene — extractor stub-minting fixes, reindex symbol prune, one-time orphan cleanup
 
 **Outcome (one sentence):** cos_graph_doctor reports healthy=true (only info-severity categories remain): task_deps no longer mints doc:file stubs from bare names/URLs/junk, md_links drops nonexistent .md targets, incremental reindex prunes nodes for symbols removed from a file, and the 33 legacy orphans (golden leftovers, deleted TSX symbols, stale headings, phantom modules, CLAUDE.md symlink) are purged without re-minting on the next reindex.

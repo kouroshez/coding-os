@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-05
 started: 2026-07-04
-completed: null
+completed: 2026-07-04
 agent_session: ses-claude-20260704-210156-0ee9
 depends_on: []
 blocked_by: []
@@ -52,3 +52,4 @@ capture.py:_build_narrative is rule-based 'free, instant, no API'; live DB has 4
 - 2026-07-05 [claude]: Edit test_capture.py
 - 2026-07-05 [claude]: Edit memory.py
 - 2026-07-05 [claude]: capture.py: memory_type='changelog' unconditional + session-wide content_hash dedup + removed dead…
+- 2026-07-05 [claude]: committed be361e0a · 4 files

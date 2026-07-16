@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [graph-os, doctor, hygiene, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 4h
 created: 2026-06-12
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-405: System doctor covers graph-backend verdict + extractor stops minting expression-shaped identifier stubs
 
 **Outcome (one sentence):** `cos doctor` is whole-system: a new graph.backend_health check surfaces the cos_graph_doctor verdict (healthy flag, real issue categories+counts, fix hint) so Backend-tab problems can never hide from the system doctor; and code_python stops minting identifier stubs whose label is an expression rather than an identifier (spaces/quotes — 956 rows today), with the existing dead-stub GC clearing the legacy rows.

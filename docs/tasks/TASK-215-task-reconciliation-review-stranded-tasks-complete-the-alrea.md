@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: task-lifecycle-integrity
 labels: [workflow-integrity, board, lifecycle, reconciliation, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-06

@@ -5,7 +5,7 @@ swimlane: "board_os"
 kind: chore
 epic: null
 labels: [ready]
-status: complete
+status: archive
 priority: P2
 appetite: 2h
 created: 2026-06-10

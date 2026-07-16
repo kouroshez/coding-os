@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [graph-os, doctor, hub, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 2h
 created: 2026-06-11
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-396: Doctor: slowest_extractions surfaces only above budget floor + hub serves stale doctor code
 
 **Outcome (one sentence):** Hub Doctor Backend tab shows ISSUES=0 after a clean build: slowest_extractions appears in issues[] only when the top duration exceeds the 500ms budget floor (always available as stats.slowest_extraction_ms), duration telemetry is refreshed by a clean sequential run instead of the lock-contended parallel run, and the long-lived hub process is restarted so it serves the new issue_count semantics instead of stale code.

@@ -5,7 +5,7 @@ swimlane: "thinking_os"
 kind: feature
 epic: G-modularity
 labels: [wave-3, onboarding-program, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 2d
 created: 2026-06-11

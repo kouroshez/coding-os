@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: E-skills
 labels: [backlog, onboarding-program, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 2d
 created: 2026-06-11

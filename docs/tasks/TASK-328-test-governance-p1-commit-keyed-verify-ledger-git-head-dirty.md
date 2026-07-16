@@ -5,7 +5,7 @@ swimlane: "board_os"
 kind: feature
 epic: test-governance
 labels: [test-governance, ledger, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-10

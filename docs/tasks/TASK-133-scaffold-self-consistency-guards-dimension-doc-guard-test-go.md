@@ -5,7 +5,7 @@ swimlane: templates
 kind: bug
 epic: doc-system
 labels: [docs-system, templates, multi-stack, audit-d2-f1, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-05

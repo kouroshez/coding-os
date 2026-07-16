@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [board_os, doctor, coherence, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-16

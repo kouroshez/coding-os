@@ -5,7 +5,7 @@ swimlane: core
 kind: test
 epic: test-governance
 labels: [test-governance, performance, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-10

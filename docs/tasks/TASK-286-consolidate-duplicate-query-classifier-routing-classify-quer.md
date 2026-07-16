@@ -5,7 +5,7 @@ swimlane: "thinking_os"
 kind: refactor
 epic: retrieval-routing-fix
 labels: [routing, drift, ssot, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-09

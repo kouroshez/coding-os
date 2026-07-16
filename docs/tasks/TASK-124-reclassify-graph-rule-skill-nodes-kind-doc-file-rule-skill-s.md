@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: bug
 epic: doc-system
 labels: [docs-system, graph, rag, audit-d3-f5, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-05

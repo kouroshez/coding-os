@@ -5,7 +5,7 @@ swimlane: infra
 kind: security
 epic: observability-eye
 labels: [observability, hooks, fail-closed, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-05

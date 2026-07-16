@@ -5,7 +5,7 @@ swimlane: "thinking_os"
 kind: feature
 epic: enterprise-scale
 labels: [scale, embeddings, rag, memory, ready]
-status: complete
+status: archive
 priority: P0
 appetite: 3d
 created: 2026-06-07

@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: enterprise-scale
 labels: [scale, web, observability, traces, ready]
-status: complete
+status: archive
 priority: P0
 appetite: 2d
 created: 2026-06-07

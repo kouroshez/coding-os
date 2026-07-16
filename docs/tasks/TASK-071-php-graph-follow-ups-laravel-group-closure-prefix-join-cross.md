@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [graph_os, php, laravel, wordpress, contracts]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-04

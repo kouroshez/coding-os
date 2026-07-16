@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: observability-eye
 labels: [observability, doctor, mcp, ready]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-05

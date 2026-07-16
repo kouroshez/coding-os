@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: null
 labels: [hooks, doc-anchor, robustness, ready]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-04

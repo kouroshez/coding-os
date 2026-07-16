@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: panel-state-isolation
 labels: [scrumban, distributed, ids, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-09

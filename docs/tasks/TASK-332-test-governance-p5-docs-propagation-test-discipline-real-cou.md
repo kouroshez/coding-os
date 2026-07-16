@@ -5,7 +5,7 @@ swimlane: docs
 kind: docs
 epic: test-governance
 labels: [test-governance, docs-update, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-10

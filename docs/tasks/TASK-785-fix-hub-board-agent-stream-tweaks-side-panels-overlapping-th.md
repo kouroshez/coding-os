@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-04
 started: 2026-07-04
-completed: null
+completed: 2026-07-04
 agent_session: ses-claude-20260703-211955-5bf7
 depends_on: []
 blocked_by: []
@@ -33,3 +33,5 @@ Open the Hub board, toggle AGENT STREAM on (default): the fixed panel (top:110, 
 - 2026-07-04 [claude]: Edit CosBoardPage.tsx
 - 2026-07-04 [claude]: Edit CosBoardPage.tsx
 - 2026-07-04 [claude]: Constrained the three right-docked board side-panels so they no longer cover the toolbar buttons or the bottom zoom…
+- 2026-07-04 [claude]: committed ca567ef1 · 1 file
+- 2026-07-04 [claude]: Status transitioned to complete via cos task-done.

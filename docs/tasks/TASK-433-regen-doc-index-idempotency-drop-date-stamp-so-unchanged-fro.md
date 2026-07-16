@@ -5,7 +5,7 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [determinism, doc-index, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-16

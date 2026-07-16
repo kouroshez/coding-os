@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: B-onboarding
 labels: [wave-2, onboarding-program, ready]
-status: complete
+status: archive
 priority: P0
 appetite: 3d
 created: 2026-06-11

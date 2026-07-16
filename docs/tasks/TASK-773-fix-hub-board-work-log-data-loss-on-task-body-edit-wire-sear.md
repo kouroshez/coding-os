@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-04
 started: 2026-07-04
-completed: null
+completed: 2026-07-04
 agent_session: ses-claude-20260703-210450-473d
 depends_on: []
 blocked_by: []
@@ -38,3 +38,5 @@ Open a task with a ## Work Log in the board, click Edit, Save without changes �
 - 2026-07-04 [claude]: Edit mcp_tools.py
 - 2026-07-04 [claude]: Edit test_mcp_tools.py
 - 2026-07-04 [claude]: 5c (critical data loss): cos_task_edit now preserves the ## Work Log section when an incoming body omits it — an SSOT…
+- 2026-07-04 [claude]: committed f86404cb · 6 files
+- 2026-07-04 [claude]: Status transitioned to complete via cos task-done.

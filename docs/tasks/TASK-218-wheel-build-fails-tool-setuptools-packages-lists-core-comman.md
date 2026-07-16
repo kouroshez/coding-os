@@ -5,7 +5,7 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [packaging, release, discovered-during-TASK-077, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-06

@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [graph-os, hub-ui, ux, audit, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-11
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-402: Graph tab spine UX + export truncation transparency + walk-tool coverage audit
 
 **Outcome (one sentence):** Graph tab is unambiguous and complete: initial view explains itself (or defaults to the repo-root spine), depth=max with a node budget visibly reports what was cut (truncation badge with counts) instead of silently dropping task subtrees, the contains-spine logic is verified end-to-end (extractor → DB → export API → Sigma render), graph walk tools (references/impact on init_db) are proven complete against grep ground truth with honest truncation flags, and agent guidance (graph-explorer skill, playbooks, hooks, CLAUDE.md) matches the audited behavior.

@@ -5,7 +5,7 @@ swimlane: cli
 kind: feature
 epic: doc-system
 labels: [docs-system, cli, tooling, audit-d4-f1, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-05

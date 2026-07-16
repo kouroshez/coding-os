@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: null
 labels: [doctor, graph-os, adapters, hub-ui, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-12
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-409: cos doctor cleanup — resolve 1 FAIL + actionable WARNs (broken link, legacy Go kind, PostToolUse task-move matcher, Sigma zero-width)
 
 **Outcome (one sentence):** cos doctor is clean of the agent-fixable findings — broken README link (FAIL), legacy Go `code:package` kind, hook.coverage zero-adapter for sync-task-current, the recurring Sigma zero-width client error, and the oversized WAL — while transient/environmental WARNs (embedding migration, DB size, optional extra, aging 24h errors) are reported with the exact clearing action rather than papered over.

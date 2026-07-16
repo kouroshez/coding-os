@@ -5,7 +5,7 @@ swimlane: core
 kind: refactor
 epic: hook-remediation
 labels: [hooks, performance, dispatcher, audit-n9, ready]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-05

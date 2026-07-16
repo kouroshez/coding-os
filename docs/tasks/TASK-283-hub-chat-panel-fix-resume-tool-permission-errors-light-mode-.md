@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: hub-redesign
 labels: [hub, chat, ui, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-09

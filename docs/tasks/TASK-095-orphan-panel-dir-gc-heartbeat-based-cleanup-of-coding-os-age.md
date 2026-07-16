@@ -5,7 +5,7 @@ swimlane: core
 kind: chore
 epic: null
 labels: [hooks, gc, multi-agent, disk-hygiene, ready]
-status: complete
+status: archive
 priority: P3
 appetite: "1d"
 created: 2026-06-04

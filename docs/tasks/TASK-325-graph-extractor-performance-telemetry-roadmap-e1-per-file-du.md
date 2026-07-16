@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: feature
 epic: null
 labels: [graph, observability, audit-2026-06-09, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-10

@@ -5,7 +5,7 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [governance, hooks, memory, codex, web, cron]
-status: complete
+status: archive
 priority: P1
 appetite: "2d"
 created: 2026-06-04

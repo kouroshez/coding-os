@@ -5,7 +5,7 @@ swimlane: core
 kind: refactor
 epic: ui-design-system
 labels: [ui, graph, palette, a11y, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-05

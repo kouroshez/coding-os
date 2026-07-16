@@ -5,7 +5,7 @@ swimlane: core
 kind: spike
 epic: extension-manager
 labels: [extension-manager, design, hub, data-driven, epic:extension-manager, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-05

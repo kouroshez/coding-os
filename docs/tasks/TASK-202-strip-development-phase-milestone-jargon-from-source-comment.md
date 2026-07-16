@@ -5,7 +5,7 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [cleanup, tech-debt, ready]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-06

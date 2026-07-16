@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: B-onboarding
 labels: [backlog, onboarding-program, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 2d
 created: 2026-06-11

@@ -5,7 +5,7 @@ swimlane: core
 kind: test
 epic: panel-state-isolation
 labels: [state-isolation, tests, concurrency, ci-guard, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-09

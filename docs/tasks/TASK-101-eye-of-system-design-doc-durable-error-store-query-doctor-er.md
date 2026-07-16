@@ -5,7 +5,7 @@ swimlane: infra
 kind: docs
 epic: observability-eye
 labels: [observability, logging_os, error-pipeline, epic-anchor, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-05

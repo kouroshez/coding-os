@@ -5,7 +5,7 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [board_os, work-log, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-16

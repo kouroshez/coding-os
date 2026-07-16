@@ -5,7 +5,7 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [ready]
-status: complete
+status: archive
 priority: P3
 appetite: 2h
 created: 2026-06-10

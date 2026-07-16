@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: null
 labels: [model-routing, settings, audit-2026-06-09, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-10

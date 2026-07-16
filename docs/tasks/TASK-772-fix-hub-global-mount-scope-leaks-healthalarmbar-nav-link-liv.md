@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-04
 started: 2026-07-04
-completed: null
+completed: 2026-07-04
 agent_session: ses-claude-20260703-210450-473d
 depends_on: []
 blocked_by: []
@@ -34,3 +34,5 @@ Scope to /p/<slug>, click the HealthAlarmBar doctor link → lands on global /di
 
 ## Work Log
 - 2026-07-04 [claude]: Fixed 4a (HealthAlarmBar diagnostics Link now uses scopedLink) + 4b (LiveStatus hook-stream SSE effect deps []→[slug]…
+- 2026-07-04 [claude]: committed ece7d9ac · 2 files
+- 2026-07-04 [claude]: Status transitioned to complete via cos task-done.

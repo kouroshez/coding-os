@@ -5,7 +5,7 @@ swimlane: templates
 kind: feature
 epic: C-data-model
 labels: [wave-1, onboarding-program, ready]
-status: complete
+status: archive
 priority: P0
 appetite: 2d
 created: 2026-06-11

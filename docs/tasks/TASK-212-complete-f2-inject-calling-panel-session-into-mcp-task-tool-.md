@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: agent-hub
 labels: [hooks, concurrency, mcp, attribution, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-06

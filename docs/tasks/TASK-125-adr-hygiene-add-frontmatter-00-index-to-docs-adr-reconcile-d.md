@@ -5,7 +5,7 @@ swimlane: docs
 kind: docs
 epic: doc-system
 labels: [docs-system, adr, audit-d1-f3, ready]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-05

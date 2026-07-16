@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: agent-economy
 labels: [ready]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-05

@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: feature
 epic: enterprise-scale
 labels: [scale, graph, performance, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 3d
 created: 2026-06-07

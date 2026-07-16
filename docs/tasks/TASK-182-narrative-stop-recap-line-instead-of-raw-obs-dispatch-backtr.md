@@ -5,7 +5,7 @@ swimlane: core
 kind: chore
 epic: agent-economy
 labels: [ready]
-status: complete
+status: archive
 priority: P3
 appetite: "1d"
 created: 2026-06-06

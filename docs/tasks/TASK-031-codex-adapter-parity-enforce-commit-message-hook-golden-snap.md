@@ -5,7 +5,7 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [codex, adapter, deferred, parity, golden, ready]
-status: complete
+status: archive
 priority: P3
 appetite: "2h"
 created: 2026-05-25

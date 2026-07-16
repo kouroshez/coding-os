@@ -5,7 +5,7 @@ swimlane: templates
 kind: feature
 epic: D-catalog
 labels: [backlog, onboarding-program, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 2d
 created: 2026-06-11

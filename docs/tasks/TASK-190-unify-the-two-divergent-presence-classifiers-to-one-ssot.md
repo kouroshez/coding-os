@@ -5,7 +5,7 @@ swimlane: core
 kind: refactor
 epic: agent-hub
 labels: [ready]
-status: complete
+status: archive
 priority: P2
 appetite: "4h"
 created: 2026-06-06

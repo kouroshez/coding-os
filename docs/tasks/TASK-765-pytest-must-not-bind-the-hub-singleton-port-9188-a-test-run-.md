@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [hub, testing, ready]
-status: icebox
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-07-02
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-pid77239
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-765: pytest must not bind the hub singleton port 9188 — a test run hijacked the live hub with its tmp project DB
 
 **Outcome (one sentence):** Test-spawned hub instances bind an ephemeral port (or are mocked), so a pytest run can never replace the live hub on 9188; the live panel always serves the real project DB.

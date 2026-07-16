@@ -5,7 +5,7 @@ swimlane: thinking_os
 kind: feature
 epic: doc-system-v2
 labels: [rag, retrieval, doc-system]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-04

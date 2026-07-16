@@ -5,7 +5,7 @@ swimlane: thinking_os
 kind: bug
 epic: null
 labels: []
-status: complete
+status: archive
 priority: P3
 appetite: "1d"
 created: 2026-06-03

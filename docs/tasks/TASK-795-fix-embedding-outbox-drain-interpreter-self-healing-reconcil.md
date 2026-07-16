@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-05
 started: 2026-07-04
-completed: null
+completed: 2026-07-05
 agent_session: ses-claude-20260704-210156-0ee9
 depends_on: []
 blocked_by: []
@@ -48,3 +48,4 @@ python3 -c 'import sentence_transformers' → ModuleNotFoundError; drain-embeddi
 - 2026-07-05 [claude]: Edit test_embeddings.py
 - 2026-07-05 [claude]: Edit test_embeddings.py
 - 2026-07-05 [claude]: embeddings.py: model-free reconciliation DELETE before is_available() guard + drain limit 64→128 +…
+- 2026-07-05 [claude]: committed 641a28a8 · 9 files

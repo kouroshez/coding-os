@@ -5,7 +5,7 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [ui, board, cleanup]
-status: complete
+status: archive
 priority: P3
 appetite: "1d"
 created: 2026-06-04
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-086: Remove non-functional stub metrics (LEAD TIME, STALE) from Hub board metrics bar
 
 **Outcome (one sentence):** Hub board top bar no longer shows always-empty LEAD TIME / STALE tiles; only real computed metrics remain.

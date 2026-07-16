@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [graph-os, performance, hub-ui, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 4h
 created: 2026-06-11
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-403: Graph export latency — batch node hydration + ancestor walk; visible loading states
 
 **Outcome (one sentence):** The Graph tab loads interactively at enterprise scale: the export blend hydrates nodes with batched IN-queries instead of one get_node round-trip per uid and the spine-connectivity ancestor walk is set-wise, cutting the spine sidebar produce from ~12-30s to well under 2s on this repo (and scaling linearly for 3x repos); the canvas shows a prominent centered loading state while a fetch is in flight so slow responses never read as a frozen tab.

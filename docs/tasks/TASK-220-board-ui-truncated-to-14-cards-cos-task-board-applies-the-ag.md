@@ -5,7 +5,7 @@ swimlane: "board_os"
 kind: bug
 epic: null
 labels: [board, web, hub, ui, performance, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-07

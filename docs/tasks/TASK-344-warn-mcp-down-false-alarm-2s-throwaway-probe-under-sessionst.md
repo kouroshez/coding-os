@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1h
 created: 2026-06-10

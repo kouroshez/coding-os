@@ -5,7 +5,7 @@ swimlane: "board_os"
 kind: docs
 epic: G-modularity
 labels: [backlog, onboarding-program, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-11

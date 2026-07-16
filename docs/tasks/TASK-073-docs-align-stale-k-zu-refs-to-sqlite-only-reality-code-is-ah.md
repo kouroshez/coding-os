@@ -5,7 +5,7 @@ swimlane: docs
 kind: docs
 epic: null
 labels: [graph_os, kuzu, alignment]
-status: complete
+status: archive
 priority: P3
 appetite: "2h"
 created: 2026-06-04

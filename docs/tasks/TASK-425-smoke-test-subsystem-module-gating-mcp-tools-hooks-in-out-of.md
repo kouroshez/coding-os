@@ -5,7 +5,7 @@ swimlane: core
 kind: test
 epic: null
 labels: [modules, testing, smoke, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-15

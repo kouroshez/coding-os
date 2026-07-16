@@ -5,7 +5,7 @@ swimlane: "board_os"
 kind: feature
 epic: enterprise-scale
 labels: [scale, board, web, pagination, ready]
-status: complete
+status: archive
 priority: P0
 appetite: 3d
 created: 2026-06-07

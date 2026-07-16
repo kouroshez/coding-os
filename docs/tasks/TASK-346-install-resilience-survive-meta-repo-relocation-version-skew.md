@@ -5,7 +5,7 @@ swimlane: cli
 kind: bug
 epic: A-install
 labels: [wave-0, onboarding-program, ready]
-status: complete
+status: archive
 priority: P0
 appetite: 2d
 created: 2026-06-11

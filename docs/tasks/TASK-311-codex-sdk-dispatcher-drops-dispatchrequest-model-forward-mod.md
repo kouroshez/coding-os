@@ -5,7 +5,7 @@ swimlane: adapters
 kind: bug
 epic: null
 labels: [ready, adapter-parity, audit-2026-06-09]
-status: complete
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-10

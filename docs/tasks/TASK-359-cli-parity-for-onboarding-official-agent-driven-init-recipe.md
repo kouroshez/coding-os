@@ -5,7 +5,7 @@ swimlane: cli
 kind: feature
 epic: B-onboarding
 labels: [wave-2, onboarding-program, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-11

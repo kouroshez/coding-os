@@ -5,7 +5,7 @@ swimlane: core
 kind: chore
 epic: null
 labels: [ready]
-status: complete
+status: archive
 priority: P2
 appetite: 30m
 created: 2026-06-07

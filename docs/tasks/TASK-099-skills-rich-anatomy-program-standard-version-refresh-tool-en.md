@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: null
 labels: [skills, epic, rich-anatomy, ssot, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "3d"
 created: 2026-06-04

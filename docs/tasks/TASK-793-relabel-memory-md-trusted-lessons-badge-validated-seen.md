@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-05
 started: 2026-07-04
-completed: null
+completed: 2026-07-04
 agent_session: ses-claude-20260704-210156-0ee9
 depends_on: []
 blocked_by: []
@@ -37,3 +37,4 @@ Inspect .agents/memory/MEMORY.md Trusted-lessons block: badge reads '_(validated
 - 2026-07-05 [claude]: Edit agent_memory_sync.py
 - 2026-07-05 [claude]: Edit test_agent_memory_sync.py
 - 2026-07-05 [claude]: Changed agent_memory_sync.py:43 badge 'validated'→'seen' (number unchanged); +2 assertions in…
+- 2026-07-05 [claude]: committed 8a85d69c · 2 files

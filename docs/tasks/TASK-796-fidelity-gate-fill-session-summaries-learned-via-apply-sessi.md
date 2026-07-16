@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: feature
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-05
 started: 2026-07-05
-completed: null
+completed: 2026-07-05
 agent_session: ses-claude-20260704-210156-0ee9
 depends_on: []
 blocked_by: []
@@ -34,3 +34,4 @@ references: []
 - 2026-07-05 [claude]: Edit cognition_schemas.py
 - 2026-07-05 [claude]: Edit test_session.py
 - 2026-07-05 [claude]: cognition_schemas.py: +SessionSummaryFacts model. session_enrich.py: +_has_session_signal + apply_session_facts…
+- 2026-07-05 [claude]: committed a759a73d · 3 files

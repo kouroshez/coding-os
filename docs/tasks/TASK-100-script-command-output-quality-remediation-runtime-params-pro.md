@@ -5,7 +5,7 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [scripts, output-quality, audit, tech-debt, ci-trust, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 3d
 created: 2026-06-05

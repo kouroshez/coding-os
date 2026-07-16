@@ -5,7 +5,7 @@ swimlane: infra
 kind: refactor
 epic: hook-remediation
 labels: [adapter, data-driven, cli, audit-n8, ready]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-05

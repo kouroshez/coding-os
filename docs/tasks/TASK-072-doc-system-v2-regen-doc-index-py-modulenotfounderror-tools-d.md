@@ -5,7 +5,7 @@ swimlane: docs
 kind: bug
 epic: doc-system-v2
 labels: [doc-index, regen, nav]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-04

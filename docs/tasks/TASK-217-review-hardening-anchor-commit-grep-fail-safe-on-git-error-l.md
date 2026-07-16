@@ -5,7 +5,7 @@ swimlane: core
 kind: refactor
 epic: task-lifecycle-integrity
 labels: [workflow-integrity, board, lifecycle, review-fix, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-06

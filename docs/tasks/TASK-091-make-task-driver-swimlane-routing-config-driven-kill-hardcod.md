@@ -5,7 +5,7 @@ swimlane: docs
 kind: docs
 epic: null
 labels: [skill, swimlane, drift, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-04

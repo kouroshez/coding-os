@@ -5,7 +5,7 @@ swimlane: "thinking_os"
 kind: bug
 epic: doc-system
 labels: [docs-system, rag, era-correctness, audit-d7-f9, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-05

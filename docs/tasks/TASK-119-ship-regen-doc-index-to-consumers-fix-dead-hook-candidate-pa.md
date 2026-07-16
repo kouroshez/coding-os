@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: doc-system
 labels: [docs-system, dogfood, graph, audit-d7-f3, overlap-TASK-113, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-05

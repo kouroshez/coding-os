@@ -5,7 +5,7 @@ swimlane: "board_os"
 kind: bug
 epic: null
 labels: [ready, mcp, db-path, audit-2026-06-09]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-10

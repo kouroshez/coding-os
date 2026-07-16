@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: J-anatomy
 labels: [wave-5, onboarding-program, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 2d
 created: 2026-06-11

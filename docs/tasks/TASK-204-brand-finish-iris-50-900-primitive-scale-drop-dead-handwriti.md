@@ -5,7 +5,7 @@ swimlane: core
 kind: chore
 epic: ui-design-system
 labels: [ui, design-system, brand, tokens, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-06

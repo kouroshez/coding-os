@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: hook-remediation
 labels: [hub, ui, learning, observability, audit-n7, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-05

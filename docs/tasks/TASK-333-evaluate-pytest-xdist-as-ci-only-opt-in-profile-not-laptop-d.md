@@ -5,7 +5,7 @@ swimlane: core
 kind: spike
 epic: test-governance
 labels: [test-governance, deferred, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-10

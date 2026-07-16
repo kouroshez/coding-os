@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [board, concurrency, wip, multi-agent, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-04

@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: feature
 epic: null
 labels: [graph-os, hub-ui, ux, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-12
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-406: Graph tab enterprise UX — subtree-scoped roots + breadcrumb, adaptive zoom styling, community home, project-name root
 
 **Outcome (one sentence):** The Graph tab reads like an enterprise tool: clicking a folder/file shows THAT subtree (contains walked downward + semantic edges among members) instead of flooding the whole repo via the parent hop, with an always-visible breadcrumb naming the current root; zoomed-out views stay legible via adaptive styling (position-referenced node sizes + label suppression past a camera-ratio threshold, per Sigma docs and Cambridge Intelligence guidance); and the spine root is labeled with the project name instead of repo-root.

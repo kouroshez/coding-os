@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: feature
 epic: null
 labels: [graph-os, hub-ui, ux, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 4h
 created: 2026-06-12
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-404: Graph tab panel ergonomics — collapsible spine/search/inspector + URL-synced root selection
 
 **Outcome (one sentence):** Graph tab panels get out of the way: the Contains-spine sidebar, the Search/Kinds/Edges filter panel, and the app-shell Inspector each collapse behind a toggle so the canvas can use the full viewport; selecting a root from the tree updates the URL (/graph/:rootUid) so refresh/share keeps the selection, honoring the SPA's URL-source-of-truth rule.

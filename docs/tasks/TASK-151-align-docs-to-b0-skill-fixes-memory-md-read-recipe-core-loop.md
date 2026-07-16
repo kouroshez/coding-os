@@ -5,7 +5,7 @@ swimlane: core
 kind: docs
 epic: skills-enterprise-hardening
 labels: [skills, docs-alignment, drift, epic:skills-enterprise-hardening, ready]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-05

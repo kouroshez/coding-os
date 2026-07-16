@@ -5,7 +5,7 @@ swimlane: thinking_os
 kind: refactor
 epic: doc-system
 labels: [docs-system, performance, rag, audit-d7-f6, ready]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-05

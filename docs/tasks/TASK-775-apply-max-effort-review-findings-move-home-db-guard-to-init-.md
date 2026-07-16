@@ -5,13 +5,13 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-04
 started: 2026-07-04
-completed: null
-agent_session: ses-claude-20260703-210450-473d
+completed: 2026-07-04
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
@@ -51,3 +51,5 @@ Max-effort /code-review of commits ab35f7e5..f86404cb surfaced: database.py:167 
 - 2026-07-04 [claude]: Edit memory.py
 - 2026-07-04 [claude]: Edit memory.py
 - 2026-07-04 [claude]: Applied all 8 verified /code-review findings. database.py: reverted the resolve_db_path RuntimeError (#1 —…
+- 2026-07-04 [claude]: committed 955678c4 · 8 files
+- 2026-07-04 [claude]: Status transitioned to complete via cos task-done.

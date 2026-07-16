@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [graph-os, hygiene, doctor, reindex, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-11
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-395: Graph build hygiene v2 — symlink-aware links, dead-stub GC, loud bounded reindex, honest severity
 
 **Outcome (one sentence):** cos_graph_doctor reports healthy=true with ZERO real issues and the Hub badge agrees: links to in-repo symlinks (CLAUDE.md) resolve to their real target instead of re-minting a malformed node; doctor fix=True garbage-collects zero-edge external/identifier stubs left by deleted files (2,099 today); parallel graph-reindex can never stall silently (graph-layer write failures counted+echoed as errors, lock waits bounded to seconds not 30s); files whose bash -n passes no longer count tree-sitter grammar gaps as parse_errors; doctor stats.issue_count counts only real categories.

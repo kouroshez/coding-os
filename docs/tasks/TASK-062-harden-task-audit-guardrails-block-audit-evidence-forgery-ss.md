@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: workflow-integrity
 labels: [hooks, guardrails, integrity, completion-guardian]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-02

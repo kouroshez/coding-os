@@ -5,7 +5,7 @@ swimlane: "board_os"
 kind: feature
 epic: null
 labels: [board_os, autonomous, dependencies, follow-up, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-14

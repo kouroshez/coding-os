@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: hub-redesign
 labels: [ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-08

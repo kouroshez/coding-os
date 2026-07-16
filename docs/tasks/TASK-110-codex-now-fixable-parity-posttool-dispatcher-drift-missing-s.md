@@ -5,7 +5,7 @@ swimlane: infra
 kind: bug
 epic: hook-remediation
 labels: [codex, adapter, hooks, parity, audit-n6, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-05

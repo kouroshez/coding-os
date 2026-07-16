@@ -5,7 +5,7 @@ swimlane: cli
 kind: feature
 epic: H-lifecycle
 labels: [backlog, onboarding-program, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-11

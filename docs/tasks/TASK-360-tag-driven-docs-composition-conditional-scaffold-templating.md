@@ -5,7 +5,7 @@ swimlane: templates
 kind: feature
 epic: F-docs
 labels: [wave-3, onboarding-program, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 2d
 created: 2026-06-11

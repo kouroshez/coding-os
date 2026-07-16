@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: task-lifecycle-integrity
 labels: [workflow-integrity, board, hooks, lifecycle, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-06

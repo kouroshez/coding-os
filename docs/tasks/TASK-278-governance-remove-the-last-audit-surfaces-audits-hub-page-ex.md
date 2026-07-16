@@ -5,7 +5,7 @@ swimlane: core
 kind: refactor
 epic: hub-redesign
 labels: [ready]
-status: complete
+status: archive
 priority: P1
 appetite: 2d
 created: 2026-06-09

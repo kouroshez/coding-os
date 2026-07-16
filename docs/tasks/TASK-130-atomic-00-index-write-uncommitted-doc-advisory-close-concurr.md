@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: doc-system
 labels: [docs-system, concurrency, nav, audit-d5-f8, ready]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-05

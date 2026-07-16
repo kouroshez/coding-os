@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: agent-hub
 labels: [ready]
-status: complete
+status: archive
 priority: P1
 appetite: "4h"
 created: 2026-06-05

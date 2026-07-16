@@ -5,7 +5,7 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: [ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-15

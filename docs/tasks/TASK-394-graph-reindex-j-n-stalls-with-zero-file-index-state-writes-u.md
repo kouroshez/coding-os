@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [graph-os, reindex, concurrency, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 4h
 created: 2026-06-11
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-394: graph-reindex -j N stalls with zero file_index_state writes under a live MCP server
 
 **Outcome (one sentence):** Root-cause and fix the stall observed 2026-06-11: `cos graph-reindex --path docs/tasks --force --no-docs -j 4` spawned 23 worker processes that wrote zero file_index_state rows for 15+ minutes (parent CPU 0.22s) while the coding-os MCP server held a connection to the same SQLite DB; run completes or fails loudly instead of hanging silently.

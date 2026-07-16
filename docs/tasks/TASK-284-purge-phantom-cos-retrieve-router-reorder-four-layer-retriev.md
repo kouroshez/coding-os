@@ -5,7 +5,7 @@ swimlane: docs
 kind: docs
 epic: retrieval-routing-fix
 labels: [routing, agent-confusion, ssot, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-09

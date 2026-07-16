@@ -5,7 +5,7 @@ swimlane: "graph_os"
 kind: feature
 epic: null
 labels: [graph-os, hub-ui, ux, design, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-12
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-408: Graph root node distinct focal style — reserved brand-logomark color + home glyph + legend entry
 
 **Outcome (one sentence):** The repo-root anchor node on the Hub Graph canvas is visually unmistakable as "the project itself", not just another amber folder. It wears a RESERVED focal style outside the categorical kind palette — the brand-logomark iris weight (#4F46E5, the same indigo the Coding OS wordmark uses), a dedicated home+halo glyph (not the generic folder icon), the existing dominant size and always-on caption — and the Legend documents it as a distinct "project root" entry. Theme toggle preserves the reserved color (does not recolor it as a folder).

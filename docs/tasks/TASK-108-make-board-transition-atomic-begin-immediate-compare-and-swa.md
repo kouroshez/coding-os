@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: hook-remediation
 labels: [board, concurrency, sqlite, multi-agent, audit-n4, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-05

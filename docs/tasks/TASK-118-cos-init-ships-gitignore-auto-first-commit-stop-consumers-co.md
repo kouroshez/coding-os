@@ -5,7 +5,7 @@ swimlane: cli
 kind: feature
 epic: doc-system
 labels: [docs-system, dogfood, git, audit-d6-f1, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-05

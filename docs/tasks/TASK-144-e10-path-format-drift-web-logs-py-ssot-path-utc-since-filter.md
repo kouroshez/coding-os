@@ -5,7 +5,7 @@ swimlane: infra
 kind: bug
 epic: observability-eye
 labels: [observability, drift, config, ready]
-status: complete
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-05

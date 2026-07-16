@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: observability-eye
 labels: [observability, cli, logs, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-05

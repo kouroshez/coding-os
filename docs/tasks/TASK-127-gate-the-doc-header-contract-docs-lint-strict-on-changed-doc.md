@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: doc-system
 labels: [docs-system, enforcement, ssot, audit-d5-f1, ready]
-status: complete
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-05

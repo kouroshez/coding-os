@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [graph_os, extractors, php, laravel, wordpress, whmcs, polyglot]
-status: complete
+status: archive
 priority: P2
 appetite: "3d"
 created: 2026-06-04
