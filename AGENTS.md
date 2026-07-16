@@ -29,6 +29,7 @@ Agent-agnostic cognitive OS giving AI agents memory, structure, discipline. Pyth
 P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANEL_DIR`/`$COS_DB_PATH`, never `.claude/` in core — [state-files.md](docs/engineering/state-files.md)) · P3 Minimal-context (3-10 files/task) · P4 Diff-first · P5 Dogfood · P6 Log-everything via `make` · P7 No-guessing (log unknowns to `docs/_meta/questions.md`) · P8 Adapter-SDK autonomy (never import an adapter SDK from `src/core/**`).
 
 > **Values SSOT:** [docs/governance/constitution.md](docs/governance/constitution.md) — the 8 values these principles + the rules below derive from (the *teach-why* layer; surfaced each session). Lead with the *why*; a rule understood generalizes where a rule merely imposed cracks.
+> **Vision + operator contract:** [docs/governance/vision.md](docs/governance/vision.md) — where the product is going, plus standing norms: challenge the operator with evidence (never rubber-stamp) and adversarially self-review non-trivial designs via the [Raptor lens](docs/architecture/raptor-consolidation.md).
 
 ## Critical Rules (index — full text + rationale in [critical-rules.md](docs/governance/critical-rules.md))
 
