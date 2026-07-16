@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [board, data-repair, ready]
-status: in_progress
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-07-16
 started: 2026-07-16
-completed: null
+completed: 2026-07-16
 agent_session: ses-claude-20260716-145309-8189
 depends_on: []
 blocked_by: []
@@ -33,3 +33,5 @@ Run board_os.sync.sync_all on this repo: stats show parse_errors: 12; stderr nam
 
 ## Work Log
 - 2026-07-16 [claude]: Edit repair_dup_frontmatter.py
+- 2026-07-16 [claude]: commit 235af22901 — fix(board): merge duplicate frontmatter blocks in 12 task files that sync rejected
+- 2026-07-16 [claude]: All 12 rejects were the same corruption (stale header snapshot re-embedded after the real one). One-shot scratchpad…
