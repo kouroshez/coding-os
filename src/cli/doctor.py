@@ -1239,33 +1239,33 @@ def _check_module_rule_drift(project: Path, report: DoctorReport) -> None:
 
 
 def _check_module_doc_drift(project: Path, report: DoctorReport) -> None:
-    """modules.doc_drift — a `| module:<disabled>` scaffold doc is still present in
-    docs/ while its owning module is off (TASK-813 backstop). The live toggle does
-    not yet prune docs, so this surfaces the residue for the auditability persona."""
+    """modules.doc_drift — a disabled module's `| module:X`-tagged scaffold doc is
+    still present in the consumer (TASK-813 backstop). The consumer copy has its
+    tag stripped at init, so we map via the tagged scaffold SOURCE, not the
+    untagged destination."""
     logger = logging.getLogger("coding_os.doctor")
     try:
-        from cli.main import _DOC_MODULE_TAG_RE
+        import yaml as _yaml
+
+        from cli.main import module_scaffold_doc_rels
         from cli.subsystems import load_subsystems, module_state
 
         modules = load_subsystems()
         state = module_state(project, modules)
-        disabled = {mid for mid in modules if not state.get(mid, True)}
+        disabled = [mid for mid in modules if not state.get(mid, True)]
         if not disabled:
             report.checks.append(CheckResult("modules.doc_drift", SEV_PASS, "no module/doc drift"))
             return
-        docs_root = project / "docs"
+        try:
+            config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8")) or {}
+            templates = tuple(config.get("templates") or [])
+        except (OSError, _yaml.YAMLError):
+            templates = ()
         drift: list[str] = []
-        if docs_root.is_dir():
-            for path in docs_root.rglob("*.md"):
-                try:
-                    first = path.read_text(encoding="utf-8").split("\n", 1)[0]
-                except OSError:
-                    continue
-                if not first.lstrip().startswith("<!--"):
-                    continue
-                tag = _DOC_MODULE_TAG_RE.search(first)
-                if tag and tag.group(1) in disabled:
-                    drift.append(f"{path.relative_to(project)} (module '{tag.group(1)}' off)")
+        for mid in disabled:
+            for rel in module_scaffold_doc_rels(templates, mid):
+                if (project / rel).is_file():
+                    drift.append(f"{rel} (module '{mid}' off)")
         if drift:
             report.checks.append(
                 CheckResult(
@@ -1273,7 +1273,7 @@ def _check_module_doc_drift(project: Path, report: DoctorReport) -> None:
                     SEV_WARN,
                     f"{len(drift)} doc(s) present for disabled module(s): "
                     + ", ".join(sorted(set(drift))[:4])
-                    + " — prune stale module docs (modularity-audit-2026-07 § DOC-4)",
+                    + " — `cos module disable <id>` re-prunes (backed up), or remove them",
                 )
             )
         else:

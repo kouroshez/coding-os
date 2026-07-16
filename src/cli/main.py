@@ -614,6 +614,51 @@ def _apply_doc_conditions(
     return False, "\n".join(out)
 
 
+def module_scaffold_doc_rels(templates: tuple[str, ...], module_id: str) -> list[str]:
+    """Consumer-relative paths of scaffold `.md` docs tagged `| module:<module_id>`.
+
+    Reuses the source-root + relocation mapping of the scaffold overlay so the
+    result matches what init composed. Shared by the toggle doc-sync (prune /
+    restore, TASK-813) and cos doctor's modules.doc_drift backstop — the consumer
+    copy has its tag STRIPPED at init, so drift/prune must map via the tagged
+    SOURCE, never the untagged destination."""
+    registry = _get_stack_registry()
+    relocations = _service_relocations(templates)
+    sources: list[tuple[Path, str | None]] = [(TEMPLATES_DIR / "_base" / "scaffold", None)]
+    for name in templates:
+        stack_root = registry[name].source_dir if name in registry.keys() else TEMPLATES_DIR / name
+        candidate = stack_root / "scaffold"
+        if candidate.exists():
+            sources.append((candidate, name))
+    rels: set[str] = set()
+    for src_root, stack_id in sources:
+        if not src_root.exists():
+            continue
+        relocated_root = relocations.get(stack_id) if stack_id else None
+        declared_root = (
+            (registry[stack_id].structure or {}).get("root", "").rstrip("/")
+            if stack_id and stack_id in registry.keys()
+            else ""
+        )
+        for src_file in src_root.rglob("*.md"):
+            if not src_file.is_file():
+                continue
+            try:
+                first = src_file.read_text(encoding="utf-8").split("\n", 1)[0]
+            except OSError:
+                continue
+            if not first.lstrip().startswith("<!--"):
+                continue
+            tag = _DOC_MODULE_TAG_RE.search(first)
+            if not (tag and tag.group(1) == module_id):
+                continue
+            rel = src_file.relative_to(src_root)
+            if relocated_root and declared_root and str(rel).startswith(declared_root + "/"):
+                rel = Path(relocated_root) / str(rel)[len(declared_root) + 1 :]
+            rels.add(str(rel))
+    return sorted(rels)
+
+
 def _dry_config_preview(templates: tuple[str, ...], output_format: str) -> None:
     """`cos init --dry-config` — merged .coding-os preview, zero writes."""
     from cli.config_composer import preview_coding_os_configs

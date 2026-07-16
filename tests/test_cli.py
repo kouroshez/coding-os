@@ -2225,7 +2225,9 @@ class TestSubsystems:
         assert "memory.md" in rule_drift[0].message
 
     def test_doctor_detects_module_doc_drift(self, runner: CliRunner, project_dir: Path) -> None:
-        """modules.doc_drift (TASK-812): WARN when a `| module:<disabled>` doc lingers."""
+        """modules.doc_drift (TASK-812/813): WARN when a disabled module's tagged
+        scaffold doc is still present — mapped via the tagged SOURCE, since the
+        consumer copy has its `| module:` tag stripped at init."""
         import json as _json
 
         from cli.doctor import DoctorReport, _check_module_doc_drift
@@ -2236,18 +2238,42 @@ class TestSubsystems:
             ["init", "--agent", "claude", "-d", str(project_dir),
              "--profile", "full", "--no-index", "--no-register"],
         )
+        # tasks enabled at init → task-lifecycle.md (| module:tasks) materialized
+        # (tag stripped in the copy). Disable tasks in state and assert the map.
         state = project_dir / ".coding-os" / "subsystems-state.json"
         state.parent.mkdir(parents=True, exist_ok=True)
-        state.write_text(_json.dumps({"version": 1, "disabled": ["memory"]}), encoding="utf-8")
-        planted = project_dir / "docs" / "playbooks" / "recall.md"
-        planted.parent.mkdir(parents=True, exist_ok=True)
-        planted.write_text("<!-- domain:CORE | module:memory -->\n# Recall\n", encoding="utf-8")
+        state.write_text(_json.dumps({"version": 1, "disabled": ["tasks"]}), encoding="utf-8")
         report = DoctorReport(project_dir=str(project_dir), agent=None, templates=[])
         _check_module_doc_drift(project_dir, report)
         doc_drift = [c for c in report.checks if c.id == "modules.doc_drift"]
         assert doc_drift, "doc drift check missing"
         assert doc_drift[0].severity == "WARN", doc_drift[0].message
-        assert "recall.md" in doc_drift[0].message
+        assert "task-lifecycle.md" in doc_drift[0].message
+
+    def test_module_doc_sync_prunes_and_restores(
+        self, runner: CliRunner, project_dir: Path
+    ) -> None:
+        """TASK-813: disable backs up + prunes a module's tagged docs; enable restores them."""
+        from cli.module_commands import sync_module_docs
+
+        project_dir.mkdir()
+        runner.invoke(
+            cli,
+            ["init", "--agent", "claude", "-d", str(project_dir),
+             "--profile", "full", "--no-index", "--no-register"],
+        )
+        doc = project_dir / "docs" / "governance" / "task-lifecycle.md"
+        assert doc.is_file(), "task-lifecycle.md should be materialized at full init"
+        backup = (
+            project_dir / ".coding-os" / "pruned-docs" / "docs" / "governance" / "task-lifecycle.md"
+        )
+        out = sync_module_docs(project_dir, (), "tasks", enabled=False)
+        assert "docs/governance/task-lifecycle.md" in out["pruned"]
+        assert not doc.exists(), "doc must be pruned on disable"
+        assert backup.is_file(), "doc must be backed up, never destroyed"
+        out = sync_module_docs(project_dir, (), "tasks", enabled=True)
+        assert "docs/governance/task-lifecycle.md" in out["restored"]
+        assert doc.is_file(), "doc must be restored on enable"
 
     def test_module_regen_in_meta_repo_preserves_handwritten_agents_md(
         self, tmp_path: Path

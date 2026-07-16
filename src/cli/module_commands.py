@@ -296,6 +296,62 @@ def _cascade_rules_after_toggle(project: Path, module_id: str, enabled: bool) ->
     return notes
 
 
+def sync_module_docs(
+    project: Path, templates: tuple[str, ...], module_id: str, enabled: bool
+) -> dict:
+    """Prune (disable) / restore (enable) a module's `| module:X`-tagged scaffold
+    docs on a live toggle. Disable moves each present doc to
+    .coding-os/pruned-docs/<rel> (always backed up — never destructive); enable
+    moves any backup back. Idempotent — a doc is tagged by exactly one module."""
+    from cli.main import module_scaffold_doc_rels
+
+    rels = module_scaffold_doc_rels(tuple(templates), module_id)
+    if not rels:
+        return {"module": module_id, "pruned": [], "restored": []}
+    backup_root = project / ".coding-os" / "pruned-docs"
+    pruned: list[str] = []
+    restored: list[str] = []
+    for rel in rels:
+        dest = project / rel
+        backup = backup_root / rel
+        if enabled:
+            if backup.is_file() and not dest.exists():
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                backup.replace(dest)
+                restored.append(rel)
+        elif dest.is_file():
+            backup.parent.mkdir(parents=True, exist_ok=True)
+            dest.replace(backup)
+            pruned.append(rel)
+    return {"module": module_id, "pruned": pruned, "restored": restored}
+
+
+def _sync_module_docs_after_toggle(project: Path, module_id: str, enabled: bool) -> list[str]:
+    """Prune/restore the module's tagged scaffold docs (TASK-813), meta-repo guarded.
+
+    Best-effort like the other cascades; pruned docs are backed up under
+    .coding-os/pruned-docs/, so a hiccup is a `cos doctor` (modules.doc_drift)
+    follow-up, never data loss or a reason to fail the toggle."""
+    from cli._init_helpers import is_coding_os_source_tree
+
+    if is_coding_os_source_tree(project):
+        return ["docs: sync skipped (coding-os meta-repo — scaffold docs are the source)"]
+    try:
+        import yaml as _yaml
+
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8")) or {}
+        templates = tuple(config.get("templates") or [])
+        out = sync_module_docs(project, templates, module_id, enabled)
+    except Exception as exc:  # noqa: BLE001 — toggle already committed; surface, don't fail
+        return [f"docs: sync skipped ({exc}) — run `cos doctor`"]
+    notes: list[str] = []
+    if out["pruned"]:
+        notes.append(f"docs pruned (module off, backed up): {', '.join(out['pruned'])}")
+    if out["restored"]:
+        notes.append(f"docs restored (module on): {', '.join(out['restored'])}")
+    return notes
+
+
 def toggle_and_regen(
     project: Path, module_id: str, enabled: bool, *, keep_skills: bool = False
 ) -> tuple[ToggleResult, list[str]]:
@@ -343,6 +399,7 @@ def toggle_and_regen(
     notes.extend(_cascade_skills_after_toggle(project, module_id, enabled, keep_skills))
     notes.extend(_cascade_commands_after_toggle(project, module_id, enabled))
     notes.extend(_cascade_rules_after_toggle(project, module_id, enabled))
+    notes.extend(_sync_module_docs_after_toggle(project, module_id, enabled))
     return result, notes
 
 
