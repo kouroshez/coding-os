@@ -157,6 +157,7 @@ unknown keys in the file survive untouched. Sections:
 | `trace_rotation` | `gzip_age_days`, `delete_age_days` | `auto-trace-rotate` hook |
 | `task_closure` | `mode` | board closure enforcement |
 | `model_routing` | `enabled` (default **false**), `orchestrator_model` | chat Auto picker (TASK-318) · agent-side routing hook (TASK-319) |
+| `auto_spawn` | `enabled` (default **false**) | board drag auto-spawn: a **human** panel drag icebox→in_progress fires a fire-and-forget `implementer` dispatch on that task (`/api/board/reposition` — the panel drag path — and `/api/board/move`, both → `_auto_spawn_safe`; one in-flight spawn per task); the outcome lands in `formula_dispatches`, so the stream's `dispatch-completed` row is the visible success/failure signal. Agent-initiated moves never trigger it. |
 | `git_settings` | `enabled` (default **false**), `integration_branch` (`main`), `protected_branches` (`["production"]`) | pr-mode enablement — surfaced in **Config → Git** (per-project), not Settings (TASK-518) |
 
 `git_settings.enabled=true` is the ONLY switch that turns pr-mode on: `cos-env.sh`

@@ -20,6 +20,10 @@ interface ModelRouting {
   orchestrator_model: string;
 }
 
+interface AutoSpawn {
+  enabled: boolean;
+}
+
 // Masked shape returned by GET/PATCH — the raw key never crosses the wire
 // after being stored (settings.py::_masked_settings).
 interface ClaudeAuth {
@@ -32,6 +36,7 @@ interface Settings {
   budget_cap: BudgetCap;
   trace_rotation: TraceRotation;
   model_routing: ModelRouting;
+  auto_spawn: AutoSpawn;
   claude_auth: ClaudeAuth;
 }
 
@@ -556,6 +561,7 @@ export default function SettingsPage() {
   const [budget, setBudget] = useState<BudgetCap | null>(null);
   const [trace, setTrace] = useState<TraceRotation | null>(null);
   const [routing, setRouting] = useState<ModelRouting | null>(null);
+  const [autoSpawn, setAutoSpawn] = useState<AutoSpawn | null>(null);
   const [claudeAuth, setClaudeAuth] = useState<ClaudeAuth | null>(null);
   // null = no change queued (omit api_key from the PATCH entirely); '' = explicit
   // clear; non-empty = set/replace. Never pre-filled from the masked GET response.
@@ -566,6 +572,7 @@ export default function SettingsPage() {
   const localBudget: BudgetCap = budget ?? serverSettings?.budget_cap ?? { enabled: false, cap_usd: 5.0 };
   const localTrace: TraceRotation = trace ?? serverSettings?.trace_rotation ?? { gzip_age_days: 3, delete_age_days: 30 };
   const localRouting: ModelRouting = routing ?? serverSettings?.model_routing ?? { enabled: false, orchestrator_model: '' };
+  const localAutoSpawn: AutoSpawn = autoSpawn ?? serverSettings?.auto_spawn ?? { enabled: false };
   const localClaudeAuth: ClaudeAuth =
     claudeAuth ?? serverSettings?.claude_auth ?? { mode: 'subscription', api_key_set: false, api_key_preview: '' };
   const envOverrides = data?.env_overrides ?? {};
@@ -579,6 +586,7 @@ export default function SettingsPage() {
         budget_cap: localBudget,
         trace_rotation: localTrace,
         model_routing: localRouting,
+        auto_spawn: localAutoSpawn,
         claude_auth: {
           mode: localClaudeAuth.mode,
           // Omit the key entirely unless the user actually typed/cleared it —
@@ -590,6 +598,7 @@ export default function SettingsPage() {
       setBudget(result.settings.budget_cap);
       setTrace(result.settings.trace_rotation);
       setRouting(result.settings.model_routing);
+      setAutoSpawn(result.settings.auto_spawn);
       setClaudeAuth(result.settings.claude_auth);
       setClaudeAuthApiKeyDraft(null);
       setSaveNote('Settings saved.');
@@ -746,6 +755,23 @@ export default function SettingsPage() {
         {/* Model Routing (Auto) */}
         <ModelRoutingSection routing={localRouting} onChange={setRouting} />
 
+        {/* Board drag auto-spawn */}
+        <section className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] p-5">
+          <SectionHeader
+            title="Board Auto-Spawn"
+            desc="When enabled, dragging a task from ICE BOX to IN PROGRESS on the board dispatches an implementer agent session on that task automatically — the card's live pip lights up and the spawn outcome lands in the stream as a dispatch row. Agent-initiated moves never trigger it. Default: OFF."
+          />
+          <div className="divide-y divide-[var(--cos-border)]">
+            <FieldRow label="Spawn agent on drag">
+              <Toggle
+                checked={localAutoSpawn.enabled}
+                onChange={(v) => setAutoSpawn({ enabled: v })}
+                label={localAutoSpawn.enabled ? 'Enabled' : 'Disabled'}
+              />
+            </FieldRow>
+          </div>
+        </section>
+
         {/* Claude Auth (subscription vs API key) */}
         <ClaudeAuthSection
           auth={localClaudeAuth}
@@ -777,6 +803,7 @@ export default function SettingsPage() {
               setBudget(serverSettings?.budget_cap ?? null);
               setTrace(serverSettings?.trace_rotation ?? null);
               setRouting(serverSettings?.model_routing ?? null);
+              setAutoSpawn(serverSettings?.auto_spawn ?? null);
               setClaudeAuth(serverSettings?.claude_auth ?? null);
               setClaudeAuthApiKeyDraft(null);
               setSaveNote(null);

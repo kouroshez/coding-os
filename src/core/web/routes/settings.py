@@ -22,6 +22,9 @@ _DEFAULTS: dict = {
     "budget_cap": {"enabled": False, "cap_usd": 5.0},
     "trace_rotation": {"gzip_age_days": 3, "delete_age_days": 30},
     "model_routing": {"enabled": False, "orchestrator_model": ""},
+    # Board drag auto-spawn — default OFF: a human panel drag icebox→in_progress
+    # dispatches an implementer sub-session on the task (board.py::_auto_spawn_safe).
+    "auto_spawn": {"enabled": False},
     # Claude auth mode (TASK-756): "subscription" (default) leaves the CLI's own
     # OAuth session in charge — byte-identical to pre-existing behavior. "api_key"
     # forwards api_key as ANTHROPIC_API_KEY into the dispatch subprocess env
@@ -288,6 +291,10 @@ class _ModelRoutingIn(BaseModel):
     orchestrator_model: str = ""
 
 
+class _AutoSpawnIn(BaseModel):
+    enabled: bool
+
+
 class _GitSettingsIn(BaseModel):
     enabled: bool
     integration_branch: str = "main"
@@ -318,6 +325,7 @@ class _PatchBody(BaseModel):
     budget_cap: _BudgetCapIn | None = None
     trace_rotation: _TraceRotationIn | None = None
     model_routing: _ModelRoutingIn | None = None
+    auto_spawn: _AutoSpawnIn | None = None
     git_settings: _GitSettingsIn | None = None
     claude_auth: _ClaudeAuthIn | None = None
 
@@ -344,6 +352,7 @@ def patch_settings(body: _PatchBody):
             "budget_cap": body.budget_cap,
             "trace_rotation": body.trace_rotation,
             "model_routing": body.model_routing,
+            "auto_spawn": body.auto_spawn,
             "git_settings": body.git_settings,
             "claude_auth": body.claude_auth,
         }
