@@ -782,6 +782,7 @@ def _dry_run_preview(
                     "disabled_modules": [m for m in disabled_modules if m],
                     "files": paths,
                     "conflicts": conflicts,
+                    "note": "the .claude/ agent surface (hooks/skills/commands/rules) is installed by the adapter and NOT previewed here",
                 },
                 indent=2,
                 ensure_ascii=False,
@@ -796,6 +797,10 @@ def _dry_run_preview(
         click.echo(f"  config conflicts ({len(conflicts)} — later wins):")
         for line in conflicts:
             click.echo(f"    WARN: {line}")
+    click.echo(
+        "  note: the .claude/ agent surface (hooks · skills · commands · rules) is "
+        "installed by the adapter and NOT previewed here."
+    )
     click.echo("(dry-run — nothing written)")
 
 

@@ -98,3 +98,14 @@ A plugin author registers a toggleable **subsystem module** without forking the 
 **Merge contract (conservative + fail-open):** the bundled core **always wins** on an id collision; an overlay module that claims `kernel: true`, has an unresolved `depends_on`, or lives in a malformed/unreadable file is skipped — a bad overlay never breaks the core registry. Overlay merging runs only for the real registry (`load_subsystems()` with no explicit `path`), so tests that pass a manifest path stay overlay-free.
 
 **Deferred (noted follow-ups):** (a) the MCP tool-gate reader (`tools/_shared._tool_module_map`) does not yet honor the overlay, so an overlay module that ships its own `tools:` gates them only via the CLI path, not the running server — secondary, since a plugin cannot register new `cos_*` tools without server code anyway; (b) an optional `mcp_server` field + `.mcp.json` register/deregister step for a module that brings its own MCP server.
+
+## 8. Consistency cleanups (TASK-819) — decisions + deferrals
+
+Per TASK-819's DoD (each low-sev item is *closed* or *documented with a one-line rationale*):
+
+- **rank 16 — dry-run fidelity (DONE):** `cos init --dry-run` now prints a note (text + JSON) that the `.claude/` agent surface (hooks/skills/commands/rules) is adapter-installed and NOT previewed, so an adopter no longer treats the file list as authoritative.
+- **rank 10 — kernel granularity (DECISION: keep):** the kernel deliberately pins the enforcement-discipline set as always-on; a lean profile keeps the guardrails (`enforce-skill`/`enforce-verify`/`enforce-zoom`/`test-governor`) by design (per June audit §5). No safety-vs-discipline split — the discipline gates are the product's value, not ceremony.
+- **rank 12 — `cos_log_query` ownership (DECISION: keep gated):** stays `observability`-owned; when observability is off the MCP tool is gated but `cos hooks-log` / CLI log access still works and `logging_os` keeps writing (recording is surface-independent by design). Documented, not moved.
+- **rank 15 — tool-gate reader path (DEFER):** `tools/_shared._disabled_modules` fail-open + relative `COS_STATE_DIR` default is a documented lean-surface (not a security boundary) choice; the normal launch sets an absolute path. Follow-up: resolve absolute + WARN (not silent debug) when the state file is expected-but-unreadable.
+- **rank 17 — HooksTab inertness badge (DEFER):** `/api/hooks/list` + `HookRow` do not yet carry a hook's owning module + gated state, so a module-gated hook still renders as live DNA. Follow-up: emit ownership + badge "inert (module <id> disabled)". Informational; the fact is available on the Modules tab.
+- **rank 18 — in-repo dogfood coverage (DEFER):** the cascade is guard-skipped in the meta-repo (`is_coding_os_source_tree`), so live in-repo coverage needs the pr-mode consumer fixture (ADR-0013) to exercise a module disable/enable round-trip. Follow-up in the pr-mode fixture harness.
