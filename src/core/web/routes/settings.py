@@ -193,17 +193,19 @@ def get_modules():
 
 @router.get("/modules/drift")
 def get_module_drift():
-    """Non-PASS module drift (skill/command/state_integrity) for a Hub WARN banner.
+    """Non-PASS module drift (skill/command/rule/doc/state_integrity) for a Hub WARN banner.
 
-    Reuses the three existing `cos doctor` check functions verbatim — no new check
+    Reuses the existing `cos doctor` check functions verbatim — no new check
     logic — so the toggle UI surfaces the drift its own cascade can produce
-    (HUB-PB2 / TASK-504).
+    (HUB-PB2 / TASK-504; rule/doc drift added TASK-812).
     """
     try:
         from cli.doctor import (
             SEV_PASS,
             DoctorReport,
             _check_module_command_drift,
+            _check_module_doc_drift,
+            _check_module_rule_drift,
             _check_module_skill_drift,
             _check_subsystems_state_integrity,
         )
@@ -214,6 +216,8 @@ def get_module_drift():
         for check in (
             _check_module_skill_drift,
             _check_module_command_drift,
+            _check_module_rule_drift,
+            _check_module_doc_drift,
             _check_subsystems_state_integrity,
         ):
             check(project, report)

@@ -2200,6 +2200,55 @@ class TestSubsystems:
         assert consistency, "module consistency check missing"
         assert consistency[0].severity == "WARN", consistency[0].message
 
+    def test_doctor_detects_module_rule_drift(self, runner: CliRunner, project_dir: Path) -> None:
+        """modules.rule_drift (TASK-812): WARN when a disabled module's rule is still linked."""
+        import json as _json
+
+        from cli.doctor import DoctorReport, _check_module_rule_drift
+
+        project_dir.mkdir()
+        runner.invoke(
+            cli,
+            ["init", "--agent", "claude", "-d", str(project_dir),
+             "--profile", "full", "--no-index", "--no-register"],
+        )
+        # memory.md linked at init (full profile); disable memory in state only
+        # (no cascade) to simulate a residue and assert the check flags it.
+        state = project_dir / ".coding-os" / "subsystems-state.json"
+        state.parent.mkdir(parents=True, exist_ok=True)
+        state.write_text(_json.dumps({"version": 1, "disabled": ["memory"]}), encoding="utf-8")
+        report = DoctorReport(project_dir=str(project_dir), agent=None, templates=[])
+        _check_module_rule_drift(project_dir, report)
+        rule_drift = [c for c in report.checks if c.id == "modules.rule_drift"]
+        assert rule_drift, "rule drift check missing"
+        assert rule_drift[0].severity == "WARN", rule_drift[0].message
+        assert "memory.md" in rule_drift[0].message
+
+    def test_doctor_detects_module_doc_drift(self, runner: CliRunner, project_dir: Path) -> None:
+        """modules.doc_drift (TASK-812): WARN when a `| module:<disabled>` doc lingers."""
+        import json as _json
+
+        from cli.doctor import DoctorReport, _check_module_doc_drift
+
+        project_dir.mkdir()
+        runner.invoke(
+            cli,
+            ["init", "--agent", "claude", "-d", str(project_dir),
+             "--profile", "full", "--no-index", "--no-register"],
+        )
+        state = project_dir / ".coding-os" / "subsystems-state.json"
+        state.parent.mkdir(parents=True, exist_ok=True)
+        state.write_text(_json.dumps({"version": 1, "disabled": ["memory"]}), encoding="utf-8")
+        planted = project_dir / "docs" / "playbooks" / "recall.md"
+        planted.parent.mkdir(parents=True, exist_ok=True)
+        planted.write_text("<!-- domain:CORE | module:memory -->\n# Recall\n", encoding="utf-8")
+        report = DoctorReport(project_dir=str(project_dir), agent=None, templates=[])
+        _check_module_doc_drift(project_dir, report)
+        doc_drift = [c for c in report.checks if c.id == "modules.doc_drift"]
+        assert doc_drift, "doc drift check missing"
+        assert doc_drift[0].severity == "WARN", doc_drift[0].message
+        assert "recall.md" in doc_drift[0].message
+
     def test_module_regen_in_meta_repo_preserves_handwritten_agents_md(
         self, tmp_path: Path
     ) -> None:

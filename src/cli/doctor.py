@@ -1195,6 +1195,93 @@ def _check_module_command_drift(project: Path, report: DoctorReport) -> None:
         logger.debug("module command drift check skipped: %s", exc)
 
 
+def _check_module_rule_drift(project: Path, report: DoctorReport) -> None:
+    """modules.rule_drift — a disabled module's owned core rule is still linked in
+    an adapter rules dir (TASK-811). A rule also owned by an ENABLED module is
+    never drift (ref-count)."""
+    logger = logging.getLogger("coding_os.doctor")
+    try:
+        from cli.module_commands import _installed_adapter_rules_dirs
+        from cli.subsystems import load_subsystems, module_state
+
+        modules = load_subsystems()
+        state = module_state(project, modules)
+        enabled_owned = {
+            rule
+            for mid, module in modules.items()
+            if state.get(mid, True)
+            for rule in module.rules
+        }
+        rules_dirs = _installed_adapter_rules_dirs(project)
+        drift: list[str] = []
+        for mid, module in modules.items():
+            if state.get(mid, True):
+                continue
+            for name in module.rules:
+                if name in enabled_owned:
+                    continue
+                if any((d / name).exists() or (d / name).is_symlink() for d in rules_dirs):
+                    drift.append(f"{name} (module '{mid}' off)")
+        if drift:
+            report.checks.append(
+                CheckResult(
+                    "modules.rule_drift",
+                    SEV_WARN,
+                    f"{len(drift)} rule(s) linked for disabled module(s): "
+                    + ", ".join(sorted(set(drift))[:4])
+                    + " — re-run `cos module disable <id>`",
+                )
+            )
+        else:
+            report.checks.append(CheckResult("modules.rule_drift", SEV_PASS, "no module/rule drift"))
+    except Exception as exc:
+        logger.debug("module rule drift check skipped: %s", exc)
+
+
+def _check_module_doc_drift(project: Path, report: DoctorReport) -> None:
+    """modules.doc_drift — a `| module:<disabled>` scaffold doc is still present in
+    docs/ while its owning module is off (TASK-813 backstop). The live toggle does
+    not yet prune docs, so this surfaces the residue for the auditability persona."""
+    logger = logging.getLogger("coding_os.doctor")
+    try:
+        from cli.main import _DOC_MODULE_TAG_RE
+        from cli.subsystems import load_subsystems, module_state
+
+        modules = load_subsystems()
+        state = module_state(project, modules)
+        disabled = {mid for mid in modules if not state.get(mid, True)}
+        if not disabled:
+            report.checks.append(CheckResult("modules.doc_drift", SEV_PASS, "no module/doc drift"))
+            return
+        docs_root = project / "docs"
+        drift: list[str] = []
+        if docs_root.is_dir():
+            for path in docs_root.rglob("*.md"):
+                try:
+                    first = path.read_text(encoding="utf-8").split("\n", 1)[0]
+                except OSError:
+                    continue
+                if not first.lstrip().startswith("<!--"):
+                    continue
+                tag = _DOC_MODULE_TAG_RE.search(first)
+                if tag and tag.group(1) in disabled:
+                    drift.append(f"{path.relative_to(project)} (module '{tag.group(1)}' off)")
+        if drift:
+            report.checks.append(
+                CheckResult(
+                    "modules.doc_drift",
+                    SEV_WARN,
+                    f"{len(drift)} doc(s) present for disabled module(s): "
+                    + ", ".join(sorted(set(drift))[:4])
+                    + " — prune stale module docs (modularity-audit-2026-07 § DOC-4)",
+                )
+            )
+        else:
+            report.checks.append(CheckResult("modules.doc_drift", SEV_PASS, "no module/doc drift"))
+    except Exception as exc:
+        logger.debug("module doc drift check skipped: %s", exc)
+
+
 def _check_subsystems_state_integrity(project: Path, report: DoctorReport) -> None:
     """modules.state_integrity — a corrupt subsystems-state.json fails OPEN to
     all-enabled silently (TASK-474 P4-12); surface it as a WARN, not a false PASS."""
@@ -1275,6 +1362,8 @@ def run_doctor(
     _check_module_consistency(project, report)
     _check_module_skill_drift(project, report)
     _check_module_command_drift(project, report)
+    _check_module_rule_drift(project, report)
+    _check_module_doc_drift(project, report)
     _check_subsystems_state_integrity(project, report)
     _tick("runtime errors")
     _check_runtime_errors(state, report)
