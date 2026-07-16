@@ -4,7 +4,7 @@ title: "Board: live per-card agent activity indicator (pulsing adapter pip) + op
 swimlane: core
 kind: feature
 epic: null
-labels: [hub, board, ux]
+labels: [hub, board, ux, ready]
 status: icebox
 priority: P2
 appetite: 2d

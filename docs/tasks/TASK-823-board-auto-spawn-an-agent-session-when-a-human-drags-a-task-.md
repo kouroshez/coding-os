@@ -4,7 +4,7 @@ title: "Board: auto-spawn an agent session when a human drags a task icebox\u219
 swimlane: core
 kind: feature
 epic: null
-labels: [hub, board, dispatch]
+labels: [hub, board, dispatch, ready]
 status: icebox
 priority: P2
 appetite: 3d

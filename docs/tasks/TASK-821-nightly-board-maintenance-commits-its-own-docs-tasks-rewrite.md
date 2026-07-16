@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [scheduled, git-hygiene, governance, ready]
-status: "in_progress"
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-16
 started: 2026-07-16
-completed: null
-agent_session: ses-claude-20260527-151803-0b9f
+completed: 2026-07-16
+agent_session: ses-claude-20260716-145309-8189
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-821: Nightly board maintenance commits its own docs/tasks rewrites (stop leaving the tree dirty every night)
 
 **Outcome (one sentence):** The nightly reclaim/auto-archive leg commits exactly the docs/tasks/*.md files it rewrote (explicit paths, conventional-commit message), so unattended maintenance no longer leaves 15+ modified task files stranded in the working tree.
@@ -47,3 +46,4 @@ Nightly 03:02 sweep archived 15 idle-complete tasks; each transition rewrote the
 - 2026-07-16 [claude]: commit de8fb34bde — fix(core): missing DB rows no longer block the nightly board-drift auto-commit
 - 2026-07-16 [claude]: Edit nightly.py
 - 2026-07-16 [claude]: commit f0f65a3e32 — fix(core): raise board-drift commit timeout to 600s for large staged sets
+- 2026-07-16 [claude]: Root cause was TWO stacked blockers in the EXISTING auto-commit design (reused it instead of adding a second commit…
