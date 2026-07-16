@@ -24,7 +24,7 @@ commands drive the board; hooks enforce the discipline.
     ```
 
     Shows yesterday's progress, today's candidate tasks, blockers, and WIP status.
-    (Slash-command equivalent: `/daily`.)
+    (Also available as a slash command — see the Commands section below.)
 
 2. **Pick or create a task**
 
@@ -87,15 +87,19 @@ Type `/` in the agent to run a packaged workflow. Project commands live in
 
 | Command | What it does |
 |---|---|
+<!-- if-module:tasks -->
 | `/board` | Show the Scrumban board grouped by swimlane × status |
 | `/daily` | Daily standup — yesterday, today's candidates, blockers, WIP |
 | `/retro` | Retrospective for a period (default 14 days) |
 | `/task TASK-NNN` | Load + summarize a task |
+<!-- end-if -->
 | `/classify Q1 Q2` | Record the Complexity Gate |
 | `/verify` | Run matrix-targeted verification for changed files |
 | `/review` | Review current changes against project standards |
 | `/diagnose` | Run system health diagnostics (`cos doctor`) |
+<!-- if-module:memory -->
 | `/memory-search <query>` | Search agent memory for cross-session context |
+<!-- end-if -->
 | `/role-<name>` | Invoke one of the 11 semantic roles (researcher, architect, …) |
 
 ## Key Files

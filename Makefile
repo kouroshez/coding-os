@@ -302,6 +302,9 @@ docs-lint: ## Lint docs/ — internal link + anchor + symlink-dir audit, then SS
 	@echo "docs-lint: auditing internal links + anchors + symlink dirs..."
 	@uv run python src/scripts/dev/audit_doc_links.py
 	@echo ""
+	@echo "docs-lint: auditing scaffold module-tag coverage..."
+	@uv run python src/scripts/dev/audit_scaffold_module_tags.py --quiet
+	@echo ""
 	@echo "docs-lint: checking SSOT frontmatter contract..."
 	@bash src/core/scripts/docs-lint.sh --quiet; fm=$$?; \
 	  echo ""; \
