@@ -71,6 +71,22 @@ def user_adapters_dir() -> Path:
     return Path(override) if override else Path.home() / ".coding-os" / "adapters"
 
 
+def user_modules_dir() -> Path:
+    """Out-of-tree community-module (subsystem) root. Override with $COS_USER_MODULES_DIR.
+
+    A plugin author drops a `<id>.yaml` here with a `modules:` block and
+    load_subsystems() merges it over the core registry WITHOUT forking the repo
+    (the bundled tree always wins on an id collision)."""
+    override = os.environ.get("COS_USER_MODULES_DIR")
+    return Path(override) if override else Path.home() / ".coding-os" / "modules.d"
+
+
+def overlay_module_files() -> tuple[Path, ...]:
+    """User-overlay module YAML files that actually exist (see overlay_template_dirs)."""
+    d = user_modules_dir()
+    return tuple(sorted(d.glob("*.yaml"))) if d.is_dir() else ()
+
+
 def overlay_template_dirs() -> tuple[Path, ...]:
     """User-overlay template dirs that actually exist — empty in CI / a fresh
     install, so default-resolving them is a no-op (no test pollution)."""

@@ -57,27 +57,67 @@ class ToggleResult:
     state_path: Path | None = None
 
 
+def _module_from_raw(raw: dict) -> Module:
+    return Module(
+        id=str(raw["id"]),
+        label=str(raw.get("label") or raw["id"]),
+        hint=str(raw.get("hint") or ""),
+        kernel=bool(raw.get("kernel", False)),
+        hooks=tuple(str(h) for h in raw.get("hooks") or ()),
+        tools=tuple(str(t) for t in raw.get("tools") or ()),
+        skills=tuple(str(s) for s in raw.get("skills") or ()),
+        commands=tuple(str(c) for c in raw.get("commands") or ()),
+        rules=tuple(str(r) for r in raw.get("rules") or ()),
+        depends_on=tuple(str(d) for d in raw.get("depends_on") or ()),
+        depends_on_reason=str(raw.get("depends_on_reason") or ""),
+        hidden=bool(raw.get("hidden", False)),
+    )
+
+
+def _merge_overlay_modules(modules: dict[str, Module]) -> None:
+    """Merge out-of-core overlay modules ($COS_USER_MODULES_DIR/*.yaml) over the
+    core registry so a plugin author registers a toggleable module without forking
+    the kernel. Fail-open + conservative: a core-id collision, a kernel claim, an
+    unresolved dependency, or a malformed/unreadable file is skipped (a bad overlay
+    never breaks the core)."""
+    from cli._resources import overlay_module_files
+
+    for overlay in overlay_module_files():
+        try:
+            data = yaml.safe_load(overlay.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError) as exc:
+            logger.debug("subsystems overlay %s unreadable — skipped: %s", overlay, exc)
+            continue
+        for raw in data.get("modules") or []:
+            try:
+                module = _module_from_raw(raw)
+            except (KeyError, TypeError) as exc:
+                logger.debug("overlay module in %s malformed — skipped: %s", overlay, exc)
+                continue
+            if module.kernel:
+                logger.debug("overlay module '%s' may not be kernel — skipped", module.id)
+                continue
+            if module.id in modules:
+                logger.debug("overlay module '%s' shadows a core module — core wins", module.id)
+                continue
+            if any(d not in modules for d in module.depends_on):
+                logger.debug("overlay module '%s' has unresolved dependencies — skipped", module.id)
+                continue
+            modules[module.id] = module
+
+
 def load_subsystems(path: Path | None = None) -> dict[str, Module]:
-    """Parse subsystems.yaml → {module_id: Module}. Raises on structural errors."""
+    """Parse subsystems.yaml → {module_id: Module}, then merge any out-of-core
+    overlay modules (core wins on id collision). Raises on structural errors in the
+    CORE manifest; a broken overlay file is skipped fail-open."""
     manifest = path or _SUBSYSTEMS_PATH
     data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
     modules: dict[str, Module] = {}
     for raw in data.get("modules") or []:
-        module = Module(
-            id=str(raw["id"]),
-            label=str(raw.get("label") or raw["id"]),
-            hint=str(raw.get("hint") or ""),
-            kernel=bool(raw.get("kernel", False)),
-            hooks=tuple(str(h) for h in raw.get("hooks") or ()),
-            tools=tuple(str(t) for t in raw.get("tools") or ()),
-            skills=tuple(str(s) for s in raw.get("skills") or ()),
-            commands=tuple(str(c) for c in raw.get("commands") or ()),
-            rules=tuple(str(r) for r in raw.get("rules") or ()),
-            depends_on=tuple(str(d) for d in raw.get("depends_on") or ()),
-            depends_on_reason=str(raw.get("depends_on_reason") or ""),
-            hidden=bool(raw.get("hidden", False)),
-        )
+        module = _module_from_raw(raw)
         modules[module.id] = module
+    if path is None:
+        _merge_overlay_modules(modules)
     for module in modules.values():
         unknown = [d for d in module.depends_on if d not in modules]
         if unknown:

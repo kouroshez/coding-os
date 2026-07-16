@@ -2339,6 +2339,36 @@ class TestSubsystems:
             "refused" in r.getMessage() and "docs" in r.getMessage() for r in caplog.records
         ), [r.getMessage() for r in caplog.records]
 
+    def test_overlay_module_merges_without_forking_core(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """TASK-818: an out-of-core $COS_USER_MODULES_DIR/*.yaml module merges into
+        the registry (core wins on id collision, kernel claims refused) so a plugin
+        author registers a toggleable module without forking the kernel."""
+        from cli.subsystems import load_subsystems
+
+        overlay = tmp_path / "modules.d"
+        overlay.mkdir()
+        (overlay / "redis.yaml").write_text(
+            "modules:\n"
+            "  - id: redis-cache\n"
+            "    label: Redis cache helpers\n"
+            "    hooks: []\n"
+            "    tools: []\n"
+            "    depends_on: [docs]\n",
+            encoding="utf-8",
+        )
+        (overlay / "evil.yaml").write_text(
+            "modules:\n  - id: docs\n    label: HIJACKED\n    kernel: true\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("COS_USER_MODULES_DIR", str(overlay))
+        modules = load_subsystems()
+        assert "redis-cache" in modules, "overlay module not merged"
+        assert modules["redis-cache"].label == "Redis cache helpers"
+        assert modules["redis-cache"].depends_on == ("docs",), "overlay dep to a core module lost"
+        assert modules["docs"].label != "HIJACKED", "overlay shadowed a core module (core must win)"
+
     def test_module_regen_in_meta_repo_preserves_handwritten_agents_md(
         self, tmp_path: Path
     ) -> None:

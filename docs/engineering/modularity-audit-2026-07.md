@@ -90,3 +90,11 @@ June **deleted** `Module.rules` / `Module.doc_tags` under the Raptor principle: 
 | 9 | TASK-818 — extensibility overlay + pruning-contract spec (F-F) | 🟡 | L |
 
 **Strengths (credit, re-verified):** feature-model SSOT; dependency-validated atomic toggles with rollback; ref-counted skill/command cascade; fail-closed per-call MCP gating + startup surface removal; fully-modular AGENTS.md; the reusable `_apply_doc_conditions` engine; the `doctor`+Hub drift spine; and a self-aware, documented anti-over-engineering posture (June's Raptor deletions).
+
+## 7. Out-of-core module overlay (TASK-818)
+
+A plugin author registers a toggleable **subsystem module** without forking the kernel: drop a `<id>.yaml` with a `modules:` block into `$COS_USER_MODULES_DIR` (default `~/.coding-os/modules.d/`). `cli.subsystems.load_subsystems` merges it over the core registry — mirroring the existing stack/adapter/skill overlays (`cli._resources`) — and the module then flows through the same `toggle_and_regen` cascade (hooks/skills/commands/rules/docs).
+
+**Merge contract (conservative + fail-open):** the bundled core **always wins** on an id collision; an overlay module that claims `kernel: true`, has an unresolved `depends_on`, or lives in a malformed/unreadable file is skipped — a bad overlay never breaks the core registry. Overlay merging runs only for the real registry (`load_subsystems()` with no explicit `path`), so tests that pass a manifest path stay overlay-free.
+
+**Deferred (noted follow-ups):** (a) the MCP tool-gate reader (`tools/_shared._tool_module_map`) does not yet honor the overlay, so an overlay module that ships its own `tools:` gates them only via the CLI path, not the running server — secondary, since a plugin cannot register new `cos_*` tools without server code anyway; (b) an optional `mcp_server` field + `.mcp.json` register/deregister step for a module that brings its own MCP server.
