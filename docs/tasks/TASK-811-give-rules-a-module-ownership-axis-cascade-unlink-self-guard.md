@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: modularity-completion
 labels: [ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-16
-started: null
-completed: null
-agent_session: null
+started: 2026-07-16
+completed: 2026-07-16
+agent_session: ses-claude-20260716-001729-7bd4
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-811: Give rules a module-ownership axis — cascade unlink + self-guard + total variability (F-A / rank 1)
 
 **Outcome (one sentence):** A disabled module's owned rule files leave the consumer's .claude/rules/ (physical unlink, ref-counted like skills/commands) AND self-guard as inert while present (defense-in-depth), so a lean profile neither ships nor is commanded by dead-tool instructions.
@@ -42,3 +41,19 @@ Checklist:
 - [ ] Verify: uv run pytest tests/test_cli.py -q + make verify-hooks (install-adapter.sh) + make docs-lint.
 
 ## Work Log
+- 2026-07-16 [claude]: Edit subsystems.py
+- 2026-07-16 [claude]: Edit subsystems.py
+- 2026-07-16 [claude]: Edit subsystems.yaml
+- 2026-07-16 [claude]: Edit subsystems.yaml
+- 2026-07-16 [claude]: Edit subsystems.yaml
+- 2026-07-16 [claude]: Edit subsystems.yaml
+- 2026-07-16 [claude]: Edit module_commands.py
+- 2026-07-16 [claude]: Edit module_commands.py
+- 2026-07-16 [claude]: Edit module_commands.py
+- 2026-07-16 [claude]: Edit extract_disabled_module_rules.py
+- 2026-07-16 [claude]: Edit install-adapter.sh
+- 2026-07-16 [claude]: Edit memory.md
+- 2026-07-16 [claude]: Edit memory.md
+- 2026-07-16 [claude]: Edit test_cli.py
+- 2026-07-16 [claude]: Implemented rules module-ownership: Module.rules field + loader (subsystems.py); memory->[memory.md],…
+- 2026-07-16 [claude]: commit af56209fc1 — feat(core): module-owned rules — cascade-unlink a disabled module's rules (F-A)

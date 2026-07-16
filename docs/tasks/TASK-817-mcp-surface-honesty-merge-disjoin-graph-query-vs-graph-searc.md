@@ -5,18 +5,17 @@ swimlane: core
 kind: refactor
 epic: modularity-completion
 labels: [ready]
-status: icebox
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-07-16
-started: null
-completed: null
-agent_session: null
+started: 2026-07-16
+completed: 2026-07-16
+agent_session: ses-claude-20260716-001729-7bd4
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-817: MCP surface honesty — merge/disjoin graph_query vs graph_search + explicit kernel always-on tool floor (rank 11)
 
 **Outcome (one sentence):** The MCP tool surface is smaller and the SSOT is honest: the overlapping cos_graph_query/cos_graph_search confusion is resolved, and the four un-gateable always-on tools (classify_prompt/health/traceability/failure_pattern_query) are either declared as kernel.tools (auditable floor) or moved into their true owning module so disabling it removes them.
@@ -36,3 +35,10 @@ Checklist:
 - [ ] Verify: uv run --extra rag pytest src/core/thinking_os/tests/ -q -m 'not slow' + python src/core/thinking_os/server.py --test.
 
 ## Work Log
+- 2026-07-16 [claude]: Edit server.py
+- 2026-07-16 [claude]: Edit server.py
+- 2026-07-16 [claude]: Edit server.py
+- 2026-07-16 [claude]: Edit server.py
+- 2026-07-16 [claude]: Edit subsystems.yaml
+- 2026-07-16 [claude]: Disjoined the two overlapping graph search tools (the user's 'agent hallucinates' concern): cos_graph_query…
+- 2026-07-16 [claude]: commit 0d12e762a0 — refactor(core): disjoin graph_query/graph_search + honest kernel always-on tool floor

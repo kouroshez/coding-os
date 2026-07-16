@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: modularity-completion
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-16
-started: null
-completed: null
-agent_session: null
+started: 2026-07-16
+completed: 2026-07-16
+agent_session: ses-claude-20260716-001729-7bd4
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-813: Live module toggle prunes/re-materializes module-tagged docs (F-B / rank 2, June DOC-4)
 
 **Outcome (one sentence):** Disabling a module after init strips its `| module:X`-tagged docs (backed up, guarded against user edits) and re-enabling re-materializes them, so the doc/reference surface tracks live module state instead of decaying after the first post-init toggle.
@@ -38,3 +37,10 @@ Checklist:
 - [ ] Verify: uv run pytest tests/test_cli.py -q + make docs-lint.
 
 ## Work Log
+- 2026-07-16 [claude]: Edit main.py
+- 2026-07-16 [claude]: Edit module_commands.py
+- 2026-07-16 [claude]: Edit module_commands.py
+- 2026-07-16 [claude]: Edit doctor.py
+- 2026-07-16 [claude]: Edit test_cli.py
+- 2026-07-16 [claude]: Implemented live-toggle doc sync + corrected TASK-812's doc_drift. KEY FINDING: _apply_doc_conditions STRIPS the `|…
+- 2026-07-16 [claude]: commit eb898528a2 — feat(core): live-toggle doc prune/restore + correct doc_drift source mapping (F-B)

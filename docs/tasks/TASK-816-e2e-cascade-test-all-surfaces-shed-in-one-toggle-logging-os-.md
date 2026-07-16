@@ -5,18 +5,17 @@ swimlane: core
 kind: test
 epic: modularity-completion
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-16
-started: null
-completed: null
-agent_session: null
+started: 2026-07-16
+completed: 2026-07-16
+agent_session: ses-claude-20260716-001729-7bd4
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-816: E2E cascade test (all surfaces shed in one toggle) + logging_os wiring on toggle rollback/refusal (F-G / ranks 14+13)
 
 **Outcome (one sentence):** One integration test pins the toggle orchestrator so dropping either cascade line fails CI, and the toggle path emits queryable logging_os events on rollback/refusal so a headless CI/nightly toggle failure is discoverable via cos_log_query instead of only a returned string.
@@ -37,3 +36,8 @@ Checklist:
 - [ ] Verify: uv run pytest tests/test_modularity_toggle.py tests/test_module_gating_smoke.py -q.
 
 ## Work Log
+- 2026-07-16 [claude]: Edit module_commands.py
+- 2026-07-16 [claude]: Edit module_commands.py
+- 2026-07-16 [claude]: Edit test_cli.py
+- 2026-07-16 [claude]: test_toggle_and_regen_sheds_all_surfaces_at_once: inits a full-profile consumer, calls toggle_and_regen('tasks',…
+- 2026-07-16 [claude]: commit 28d3678ed4 — test(core): E2E cascade shed-all-surfaces + toggle refusal/rollback logging (F-G)

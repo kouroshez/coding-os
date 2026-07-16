@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: modularity-completion
 labels: [ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-16
-started: null
-completed: null
-agent_session: null
+started: 2026-07-16
+completed: 2026-07-16
+agent_session: ses-claude-20260716-001729-7bd4
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-814: Hub ModulesTab — show commands + artifact identities, inline explain-refusal, confirm before disable (F-E / ranks 6+7)
 
 **Outcome (one sentence):** The Hub Config→Modules tab (the least-expert persona's surface) shows the full blast radius before a toggle (commands + named hooks/tools/skills/commands, not opaque counts), renders the dependency-refusal reason inline and accessibly (not tooltip-only) sourced from the registry, and confirms a destructive disable — matching or beating the CLI's guardrail.
@@ -38,3 +37,15 @@ Checklist:
 - [ ] Verify: uv run pytest tests/test_cli.py -q (payload) + npm test (ui) if wired + make docs-lint.
 
 ## Work Log
+- 2026-07-16 [claude]: Edit subsystems.py
+- 2026-07-16 [claude]: Edit subsystems.py
+- 2026-07-16 [claude]: Edit subsystems.yaml
+- 2026-07-16 [claude]: Edit module_commands.py
+- 2026-07-16 [claude]: Edit ConfigPage.tsx
+- 2026-07-16 [claude]: Edit ConfigPage.tsx
+- 2026-07-16 [claude]: Edit ConfigPage.tsx
+- 2026-07-16 [claude]: Edit ConfigPage.test.tsx
+- 2026-07-16 [claude]: Edit ConfigPage.test.tsx
+- 2026-07-16 [claude]: Edit test_cli.py
+- 2026-07-16 [claude]: Hub ModulesTab disclosure: module_state_payload now emits commands count, depends_on_reason, and owned artifact…
+- 2026-07-16 [claude]: commit 8bd5757b93 — feat(hub): ModulesTab discloses commands/rules + inline refusal reason + dependency why (F-E)

@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: modularity-completion
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-16
-started: null
-completed: null
-agent_session: null
+started: 2026-07-16
+completed: 2026-07-16
+agent_session: ses-claude-20260716-001729-7bd4
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-815: docs-lint rule — scaffold doc naming a module tool/command must carry the matching module tag (F-H / rank 5)
 
 **Outcome (one sentence):** A docs-lint rule keeps module-tag coverage tracking the registry automatically: any scaffold doc that names a cos_<family> tool or a module-owned slash command without a matching file/block module tag fails lint, so init-time orphan references to disabled-module capabilities cannot silently accrue.
@@ -38,3 +37,12 @@ Checklist:
 - [ ] Verify: make docs-lint + uv run pytest for the linter test.
 
 ## Work Log
+- 2026-07-16 [claude]: Edit audit_scaffold_module_tags.py
+- 2026-07-16 [claude]: Edit audit_scaffold_module_tags.py
+- 2026-07-16 [claude]: Edit workflow-guide.md
+- 2026-07-16 [claude]: Edit workflow-guide.md
+- 2026-07-16 [claude]: Edit Makefile
+- 2026-07-16 [claude]: Edit audit_scaffold_module_tags.py
+- 2026-07-16 [claude]: Edit test_scaffold_module_tags.py
+- 2026-07-16 [claude]: Added src/scripts/dev/audit_scaffold_module_tags.py — flags a scaffold doc naming a module-owned SLASH COMMAND…
+- 2026-07-16 [claude]: commit 15543657cf — feat(docs): lint scaffold docs for untagged module-owned slash commands (F-H)

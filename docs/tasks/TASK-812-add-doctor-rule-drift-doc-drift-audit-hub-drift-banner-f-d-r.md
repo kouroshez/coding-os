@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: modularity-completion
 labels: [ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-16
-started: null
-completed: null
-agent_session: null
+started: 2026-07-16
+completed: 2026-07-16
+agent_session: ses-claude-20260716-001729-7bd4
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-812: Add doctor rule_drift + doc_drift audit + Hub drift banner (F-D / rank 4)
 
 **Outcome (one sentence):** cos doctor + the Hub /api/settings/modules/drift endpoint surface a stranded module-tagged doc or module-owned rule left behind by an incomplete disable, so the enterprise/auditability persona can detect partial variability resolution instead of seeing a green doctor.
@@ -38,3 +37,10 @@ Checklist:
 - [ ] Verify: uv run pytest tests/test_cli.py -q (doctor) + settings tests.
 
 ## Work Log
+- 2026-07-16 [claude]: Edit doctor.py
+- 2026-07-16 [claude]: Edit doctor.py
+- 2026-07-16 [claude]: Edit settings.py
+- 2026-07-16 [claude]: Edit settings.py
+- 2026-07-16 [claude]: Edit test_cli.py
+- 2026-07-16 [claude]: Added _check_module_rule_drift (mirrors command_drift, uses _installed_adapter_rules_dirs) + _check_module_doc_drift…
+- 2026-07-16 [claude]: commit f4bee055f4 — feat(core): doctor rule_drift + doc_drift audit + Hub drift banner (F-D)
