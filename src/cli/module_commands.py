@@ -421,6 +421,15 @@ def module_state_payload(project: Path) -> dict:
                 "tools": len(m.tools),
                 "skills": len(m.skills),
                 "rules": len(m.rules),
+                "commands": len(m.commands),
+                "depends_on_reason": m.depends_on_reason,
+                "owned": {
+                    "hooks": list(m.hooks),
+                    "tools": list(m.tools),
+                    "skills": list(m.skills),
+                    "commands": list(m.commands),
+                    "rules": list(m.rules),
+                },
             }
             for m in modules.values()
             if not m.hidden

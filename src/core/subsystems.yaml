@@ -114,6 +114,7 @@ modules:
     # lives in the docs module and consumes each task's Read First, so tasks-on/docs-off
     # would silently strip that gate. Keep hard.
     depends_on: [docs]
+    depends_on_reason: "Enforcement-locality: the docs-first code-write gate (enforce-doc-anchor) lives in the docs module and consumes each task's Read First — tasks-on/docs-off would silently strip that gate."
 
   - id: graph
     label: "Knowledge graph — code/doc graph, structural queries"

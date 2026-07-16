@@ -40,6 +40,9 @@ class Module:
     commands: tuple[str, ...] = ()
     rules: tuple[str, ...] = ()
     depends_on: tuple[str, ...] = ()
+    # Human rationale for `depends_on` — surfaced in the Hub Config → Modules tab
+    # so a dependency (e.g. tasks→docs enforcement-locality) never reads as arbitrary.
+    depends_on_reason: str = ""
     # Reserved-but-not-yet-shipped module: kept in the registry so its id stays
     # stable, but suppressed from every toggle surface (no live no-op switch).
     hidden: bool = False
@@ -71,6 +74,7 @@ def load_subsystems(path: Path | None = None) -> dict[str, Module]:
             commands=tuple(str(c) for c in raw.get("commands") or ()),
             rules=tuple(str(r) for r in raw.get("rules") or ()),
             depends_on=tuple(str(d) for d in raw.get("depends_on") or ()),
+            depends_on_reason=str(raw.get("depends_on_reason") or ""),
             hidden=bool(raw.get("hidden", False)),
         )
         modules[module.id] = module

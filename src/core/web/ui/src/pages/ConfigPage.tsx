@@ -1023,6 +1023,14 @@ function HooksTab() {
   );
 }
 
+interface ModuleOwned {
+  hooks: string[];
+  tools: string[];
+  skills: string[];
+  commands: string[];
+  rules: string[];
+}
+
 interface ModuleRow {
   id: string;
   label: string;
@@ -1030,15 +1038,37 @@ interface ModuleRow {
   kernel: boolean;
   enabled: boolean;
   depends_on: string[];
+  depends_on_reason?: string;
   hooks: number;
   tools: number;
   skills: number;
+  commands: number;
+  rules: number;
+  owned?: ModuleOwned;
 }
 
 interface DriftRow {
   id: string;
   severity: string;
   message: string;
+}
+
+// Named identities of everything a module owns — the "see the blast radius"
+// detail the Owns cell exposes on hover so a disable is never a blind leap.
+function ownedTitle(m: ModuleRow): string {
+  const o = m.owned;
+  if (!o) return '';
+  return (
+    [
+      o.hooks.length ? `hooks: ${o.hooks.join(', ')}` : '',
+      o.tools.length ? `tools: ${o.tools.join(', ')}` : '',
+      o.skills.length ? `skills: ${o.skills.join(', ')}` : '',
+      o.commands.length ? `commands: ${o.commands.join(', ')}` : '',
+      o.rules.length ? `rules: ${o.rules.join(', ')}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n') || 'no owned artifacts'
+  );
 }
 
 function ModulesTab() {
@@ -1165,23 +1195,44 @@ function ModulesTab() {
                 )}
               </td>
               <td className="px-3 py-2 text-[var(--cos-muted)]">
-                {m.hooks} hooks · {m.tools} tools · {m.skills} skills
+                <span title={ownedTitle(m)} className="cursor-help">
+                  {m.hooks} hooks · {m.tools} tools · {m.skills} skills · {m.commands} commands ·{' '}
+                  {m.rules} rules
+                </span>
               </td>
-              <td className="px-3 py-2 text-[var(--cos-faint)]">{m.depends_on.join(', ') || '—'}</td>
+              <td className="px-3 py-2 text-[var(--cos-faint)]">
+                {m.depends_on.join(', ') || '—'}
+                {m.depends_on_reason && (
+                  <div className="mt-0.5 max-w-xs text-[10px] italic leading-snug text-[var(--cos-muted)]">
+                    {m.depends_on_reason}
+                  </div>
+                )}
+              </td>
               <td className="px-3 py-2 text-[var(--cos-faint)]">{dependents.join(', ') || '—'}</td>
               <td className="px-3 py-2 text-right">
                 {!m.kernel && (
-                  <button
-                    type="button"
-                    data-testid={`module-toggle-${m.id}`}
-                    onClick={() => void toggle(m)}
-                    disabled={busyId !== null || disableBlocked || enableBlocked}
-                    title={blockedReason}
-                    aria-pressed={m.enabled}
-                    className="rounded border border-[var(--cos-border)] px-2.5 py-1 text-[11px] text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] disabled:opacity-40"
-                  >
-                    {busyId === m.id ? '…' : m.enabled ? 'Disable' : 'Enable'}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      data-testid={`module-toggle-${m.id}`}
+                      onClick={() => void toggle(m)}
+                      disabled={busyId !== null || disableBlocked || enableBlocked}
+                      title={blockedReason}
+                      aria-pressed={m.enabled}
+                      aria-disabled={disableBlocked || enableBlocked}
+                      className="rounded border border-[var(--cos-border)] px-2.5 py-1 text-[11px] text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] disabled:opacity-40"
+                    >
+                      {busyId === m.id ? '…' : m.enabled ? 'Disable' : 'Enable'}
+                    </button>
+                    {blockedReason && (
+                      <div
+                        role="note"
+                        className="mt-1 max-w-[16rem] text-left text-[10px] leading-snug text-[var(--cos-faint)]"
+                      >
+                        {blockedReason}
+                      </div>
+                    )}
+                  </>
                 )}
               </td>
             </tr>

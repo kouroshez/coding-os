@@ -1115,6 +1115,18 @@ class TestCiWorkflow:
         assert all("hint" in m for m in payload["modules"]), "hint missing from module payload"
         assert any(m["hint"] for m in payload["modules"])
 
+    def test_module_payload_includes_commands_reason_and_owned(self, tmp_path: Path) -> None:
+        """TASK-814: the Config→Modules payload carries the commands count, the
+        dependency rationale, and owned artifact identities for the UI disclosure."""
+        from cli.module_commands import module_state_payload
+
+        payload = module_state_payload(tmp_path)
+        by_id = {m["id"]: m for m in payload["modules"]}
+        assert by_id["tasks"]["commands"] == 4, by_id["tasks"]
+        assert by_id["tasks"]["depends_on_reason"], "tasks->docs reason missing"
+        assert "board" in by_id["tasks"]["owned"]["commands"]
+        assert "memory.md" in by_id["memory"]["owned"]["rules"]
+
     def test_full_profile_init_emits_ci_default_does_not(
         self, runner: CliRunner, tmp_path: Path
     ) -> None:

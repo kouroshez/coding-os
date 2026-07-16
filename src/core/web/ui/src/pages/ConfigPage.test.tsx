@@ -49,9 +49,9 @@ vi.mock('@/lib/hooks', () => ({
       '/api/hooks/list': { hooks: [{ name: 'branch-guard', event: 'PreToolUse', category: 'safety', phase: '1' }] },
       '/api/settings/modules': {
         modules: [
-          { id: 'kernel', label: 'Kernel', kernel: true, enabled: true, depends_on: [], hooks: 6, tools: 0, skills: 0 },
-          { id: 'docs', label: 'Docs system', hint: 'Enable for SSOT doc search.', kernel: false, enabled: true, depends_on: [], hooks: 6, tools: 1, skills: 0 },
-          { id: 'tasks', label: 'Task system', hint: 'Enable for the Scrumban board.', kernel: false, enabled: true, depends_on: ['docs'], hooks: 9, tools: 2, skills: 1 },
+          { id: 'kernel', label: 'Kernel', kernel: true, enabled: true, depends_on: [], hooks: 6, tools: 0, skills: 0, commands: 0, rules: 0, owned: { hooks: [], tools: [], skills: [], commands: [], rules: [] } },
+          { id: 'docs', label: 'Docs system', hint: 'Enable for SSOT doc search.', kernel: false, enabled: true, depends_on: [], hooks: 6, tools: 1, skills: 0, commands: 0, rules: 0, owned: { hooks: [], tools: ['cos_doc_*'], skills: [], commands: [], rules: [] } },
+          { id: 'tasks', label: 'Task system', hint: 'Enable for the Scrumban board.', kernel: false, enabled: true, depends_on: ['docs'], depends_on_reason: 'Enforcement-locality: docs owns the doc-anchor gate.', hooks: 9, tools: 2, skills: 1, commands: 4, rules: 0, owned: { hooks: [], tools: [], skills: ['task-driver'], commands: ['board', 'daily', 'retro', 'task'], rules: [] } },
         ],
       },
       '/api/settings': {
@@ -161,6 +161,12 @@ describe('ModulesTab (TASK-354)', () => {
   it('surfaces the module skills count the producer emits', () => {
     renderConfig('/p/demo/config?tab=modules');
     expect(screen.getByText(/1 skills/)).toBeInTheDocument();
+  });
+
+  it('surfaces the dependency rationale and the commands count (TASK-814)', () => {
+    renderConfig('/p/demo/config?tab=modules');
+    expect(screen.getByText(/Enforcement-locality/)).toBeInTheDocument();
+    expect(screen.getByText(/4 commands/)).toBeInTheDocument();
   });
 
   it('shows the cascade regenerated notes after a successful toggle', async () => {
