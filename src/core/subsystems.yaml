@@ -90,7 +90,12 @@ modules:
       - remind-dogfood
       - warn-destructive-edit
       - warn-diff-size
-    tools: []
+    # Always-on tools that match no module pattern, so the gate never removes them
+    # (auditable floor — the tool gate skips kernel by design). cos_classify_prompt
+    # (Record Gate) + cos_health (diagnostic) are kernel by design; cos_traceability
+    # is cross-cutting; cos_failure_pattern_query reads cognition-populated data and
+    # is a candidate to move to `cognition` later (rank-11 follow-up).
+    tools: [cos_classify_prompt, cos_health, cos_traceability, cos_failure_pattern_query]
     depends_on: []
 
   - id: docs

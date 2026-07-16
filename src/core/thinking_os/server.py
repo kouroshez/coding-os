@@ -2255,7 +2255,7 @@ if _GRAPH_TOOLS_AVAILABLE:
     @mcp.tool(
         name="cos_graph_query",
         annotations={
-            "title": "Graph Hybrid Search",
+            "title": "Graph Symbol Lookup (known name/path/uid)",
             "readOnlyHint": True,
             "destructiveHint": False,
             "idempotentHint": True,
@@ -2271,7 +2271,7 @@ if _GRAPH_TOOLS_AVAILABLE:
         confidence_min: float = 0.3,
         include_spine: bool = False,
     ) -> str:
-        """Hybrid search over node labels + docstrings (lexical + graph expansion).
+        """Look up a symbol by a KNOWN short term, path, or uid (lexical + graph expansion). For a natural-language DESCRIPTION of code whose name you don't know, use cos_graph_search instead.
 
         TIP: prefer SHORT terms ("sdk_dispatcher", "ClaudeSDKDispatcher.dispatch") or
         a literal path / uid. Long natural-language queries return weaker matches
@@ -2493,7 +2493,7 @@ if _GRAPH_TOOLS_AVAILABLE:
     @mcp.tool(
         name="cos_graph_search",
         annotations={
-            "title": "Graph Hybrid Semantic Search",
+            "title": "Graph Semantic Search (by description)",
             "readOnlyHint": True,
             "destructiveHint": False,
             "idempotentHint": True,
@@ -2505,7 +2505,7 @@ if _GRAPH_TOOLS_AVAILABLE:
         query: str,
         top_k: int = 10,
     ) -> str:
-        """Find code symbols by free text — hybrid semantic + lexical + centrality.
+        """Find code symbols from a NATURAL-LANGUAGE description (semantic + lexical + centrality). For a KNOWN name / path / uid, use cos_graph_query instead.
 
         Args:
             query: Natural-language or code-ish query (e.g. "validate jwt token").
