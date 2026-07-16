@@ -339,7 +339,7 @@ def _git_autonomy(project_root: Path) -> str:
     return "draft"
 
 
-def _commit_board_drift_tasks_only(project_root: Path, drifted: int) -> dict:
+def _commit_board_drift_tasks_only(project_root: Path, paths: list[str]) -> dict:
     import subprocess
 
     def _git(*args: str, timeout: int) -> subprocess.CompletedProcess:
@@ -351,15 +351,15 @@ def _commit_board_drift_tasks_only(project_root: Path, drifted: int) -> dict:
         )
 
     try:
-        add = _git("add", "--", "docs/tasks", timeout=30)
+        add = _git("add", "--", *paths, timeout=30)
         if add.returncode != 0:
             return {"committed": False, "error": f"git add rc={add.returncode}: {add.stderr[-200:]}"}
-        msg = f"chore(board): commit {drifted} drifted task file(s) to match the board DB"
-        commit = _git("commit", "-m", msg, "--", "docs/tasks", timeout=120)
+        msg = f"chore(board): commit {len(paths)} drifted task file(s) to match the board DB"
+        commit = _git("commit", "-m", msg, "--", *paths, timeout=120)
         if commit.returncode != 0:
             return {"committed": False, "error": f"git commit rc={commit.returncode}: {commit.stderr[-200:]}"}
         sha = _git("rev-parse", "--short", "HEAD", timeout=10).stdout.strip()
-        return {"committed": True, "sha": sha, "count": drifted}
+        return {"committed": True, "sha": sha, "count": len(paths)}
     except (OSError, subprocess.SubprocessError) as exc:
         return {"committed": False, "error": str(exc)}
 
@@ -378,32 +378,54 @@ def _run_board_coherence(db_path: Path, project_root: Path, *, dry_run: bool) ->
         ):
             return {"status": "skipped", "reason": "no tasks table"}
 
-        drift = detect_board_git_drift(project_root, task_rows_from_db(conn))
+        rows = task_rows_from_db(conn)
+        drift = detect_board_git_drift(project_root, rows)
         if not drift.is_git_root or drift.skip_reason:
             return {"status": "skipped", "reason": drift.skip_reason or "not a git work-tree root"}
         if not drift.has_drift:
             return {"status": "ok", "drift": False}
 
-        committable = len(drift.untracked) + len(drift.modified)
+        # Missing rows (DB row, no file) cannot be fixed by a commit and must
+        # not block it — one orphaned row would pin every other drifted file
+        # dirty forever. Commit the committable set; missing still files below.
+        path_by_id = dict(rows)
+        committable_paths = sorted(
+            {
+                path_by_id[task_id]
+                for task_id in (*drift.untracked, *drift.modified)
+                if path_by_id.get(task_id)
+            }
+        )
         autonomy_allows_commit = _git_autonomy(project_root) in _AUTO_COMMIT_AUTONOMY
-        if committable and not drift.missing and not dry_run and autonomy_allows_commit:
-            result = _commit_board_drift_tasks_only(project_root, committable)
+        committed_sha: str | None = None
+        if committable_paths and not dry_run and autonomy_allows_commit:
+            result = _commit_board_drift_tasks_only(project_root, committable_paths)
             if result.get("committed"):
-                return {
-                    "status": "ok",
-                    "drift": True,
-                    "committed": True,
-                    "sha": result.get("sha"),
-                    "count": committable,
-                }
-            logger.warning("[board_coherence] auto-commit failed: %s", result.get("error"))
+                committed_sha = result.get("sha")
+                if not drift.missing:
+                    return {
+                        "status": "ok",
+                        "drift": True,
+                        "committed": True,
+                        "sha": committed_sha,
+                        "count": len(committable_paths),
+                    }
+            else:
+                logger.warning("[board_coherence] auto-commit failed: %s", result.get("error"))
 
+        partial = {"committed": True, "sha": committed_sha} if committed_sha else {}
         existing = conn.execute(
             "SELECT task_id FROM tasks WHERE status NOT IN ('complete', 'archive') "
             "AND labels_json LIKE '%\"auto-git-drift\"%'"
         ).fetchone()
         if existing is not None:
-            return {"status": "ok", "drift": True, "filed": False, "existing_task": existing[0]}
+            return {
+                "status": "ok",
+                "drift": True,
+                "filed": False,
+                "existing_task": existing[0],
+                **partial,
+            }
         if dry_run:
             return {"status": "ok", "drift": True, "filed": False, "dry_run": True}
 
@@ -438,7 +460,7 @@ def _run_board_coherence(db_path: Path, project_root: Path, *, dry_run: bool) ->
         filed = task_id is not None
         if not filed:
             logger.warning("[board_coherence] drift-task filing failed: %s", envelope[:200])
-    return {"status": "ok", "drift": True, "filed": filed, "task_id": task_id}
+    return {"status": "ok", "drift": True, "filed": filed, "task_id": task_id, **partial}
 
 
 def _run_reclaim(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:

@@ -134,3 +134,29 @@ def test_local_autonomy_also_autocommits(tmp_path: Path, monkeypatch) -> None:
 
     r = _run_board_coherence(db_path, repo, dry_run=False)
     assert r.get("committed") is True and r.get("sha"), r
+
+
+def test_missing_row_does_not_block_committing_the_rest(tmp_path: Path, monkeypatch) -> None:
+    repo, db_path, conn = _repo_with_db(tmp_path)
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(repo))
+    monkeypatch.setenv("COS_GIT_AUTONOMY", "autonomous")
+    _seed_drift(conn, "drift seed F")
+    _seed_drift(conn, "orphan row whose file disappears")
+    orphan_path = conn.execute(
+        "SELECT file_path FROM tasks WHERE title = 'orphan row whose file disappears'"
+    ).fetchone()[0]
+    (repo / orphan_path).unlink()
+    conn.close()
+
+    r = _run_board_coherence(db_path, repo, dry_run=False)
+    assert r.get("committed") is True and r.get("sha"), r
+    # The missing row still surfaces as a filed drift task — a commit can't fix it.
+    assert r.get("filed") is True and r.get("task_id"), r
+    # Everything committable converged; the only dirt left is the just-filed
+    # drift task's own .md (it lands in the next pass).
+    porcelain = subprocess.run(
+        ["git", "status", "--porcelain", "--", "docs/tasks"],
+        cwd=repo, capture_output=True, text=True,
+    ).stdout.strip()
+    leftover = [line for line in porcelain.splitlines() if r["task_id"] not in line]
+    assert leftover == [], porcelain
