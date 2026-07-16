@@ -106,6 +106,15 @@ Codex receives the same hooks via the `codex-userpromptsubmit-dispatch.sh` dispa
 | `check-agents-md-refs` | PostToolUse after AGENTS.md edit | warn if referenced files/paths are missing |
 | `warn-mcp-down` | SessionStart | WARN if thinking_os MCP can't be reached (session is cognitively blind) |
 
+## JIT rule reminders (`jit-recall` + `jit-rules.tsv`)
+
+`jit-recall` (PreToolUse Write|Edit, warn-only, fail-open) surfaces two kinds of just-in-time context right before an edit:
+
+1. **Past friction lesson** for the target file (from `learned_patterns`, debounced once per file per session).
+2. **Convention-rule one-liner** from [src/core/hooks/jit-rules.tsv](../../src/core/hooks/jit-rules.tsv) — tab-separated `glob<TAB>rule_id<TAB>message` lines matched against the edited path, normalized to a leading `/` so relative (Codex) paths match too (`#` comments allowed). Each rule surfaces at most once per session: markers live in `$COS_PANEL_DIR/.jit-nudge/`, which session-context.sh prunes wholesale at SessionStart like the other `*-nudge/` dirs. The hook locates the tsv through `_cos_helpers_dir` (cos-env.sh) because installers symlink only `*.sh` — a sibling data file is never at `$(dirname "$0")` in a consumer project.
+
+Why: convention-only rules (no blocking hook — e.g. api-contract-discipline) are injected at session start and forgotten by edit time; re-injecting the one-liner at the moment the matching file is opened for writing puts the rule at peak attention for near-zero token cost. Add a mapping line instead of a new nudge hook whenever the trigger is "editing a file that matches a glob" — a new hook for that is parasitic duplication. Rules that already BLOCK must not be duplicated here.
+
 ## Adding a new hook
 
 1. Write the script: `src/core/hooks/<new-name>.sh`. Source [cos-env.sh](../../src/core/hooks/cos-env.sh) and call `cos_log_hook <new-name> <action> <detail>`.

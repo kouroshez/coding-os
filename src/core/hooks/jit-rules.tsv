@@ -1,0 +1,4 @@
+# JIT rule reminders — glob<TAB>rule_id<TAB>message (see docs/engineering/hooks-reference.md § JIT rule reminders)
+# One line per convention rule; NEVER duplicate a rule that already BLOCKs.
+*/src/core/web/ui/*	api-contract-ui	api-contract-discipline: this is an API consumer — verify every field name against the producer (src/core/web/routes/* + the cos_* tool emit site) or one live response before editing; never from memory.
+*/src/adapters/*	api-contract-adapter	api-contract-discipline: adapter code writes state/presence files — verify the shape against the reader hook in src/core/hooks/ before editing.

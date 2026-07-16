@@ -891,9 +891,10 @@ hooks:
   - id: jit-recall
     script: jit-recall.sh
     description: |
-      PreToolUse Write|Edit just-in-time recall (B2) — surfaces a past friction
-      lesson about the file being edited (lesson text contains its basename) at
-      the moment it matters. Warn-only, debounced once per (file, session).
+      PreToolUse Write|Edit just-in-time recall — surfaces a past friction
+      lesson about the file being edited plus any convention-rule one-liner
+      mapped to the path in jit-rules.tsv, at the moment it matters. Warn-only,
+      debounced per (file, session) / (rule, session).
     category: reminder
     phase: O
     timeout: 5

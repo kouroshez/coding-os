@@ -168,6 +168,7 @@ if [[ "$SOURCE" == "startup" ]]; then
   for STATE_DIR_MARK in \
     "${COS_PANEL_DIR}/.graph-nudge" \
     "${COS_PANEL_DIR}/.task-nudge" \
+    "${COS_PANEL_DIR}/.jit-nudge" \
     "${COS_PANEL_DIR}/.test-first-reminded"; do
     if [ -d "$STATE_DIR_MARK" ]; then
       rm -rf "$STATE_DIR_MARK"

@@ -5,12 +5,12 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [context-economy, rules, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-16
 started: 2026-07-16
-completed: null
+completed: 2026-07-16
 agent_session: ses-claude-20260716-180747-21b8
 depends_on: []
 blocked_by: []
@@ -31,3 +31,4 @@ references: []
 
 ## Work Log
 - 2026-07-16 [claude]: Compressed the 3 fattest always-on rules: git-workflow 10.1K→6.4K, test-discipline 6.7K→4.0K, transparency-banner…
+- 2026-07-16 [claude]: Status transitioned to complete via cos task-done.
