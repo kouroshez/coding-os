@@ -45,3 +45,5 @@ Nightly 03:02 sweep archived 15 idle-complete tasks; each transition rewrote the
 - 2026-07-16 [claude]: Edit test_board_coherence.py
 - 2026-07-16 [claude]: Edit test_board_coherence.py
 - 2026-07-16 [claude]: commit de8fb34bde — fix(core): missing DB rows no longer block the nightly board-drift auto-commit
+- 2026-07-16 [claude]: Edit nightly.py
+- 2026-07-16 [claude]: commit f0f65a3e32 — fix(core): raise board-drift commit timeout to 600s for large staged sets
