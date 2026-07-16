@@ -31,6 +31,15 @@ describe('agentForSession', () => {
     expect(agentForSession('ses-claude-sdk-42', ids)).toBe('claude-sdk');
     expect(agentForSession('ses-claude-42', ids)).toBe('claude');
   });
+
+  it('attributes ses-system-* maintenance sessions to the system manifest row', () => {
+    const withSystem = [...MANIFEST_IDS, 'system'];
+    expect(agentForSession('ses-system-auto-archive', withSystem)).toBe('system');
+    expect(agentForSession('ses-system-reclaim', withSystem)).toBe('system');
+    // Without the manifest row (older Hub payload) the session falls back to
+    // human — the data-driven contract, same as the gemini case above.
+    expect(agentForSession('ses-system-auto-archive', MANIFEST_IDS)).toBe('human');
+  });
 });
 
 describe('liveRowKey', () => {

@@ -38,6 +38,7 @@ from board_os.config import (
     TASK_ID_FORMAT_RE,
     load_config,
 )
+from board_os._agent_runtime import SYSTEM_SESSION_PREFIX
 from board_os.parser import parse_task
 from board_os.sync import sync_one
 from board_os.workflow import (
@@ -1952,7 +1953,9 @@ def cos_task_reclaim(
             task_id,
             dest,
             reason=f"reclaim: {status} idle {idle_h}h, owner session inactive -> {dest}",
-            agent_session=agent_session,
+            # Unattended runs (nightly daemon) pass no session; attribute the
+            # healing to the system actor, not the human fallback.
+            agent_session=agent_session or f"{SYSTEM_SESSION_PREFIX}-reclaim",
             force=True,
             config=config,
             file_path=file_path,
@@ -2074,7 +2077,10 @@ def _archive_stale_sweep(conn: sqlite3.Connection, config) -> list[dict]:
                 task_id,
                 "archive",
                 reason=f"auto-archive: {status} idle {round(dwell / 86400, 1)}d",
-                agent_session=None,
+                # System attribution, never None — a NULL session renders as the
+                # human operator in the stream panel (hub-architecture.md
+                # § Actor attribution contract).
+                agent_session=f"{SYSTEM_SESSION_PREFIX}-auto-archive",
                 force=True,
                 config=config,
                 file_path=file_path,
@@ -2526,8 +2532,12 @@ def _actor_view(agent_session: str | None) -> dict:
     if not agent_session:
         return {"type": "human", "id": "human", "label": "human"}
     label = detect_agent(agent_session)
+    if label in ("human", "system"):
+        actor_type = label
+    else:
+        actor_type = "agent"
     return {
-        "type": "human" if label == "human" else "agent",
+        "type": actor_type,
         "id": agent_session,
         "label": label,
     }

@@ -296,7 +296,8 @@ export function useBoardStream(agentIds: readonly string[]): UseBoardStreamRetur
             t: nowHMS(),
             kind: 'connected' as BoardEventKind,
             taskId: null,
-            agent: 'human' as const,
+            // A connection banner is infrastructure, not a human action.
+            agent: 'system' as const,
             message: 'SSE /api/stream/events online',
           },
           ...prev,

@@ -81,11 +81,19 @@ const COLUMN_META: Record<string, { label: string; sub: string; wip: number | nu
 };
 
 // Fallback when GET /api/board/list has no `agent_manifest` (older Hub).
+// `system` = unattended kernel maintenance (ses-system-*: nightly
+// auto-archive/reclaim, SSE banner) — an actor for attribution, not a
+// presence-bearing agent, so pill rows filter it out (isPresenceAgent).
 const FALLBACK_AGENT_MANIFEST: BoardAgentManifestEntry[] = [
   { id: 'claude', color: '#d97706', label: 'claude', glyph: 'Cl', session: 'ses-claude' },
   { id: 'codex', color: '#0891b2', label: 'codex', glyph: 'Cx', session: 'ses-codex' },
   { id: 'human', color: '#16a34a', label: 'human', glyph: 'H', session: 'local-mac' },
+  { id: 'system', color: '#64748b', label: 'system', glyph: 'Sy', session: 'ses-system' },
 ];
+
+function isPresenceAgent(entry: BoardAgentManifestEntry): boolean {
+  return entry.id !== 'system';
+}
 
 const AgentCatalogContext = createContext<BoardAgentManifestEntry[]>(FALLBACK_AGENT_MANIFEST);
 
@@ -1215,7 +1223,7 @@ function TopBar({
         >
           <span style={{ color: 'var(--ink-faint)', fontSize: 13 }}>live:</span>
           <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
-            {agentRows.map((a) => (
+            {agentRows.filter(isPresenceAgent).map((a) => (
               <AgentBadge
                 key={a.id}
                 agentId={a.id}
@@ -2332,7 +2340,7 @@ function LegendPanel({
 
         <LegendSection title="Agent — corner pip">
           <div style={{ display: 'flex', gap: 8, padding: '3px 5px', flexWrap: 'wrap' }}>
-            {legendAgents.map((a) => (
+            {legendAgents.filter(isPresenceAgent).map((a) => (
               <div
                 key={a.id}
                 style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--ink)' }}

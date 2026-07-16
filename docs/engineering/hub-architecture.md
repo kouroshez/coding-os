@@ -244,6 +244,23 @@ identical to the newest row (same `taskId` + `newStatus` + `kind`) as
 defence-in-depth; history-bootstrap rows already dedupe on their stable
 `hist-…` id.
 
+**Actor attribution contract — three actor kinds, resolved from `agent_session`.**
+Every stream/history row is attributed by scanning its `agent_session` against
+the `agent_manifest` ids from `/api/board/list` (`agentForSession`, longest
+match wins). Three kinds exist:
+
+- **agent** — session embeds an adapter id (`ses-claude-…`, `ses-codex-…`).
+- **system** — session starts with `ses-system-` (unattended kernel
+  maintenance: the nightly auto-archive sweep, zombie reclaim). The manifest
+  carries a synthetic `system` row (gray `Sy` pip) so resolution stays
+  data-driven; `system` is excluded from the live-presence pill row and the
+  legend because it has no presence files. The locally-pushed SSE-online
+  banner is also `system` — a connection event is not a human action.
+- **human** — a `null` session (raw file edit with no DB row) or a session
+  matching no manifest id. Human is the *fallback*, so any hub-initiated
+  mutation MUST pass an explicit `ses-system-*` session — `agent_session=None`
+  on a daemon write silently misattributes the row to the human operator.
+
 ## Command palette (Cmd/Ctrl+K)
 
 `CommandPalette` (mounted in `AppShell`, built on the shared `Modal`) reserves

@@ -371,7 +371,18 @@ def board_list(
             "color": "#16a34a",
             "session": human["id"],
         }
-        env["data"]["agent_manifest"] = [*adapter_rows, human_row]
+        # Synthetic actor for unattended kernel maintenance (nightly
+        # auto-archive/reclaim, ses-system-*). In the manifest so stream
+        # attribution stays data-driven; has no presence files, so the UI
+        # keeps it out of the live-pill row and legend.
+        system_row = {
+            "id": "system",
+            "label": "system",
+            "glyph": "Sy",
+            "color": "#64748b",
+            "session": "ses-system",
+        }
+        env["data"]["agent_manifest"] = [*adapter_rows, human_row, system_row]
         env["data"]["presence_scope"] = "per_project"
 
     return JSONResponse(status_code=200, content=env)

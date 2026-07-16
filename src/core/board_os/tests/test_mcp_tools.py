@@ -1661,6 +1661,59 @@ def test_archive_sweep_archives_aged_icebox_respecting_keep(
     )
 
 
+def test_archive_sweep_attributes_to_system_actor(project: Path, conn: sqlite3.Connection):
+    """Sweep rows carry a ses-system session — NULL would render as the human operator."""
+    from board_os.config import parse_config
+
+    mcp_tools.cos_task_create(conn, title="Stale", swimlane="core", kind="chore", status="icebox")
+    _backdate_task(conn, "TASK-001", "icebox", 40 * 86400)
+    cfg = parse_config({"swimlanes": _SL, "workflow_policy": {"icebox_auto_archive_days": 30}})
+    archived = mcp_tools._archive_stale_sweep(conn, cfg)
+    assert [a["task_id"] for a in archived] == ["TASK-001"]
+    session = conn.execute(
+        "SELECT agent_session FROM task_status_history "
+        "WHERE task_id='TASK-001' AND new_status='archive' ORDER BY id DESC LIMIT 1"
+    ).fetchone()[0]
+    assert session == "ses-system-auto-archive"
+    assert mcp_tools._actor_view(session) == {
+        "type": "system",
+        "id": "ses-system-auto-archive",
+        "label": "system",
+    }
+
+
+def test_reclaim_without_session_attributes_to_system_actor(
+    project: Path, conn: sqlite3.Connection
+):
+    """An unattended reclaim (nightly daemon, no session) is system-, not human-attributed."""
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Zombie",
+            swimlane="core",
+            kind="chore",
+            outcome="zombie reclaim attribution guard outcome.",
+            ready=True,
+        )
+    )
+    tid = env["data"]["task_id"]
+    assert _parse(
+        mcp_tools.cos_task_move(conn, task_id=tid, to="in_progress", agent_session="ses-dead")
+    )["ok"]
+    old = int(time.time()) - 48 * 3600
+    conn.execute("UPDATE tasks SET started_at=? WHERE task_id=?", (old, tid))
+    conn.execute("UPDATE task_status_history SET transitioned_at=? WHERE task_id=?", (old, tid))
+    conn.commit()
+    rec = _parse(mcp_tools.cos_task_reclaim(conn))
+    assert tid in [r["task_id"] for r in rec["data"]["reclaimed"]]
+    session = conn.execute(
+        "SELECT agent_session FROM task_status_history "
+        "WHERE task_id=? AND new_status='icebox' ORDER BY id DESC LIMIT 1",
+        (tid,),
+    ).fetchone()[0]
+    assert session == "ses-system-reclaim"
+
+
 # ---------- F4: hub/human-actor zombies are reclaimable — TASK-210 MISS-1 ----------
 
 

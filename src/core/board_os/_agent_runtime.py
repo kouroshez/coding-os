@@ -17,6 +17,12 @@ _UNKNOWN_AGENT = "agent"
 # the allowlist via _known_agent_ids().
 _HUMAN_LITERAL = "human"
 
+# Unattended kernel maintenance (nightly auto-archive, zombie reclaim) writes
+# under this prefix so the board never misattributes daemon work to the human
+# operator (hub-architecture.md § Actor attribution contract).
+_SYSTEM_LITERAL = "system"
+SYSTEM_SESSION_PREFIX = "ses-system"
+
 
 @lru_cache(maxsize=1)
 def _known_agent_ids() -> tuple[frozenset[str], dict[str, tuple[str, ...]]]:
@@ -100,6 +106,8 @@ def _from_explicit_session(
     for agent_id in sorted(known_ids):
         if agent_id in s:
             return agent_id
+    if _SYSTEM_LITERAL in s:
+        return _SYSTEM_LITERAL
     if _HUMAN_LITERAL in s:
         return _HUMAN_LITERAL
     return agent_session.strip()[:24]
@@ -239,4 +247,10 @@ def reset_cache() -> None:
     _known_agent_ids.cache_clear()
 
 
-__all__ = ["detect_agent", "human_actor", "reset_cache", "resolve_agent_session"]
+__all__ = [
+    "SYSTEM_SESSION_PREFIX",
+    "detect_agent",
+    "human_actor",
+    "reset_cache",
+    "resolve_agent_session",
+]
