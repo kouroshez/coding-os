@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [context-economy, hooks, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-16
 started: 2026-07-16
-completed: null
+completed: 2026-07-16
 agent_session: ses-claude-20260716-180747-21b8
 depends_on: []
 blocked_by: []
@@ -31,3 +31,4 @@ references: []
 
 ## Work Log
 - 2026-07-16 [claude]: Extended jit-recall with jit-rules.tsv (glob→rule one-liners, warn-only, per-rule/session debounce in .jit-nudge/…
+- 2026-07-16 [claude]: Status transitioned to complete via cos task-done.
