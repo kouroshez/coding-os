@@ -128,6 +128,12 @@ def session_inventory(
         verdict = session_presence(data, now)
         if verdict == "offline":
             continue
+        sdk_uuid = data.get("sdk_uuid")
+        # Files written before the presence-hook TSV fix may hold a transcript
+        # PATH here; a path is never a chat id, so drop it rather than emit a
+        # dead deep-link target.
+        if not isinstance(sdk_uuid, str) or "/" in sdk_uuid:
+            sdk_uuid = None
         rows.append(
             {
                 "agent": agent,
@@ -138,6 +144,7 @@ def session_inventory(
                 "last_prompt_at": data.get("last_prompt_at"),
                 "last_tool_at": data.get("last_tool_at"),
                 "last_stop_at": data.get("last_stop_at"),
+                "sdk_uuid": sdk_uuid,
             }
         )
     rows.sort(

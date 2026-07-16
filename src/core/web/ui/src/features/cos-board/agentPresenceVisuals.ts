@@ -63,3 +63,27 @@ export function visualFor(state: AgentPresence | string | null | undefined): Age
   const v = state ? AGENT_PRESENCE_VISUALS[state as AgentPresence] : undefined;
   return v ?? AGENT_PRESENCE_VISUALS.offline;
 }
+
+export interface LiveSessionInfo {
+  state: AgentPresence;
+  /** Chat deep-link target: the SDK/chat uuid when the presence file bridged
+   *  one, else the coding-os sid (trace view still resolves it). */
+  chatId: string;
+}
+
+/** sid → live info for sessions that are genuinely live (active/working).
+ *  present = alive-but-idle and offline are excluded on purpose: a card pip
+ *  should pulse only while the bound session is actually doing something. */
+export function liveSessionsBySid(
+  states:
+    | ReadonlyArray<{ sid: string; state: AgentPresence; sdk_uuid?: string | null }>
+    | undefined,
+): Map<string, LiveSessionInfo> {
+  const bySid = new Map<string, LiveSessionInfo>();
+  for (const s of states ?? []) {
+    if (s.state === 'active' || s.state === 'working') {
+      bySid.set(s.sid, { state: s.state, chatId: s.sdk_uuid || s.sid });
+    }
+  }
+  return bySid;
+}

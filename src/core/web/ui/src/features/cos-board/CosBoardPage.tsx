@@ -9,7 +9,7 @@ import {
   type DragEvent,
   type ReactNode,
 } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import { apiGet, apiPost, apiPatch } from '@/lib/api-client';
@@ -30,7 +30,7 @@ import type {
   ColumnDTO,
   SwimlaneDTO,
 } from './types';
-import { visualFor } from './agentPresenceVisuals';
+import { liveSessionsBySid, visualFor, type LiveSessionInfo } from './agentPresenceVisuals';
 
 // ---------- types ----------
 type HighlightKind = 'kind' | 'swim' | 'priority';
@@ -100,6 +100,11 @@ const AgentCatalogContext = createContext<BoardAgentManifestEntry[]>(FALLBACK_AG
 function useAgentCatalog(): BoardAgentManifestEntry[] {
   return useContext(AgentCatalogContext);
 }
+
+// sid → live presence state (active/working only). Card pips pulse from it
+// and deep-link to the session's chat; SSE presence-updated bumps keep it
+// fresh via the board-list refetch.
+const LiveSessionsContext = createContext<ReadonlyMap<string, LiveSessionInfo>>(new Map());
 
 const EVENT_COLOR: Record<string, string> = {
   'task-updated': '#7c3aed',
@@ -291,6 +296,60 @@ function AgentPip({ agentId, title, size = 18 }: { agentId?: string | null; titl
   );
 }
 
+/** Card corner pip that pulses while the bound session is live and
+ *  deep-links to that session's chat. Falls back to the static pip when
+ *  the session is not in the live inventory. */
+function LiveAgentPip({
+  agentId,
+  session,
+}: {
+  agentId: string;
+  session: string | null | undefined;
+}) {
+  const liveSessions = useContext(LiveSessionsContext);
+  const navigate = useNavigate();
+  const { slug } = useParams<{ slug?: string }>();
+  const live = session ? liveSessions.get(session) : undefined;
+  if (!live) return <AgentPip agentId={agentId} />;
+  const v = visualFor(live.state);
+  const hint = `${agentId} ${v.label} — open live chat`;
+  return (
+    <button
+      type="button"
+      // The card is `draggable`; a cancelled dragstart here keeps an
+      // imprecise pip click from starting a card drag (and an accidental
+      // column drop / status transition).
+      draggable
+      onDragStart={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (slug) {
+          navigate(
+            `/p/${encodeURIComponent(slug)}/workspace/chat/${encodeURIComponent(live.chatId)}`,
+          );
+        }
+      }}
+      aria-label={`Open live chat for the ${agentId} session on this task`}
+      className="focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
+      style={{
+        display: 'inline-flex',
+        padding: 0,
+        border: 'none',
+        background: 'transparent',
+        borderRadius: '50%',
+        cursor: 'pointer',
+        boxShadow: `0 0 0 3px ${v.ring}`,
+        animation: 'cos-agent-pulse 1.4s ease-in-out infinite',
+      }}
+    >
+      <AgentPip agentId={agentId} title={hint} />
+    </button>
+  );
+}
+
 // ============================================================
 // Main page
 // ============================================================
@@ -316,6 +375,11 @@ export default function CosBoardPage() {
     [list?.agent_manifest],
   );
   const agentIds = useMemo(() => agentCatalog.map((a) => a.id), [agentCatalog]);
+
+  const liveSessions = useMemo(
+    () => liveSessionsBySid(list?.session_states),
+    [list?.session_states],
+  );
 
   const { bump, connected, events: streamEvents, pushHumanEvent } = useBoardStream(agentIds);
 
@@ -627,6 +691,7 @@ export default function CosBoardPage() {
 
   return (
     <AgentCatalogContext.Provider value={agentCatalog}>
+    <LiveSessionsContext.Provider value={liveSessions}>
     <div style={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <TopBar
         taskCount={list?.count ?? 0}
@@ -1152,6 +1217,7 @@ export default function CosBoardPage() {
         </div>
       )}
     </div>
+    </LiveSessionsContext.Provider>
     </AgentCatalogContext.Provider>
   );
 }
@@ -1650,7 +1716,9 @@ function TaskStickyCard({
           {task.priority}
         </span>
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 3, alignItems: 'center' }}>
-          {agentId && agentSurface && <AgentPip agentId={agentId} />}
+          {agentId && agentSurface && (
+            <LiveAgentPip agentId={agentId} session={task.agent_session} />
+          )}
         </span>
       </div>
 

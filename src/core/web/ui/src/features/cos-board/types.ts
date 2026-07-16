@@ -68,6 +68,9 @@ export interface BoardListPayload {
     last_prompt_at: number | null;
     last_tool_at: number | null;
     last_stop_at: number | null;
+    /** SDK/chat session uuid bridged from the presence file — the id the
+     *  cognition chat route resolves. Null for sessions with no chat. */
+    sdk_uuid?: string | null;
   }>;
   /** Adapter ids + Hub pill metadata (includes trailing `human` row). */
   agent_manifest?: BoardAgentManifestEntry[];
