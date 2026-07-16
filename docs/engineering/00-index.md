@@ -31,7 +31,7 @@ Read next: any of the entries below.
 
 - [Naming Contract](naming-contract.md) — `ssot:true` · updated 2026-04-26
 
-### Engineering (40)
+### Engineering (41)
 
 - [Template Location — In-Repo Files vs In-CLI vs Hybrid](templates-location-analysis.md) — `ssot:true` · updated 2026-04-18
 - [Rules Loading — How `src/core/rules/*.md` Actually Become Active](rules-loading.md) — `ssot:true` · updated 2026-04-18
@@ -40,7 +40,6 @@ Read next: any of the entries below.
 - [Skill Architecture — Fundamentals + Stack Specialization](skill-architecture.md) — `ssot:true` · updated 2026-04-18
 - [Graph-OS Query Guide](graph_os-queries.md) — `ssot:true` · updated 2026-04-19
 - [Hooks Reference — Every Hook, Every Category](hooks-reference.md) — `ssot:true` · updated 2026-04-19
-- [Adapter Parity — Claude vs Codex Coverage](adapter-parity.md) — `ssot:true` · updated 2026-04-24
 - [Bash 5.3.9 + Heredoc Deadlock — Forensics & Discipline](bash-heredoc-deadlock.md) — `ssot:true` · updated 2026-04-25
 - [Codex GUI Presence Fallback](codex-presence-fallback.md) — `ssot:true` · updated 2026-04-25
 - [Workflow Audit — V1 Flowchart vs Current Source](workflow-audit-2026-04-25.md) — `ssot:true` · updated 2026-04-25
@@ -50,7 +49,6 @@ Read next: any of the entries below.
 - [MCP Schema Traps — Exact Types for Agent Callers](mcp-schema-traps.md) — `ssot:true` · updated 2026-05-07
 - [Graph Tools — Smoke E2E Report](graph-tools-smoke-report.md) — `ssot:false` · updated 2026-05-08
 - [Task-Mode Matrix — Persona-Aware Enforcement](task-mode-matrix.md) — `ssot:false` · updated 2026-05-08
-- [Dispatcher Contract](dispatcher-contract.md) — `ssot:false` · updated 2026-05-08
 - [Polyglot Extractor — Post-Ship Audit (2026-05-12)](polyglot-extractor-audit-2026-05-12.md) — `ssot:true` · updated 2026-05-12
 - [Hub Architecture](hub-architecture.md) — `ssot:true` · updated 2026-05-13
 - [Graph-OS Deep Audit Findings (2026-05-25)](graph-os-deep-audit-findings-2026-05-25.md) — `ssot:false` · updated 2026-05-25
@@ -73,5 +71,8 @@ Read next: any of the entries below.
 - [Derived-Store Coherence Audit — 2026-06-30](derived-store-coherence-audit-2026-06-30.md) — `ssot:true` · updated 2026-06-30
 - [Learning Extraction](learning-extraction.md) — `ssot:true` · updated 2026-07-02
 - [Modularity / Auto-Sync Audit — June 2026](modularity-audit-2026-06.md) — `ssot:true` · updated 2026-07-03
+- [Adapter Parity - Claude vs Codex Coverage](adapter-parity.md) — `ssot:true` · updated 2026-07-10
+- [Dispatcher Contract](dispatcher-contract.md) — `ssot:true` · updated 2026-07-10
+- [Modularity / Auto-Sync Audit — July 2026](modularity-audit-2026-07.md) — `ssot:true` · updated 2026-07-16
 
 <!-- END auto-index -->
