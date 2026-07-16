@@ -18,27 +18,6 @@ references: []
 ---
 # TASK-786: Hub Config redesign: installed-first stacks + real install/remove, active-skills grouped-by-stack, adapters add/remove, allow-listed MCP add/remove, grouped read-only hooks, kernel-badge polish, Marketplace top-nav (EM coming-soon)
 
----
-id: TASK-786
-title: "Hub Config redesign: installed-first stacks + real install/remove, active-skills grouped-by-stack, adapters add/remove, allow-listed MCP add/remove, grouped read-only hooks, kernel-badge polish, Marketplace top-nav (EM coming-soon)"
-swimlane: core
-kind: feature
-epic: hub-config-modernization
-labels: [hub, config, ui, extension-manager, cli, ready]
-status: icebox
-priority: P2
-appetite: 1d
-created: 2026-07-04
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-786: Hub Config redesign (installed-first stacks, active-skills grouped-by-stack, adapters add/remove, allow-listed MCP, grouped hooks, kernel badge, Marketplace EM stub)
-
 **Outcome (one sentence):** The per-project Hub Config surface becomes modern/enterprise + principled: Stacks shows only INSTALLED stacks with a +Add picker (real cos add-stack / remove-stack, meta-repo guarded); Skills shows only ACTIVE skills grouped by originating stack with provenance and clean toggles (existing set_project_skill); Adapters gains real add (cos add-adapter) + safe remove (never the last); MCP redesigned with +Add limited to a first-party allow-list (honoring extension-manager.md invariants) + remove, meta-guarded; Hooks kept read-only but grouped by category, collapsible; the kernel-locked module badge is redesigned; a Marketplace top-nav tab lands as an Extension-Manager coming-soon surface. Card-based, token-driven, a11y-clean.
 
 ## Read First

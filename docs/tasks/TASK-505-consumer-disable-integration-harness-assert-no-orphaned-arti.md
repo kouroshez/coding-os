@@ -18,27 +18,6 @@ references: []
 ---
 # TASK-505: Consumer-disable integration harness — assert no orphaned artifacts end-to-end (modularity CI guard)
 
----
-id: TASK-505
-title: "Consumer-disable integration harness — assert no orphaned artifacts end-to-end (modularity CI guard)"
-swimlane: core
-kind: test
-epic: null
-labels: [ready]
-status: icebox
-priority: P2
-appetite: 1d
-created: 2026-06-21
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-505: Consumer-disable integration harness — assert no orphaned artifacts end-to-end (modularity CI guard)
-
 **Outcome (one sentence):** One integration test scaffolds a real consumer, disables a single module, and asserts every artifact kind (hook, tool, skill, command, module-tagged doc) is gone — the durable guard against the half-wired over-claim pattern DOC-4/DOC-5 slipped through.
 
 ## Read First

@@ -18,27 +18,6 @@ references: []
 ---
 # TASK-503: Hub: enable disabling core/stack skills from the Skills tab (modularity HUB-PB1)
 
----
-id: TASK-503
-title: "Hub: enable disabling core/stack skills from the Skills tab (modularity HUB-PB1)"
-swimlane: core
-kind: feature
-epic: null
-labels: [ready]
-status: icebox
-priority: P2
-appetite: 1d
-created: 2026-06-21
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-503: Hub: enable disabling core/stack skills from the Skills tab (modularity HUB-PB1)
-
 **Outcome (one sentence):** The Hub Skills tab can disable (not just add) a core/stack skill, reaching parity with cos skill disable via the set_project_skill the route already calls.
 
 ## Read First

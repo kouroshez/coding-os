@@ -18,27 +18,6 @@ references: []
 ---
 # TASK-502: cos remove-stack must delete the stack's scaffolded docs, not just rules (modularity DOC-5)
 
----
-id: TASK-502
-title: "cos remove-stack must delete the stack's scaffolded docs, not just rules (modularity DOC-5)"
-swimlane: core
-kind: bug
-epic: null
-labels: [ready]
-status: icebox
-priority: P2
-appetite: 1d
-created: 2026-06-21
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-502: cos remove-stack must delete the stack's scaffolded docs, not just rules (modularity DOC-5)
-
 **Outcome (one sentence):** cos remove-stack go also removes the stack's scaffold-doc outputs (docs/engineering/go-rules.md, docs/playbooks/go-service.md), backup-guarded and ref-counted, so no stale stack guidance survives removal.
 
 ## Read First

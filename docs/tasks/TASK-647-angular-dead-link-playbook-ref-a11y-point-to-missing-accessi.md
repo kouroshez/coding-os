@@ -18,26 +18,6 @@ references: []
 ---
 # TASK-647: angular dead link — playbook + REF:A11Y point to missing accessibility-web.md
 
----
-id: TASK-647
-title: "angular dead link — playbook + REF:A11Y point to missing accessibility-web.md"
-swimlane: templates
-kind: bug
-epic: stack-completeness-v2
-labels: [angular, drift, wave-1, a11y, ready]
-status: in_progress
-priority: P2
-appetite: 1d
-created: 2026-06-30
-started: 2026-06-30
-completed: null
-agent_session: ses-claude-20260630-012042-78c9
-depends_on: []
-blocked_by: []
-references: []
----
-# TASK-647: angular dead link — playbook + REF:A11Y point to missing accessibility-web.md
-
 **Outcome (one sentence):** A fresh angular project ships docs/engineering/accessibility-web.md, so the angular playbook's Accessibility link and the REF:A11Y ref-code resolve to a real WCAG 2.2 AA Angular-specific checklist instead of a dead link.
 
 ## Read First

@@ -18,27 +18,6 @@ references: []
 ---
 # TASK-418: Consolidate hardcoded {claude,codex} adapter-id fallbacks into one data-driven SSOT (list_agent_ids)
 
----
-id: TASK-418
-title: "Consolidate hardcoded {claude,codex} adapter-id fallbacks into one data-driven SSOT (list_agent_ids)"
-swimlane: "thinking_os"
-kind: refactor
-epic: null
-labels: [ready]
-status: icebox
-priority: P2
-appetite: 1d
-created: 2026-06-15
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-418: Consolidate hardcoded {claude,codex} adapter-id fallbacks into one data-driven SSOT (list_agent_ids)
-
 **Outcome (one sentence):** Adapter-id fallback literals live in exactly one core module; dispatcher/presence/roles derive known agents from a single list_agent_ids() that scans src/adapters — adding a new adapter (e.g. gemini) needs zero edits to these files.
 
 ## Read First

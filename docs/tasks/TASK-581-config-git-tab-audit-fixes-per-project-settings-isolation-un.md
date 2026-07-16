@@ -18,27 +18,6 @@ references: []
 ---
 # TASK-581: Config→Git tab audit fixes: per-project settings isolation, unknown-section data-loss, atomic write, fail-open surfacing, autonomy validation, enable-confirm + meta hard-block
 
----
-id: TASK-581
-title: "Config→Git tab audit fixes: per-project settings isolation, unknown-section data-loss, atomic write, fail-open surfacing, autonomy validation, enable-confirm + meta hard-block"
-swimlane: core
-kind: bug
-epic: multi-agent-pr-mode
-labels: [hub, pr-mode, git-settings, audit-fix, data-loss, ready]
-status: icebox
-priority: P1
-appetite: 1d
-created: 2026-06-26
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-581: Config→Git tab audit fixes
-
 **Outcome (one sentence):** The Hub Config→Git settings path is correct, durable, and honest end-to-end: writes go to the project bound by the /api/p/<slug>/ URL (not the Hub process env); unknown on-disk sections survive a PATCH; hub-settings.json is written atomically under a lock; every silent fail-open-to-trunk path emits an operator-visible warning; autonomy_level is validated where it is consumed; enabling pr-mode requires confirmation and is hard-blocked on the meta-repo; and the agent-only enforcement boundary is documented.
 
 ## Read First

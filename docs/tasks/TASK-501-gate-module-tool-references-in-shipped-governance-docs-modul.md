@@ -18,27 +18,6 @@ references: []
 ---
 # TASK-501: Gate module-tool references in shipped governance docs (modularity DOC-3)
 
----
-id: TASK-501
-title: "Gate module-tool references in shipped governance docs (modularity DOC-3)"
-swimlane: core
-kind: bug
-epic: null
-labels: [ready]
-status: icebox
-priority: P2
-appetite: 1d
-created: 2026-06-21
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-501: Gate module-tool references in shipped governance docs (modularity DOC-3)
-
 **Outcome (one sentence):** A consumer that ran cos init --disable-module graph|memory gets shipped governance docs whose graph/memory tool sections are stripped, so cos_doc_search never returns guidance to call a runtime-gated tool.
 
 ## Read First

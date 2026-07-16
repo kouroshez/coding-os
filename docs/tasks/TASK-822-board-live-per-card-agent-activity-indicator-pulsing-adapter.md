@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [hub, board, ux, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 2d
 created: 2026-07-16
-started: null
-completed: null
-agent_session: null
+started: 2026-07-16
+completed: 2026-07-16
+agent_session: ses-claude-20260716-145309-8189
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-822: Board: live per-card agent activity indicator (pulsing adapter pip) + open the live chat from the card
 
 **Outcome (one sentence):** An in_progress card whose bound agent_session is live (presence active/working) shows a pulsing adapter-branded pip (adapter glyph + spinner ring) on the card; clicking it opens the session's live chat/trace view (existing /api/cognition chat + hook stream), so the human can watch the agent work in real time from the board.
@@ -33,3 +32,19 @@ references: []
 **Given** the session ends **When** presence flips offline **Then** the pulse stops without a page reload (SSE presence-updated already drives this).
 
 ## Work Log
+- 2026-07-16 [claude]: Edit CosBoardPage.tsx
+- 2026-07-16 [claude]: Edit CosBoardPage.tsx
+- 2026-07-16 [claude]: Edit CosBoardPage.tsx
+- 2026-07-16 [claude]: Edit CosBoardPage.tsx
+- 2026-07-16 [claude]: Edit CosBoardPage.tsx
+- 2026-07-16 [claude]: Edit CosBoardPage.tsx
+- 2026-07-16 [claude]: Edit CosBoardPage.tsx
+- 2026-07-16 [claude]: Edit agent-presence.sh
+- 2026-07-16 [claude]: Edit presence.py
+- 2026-07-16 [claude]: Edit types.ts
+- 2026-07-16 [claude]: Edit agentPresenceVisuals.ts
+- 2026-07-16 [claude]: Edit CosBoardPage.tsx
+- 2026-07-16 [claude]: Edit agentPresenceVisuals.test.ts
+- 2026-07-16 [claude]: Edit test_presence.py
+- 2026-07-16 [claude]: commit dd052592da — feat(core): live agent pip on task cards — pulse while the bound session works, click opens its chat
+- 2026-07-16 [claude]: Delivered as pure UI-join on existing presence inventory (no new backend surface — reuse-first) + review-driven…

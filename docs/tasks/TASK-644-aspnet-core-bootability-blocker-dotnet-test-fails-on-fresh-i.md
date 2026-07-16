@@ -18,27 +18,6 @@ references: []
 ---
 # TASK-644: aspnet-core bootability blocker — `dotnet test` fails on fresh init (no test project in scaffold)
 
----
-id: TASK-644
-title: "aspnet-core bootability blocker — `dotnet test` fails on fresh init (no test project in scaffold)"
-swimlane: templates
-kind: bug
-epic: stack-completeness-v2
-labels: [aspnet-core, bootability, drift, wave-1, ready]
-status: icebox
-priority: P1
-appetite: 1d
-created: 2026-06-30
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-644: aspnet-core bootability blocker — `dotnet test` fails on fresh init (no test project in scaffold)
-
 **Outcome (one sentence):** A fresh `cos init --template aspnet-core` produces a tree where `cd src/backend && dotnet test` discovers a dedicated xUnit test project with ≥1 passing test and exits 0 — so `make verify` is green on day one instead of failing red on an empty Web-SDK project.
 
 ## Read First

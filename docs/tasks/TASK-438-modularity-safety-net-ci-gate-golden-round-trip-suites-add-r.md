@@ -18,27 +18,6 @@ references: []
 ---
 # TASK-438: Modularity safety net: CI-gate golden+round-trip suites, add referential-integrity + all-stacks render smoke, bring logging_os/scheduled into CI
 
----
-id: TASK-438
-title: "Modularity safety net: CI-gate golden+round-trip suites, add referential-integrity + all-stacks render smoke, bring logging_os/scheduled into CI"
-swimlane: infra
-kind: feature
-epic: null
-labels: [modularity, ci, tests, audit-2026-06, ready]
-status: icebox
-priority: P1
-appetite: 1d
-created: 2026-06-16
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-438: Modularity safety net (CI-gate + render-smoke + referential-integrity + observability in CI)
-
 **Outcome (one sentence):** The modularity verification layer actually runs in CI — a botched re-render, an empty required substitution, a dangling skill-name reference, or a logging_os/scheduled regression is caught by a PR gate instead of shipping silently to every consumer. Closes audit R1+R5+R9+R15 (problem-tree Branch C).
 
 ## Read First
