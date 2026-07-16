@@ -2146,6 +2146,32 @@ class TestSubsystems:
         # An always-on (kernel-level) command survives the tasks disable.
         assert (commands_dir / "classify.md").exists(), "kernel command wrongly shed"
 
+    def test_init_disable_module_unlinks_owned_rule(
+        self, runner: CliRunner, project_dir: Path
+    ) -> None:
+        """TASK-811: a module disabled at init sheds its owned core rule from the
+        adapter rules dir; cross-cutting (unowned) rules survive."""
+        project_dir.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project_dir),
+                "--disable-module",
+                "memory",
+                "--no-index",
+                "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, f"init failed: {result.output}"
+        rules_dir = project_dir / ".claude" / "rules"
+        assert not (rules_dir / "memory.md").exists(), "memory.md must be unlinked when memory off"
+        # A cross-cutting (unowned) rule survives the memory disable.
+        assert (rules_dir / "git-workflow.md").exists(), "cross-cutting rule wrongly shed"
+
     def test_doctor_detects_disabled_hook_scripts_drift(
         self, runner: CliRunner, project_dir: Path
     ) -> None:

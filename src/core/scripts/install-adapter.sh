@@ -147,11 +147,27 @@ fi
 # can symlink them by hand.
 # ---------------------------------------------------------------------------
 _NON_ACTIVE_RULES="dimension-registry.md skill-enforcement.md"
+# Per-project module gating (TASK-811): a core rule owned ONLY by a disabled
+# subsystem module is skipped AND unlinked, mirroring the disabled-skill sweep
+# below. The live toggle is done inline by cli.module_commands.cascade_module_rules;
+# this re-applies it on a fresh install / `cos update`.
+RULES_HELPER="${CODING_OS_ROOT}/core/scripts/extract_disabled_module_rules.py"
+DISABLED_RULES=""
+if [[ -f "$RULES_HELPER" ]]; then
+  DISABLED_RULES=$(python3 "$RULES_HELPER" "$PROJECT_ROOT" 2>/dev/null || true)
+fi
+_rule_disabled() {
+  [[ " ${DISABLED_RULES} " == *" $1 "* ]]
+}
 for rule in "${CODING_OS_ROOT}/core/rules/"*.md; do
   name=$(basename "$rule")
   case " ${_NON_ACTIVE_RULES} " in
     *" ${name} "*) continue ;;
   esac
+  if _rule_disabled "$name"; then
+    rm -f "${PROJECT_ROOT}/${AGENT_DIR}/rules/${name}" 2>/dev/null || true
+    continue
+  fi
   ln -sf "$rule" "${PROJECT_ROOT}/${AGENT_DIR}/rules/${name}"
 done
 
