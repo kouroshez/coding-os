@@ -8,11 +8,14 @@ sections, TASK-353) and the runtime hook allowlist (TASK-256/353).
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 import click
 
 from cli.subsystems import ToggleResult, load_subsystems, module_state, set_module_enabled
+
+logger = logging.getLogger("cli.module")
 
 
 def _project_root() -> Path:
@@ -361,10 +364,16 @@ def toggle_and_regen(
     lands in a half state (state says disabled, artifacts say enabled)."""
     result = set_module_enabled(project, module_id, enabled)
     if not result.ok:
+        logger.warning("module toggle refused for '%s': %s", module_id, result.reason)
         return result, []
     try:
         notes = regen_after_toggle(project)
     except Exception as exc:
+        logger.warning(
+            "module toggle regen failed for '%s' — rolling back state + allowlist: %s",
+            module_id,
+            exc,
+        )
         # Roll back the state flip AND re-derive the runtime allowlist. regen
         # writes the allowlist FIRST (it can't know the later AGENTS.md render
         # will throw), so reverting only the state file would strand the

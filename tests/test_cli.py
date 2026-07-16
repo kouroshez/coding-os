@@ -2287,6 +2287,58 @@ class TestSubsystems:
         assert "docs/governance/task-lifecycle.md" in out["restored"]
         assert doc.is_file(), "doc must be restored on enable"
 
+    def test_toggle_and_regen_sheds_all_surfaces_at_once(
+        self, runner: CliRunner, project_dir: Path
+    ) -> None:
+        """TASK-816: one live toggle_and_regen(disable) sheds allowlist + AGENTS.md
+        block + skill symlink + command symlink + tagged doc together — pins the
+        orchestrator so dropping any cascade line fails CI."""
+        from cli.module_commands import toggle_and_regen
+        from cli.project_overrides import disabled_hook_scripts
+
+        project_dir.mkdir()
+        runner.invoke(
+            cli,
+            ["init", "--agent", "claude", "-d", str(project_dir),
+             "--profile", "full", "--no-index", "--no-register"],
+        )
+        skill = project_dir / ".claude" / "skills" / "task-driver" / "SKILL.md"
+        command = project_dir / ".claude" / "commands" / "board.md"
+        doc = project_dir / "docs" / "governance" / "task-lifecycle.md"
+        agents = project_dir / "AGENTS.md"
+        assert skill.exists() and command.exists() and doc.exists(), "tasks not fully linked at init"
+        assert "## Task Logging" in agents.read_text(encoding="utf-8")
+
+        result, _notes = toggle_and_regen(project_dir, "tasks", enabled=False)
+        assert result.ok, result.reason
+        assert not skill.exists(), "task-driver skill not unlinked"
+        assert not command.exists(), "board command not unlinked"
+        assert not doc.exists(), "task-lifecycle doc not pruned"
+        assert "## Task Logging" not in agents.read_text(encoding="utf-8"), "AGENTS task block leaked"
+        assert any("task" in str(h) for h in disabled_hook_scripts(project_dir)), "tasks hooks not gated"
+
+    def test_toggle_and_regen_logs_refusal(
+        self, runner: CliRunner, project_dir: Path, caplog
+    ) -> None:
+        """TASK-816: a refused toggle emits a queryable warning (scope cli.module)
+        so a headless CI/nightly toggle failure is discoverable, not silent."""
+        import logging
+
+        from cli.module_commands import toggle_and_regen
+
+        project_dir.mkdir()
+        runner.invoke(
+            cli,
+            ["init", "--agent", "claude", "-d", str(project_dir),
+             "--profile", "full", "--no-index", "--no-register"],
+        )
+        with caplog.at_level(logging.WARNING, logger="cli.module"):
+            result, _ = toggle_and_regen(project_dir, "docs", enabled=False)  # required by tasks
+        assert not result.ok
+        assert any(
+            "refused" in r.getMessage() and "docs" in r.getMessage() for r in caplog.records
+        ), [r.getMessage() for r in caplog.records]
+
     def test_module_regen_in_meta_repo_preserves_handwritten_agents_md(
         self, tmp_path: Path
     ) -> None:
