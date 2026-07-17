@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: testing
 priority: P1
 appetite: 1d
 created: 2026-07-17
@@ -37,3 +37,4 @@ learn_narrative INSERT (learning.py:1741) omits last_validated/last_accessed_at 
 - 2026-07-17 [claude]: Edit decay.py
 - 2026-07-17 [claude]: Edit decay.py
 - 2026-07-17 [claude]: Fixed 2 lifecycle-safety bugs: (1) learn_narrative breakthrough INSERT now stamps…
+- 2026-07-17 [claude]: committed 7fca22b7 · 4 files
