@@ -551,6 +551,9 @@ def thinking_os_search(
         result["retrieval_ids"] = rids
     # Router-level telemetry.
     log_router_decision(_db_conn, query=query, chosen_layer="memory", bytes_returned=len(str(rows)))
+    # A real Orient memory query — record the marker enforce-memory-check reads,
+    # so the honest path is automatic and the marker means an actual search ran.
+    _record_memory_check_safe(query)
     return ok(
         result,
         meta={
@@ -670,25 +673,34 @@ def thinking_os_promote_tool(
 # ---------------------------------------------------------------------------
 # Learning tools
 # ---------------------------------------------------------------------------
+def _panel_or_agent_dir() -> str | None:
+    # The per-session state dir a marker belongs in, most-specific first:
+    # COS_PANEL_DIR (the reminder + session-context reset both target it), then
+    # COS_AGENT_DIR, then <state>/<agent> (COS_AGENT env or the .agent marker).
+    import os as _os
+    from pathlib import Path as _P
+
+    target_dir = _os.environ.get("COS_PANEL_DIR") or _os.environ.get("COS_AGENT_DIR")
+    if target_dir:
+        return target_dir
+    state_dir = _P(_os.environ.get("COS_STATE_DIR", ".coding-os"))
+    agent = _os.environ.get("COS_AGENT", "")
+    if not agent:
+        marker = state_dir / ".agent"
+        if marker.exists():
+            agent = marker.read_text(encoding="utf-8").strip()
+    return str(state_dir / agent) if agent else None
+
+
 def _persist_learn_suggestions_safe(result: dict) -> None:
     """Append surfaced pattern ids to the panel-dir .learn-suggestions."""
     try:
-        import os as _os
         from pathlib import Path as _P
 
         # Panel dir first: the same file auto_compose.py writes, the task-done
         # reminder reads, and session-context.sh resets. The old COS_AGENT_DIR
         # target was a file nothing read and nothing pruned.
-        target_dir = _os.environ.get("COS_PANEL_DIR") or _os.environ.get("COS_AGENT_DIR")
-        if not target_dir:
-            state_dir = _P(_os.environ.get("COS_STATE_DIR", ".coding-os"))
-            agent = _os.environ.get("COS_AGENT", "")
-            if not agent:
-                marker = state_dir / ".agent"
-                if marker.exists():
-                    agent = marker.read_text(encoding="utf-8").strip()
-            if agent:
-                target_dir = str(state_dir / agent)
+        target_dir = _panel_or_agent_dir()
         if not target_dir:
             return
         suggestions = (result or {}).get("suggestions") or []
@@ -710,6 +722,22 @@ def _persist_learn_suggestions_safe(result: dict) -> None:
                 f.write("\n".join(lines) + "\n")
     except Exception as exc:
         logger.debug("_persist_learn_suggestions_safe swallowed: %s", exc)
+
+
+def _record_memory_check_safe(query: str) -> None:
+    """Mark the Orient memory-check satisfied by a REAL cos_search, so
+    enforce-memory-check reflects an actual query, not a self-attested claim."""
+    try:
+        from pathlib import Path as _P
+
+        target_dir = _panel_or_agent_dir()
+        if not target_dir:
+            return
+        marker = _P(target_dir) / ".memory-check"
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(f"cos_search:{(query or '')[:120]}\n", encoding="utf-8")
+    except Exception as exc:
+        logger.debug("_record_memory_check_safe swallowed: %s", exc)
 
 
 @mcp.tool(

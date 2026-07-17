@@ -93,7 +93,7 @@ are tracked in **TASK-498**.
 │       ├── .thinking_os-gate               "<session-id> <CYNEFIN> <DIMS>"
 │       ├── .zoom-checkpoint                "<session-id> PROBLEM_FRAMED"
 │       ├── .doc-anchor                     "<session-id> task:<id>\n<doc paths>"
-│       ├── .memory-check                   "<session-id> cos_search:<query>"
+│       ├── .memory-check                   "cos_search:<query>" (auto-written by the cos_search MCP tool; write-state self-attest is the fallback)
 │       ├── .active-skill                   "<session-id> skill1 skill2 …"
 │       ├── .active-formula                 active cognition formula id
 │       ├── .learn-suggestions              learn-suggest payload for this prompt

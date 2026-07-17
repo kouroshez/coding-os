@@ -138,8 +138,8 @@ def build_session_summary(
                 exc,
             )
 
-        # 3b. Factual completion digest — NOT a reflection (that stays with
-        #     record_review.py). Gives session_startup a non-empty `completed`
+        # 3b. Factual completion digest — NOT a reflection (manual reflection is
+        #     cos_learn_narrative). Gives session_startup a non-empty `completed`
         #     instead of a husk, only when the session actually did work.
         completed = None
         if obs_count:

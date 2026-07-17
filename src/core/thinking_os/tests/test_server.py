@@ -194,3 +194,44 @@ class TestSchemaIntegrity:
         assert row["impact_score"] == 0.5
         assert row["times_validated"] == 0
         assert row["access_count"] == 0
+
+
+class TestMemoryCheckAutoWrite:
+    """cos_search records the .memory-check marker itself, so enforce-memory-check
+    reflects a REAL query — not an unverifiable write-state self-attestation."""
+
+    def _panel(self, tmp_path: Path, monkeypatch):
+        panel = tmp_path / ".coding-os" / "claude" / "panels" / "p1"
+        panel.mkdir(parents=True)
+        monkeypatch.setenv("COS_PANEL_DIR", str(panel))
+        monkeypatch.setenv("COS_STATE_DIR", str(tmp_path / ".coding-os"))
+        monkeypatch.setenv("COS_AGENT", "claude")
+        monkeypatch.delenv("COS_AGENT_DIR", raising=False)
+        return panel
+
+    def test_panel_or_agent_dir_prefers_panel(self, tmp_path: Path, monkeypatch) -> None:
+        import server
+
+        panel = self._panel(tmp_path, monkeypatch)
+        assert server._panel_or_agent_dir() == str(panel)
+        monkeypatch.delenv("COS_PANEL_DIR")
+        assert server._panel_or_agent_dir() == str(tmp_path / ".coding-os" / "claude")
+
+    def test_record_memory_check_writes_panel_marker(self, tmp_path: Path, monkeypatch) -> None:
+        import server
+
+        panel = self._panel(tmp_path, monkeypatch)
+        server._record_memory_check_safe("django migration rework")
+        marker = panel / ".memory-check"
+        assert marker.exists()
+        assert marker.read_text().startswith("cos_search:django migration rework")
+
+    def test_cos_search_tool_auto_records_marker(self, tmp_db, tmp_path: Path, monkeypatch) -> None:
+        conn, _ = tmp_db
+        import server
+
+        monkeypatch.setattr(server, "_db_conn", conn)
+        panel = self._panel(tmp_path, monkeypatch)
+        envelope = json.loads(server.thinking_os_search(query="auth flow"))
+        assert envelope["ok"] is True
+        assert (panel / ".memory-check").read_text().startswith("cos_search:auth flow")
