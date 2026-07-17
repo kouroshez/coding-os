@@ -880,6 +880,36 @@ def _humanize_signature(display: str) -> str:
     return out
 
 
+def _normalize_full(text: str) -> str:
+    # Lowercase, digits->N, non-word->space — the same rules as the friction
+    # cluster key but KEEPING every word, so a failure key stays a contiguous
+    # substring of a lesson's full display text.
+    return " ".join(_NONWORD_RE.split(re.sub(r"\d+", "N", (text or "").lower())))
+
+
+def _load_surfaced_suggestions(path: Path) -> list[tuple[int, str]]:
+    out: list[tuple[int, str]] = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if "\t" not in line:
+            continue
+        pid_s, text = line.split("\t", 1)
+        try:
+            out.append((int(pid_s), text))
+        except ValueError:
+            continue
+    return out
+
+
+def _distill_fingerprint_safe(kind: str, cluster_key: str) -> str:
+    try:
+        import distill
+
+        return distill.cluster_fingerprint(kind, cluster_key)
+    except Exception as exc:
+        logger.debug("fingerprint skipped: %s", exc)
+        return ""
+
+
 def pattern_tier(confidence: float, times_validated: int) -> str:
     """Confidence tier for a learned pattern — the single mapping used by the UI
     and digest. SSOT: learning-extraction.md § Confidence tier mapping.
@@ -1595,6 +1625,90 @@ def learn_validate(
         "old_confidence": round(old_conf, 4),
         "new_confidence": round(new_conf, 4),
         "was_helpful": was_helpful,
+    }
+
+
+def validate_surfaced_lessons(
+    conn: sqlite3.Connection,
+    *,
+    session_id: str,
+    suggestions_path: str | Path,
+) -> dict:
+    """Close the learn->apply->confirm loop for one completed task: validate each
+    lesson surfaced during Orient against this session's post-recall friction — a
+    lesson whose failure recurred is penalized (LTD), the rest reinforced (LTP).
+
+    The single primitive BOTH the task-done Bash hook and the MCP completion path
+    call; divergence here was why surfaced patterns never reached the Trusted tier.
+    """
+    sf = Path(suggestions_path)
+    if not session_id or not sf.exists():
+        return {"status": "skipped"}
+    surfaced = _load_surfaced_suggestions(sf)
+    if not surfaced:
+        return {"status": "no_suggestions"}
+
+    # Only failures recorded AT/AFTER the recall (suggestions file mtime) count.
+    recall_at = datetime.fromtimestamp(sf.stat().st_mtime, tz=timezone.utc).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+    rows = conn.execute(
+        "SELECT narrative, title, memory_type FROM observations "
+        "WHERE session_id = ? AND memory_type IN ('hook_block', 'error') "
+        "  AND created_at >= ?",
+        (session_id, recall_at),
+    ).fetchall()
+    failure_keys: list[str] = []
+    failure_fingerprints: set[str] = set()
+    for r in rows:
+        d = dict(r)
+        key = _failure_cluster_key(_clean_failure_text(d["narrative"] or d["title"] or ""))
+        if not key:
+            continue
+        failure_keys.append(key)
+        fp = _distill_fingerprint_safe(
+            _friction_kind(d["title"], d["narrative"], d["memory_type"]), key
+        )
+        if fp:
+            failure_fingerprints.add(fp)
+
+    # A distilled lesson no longer contains the raw failure text, so matching its
+    # display text alone would always read helpful=True. Match the stored
+    # fingerprint and evidence samples too.
+    lesson_meta: dict[int, tuple[str, str]] = {}
+    try:
+        placeholders = ",".join("?" * len(surfaced))
+        for row in conn.execute(
+            "SELECT id, distill_fingerprint, evidence_json FROM learned_patterns "
+            f"WHERE id IN ({placeholders})",
+            [pid for pid, _ in surfaced],
+        ):
+            d = dict(row)
+            lesson_meta[d["id"]] = (
+                d.get("distill_fingerprint") or "",
+                _normalize_full(d.get("evidence_json") or ""),
+            )
+    except sqlite3.Error:
+        lesson_meta = {}
+
+    helpful = unhelpful = 0
+    for pid, text in surfaced:
+        lesson_norm = _normalize_full(text)
+        fingerprint, evidence_norm = lesson_meta.get(pid, ("", ""))
+        recurred = (fingerprint and fingerprint in failure_fingerprints) or any(
+            key in lesson_norm or (evidence_norm and key in evidence_norm)
+            for key in failure_keys
+        )
+        learn_validate(conn, pattern_id=pid, was_helpful=not recurred)
+        if recurred:
+            unhelpful += 1
+        else:
+            helpful += 1
+    return {
+        "status": "ok",
+        "surfaced": len(surfaced),
+        "helpful": helpful,
+        "unhelpful": unhelpful,
     }
 
 

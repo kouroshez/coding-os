@@ -192,10 +192,20 @@ def main() -> None:
                 model = marker.read_text().strip() or None
         model = model or "unknown"
 
-        # No automated negative-signal source exists at session scope;
-        # outcome variance is task-scoped via
-        # record_outcome._derive_rework/_derive_blocked.
+        # Session scope IS where a backtrack is the right signal: this row is
+        # session-keyed, so unlike the per-task path there is no cross-task smear.
+        # A session that had to backtrack (abandon a formula/approach mid-flight)
+        # is 'rework', not a clean success — the old unconditional 'success' made
+        # every session row a tautology in success_rate / time_to_solution.
         outcome = "success"
+        try:
+            if conn.execute(
+                "SELECT 1 FROM backtrack_events WHERE session_id = ? LIMIT 1",
+                (session_id,),
+            ).fetchone():
+                outcome = "rework"
+        except sqlite3.Error as exc:  # fail-open (Rule 6)
+            print(f"session_enrich.py: outcome derive failed: {exc}", file=sys.stderr)
 
         conn.execute(
             "INSERT INTO agent_metrics "

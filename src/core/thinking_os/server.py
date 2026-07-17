@@ -671,13 +671,16 @@ def thinking_os_promote_tool(
 # Learning tools
 # ---------------------------------------------------------------------------
 def _persist_learn_suggestions_safe(result: dict) -> None:
-    """Append surfaced pattern ids to $COS_AGENT_DIR/.learn-suggestions."""
+    """Append surfaced pattern ids to the panel-dir .learn-suggestions."""
     try:
         import os as _os
         from pathlib import Path as _P
 
-        agent_dir = _os.environ.get("COS_AGENT_DIR")
-        if not agent_dir:
+        # Panel dir first: the same file auto_compose.py writes, the task-done
+        # reminder reads, and session-context.sh resets. The old COS_AGENT_DIR
+        # target was a file nothing read and nothing pruned.
+        target_dir = _os.environ.get("COS_PANEL_DIR") or _os.environ.get("COS_AGENT_DIR")
+        if not target_dir:
             state_dir = _P(_os.environ.get("COS_STATE_DIR", ".coding-os"))
             agent = _os.environ.get("COS_AGENT", "")
             if not agent:
@@ -685,13 +688,13 @@ def _persist_learn_suggestions_safe(result: dict) -> None:
                 if marker.exists():
                     agent = marker.read_text(encoding="utf-8").strip()
             if agent:
-                agent_dir = str(state_dir / agent)
-        if not agent_dir:
+                target_dir = str(state_dir / agent)
+        if not target_dir:
             return
         suggestions = (result or {}).get("suggestions") or []
         if not suggestions:
             return
-        target = _P(agent_dir) / ".learn-suggestions"
+        target = _P(target_dir) / ".learn-suggestions"
         target.parent.mkdir(parents=True, exist_ok=True)
         lines: list[str] = []
         for s in suggestions:

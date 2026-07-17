@@ -831,6 +831,76 @@ def test_move_to_complete_force_overrides_missing_file(project: Path, conn: sqli
     assert env["ok"] is True
 
 
+# ---------- _close_learning_loop_safe (MCP completion path) ----------
+
+
+def _seed_panel_recall(project: Path, conn: sqlite3.Connection, *, session: str):
+    """Panel dir with a surfaced lesson + a recurring friction observation.
+
+    Returns (panel_dir, pattern_id). The friction cluster key is a contiguous
+    substring of the lesson, so it validates as NOT helpful (recurred)."""
+    panel = project / ".coding-os" / "claude" / "panels" / "p1"
+    panel.mkdir(parents=True)
+    (panel / "session-id").write_text(session, encoding="utf-8")
+    (panel / ".thinking_os-gate").write_text(f"{session} COMPLICATED 2", encoding="utf-8")
+    lesson = (
+        "Recurring block (3x): enforce-commit-message commit-msg-contract on a bad "
+        "commit title -> rewrite the title"
+    )
+    conn.execute(
+        "INSERT INTO learned_patterns (pattern, memory_type, confidence) VALUES (?, 'lesson', 0.6)",
+        (lesson,),
+    )
+    pid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    conn.execute(
+        "INSERT INTO observations (session_id, tool_name, observation_type, memory_type, "
+        "impact_score, title, narrative, content_hash) "
+        "VALUES (?, 'Bash', 'hook_block', 'hook_block', 0.6, 'blocked', "
+        "'enforce-commit-message commit-msg-contract on a bad commit title', 'cll1')",
+        (session,),
+    )
+    conn.commit()
+    sugg = panel / ".learn-suggestions"
+    sugg.write_text(f"{pid}\t{lesson}\n", encoding="utf-8")
+    old = time.time() - 120
+    os.utime(sugg, (old, old))
+    return panel, pid
+
+
+def test_close_learning_loop_validates_on_mcp_path(project, conn, monkeypatch):
+    # The MCP server has no COS_PANEL_DIR (the Bash hook that owns closure never
+    # fires there), so this path must close the loop itself.
+    monkeypatch.setenv("COS_STATE_DIR", str(project / ".coding-os"))
+    monkeypatch.setenv("COS_AGENT", "claude")
+    monkeypatch.delenv("COS_PANEL_DIR", raising=False)
+    panel, pid = _seed_panel_recall(project, conn, session="ses-close-mcp")
+
+    mcp_tools._close_learning_loop_safe(conn)
+
+    validations = conn.execute("SELECT COUNT(*) FROM pattern_validations").fetchone()[0]
+    tv, tvio = conn.execute(
+        "SELECT times_validated, times_violated FROM learned_patterns WHERE id=?", (pid,)
+    ).fetchone()
+    assert validations == 1, "surfaced lesson must be validated on the MCP path"
+    assert tvio == 1 and tv == 0, "recurred lesson validates as not-helpful"
+    assert (panel / ".learn-suggestions").stat().st_size == 0, "per-task boundary: cleared"
+
+
+def test_close_learning_loop_noop_when_panel_dir_set(project, conn, monkeypatch):
+    # COS_PANEL_DIR set == a shell ran the CLI; the Bash hook owns closure, so
+    # this path must skip to avoid double-validating.
+    monkeypatch.setenv("COS_STATE_DIR", str(project / ".coding-os"))
+    monkeypatch.setenv("COS_AGENT", "claude")
+    panel, _pid = _seed_panel_recall(project, conn, session="ses-close-cli")
+    monkeypatch.setenv("COS_PANEL_DIR", str(panel))
+
+    mcp_tools._close_learning_loop_safe(conn)
+
+    validations = conn.execute("SELECT COUNT(*) FROM pattern_validations").fetchone()[0]
+    assert validations == 0, "must skip when COS_PANEL_DIR is set (Bash hook owns it)"
+    assert (panel / ".learn-suggestions").stat().st_size > 0, "file left for the Bash hook"
+
+
 # ---------- cos_task_pick ----------
 
 

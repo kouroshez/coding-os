@@ -1210,6 +1210,39 @@ def _record_completion_outcome_safe(conn: sqlite3.Connection, task_id: str) -> N
         logger.debug("MCP completion outcome failed for %s: %s", task_id, exc)
 
 
+def _close_learning_loop_safe(conn: sqlite3.Connection) -> None:
+    # Fire-and-forget: validate the lessons surfaced this task, mirroring the
+    # task-done Bash hook (remind-learn-validate.sh) which NEVER fires on an MCP
+    # tool call — the gap that left pattern_validations empty and every pattern
+    # stuck below the Trusted tier. The Bash hook owns closure whenever a shell
+    # ran `cos task-move` (COS_PANEL_DIR is set there); a direct MCP call runs in
+    # the long-lived server (no COS_PANEL_DIR, no Bash hook), so ONLY there does
+    # this path close the loop — no double-validation.
+    if os.environ.get("COS_PANEL_DIR"):
+        return
+    try:
+        from thinking_os.gate_marker import newest_panel_gate
+        from thinking_os.tools.learning import validate_surfaced_lessons
+
+        gate = newest_panel_gate()
+        if gate is None:
+            return
+        panel_dir = gate.parent
+        suggestions = panel_dir / ".learn-suggestions"
+        if not suggestions.exists() or suggestions.stat().st_size == 0:
+            return
+        sid_file = panel_dir / "session-id"
+        session_id = sid_file.read_text(encoding="utf-8").strip() if sid_file.exists() else ""
+        if not session_id:
+            return
+        validate_surfaced_lessons(
+            conn, session_id=session_id, suggestions_path=str(suggestions)
+        )
+        suggestions.write_text("", encoding="utf-8")  # per-task boundary, like the hook
+    except Exception as exc:
+        logger.debug("MCP learning-loop closure failed: %s", exc)
+
+
 _TERMINAL_DEP_STATES = ("archive",)
 
 
@@ -1388,6 +1421,7 @@ def cos_task_move(
     }
     if result.new_status == "complete":
         _record_completion_outcome_safe(conn, task_id)
+        _close_learning_loop_safe(conn)
         cascade = _cascade_ready_dependents_safe(conn, task_id, agent_session)
         if any(cascade.values()):
             data["cascade"] = cascade

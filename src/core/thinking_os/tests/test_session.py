@@ -210,6 +210,49 @@ class TestSessionEndSummary:
         assert row is not None, "no agent_metrics row written"
         assert row[0] == "COMPLICATED", f"complexity={row[0]!r} — panel gate not read"
 
+    def test_enrich_derives_rework_from_session_backtrack(self, tmp_path: Path) -> None:
+        """A session that recorded a backtrack_event writes agent_metrics.outcome
+        ='rework', not the old hardcoded 'success'. Session scope is smear-free:
+        the row is session-keyed, so the backtrack IS the right signal here."""
+        script = Path(__file__).resolve().parents[1] / "session_enrich.py"
+        state = tmp_path / ".coding-os"
+        state.mkdir(parents=True)
+        db_path = state / "coding-os.db"
+        conn = init_db(db_path)
+        sid = "ses-enrich-backtrack"
+        conn.execute(
+            "INSERT INTO observations (session_id, tool_name, observation_type, "
+            "files_modified, narrative, created_at) VALUES (?,?,?,?,?, datetime('now'))",
+            (sid, "Edit", "edit", "src/backend/x.py", "n"),
+        )
+        conn.execute(
+            "INSERT INTO backtrack_events (session_id, from_formula, to_formula, reason) "
+            "VALUES (?, 'a', 'b', 'redo')",
+            (sid,),
+        )
+        conn.execute("INSERT INTO session_summaries (session_id) VALUES (?)", (sid,))
+        conn.commit()
+        conn.close()
+
+        env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+        env.update({"COS_STATE_DIR": str(state), "COS_AGENT": "claude"})
+        result = subprocess.run(
+            [sys.executable, str(script), sid, "TASK-BT", str(db_path)],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            env=env,
+        )
+        assert result.returncode == 0, result.stderr
+
+        conn = sqlite3.connect(db_path)
+        row = conn.execute(
+            "SELECT outcome FROM agent_metrics WHERE task_id = ?", ("TASK-BT",)
+        ).fetchone()
+        conn.close()
+        assert row is not None, "no agent_metrics row written"
+        assert row[0] == "rework", f"outcome={row[0]!r} — backtrack not derived"
+
 
 class TestSessionSummaryEntrypointSmoke:
     def test_runs_as_direct_subprocess(self) -> None:

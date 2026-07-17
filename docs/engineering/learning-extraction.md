@@ -176,6 +176,13 @@ flywheel that only ever runs one kind of task.
 > linkage is forward-only (historical observations carried only `session_id`, and
 > a session spans many tasks — the join is unrecoverable). The churn miner itself
 > is deferred until the corpus has multiple sessions (rule-of-three).
+>
+> **Session scope is where a backtrack *is* the right signal.** The smear only
+> exists at *task* scope. `session_enrich.py` writes one `agent_metrics` row per
+> session (`agent_type='session'`); that row is session-keyed, so it derives
+> `outcome='rework'` from this session's own `backtrack_events` (else `'success'`)
+> instead of the old unconditional `'success'` that made every session row a
+> tautology in `success_rate` / `time_to_solution` trends.
 
 ### 5. Lessons from revert / recurring-fix commits
 `_mine_commit_lessons` reads `git log` over `_LESSON_WINDOW_DAYS` for `fix:` /
@@ -349,24 +356,39 @@ helped. Historically `pattern_validations` was empty — `cos_learn_validate`
 was only ever called if the agent volunteered it, which it never did, so
 confidence was frozen theater.
 
-The loop now closes automatically at task completion, with **no new table and
-no new hook**: the surfaced lesson ids already live in the per-panel
-`.learn-suggestions` file (written by `auto_compose.py` at recall time), and the
-existing `remind-learn-validate.sh` already fires on `cos task-done`. It now
-calls `_helpers/auto_validate_lessons.py`:
+The loop closes automatically at task completion, with **no new table**. The
+surfaced lesson ids live in the per-panel `.learn-suggestions` file, and a single
+primitive — `tools.learning.validate_surfaced_lessons(conn, session_id,
+suggestions_path)` — does the work:
 
 1. read the surfaced `(pattern_id, text)` rows from `.learn-suggestions`;
 2. read this session's friction observations (`memory_type IN
    ('hook_block','error')`) created at/after the recall (file mtime);
 3. clean each failure narrative with `_clean_failure_text` and check
-   containment against each surfaced lesson's text;
+   containment (cluster key + distill fingerprint) against each surfaced lesson;
 4. a lesson whose failure **recurred** → `cos_learn_validate(helpful=False)`
    (you saw the lesson and still hit it); a surfaced lesson with **no
    recurrence** → `helpful=True`.
 
+**Both completion entry points call the same primitive**, so the loop closes
+regardless of how a task is finished:
+
+- **CLI `cos task-done` / `cos task-move --to complete`** → `remind-learn-validate.sh`
+  (PostToolUse Bash) → `_helpers/auto_validate_lessons.py` → the primitive.
+- **MCP `cos_task_move(to='complete')`** → `board_os` `_close_learning_loop_safe`
+  → the primitive. The Bash hook never fires on an MCP tool call, so before this
+  the MCP path left the loop open and `pattern_validations` empty — the root of
+  the "0 Trusted" symptom.
+
+**One writer contract for `.learn-suggestions`:** every producer writes the
+**panel dir** (`$COS_PANEL_DIR`, agent-dir fallback) — the file `auto_compose.py`
+writes, `remind-learn-validate.sh` reads, and `session-context.sh` resets each
+session. `cos_learn_suggest` (MCP) previously appended to `$COS_AGENT_DIR`, a file
+nothing read and nothing pruned; it now targets the panel dir too.
+
 `learn_validate`'s existing 1-hour throttle makes a manual agent validation win
 over the auto one, and the LTP/LTD formulas + decay bound any over-boost.
-Fire-and-forget: any error leaves the reminder behaviour intact.
+Fire-and-forget: any error leaves completion behaviour intact.
 
 ## Just-in-time recall (at the moment of risk)
 
