@@ -4,7 +4,7 @@ title: "Hub UI a11y sweep: WAI-ARIA tabs/listbox + keyboard-operable cards/rows/
 swimlane: core
 kind: chore
 epic: null
-labels: [hub, frontend, a11y, audit, backlog]
+labels: [hub, frontend, a11y, audit, backlog, ready]
 status: icebox
 priority: P2
 appetite: 1d
