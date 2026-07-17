@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-17
 started: 2026-07-17
-completed: null
+completed: 2026-07-17
 agent_session: ses-claude-20260717-014556-89d0
 depends_on: []
 blocked_by: []
@@ -39,3 +39,4 @@ cos task-done → cos_task_move fires _record_completion_outcome_safe→record_o
 - 2026-07-17 [claude]: Edit metrics.py
 - 2026-07-17 [claude]: Edit metrics.py
 - 2026-07-17 [claude]: Fixed 2 outcomes/metrics bugs: (1) record_outcome now skips the outcome_history append when previous_outcome==outcome…
+- 2026-07-17 [claude]: committed 3f657b37 · 4 files
