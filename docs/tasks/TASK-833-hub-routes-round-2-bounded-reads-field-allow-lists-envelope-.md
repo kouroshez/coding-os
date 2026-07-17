@@ -5,12 +5,12 @@ swimlane: core
 kind: security
 epic: null
 labels: [hub, audit, backlog, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-17
 started: 2026-07-17
-completed: null
+completed: 2026-07-17
 agent_session: ses-claude-20260717-010539-6051
 depends_on: []
 blocked_by: []
@@ -63,3 +63,6 @@ references: []
 - 2026-07-17 [claude]: Edit test_presence_agents_route.py
 - 2026-07-17 [claude]: Edit test_patterns_route.py
 - 2026-07-17 [claude]: Edit commit-833.txt
+- 2026-07-17 [claude]: committed 0ce795da · 6 files
+- 2026-07-17 [claude]: DONE. All acceptance met: (1) bounded reads — sessions/observability/logs done earlier + cognition.stream_trace…
+- 2026-07-17 [claude]: Status transitioned to complete via cos task-done.
