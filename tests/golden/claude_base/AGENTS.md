@@ -117,6 +117,9 @@ Every `cos_*` response carries `data.meta.layer` (`memory|docs|tasks|metrics|rou
 
 Order of preference when two layers look equally plausible: **Memory → Docs → Tasks.** Memory already ranks by past outcome success; docs and tasks are static index lookups.
 
+**Versioned lessons — `.agents/memory/MEMORY.md` (committed):** the portable, in-repo mirror of the memory layer (Trusted lessons + imported notes), so cross-session knowledge survives a fresh clone. It is the SAME layer as `cos_search`, not a fifth store — the DB is machine-local, this file travels. Claude auto-loads it (the harness memory dir is symlinked to `.agents/memory/`); **other runtimes have no auto-load — read `.agents/memory/MEMORY.md` yourself during Orient.**
+
+
 **Freshness contract (Phase H).** Every Write/Edit on a file matched by `rag-config.yaml` triggers an automatic incremental re-index via the `auto-reindex-docs` PostToolUse hook. Agents MUST NOT assume `make docs-index` is needed after a doc edit — `cos_doc_search` already reflects the latest `mtime`. If you suspect staleness, run `cos hooks-log | grep auto-reindex-docs` to confirm the hook fired. **Adapter note:** on Codex (no Write/Edit PostToolUse surface), rely on `COS_BACKGROUND_INDEX=1` or a manual `make docs-index` until Codex exposes those matchers.
 
 ## Skills

@@ -421,7 +421,10 @@ into a symlink pointing at it. Contract:
   `source='import'` — content-hash ledger (`.harvested.json`, committed) plus
   the generated-block marker guarantee an exported lesson is never re-imported.
 - **Other adapters** read `.agents/memory/MEMORY.md` via their instructions
-  file (no symlink — parity bounded by capability).
+  file (no symlink — parity bounded by capability). The directive is carried by
+  the `retrieval-routing` AGENTS.md fragment (`src/templates/_base/fragments/`),
+  so every rendered consumer — Codex included — is told to read it during Orient;
+  it is framed as the committed mirror of the `cos_search` layer, not a fifth store.
 - **Secret gate:** the human-path `pre-commit` body scans staged
   `.agents/memory/**` for credential patterns; the agent path is covered by
   render-time redaction + `block-secrets.sh`.
