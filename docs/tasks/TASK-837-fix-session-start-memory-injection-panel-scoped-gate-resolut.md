@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-17
 started: 2026-07-17
-completed: null
+completed: 2026-07-17
 agent_session: ses-claude-20260717-014556-89d0
 depends_on: []
 blocked_by: []
@@ -62,3 +62,4 @@ Write 'ses-x COMPLICATED 3' to $COS_PANEL_DIR/.thinking_os-gate; run session_enr
 - 2026-07-17 [claude]: Edit session_enrich.py
 - 2026-07-17 [claude]: Edit session_enrich.py
 - 2026-07-17 [claude]: Fixed: session_enrich read .thinking_os-gate from COS_STATE_DIR (wrong dir) → complexity always UNKNOWN. Extracted…
+- 2026-07-17 [claude]: committed a3170dae · 4 files
