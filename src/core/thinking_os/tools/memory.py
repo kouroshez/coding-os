@@ -124,6 +124,14 @@ def _boost_access(conn: sqlite3.Connection, table: str, row_id: int) -> None:
         )
 
 
+def _fts5_safe_query(query: str) -> str:
+    # Quote each whitespace token as a phrase so FTS5 metacharacters (:, ", *,
+    # parens, and bareword AND/OR/NEAR) are literal, not operators. An unescaped
+    # natural-language query raised OperationalError → silent whole-phrase LIKE
+    # 0-hit fallback.
+    return " ".join('"' + t.replace('"', '""') + '"' for t in query.split() if t)
+
+
 # ---------------------------------------------------------------------------
 # semantic augmentation helpers
 # ---------------------------------------------------------------------------
@@ -136,6 +144,8 @@ def _augment_with_semantic(
     candidates: list[dict],
     memory_type: str | None,
     overfetch: int,
+    min_confidence: float = 0.0,
+    since_days: int | None = None,
 ) -> bool:
     # Merges embedding hits into `candidates` (mutates it): sets semantic_score on
     # rows already present, appends semantic-only hits. Returns False (graceful
@@ -177,7 +187,13 @@ def _augment_with_semantic(
             continue
 
         # Semantic-only hit — hydrate the row and append as a new candidate.
-        new_candidate = _hydrate_row_for_semantic_hit(conn, hit["source_table"], hit["source_id"])
+        new_candidate = _hydrate_row_for_semantic_hit(
+            conn,
+            hit["source_table"],
+            hit["source_id"],
+            min_confidence=min_confidence,
+            since_days=since_days,
+        )
         if new_candidate is None:
             continue
         mt = new_candidate.get("memory_type")
@@ -197,8 +213,15 @@ def _hydrate_row_for_semantic_hit(
     conn: sqlite3.Connection,
     source_table: str,
     source_id: int,
+    *,
+    min_confidence: float = 0.0,
+    since_days: int | None = None,
 ) -> dict | None:
-    # Shape a semantic-only hit like the FTS5/LIKE candidate dicts; None if the row is gone.
+    # Shape a semantic-only hit like the FTS5/LIKE candidate dicts; None if the
+    # row is gone OR fails the Stage-1 filters. The lexical channels apply
+    # min_confidence/since_days in SQL; the semantic channel must honor them too
+    # or a decayed/old pattern re-enters recall through the embedding path.
+    _capped = since_days is not None and since_days > 0
     if source_table == "observations":
         row = conn.execute(
             "SELECT id, title, memory_type, impact_score, created_at "
@@ -208,6 +231,8 @@ def _hydrate_row_for_semantic_hit(
         if row is None:
             return None
         days = _days_since(row["created_at"])
+        if _capped and days > since_days:
+            return None
         return {
             "id": row["id"],
             "title": (row["title"] or "")[:60],
@@ -234,7 +259,11 @@ def _hydrate_row_for_semantic_hit(
         ).fetchone()
         if row is None:
             return None
+        if (row["confidence"] or 0.5) < min_confidence:
+            return None
         days = _days_since(row["created_at"])
+        if _capped and days > since_days:
+            return None
         return {
             "id": row["id"],
             "title": (row["pattern"] or "")[:60],
@@ -395,7 +424,7 @@ def memory_search(
                 "JOIN observations o ON o.id = f.rowid "
                 "WHERE observations_fts MATCH ?" + _cl_fts + " "
                 "ORDER BY fts_rank LIMIT ?",
-                (query, limit * 3),
+                (_fts5_safe_query(query), limit * 3),
             ).fetchall()
         except sqlite3.OperationalError:
             # FTS5 table might not exist — fall back
@@ -498,6 +527,8 @@ def memory_search(
         candidates=candidates,
         memory_type=memory_type,
         overfetch=limit * 3,
+        min_confidence=min_confidence,
+        since_days=since_days,
     )
 
     # --- RRF-fuse lexical+semantic rankings, hard-dedup titles, MMR-diversify ---
@@ -557,11 +588,10 @@ def memory_search(
     for r in results:
         r.setdefault("re_verify_recommended", False)
 
-    # --- Boost access on returned results ---
-    for r in results:
-        if r.get("source_table") not in ("concept_graph",):
-            _boost_access(conn, r["source_table"], r["id"])
-    conn.commit()
+    # Read-only contract: raw search does NOT bump access_count or confidence —
+    # reinforcement happens only on the cos_details drill-in. Bumping confidence
+    # here inflated every matched pattern +0.02 per call, polluting both the
+    # min_confidence gate and the confidence-weighted ranking.
 
     # --- Remove internal-only fields from output ---
     for r in results:

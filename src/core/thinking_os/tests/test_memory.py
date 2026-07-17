@@ -356,16 +356,67 @@ class TestMemorySearch:
         result = memory_search(seeded_conn, query="Django", limit=2, use_fts5=False)
         assert result["count"] <= 2
 
-    def test_access_count_boosted(self, seeded_conn: sqlite3.Connection) -> None:
-        # Get initial access count of a learned pattern
-        initial = seeded_conn.execute(
-            "SELECT access_count FROM learned_patterns WHERE id = 1"
-        ).fetchone()[0]
-        memory_search(seeded_conn, query="services", use_fts5=False)
+    def test_search_is_read_only_no_boost(self, seeded_conn: sqlite3.Connection) -> None:
+        # Read-only contract: cos_search must NOT bump access_count or confidence.
+        # Reinforcement is cos_details' job; bumping confidence on read inflated
+        # matched patterns +0.02/call, polluting ranking + the min_confidence gate.
+        seeded_conn.execute(
+            "INSERT INTO learned_patterns (pattern, memory_type, confidence, impact_score, "
+            "concepts, access_count, created_at) VALUES "
+            "('zephyr widget invariant', 'pattern', 0.6, 0.5, 'zephyr', 0, datetime('now'))"
+        )
+        seeded_conn.commit()
+        before = seeded_conn.execute(
+            "SELECT id, access_count, confidence FROM learned_patterns WHERE pattern LIKE 'zephyr%'"
+        ).fetchone()
+        pid = before[0]
+        result = {}
+        for _ in range(3):
+            result = memory_search(seeded_conn, query="zephyr widget", use_fts5=False)
+        assert any(
+            r["source_table"] == "learned_patterns" and r["id"] == pid for r in result["results"]
+        ), "test pattern not matched — assertion would be vacuous"
         after = seeded_conn.execute(
-            "SELECT access_count FROM learned_patterns WHERE id = 1"
-        ).fetchone()[0]
-        assert after >= initial  # may be boosted if pattern was in results
+            "SELECT access_count, confidence FROM learned_patterns WHERE id = ?", (pid,)
+        ).fetchone()
+        assert after[0] == before[1], f"access_count boosted on read: {before[1]}->{after[0]}"
+        assert after[1] == before[2], f"confidence inflated on read: {before[2]}->{after[1]}"
+
+    def test_fts5_metachar_query_does_not_fall_back(self, seeded_conn: sqlite3.Connection) -> None:
+        # An FTS5-metacharacter query (colon, parens) must be escaped, not raise
+        # OperationalError → silent whole-phrase LIKE 0-hit.
+        if not has_fts5_table(seeded_conn):
+            pytest.skip("FTS5 unavailable in this build")
+        seeded_conn.execute(
+            "INSERT INTO observations (session_id, tool_name, observation_type, memory_type, "
+            "title, narrative, impact_score, created_at) VALUES "
+            "('s','Edit','edit','discovery','cookie samesite secure flag','set samesite',0.5, datetime('now'))"
+        )
+        seeded_conn.commit()
+        result = memory_search(seeded_conn, query="cookie: samesite (secure)", limit=5, use_fts5=True)
+        assert "fts5" in result["source"], f"fell back to {result['source']!r} — escaping failed"
+        assert result["count"] >= 1
+
+    def test_semantic_hit_honors_min_confidence_and_since_days(
+        self, conn: sqlite3.Connection
+    ) -> None:
+        # The semantic channel must apply the same Stage-1 filters as the lexical
+        # channels, else a decayed/old pattern re-enters recall via the embedding path.
+        from tools.memory import _hydrate_row_for_semantic_hit
+
+        conn.execute(
+            "INSERT INTO learned_patterns (id, pattern, memory_type, confidence, impact_score, "
+            "concepts, created_at) VALUES (901, 'p', 'pattern', 0.1, 0.5, 'p', datetime('now'))"
+        )
+        conn.commit()
+        assert _hydrate_row_for_semantic_hit(conn, "learned_patterns", 901, min_confidence=0.3) is None
+        conn.execute(
+            "UPDATE learned_patterns SET confidence=0.6, created_at=datetime('now','-100 days') "
+            "WHERE id=901"
+        )
+        conn.commit()
+        assert _hydrate_row_for_semantic_hit(conn, "learned_patterns", 901, since_days=30) is None
+        assert _hydrate_row_for_semantic_hit(conn, "learned_patterns", 901, since_days=365) is not None
 
     def test_no_score_in_output(self, seeded_conn: sqlite3.Connection) -> None:
         result = memory_search(seeded_conn, query="Django", use_fts5=False)
