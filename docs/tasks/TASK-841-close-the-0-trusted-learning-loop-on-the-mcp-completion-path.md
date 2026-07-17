@@ -53,3 +53,4 @@ Complete a task via the MCP cos_task_move(to='complete') tool (not the CLI). rem
 - 2026-07-17 [claude]: Edit test_mcp_tools.py
 - 2026-07-17 [claude]: Edit test_session.py
 - 2026-07-17 [claude]: Verified: e2e driver (all 3 fixes, real DB + real session_enrich.py subprocess → outcome=rework); board_os suite 527…
+- 2026-07-17 [claude]: committed 94b1bd4a · 2 files
