@@ -820,6 +820,34 @@ def register(cli: click.Group) -> None:
         except Exception as exc:
             click.echo(f"[graph-reindex] cross-file link skipped: {exc}", err=True)
 
+        # Residue sweep — the file reconcile above reads file_index_state,
+        # which holds file rows only, so folder-spine nodes and zero-edge
+        # phantoms (a folder is not a file row; a phantom carries a NULL /
+        # off-tree file_path) survive it. A bulk `git mv` / `rm -rf` of a
+        # directory fires no per-file deletion-prune, so only this
+        # authoritative full-walk pass clears the old-path folder/phantom
+        # residue. Runs AFTER the global link so a live external stub already
+        # holds its edges and is never swept; the doctor safe-repair deletes
+        # only absent-on-disk paths and zero-edge orphans, so an on-disk
+        # `src/`-prefixed node with `contains` edges survives. Same full-walk
+        # guard as the file reconcile — a sub-walk / capped walk is not
+        # authoritative.
+        if target == project_root and len(plan.files) < max_files:
+            try:
+                from graph_os.tools.graph import cos_graph_doctor  # type: ignore
+
+                swept = cos_graph_doctor(fix=True)
+                if isinstance(swept, str):
+                    swept = json.loads(swept)
+                swept_n = swept.get("data", {}).get("meta", {}).get("fixed_count", 0)
+                if swept_n:
+                    click.echo(
+                        f"[graph-reindex] reconcile-sweep: pruned {swept_n} "
+                        "residual folder/phantom node(s)"
+                    )
+            except Exception as exc:
+                click.echo(f"[graph-reindex] reconcile-sweep skipped: {exc}", err=True)
+
     @cli.command(name="graph-index-local")
     @click.argument("path")
     @click.option("--alias", default=None)

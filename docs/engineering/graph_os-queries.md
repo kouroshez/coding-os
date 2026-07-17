@@ -131,6 +131,35 @@ summary. `truncated == true` on a query is a *different* signal (budget
 cut, re-query); parse errors are *coverage* gaps (some symbols never
 extracted).
 
+## Reindex reconciliation (self-healing)
+
+A full, uncapped `cos graph-reindex` (walk target == repo root, not
+`--path`-scoped, `len(files) < max_files`) is **authoritative**: when it
+finishes it reconciles the graph to disk reality so residue from bulk
+directory moves/deletes (`git mv`, `rm -rf`) can't accumulate. Two prunes
+run under that guard:
+
+1. **File reconcile** — nodes whose `file_index_state` path the walk did
+   not visit (deleted or now-gitignored files) are removed. This covers
+   only rows `file_index_state` tracks, which are **file** rows.
+2. **Residue sweep** — the folder-spine nodes and zero-edge phantoms that
+   `file_index_state` never tracked (a folder is not a file row; phantoms
+   carry a NULL / off-tree `file_path`) are removed via the
+   `cos_graph_doctor` safe-repair. It runs *after* the global cross-file
+   link so live external stubs already hold their edges and are never
+   swept; the sweep deletes only paths absent on disk and zero-edge
+   orphans, so an on-disk `src/`-prefixed node with `contains` edges
+   survives.
+
+Per-file auto-reindex prunes a *single* deleted file's nodes on the
+PostToolUse hook (`reindex_dispatch._prune_graph_for_deleted_file`), but a
+bulk `mv`/`rm` of a directory fires no per-file hook — the old-path
+folder-spine and phantom nodes are left for the authoritative full walk
+(or a manual `cos graph-doctor --fix` / `cos graph-reindex --prune-stale`)
+to clear. A `--path` sub-walk or a `max_files`-capped walk skips both
+prunes: it is not authoritative, so every un-walked file would falsely
+look stale.
+
 ## Common failure modes
 
 - `fail("unavailable", ...)` with `retryable=true` — backend missing.
@@ -173,7 +202,10 @@ that mentions a graph has a specific `cos_graph_*` call behind it:
   per-file progress bar on an interactive terminal (auto-hidden when
   stdout is piped/CI); `--workers N` parallelises and `--force` bypasses
   the content-hash cache. The final line reports
-  `processed/skipped/errors/duration`.
+  `processed/skipped/errors/duration`. A full uncapped walk is
+  authoritative and self-heals — see *Reindex reconciliation* above;
+  `--prune-stale` additionally runs the doctor safe-repair *before* the
+  walk.
 - `cos graph-query "<phrase>"` — convenience CLI wrapper over
   `cos_graph_query`.
 - `cos graph-viz [--root <uid>]` — produce the HTML viewer (plan
