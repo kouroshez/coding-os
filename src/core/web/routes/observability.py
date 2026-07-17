@@ -214,7 +214,15 @@ def _parse_iso_ts(value: str | None) -> float | None:
 
 
 def _read_hook_events(state: Path, session_id: str | None, limit: int) -> list[dict[str, Any]]:
-    hook_log = Path(os.environ.get("COS_HOOK_LOG") or (state / ".hooks.log"))
+    from web._project_context import is_explicit_project_scope  # type: ignore
+
+    # Under an explicit project scope, ignore the ambient COS_HOOK_LOG (launch
+    # project) and read the scoped state dir's hook log (mirrors _state_dir).
+    override = os.environ.get("COS_HOOK_LOG")
+    if override and not is_explicit_project_scope():
+        hook_log = Path(override)
+    else:
+        hook_log = state / ".hooks.log"
     if not hook_log.exists():
         return []
     events: list[dict[str, Any]] = []
@@ -335,6 +343,17 @@ def list_sessions(
     )
 
 
+_SAFE_SESSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+
+
+def _valid_session_id(session_id: str) -> bool:
+    # Reject separators + traversal before session_id builds a trace path
+    # (state/<agent>/traces/<session_id>.jsonl) in _read_cognition_events.
+    if "/" in session_id or "\\" in session_id or ".." in session_id:
+        return False
+    return bool(_SAFE_SESSION_RE.match(session_id))
+
+
 @router.get("/timeline")
 def timeline(
     session_id: str | None = Query(None),
@@ -343,6 +362,19 @@ def timeline(
     _rl=Depends(make_rate_limit_dep("observability.timeline")),
     _m=Depends(make_metrics_dep("observability.timeline")),
 ):
+    if session_id is not None and not _valid_session_id(session_id):
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {
+                        "category": "validation",
+                        "retryable": False,
+                        "message": "invalid session_id",
+                    },
+                }
+            )
+        )
     state = _state_dir()
     source_set = {s.strip().lower() for s in sources.split(",") if s.strip()}
     events: list[dict[str, Any]] = []

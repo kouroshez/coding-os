@@ -48,10 +48,12 @@ _CLIENT_LEVELS: dict[str, int] = {
 
 
 def _jsonl_log_path() -> Path:
-    from web._project_context import current_project_root  # type: ignore
+    from web._project_context import current_project_root, is_explicit_project_scope  # type: ignore
 
+    # A bound /api/p/<slug>/ scope must win over the ambient COS_LOG_FILE (the
+    # Hub launch project's), else scoped log reads leak the launch project's sink.
     override = os.environ.get("COS_LOG_FILE")
-    if override:
+    if override and not is_explicit_project_scope():
         return Path(override + ".jsonl").resolve()
     # Single-source the dir name + filename from logging_os.config so a rename
     # there cannot silently desync this reader (api-contract-discipline).

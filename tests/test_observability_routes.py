@@ -124,3 +124,18 @@ def test_observability_empty_state_returns_200(client):
     tdata = timeline.json()["data"]
     assert tdata["events"] == []
     assert tdata["count"] == 0
+
+
+def test_observability_timeline_rejects_session_id_path_traversal(client):
+    """A session_id containing '..' must be rejected before it builds a trace
+    path, so it can never read a jsonl outside the scoped state dir."""
+    c, state = client
+    secret = state.parent / "secret.jsonl"
+    secret.write_text(json.dumps({"kind": "SECRET_LEAK"}), encoding="utf-8")
+    resp = c.get(
+        "/api/observability/timeline",
+        params={"session_id": "../../../secret", "sources": "cognition", "limit": 50},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["message"] == "invalid session_id"
+    assert "SECRET_LEAK" not in resp.text

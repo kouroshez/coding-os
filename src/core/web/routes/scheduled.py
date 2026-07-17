@@ -169,11 +169,17 @@ def _root_for_slug(slug: str) -> Path | None:
 
 
 class ScheduledConfigUpdate(BaseModel):
+    # Mirror every editable key in scheduled.config.DEFAULTS — a field missing
+    # here is silently dropped by Pydantic before save_config sees it, so a UI
+    # edit (e.g. Archive prune) would report success yet never persist.
     enabled: bool | None = None
     hour: int | None = None
     decay_throttle_days: int | None = None
     learn_extract_min_outcomes: int | None = None
     responsive_extract_threshold: int | None = None
+    archive_prune_days: int | None = None
+    error_sweep_occ_threshold: int | None = None
+    error_sweep_session_threshold: int | None = None
 
 
 @router.get("/config/{slug}")

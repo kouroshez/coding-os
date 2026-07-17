@@ -35,10 +35,13 @@ _HOOK_LINE_RE = re.compile(
 
 
 def _hook_log_path() -> Path:
-    from web._project_context import current_project_root  # type: ignore
+    from web._project_context import current_project_root, is_explicit_project_scope  # type: ignore
 
+    # Under an explicit /api/p/<slug>/ scope the ambient COS_HOOK_LOG (the Hub's
+    # launch project) must not win, else every project reads the launch project's
+    # hook log. Honor the override only for the unscoped/global request path.
     override = os.environ.get("COS_HOOK_LOG")
-    if override:
+    if override and not is_explicit_project_scope():
         return Path(override).resolve()
     return current_project_root() / ".coding-os" / ".hooks.log"
 

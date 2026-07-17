@@ -262,7 +262,17 @@ def graph_export(
         )
         return hash(tuple(int(v) for v in cur.fetchone()))
 
+    # Include the active project's DB path so two projects can never share a
+    # cache slot even if their (node/edge count, max updated_at) signatures
+    # happen to collide — the signature scopes freshness, this scopes identity.
+    from thinking_os.database import resolve_db_path
+
+    try:
+        _project_key = str(resolve_db_path())
+    except Exception:
+        _project_key = "__unscoped__"
     cache_key = (
+        _project_key,
         format,
         normalised_root,
         tuple(et) if et else None,

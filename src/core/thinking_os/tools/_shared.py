@@ -814,7 +814,15 @@ def _disabled_modules() -> set[str]:
     try:
         from pathlib import Path
 
-        state_dir = Path(os.environ.get("COS_STATE_DIR") or ".coding-os")
+        from thinking_os.database import get_active_project_root, resolve_db_path
+
+        # A bound Hub request scope must win over the ambient $COS_STATE_DIR
+        # (the launch project's), else every /api/p/<slug>/* call is gated by
+        # the launch project's enabled-modules set instead of the slug's.
+        if get_active_project_root() is not None:
+            state_dir = resolve_db_path().parent
+        else:
+            state_dir = Path(os.environ.get("COS_STATE_DIR") or ".coding-os")
         state_file = state_dir / "subsystems-state.json"
         if not state_file.is_file():
             return set()

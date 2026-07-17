@@ -504,7 +504,7 @@ def _auto_spawn_run(task_id: str, project_root: str, db_path: str) -> None:
         logger.warning("auto-spawn dispatch failed for %s: %s", task_id, exc)
     finally:
         with _auto_spawn_lock:
-            _auto_spawn_inflight.discard(task_id)
+            _auto_spawn_inflight.discard(f"{project_root}::{task_id}")
 
     # Record into formula_dispatches so the stream's `dispatch-completed`
     # event is the visible success/failure row for the spawn.
@@ -546,23 +546,27 @@ def _auto_spawn_safe(
         return
     if not _auto_spawn_enabled():
         return
+    from web._project_context import current_db_path, current_project_root
+
+    # Key the dedup set by (project_root, task_id): task ids are per-project and
+    # every project numbers from TASK-001, so a bare task_id would collide two
+    # projects' cards in this one shared hub process.
+    root = str(current_project_root())
+    db_path = str(current_db_path())
+    inflight_key = f"{root}::{task_id}"
     with _auto_spawn_lock:
-        if task_id in _auto_spawn_inflight:
+        if inflight_key in _auto_spawn_inflight:
             logger.info("auto-spawn: %s already dispatching, skipped", task_id)
             return
-        _auto_spawn_inflight.add(task_id)
+        _auto_spawn_inflight.add(inflight_key)
     try:
-        from web._project_context import current_db_path, current_project_root
-
-        root = str(current_project_root())
-        db_path = str(current_db_path())
         threading.Thread(
             target=_auto_spawn_run, args=(task_id, root, db_path), daemon=True
         ).start()
         logger.info("auto-spawn: dispatching implementer on %s", task_id)
     except Exception as exc:
         with _auto_spawn_lock:
-            _auto_spawn_inflight.discard(task_id)
+            _auto_spawn_inflight.discard(inflight_key)
         logger.warning("auto-spawn thread start failed for %s: %s", task_id, exc)
 
 

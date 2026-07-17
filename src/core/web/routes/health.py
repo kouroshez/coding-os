@@ -2,9 +2,10 @@
 
 Both /health (legacy hub-wide) and /api/health (project-scoped via the
 ProjectScopeMiddleware rewrite) point at the same handler.  When the
-request arrived via /api/p/<slug>/health the middleware has already
-swapped thinking_os's active project root, so resolve_db_path()
-returns the per-project coding-os.db rather than the cwd default.
+request arrived via /api/p/<slug>/health the middleware has bound the
+slug's project scope, so the graph backend (get_backend → resolve_db_path)
+and the file_index_state read (current_db_path) both resolve the
+per-project coding-os.db rather than the launch-cwd default.
 """
 
 from __future__ import annotations
@@ -48,8 +49,9 @@ def _health_payload() -> dict:
     result["file_index_state_last_indexed_at"] = None
     try:
         from thinking_os import database  # type: ignore
+        from web._project_context import current_db_path  # type: ignore
 
-        conn = database.init_db()
+        conn = database.init_db(current_db_path())
         try:
             if database.has_file_index_state_table(conn):
                 row = conn.execute(
