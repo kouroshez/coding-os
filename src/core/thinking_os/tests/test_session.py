@@ -159,6 +159,57 @@ class TestSessionEndSummary:
         assert result.returncode == 0
         assert elapsed < 4.0
 
+    def test_enrich_reads_panel_scoped_gate_not_state_dir(self, tmp_path: Path) -> None:
+        """Regression: session_enrich resolves .thinking_os-gate from the panel dir
+        (COS_PER_PANEL_FILES), not COS_STATE_DIR. Reading COS_STATE_DIR alone
+        recorded agent_metrics.complexity=UNKNOWN on every session. Runs under -S so
+        a reintroduced record_outcome import (needs `core`) would fail, not false-green.
+        """
+        script = Path(__file__).resolve().parents[1] / "session_enrich.py"
+        state = tmp_path / ".coding-os"
+        panel = state / "claude" / "panels" / "p1"
+        panel.mkdir(parents=True)
+        # Gate ONLY in the panel dir — the old COS_STATE_DIR read would miss it.
+        (panel / ".thinking_os-gate").write_text("ses-x COMPLICATED 3", encoding="utf-8")
+
+        db_path = state / "coding-os.db"
+        conn = init_db(db_path)
+        sid = "ses-enrich-gate"
+        conn.execute(
+            "INSERT INTO observations (session_id, tool_name, observation_type, "
+            "files_modified, narrative, created_at) VALUES (?,?,?,?,?, datetime('now'))",
+            (sid, "Edit", "edit", "src/backend/x.py", "n"),
+        )
+        conn.execute("INSERT INTO session_summaries (session_id) VALUES (?)", (sid,))
+        conn.commit()
+        conn.close()
+
+        env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+        env.update(
+            {
+                "COS_STATE_DIR": str(state),
+                "COS_PANEL_DIR": str(panel),
+                "COS_AGENT": "claude",
+                "COS_AGENT_DIR": str(state / "claude"),
+            }
+        )
+        result = subprocess.run(
+            [sys.executable, "-S", str(script), sid, "TASK-GATE", str(db_path)],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            env=env,
+        )
+        assert result.returncode == 0, result.stderr
+
+        conn = sqlite3.connect(db_path)
+        row = conn.execute(
+            "SELECT complexity FROM agent_metrics WHERE task_id = ?", ("TASK-GATE",)
+        ).fetchone()
+        conn.close()
+        assert row is not None, "no agent_metrics row written"
+        assert row[0] == "COMPLICATED", f"complexity={row[0]!r} — panel gate not read"
+
 
 class TestSessionSummaryEntrypointSmoke:
     def test_runs_as_direct_subprocess(self) -> None:

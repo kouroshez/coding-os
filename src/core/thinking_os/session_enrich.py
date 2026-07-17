@@ -20,6 +20,10 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from gate_marker import read_gate_file
+
 
 def _has_session_signal(facts) -> bool:
     if facts is None or not getattr(facts, "has_signal", False):
@@ -47,20 +51,7 @@ def apply_session_facts(conn, session_id, facts) -> bool:
     return cur.rowcount > 0
 
 
-def _gate_complexity(gate_path: Path) -> str:
-    try:
-        if not gate_path.exists():
-            return ""
-        tokens = gate_path.read_text().strip().split()
-    except OSError:
-        return ""
-    for token in tokens:
-        if token in ("CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC", "CONFUSION"):
-            return token
-    return ""
-
-
-def _maybe_spawn_observer(session_id: str, db_path: str, gate_path: Path) -> None:
+def _maybe_spawn_observer(session_id: str, db_path: str, complexity: str) -> None:
     # Item A: hand the slow per-session LLM enrichment to a detached worker that
     # outlives this hook's 2s bound (Popen returns immediately; setsid keeps the
     # child alive past the kill). Default OFF; scoped to COMPLICATED/COMPLEX
@@ -68,7 +59,7 @@ def _maybe_spawn_observer(session_id: str, db_path: str, gate_path: Path) -> Non
     # so the disabled default returns before paying distill's cold import.
     if os.environ.get("COS_ENRICH_LLM", "0") != "1":
         return
-    if _gate_complexity(gate_path) not in ("COMPLICATED", "COMPLEX"):
+    if complexity not in ("COMPLICATED", "COMPLEX"):
         return
     try:
         worker = Path(__file__).resolve().parent / "session_observe_worker.py"
@@ -97,19 +88,20 @@ def main() -> None:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode = WAL")
 
-    gate_path = Path(os.environ.get("COS_STATE_DIR", ".coding-os") + "/.thinking_os-gate")
+    # The gate is per-panel (COS_PER_PANEL_FILES); reuse record_outcome's
+    # canonical panel-first resolver rather than a second COS_STATE_DIR-only
+    # path — the divergent path left complexity UNKNOWN on every session.
+    complexity, dimensions = read_gate_file()
 
     # Spawn the detached enrichment worker first, so it is already setsid-detached
     # before any slow step below risks tripping this hook's 2s kill.
-    _maybe_spawn_observer(session_id, db_path, gate_path)
+    _maybe_spawn_observer(session_id, db_path, complexity)
 
     # ── Step 1: Populate semantic fields in session_summaries ──
     try:
         request_parts: list[str] = []
-        if gate_path.exists():
-            content = gate_path.read_text().strip().split()
-            if len(content) >= 3:
-                request_parts.append(f"{content[1]} {content[2]}")
+        if complexity and complexity != "UNKNOWN":
+            request_parts.append(f"{complexity} {dimensions}")
         if task_id:
             request_parts.append(f"Task: {task_id}")
         request_str = " | ".join(request_parts) if request_parts else None
@@ -170,15 +162,7 @@ def main() -> None:
                 domain_counts["INFRA"] = domain_counts.get("INFRA", 0) + 1
         domain = max(domain_counts, key=domain_counts.get) if domain_counts else "INFRA"
 
-        complexity = "UNKNOWN"
-        if gate_path.exists():
-            parts = gate_path.read_text().strip().split()
-            if len(parts) >= 2:
-                complexity = (
-                    parts[1]
-                    if not parts[0].startswith("ses-")
-                    else (parts[1] if len(parts) >= 2 else "UNKNOWN")
-                )
+        # complexity resolved once at the top of main() via _read_gate_file()
 
         # Duration from the session's observation time-span (earliest→latest
         # edit). The previous source — session-id file mtime delta — collapsed
