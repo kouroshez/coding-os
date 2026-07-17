@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [hub, audit, backlog, project-scope, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-17
 started: 2026-07-17
-completed: null
+completed: 2026-07-17
 agent_session: ses-claude-20260717-010539-6051
 depends_on: []
 blocked_by: []
@@ -53,3 +53,5 @@ Actual: while run_project runs, nightly._run_reclaim / _run_dep_reconcile set os
 - 2026-07-17 [claude]: Edit test_scheduled_route.py
 - 2026-07-17 [claude]: All 3 sub-fixes done + tested. (1) run_scheduled_now spawns an env-scrubbed nightly.py --project subprocess (strips…
 - 2026-07-17 [claude]: Edit commit-834.txt
+- 2026-07-17 [claude]: committed c30d6488 · 6 files
+- 2026-07-17 [claude]: Status transitioned to complete via cos task-done.
