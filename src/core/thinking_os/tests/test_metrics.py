@@ -211,3 +211,20 @@ class TestMetricTrend:
     def test_window_days_clamped(self, seeded_conn: sqlite3.Connection) -> None:
         result = metric_trend(seeded_conn, window_days=500)
         assert result["window_days"] == 365
+
+
+def test_time_to_solution_metric_trends_duration(conn: sqlite3.Connection) -> None:
+    # The documented drift-detection metric must exist and trend real duration_ms,
+    # not return 'Invalid metric' (retro.md / memory.md reference it).
+    conn.execute(
+        "INSERT INTO agent_metrics (task_id, agent_type, model, duration_ms, outcome, domain, complexity) "
+        "VALUES ('T1','session','opus',120000,'success','BACKEND','COMPLICATED')"
+    )
+    conn.execute(
+        "INSERT INTO agent_metrics (task_id, agent_type, model, duration_ms, outcome, domain, complexity) "
+        "VALUES ('T2','session','opus',60000,'success','BACKEND','COMPLICATED')"
+    )
+    conn.commit()
+    result = metric_trend(conn, metric="time_to_solution", window_days=30, group_by="domain")
+    assert "error" not in result
+    assert any(t.get("rate") == 90.0 for t in result["trends"]), result["trends"]

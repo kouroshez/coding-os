@@ -274,21 +274,26 @@ def record_outcome(
                 ),
             )
 
-        # Append to outcome_history (append-only transition log)
+        # Append to outcome_history (append-only TRANSITION log). Skip a no-op
+        # same→same transition so a duplicate record_outcome does not double-count:
+        # the CLI path fires it via BOTH cos_task_move and _record_brain_outcome_safe.
+        # A genuine re-completion after a reopen is derived to 'rework', so it is a
+        # real transition and still logged.
         is_breakthrough = (
             1
             if previous_outcome in ("rework", "partial", "blocked") and outcome == "success"
             else 0
         )
-        try:
-            conn.execute(
-                "INSERT INTO outcome_history "
-                "(task_id, outcome, previous_outcome, is_breakthrough, triggered_by) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (task_id, outcome, previous_outcome, is_breakthrough, "record_outcome"),
-            )
-        except Exception:
-            pass  # outcome_history may not exist yet (pre-v4 DB)
+        if previous_outcome != outcome:
+            try:
+                conn.execute(
+                    "INSERT INTO outcome_history "
+                    "(task_id, outcome, previous_outcome, is_breakthrough, triggered_by) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (task_id, outcome, previous_outcome, is_breakthrough, "record_outcome"),
+                )
+            except Exception:
+                pass  # outcome_history may not exist yet (pre-v4 DB)
 
         conn.commit()
 

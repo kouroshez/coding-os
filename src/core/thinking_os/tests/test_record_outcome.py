@@ -215,3 +215,24 @@ class TestModelAndGateCapture:
         )
         self._emulate_mcp_server(monkeypatch, tmp_path)
         assert _read_gate_file() == ("COMPLEX", 6)  # was ('3f2a9c10-...', ...) pre-fix
+
+
+def test_duplicate_completion_appends_one_outcome_history_row(db: Path) -> None:
+    # The CLI path fires record_outcome via BOTH cos_task_move and
+    # _record_brain_outcome_safe; the no-op same→same transition must not
+    # double-count in the append-only outcome_history log.
+    import sqlite3
+
+    record_outcome(task_id="TASK-DUP", task_type="fix", outcome="success", db_path=db)
+    record_outcome(task_id="TASK-DUP", task_type="fix", outcome="success", db_path=db)
+    c = sqlite3.connect(db)
+    n = c.execute("SELECT count(*) FROM outcome_history WHERE task_id='TASK-DUP'").fetchone()[0]
+    c.execute("UPDATE task_outcomes SET outcome='rework' WHERE task_id='TASK-DUP'")
+    c.commit()
+    c.close()
+    record_outcome(task_id="TASK-DUP", task_type="fix", outcome="success", db_path=db)
+    c2 = sqlite3.connect(db)
+    n2 = c2.execute("SELECT count(*) FROM outcome_history WHERE task_id='TASK-DUP'").fetchone()[0]
+    c2.close()
+    assert n == 1, f"duplicate double-counted: {n}"
+    assert n2 == 2, f"real transition not logged: {n2}"

@@ -18,7 +18,7 @@ logger = logging.getLogger("thinking_os.metrics")
 # Whitelisted values for validation
 VALID_OUTCOMES = {"success", "rework", "partial", "blocked"}
 VALID_GROUP_BY = {"domain", "model", "agent_type", "complexity"}
-VALID_METRICS = {"success_rate", "rework_rate", "count"}
+VALID_METRICS = {"success_rate", "rework_rate", "count", "time_to_solution"}
 
 
 # ---------------------------------------------------------------------------
@@ -152,7 +152,7 @@ def metric_trend(
 
     Args:
         conn: SQLite connection.
-        metric: One of: success_rate, rework_rate, count.
+        metric: One of: success_rate, rework_rate, count, time_to_solution.
         window_days: Lookback window in days (1-365, default 30).
         group_by: Group dimension: domain, model, agent_type, complexity.
 
@@ -172,6 +172,7 @@ def metric_trend(
         "strftime('%Y-%W', created_at) AS period, "
         "SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) AS success_count, "
         "SUM(CASE WHEN outcome = 'rework' THEN 1 ELSE 0 END) AS rework_count, "
+        "AVG(NULLIF(duration_ms, 0)) AS avg_duration_ms, "
         "COUNT(*) AS total_count "
         "FROM agent_metrics "
         "WHERE created_at >= date('now', '-' || ? || ' days') "
@@ -191,6 +192,9 @@ def metric_trend(
             entry["rate"] = round(entry["rework_count"] / total, 2) if total > 0 else 0.0
         elif metric == "count":
             entry["rate"] = total
+        elif metric == "time_to_solution":
+            # Average wall-clock seconds per session; 0-duration sessions excluded.
+            entry["rate"] = round((entry["avg_duration_ms"] or 0) / 1000.0, 1)
         trends.append(entry)
 
     return {"metric": metric, "window_days": window_days, "group_by": group_by, "trends": trends}
