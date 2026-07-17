@@ -29,6 +29,33 @@ def client(tmp_path, monkeypatch):
         yield c, state
 
 
+def test_initial_trace_pos_bounds_replay(tmp_path):
+    from core.web.routes.cognition import _initial_trace_pos
+
+    log = tmp_path / "big.jsonl"
+    # Many small lines well past the 256 KB window.
+    lines = [json.dumps({"i": i, "pad": "x" * 200}) for i in range(4000)]
+    log.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    size = log.stat().st_size
+    assert size > 256 * 1024  # sanity: the file exceeds the window
+
+    pos = _initial_trace_pos(log)
+    assert 0 < pos < size  # bounded: starts inside the tail, not at 0
+    # The offset lands on a line boundary — the remaining tail parses cleanly.
+    tail = log.read_bytes()[pos:].decode("utf-8")
+    for line in tail.splitlines():
+        json.loads(line)  # no partial leading line
+
+
+def test_initial_trace_pos_small_file_starts_at_zero(tmp_path):
+    from core.web.routes.cognition import _initial_trace_pos
+
+    log = tmp_path / "small.jsonl"
+    log.write_text('{"a": 1}\n', encoding="utf-8")
+    assert _initial_trace_pos(log) == 0
+    assert _initial_trace_pos(tmp_path / "missing.jsonl") == 0  # OSError → 0
+
+
 def test_cognition_traces_lists_jsonl_sessions(client):
     c, state = client
     (state / "claude" / "traces" / "ses-a.jsonl").write_text("{}", encoding="utf-8")

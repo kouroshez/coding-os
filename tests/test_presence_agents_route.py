@@ -69,6 +69,21 @@ def test_presence_agents_unifies_all_fields(client):
     assert claude["slug"] is None or isinstance(claude["slug"], str)
 
 
+def test_presence_now_omits_raw_session_blob(client):
+    r = client.get("/api/presence/now")
+    assert r.status_code == 200
+    agents = r.json()["data"]["agents"]
+    assert agents, "expected the seeded claude agent"
+    allowed = {"agent", "session_id", "task", "skill_active", "model", "gate"}
+    for a in agents:
+        # The raw sessions/<sid>.json blob must never reach the wire.
+        assert "session" not in a
+        assert set(a.keys()) <= allowed
+    claude = next(a for a in agents if a["agent"] == "claude")
+    assert claude["task"] == "TASK-777"
+    assert claude["model"] == "claude-opus-4-8"
+
+
 def test_context_pct_standard_window():
     from core.web.routes.presence import _context_pct_from_usage
 

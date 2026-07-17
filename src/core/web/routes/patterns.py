@@ -56,6 +56,23 @@ def list_patterns(
         table_columns = {
             row[1] for row in conn.execute("PRAGMA table_info(learned_patterns)")
         }
+        if not table_columns:
+            # A never-initialized consumer DB has no learned_patterns table;
+            # PRAGMA returns no rows. Render an empty page rather than letting
+            # the SELECT below raise `no such table` as a bare 500.
+            return unwrap(
+                json.dumps(
+                    {
+                        "ok": True,
+                        "data": {
+                            "patterns": [],
+                            "count": 0,
+                            "total_count": 0,
+                            "meta": {"layer": "learning", "truncated": False},
+                        },
+                    }
+                )
+            )
         # evidence_json arrived in migration v47 — a consumer DB the migrator
         # has not touched yet must still render the page.
         columns = _COLUMNS + (", evidence_json" if "evidence_json" in table_columns else "")
@@ -193,12 +210,16 @@ def validate_pattern(
     finally:
         conn.close()
     if "error" in result:
+        # A locked/core pattern is immutable — learn_validate returns trust_tier
+        # on that rejection. It's a 400 against this resource's state, not a
+        # missing row; only the genuine "pattern not found" maps to 404.
+        category = "validation" if result.get("trust_tier") else "not_found"
         return unwrap(
             json.dumps(
                 {
                     "ok": False,
                     "error": {
-                        "category": "not_found",
+                        "category": category,
                         "message": result["error"],
                         "retryable": False,
                     },

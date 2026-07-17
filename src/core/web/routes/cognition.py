@@ -19,7 +19,7 @@ from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import ENVELOPE_ERROR_RESPONSES, unwrap
-from ._bounded_read import tail_lines
+from ._bounded_read import DEFAULT_WINDOW, tail_lines
 
 # A trace jsonl can reach GBs (e.g. a long run_await loop). Read only the tail
 # so the viewer shows the most-recent events without OOMing the server. TASK-225.
@@ -349,6 +349,27 @@ def _drain_trace_events(log: Path, pos: int) -> tuple[list[dict[str, Any]], int]
     return parsed, pos
 
 
+def _initial_trace_pos(log: Path, max_bytes: int = DEFAULT_WINDOW) -> int:
+    """Byte offset for a bounded initial replay: the start of the first whole
+    line within the last `max_bytes`. A long session's trace jsonl can reach
+    many MB; replaying it whole on connect would read the entire file into
+    memory (the same DoS the bounded-read helper guards for the non-streaming
+    reads). Returns 0 when the file fits the window or cannot be stat'd."""
+    try:
+        size = log.stat().st_size
+    except OSError:
+        return 0
+    if size <= max_bytes:
+        return 0
+    try:
+        with log.open("rb") as fh:
+            fh.seek(size - max_bytes)
+            fh.readline()  # discard the partial leading line
+            return fh.tell()
+    except OSError:
+        return 0
+
+
 @router.get("/trace/{session_id}/stream")
 async def stream_trace(
     session_id: str,
@@ -371,9 +392,10 @@ async def stream_trace(
 
     async def gen() -> AsyncGenerator[bytes, None]:
         yield f"event: connected\ndata: {json.dumps({'session_id': session_id})}\n\n".encode()
-        # Replay from position 0 so a viewer connecting mid-run sees the whole
-        # session, then keeps tailing new lines.
-        pos = 0
+        # Replay from a bounded tail window so a viewer connecting mid-run sees
+        # the recent trace, then keeps tailing new lines. Starting at 0 would
+        # read a multi-MB trace whole on connect (worker-memory spike).
+        pos = _initial_trace_pos(log)
         last_beat = time.monotonic()
         last_event = time.monotonic()
         saw_completed = False

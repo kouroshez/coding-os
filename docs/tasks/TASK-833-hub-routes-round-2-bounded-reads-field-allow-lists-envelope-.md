@@ -40,3 +40,26 @@ references: []
 - **When** the targeted route tests run **Then** they pass.
 
 ## Work Log
+- 2026-07-17 [claude]: commit 74321ea0ac — chore(board): fix duplicate frontmatter in TASK-833/834/836 bodies, start 833
+- 2026-07-17 [claude]: Edit sessions.py
+- 2026-07-17 [claude]: Edit sessions.py
+- 2026-07-17 [claude]: Edit sessions.py
+- 2026-07-17 [claude]: Edit sessions.py
+- 2026-07-17 [claude]: Edit test_sessions_route.py
+- 2026-07-17 [claude]: Edit search.py
+- 2026-07-17 [claude]: Edit graph.py
+- 2026-07-17 [claude]: Edit search.py
+- 2026-07-17 [claude]: commit 43c456a58d — fix(hub): harden /api/sessions payload + bound search sys.path & graph export (TASK-833)
+- 2026-07-17 [claude]: Partial commit 43c456a5: sessions/active hardened (field allow-list — dropped presence_file/state_dir absolute paths…
+- 2026-07-17 [claude]: Resumed post-compact. Plan for remaining 3: (1) cognition.stream_trace — bound initial replay to a 256KB tail window…
+- 2026-07-17 [claude]: Edit cognition.py
+- 2026-07-17 [claude]: Edit cognition.py
+- 2026-07-17 [claude]: Edit cognition.py
+- 2026-07-17 [claude]: Edit presence.py
+- 2026-07-17 [claude]: Edit presence.py
+- 2026-07-17 [claude]: Edit patterns.py
+- 2026-07-17 [claude]: Edit patterns.py
+- 2026-07-17 [claude]: Edit test_cognition_routes.py
+- 2026-07-17 [claude]: Edit test_presence_agents_route.py
+- 2026-07-17 [claude]: Edit test_patterns_route.py
+- 2026-07-17 [claude]: Edit commit-833.txt

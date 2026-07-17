@@ -101,3 +101,35 @@ def test_validate_pattern_not_found(client):
     resp = client.post("/api/patterns/999999/validate", json={"was_helpful": False})
     assert resp.status_code == 404
     assert "error" in resp.json()
+
+
+def test_validate_immutable_pattern_returns_400(client, tmp_path):
+    # A locked/core pattern is immutable via validate — a 400, not a 404.
+    db_path = tmp_path / ".coding-os" / "coding-os.db"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "INSERT INTO learned_patterns (pattern, memory_type, source, confidence, "
+        "times_validated, concepts, trust_tier) VALUES (?, 'lesson', 'friction', 0.9, 5, '[]', 'locked')",
+        ("A locked rule — immutable via cos_learn_validate",),
+    )
+    conn.commit()
+    pid = conn.execute("SELECT id FROM learned_patterns WHERE trust_tier='locked'").fetchone()[0]
+    conn.close()
+    resp = client.post(f"/api/patterns/{pid}/validate", json={"was_helpful": True})
+    assert resp.status_code == 400
+    assert resp.json()["error"]["category"] == "validation"
+
+
+def test_patterns_list_missing_table_returns_empty(tmp_path, monkeypatch):
+    # A never-initialized DB (no learned_patterns table) renders an empty page,
+    # not a bare 500 from `no such table`.
+    db_path = tmp_path / ".coding-os" / "coding-os.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    sqlite3.connect(db_path).close()  # empty DB — no tables
+    monkeypatch.setenv("COS_DB_PATH", str(db_path))
+    with TestClient(create_app()) as c:
+        resp = c.get("/api/patterns")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["patterns"] == []
+    assert data["total_count"] == 0

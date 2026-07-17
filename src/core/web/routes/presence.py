@@ -22,6 +22,12 @@ if str(_REPO_ROOT) not in sys.path:
 
 router = APIRouter(prefix="/api/presence", tags=["presence"])
 
+# Per-agent fields surfaced to the HUD. The raw sessions/<sid>.json blob
+# (_agent_runtime's "session") stays server-side — it carries absolute
+# transcript paths + internal bookkeeping a read API must never leak. The UI
+# PresenceAgent type (ui/src/lib/presence.ts) reads only these scalars.
+_PRESENCE_NOW_FIELDS = ("agent", "session_id", "task", "skill_active", "model", "gate")
+
 
 def _state_dir() -> Path:
     from web._project_context import current_project_root, is_explicit_project_scope  # type: ignore
@@ -240,7 +246,7 @@ def presence_now(
             snap = _agent_runtime(agent_dir, agent_id)
             if snap is None:
                 continue
-            agents.append(snap)
+            agents.append({k: snap.get(k) for k in _PRESENCE_NOW_FIELDS})
 
     last_hook = _last_hook_event(state)
     chat_uuid = _latest_claude_chat_uuid(project)
