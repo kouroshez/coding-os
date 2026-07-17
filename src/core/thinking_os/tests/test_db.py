@@ -150,6 +150,51 @@ class TestSchemaVersioning:
         assert rows[1] == 0  # no ledger rows → inflated value retired to honest zero
         assert rows[2] == 2  # only helpful, non-throttled validations count
 
+    def test_v51_partial_unique_index_makes_dedup_atomic(
+        self, migrated_conn: sqlite3.Connection
+    ) -> None:
+        conn = migrated_conn
+        idx = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='index' "
+            "AND name='idx_observations_content_session'"
+        ).fetchone()
+        assert idx is not None, "partial unique index missing after migrations"
+        # Race-loser: a second INSERT OR IGNORE for the same (content_hash, session_id)
+        # is silently ignored (rowcount 0), so only one row survives.
+        conn.execute(
+            "INSERT OR IGNORE INTO observations (session_id, title, content_hash) VALUES ('S','a','H')"
+        )
+        cur = conn.execute(
+            "INSERT OR IGNORE INTO observations (session_id, title, content_hash) VALUES ('S','b','H')"
+        )
+        conn.commit()
+        assert cur.rowcount == 0
+        assert conn.execute("SELECT COUNT(*) FROM observations WHERE content_hash='H'").fetchone()[0] == 1
+        # NULLs are exempt (not dedup targets).
+        for _ in range(2):
+            conn.execute("INSERT OR IGNORE INTO observations (session_id, title) VALUES ('S','n')")
+        conn.commit()
+        assert conn.execute("SELECT COUNT(*) FROM observations WHERE content_hash IS NULL").fetchone()[0] == 2
+
+    def test_v51_collapses_existing_duplicates_keeping_earliest(
+        self, migrated_conn: sqlite3.Connection
+    ) -> None:
+        from database import _migrate_v51_observations_dedup_unique
+
+        conn = migrated_conn
+        conn.execute("DROP INDEX idx_observations_content_session")
+        ids = [
+            conn.execute(
+                "INSERT INTO observations (session_id, title, content_hash) VALUES ('D',?,'HD')",
+                (f"d{i}",),
+            ).lastrowid
+            for i in range(3)
+        ]
+        conn.commit()
+        _migrate_v51_observations_dedup_unique(conn)
+        rows = conn.execute("SELECT id FROM observations WHERE content_hash='HD'").fetchall()
+        assert len(rows) == 1 and rows[0][0] == min(ids), "must collapse to the earliest id"
+
     def test_version_table_records_description(self, migrated_conn: sqlite3.Connection) -> None:
         row = migrated_conn.execute(
             "SELECT description FROM schema_version WHERE version = 1"

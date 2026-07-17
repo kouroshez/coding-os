@@ -419,10 +419,21 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
             vals.append(expires_at)
         placeholders = ", ".join("?" * len(vals))
         cursor = conn.execute(
-            f"INSERT INTO observations ({', '.join(cols)}) VALUES ({placeholders})",
+            f"INSERT OR IGNORE INTO observations ({', '.join(cols)}) VALUES ({placeholders})",
             vals,
         )
         conn.commit()
+
+        # The partial UNIQUE(content_hash, session_id) index (migration v51) makes
+        # the dedup atomic: a concurrent capture that raced past the SELECT above
+        # and committed first leaves rowcount=0 here. Return deduped and skip the
+        # post-insert work — cursor.lastrowid would point at the wrong row.
+        if cursor.rowcount == 0:
+            existing = conn.execute(
+                "SELECT id FROM observations WHERE content_hash = ? AND session_id = ?",
+                (content_hash, session_id),
+            ).fetchone()
+            return {"status": "deduped", "existing_id": existing[0] if existing else None}
 
         # Record co-edit edges in concept graph (fire-and-forget). Use the same
         # scrubbed path so the graph keys stay username-free AND match the stored

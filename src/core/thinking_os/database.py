@@ -2146,6 +2146,37 @@ def _migrate_v50_reset_times_validated_from_ledger(conn: sqlite3.Connection) -> 
     )
 
 
+def _migrate_v51_observations_dedup_unique(conn: sqlite3.Connection) -> None:
+    # The write path deduped observations by (content_hash, session_id) with a
+    # race-prone SELECT-then-INSERT: two concurrent captures both miss the SELECT
+    # and both insert. Collapse existing duplicates (keep the earliest id) and add
+    # a partial UNIQUE index so INSERT OR IGNORE enforces one row per group
+    # atomically. NULL content_hash/session_id rows are exempt (not dedup targets;
+    # SQLite already treats their NULLs as distinct). The observations_fts index
+    # stays consistent via the AFTER DELETE trigger; no FK references observations.id.
+    cur = conn.execute(
+        "DELETE FROM observations "
+        "WHERE content_hash IS NOT NULL AND session_id IS NOT NULL "
+        "  AND id NOT IN ("
+        "    SELECT MIN(id) FROM observations "
+        "    WHERE content_hash IS NOT NULL AND session_id IS NOT NULL "
+        "    GROUP BY content_hash, session_id"
+        "  )"
+    )
+    removed = cur.rowcount
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_observations_content_session "
+        "ON observations(content_hash, session_id) "
+        "WHERE content_hash IS NOT NULL AND session_id IS NOT NULL"
+    )
+    conn.commit()
+    logger.info(
+        "Migration v51 applied: collapsed %d duplicate observation(s); "
+        "added partial UNIQUE(content_hash, session_id)",
+        removed,
+    )
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2517,6 +2548,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         50,
         "Rebuild times_validated from the pattern_validations ledger — retire the pre-split inflated values so pattern_tier 'Trusted' reflects genuine validations; trust is re-earned by the firing loop",
         _migrate_v50_reset_times_validated_from_ledger,
+    ),
+    (
+        51,
+        "Atomic write-path dedup: collapse duplicate observations and add a partial UNIQUE(content_hash, session_id) index so INSERT OR IGNORE enforces one-per-group without the race-prone SELECT-then-INSERT",
+        _migrate_v51_observations_dedup_unique,
     ),
 ]
 
