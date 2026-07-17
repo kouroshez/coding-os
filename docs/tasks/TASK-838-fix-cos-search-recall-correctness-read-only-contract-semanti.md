@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-17
 started: 2026-07-17
-completed: null
+completed: 2026-07-17
 agent_session: ses-claude-20260717-014556-89d0
 depends_on: []
 blocked_by: []
@@ -41,3 +41,4 @@ Call cos_search twice for a query matching a learned_pattern; observe confidence
 - 2026-07-17 [claude]: Edit memory.py
 - 2026-07-17 [claude]: Edit memory.py
 - 2026-07-17 [claude]: Fixed 3 recall-correctness bugs in memory.py: (a) removed the write-on-read confidence/access boost from…
+- 2026-07-17 [claude]: committed 435bc5a7 · 2 files
