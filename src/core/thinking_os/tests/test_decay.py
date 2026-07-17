@@ -83,6 +83,47 @@ class TestFreshPatternSurvivesFirstDecay:
 
 
 # ---------------------------------------------------------------------------
+# Regression — locked/core tiers must not abort the decay run
+# ---------------------------------------------------------------------------
+
+
+class TestTrustTierDecaySafety:
+    """A locked/core pattern is immutable via the protect triggers (RAISE ABORT).
+    Decay must exclude those tiers, or one UPDATE raises, unwinds before commit,
+    and silently rolls back the ENTIRE run."""
+
+    @staticmethod
+    def _insert(c: sqlite3.Connection, pattern: str, conf: float, tier: str) -> None:
+        c.execute(
+            "INSERT INTO learned_patterns (pattern, memory_type, confidence, decay_rate, "
+            "impact_score, times_seen, trust_tier, provenance, last_validated, last_accessed_at) "
+            "VALUES (?, 'pattern', ?, 0.1, 0.5, 0, ?, 'x', "
+            "datetime('now','-400 days'), datetime('now','-400 days'))",
+            (pattern, conf, tier),
+        )
+
+    def test_locked_pattern_does_not_abort_decay(self, db_path: Path) -> None:
+        c = init_db(db_path)
+        self._insert(c, "locked rule", 0.9, "locked")  # would decay → protect trigger aborts
+        self._insert(c, "old volatile", 0.5, "volatile")  # must decay → proves run completed
+        c.commit()
+        c.close()
+
+        run_decay(db_path)  # pre-fix: raises IntegrityError from the locked-row UPDATE
+
+        c2 = init_db(db_path)
+        locked = c2.execute(
+            "SELECT confidence, promoted_to FROM learned_patterns WHERE pattern='locked rule'"
+        ).fetchone()
+        volatile = c2.execute(
+            "SELECT confidence FROM learned_patterns WHERE pattern='old volatile'"
+        ).fetchone()
+        c2.close()
+        assert locked[0] == 0.9 and locked[1] is None, "locked pattern mutated or run aborted"
+        assert volatile[0] < 0.5, "old volatile did not decay → run rolled back by locked-row abort"
+
+
+# ---------------------------------------------------------------------------
 # Regression — prune grace window measures time-since-archived (audit N1 / 1b)
 # ---------------------------------------------------------------------------
 

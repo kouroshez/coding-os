@@ -221,6 +221,7 @@ def run_decay(
             pruned = conn.execute(
                 "DELETE FROM learned_patterns "
                 "WHERE promoted_to = 'archived' "
+                "AND COALESCE(trust_tier, 'volatile') NOT IN ('locked', 'core') "
                 "AND confidence <= ? "
                 "AND COALESCE(times_seen, 0) < 5 "
                 "AND COALESCE(archived_at, last_accessed_at, last_validated, created_at) "
@@ -230,10 +231,15 @@ def run_decay(
             stats["pruned"] = pruned.rowcount
 
         # --- Decay learned_patterns ---
+        # Exclude locked/core tiers: they are immutable via the protect triggers
+        # (RAISE ABORT on UPDATE/DELETE). One decay UPDATE of such a row would
+        # raise, unwind before conn.commit(), and silently roll back the whole run.
         rows = conn.execute(
             "SELECT id, confidence, decay_rate, impact_score, times_seen, "
             "last_validated, last_accessed_at "
-            "FROM learned_patterns WHERE promoted_to IS NULL OR promoted_to != 'archived'"
+            "FROM learned_patterns "
+            "WHERE (promoted_to IS NULL OR promoted_to != 'archived') "
+            "AND COALESCE(trust_tier, 'volatile') NOT IN ('locked', 'core')"
         ).fetchall()
 
         stats["total_patterns"] = len(rows)
@@ -305,6 +311,7 @@ def run_decay(
             members = conn.execute(
                 "SELECT id, access_count, times_validated FROM learned_patterns "
                 "WHERE pattern = ? AND COALESCE(domain, '') = ? "
+                "AND COALESCE(trust_tier, 'volatile') NOT IN ('locked', 'core') "
                 "ORDER BY confidence DESC, id DESC",
                 (g["pattern"], g["dom"]),
             ).fetchall()

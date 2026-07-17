@@ -1738,12 +1738,15 @@ def learn_narrative(
     # row is explicitly volatile/agent_self at moderate confidence;
     # promotion to `validated` requires external evidence (outcome
     # history or explicit `cos_promote`), handled elsewhere.
+    # Stamp last_validated/last_accessed_at so a fresh breakthrough has age 0.
+    # Otherwise run_decay reads _days_since(NULL)->999d and archives it on the
+    # FIRST run (the same fix learn_extract's _upsert_pattern already carries).
     cursor = conn.execute(
         "INSERT INTO learned_patterns "
         "(pattern, memory_type, domain, source, confidence, impact_score, "
-        "concepts, trust_tier, provenance) "
+        "concepts, trust_tier, provenance, last_validated, last_accessed_at) "
         "VALUES (?, 'error', ?, 'breakthrough', 0.3, 0.5, ?, "
-        "'volatile', 'agent_self')",
+        "'volatile', 'agent_self', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
         (pattern_text, domain, json.dumps(concept_list)),
     )
     pattern_id = cursor.lastrowid

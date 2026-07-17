@@ -477,6 +477,13 @@ class TestNarrativeQualityBar:
         )
         assert "error" not in r
         assert r.get("status") == "narrative_recorded"
+        # The fresh breakthrough pattern must carry last_validated/last_accessed_at
+        # so decay reads age 0 (not 999) and does not archive it on the first run.
+        row = conn.execute(
+            "SELECT last_validated, last_accessed_at FROM learned_patterns WHERE id = ?",
+            (r["pattern_id"],),
+        ).fetchone()
+        assert row[0] is not None and row[1] is not None
 
 
 class TestHookBlockLessons:
