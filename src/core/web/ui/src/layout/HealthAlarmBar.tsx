@@ -9,15 +9,21 @@ import { useScopedLink } from '@/lib/use-scoped-link';
 // Polls every 30 s — light enough to keep
 // running on every page without flooding the API.
 
+// apiGet already unwraps the { data, meta } envelope, so these are the
+// producer's flat payload shapes (graph_os doctor / logs summary), NOT a
+// second nested `.data`. Reading `.data.data` here silently dropped every
+// alarm (always undefined → default healthy).
 interface DoctorResp {
-  data?: { healthy?: boolean; stats?: { issue_count?: number } };
+  healthy?: boolean;
+  stats?: { issue_count?: number };
 }
 interface HealthResp {
   status?: string;
   backend_id?: string;
 }
 interface LogSummaryResp {
-  data?: { error_count?: number; fatal_count?: number };
+  error_count?: number;
+  fatal_count?: number;
 }
 
 export default function HealthAlarmBar() {
@@ -35,11 +41,11 @@ export default function HealthAlarmBar() {
     refetchIntervalMs: 30000,
   });
 
-  const issueCount = doctor.data?.data?.stats?.issue_count ?? 0;
-  const graphHealthy = doctor.data?.data?.healthy ?? true;
+  const issueCount = doctor.data?.stats?.issue_count ?? 0;
+  const graphHealthy = doctor.data?.healthy ?? true;
   const healthOk = (health.data?.status ?? 'ok') === 'ok';
-  const errorCount = logs.data?.data?.error_count ?? 0;
-  const fatalCount = logs.data?.data?.fatal_count ?? 0;
+  const errorCount = logs.data?.error_count ?? 0;
+  const fatalCount = logs.data?.fatal_count ?? 0;
   // fetch errors mean the backend is unreachable, which IS the
   // worst kind of degraded state — silently hiding it defeated the bar's
   // whole purpose. Treat any error as alarm-worthy on top of the

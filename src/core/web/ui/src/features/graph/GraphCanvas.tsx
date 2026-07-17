@@ -173,7 +173,6 @@ export default function GraphCanvas() {
             const meta = data?.meta;
             const truncated = Boolean(
               meta?.result_truncated ||
-                meta?.truncated_subgraph ||
                 fetched >= (meta?.max_nodes_effective ?? requestedMax),
             );
             return (

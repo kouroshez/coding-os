@@ -29,7 +29,6 @@ export interface ApiGraphMeta {
   max_nodes_effective?: number;
   max_hops_effective?: number | null;
   result_truncated?: boolean;
-  truncated_subgraph?: boolean;
 }
 
 export interface ApiGraphPayload {

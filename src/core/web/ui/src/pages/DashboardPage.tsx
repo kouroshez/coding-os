@@ -127,7 +127,7 @@ interface CostPayload {
 }
 
 interface BoardListPayload {
-  cards: { task_id: string; title?: string; status?: string; swimlane?: string }[];
+  cards: { id: string; title?: string; status?: string; swimlane?: string }[];
   wip?: { counts: Record<string, number>; caps: Record<string, number> };
 }
 
@@ -675,14 +675,14 @@ export default function DashboardPage() {
                 .slice(0, 4)
                 .map((c) => (
                   <li
-                    key={c.task_id}
+                    key={c.id}
                     className="flex items-center gap-2 rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1 text-[11px]"
                   >
                     <Badge tone={c.status === 'blocked' ? 'danger' : 'accent'}>
                       {c.status?.replace('_', ' ')}
                     </Badge>
                     <span className="truncate font-mono text-[10px] text-[var(--cos-muted)]">
-                      {c.task_id}
+                      {c.id}
                     </span>
                     <span className="ml-auto min-w-0 flex-1 truncate text-[var(--cos-text)]">
                       {c.title}

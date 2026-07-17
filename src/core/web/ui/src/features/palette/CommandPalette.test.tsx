@@ -13,7 +13,7 @@ vi.mock('@/lib/api-client', () => ({
     if (path === '/api/hub/projects')
       return Promise.resolve([{ projects: [{ slug: 'alpha', path: '/a' }] }, null]);
     if (path === '/api/board/list')
-      return Promise.resolve([{ cards: [{ task_id: 'TASK-9', title: 'do X', status: 'wip' }] }, null]);
+      return Promise.resolve([{ cards: [{ id: 'TASK-9', title: 'do X', status: 'wip' }] }, null]);
     if (path === '/api/cognition/chats')
       return Promise.resolve([{ sessions: [{ session_id: 'ses-1', summary: 'hello' }] }, null]);
     return Promise.resolve([{}, null]);

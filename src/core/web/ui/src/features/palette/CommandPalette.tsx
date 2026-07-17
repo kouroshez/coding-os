@@ -26,7 +26,7 @@ interface ProjectsResp {
   projects?: { slug: string; path?: string }[];
 }
 interface BoardResp {
-  cards?: { task_id: string; title?: string; status?: string }[];
+  cards?: { id: string; title?: string; status?: string }[];
 }
 interface ChatsResp {
   sessions?: { session_id?: string; summary?: string; custom_title?: string }[];
@@ -82,8 +82,8 @@ export default function CommandPalette() {
         for (const c of board.cards ?? []) {
           next.push({
             type: 'task',
-            id: c.task_id,
-            label: `${c.task_id} ${c.title ?? ''}`.trim(),
+            id: c.id,
+            label: `${c.id} ${c.title ?? ''}`.trim(),
             sub: c.status,
             target: scopedLink('workspace/board'),
           });

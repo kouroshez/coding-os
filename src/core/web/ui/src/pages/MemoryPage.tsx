@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { csrfHeader } from '@/lib/api-client';
 
 // Field names mirror src/core/web/routes/patterns.py::_COLUMNS + the computed
 // `tier` field (api-contract-discipline — the producer is the source of truth).
@@ -150,11 +151,12 @@ function LessonCard({ p, slug }: { p: PatternRow; slug: string | undefined }) {
     if (busy || voted) return;
     setBusy(true);
     try {
-      await fetch(api(slug, `/patterns/${p.id}/validate`), {
+      const r = await fetch(api(slug, `/patterns/${p.id}/validate`), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeader() },
         body: JSON.stringify({ was_helpful: helpful }),
       });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setVoted(helpful ? 'up' : 'down');
     } catch {
       /* fail-open — feedback is best-effort */
@@ -387,7 +389,10 @@ export default function MemoryPage() {
     setRunning(true);
     setRunMsg('');
     try {
-      const r = await fetch(`/api/scheduled/run/${encodeURIComponent(slug)}`, { method: 'POST' });
+      const r = await fetch(`/api/scheduled/run/${encodeURIComponent(slug)}`, {
+        method: 'POST',
+        headers: { ...csrfHeader() },
+      });
       const d = await r.json();
       const lx = d?.summary?.tasks?.learn_extract;
       if (d?.ran && lx?.status === 'ok') {

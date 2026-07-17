@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
 import { resolveApiUrl } from '@/lib/api-client';
 import { acquireEventSource, type SharedEventSource } from '@/lib/shared-event-source';
@@ -86,6 +87,10 @@ function groupConsecutiveEvents(events: LogEvent[]): GroupedEvent[] {
 }
 
 export default function LogsPage() {
+  // slug drives the SSE re-subscribe: resolveApiUrl reads the slug from the URL
+  // when the effect runs, so a project switch must re-run the effect to repoint
+  // the stream — otherwise it keeps tailing the previous project's log sink.
+  const { slug } = useParams<{ slug?: string }>();
   const [level, setLevel] = useState<LevelFloor>('debug');
   const [scope, setScope] = useState('');
   const [search, setSearch] = useState('');
@@ -142,7 +147,7 @@ export default function LogsPage() {
       shared.release();
       sourceRef.current = null;
     };
-  }, [liveTail, level, scope, search]);
+  }, [liveTail, level, scope, search, slug]);
 
   // Reset expanded states when log data changes
   useEffect(() => {
