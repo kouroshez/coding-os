@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-17
 started: 2026-07-17
-completed: null
+completed: 2026-07-17
 agent_session: ses-claude-20260717-014556-89d0
 depends_on: []
 blocked_by: []
@@ -39,3 +39,4 @@ capture.py:347-353 SELECTs for an existing (content_hash, session_id) observatio
 - 2026-07-17 [claude]: Edit capture.py
 - 2026-07-17 [claude]: Edit verify_cluster3.py
 - 2026-07-17 [claude]: Edit test_db.py
+- 2026-07-17 [claude]: Verified: e2e (schema v51 + partial unique index; INSERT OR IGNORE race-loser rowcount=0 → 1 row; NULL…
