@@ -17,7 +17,7 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null |
 # Debounce markers live in the .jit-nudge/ dir so session-context.sh prunes
 # them wholesale each session (same convention as .graph-nudge/ .task-nudge/).
 NUDGE_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os}}/.jit-nudge"
-mkdir -p "$NUDGE_DIR" 2>/dev/null || true
+[[ -d "$NUDGE_DIR" ]] || mkdir -p "$NUDGE_DIR" 2>/dev/null || true
 
 # Resolve the PHYSICAL hooks dir — consumers symlink the .sh files but not
 # sibling data/helpers, so $(dirname "$0") lands in a dir without them.
