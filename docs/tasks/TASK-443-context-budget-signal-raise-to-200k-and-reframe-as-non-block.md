@@ -5,13 +5,13 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [governance, docs-update, context-budget, autonomy, dogfood, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-16
 started: 2026-06-16
 completed: 2026-06-16
-agent_session: ses-claude-20260616-103824-a822
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

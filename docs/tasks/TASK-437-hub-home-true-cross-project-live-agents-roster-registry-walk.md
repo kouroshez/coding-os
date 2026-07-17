@@ -5,13 +5,13 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [hub, presence, cross-project, scope-isolation, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-16
 started: 2026-06-16
 completed: 2026-06-16
-agent_session: ses-803-0b9f
+agent_session: ses-system-auto-archive
 depends_on: [TASK-435]
 blocked_by: []
 references: []
