@@ -118,19 +118,23 @@ function Toggle({
   label: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-xs">
-      <span
+    <span className="flex items-center gap-2 text-xs">
+      <button
+        type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={label}
         onClick={() => onChange(!checked)}
         className={[
-          'relative inline-block h-5 w-9 shrink-0 rounded-full border transition-colors',
+          'relative inline-block h-5 w-9 shrink-0 cursor-pointer rounded-full border transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]',
           checked
             ? 'border-[var(--accent)] bg-[var(--accent)]/30'
             : 'border-[var(--cos-border)] bg-[var(--cos-bg)]',
         ].join(' ')}
       >
         <span
+          aria-hidden
           className={[
             'absolute top-0.5 h-4 w-4 rounded-full border transition-transform',
             checked
@@ -138,9 +142,9 @@ function Toggle({
               : 'translate-x-0.5 border-[var(--cos-border)] bg-[var(--cos-muted)]',
           ].join(' ')}
         />
-      </span>
+      </button>
       <span className="text-[var(--cos-text)]">{label}</span>
-    </label>
+    </span>
   );
 }
 

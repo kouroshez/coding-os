@@ -2174,29 +2174,36 @@ function Toggle({
   sub?: string;
 }) {
   return (
-    <label
+    <span
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: 10,
         padding: '7px 4px',
-        cursor: 'pointer',
         userSelect: 'none',
       }}
     >
-      <div
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label={label}
         onClick={() => onChange(!on)}
         style={{
           width: 32,
           height: 18,
           borderRadius: 10,
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
           background: on ? 'var(--accent)' : 'rgba(0,0,0,.18)',
           position: 'relative',
           transition: 'background .15s ease',
           flexShrink: 0,
         }}
       >
-        <div
+        <span
+          aria-hidden
           style={{
             position: 'absolute',
             top: 2,
@@ -2209,12 +2216,18 @@ function Toggle({
             boxShadow: '0 1px 2px rgba(0,0,0,.2)',
           }}
         />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink)' }}>{label}</div>
-        {sub && <div style={{ fontSize: 10, color: 'var(--ink-faint)', marginTop: 1 }}>{sub}</div>}
-      </div>
-    </label>
+      </button>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--ink)' }}>
+          {label}
+        </span>
+        {sub && (
+          <span style={{ display: 'block', fontSize: 10, color: 'var(--ink-faint)', marginTop: 1 }}>
+            {sub}
+          </span>
+        )}
+      </span>
+    </span>
   );
 }
 
