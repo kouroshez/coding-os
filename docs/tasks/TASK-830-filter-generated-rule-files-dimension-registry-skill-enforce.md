@@ -23,3 +23,4 @@ references: []
 
 ## Work Log
 - 2026-07-17 [claude]: Scope correction before pickup: install-adapter.sh already EXCLUDES dimension-registry.md + skill-enforcement.md from…
+- 2026-07-17 [claude]: committed e0dc8f82 · 1 file
