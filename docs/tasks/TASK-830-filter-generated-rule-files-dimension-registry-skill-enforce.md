@@ -22,3 +22,4 @@ references: []
 **Outcome (one sentence):** dimension-registry.md (8.3K) + skill-enforcement.md (9.8K) inject all ~20 stacks into every session even where one stack is installed; in the meta-repo all templates count as installed so the win needs analysis: decide whether the regen pipeline should emit per-project filtered variants (consumers get only their stack; meta keeps meta + actively-edited template) and implement if the token saving justifies it. Caveat from audit: when editing src/templates/<stack>/ the agent may legitimately need that stack's rows.
 
 ## Work Log
+- 2026-07-17 [claude]: Scope correction before pickup: install-adapter.sh already EXCLUDES dimension-registry.md + skill-enforcement.md from…

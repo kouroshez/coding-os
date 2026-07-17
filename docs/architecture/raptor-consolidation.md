@@ -9,7 +9,7 @@ SpaceX's Raptor engine evolved from a machine wrapped in visible plumbing, senso
 
 ![Raptor 1 → 2 → 3 consolidation](../assets/raptor-variants-2024.webp)
 
-coding-os aims for the same trajectory: every generation of the kernel should carry **more capability per moving part**, never more parts per capability.
+coding-os aims for the same trajectory: maximum structural simplification **simultaneous with** a leap in performance and density — every generation of the kernel carries **more capability per moving part**, never more parts per capability.
 
 ## The four principles
 
@@ -22,7 +22,7 @@ Merge scattered sibling subsystems into one coherent unit when they share a life
 
 ### 2. Zero-overhead abstractions
 
-Hide internal complexity behind a minimal interface that costs nothing at run time and nothing in reader attention.
+Hide internal complexity behind a minimal interface that costs nothing at run time, imposes no operational penalty, and takes nothing from reader attention.
 
 - *In practice here:* the `ok()`/`fail()` envelope (Rule 13) is one contract over ~140 tools; `$COS_*` env vars abstract the agent runtime without a compatibility layer.
 - *Review question:* "Does this interface make the caller's code shorter, or does it just relocate the complexity?"
@@ -36,10 +36,14 @@ Delete glue code, redundant telemetry, duplicated nudges, and pass-through layer
 
 ### 4. High cohesion and internalized design
 
-Make each unit self-sufficient: fewer external dependencies, behavior owned where the data lives.
+Make each unit self-sufficient: fewer external dependencies, behavior owned where the data lives, and tuned for high efficiency under resource constraints (tokens, wall-clock, laptop-grade hardware).
 
 - *In practice here:* P8 (never import an adapter SDK from `src/core/**`); hooks source one `cos-env.sh` instead of each resolving paths.
 - *Review question:* "Can this unit be tested and reasoned about without loading its neighbors?"
+
+## Worked case study — the always-on rules layer (2026-07-16)
+
+The audit that produced this doc found the rule-injection layer itself was Raptor-1: ~25KB of always-on prose whose contracts were restated in up to four places, diluting attention on all of them. The consolidation applied all four principles at once: duplicate matrix tables and rationale deleted in favor of one SSOT pointer (**1, 3**: 25.2KB → 14.7KB, zero normative loss); convention-rule reminders folded into the existing `jit-recall` hook as a 2-entry data file instead of a new nudge hook (**1**: one mechanism, N rules); the reminder fires once per session at the moment of the matching edit for near-zero token cost (**2**); and the hook resolves its own data through `_cos_helpers_dir`, self-sufficient across consumer symlink layouts (**4**). Same enforcement capability, measurably fewer and denser parts.
 
 ## How to apply in a review
 
