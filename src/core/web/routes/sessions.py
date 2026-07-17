@@ -18,19 +18,35 @@ import sys
 import time
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 _CORE_DIR = Path(__file__).resolve().parents[3]
 if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
 
+from board_os.presence import ACTIVE_WINDOW_SECS, PRESENT_WINDOW_SECS  # noqa: E402
+from web._deps import make_metrics_dep, make_rate_limit_dep  # noqa: E402
 from web._project_context import current_project_root  # noqa: E402
 
 logger = logging.getLogger("coding_os.web.sessions")
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
-PRESENCE_TTL_S = 300
+# Fields surfaced to the Hub UI. Everything else in the on-disk presence
+# record (absolute paths, internal bookkeeping) stays server-side — a read
+# API must never leak host filesystem layout (info disclosure).
+_PRESENCE_FIELDS = (
+    "session_id",
+    "agent",
+    "state",
+    "is_current",
+    "model",
+    "pid",
+    "started_at",
+    "last_tool_at",
+    "last_prompt_at",
+    "ended_at",
+)
 
 
 def _project_state_dir() -> Path:
@@ -107,21 +123,26 @@ def _load_presence_for_agent(agent_dir: Path, agent: str, now: int) -> list[dict
             continue
         if not isinstance(data, dict):
             continue
-        data.setdefault("agent", agent)
-        data["state"] = _classify(data, now)
-        data["is_current"] = current_sid is not None and data.get("session_id") == current_sid
-        data["presence_file"] = str(path)
-        out.append(data)
+        state = _classify(data, now)
+        is_current = current_sid is not None and data.get("session_id") == current_sid
+        record = {k: data.get(k) for k in _PRESENCE_FIELDS}
+        record["agent"] = data.get("agent") or agent
+        record["state"] = state
+        record["is_current"] = is_current
+        out.append(record)
     return out
 
 
 @router.get("/active")
-def list_active_sessions():
+def list_active_sessions(
+    _rl=Depends(make_rate_limit_dep("sessions.active")),
+    _m=Depends(make_metrics_dep("sessions.active")),
+):
     """Return all known agent presence records grouped by lifecycle state.
 
-    State values:
-      - active   : tool/prompt activity within last 30 s and pid alive
-      - present  : activity within PRESENCE_TTL_S (default 300 s) and pid alive
+    State values (windows imported from board_os.presence, the SSOT):
+      - active   : tool activity within ACTIVE_WINDOW_SECS (90 s) and pid alive
+      - present  : activity within PRESENT_WINDOW_SECS (30 min) and pid alive
       - idle     : pid alive but no recent activity
       - offline  : pid not alive
       - ended    : ended_at recorded
@@ -131,7 +152,7 @@ def list_active_sessions():
     """
     state_dir = _project_state_dir()
     if not state_dir.is_dir():
-        return {"ok": True, "data": {"sessions": [], "counts": {}, "state_dir": str(state_dir)}}
+        return {"data": {"sessions": [], "counts": {}}, "meta": {"layer": "observability"}}
 
     now = int(time.time())
     sessions: list[dict] = []
@@ -157,12 +178,12 @@ def list_active_sessions():
     )
 
     return {
-        "ok": True,
         "data": {
             "sessions": sessions,
             "counts": counts,
             "now": now,
-            "ttl_s": PRESENCE_TTL_S,
-            "state_dir": str(state_dir),
+            "ttl_s": PRESENT_WINDOW_SECS,
+            "active_window_s": ACTIVE_WINDOW_SECS,
         },
+        "meta": {"layer": "observability"},
     }

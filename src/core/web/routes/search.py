@@ -93,7 +93,8 @@ def memory_search(
     except ImportError:
         # Try alternate import path (running from repo root rather than thinking_os dir).
         try:
-            sys.path.insert(0, str(_TOS_DIR))
+            if str(_TOS_DIR) not in sys.path:
+                sys.path.insert(0, str(_TOS_DIR))
             from database import has_fts5_table  # type: ignore
             from tools.memory import memory_search as _search  # type: ignore
             from tools.retrieve import log_retrieval  # type: ignore
@@ -149,7 +150,8 @@ def doc_search(
     if _module_disabled("docs"):
         return unwrap(_gated("docs"))
     try:
-        sys.path.insert(0, str(_TOS_DIR))
+        if str(_TOS_DIR) not in sys.path:
+            sys.path.insert(0, str(_TOS_DIR))
         from tools.docs import doc_search as _doc_search  # type: ignore
         from tools.retrieve import log_retrieval  # type: ignore
     except ImportError as exc:
@@ -195,7 +197,8 @@ def task_search(
     if _module_disabled("tasks"):
         return unwrap(_gated("tasks"))
     try:
-        sys.path.insert(0, str(_TOS_DIR))
+        if str(_TOS_DIR) not in sys.path:
+            sys.path.insert(0, str(_TOS_DIR))
         from tools.retrieve import log_retrieval  # type: ignore
         from tools.tasks import task_search as _task_search  # type: ignore
     except ImportError as exc:

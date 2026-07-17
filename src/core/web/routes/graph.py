@@ -212,7 +212,7 @@ def graph_export(
     format: str = Query("json"),
     root_uid: str | None = Query(None),
     edge_types: str | None = Query(None),
-    max_nodes: int = Query(2000),
+    max_nodes: int = Query(2000, ge=1, le=50_000),
     max_hops: int | None = Query(None, ge=1, le=16),
     include_spine: bool = Query(False),
     mode: str = Query("auto"),
