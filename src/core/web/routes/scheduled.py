@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
+import plistlib
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
@@ -50,11 +52,32 @@ def _launchd_loaded() -> bool:
         return False
 
 
+def _plist_hour(default: int = 3) -> int:
+    """Hour the installed launchd job actually fires at, read from the plist's
+    StartCalendarInterval — so next_run_at reflects the installed schedule
+    rather than a hardcoded assumption."""
+    try:
+        with _PLIST_DEST.open("rb") as fh:
+            data = plistlib.load(fh)
+    except (OSError, ValueError, plistlib.InvalidFileException) as exc:
+        logger.debug("plist hour read failed: %s", exc)
+        return default
+    cal = data.get("StartCalendarInterval")
+    if isinstance(cal, dict) and isinstance(cal.get("Hour"), int):
+        return cal["Hour"]
+    if isinstance(cal, list):  # multiple intervals — the earliest fire hour
+        hours = [c["Hour"] for c in cal if isinstance(c, dict) and isinstance(c.get("Hour"), int)]
+        if hours:
+            return min(hours)
+    return default
+
+
 def _next_run_at() -> str | None:
     try:
+        hour = _plist_hour()
         now = datetime.now()
-        next_run = now.replace(hour=3, minute=0, second=0, microsecond=0)
-        if now.hour >= 3:
+        next_run = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+        if now.hour >= hour:
             next_run = next_run + timedelta(days=1)
         return next_run.astimezone(timezone.utc).isoformat()
     except (ValueError, OSError) as exc:
@@ -144,21 +167,57 @@ class RunResult(BaseModel):
     error: str | None = None
 
 
+# Per-project scoping overrides the Hub sets for its own request handling. The
+# isolated nightly child must NOT inherit them, else its internal legs resolve
+# the Hub launch project's paths instead of the target project's (matches the
+# clean env the standalone launchd cron runs with).
+_SCOPE_ENV_VARS = (
+    "COS_STATE_DIR",
+    "COS_DB_PATH",
+    "COS_PROJECT_ROOT",
+    "COS_LOG_FILE",
+    "COS_AGENT_DIR",
+    "COS_PANEL_DIR",
+)
+
+
+def _clean_child_env() -> dict:
+    return {k: v for k, v in os.environ.items() if k not in _SCOPE_ENV_VARS}
+
+
 @router.post("/run/{slug}", response_model=RunResult)
 async def run_scheduled_now(slug: str) -> RunResult:
     """Manually trigger the nightly maintenance loop (decay + learn-extract + reindex) for one project."""
     proj = next((p for p in read_registry() if p.get("slug") == slug), None)
     if proj is None:
         return RunResult(slug=slug, ran=False, error=f"project {slug!r} not found in registry")
+    root = Path(proj.get("path", ""))
+    # Run in a SUBPROCESS, never in-process: run_project's reclaim + dep_reconcile
+    # legs mutate os.environ["COS_PROJECT_ROOT"] process-wide, which would corrupt
+    # a concurrent unscoped Hub request's project resolution. A child owns its own
+    # env, so the live worker is never touched (mirrors nightly's
+    # _run_graph_reindex_if_stale subprocess pattern).
+    nightly_py = _SCHEDULED_DIR / "nightly.py"
+    before_run_at = read_state(root).get("run_at")
     try:
-        from scheduled.nightly import run_project  # type: ignore
-
-        # run_project is blocking (graph reindex etc.) — offload off the event loop.
-        summary = await asyncio.to_thread(run_project, proj, dry_run=False)
-        return RunResult(slug=slug, ran=True, summary=summary)
-    except Exception as exc:  # fail-soft: the button surfaces the error, never 500s the hub
+        completed = await asyncio.to_thread(
+            subprocess.run,
+            [sys.executable, str(nightly_py), "--project", slug],
+            capture_output=True,
+            text=True,
+            timeout=900,
+            env=_clean_child_env(),
+        )
+    except (OSError, subprocess.SubprocessError) as exc:  # fail-soft: never 500 the hub
         logger.warning("manual scheduled run failed for %s: %s", slug, exc)
         return RunResult(slug=slug, ran=False, error=str(exc))
+    # run_project persists a fresh last_run.json; a changed run_at proves the
+    # child executed (an early skip / crash leaves it stale).
+    summary = read_state(root)
+    if summary.get("run_at") and summary.get("run_at") != before_run_at:
+        return RunResult(slug=slug, ran=True, summary=summary)
+    err = (completed.stderr or "").strip()[-300:] or f"nightly rc={completed.returncode}"
+    return RunResult(slug=slug, ran=False, error=err)
 
 
 def _root_for_slug(slug: str) -> Path | None:

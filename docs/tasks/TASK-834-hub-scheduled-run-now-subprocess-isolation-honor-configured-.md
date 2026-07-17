@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [hub, audit, backlog, project-scope, ready]
-status: icebox
+status: in_progress
 priority: P2
 appetite: 1d
 created: 2026-07-17
-started: null
+started: 2026-07-17
 completed: null
-agent_session: null
+agent_session: ses-claude-20260717-010539-6051
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-834: Hub scheduled run-now subprocess isolation + honor configured hour (audit backlog)
 
 **Outcome (one sentence):** Hub-invoked nightly run-now stops mutating process-global os.environ[COS_PROJECT_ROOT] (nightly _run_reclaim/_run_dep_reconcile) — race with concurrent scoped requests; run per-slug in a subprocess like _run_graph_reindex_if_stale. _next_run_at honors the installed plist hour (not hardcoded 3) and per-project hour semantics are resolved. logs.py POST /client write-side routes into the active project's sink, and path resolution delegates to logging_os.config.jsonl_log_path().
@@ -40,3 +39,17 @@ Actual: while run_project runs, nightly._run_reclaim / _run_dep_reconcile set os
 - **When** the scheduled + logs route tests run **Then** they pass.
 
 ## Work Log
+- 2026-07-17 [claude]: Edit config.py
+- 2026-07-17 [claude]: Edit sinks.py
+- 2026-07-17 [claude]: Edit logs.py
+- 2026-07-17 [claude]: Edit logs.py
+- 2026-07-17 [claude]: Edit logs.py
+- 2026-07-17 [claude]: Edit logs.py
+- 2026-07-17 [claude]: Edit logs.py
+- 2026-07-17 [claude]: Edit scheduled.py
+- 2026-07-17 [claude]: Edit scheduled.py
+- 2026-07-17 [claude]: Edit scheduled.py
+- 2026-07-17 [claude]: Edit test_logs_client_route.py
+- 2026-07-17 [claude]: Edit test_scheduled_route.py
+- 2026-07-17 [claude]: All 3 sub-fixes done + tested. (1) run_scheduled_now spawns an env-scrubbed nightly.py --project subprocess (strips…
+- 2026-07-17 [claude]: Edit commit-834.txt

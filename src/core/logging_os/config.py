@@ -70,15 +70,21 @@ def state_dir() -> Path:
     return (root / STATE_DIR_NAME) if root else Path(STATE_DIR_NAME)
 
 
-def text_log_path() -> Path:
+def text_log_path(root: Path | None = None) -> Path:
+    # An explicit project root is authoritative — the multi-project Hub resolves
+    # a specific project's sink and must not be overridden by the ambient
+    # COS_LOG_FILE (the launch project's). root=None keeps the env/cwd default.
+    if root is not None:
+        return root / STATE_DIR_NAME / LOG_BASENAME
     explicit = os.environ.get("COS_LOG_FILE")
     if explicit:
         return Path(explicit)
     return state_dir() / LOG_BASENAME
 
 
-def jsonl_log_path() -> Path:
-    return text_log_path().with_name(text_log_path().name + ".jsonl")
+def jsonl_log_path(root: Path | None = None) -> Path:
+    base = text_log_path(root)
+    return base.with_name(base.name + ".jsonl")
 
 
 def current_level() -> Level:

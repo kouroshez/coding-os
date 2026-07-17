@@ -83,6 +83,16 @@ def _write_jsonl_file(event: dict[str, Any]) -> None:
     _append_line(jsonl_log_path(), render("json", event))
 
 
+def append_jsonl_event(event: dict[str, Any], *, root: Path | None = None) -> None:
+    """Append one pre-built event to a specific project's jsonl sink.
+
+    The scoped-write counterpart to dispatch(): the multi-project Hub records a
+    browser beacon into the ACTIVE project's sink, not the process's ambient
+    one. Path resolution goes through jsonl_log_path(root) (the SSOT), and the
+    line matches render("json") so the log readers parse it identically."""
+    _append_line(jsonl_log_path(root), render("json", event))
+
+
 def _record_dropped() -> None:
     global _dropped_events
     _dropped_events += 1

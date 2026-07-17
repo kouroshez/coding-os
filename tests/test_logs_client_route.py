@@ -6,7 +6,6 @@ cos.log.jsonl sink as the server, so nothing in the UI fails silently.
 
 from __future__ import annotations
 
-import logging
 import sys
 from pathlib import Path
 
@@ -30,19 +29,10 @@ def client(tmp_path, monkeypatch):
         yield c
 
 
-def _patch_client_logger(monkeypatch):
-    """Spy on the module's client logger across either import path."""
-    calls: list = []
-    patched = False
-    for modname in ("web.routes.logs", "core.web.routes.logs"):
-        mod = sys.modules.get(modname)
-        if mod is not None:
-            monkeypatch.setattr(
-                mod._client_logger, "log", lambda *a, **k: calls.append(a), raising=True
-            )
-            patched = True
-    assert patched, "logs module not loaded"
-    return calls
+def _recent_msgs(client, level="debug") -> list[dict]:
+    r = client.get(f"/api/logs/recent?level={level}")
+    assert r.status_code == 200
+    return r.json()["data"]["events"]
 
 
 def test_client_log_requires_message(client):
@@ -61,25 +51,29 @@ def test_client_log_records_ok(client):
     assert body["meta"]["source"] == "client"
 
 
-def test_client_log_emits_into_logging_sink(client, monkeypatch):
-    """The beacon must actually reach the stdlib logger logging_os bridges —
-    never a silent drop. Level maps from the client payload."""
-    calls = _patch_client_logger(monkeypatch)
-    client.post("/api/logs/client", json={"message": "kaboom", "level": "warn"})
-    assert calls, "client logger was not called"
-    assert calls[0][0] == logging.WARNING
+def test_client_log_lands_in_the_readable_sink(client):
+    """The beacon must reach the SAME sink the GET readers serve (scoped write),
+    never a silent drop — client + server share one per-project timeline."""
+    client.post("/api/logs/client", json={"message": "kaboom-beacon", "level": "warn"})
+    events = _recent_msgs(client)
+    beacon = next((e for e in events if "kaboom-beacon" in str(e.get("msg", ""))), None)
+    assert beacon is not None, "client beacon did not reach the readable sink"
+    assert beacon["lvl"] == "WARN"
+    assert beacon["scope"] == "coding_os.web.client"
 
 
-def test_client_log_bounds_oversize_message(client, monkeypatch):
+def test_client_log_bounds_oversize_message(client):
     """An oversize beacon must be truncated, never stored unbounded."""
-    calls = _patch_client_logger(monkeypatch)
-    client.post("/api/logs/client", json={"message": "x" * 9000})
-    assert calls
-    # call args: (level, fmt, message, url, context) — message is the 3rd.
-    assert len(calls[0][2]) <= 2000
+    client.post("/api/logs/client", json={"message": "z" * 9000})
+    events = _recent_msgs(client)
+    beacon = next((e for e in events if str(e.get("scope")) == "coding_os.web.client"), None)
+    assert beacon is not None
+    # The bounded message is ≤2000 chars; the msg field adds only a short prefix.
+    assert len(str(beacon["msg"])) <= 2100
 
 
-def test_client_log_unknown_level_defaults_to_error(client, monkeypatch):
-    calls = _patch_client_logger(monkeypatch)
-    client.post("/api/logs/client", json={"message": "x", "level": "bogus"})
-    assert calls and calls[0][0] == logging.ERROR
+def test_client_log_unknown_level_defaults_to_error(client):
+    client.post("/api/logs/client", json={"message": "levelcheck", "level": "bogus"})
+    events = _recent_msgs(client)
+    beacon = next((e for e in events if "levelcheck" in str(e.get("msg", ""))), None)
+    assert beacon is not None and beacon["lvl"] == "ERROR"
