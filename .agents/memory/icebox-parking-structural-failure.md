@@ -20,7 +20,9 @@ Operator's standing complaint (2026-07-17): agents create tasks, leave them park
 
 **Governance contradiction (the real hole):** Rule 22 "Defer-by-Default / file a task" is permanent constitutional law; the only counter-norm is the decayable memory [[no-parking-actionable-findings]] whose boundary is self-admittedly "still undefined."
 
-**Recommended fix path (NOT yet implemented, no tasks created — dogfooding the anti-park discipline):** keystone = **QW-3: stamp `created_by_session` on every card at creation** (append-only migration vN+1) — unblocks a create-then-park detector hook (DC-3), a create-then-park warning (QW-2), and a backlog-health metric (DC-5). Highest-leverage but governance-shifting: **DC-1** an opt-in autonomous backlog-drain loop; **DC-2** promote the anti-park norm into a real `tasks`-module rule with an enforceable "fix-now vs file-a-card" boundary.
+**Progress:** QW-3-as-a-column was **rejected on evidence** — `cos_task_create` ALREADY writes a `task_status_history` row (`old_status=''`, `reason='created'`) carrying the creating session for EVERY status incl icebox (verified live, 4/4 parked cards recoverable), so a `created_by_session` column would duplicate an existing fact (P1 SSOT violation). Do NOT add that column. The value QW-3 was meant to unlock is **shipped** (TASK-847, commit 74c684ef): `warn-abandoned-task.sh` now flags icebox cards the session created and left un-ready, sourced from that history row; `ready`/`parked`/`keep` labels exempt. Documented in task-lifecycle.md Execution Rules.
+
+**Still open (bigger, governance-shifting — surface to operator, don't silently build):** **DC-1** an opt-in autonomous backlog-drain loop (tension with value-7 autonomous-but-reversible); **DC-2** promote the anti-park norm into a real `tasks`-module rule with an enforceable "fix-now vs file-a-card" boundary; **DC-5** a backlog-health metric (`cos_metric_trend` has none). Full report artifact below.
 
 **Full report artifact:** https://claude.ai/code/artifact/1e8cf6a1-5e81-44db-97c0-5f81f2289238
 
