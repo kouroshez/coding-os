@@ -5,13 +5,13 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [modularity, audit-2026-06, no-fork, correctness, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-18
 started: 2026-06-17
 completed: 2026-06-17
-agent_session: ses-claude-20260617-183518-6ce2
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
