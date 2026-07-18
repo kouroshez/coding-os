@@ -5,12 +5,12 @@ swimlane: "board_os"
 kind: feature
 epic: null
 labels: []
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-18
 started: 2026-07-18
-completed: null
+completed: 2026-07-17
 agent_session: ses-claude-20260717-131858-7098
 depends_on: []
 blocked_by: []
@@ -36,3 +36,4 @@ references: []
 - 2026-07-18 [claude]: Edit warn-abandoned-task.sh
 - 2026-07-18 [claude]: Edit test_warn_abandoned_task.py
 - 2026-07-18 [claude]: Reuse-first pivot (honors P1 SSOT over the report's literal QW-3): graph+read showed cos_task_create already writes a…
+- 2026-07-18 [claude]: committed 74c684ef · 11 files
