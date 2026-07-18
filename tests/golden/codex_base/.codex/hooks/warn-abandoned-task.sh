@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # warn-abandoned-task.sh — Stop hook.
 #
-# Warns once per session when a task this session moved to in_progress
-# or testing is still open at turn-end. Catches the recurring "agent
-# started a task but never moved it to complete" pattern that strands
-# cards on the board. Fail-open: never blocks the Stop, only nudges via
-# a Stop additionalContext block. Debounced per session-id.
+# Warns at turn-end about two abandonment shapes owned by THIS session:
+#   1. a task moved to in_progress/testing and left open (the classic
+#      "started but never completed" strand), and
+#   2. a card the session CREATED and left un-ready in icebox — a silent
+#      create-then-park, invisible to cos_task_pick/claim_next (attributed
+#      via the task_status_history 'created' row; ready/parked/keep exempt).
+# Fail-open: never blocks the Stop, only nudges via a Stop additionalContext
+# block. Debounced per (session-id, open-set) so it re-arms on state change.
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
@@ -38,14 +41,31 @@ STUCK="$(sqlite3 "$COS_DB_PATH" \
   "SELECT group_concat(task_id || ' (' || status || ')', ', ') FROM tasks
    WHERE status IN ('in_progress','testing') AND agent_session = '$SESSION_ID';" \
   2>/dev/null || true)"
-[ -n "$STUCK" ] || exit 0
 
-# Debounce keyed on (session-id, open-set), not session-id alone — so the nudge
-# re-arms on a state-change (in_progress→testing, or a close+open) instead of
-# going silent for the whole session after the first warning (the "85%-done
-# then stopped" gap). An unchanged open-set stays debounced (no alarm fatigue).
+# Create-then-park: icebox cards THIS session CREATED and left un-ready. The
+# creating session comes from the task_status_history 'created' row (old_status=''
+# sentinel written by cos_task_create), so a parked card whose tasks.agent_session
+# is NULL is still attributed to its author — the exact blind spot warn-abandoned
+# had on the parked lane. A 'ready' card is a deliberate pull-queue and a
+# 'parked'/'keep' card is deliberate backlog: both exempt (COALESCE so a card with
+# no labels_json still matches). Only silent create-then-drift is surfaced.
+PARKED="$(sqlite3 "$COS_DB_PATH" \
+  "SELECT group_concat(t.task_id, ', ') FROM tasks t
+   JOIN task_status_history h
+     ON h.task_id = t.task_id AND h.old_status = '' AND h.reason = 'created'
+   WHERE t.status = 'icebox' AND h.agent_session = '$SESSION_ID'
+     AND COALESCE(t.labels_json,'') NOT LIKE '%\"ready\"%'
+     AND COALESCE(t.labels_json,'') NOT LIKE '%\"parked\"%'
+     AND COALESCE(t.labels_json,'') NOT LIKE '%\"keep\"%';" \
+  2>/dev/null || true)"
+[ -n "$STUCK$PARKED" ] || exit 0
+
+# Debounce keyed on (session-id, both open-sets), not session-id alone — so the
+# nudge re-arms on any state-change (in_progress→testing, a close+open, a new
+# parked card) instead of going silent for the whole session after the first
+# warning (the "85%-done then stopped" gap). An unchanged set stays debounced.
 MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.abandoned-task-warned"  # panel-first: matches session-context panel-scope clear
-STUCK_SIG=$(printf '%s' "$STUCK" | cksum | cut -d' ' -f1)
+STUCK_SIG=$(printf '%s' "$STUCK|$PARKED" | cksum | cut -d' ' -f1)
 DEBOUNCE_KEY="${SESSION_ID}:${STUCK_SIG}"
 if [ -f "$MARKER" ] && grep -qF "$DEBOUNCE_KEY" "$MARKER" 2>/dev/null; then
   exit 0
@@ -53,7 +73,14 @@ fi
 
 echo "$DEBOUNCE_KEY" >> "$MARKER"
 cos_log_hook warn-abandoned-task warn || true
-MSG="[board] Task(s) still open for this session: ${STUCK}. Close each with \`cos task-done\` (or park via \`cos task-move --to blocked\`) — a task left in in_progress/testing is stranded on the board with no owner action."
+MSG=""
+if [ -n "$STUCK" ]; then
+  MSG="[board] Task(s) still open for this session: ${STUCK}. Close each with \`cos task-done\` (or park via \`cos task-move --to blocked\`) — a task left in in_progress/testing is stranded on the board with no owner action."
+fi
+if [ -n "$PARKED" ]; then
+  [ -n "$MSG" ] && MSG="${MSG}"$'\n'
+  MSG="${MSG}[board] Card(s) you created and left un-ready in icebox this session: ${PARKED}. An un-ready icebox card is invisible to \`cos_task_pick\`/\`cos_task_claim_next\` — nobody will pull it. Start it (\`cos task-start\`), queue it (\`cos task-ready\`), or add a \`parked\`/\`keep\` label if it is deliberate long-term backlog."
+fi
 printf '{"hookSpecificOutput":{"hookEventName":"Stop","additionalContext":%s}}\n' \
   "$(printf '%s' "$MSG" | jq -R -s '.')"
 

@@ -115,3 +115,50 @@ def test_rearms_on_state_change(tmp_path: Path) -> None:
     rearmed = _run(env)  # open-set signature changed → re-warn
     assert rearmed.stdout.strip() != b""
     assert "TASK-99" in json.loads(rearmed.stdout)["hookSpecificOutput"]["additionalContext"]
+
+
+def _run_created_icebox(tmp_path: Path, labels_json: str | None) -> subprocess.CompletedProcess[bytes]:
+    # One icebox card CREATED by ses-claude-test — attributed via the
+    # task_status_history 'created' row while tasks.agent_session is left NULL,
+    # the exact parked-lane blind spot the create-then-park clause closes.
+    db = tmp_path / "coding-os.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE tasks (task_id TEXT, status TEXT, agent_session TEXT, labels_json TEXT)")
+    conn.execute(
+        "CREATE TABLE task_status_history "
+        "(task_id TEXT, old_status TEXT, new_status TEXT, agent_session TEXT, reason TEXT, transitioned_at INTEGER)"
+    )
+    conn.execute("INSERT INTO tasks VALUES ('TASK-77', 'icebox', NULL, ?)", (labels_json,))
+    conn.execute(
+        "INSERT INTO task_status_history VALUES ('TASK-77', '', 'icebox', 'ses-claude-test', 'created', 1)"
+    )
+    conn.commit()
+    conn.close()
+    panel = tmp_path / "panels" / "wa-panel"
+    panel.mkdir(parents=True)
+    (panel / "session-id").write_text("ses-claude-test", encoding="utf-8")
+    return _run({"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"})
+
+
+def test_warns_on_created_then_parked_icebox(tmp_path: Path) -> None:
+    """A card the session created and left un-ready in icebox is surfaced even
+    though tasks.agent_session is NULL — attributed via the 'created' history row."""
+    result = _run_created_icebox(tmp_path, None)
+    assert result.returncode == 0
+    ctx = json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+    assert "TASK-77" in ctx
+    assert "un-ready" in ctx
+
+
+def test_ready_labeled_created_icebox_is_exempt(tmp_path: Path) -> None:
+    """A 'ready' icebox card is a deliberate pull-queue — not create-then-park."""
+    result = _run_created_icebox(tmp_path, '["ready"]')
+    assert result.returncode == 0
+    assert result.stdout.strip() == b""
+
+
+def test_parked_labeled_created_icebox_is_exempt(tmp_path: Path) -> None:
+    """A 'parked' label records deliberate long-term backlog — exempt from the nudge."""
+    result = _run_created_icebox(tmp_path, '["parked"]')
+    assert result.returncode == 0
+    assert result.stdout.strip() == b""
