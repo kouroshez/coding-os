@@ -5,13 +5,13 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: [modularity, rule-11, model-routing, hooks, audit-2026-06, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-16
 started: 2026-06-16
 completed: 2026-06-18
-agent_session: ses-claude-20260617-183518-6ce2
+agent_session: ses-system-auto-archive
 depends_on: [TASK-438]
 blocked_by: []
 references: []
