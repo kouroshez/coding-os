@@ -5,13 +5,13 @@ swimlane: "thinking_os"
 kind: refactor
 epic: audit-remediation-2026-06
 labels: [audit-remediation, cleanup, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-20
 started: 2026-06-19
 completed: 2026-06-19
-agent_session: ses-claude-20260619-211916-fd8f
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
