@@ -5,13 +5,13 @@ swimlane: docs
 kind: feature
 epic: teach-why-alignment
 labels: [teach-why, constitution, alignment, governance, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 2d
 created: 2026-06-21
 started: 2026-06-20
 completed: 2026-06-20
-agent_session: ses-claude-20260620-185936-c751
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

@@ -5,13 +5,13 @@ swimlane: core
 kind: chore
 epic: null
 labels: [cleanup, consumer-repo, hygiene, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-21
 started: 2026-06-20
 completed: 2026-06-20
-agent_session: ses-claude-20260620-185332-bf2c
+agent_session: ses-system-auto-archive
 depends_on: [TASK-490]
 blocked_by: []
 references: []
