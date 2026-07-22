@@ -1,19 +1,37 @@
 <!-- cos:generated:start — do not edit or re-import; source: coding-os DB -->
 ## Trusted lessons (auto-generated)
 
-- Recurring block (26 occurrences): test-governor → satisfy the blocked rule before retrying the action _(seen 114×)_
+- Recurring block (32 occurrences): test-governor → satisfy the blocked rule before retrying the action _(seen 116×)_
 - Recurring block (29 occurrences): branch-guard — worktree-add → satisfy the blocked rule before retrying the action _(seen 636×)_
-- Recurring block (4 occurrences): block-dangerous-commands — rm-rf-critical → satisfy the blocked rule before retrying the action _(seen 408×)_
-- Recurring block (4 occurrences): block-secrets — env-file → satisfy the blocked rule before retrying the action _(seen 156×)_
-- Recurring block (4 occurrences): block-uv-heredoc — uv-run-heredoc → satisfy the blocked rule before retrying the action _(seen 58×)_
-- Recurring block (7 occurrences): thinking_os-gate — gate-not-recorded → satisfy the blocked rule before retrying the action _(seen 61×)_
-- Recurring block (23 occurrences): enforce-skill — no-domain-skill → satisfy the blocked rule before retrying the action _(seen 104×)_
-- Recurring block (25 occurrences): enforce-commit-message — commit-msg-contract → satisfy the blocked rule before retrying the action _(seen 118×)_
-- Recurring backtrack root cause 'tool_failure' (33 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 6×)_
-- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (8 occurrences) _(seen 71×)_
-- Recurring error (3 occurrences): left a task open: TASK-N is still 'in_progress' at session end — close it (cos task-done TASK-N), park it (cos task-move TASK-N --to blocked), or `touch .leave-open` for deliberate work-in-progress. → fix the failing precondition before retrying _(seen 15×)_
-- Recurring error (5 occurrences): ### Error → fix the failing precondition before retrying _(seen 5×)_
-- Recurring block (3 occurrences): codex-pretool-dispatch → satisfy the blocked rule before retrying the action _(seen 3×)_
+- Recurring block (4 occurrences): block-dangerous-commands — rm-rf-critical → satisfy the blocked rule before retrying the action _(seen 410×)_
+- Recurring block (4 occurrences): block-secrets — env-file → satisfy the blocked rule before retrying the action _(seen 158×)_
+- Recurring block (4 occurrences): block-uv-heredoc — uv-run-heredoc → satisfy the blocked rule before retrying the action _(seen 60×)_
+- Recurring block (10 occurrences): thinking_os-gate — gate-not-recorded → satisfy the blocked rule before retrying the action _(seen 63×)_
+- Recurring block (23 occurrences): enforce-skill — no-domain-skill → satisfy the blocked rule before retrying the action _(seen 106×)_
+- Recurring block (26 occurrences): enforce-commit-message — commit-msg-contract → satisfy the blocked rule before retrying the action _(seen 120×)_
+- Recurring backtrack root cause 'tool_failure' (34 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 9×)_
+- Recurring block (27 occurrences): branch-guard — reset-head-rewrite → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (6 occurrences): branch-guard — checkout-branch-switch → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (12 occurrences): branch-guard — rebase-history-rewrite → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (23 occurrences): branch-guard — pr-shared-head-rewrite → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (28 occurrences): branch-guard — pr-protected-push → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (32 occurrences): branch-guard — pr-protected-ref → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (20 occurrences): branch-guard — protected-ref-rewrite → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (10 occurrences): branch-guard — commit-all-sweep → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (7 occurrences): branch-guard — branch-create-checkout → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (143 occurrences): block-secrets — no-verify → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (12 occurrences): block-dangerous-commands — force-push-main-refspec → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (12 occurrences): block-dangerous-commands — reset-hard → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (32 occurrences): block-dangerous-commands — git-clean-force → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (12 occurrences): enforce-skill — graph-explorer-required → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (37 occurrences): enforce-verify → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (8 occurrences) _(seen 74×)_
+- Recurring block (4 occurrences): branch-guard — history-rewrite → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (4 occurrences): branch-guard — switch-branch → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring block (4 occurrences): enforce-doc-anchor → satisfy the blocked rule before retrying the action _(seen 4×)_
+- Recurring error (3 occurrences): left a task open: TASK-N is still 'in_progress' at session end — close it (cos task-done TASK-N), park it (cos task-move TASK-N --to blocked), or `touch .leave-open` for deliberate work-in-progress. → fix the failing precondition before retrying _(seen 17×)_
+- Recurring error (5 occurrences): ### Error → fix the failing precondition before retrying _(seen 7×)_
+- Recurring block (3 occurrences): codex-pretool-dispatch → satisfy the blocked rule before retrying the action _(seen 5×)_
 <!-- cos:generated:end -->
 
 # Memory Index
