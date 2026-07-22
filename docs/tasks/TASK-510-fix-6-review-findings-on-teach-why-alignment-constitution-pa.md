@@ -5,13 +5,13 @@ swimlane: core
 kind: bug
 epic: teach-why-alignment
 labels: [teach-why, review-fix, hooks, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-21
 started: 2026-06-21
 completed: 2026-06-21
-agent_session: ses-claude-20260620-185936-c751
+agent_session: ses-system-auto-archive
 depends_on: [TASK-497]
 blocked_by: []
 references: []
