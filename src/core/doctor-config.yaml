@@ -20,6 +20,7 @@ placeholder_scan:
   skip_paths:
   - docs/governance/_templates
   - docs/_meta
+  - docs/tasks  # agent-authored prose may quote {{PROJECT_NAME}} as subject (e.g. TASK-656); never a rendered scaffold placeholder
 schema:
   expected_version: 44
   expected_tables:

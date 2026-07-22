@@ -2216,7 +2216,10 @@ def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
         total_hooks += 1
         hook_id = entry.get("id") or "?"
         script = entry.get("script") or f"{hook_id}.sh"
-        script_path = hooks_dir / script
+        # adapter_scope hooks live under src/adapters/<scope>/hooks/, not core —
+        # resolve there so a claude-only hook isn't falsely flagged missing.
+        scope = entry.get("adapter_scope")
+        script_path = (adapters_dir / str(scope) / "hooks" / script) if scope else (hooks_dir / script)
         if not script_path.exists():
             missing_scripts.append(f"{hook_id}: {script}")
             continue
