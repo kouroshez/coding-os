@@ -5,13 +5,13 @@ swimlane: infra
 kind: feature
 epic: multi-agent-pr-mode
 labels: [pr-mode, ci, dogfood, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-22
 started: 2026-06-23
 completed: 2026-06-23
-agent_session: ses-claude-20260622-134704-4de9
+agent_session: ses-system-auto-archive
 depends_on: [TASK-518]
 blocked_by: []
 references: []

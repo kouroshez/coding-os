@@ -5,13 +5,13 @@ swimlane: core
 kind: bug
 epic: multi-agent-pr-mode
 labels: [pr-mode, pr-mode-hardening, hooks, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-22
 started: 2026-06-22
 completed: 2026-06-23
-agent_session: ses-claude-20260622-134704-4de9
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

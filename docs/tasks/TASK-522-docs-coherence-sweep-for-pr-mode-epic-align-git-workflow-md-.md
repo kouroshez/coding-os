@@ -5,13 +5,13 @@ swimlane: core
 kind: docs
 epic: multi-agent-pr-mode
 labels: [pr-mode, docs-update, governance, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-23
 started: 2026-06-23
 completed: 2026-06-23
-agent_session: ses-claude-20260622-134704-4de9
+agent_session: ses-system-auto-archive
 depends_on: [TASK-519, TASK-520, TASK-521]
 blocked_by: []
 references: []
