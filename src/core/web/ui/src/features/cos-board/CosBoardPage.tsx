@@ -37,7 +37,10 @@ import type {
 } from './board-shared';
 import { TaskDetailDrawer } from './task-detail';
 import { AgentTaskModal, CreateTaskModal } from './board-modals';
-import { LiveStreamPanel, TweaksPanel, LegendPanel, ZoomControls } from './board-panels';
+import { LiveStreamPanel } from './LiveStreamPanel';
+import { TweaksPanel } from './TweaksPanel';
+import { LegendPanel } from './LegendPanel';
+import { ZoomControls } from './ZoomControls';
 import { SwimlaneLabel, TaskStickyCard } from './TaskStickyCard';
 import { TopBar } from './TopBar';
 
