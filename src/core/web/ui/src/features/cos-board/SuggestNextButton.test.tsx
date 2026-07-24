@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { apiGet } from '@/lib/api-client';
-import { SuggestNextButton } from './CosBoardPage';
+import { SuggestNextButton } from './TopBar';
 
 vi.mock('@/lib/api-client', async (importOriginal) => {
   const mod = await importOriginal<typeof import('@/lib/api-client')>();
