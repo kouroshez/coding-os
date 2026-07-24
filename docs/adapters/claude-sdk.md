@@ -145,7 +145,7 @@ ClaudeAgentOptions(
     effort="xhigh" if request.model.startswith(XHIGH_MODEL_PREFIXES) else None,
     skills=role_skills,                         # from agent frontmatter
     cwd=request.cwd,
-    env=_claude_auth_env(request.cwd),          # subscription vs api_key — §7.6
+    env=_claude_auth_env(request.cwd),          # subscription vs api_key — §7.7
 )
 ```
 
@@ -225,7 +225,30 @@ After successful dispatch, callers should NOT call `cos_supervise_record_output`
 manually — `cos_dispatch_formula_run` (in [src/core/thinking_os/tools/cognition.py](../../src/core/thinking_os/tools/cognition.py))
 persists the bundle and writes the `formula_dispatches` audit row.
 
-### 7.6 Auth mode — subscription OAuth vs API key (TASK-756)
+### 7.6 Budget gates — spent + projected
+
+Two USD ceilings gate every dispatch, both computed over `formula_dispatches.cost_usd`
+and both disabled (allow-everything) when their source is unset:
+
+| Gate | Scope | Cap source |
+|---|---|---|
+| `budget.check` | today, UTC | `COS_DAILY_BUDGET_USD`, else `hub-settings.json::budget_cap` |
+| `budget.chain_check` | one `task_marker` | `COS_CHAIN_BUDGET_USD` |
+
+Both compare **`projected = spent + additional_estimate_usd`** against the cap, not
+spend alone. A single check authorizes a single dispatch, so `cos_dispatch_formula_run`
+passes no estimate — spent-only is the correct semantic there. `cos_dispatch_parallel_run`
+authorizes N concurrent sub-agents from **one** check, so it must pass a forward estimate
+or the cap can be overrun by up to N× a dispatch before any cost row lands.
+
+`budget.estimate_dispatch_cost(db_path, count)` supplies it: the **median** of the recent
+cost-bearing dispatches × `count`. Median (not mean) keeps one pathological run from
+inflating the estimate into spurious blocks, and an empty history returns `0.0` — the
+gate then behaves exactly as it did before, honoring the module's fail-open contract.
+The estimate is a guard rail on *starting* work, never a refund: actual cost is still
+recorded per dispatch.
+
+### 7.7 Auth mode — subscription OAuth vs API key (TASK-756)
 
 `ClaudeAgentOptions.env` always carries a resolved `ANTHROPIC_API_KEY`
 override, computed by `_claude_auth_env(cwd)` from

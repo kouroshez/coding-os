@@ -1509,10 +1509,13 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
         if not formula_ids:
             return fail("validation", "formula_ids must be non-empty")
 
-        gate = _budget.check(db_path)
+        # One check authorizes all N concurrent spawns, so it must gate on the
+        # projected total — spent-only lets the fan-out overrun the cap.
+        estimate = _budget.estimate_dispatch_cost(db_path, len(formula_ids))
+        gate = _budget.check(db_path, additional_estimate_usd=estimate)
         if not gate.allowed:
             return fail("budget", gate.reason)
-        chain_gate = _budget.chain_check(db_path, task_marker)
+        chain_gate = _budget.chain_check(db_path, task_marker, additional_estimate_usd=estimate)
         if not chain_gate.allowed:
             return fail("budget", chain_gate.reason)
 

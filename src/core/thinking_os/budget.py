@@ -5,7 +5,7 @@ Computes today's accumulated cost from formula_dispatches.cost_usd
 (date(ts)=today UTC) and checks against the cap before allowing
 a new dispatch.
 
-Always fail-closed — when in doubt, return BudgetGate(allowed=True) so
+Always fail-open — when in doubt, return BudgetGate(allowed=True) so
 a misconfigured DB never blocks legitimate work. Caller decides whether
 to convert (allowed=False, reason) into a `fail()` envelope.
 """
@@ -142,6 +142,34 @@ def _connect_ro(db_path: str | Path) -> sqlite3.Connection | None:
     except sqlite3.Error as exc:
         logger.debug("cost analytics DB connect failed: %s", exc)
         return None
+
+
+ESTIMATE_WINDOW = 20
+
+
+def estimate_dispatch_cost(db_path: str | Path, count: int) -> float:
+    """Forward cost of `count` dispatches from the median recent dispatch; 0.0 without history."""
+    if count <= 0:
+        return 0.0
+    conn = _connect_ro(db_path)
+    if conn is None:
+        return 0.0
+    try:
+        rows = conn.execute(
+            "SELECT cost_usd FROM formula_dispatches "
+            "WHERE cost_usd IS NOT NULL AND cost_usd > 0 "
+            "ORDER BY id DESC LIMIT ?",
+            (ESTIMATE_WINDOW,),
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        logger.debug("dispatch cost estimate query failed (schema?): %s", exc)
+        return 0.0
+    finally:
+        conn.close()
+    costs = [float(r[0]) for r in rows if r[0] is not None]
+    if not costs:
+        return 0.0
+    return statistics.median(costs) * count
 
 
 def cost_anomaly(db_path: str | Path, *, z_threshold: float = 3.5) -> dict:
