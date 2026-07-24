@@ -5,7 +5,7 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [hub, frontend, audit, backlog, ready]
-status: in_progress
+status: blocked
 priority: P3
 appetite: 1d
 created: 2026-07-17
@@ -55,3 +55,4 @@ references: []
 - 2026-07-24 [claude]: commit f00ded827e — refactor(hub): extract TaskStickyCard/SwimlaneLabel + TopBar from CosBoardPage (TASK-836)
 - 2026-07-24 [claude]: commit 96c2625c40 — chore(hub): tighten UI lint budget 200->30 max-warnings (TASK-836)
 - 2026-07-24 [claude]: Autonomous execution 2026-07-24 (claude) — DONE + verified (tsc clean · 206 vitest green · 0 lint errors · vite build…
+- 2026-07-24 [claude]: commit a677d44ac5 — chore(board): TASK-836 progress log — decomposition + api-client + save-flow (partial)
