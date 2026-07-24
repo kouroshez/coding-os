@@ -4,14 +4,17 @@ import { render, screen } from '@testing-library/react';
 import SupportFooter from './SupportFooter';
 
 describe('SupportFooter (TASK-372)', () => {
-  it('renders repo, star, sponsor, coffee and crypto links in the footer landmark', () => {
+  it('renders only real, resolving links (repo, star, sponsor) in the footer landmark', () => {
     render(<SupportFooter />);
     expect(screen.getByRole('contentinfo')).toBeTruthy();
-    expect(screen.getByRole('link', { name: /^github$/i })).toBeTruthy();
+    const github = screen.getByRole('link', { name: /^github$/i });
+    expect(github.getAttribute('href')).toContain('kouroshez');
     expect(screen.getByRole('link', { name: /star/i })).toBeTruthy();
     expect(screen.getByRole('link', { name: /sponsor/i })).toBeTruthy();
-    expect(screen.getByRole('link', { name: /coffee/i })).toBeTruthy();
-    expect(screen.getByRole('link', { name: /crypto/i })).toBeTruthy();
+    // Payment placeholders (buy-me-a-coffee TODO handle, crypto) were dropped
+    // rather than shipped as 404s — assert they are gone (TASK-836).
+    expect(screen.queryByRole('link', { name: /coffee/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /crypto/i })).toBeNull();
   });
 
   it('opens external links safely (rel=noopener, target=_blank)', () => {
