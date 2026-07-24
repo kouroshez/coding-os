@@ -52,4 +52,19 @@ describe('api-client', () => {
     const url = fetchMock.mock.calls[0][0] as string;
     expect(url).toContain('/api/p/myproj/board/list');
   });
+
+  it('does NOT rewrite global slug-in-path routes (/api/scheduled/) under /p/<slug>/', async () => {
+    // /api/scheduled/run/<slug> carries its own slug and is not under the
+    // /api/p/ proxy; double-scoping it would 404 the nightly run-now.
+    window.history.pushState({}, '', '/p/myproj/memory');
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ slug: 'other', ran: true }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await apiGet('/api/scheduled/project/other');
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('/api/scheduled/project/other');
+    expect(url).not.toContain('/api/p/myproj/scheduled');
+  });
 });

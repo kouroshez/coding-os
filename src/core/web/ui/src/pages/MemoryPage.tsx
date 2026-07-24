@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { csrfHeader } from '@/lib/api-client';
+import { ApiError, apiGet, apiPost } from '@/lib/api-client';
 
 // Field names mirror src/core/web/routes/patterns.py::_COLUMNS + the computed
 // `tier` field (api-contract-discipline — the producer is the source of truth).
@@ -26,9 +26,21 @@ interface PatternRow {
   created_at: string;
 }
 
-interface PatternsEnvelope {
-  ok: boolean;
-  data: { patterns: PatternRow[]; count: number; total_count: number };
+interface PatternsData {
+  patterns: PatternRow[];
+  count: number;
+  total_count: number;
+}
+
+// /api/scheduled/run/{slug} returns the nightly RunResult (routes/scheduled.py).
+interface RunResp {
+  ran?: boolean;
+  error?: string;
+  summary?: {
+    tasks?: {
+      learn_extract?: { status?: string; extracted?: unknown[]; total_outcomes_analyzed?: number };
+    };
+  };
 }
 
 // Field names mirror src/core/web/routes/patterns.py::learning_roi exactly.
@@ -47,11 +59,6 @@ interface RoiData {
   validations_30d: number;
   helpful_rate_30d: number | null;
 }
-interface RoiEnvelope {
-  ok: boolean;
-  data: RoiData;
-}
-
 function roiColor(trend: string): string {
   if (trend === 'improving') return 'var(--cos-ok)';
   if (trend === 'worsening') return 'var(--cos-err)';
@@ -88,11 +95,6 @@ function roiSentence(roi: RoiData | null, trend: string, enough: boolean): strin
   if (trend === 'worsening')
     return 'The agent hit more blocked actions and errors recently — worth a look at what changed.';
   return 'The agent’s blocked actions and errors are holding steady across recent sessions.';
-}
-
-function api(slug: string | undefined, path: string): string {
-  const base = slug ? `/api/p/${slug}` : '/api';
-  return `${base}${path}`;
 }
 
 // Confidence tier → colour. Meaning, not decoration. (See learning-extraction.md.)
@@ -139,7 +141,7 @@ function evidenceSamples(p: PatternRow): string[] {
 }
 
 // L1+L2+L3 progressive-disclosure card with 👍/👎 feedback (closes the loop).
-function LessonCard({ p, slug }: { p: PatternRow; slug: string | undefined }) {
+function LessonCard({ p }: { p: PatternRow }) {
   const [expanded, setExpanded] = useState(false);
   const [voted, setVoted] = useState<null | 'up' | 'down'>(null);
   const [busy, setBusy] = useState(false);
@@ -151,12 +153,7 @@ function LessonCard({ p, slug }: { p: PatternRow; slug: string | undefined }) {
     if (busy || voted) return;
     setBusy(true);
     try {
-      const r = await fetch(api(slug, `/patterns/${p.id}/validate`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...csrfHeader() },
-        body: JSON.stringify({ was_helpful: helpful }),
-      });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      await apiPost(`/api/patterns/${p.id}/validate`, { was_helpful: helpful });
       setVoted(helpful ? 'up' : 'down');
     } catch {
       /* fail-open — feedback is best-effort */
@@ -331,19 +328,15 @@ export default function MemoryPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(api(slug, '/patterns'))
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json() as Promise<PatternsEnvelope>;
-      })
-      .then((env) => {
+    apiGet<PatternsData>('/api/patterns')
+      .then(([data]) => {
         if (cancelled) return;
-        setPatterns(env.data?.patterns ?? []);
+        setPatterns(data.patterns ?? []);
         setError('');
       })
       .catch((e: unknown) => {
         if (cancelled) return;
-        setError(String(e));
+        setError(e instanceof ApiError ? e.message : String(e));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -357,10 +350,11 @@ export default function MemoryPage() {
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
-    fetch(`/api/scheduled/project/${encodeURIComponent(slug)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!cancelled && d) setLastRun((d.run_at as string) ?? null);
+    apiGet<{ slug: string; run_at?: string | null }>(
+      `/api/scheduled/project/${encodeURIComponent(slug)}`,
+    )
+      .then(([d]) => {
+        if (!cancelled && d) setLastRun(d.run_at ?? null);
       })
       .catch(() => {});
     return () => {
@@ -371,10 +365,9 @@ export default function MemoryPage() {
   // Learning effectiveness: friction-per-session trend (does it go down over time?).
   useEffect(() => {
     let cancelled = false;
-    fetch(api(slug, '/patterns/roi'))
-      .then((r) => (r.ok ? (r.json() as Promise<RoiEnvelope>) : null))
-      .then((env) => {
-        if (!cancelled && env?.data) setRoi(env.data);
+    apiGet<RoiData>('/api/patterns/roi')
+      .then(([d]) => {
+        if (!cancelled && d) setRoi(d);
       })
       .catch(() => {});
     return () => {
@@ -389,11 +382,7 @@ export default function MemoryPage() {
     setRunning(true);
     setRunMsg('');
     try {
-      const r = await fetch(`/api/scheduled/run/${encodeURIComponent(slug)}`, {
-        method: 'POST',
-        headers: { ...csrfHeader() },
-      });
-      const d = await r.json();
+      const [d] = await apiPost<RunResp>(`/api/scheduled/run/${encodeURIComponent(slug)}`);
       const lx = d?.summary?.tasks?.learn_extract;
       if (d?.ran && lx?.status === 'ok') {
         const n = Array.isArray(lx.extracted) ? lx.extracted.length : 0;
@@ -579,7 +568,7 @@ export default function MemoryPage() {
               </span>
             </h2>
             {promoted.map((p) => (
-              <LessonCard key={p.id} p={p} slug={slug} />
+              <LessonCard key={p.id} p={p} />
             ))}
           </section>
         )}
@@ -601,7 +590,7 @@ export default function MemoryPage() {
                       </span>
                     </h3>
                     {group.items.map((p) => (
-                      <LessonCard key={p.id} p={p} slug={slug} />
+                      <LessonCard key={p.id} p={p} />
                     ))}
                   </div>
                 ),

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { resolveApiUrl } from '@/lib/api-client';
 import { useApiGet } from '@/lib/hooks';
 import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
 import { BarList, Gauge, Sparkline, StatTile } from '@/lib/charts';
@@ -411,7 +412,10 @@ function HealthTab() {
     let timer: ReturnType<typeof setTimeout> | null = null;
     const poll = async () => {
       try {
-        const r = await fetch('/metrics', { cache: 'no-cache' });
+        // /metrics is the process-wide Prometheus endpoint (global by design —
+        // one uvicorn serves every project); resolveApiUrl keeps the dev base-URL
+        // honored without project-scoping it. It is text/plain, so stays a raw fetch.
+        const r = await fetch(resolveApiUrl('/metrics'), { cache: 'no-cache' });
         const text = await r.text();
         const samples = parsePrometheus(text);
         const total = samples

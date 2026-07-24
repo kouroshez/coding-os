@@ -40,6 +40,10 @@ const rewriteForProjectScope = (path: string): string => {
   if (!path.startsWith('/api/')) return path;
   if (path.startsWith('/api/p/')) return path;
   if (path.startsWith('/api/hub/')) return path;
+  // Scheduled routes are global and carry the project slug in the path
+  // (/api/scheduled/run/<slug>); rewriting them would double-scope to
+  // /api/p/<cur>/scheduled/... and 404. Keep them global like /api/hub/.
+  if (path.startsWith('/api/scheduled/')) return path;
   const match = PROJECT_SLUG_RE.exec(window.location.pathname);
   if (!match) return path;
   const slug = match[1];
