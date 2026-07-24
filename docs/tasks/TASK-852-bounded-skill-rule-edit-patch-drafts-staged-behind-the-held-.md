@@ -4,7 +4,7 @@ title: "Bounded skill/rule edit-patch drafts staged behind the held-out gate + g
 swimlane: core
 kind: feature
 epic: null
-labels: [learning-loop, skill-evolution]
+labels: [learning-loop, skill-evolution, keep]
 status: icebox
 priority: P2
 appetite: 1d

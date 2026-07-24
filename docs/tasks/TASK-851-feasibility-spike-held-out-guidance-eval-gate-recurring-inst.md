@@ -4,7 +4,7 @@ title: "Feasibility spike: held-out guidance-eval gate (recurring-instance volum
 swimlane: core
 kind: spike
 epic: null
-labels: [learning-loop, eval-gate, feasibility]
+labels: [learning-loop, eval-gate, feasibility, keep]
 status: icebox
 priority: P2
 appetite: 1d

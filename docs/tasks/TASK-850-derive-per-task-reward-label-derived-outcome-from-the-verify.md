@@ -4,7 +4,7 @@ title: "Derive per-task reward label (derived_outcome) from the verify ledger, n
 swimlane: core
 kind: feature
 epic: null
-labels: [learning-loop, reward-signal]
+labels: [learning-loop, reward-signal, keep]
 status: icebox
 priority: P2
 appetite: 1d
