@@ -5,7 +5,7 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [hub, frontend, audit, backlog, ready]
-status: blocked
+status: in_progress
 priority: P3
 appetite: 1d
 created: 2026-07-17
@@ -56,3 +56,9 @@ references: []
 - 2026-07-24 [claude]: commit 96c2625c40 — chore(hub): tighten UI lint budget 200->30 max-warnings (TASK-836)
 - 2026-07-24 [claude]: Autonomous execution 2026-07-24 (claude) — DONE + verified (tsc clean · 206 vitest green · 0 lint errors · vite build…
 - 2026-07-24 [claude]: commit a677d44ac5 — chore(board): TASK-836 progress log — decomposition + api-client + save-flow (partial)
+- 2026-07-24 [claude]: commit 8be4f2ecfe — refactor(hub): split board-panels into 4 panel modules all <400 (TASK-836)
+- 2026-07-24 [claude]: Edit CosBoardPage.tsx
+- 2026-07-24 [claude]: commit 6f6956c5a3 — refactor(hub): split board-modals into 4 modules all <400 (TASK-836)
+- 2026-07-24 [claude]: commit 4be988d280 — refactor(hub): split task-detail into drawer + history + edit-form (TASK-836)
+- 2026-07-24 [claude]: commit 77da2d381d — refactor(hub): extract git-tab-data (types/presets/tips) from GitTab (TASK-836)
+- 2026-07-24 [claude]: Continued to completion of the sub-splits 2026-07-24 (claude) — DONE + verified (tsc clean, 206 vitest, 0 lint-err,…
