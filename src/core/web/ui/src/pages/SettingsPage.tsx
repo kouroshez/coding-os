@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
+import type { Ref } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
@@ -193,7 +194,14 @@ interface ScheduledConfigResp {
 
 // Per-project form. Keyed by slug at the call site so switching projects
 // remounts it with a fresh draft hydrated from the server config.
-function ScheduledConfigForm({ slug, initial }: { slug: string; initial: ScheduledConfig }) {
+export interface ScheduledFormHandle {
+  saveIfDirty: () => Promise<void>;
+}
+
+const ScheduledConfigForm = forwardRef(function ScheduledConfigForm(
+  { slug, initial }: { slug: string; initial: ScheduledConfig },
+  ref: Ref<ScheduledFormHandle>,
+) {
   const qc = useQueryClient();
   const [cfg, setCfg] = useState<ScheduledConfig>(initial);
   const [saving, setSaving] = useState(false);
@@ -216,6 +224,18 @@ function ScheduledConfigForm({ slug, initial }: { slug: string; initial: Schedul
       setSaving(false);
     }
   }, [slug, cfg, qc]);
+
+  // Lets the page-level "Save settings" flush pending scheduled edits too, so
+  // there is a single save flow — the dedicated button stays for explicit saves.
+  useImperativeHandle(
+    ref,
+    () => ({
+      saveIfDirty: async () => {
+        if (JSON.stringify(cfg) !== JSON.stringify(initial)) await save();
+      },
+    }),
+    [cfg, initial, save],
+  );
 
   return (
     <div className="mt-3">
@@ -315,9 +335,9 @@ function ScheduledConfigForm({ slug, initial }: { slug: string; initial: Schedul
       </div>
     </div>
   );
-}
+});
 
-function ScheduledMaintenanceSection() {
+function ScheduledMaintenanceSection({ formRef }: { formRef: Ref<ScheduledFormHandle> }) {
   const qc = useQueryClient();
   const { data: status } = useApiGet<ScheduledStatus>(['scheduled-status'], '/api/scheduled/status');
   const projects = status?.projects ?? [];
@@ -374,7 +394,7 @@ function ScheduledMaintenanceSection() {
             </select>
           </FieldRow>
           {cfgResp?.config ? (
-            <ScheduledConfigForm key={activeSlug} slug={activeSlug} initial={cfgResp.config} />
+            <ScheduledConfigForm ref={formRef} key={activeSlug} slug={activeSlug} initial={cfgResp.config} />
           ) : (
             <p className="mt-3 text-xs text-[var(--cos-muted)]">loading config…</p>
           )}
@@ -560,6 +580,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saveNote, setSaveNote] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const scheduledFormRef = useRef<ScheduledFormHandle>(null);
 
   // Local draft state — mirrors server; hydrated from API response
   const [budget, setBudget] = useState<BudgetCap | null>(null);
@@ -605,6 +626,8 @@ export default function SettingsPage() {
       setAutoSpawn(result.settings.auto_spawn);
       setClaudeAuth(result.settings.claude_auth);
       setClaudeAuthApiKeyDraft(null);
+      // Single save flow: also flush pending Scheduled-Maintenance edits.
+      await scheduledFormRef.current?.saveIfDirty();
       setSaveNote('Settings saved.');
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'save failed');
@@ -785,7 +808,7 @@ export default function SettingsPage() {
         />
 
         {/* Scheduled Maintenance (per-project cron + responsive learning) */}
-        <ScheduledMaintenanceSection />
+        <ScheduledMaintenanceSection formRef={scheduledFormRef} />
 
         <div className="flex items-center gap-3 pt-2">
           <button
