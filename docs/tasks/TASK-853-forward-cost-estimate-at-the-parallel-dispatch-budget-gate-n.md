@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [budget, dispatch, safety, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-24
 started: 2026-07-24
-completed: null
+completed: 2026-07-24
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -71,3 +71,5 @@ Set `COS_DAILY_BUDGET_USD` just above today's spend, then call `cos_dispatch_par
 - 2026-07-24 [claude]: Edit test_dispatch_safety.py
 - 2026-07-24 [claude]: Edit smoke_parallel_gate.py
 - 2026-07-24 [claude]: Implemented + verified. budget.estimate_dispatch_cost (median of recent cost-bearing dispatches x count, window 20)…
+- 2026-07-24 [claude]: committed 15b0d122 · 5 files
+- 2026-07-24 [claude]: Status transitioned to complete via cos task-done.
