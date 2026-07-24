@@ -5,13 +5,13 @@ swimlane: core
 kind: chore
 epic: null
 labels: [hub, frontend, a11y, audit, backlog, ready]
-status: blocked
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-17
 started: 2026-07-17
-completed: null
-agent_session: ses-claude-20260717-010539-6051
+completed: 2026-07-23
+agent_session: ses-claude-20260723-213518-14b3
 depends_on: []
 blocked_by: []
 references: []
@@ -28,3 +28,17 @@ references: []
 - 2026-07-17 [claude]: Edit commit-835.txt
 - 2026-07-17 [claude]: commit 8dfe962da3 — fix(hub): keyboard-operable switch toggles + WAI-ARIA tablist nav (TASK-835)
 - 2026-07-17 [claude]: DONE this pass (committed 8dfe962d, verified: tsc clean + 197 vitest + 3 new tablist tests): (a) SettingsPage Toggle…
+- 2026-07-24 [claude]: Resumed: plan = implement remaining a11y items (ConfigPage/Observability tablist roles+roving arrows,…
+- 2026-07-24 [claude]: Edit use-roving-tablist.ts
+- 2026-07-24 [claude]: Edit view-mode-tabs.tsx
+- 2026-07-24 [claude]: Edit view-mode-tabs.tsx
+- 2026-07-24 [claude]: Edit view-mode-tabs.tsx
+- 2026-07-24 [claude]: Edit ConfigPage.tsx
+- 2026-07-24 [claude]: Edit ConfigPage.tsx
+- 2026-07-24 [claude]: Edit ObservabilityPage.tsx
+- 2026-07-24 [claude]: Edit ObservabilityPage.tsx
+- 2026-07-24 [claude]: Edit ObservabilityPage.tsx
+- 2026-07-24 [claude]: Edit commit-835b.txt
+- 2026-07-24 [claude]: commit 6212163329 — fix(hub): a11y sweep — WAI-ARIA tablists/listbox + keyboard-operable rows/cards (TASK-835)
+- 2026-07-24 [claude]: COMPLETE (committed 62121633; verified tsc clean + 205 vitest pass + eslint 0-err + vite build OK): remaining…
+- 2026-07-24 [claude]: Status transitioned to complete via cos task-done.
