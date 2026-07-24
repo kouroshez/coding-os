@@ -5,13 +5,13 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [tech-debt, comments, dogfood, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
 completed: 2026-06-24
-agent_session: ses-claude-20260624-002336-1f4e
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

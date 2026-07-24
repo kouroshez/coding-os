@@ -5,13 +5,13 @@ swimlane: infra
 kind: bug
 epic: pr-mode-p0-hardening
 labels: [pr-mode, data-loss, reaper, critical, ready]
-status: complete
+status: archive
 priority: P0
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
 completed: 2026-06-24
-agent_session: ses-claude-20260623-225054-17eb
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

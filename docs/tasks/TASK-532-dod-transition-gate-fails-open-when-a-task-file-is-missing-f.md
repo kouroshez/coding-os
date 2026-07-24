@@ -5,13 +5,13 @@ swimlane: "board_os"
 kind: bug
 epic: pr-mode-hardening
 labels: [board, dod-gate, ssot, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-23
 started: 2026-06-23
 completed: 2026-06-23
-agent_session: ses-claude-20260623-175054-847a
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
