@@ -5,7 +5,7 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [hub, frontend, audit, backlog, ready]
-status: in_progress
+status: blocked
 priority: P3
 appetite: 1d
 created: 2026-07-17
@@ -62,3 +62,4 @@ references: []
 - 2026-07-24 [claude]: commit 4be988d280 — refactor(hub): split task-detail into drawer + history + edit-form (TASK-836)
 - 2026-07-24 [claude]: commit 77da2d381d — refactor(hub): extract git-tab-data (types/presets/tips) from GitTab (TASK-836)
 - 2026-07-24 [claude]: Continued to completion of the sub-splits 2026-07-24 (claude) — DONE + verified (tsc clean, 206 vitest, 0 lint-err,…
+- 2026-07-24 [claude]: commit 36ed46d113 — chore(board): TASK-836 sub-splits complete — 14/17 board modules <400, 3 cohesive over
