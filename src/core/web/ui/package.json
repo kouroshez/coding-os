@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:a11y": "playwright test",
-    "lint": "eslint src --max-warnings=200",
+    "lint": "eslint src --max-warnings=30",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
