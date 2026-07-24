@@ -5,18 +5,17 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [hub, frontend, audit, backlog, ready]
-status: icebox
+status: in_progress
 priority: P3
 appetite: 1d
 created: 2026-07-17
-started: null
+started: 2026-07-24
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-836: Hub UI structural: decompose God-files + adopt typed api-client everywhere (audit backlog)
 
 **Outcome (one sentence):** Decompose the God-files (CosBoardPage ~4,246L, ConfigPage ~1,841L, ChatView ~807L) into feature folders; route MemoryPage/DoctorPage and other raw-fetch pages through the shared api-client (kill hand-rolled per-page interfaces + Doctor's unscoped fetch('/metrics')); derive response types from the generated api-types.ts (single source of truth) + add a drift gate; fix SettingsPage's two-save-flow (bottom Save must persist Scheduled edits); add missing loading/error states (Dashboard/Roles/Onboarding); fix SupportFooter placeholder 404 links; tighten lint --max-warnings.
@@ -35,3 +34,24 @@ references: []
 
 ## Work Log
 - 2026-07-24 [claude]: Pre-work audit-premise verification (2026-07-24, claude) — read producers before touching code: (1) DoctorPage…
+- 2026-07-24 [claude]: Edit api-client.ts
+- 2026-07-24 [claude]: Edit MemoryPage.tsx
+- 2026-07-24 [claude]: Edit MemoryPage.tsx
+- 2026-07-24 [claude]: Edit MemoryPage.tsx
+- 2026-07-24 [claude]: Edit MemoryPage.tsx
+- 2026-07-24 [claude]: Edit MemoryPage.tsx
+- 2026-07-24 [claude]: Edit MemoryPage.tsx
+- 2026-07-24 [claude]: Edit MemoryPage.tsx
+- 2026-07-24 [claude]: Edit MemoryPage.tsx
+- 2026-07-24 [claude]: Edit MemoryPage.tsx
+- 2026-07-24 [claude]: Edit MemoryPage.tsx
+- 2026-07-24 [claude]: commit 489baf25e9 — refactor(hub): route MemoryPage/DoctorPage through api-client (TASK-836)
+- 2026-07-24 [claude]: Edit support-links.ts
+- 2026-07-24 [claude]: commit 4b1c46d2c7 — feat(hub): SettingsPage single-save flow — bottom Save flushes scheduled edits (TASK-836)
+- 2026-07-24 [claude]: commit f631c232ec — refactor(hub): decompose ChatView (806L) into chat-turns + chat-turn-views (TASK-836)
+- 2026-07-24 [claude]: commit e704ee232c — refactor(hub): extract board-shared (types/constants/helpers/context) from CosBoardPage (TASK-836)
+- 2026-07-24 [claude]: commit e04b50d91f — refactor(hub): extract TaskDetailDrawer + history into task-detail from CosBoardPage (TASK-836)
+- 2026-07-24 [claude]: commit 379bb3f7fb — refactor(hub): extract board modals/badges/panels from CosBoardPage (TASK-836)
+- 2026-07-24 [claude]: commit f00ded827e — refactor(hub): extract TaskStickyCard/SwimlaneLabel + TopBar from CosBoardPage (TASK-836)
+- 2026-07-24 [claude]: commit 96c2625c40 — chore(hub): tighten UI lint budget 200->30 max-warnings (TASK-836)
+- 2026-07-24 [claude]: Autonomous execution 2026-07-24 (claude) — DONE + verified (tsc clean · 206 vitest green · 0 lint errors · vite build…
