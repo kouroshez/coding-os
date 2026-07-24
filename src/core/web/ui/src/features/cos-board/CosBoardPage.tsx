@@ -36,7 +36,8 @@ import type {
   TaskCounts,
 } from './board-shared';
 import { TaskDetailDrawer } from './task-detail';
-import { AgentTaskModal, CreateTaskModal } from './board-modals';
+import { AgentTaskModal } from './AgentTaskModal';
+import { CreateTaskModal } from './CreateTaskModal';
 import { LiveStreamPanel } from './LiveStreamPanel';
 import { TweaksPanel } from './TweaksPanel';
 import { LegendPanel } from './LegendPanel';
