@@ -140,7 +140,15 @@ export default function SessionsPage() {
                 <tr
                   key={s.session_id}
                   className="cursor-pointer hover:bg-[var(--cos-grain)]"
+                  tabIndex={0}
+                  aria-label={`Open trace for session ${s.session_id}`}
                   onClick={() => openTrace(s.session_id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openTrace(s.session_id);
+                    }
+                  }}
                 >
                   <td className="border-t border-[var(--cos-border)] py-1 pr-2">
                     <span
@@ -193,7 +201,15 @@ export default function SessionsPage() {
                 <tr
                   key={`${s.agent}:${s.session_id}`}
                   className="cursor-pointer hover:bg-[var(--cos-grain)]"
+                  tabIndex={0}
+                  aria-label={`Open trace for session ${s.session_id}`}
                   onClick={() => openTrace(s.session_id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openTrace(s.session_id);
+                    }
+                  }}
                 >
                   <td className="border-t border-[var(--cos-border)] py-1 pr-2 font-mono">{s.display_name}</td>
                   <td className="border-t border-[var(--cos-border)] py-1 pr-2 font-mono">{s.agent}</td>

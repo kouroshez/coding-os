@@ -7,6 +7,7 @@ import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import { apiDelete, apiPatch, apiPost } from '@/lib/api-client';
 import { Banner, SubNav, subNavTabClass } from '@/layout/HubPrimitives';
 import { useScopedLink } from '@/lib/use-scoped-link';
+import { useRovingTabList } from '@/lib/use-roving-tablist';
 
 /**
  * Per-project Configuration surface. Shows what tech stacks, skills, MCP
@@ -39,17 +40,25 @@ export default function ConfigPage() {
     else sp.set('tab', t);
     setSearch(sp, { replace: true });
   };
+  const { tabRefs, onKeyDown } = useRovingTabList(TABS.length, (i) => setTab(TABS[i]));
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <SubNav tablist ariaLabel="Configuration sections">
-        {TABS.map((t) => (
+        {TABS.map((t, i) => (
           <button
             key={t}
+            ref={(el) => {
+              tabRefs.current[i] = el;
+            }}
             type="button"
             role="tab"
+            id={`cfgtab-${t}`}
             aria-selected={tab === t}
+            aria-controls="cfg-tabpanel"
+            tabIndex={tab === t ? 0 : -1}
             onClick={() => setTab(t)}
+            onKeyDown={(e) => onKeyDown(e, i)}
             className={`${subNavTabClass(tab === t)} cursor-pointer`}
           >
             {TAB_LABEL[t]}
@@ -57,7 +66,13 @@ export default function ConfigPage() {
         ))}
       </SubNav>
       <div className="min-h-0 flex-1 overflow-auto cos-scroll">
-        <div className="mx-auto w-full max-w-5xl px-6 py-6">
+        <div
+          role="tabpanel"
+          id="cfg-tabpanel"
+          aria-labelledby={`cfgtab-${tab}`}
+          tabIndex={0}
+          className="mx-auto w-full max-w-5xl px-6 py-6"
+        >
           {tab === 'stacks' && <StacksTab />}
           {tab === 'skills' && <SkillsTab />}
           {tab === 'mcp' && <McpTab />}

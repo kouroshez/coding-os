@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
 import { kindColor } from '@/lib/node-colors';
@@ -176,6 +176,9 @@ export default function UnifiedSearch() {
     navigate(`${slugPrefix}/workspace/board?task=${encodeURIComponent(taskId)}`);
   };
 
+  const recentOpenNow = recentOpen && recent.length > 0;
+  const recentListId = useId();
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <div className="border-b border-[var(--cos-border)] bg-[var(--cos-panel)] p-4">
@@ -184,6 +187,10 @@ export default function UnifiedSearch() {
             <input
               ref={inputRef}
               type="search"
+              role="combobox"
+              aria-expanded={recentOpenNow}
+              aria-controls={recentListId}
+              aria-autocomplete="list"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onFocus={() => setRecentOpen(recent.length > 0)}
@@ -192,16 +199,19 @@ export default function UnifiedSearch() {
               aria-label="Unified search input"
               className="w-full rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-3 py-2 text-sm text-[var(--cos-text)] focus:border-[var(--cos-accent)] focus:outline-none"
             />
-            {recentOpen && recent.length > 0 && (
+            {recentOpenNow && (
               <ul
+                id={recentListId}
                 role="listbox"
                 aria-label="Recent queries"
                 className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 overflow-hidden rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] shadow-lg"
               >
                 {recent.map((r) => (
-                  <li key={r}>
+                  <li key={r} role="presentation">
                     <button
                       type="button"
+                      role="option"
+                      aria-selected={false}
                       onMouseDown={(e) => {
                         e.preventDefault();
                         setQ(r);

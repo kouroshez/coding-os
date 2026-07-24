@@ -486,6 +486,7 @@ export default function OnboardingWizard({
                   value={presetQuery}
                   onChange={(e) => setPresetQuery(e.target.value)}
                   placeholder="Filter presets…"
+                  aria-label="Filter presets"
                   className={INPUT_CLASS}
                 />
                 <ul className="grid max-h-[320px] gap-2 overflow-y-auto cos-scroll pr-1 sm:grid-cols-2">

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import HookStream from '@/features/observability/HookStream';
 import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
 import { useApiGet } from '@/lib/hooks';
+import { useRovingTabList } from '@/lib/use-roving-tablist';
 
 type Tab = 'stream' | 'registry' | 'timeline' | 'standup';
 
@@ -72,6 +73,10 @@ const TABS: { id: Tab; label: string }[] = [
 
 export default function ObservabilityPage() {
   const [tab, setTab] = useState<Tab>('stream');
+  const idBase = useId();
+  const { tabRefs, onKeyDown } = useRovingTabList(TABS.length, (i) => setTab(TABS[i].id));
+  const tabId = (id: Tab) => `${idBase}-tab-${id}`;
+  const panelId = `${idBase}-panel`;
   return (
     <PageShell>
       <PageHeader
@@ -79,16 +84,25 @@ export default function ObservabilityPage() {
         title="Observability"
         subtitle="Live hook stream, hook registry, audit timeline, and 7-day stand-up rollup."
       />
-      <nav
+      <div
+        role="tablist"
         className="mb-5 flex flex-wrap gap-2 rounded-full border border-[var(--cos-border)] bg-[var(--cos-panel)]/70 p-1 backdrop-blur"
         aria-label="Observability tabs"
       >
-        {TABS.map((t) => (
+        {TABS.map((t, i) => (
           <button
             key={t.id}
+            ref={(el) => {
+              tabRefs.current[i] = el;
+            }}
             type="button"
+            role="tab"
+            id={tabId(t.id)}
+            aria-selected={tab === t.id}
+            aria-controls={panelId}
+            tabIndex={tab === t.id ? 0 : -1}
             onClick={() => setTab(t.id)}
-            aria-pressed={tab === t.id}
+            onKeyDown={(e) => onKeyDown(e, i)}
             className={[
               'rounded-full px-4 py-1.5 text-xs font-medium transition-all',
               tab === t.id
@@ -99,8 +113,14 @@ export default function ObservabilityPage() {
             {t.label}
           </button>
         ))}
-      </nav>
-      <div className="min-h-[60vh] rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/40 overflow-hidden">
+      </div>
+      <div
+        role="tabpanel"
+        id={panelId}
+        aria-labelledby={tabId(tab)}
+        tabIndex={0}
+        className="min-h-[60vh] rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/40 overflow-hidden"
+      >
         {tab === 'stream' && <HookStream />}
         {tab === 'registry' && <HookRegistry />}
         {tab === 'timeline' && <Timeline />}
@@ -152,14 +172,16 @@ function HookRegistry() {
 
 function Timeline() {
   const [sid, setSid] = useState('');
+  const sidInputId = useId();
   const params: Record<string, unknown> = { limit: 200 };
   if (sid.trim()) params.session_id = sid.trim();
   const q = useApiGet<TimelinePayload>(['observability-timeline', sid], '/api/observability/timeline', params);
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex shrink-0 items-center gap-2 border-b border-[var(--cos-border)] bg-[var(--cos-panel)] px-3 py-2">
-        <label className="text-[10px] text-[var(--cos-muted)]">session</label>
+        <label htmlFor={sidInputId} className="text-[10px] text-[var(--cos-muted)]">session</label>
         <input
+          id={sidInputId}
           type="search"
           value={sid}
           onChange={(e) => setSid(e.target.value)}

@@ -188,6 +188,7 @@ export default function HookStream() {
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
             placeholder="filter by hook / session / task"
+            aria-label="Filter hook stream by hook, session, or task"
             className="flex-1 min-w-[160px] rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1 text-[11px]"
           />
         </div>

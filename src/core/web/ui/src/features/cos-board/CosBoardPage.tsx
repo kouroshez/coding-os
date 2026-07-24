@@ -879,16 +879,25 @@ export default function CosBoardPage() {
             const isCollapsed = collapsed.has(lane.id);
             const palette = lanePalette(lane);
             if (isCollapsed) {
+              const expandLane = () =>
+                setCollapsed((prev) => {
+                  const n = new Set(prev);
+                  n.delete(lane.id);
+                  return n;
+                });
               return (
                 <div
                   key={lane.id}
-                  onClick={() =>
-                    setCollapsed((prev) => {
-                      const n = new Set(prev);
-                      n.delete(lane.id);
-                      return n;
-                    })
-                  }
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Expand ${lane.label} lane`}
+                  onClick={expandLane}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      expandLane();
+                    }
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -1610,9 +1619,18 @@ function TaskStickyCard({
   return (
     <div
       draggable
+      role="button"
+      tabIndex={0}
+      aria-label={`Open task ${task.id}: ${task.title}`}
       onDragStart={(e) => onDragStart(e, task)}
       onDragEnd={onDragEnd}
       onClick={() => onOpen(task)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen(task);
+        }
+      }}
       className="sticky-card"
       style={{
         position: 'relative',
@@ -2601,6 +2619,7 @@ function ZoomControls({
           step={0.05}
           value={zoom}
           onChange={(e) => setZoom(parseFloat(e.target.value))}
+          aria-label="Board zoom level"
           style={{ width: 90, margin: '0 10px', accentColor: 'var(--accent)' }}
         />
       </div>

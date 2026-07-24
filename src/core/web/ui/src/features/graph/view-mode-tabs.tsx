@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent } from 'react';
+import { useRovingTabList } from '@/lib/use-roving-tablist';
 import { useGraphStore, type ViewMode } from '@/store/graph-store';
 
 const TABS: ReadonlyArray<{ value: ViewMode; label: string; hint: string }> = [
@@ -36,22 +36,7 @@ const TABS: ReadonlyArray<{ value: ViewMode; label: string; hint: string }> = [
 export default function ViewModeTabs() {
   const viewMode = useGraphStore((s) => s.viewMode);
   const setViewMode = useGraphStore((s) => s.setViewMode);
-  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
-
-  // WAI-ARIA tabs keyboard model: Arrow/Home/End move focus + selection across
-  // the tablist (roving tabindex means only the active tab is in the Tab order).
-  const onTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    const last = TABS.length - 1;
-    let next = index;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = index === last ? 0 : index + 1;
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = index === 0 ? last : index - 1;
-    else if (e.key === 'Home') next = 0;
-    else if (e.key === 'End') next = last;
-    else return;
-    e.preventDefault();
-    setViewMode(TABS[next].value);
-    tabRefs.current[next]?.focus();
-  };
+  const { tabRefs, onKeyDown } = useRovingTabList(TABS.length, (i) => setViewMode(TABS[i].value));
 
   return (
     <div
@@ -73,7 +58,7 @@ export default function ViewModeTabs() {
             tabIndex={active ? 0 : -1}
             title={t.hint}
             onClick={() => setViewMode(t.value)}
-            onKeyDown={(e) => onTabKeyDown(e, i)}
+            onKeyDown={(e) => onKeyDown(e, i)}
             className={[
               'rounded px-2 py-1 transition-colors',
               active
