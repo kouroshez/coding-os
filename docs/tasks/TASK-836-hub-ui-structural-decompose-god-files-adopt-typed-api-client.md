@@ -34,3 +34,4 @@ references: []
 - **When** tsc --noEmit and vitest run **Then** they pass.
 
 ## Work Log
+- 2026-07-24 [claude]: Pre-work audit-premise verification (2026-07-24, claude) — read producers before touching code: (1) DoctorPage…
