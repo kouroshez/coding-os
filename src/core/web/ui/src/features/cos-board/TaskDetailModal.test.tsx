@@ -10,7 +10,7 @@ vi.mock('@/lib/hooks', () => ({
   invalidateApiQueries: vi.fn(),
 }));
 
-import { TaskDetailDrawer } from './CosBoardPage';
+import { TaskDetailDrawer } from './task-detail';
 import type { BoardListCard } from './types';
 
 const mockTask = {
