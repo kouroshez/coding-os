@@ -34,10 +34,6 @@ export interface GitState {
   remote_url: string;
 }
 
-// META_REPO_SLUG is declared at the top of the file — coding-os ships trunk by
-// default (ADR-0013); the Git tab stays fully editable but shows one caution on
-// this slug (enabling pr-mode would flip the mother repo off trunk).
-
 // One-click quick starts. A preset only fills the form (setForm) — the user
 // reviews and Saves; the global default stays OFF. `recommended` flags the
 // multi-agent happy path with an accent badge.

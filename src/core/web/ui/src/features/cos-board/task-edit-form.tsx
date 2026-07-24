@@ -10,9 +10,6 @@ export interface TaskEditFormState {
   body: string;
 }
 
-// Exported for the modal-hardening a11y/z-index regression test
-// (TaskDetailModal.test.tsx, TASK-260). Internal render site is unchanged.
-
 export function TaskEditForm({
   form,
   setForm,
