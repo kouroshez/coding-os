@@ -1067,6 +1067,55 @@ class TestBlockProtectedFilesGovernanceEscape:
         result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
         assert result.returncode == 2
 
+    def test_blocks_core_skills_source_with_unrelated_task(self, tmp_path: Path) -> None:
+        """The src/core/skills SOURCE (not just its rendered .claude copy) is
+        protected DNA: it propagates to every consumer via live symlinks, so a
+        skill-body edit under an unrelated task must block."""
+        env = self._make_task_state(tmp_path, "feature-search")
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "/repo/src/core/skills/clean-code/SKILL.md",
+                    "old_string": "x",
+                    "new_string": "y",
+                },
+            }
+        )
+        result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
+        assert result.returncode == 2
+
+    def test_allows_core_skills_source_with_governance_task(self, tmp_path: Path) -> None:
+        env = self._make_task_state(tmp_path, "docs-update refine-skill")
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "/repo/src/core/skills/clean-code/SKILL.md",
+                    "old_string": "x",
+                    "new_string": "y",
+                },
+            }
+        )
+        result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
+        assert result.returncode == 0
+
+    def test_blocks_core_rules_source_with_unrelated_task(self, tmp_path: Path) -> None:
+        """The src/core/rules SOURCE mirrors the skills case."""
+        env = self._make_task_state(tmp_path, "feature-cart")
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "/repo/src/core/rules/anti-overengineering.md",
+                    "old_string": "x",
+                    "new_string": "y",
+                },
+            }
+        )
+        result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
+        assert result.returncode == 2
+
 
 # ---------------------------------------------------------------------------
 # Regression: hook scripts must reference the current thinking_os/ module

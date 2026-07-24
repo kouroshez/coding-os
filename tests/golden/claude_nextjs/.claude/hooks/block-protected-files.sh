@@ -90,10 +90,14 @@ for _g in "${_glob_parts[@]}"; do
   fi
 done
 
+# Protect the src/core/ skill+rule SOURCE too: it propagates to every consumer
+# via live symlinks, so it needs the same guard as its rendered .claude/ copies.
 if [[ "$matched_adapter_path" -eq 1 ]] || \
    [[ "$FILE_PATH" == *".coding-os/"* ]] || \
    [[ "$FILE_PATH" == *"/CLAUDE.md" ]] || \
    [[ "$FILE_PATH" == *"/AGENTS.md" ]] || \
+   [[ "$FILE_PATH" == *"src/core/skills/"* ]] || \
+   [[ "$FILE_PATH" == *"src/core/rules/"* ]] || \
    [[ "$FILE_PATH" == *"infrastructure/scripts/"* ]]; then
   # Escape hatch: if the active task explicitly names governance work,
   # allow the edit. This prevents genuine docs/governance tasks from
@@ -118,7 +122,7 @@ if [[ "$matched_adapter_path" -eq 1 ]] || \
         ;;
     esac
   fi
-  echo "BLOCKED: Governance/workflow file detected. Do not edit agent config dirs, CLAUDE.md, AGENTS.md, or infrastructure/scripts/ as a side-effect of another task. Create a dedicated task for governance changes, e.g. write-state.sh ${COS_PANEL_DIR:-$AGENT_DIR}/.task-current 'docs-update-...'" >&2
+  echo "BLOCKED: Governance/workflow file detected. Do not edit agent config dirs, src/core/skills/ or src/core/rules/ sources, CLAUDE.md, AGENTS.md, or infrastructure/scripts/ as a side-effect of another task. Create a dedicated task whose title includes governance or docs-update, e.g. write-state.sh ${COS_PANEL_DIR:-$AGENT_DIR}/.task-current 'docs-update-...'" >&2
   exit 2
 fi
 
