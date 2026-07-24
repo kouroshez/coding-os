@@ -19,7 +19,7 @@ Every fact in the project lives in exactly **one** of these four layers. Putting
 
 ## When to write to agent memory (and when NOT to)
 
-Use `cos_observation_record` / `cos_learn_extract` for: **breakthroughs** (non-obvious insight that speeds a future session), **failure modes** (bug → root cause → fix, especially recurring), **decisions** (trade-off + reasoning when the alternative was non-obvious), **cross-session context** (a project fact not obvious from the code, e.g. "perf budget is set by the SLA, not preference").
+Record a **reasoned insight** — a **breakthrough** (non-obvious insight that speeds a future session), a **failure mode** (bug → root cause → fix, especially recurring), a **decision** (trade-off + reasoning when the alternative was non-obvious), or **cross-session context** (a project fact not obvious from the code, e.g. "perf budget is set by the SLA, not preference") — with **`cos_learn_narrative`**: it files a searchable insight doc AND mints a belief. There is **no** freeform `record(title, body)` tool. `cos_observation_record` only force-captures a *file edit* (edit-derived, no content you supply) when the automatic PostToolUse hook didn't fire; `cos_learn_extract` is a corpus scan over task outcomes, not a per-insight record.
 
 **Do NOT save** (it pollutes ranking + wastes tokens): anything already in code (`cos_graph_*`/`Read`), docs (`cos_doc_search`), `git log`/`git blame`, current-session task state (`cos_task_*`/`.task-current`), or "I just did X" recaps (that's the work log).
 
@@ -29,14 +29,14 @@ In the **Orient** phase (after Classify, before Plan): `cos_search(query, min_co
 
 ## Memory hygiene rules
 
-1. **Confidence + impact score per observation.** Default 0.5; raise to 0.8+ only after a second confirming session (inflated confidence pollutes ranking).
+1. **Confidence is system-computed, not hand-set.** Learned-pattern confidence moves by LTP/LTD only when you call `cos_learn_validate` — a second confirming session reinforces it toward Trusted; there is no tool that writes a confidence number. Validate patterns; don't assert scores (inflated confidence pollutes ranking, and by design you can't).
 2. **Decay is automatic** — old low-confidence patterns deprioritize; don't manually delete unless wrong-and-actively-misleading.
 3. **`min_confidence=0.3`** for high-trust patterns only; **`since_days=90`** when the question implies "recent".
 4. **Tag `domain` + `swimlane`** when known — narrows future retrieval.
 
 ## Cross-session reasoning, conflicts, audit, privacy
 
-- **Cross-session is the killer feature** — record in session 1, `cos_search` finds it in session 4. If similar problems aren't getting faster, the write step is being skipped (audit: `cos_metric_trend(metric="time_to_solution", since_days=30)`).
+- **Cross-session is the killer feature** — record in session 1, `cos_search` finds it in session 4. If similar problems aren't getting faster, the write step is being skipped (audit: `cos_metric_trend(metric="time_to_solution", window_days=30)`).
 - **Code wins over memory.** Memory is frozen at write time; code evolves. If recall and `Read` disagree, the memory is stale — update or delete it, trust the code. `cos_search` returns each record's timestamp; older than the file's mtime → re-verify.
 - **Git history ≠ operational memory.** Who-did-what-when lives in git (immutable, no decay); `cos_observation_record` is what an agent learned (decay + confidence). A permission *change* → a commit; a *pattern* about reviewing permissions → memory.
 - **Privacy:** never record PII or secrets (memory is long-lived). Sensitive decisions (e.g. incident root cause) → record metadata + link the postmortem doc, don't inline.
