@@ -3,17 +3,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import { apiPatch } from '@/lib/api-client';
 import { useScopedLink } from '@/lib/use-scoped-link';
-import { Chip, FieldLabel, InfoTip, META_REPO_SLUG, Pill, StateRow, TabIntro } from './shared';
+import { Chip, FieldLabel, InfoTip, META_REPO_SLUG, StateRow, TabIntro } from './shared';
 import {
   AUTONOMY_OPTIONS,
   FIELD_TIPS,
   INTEGRATION_BRANCH_CHIPS,
-  PROTECTED_BRANCH_CHIPS,
-  QUICK_START_PRESETS,
   inputClass,
   isBranchPattern,
 } from './git-tab-data';
 import type { AutonomyLevel, GitSettings, GitState } from './git-tab-data';
+import { GitCapabilityStrip, GitQuickStart, ProtectedBranchesField } from './git-tab-fields';
 
 export function GitTab() {
   const qc = useQueryClient();
@@ -29,8 +28,6 @@ export function GitTab() {
   );
   const loaded = data?.settings?.git_settings;
   const [form, setForm] = useState<GitSettings | null>(null);
-  // Custom-branch add inputs for the no-branch-list fallback (controlled).
-  const [customProtected, setCustomProtected] = useState('');
   // Probe whenever the Git tab is open (NOT gated on `enabled`) so the capability
   // pills + branch list are visible BEFORE the user commits to enabling — a user
   // must not configure blind then discover at submit the repo can't do pr-mode (M8).
@@ -113,21 +110,6 @@ export function GitTab() {
           .filter((b) => b && !isBranchPattern(b) && !branches.includes(b)),
       ]
     : [];
-  const toggleProtected = (branch: string, on: boolean) =>
-    setForm({
-      ...form,
-      protected_branches: on
-        ? [...form.protected_branches, branch]
-        : form.protected_branches.filter((x) => x !== branch),
-    });
-  const isProtected = (branch: string) => form.protected_branches.includes(branch);
-  const toggleProtectedChip = (branch: string) => toggleProtected(branch, !isProtected(branch));
-  const clearProtected = () => setForm({ ...form, protected_branches: [] });
-  const addCustomProtected = () => {
-    const value = customProtected.trim();
-    if (value && !isProtected(value)) toggleProtected(value, true);
-    setCustomProtected('');
-  };
   // On the meta-repo a preset must not flip `enabled` on — pr-mode is hard-blocked
   // there (the mother stays trunk); the preset's branch/autonomy choices still apply.
   const applyPreset = (apply: GitSettings) =>
@@ -162,77 +144,9 @@ export function GitTab() {
         </div>
       )}
 
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="text-[11px] text-[var(--cos-faint)]">capability:</span>
-        {stateLoading && <Pill tone="muted">checking…</Pill>}
-        {!stateLoading && stateError && !state && (
-          <Pill tone="muted">unavailable — git/gh probe failed</Pill>
-        )}
-        {state && (
-          <>
-            <Pill tone={state.remote ? 'ok' : 'muted'}>remote {state.remote ? '✓' : '—'}</Pill>
-            <Pill tone={state.gh ? 'ok' : 'muted'}>gh {state.gh ? '✓' : '—'}</Pill>
-            <Pill tone={state.required_check ? 'ok' : 'muted'}>required CI {state.required_check ? '✓' : '—'}</Pill>
-            <Pill tone={state.pr_ok ? 'ok' : 'muted'}>
-              {state.pr_ok ? 'pr-ready' : 'PR publish unavailable'}
-            </Pill>
-          </>
-        )}
-      </div>
+      <GitCapabilityStrip state={state} loading={stateLoading} error={stateError} />
 
-      {state && (state.current_branch || state.remote_url) && (
-        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[var(--cos-faint)]">
-          {state.current_branch && (
-            <span>
-              current: <span className="font-mono text-[var(--cos-muted)]">{state.current_branch}</span>
-            </span>
-          )}
-          {state.remote_url && (
-            <span>
-              remote: <span className="font-mono text-[var(--cos-muted)]">{state.remote_url}</span>
-            </span>
-          )}
-          <span>{state.branches.length} branches</span>
-        </div>
-      )}
-
-      <div className="mb-4">
-        <span className="text-xs font-medium text-[var(--cos-muted)]">Quick start</span>
-        <p className="mb-2 text-[11px] text-[var(--cos-faint)]">
-          One click fills the form below — review it, then Save. A preset never changes the global
-          default (which stays Off).
-        </p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {QUICK_START_PRESETS.map((preset) => {
-            const active = isPresetActive(preset.apply);
-            return (
-              <button
-                key={preset.id}
-                type="button"
-                aria-pressed={active}
-                onClick={() => applyPreset(preset.apply)}
-                className={`rounded-lg border p-3 text-left transition-colors focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none ${
-                  active
-                    ? 'border-[var(--cos-accent)] bg-[var(--cos-accent)]/10 hover:bg-[var(--cos-accent)]/15'
-                    : 'border-[var(--cos-border)] hover:border-[var(--cos-accent)]'
-                }`}
-              >
-                <span className="flex items-center gap-1.5">
-                  <span className="text-sm font-medium text-[var(--cos-text)]">{preset.label}</span>
-                  {preset.recommended && (
-                    <span className="rounded-full bg-[var(--cos-accent)]/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--cos-accent)]">
-                      ★ Recommended
-                    </span>
-                  )}
-                </span>
-                <span className="mt-1 block text-[11px] leading-relaxed text-[var(--cos-muted)]">
-                  {preset.blurb}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <GitQuickStart isActive={isPresetActive} onApply={applyPreset} />
 
       <div className="space-y-4 rounded-xl border border-[var(--cos-border)] p-4">
         <label className="flex items-center gap-3">
@@ -306,98 +220,12 @@ export function GitTab() {
           </span>
         </label>
 
-        <div className="block">
-          <span className="flex items-center justify-between">
-            <FieldLabel label="Protected branches" tip={FIELD_TIPS.protected_branches} />
-            <button
-              type="button"
-              onClick={clearProtected}
-              disabled={form.protected_branches.length === 0}
-              className="rounded border border-[var(--cos-border)] px-2 py-0.5 text-[10px] text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none disabled:opacity-40"
-            >
-              None
-            </button>
-          </span>
-          {hasBranchList ? (
-            <div className="mt-1 max-h-40 space-y-1 overflow-auto rounded-md border border-[var(--cos-border)] p-2">
-              {branches.map((b) => (
-                <label key={b} className="flex items-center gap-2 text-sm text-[var(--cos-text)]">
-                  <input
-                    type="checkbox"
-                    checked={form.protected_branches.includes(b)}
-                    onChange={(e) => toggleProtected(b, e.target.checked)}
-                    className="h-3.5 w-3.5 accent-[var(--cos-accent)] focus-visible:ring-2"
-                  />
-                  <span className="font-mono text-[12px]">{b}</span>
-                </label>
-              ))}
-              {form.protected_branches
-                .filter((b) => !branches.includes(b))
-                .map((b) => (
-                  <label key={b} className="flex items-center gap-2 text-sm text-[var(--cos-faint)]">
-                    <input
-                      type="checkbox"
-                      checked
-                      onChange={() => toggleProtected(b, false)}
-                      className="h-3.5 w-3.5 accent-[var(--cos-accent)] focus-visible:ring-2"
-                    />
-                    <span className="font-mono text-[12px]">
-                      {b} {isBranchPattern(b) ? '(pattern)' : '(not in repo)'}
-                    </span>
-                  </label>
-                ))}
-            </div>
-          ) : (
-            // Fallback when no branch list — common toggle chips + custom add.
-            <span className="mt-1 flex flex-wrap gap-1.5">
-              {[...PROTECTED_BRANCH_CHIPS, ...form.protected_branches.filter((b) => !PROTECTED_BRANCH_CHIPS.includes(b))].map(
-                (b) => (
-                  <Chip
-                    key={b}
-                    active={isProtected(b)}
-                    ariaLabel={`${isProtected(b) ? 'Unprotect' : 'Protect'} ${b}`}
-                    onClick={() => toggleProtectedChip(b)}
-                  >
-                    {b}
-                  </Chip>
-                ),
-              )}
-            </span>
-          )}
-          <span className="mt-2 flex gap-1.5">
-            <input
-              value={customProtected}
-              onChange={(e) => setCustomProtected(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addCustomProtected();
-                }
-              }}
-              placeholder="add a branch…"
-              aria-label="Add protected branch"
-              className="flex-1 rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)]/40 px-2.5 py-1 text-xs text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={addCustomProtected}
-              disabled={!customProtected.trim()}
-              className="rounded-md border border-[var(--cos-border)] px-2.5 py-1 text-xs text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)] focus:outline-none disabled:opacity-40"
-            >
-              Add
-            </button>
-          </span>
-          <span className="mt-1 block text-[11px] text-[var(--cos-faint)]">
-            {form.protected_branches.length === 0
-              ? 'None — no protected branches.'
-              : `Human-only: ${form.protected_branches.join(', ')}`}
-          </span>
-          <span className="mt-1 block text-[11px] text-[var(--cos-faint)]">
-            Exact names and patterns are enforced; <span className="font-mono">release/*</span> covers{' '}
-            <span className="font-mono">release/v1</span>, not{' '}
-            <span className="font-mono">release-candidate</span>.
-          </span>
-        </div>
+        <ProtectedBranchesField
+          selected={form.protected_branches}
+          branches={branches}
+          hasBranchList={hasBranchList}
+          onChange={(next) => setForm({ ...form, protected_branches: next })}
+        />
 
         <label className="block">
           <FieldLabel

@@ -113,16 +113,17 @@ export function useBoardData(tweaks: BoardTweaks) {
     return [...base, ...extras.filter((c) => !seen.has(c.id))];
   }, [list, extra]);
 
-  const swimlanes: SwimlaneDTO[] = cfg?.swimlanes ?? [];
+  // Memoized so the `?? []` fallback doesn't mint a new array every render and
+  // invalidate the cellMap memo below on the board's hot path.
+  const swimlanes = useMemo<SwimlaneDTO[]>(() => cfg?.swimlanes ?? [], [cfg?.swimlanes]);
   // Filter archive out of the visible column list unless the user opts in via
   // the header toggle — archive is a soft-terminal cold store and most
   // sessions don't need to see it. Backend still returns archive cards in
   // `cards`, so the only concession when hidden is that those cards can't be
   // reached from the main grid (drawer deep-link still works).
-  const allColumns: ColumnDTO[] = cfg?.columns ?? [];
-  const columns: ColumnDTO[] = useMemo(
-    () => allColumns.filter((c) => c.id !== 'archive' || tweaks.showArchive),
-    [allColumns, tweaks.showArchive],
+  const columns = useMemo<ColumnDTO[]>(
+    () => (cfg?.columns ?? []).filter((c) => c.id !== 'archive' || tweaks.showArchive),
+    [cfg?.columns, tweaks.showArchive],
   );
 
   const filtered = useMemo<BoardListCard[]>(

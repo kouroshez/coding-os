@@ -4,10 +4,11 @@ import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import { apiPatch, apiPost } from '@/lib/api-client';
 import { useFocusTrap } from '@/lib/use-focus-trap';
 import { renderTaskMarkdown, splitFrontmatter } from './renderTaskMarkdown';
-import { kindStyle } from './kindColors';
 import type { BoardListCard, SwimlaneDTO } from './types';
-import { Pill, TaskChatLink, TaskHistoryPanel } from './task-history';
+import { TaskHistoryPanel } from './task-history';
 import { TaskEditForm, type TaskEditFormState } from './task-edit-form';
+import { TaskDetailHeader, resolveTaskMeta, type TaskDetailRow } from './task-detail-header';
+import { TaskDetailFooter } from './task-detail-footer';
 
 interface TaskDetailPayload {
   task_id: string;
@@ -17,16 +18,7 @@ interface TaskDetailPayload {
   size: number;
   mtime: number;
   truncated: boolean;
-  row: {
-    title: string;
-    status: string;
-    swimlane: string;
-    kind: string;
-    priority: string;
-    appetite: string;
-    epic: string | null;
-    labels: string[];
-  };
+  row: TaskDetailRow;
 }
 
 export function TaskDetailDrawer({
@@ -60,26 +52,8 @@ export function TaskDetailDrawer({
   if (!task) return null;
   const titleId = `task-detail-title-${task.id}`;
 
-  const meta = data?.row;
-  const kindRaw = meta?.kind ?? task.kind;
-  const kind = kindStyle(kindRaw);
-  const status = (meta?.status ?? task.status).toUpperCase();
-  const swimlane = meta?.swimlane ?? task.swimlane;
-  const priority = meta?.priority ?? task.priority;
-  const appetite = meta?.appetite ?? task.appetite ?? '1d';
-  const epic = meta?.epic ?? task.epic ?? null;
-  const labels = meta?.labels ?? task.labels ?? [];
-  const title = meta?.title ?? task.title;
+  const meta = resolveTaskMeta(task, data?.row);
   const filePath = data?.file_path || `docs/tasks/${task.id}-...md`;
-
-  // Priority colour — mirrors task_detail.jsx prototype palette.
-  const priorityColor: Record<string, string> = {
-    P0: '#dc2626',
-    P1: '#ea580c',
-    P2: '#ca8a04',
-    P3: '#64748b',
-  };
-  const priColor = priorityColor[priority] ?? 'var(--ink)';
 
   // Strip YAML frontmatter + leading H1 (drawer header already shows title).
   let body = '';
@@ -95,14 +69,21 @@ export function TaskDetailDrawer({
     body = editBody.replace(/\n##\s+Work Log[\s\S]*?(?=\n##\s|$)/i, '\n');
   }
 
-  const isReady = labels.includes('ready');
+  const isReady = meta.labels.includes('ready');
   const refresh = () => {
     void invalidateApiQueries(qc, '/api/board/list');
     void invalidateApiQueries(qc, `/api/board/task/${task.id}`);
     void invalidateApiQueries(qc, `/api/board/task/${task.id}/history`);
   };
   const enterEdit = () => {
-    setForm({ title, priority, swimlane, appetite, labels: labels.join(', '), body: editBody });
+    setForm({
+      title: meta.title,
+      priority: meta.priority,
+      swimlane: meta.swimlane,
+      appetite: meta.appetite,
+      labels: meta.labels.join(', '),
+      body: editBody,
+    });
     setSaveErr(null);
     setEditing(true);
   };
@@ -181,142 +162,16 @@ export function TaskDetailDrawer({
           animation: 'td-fade-in 180ms ease',
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '14px 22px 14px',
-            borderBottom: '1px solid var(--col-border)',
-            background: 'linear-gradient(180deg, var(--col-bg) 0, var(--board-grain) 100%)',
-            flex: '0 0 auto',
-          }}
-        >
-          {/* file path + actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 11,
-                color: 'var(--ink-faint)',
-                letterSpacing: '.04em',
-                flex: 1,
-                minWidth: 0,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-              title={filePath}
-            >
-              <span style={{ color: 'var(--ink-soft)' }}>📄</span>
-              {filePath}
-              {data?.truncated && (
-                <span
-                  style={{
-                    padding: '1px 5px',
-                    fontSize: 9,
-                    fontWeight: 700,
-                    background: 'var(--cos-warn)',
-                    color: 'white',
-                    borderRadius: 2,
-                    letterSpacing: '.04em',
-                  }}
-                >
-                  TRUNC
-                </span>
-              )}
-            </span>
-            <TaskChatLink taskId={task.id} />
-            <button
-              type="button"
-              onClick={onClose}
-              title="Close (esc)"
-              aria-label="Close"
-              style={{
-                background: 'transparent',
-                border: '1px solid var(--col-border)',
-                color: 'var(--ink-soft)',
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 11,
-                padding: '3px 10px',
-                borderRadius: 3,
-                cursor: 'pointer',
-                letterSpacing: '.02em',
-              }}
-            >
-              esc
-            </button>
-          </div>
+        <TaskDetailHeader
+          task={task}
+          meta={meta}
+          titleId={titleId}
+          filePath={filePath}
+          truncated={!!data?.truncated}
+          laneColorFor={laneColorFor}
+          onClose={onClose}
+        />
 
-          {/* title row: TASK-ID + kind chip + title */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
-            <span
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 14,
-                fontWeight: 700,
-                color: 'var(--accent)',
-                padding: '2px 7px',
-                background: 'var(--board-grain)',
-                border: '1px solid var(--col-border)',
-                borderRadius: 3,
-              }}
-            >
-              {task.id}
-            </span>
-            <h1
-              id={titleId}
-              style={{
-                margin: 0,
-                flex: 1,
-                fontFamily: "'Inter', system-ui, sans-serif",
-                fontSize: 22,
-                fontWeight: 600,
-                lineHeight: 1.25,
-                color: 'var(--ink)',
-                letterSpacing: '-.01em',
-              }}
-            >
-              {title}
-            </h1>
-          </div>
-
-          {/* metadata pills */}
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 6,
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 11,
-            }}
-          >
-            <Pill label="status" value={status} />
-            <Pill label="swimlane" value={swimlane} dot={laneColorFor(swimlane)} />
-            <Pill label="kind" value={kindRaw} dot={kind.chip} />
-            <Pill label="priority" value={priority} valueColor={priColor} strong />
-            <Pill label="appetite" value={appetite} />
-            {epic && <Pill label="epic" value={`#${epic}`} />}
-            {labels.map((l) => (
-              <span
-                key={l}
-                style={{
-                  fontSize: 10,
-                  padding: '2px 7px',
-                  background: 'transparent',
-                  color: 'var(--ink-soft)',
-                  border: '1px dashed var(--col-border)',
-                  borderRadius: 10,
-                }}
-              >
-                #{l}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Body */}
         <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '18px 28px 40px', background: 'var(--col-bg)' }}>
           {isLoading && (
             <div style={{ color: 'var(--ink-faint)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
@@ -371,101 +226,17 @@ export function TaskDetailDrawer({
           )}
         </div>
 
-        {/* Footer — command hints from the prototype */}
-        <div
-          style={{
-            flex: '0 0 auto',
-            padding: '8px 16px',
-            borderTop: '1px solid var(--col-border)',
-            background: 'var(--board-grain)',
-            display: 'flex',
-            gap: 6,
-            alignItems: 'center',
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 10.5,
-            color: 'var(--ink-faint)',
-          }}
-        >
-          {editing ? (
-            <>
-              <button
-                type="button"
-                onClick={saveEdit}
-                disabled={saving}
-                style={{
-                  background: 'var(--accent)',
-                  border: '1px solid var(--accent)',
-                  color: '#fff',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 11,
-                  padding: '3px 12px',
-                  borderRadius: 3,
-                  cursor: saving ? 'default' : 'pointer',
-                  opacity: saving ? 0.6 : 1,
-                }}
-              >
-                {saving ? 'saving…' : '✓ save'}
-              </button>
-              <button
-                type="button"
-                onClick={cancelEdit}
-                disabled={saving}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid var(--col-border)',
-                  color: 'var(--ink-soft)',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 11,
-                  padding: '3px 12px',
-                  borderRadius: 3,
-                  cursor: 'pointer',
-                }}
-              >
-                cancel
-              </button>
-              {saveErr && <span style={{ color: '#dc2626' }}>{saveErr}</span>}
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={enterEdit}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid var(--col-border)',
-                  color: 'var(--ink-soft)',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 11,
-                  padding: '3px 12px',
-                  borderRadius: 3,
-                  cursor: 'pointer',
-                }}
-              >
-                ✎ edit
-              </button>
-              {status === 'ICEBOX' && (
-                <button
-                  type="button"
-                  onClick={toggleReady}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid var(--col-border)',
-                    color: isReady ? 'var(--accent)' : 'var(--ink-soft)',
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 11,
-                    padding: '3px 12px',
-                    borderRadius: 3,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {isReady ? '✓ ready · unmark' : '○ mark ready'}
-                </button>
-              )}
-            </>
-          )}
-          <span style={{ flex: 1 }} />
-          <span style={{ opacity: 0.7 }}>esc close</span>
-        </div>
+        <TaskDetailFooter
+          editing={editing}
+          saving={saving}
+          saveError={saveErr}
+          isReady={isReady}
+          canMarkReady={meta.status === 'ICEBOX'}
+          onEdit={enterEdit}
+          onSave={() => void saveEdit()}
+          onCancel={cancelEdit}
+          onToggleReady={() => void toggleReady()}
+        />
       </div>
     </>
   );
