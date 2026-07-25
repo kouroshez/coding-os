@@ -5,13 +5,13 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [hub, frontend, audit, backlog, ready]
-status: blocked
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-07-17
 started: 2026-07-24
-completed: null
-agent_session: ses-claude-20260527-151803-0b9f
+completed: 2026-07-25
+agent_session: ses-claude-20260723-213518-14b3
 depends_on: []
 blocked_by: []
 references: []
@@ -63,3 +63,19 @@ references: []
 - 2026-07-24 [claude]: commit 77da2d381d — refactor(hub): extract git-tab-data (types/presets/tips) from GitTab (TASK-836)
 - 2026-07-24 [claude]: Continued to completion of the sub-splits 2026-07-24 (claude) — DONE + verified (tsc clean, 206 vitest, 0 lint-err,…
 - 2026-07-24 [claude]: commit 36ed46d113 — chore(board): TASK-836 sub-splits complete — 14/17 board modules <400, 3 cohesive over
+- 2026-07-25 [claude]: Edit task-detail-header.tsx
+- 2026-07-25 [claude]: Edit task-detail-footer.tsx
+- 2026-07-25 [claude]: Edit task-detail.tsx
+- 2026-07-25 [claude]: commit 5a74c51038 — refactor(hub): split task-detail drawer + GitTab so every module is under 400 lines
+- 2026-07-25 [claude]: Edit api-client.ts
+- 2026-07-25 [claude]: Edit api-client.ts
+- 2026-07-25 [claude]: Edit test_api_types_drift.py
+- 2026-07-25 [claude]: Edit DoctorPage.tsx
+- 2026-07-25 [claude]: Edit hub-architecture.md
+- 2026-07-25 [claude]: Edit msg3.txt
+- 2026-07-25 [claude]: commit 84f82ea701 — feat(hub): typecheck every SPA API path against the generated OpenAPI types
+- 2026-07-25 [claude]: commit d055f4fdde — refactor(hub): derive the scheduled-endpoint payload types from the OpenAPI schema
+- 2026-07-25 [claude]: commit f65b5fdbe2 — fix(hub): surface fetch failures on Diagnostics Overview and the Roles panel
+- 2026-07-25 [claude]: commit 094448cde6 — refactor(hub): extract the stream-event and trace-timeline models from their views
+- 2026-07-25 [claude]: Completed 2026-07-25 (claude, fresh context). Clause 1: CosBoardPage 928→233 via…
+- 2026-07-25 [claude]: Status transitioned to complete via cos task-done.
