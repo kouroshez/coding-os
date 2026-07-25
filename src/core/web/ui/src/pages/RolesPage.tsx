@@ -59,7 +59,7 @@ export default function RolesPage() {
     '/api/hub/adapters',
   );
   const adapters = adaptersData?.adapters ?? [];
-  const { data: rolesData, isLoading: rolesLoading } = useApiGet<RolesPayload>(
+  const { data: rolesData, isLoading: rolesLoading, error: rolesError } = useApiGet<RolesPayload>(
     ['roles-list'],
     '/api/roles',
   );
@@ -93,6 +93,14 @@ export default function RolesPage() {
           <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--cos-muted)]">Formulas</h2>
         </header>
         {rolesLoading && <p className="p-3 text-xs text-[var(--cos-muted)]">loading roles...</p>}
+        {rolesError && (
+          <p role="alert" className="p-3 text-xs text-[var(--cos-err)]">
+            Could not load roles — {rolesError.message}
+          </p>
+        )}
+        {!rolesLoading && !rolesError && roles.length === 0 && (
+          <p className="p-3 text-xs text-[var(--cos-muted)]">No formulas registered.</p>
+        )}
         <ul>
           {roles.map((role) => {
             const active = selectedRole?.formula_id === role.formula_id;

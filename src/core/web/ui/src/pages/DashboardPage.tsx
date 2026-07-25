@@ -345,9 +345,33 @@ export default function DashboardPage() {
   const recentChats = (chats.data?.sessions ?? []).slice(0, 5);
   const recentHooks = (hooks.data?.events ?? []).slice(0, 12);
 
+  // Every panel degrades to `?? []`, so a failed fetch would otherwise read as a
+  // real zero. Name the panels that failed instead of showing confident zeros.
+  const panelErrors: [string, Error | null][] = [
+    ['presence', presence.error],
+    ['sessions', sessionsActive.error],
+    ['hooks', hooks.error],
+    ['chats', chats.error],
+    ['traces', traces.error],
+    ['cost', cost.error],
+    ['board', board.error],
+    ['settings', settings.error],
+  ];
+  const failedPanels = panelErrors.filter((e): e is [string, Error] => e[1] != null);
+
   return (
     <div className="flex h-full flex-col overflow-auto bg-[var(--cos-bg)] p-6 cos-scroll">
       <DashboardHeader presentCount={presentCount} lastHook={presence.data?.last_hook ?? null} />
+
+      {failedPanels.length > 0 && (
+        <div
+          role="alert"
+          className="mb-4 rounded-lg border border-[var(--cos-err)]/40 bg-[var(--cos-err)]/10 px-3 py-2 text-[11px] text-[var(--cos-err)]"
+        >
+          Could not load: {failedPanels.map(([name]) => name).join(', ')} — {failedPanels[0][1].message}.
+          Those tiles show stale or empty values, not real zeros.
+        </div>
+      )}
 
       {/* KPI strip — 4 narrow cards */}
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
