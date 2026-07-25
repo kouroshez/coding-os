@@ -1,4 +1,4 @@
-"""Drift gate for the generated Hub API types (TASK-836 clause 2).
+"""Drift gate for the generated Hub API types.
 
 `src/core/web/ui/src/lib/api-client.ts` derives `ApiPath` from the generated
 `api-types.ts`, so every SPA call site is typechecked against the routes the
