@@ -40,7 +40,9 @@ export function BoardColumnHeaders({ data, showWipViolation, flashWip }: BoardCo
         const violated = showWipViolation && cap != null && count > cap;
         const colMeta = list?.columns?.[col.id];
         const paged = colMeta && colMeta.total_count != null;
-        const more = extra[col.id]?.cursor ?? colMeta?.next_cursor;
+        // A loaded column owns its cursor even when it is null (exhausted); only
+        // an untouched column falls back to the first page's cursor.
+        const more = col.id in extra ? extra[col.id].cursor : colMeta?.next_cursor;
         return (
           <div
             key={col.id}

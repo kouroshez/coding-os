@@ -68,7 +68,11 @@ export function useBoardData(tweaks: BoardTweaks) {
 
   const loadMore = useCallback(
     async (status: string) => {
-      const cur = extra[status]?.cursor ?? list?.columns?.[status]?.next_cursor ?? null;
+      // `in`, not `??`: a fully-paged column stores a null cursor, and falling
+      // back to the first page's cursor there would re-fetch page 2 forever.
+      const cur = status in extra
+        ? extra[status].cursor
+        : list?.columns?.[status]?.next_cursor ?? null;
       if (!cur || loadingMore) return;
       setLoadingMore(status);
       try {
