@@ -3,7 +3,7 @@ import type { Ref } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
-import { apiPatch, apiPost, type ApiPath } from '@/lib/api-client';
+import { apiPatch, apiPost, type ApiPath, type paths } from '@/lib/api-client';
 import type { Adapter } from '@/features/cognition/ModelPicker';
 
 interface BudgetCap {
@@ -158,34 +158,14 @@ interface ScheduledConfig {
   archive_prune_days: number;
 }
 
-interface ScheduledProject {
-  slug: string;
-  path: string;
-  last_run_at?: string | null;
-  tasks?: Record<string, unknown>;
-  consecutive_failures?: number;
-  disabled_reason?: string | null;
-  last_error?: string | null;
-}
-
-interface ScheduledStatus {
-  cron_a?: {
-    installed: boolean;
-    loaded: boolean;
-    last_run_at?: string | null;
-    next_run_at?: string | null;
-    plist_path?: string;
-    log_dir?: string;
-  };
-  projects: ScheduledProject[];
-}
-
-interface RunResult {
-  slug: string;
-  ran: boolean;
-  summary?: Record<string, unknown> | null;
-  error?: string | null;
-}
+// Derived from the OpenAPI schema (routes/scheduled.py declares response_models
+// for these two) so a producer rename fails typecheck here. The config routes
+// below still return a bare dict, so their shape stays hand-written.
+type ScheduledStatus =
+  paths['/api/scheduled/status']['get']['responses']['200']['content']['application/json'];
+type ScheduledProject = ScheduledStatus['projects'][number];
+type RunResult =
+  paths['/api/scheduled/run/{slug}']['post']['responses']['200']['content']['application/json'];
 
 interface ScheduledConfigResp {
   slug: string;
@@ -340,7 +320,11 @@ const ScheduledConfigForm = forwardRef(function ScheduledConfigForm(
 function ScheduledMaintenanceSection({ formRef }: { formRef: Ref<ScheduledFormHandle> }) {
   const qc = useQueryClient();
   const { data: status } = useApiGet<ScheduledStatus>(['scheduled-status'], '/api/scheduled/status');
-  const projects = status?.projects ?? [];
+  // The producer types slug as nullable (scheduled.py::ProjectScheduled); a row
+  // without one can't be selected or run, so it never reaches the picker.
+  const projects = (status?.projects ?? []).filter(
+    (p): p is ScheduledProject & { slug: string } => !!p.slug,
+  );
   const [slug, setSlug] = useState('');
   const activeSlug = slug || projects[0]?.slug || '';
   const activeProj = projects.find((p) => p.slug === activeSlug);

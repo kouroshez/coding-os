@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { ApiError, apiGet, apiPost } from '@/lib/api-client';
+import { ApiError, apiGet, apiPost, type paths } from '@/lib/api-client';
 
 // Field names mirror src/core/web/routes/patterns.py::_COLUMNS + the computed
 // `tier` field (api-contract-discipline — the producer is the source of truth).
@@ -32,15 +32,19 @@ interface PatternsData {
   total_count: number;
 }
 
-// /api/scheduled/run/{slug} returns the nightly RunResult (routes/scheduled.py).
-interface RunResp {
-  ran?: boolean;
-  error?: string;
+// Envelope derived from the OpenAPI schema so a producer rename fails typecheck.
+// `summary` is declared as an opaque dict there (the nightly task map), so the
+// slice this panel reads stays narrowed by hand — verified against
+// routes/scheduled.py::_run_project.
+type RunResult =
+  paths['/api/scheduled/run/{slug}']['post']['responses']['200']['content']['application/json'];
+
+interface RunResp extends Omit<RunResult, 'summary'> {
   summary?: {
     tasks?: {
       learn_extract?: { status?: string; extracted?: unknown[]; total_outcomes_analyzed?: number };
     };
-  };
+  } | null;
 }
 
 // Field names mirror src/core/web/routes/patterns.py::learning_roi exactly.
