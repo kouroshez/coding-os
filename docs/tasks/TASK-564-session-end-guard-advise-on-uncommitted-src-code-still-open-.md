@@ -5,13 +5,13 @@ swimlane: core
 kind: feature
 epic: null
 labels: [hooks, reliability, forgot-step, audit-2026-06-24, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
 completed: 2026-06-24
-agent_session: ses-claude-20260624-182639-f22b
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

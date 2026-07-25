@@ -5,13 +5,13 @@ swimlane: cli
 kind: feature
 epic: pr-mode-hardening
 labels: [ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-24
 started: 2026-06-24
 completed: 2026-06-24
-agent_session: ses-claude-20260624-154810-74c2
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
