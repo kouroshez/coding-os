@@ -1,5 +1,5 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
-import { apiGet } from './api-client';
+import { apiGet, type ApiPath } from './api-client';
 
 /**
  * Shared React-Query hook wrapping api-client.
@@ -42,7 +42,7 @@ export interface UseApiGetOptions {
 
 export function useApiGet<T>(
   key: readonly unknown[],
-  path: string,
+  path: ApiPath,
   params?: Record<string, unknown>,
   options?: UseApiGetOptions,
 ): UseQueryResult<T, Error> {

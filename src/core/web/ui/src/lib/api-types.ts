@@ -1175,7 +1175,7 @@ export interface paths {
         };
         /**
          * Config Skills
-         * @description List the core skill registry (name, tier, domain, globs, phase) + project extras.
+         * @description List active skills (core + installed-stack) with their stack membership + project extras.
          */
         get: operations["config_skills_api_config_skills_get"];
         put?: never;
@@ -1219,7 +1219,11 @@ export interface paths {
          */
         get: operations["config_mcp_api_config_mcp_get"];
         put?: never;
-        post?: never;
+        /**
+         * Config Mcp Add
+         * @description Add a first-party allow-listed MCP server to the active project's .mcp.json.
+         */
+        post: operations["config_mcp_add_api_config_mcp_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1241,6 +1245,94 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/config/stacks/{stack_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Config Stack Install
+         * @description Install a stack into the active project (cos add-stack).
+         */
+        post: operations["config_stack_install_api_config_stacks__stack_id__post"];
+        /**
+         * Config Stack Remove
+         * @description Remove a stack from the active project (cos remove-stack).
+         */
+        delete: operations["config_stack_remove_api_config_stacks__stack_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/config/adapters/{agent}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Config Adapter Add
+         * @description Add an agent adapter to the active project (cos add-adapter).
+         */
+        post: operations["config_adapter_add_api_config_adapters__agent__post"];
+        /**
+         * Config Adapter Remove
+         * @description Remove an agent adapter from the active project (never the last one).
+         */
+        delete: operations["config_adapter_remove_api_config_adapters__agent__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/config/mcp/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Config Mcp Catalog
+         * @description First-party allow-list of MCP servers installable from the Hub (pre-Extension-Manager).
+         */
+        get: operations["config_mcp_catalog_api_config_mcp_catalog_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/config/mcp/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Config Mcp Remove
+         * @description Remove an MCP server from the active project's .mcp.json (never the managed coding-os one).
+         */
+        delete: operations["config_mcp_remove_api_config_mcp__name__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1642,9 +1734,9 @@ export interface paths {
          * List Active Sessions
          * @description Return all known agent presence records grouped by lifecycle state.
          *
-         *     State values:
-         *       - active   : tool/prompt activity within last 30 s and pid alive
-         *       - present  : activity within PRESENCE_TTL_S (default 300 s) and pid alive
+         *     State values (windows imported from board_os.presence, the SSOT):
+         *       - active   : tool activity within ACTIVE_WINDOW_SECS (90 s) and pid alive
+         *       - present  : activity within PRESENT_WINDOW_SECS (30 min) and pid alive
          *       - idle     : pid alive but no recent activity
          *       - offline  : pid not alive
          *       - ended    : ended_at recorded
@@ -1708,11 +1800,11 @@ export interface paths {
         };
         /**
          * Get Module Drift
-         * @description Non-PASS module drift (skill/command/state_integrity) for a Hub WARN banner.
+         * @description Non-PASS module drift (skill/command/rule/doc/state_integrity) for a Hub WARN banner.
          *
-         *     Reuses the three existing `cos doctor` check functions verbatim — no new check
+         *     Reuses the existing `cos doctor` check functions verbatim — no new check
          *     logic — so the toggle UI surfaces the drift its own cascade can produce
-         *     (HUB-PB2 / TASK-504).
+         *     (HUB-PB2 / TASK-504; rule/doc drift added TASK-812).
          */
         get: operations["get_module_drift_api_settings_modules_drift_get"];
         put?: never;
@@ -2570,6 +2662,12 @@ export interface components {
             learn_extract_min_outcomes?: number | null;
             /** Responsive Extract Threshold */
             responsive_extract_threshold?: number | null;
+            /** Archive Prune Days */
+            archive_prune_days?: number | null;
+            /** Error Sweep Occ Threshold */
+            error_sweep_occ_threshold?: number | null;
+            /** Error Sweep Session Threshold */
+            error_sweep_session_threshold?: number | null;
         };
         /** ScheduledStatus */
         ScheduledStatus: {
@@ -2589,6 +2687,11 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** _AutoSpawnIn */
+        _AutoSpawnIn: {
+            /** Enabled */
+            enabled: boolean;
         };
         /** _BudgetCapIn */
         _BudgetCapIn: {
@@ -2656,6 +2759,7 @@ export interface components {
             budget_cap?: components["schemas"]["_BudgetCapIn"] | null;
             trace_rotation?: components["schemas"]["_TraceRotationIn"] | null;
             model_routing?: components["schemas"]["_ModelRoutingIn"] | null;
+            auto_spawn?: components["schemas"]["_AutoSpawnIn"] | null;
             git_settings?: components["schemas"]["_GitSettingsIn"] | null;
             claude_auth?: components["schemas"]["_ClaudeAuthIn"] | null;
         };
@@ -7426,6 +7530,41 @@ export interface operations {
             };
         };
     };
+    config_mcp_add_api_config_mcp_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     config_adapters_api_config_adapters_get: {
         parameters: {
             query?: never;
@@ -7444,6 +7583,183 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    config_stack_install_api_config_stacks__stack_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stack_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    config_stack_remove_api_config_stacks__stack_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stack_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    config_adapter_add_api_config_adapters__agent__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agent: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    config_adapter_remove_api_config_adapters__agent__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agent: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    config_mcp_catalog_api_config_mcp_catalog_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    config_mcp_remove_api_config_mcp__name__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -144,7 +144,8 @@ export function SuggestNextButton({ onOpenTask }: { onOpenTask: (card: BoardList
     setError(null);
     try {
       const [data] = await apiGet<{ candidates: BoardListCard[]; count: number }>(
-        '/api/board/pick?max_candidates=5',
+        '/api/board/pick',
+        { max_candidates: 5 },
       );
       setCandidates(data.candidates);
     } catch (err) {

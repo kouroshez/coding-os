@@ -135,6 +135,29 @@ path; **Graph** and **Cognition** are project-scoped only. The Doctor page reads
 
 Chart primitives (`Sparkline`, `BarList`, `Gauge`, `StatTile`) live in [src/core/web/ui/src/lib/charts.tsx](../../src/core/web/ui/src/lib/charts.tsx) — hand-rolled inline SVG, no chart library dependency. Prometheus text parser at [src/core/web/ui/src/lib/prometheus-parse.ts](../../src/core/web/ui/src/lib/prometheus-parse.ts).
 
+## SPA ↔ API type contract — `ApiPath` + drift gate
+
+**The path is typechecked; the response body is not.** `api-client.ts` derives
+
+```ts
+export type ApiPath = ConcretePath<Extract<keyof paths, string>>;
+```
+
+from the generated [api-types.ts](../../src/core/web/ui/src/lib/api-types.ts) (`{param}` slots opened to any interpolation), and `apiGet`/`apiPost`/`apiPatch`/`apiDelete`/`resolveApiUrl`/`useApiGet`/`consumeSse` all take `ApiPath` instead of `string`. Renaming or deleting a route therefore fails `tsc` at every call site rather than 404-ing into an empty panel with no console error — the drift class from [api-contract-discipline.md](../../src/core/rules/api-contract-discipline.md).
+
+- **A path in a variable needs the annotation** — a template literal assigned to a `const` widens to `string`: `const path: ApiPath = \`/api/scheduled/config/${slug}\``.
+- **`invalidateApiQueries(qc, key)` stays `string`** — its argument is a react-query key (e.g. `'settings-git'`), not a URL.
+- **Query params go in the params argument**, never inside the path literal (`apiGet('/api/board/pick', { max_candidates: 5 })`).
+
+**Why bodies aren't derived:** only 2 of 122 operations declare a response schema — the rest are FastAPI routes returning a bare `dict`, so `paths[...]['responses']['200']` resolves to an opaque object. Deriving those would yield `unknown` and force casts, strictly worse than the current hand-written payload interfaces. Until a route declares a `response_model`, its body shape is still verified by **reading the producer** (that rule is unchanged); typed bodies land per-endpoint as `response_model`s are added.
+
+**Freshness is enforced, not remembered.** `ApiPath` is only as true as the generated file, so [tests/test_api_types_drift.py](../../tests/test_api_types_drift.py) asserts the served route set and the generated key set match **in both directions** — a missing route means `ApiPath` rejects a valid path, an extra one means it still accepts a dead path. Regenerate after any route change:
+
+```bash
+cos hub start                       # generator reads the live /openapi.json
+cd src/core/web/ui && npm run gen-api
+```
+
 ## Graph community-map home (focus+context, TASK-407)
 
 > **Status — needs a human visual review.** The layout below is the InfraNodus/Bloom-style default for the no-root Graph home; the blind switch in TASK-406 was visually rejected (only 2 community nodes surfaced at a 500-node budget). This pass fixes the budget allocation and the de-emphasis styling but the on-canvas result has not yet been signed off by the user.

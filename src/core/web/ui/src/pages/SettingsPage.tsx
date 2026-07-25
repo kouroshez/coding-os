@@ -3,7 +3,7 @@ import type { Ref } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
-import { apiPatch, apiPost } from '@/lib/api-client';
+import { apiPatch, apiPost, type ApiPath } from '@/lib/api-client';
 import type { Adapter } from '@/features/cognition/ModelPicker';
 
 interface BudgetCap {
@@ -213,7 +213,7 @@ const ScheduledConfigForm = forwardRef(function ScheduledConfigForm(
     setNote(null);
     setErr(null);
     try {
-      const path = `/api/scheduled/config/${encodeURIComponent(slug)}`;
+      const path: ApiPath = `/api/scheduled/config/${encodeURIComponent(slug)}`;
       const [res] = await apiPatch<ScheduledConfigResp>(path, cfg);
       await invalidateApiQueries(qc, path);
       setCfg(res.config);

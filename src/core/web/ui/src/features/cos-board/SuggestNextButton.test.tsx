@@ -30,7 +30,7 @@ describe('SuggestNextButton', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /suggest next/i }));
     await waitFor(() => expect(screen.getByText('TASK-101')).toBeTruthy());
-    expect(mockedApiGet).toHaveBeenCalledWith('/api/board/pick?max_candidates=5');
+    expect(mockedApiGet).toHaveBeenCalledWith('/api/board/pick', { max_candidates: 5 });
 
     fireEvent.click(screen.getByRole('option'));
     expect(onOpenTask).toHaveBeenCalledWith(card);

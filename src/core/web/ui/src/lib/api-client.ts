@@ -6,6 +6,8 @@
 //   const [graph, meta] = await apiGet<ExportPayload>('/api/graph/export', {...});
 //   const [card] = await apiPost<Card>('/api/board/create', body);
 
+import type { paths } from './api-types';
+
 const DEFAULT_BASE =
   (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, '') || '';
 
@@ -14,6 +16,25 @@ export interface ApiMeta {
   query?: string;
   [key: string]: unknown;
 }
+
+// Open each `{param}` slot in an OpenAPI path template to whatever the caller
+// interpolates, so `/api/board/task/{task_id}` accepts `/api/board/task/${id}`.
+type ConcretePath<P extends string> = P extends `${infer Head}{${string}}${infer Tail}`
+  ? `${Head}${string}${ConcretePath<Tail>}`
+  : P;
+
+/**
+ * Every path this backend actually serves, derived from the generated
+ * api-types.ts. Renaming or deleting a route makes `tsc` fail at every call
+ * site instead of 404-ing at runtime, which is the drift a consumer can't
+ * otherwise see (an empty panel, no console error).
+ *
+ * A path built in a variable needs the annotation so TS keeps the literal type:
+ *   const path: ApiPath = `/api/scheduled/config/${slug}`;
+ *
+ * Refresh after adding or renaming a route: `npm run gen-api` (hub up on :9188).
+ */
+export type ApiPath = ConcretePath<Extract<keyof paths, string>>;
 
 export class ApiError extends Error {
   public readonly status: number;
@@ -120,7 +141,7 @@ const handle = async <T>(res: Response): Promise<[T, ApiMeta | null]> => {
  * `EventSource` — exposed for callers (SSE, <img>) that don't go
  * through the fetch wrapper but still need the per-project rewrite.
  */
-export function resolveApiUrl(path: string, params?: Record<string, unknown>): string {
+export function resolveApiUrl(path: ApiPath, params?: Record<string, unknown>): string {
   return buildUrl(path, params);
 }
 
@@ -132,7 +153,7 @@ export function resolveApiUrl(path: string, params?: Record<string, unknown>): s
 const DEFAULT_GET_TIMEOUT_MS = 20_000;
 
 export async function apiGet<T>(
-  path: string,
+  path: ApiPath,
   params?: Record<string, unknown>,
   init?: RequestInit,
 ): Promise<[T, ApiMeta | null]> {
@@ -160,7 +181,7 @@ export async function apiGet<T>(
 }
 
 export async function apiPost<T>(
-  path: string,
+  path: ApiPath,
   body?: unknown,
   init?: RequestInit,
 ): Promise<[T, ApiMeta | null]> {
@@ -178,7 +199,7 @@ export async function apiPost<T>(
 }
 
 export async function apiPatch<T>(
-  path: string,
+  path: ApiPath,
   body?: unknown,
   init?: RequestInit,
 ): Promise<[T, ApiMeta | null]> {
@@ -196,7 +217,7 @@ export async function apiPatch<T>(
 }
 
 export async function apiDelete<T>(
-  path: string,
+  path: ApiPath,
   init?: RequestInit,
 ): Promise<[T, ApiMeta | null]> {
   const res = await fetch(buildUrl(path), {

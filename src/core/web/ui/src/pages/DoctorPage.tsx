@@ -623,13 +623,8 @@ function MaintenanceTab({ health }: { health: HealthPayload | undefined }) {
       <Section title="Quick links">
         <ul className="space-y-1 text-[11px]">
           <li>
-            <a className="text-[var(--cos-accent)] hover:underline" href="/api/metrics" target="_blank" rel="noreferrer">
-              /api/metrics (Prometheus text)
-            </a>
-          </li>
-          <li>
             <a className="text-[var(--cos-accent)] hover:underline" href="/metrics" target="_blank" rel="noreferrer">
-              /metrics (raw)
+              /metrics (Prometheus text)
             </a>
           </li>
           <li>

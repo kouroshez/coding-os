@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { resolveApiUrl } from '@/lib/api-client';
+import { resolveApiUrl, type ApiPath } from '@/lib/api-client';
 import { acquireEventSource } from '@/lib/shared-event-source';
 
 /**
@@ -24,7 +24,7 @@ export type StreamStatus = 'connecting' | 'live' | 'reconnecting' | 'closed';
 export function useEventStream(
   eventTypes: readonly string[],
   onEvent: (type: string, data: unknown) => void,
-  opts?: { path?: string },
+  opts?: { path?: ApiPath },
 ): StreamStatus {
   const { pathname } = useLocation();
   const [status, setStatus] = useState<StreamStatus>('connecting');

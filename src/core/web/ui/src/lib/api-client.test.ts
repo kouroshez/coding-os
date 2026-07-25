@@ -17,7 +17,7 @@ describe('api-client', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    const [data, meta] = await apiGet<{ count: number }>('/api/graph/health');
+    const [data, meta] = await apiGet<{ count: number }>('/api/health/db');
     expect(data).toEqual({ count: 3 });
     expect(meta?.layer).toBe('graph');
     expect(fetchMock).toHaveBeenCalledOnce();

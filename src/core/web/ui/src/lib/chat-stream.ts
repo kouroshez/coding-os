@@ -9,7 +9,7 @@
 // genuinely differ (text extraction vs raw-event accumulation), so that part
 // stays local.
 
-import { csrfHeader, resolveApiUrl } from './api-client';
+import { csrfHeader, resolveApiUrl, type ApiPath } from './api-client';
 
 export interface SseBlock {
   type?: string;
@@ -72,7 +72,7 @@ export type SseFrameHandler = (event: string, payload: SseFramePayload) => void;
 // the JSON error envelope when present) or a network/abort error — the caller's
 // own try/catch/finally handles error state and cleanup, exactly as before.
 export async function consumeSse(
-  endpoint: string,
+  endpoint: ApiPath,
   body: Record<string, unknown>,
   onFrame: SseFrameHandler,
   signal?: AbortSignal,

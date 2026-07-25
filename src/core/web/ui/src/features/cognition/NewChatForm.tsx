@@ -1,6 +1,7 @@
 import { FormEvent, KeyboardEvent, useEffect, useState } from 'react';
 import { ArrowUp, Loader2 } from 'lucide-react';
 import { consumeSse, streamDeltaText, streamToolName } from '@/lib/chat-stream';
+import type { ApiPath } from '@/lib/api-client';
 import { reportClientError } from '@/lib/client-logger';
 import { MarkdownBlock } from '@/components/MarkdownBlock';
 import { useRoles } from './roles';
@@ -32,7 +33,7 @@ export default function NewChatForm({
   /** Prefill the composer (e.g. the onboarding kickoff prompt). */
   initialPrompt?: string;
   /** Streaming endpoint — '/api/cognition/onboard' confines writes to docs/. */
-  endpoint?: string;
+  endpoint?: ApiPath;
 } = {}) {
   const [prompt, setPrompt] = useState(initialPrompt);
   const [role, setRole] = useState(initialRole);
