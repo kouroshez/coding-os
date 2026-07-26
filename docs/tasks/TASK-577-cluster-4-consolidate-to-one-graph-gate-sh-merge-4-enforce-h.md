@@ -5,13 +5,13 @@ swimlane: core
 kind: refactor
 epic: graph-first-enforcement
 labels: [hooks, consolidation, migration, golden, graph-gate, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-25
 started: 2026-06-25
 completed: 2026-06-25
-agent_session: ses-claude-20260625-122147-96fb
+agent_session: ses-system-auto-archive
 depends_on: [TASK-573, TASK-574, TASK-575]
 blocked_by: []
 references: []

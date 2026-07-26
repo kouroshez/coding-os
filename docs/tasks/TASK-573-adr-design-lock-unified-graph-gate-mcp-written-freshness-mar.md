@@ -5,13 +5,13 @@ swimlane: core
 kind: docs
 epic: graph-first-enforcement
 labels: [governance, graph, adr, graph-gate, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-25
 started: 2026-06-25
 completed: 2026-06-25
-agent_session: ses-claude-20260625-122147-96fb
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

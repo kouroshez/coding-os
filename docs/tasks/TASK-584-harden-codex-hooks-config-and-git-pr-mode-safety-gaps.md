@@ -5,13 +5,13 @@ swimlane: adapters
 kind: bug
 epic: null
 labels: [codex, mcp, hooks, git, hub, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-26
 started: 2026-06-25
 completed: 2026-06-25
-agent_session: ses-claude-20260527-151803-0b9f
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
