@@ -5,13 +5,13 @@ swimlane: core
 kind: security
 epic: git-foundation-hardening
 labels: [git, pr-mode, defense-in-depth, bypass, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-26
 started: 2026-06-26
 completed: 2026-06-26
-agent_session: ses-claude-20260625-235014-c028
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
