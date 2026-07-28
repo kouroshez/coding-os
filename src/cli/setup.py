@@ -241,7 +241,15 @@ def _classify_section(title: str) -> str:
     return "99-misc.md"
 
 
-def _build_prd_file_content(date: str, target: str, grouped: list[tuple[str, str]]) -> str:
+_PRD_ORIGINS = {
+    "imported": "Imported from legacy PRD",
+    "intake": "Drafted from the project-creation intake",
+}
+
+
+def _build_prd_file_content(
+    date: str, target: str, grouped: list[tuple[str, str]], *, origin: str = "imported"
+) -> str:
     header_title = target.replace(".md", "").replace("-", " ").title()
     # Strip leading numeric prefix like "01 " for display title.
     pretty = re.sub(r"^\d+\s+", "", header_title)
@@ -249,7 +257,7 @@ def _build_prd_file_content(date: str, target: str, grouped: list[tuple[str, str
         f"<!-- domain:PRODUCT | layer:spec | ssot:true | updated:{date} -->",
         f"# {pretty}",
         "",
-        f"Purpose: Imported from legacy PRD on {date}.",
+        f"Purpose: {_PRD_ORIGINS.get(origin, _PRD_ORIGINS['imported'])} on {date}.",
         "Read when: Feature work in this area.",
         f"Skip when: Task is not related to {pretty.lower()}.",
         "Read next: The next numbered PRD file.",
@@ -289,7 +297,9 @@ def seed_prd_from_text(project: Path, text: str, *, date: str | None = None) -> 
             out = prd_dir / target
             if out.exists():
                 continue
-            out.write_text(_build_prd_file_content(date, target, rows), encoding="utf-8")
+            out.write_text(
+                _build_prd_file_content(date, target, rows, origin="intake"), encoding="utf-8"
+            )
             written.append(f"docs/prd/{target}")
         return written
 
@@ -301,6 +311,7 @@ def seed_prd_from_text(project: Path, text: str, *, date: str | None = None) -> 
                 date,
                 "01-snapshot-vision.md",
                 [("Vision (onboarding intake)", text + "\n")],
+                origin="intake",
             ),
             encoding="utf-8",
         )

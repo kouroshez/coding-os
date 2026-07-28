@@ -13,7 +13,6 @@ Usage:
 from __future__ import annotations
 
 import contextlib
-import io
 import json
 import os
 import re
@@ -1683,9 +1682,12 @@ def init(
     project = target.path
     _refuse_coding_os_self_init(project)
 
-    _scaffold_buffer = io.StringIO()
+    # JSON mode keeps stdout pure for programmatic callers, but the scaffold's
+    # progress echoes are what the Hub's job runner scrapes for phase markers —
+    # buffering them into the void left the create progress bar on "validate".
+    # Streaming them to stderr keeps stdout clean AND the progress bar live.
     _stdout_redirect = (
-        contextlib.redirect_stdout(_scaffold_buffer)
+        contextlib.redirect_stdout(sys.stderr)
         if output_format == "json"
         else contextlib.nullcontext()
     )

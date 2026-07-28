@@ -29,7 +29,8 @@ _PHASE_MARKERS: tuple[tuple[str, str], ...] = (
     ("Applying template:", "docs-seed"),
     ("Composed", "docs-seed"),
     ("Seeded docs/_meta", "docs-seed"),
-    ("Registered project", "register"),
+    ("Registered in hub registry", "register"),
+    ("Skipped hub registry write", "register"),
 )
 
 _LOG_BUFFER_MAX = 2000
@@ -183,7 +184,6 @@ def start_job(cmd: list[str], target: Path, cwd: str, parse_payload) -> InitJob:
             job._finish("failed", error=tail or f"init exited {returncode}")
             return
 
-        job._append_log("Registered project")
         job._finish("succeeded", result=parse_payload(stdout_lines) or {})
 
     threading.Thread(target=_worker, name=f"init-{job.job_id}", daemon=True).start()

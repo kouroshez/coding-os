@@ -129,7 +129,9 @@ export default function ChatList({
           </p>
         )}
         {!isLoading && !error && filtered.length === 0 && (
-          <p className="p-4 text-xs text-[var(--cos-muted)]">no chat sessions match filter.</p>
+          <p className="p-4 text-xs text-[var(--cos-muted)]">
+            {query.trim() ? 'No chat matches that filter.' : 'No chats yet — start one below.'}
+          </p>
         )}
         <ul className="divide-y divide-[var(--cos-border)]/20">
           {filtered.map((s) => {

@@ -122,3 +122,40 @@ def test_render_counters_prometheus_shape() -> None:
     text = init_jobs.render_counters()
     assert "# TYPE cos_init_jobs_total counter" in text
     assert 'cos_init_jobs_total{status="started"}' in text
+
+
+def test_register_phase_tracks_real_init_output(tmp_path: Path) -> None:
+    # The marker must match what `cos init` actually echoes; a synthesized
+    # "Registered project" line made the phase fire even when init never did.
+    target = tmp_path / "regproj"
+    script = (
+        "print('Initializing coding-os in /x');"
+        "print('  Registered in hub registry: regproj');"
+        'print(\'{"slug": "regproj"}\')'
+    )
+    job = init_jobs.start_job(_py(script), target, str(tmp_path), _parse_json_payload)
+    snap = _wait_terminal(job)
+    assert snap["status"] == "succeeded"
+    assert any("Registered in hub registry" in line for line in snap["log"])
+    assert not any(line.strip() == "Registered project" for line in snap["log"])
+
+
+def test_register_phase_reached_before_terminal(tmp_path: Path) -> None:
+    target = tmp_path / "phaseproj"
+    script = (
+        "import time;"
+        "print('Initializing coding-os in /x');"
+        "print('  Registered in hub registry: phaseproj');"
+        "time.sleep(0.6);"
+        "print('{}')"
+    )
+    job = init_jobs.start_job(_py(script), target, str(tmp_path), _parse_json_payload)
+    deadline = time.time() + 5
+    seen = ""
+    while time.time() < deadline and job.snapshot()["status"] == "running":
+        seen = job.snapshot()["phase"]
+        if seen == "register":
+            break
+        time.sleep(0.02)
+    assert seen == "register", f"phase never reached register (saw {seen})"
+    _wait_terminal(job)
