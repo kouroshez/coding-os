@@ -51,7 +51,7 @@ export default function OnboardingCard({ onStart }: { onStart: () => void }) {
         <button
           type="button"
           onClick={onStart}
-          className="mt-3 rounded bg-[var(--cos-accent)] px-4 py-1.5 text-[11px] font-bold tracking-wide text-white uppercase focus-visible:ring-2 focus-visible:ring-white/40"
+          className="mt-3 rounded bg-[var(--cos-accent-solid)] px-4 py-1.5 text-[11px] font-bold tracking-wide text-white uppercase focus-visible:ring-2 focus-visible:ring-white/40"
         >
           Set up your docs
         </button>

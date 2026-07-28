@@ -24,6 +24,9 @@
   --cos-faint: var(--text-3, #6c7480);
   /* brand */
   --cos-accent:      var(--brand, #7c82f2);
+  /* White on --cos-accent is 3.3:1 — below the 4.5:1 AA floor for body text.
+     Filled controls that carry white labels use this darker step (5.2:1). */
+  --cos-accent-solid: var(--brand-solid, #585ed8);
   --cos-brand-hover: var(--brand-hover, #9296f6);
   --cos-brand-text:  var(--brand-text, #a7abf8);
   --cos-brand-tint:  var(--brand-tint, rgba(124, 130, 242, .14));

@@ -76,7 +76,7 @@ export function subNavTabClass(active: boolean): string {
     'flex items-center gap-2 rounded-full px-5 py-1.5 text-[13px] font-medium tracking-tight transition-colors duration-200',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
     active
-      ? 'border border-white/10 bg-[var(--cos-accent)] text-white shadow-sm'
+      ? 'border border-white/10 bg-[var(--cos-accent-solid)] text-white shadow-sm'
       : 'border border-transparent text-[var(--cos-muted)] hover:bg-white/5 hover:text-[var(--cos-text)]',
   ].join(' ');
 }

@@ -11,6 +11,18 @@ import { expect, test } from "@playwright/test";
  * they belong in component tests with mocked `/api` responses.
  */
 
+/**
+ * `vite preview` serves the bundle with no FastAPI behind it, so every /api
+ * call would hang and `networkidle` would never settle. Stub the API and wait
+ * for the shell instead — the scan is about markup, not data.
+ */
+const API_STUB = { projects: [], count: 0, agents: [], items: [], suggestions: [], modules: [] };
+
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/**", (route) =>
+    route.fulfill({ status: 200, json: { data: API_STUB, meta: { layer: "hub" } } }));
+});
+
 const ROUTES: { name: string; path: string }[] = [
   { name: "home / project picker", path: "/" },
   { name: "need-project landing", path: "/board" },
@@ -19,8 +31,7 @@ const ROUTES: { name: string; path: string }[] = [
 for (const route of ROUTES) {
   test(`a11y: ${route.name} has no serious/critical violations`, async ({ page }) => {
     await page.goto(route.path);
-    // Let the SPA mount + settle.
-    await page.waitForLoadState("networkidle");
+    await page.locator("header").first().waitFor();
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -50,7 +61,7 @@ test("a11y: document has a lang attribute", async ({ page }) => {
 
 test("a11y: a single top-level landmark / main region exists", async ({ page }) => {
   await page.goto("/");
-  await page.waitForLoadState("networkidle");
+  await page.locator("header").first().waitFor();
   // Either a <main> element or an explicit role=main.
   const mainCount = await page.locator("main, [role='main']").count();
   expect(mainCount).toBeGreaterThanOrEqual(1);

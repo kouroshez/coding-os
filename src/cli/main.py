@@ -13,6 +13,7 @@ Usage:
 from __future__ import annotations
 
 import contextlib
+import functools
 import json
 import os
 import re
@@ -820,35 +821,37 @@ def _registered_slug(project: Path) -> str:
     return ""
 
 
-def _module_flag_help() -> str:
+@functools.lru_cache(maxsize=1)
+def _subsystem_help_lists() -> tuple[str, str]:
     # Rule 11 — the ids come from subsystems.yaml, never a literal that rots as
     # modules are added (hidden ones are not user-selectable, so they stay out).
+    # Cached: these run at decoration time on every `cos` invocation, and both
+    # init and adopt declare the flags, so an uncached read costs 4 yaml loads.
+    fallback = "see src/core/subsystems.yaml"
     try:
-        from cli.subsystems import load_subsystems
+        from cli.subsystems import load_profiles, load_subsystems
 
         ids = [m.id for m in load_subsystems().values() if not m.kernel and not m.hidden]
+        profiles, default_profile = load_profiles()
     except Exception:
-        ids = []
-    listed = ", ".join(ids) if ids else "see src/core/subsystems.yaml"
+        return fallback, fallback
     return (
-        f"Subsystem module to disable at create (repeatable): {listed}. "
-        "kernel can't be disabled; a module's dependents are disabled with it. "
+        ", ".join(ids) or fallback,
+        ", ".join(f"{n} (default)" if n == default_profile else n for n in profiles) or fallback,
+    )
+
+
+def _module_flag_help() -> str:
+    return (
+        f"Subsystem module to disable at create (repeatable): {_subsystem_help_lists()[0]}. "
+        "kernel can't be disabled; modules that depend on it are disabled with it. "
         "Wizard parity with the Composer module toggles."
     )
 
 
 def _profile_flag_help() -> str:
-    try:
-        from cli.subsystems import load_profiles
-
-        profiles, default_profile = load_profiles()
-        listed = ", ".join(
-            f"{name} (default)" if name == default_profile else name for name in profiles
-        )
-    except Exception:
-        listed = "see src/core/subsystems.yaml"
     return (
-        f"Module profile curating the agent's MCP tool surface: {listed}. "
+        f"Module profile curating the agent's MCP tool surface: {_subsystem_help_lists()[1]}. "
         "UNIONED with --disable-module (a profile can only remove modules, never "
         "re-add one); omit to use the registry default."
     )
@@ -857,8 +860,7 @@ def _profile_flag_help() -> str:
 def _validated_disabled_modules(disable_module: tuple[str, ...]) -> list[str]:
     # Validate --disable-module up-front so BOTH the dry-run preview and the real
     # init reject the same ids (pass-3 review: dry-run returned before validation,
-    # so a typo'd module gave a false all-clear). kernel ids are non-disableable;
-    # a dependency-refused disable is resolved (with a WARN) later at scaffold time.
+    # so a typo'd module gave a false all-clear). kernel ids are non-disableable.
     if not disable_module:
         return []
     from cli.subsystems import load_subsystems
@@ -876,7 +878,27 @@ def _validated_disabled_modules(disable_module: tuple[str, ...]) -> list[str]:
     if kernel:
         click.echo(f"ERROR: module(s) {kernel} are kernel and cannot be disabled.", err=True)
         sys.exit(2)
-    return disabled
+    return _close_over_dependents(disabled, registry_modules)
+
+
+def _close_over_dependents(disabled: list[str], registry_modules: dict) -> list[str]:
+    # set_module_enabled REFUSES to disable a module an enabled one depends on —
+    # it does not cascade — so an unclosed set left the project contradicting the
+    # request with only a WARN. Close it here (same cascade the Composer chips do).
+    closed = list(disabled)
+    changed = True
+    while changed:
+        changed = False
+        for module in registry_modules.values():
+            if module.kernel or module.id in closed:
+                continue
+            if any(dep in closed for dep in module.depends_on):
+                closed.append(module.id)
+                changed = True
+    added = [m for m in closed if m not in disabled]
+    if added:
+        click.echo(f"  Also disabling dependent module(s): {', '.join(sorted(added))}")
+    return closed
 
 
 def _service_relocations(templates: tuple[str, ...]) -> dict[str, str]:

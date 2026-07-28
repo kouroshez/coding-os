@@ -266,7 +266,7 @@ export default function NewChatForm({
               disabled={streaming || !prompt.trim()}
               aria-label="Send"
               title="Send  (Enter)"
-              className="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-[var(--cos-accent)] text-white transition disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-white/40"
+              className="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-[var(--cos-accent-solid)] text-white transition disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-white/40"
             >
               {streaming ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={16} />}
             </button>

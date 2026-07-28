@@ -275,7 +275,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
                 'rounded-full px-5 py-1.5 text-xs font-semibold transition-all duration-150',
                 streaming || !draft.trim()
                   ? 'cursor-not-allowed border border-[var(--cos-border)]/40 text-[var(--cos-muted)] opacity-50'
-                  : 'bg-[var(--cos-accent)] text-white hover:shadow-lg hover:shadow-[var(--cos-accent)]/20 hover:-translate-y-px active:translate-y-0',
+                  : 'bg-[var(--cos-accent-solid)] text-white hover:shadow-lg hover:shadow-[var(--cos-accent)]/20 hover:-translate-y-px active:translate-y-0',
               ].join(' ')}
             >
               {streaming ? 'streaming…' : fork ? 'fork & send' : 'send'}

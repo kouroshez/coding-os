@@ -55,7 +55,7 @@ export default function AgentDetailModal({
               <Link
                 to={chatHref}
                 onClick={onClose}
-                className="inline-flex items-center gap-1.5 rounded-md bg-[var(--cos-accent)] px-3 py-1.5 text-xs font-semibold text-white"
+                className="inline-flex items-center gap-1.5 rounded-md bg-[var(--cos-accent-solid)] px-3 py-1.5 text-xs font-semibold text-white"
               >
                 Open chat session
               </Link>

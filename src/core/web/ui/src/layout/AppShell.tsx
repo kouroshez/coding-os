@@ -39,12 +39,12 @@ import ThemeToggle from '@/layout/ThemeToggle';
  */
 
 const NAV = [
-  { feature: 'workspace', label: 'Workspace', Icon: LayoutDashboard, end: false },
-  { feature: 'graph', label: 'Graph', Icon: Network, end: false },
-  { feature: 'cognition', label: 'Cognition', Icon: Brain, end: false },
-  { feature: 'config', label: 'Config', Icon: SlidersHorizontal, end: false },
+  { feature: 'workspace', label: 'Workspace', Icon: LayoutDashboard, end: false, soon: false },
+  { feature: 'graph', label: 'Graph', Icon: Network, end: false, soon: false },
+  { feature: 'cognition', label: 'Cognition', Icon: Brain, end: false, soon: false },
+  { feature: 'config', label: 'Config', Icon: SlidersHorizontal, end: false, soon: false },
   { feature: 'marketplace', label: 'Marketplace', Icon: Store, end: false, soon: true },
-  { feature: 'diagnostics', label: 'Diagnostics', Icon: HeartPulse, end: false },
+  { feature: 'diagnostics', label: 'Diagnostics', Icon: HeartPulse, end: false, soon: false },
 ] as const;
 
 /**
@@ -105,7 +105,7 @@ export default function AppShell({
           </div>
         )}
         <nav className="flex flex-1 flex-wrap items-center gap-1" aria-label="Primary">
-          {NAV.map(({ feature, label, Icon, end, ...rest }) => (
+          {NAV.map(({ feature, label, Icon, end, soon }) => (
             <NavLink
               key={feature}
               to={HUB_LEVEL_FEATURES.has(feature) ? `/${feature}` : linkFor(feature)}
@@ -122,7 +122,7 @@ export default function AppShell({
             >
               <Icon size={14} aria-hidden />
               {label}
-              {'soon' in rest && (
+              {soon && (
                 <span className="rounded-full bg-[var(--cos-grain)] px-1.5 py-[1px] text-[9px] font-normal tracking-wide text-[var(--cos-faint)]">
                   soon
                 </span>
@@ -134,9 +134,9 @@ export default function AppShell({
         <ThemeToggle />
       </header>
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
+        <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
           <Outlet />
-        </div>
+        </main>
         {showInspector && (
           <aside
             className="relative hidden w-[320px] shrink-0 overflow-auto border-l border-[var(--cos-border)] bg-[var(--cos-panel)] text-[var(--cos-text)] md:block"

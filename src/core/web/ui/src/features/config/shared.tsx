@@ -151,7 +151,7 @@ export function CfgButton({
 }) {
   const palette =
     tone === 'primary'
-      ? 'border-transparent bg-[var(--cos-accent)] text-white hover:opacity-90'
+      ? 'border-transparent bg-[var(--cos-accent-solid)] text-white hover:opacity-90'
       : tone === 'danger'
         ? 'border-[var(--cos-border)] text-[var(--cos-muted)] hover:border-[var(--cos-err)] hover:text-[var(--cos-err)]'
         : 'border-[var(--cos-border)] text-[var(--cos-muted)] hover:border-[var(--cos-accent)] hover:text-[var(--cos-text)]';

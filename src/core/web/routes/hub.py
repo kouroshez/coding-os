@@ -553,8 +553,9 @@ def _validate_init_inputs(
     info["agents"] = list(agents)
 
     # Module toggles (TASK-421): validate against the subsystem registry —
-    # kernel is non-disableable; dependency-order disabling is handled at
-    # scaffold time (set_module_enabled refuses invalid chains).
+    # kernel is non-disableable, and the set must be dependency-closed: the
+    # scaffold REFUSES (never cascades) an unclosed one, so accepting it would
+    # return ok for a project that contradicts the request.
     disabled_modules = [m for m in (disabled_modules or []) if m]
     if disabled_modules:
         try:
@@ -570,6 +571,17 @@ def _validate_init_inputs(
         if kernel_mods:
             return _err(
                 "validation", f"module(s) {kernel_mods} are kernel and cannot be disabled"
+            ), {}
+        orphaned = sorted(
+            m.id
+            for m in registry_modules.values()
+            if m.id not in disabled_modules
+            and any(dep in disabled_modules for dep in m.depends_on)
+        )
+        if orphaned:
+            return _err(
+                "validation",
+                f"module(s) {orphaned} depend on a disabled module — disable them too",
             ), {}
     info["disabled_modules"] = disabled_modules
 

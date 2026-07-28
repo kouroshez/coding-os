@@ -1516,6 +1516,21 @@ def _count_placeholder_todos(project_root: Path) -> tuple[int, bool]:
     return total, found_any
 
 
+def _prd_touched_since(project_root: Path, marker: Path) -> bool:
+    try:
+        written_at = marker.stat().st_mtime
+    except OSError:
+        return False
+    prd_dir = project_root / "docs" / "prd"
+    for path in prd_dir.rglob("*.md"):
+        try:
+            if path.stat().st_mtime > written_at + 1:
+                return True
+        except OSError as exc:
+            logger.debug("prd mtime check skipped %s: %s", path, exc)
+    return False
+
+
 def _onboarding_state(project_root: Path, state_dir: Path) -> dict:
     """Resolve onboarding completeness: onboarding.json override, else _TODO scan."""
     marker = state_dir / "onboarding.json"
@@ -1523,16 +1538,24 @@ def _onboarding_state(project_root: Path, state_dir: Path) -> dict:
         try:
             data = json.loads(marker.read_text(encoding="utf-8"))
             completed = data.get("completed") if isinstance(data, dict) else None
-            if isinstance(completed, bool):
+            if completed is True:
                 return {
-                    "complete": completed,
+                    "complete": True,
                     "source": "onboarding_json",
                     "placeholders_remaining": 0,
-                    "reason": (
-                        "marked onboarded"
-                        if completed
-                        else "intake captured — PRD not authored yet"
-                    ),
+                    "reason": "marked onboarded",
+                }
+            # A `false` marker means "an intake seeded the PRD, so the placeholder
+            # scan has nothing left to count" — pending, but it must expire on its
+            # own: nothing writes `true` except the dismiss button, so a permanent
+            # false would make finishing the guided interview change nothing.
+            # Any edit under docs/prd/ after the marker was written IS the work.
+            if completed is False and not _prd_touched_since(project_root, marker):
+                return {
+                    "complete": False,
+                    "source": "onboarding_json",
+                    "placeholders_remaining": _count_placeholder_todos(project_root)[0],
+                    "reason": "intake captured — PRD not authored yet",
                 }
         except (OSError, json.JSONDecodeError) as exc:
             logger.debug("onboarding.json unreadable: %s", exc)

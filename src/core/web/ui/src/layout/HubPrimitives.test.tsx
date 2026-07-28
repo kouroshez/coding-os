@@ -50,10 +50,12 @@ describe('SubNav', () => {
 
 describe('subNavTabClass', () => {
   it('fills the active tab with the accent and mutes the inactive tab', () => {
-    expect(subNavTabClass(true)).toContain('bg-[var(--cos-accent)]');
+    // White on --cos-accent is 3.3:1; the filled tab carries white 13px text, so
+    // it must use the darker AA-safe step (axe flagged exactly this node).
+    expect(subNavTabClass(true)).toContain('bg-[var(--cos-accent-solid)]');
     expect(subNavTabClass(true)).toContain('text-white');
     expect(subNavTabClass(false)).toContain('text-[var(--cos-muted)]');
-    expect(subNavTabClass(false)).not.toContain('bg-[var(--cos-accent)]');
+    expect(subNavTabClass(false)).not.toContain('bg-[var(--cos-accent-solid)]');
   });
 
   it('is never uppercase or monospace (de-mono enterprise type)', () => {

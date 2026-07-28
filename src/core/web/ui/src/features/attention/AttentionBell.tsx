@@ -97,7 +97,7 @@ export default function AttentionBell() {
       >
         <Bell size={16} />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--cos-accent)] px-1 text-[9px] font-bold text-white">
+          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--cos-accent-solid)] px-1 text-[9px] font-bold text-white">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
