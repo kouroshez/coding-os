@@ -60,3 +60,4 @@ Profiles live in subsystems.yaml (~lines 30-33: core/standard/full as `disabled:
 - 2026-06-28 [claude]: Edit commit636.txt
 - 2026-06-28 [claude]: Shipped both parts over the existing module registry (no folder-per-plugin sprawl). (A) `lite` profile in…
 - 2026-06-28 [claude]: Status transitioned to complete via cos task-done.
+- 2026-07-28 [claude]: committed 2dee5b63 · 2 files

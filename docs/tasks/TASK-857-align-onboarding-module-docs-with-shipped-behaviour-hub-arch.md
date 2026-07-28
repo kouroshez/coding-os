@@ -5,12 +5,12 @@ swimlane: docs
 kind: chore
 epic: null
 labels: [docs-update, onboarding, modules, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-28
 started: 2026-07-28
-completed: null
+completed: 2026-07-28
 agent_session: ses-claude-20260728-161456-dace
 depends_on: []
 blocked_by: []
@@ -32,3 +32,5 @@ references: []
 - **Given** the hub home empty state and Composer, **When** a reader opens hub-architecture.md, **Then** the first-run screen contract is specified rather than implied.
 
 ## Work Log
+- 2026-07-28 [claude]: Docs aligned: hub-architecture gained the first-run screen contract, the modules-endpoint contract (hidden excluded +…
+- 2026-07-28 [claude]: Status transitioned to complete via cos task-done.
