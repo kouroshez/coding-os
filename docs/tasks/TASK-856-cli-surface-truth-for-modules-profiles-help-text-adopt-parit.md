@@ -39,3 +39,4 @@ references: []
 - 2026-07-28 [claude]: Help text for --disable-module/--profile is now derived from subsystems.yaml (Rule 11) so lite is discoverable and…
 - 2026-07-28 [claude]: Status transitioned to complete via cos task-done.
 - 2026-07-28 [claude]: commit 2dee5b63ae — chore(board): sync drifted task files and regenerated indexes
+- 2026-07-28 [claude]: commit 123747eadd — chore(board): commit closing task-file state for the onboarding fix batch
