@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useApiGet } from '@/lib/hooks';
 import { apiGet, apiPost } from '@/lib/api-client';
 import { Modal } from '@/components/Modal';
@@ -24,6 +24,7 @@ interface PresetItem { id: string; label: string; description: string; stacks: s
 interface StackItem { id: string; label: string; category: string; language: string }
 interface AdapterItem { id: string; label: string }
 interface ModuleItem { id: string; label: string; kernel: boolean; depends_on: string[] }
+interface ModulesPayload { modules: ModuleItem[]; default_profile?: string; default_disabled?: string[] }
 interface SkillEntry {
   name: string; tier: string | null; domain: string[];
   description: string; provenance: string; validated: boolean;
@@ -36,6 +37,19 @@ interface ValidatePayload {
   valid: boolean; name: string; auto_named: boolean; target: string;
   templates: string[]; agents: string[]; swimlanes: string[]; conflicts: string[];
 }
+
+interface JobSnapshot { job_id: string; status: string; phase: string; log: string[] }
+
+const PARKED_JOB_KEY = 'cos.init-job';
+const rememberJob = (id: string) => {
+  try { window.sessionStorage.setItem(PARKED_JOB_KEY, id); } catch { /* private mode */ }
+};
+const readParkedJob = (): string => {
+  try { return window.sessionStorage.getItem(PARKED_JOB_KEY) ?? ''; } catch { return ''; }
+};
+const forgetJob = () => {
+  try { window.sessionStorage.removeItem(PARKED_JOB_KEY); } catch { /* private mode */ }
+};
 
 interface JobProgress {
   jobId: string;
@@ -186,7 +200,17 @@ export default function OnboardingWizard({
   const { data: stacksData } = useApiGet<{ stacks: StackItem[] }>(['hub-stacks'], '/api/hub/stacks');
   const { data: adaptersData } = useApiGet<{ adapters: AdapterItem[] }>(['hub-adapters'], '/api/hub/adapters');
   const { data: catalogData } = useApiGet<{ skills: SkillEntry[] }>(['hub-skills'], '/api/hub/skills');
-  const { data: modulesData } = useApiGet<{ modules: ModuleItem[] }>(['hub-modules'], '/api/hub/modules');
+  const { data: modulesData } = useApiGet<ModulesPayload>(['hub-modules'], '/api/hub/modules');
+  // Seed the chips with the profile a hand-typed `cos init` would apply, so the
+  // toggles show the real starting point instead of an all-on fiction. Once the
+  // user touches a chip their choice wins (the create call sends --profile full).
+  const modulesSeeded = useRef(false);
+  useEffect(() => {
+    const seed = modulesData?.default_disabled;
+    if (!seed || modulesSeeded.current) return;
+    modulesSeeded.current = true;
+    setState((s) => (s.disabledModules.length ? s : { ...s, disabledModules: [...seed] }));
+  }, [modulesData]);
 
   const selectedStacks = useMemo(() => {
     if (state.mode === 'preset') {
@@ -346,12 +370,34 @@ export default function OnboardingWizard({
         disabled_modules: state.disabledModules,
         background: true,
       });
+      rememberJob(started.job_id);
       setJob({ jobId: started.job_id, phase: 'validate', log: [], status: 'running', error: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'create failed');
       setBusy(false);
     }
   }, [state]);
+
+  // A create outlives the tab: the job id is server-side state, so park it in
+  // sessionStorage and re-attach on mount. Without this a reload during a
+  // 30-second scaffold silently orphans the progress view.
+  useEffect(() => {
+    const parked = readParkedJob();
+    if (!parked) return;
+    apiGet<JobSnapshot>(`/api/hub/init-jobs/${encodeURIComponent(parked)}`)
+      .then(([snapshot]) => {
+        if (!snapshot || snapshot.status !== 'running') { forgetJob(); return; }
+        setBusy(true);
+        setJob({
+          jobId: parked,
+          phase: snapshot.phase ?? 'validate',
+          log: snapshot.log ?? [],
+          status: 'running',
+          error: '',
+        });
+      })
+      .catch(() => forgetJob());
+  }, []);
 
   // Job progress stream (TASK-362): replay + follow; reconnects after refresh.
   useEffect(() => {
@@ -365,6 +411,7 @@ export default function OnboardingWizard({
     const terminal = (status: JobProgress['status']) => (e: Event) => {
       const payload = JSON.parse((e as MessageEvent).data) as { error?: string; result?: { slug?: string } };
       source.close();
+      forgetJob();
       setBusy(false);
       if (status === 'succeeded') { onCreated(payload.result?.slug ?? ''); return; }
       setJob((j) => (j ? { ...j, status, error: payload.error ?? '' } : j));
@@ -686,7 +733,9 @@ export default function OnboardingWizard({
                 {moduleCatalog.length > 0 && (
                   <div>
                     <div className="mb-1.5 text-xs font-medium text-[var(--cos-text)]">
-                      Modules <span className="text-[var(--cos-faint)]">(on by default — turn off what you don&apos;t need)</span>
+                      Modules <span className="text-[var(--cos-faint)]">
+                        (starts from the {modulesData?.default_profile ?? 'default'} profile — this is exactly what gets installed)
+                      </span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {moduleCatalog.map((m) => (

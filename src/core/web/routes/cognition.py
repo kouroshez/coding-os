@@ -1522,8 +1522,18 @@ def _onboarding_state(project_root: Path, state_dir: Path) -> dict:
     if marker.exists():
         try:
             data = json.loads(marker.read_text(encoding="utf-8"))
-            if isinstance(data, dict) and data.get("completed") is True:
-                return {"complete": True, "source": "onboarding_json", "placeholders_remaining": 0}
+            completed = data.get("completed") if isinstance(data, dict) else None
+            if isinstance(completed, bool):
+                return {
+                    "complete": completed,
+                    "source": "onboarding_json",
+                    "placeholders_remaining": 0,
+                    "reason": (
+                        "marked onboarded"
+                        if completed
+                        else "intake captured — PRD not authored yet"
+                    ),
+                }
         except (OSError, json.JSONDecodeError) as exc:
             logger.debug("onboarding.json unreadable: %s", exc)
     todos, prd_exists = _count_placeholder_todos(project_root)
@@ -1557,6 +1567,38 @@ def onboarding_status(
     payload = _onboarding_state(project, state)
     payload["meta"] = {"layer": "cognition"}
     return unwrap(json.dumps({"ok": True, "data": payload}))
+
+
+@router.post("/onboarding-status/dismiss")
+def onboarding_dismiss(
+    _rl=Depends(make_rate_limit_dep("cognition.onboarding_dismiss")),
+    _m=Depends(make_metrics_dep("cognition.onboarding_dismiss")),
+):
+    """Persist the onboarding hero dismissal so it stops reappearing on reload."""
+    state = _state_dir()
+    marker = state / "onboarding.json"
+    try:
+        state.mkdir(parents=True, exist_ok=True)
+        marker.write_text(
+            json.dumps({"completed": True, "source": "dismissed"}, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {
+                        "category": "internal",
+                        "retryable": False,
+                        "message": f"could not write onboarding marker: {exc}",
+                    },
+                }
+            )
+        )
+    return unwrap(
+        json.dumps({"ok": True, "data": {"complete": True, "meta": {"layer": "cognition"}}})
+    )
 
 
 @router.post("/onboard")

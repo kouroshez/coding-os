@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import LiveAgentsPanel from '@/features/cognition/LiveAgentsPanel';
-import { apiDelete, apiPost } from '@/lib/api-client';
+import { apiDelete, apiPatch, apiPost } from '@/lib/api-client';
 import { PageHeader, ActionPill, Banner, SkeletonGrid } from '@/layout/HubPrimitives';
 import OnboardingWizard from './OnboardingWizard';
 
@@ -61,6 +61,7 @@ interface GcPayload {
 
 interface SuggestRootsPayload {
   suggestions: string[];
+  scaffoldable?: string[];
 }
 
 type ActionError = { action: string; message: string } | null;
@@ -152,6 +153,35 @@ export default function HubHome() {
         setActionError({
           action: 'remove',
           message: err instanceof Error ? err.message : 'remove failed',
+        });
+      }
+    },
+    [refresh, runBusy],
+  );
+
+  const runRename = useCallback(
+    async (slug: string) => {
+      const next = window.prompt(
+        `Rename "${slug}" in the hub registry?\n\n`
+        + 'Lowercase letters, digits, dot, dash, underscore. The folder on disk is untouched.',
+        slug,
+      );
+      const wanted = (next ?? '').trim();
+      if (!wanted || wanted === slug) return;
+      setActionError(null);
+      try {
+        const [entry] = await runBusy(() =>
+          apiPatch<{ slug: string; path: string }>(
+            `/api/hub/registry/${encodeURIComponent(slug)}`,
+            { new_slug: wanted },
+          ),
+        );
+        await refresh();
+        setActionNote(`renamed to ${entry?.slug ?? wanted}`);
+      } catch (err) {
+        setActionError({
+          action: 'rename',
+          message: err instanceof Error ? err.message : 'rename failed',
         });
       }
     },
@@ -287,7 +317,7 @@ export default function HubHome() {
         {/* Dialogs (Import / Scan inline; New = full-screen wizard, TASK-358) */}
         {newOpen && (
           <OnboardingWizard
-            suggestions={roots?.suggestions ?? []}
+            suggestions={roots?.scaffoldable ?? roots?.suggestions ?? []}
             onClose={() => setNewOpen(false)}
             onCreated={onWizardCreated}
           />
@@ -325,6 +355,7 @@ export default function HubHome() {
         )}
         {!isLoading && !error && projectCount === 0 && (
           <EmptyState
+            onCreate={() => { setNewOpen(true); setImportOpen(false); setScanOpen(false); }}
             onImport={() => { setImportOpen(true); setScanOpen(false); }}
             onScan={() => { setScanOpen(true); setImportOpen(false); }}
           />
@@ -377,6 +408,11 @@ export default function HubHome() {
                         ? undefined
                         : () => runRemove(p.slug)
                     }
+                    onRename={
+                      p.source === 'runtime-cwd'
+                        ? undefined
+                        : () => runRename(p.slug)
+                    }
                   />
                 </li>
               ))}
@@ -410,20 +446,29 @@ export default function HubHome() {
 // Visual primitives (modernised look — pure presentation, no logic)
 // --------------------------------------------------------------------------
 
-function EmptyState({ onImport, onScan }: { onImport: () => void; onScan: () => void }) {
+function EmptyState({
+  onCreate,
+  onImport,
+  onScan,
+}: {
+  onCreate: () => void;
+  onImport: () => void;
+  onScan: () => void;
+}) {
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--cos-border)] bg-gradient-to-br from-[var(--cos-panel)] to-[var(--cos-panel)]/40 p-10">
       <div className="mx-auto max-w-xl text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-bg)]/60 text-[var(--accent)]">
           <IconBox />
         </div>
-        <h2 className="mb-2 text-lg font-semibold text-[var(--cos-text)]">No projects yet</h2>
+        <h2 className="mb-2 text-lg font-semibold text-[var(--cos-text)]">Start your first project</h2>
         <p className="mb-5 text-sm text-[var(--cos-muted)]">
-          Register a folder that already has coding-os set up, or scan a directory to add
-          several at once.
+          Pick a stack and coding-os scaffolds the project for you — docs, board, and agent
+          setup included. Already have one? Import the folder or scan a directory instead.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <ActionPill icon={<IconPlus />} label="Import existing" onClick={onImport} primary />
+          <ActionPill icon={<IconPlus />} label="New project" onClick={onCreate} primary />
+          <ActionPill icon={<IconPlus />} label="Import existing" onClick={onImport} />
           <ActionPill icon={<IconFolderSearch />} label="Scan folder" onClick={onScan} />
         </div>
       </div>
@@ -523,11 +568,12 @@ function FeatureIcon({ name }: { name: 'chat' | 'board' | 'graph' | 'search' }) 
 // --------------------------------------------------------------------------
 
 function ProjectCard({
-  project, onOpen, onRemove,
+  project, onOpen, onRemove, onRename,
 }: {
   project: HubProject;
   onOpen: (feature: string) => void;
   onRemove?: () => void;
+  onRename?: () => void;
 }) {
   const [kebabOpen, setKebabOpen] = useState(false);
   const kebabRef = useRef<HTMLDivElement>(null);
@@ -609,6 +655,17 @@ function ProjectCard({
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke}><rect x="8" y="8" width="13" height="13" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></svg>
                 Copy path
               </button>
+              {onRename && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setKebabOpen(false); onRename(); }}
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs hover:bg-[var(--board-grain)]"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                  Rename slug
+                </button>
+              )}
               {onRemove && (
                 <button
                   type="button"
@@ -676,9 +733,8 @@ function ImportDialog({
         Import an existing coding-os project
       </h2>
       <p className="mb-3 text-xs text-[var(--cos-muted)]">
-        The folder must already contain <code>.coding-os/</code>.  For a
-        brand-new project, run <code>cos init</code> in the folder first
-        (programmatic scaffolding from the panel is a follow-up).
+        The folder must already contain <code>.coding-os/</code>. To scaffold a
+        brand-new project instead, use <strong>New project</strong>.
       </p>
       <label className="mb-2 block text-xs">
         <span className="mb-1 block text-[var(--cos-muted)]">Absolute path</span>

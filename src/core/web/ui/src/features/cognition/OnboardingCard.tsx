@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Rocket, X } from 'lucide-react';
 import { useApiGet } from '@/lib/hooks';
+import { apiPost } from '@/lib/api-client';
 
 interface OnboardingStatus {
   complete: boolean;
@@ -12,8 +13,9 @@ interface OnboardingStatus {
 /**
  * Chat-landing hero shown when the project still has scaffold placeholders
  * (GET /api/cognition/onboarding-status). The CTA starts the docs-scoped
- * onboarder session. Dismissible per render; reappears on reload until the
- * PRD placeholders are authored (the readiness endpoint flips `complete`).
+ * onboarder session. Dismissing persists to `.coding-os/onboarding.json` so the
+ * hero stays gone — an intake-seeded PRD has no placeholders left for the scan
+ * to count, so a render-only dismiss would come back on every reload.
  */
 export default function OnboardingCard({ onStart }: { onStart: () => void }) {
   const [dismissed, setDismissed] = useState(false);
@@ -40,9 +42,11 @@ export default function OnboardingCard({ onStart }: { onStart: () => void }) {
       <div className="min-w-0 flex-1">
         <h3 className="text-sm font-semibold text-[var(--cos-text)]">Set up your project</h3>
         <p className="mt-1 text-[12px] text-[var(--cos-muted)]" dir="auto">
-          Your product docs are still placeholders
-          {remaining > 0 ? ` (${remaining} to fill)` : ''}. A short guided interview drafts the
-          essentials so the agent has real context to work from.
+          {remaining > 0
+            ? `Your product docs are still placeholders (${remaining} to fill).`
+            : 'Your product docs are only a one-line intake so far.'}{' '}
+          A short guided interview drafts the essentials so the agent has real context to work
+          from.
         </p>
         <button
           type="button"
@@ -54,7 +58,10 @@ export default function OnboardingCard({ onStart }: { onStart: () => void }) {
       </div>
       <button
         type="button"
-        onClick={() => setDismissed(true)}
+        onClick={() => {
+          setDismissed(true);
+          void apiPost('/api/cognition/onboarding-status/dismiss', {}).catch(() => {});
+        }}
         aria-label="Dismiss onboarding"
         className="shrink-0 rounded p-1 text-[var(--cos-faint)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
       >

@@ -84,3 +84,26 @@ def test_helper_counts_across_prd_dir(tmp_path):
     out = _onboarding_state(tmp_path, state)
     assert out["complete"] is False
     assert out["placeholders_remaining"] == 3
+
+
+def test_intake_marker_keeps_project_pending(client, tmp_path):
+    # `cos init --summary` authors the vision file, so the placeholder scan sees
+    # nothing left to fill — the explicit false marker is what keeps the hero up.
+    _seed(tmp_path, _AUTHORED)
+    (tmp_path / ".coding-os" / "onboarding.json").write_text(
+        json.dumps({"completed": False, "source": "intake"})
+    )
+    data = _status(client)
+    assert data["complete"] is False
+    assert data["source"] == "onboarding_json"
+
+
+def test_dismiss_persists_completion(client, tmp_path):
+    _seed(tmp_path, _AUTHORED)
+    (tmp_path / ".coding-os" / "onboarding.json").write_text(
+        json.dumps({"completed": False, "source": "intake"})
+    )
+    assert _status(client)["complete"] is False
+    resp = client.post("/api/cognition/onboarding-status/dismiss", json={})
+    assert resp.status_code == 200, resp.text
+    assert _status(client)["complete"] is True

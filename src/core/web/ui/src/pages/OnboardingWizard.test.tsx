@@ -33,11 +33,14 @@ const FIXTURES: Record<string, unknown> = {
   },
   '/api/hub/skills': { skills: [] },
   '/api/hub/modules': {
+    default_profile: 'standard',
+    default_disabled: ['cognition'],
     modules: [
       { id: 'kernel', label: 'Kernel — state, env', kernel: true, depends_on: [] },
       { id: 'docs', label: 'Docs system — SSOT docs', kernel: false, depends_on: [] },
       { id: 'tasks', label: 'Task system — Scrumban', kernel: false, depends_on: ['docs'] },
       { id: 'graph', label: 'Knowledge graph — queries', kernel: false, depends_on: [] },
+      { id: 'cognition', label: 'Cognition — role chains', kernel: false, depends_on: [] },
     ],
   },
 };
@@ -184,6 +187,25 @@ describe('Composer (TASK-419)', () => {
     await waitFor(() => expect(FakeEventSource.instances.length).toBe(1));
     const initCall = apiPost.mock.calls.find(([p]) => String(p).endsWith('/registry/init'));
     expect(initCall?.[1].disabled_modules).toEqual(expect.arrayContaining(['docs', 'tasks', 'graph']));
+  });
+
+  it('seeds the chips from the default profile so they match what init installs', async () => {
+    renderComposer();
+    fireEvent.click(screen.getByText('Next.js + FastAPI full-stack'));
+    fireEvent.click(screen.getByRole('button', { name: /Advanced/ }));
+
+    // default_disabled from the catalog — shown off, not silently applied later.
+    await waitFor(() =>
+      expect(screen.getByTestId('module-cognition')).toHaveAttribute('aria-pressed', 'false'));
+    expect(screen.getByTestId('module-graph')).toHaveAttribute('aria-pressed', 'true');
+
+    // Turning it back on must actually reach the payload (the union bug).
+    fireEvent.click(screen.getByTestId('module-cognition'));
+    await waitFor(() => expect(createBtn()).toBeEnabled());
+    fireEvent.click(createBtn());
+    await waitFor(() => expect(FakeEventSource.instances.length).toBe(1));
+    const initCall = apiPost.mock.calls.find(([p]) => String(p).endsWith('/registry/init'));
+    expect(initCall?.[1].disabled_modules).toEqual([]);
   });
 
   it('forwards the description and starts a job, reporting progress', async () => {

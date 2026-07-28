@@ -349,9 +349,15 @@ def hub_adapters() -> dict:
 def hub_modules() -> dict:
     """List subsystem modules (data-driven from src/core/subsystems.yaml) for the Composer."""
     try:
-        from cli.subsystems import load_subsystems  # type: ignore
+        from cli.subsystems import (  # type: ignore
+            load_profiles,
+            load_subsystems,
+            resolve_profile,
+        )
 
         registry = load_subsystems()
+        _, default_profile = load_profiles()
+        default_disabled = resolve_profile(default_profile)
     except Exception as exc:
         return _err("unavailable", f"subsystem registry unavailable: {exc}", status=503)
     modules = [
@@ -362,9 +368,16 @@ def hub_modules() -> dict:
             "depends_on": list(m.depends_on),
         }
         for m in registry.values()
+        if not m.hidden
     ]
+    visible = {m["id"] for m in modules}
     return {
-        "data": {"modules": modules, "count": len(modules)},
+        "data": {
+            "modules": modules,
+            "count": len(modules),
+            "default_profile": default_profile,
+            "default_disabled": [m for m in default_disabled if m in visible],
+        },
         "meta": {"layer": "hub", "source": "hub.modules"},
     }
 
@@ -657,6 +670,11 @@ def _build_cos_init_cmd(
         # Skip the heavy doc-RAG embedding but still build the knowledge graph
         # (AST walk, no model) so the new project's Graph tab is never empty.
         "--graph-index",
+        # init UNIONS the profile's disabled set with --disable-module, so any
+        # other profile would make the Composer chips one-way (off-only). The
+        # wizard seeds its chips from GET /modules::default_disabled instead.
+        "--profile",
+        "full",
         "--format",
         "json",
     ]
@@ -713,27 +731,19 @@ def _run_cos_init(
         return False, None, f"could not launch cos init: {exc}"
     if proc.returncode != 0:
         return False, None, (proc.stderr or proc.stdout or "init failed").strip()[-400:]
-    payload: dict = {}
-    for line in reversed((proc.stdout or "").strip().splitlines()):
-        candidate = line.strip()
-        if candidate.startswith("{"):
-            try:
-                payload = json.loads(candidate)
-                break
-            except json.JSONDecodeError:
-                continue
-    return True, payload, ""
+    return True, _parse_init_payload((proc.stdout or "").splitlines()), ""
 
 
 def _parse_init_payload(stdout_lines: list[str]) -> dict:
-    """Last JSON object in init's stdout (init --format json emits it on success)."""
-    for line in reversed(stdout_lines):
-        candidate = line.strip()
-        if candidate.startswith("{"):
-            try:
-                return json.loads(candidate)
-            except json.JSONDecodeError:
-                continue
+    """Trailing JSON object in init's stdout (init --format json pretty-prints it)."""
+    for start in range(len(stdout_lines)):
+        if not stdout_lines[start].lstrip().startswith("{"):
+            continue
+        blob = "\n".join(stdout_lines[start:]).strip()
+        try:
+            return json.loads(blob)
+        except json.JSONDecodeError:
+            continue
     return {}
 
 
@@ -1153,7 +1163,14 @@ def hub_suggest_roots(depth: int = Query(0)):
             continue
         seen.add(resolved)
         suggestions.append(resolved)
+    # The Composer scaffolds INTO the picked root, so it needs the subset that
+    # `_validate_init_inputs` would accept; import/scan happily target the rest.
+    scaffoldable = [
+        s
+        for s in suggestions
+        if not _is_meta_repo(Path(s)) and _ancestor_with_coding_os(Path(s)) is None
+    ]
     return {
-        "data": {"suggestions": suggestions},
+        "data": {"suggestions": suggestions, "scaffoldable": scaffoldable},
         "meta": {"layer": "hub", "source": "hub.suggest_roots"},
     }

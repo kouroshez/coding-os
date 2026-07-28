@@ -804,6 +804,57 @@ def _dry_run_preview(
     click.echo("(dry-run — nothing written)")
 
 
+def _registered_slug(project: Path) -> str:
+    # The hub slug the Composer navigates by; "" under --no-register or a failed
+    # registry write, both of which are non-fatal for init itself.
+    import logging
+
+    try:
+        from cli.registry import load_registry
+
+        resolved = str(project.resolve())
+        for entry in load_registry().projects:
+            if str(Path(entry.path).resolve()) == resolved:
+                return entry.slug
+    except Exception as exc:
+        logging.getLogger(__name__).debug("slug lookup skipped: %s", exc)
+    return ""
+
+
+def _module_flag_help() -> str:
+    # Rule 11 — the ids come from subsystems.yaml, never a literal that rots as
+    # modules are added (hidden ones are not user-selectable, so they stay out).
+    try:
+        from cli.subsystems import load_subsystems
+
+        ids = [m.id for m in load_subsystems().values() if not m.kernel and not m.hidden]
+    except Exception:
+        ids = []
+    listed = ", ".join(ids) if ids else "see src/core/subsystems.yaml"
+    return (
+        f"Subsystem module to disable at create (repeatable): {listed}. "
+        "kernel can't be disabled; a module's dependents are disabled with it. "
+        "Wizard parity with the Composer module toggles."
+    )
+
+
+def _profile_flag_help() -> str:
+    try:
+        from cli.subsystems import load_profiles
+
+        profiles, default_profile = load_profiles()
+        listed = ", ".join(
+            f"{name} (default)" if name == default_profile else name for name in profiles
+        )
+    except Exception:
+        listed = "see src/core/subsystems.yaml"
+    return (
+        f"Module profile curating the agent's MCP tool surface: {listed}. "
+        "UNIONED with --disable-module (a profile can only remove modules, never "
+        "re-add one); omit to use the registry default."
+    )
+
+
 def _validated_disabled_modules(disable_module: tuple[str, ...]) -> list[str]:
     # Validate --disable-module up-front so BOTH the dry-run preview and the real
     # init reject the same ids (pass-3 review: dry-run returned before validation,
@@ -1438,13 +1489,13 @@ def _refuse_coding_os_self_init(project: Path) -> None:
     "--disable-module",
     "disable_module",
     multiple=True,
-    help="Subsystem module to disable at create (repeatable): docs, tasks, graph, memory, hub-extras, design. kernel can't be disabled; tasks needs docs. Wizard parity with the Composer module toggles.",
+    help=_module_flag_help(),
 )
 @click.option(
     "--profile",
     "profile",
     default=None,
-    help="Module profile curating the agent's MCP tool surface: core (lean), standard, full (everything). Merged with --disable-module; omit to use the registry default. See subsystems.yaml::profiles.",
+    help=_profile_flag_help(),
 )
 def init(
     agent: str | None,
@@ -1679,6 +1730,7 @@ def init(
     summary: dict[str, object] = {
         "status": "ok",
         "path": str(project),
+        "slug": _registered_slug(project),
         "agents": agents,
         "templates": list(template),
         "debug": debug,
@@ -1824,6 +1876,18 @@ def _detect_stacks_from_markers(path: Path) -> list[str]:
     default=True,
     help="Seed the doc-search index after adopt (--no-index for fast / CI runs).",
 )
+@click.option(
+    "--disable-module",
+    "disable_module",
+    multiple=True,
+    help=_module_flag_help(),
+)
+@click.option(
+    "--profile",
+    "profile",
+    default=None,
+    help=_profile_flag_help(),
+)
 @click.pass_context
 def adopt(
     ctx: click.Context,
@@ -1834,6 +1898,8 @@ def adopt(
     output_format: str,
     no_register: bool,
     do_index: bool,
+    disable_module: tuple[str, ...],
+    profile: str | None,
 ) -> None:
     """Overlay coding-os onto an existing repo without touching user code.
 
@@ -1869,6 +1935,8 @@ def adopt(
         output_format=output_format,
         no_register=no_register,
         do_index=do_index,
+        disable_module=disable_module,
+        profile=profile,
     )
 
 
@@ -2022,6 +2090,13 @@ def _run_scaffold_phase(
             seeded = seed_prd_from_text(project, project_summary, date=today)
             if seeded:
                 click.echo(f"  Seeded {len(seeded)} PRD doc(s): {', '.join(seeded)}")
+                # Seeding erases the _TODO: markers the readiness scan looks for,
+                # so record explicitly that a one-line intake is NOT an authored
+                # PRD — else the chat-landing onboarding hero never appears.
+                (state / "onboarding.json").write_text(
+                    json.dumps({"completed": False, "source": "intake"}, indent=2) + "\n",
+                    encoding="utf-8",
+                )
     click.echo(f"  Generated {CONFIG_FILE}")
 
     # 4. Run adapter install for each agent

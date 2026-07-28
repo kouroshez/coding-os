@@ -15,16 +15,19 @@ cos init \
   --preset nextjs-fastapi \          # OR: --template go-fiber --template fastapi
   --name my-app -d /path/to/parent \ # omit --name only in interactive shells
   --skills redis,docker \            # extra core skills (validated; see cos skills-list)
+  --profile standard \               # module surface: lite | core | standard (default) | full
   --disable-module memory \          # optional, repeatable: turn a subsystem off at create
   --summary "One to two paragraphs describing the product, its users, and what matters most." \
   --yes --no-index
 ```
 
-4. Verify: exit code 0; `--format json` emits the summary object. The project self-registers in the hub; `--summary` seeds `docs/_meta/project-description.md` (the description→PRD intake).
+4. Verify: exit code 0; `--format json` emits the summary object (`path`, `slug`, `agents`, `templates`, …). The project self-registers in the hub; `--summary` seeds `docs/_meta/project-description.md` (the description→PRD intake) and records `{"completed": false}` in `.coding-os/onboarding.json` so the panel still offers the guided PRD interview.
 
 Rules:
 - Non-TTY without `--yes` fails fast naming the missing flags — never rely on prompts in automation.
 - `--preset` and `--template` are mutually exclusive; unknown skills/stacks/presets exit 2 listing what exists.
 - `--agent` takes one or more adapters (`claude`, `codex`), comma-separated — a project may host several.
-- `--disable-module <id>` (repeatable) turns a subsystem off at create: `docs`, `tasks`, `graph`, `memory`, `design`. `kernel` can't be disabled and `tasks` needs `docs` (unknown/kernel exit 2). Mirrors the Composer module chips; `cos module list` shows the result.
+- `--profile <name>` picks the module surface (`cos init --help` lists the live set from `subsystems.yaml`): `lite` = kernel only (discipline + safety, near-zero MCP tools — the MCP-averse adopter), `core`, `standard` (default: `cognition` + `cicd` off), `full` = everything. Omitting it applies the registry default, so a project can end up leaner than you expected — pass it explicitly when the surface matters.
+- `--disable-module <id>` (repeatable) turns one subsystem off; ids come from `subsystems.yaml` (`docs`, `tasks`, `graph`, `memory`, `cognition`, `observability`, `hub-extras`, `cicd`). `kernel` can't be disabled and a module's dependents go with it (unknown/kernel exit 2).
+- **Profile and `--disable-module` are UNIONED** — a profile can only ever remove more. To turn a profile-disabled module back on, start from a wider profile (`--profile full --disable-module <the rest>`); that is exactly what the Hub Composer sends. `cos module list` shows the result.
 - Don't pass `--name` you can't validate: `^[a-z0-9][a-z0-9._-]{0,63}$`.

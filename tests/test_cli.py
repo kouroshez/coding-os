@@ -1607,6 +1607,43 @@ class TestCliOnboardingParity:
         assert cfg["extra_skills"] == ["redis", "docker"]
         intake = project / "docs" / "_meta" / "project-description.md"
         assert "focused product summary" in intake.read_text(encoding="utf-8")
+        # The seeded vision erases the _TODO markers the readiness scan counts,
+        # so init records that a one-liner is not an authored PRD.
+        marker = json.loads((project / ".coding-os" / "onboarding.json").read_text())
+        assert marker == {"completed": False, "source": "intake"}
+
+    def test_json_summary_carries_registry_slug(self, runner: CliRunner, tmp_path: Path) -> None:
+        # The Hub Composer navigates by this field; --no-register leaves it empty
+        # rather than absent, so the consumer never has to guess.
+        project = tmp_path / "slugproj"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init", "--agent", "claude", "-d", str(project),
+                "--yes", "--no-index", "--no-register", "--format", "json",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output[result.output.index("{"):])
+        assert payload["slug"] == ""
+
+    def test_adopt_honours_module_profile(self, runner: CliRunner, tmp_path: Path) -> None:
+        from cli.subsystems import resolve_profile
+
+        project = tmp_path / "brownfield"
+        project.mkdir()
+        (project / "pyproject.toml").write_text("[project]\nname='x'\n")
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            os.environ["PWD"] = str(project)
+            result = runner.invoke(
+                cli,
+                ["adopt", "--agent", "claude", "--profile", "lite",
+                 "--yes", "--no-index", "--no-register"],
+            )
+        assert result.exit_code == 0, result.output
+        state = json.loads((project / ".coding-os" / "subsystems-state.json").read_text())
+        assert sorted(state["disabled"]) == sorted(resolve_profile("lite"))
 
     def test_unknown_skill_fails_fast(self, runner: CliRunner, tmp_path: Path) -> None:
         project = tmp_path / "badskill"

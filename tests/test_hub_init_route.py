@@ -444,6 +444,47 @@ class TestModuleToggles:
         assert good.status_code == 200
         assert good.json()["data"]["disabled_modules"] == ["graph"]
 
+    def test_modules_catalog_hides_hidden_and_exposes_default_profile(self, hub_env):
+        from cli.subsystems import load_subsystems
+
+        hidden = {m.id for m in load_subsystems().values() if m.hidden}
+        with _client() as client:
+            data = client.get("/api/hub/modules").json()["data"]
+        listed = {m["id"] for m in data["modules"]}
+        assert listed.isdisjoint(hidden)
+        assert data["default_profile"]
+        # The Composer seeds its chips from this — every id must be togglable.
+        assert set(data["default_disabled"]) <= listed
+
+    def test_init_cmd_pins_full_profile_so_chips_are_authoritative(self):
+        from web.routes.hub import _build_cos_init_cmd
+
+        cmd = _build_cos_init_cmd("proj", "/tmp", ["python"], ["claude"])
+        # init UNIONS profile + --disable-module; any narrower profile would make
+        # a chip left ON silently install nothing.
+        assert cmd[cmd.index("--profile") + 1] == "full"
+
+    def test_parse_init_payload_reads_pretty_printed_summary(self):
+        from web.routes.hub import _parse_init_payload
+
+        stdout = [
+            "Initializing coding-os in /tmp/proj",
+            "  Applying template: python",
+            "{",
+            '  "status": "ok",',
+            '  "slug": "proj",',
+            '  "path": "/tmp/proj"',
+            "}",
+        ]
+        assert _parse_init_payload(stdout)["slug"] == "proj"
+
+    def test_suggest_roots_marks_meta_repo_unscaffoldable(self, hub_env, monkeypatch):
+        monkeypatch.setenv("COS_PROJECT_ROOT", str(_REPO_ROOT))
+        with _client() as client:
+            data = client.get("/api/hub/suggest-roots").json()["data"]
+        assert str(_REPO_ROOT) in data["suggestions"]
+        assert str(_REPO_ROOT) not in data["scaffoldable"]
+
 
 class TestRegistryRename:
     def test_temp_slug_renames_without_breaking_entry(self, hub_env):

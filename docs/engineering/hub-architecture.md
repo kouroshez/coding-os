@@ -133,6 +133,27 @@ Both hubs render at a global (unscoped) path and a `/p/:slug/` project-scoped
 path; **Graph** and **Cognition** are project-scoped only. The Doctor page reads
 `/api/health` + `/api/health/db` (per-uvicorn) and parses Prometheus client-side.
 
+### First screen — `HubHome` with zero projects
+
+The hub's front door has to work for someone who has never run the CLI, so the
+zero-project state is a **create** surface, not a register surface: the empty
+state leads with **New project** (the Composer) and offers *Import existing* /
+*Scan folder* beside it. That ordering is the doc-level contract — an empty
+state that only offered import would send a first-time user back to a terminal,
+contradicting the GUI-first install path of
+[ADR-0007](../architecture/adr/0007-gui-first-install-path.md).
+
+Two supporting behaviours belong to the same first-run promise:
+
+- **`GET /api/hub/suggest-roots`** returns `suggestions` (every sensible root)
+  plus `scaffoldable` — the subset `_validate_init_inputs` would accept, i.e.
+  excluding the meta-repo checkout and anything already inside a registered
+  project. Import/Scan use `suggestions`; the Composer uses `scaffoldable`, so
+  it never opens pre-filled with a folder that immediately errors.
+- **A temp slug is renameable from the panel.** `proj-<6hex>` is only a fair
+  default if `PATCH /api/hub/registry/{slug}` is reachable from the project
+  card's actions menu; otherwise "you can rename it later" is false.
+
 Chart primitives (`Sparkline`, `BarList`, `Gauge`, `StatTile`) live in [src/core/web/ui/src/lib/charts.tsx](../../src/core/web/ui/src/lib/charts.tsx) — hand-rolled inline SVG, no chart library dependency. Prometheus text parser at [src/core/web/ui/src/lib/prometheus-parse.ts](../../src/core/web/ui/src/lib/prometheus-parse.ts).
 
 ## SPA ↔ API type contract — `ApiPath` + drift gate
@@ -329,12 +350,20 @@ LTR.
 project still needs onboarding. It is **placeholder-scan first**: the scaffold
 PRD (`docs/prd/01-snapshot-vision.md`) ships with `_TODO:` markers, so any
 remaining `_TODO:` in `docs/prd/**` means onboarding is incomplete. An explicit
-`.coding-os/onboarding.json` with `{"completed": true}` is an optional override
-that short-circuits the scan. When `docs/prd/` has no scaffold at all the project
+`.coding-os/onboarding.json` is an optional override that short-circuits the
+scan **in both directions** — `{"completed": true}` means done, `false` means
+still pending. The `false` form is what `cos init --summary` writes: a one-line
+intake seeds `01-snapshot-vision.md` and therefore erases every `_TODO:` the
+scan looks for, which would otherwise mark a brand-new project "onboarded" on
+the strength of a single sentence and hide the hero built for exactly that
+moment. When `docs/prd/` has no scaffold at all the project
 is treated as complete (nothing to onboard). `ChatLanding` renders a dismissible
 `OnboardingCard` hero when `complete === false`; its CTA starts the docs-scoped
 onboarder session (`/api/cognition/onboard`, TASK-246) so authoring is confined
-to `docs/`.
+to `docs/`. Dismissing it `POST`s `/api/cognition/onboarding-status/dismiss`,
+which writes `{"completed": true, "source": "dismissed"}` — with the scan
+already at zero placeholders, a render-only dismiss would return on every
+reload, so the "no thanks" has to persist somewhere.
 
 ## Per-project hook/skill overrides (Config toggles)
 
@@ -383,6 +412,13 @@ hub-global endpoints back the **New Project** wizard on `HubHome`:
   read-only data sources (TASK-352/356/358): preset catalog, agent adapters,
   global skill catalog with provenance, and per-stack
   required/recommended/optional skill groups.
+- `GET /api/hub/modules` — the subsystem catalog for the Composer's module
+  chips, data-driven from `subsystems.yaml`. `hidden` modules are **excluded**
+  (a toggle on a module that owns no hooks/tools is a no-op footgun), and the
+  envelope carries `default_profile` + `default_disabled` — the disabled set of
+  the registry's default profile — so the Composer can seed its chips to the
+  profile a hand-typed `cos init` would produce. Without that seed the chips
+  would render all-on while init silently applied the profile underneath.
 - `POST /api/hub/registry/validate-init` — dry-run validation + merged-config
   preview (swimlane union + reported conflicts). Shares
   `_validate_init_inputs` with the real init route (SSOT) and writes nothing.
@@ -413,6 +449,10 @@ hub-global endpoints back the **New Project** wizard on `HubHome`:
   `docs/_meta/project-description.md` (TASK-364 intake) and `extra_skills`
   land in `.coding-os.yaml`. `cos init` registers the project itself on a
   clean exit; a failed init leaves nothing (the partial target dir is removed).
+  The JSON summary carries `slug` (the registered hub slug, empty under
+  `--no-register`) — the field the create job returns and the SPA navigates
+  by. The summary is pretty-printed, so any consumer parsing it must read the
+  **whole trailing JSON object**, not the last single line of stdout.
 - `PATCH /api/hub/registry/{slug}` — slug rename (temp slug → real name; path
   untouched), backed by `cli.registry.rename_project`.
 - **Job-based create (TASK-362):** `POST /registry/init` with
@@ -425,7 +465,10 @@ hub-global endpoints back the **New Project** wizard on `HubHome`:
   `POST /api/hub/init-jobs/{id}/cancel` (terminates the subprocess and
   removes the partial scaffold, reported as `cleanup.removed_dir`). Funnel
   counters (`cos_init_jobs_total{status=…}`) render into `/metrics`. The
-  sync (non-background) form stays for programmatic callers.
+  sync (non-background) form stays for programmatic callers. The job id is
+  server-side state, so the Composer parks it in `sessionStorage` and
+  re-attaches through the snapshot endpoint on mount — a reload mid-scaffold
+  rejoins the progress view instead of orphaning a running create.
 
 **Composer (`OnboardingWizard.tsx`, TASK-419)** — a single screen replaces the
 8-step wizard (TASK-358). Left column = choices (template preset/custom, name +
@@ -444,6 +487,16 @@ the Advanced section lists subsystem modules from `GET /api/hub/modules`
 `cos init --disable-module <id>` (kernel locked; the `tasks → docs` dependency
 cascades in the UI and is re-checked by `set_module_enabled` at scaffold).
 Modules stay adjustable post-create in Config.
+
+**The chips are the whole truth (`--profile full` passthrough).** `cos init`
+resolves `--profile` (default `standard`) and **unions** its disabled set with
+every explicit `--disable-module`, so a route that omits `--profile` can only
+ever *add* to what the user turned off — leaving a chip on would not turn that
+module on. The init route therefore passes `--profile full` and lets
+`disabled_modules` be the single authority, while the Composer seeds its chips
+from `default_disabled` so the default result still matches a hand-typed
+`cos init`. Net effect: what the chips show is what the project gets, in both
+directions.
 
 **Project list never surfaces the global state dir.** `_derive_runtime_entry`
 auto-lists the cwd as a project when it has `.coding-os/`, but `$HOME` and any
