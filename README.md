@@ -26,6 +26,22 @@
 Linux: replace `brew install …` with your distro's package manager
 (`apt`, `dnf`, `pacman`). Windows: WSL 2 + the same Linux steps.
 
+## Quickstart — panel first (one command)
+
+If you would rather click than type, this is the whole install. It preflights
+prerequisites, installs the `cos` CLI, and boots the Hub:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kouroshez/coding-os/main/install.sh | bash
+# …or, from a checkout:  bash install.sh
+```
+
+Open the Hub at `http://127.0.0.1:9188` and press **New project**. The Composer picks a
+preset (or your own stack mix), asks one sentence about the project, and
+scaffolds it — docs, board, knowledge graph, and agent setup included. There is
+no CLI step in between; everything below is the same flow with flags instead of
+clicks. ([ADR-0007](docs/architecture/adr/0007-gui-first-install-path.md))
+
 ## 60-second quickstart (native `uv`)
 
 ```bash
@@ -57,6 +73,28 @@ For Codex, swap `--agent claude` for `--agent codex` (or pass
 both — `--agent claude,codex`) — everything else is identical. Each agent's
 installer is `src/adapters/<agent>/install.sh`; `cos init` runs it
 for you and re-runs it on `cos update`.
+
+### Choosing how much coding-os you install
+
+The kernel ships as **subsystem modules** — docs, tasks (Scrumban), knowledge
+graph, agent memory, cognition, observability, hub extras, CI/CD — and you pick
+the set at create time. Prefer a small MCP surface, or don't want the web panel
+at all? Start lean:
+
+```bash
+cos init --agent claude --name my-app --profile lite --yes   # kernel only: discipline + safety
+cos init --agent claude --name my-app --profile full --yes   # every subsystem
+cos init --agent claude --name my-app --disable-module memory --yes
+```
+
+`cos init --help` lists the live profiles and module ids (both are read from
+`src/core/subsystems.yaml`, so the help never drifts). Omitting `--profile`
+applies the registry default — today `standard`, which leaves `cognition` and
+`cicd` off. The two flags are **unioned**: a profile can only remove more, so to
+re-enable something start from a wider profile. Everything stays adjustable
+later with `cos module enable|disable` or Hub **Config → Modules**, and the same
+chips appear in the Composer's *Advanced* section. Full model:
+[meta-project.md § subsystem modules](docs/architecture/meta-project.md).
 
 ## Run with Docker (Hub layer; native for projects)
 

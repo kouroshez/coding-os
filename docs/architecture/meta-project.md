@@ -125,8 +125,41 @@ language/framework.
 | `src/templates/react-native/` | RN mobile. |
 | **`src/templates/meta/`** ⭐ | **The meta-stack itself** — auto-loads `graph-explorer + clean-code + thinking_os` for `src/core/**`, `src/cli/**`, `src/adapters/**` edits. Closes the dogfood loop. |
 
-A consumer project picks one or more of these via `cos init <stack>`.
+A consumer project picks one or more of these via
+`cos init --template <stack>` (repeatable) or a named `--preset`.
 The aggregator merges all listed stacks into the AGENTS.md / `.coding-os.yaml`.
+
+### The fourth axis — subsystem modules (which kernel surfaces ship)
+
+The three layers answer *whose agent* and *which stack*. A fourth, orthogonal
+axis answers **how much kernel** a project wants:
+[`src/core/subsystems.yaml`](../../src/core/subsystems.yaml) declares the module
+registry — `kernel` (always on) plus `docs`, `tasks`, `graph`, `memory`,
+`cognition`, `observability`, `hub-extras`, `cicd` — each owning a set of hooks,
+MCP tools, skills, commands, and rules. Disabling a module gates its tools
+(`module_disabled`), self-skips its hooks, and unlinks its skills/commands/rules;
+safety-category hooks are never disableable regardless of module.
+
+Named **profiles** in the same file curate that surface, each listing what it
+turns off:
+
+| Profile | Disables | Fits |
+|---|---|---|
+| `lite` | everything optional | kernel only — discipline + safety with a near-zero MCP surface (MCP-averse adopters) |
+| `core` | `memory`, `cognition`, `observability`, `cicd` | kernel + docs + tasks + graph |
+| `standard` *(default)* | `cognition`, `cicd` | the balanced default |
+| `full` | — | every subsystem |
+
+Selection happens at create (`cos init --profile <name>` and/or repeatable
+`--disable-module <id>`, mirrored by the Hub Composer's module chips) and stays
+adjustable afterwards via `cos module enable|disable` or Hub **Config → Modules**;
+per-project state lives in `.coding-os/subsystems-state.json`.
+
+**The two flags are UNIONED, never merged** — a profile can only ever remove
+more, so re-enabling something a profile turned off means starting from a wider
+profile. That asymmetry is why the Hub Composer sends `--profile full` plus the
+exact chip state (see
+[hub-architecture.md](../engineering/hub-architecture.md)).
 
 ## The meta-stack — closing the dogfood loop
 

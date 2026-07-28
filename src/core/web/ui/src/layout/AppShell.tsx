@@ -43,7 +43,7 @@ const NAV = [
   { feature: 'graph', label: 'Graph', Icon: Network, end: false },
   { feature: 'cognition', label: 'Cognition', Icon: Brain, end: false },
   { feature: 'config', label: 'Config', Icon: SlidersHorizontal, end: false },
-  { feature: 'marketplace', label: 'Marketplace', Icon: Store, end: false },
+  { feature: 'marketplace', label: 'Marketplace', Icon: Store, end: false, soon: true },
   { feature: 'diagnostics', label: 'Diagnostics', Icon: HeartPulse, end: false },
 ] as const;
 
@@ -105,7 +105,7 @@ export default function AppShell({
           </div>
         )}
         <nav className="flex flex-1 flex-wrap items-center gap-1" aria-label="Primary">
-          {NAV.map(({ feature, label, Icon, end }) => (
+          {NAV.map(({ feature, label, Icon, end, ...rest }) => (
             <NavLink
               key={feature}
               to={HUB_LEVEL_FEATURES.has(feature) ? `/${feature}` : linkFor(feature)}
@@ -122,6 +122,11 @@ export default function AppShell({
             >
               <Icon size={14} aria-hidden />
               {label}
+              {'soon' in rest && (
+                <span className="rounded-full bg-[var(--cos-grain)] px-1.5 py-[1px] text-[9px] font-normal tracking-wide text-[var(--cos-faint)]">
+                  soon
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
