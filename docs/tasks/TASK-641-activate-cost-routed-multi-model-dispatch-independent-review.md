@@ -5,13 +5,13 @@ swimlane: core
 kind: feature
 epic: multi-model-autonomy
 labels: [dispatch, multi-model, codex, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-28
 started: 2026-06-28
 completed: 2026-06-28
-agent_session: ses-claude-20260627-204916-f0ee
+agent_session: ses-system-auto-archive
 depends_on: [TASK-638, TASK-639]
 blocked_by: []
 references: []

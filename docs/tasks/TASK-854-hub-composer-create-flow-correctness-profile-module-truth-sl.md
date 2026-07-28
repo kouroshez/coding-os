@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [hub, onboarding, composer, modules, ready]
-status: in_progress
+status: complete
 priority: P0
 appetite: 1d
 created: 2026-07-28
 started: 2026-07-28
-completed: null
+completed: 2026-07-28
 agent_session: ses-claude-20260728-161456-dace
 depends_on: []
 blocked_by: []
@@ -91,3 +91,14 @@ Open http://127.0.0.1:9188 → New project → Compose my own → python stack �
 - 2026-07-28 [claude]: Edit OnboardingWizard.test.tsx
 - 2026-07-28 [claude]: Edit OnboardingWizard.test.tsx
 - 2026-07-28 [claude]: Edit HubHome.tsx
+- 2026-07-28 [claude]: committed 48b01215 · 13 files
+- 2026-07-28 [claude]: Edit init_jobs.py
+- 2026-07-28 [claude]: Edit init_jobs.py
+- 2026-07-28 [claude]: Edit main.py
+- 2026-07-28 [claude]: Edit main.py
+- 2026-07-28 [claude]: Edit main.py
+- 2026-07-28 [claude]: Edit ChatList.tsx
+- 2026-07-28 [claude]: Edit first-run.spec.ts
+- 2026-07-28 [claude]: commit 79a502612e — docs(onboarding): document the panel-first install path and the module/profile axis
+- 2026-07-28 [claude]: Fixed + verified live in the browser: chips now seed from GET /modules::default_disabled and init is called with…
+- 2026-07-28 [claude]: Status transitioned to complete via cos task-done.

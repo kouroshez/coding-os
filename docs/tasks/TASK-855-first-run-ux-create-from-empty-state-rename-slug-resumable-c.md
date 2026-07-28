@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [hub, onboarding, first-run, ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-28
-started: null
-completed: null
-agent_session: null
+started: 2026-07-28
+completed: 2026-07-28
+agent_session: ses-claude-20260728-161456-dace
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-855: First-run UX — create-from-empty-state, rename slug, resumable create job
 
 **Outcome (one sentence):** A user with zero projects can create one from the panel without touching the CLI, rename a temp slug, and survive a page reload mid-create.
@@ -33,3 +32,10 @@ references: []
 - **Given** the import dialog, **When** it renders, **Then** its copy no longer claims panel scaffolding is a follow-up.
 
 ## Work Log
+- 2026-07-28 [claude]: Edit OnboardingWizard.tsx
+- 2026-07-28 [claude]: Edit HubHome.tsx
+- 2026-07-28 [claude]: Edit HubHome.tsx
+- 2026-07-28 [claude]: Edit first-run.spec.ts
+- 2026-07-28 [claude]: commit b9e2415911 — fix(hub): re-open the Composer when a create job is still running after a reload
+- 2026-07-28 [claude]: Shipped + verified: empty state now leads with "New project" (e2e-covered), import dialog copy no longer sends users…
+- 2026-07-28 [claude]: Status transitioned to complete via cos task-done.

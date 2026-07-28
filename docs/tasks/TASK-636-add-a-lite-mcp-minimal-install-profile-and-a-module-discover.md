@@ -5,13 +5,13 @@ swimlane: core
 kind: feature
 epic: cognitive-kernel-hardening
 labels: [distribution, hub, profiles, ux, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-28
 started: 2026-06-28
 completed: 2026-06-28
-agent_session: ses-claude-20260627-204916-f0ee
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

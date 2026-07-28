@@ -5,18 +5,17 @@ swimlane: docs
 kind: chore
 epic: null
 labels: [docs-update, onboarding, modules, ready]
-status: icebox
+status: in_progress
 priority: P1
 appetite: 1d
 created: 2026-07-28
-started: null
+started: 2026-07-28
 completed: null
-agent_session: null
+agent_session: ses-claude-20260728-161456-dace
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-857: Align onboarding + module docs with shipped behaviour (hub-architecture, meta-project, README, vision)
 
 **Outcome (one sentence):** The docs a new adopter reads describe the install paths, module profiles, and first-run screens that actually ship.

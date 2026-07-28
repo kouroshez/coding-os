@@ -12,12 +12,12 @@ Read next: any of the entries below.
 
 ### Reference (6)
 
-- [Codex Adapter](codex.md) — `ssot:true` · updated 2026-04-27
 - [Claude Adapter Migration Guide — 2026-05](claude-migration-2026-05.md) — `ssot:true` · updated 2026-05-05
 - [Claude Adapter — Architecture](claude-sdk-architecture.md) — `ssot:true` · updated 2026-05-05
 - [Claude Adapter Rollback Guide](claude-rollback.md) — `ssot:true` · updated 2026-05-05
 - [Claude Adapter — Full Reference](claude-sdk.md) — `ssot:true` · updated 2026-07-01
 - [Claude Session-Options Builder (SSOT)](session-options-builder.md) — `ssot:true` · updated 2026-07-10
+- [Codex Adapter](codex.md) — `ssot:true` · updated 2026-07-10
 
 ### Plan (1)
 

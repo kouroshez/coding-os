@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [cli, modules, profiles, docs-drift, ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-07-28
-started: null
-completed: null
-agent_session: null
+started: 2026-07-28
+completed: 2026-07-28
+agent_session: ses-claude-20260728-161456-dace
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-856: CLI surface truth for modules/profiles — help text, adopt parity, onboarding-status honesty
 
 **Outcome (one sentence):** Every module/profile choice the kernel supports is discoverable and identical from `cos init`, `cos adopt`, and the agent recipe.
@@ -37,3 +36,5 @@ references: []
 - **Given** the agent recipe, **When** an agent reads `new-project.md`, **Then** `--profile` and the accurate module list are documented.
 
 ## Work Log
+- 2026-07-28 [claude]: Help text for --disable-module/--profile is now derived from subsystems.yaml (Rule 11) so lite is discoverable and…
+- 2026-07-28 [claude]: Status transitioned to complete via cos task-done.
