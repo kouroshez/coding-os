@@ -5,7 +5,7 @@ import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import LiveAgentsPanel from '@/features/cognition/LiveAgentsPanel';
 import { apiDelete, apiPatch, apiPost } from '@/lib/api-client';
 import { PageHeader, ActionPill, Banner, SkeletonGrid } from '@/layout/HubPrimitives';
-import OnboardingWizard from './OnboardingWizard';
+import OnboardingWizard, { readParkedJob } from './OnboardingWizard';
 
 /**
  * Hub home page — the first screen when opening http://127.0.0.1:9188.
@@ -93,7 +93,9 @@ export default function HubHome() {
 
   const [importOpen, setImportOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
-  const [newOpen, setNewOpen] = useState(false);
+  // Re-open the Composer when a create is still in flight from a previous page
+  // load — the wizard owns the re-attach, but it can only do that once mounted.
+  const [newOpen, setNewOpen] = useState(() => readParkedJob() !== '');
   const [actionError, setActionError] = useState<ActionError>(null);
   const [actionNote, setActionNote] = useState<string | null>(null);
   const [busy, runBusy] = useBusy();

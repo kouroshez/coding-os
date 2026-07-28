@@ -44,7 +44,7 @@ const PARKED_JOB_KEY = 'cos.init-job';
 const rememberJob = (id: string) => {
   try { window.sessionStorage.setItem(PARKED_JOB_KEY, id); } catch { /* private mode */ }
 };
-const readParkedJob = (): string => {
+export const readParkedJob = (): string => {
   try { return window.sessionStorage.getItem(PARKED_JOB_KEY) ?? ''; } catch { return ''; }
 };
 const forgetJob = () => {

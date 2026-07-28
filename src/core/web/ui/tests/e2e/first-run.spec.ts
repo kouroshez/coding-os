@@ -74,6 +74,30 @@ test("zero projects: the empty state offers creating one, not just importing", a
   await expect(page.getByRole("heading", { name: "Create a new project" })).toBeVisible();
 });
 
+test("a create in flight survives a page reload", async ({ page }) => {
+  await page.route("**/api/hub/init-jobs/job-live", (route) =>
+    route.fulfill({
+      status: 200,
+      json: {
+        data: {
+          job_id: "job-live",
+          status: "running",
+          phase: "adapters",
+          log: ["Installing claude adapter..."],
+        },
+        meta: { layer: "hub" },
+      },
+    }));
+
+  await page.goto("/");
+  // Park a running job the way a create does, then load the page cold.
+  await page.evaluate(() => window.sessionStorage.setItem("cos.init-job", "job-live"));
+  await page.goto("/");
+
+  await expect(page.getByRole("heading", { name: "Creating your project…" })).toBeVisible();
+  await expect(page.getByText("Installing claude adapter...")).toBeVisible();
+});
+
 test("composer chips start from the default profile, not an all-on fiction", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "New project" }).last().click();
