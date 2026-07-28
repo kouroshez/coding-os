@@ -5,13 +5,13 @@ swimlane: infra
 kind: chore
 epic: git-foundation-hardening
 labels: [golden, tech-debt, code-review, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-26
 started: 2026-06-28
 completed: 2026-06-28
-agent_session: ses-claude-20260625-235014-c028
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

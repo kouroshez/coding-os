@@ -5,13 +5,13 @@ swimlane: core
 kind: chore
 epic: git-foundation-hardening
 labels: [pr-mode, merge-queue, testing, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-27
 started: 2026-06-27
 completed: 2026-06-27
-agent_session: ses-claude-20260625-235014-c028
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

@@ -5,13 +5,13 @@ swimlane: "graph_os"
 kind: bug
 epic: cognitive-kernel-hardening
 labels: [graph, typescript, false-positive, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-28
 started: 2026-06-28
 completed: 2026-06-28
-agent_session: ses-claude-20260625-235014-c028
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

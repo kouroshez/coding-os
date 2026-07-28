@@ -5,13 +5,13 @@ swimlane: cli
 kind: chore
 epic: stack-factory-v2
 labels: [ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-27
 started: 2026-06-27
 completed: 2026-06-27
-agent_session: ses-claude-20260626-165558-a565
+agent_session: ses-system-auto-archive
 depends_on: [TASK-605, TASK-606, TASK-607, TASK-608, TASK-599]
 blocked_by: []
 references: []

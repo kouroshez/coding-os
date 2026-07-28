@@ -5,13 +5,13 @@ swimlane: templates
 kind: docs
 epic: stack-factory-v2
 labels: [ready]
-status: complete
+status: archive
 priority: P2
 appetite: 3d
 created: 2026-06-27
 started: 2026-06-27
 completed: 2026-06-27
-agent_session: ses-claude-20260626-165558-a565
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
