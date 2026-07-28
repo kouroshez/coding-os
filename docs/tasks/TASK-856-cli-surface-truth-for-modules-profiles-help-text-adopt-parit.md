@@ -40,3 +40,15 @@ references: []
 - 2026-07-28 [claude]: Status transitioned to complete via cos task-done.
 - 2026-07-28 [claude]: commit 2dee5b63ae — chore(board): sync drifted task files and regenerated indexes
 - 2026-07-28 [claude]: commit 123747eadd — chore(board): commit closing task-file state for the onboarding fix batch
+- 2026-07-28 [claude]: commit 5f0a2d4c33 — chore(board): record commit trail on the closed onboarding tasks
+- 2026-07-28 [claude]: Edit main.py
+- 2026-07-28 [claude]: Edit main.py
+- 2026-07-28 [claude]: Edit hub.py
+- 2026-07-28 [claude]: Edit hub.py
+- 2026-07-28 [claude]: Edit cognition.py
+- 2026-07-28 [claude]: Edit cognition.py
+- 2026-07-28 [claude]: Edit main.py
+- 2026-07-28 [claude]: Edit AppShell.tsx
+- 2026-07-28 [claude]: Edit index.css
+- 2026-07-28 [claude]: Edit HubPrimitives.test.tsx
+- 2026-07-28 [claude]: commit b7df636905 — fix(hub): close module sets over dependents and let the onboarding marker expire
