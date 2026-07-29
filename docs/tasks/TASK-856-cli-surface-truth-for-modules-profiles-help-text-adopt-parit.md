@@ -52,3 +52,23 @@ references: []
 - 2026-07-28 [claude]: Edit index.css
 - 2026-07-28 [claude]: Edit HubPrimitives.test.tsx
 - 2026-07-28 [claude]: commit b7df636905 — fix(hub): close module sets over dependents and let the onboarding marker expire
+- 2026-07-28 [claude]: Edit probe_state.py
+- 2026-07-29 [claude]: Edit setup.py
+- 2026-07-29 [claude]: Edit setup.py
+- 2026-07-29 [claude]: Edit main.py
+- 2026-07-29 [claude]: Edit cognition.py
+- 2026-07-29 [claude]: Edit cognition.py
+- 2026-07-29 [claude]: Edit main.py
+- 2026-07-29 [claude]: Edit test_cli.py
+- 2026-07-29 [claude]: Edit subsystems.py
+- 2026-07-29 [claude]: Edit main.py
+- 2026-07-29 [claude]: Edit hub.py
+- 2026-07-29 [claude]: Edit hub.py
+- 2026-07-29 [claude]: Edit OnboardingWizard.tsx
+- 2026-07-29 [claude]: Edit OnboardingCard.tsx
+- 2026-07-29 [claude]: Edit hub-architecture.md
+- 2026-07-29 [claude]: Edit hub-architecture.md
+- 2026-07-29 [claude]: Edit main.py
+- 2026-07-29 [claude]: Edit test_hub_init_route.py
+- 2026-07-29 [claude]: Edit stub-api.ts
+- 2026-07-29 [claude]: commit b729f9241c — fix(onboarding): keep readiness on one signal and stop json mode emitting prose
