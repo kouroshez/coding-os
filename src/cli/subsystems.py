@@ -233,6 +233,26 @@ def enabled_dependents(
     )
 
 
+def close_over_dependents(disabled: list[str], modules: dict[str, Module]) -> list[str]:
+    """Transitive closure of `disabled` over reverse depends_on edges.
+
+    set_module_enabled REFUSES to disable a module an enabled one depends on
+    rather than cascading, so an unclosed set silently leaves the project
+    contradicting the request. Every caller (CLI, Hub route, Composer chips)
+    closes here so they cannot disagree on the same input."""
+    closed = list(dict.fromkeys(disabled))
+    frontier = list(closed)
+    while frontier:
+        module_id = frontier.pop()
+        state = {m.id: m.id not in closed for m in modules.values()}
+        for dependent in enabled_dependents(module_id, modules, state):
+            if modules[dependent].kernel:
+                continue
+            closed.append(dependent)
+            frontier.append(dependent)
+    return closed
+
+
 def set_module_enabled(
     project_root: Path,
     module_id: str,

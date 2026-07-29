@@ -39,13 +39,16 @@ import ThemeToggle from '@/layout/ThemeToggle';
  */
 
 const NAV = [
-  { feature: 'workspace', label: 'Workspace', Icon: LayoutDashboard, end: false, soon: false },
-  { feature: 'graph', label: 'Graph', Icon: Network, end: false, soon: false },
-  { feature: 'cognition', label: 'Cognition', Icon: Brain, end: false, soon: false },
-  { feature: 'config', label: 'Config', Icon: SlidersHorizontal, end: false, soon: false },
-  { feature: 'marketplace', label: 'Marketplace', Icon: Store, end: false, soon: true },
-  { feature: 'diagnostics', label: 'Diagnostics', Icon: HeartPulse, end: false, soon: false },
+  { feature: 'workspace', label: 'Workspace', Icon: LayoutDashboard, end: false },
+  { feature: 'graph', label: 'Graph', Icon: Network, end: false },
+  { feature: 'cognition', label: 'Cognition', Icon: Brain, end: false },
+  { feature: 'config', label: 'Config', Icon: SlidersHorizontal, end: false },
+  { feature: 'marketplace', label: 'Marketplace', Icon: Store, end: false },
+  { feature: 'diagnostics', label: 'Diagnostics', Icon: HeartPulse, end: false },
 ] as const;
+
+// Nav entries that route to a coming-soon page — badged so the label is honest.
+const SOON = new Set<string>(['marketplace']);
 
 /**
  * Features that ALWAYS link to the global /<feature> URL regardless
@@ -105,7 +108,7 @@ export default function AppShell({
           </div>
         )}
         <nav className="flex flex-1 flex-wrap items-center gap-1" aria-label="Primary">
-          {NAV.map(({ feature, label, Icon, end, soon }) => (
+          {NAV.map(({ feature, label, Icon, end }) => (
             <NavLink
               key={feature}
               to={HUB_LEVEL_FEATURES.has(feature) ? `/${feature}` : linkFor(feature)}
@@ -122,7 +125,7 @@ export default function AppShell({
             >
               <Icon size={14} aria-hidden />
               {label}
-              {soon && (
+              {SOON.has(feature) && (
                 <span className="rounded-full bg-[var(--cos-grain)] px-1.5 py-[1px] text-[9px] font-normal tracking-wide text-[var(--cos-faint)]">
                   soon
                 </span>

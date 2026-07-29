@@ -21,7 +21,7 @@ cos init \
   --yes --no-index
 ```
 
-4. Verify: exit code 0; `--format json` emits the summary object (`path`, `slug`, `agents`, `templates`, …). The project self-registers in the hub; `--summary` seeds `docs/_meta/project-description.md` (the description→PRD intake) and records `{"completed": false}` in `.coding-os/onboarding.json` so the panel still offers the guided PRD interview.
+4. Verify: exit code 0; `--format json` emits the summary object (`path`, `slug`, `agents`, `templates`, …). The project self-registers in the hub; `--summary` seeds `docs/_meta/project-description.md` (the description→PRD intake) and leaves `_TODO:` markers in the seeded PRD, so the panel still offers the guided interview.
 
 Rules:
 - Non-TTY without `--yes` fails fast naming the missing flags — never rely on prompts in automation.

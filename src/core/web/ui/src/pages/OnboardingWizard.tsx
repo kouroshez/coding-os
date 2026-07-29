@@ -24,7 +24,7 @@ interface PresetItem { id: string; label: string; description: string; stacks: s
 interface StackItem { id: string; label: string; category: string; language: string }
 interface AdapterItem { id: string; label: string }
 interface ModuleItem { id: string; label: string; kernel: boolean; depends_on: string[] }
-interface ModulesPayload { modules: ModuleItem[]; default_profile?: string; default_disabled?: string[] }
+interface ModulesPayload { modules: ModuleItem[]; default_profile: string; default_disabled: string[] }
 interface SkillEntry {
   name: string; tier: string | null; domain: string[];
   description: string; provenance: string; validated: boolean;
@@ -386,17 +386,20 @@ export default function OnboardingWizard({
     if (!parked) return;
     apiGet<JobSnapshot>(`/api/hub/init-jobs/${encodeURIComponent(parked)}`)
       .then(([snapshot]) => {
-        if (!snapshot || snapshot.status !== 'running') { forgetJob(); return; }
+        // HubHome opens this modal whenever a job is parked, so a finished or
+        // vanished job has to close it again — otherwise the user faces an
+        // empty "Create a new project" dialog they never asked for.
+        if (!snapshot || snapshot.status !== 'running') { forgetJob(); onClose(); return; }
         setBusy(true);
         setJob({
           jobId: parked,
-          phase: snapshot.phase ?? 'validate',
-          log: snapshot.log ?? [],
+          phase: snapshot.phase,
+          log: snapshot.log,
           status: 'running',
           error: '',
         });
       })
-      .catch(() => forgetJob());
+      .catch(() => { forgetJob(); onClose(); });
   }, []);
 
   // Job progress stream (TASK-362): replay + follow; reconnects after refresh.

@@ -246,6 +246,18 @@ _PRD_ORIGINS = {
     "intake": "Drafted from the project-creation intake",
 }
 
+# A one-line intake is a starting point, not an authored PRD. Keeping the
+# scaffold's own _TODO: markers means readiness stays ONE signal — the
+# placeholder scan — instead of a second completion flag to keep in sync.
+_INTAKE_TODOS = [
+    "## Still to author",
+    "",
+    "_TODO: who the user is, and the job they hire this product for._",
+    "_TODO: what success looks like in year one._",
+    "_TODO: the constraint or trade-off that shapes the build._",
+    "",
+]
+
 
 def _build_prd_file_content(
     date: str, target: str, grouped: list[tuple[str, str]], *, origin: str = "imported"
@@ -270,6 +282,8 @@ def _build_prd_file_content(
         parts.append("")
         parts.append(body.rstrip())
         parts.append("")
+    if origin == "intake":
+        parts.extend(_INTAKE_TODOS)
     return "\n".join(parts) + "\n"
 
 

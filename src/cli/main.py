@@ -812,9 +812,12 @@ def _registered_slug(project: Path) -> str:
     try:
         from cli.registry import load_registry
 
-        resolved = str(project.resolve())
+        # add_project matches on the unresolved path, so match both forms —
+        # resolving only would miss a symlinked entry it had just written.
+        wanted = {str(project), str(project.resolve())}
         for entry in load_registry().projects:
-            if str(Path(entry.path).resolve()) == resolved:
+            stored = Path(entry.path)
+            if str(stored) in wanted or str(stored.resolve()) in wanted:
                 return entry.slug
     except Exception as exc:
         logging.getLogger(__name__).debug("slug lookup skipped: %s", exc)
@@ -863,7 +866,7 @@ def _validated_disabled_modules(disable_module: tuple[str, ...]) -> list[str]:
     # so a typo'd module gave a false all-clear). kernel ids are non-disableable.
     if not disable_module:
         return []
-    from cli.subsystems import load_subsystems
+    from cli.subsystems import close_over_dependents, load_subsystems
 
     registry_modules = load_subsystems()
     disabled = list(dict.fromkeys(m.strip() for m in disable_module if m.strip()))
@@ -878,26 +881,12 @@ def _validated_disabled_modules(disable_module: tuple[str, ...]) -> list[str]:
     if kernel:
         click.echo(f"ERROR: module(s) {kernel} are kernel and cannot be disabled.", err=True)
         sys.exit(2)
-    return _close_over_dependents(disabled, registry_modules)
-
-
-def _close_over_dependents(disabled: list[str], registry_modules: dict) -> list[str]:
-    # set_module_enabled REFUSES to disable a module an enabled one depends on —
-    # it does not cascade — so an unclosed set left the project contradicting the
-    # request with only a WARN. Close it here (same cascade the Composer chips do).
-    closed = list(disabled)
-    changed = True
-    while changed:
-        changed = False
-        for module in registry_modules.values():
-            if module.kernel or module.id in closed:
-                continue
-            if any(dep in closed for dep in module.depends_on):
-                closed.append(module.id)
-                changed = True
+    closed = close_over_dependents(disabled, registry_modules)
     added = [m for m in closed if m not in disabled]
     if added:
-        click.echo(f"  Also disabling dependent module(s): {', '.join(sorted(added))}")
+        # stderr: this runs before the json-mode stdout redirect, and a progress
+        # line on stdout makes `cos init --format json | jq` a parse error.
+        click.echo(f"  Also disabling dependent module(s): {', '.join(sorted(added))}", err=True)
     return closed
 
 
@@ -2114,13 +2103,6 @@ def _run_scaffold_phase(
             seeded = seed_prd_from_text(project, project_summary, date=today)
             if seeded:
                 click.echo(f"  Seeded {len(seeded)} PRD doc(s): {', '.join(seeded)}")
-                # Seeding erases the _TODO: markers the readiness scan looks for,
-                # so record explicitly that a one-line intake is NOT an authored
-                # PRD — else the chat-landing onboarding hero never appears.
-                (state / "onboarding.json").write_text(
-                    json.dumps({"completed": False, "source": "intake"}, indent=2) + "\n",
-                    encoding="utf-8",
-                )
     click.echo(f"  Generated {CONFIG_FILE}")
 
     # 4. Run adapter install for each agent

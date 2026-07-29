@@ -553,9 +553,9 @@ def _validate_init_inputs(
     info["agents"] = list(agents)
 
     # Module toggles (TASK-421): validate against the subsystem registry —
-    # kernel is non-disableable, and the set must be dependency-closed: the
-    # scaffold REFUSES (never cascades) an unclosed one, so accepting it would
-    # return ok for a project that contradicts the request.
+    # kernel is non-disableable, and the set is closed over dependents before
+    # it reaches init: the scaffold REFUSES (never cascades) an unclosed one,
+    # so an unclosed set would return ok for a project contradicting the request.
     disabled_modules = [m for m in (disabled_modules or []) if m]
     if disabled_modules:
         try:
@@ -572,17 +572,14 @@ def _validate_init_inputs(
             return _err(
                 "validation", f"module(s) {kernel_mods} are kernel and cannot be disabled"
             ), {}
-        orphaned = sorted(
-            m.id
-            for m in registry_modules.values()
-            if m.id not in disabled_modules
-            and any(dep in disabled_modules for dep in m.depends_on)
-        )
-        if orphaned:
-            return _err(
-                "validation",
-                f"module(s) {orphaned} depend on a disabled module — disable them too",
-            ), {}
+        # Same closure the CLI applies, so an identical payload produces an
+        # identical project through either entrypoint.
+        try:
+            from cli.subsystems import close_over_dependents  # type: ignore
+
+            disabled_modules = close_over_dependents(disabled_modules, registry_modules)
+        except Exception as exc:
+            return _err("unavailable", f"subsystem registry unavailable: {exc}", status=503), {}
     info["disabled_modules"] = disabled_modules
 
     # Argv allowlist (TASK-363): every value that reaches the subprocess argv
@@ -658,6 +655,21 @@ def hub_registry_validate_init(
     }
 
 
+def _widest_profile() -> str:
+    # The profile that disables nothing, read from the registry rather than
+    # spelled here — a renamed profile must not break every Composer create.
+    try:
+        from cli.subsystems import load_profiles  # type: ignore
+
+        profiles, _ = load_profiles()
+        for name, disabled in profiles.items():
+            if not disabled:
+                return name
+    except Exception as exc:
+        logger.debug("profile lookup failed: %s", exc)
+    return "full"
+
+
 def _build_cos_init_cmd(
     name: str,
     parent_dir: str,
@@ -682,14 +694,15 @@ def _build_cos_init_cmd(
         # Skip the heavy doc-RAG embedding but still build the knowledge graph
         # (AST walk, no model) so the new project's Graph tab is never empty.
         "--graph-index",
-        # init UNIONS the profile's disabled set with --disable-module, so any
-        # other profile would make the Composer chips one-way (off-only). The
-        # wizard seeds its chips from GET /modules::default_disabled instead.
-        "--profile",
-        "full",
         "--format",
         "json",
     ]
+    if disabled_modules:
+        # init UNIONS the profile's disabled set with --disable-module, so a
+        # narrower profile would make the Composer chips one-way (off-only).
+        # With no explicit set, stay silent and let init apply its own default
+        # so a bare API create matches a hand-typed `cos init`.
+        cmd += ["--profile", _widest_profile()]
     if preset:
         cmd += ["--preset", preset]
     for stack in stacks:
@@ -747,15 +760,21 @@ def _run_cos_init(
 
 
 def _parse_init_payload(stdout_lines: list[str]) -> dict:
-    """Trailing JSON object in init's stdout (init --format json pretty-prints it)."""
-    for start in range(len(stdout_lines)):
-        if not stdout_lines[start].lstrip().startswith("{"):
-            continue
-        blob = "\n".join(stdout_lines[start:]).strip()
+    # init pretty-prints the summary, and the job runner merges stderr progress
+    # into the same pipe, so the object can be preceded AND followed by noise.
+    # raw_decode stops at the end of the first complete value.
+    text = "\n".join(stdout_lines)
+    decoder = json.JSONDecoder()
+    start = text.find("{")
+    while start != -1:
         try:
-            return json.loads(blob)
+            parsed, _ = decoder.raw_decode(text[start:])
         except json.JSONDecodeError:
+            start = text.find("{", start + 1)
             continue
+        if isinstance(parsed, dict):
+            return parsed
+        start = text.find("{", start + 1)
     return {}
 
 

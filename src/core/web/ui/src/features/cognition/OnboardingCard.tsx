@@ -60,7 +60,9 @@ export default function OnboardingCard({ onStart }: { onStart: () => void }) {
         type="button"
         onClick={() => {
           setDismissed(true);
-          void apiPost('/api/cognition/onboarding-status/dismiss', {}).catch(() => {});
+          // Un-hide on failure: a swallowed error would promise the card is
+          // gone while it returns on the next reload, with nothing to act on.
+          apiPost('/api/cognition/onboarding-status/dismiss', {}).catch(() => setDismissed(false));
         }}
         aria-label="Dismiss onboarding"
         className="shrink-0 rounded p-1 text-[var(--cos-faint)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"

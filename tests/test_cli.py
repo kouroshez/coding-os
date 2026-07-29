@@ -1607,10 +1607,10 @@ class TestCliOnboardingParity:
         assert cfg["extra_skills"] == ["redis", "docker"]
         intake = project / "docs" / "_meta" / "project-description.md"
         assert "focused product summary" in intake.read_text(encoding="utf-8")
-        # The seeded vision erases the _TODO markers the readiness scan counts,
-        # so init records that a one-liner is not an authored PRD.
-        marker = json.loads((project / ".coding-os" / "onboarding.json").read_text())
-        assert marker == {"completed": False, "source": "intake"}
+        # A one-liner is not an authored PRD: the seed keeps _TODO: markers so
+        # readiness stays a single signal (no second completion flag to sync).
+        vision = project / "docs" / "prd" / "01-snapshot-vision.md"
+        assert "_TODO:" in vision.read_text(encoding="utf-8")
 
     def test_json_summary_carries_registry_slug(self, runner: CliRunner, tmp_path: Path) -> None:
         # The Hub Composer navigates by this field; --no-register leaves it empty

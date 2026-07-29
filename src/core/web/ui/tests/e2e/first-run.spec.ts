@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { stubApi } from "./stub-api";
 
 /**
  * First-run path: a visitor with zero registered projects must be able to
@@ -37,31 +38,7 @@ const STUBS: Record<string, unknown> = {
   },
 };
 
-// Shell widgets (agent presence, live status) read collections they expect to
-// exist; an empty-object fallback would crash the render before the page under
-// test appears, so unstubbed endpoints answer with an empty-of-everything body.
-const EMPTY_COLLECTIONS = {
-  projects: [],
-  count: 0,
-  items: [],
-  agents: [],
-  sessions: [],
-  modules: [],
-  stacks: [],
-  adapters: [],
-  skills: [],
-  presets: [],
-  suggestions: [],
-  scaffoldable: [],
-};
-
-test.beforeEach(async ({ page }) => {
-  await page.route("**/api/**", async (route) => {
-    const path = new URL(route.request().url()).pathname;
-    const body = STUBS[path] ?? EMPTY_COLLECTIONS;
-    await route.fulfill({ status: 200, json: { data: body, meta: { layer: "hub" } } });
-  });
-});
+test.beforeEach(async ({ page }) => stubApi(page, STUBS));
 
 test("zero projects: the empty state offers creating one, not just importing", async ({ page }) => {
   await page.goto("/");

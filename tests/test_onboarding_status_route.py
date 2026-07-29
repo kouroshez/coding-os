@@ -86,54 +86,33 @@ def test_helper_counts_across_prd_dir(tmp_path):
     assert out["placeholders_remaining"] == 3
 
 
-def test_intake_marker_keeps_project_pending(client, tmp_path):
-    # `cos init --summary` authors the vision file, so the placeholder scan sees
-    # nothing left to fill — the explicit false marker is what keeps the hero up.
-    _seed(tmp_path, _AUTHORED)
-    (tmp_path / ".coding-os" / "onboarding.json").write_text(
-        json.dumps({"completed": False, "source": "intake"})
-    )
-    data = _status(client)
-    assert data["complete"] is False
-    assert data["source"] == "onboarding_json"
+def test_intake_seeded_prd_still_reads_as_pending(tmp_path):
+    # The one signal: an intake-seeded PRD keeps _TODO: markers, so the scan
+    # sees an unauthored PRD without a second completion flag to keep in sync.
+    from cli.setup import seed_prd_from_text
+    from core.web.routes.cognition import _onboarding_state
+
+    (tmp_path / ".coding-os").mkdir(parents=True)
+    seed_prd_from_text(tmp_path, "A booking app for indie venues.")
+    out = _onboarding_state(tmp_path, tmp_path / ".coding-os")
+    assert out["complete"] is False
+    assert out["placeholders_remaining"] > 0
+
+
+def test_authoring_over_the_intake_completes_onboarding(tmp_path):
+    from cli.setup import seed_prd_from_text
+    from core.web.routes.cognition import _onboarding_state
+
+    (tmp_path / ".coding-os").mkdir(parents=True)
+    seed_prd_from_text(tmp_path, "A booking app for indie venues.")
+    vision = tmp_path / "docs" / "prd" / "01-snapshot-vision.md"
+    vision.write_text(vision.read_text().replace("_TODO:", "Answered:"))
+    assert _onboarding_state(tmp_path, tmp_path / ".coding-os")["complete"] is True
 
 
 def test_dismiss_persists_completion(client, tmp_path):
-    _seed(tmp_path, _AUTHORED)
-    (tmp_path / ".coding-os" / "onboarding.json").write_text(
-        json.dumps({"completed": False, "source": "intake"})
-    )
+    _seed(tmp_path, _PLACEHOLDER)
     assert _status(client)["complete"] is False
     resp = client.post("/api/cognition/onboarding-status/dismiss", json={})
     assert resp.status_code == 200, resp.text
     assert _status(client)["complete"] is True
-
-
-def test_intake_marker_expires_once_the_prd_is_authored(client, tmp_path):
-    # Nothing writes completed:true except dismissal, so a permanent false would
-    # mean finishing the guided interview changed nothing.
-    import os
-    import time
-
-    _seed(tmp_path, _AUTHORED)
-    marker = tmp_path / ".coding-os" / "onboarding.json"
-    marker.write_text(json.dumps({"completed": False, "source": "intake"}))
-    assert _status(client)["complete"] is False
-
-    prd = tmp_path / "docs" / "prd" / "02-goals.md"
-    prd.write_text("# Goals\n\nShip the thing.\n")
-    future = time.time() + 60
-    os.utime(prd, (future, future))
-    data = _status(client)
-    assert data["complete"] is True
-    assert data["source"] == "placeholder_scan"
-
-
-def test_pending_marker_reports_real_placeholder_count(client, tmp_path):
-    _seed(tmp_path, _PLACEHOLDER)
-    (tmp_path / ".coding-os" / "onboarding.json").write_text(
-        json.dumps({"completed": False, "source": "intake"})
-    )
-    data = _status(client)
-    assert data["complete"] is False
-    assert data["placeholders_remaining"] == 2

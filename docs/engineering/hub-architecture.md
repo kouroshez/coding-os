@@ -350,14 +350,19 @@ LTR.
 project still needs onboarding. It is **placeholder-scan first**: the scaffold
 PRD (`docs/prd/01-snapshot-vision.md`) ships with `_TODO:` markers, so any
 remaining `_TODO:` in `docs/prd/**` means onboarding is incomplete. An explicit
-`.coding-os/onboarding.json` is an optional override that short-circuits the
-scan **in both directions** — `{"completed": true}` means done, `false` means
-still pending. The `false` form is what `cos init --summary` writes: a one-line
-intake seeds `01-snapshot-vision.md` and therefore erases every `_TODO:` the
-scan looks for, which would otherwise mark a brand-new project "onboarded" on
-the strength of a single sentence and hide the hero built for exactly that
-moment. When `docs/prd/` has no scaffold at all the project
-is treated as complete (nothing to onboard). `ChatLanding` renders a dismissible
+`.coding-os/onboarding.json` with `{"completed": true}` is an optional override
+that short-circuits the scan. When `docs/prd/` has no scaffold at all the project
+is treated as complete (nothing to onboard).
+
+**One signal, by construction.** `cos init --summary` seeds the PRD from a
+one-line intake, which would erase the very `_TODO:` markers the scan counts —
+so the intake seeder *emits its own* `_TODO:` block for what a sentence cannot
+answer (`setup.py::_INTAKE_TODOS`). A brand-new project therefore reads as
+unauthored through the same mechanism as every other project, with no second
+completion flag to keep in sync. Resist adding one: a parallel marker has to be
+written by every future PRD-seeding path and expired by some heuristic, and a
+timestamp heuristic in particular cannot work — init writes state files several
+scaffold steps before it copies `docs/prd/`. `ChatLanding` renders a dismissible
 `OnboardingCard` hero when `complete === false`; its CTA starts the docs-scoped
 onboarder session (`/api/cognition/onboard`, TASK-246) so authoring is confined
 to `docs/`. Dismissing it `POST`s `/api/cognition/onboarding-status/dismiss`,
@@ -488,15 +493,24 @@ the Advanced section lists subsystem modules from `GET /api/hub/modules`
 cascades in the UI and is re-checked by `set_module_enabled` at scaffold).
 Modules stay adjustable post-create in Config.
 
-**The chips are the whole truth (`--profile full` passthrough).** `cos init`
+**The chips are the whole truth (widest-profile passthrough).** `cos init`
 resolves `--profile` (default `standard`) and **unions** its disabled set with
 every explicit `--disable-module`, so a route that omits `--profile` can only
 ever *add* to what the user turned off — leaving a chip on would not turn that
-module on. The init route therefore passes `--profile full` and lets
-`disabled_modules` be the single authority, while the Composer seeds its chips
-from `default_disabled` so the default result still matches a hand-typed
-`cos init`. Net effect: what the chips show is what the project gets, in both
-directions.
+module on. When the caller sends `disabled_modules`, the init route therefore
+pins the **widest** profile (the one that disables nothing, resolved from the
+registry — never spelled in code) and lets `disabled_modules` be the single
+authority; the Composer seeds its chips from `default_disabled` so the default
+result still matches a hand-typed `cos init`. A caller that sends no
+`disabled_modules` gets no `--profile` at all, so a bare API create and a bare
+`cos init` land on the same registry default. Net effect: what the chips show
+is what the project gets, in both directions.
+
+The disabled set is **closed over dependents before it leaves the route**
+(`subsystems.close_over_dependents`, shared with the CLI) — `set_module_enabled`
+refuses rather than cascades, so an unclosed set would return `ok` for a project
+that contradicts the request. CLI and panel therefore produce identical projects
+from identical input.
 
 **Project list never surfaces the global state dir.** `_derive_runtime_entry`
 auto-lists the cwd as a project when it has `.coding-os/`, but `$HOME` and any

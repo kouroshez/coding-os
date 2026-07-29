@@ -456,13 +456,23 @@ class TestModuleToggles:
         # The Composer seeds its chips from this — every id must be togglable.
         assert set(data["default_disabled"]) <= listed
 
-    def test_init_cmd_pins_full_profile_so_chips_are_authoritative(self):
+    def test_init_cmd_pins_widest_profile_only_when_modules_are_specified(self):
+        from cli.subsystems import load_profiles
         from web.routes.hub import _build_cos_init_cmd
 
-        cmd = _build_cos_init_cmd("proj", "/tmp", ["python"], ["claude"])
-        # init UNIONS profile + --disable-module; any narrower profile would make
-        # a chip left ON silently install nothing.
-        assert cmd[cmd.index("--profile") + 1] == "full"
+        # No explicit set → no --profile, so a bare API create matches a bare
+        # `cos init` (both land on the registry default).
+        bare = _build_cos_init_cmd("proj", "/tmp", ["python"], ["claude"])
+        assert "--profile" not in bare
+
+        # With a set, init UNIONS profile + --disable-module, so anything
+        # narrower than the widest profile would make a chip left ON install
+        # nothing. The name comes from the registry, never a literal.
+        pinned = _build_cos_init_cmd(
+            "proj", "/tmp", ["python"], ["claude"], disabled_modules=["graph"]
+        )
+        profiles, _ = load_profiles()
+        assert not profiles[pinned[pinned.index("--profile") + 1]]
 
     def test_parse_init_payload_reads_pretty_printed_summary(self):
         from web.routes.hub import _parse_init_payload

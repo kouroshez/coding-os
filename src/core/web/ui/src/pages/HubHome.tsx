@@ -61,7 +61,7 @@ interface GcPayload {
 
 interface SuggestRootsPayload {
   suggestions: string[];
-  scaffoldable?: string[];
+  scaffoldable: string[];
 }
 
 type ActionError = { action: string; message: string } | null;

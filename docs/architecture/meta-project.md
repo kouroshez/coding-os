@@ -157,9 +157,12 @@ per-project state lives in `.coding-os/subsystems-state.json`.
 
 **The two flags are UNIONED, never merged** — a profile can only ever remove
 more, so re-enabling something a profile turned off means starting from a wider
-profile. That asymmetry is why the Hub Composer sends `--profile full` plus the
-exact chip state (see
-[hub-architecture.md](../engineering/hub-architecture.md)).
+profile. That asymmetry is why the Hub Composer pins the widest profile and
+sends the exact chip state (see
+[hub-architecture.md](../engineering/hub-architecture.md)). Both entrypoints
+close the requested set over its dependents first
+(`cli.subsystems.close_over_dependents`), because the state writer refuses an
+unclosed set instead of cascading.
 
 ## The meta-stack — closing the dogfood loop
 
