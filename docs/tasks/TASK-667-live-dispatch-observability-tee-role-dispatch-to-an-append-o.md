@@ -5,13 +5,13 @@ swimlane: core
 kind: feature
 epic: live-observability
 labels: [hub, dispatch, sse, observability, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 2d
 created: 2026-06-30
 started: 2026-06-30
 completed: 2026-06-30
-agent_session: ses-claude-20260630-221108-17bf
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

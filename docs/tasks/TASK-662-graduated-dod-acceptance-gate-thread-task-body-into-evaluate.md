@@ -5,13 +5,13 @@ swimlane: "board_os"
 kind: feature
 epic: task-lifecycle-integrity
 labels: [dod, gates, abandonment, ready]
-status: complete
+status: archive
 priority: P0
 appetite: 2d
 created: 2026-06-30
 started: 2026-06-30
 completed: 2026-06-30
-agent_session: ses-claude-20260630-011740-9a32
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

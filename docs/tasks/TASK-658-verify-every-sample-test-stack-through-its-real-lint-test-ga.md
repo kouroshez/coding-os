@@ -5,13 +5,13 @@ swimlane: infra
 kind: test
 epic: stack-completeness-v2
 labels: [ci, scaffold, wave-2, lint-gate, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-06-30
 started: 2026-06-30
 completed: 2026-06-30
-agent_session: ses-claude-20260630-012042-78c9
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

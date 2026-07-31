@@ -5,13 +5,13 @@ swimlane: cli
 kind: refactor
 epic: stack-completeness-v2
 labels: [golden, dedup, wave-2, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-30
 started: 2026-06-30
 completed: 2026-06-30
-agent_session: ses-claude-20260630-012042-78c9
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

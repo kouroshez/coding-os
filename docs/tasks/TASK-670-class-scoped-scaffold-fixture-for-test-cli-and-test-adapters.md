@@ -5,13 +5,13 @@ swimlane: infra
 kind: refactor
 epic: test-discipline
 labels: [tests, scaffold, perf, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 3d
 created: 2026-06-30
 started: 2026-07-01
 completed: 2026-07-01
-agent_session: ses-claude-20260630-011740-9a32
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
