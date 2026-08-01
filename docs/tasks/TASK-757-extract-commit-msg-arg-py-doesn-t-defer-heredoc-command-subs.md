@@ -5,13 +5,13 @@ swimlane: core
 kind: bug
 epic: null
 labels: [hooks, git-workflow, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1h
 created: 2026-07-01
 started: 2026-07-01
 completed: 2026-07-01
-agent_session: ses-claude-20260701-140116-619f
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

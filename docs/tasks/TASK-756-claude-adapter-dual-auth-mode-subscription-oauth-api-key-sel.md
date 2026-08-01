@@ -5,13 +5,13 @@ swimlane: adapters
 kind: feature
 epic: null
 labels: [claude-sdk, hub, auth, settings, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 3h
 created: 2026-07-01
 started: 2026-07-01
 completed: 2026-07-01
-agent_session: ses-claude-20260701-140116-619f
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
