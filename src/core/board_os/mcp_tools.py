@@ -2424,6 +2424,58 @@ def cos_task_daily(
 
 
 @safe_tool
+def _hook_block_trend(conn: sqlite3.Connection, threshold: int, hours: float) -> dict | None:
+    # Hook BLOCKs are mirrored into log_events (scope 'hook.<name>', kv
+    # action=block) by cos_log_hook's durable sink — no new capture needed.
+    # A falling blocks/session rate is the KPI that rules are being
+    # internalized; both windows empty -> None keeps the retro noise-free.
+    if not _has_table(conn, "log_events"):
+        return None
+
+    def iso_utc(epoch: int) -> str:
+        return datetime.utcfromtimestamp(epoch).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def window(start: int, end: int) -> tuple[int, int, dict[str, int]]:
+        rows = conn.execute(
+            "SELECT scope, COALESCE(session_id, '') FROM log_events "
+            "WHERE scope LIKE 'hook.%' AND kv LIKE ? "
+            "AND created_at >= ? AND created_at < ?",
+            ('%"action": "block"%', iso_utc(start), iso_utc(end)),
+        ).fetchall()
+        by_hook: dict[str, int] = {}
+        sessions: set[str] = set()
+        for scope, session in rows:
+            hook = scope.removeprefix("hook.")
+            by_hook[hook] = by_hook.get(hook, 0) + 1
+            if session:
+                sessions.add(session)
+        return len(rows), len(sessions), by_hook
+
+    now = int(time.time())
+    span = int(hours * 3600)
+    blocks, session_count, by_hook = window(threshold, now)
+    prev_blocks, prev_session_count, _ = window(threshold - span, threshold)
+    if blocks == 0 and prev_blocks == 0:
+        return None
+    rate = round(blocks / max(1, session_count), 2)
+    prev_rate = round(prev_blocks / max(1, prev_session_count), 2)
+    if rate < prev_rate:
+        trend = "improving"
+    elif rate > prev_rate:
+        trend = "worsening"
+    else:
+        trend = "flat"
+    top = sorted(by_hook.items(), key=lambda item: -item[1])[:5]
+    return {
+        "blocks": blocks,
+        "sessions": session_count,
+        "blocks_per_session": rate,
+        "previous_blocks_per_session": prev_rate,
+        "trend": trend,
+        "top_hooks": [{"hook": hook, "blocks": count} for hook, count in top],
+    }
+
+
 def cos_task_retro(
     conn: sqlite3.Connection,
     *,
@@ -2472,15 +2524,19 @@ def cos_task_retro(
     digest_fields = ("id", "title", "swimlane", "kind", "priority", "completed_at")
     completed = [{k: c.get(k) for k in digest_fields} for c in cards]
 
+    payload = {
+        "completed": completed,
+        "completed_count": total,
+        "cycle_time_avg_minutes": avg_cycle,
+        "emergency_count": emergency_count,
+        "swimlane_throughput": per_lane,
+        "next_cursor": next_cursor,
+    }
+    block_trend = _hook_block_trend(conn, threshold, hours)
+    if block_trend is not None:
+        payload["hook_block_trend"] = block_trend
     return ok(
-        {
-            "completed": completed,
-            "completed_count": total,
-            "cycle_time_avg_minutes": avg_cycle,
-            "emergency_count": emergency_count,
-            "swimlane_throughput": per_lane,
-            "next_cursor": next_cursor,
-        },
+        payload,
         meta={
             "layer": "tasks",
             "source": "board_os.cos_task_retro",

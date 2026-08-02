@@ -1126,6 +1126,41 @@ def test_retro_shape(project: Path, conn: sqlite3.Connection):
     assert "swimlane_throughput" in env["data"]
 
 
+def _insert_hook_block(conn, hook: str, session: str, days_ago: float) -> None:
+    import time as _time
+    from datetime import datetime as _dt
+
+    at = _dt.utcfromtimestamp(_time.time() - days_ago * 86400).strftime("%Y-%m-%dT%H:%M:%SZ")
+    conn.execute(
+        "INSERT INTO log_events (ts, lvl, scope, msg, kv, session_id, fingerprint, created_at) "
+        "VALUES (?, 'ERROR', ?, 'blocked', ?, ?, 'test-fp', ?)",
+        (at, f"hook.{hook}", '{"action": "block", "session": "' + session + '"}', session, at),
+    )
+
+
+def test_retro_reports_hook_block_trend(project: Path, conn: sqlite3.Connection):
+    """Blocks/session per top hook + trend vs the prior period, from log_events."""
+    for _ in range(2):
+        _insert_hook_block(conn, "enforce-skill", "ses-a", days_ago=1)
+    _insert_hook_block(conn, "thinking_os-gate", "ses-b", days_ago=2)
+    for _ in range(4):
+        _insert_hook_block(conn, "enforce-skill", "ses-old", days_ago=10)
+    conn.commit()
+    data = _parse(mcp_tools.cos_task_retro(conn, since="7d"))["data"]
+    trend = data["hook_block_trend"]
+    assert trend["blocks"] == 3
+    assert trend["sessions"] == 2
+    assert trend["blocks_per_session"] == 1.5
+    assert trend["previous_blocks_per_session"] == 4.0
+    assert trend["trend"] == "improving"
+    assert trend["top_hooks"][0] == {"hook": "enforce-skill", "blocks": 2}
+
+
+def test_retro_omits_hook_block_trend_when_no_events(project: Path, conn: sqlite3.Connection):
+    data = _parse(mcp_tools.cos_task_retro(conn, since="7d"))["data"]
+    assert "hook_block_trend" not in data
+
+
 # ---------- concurrent id allocation ----------
 
 
