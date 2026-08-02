@@ -154,7 +154,10 @@ dev = [
     "pytest-benchmark>=4.0.0",
     "pytest-timeout>=2.3.0",
     "httpx>=0.27.0",
-    "ruff>=0.6.0",
+    # Exact pin: uv.lock is gitignored, so CI resolves this fresh — a floating
+    # bound let every new ruff release reformat the world and fail the enforced
+    # format gate daily. Bump deliberately together with a format sweep.
+    "ruff==0.15.15",
     "mypy>=1.10.0",
     "types-pyyaml>=6.0.0",
     "types-jsonschema>=4.0.0",
