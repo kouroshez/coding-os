@@ -655,19 +655,26 @@ def hub_registry_validate_init(
     }
 
 
-def _widest_profile() -> str:
-    # The profile that disables nothing, read from the registry rather than
-    # spelled here — a renamed profile must not break every Composer create.
+def _default_profile_reenables(disabled_modules: list[str]) -> list[str]:
+    # Modules the chips kept ON that the default profile would disable —
+    # emitted as --enable-module so the payload stays authoritative without
+    # pinning a profile. Hidden modules follow the profile: the chips never
+    # show them, so the caller expressed no intent about them.
     try:
-        from cli.subsystems import load_profiles  # type: ignore
+        from cli.subsystems import load_profiles, load_subsystems, resolve_profile  # type: ignore
 
-        profiles, _ = load_profiles()
-        for name, disabled in profiles.items():
-            if not disabled:
-                return name
+        modules = load_subsystems()
+        _, default_name = load_profiles()
+        default_disabled = resolve_profile(default_name)
     except Exception as exc:
         logger.debug("profile lookup failed: %s", exc)
-    return "full"
+        return []
+    off = set(disabled_modules)
+    return sorted(
+        module_id
+        for module_id in default_disabled
+        if module_id not in off and module_id in modules and not modules[module_id].hidden
+    )
 
 
 def _build_cos_init_cmd(
@@ -698,11 +705,12 @@ def _build_cos_init_cmd(
         "json",
     ]
     if disabled_modules:
-        # init UNIONS the profile's disabled set with --disable-module, so a
-        # narrower profile would make the Composer chips one-way (off-only).
-        # With no explicit set, stay silent and let init apply its own default
-        # so a bare API create matches a hand-typed `cos init`.
-        cmd += ["--profile", _widest_profile()]
+        # init UNIONS the profile's disabled set with --disable-module, so the
+        # chips a user left ON must ride as --enable-module or the default
+        # profile silently turns them off. With no explicit set, stay silent so
+        # a bare API create matches a hand-typed `cos init`.
+        for module_id in _default_profile_reenables(disabled_modules):
+            cmd += ["--enable-module", module_id]
     if preset:
         cmd += ["--preset", preset]
     for stack in stacks:

@@ -493,18 +493,22 @@ the Advanced section lists subsystem modules from `GET /api/hub/modules`
 cascades in the UI and is re-checked by `set_module_enabled` at scaffold).
 Modules stay adjustable post-create in Config.
 
-**The chips are the whole truth (widest-profile passthrough).** `cos init`
+**The chips are the whole truth (enable-module escape).** `cos init`
 resolves `--profile` (default `standard`) and **unions** its disabled set with
 every explicit `--disable-module`, so a route that omits `--profile` can only
 ever *add* to what the user turned off — leaving a chip on would not turn that
-module on. When the caller sends `disabled_modules`, the init route therefore
-pins the **widest** profile (the one that disables nothing, resolved from the
-registry — never spelled in code) and lets `disabled_modules` be the single
-authority; the Composer seeds its chips from `default_disabled` so the default
-result still matches a hand-typed `cos init`. A caller that sends no
-`disabled_modules` gets no `--profile` at all, so a bare API create and a bare
-`cos init` land on the same registry default. Net effect: what the chips show
-is what the project gets, in both directions.
+module on. `--enable-module` is the authoritative escape from that union: it
+force-enables a module (pulling its `depends_on` chain in with it) after the
+profile merge, and contradicting an explicit `--disable-module` of the same id
+is rejected. When the caller sends `disabled_modules`, the init route keeps the
+registry default profile and emits `--enable-module` for each module the chips
+kept on that the default profile would disable — `disabled_modules` stays the
+single authority while the recorded provenance keeps the real profile name; the
+Composer seeds its chips from `default_disabled` so the default result still
+matches a hand-typed `cos init`. A caller that sends no `disabled_modules` gets
+no module flags at all, so a bare API create and a bare `cos init` land on the
+same registry default. Net effect: what the chips show is what the project
+gets, in both directions.
 
 The disabled set is **closed over dependents before it leaves the route**
 (`subsystems.close_over_dependents`, shared with the CLI) — `set_module_enabled`

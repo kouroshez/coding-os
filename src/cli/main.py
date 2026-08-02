@@ -856,7 +856,17 @@ def _profile_flag_help() -> str:
     return (
         f"Module profile curating the agent's MCP tool surface: {_subsystem_help_lists()[1]}. "
         "UNIONED with --disable-module (a profile can only remove modules, never "
-        "re-add one); omit to use the registry default."
+        "re-add one — use --enable-module to keep one on); omit to use the "
+        "registry default."
+    )
+
+
+def _enable_flag_help() -> str:
+    return (
+        "Force-enable a module after the profile union (repeatable) — the escape "
+        "from profile+--disable-module union semantics, which can only remove. "
+        "Pulls the module's depends_on chain in with it; combining with "
+        "--disable-module of the same id is an error."
     )
 
 
@@ -888,6 +898,48 @@ def _validated_disabled_modules(disable_module: tuple[str, ...]) -> list[str]:
         # line on stdout makes `cos init --format json | jq` a parse error.
         click.echo(f"  Also disabling dependent module(s): {', '.join(sorted(added))}", err=True)
     return closed
+
+
+def _apply_enable_modules(
+    disabled: list[str],
+    enable_module: tuple[str, ...],
+    explicit_disable: tuple[str, ...],
+) -> list[str]:
+    # The escape from union semantics: --enable-module wins over a profile's
+    # disable, but contradicting an explicit --disable-module is an error, not
+    # a merge. Dependencies come along so the final set stays closed.
+    if not enable_module:
+        return disabled
+    from cli.subsystems import load_subsystems
+
+    registry_modules = load_subsystems()
+    enabled = list(dict.fromkeys(m.strip() for m in enable_module if m.strip()))
+    unknown = [m for m in enabled if m not in registry_modules]
+    if unknown:
+        click.echo(
+            f"ERROR: unknown module(s) {unknown} — available: {sorted(registry_modules)}.",
+            err=True,
+        )
+        sys.exit(2)
+    conflict = sorted(set(enabled) & {m.strip() for m in explicit_disable if m.strip()})
+    if conflict:
+        click.echo(
+            f"ERROR: module(s) {conflict} passed to both --enable-module and --disable-module.",
+            err=True,
+        )
+        sys.exit(2)
+    keep: set[str] = set()
+    frontier = list(enabled)
+    while frontier:
+        module_id = frontier.pop()
+        if module_id in keep:
+            continue
+        keep.add(module_id)
+        frontier.extend(d for d in registry_modules[module_id].depends_on if d in registry_modules)
+    re_enabled = sorted(set(disabled) & keep)
+    if re_enabled:
+        click.echo(f"  Re-enabling module(s): {', '.join(re_enabled)}", err=True)
+    return [m for m in disabled if m not in keep]
 
 
 def _service_relocations(templates: tuple[str, ...]) -> dict[str, str]:
@@ -1507,6 +1559,12 @@ def _refuse_coding_os_self_init(project: Path) -> None:
     default=None,
     help=_profile_flag_help(),
 )
+@click.option(
+    "--enable-module",
+    "enable_module",
+    multiple=True,
+    help=_enable_flag_help(),
+)
 def init(
     agent: str | None,
     template: tuple[str, ...],
@@ -1529,6 +1587,7 @@ def init(
     graph_index: bool,
     disable_module: tuple[str, ...],
     profile: str | None,
+    enable_module: tuple[str, ...],
 ) -> None:
     """Initialize coding-os in a project.
 
@@ -1576,11 +1635,13 @@ def init(
     except ValueError as exc:
         click.echo(f"ERROR: {exc}", err=True)
         sys.exit(2)
+    _explicit_disable = tuple(disable_module)
     disable_module = tuple(_profile_disabled) + tuple(disable_module)
 
     # Validate --disable-module BEFORE the dry-run/real split so the preview and
     # the real init reject the same ids (pass-3 review).
     disabled_modules = _validated_disabled_modules(disable_module)
+    disabled_modules = _apply_enable_modules(disabled_modules, enable_module, _explicit_disable)
 
     if dry_config:
         _dry_config_preview(template, output_format)
@@ -1901,6 +1962,12 @@ def _detect_stacks_from_markers(path: Path) -> list[str]:
     default=None,
     help=_profile_flag_help(),
 )
+@click.option(
+    "--enable-module",
+    "enable_module",
+    multiple=True,
+    help=_enable_flag_help(),
+)
 @click.pass_context
 def adopt(
     ctx: click.Context,
@@ -1913,6 +1980,7 @@ def adopt(
     do_index: bool,
     disable_module: tuple[str, ...],
     profile: str | None,
+    enable_module: tuple[str, ...],
 ) -> None:
     """Overlay coding-os onto an existing repo without touching user code.
 
@@ -1950,6 +2018,7 @@ def adopt(
         do_index=do_index,
         disable_module=disable_module,
         profile=profile,
+        enable_module=enable_module,
     )
 
 

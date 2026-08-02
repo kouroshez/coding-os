@@ -456,23 +456,32 @@ class TestModuleToggles:
         # The Composer seeds its chips from this — every id must be togglable.
         assert set(data["default_disabled"]) <= listed
 
-    def test_init_cmd_pins_widest_profile_only_when_modules_are_specified(self):
-        from cli.subsystems import load_profiles
+    def test_init_cmd_emits_enable_module_instead_of_profile_pin(self):
+        from cli.subsystems import load_profiles, load_subsystems, resolve_profile
         from web.routes.hub import _build_cos_init_cmd
 
-        # No explicit set → no --profile, so a bare API create matches a bare
-        # `cos init` (both land on the registry default).
+        # No explicit set → no module flags at all, so a bare API create
+        # matches a bare `cos init` (both land on the registry default).
         bare = _build_cos_init_cmd("proj", "/tmp", ["python"], ["claude"])
         assert "--profile" not in bare
+        assert "--enable-module" not in bare
 
-        # With a set, init UNIONS profile + --disable-module, so anything
-        # narrower than the widest profile would make a chip left ON install
-        # nothing. The name comes from the registry, never a literal.
-        pinned = _build_cos_init_cmd(
+        # With a set, init UNIONS profile + --disable-module, so every visible
+        # module the chips kept ON that the default profile disables must ride
+        # as --enable-module — no profile pin needed to stay authoritative.
+        cmd = _build_cos_init_cmd(
             "proj", "/tmp", ["python"], ["claude"], disabled_modules=["graph"]
         )
-        profiles, _ = load_profiles()
-        assert not profiles[pinned[pinned.index("--profile") + 1]]
+        assert "--profile" not in cmd
+        modules = load_subsystems()
+        _, default_name = load_profiles()
+        expected = sorted(
+            m
+            for m in resolve_profile(default_name)
+            if m != "graph" and not modules[m].hidden
+        )
+        emitted = [cmd[i + 1] for i, tok in enumerate(cmd) if tok == "--enable-module"]
+        assert sorted(emitted) == expected
 
     def test_parse_init_payload_reads_pretty_printed_summary(self):
         from web.routes.hub import _parse_init_payload

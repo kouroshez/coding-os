@@ -2110,6 +2110,62 @@ class TestSubsystems:
         assert state["graph"] is False and state["memory"] is False
         assert state["kernel"] is True  # untouched
 
+    def test_init_enable_module_escapes_profile_union(
+        self, runner: CliRunner, project_dir: Path
+    ) -> None:
+        """--enable-module keeps a module the profile disabled (the union escape)."""
+        from cli.subsystems import load_profiles, load_subsystems, module_state, resolve_profile
+
+        modules = load_subsystems()
+        _, default_name = load_profiles()
+        candidates = [m for m in resolve_profile(default_name) if not modules[m].hidden]
+        assert candidates, "default profile expected to disable at least one visible module"
+        target = candidates[0]
+
+        project_dir.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project_dir),
+                "--enable-module",
+                target,
+                "--no-index",
+                "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, f"init failed: {result.output}"
+        state = module_state(project_dir)
+        assert state[target] is True, f"{target} must survive the profile union"
+        for dep in modules[target].depends_on:
+            assert state[dep] is True, f"dependency {dep} must ride along with {target}"
+
+    def test_init_enable_module_conflicts_with_explicit_disable(
+        self, runner: CliRunner, project_dir: Path
+    ) -> None:
+        project_dir.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project_dir),
+                "--disable-module",
+                "graph",
+                "--enable-module",
+                "graph",
+                "--no-index",
+                "--no-register",
+            ],
+        )
+        assert result.exit_code == 2
+        assert "both --enable-module and --disable-module" in result.output
+
     def test_init_disable_module_writes_runtime_allowlist(
         self, runner: CliRunner, project_dir: Path
     ) -> None:
