@@ -60,8 +60,9 @@ if [[ "$STATE_VALID" != "true" ]]; then
   echo "BLOCKED: No active task for this session. Reason: $STATE_REASON" >&2
   echo "  Preferred:  cos task-create --title \"...\" --swimlane <domain> --kind <type>" >&2
   echo "              cos task-start TASK-NNN" >&2
-  echo "  Manual:     bash \".${COS_AGENT}/hooks/write-state.sh\" .task-current \"<task-name>\"" >&2
   echo "  Trivial:    bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1 <one-line why this is trivial>\"" >&2
+  # No manual .task-current escape here: stamping the marker without a board
+  # transition satisfies the hook while the card never leaves icebox.
   exit 2
 fi
 

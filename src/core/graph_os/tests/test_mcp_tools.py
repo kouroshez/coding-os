@@ -530,8 +530,10 @@ class TestSimilar:
         import embeddings as emb  # type: ignore
         from graph_os.backends.sqlite_backend import SqliteBackend
 
-        if not emb.is_available():
-            pytest.skip("embedding model not available")
+        # is_available() only proves the package imports; offline CI has no
+        # model weights, so probe the actual load like thinking_os/conftest.
+        if emb._get_model() is None:
+            pytest.skip("real embedding model unavailable (offline / not vendored)")
 
         be = SqliteBackend(conn=migrated_conn)
         nodes = [
@@ -591,8 +593,10 @@ class TestSimilar:
         import embeddings as emb  # type: ignore
         from graph_os.backends.sqlite_backend import SqliteBackend
 
-        if not emb.is_available():
-            pytest.skip("embedding model not available")
+        # Same real-model probe as above: package-import alone passes on
+        # offline CI while encode falls back to difflib and the assert fails.
+        if emb._get_model() is None:
+            pytest.skip("real embedding model unavailable (offline / not vendored)")
 
         be = SqliteBackend(conn=migrated_conn)
         nodes = [

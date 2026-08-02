@@ -32,6 +32,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -127,7 +128,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -270,6 +270,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -366,7 +367,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -536,6 +536,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -632,7 +633,6 @@
         ".claude/rules/aspnet-core-backend.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -790,6 +790,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -886,7 +887,6 @@
         ".claude/rules/astro-frontend.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -1052,6 +1052,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -1147,7 +1148,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -1293,6 +1293,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -1389,7 +1390,6 @@
         ".claude/rules/django-backend.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -1460,6 +1460,8 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".ruff_cache/.gitignore",
+        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -1520,7 +1522,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 252
+      "count": 254
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1554,6 +1556,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -1650,7 +1653,6 @@
         ".claude/rules/fastapi-backend.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -1721,6 +1723,8 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".ruff_cache/.gitignore",
+        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -1773,7 +1777,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 246
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1807,6 +1811,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -1903,7 +1908,6 @@
         ".claude/rules/flutter-mobile.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -2062,6 +2066,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -2158,7 +2163,6 @@
         ".claude/rules/git-workflow.md",
         ".claude/rules/go-backend.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -2316,6 +2320,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -2412,7 +2417,6 @@
         ".claude/rules/git-workflow.md",
         ".claude/rules/go-fiber-backend.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -2571,6 +2575,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -2666,7 +2671,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -2813,6 +2817,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -2908,7 +2913,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -3056,6 +3060,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -3152,7 +3157,6 @@
         ".claude/rules/git-workflow.md",
         ".claude/rules/laravel-backend.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -3311,6 +3315,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -3410,7 +3415,6 @@
         ".claude/rules/meta-hook-author.md",
         ".claude/rules/meta-mcp-tool-author.md",
         ".claude/rules/meta-meta-engineering.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -3508,6 +3512,8 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".ruff_cache/.gitignore",
+        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -3553,7 +3559,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 267
+      "count": 269
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3587,6 +3593,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -3682,7 +3689,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/nestjs-backend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
@@ -3848,6 +3854,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -3943,7 +3950,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/nextjs-frontend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
@@ -4120,6 +4126,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -4215,7 +4222,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/node-express-backend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
@@ -4377,6 +4383,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -4472,7 +4479,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -4537,6 +4543,8 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
+        ".ruff_cache/.gitignore",
+        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -4584,7 +4592,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 234
     },
     "claude_rails": {
       "agent": "claude",
@@ -4618,6 +4626,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -4713,7 +4722,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/rails-backend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
@@ -4876,6 +4884,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -4971,7 +4980,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/react-native-mobile.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
@@ -5145,6 +5153,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -5240,7 +5249,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -5387,6 +5395,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -5482,7 +5491,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/rust-axum-backend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
@@ -5641,6 +5649,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -5736,7 +5745,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -5884,6 +5892,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -5979,7 +5988,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/spring-boot-backend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
@@ -6139,6 +6147,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -6234,7 +6243,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/svelte-sveltekit-frontend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
@@ -6403,6 +6411,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -6498,7 +6507,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -6647,6 +6655,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -6742,7 +6751,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -6903,6 +6911,7 @@
         ".claude/commands/verify.md",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
+        ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
@@ -6998,7 +7007,6 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
-        ".claude/rules/model-routing.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
         ".claude/rules/transparency-banner.md",
@@ -7188,7 +7196,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -7260,7 +7272,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -7366,7 +7377,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 234
     },
     "codex_angular": {
       "agent": "codex",
@@ -7428,7 +7439,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -7501,7 +7516,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -7634,7 +7648,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 259
+      "count": 262
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7696,7 +7710,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -7769,7 +7787,6 @@
         ".codex/rules/aspnet-core-backend.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -7890,7 +7907,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 250
     },
     "codex_astro": {
       "agent": "codex",
@@ -7952,7 +7969,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -8025,7 +8046,6 @@
         ".codex/rules/astro-frontend.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -8154,7 +8174,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 255
+      "count": 258
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -8216,7 +8236,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -8288,7 +8312,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -8397,7 +8420,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 237
     },
     "codex_django": {
       "agent": "codex",
@@ -8459,7 +8482,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -8532,7 +8559,6 @@
         ".codex/rules/django-backend.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -8600,6 +8626,8 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".ruff_cache/.gitignore",
+        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -8660,7 +8688,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 254
+      "count": 259
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8722,7 +8750,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -8795,7 +8827,6 @@
         ".codex/rules/fastapi-backend.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -8863,6 +8894,8 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".ruff_cache/.gitignore",
+        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -8915,7 +8948,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 251
     },
     "codex_flutter": {
       "agent": "codex",
@@ -8977,7 +9010,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -9050,7 +9087,6 @@
         ".codex/rules/flutter-mobile.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -9172,7 +9208,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 248
+      "count": 251
     },
     "codex_go": {
       "agent": "codex",
@@ -9234,7 +9270,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -9307,7 +9347,6 @@
         ".codex/rules/git-workflow.md",
         ".codex/rules/go-backend.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -9428,7 +9467,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 250
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9490,7 +9529,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -9563,7 +9606,6 @@
         ".codex/rules/git-workflow.md",
         ".codex/rules/go-fiber-backend.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -9685,7 +9727,7 @@
         "src/backend/go.sum",
         "src/shared/README.md"
       ],
-      "count": 248
+      "count": 251
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -9747,7 +9789,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -9819,7 +9865,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -9929,7 +9974,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 238
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -9991,7 +10036,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -10063,7 +10112,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -10174,7 +10222,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 239
     },
     "codex_laravel": {
       "agent": "codex",
@@ -10236,7 +10284,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -10309,7 +10361,6 @@
         ".codex/rules/git-workflow.md",
         ".codex/rules/laravel-backend.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -10431,7 +10482,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 248
+      "count": 251
     },
     "codex_meta": {
       "agent": "codex",
@@ -10493,7 +10544,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -10569,7 +10624,6 @@
         ".codex/rules/meta-hook-author.md",
         ".codex/rules/meta-mcp-tool-author.md",
         ".codex/rules/meta-meta-engineering.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -10664,6 +10718,8 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".ruff_cache/.gitignore",
+        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -10709,7 +10765,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 269
+      "count": 274
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -10771,7 +10827,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -10843,7 +10903,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/nestjs-backend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
@@ -10972,7 +11031,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 254
+      "count": 257
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -11034,7 +11093,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -11106,7 +11169,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/nextjs-frontend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
@@ -11246,7 +11308,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 265
+      "count": 268
     },
     "codex_node-express": {
       "agent": "codex",
@@ -11308,7 +11370,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -11380,7 +11446,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/node-express-backend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
@@ -11505,7 +11570,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 250
+      "count": 253
     },
     "codex_python": {
       "agent": "codex",
@@ -11567,7 +11632,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -11639,7 +11708,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -11701,6 +11769,8 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
+        ".ruff_cache/.gitignore",
+        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11748,7 +11818,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 239
     },
     "codex_rails": {
       "agent": "codex",
@@ -11810,7 +11880,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -11882,7 +11956,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/rails-backend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
@@ -12008,7 +12081,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 254
     },
     "codex_react-native": {
       "agent": "codex",
@@ -12070,7 +12143,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -12142,7 +12219,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/react-native-mobile.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
@@ -12279,7 +12355,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 262
+      "count": 265
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -12341,7 +12417,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -12413,7 +12493,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -12523,7 +12602,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 238
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -12585,7 +12664,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -12657,7 +12740,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/rust-axum-backend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
@@ -12779,7 +12861,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 250
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -12841,7 +12923,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -12913,7 +12999,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -13024,7 +13109,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 239
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -13086,7 +13171,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -13158,7 +13247,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/spring-boot-backend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
@@ -13281,7 +13369,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 248
+      "count": 251
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -13343,7 +13431,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -13415,7 +13507,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/svelte-sveltekit-frontend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
@@ -13547,7 +13638,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 257
+      "count": 260
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -13609,7 +13700,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -13681,7 +13776,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -13793,7 +13887,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 237
+      "count": 240
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -13855,7 +13949,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -13927,7 +14025,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -14051,7 +14148,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 249
+      "count": 252
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -14113,7 +14210,11 @@
         ".codex/hooks/check-mcp-extras.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/classify-task-mode.sh",
+        ".codex/hooks/codex-merge-hook-output.py",
+        ".codex/hooks/codex-normalize-edit.py",
+        ".codex/hooks/codex-postedit-dispatch.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
+        ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
@@ -14185,7 +14286,6 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
-        ".codex/rules/model-routing.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
         ".codex/rules/transparency-banner.md",
@@ -14312,7 +14412,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 252
+      "count": 255
     }
   }
 }
