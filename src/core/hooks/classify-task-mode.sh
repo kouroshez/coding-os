@@ -64,9 +64,12 @@ if printf '%s' "$PL" | command grep -qiE "$GOV_RE"; then
 fi
 
 # Verb sets — order matters when the prompt mixes signals (rare but real).
-IMPL_RE='(implement|build|fix|add|ship|refactor|migrate|optimi[sz]e|deploy|hotfix)'
-QUERY_RE='(what is|what does|why|explain|analy[sz]e|look at|review|show|list|describe)'
-EXPLORE_RE='(explore|investigate|trace|map |audit|deep dive)'
+# Persian alternates keep the bilingual promise: without them every Persian
+# implementation prompt fell through to adhoc/chore, and enforce-task-start
+# exempts those modes — whole features got built with no task bound.
+IMPL_RE='(implement|build|fix|add|ship|refactor|migrate|optimi[sz]e|deploy|hotfix|بساز|پیاده|درست کن|فیکس|رفع|اصلاح کن|اضافه کن|انجام(ش|شون)? بده|مهاجرت|بهینه|دیپلوی|ریفکتور)'
+QUERY_RE='(what is|what does|why|explain|analy[sz]e|look at|review|show|list|describe|چیه|چیست|چرا|توضیح|تحلیل|بررسی|نشون بده|نشان بده|لیست)'
+EXPLORE_RE='(explore|investigate|trace|map |audit|deep dive|کاوش|ردیابی|ریشه‌یابی|ریشه یابی|عمیق)'
 
 if printf '%s' "$PL" | command grep -qiE "$IMPL_RE"; then
   printf 'propose-formal\n' > "$MODE_FILE"

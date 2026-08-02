@@ -262,3 +262,48 @@ class TestNudgeTaskDiscovery:
         )
         assert rc == 0
         assert "task nudge" not in err
+
+
+class TestClassifyTaskModeBilingual:
+    """Persian implementation prompts must engage formal enforcement — an
+    English-only verb set silently ran whole Persian sessions in adhoc mode,
+    which enforce-task-start exempts (the task=none drift)."""
+
+    H = "classify-task-mode.sh"
+
+    def _classify(self, tmp_path: Path, prompt: str) -> str:
+        panel = _panel(tmp_path)
+        _run(self.H, {"prompt": prompt}, panel)
+        return (panel / ".task-mode").read_text(encoding="utf-8").strip()
+
+    def test_persian_implement_verb_is_propose_formal(self, tmp_path):
+        assert self._classify(tmp_path, "این قابلیت را پیاده‌سازی کن") == "propose-formal"
+
+    def test_persian_fix_verb_is_propose_formal(self, tmp_path):
+        assert self._classify(tmp_path, "برو ماژول انتخاب رو درست کن و تستش کن") == "propose-formal"
+
+    def test_persian_question_stays_query(self, tmp_path):
+        assert self._classify(tmp_path, "چرا این تست قرمز است؟") == "query"
+
+    def test_english_implement_verb_unchanged(self, tmp_path):
+        assert self._classify(tmp_path, "implement the retry logic for the queue") == "propose-formal"
+
+
+class TestEnforceTaskStartRemediation:
+    """The block message must not advertise the manual .task-current stamp —
+    satisfying the marker without a board transition is how zombie cards
+    accrete work evidence while never leaving icebox."""
+
+    H = "enforce-task-start.sh"
+
+    def test_block_offers_lifecycle_paths_only(self, tmp_path):
+        panel = _panel(tmp_path)
+        (panel / ".task-mode").write_text("formal\n", encoding="utf-8")
+        code, _, err = _run(
+            self.H,
+            {"tool_name": "Write", "tool_input": {"file_path": "src/core/board_os/foo.py"}},
+            panel,
+        )
+        assert code == 2
+        assert "task-start" in err
+        assert ".task-current" not in err

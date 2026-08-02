@@ -492,6 +492,7 @@ def _task_card(row: sqlite3.Row | tuple) -> dict:
         "appetite": row[8] or "1d",
         "agent_session": row[9],
         "last_log_line": _last_log_line(row[10]),
+        "completion_evidence": _completion_evidence(row[10]),
         "started_at": started_at,
         "completed_at": completed_at,
         "last_transition_at": last_transition_at,
@@ -519,6 +520,15 @@ def _sla_threshold_seconds(status: str, config) -> int | None:
 def _flag_stale(card: dict, config) -> dict:
     # Observability only — never mutates board state. Mutates the card dict in
     # place and returns it so callers can map over a list.
+    if card.get("status") == "icebox" and card.get("completion_evidence"):
+        # Zombie: the work log claims finished work but the card never left
+        # icebox — surface it on every board render, independent of any SLA.
+        card["stale"] = True
+        card["stale_reason"] = (
+            "icebox card carries completion evidence (zombie) — "
+            "run cos_task_reconcile, then lifecycle it through complete"
+        )
+        return card
     threshold = _sla_threshold_seconds(card.get("status", ""), config)
     dwell = card.get("status_dwell_seconds")
     if threshold is not None and dwell is not None and dwell > threshold:
@@ -531,6 +541,23 @@ def _flag_stale(card: dict, config) -> dict:
         card["stale"] = False
         card["stale_reason"] = None
     return card
+
+
+_COMPLETION_EVIDENCE_RE = re.compile(
+    r"commit(?:ted)?\s+[0-9a-f]{7,40}"
+    r"|implemented\b.{0,40}\bverified"
+    r"|verified\b.{0,40}\bimplemented",
+    re.IGNORECASE,
+)
+
+
+def _completion_evidence(work_log_json: str | None) -> bool:
+    # Heuristic over the cached work-log lines: a linked commit sha or an
+    # "implemented … verified" claim is evidence of finished work. Used only
+    # for observability (zombie flag + reconcile triage), never for gating.
+    if not work_log_json:
+        return False
+    return bool(_COMPLETION_EVIDENCE_RE.search(str(work_log_json)))
 
 
 def _last_log_line(work_log_json: str | None) -> str | None:
@@ -1854,6 +1881,12 @@ def _classify_stranded(status: str, commits: int | None, has_work_log: bool) -> 
 
 def _reconcile_recommendation(task_id: str, classification: str, commits: int) -> str:
     n = "?" if commits is None else commits
+    if classification == "zombie_icebox":
+        return (
+            f"Work log claims finished work but the card never left icebox. "
+            f"Verify the change is live, then `cos task-start {task_id}` -> testing -> "
+            f"`cos task-done {task_id}`; if the claim is wrong, resume or park deliberately."
+        )
     if classification == "likely_complete":
         return (
             f"Looks finished ({n} commit(s) reference it, reached testing). "
@@ -2020,7 +2053,7 @@ def cos_task_reclaim(
 
 @safe_tool
 def cos_task_reconcile(conn: sqlite3.Connection, *, include_active: bool = False) -> str:
-    """Triage stranded in_progress/testing tasks with completion evidence + a review recommendation (read-only)."""
+    """Triage stranded in_progress/testing tasks and icebox zombies (completion evidence, no lifecycle) — read-only."""
     now = time.time()
     active = _active_session_ids(now)
     project_root = _project_root()
@@ -2036,13 +2069,30 @@ def cos_task_reconcile(conn: sqlite3.Connection, *, include_active: bool = False
     # then batch the git lookup into ONE history walk instead of one subprocess
     # per row. TASK-227.
     triaged = [r for r in rows if include_active or not (r[1] and r[1] in active)]
-    commits_by_task = _commits_referencing_batch([r[0] for r in triaged], project_root)
+    # Zombies: icebox cards whose work log already claims finished work. The
+    # commit-subject count is NOT the signal here — the card-filing commit
+    # mentions every task id, so only the work-log claim distinguishes a zombie.
+    zombie_rows = conn.execute(
+        "SELECT task_id, agent_session, status, started_at, work_log_last_5, "
+        "  (SELECT MAX(transitioned_at) FROM task_status_history h "
+        "   WHERE h.task_id = tasks.task_id) "
+        "FROM tasks WHERE status = 'icebox' AND work_log_last_5 IS NOT NULL "
+        "ORDER BY task_id LIMIT ?",
+        (_STRANDED_SCAN_LIMIT,),
+    ).fetchall()
+    zombies = [r for r in zombie_rows if _completion_evidence(r[4])]
+    commits_by_task = _commits_referencing_batch(
+        [r[0] for r in triaged] + [r[0] for r in zombies], project_root
+    )
     items: list[dict] = []
-    for task_id, owner, status, started_at, work_log, last_tx in triaged:
+    for task_id, owner, status, started_at, work_log, last_tx in triaged + zombies:
         owner_active = bool(owner and owner in active)
         commits = commits_by_task.get(task_id)
         has_wl = _has_work_log(work_log)
-        classification = _classify_stranded(status, commits, has_wl)
+        if status == "icebox":
+            classification = "zombie_icebox"
+        else:
+            classification = _classify_stranded(status, commits, has_wl)
         dwell = _status_dwell_seconds(now, started_at, last_tx)
         items.append(
             {
@@ -2062,6 +2112,7 @@ def cos_task_reconcile(conn: sqlite3.Connection, *, include_active: bool = False
         "likely_complete": sum(1 for i in items if i["classification"] == "likely_complete"),
         "likely_abandoned": sum(1 for i in items if i["classification"] == "likely_abandoned"),
         "needs_review": sum(1 for i in items if i["classification"] == "needs_review"),
+        "zombie_icebox": sum(1 for i in items if i["classification"] == "zombie_icebox"),
     }
     return ok(
         {"stranded": items, "count": len(items), "summary": summary},

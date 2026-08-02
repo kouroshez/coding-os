@@ -1885,6 +1885,61 @@ def test_reconcile_is_read_only(project: Path, conn: sqlite3.Connection):
     assert out1 == out2, "reconcile must be deterministic/idempotent"
 
 
+def test_reconcile_flags_icebox_zombie_with_completion_claim(project, conn, monkeypatch):
+    """A card filed straight into icebox whose log claims implemented+verified is a zombie."""
+    monkeypatch.setattr(
+        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: {t: 1 for t in ids}
+    )
+    mcp_tools.cos_task_create(
+        conn, title="Born zombie", swimlane="core", kind="bug", status="icebox"
+    )
+    conn.execute(
+        "UPDATE tasks SET work_log_last_5=? WHERE task_id='TASK-001'",
+        ('["Implemented + verified. Added residue-sweep after global link"]',),
+    )
+    conn.commit()
+    env = _parse(mcp_tools.cos_task_reconcile(conn))
+    item = next(i for i in env["data"]["stranded"] if i["task_id"] == "TASK-001")
+    assert item["classification"] == "zombie_icebox"
+    assert "task-done" in item["recommendation"]
+    assert env["data"]["summary"]["zombie_icebox"] == 1
+
+
+def test_reconcile_ignores_icebox_card_without_completion_claim(project, conn, monkeypatch):
+    """A merely-annotated icebox card (scope notes, no completion claim) is not a zombie."""
+    monkeypatch.setattr(
+        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: {t: 1 for t in ids}
+    )
+    mcp_tools.cos_task_create(
+        conn, title="Just parked", swimlane="core", kind="bug", status="icebox"
+    )
+    conn.execute(
+        "UPDATE tasks SET work_log_last_5=? WHERE task_id='TASK-001'",
+        ('["Scope correction before pickup: installer already excludes these files"]',),
+    )
+    conn.commit()
+    env = _parse(mcp_tools.cos_task_reconcile(conn))
+    assert not any(i["task_id"] == "TASK-001" for i in env["data"]["stranded"])
+    assert env["data"]["summary"]["zombie_icebox"] == 0
+
+
+def test_board_flags_icebox_zombie_stale(project: Path, conn: sqlite3.Connection):
+    """cos_task_board marks a zombie icebox card stale with a zombie-specific reason."""
+    mcp_tools.cos_task_create(
+        conn, title="Zombie flag", swimlane="core", kind="bug", status="icebox"
+    )
+    conn.execute(
+        "UPDATE tasks SET work_log_last_5=? WHERE task_id='TASK-001'",
+        ('["committed abc1234f · 2 files"]',),
+    )
+    conn.commit()
+    env = _parse(mcp_tools.cos_task_board(conn, status_filter=["icebox"]))
+    card = next(c for c in env["data"]["cards"] if c["id"] == "TASK-001")
+    assert card["completion_evidence"] is True
+    assert card["stale"] is True
+    assert "zombie" in card["stale_reason"]
+
+
 def test_reclaim_skips_likely_complete_testing(project: Path, conn: sqlite3.Connection):
     """The auto-reclaim sweep must NOT recycle a likely-complete testing task — leave it for review."""
     mcp_tools.cos_task_create(conn, title="Finished", swimlane="core", kind="bug", status="icebox")
