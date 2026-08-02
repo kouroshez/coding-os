@@ -27,8 +27,9 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  SV_DIR: ${{ runner.temp }}/scaffold-verify
+# SV_DIR is set per-job via $GITHUB_ENV: the `runner` context is not available
+# in workflow-level `env`, and GitHub rejects the whole file at parse time —
+# every run failed in 0s with zero jobs.
 
 jobs:
   node:
@@ -47,6 +48,8 @@ jobs:
           - { stack: vue-nuxt, sub: src/frontend, prepare: "npx --yes nuxt prepare" }
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve scratch dir
+        run: echo "SV_DIR=${RUNNER_TEMP}/scaffold-verify" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -88,6 +91,8 @@ jobs:
         stack: [django, fastapi]
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve scratch dir
+        run: echo "SV_DIR=${RUNNER_TEMP}/scaffold-verify" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -124,6 +129,8 @@ jobs:
         stack: [go, go-fiber]
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve scratch dir
+        run: echo "SV_DIR=${RUNNER_TEMP}/scaffold-verify" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
