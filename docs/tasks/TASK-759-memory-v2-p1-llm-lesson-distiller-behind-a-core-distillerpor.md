@@ -5,13 +5,13 @@ swimlane: core
 kind: feature
 epic: memory-v2
 labels: [memory, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 3d
 created: 2026-07-02
 started: 2026-07-02
 completed: 2026-07-02
-agent_session: ses-claude-20260702-023419-c2e8
+agent_session: ses-system-auto-archive
 depends_on: [TASK-758]
 blocked_by: []
 references: []
