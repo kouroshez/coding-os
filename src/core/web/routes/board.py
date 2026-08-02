@@ -585,6 +585,13 @@ def board_move(
     bt = _board_tools()
     if bt is None:
         return unwrap(_unavailable())
+    # Same actor-attribution contract as board_create: an unattributed panel
+    # move is the human operator — left None, _resolve_attribution would stamp
+    # whatever agent session is active, recording a human drag as agent work.
+    if not agent_session:
+        from board_os._agent_runtime import human_actor
+
+        agent_session = human_actor()["id"]
     conn = _db_conn()
     try:
         result = bt.cos_task_move(
@@ -970,6 +977,12 @@ def board_reposition(
     bt = _board_tools()
     if bt is None:
         return unwrap(_unavailable())
+    # Panel drags land here unattributed — same human-actor fallback as
+    # board_create/board_move, or the drag is recorded as agent work.
+    if not agent_session:
+        from board_os._agent_runtime import human_actor
+
+        agent_session = human_actor()["id"]
     conn = _db_conn()
     try:
         result = bt.cos_task_reposition(
