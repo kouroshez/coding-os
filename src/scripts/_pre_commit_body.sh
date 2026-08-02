@@ -40,6 +40,9 @@ echo "cos pre-commit: checking ${FILE_COUNT} staged file(s)..."
 MEMORY_STAGED=$(echo "$STAGED_FILES" | grep -E '^\.agents/memory/' || true)
 if [[ -n "$MEMORY_STAGED" ]]; then
   SECRET_RE='-----BEGIN [A-Z ]*PRIVATE KEY|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,}|xox[baprs]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{35}'
+  # Process substitution, never a herestring read-loop: the herestring's
+  # tmp-file path deadlocks under bash 5.3.9 in git's hook environment
+  # (repo-wide ban, enforced by test_pre_commit_no_deadlock).
   while IFS= read -r mem_file; do
     [[ -f "$mem_file" ]] || continue
     if git show ":$mem_file" 2>/dev/null | grep -qE "$SECRET_RE"; then
@@ -47,7 +50,7 @@ if [[ -n "$MEMORY_STAGED" ]]; then
       echo "  .agents/memory is committed and shared; remove the secret before committing." >&2
       exit 1
     fi
-  done <<< "$MEMORY_STAGED"
+  done < <(printf '%s\n' "$MEMORY_STAGED")
 fi
 
 # Delegate the per-file iteration to a single Python helper. The previous
