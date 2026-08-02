@@ -40,9 +40,7 @@ def test_every_registry_script_exists_on_disk() -> None:
         # adapter_scope entries ship from src/adapters/<scope>/hooks/, not the
         # agent-agnostic core dir (e.g. the claude-only agent-memory pair).
         scope = entry.get("adapter_scope", "")
-        script_dir = (
-            REPO_ROOT / "src" / "adapters" / scope / "hooks" if scope else HOOKS_DIR
-        )
+        script_dir = REPO_ROOT / "src" / "adapters" / scope / "hooks" if scope else HOOKS_DIR
         if not (script_dir / script).is_file():
             missing.append(f"{entry.get('id')} → {script}")
     assert not missing, f"Registry references missing scripts: {missing}"
