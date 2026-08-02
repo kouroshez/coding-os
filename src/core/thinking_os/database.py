@@ -2177,6 +2177,15 @@ def _migrate_v51_observations_dedup_unique(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_v52_derived_outcome_columns(conn: sqlite3.Connection) -> None:
+    if not _column_exists_table(conn, "task_outcomes", "derived_outcome"):
+        conn.execute("ALTER TABLE task_outcomes ADD COLUMN derived_outcome TEXT")
+    if not _column_exists_table(conn, "task_outcomes", "derived_provenance"):
+        conn.execute("ALTER TABLE task_outcomes ADD COLUMN derived_provenance TEXT")
+    conn.commit()
+    logger.info("Migration v52 applied: task_outcomes gained derived_outcome columns")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2553,6 +2562,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         51,
         "Atomic write-path dedup: collapse duplicate observations and add a partial UNIQUE(content_hash, session_id) index so INSERT OR IGNORE enforces one-per-group without the race-prone SELECT-then-INSERT",
         _migrate_v51_observations_dedup_unique,
+    ),
+    (
+        52,
+        "task_outcomes gains additive derived_outcome + derived_provenance — reward label sourced from the tree-keyed verify ledger, self-report fallback (ADR-0016 stage 1)",
+        _migrate_v52_derived_outcome_columns,
     ),
 ]
 

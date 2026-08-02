@@ -35,6 +35,56 @@ logger = logging.getLogger("thinking_os.outcome")
 
 VALID_OUTCOMES = {"success", "rework", "partial", "blocked"}
 
+_LEDGER_FILENAME = ".last-verify.json"
+
+
+def _git_head(project_root: Path) -> str:
+    import subprocess
+
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(project_root), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return out.stdout.strip() if out.returncode == 0 else ""
+
+
+def _derive_ledger_outcome(db_path: Path) -> tuple[str | None, str]:
+    # Tree-keyed evidence the agent cannot self-report: ledger entries stamped
+    # with the CURRENT git head are verdicts on the tree being closed. Any
+    # fresh FAIL -> rework, else a fresh PASS -> success; no fresh entry ->
+    # (None, self_report) so the self-reported outcome is never dropped.
+    import json
+
+    try:
+        state_dir = Path(os.environ.get("COS_STATE_DIR") or db_path.parent)
+        ledger_path = state_dir / _LEDGER_FILENAME
+        if not ledger_path.exists():
+            return None, "self_report"
+        ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+        if not isinstance(ledger, dict):
+            return None, "self_report"
+        head = _git_head(state_dir.parent)
+        if not head:
+            return None, "self_report"
+        fresh = [
+            entry
+            for entry in ledger.values()
+            if isinstance(entry, dict) and entry.get("git_head") == head
+        ]
+        if any(entry.get("status") == "FAIL" for entry in fresh):
+            return "rework", "ledger"
+        if any(entry.get("status") == "PASS" for entry in fresh):
+            return "success", "ledger"
+        return None, "self_report"
+    except Exception as exc:
+        logger.debug("ledger derivation skipped: %s", exc)
+        return None, "self_report"
+
 
 def _detect_domain(task_id: str, msg: str) -> str:
     """Infer domain from task content."""
@@ -228,6 +278,10 @@ def record_outcome(
             elif _derive_rework(conn, task_id):
                 outcome = "rework"
 
+        derived_outcome, derived_provenance = _derive_ledger_outcome(path)
+        if derived_outcome is None:
+            derived_outcome = outcome
+
         # Read current outcome BEFORE update (for breakthrough detection)
         previous_outcome = None
         existing = conn.execute(
@@ -241,7 +295,8 @@ def record_outcome(
                 "complexity = ?, dimensions = ?, "
                 "skills_used = COALESCE(?, skills_used), "
                 "model = COALESCE(?, model), "
-                "duration_min = COALESCE(?, duration_min) "
+                "duration_min = COALESCE(?, duration_min), "
+                "derived_outcome = ?, derived_provenance = ? "
                 "WHERE task_id = ?",
                 (
                     outcome,
@@ -252,6 +307,8 @@ def record_outcome(
                     skills_used,
                     model,
                     duration_min,
+                    derived_outcome,
+                    derived_provenance,
                     task_id,
                 ),
             )
@@ -259,8 +316,8 @@ def record_outcome(
             conn.execute(
                 "INSERT INTO task_outcomes "
                 "(task_id, type, domain, complexity, dimensions, outcome, "
-                "skills_used, model, duration_min) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "skills_used, model, duration_min, derived_outcome, derived_provenance) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     task_id,
                     task_type,
@@ -271,6 +328,8 @@ def record_outcome(
                     skills_used,
                     model,
                     duration_min,
+                    derived_outcome,
+                    derived_provenance,
                 ),
             )
 

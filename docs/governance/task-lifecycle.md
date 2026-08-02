@@ -155,6 +155,8 @@ After every transition into `complete` or `blocked`, the workflow records an out
 | Field | Values | Source |
 |---|---|---|
 | outcome | `success · rework · partial · blocked` | agent assessment |
+| derived_outcome | same enum | verify ledger (`.last-verify.json`) when a fresh same-HEAD verdict exists; else copies `outcome` |
+| derived_provenance | `ledger · self_report` | which source filled `derived_outcome` — the learning loop prefers `ledger` (a signal the agent cannot self-report) |
 | duration_min | integer | session elapsed time |
 | model | active model id | dispatcher |
 | skills_used | JSON array | skill enforcement hook |

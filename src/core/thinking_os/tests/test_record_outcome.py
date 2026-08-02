@@ -236,3 +236,69 @@ def test_duplicate_completion_appends_one_outcome_history_row(db: Path) -> None:
     c2.close()
     assert n == 1, f"duplicate double-counted: {n}"
     assert n2 == 2, f"real transition not logged: {n2}"
+
+
+class TestDerivedOutcomeLedger:
+    """derived_outcome comes from the tree-keyed verify ledger when a fresh
+    same-HEAD verdict exists; otherwise it copies the self-report and says so —
+    the reward label the agent cannot fabricate (ADR-0016 stage 1)."""
+
+    def _row(self, db: Path, task_id: str):
+        conn = sqlite3.connect(str(db))
+        row = conn.execute(
+            "SELECT derived_outcome, derived_provenance FROM task_outcomes WHERE task_id = ?",
+            (task_id,),
+        ).fetchone()
+        conn.close()
+        return row
+
+    def _write_ledger(self, db: Path, entries: dict) -> None:
+        import json
+
+        (db.parent / ".last-verify.json").write_text(json.dumps(entries), encoding="utf-8")
+
+    def test_fresh_pass_yields_ledger_success(self, db: Path, monkeypatch) -> None:
+        import record_outcome as ro
+
+        monkeypatch.setenv("COS_STATE_DIR", str(db.parent))
+        monkeypatch.setattr(ro, "_git_head", lambda _root: "abc123")
+        self._write_ledger(db, {"test-cli": {"status": "PASS", "git_head": "abc123"}})
+        record_outcome(task_id="TASK-L1", task_type="feat", outcome="success", db_path=db)
+        assert self._row(db, "TASK-L1") == ("success", "ledger")
+
+    def test_fresh_fail_overrides_self_reported_success(self, db: Path, monkeypatch) -> None:
+        import record_outcome as ro
+
+        monkeypatch.setenv("COS_STATE_DIR", str(db.parent))
+        monkeypatch.setattr(ro, "_git_head", lambda _root: "abc123")
+        self._write_ledger(db, {"test-cli": {"status": "FAIL", "git_head": "abc123"}})
+        record_outcome(task_id="TASK-L2", task_type="feat", outcome="success", db_path=db)
+        assert self._row(db, "TASK-L2") == ("rework", "ledger")
+
+    def test_stale_head_falls_back_to_self_report(self, db: Path, monkeypatch) -> None:
+        import record_outcome as ro
+
+        monkeypatch.setenv("COS_STATE_DIR", str(db.parent))
+        monkeypatch.setattr(ro, "_git_head", lambda _root: "abc123")
+        self._write_ledger(db, {"test-cli": {"status": "PASS", "git_head": "OLDHEAD"}})
+        record_outcome(task_id="TASK-L3", task_type="feat", outcome="partial", db_path=db)
+        assert self._row(db, "TASK-L3") == ("partial", "self_report")
+
+    def test_missing_ledger_falls_back_to_self_report(self, db: Path, monkeypatch) -> None:
+        monkeypatch.setenv("COS_STATE_DIR", str(db.parent))
+        record_outcome(task_id="TASK-L4", task_type="feat", outcome="success", db_path=db)
+        assert self._row(db, "TASK-L4") == ("success", "self_report")
+
+    def test_original_outcome_column_untouched(self, db: Path, monkeypatch) -> None:
+        import record_outcome as ro
+
+        monkeypatch.setenv("COS_STATE_DIR", str(db.parent))
+        monkeypatch.setattr(ro, "_git_head", lambda _root: "abc123")
+        self._write_ledger(db, {"test-cli": {"status": "FAIL", "git_head": "abc123"}})
+        record_outcome(task_id="TASK-L5", task_type="feat", outcome="success", db_path=db)
+        conn = sqlite3.connect(str(db))
+        outcome = conn.execute(
+            "SELECT outcome FROM task_outcomes WHERE task_id = 'TASK-L5'"
+        ).fetchone()[0]
+        conn.close()
+        assert outcome == "success"
