@@ -322,7 +322,12 @@ def _presence_write(
 
 
 def _dispatch_trace_content_enabled() -> bool:
-    return os.environ.get("COS_DISPATCH_EVENT_CONTENT", "").strip().lower() in {"1", "true", "yes", "on"}
+    return os.environ.get("COS_DISPATCH_EVENT_CONTENT", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 def _emit_dispatch_trace(
@@ -650,7 +655,10 @@ class ClaudeSDKDispatcher:
         # in the finally block below.
         _presence_write(project_root, "claude", sub_session_id, "start")
         _emit_dispatch_trace(
-            sub_session_id, "dispatch_started", request.formula_id, {"formula_id": request.formula_id}
+            sub_session_id,
+            "dispatch_started",
+            request.formula_id,
+            {"formula_id": request.formula_id},
         )
 
         dispatch_turn_seq = 0

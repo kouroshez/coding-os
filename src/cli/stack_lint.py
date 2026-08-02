@@ -247,9 +247,7 @@ def lint_stack(
         if profile.category in _CODE_CATEGORIES:
             manifests = _RUNTIME_MANIFESTS.get(profile.language, ())
             if manifests and not _scaffold_has(scaffold, manifests):
-                report.hard.append(
-                    f"no runtime manifest ({' / '.join(manifests)}) under scaffold/"
-                )
+                report.hard.append(f"no runtime manifest ({' / '.join(manifests)}) under scaffold/")
             if not _scaffold_has_sample_test(scaffold, profile.language):
                 report.soft.append(
                     "no sample test under scaffold/ (a work-surface stack should "

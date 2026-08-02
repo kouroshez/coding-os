@@ -476,9 +476,7 @@ class TestModuleToggles:
         modules = load_subsystems()
         _, default_name = load_profiles()
         expected = sorted(
-            m
-            for m in resolve_profile(default_name)
-            if m != "graph" and not modules[m].hidden
+            m for m in resolve_profile(default_name) if m != "graph" and not modules[m].hidden
         )
         emitted = [cmd[i + 1] for i, tok in enumerate(cmd) if tok == "--enable-module"]
         assert sorted(emitted) == expected

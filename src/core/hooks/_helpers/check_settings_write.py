@@ -26,7 +26,9 @@ _POLICY_PARENT = ".coding-os"
 # A redirection target: `> f`, `>> f`, `2> f` (operator then path).
 _REDIRECT_RE = re.compile(r"(?:^|\s)\d*>>?\s*([^\s;&|<>]+)")
 # An inline interpreter write: a file mode 'w'/'a' or a known writer call.
-_INTERP_WRITE_RE = re.compile(r"""['"][wax][+btu]*['"]|writeFileSync|writeText|\.dump\(|\.write\(""")
+_INTERP_WRITE_RE = re.compile(
+    r"""['"][wax][+btu]*['"]|writeFileSync|writeText|\.dump\(|\.write\("""
+)
 # The policy path as a literal inside interpreter source.
 _INTERP_PATH_RE = re.compile(r"""['"]([^'"]*\.coding-os/[^'"]*hub-settings\.json)['"]""")
 
@@ -62,7 +64,7 @@ def _segment_writes_policy(segment: str) -> bool:
     if cmd == "tee":  # tee writes every non-flag operand
         return any(_is_policy_path(t) for t in toks[1:] if not t.startswith("-"))
     if cmd == "dd":  # dd of=<path>
-        return any(t.startswith("of=") and _is_policy_path(t[len("of="):]) for t in toks)
+        return any(t.startswith("of=") and _is_policy_path(t[len("of=") :]) for t in toks)
     if cmd in {"cp", "mv", "install", "rsync"}:  # destination = last positional
         positionals = [t for t in toks[1:] if not t.startswith("-")]
         return bool(positionals) and _is_policy_path(positionals[-1])

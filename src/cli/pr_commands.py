@@ -219,7 +219,11 @@ def _has_required_check(repo: str, integration: str) -> bool:
     # not the process cwd — a submit run from another checkout would else probe the
     # wrong repo's branch protection (D4). Every sibling gh call already scopes cwd.
     proc = _run(
-        ["gh", "api", f"repos/{{owner}}/{{repo}}/branches/{integration}/protection/required_status_checks"],
+        [
+            "gh",
+            "api",
+            f"repos/{{owner}}/{{repo}}/branches/{integration}/protection/required_status_checks",
+        ],
         cwd=repo,
     )
     return proc.returncode == 0
@@ -269,7 +273,7 @@ def _branches(repo: str) -> list[str]:
         name = line.strip()
         if not name or name.endswith("/HEAD") or name == "origin":
             continue
-        names.add(name[len("origin/"):] if name.startswith("origin/") else name)
+        names.add(name[len("origin/") :] if name.startswith("origin/") else name)
     return sorted(names)
 
 
@@ -331,7 +335,9 @@ def _resolve_worktree(repo: str, task_slug: str, session: str) -> tuple[Path, st
     )
     if len(candidates) == 1:
         wt = candidates[0]
-        return wt, _git_out(["rev-parse", "--abbrev-ref", "HEAD"], cwd=wt) or _branch_for(task_slug, session)
+        return wt, _git_out(["rev-parse", "--abbrev-ref", "HEAD"], cwd=wt) or _branch_for(
+            task_slug, session
+        )
     return computed, _branch_for(task_slug, session)
 
 
@@ -425,7 +431,11 @@ def _bootstrap_worktree(repo: str, wt: Path) -> dict:
                 continue
             linked.append(rel)
             _exclude_in_worktree(exclude, rel)
-    setup = _run_setup(wt, setup_cmd.strip()) if isinstance(setup_cmd, str) and setup_cmd.strip() else None
+    setup = (
+        _run_setup(wt, setup_cmd.strip())
+        if isinstance(setup_cmd, str) and setup_cmd.strip()
+        else None
+    )
     return {"linked": linked, "setup": setup}
 
 
@@ -448,7 +458,11 @@ def pr_group() -> None:
 
 @pr_group.command("preflight", help="Check pr-mode capability (remote + gh + required CI).")
 @click.option("--repo", "repo_opt", default=None, help="Repo path (default: cwd).")
-@click.option("--integration", default=None, help="Integration branch (default: COS_GIT_INTEGRATION_BRANCH or main).")
+@click.option(
+    "--integration",
+    default=None,
+    help="Integration branch (default: COS_GIT_INTEGRATION_BRANCH or main).",
+)
 @click.option("--json", "as_json", is_flag=True, help="Emit JSON.")
 def pr_preflight(repo_opt: str | None, integration: str | None, as_json: bool) -> None:
     repo = _resolve_repo(repo_opt)
@@ -462,7 +476,9 @@ def pr_preflight(repo_opt: str | None, integration: str | None, as_json: bool) -
 
 
 @pr_group.command("open", help="Isolate work in a worktree + agents/* branch.")
-@click.option("--task", "task_id", default=None, help="Board task id (else claim the next ready task).")
+@click.option(
+    "--task", "task_id", default=None, help="Board task id (else claim the next ready task)."
+)
 @click.option("--adhoc", is_flag=True, help="No board task — isolate ad-hoc code work.")
 @click.option("--repo", "repo_opt", default=None)
 @click.option("--integration", default=None)
@@ -536,7 +552,9 @@ def pr_open(
     )
 
 
-@pr_group.command("submit", help="Publish: rebase onto FETCH_HEAD, lease-push, open PR, arm auto-merge.")
+@pr_group.command(
+    "submit", help="Publish: rebase onto FETCH_HEAD, lease-push, open PR, arm auto-merge."
+)
 @click.option("--task", "task_id", default=None)
 @click.option("--adhoc", is_flag=True)
 @click.option("--repo", "repo_opt", default=None)
@@ -570,11 +588,13 @@ def pr_submit(
         ahead = _commit_count(wt, f"{integration}..{branch}")
         behind = _commit_count(wt, f"{branch}..{integration}")
         if ahead == 0:
-            action = (
-                f"no commits to integrate yet — commit your work in {wt}, then re-run 'cos pr submit'."
-            )
+            action = f"no commits to integrate yet — commit your work in {wt}, then re-run 'cos pr submit'."
         else:
-            stale = f" branch is {behind} behind '{integration}' — rebase before integrating." if behind else ""
+            stale = (
+                f" branch is {behind} behind '{integration}' — rebase before integrating."
+                if behind
+                else ""
+            )
             action = (
                 f"{ahead} commit(s) committed locally, not pushed (autonomy=local) — review with "
                 f"'git diff {integration}..{branch}', then a HUMAN integrates it in plain git "
@@ -653,15 +673,28 @@ def pr_submit(
     # push. With --force-if-includes this never clobbers a concurrent push.
     _git(["fetch", "origin", branch], cwd=wt)
     remote_sha = _git_out(["rev-parse", f"origin/{branch}"], cwd=wt)
-    lease = f"--force-with-lease={branch}:{remote_sha}" if remote_sha else f"--force-with-lease={branch}"
+    lease = (
+        f"--force-with-lease={branch}:{remote_sha}"
+        if remote_sha
+        else f"--force-with-lease={branch}"
+    )
     push = _git(["push", lease, "--force-if-includes", "-u", "origin", branch], cwd=wt)
     if push.returncode != 0:
         raise click.ClickException(f"push rejected (lease/connectivity):\n{push.stderr.strip()}")
 
     pr = _run(
         [
-            "gh", "pr", "create", "--base", integration, "--head", branch,
-            "--title", title or branch, "--body", body or f"agent branch {branch}",
+            "gh",
+            "pr",
+            "create",
+            "--base",
+            integration,
+            "--head",
+            branch,
+            "--title",
+            title or branch,
+            "--body",
+            body or f"agent branch {branch}",
         ],
         cwd=wt,
     )
@@ -709,7 +742,9 @@ def pr_submit(
         )
     else:
         merge_status = "arm-failed"
-        action = "required check exists but 'gh pr merge --auto' did not arm — check gh auth/permissions"
+        action = (
+            "required check exists but 'gh pr merge --auto' did not arm — check gh auth/permissions"
+        )
 
     # H3: auto_merge/autonomous + no required check = a silent deadlock (the PR will
     # neither merge nor fail). Escalate the board task to blocked so a human adds the
@@ -774,7 +809,12 @@ def _land_verify_ok(repo: str) -> bool:
 @click.option("--adhoc", is_flag=True)
 @click.option("--repo", "repo_opt", default=None)
 @click.option("--integration", default=None)
-@click.option("--no-ff/--ff", "no_ff", default=True, help="--no-ff (default) keeps a merge commit; --ff for fast-forward only.")
+@click.option(
+    "--no-ff/--ff",
+    "no_ff",
+    default=True,
+    help="--no-ff (default) keeps a merge commit; --ff for fast-forward only.",
+)
 @click.option("--json", "as_json", is_flag=True)
 def pr_land(
     task_id: str | None,
@@ -810,8 +850,12 @@ def pr_land(
     ahead = _commit_count(wt, f"{integration}..{branch}")
     if ahead == 0:
         _emit(
-            {"branch": branch, "landed": False, "reason": "nothing-to-land",
-             "action": f"no commits ahead of '{integration}' — commit your work in the worktree first."},
+            {
+                "branch": branch,
+                "landed": False,
+                "reason": "nothing-to-land",
+                "action": f"no commits ahead of '{integration}' — commit your work in the worktree first.",
+            },
             as_json,
         )
         return
@@ -819,17 +863,24 @@ def pr_land(
     # Sanctioned land: merge onto LOCAL integration on the SHARED checkout. cos exports
     # COS_PR_LAND so branch-guard recognises this path (an agent's raw `git merge` on the
     # shared tree stays BLOCKED). Zero network — no push, no PR, no CI.
-    merge_args = ["merge", "--no-ff", branch, "-m", f"land {branch} (local_autonomous)"] if no_ff \
+    merge_args = (
+        ["merge", "--no-ff", branch, "-m", f"land {branch} (local_autonomous)"]
+        if no_ff
         else ["merge", "--ff-only", branch]
+    )
     os.environ["COS_PR_LAND"] = "1"
     try:
         merged = _git(merge_args, cwd=repo)
         if merged.returncode != 0:
             _git(["merge", "--abort"], cwd=repo)
             _emit(
-                {"branch": branch, "landed": False, "reason": "merge-conflict",
-                 "action": f"merge of '{branch}' onto '{integration}' conflicted — aborted; "
-                           f"rebase the worktree onto '{integration}', re-verify, then retry 'cos pr land'."},
+                {
+                    "branch": branch,
+                    "landed": False,
+                    "reason": "merge-conflict",
+                    "action": f"merge of '{branch}' onto '{integration}' conflicted — aborted; "
+                    f"rebase the worktree onto '{integration}', re-verify, then retry 'cos pr land'.",
+                },
                 as_json,
             )
             sys.exit(1)
@@ -844,15 +895,24 @@ def pr_land(
         os.environ.pop("COS_PR_LAND", None)
 
     _emit(
-        {"branch": branch, "landed": True, "integration": integration, "commits": ahead,
-         "action": f"merged {ahead} commit(s) onto local '{integration}'; worktree+branch removed (zero network)."},
+        {
+            "branch": branch,
+            "landed": True,
+            "integration": integration,
+            "commits": ahead,
+            "action": f"merged {ahead} commit(s) onto local '{integration}'; worktree+branch removed (zero network).",
+        },
         as_json,
     )
 
 
 @pr_group.command("status", help="List this repo's pr-mode worktrees, branches, and open PRs.")
 @click.option("--repo", "repo_opt", default=None)
-@click.option("--branch", default=None, help="Report one agent branch's CI rollup (merged|red|pending|review-required|passing|passing-unarmed|closed|none) — the driver-loop signal.")
+@click.option(
+    "--branch",
+    default=None,
+    help="Report one agent branch's CI rollup (merged|red|pending|review-required|passing|passing-unarmed|closed|none) — the driver-loop signal.",
+)
 @click.option("--json", "as_json", is_flag=True)
 def pr_status(repo_opt: str | None, branch: str | None, as_json: bool) -> None:
     repo = _resolve_repo(repo_opt)
@@ -872,8 +932,15 @@ def pr_status(repo_opt: str | None, branch: str | None, as_json: bool) -> None:
     pr_rows: list[dict] = []
     if _gh_ready():
         out = _run(
-            ["gh", "pr", "list", "--search", "head:agents/", "--json",
-             "number,headRefName,state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest,reviewDecision"],
+            [
+                "gh",
+                "pr",
+                "list",
+                "--search",
+                "head:agents/",
+                "--json",
+                "number,headRefName,state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest,reviewDecision",
+            ],
             cwd=repo,
         )
         if out.returncode == 0:
@@ -903,16 +970,16 @@ def _agent_worktrees(repo: str) -> dict[str, Path]:
     cur: str | None = None
     for line in _git_out(["worktree", "list", "--porcelain"], cwd=repo).splitlines():
         if line.startswith("worktree "):
-            cur = line[len("worktree "):].strip()
+            cur = line[len("worktree ") :].strip()
         elif line.startswith("branch ") and cur:
-            name = _unqualify_head(line[len("branch "):].strip())
+            name = _unqualify_head(line[len("branch ") :].strip())
             if name.startswith("agents/"):
                 result[name] = Path(cur)
     return result
 
 
 def _unqualify_head(ref: str) -> str:
-    return ref[len("refs/heads/"):] if ref.startswith("refs/heads/") else ref
+    return ref[len("refs/heads/") :] if ref.startswith("refs/heads/") else ref
 
 
 def _changed_files(repo: str, branch: str, integration: str, wt: Path | None) -> set[str]:
@@ -935,18 +1002,40 @@ def _changed_files(repo: str, branch: str, integration: str, wt: Path | None) ->
     return files
 
 
-@pr_group.command("triage", help="Ranked digest of all open agents/* PRs (ci + review + conflict + age) — review the highest-value, lowest-risk first.")
+@pr_group.command(
+    "triage",
+    help="Ranked digest of all open agents/* PRs (ci + review + conflict + age) — review the highest-value, lowest-risk first.",
+)
 @click.option("--repo", "repo_opt", default=None)
 @click.option("--json", "as_json", is_flag=True)
 def pr_triage(repo_opt: str | None, as_json: bool) -> None:
     repo = _resolve_repo(repo_opt)
     if not _gh_ready():
-        _emit({"open": 0, "quick_merge": 0, "prs": [], "action": "gh unavailable — cannot triage open PRs"}, as_json)
+        _emit(
+            {
+                "open": 0,
+                "quick_merge": 0,
+                "prs": [],
+                "action": "gh unavailable — cannot triage open PRs",
+            },
+            as_json,
+        )
         return
     out = _run(
-        ["gh", "pr", "list", "--state", "open", "--search", "head:agents/", "--json",
-         "number,headRefName,state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest,"
-         "reviewDecision,mergeable,createdAt", "--limit", "100"],
+        [
+            "gh",
+            "pr",
+            "list",
+            "--state",
+            "open",
+            "--search",
+            "head:agents/",
+            "--json",
+            "number,headRefName,state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest,"
+            "reviewDecision,mergeable,createdAt",
+            "--limit",
+            "100",
+        ],
         cwd=repo,
     )
     rows: list[dict] = []
@@ -956,15 +1045,29 @@ def pr_triage(repo_opt: str | None, as_json: bool) -> None:
         except json.JSONDecodeError:
             rows = []
     agent_rows = [r for r in rows if str(r.get("headRefName", "")).startswith("agents/")]
-    entries = sorted((_triage_entry(r) for r in agent_rows), key=lambda e: (e["rank"], e["created_at"]))
+    entries = sorted(
+        (_triage_entry(r) for r in agent_rows), key=lambda e: (e["rank"], e["created_at"])
+    )
     quick = sum(1 for e in entries if e["category"] == "quick-merge")
     if not entries:
-        _emit({"open": 0, "quick_merge": 0, "prs": [], "action": "no open agent PRs — nothing to triage"}, as_json)
+        _emit(
+            {
+                "open": 0,
+                "quick_merge": 0,
+                "prs": [],
+                "action": "no open agent PRs — nothing to triage",
+            },
+            as_json,
+        )
         return
     if as_json:
         _emit(
-            {"open": len(entries), "quick_merge": quick, "prs": entries,
-             "action": "review in listed order; quick-merge rows are green + conflict-free + no required review"},
+            {
+                "open": len(entries),
+                "quick_merge": quick,
+                "prs": entries,
+                "action": "review in listed order; quick-merge rows are green + conflict-free + no required review",
+            },
             as_json,
         )
         return
@@ -982,8 +1085,13 @@ def pr_triage(repo_opt: str | None, as_json: bool) -> None:
     click.echo("\n".join(lines))
 
 
-@pr_group.command("conflicts", help="Advisory: which live peer agent branch also edits your files (early-warning before a land-time conflict).")
-@click.option("--branch", default=None, help="Target agent branch (default: the current worktree's HEAD).")
+@pr_group.command(
+    "conflicts",
+    help="Advisory: which live peer agent branch also edits your files (early-warning before a land-time conflict).",
+)
+@click.option(
+    "--branch", default=None, help="Target agent branch (default: the current worktree's HEAD)."
+)
 @click.option("--repo", "repo_opt", default=None)
 @click.option("--json", "as_json", is_flag=True)
 def pr_conflicts(branch: str | None, repo_opt: str | None, as_json: bool) -> None:
@@ -1057,7 +1165,9 @@ def _rollup_state(pr: dict) -> str:
     bad = {"FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"}
     waiting = {"IN_PROGRESS", "QUEUED", "PENDING", "WAITING", "REQUESTED", "EXPECTED"}
 
-    def fields(check: dict) -> set[str]:  # CheckRun uses conclusion/status; StatusContext uses state
+    def fields(
+        check: dict,
+    ) -> set[str]:  # CheckRun uses conclusion/status; StatusContext uses state
         return {str(check.get(k) or "").upper() for k in ("conclusion", "status", "state")}
 
     if any(bad & fields(c) for c in checks):
@@ -1094,8 +1204,14 @@ def _pr_ci_rollup(repo: str, branch: str) -> str:
     if not _gh_ready():
         return "unknown"
     out = _run(
-        ["gh", "pr", "view", branch, "--json",
-         "number,state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest,reviewDecision"],
+        [
+            "gh",
+            "pr",
+            "view",
+            branch,
+            "--json",
+            "number,state,mergedAt,statusCheckRollup,isDraft,autoMergeRequest,reviewDecision",
+        ],
         cwd=repo,
     )
     if out.returncode != 0:
@@ -1126,11 +1242,21 @@ def _merge_queue_entry(repo: str, number: int | None) -> dict:
     if not number or not _gh_ready():
         return {}
     out = _run(
-        ["gh", "api", "graphql", "-F", "owner={owner}", "-F", "name={repo}",
-         "-F", f"number={int(number)}", "-f",
-         "query=query($owner:String!,$name:String!,$number:Int!){"
-         "repository(owner:$owner,name:$name){pullRequest(number:$number){"
-         "mergeQueueEntry{state position}}}}"],
+        [
+            "gh",
+            "api",
+            "graphql",
+            "-F",
+            "owner={owner}",
+            "-F",
+            "name={repo}",
+            "-F",
+            f"number={int(number)}",
+            "-f",
+            "query=query($owner:String!,$name:String!,$number:Int!){"
+            "repository(owner:$owner,name:$name){pullRequest(number:$number){"
+            "mergeQueueEntry{state position}}}}",
+        ],
         cwd=repo,
     )
     if out.returncode != 0:
@@ -1221,8 +1347,17 @@ def _preserve_reaped(repo: str, wt: Path, branch: str) -> str | None:
         # below would silently capture only the old tip (D2). Bail on any other commit
         # failure too, so the caller never treats unpreserved work as safe.
         commit = _git(
-            ["-c", "user.email=reaper@coding-os", "-c", "user.name=cos-reaper",
-             "commit", "-q", "--no-verify", "-m", f"chore: preserve reaped agent work ({branch})"],
+            [
+                "-c",
+                "user.email=reaper@coding-os",
+                "-c",
+                "user.name=cos-reaper",
+                "commit",
+                "-q",
+                "--no-verify",
+                "-m",
+                f"chore: preserve reaped agent work ({branch})",
+            ],
             cwd=wt,
         )
         if commit.returncode != 0:
@@ -1235,11 +1370,18 @@ def _preserve_reaped(repo: str, wt: Path, branch: str) -> str | None:
     return str(bundle) if ok else None
 
 
-@pr_group.command("cleanup", help="Remove the worktree + delete the branch + prune (merge-gated; --force to override).")
+@pr_group.command(
+    "cleanup",
+    help="Remove the worktree + delete the branch + prune (merge-gated; --force to override).",
+)
 @click.option("--task", "task_id", default=None)
 @click.option("--adhoc", is_flag=True)
 @click.option("--repo", "repo_opt", default=None)
-@click.option("--force", is_flag=True, help="Remove even if the PR is open / the branch is unpushed (human override).")
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Remove even if the PR is open / the branch is unpushed (human override).",
+)
 @click.option("--json", "as_json", is_flag=True)
 def pr_cleanup(
     task_id: str | None, adhoc: bool, repo_opt: str | None, force: bool, as_json: bool
@@ -1469,16 +1611,16 @@ def _worktree_index(repo: str) -> dict[Path, dict]:
     for line in _git_out(["worktree", "list", "--porcelain"], cwd=repo).splitlines():
         if line.startswith("worktree "):
             try:
-                cur = Path(line[len("worktree "):].strip()).resolve()
+                cur = Path(line[len("worktree ") :].strip()).resolve()
             except OSError:
                 cur = None
             if cur is not None:
                 index[cur] = {"branch": "", "locked": ""}
         elif cur is not None and cur in index:
             if line.startswith("branch "):
-                index[cur]["branch"] = _unqualify_head(line[len("branch "):].strip())
+                index[cur]["branch"] = _unqualify_head(line[len("branch ") :].strip())
             elif line.startswith("locked"):
-                index[cur]["locked"] = line[len("locked"):].strip()
+                index[cur]["locked"] = line[len("locked") :].strip()
     return index
 
 
@@ -1558,7 +1700,9 @@ def _drain_ledger(repo: str) -> list[str]:
         if not remote_pending and not pr_pending:
             drained.append(branch)
         else:
-            kept.append({"branch": branch, "remote_pending": remote_pending, "pr_pending": pr_pending})
+            kept.append(
+                {"branch": branch, "remote_pending": remote_pending, "pr_pending": pr_pending}
+            )
     _ledger_save(repo, kept)
     return drained
 
@@ -1624,7 +1768,9 @@ def _reap_one(repo: str, wt: Path, branch: str) -> dict:
     }
 
 
-@pr_group.command("reap", help="GC worktrees/branches/PRs of presence-offline sessions; drain the cleanup ledger.")
+@pr_group.command(
+    "reap", help="GC worktrees/branches/PRs of presence-offline sessions; drain the cleanup ledger."
+)
 @click.option("--repo", "repo_opt", default=None)
 @click.option("--dry-run", is_flag=True, help="Report what would be reaped; change nothing.")
 @click.option("--json", "as_json", is_flag=True)
@@ -1643,7 +1789,11 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
                 fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except OSError:
                 _emit(
-                    {"reaped": 0, "kept_live": 0, "ledger_drained": "(skipped: reaper already running)"},
+                    {
+                        "reaped": 0,
+                        "kept_live": 0,
+                        "ledger_drained": "(skipped: reaper already running)",
+                    },
                     as_json,
                 )
                 return
@@ -1655,7 +1805,9 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
         if wt_root.is_dir():
             for wt in sorted(p for p in wt_root.iterdir() if p.is_dir()):
                 entry = wt_index.get(wt.resolve(), {})
-                branch = entry.get("branch") or _git_out(["rev-parse", "--abbrev-ref", "HEAD"], cwd=wt)
+                branch = entry.get("branch") or _git_out(
+                    ["rev-parse", "--abbrev-ref", "HEAD"], cwd=wt
+                )
                 if not branch.startswith("agents/"):
                     continue
                 session = branch.rsplit("/", 1)[-1]
@@ -1676,7 +1828,10 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
                         # Re-assert the lock so a peer's prune can't drop a live checkout (§2).
                         # A no-op when already locked (the common case), so it preserves the
                         # owner=pid@host stamp the open wrote — that is what a later sweep reads.
-                        _git(["worktree", "lock", str(wt), "--reason", "pr-mode live session"], cwd=repo)
+                        _git(
+                            ["worktree", "lock", str(wt), "--reason", "pr-mode live session"],
+                            cwd=repo,
+                        )
                     kept.append({"worktree": str(wt), "branch": branch, "live": True})
         _emit(
             {
@@ -1763,7 +1918,17 @@ def _open_pr_count(repo: str, session: str) -> int:
     if not _gh_ready():
         return -1
     proc = _run(
-        ["gh", "pr", "list", "--search", "head:agents/", "--state", "open", "--json", "headRefName"],
+        [
+            "gh",
+            "pr",
+            "list",
+            "--search",
+            "head:agents/",
+            "--state",
+            "open",
+            "--json",
+            "headRefName",
+        ],
         cwd=repo,
     )
     if proc.returncode != 0:
@@ -1801,7 +1966,10 @@ def _escalate_blocked(repo: str, task_id: str | None, summary: str, move_reason:
         return False  # no board / unavailable → escalation signal still returned to caller
 
 
-@pr_group.command("heal", help="Record a self-heal attempt on a red PR; escalate to blocked when the budget is spent.")
+@pr_group.command(
+    "heal",
+    help="Record a self-heal attempt on a red PR; escalate to blocked when the budget is spent.",
+)
 @click.option("--task", "task_id", default=None)
 @click.option("--adhoc", is_flag=True)
 @click.option("--repo", "repo_opt", default=None)

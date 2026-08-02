@@ -29,7 +29,14 @@ def _make_dispatch_db(tmp_path: Path, sub_session_id: str, transcript: str) -> s
     )
     conn.execute(
         "INSERT INTO formula_dispatches VALUES (?,?,?,?,?,?)",
-        (sub_session_id, "implementer", "ok", "claude-opus-4-8", transcript, "2026-07-01T00:00:00Z"),
+        (
+            sub_session_id,
+            "implementer",
+            "ok",
+            "claude-opus-4-8",
+            transcript,
+            "2026-07-01T00:00:00Z",
+        ),
     )
     conn.commit()
     conn.close()
@@ -63,7 +70,9 @@ def test_get_chat_falls_back_to_transcript(tmp_path, monkeypatch):
         r = c.get("/api/cognition/chat/ses-sdk-2")
     resp = r.json()
     if resp.get("ok") is False and resp.get("error", {}).get("category") == "unavailable":
-        pytest.skip("claude-agent-sdk not installed — live-session path can't reach the fallback here")
+        pytest.skip(
+            "claude-agent-sdk not installed — live-session path can't reach the fallback here"
+        )
     assert r.status_code == 200
     data = resp["data"]
     assert data["session"]["source"] == "dispatch_transcript"

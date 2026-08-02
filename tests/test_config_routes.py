@@ -76,7 +76,15 @@ def test_adapters_groups_models_by_adapter(client):
 
     assert body["adapters"][0]["id"] == "claude"  # the runnable adapter leads
     for a in body["adapters"]:
-        assert {"id", "label", "runtime", "available", "models", "mcp_config_paths", "installed"} <= set(a)
+        assert {
+            "id",
+            "label",
+            "runtime",
+            "available",
+            "models",
+            "mcp_config_paths",
+            "installed",
+        } <= set(a)
     # installed reflects .coding-os.yaml::agents — the meta-repo runs claude only.
     assert claude["installed"] is True
     assert adapters["codex"]["installed"] is False

@@ -93,7 +93,9 @@ def test_hook_parity_matches_golden(tmp_path):
     current = _current(tmp_path)
     if os.environ.get("COS_UPDATE_HOOK_PARITY") == "1":
         _GOLDEN.write_text(json.dumps(current, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    assert _GOLDEN.exists(), "seed the golden first: COS_UPDATE_HOOK_PARITY=1 uv run pytest tests/test_hook_parity.py -q"
+    assert _GOLDEN.exists(), (
+        "seed the golden first: COS_UPDATE_HOOK_PARITY=1 uv run pytest tests/test_hook_parity.py -q"
+    )
     golden = json.loads(_GOLDEN.read_text(encoding="utf-8"))
     assert current == golden, (
         "hook parity divergence — a hook's (exit, stderr, additionalContext) signature "

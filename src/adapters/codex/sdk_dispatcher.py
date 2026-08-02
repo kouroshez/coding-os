@@ -197,8 +197,7 @@ class CodexSDKDispatcher:
                 started_at,
                 status="error",
                 error=(
-                    "Codex cannot enforce DispatchRequest.max_budget_usd; "
-                    "dispatch was not started"
+                    "Codex cannot enforce DispatchRequest.max_budget_usd; dispatch was not started"
                 ),
             )
         if request.allowed_tools:

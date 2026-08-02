@@ -286,7 +286,9 @@ class TestClassifyTaskModeBilingual:
         assert self._classify(tmp_path, "چرا این تست قرمز است؟") == "query"
 
     def test_english_implement_verb_unchanged(self, tmp_path):
-        assert self._classify(tmp_path, "implement the retry logic for the queue") == "propose-formal"
+        assert (
+            self._classify(tmp_path, "implement the retry logic for the queue") == "propose-formal"
+        )
 
 
 class TestEnforceTaskStartRemediation:

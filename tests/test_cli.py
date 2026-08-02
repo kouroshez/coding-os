@@ -982,7 +982,11 @@ class TestProjectAnatomy:
         # nextjs, both typescript). Reuses the production collision predicate.
         from cli._resources import templates_dir
         from cli.preset_registry import load_preset_registry
-        from cli.stack_registry import _roots_collide, load_stack_registry, resolve_relocated_profiles
+        from cli.stack_registry import (
+            _roots_collide,
+            load_stack_registry,
+            resolve_relocated_profiles,
+        )
 
         td = templates_dir()
         registry = load_stack_registry(td)
@@ -1136,14 +1140,26 @@ class TestCiWorkflow:
             result = runner.invoke(
                 cli,
                 [
-                    "init", "--agent", "claude", "-d", str(project),
-                    "--template", "django", "--template", "nextjs",
-                    "--profile", profile, "--no-index", "--no-register",
+                    "init",
+                    "--agent",
+                    "claude",
+                    "-d",
+                    str(project),
+                    "--template",
+                    "django",
+                    "--template",
+                    "nextjs",
+                    "--profile",
+                    profile,
+                    "--no-index",
+                    "--no-register",
                 ],
             )
             assert result.exit_code == 0, result.output
             ci = project / ".github" / "workflows" / "ci.yml"
-            assert ci.exists() is expected, f"{profile}: ci.yml exists={ci.exists()}, want {expected}"
+            assert ci.exists() is expected, (
+                f"{profile}: ci.yml exists={ci.exists()}, want {expected}"
+            )
 
     def test_materialize_is_write_once_preserving_consumer_edits(self, tmp_path: Path) -> None:
         # TASK-625: write-once (the ensure_* idiom) — cos update must never
@@ -1210,8 +1226,17 @@ class TestDockerfile:
         result = runner.invoke(
             cli,
             [
-                "init", "--agent", "claude", "-d", str(project),
-                "--template", "django", "--profile", "full", "--no-index", "--no-register",
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project),
+                "--template",
+                "django",
+                "--profile",
+                "full",
+                "--no-index",
+                "--no-register",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -1371,10 +1396,19 @@ class TestRegenChainRelocation:
         specific = {"stack": "nextjs", "file_patterns": ["src/frontend/**/*.ts"]}
         # Most-specific (longest) pattern wins regardless of stack list order —
         # not first-match-in-list (which would flip with the order below).
-        assert module._resolve_owner([broad, specific], "src/frontend/app/page.ts")["stack"] == "nextjs"
-        assert module._resolve_owner([specific, broad], "src/frontend/app/page.ts")["stack"] == "nextjs"
+        assert (
+            module._resolve_owner([broad, specific], "src/frontend/app/page.ts")["stack"]
+            == "nextjs"
+        )
+        assert (
+            module._resolve_owner([specific, broad], "src/frontend/app/page.ts")["stack"]
+            == "nextjs"
+        )
         # A path only the broad pattern matches still resolves to the broad stack.
-        assert module._resolve_owner([broad, specific], "src/backend/x.go")["stack"] == "typescript-plain"
+        assert (
+            module._resolve_owner([broad, specific], "src/backend/x.go")["stack"]
+            == "typescript-plain"
+        )
 
     def test_skill_primer_remaps_relocated_globs(self, composed_project: Path) -> None:
         import importlib.util
@@ -1620,12 +1654,20 @@ class TestCliOnboardingParity:
         result = runner.invoke(
             cli,
             [
-                "init", "--agent", "claude", "-d", str(project),
-                "--yes", "--no-index", "--no-register", "--format", "json",
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project),
+                "--yes",
+                "--no-index",
+                "--no-register",
+                "--format",
+                "json",
             ],
         )
         assert result.exit_code == 0, result.output
-        payload = json.loads(result.output[result.output.index("{"):])
+        payload = json.loads(result.output[result.output.index("{") :])
         assert payload["slug"] == ""
 
     def test_adopt_honours_module_profile(self, runner: CliRunner, tmp_path: Path) -> None:
@@ -1638,8 +1680,16 @@ class TestCliOnboardingParity:
             os.environ["PWD"] = str(project)
             result = runner.invoke(
                 cli,
-                ["adopt", "--agent", "claude", "--profile", "lite",
-                 "--yes", "--no-index", "--no-register"],
+                [
+                    "adopt",
+                    "--agent",
+                    "claude",
+                    "--profile",
+                    "lite",
+                    "--yes",
+                    "--no-index",
+                    "--no-register",
+                ],
             )
         assert result.exit_code == 0, result.output
         state = json.loads((project / ".coding-os" / "subsystems-state.json").read_text())
@@ -2314,8 +2364,17 @@ class TestSubsystems:
         project_dir.mkdir()
         runner.invoke(
             cli,
-            ["init", "--agent", "claude", "-d", str(project_dir),
-             "--profile", "full", "--no-index", "--no-register"],
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project_dir),
+                "--profile",
+                "full",
+                "--no-index",
+                "--no-register",
+            ],
         )
         # memory.md linked at init (full profile); disable memory in state only
         # (no cascade) to simulate a residue and assert the check flags it.
@@ -2340,8 +2399,17 @@ class TestSubsystems:
         project_dir.mkdir()
         runner.invoke(
             cli,
-            ["init", "--agent", "claude", "-d", str(project_dir),
-             "--profile", "full", "--no-index", "--no-register"],
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project_dir),
+                "--profile",
+                "full",
+                "--no-index",
+                "--no-register",
+            ],
         )
         # tasks enabled at init → task-lifecycle.md (| module:tasks) materialized
         # (tag stripped in the copy). Disable tasks in state and assert the map.
@@ -2364,8 +2432,17 @@ class TestSubsystems:
         project_dir.mkdir()
         runner.invoke(
             cli,
-            ["init", "--agent", "claude", "-d", str(project_dir),
-             "--profile", "full", "--no-index", "--no-register"],
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project_dir),
+                "--profile",
+                "full",
+                "--no-index",
+                "--no-register",
+            ],
         )
         doc = project_dir / "docs" / "governance" / "task-lifecycle.md"
         assert doc.is_file(), "task-lifecycle.md should be materialized at full init"
@@ -2392,14 +2469,25 @@ class TestSubsystems:
         project_dir.mkdir()
         runner.invoke(
             cli,
-            ["init", "--agent", "claude", "-d", str(project_dir),
-             "--profile", "full", "--no-index", "--no-register"],
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project_dir),
+                "--profile",
+                "full",
+                "--no-index",
+                "--no-register",
+            ],
         )
         skill = project_dir / ".claude" / "skills" / "task-driver" / "SKILL.md"
         command = project_dir / ".claude" / "commands" / "board.md"
         doc = project_dir / "docs" / "governance" / "task-lifecycle.md"
         agents = project_dir / "AGENTS.md"
-        assert skill.exists() and command.exists() and doc.exists(), "tasks not fully linked at init"
+        assert skill.exists() and command.exists() and doc.exists(), (
+            "tasks not fully linked at init"
+        )
         assert "## Task Logging" in agents.read_text(encoding="utf-8")
 
         result, _notes = toggle_and_regen(project_dir, "tasks", enabled=False)
@@ -2407,8 +2495,12 @@ class TestSubsystems:
         assert not skill.exists(), "task-driver skill not unlinked"
         assert not command.exists(), "board command not unlinked"
         assert not doc.exists(), "task-lifecycle doc not pruned"
-        assert "## Task Logging" not in agents.read_text(encoding="utf-8"), "AGENTS task block leaked"
-        assert any("task" in str(h) for h in disabled_hook_scripts(project_dir)), "tasks hooks not gated"
+        assert "## Task Logging" not in agents.read_text(encoding="utf-8"), (
+            "AGENTS task block leaked"
+        )
+        assert any("task" in str(h) for h in disabled_hook_scripts(project_dir)), (
+            "tasks hooks not gated"
+        )
 
     def test_toggle_and_regen_logs_refusal(
         self, runner: CliRunner, project_dir: Path, caplog
@@ -2422,8 +2514,17 @@ class TestSubsystems:
         project_dir.mkdir()
         runner.invoke(
             cli,
-            ["init", "--agent", "claude", "-d", str(project_dir),
-             "--profile", "full", "--no-index", "--no-register"],
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project_dir),
+                "--profile",
+                "full",
+                "--no-index",
+                "--no-register",
+            ],
         )
         with caplog.at_level(logging.WARNING, logger="cli.module"):
             result, _ = toggle_and_regen(project_dir, "docs", enabled=False)  # required by tasks
@@ -2432,9 +2533,7 @@ class TestSubsystems:
             "refused" in r.getMessage() and "docs" in r.getMessage() for r in caplog.records
         ), [r.getMessage() for r in caplog.records]
 
-    def test_overlay_module_merges_without_forking_core(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_overlay_module_merges_without_forking_core(self, tmp_path: Path, monkeypatch) -> None:
         """TASK-818: an out-of-core $COS_USER_MODULES_DIR/*.yaml module merges into
         the registry (core wins on id collision, kernel claims refused) so a plugin
         author registers a toggleable module without forking the kernel."""
@@ -3375,7 +3474,8 @@ class TestCosPr:
     def _branches(repo: Path) -> str:
         return subprocess.run(
             ["git", "-C", str(repo), "branch", "--list", "agents/*"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         ).stdout
 
     @staticmethod
@@ -3623,7 +3723,9 @@ class TestCosPr:
                 pass
         nested = wt / "src" / "deep"
         nested.mkdir(parents=True, exist_ok=True)
-        (nested / "live.py").write_text("x = 1\n", encoding="utf-8")  # ...but one nested edit is fresh
+        (nested / "live.py").write_text(
+            "x = 1\n", encoding="utf-8"
+        )  # ...but one nested edit is fresh
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # fresh nested edit → kept
@@ -3713,8 +3815,16 @@ class TestCosPr:
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
         subprocess.run(["git", "-C", str(repo), "worktree", "unlock", str(wt)], check=False)
         subprocess.run(
-            ["git", "-C", str(repo), "worktree", "lock", str(wt),
-             "--reason", f"pr-mode session ses-test-abc owner={os.getpid()}@café-höst"],
+            [
+                "git",
+                "-C",
+                str(repo),
+                "worktree",
+                "lock",
+                str(wt),
+                "--reason",
+                f"pr-mode session ses-test-abc owner={os.getpid()}@café-höst",
+            ],
             check=True,
         )
         old = time.time() - 3600
@@ -3760,7 +3870,9 @@ class TestCosPr:
         monkeypatch.setattr(prc, "_git_out", counting)
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
-        assert counts["wl"] == 1, f"expected ONE worktree-list call for the sweep, got {counts['wl']}"
+        assert counts["wl"] == 1, (
+            f"expected ONE worktree-list call for the sweep, got {counts['wl']}"
+        )
 
     def test_reap_removes_stale_orphan_with_foreign_host_owner(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -3778,8 +3890,16 @@ class TestCosPr:
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
         subprocess.run(["git", "-C", str(repo), "worktree", "unlock", str(wt)], check=False)
         subprocess.run(
-            ["git", "-C", str(repo), "worktree", "lock", str(wt),
-             "--reason", f"pr-mode session ses-test-abc owner={os.getpid()}@some-foreign-host"],
+            [
+                "git",
+                "-C",
+                str(repo),
+                "worktree",
+                "lock",
+                str(wt),
+                "--reason",
+                f"pr-mode session ses-test-abc owner={os.getpid()}@some-foreign-host",
+            ],
             check=True,
         )
         old = time.time() - 3600
@@ -3887,7 +4007,11 @@ class TestCosPr:
         sess_dir.mkdir(parents=True, exist_ok=True)
         (sess_dir / "ses-test-abc.json").write_text(
             json.dumps(
-                {"session_id": "ses-test-abc", "pid": 2147483646, "last_tool_at": int(time.time()) - 9999}
+                {
+                    "session_id": "ses-test-abc",
+                    "pid": 2147483646,
+                    "last_tool_at": int(time.time()) - 9999,
+                }
             ),
             encoding="utf-8",
         )
@@ -3912,7 +4036,9 @@ class TestCosPr:
         # a local-only commit (never pushed) + an untracked uncommitted file — the work at risk
         (wt / "feature.py").write_text("VALUE = 42\n", encoding="utf-8")
         subprocess.run(["git", "-C", str(wt), "add", "-A"], check=True)
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "-m", "feat: unpushed work"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "-m", "feat: unpushed work"], check=True
+        )
         (wt / "dirty.txt").write_text("uncommitted", encoding="utf-8")
         # positive death evidence: a recorded pid that is not alive on this host
         sess_dir = repo / ".coding-os" / "claude" / "sessions"
@@ -3929,13 +4055,22 @@ class TestCosPr:
         bundles = list(reaped_root.rglob("*.bundle"))
         assert bundles, "reaper must preserve unpushed work as a bundle before GC"
         subprocess.run(
-            ["git", "-C", str(repo), "fetch", str(bundles[0]),
-             "refs/heads/agents/adhoc/ses-test-abc:refs/recovered/x"],
-            check=True, capture_output=True, text=True,
+            [
+                "git",
+                "-C",
+                str(repo),
+                "fetch",
+                str(bundles[0]),
+                "refs/heads/agents/adhoc/ses-test-abc:refs/recovered/x",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
         )
         log = subprocess.run(
             ["git", "-C", str(repo), "log", "--oneline", "refs/recovered/x"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         ).stdout
         assert "unpushed work" in log  # the agent's local-only commit survived
 
@@ -3949,7 +4084,9 @@ class TestCosPr:
 
         monkeypatch.setattr(prc, "_gh_ready", lambda: True)
         monkeypatch.setattr(
-            prc, "_git_out", lambda args, **kw: "https://github.com/o/r.git" if "config" in args else ""
+            prc,
+            "_git_out",
+            lambda args, **kw: "https://github.com/o/r.git" if "config" in args else "",
         )
         captured: dict[str, object] = {}
 
@@ -3993,7 +4130,9 @@ class TestCosPr:
         monkeypatch.setattr(prc, "_preserve_reaped", lambda r, w, b: None)  # simulate failure
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        (wt / "dirty.txt").write_text("uncommitted work at risk", encoding="utf-8")  # dirty → preserve needed
+        (wt / "dirty.txt").write_text(
+            "uncommitted work at risk", encoding="utf-8"
+        )  # dirty → preserve needed
         sess_dir = repo / ".coding-os" / "claude" / "sessions"
         sess_dir.mkdir(parents=True, exist_ok=True)
         (sess_dir / "ses-test-abc.json").write_text(
@@ -4051,7 +4190,9 @@ class TestCosPr:
         ledger = repo / ".coding-os" / ".pr-cleanup-ledger.json"
         ledger.parent.mkdir(parents=True, exist_ok=True)
         ledger.write_text(
-            json.dumps([{"branch": "agents/old/dead", "remote_pending": False, "pr_pending": False}])
+            json.dumps(
+                [{"branch": "agents/old/dead", "remote_pending": False, "pr_pending": False}]
+            )
         )
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
@@ -4130,7 +4271,9 @@ class TestCosPr:
         import cli.pr_commands as prc
 
         self._add_bare_remote(repo, tmp_path)
-        monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")  # past draft → exercises the CI-gate path
+        monkeypatch.setenv(
+            "COS_GIT_AUTONOMY", "auto_merge"
+        )  # past draft → exercises the CI-gate path
         monkeypatch.setattr(prc, "_gh_ready", lambda: True)
         monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
         monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
@@ -4138,7 +4281,9 @@ class TestCosPr:
 
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
         res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         # explicit, actionable degraded status — never a silent open PR
@@ -4174,11 +4319,13 @@ class TestCosPr:
         monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
         self._fake_gh(prc, monkeypatch)  # gh pr merge => AssertionError if armed
         calls: list = []
-        monkeypatch.setattr(prc, "_escalate_blocked", lambda *a, **k: (calls.append(a) or True))
+        monkeypatch.setattr(prc, "_escalate_blocked", lambda *a, **k: calls.append(a) or True)
 
         runner.invoke(cli, ["pr", "open", "--task", "TASK-999", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("TASK-999-ses-test-abc"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
         res = runner.invoke(cli, ["pr", "submit", "--task", "TASK-999", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "merge_status: degraded-no-required-check" in res.output
@@ -4201,7 +4348,9 @@ class TestCosPr:
 
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
         res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "auto_merge_armed: True" in res.output
@@ -4247,13 +4396,23 @@ class TestCosPr:
                     return view({"reviewDecision": None})
                 st["polls"] += 1
                 if st["merged"]:
-                    return view({"number": 1, "state": "MERGED", "mergedAt": "2026-01-01T00:00:00Z"})
+                    return view(
+                        {"number": 1, "state": "MERGED", "mergedAt": "2026-01-01T00:00:00Z"}
+                    )
                 if st["polls"] == 1:  # checks still running
-                    return view({"number": 1, "state": "OPEN",
-                                 "statusCheckRollup": [{"status": "IN_PROGRESS"}]})
+                    return view(
+                        {
+                            "number": 1,
+                            "state": "OPEN",
+                            "statusCheckRollup": [{"status": "IN_PROGRESS"}],
+                        }
+                    )
                 # checks green; an armed auto-merge fires right after this poll
-                pr = {"number": 1, "state": "OPEN",
-                      "statusCheckRollup": [{"status": "COMPLETED", "conclusion": "SUCCESS"}]}
+                pr = {
+                    "number": 1,
+                    "state": "OPEN",
+                    "statusCheckRollup": [{"status": "COMPLETED", "conclusion": "SUCCESS"}],
+                }
                 if st["armed"]:
                     pr["autoMergeRequest"] = {"enabledAt": "x"}
                     st["merged"] = True
@@ -4268,7 +4427,9 @@ class TestCosPr:
 
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
         sub = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
         assert sub.exit_code == 0, sub.output
         assert "auto_merge_armed: True" in sub.output
@@ -4276,7 +4437,9 @@ class TestCosPr:
         branch = "agents/adhoc/ses-test-abc"
         rollups = []
         for _ in range(3):  # one status poll per agent turn (the SKILL's loop)
-            r = runner.invoke(cli, ["pr", "status", "--branch", branch, "--repo", str(repo), "--json"])
+            r = runner.invoke(
+                cli, ["pr", "status", "--branch", branch, "--repo", str(repo), "--json"]
+            )
             assert r.exit_code == 0, r.output
             rollups.append(json.loads(r.output)["ci_rollup"])
         assert rollups == ["pending", "passing", "merged"], rollups
@@ -4302,7 +4465,9 @@ class TestCosPr:
 
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
         res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "merge_status: draft" in res.output
@@ -4348,13 +4513,17 @@ class TestCosPr:
         monkeypatch.setenv("COS_GIT_AUTONOMY", "local_autonomous")
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "work"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "work"], check=True
+        )
 
         res = runner.invoke(cli, ["pr", "land", "--adhoc", "--repo", str(repo), "--json"])
         assert res.exit_code == 1, res.output
         data = json.loads(res.output)
         assert data["landed"] is False and data["reason"] == "verify-not-green"
-        assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # branch survives, nothing landed
+        assert "agents/adhoc/ses-test-abc" in self._branches(
+            repo
+        )  # branch survives, nothing landed
 
     def test_pr_land_aborts_on_conflict(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -4398,7 +4567,9 @@ class TestCosPr:
 
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
         res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
 
         assert res.exit_code == 0, res.output
@@ -4455,7 +4626,9 @@ class TestCosPr:
         self._fake_gh(prc, monkeypatch)
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
         res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "warning:" in res.output and "branch-guard" in res.output
@@ -4469,7 +4642,9 @@ class TestCosPr:
         self._fake_gh(prc, monkeypatch)
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
         res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "HUMAN integrates" in res.output and "branch-guard-blocked" in res.output
@@ -4493,7 +4668,9 @@ class TestCosPr:
         monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-AAA")
         runner.invoke(cli, ["pr", "open", "--task", "TASK-777", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("TASK-777-ses-AAA"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
 
         # submit under a different session id — must still find TASK-777-ses-AAA
         monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-BBB")
@@ -4526,7 +4703,9 @@ class TestCosPr:
 
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
         res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "merge_status: local" in res.output
@@ -4550,7 +4729,9 @@ class TestCosPr:
 
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
         res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "autonomy_level: auto_merge" in res.output  # env beat the file
@@ -4640,7 +4821,9 @@ class TestCosPr:
         monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-AAA")
         runner.invoke(cli, ["pr", "open", "--task", "TASK-777", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("TASK-777-ses-AAA"))
-        (wt / "uncommitted.txt").write_text("peer work at risk", encoding="utf-8")  # dirty → must preserve
+        (wt / "uncommitted.txt").write_text(
+            "peer work at risk", encoding="utf-8"
+        )  # dirty → must preserve
 
         monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-BBB")  # drift: different session id
         res = runner.invoke(cli, ["pr", "cleanup", "--task", "TASK-777", "--repo", str(repo)])
@@ -4651,11 +4834,15 @@ class TestCosPr:
         # branch tip — a bundle that captured nothing would still exist (TASK-565 / L).
         head_sha = subprocess.run(
             ["git", "-C", str(repo), "bundle", "list-heads", str(bundles[0])],
-            capture_output=True, text=True, check=True,
+            capture_output=True,
+            text=True,
+            check=True,
         ).stdout.split()[0]
         tree = subprocess.run(
             ["git", "-C", str(repo), "ls-tree", "-r", "--name-only", head_sha],
-            capture_output=True, text=True, check=True,
+            capture_output=True,
+            text=True,
+            check=True,
         ).stdout
         assert "uncommitted.txt" in tree, f"bundle tip missing the preserved file; tree={tree!r}"
 
@@ -4666,7 +4853,9 @@ class TestCosPr:
         # KEEP the worktree (the only copy) and refuse — never destroy unpreserved work.
         import cli.pr_commands as prc
 
-        monkeypatch.setattr(prc, "_preserve_reaped", lambda r, w, b: None)  # simulate bundle failure
+        monkeypatch.setattr(
+            prc, "_preserve_reaped", lambda r, w, b: None
+        )  # simulate bundle failure
         monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-AAA")
         runner.invoke(cli, ["pr", "open", "--task", "TASK-666", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("TASK-666-ses-AAA"))
@@ -4694,10 +4883,15 @@ class TestCosPr:
     def test_rollup_state_classification(self) -> None:
         import cli.pr_commands as prc
 
-        assert prc._rollup_state({"mergedAt": "2026-06-24T00:00:00Z", "state": "MERGED"}) == "merged"
+        assert (
+            prc._rollup_state({"mergedAt": "2026-06-24T00:00:00Z", "state": "MERGED"}) == "merged"
+        )
         assert prc._rollup_state({"state": "CLOSED"}) == "closed"
         assert prc._rollup_state({"state": "OPEN", "statusCheckRollup": []}) == "pending"
-        red = {"state": "OPEN", "statusCheckRollup": [{"status": "COMPLETED", "conclusion": "FAILURE"}]}
+        red = {
+            "state": "OPEN",
+            "statusCheckRollup": [{"status": "COMPLETED", "conclusion": "FAILURE"}],
+        }
         assert prc._rollup_state(red) == "red"
         pend = {"state": "OPEN", "statusCheckRollup": [{"status": "IN_PROGRESS"}]}
         assert prc._rollup_state(pend) == "pending"
@@ -4706,13 +4900,20 @@ class TestCosPr:
         # signal-derivable STOP state, so the driver never re-polls forever (D5).
         assert prc._rollup_state({"state": "OPEN", "statusCheckRollup": green}) == "passing-unarmed"
         # green AND auto-merge armed (not a draft) → it will land itself.
-        armed = {"state": "OPEN", "statusCheckRollup": green, "autoMergeRequest": {"enabledAt": "x"}}
+        armed = {
+            "state": "OPEN",
+            "statusCheckRollup": green,
+            "autoMergeRequest": {"enabledAt": "x"},
+        }
         assert prc._rollup_state(armed) == "passing"
         # green + armed but a GitHub draft PR → still won't auto-land → STOP state.
         draft = {**armed, "isDraft": True}
         assert prc._rollup_state(draft) == "passing-unarmed"
         # red wins over pending when both are present
-        mixed = {"state": "OPEN", "statusCheckRollup": [{"status": "IN_PROGRESS"}, {"conclusion": "FAILURE"}]}
+        mixed = {
+            "state": "OPEN",
+            "statusCheckRollup": [{"status": "IN_PROGRESS"}, {"conclusion": "FAILURE"}],
+        }
         assert prc._rollup_state(mixed) == "red"
 
     def test_rollup_state_merge_queue(self) -> None:
@@ -4730,22 +4931,45 @@ class TestCosPr:
             pr = {"state": "OPEN", "statusCheckRollup": running, "mergeQueueEntry": {"state": st}}
             assert prc._rollup_state(pr) == "queued", st
             # …and over green-but-armed (in the queue, hasn't landed yet).
-            armed_q = {"state": "OPEN", "statusCheckRollup": green,
-                       "autoMergeRequest": {"enabledAt": "x"}, "mergeQueueEntry": {"state": st}}
+            armed_q = {
+                "state": "OPEN",
+                "statusCheckRollup": green,
+                "autoMergeRequest": {"enabledAt": "x"},
+                "mergeQueueEntry": {"state": st},
+            }
             assert prc._rollup_state(armed_q) == "queued", st
         # ejected / will-be-ejected → red (heal only this PR).
-        ejected = {"state": "OPEN", "statusCheckRollup": green, "mergeQueueEntry": {"state": "UNMERGEABLE"}}
+        ejected = {
+            "state": "OPEN",
+            "statusCheckRollup": green,
+            "mergeQueueEntry": {"state": "UNMERGEABLE"},
+        }
         assert prc._rollup_state(ejected) == "red"
         # a genuinely failing check still wins over a queue entry (defense in depth).
-        red_in_q = {"state": "OPEN", "statusCheckRollup": [{"conclusion": "FAILURE"}],
-                    "mergeQueueEntry": {"state": "AWAITING_CHECKS"}}
+        red_in_q = {
+            "state": "OPEN",
+            "statusCheckRollup": [{"conclusion": "FAILURE"}],
+            "mergeQueueEntry": {"state": "AWAITING_CHECKS"},
+        }
         assert prc._rollup_state(red_in_q) == "red"
         # back-compat: no entry (no merge queue) → byte-unchanged verdicts.
         assert prc._rollup_state({"state": "OPEN", "statusCheckRollup": running}) == "pending"
-        assert prc._rollup_state({"state": "OPEN", "statusCheckRollup": green,
-                                  "autoMergeRequest": {"enabledAt": "x"}}) == "passing"
-        assert prc._rollup_state({"state": "OPEN", "statusCheckRollup": green,
-                                  "mergeQueueEntry": None}) == "passing-unarmed"
+        assert (
+            prc._rollup_state(
+                {
+                    "state": "OPEN",
+                    "statusCheckRollup": green,
+                    "autoMergeRequest": {"enabledAt": "x"},
+                }
+            )
+            == "passing"
+        )
+        assert (
+            prc._rollup_state(
+                {"state": "OPEN", "statusCheckRollup": green, "mergeQueueEntry": None}
+            )
+            == "passing-unarmed"
+        )
 
     def test_pr_ci_rollup_merge_queue_probe(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
@@ -4762,13 +4986,24 @@ class TestCosPr:
         def fake_passing(args, **kw):
             if args[:3] == ["gh", "pr", "view"]:
                 green = [{"status": "COMPLETED", "conclusion": "SUCCESS"}]
-                payload = json.dumps({"number": 7, "state": "OPEN", "statusCheckRollup": green,
-                                      "autoMergeRequest": {"enabledAt": "x"}})
+                payload = json.dumps(
+                    {
+                        "number": 7,
+                        "state": "OPEN",
+                        "statusCheckRollup": green,
+                        "autoMergeRequest": {"enabledAt": "x"},
+                    }
+                )
                 return subprocess.CompletedProcess(args, 0, stdout=payload, stderr="")
             if args[:3] == ["gh", "api", "graphql"]:
                 graphql["n"] += 1
                 payload = json.dumps(
-                    {"data": {"repository": {"pullRequest": {"mergeQueueEntry": {"state": "QUEUED"}}}}})
+                    {
+                        "data": {
+                            "repository": {"pullRequest": {"mergeQueueEntry": {"state": "QUEUED"}}}
+                        }
+                    }
+                )
                 return subprocess.CompletedProcess(args, 0, stdout=payload, stderr="")
             return real_run(args, **kw)
 
@@ -4780,8 +5015,9 @@ class TestCosPr:
 
         def fake_red(args, **kw):
             if args[:3] == ["gh", "pr", "view"]:
-                payload = json.dumps({"number": 7, "state": "OPEN",
-                                      "statusCheckRollup": [{"conclusion": "FAILURE"}]})
+                payload = json.dumps(
+                    {"number": 7, "state": "OPEN", "statusCheckRollup": [{"conclusion": "FAILURE"}]}
+                )
                 return subprocess.CompletedProcess(args, 0, stdout=payload, stderr="")
             if args[:3] == ["gh", "api", "graphql"]:
                 graphql["n"] += 1
@@ -4803,7 +5039,10 @@ class TestCosPr:
         def fake_run(args, **kw):
             if args[:3] == ["gh", "pr", "view"]:
                 payload = json.dumps(
-                    {"state": "OPEN", "statusCheckRollup": [{"status": "COMPLETED", "conclusion": "FAILURE"}]}
+                    {
+                        "state": "OPEN",
+                        "statusCheckRollup": [{"status": "COMPLETED", "conclusion": "FAILURE"}],
+                    }
                 )
                 return subprocess.CompletedProcess(args, 0, stdout=payload, stderr="")
             return real_run(args, **kw)
@@ -4826,19 +5065,56 @@ class TestCosPr:
         running = [{"status": "IN_PROGRESS"}]
         failing = [{"conclusion": "FAILURE"}]
         rows = [
-            {"number": 1, "headRefName": "agents/t/a", "state": "OPEN",
-             "statusCheckRollup": running, "mergeable": "MERGEABLE", "createdAt": "2026-01-01T00:00:00Z"},
-            {"number": 2, "headRefName": "agents/t/b", "state": "OPEN",
-             "statusCheckRollup": failing, "mergeable": "MERGEABLE", "createdAt": "2026-01-01T00:00:00Z"},
-            {"number": 3, "headRefName": "agents/t/c", "state": "OPEN",
-             "statusCheckRollup": green, "mergeable": "CONFLICTING", "createdAt": "2026-01-01T00:00:00Z"},
-            {"number": 4, "headRefName": "agents/t/d", "state": "OPEN", "statusCheckRollup": green,
-             "mergeable": "MERGEABLE", "reviewDecision": "REVIEW_REQUIRED",
-             "autoMergeRequest": {"enabledAt": "x"}, "createdAt": "2026-01-01T00:00:00Z"},
-            {"number": 5, "headRefName": "agents/t/e", "state": "OPEN",
-             "statusCheckRollup": green, "mergeable": "MERGEABLE", "createdAt": "2026-01-01T00:00:00Z"},
-            {"number": 6, "headRefName": "feature/x", "state": "OPEN",  # non-agent → excluded
-             "statusCheckRollup": green, "mergeable": "MERGEABLE", "createdAt": "2026-01-01T00:00:00Z"},
+            {
+                "number": 1,
+                "headRefName": "agents/t/a",
+                "state": "OPEN",
+                "statusCheckRollup": running,
+                "mergeable": "MERGEABLE",
+                "createdAt": "2026-01-01T00:00:00Z",
+            },
+            {
+                "number": 2,
+                "headRefName": "agents/t/b",
+                "state": "OPEN",
+                "statusCheckRollup": failing,
+                "mergeable": "MERGEABLE",
+                "createdAt": "2026-01-01T00:00:00Z",
+            },
+            {
+                "number": 3,
+                "headRefName": "agents/t/c",
+                "state": "OPEN",
+                "statusCheckRollup": green,
+                "mergeable": "CONFLICTING",
+                "createdAt": "2026-01-01T00:00:00Z",
+            },
+            {
+                "number": 4,
+                "headRefName": "agents/t/d",
+                "state": "OPEN",
+                "statusCheckRollup": green,
+                "mergeable": "MERGEABLE",
+                "reviewDecision": "REVIEW_REQUIRED",
+                "autoMergeRequest": {"enabledAt": "x"},
+                "createdAt": "2026-01-01T00:00:00Z",
+            },
+            {
+                "number": 5,
+                "headRefName": "agents/t/e",
+                "state": "OPEN",
+                "statusCheckRollup": green,
+                "mergeable": "MERGEABLE",
+                "createdAt": "2026-01-01T00:00:00Z",
+            },
+            {
+                "number": 6,
+                "headRefName": "feature/x",
+                "state": "OPEN",  # non-agent → excluded
+                "statusCheckRollup": green,
+                "mergeable": "MERGEABLE",
+                "createdAt": "2026-01-01T00:00:00Z",
+            },
         ]
         real_run = prc._run
 
@@ -4854,7 +5130,11 @@ class TestCosPr:
         assert data["open"] == 5  # the non-agent PR is excluded
         assert data["quick_merge"] == 1
         assert [e["category"] for e in data["prs"]] == [
-            "quick-merge", "needs-review", "conflict", "red", "waiting"
+            "quick-merge",
+            "needs-review",
+            "conflict",
+            "red",
+            "waiting",
         ]
         assert data["prs"][0]["branch"] == "agents/t/e"  # the safe one-click, surfaced first
 
@@ -4893,7 +5173,11 @@ class TestCosPr:
                 captured["args"] = args
                 green = [{"status": "COMPLETED", "conclusion": "SUCCESS"}]
                 payload = json.dumps(
-                    {"state": "OPEN", "statusCheckRollup": green, "autoMergeRequest": {"enabledAt": "x"}}
+                    {
+                        "state": "OPEN",
+                        "statusCheckRollup": green,
+                        "autoMergeRequest": {"enabledAt": "x"},
+                    }
                 )
                 return subprocess.CompletedProcess(args, 0, stdout=payload, stderr="")
             return real_run(args, **kw)
@@ -4908,20 +5192,36 @@ class TestCosPr:
     # --- cross-branch conflict pre-detection (TASK-558) --------------------
 
     @staticmethod
-    def _mk_agent_branch(repo: Path, tmp_path: Path, branch: str, committed: dict[str, str]) -> Path:
+    def _mk_agent_branch(
+        repo: Path, tmp_path: Path, branch: str, committed: dict[str, str]
+    ) -> Path:
         wt = tmp_path / "wts" / branch.replace("/", "-")
         wt.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(
             ["git", "-C", str(repo), "worktree", "add", "-b", branch, str(wt), "main"],
-            check=True, capture_output=True, text=True,
+            check=True,
+            capture_output=True,
+            text=True,
         )
         for name, content in committed.items():
             (wt / name).write_text(content, encoding="utf-8")
         if committed:
             subprocess.run(["git", "-C", str(wt), "add", "-A"], check=True)
             subprocess.run(
-                ["git", "-C", str(wt), "-c", "user.email=t@t", "-c", "user.name=t",
-                 "commit", "-q", "-m", f"work {branch}"], check=True,
+                [
+                    "git",
+                    "-C",
+                    str(wt),
+                    "-c",
+                    "user.email=t@t",
+                    "-c",
+                    "user.name=t",
+                    "commit",
+                    "-q",
+                    "-m",
+                    f"work {branch}",
+                ],
+                check=True,
             )
         return wt
 
@@ -4959,7 +5259,9 @@ class TestCosPr:
     ) -> None:
         self._mk_agent_branch(repo, tmp_path, "agents/a/s1", {"a.py": "x\n"})
         self._mk_agent_branch(repo, tmp_path, "agents/b/s2", {"b.py": "y\n"})
-        res = runner.invoke(cli, ["pr", "conflicts", "--branch", "agents/a/s1", "--repo", str(repo)])
+        res = runner.invoke(
+            cli, ["pr", "conflicts", "--branch", "agents/a/s1", "--repo", str(repo)]
+        )
         assert res.exit_code == 0, res.output
         assert "conflicts: (none)" in res.output and "no peer overlap" in res.output
 
@@ -4995,9 +5297,12 @@ class TestCosPr:
         assert submitted.exit_code == 0, submitted.output
         on_remote = subprocess.run(
             ["git", "-C", str(repo), "ls-remote", "origin", "agents/TASK-DOG/ses-test-abc"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         ).stdout
-        assert "agents/TASK-DOG/ses-test-abc" in on_remote, "branch must reach the integration remote"
+        assert "agents/TASK-DOG/ses-test-abc" in on_remote, (
+            "branch must reach the integration remote"
+        )
 
         # cleanup — no orphan worktree or local branch left behind
         cleaned = runner.invoke(cli, ["pr", "cleanup", "--task", "TASK-DOG", "--repo", str(repo)])
@@ -5083,10 +5388,18 @@ class TestCosPr:
         import cli.pr_commands as prc
 
         green = [{"conclusion": "SUCCESS", "status": "COMPLETED"}]
-        armed = {"state": "OPEN", "statusCheckRollup": green, "autoMergeRequest": {"enabledAt": "x"}}
+        armed = {
+            "state": "OPEN",
+            "statusCheckRollup": green,
+            "autoMergeRequest": {"enabledAt": "x"},
+        }
         # Green + auto-merge armed, but the review gate is still open → review-required.
-        assert prc._rollup_state({**armed, "reviewDecision": "REVIEW_REQUIRED"}) == "review-required"
-        assert prc._rollup_state({**armed, "reviewDecision": "CHANGES_REQUESTED"}) == "review-required"
+        assert (
+            prc._rollup_state({**armed, "reviewDecision": "REVIEW_REQUIRED"}) == "review-required"
+        )
+        assert (
+            prc._rollup_state({**armed, "reviewDecision": "CHANGES_REQUESTED"}) == "review-required"
+        )
         # No review gate (approved / not required) → unchanged passing signal.
         assert prc._rollup_state({**armed, "reviewDecision": "APPROVED"}) == "passing"
         assert prc._rollup_state({**armed, "reviewDecision": None}) == "passing"
@@ -5108,7 +5421,9 @@ class TestCosPr:
 
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
         res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "merge_status: auto-merge-armed-awaiting-review" in res.output
@@ -5132,7 +5447,9 @@ class TestCosPr:
 
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
+        )
         res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "merge_status: auto-merge-armed" in res.output
@@ -5155,7 +5472,5 @@ class TestBrainSweepChangelog:
         # child's stdout, so exit 0 is the contract here (the JSON shape + the
         # archive/undo cycle are asserted in test_brain_hardening). Default is a
         # dry run — it must never mutate.
-        result = runner.invoke(
-            cli, ["brain-sweep-changelog", "-d", str(initialized_project)]
-        )
+        result = runner.invoke(cli, ["brain-sweep-changelog", "-d", str(initialized_project)])
         assert result.exit_code == 0, result.output

@@ -385,7 +385,11 @@ async def stream_trace(
     # The dispatch may not have created the file yet — resolve the canonical
     # path so tailing begins the instant the first event lands. Segments are
     # validated above, so this join cannot escape the state dir.
-    log = target if target is not None else state / (agent or "claude") / "traces" / f"{session_id}.jsonl"
+    log = (
+        target
+        if target is not None
+        else state / (agent or "claude") / "traces" / f"{session_id}.jsonl"
+    )
     poll_secs = float(os.environ.get("COS_TRACE_STREAM_POLL_MS", "750")) / 1000.0
     heartbeat_secs = 15.0
     idle_terminate_secs = float(os.environ.get("COS_TRACE_STREAM_IDLE_TERMINATE_S", "30"))
@@ -406,7 +410,10 @@ async def stream_trace(
                     yield f"event: trace\ndata: {json.dumps(evt, ensure_ascii=False)}\n\n".encode()
                 if events:
                     last_event = time.monotonic()
-                    if any(isinstance(e, dict) and e.get("kind") == "dispatch_completed" for e in events):
+                    if any(
+                        isinstance(e, dict) and e.get("kind") == "dispatch_completed"
+                        for e in events
+                    ):
                         saw_completed = True
                 # Self-terminate once a completion has been seen AND the trace has
                 # been idle for a grace period. A supervisor session emits one

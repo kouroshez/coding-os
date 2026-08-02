@@ -85,9 +85,7 @@ def _spent_today(db_path: str | Path) -> float:
     try:
         try:
             row = conn.execute(
-                "SELECT COALESCE(SUM(cost_usd), 0.0) "
-                "FROM formula_dispatches "
-                "WHERE date(ts) = ?",
+                "SELECT COALESCE(SUM(cost_usd), 0.0) FROM formula_dispatches WHERE date(ts) = ?",
                 (_today_utc_date(),),
             ).fetchone()
         except sqlite3.OperationalError as exc:
@@ -211,7 +209,13 @@ def cost_anomaly(db_path: str | Path, *, z_threshold: float = 3.5) -> dict:
         if z > z_threshold:  # upper tail only — a cheap session is not a cost overrun
             outliers.append({"session_id": sid, "cost_usd": round(c, 6), "modified_z": round(z, 2)})
     outliers.sort(key=lambda o: abs(o["modified_z"]), reverse=True)
-    return {"ok": not outliers, "n": n, "median": round(med, 6), "mad": round(mad, 6), "outliers": outliers}
+    return {
+        "ok": not outliers,
+        "n": n,
+        "median": round(med, 6),
+        "mad": round(mad, 6),
+        "outliers": outliers,
+    }
 
 
 def cost_burn_rate(db_path: str | Path, *, window_days: int = 14) -> dict:

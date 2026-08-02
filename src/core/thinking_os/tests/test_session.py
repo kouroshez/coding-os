@@ -422,8 +422,13 @@ class TestApplySessionFacts:
         from session_enrich import apply_session_facts
 
         conn = self._db_with_summary(tmp_path)
-        assert apply_session_facts(conn, "ses-d", SessionSummaryFacts(has_signal=False, learned="x")) is False
-        row = conn.execute("SELECT learned FROM session_summaries WHERE session_id = 'ses-d'").fetchone()
+        assert (
+            apply_session_facts(conn, "ses-d", SessionSummaryFacts(has_signal=False, learned="x"))
+            is False
+        )
+        row = conn.execute(
+            "SELECT learned FROM session_summaries WHERE session_id = 'ses-d'"
+        ).fetchone()
         conn.close()
         assert row[0] is None
 
@@ -432,8 +437,13 @@ class TestApplySessionFacts:
         from session_enrich import apply_session_facts
 
         conn = self._db_with_summary(tmp_path)
-        assert apply_session_facts(conn, "ses-d", SessionSummaryFacts(has_signal=True, learned="   ")) is False
-        row = conn.execute("SELECT learned FROM session_summaries WHERE session_id = 'ses-d'").fetchone()
+        assert (
+            apply_session_facts(conn, "ses-d", SessionSummaryFacts(has_signal=True, learned="   "))
+            is False
+        )
+        row = conn.execute(
+            "SELECT learned FROM session_summaries WHERE session_id = 'ses-d'"
+        ).fetchone()
         conn.close()
         assert row[0] is None
 
@@ -445,7 +455,9 @@ class TestApplySessionFacts:
         conn.execute("UPDATE session_summaries SET learned = 'original' WHERE session_id = 'ses-d'")
         conn.commit()
         apply_session_facts(conn, "ses-d", SessionSummaryFacts(has_signal=True, learned="newer"))
-        row = conn.execute("SELECT learned FROM session_summaries WHERE session_id = 'ses-d'").fetchone()
+        row = conn.execute(
+            "SELECT learned FROM session_summaries WHERE session_id = 'ses-d'"
+        ).fetchone()
         conn.close()
         assert row[0] == "original"
 
@@ -454,7 +466,9 @@ class TestApplySessionFacts:
         from session_enrich import apply_session_facts
 
         conn = init_db(tmp_path / "test.db")
-        result = apply_session_facts(conn, "ses-absent", SessionSummaryFacts(has_signal=True, learned="x"))
+        result = apply_session_facts(
+            conn, "ses-absent", SessionSummaryFacts(has_signal=True, learned="x")
+        )
         conn.close()
         assert result is False
 
@@ -491,8 +505,14 @@ class TestSessionObserveWorker:
         conn = self._db_with_changelog(tmp_path, [("Edit", "Modified auth.py", 0.9)])
         oid = self._first_id(conn)
         enrich = self._enrichment(
-            [{"observation_id": oid, "narrative": "hardened token refresh against replay",
-              "concepts": ["auth", "security"], "has_signal": True}],
+            [
+                {
+                    "observation_id": oid,
+                    "narrative": "hardened token refresh against replay",
+                    "concepts": ["auth", "security"],
+                    "has_signal": True,
+                }
+            ],
             SessionSummaryFacts(has_signal=True, learned="replay guard belongs at refresh"),
         )
         monkeypatch.setattr(w, "observe_session", lambda evidence: enrich)
@@ -527,12 +547,20 @@ class TestSessionObserveWorker:
         conn = self._db_with_changelog(tmp_path, [("Edit", "added client", 0.5)])
         oid = self._first_id(conn)
         enrich = self._enrichment(
-            [{"observation_id": oid, "narrative": "wired client with AKIAIOSFODNN7EXAMPLE key",
-              "concepts": ["aws"], "has_signal": True}]
+            [
+                {
+                    "observation_id": oid,
+                    "narrative": "wired client with AKIAIOSFODNN7EXAMPLE key",
+                    "concepts": ["aws"],
+                    "has_signal": True,
+                }
+            ]
         )
         monkeypatch.setattr(w, "observe_session", lambda evidence: enrich)
         w.enrich_session(conn, "ses-w")
-        narrative = conn.execute("SELECT narrative FROM observations WHERE id=?", (oid,)).fetchone()[0]
+        narrative = conn.execute(
+            "SELECT narrative FROM observations WHERE id=?", (oid,)
+        ).fetchone()[0]
         conn.close()
         assert "AKIAIOSFODNN7EXAMPLE" not in narrative
         assert "redacted" in narrative
@@ -558,7 +586,9 @@ class TestSessionObserveWorker:
         conn = self._db_with_changelog(tmp_path, [("Edit", "row", 0.5)])
         # observe_session is the real one — gated off ⇒ returns None ⇒ no dispatch, no change.
         assert w.enrich_session(conn, "ses-w") == 0
-        mt = conn.execute("SELECT memory_type FROM observations WHERE session_id='ses-w'").fetchone()[0]
+        mt = conn.execute(
+            "SELECT memory_type FROM observations WHERE session_id='ses-w'"
+        ).fetchone()[0]
         conn.close()
         assert mt == "changelog"
 
@@ -568,7 +598,14 @@ class TestSessionObserveWorker:
         conn = self._db_with_changelog(tmp_path, [("Edit", "sig", 0.9)])
         oid = self._first_id(conn)
         enrich = self._enrichment(
-            [{"observation_id": oid, "narrative": "did a real thing", "concepts": ["x"], "has_signal": True}]
+            [
+                {
+                    "observation_id": oid,
+                    "narrative": "did a real thing",
+                    "concepts": ["x"],
+                    "has_signal": True,
+                }
+            ]
         )
         monkeypatch.setattr(w, "observe_session", lambda evidence: enrich)
         assert w.enrich_session(conn, "ses-w") == 1
@@ -580,10 +617,19 @@ class TestSessionObserveWorker:
 
         conn = self._db_with_changelog(tmp_path, [("Edit", "sig", 0.9)])
         oid = self._first_id(conn)
-        conn.execute("UPDATE observations SET expires_at = '2099-01-01 00:00:00' WHERE id = ?", (oid,))
+        conn.execute(
+            "UPDATE observations SET expires_at = '2099-01-01 00:00:00' WHERE id = ?", (oid,)
+        )
         conn.commit()
         enrich = self._enrichment(
-            [{"observation_id": oid, "narrative": "durable insight", "concepts": ["x"], "has_signal": True}]
+            [
+                {
+                    "observation_id": oid,
+                    "narrative": "durable insight",
+                    "concepts": ["x"],
+                    "has_signal": True,
+                }
+            ]
         )
         monkeypatch.setattr(w, "observe_session", lambda evidence: enrich)
         w.enrich_session(conn, "ses-w")

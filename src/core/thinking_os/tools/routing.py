@@ -179,7 +179,7 @@ def _sample_gamma(shape: float) -> float:
         if v <= 0:
             continue
         u = random.random()
-        if u < 1.0 - 0.0331 * (x ** 4) or math.log(u) < 0.5 * x * x + d * (1.0 - v + math.log(v)):
+        if u < 1.0 - 0.0331 * (x**4) or math.log(u) < 0.5 * x * x + d * (1.0 - v + math.log(v)):
             return d * v
 
 

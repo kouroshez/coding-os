@@ -59,7 +59,11 @@ def _audit_doc(path: Path, owners: dict[str, str], cmd_res: dict[str, re.Pattern
             block_modules = set()
             continue
         for command, module_id in owners.items():
-            if cmd_res[command].search(line) and file_tag != module_id and module_id not in block_modules:
+            if (
+                cmd_res[command].search(line)
+                and file_tag != module_id
+                and module_id not in block_modules
+            ):
                 violations.append(
                     f"{path.relative_to(_ROOT)}:{lineno}: /{command} (module '{module_id}') "
                     "is not under an if-module block or a file module tag"

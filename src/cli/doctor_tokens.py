@@ -231,11 +231,15 @@ def format_dispatch_cost_text(report: dict[str, Any]) -> str:
             f"(modified-z > 3.5, median ${anomaly.get('median')}):"
         )
         for o in anomaly["outliers"][:5]:
-            lines.append(f"    {o['session_id'][:16]:16s}  ${o['cost_usd']:>10.4f}  z={o['modified_z']}")
+            lines.append(
+                f"    {o['session_id'][:16]:16s}  ${o['cost_usd']:>10.4f}  z={o['modified_z']}"
+            )
     elif n < 3:
         lines.append(f"  anomaly: n={n} (<3) — need >=3 sessions with cost to flag outliers")
     else:
-        lines.append(f"  OK: no cost outliers across {n} sessions (median ${anomaly.get('median')})")
+        lines.append(
+            f"  OK: no cost outliers across {n} sessions (median ${anomaly.get('median')})"
+        )
     if burn.get("days", 0) >= 2:
         delta = burn.get("delta_pct")
         partial = " (today, partial)" if burn.get("partial_today") else ""

@@ -7,7 +7,13 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-_SCRIPT = Path(__file__).resolve().parents[1] / "src" / "scripts" / "dev" / "audit_scaffold_module_tags.py"
+_SCRIPT = (
+    Path(__file__).resolve().parents[1]
+    / "src"
+    / "scripts"
+    / "dev"
+    / "audit_scaffold_module_tags.py"
+)
 
 
 def _load_audit():

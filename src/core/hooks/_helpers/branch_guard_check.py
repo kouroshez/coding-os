@@ -163,9 +163,20 @@ def _check_reset(args: list[str]) -> tuple[str | None, str | None]:
 # if git adds a colliding option (e.g. a future `--pat*`).
 _RESET_LONGS = frozenset(
     {
-        "--soft", "--mixed", "--hard", "--merge", "--keep", "--patch",
-        "--quiet", "--no-quiet", "--refresh", "--no-refresh", "--stdin",
-        "--pathspec-from-file", "--pathspec-file-nul", "--intent-to-add",
+        "--soft",
+        "--mixed",
+        "--hard",
+        "--merge",
+        "--keep",
+        "--patch",
+        "--quiet",
+        "--no-quiet",
+        "--refresh",
+        "--no-refresh",
+        "--stdin",
+        "--pathspec-from-file",
+        "--pathspec-file-nul",
+        "--intent-to-add",
         "--recurse-submodules",
     }
 )
@@ -439,9 +450,9 @@ def _unqualify_ref(ref: str) -> str:
     # membership test and writes a protected branch (D1).
     while True:
         if ref.startswith("refs/heads/"):
-            ref = ref[len("refs/heads/"):]
+            ref = ref[len("refs/heads/") :]
         elif ref.startswith("heads/"):
-            ref = ref[len("heads/"):]
+            ref = ref[len("heads/") :]
         else:
             return ref
 
@@ -493,7 +504,7 @@ def _has_unsafe_push_default(global_tokens: list[str]) -> bool:
             kv = global_tokens[i + 1]
             i += 2
         elif t.startswith("-c="):
-            kv = t[len("-c="):]
+            kv = t[len("-c=") :]
             i += 1
         else:
             i += 1
@@ -552,8 +563,12 @@ def _is_branch_filter_flag(arg: str) -> bool:
     # write — present ⇒ a read-only list query, so a protected ref named as the
     # filter must NOT block (review finding C: `branch --contains/--merged main`).
     return arg.split("=", 1)[0] in {
-        "--contains", "--no-contains", "--merged", "--no-merged",
-        "--points-at", "--list",
+        "--contains",
+        "--no-contains",
+        "--merged",
+        "--no-merged",
+        "--points-at",
+        "--list",
     }
 
 
@@ -596,7 +611,7 @@ def _git_dir_target(global_tokens: list[str]) -> str | None:
             return global_tokens[i + 1]
         matched_eq = [p for p in ("--work-tree=", "--git-dir=") if t.startswith(p)]
         if matched_eq:
-            return t[len(matched_eq[0]):]
+            return t[len(matched_eq[0]) :]
         if t in _GLOBAL_OPTS_WITH_ARG:
             i += 2
             continue

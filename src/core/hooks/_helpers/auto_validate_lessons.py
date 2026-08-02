@@ -31,9 +31,7 @@ def auto_validate(session_id: str, db_path: str, suggestions_file: str) -> dict:
 
     conn = get_connection(db_path)
     try:
-        return validate_surfaced_lessons(
-            conn, session_id=session_id, suggestions_path=str(sf)
-        )
+        return validate_surfaced_lessons(conn, session_id=session_id, suggestions_path=str(sf))
     finally:
         conn.close()
 

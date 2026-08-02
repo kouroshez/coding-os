@@ -248,9 +248,7 @@ def sweep_changelog(
         stats["archive_path"] = str(apath)
 
         # observations FTS + concept_graph triggers fire on DELETE.
-        conn.executemany(
-            "DELETE FROM observations WHERE id = ?", [(r["id"],) for r in rows]
-        )
+        conn.executemany("DELETE FROM observations WHERE id = ?", [(r["id"],) for r in rows])
         conn.commit()
         stats["deleted"] = len(rows)
         return stats
@@ -258,9 +256,7 @@ def sweep_changelog(
         conn.close()
 
 
-def undo_sweep(
-    db_path: str | Path | None, archive_path: str | Path
-) -> dict[str, Any]:
+def undo_sweep(db_path: str | Path | None, archive_path: str | Path) -> dict[str, Any]:
     """Restore rows a prior sweep archived — re-insert from the gzip JSONL,
     skipping any id that still exists (idempotent)."""
     path = Path(db_path or DEFAULT_DB_PATH)
@@ -283,9 +279,7 @@ def undo_sweep(
         with gzip.open(apath, "rt", encoding="utf-8") as fh:
             records = [json.loads(line) for line in fh if line.strip()]
         for rec in records:
-            if conn.execute(
-                "SELECT 1 FROM observations WHERE id = ?", (rec.get("id"),)
-            ).fetchone():
+            if conn.execute("SELECT 1 FROM observations WHERE id = ?", (rec.get("id"),)).fetchone():
                 stats["skipped"] += 1
                 continue
             cols = list(rec.keys())
@@ -337,9 +331,7 @@ def main() -> None:
     parser.add_argument(
         "--undo", default=None, metavar="ARCHIVE", help="Restore rows from a sweep archive"
     )
-    parser.add_argument(
-        "--vacuum", action="store_true", help="VACUUM the DB to reclaim bytes"
-    )
+    parser.add_argument("--vacuum", action="store_true", help="VACUUM the DB to reclaim bytes")
     parser.add_argument(
         "--grace-days",
         type=int,

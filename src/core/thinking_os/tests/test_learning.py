@@ -1540,7 +1540,9 @@ class TestTimesSeenSplit:
         conn.row_factory = sqlite3.Row
         from tools.learning import _upsert_pattern
 
-        kw = dict(memory_type="pattern", domain="BACKEND", source="mined", confidence=0.6, concepts="[]")
+        kw = dict(
+            memory_type="pattern", domain="BACKEND", source="mined", confidence=0.6, concepts="[]"
+        )
         first = _upsert_pattern(conn, pattern="Always use the services layer for DB writes", **kw)
         pid = first["id"]
         assert first["action"] == "created"

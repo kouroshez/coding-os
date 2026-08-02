@@ -218,11 +218,7 @@ def main(argv: list[str]) -> int:
         if gate_class in _COMPOSE_CLASSES
         else ""
     )
-    out_lines = [
-        line
-        for line in (compose_line, _recall_patterns(gate_class, agent_dir))
-        if line
-    ]
+    out_lines = [line for line in (compose_line, _recall_patterns(gate_class, agent_dir)) if line]
     if out_lines:
         print("\n".join(out_lines))
     return 0

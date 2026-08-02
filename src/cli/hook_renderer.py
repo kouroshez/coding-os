@@ -307,9 +307,7 @@ def render_for_adapter(registry: list[HookEntry], caps: AdapterCapabilities) -> 
             entry["timeout"] = timeout
         group["hooks"] = [entry]
     for event in list(output["hooks"]):
-        output["hooks"][event] = [
-            group for group in output["hooks"][event] if group.get("hooks")
-        ]
+        output["hooks"][event] = [group for group in output["hooks"][event] if group.get("hooks")]
         if not output["hooks"][event]:
             del output["hooks"][event]
     if parity_deficits:

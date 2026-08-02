@@ -86,7 +86,12 @@ def repair_loop(
         dispatched = True
         if not proceed:
             return RepairResult(
-                suite, attempts, False, exit_code, reason="budget-or-dispatch-abort", dispatched=True
+                suite,
+                attempts,
+                False,
+                exit_code,
+                reason="budget-or-dispatch-abort",
+                dispatched=True,
             )
         exit_code = run_suite(command, cwd)
 

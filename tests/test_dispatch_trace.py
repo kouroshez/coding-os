@@ -66,7 +66,4 @@ def test_emit_is_failopen(dispatcher_mod, monkeypatch):
 
     monkeypatch.setattr("thinking_os.tracing.emit", _boom)
     # Must swallow and return None — never raise into the dispatch path.
-    assert (
-        dispatcher_mod._emit_dispatch_trace("ses-x", "dispatch_turn", "impl", {"seq": 1})
-        is None
-    )
+    assert dispatcher_mod._emit_dispatch_trace("ses-x", "dispatch_turn", "impl", {"seq": 1}) is None

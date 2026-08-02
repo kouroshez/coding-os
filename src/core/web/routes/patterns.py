@@ -53,9 +53,7 @@ def list_patterns(
             conditions.append("trust_tier = ?")
             params.append(trust_tier)
         where = (" WHERE " + " AND ".join(conditions)) if conditions else ""
-        table_columns = {
-            row[1] for row in conn.execute("PRAGMA table_info(learned_patterns)")
-        }
+        table_columns = {row[1] for row in conn.execute("PRAGMA table_info(learned_patterns)")}
         if not table_columns:
             # A never-initialized consumer DB has no learned_patterns table;
             # PRAGMA returns no rows. Render an empty page rather than letting

@@ -345,8 +345,7 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
     conn = get_connection(path)
     try:
         existing = conn.execute(
-            "SELECT id FROM observations "
-            "WHERE content_hash = ? AND session_id = ?",
+            "SELECT id FROM observations WHERE content_hash = ? AND session_id = ?",
             (content_hash, session_id),
         ).fetchone()
         if existing:

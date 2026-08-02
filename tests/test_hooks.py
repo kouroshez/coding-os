@@ -253,7 +253,8 @@ class TestCosEnv:
         env = {
             k: v
             for k, v in os.environ.items()
-            if k not in ("CLAUDE_PROJECT_DIR", "COS_PROJECT_ROOT", "COS_WORKTREE_ROOT", "COS_STATE_DIR")
+            if k
+            not in ("CLAUDE_PROJECT_DIR", "COS_PROJECT_ROOT", "COS_WORKTREE_ROOT", "COS_STATE_DIR")
         }
         env["HOME"] = str(home)
         result = subprocess.run(
@@ -660,7 +661,9 @@ class TestBlockSecrets:
         env = {"PATH": f"{shim}:{os.environ.get('PATH', '')}"}
         blocked = run_hook(
             "block-secrets.sh",
-            stdin=json.dumps({"tool_name": "Bash", "tool_input": {"command": "git commit --no-verify -m x"}}),
+            stdin=json.dumps(
+                {"tool_name": "Bash", "tool_input": {"command": "git commit --no-verify -m x"}}
+            ),
             env_overrides=env,
         )
         assert blocked.returncode == 2  # fail-closed on the unverifiable commit
@@ -677,22 +680,22 @@ class TestBlockSecrets:
     @pytest.mark.parametrize(
         "command",
         [
-            "git commit -n -m x",                       # -n short flag
-            "git commit -nm x",                         # bundled -n -m
-            "/usr/bin/git commit --no-verify",          # leading absolute path
-            "cd d && git commit --no-verify",           # cd … && prefix
-            "env GIT_X=1 git commit --no-verify",       # env-assignment prefix
-            "git -c core.hooksPath=/dev/null commit",   # hooks-disabling config
-            "git config core.hooksPath /dev/null",      # persistent hooks disable
-            "git -c foo=bar commit -n",                 # -c <kv> global before commit (TASK-565)
-            "git -c a.b=c commit --no-verify",          # value-taking global splits git…commit
-            "git  commit -n -m x",                      # double space (non-contiguous git commit)
+            "git commit -n -m x",  # -n short flag
+            "git commit -nm x",  # bundled -n -m
+            "/usr/bin/git commit --no-verify",  # leading absolute path
+            "cd d && git commit --no-verify",  # cd … && prefix
+            "env GIT_X=1 git commit --no-verify",  # env-assignment prefix
+            "git -c core.hooksPath=/dev/null commit",  # hooks-disabling config
+            "git config core.hooksPath /dev/null",  # persistent hooks disable
+            "git -c foo=bar commit -n",  # -c <kv> global before commit (TASK-565)
+            "git -c a.b=c commit --no-verify",  # value-taking global splits git…commit
+            "git  commit -n -m x",  # double space (non-contiguous git commit)
             # TASK-567: quote-splice collapses to the real flag at exec time — the
             # old quote-STRIPPED regex deleted the spliced char and missed these.
-            'git commit --no-ver"i"fy -m x',            # splice inside the flag
-            'git commit "--no-verify" -m x',            # whole flag quoted
-            'git commit "-n" -m x',                     # short form quoted
-            'git commit --"no-verify" -m x',            # partial quote
+            'git commit --no-ver"i"fy -m x',  # splice inside the flag
+            'git commit "--no-verify" -m x',  # whole flag quoted
+            'git commit "-n" -m x',  # short form quoted
+            'git commit --"no-verify" -m x',  # partial quote
             # TASK-567: GIT_CONFIG_* env injection disables core.hooksPath.
             "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x",
             "GIT_CONFIG_GLOBAL=/dev/null git commit -m x",
@@ -716,12 +719,12 @@ class TestBlockSecrets:
             # --no-verify ABBREVIATION skips the verify hooks just as well — the old
             # literal `--no-verify` match missed every prefix from the --no-verbose
             # disambiguation point onward.
-            "git commit --no-veri -m x",                # min unambiguous prefix
+            "git commit --no-veri -m x",  # min unambiguous prefix
             "git commit --no-verif -m x",
-            'git commit --no-ver"i"fy -m x',            # already covered above; abbrev sibling
-            'git commit --no-ver"i" -m x',              # splice collapses to --no-veri
-            "cd d && git commit --no-veri -m x",        # compound prefix
-            "true; git commit --no-veri -m x",          # separator prefix
+            'git commit --no-ver"i"fy -m x',  # already covered above; abbrev sibling
+            'git commit --no-ver"i" -m x',  # splice collapses to --no-veri
+            "cd d && git commit --no-veri -m x",  # compound prefix
+            "true; git commit --no-veri -m x",  # separator prefix
         ],
     )
     def test_blocks_no_verify_bypass_shapes(self, command: str) -> None:
@@ -732,13 +735,13 @@ class TestBlockSecrets:
     @pytest.mark.parametrize(
         "command",
         [
-            "git commit -m x",                          # clean commit
-            "git commit --amend",                       # n-letters but no -n
-            'git commit -am "msg"',                     # -a -m bundle, no n
-            "git commit -m x && echo --no-verify",      # flag in an UNRELATED segment
-            "git -c foo=bar commit -m x",               # clean commit WITH a -c global (TASK-565)
-            "git log --grep core.hooksPath",            # read-only git mentioning the token
-            "git commit-graph write",                   # 'commit' substring, not a commit
+            "git commit -m x",  # clean commit
+            "git commit --amend",  # n-letters but no -n
+            'git commit -am "msg"',  # -a -m bundle, no n
+            "git commit -m x && echo --no-verify",  # flag in an UNRELATED segment
+            "git -c foo=bar commit -m x",  # clean commit WITH a -c global (TASK-565)
+            "git log --grep core.hooksPath",  # read-only git mentioning the token
+            "git commit-graph write",  # 'commit' substring, not a commit
             # TASK-567: a message body that merely MENTIONS the flag stays a value token.
             'git commit -m "-n is the short form for --no-verify"',
             # TASK-567: an UNRELATED GIT_CONFIG_* injection (not core.hooksPath) is fine.
@@ -784,34 +787,38 @@ class TestBlockDangerousCommands:
     @pytest.mark.parametrize(
         "command",
         [
-            "git push origin main --force",        # flag AFTER the refspec
-            "git push origin main -f",             # short flag after refspec
+            "git push origin main --force",  # flag AFTER the refspec
+            "git push origin main -f",  # short flag after refspec
             "git push -f origin main",
-            "git push origin +main",               # refspec force
+            "git push origin +main",  # refspec force
             "git push origin +HEAD:main",
-            "git push origin +refs/heads/main",    # fully-qualified force refspec
+            "git push origin +refs/heads/main",  # fully-qualified force refspec
         ],
     )
     def test_blocks_force_push_main_all_orders(self, command: str) -> None:
         payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
         result = run_hook(
-            "block-dangerous-commands.sh", stdin=payload, env_overrides={"COS_ALLOW_FORCE_PUSH_MAIN": "0"}
+            "block-dangerous-commands.sh",
+            stdin=payload,
+            env_overrides={"COS_ALLOW_FORCE_PUSH_MAIN": "0"},
         )
         assert result.returncode == 2
 
     @pytest.mark.parametrize(
         "command",
         [
-            "git push origin main",                          # normal (non-force) trunk publish
+            "git push origin main",  # normal (non-force) trunk publish
             "git pull --rebase origin main && git push origin main",
-            "git push --force origin feature",               # force to a non-main branch
-            "git push --force-with-lease origin agents/x",   # the safe variant on a feature branch
+            "git push --force origin feature",  # force to a non-main branch
+            "git push --force-with-lease origin agents/x",  # the safe variant on a feature branch
         ],
     )
     def test_allows_non_force_or_non_main_push(self, command: str) -> None:
         payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
         result = run_hook(
-            "block-dangerous-commands.sh", stdin=payload, env_overrides={"COS_ALLOW_FORCE_PUSH_MAIN": "0"}
+            "block-dangerous-commands.sh",
+            stdin=payload,
+            env_overrides={"COS_ALLOW_FORCE_PUSH_MAIN": "0"},
         )
         assert result.returncode == 0
 
@@ -832,17 +839,17 @@ class TestBlockDangerousCommands:
     @pytest.mark.parametrize(
         "command",
         [
-            "git reset --hard",                  # exact
-            "git reset --har HEAD~1",            # --hard abbrev
-            "git reset --ha",                    # shorter abbrev
-            "git clean -f",                      # exact short
-            "git clean -fd",                     # bundled short
-            "git clean -df build",               # bundled, other order
-            "git clean -d -f",                   # split cluster
-            "git clean -x -d -f",                # fully split
-            "git clean --force",                 # exact long
-            "git clean --for",                   # long abbrev
-            "git clean --f",                     # min long abbrev
+            "git reset --hard",  # exact
+            "git reset --har HEAD~1",  # --hard abbrev
+            "git reset --ha",  # shorter abbrev
+            "git clean -f",  # exact short
+            "git clean -fd",  # bundled short
+            "git clean -df build",  # bundled, other order
+            "git clean -d -f",  # split cluster
+            "git clean -x -d -f",  # fully split
+            "git clean --force",  # exact long
+            "git clean --for",  # long abbrev
+            "git clean --f",  # min long abbrev
         ],
     )
     def test_blocks_git_destructive_abbreviations(self, command: str) -> None:
@@ -853,12 +860,12 @@ class TestBlockDangerousCommands:
     @pytest.mark.parametrize(
         "command",
         [
-            "git clean -n",                      # dry-run short — no force
-            "git clean --dry-run",               # dry-run long
-            "git clean -d",                      # remove dirs but NOT forced
-            "git clean -i",                      # interactive, no force
-            "git reset --soft HEAD~1",           # soft reset is not the data-loss --hard
-            "git reset --mixed HEAD",            # default mode, no -hard
+            "git clean -n",  # dry-run short — no force
+            "git clean --dry-run",  # dry-run long
+            "git clean -d",  # remove dirs but NOT forced
+            "git clean -i",  # interactive, no force
+            "git reset --soft HEAD~1",  # soft reset is not the data-loss --hard
+            "git reset --mixed HEAD",  # default mode, no -hard
         ],
     )
     def test_allows_non_destructive_git_clean_reset(self, command: str) -> None:
@@ -882,7 +889,9 @@ class TestBlockDangerousCommands:
         # real export — so this isolates whether the inline prefix self-grants it.
         payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
         result = run_hook(
-            "block-dangerous-commands.sh", stdin=payload, env_overrides={"COS_ALLOW_FORCE_PUSH_MAIN": "0"}
+            "block-dangerous-commands.sh",
+            stdin=payload,
+            env_overrides={"COS_ALLOW_FORCE_PUSH_MAIN": "0"},
         )
         assert result.returncode == 2
 
@@ -1183,7 +1192,9 @@ class TestSessionEndUncommittedAdvisory:
     excludes docs/ board churn, stays fail-open, and does NOT duplicate the
     still-open-task nudge (that lives in warn-abandoned-task.sh)."""
 
-    def _run(self, tmp_path: Path, mutate, run_subdir: str | None = None) -> subprocess.CompletedProcess:
+    def _run(
+        self, tmp_path: Path, mutate, run_subdir: str | None = None
+    ) -> subprocess.CompletedProcess:
         repo = tmp_path / "repo"
         (repo / "src").mkdir(parents=True)
         (repo / "docs" / "tasks").mkdir(parents=True)

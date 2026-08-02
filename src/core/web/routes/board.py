@@ -560,9 +560,7 @@ def _auto_spawn_safe(
             return
         _auto_spawn_inflight.add(inflight_key)
     try:
-        threading.Thread(
-            target=_auto_spawn_run, args=(task_id, root, db_path), daemon=True
-        ).start()
+        threading.Thread(target=_auto_spawn_run, args=(task_id, root, db_path), daemon=True).start()
         logger.info("auto-spawn: dispatching implementer on %s", task_id)
     except Exception as exc:
         with _auto_spawn_lock:

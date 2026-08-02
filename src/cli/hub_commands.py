@@ -374,9 +374,7 @@ def hub_status() -> None:
                 f"({_listener_label(listener_state)}; no hub.pid)"
             )
             click.echo(f"  Logs: {_log_file()}")
-            click.echo(
-                "  Start guard: stop the listener or restore hub.pid before `cos hub start`"
-            )
+            click.echo("  Start guard: stop the listener or restore hub.pid before `cos hub start`")
     else:
         click.echo(f"Hub: running (pid {pid})")
         click.echo(f"  Logs: {_log_file()}")

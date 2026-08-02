@@ -94,16 +94,19 @@ def test_git_settings_partial_patch_preserves_own_fields(client):
 def test_git_settings_autonomy_level_defaults_draft_and_round_trips(client):
     # TASK-533: safe default is draft; a partial PATCH of autonomy alone must
     # not wipe sibling fields, and the level persists.
-    assert client.get("/api/settings").json()["data"]["settings"]["git_settings"][
-        "autonomy_level"
-    ] == "draft"
+    assert (
+        client.get("/api/settings").json()["data"]["settings"]["git_settings"]["autonomy_level"]
+        == "draft"
+    )
     client.patch(
         "/api/settings",
         json={"git_settings": {"enabled": True, "integration_branch": "develop"}},
     )
     # enabled is the one required field on the model; the merge preserves the
     # unspecified integration_branch via exclude_unset.
-    client.patch("/api/settings", json={"git_settings": {"enabled": True, "autonomy_level": "autonomous"}})
+    client.patch(
+        "/api/settings", json={"git_settings": {"enabled": True, "autonomy_level": "autonomous"}}
+    )
     gs = client.get("/api/settings").json()["data"]["settings"]["git_settings"]
     assert gs["autonomy_level"] == "autonomous"
     assert gs["integration_branch"] == "develop"  # sibling survived the autonomy PATCH
@@ -114,10 +117,14 @@ def test_git_settings_local_rung_accepted_and_invalid_rejected(client):
     # TASK-540: `local` is the new lowest rung (agent never pushes); the Literal
     # on _GitSettingsIn accepts it and rejects a typo'd rung at the API edge so a
     # bad value never reaches cos-env → COS_GIT_AUTONOMY.
-    ok = client.patch("/api/settings", json={"git_settings": {"enabled": True, "autonomy_level": "local"}})
+    ok = client.patch(
+        "/api/settings", json={"git_settings": {"enabled": True, "autonomy_level": "local"}}
+    )
     assert ok.status_code == 200, ok.text
     assert ok.json()["data"]["settings"]["git_settings"]["autonomy_level"] == "local"
-    bad = client.patch("/api/settings", json={"git_settings": {"enabled": True, "autonomy_level": "yolo"}})
+    bad = client.patch(
+        "/api/settings", json={"git_settings": {"enabled": True, "autonomy_level": "yolo"}}
+    )
     assert bad.status_code == 422, bad.text
 
 
@@ -178,9 +185,21 @@ def test_git_settings_fields_helper_matches_jq_on_malformed(tmp_path):
 
     assert run({"git_settings": "yes"}) == ""  # non-dict → trunk
     assert run({"git_settings": [1, 2]}) == ""
-    assert run({"git_settings": {"enabled": True, "protected_branches": "main"}}) == ""  # non-list → fail closed
-    assert run({"git_settings": {"enabled": True, "protected_branches": []}}).split("\t") == ["true", "main", "", "draft"]
-    assert run({"git_settings": {"enabled": True}}).split("\t") == ["true", "main", "production", "draft"]
+    assert (
+        run({"git_settings": {"enabled": True, "protected_branches": "main"}}) == ""
+    )  # non-list → fail closed
+    assert run({"git_settings": {"enabled": True, "protected_branches": []}}).split("\t") == [
+        "true",
+        "main",
+        "",
+        "draft",
+    ]
+    assert run({"git_settings": {"enabled": True}}).split("\t") == [
+        "true",
+        "main",
+        "production",
+        "draft",
+    ]
 
 
 def test_settings_path_is_project_scoped(tmp_path, monkeypatch):
@@ -213,7 +232,11 @@ def test_unknown_section_survives_patch(client, tmp_path):
     # C2: a section not in _DEFAULTS (e.g. task_closure) must survive a PATCH —
     # _load must not drop it and the next save must not write it away.
     f = tmp_path / "hub-settings.json"
-    f.write_text(json.dumps({"task_closure": {"keep": "me"}, "budget_cap": {"enabled": True, "cap_usd": 9.0}}))
+    f.write_text(
+        json.dumps(
+            {"task_closure": {"keep": "me"}, "budget_cap": {"enabled": True, "cap_usd": 9.0}}
+        )
+    )
     client.patch("/api/settings", json={"git_settings": {"enabled": True}})
     on_disk = json.loads(f.read_text())
     assert on_disk["task_closure"] == {"keep": "me"}  # preserved
@@ -246,7 +269,10 @@ def test_multi_project_save_does_not_clobber_peer(tmp_path, monkeypatch):
     b_file = proj_b / ".coding-os" / "hub-settings.json"
     b_file.write_text(
         json.dumps(
-            {"git_settings": {"enabled": True, "autonomy_level": "draft"}, "task_closure": {"keep": "me"}},
+            {
+                "git_settings": {"enabled": True, "autonomy_level": "draft"},
+                "task_closure": {"keep": "me"},
+            },
             indent=2,
         ),
         encoding="utf-8",
@@ -273,7 +299,9 @@ def test_multi_project_save_does_not_clobber_peer(tmp_path, monkeypatch):
 
 def test_save_is_atomic_no_leftover_tmp(client, tmp_path):
     # H1: the atomic write leaves a complete JSON file and no .tmp sibling.
-    client.patch("/api/settings", json={"git_settings": {"enabled": True, "integration_branch": "develop"}})
+    client.patch(
+        "/api/settings", json={"git_settings": {"enabled": True, "integration_branch": "develop"}}
+    )
     f = tmp_path / "hub-settings.json"
     json.loads(f.read_text())  # complete, parseable
     leftovers = list(tmp_path.glob(".hub-settings.*.tmp"))
@@ -291,7 +319,7 @@ def test_git_settings_jq_python_parity(tmp_path):
         pytest.skip("jq not installed")
     helper = _REPO_ROOT / "src" / "core" / "hooks" / "_helpers" / "git_settings_fields.py"
     jq_filter = (
-        '[(.git_settings.enabled // false), '
+        "[(.git_settings.enabled // false), "
         '(.git_settings.integration_branch // "main"), '
         '((.git_settings.protected_branches // ["production"]) | join(",")), '
         '(.git_settings.autonomy_level // "draft")] | @tsv'
@@ -315,7 +343,9 @@ def test_git_settings_jq_python_parity(tmp_path):
         jq_out = jq.stdout.rstrip("\n") if jq.returncode == 0 else ""
         py = subprocess.run([sys.executable, str(helper), str(f)], capture_output=True, text=True)
         assert py.returncode == 0, py.stderr
-        assert py.stdout.rstrip("\n") == jq_out, f"parity drift on {payload}: py={py.stdout!r} jq={jq_out!r}"
+        assert py.stdout.rstrip("\n") == jq_out, (
+            f"parity drift on {payload}: py={py.stdout!r} jq={jq_out!r}"
+        )
 
 
 def test_cos_env_warns_on_unreadable_git_settings(tmp_path):

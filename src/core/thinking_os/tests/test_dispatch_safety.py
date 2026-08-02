@@ -175,10 +175,19 @@ class TestCostRoutedDispatch:
     def test_reviewer_downgrades_to_cheaper_tier_when_flagged(self, monkeypatch) -> None:
         monkeypatch.setenv("COS_ROUTER_REVIEWER_CHEAPER", "1")
         # explicit generator tier 'opus' on a review role -> one tier cheaper
-        assert cognition._resolve_dispatch_model("reviewer", "s", {}, "opus", "COMPLICATED", None) == "sonnet"
+        assert (
+            cognition._resolve_dispatch_model("reviewer", "s", {}, "opus", "COMPLICATED", None)
+            == "sonnet"
+        )
         # a non-review role keeps the generator tier
-        assert cognition._resolve_dispatch_model("implementer", "s", {}, "opus", "COMPLICATED", None) == "opus"
+        assert (
+            cognition._resolve_dispatch_model("implementer", "s", {}, "opus", "COMPLICATED", None)
+            == "opus"
+        )
 
     def test_no_downgrade_when_flag_off(self, monkeypatch) -> None:
         monkeypatch.delenv("COS_ROUTER_REVIEWER_CHEAPER", raising=False)
-        assert cognition._resolve_dispatch_model("reviewer", "s", {}, "opus", "COMPLICATED", None) == "opus"
+        assert (
+            cognition._resolve_dispatch_model("reviewer", "s", {}, "opus", "COMPLICATED", None)
+            == "opus"
+        )

@@ -1207,10 +1207,7 @@ def _check_module_rule_drift(project: Path, report: DoctorReport) -> None:
         modules = load_subsystems()
         state = module_state(project, modules)
         enabled_owned = {
-            rule
-            for mid, module in modules.items()
-            if state.get(mid, True)
-            for rule in module.rules
+            rule for mid, module in modules.items() if state.get(mid, True) for rule in module.rules
         }
         rules_dirs = _installed_adapter_rules_dirs(project)
         drift: list[str] = []
@@ -1233,7 +1230,9 @@ def _check_module_rule_drift(project: Path, report: DoctorReport) -> None:
                 )
             )
         else:
-            report.checks.append(CheckResult("modules.rule_drift", SEV_PASS, "no module/rule drift"))
+            report.checks.append(
+                CheckResult("modules.rule_drift", SEV_PASS, "no module/rule drift")
+            )
     except Exception as exc:
         logger.debug("module rule drift check skipped: %s", exc)
 
@@ -1257,7 +1256,9 @@ def _check_module_doc_drift(project: Path, report: DoctorReport) -> None:
             report.checks.append(CheckResult("modules.doc_drift", SEV_PASS, "no module/doc drift"))
             return
         try:
-            config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8")) or {}
+            config = (
+                _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8")) or {}
+            )
             templates = tuple(config.get("templates") or [])
         except (OSError, _yaml.YAMLError):
             templates = ()
@@ -2219,7 +2220,9 @@ def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
         # adapter_scope hooks live under src/adapters/<scope>/hooks/, not core —
         # resolve there so a claude-only hook isn't falsely flagged missing.
         scope = entry.get("adapter_scope")
-        script_path = (adapters_dir / str(scope) / "hooks" / script) if scope else (hooks_dir / script)
+        script_path = (
+            (adapters_dir / str(scope) / "hooks" / script) if scope else (hooks_dir / script)
+        )
         if not script_path.exists():
             missing_scripts.append(f"{hook_id}: {script}")
             continue

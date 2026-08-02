@@ -89,9 +89,7 @@ def test_harvest_mints_once_and_skips_generated_block(conn, tmp_path: Path) -> N
 
     assert first == 1
     assert second == 0
-    rows = conn.execute(
-        "SELECT pattern FROM learned_patterns WHERE source = 'import'"
-    ).fetchall()
+    rows = conn.execute("SELECT pattern FROM learned_patterns WHERE source = 'import'").fetchall()
     assert len(rows) == 1
     assert "Auth gotcha" in rows[0]["pattern"]
     ledger = json.loads((mem / sync.LEDGER_NAME).read_text(encoding="utf-8"))

@@ -34,9 +34,16 @@ _HOOKS_ENV_NULL = {"GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM"}
 # disambiguation stays correct as git's option set grows.
 _COMMIT_NO_LONGS = frozenset(
     {
-        "--no-verify", "--no-verbose", "--no-edit", "--no-amend", "--no-status",
-        "--no-post-rewrite", "--no-gpg-sign", "--no-signoff",
-        "--no-progress", "--no-renames",
+        "--no-verify",
+        "--no-verbose",
+        "--no-edit",
+        "--no-amend",
+        "--no-status",
+        "--no-post-rewrite",
+        "--no-gpg-sign",
+        "--no-signoff",
+        "--no-progress",
+        "--no-renames",
     }
 )
 
@@ -61,7 +68,7 @@ def _hooks_path_in_globals(globals_: list[str]) -> bool:
             kv = globals_[i + 1]
             i += 2
         elif t.startswith("-c="):
-            kv = t[len("-c="):]
+            kv = t[len("-c=") :]
             i += 1
         else:
             i += 1
@@ -87,8 +94,13 @@ def _env_disables_hooks(env: list[str]) -> bool:
 
 
 _CONFIG_READ_FLAGS = {
-    "--get", "--get-all", "--get-regexp", "--get-urlmatch",
-    "-l", "--list", "--name-only",
+    "--get",
+    "--get-all",
+    "--get-regexp",
+    "--get-urlmatch",
+    "-l",
+    "--list",
+    "--name-only",
 }
 
 
@@ -106,9 +118,7 @@ def _blocks(command: str) -> bool:
             return True
         if _config_writes_hooks_path(inv):
             return True
-        if inv.subcmd == "commit" and (
-            _commit_skips_verify(inv) or _env_disables_hooks(inv.env)
-        ):
+        if inv.subcmd == "commit" and (_commit_skips_verify(inv) or _env_disables_hooks(inv.env)):
             return True
     return False
 

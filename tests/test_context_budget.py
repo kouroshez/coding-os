@@ -68,7 +68,10 @@ def test_message_mentioning_marker_text_is_not_a_boundary(tmp_path: Path) -> Non
         tmp_path,
         [
             _usage(516_000),
-            {"type": "user", "message": {"content": "why does compact_boundary / isCompactSummary do this?"}},
+            {
+                "type": "user",
+                "message": {"content": "why does compact_boundary / isCompactSummary do this?"},
+            },
         ],
     )
     assert context_budget.last_context_tokens(path) == 516_000

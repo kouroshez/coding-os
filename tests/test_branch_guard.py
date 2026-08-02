@@ -130,11 +130,11 @@ def test_blocks_reset_to_remote_ref() -> None:
 @pytest.mark.parametrize(
     "command",
     [
-        "git reset --har HEAD~1",   # --hard abbrev
-        "git reset --so HEAD~2",    # --soft abbrev
-        "git reset --ha HEAD~1",    # shorter --hard abbrev
-        "git reset --mer HEAD~1",   # --merge abbrev
-        "git reset --ke HEAD~3",    # --keep abbrev
+        "git reset --har HEAD~1",  # --hard abbrev
+        "git reset --so HEAD~2",  # --soft abbrev
+        "git reset --ha HEAD~1",  # shorter --hard abbrev
+        "git reset --mer HEAD~1",  # --merge abbrev
+        "git reset --ke HEAD~3",  # --keep abbrev
         "cd src && git reset --har HEAD~1",  # compound prefix
     ],
 )
@@ -191,12 +191,12 @@ def test_allows_reset_path() -> None:
 @pytest.mark.parametrize(
     "command",
     [
-        "git reset -p",                       # interactive patch — false-blocked before
-        "git reset --patch",                  # long form
-        "git reset --pat",                    # --patch abbrev
-        "git reset --pathspec-from-file f",   # explicit path-mode
-        "git reset --soft HEAD",              # mode + HEAD = no move
-        "git reset --har HEAD",               # abbrev mode + HEAD = still no move
+        "git reset -p",  # interactive patch — false-blocked before
+        "git reset --patch",  # long form
+        "git reset --pat",  # --patch abbrev
+        "git reset --pathspec-from-file f",  # explicit path-mode
+        "git reset --soft HEAD",  # mode + HEAD = no move
+        "git reset --har HEAD",  # abbrev mode + HEAD = still no move
     ],
 )
 def test_allows_reset_path_mode_and_head(command: str) -> None:

@@ -393,7 +393,9 @@ class TestMemorySearch:
             "('s','Edit','edit','discovery','cookie samesite secure flag','set samesite',0.5, datetime('now'))"
         )
         seeded_conn.commit()
-        result = memory_search(seeded_conn, query="cookie: samesite (secure)", limit=5, use_fts5=True)
+        result = memory_search(
+            seeded_conn, query="cookie: samesite (secure)", limit=5, use_fts5=True
+        )
         assert "fts5" in result["source"], f"fell back to {result['source']!r} — escaping failed"
         assert result["count"] >= 1
 
@@ -409,14 +411,18 @@ class TestMemorySearch:
             "concepts, created_at) VALUES (901, 'p', 'pattern', 0.1, 0.5, 'p', datetime('now'))"
         )
         conn.commit()
-        assert _hydrate_row_for_semantic_hit(conn, "learned_patterns", 901, min_confidence=0.3) is None
+        assert (
+            _hydrate_row_for_semantic_hit(conn, "learned_patterns", 901, min_confidence=0.3) is None
+        )
         conn.execute(
             "UPDATE learned_patterns SET confidence=0.6, created_at=datetime('now','-100 days') "
             "WHERE id=901"
         )
         conn.commit()
         assert _hydrate_row_for_semantic_hit(conn, "learned_patterns", 901, since_days=30) is None
-        assert _hydrate_row_for_semantic_hit(conn, "learned_patterns", 901, since_days=365) is not None
+        assert (
+            _hydrate_row_for_semantic_hit(conn, "learned_patterns", 901, since_days=365) is not None
+        )
 
     def test_no_score_in_output(self, seeded_conn: sqlite3.Connection) -> None:
         result = memory_search(seeded_conn, query="Django", use_fts5=False)
@@ -614,12 +620,27 @@ class TestRankFusionDiversity:
         assert both["score"] > sem_only["score"]
 
     def test_mmr_drops_near_duplicate_from_slice(self) -> None:
-        top = {"source_table": "observations", "id": 1, "title": "cookie samesite flag",
-               "concepts": "auth session", "score": 1.0}
-        near = {"source_table": "observations", "id": 2, "title": "samesite cookie attribute",
-                "concepts": "auth session", "score": 0.6}
-        diverse = {"source_table": "observations", "id": 3, "title": "rate limit window",
-                   "concepts": "perf throughput", "score": 0.55}
+        top = {
+            "source_table": "observations",
+            "id": 1,
+            "title": "cookie samesite flag",
+            "concepts": "auth session",
+            "score": 1.0,
+        }
+        near = {
+            "source_table": "observations",
+            "id": 2,
+            "title": "samesite cookie attribute",
+            "concepts": "auth session",
+            "score": 0.6,
+        }
+        diverse = {
+            "source_table": "observations",
+            "id": 3,
+            "title": "rate limit window",
+            "concepts": "perf throughput",
+            "score": 0.55,
+        }
         picked = _mmr_select([top, near, diverse], limit=2)
         ids = [c["id"] for c in picked]
         assert ids[0] == 1  # highest relevance first
@@ -629,12 +650,27 @@ class TestRankFusionDiversity:
         # Realistic RRF magnitudes (~0.015-0.033): a clearly-more-relevant near-
         # duplicate must NOT be demoted below a far-less-relevant distinct row
         # (regression guard for the un-normalized-relevance MMR bug).
-        top = {"source_table": "observations", "id": 1, "title": "cookie samesite flag",
-               "concepts": "auth session", "score": 0.0328}
-        near = {"source_table": "observations", "id": 2, "title": "samesite cookie attribute",
-                "concepts": "auth session", "score": 0.0320}
-        distinct = {"source_table": "observations", "id": 3, "title": "rate limit window",
-                    "concepts": "perf throughput", "score": 0.0150}
+        top = {
+            "source_table": "observations",
+            "id": 1,
+            "title": "cookie samesite flag",
+            "concepts": "auth session",
+            "score": 0.0328,
+        }
+        near = {
+            "source_table": "observations",
+            "id": 2,
+            "title": "samesite cookie attribute",
+            "concepts": "auth session",
+            "score": 0.0320,
+        }
+        distinct = {
+            "source_table": "observations",
+            "id": 3,
+            "title": "rate limit window",
+            "concepts": "perf throughput",
+            "score": 0.0150,
+        }
         picked = _mmr_select([top, near, distinct], limit=2)
         ids = [c["id"] for c in picked]
         assert ids[0] == 1

@@ -78,7 +78,9 @@ class TestExtractorMapping:
         if not registered:
             pytest.skip("extractor registry unavailable (import failure)")
         unmapped = {ext for ext in registered if provenance_for(ext) == "unknown"}
-        assert not unmapped, f"live extractors missing from _EXTRACTOR_PROVENANCE: {sorted(unmapped)}"
+        assert not unmapped, (
+            f"live extractors missing from _EXTRACTOR_PROVENANCE: {sorted(unmapped)}"
+        )
 
     def test_every_mapping_in_closed_vocabulary(self):
         # No registry entry may emit a value outside PROVENANCE_VALUES.

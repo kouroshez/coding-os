@@ -222,7 +222,9 @@ class TestRouteModelBandit:
         monkeypatch.setenv("COS_ROUTER_BANDIT", "1")
         random.seed(42)
         picks = [
-            route_model_bandit(warm_conn, complexity="COMPLICATED", domain="BACKEND")["recommended_model"]
+            route_model_bandit(warm_conn, complexity="COMPLICATED", domain="BACKEND")[
+                "recommended_model"
+            ]
             for _ in range(50)
         ]
         assert picks.count("opus") > picks.count("sonnet")  # opus 90% beats sonnet 57%
@@ -239,7 +241,9 @@ class TestRouteModelBandit:
         sel = next(s for s in r["model_stats"] if s["model"] == r["recommended_model"])
         assert r["confidence"] == round(sel["alpha"] / (sel["alpha"] + sel["beta"]), 2)
 
-    def test_large_cost_tilt_keeps_confidence_in_unit_interval(self, warm_conn, monkeypatch) -> None:
+    def test_large_cost_tilt_keeps_confidence_in_unit_interval(
+        self, warm_conn, monkeypatch
+    ) -> None:
         monkeypatch.setenv("COS_ROUTER_BANDIT", "1")
         monkeypatch.setenv("COS_ROUTER_COST_TILT", "9")  # sinks every tilted score far below 0
         r = route_model_bandit(warm_conn, complexity="COMPLICATED", domain="BACKEND")

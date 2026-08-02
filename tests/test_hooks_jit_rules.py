@@ -1,4 +1,5 @@
 """Behavior tests for the jit-recall convention-rule reminder path (jit-rules.tsv)."""
+
 from __future__ import annotations
 
 import json

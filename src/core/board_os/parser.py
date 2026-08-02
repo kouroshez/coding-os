@@ -39,6 +39,7 @@ _OUTCOME_RE = re.compile(
     re.DOTALL,
 )
 
+
 @dataclass(frozen=True)
 class ParsedTask:
     task_id: str

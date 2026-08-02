@@ -324,8 +324,7 @@ def _render_lean_frontmatter(fields: dict) -> str:
                 lines.append(f"{key}: []")
             else:
                 inner = ", ".join(
-                    _format_yaml_scalar_token(v) if isinstance(v, str) else str(v)
-                    for v in val
+                    _format_yaml_scalar_token(v) if isinstance(v, str) else str(v) for v in val
                 )
                 lines.append(f"{key}: [{inner}]")
         elif isinstance(val, str):
@@ -1262,9 +1261,7 @@ def _close_learning_loop_safe(conn: sqlite3.Connection) -> None:
         session_id = sid_file.read_text(encoding="utf-8").strip() if sid_file.exists() else ""
         if not session_id:
             return
-        validate_surfaced_lessons(
-            conn, session_id=session_id, suggestions_path=str(suggestions)
-        )
+        validate_surfaced_lessons(conn, session_id=session_id, suggestions_path=str(suggestions))
         suggestions.write_text("", encoding="utf-8")  # per-task boundary, like the hook
     except Exception as exc:
         logger.debug("MCP learning-loop closure failed: %s", exc)

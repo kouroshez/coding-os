@@ -26,7 +26,9 @@ def db(tmp_path: Path):
     conn.close()
 
 
-def _dispatch(conn: sqlite3.Connection, session_id: str, cost_usd: float, *, ts_expr: str = "datetime('now')") -> None:
+def _dispatch(
+    conn: sqlite3.Connection, session_id: str, cost_usd: float, *, ts_expr: str = "datetime('now')"
+) -> None:
     conn.execute(
         "INSERT INTO formula_dispatches "
         "(session_id, task_marker, persona_id, formula_id, input_hash, status, ts, cost_usd) "

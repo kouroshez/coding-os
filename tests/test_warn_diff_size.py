@@ -89,7 +89,9 @@ def test_warns_on_large_unstaged_path_commit(tmp_path: Path) -> None:
     # changes; the staged diff is empty, so the hook must fall back to HEAD.
     repo = tmp_path / "r"
     _init_repo(repo)
-    (repo / "base.txt").write_text("\n".join(str(i) for i in range(500)) + "\n")  # tracked, unstaged
+    (repo / "base.txt").write_text(
+        "\n".join(str(i) for i in range(500)) + "\n"
+    )  # tracked, unstaged
     code, err = _run(repo, "git commit base.txt")
     assert code == 0
     assert "diff-size" in err

@@ -25,12 +25,8 @@ from git_command_parse import abbrev_resolves, git_invocations  # noqa: E402
 # Competitor long options for prefix disambiguation. `git reset --hard` has no
 # other `--ha*` option, so `--ha`/`--har` resolve to it; `git clean --force`
 # has no other `--f*`, so `--f`/`--fo` resolve to it.
-_RESET_LONGS = frozenset(
-    {"--soft", "--mixed", "--hard", "--merge", "--keep", "--patch", "--quiet"}
-)
-_CLEAN_LONGS = frozenset(
-    {"--force", "--dry-run", "--quiet", "--exclude", "--interactive"}
-)
+_RESET_LONGS = frozenset({"--soft", "--mixed", "--hard", "--merge", "--keep", "--patch", "--quiet"})
+_CLEAN_LONGS = frozenset({"--force", "--dry-run", "--quiet", "--exclude", "--interactive"})
 
 
 def _reset_is_hard(args: list[str]) -> bool:

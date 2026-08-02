@@ -59,9 +59,7 @@ def test_unattributed_move_is_recorded_as_human(board_client):
 
 def test_unattributed_reposition_is_recorded_as_human(board_client):
     task_id = _create_task(board_client)
-    resp = board_client.post(
-        "/api/board/reposition", json={"task_id": task_id, "to": "archive"}
-    )
+    resp = board_client.post("/api/board/reposition", json={"task_id": task_id, "to": "archive"})
     assert resp.status_code == 200, resp.text
     events = board_client.get(f"/api/board/task/{task_id}/history").json()["data"]["events"]
     move_event = next(e for e in events if e.get("to") == "archive")

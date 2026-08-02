@@ -101,8 +101,7 @@ def test_dispatcher_removes_delegates_from_overlapping_composite_matchers() -> N
 
     assert [group["matcher"] for group in groups] == ["startup", "compact|resume"]
     assert all(
-        group["hooks"][0]["command"].endswith("/codex-sessionstart-dispatch.sh")
-        for group in groups
+        group["hooks"][0]["command"].endswith("/codex-sessionstart-dispatch.sh") for group in groups
     )
 
 

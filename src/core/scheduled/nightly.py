@@ -353,14 +353,20 @@ def _commit_board_drift_tasks_only(project_root: Path, paths: list[str]) -> dict
     try:
         add = _git("add", "--", *paths, timeout=30)
         if add.returncode != 0:
-            return {"committed": False, "error": f"git add rc={add.returncode}: {add.stderr[-200:]}"}
+            return {
+                "committed": False,
+                "error": f"git add rc={add.returncode}: {add.stderr[-200:]}",
+            }
         msg = f"chore(board): commit {len(paths)} drifted task file(s) to match the board DB"
         # The repo pre-commit hook scales with staged-file count; 368 files
         # measured >120s. A premature timeout mis-reports a landed commit as
         # failed and files a spurious drift task.
         commit = _git("commit", "-m", msg, "--", *paths, timeout=600)
         if commit.returncode != 0:
-            return {"committed": False, "error": f"git commit rc={commit.returncode}: {commit.stderr[-200:]}"}
+            return {
+                "committed": False,
+                "error": f"git commit rc={commit.returncode}: {commit.stderr[-200:]}",
+            }
         sha = _git("rev-parse", "--short", "HEAD", timeout=10).stdout.strip()
         return {"committed": True, "sha": sha, "count": len(paths)}
     except (OSError, subprocess.SubprocessError) as exc:

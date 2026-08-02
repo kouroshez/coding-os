@@ -2074,9 +2074,7 @@ def _migrate_v46_log_event_class(conn: sqlite3.Connection) -> None:
         logger.info("Migration v46 skipped: log_events not present yet")
         return
     if not _column_exists_table(conn, "log_events", "event_class"):
-        conn.execute(
-            "ALTER TABLE log_events ADD COLUMN event_class TEXT NOT NULL DEFAULT 'fault'"
-        )
+        conn.execute("ALTER TABLE log_events ADD COLUMN event_class TEXT NOT NULL DEFAULT 'fault'")
         conn.execute(
             "UPDATE log_events SET event_class = 'policy' "
             "WHERE scope LIKE 'hook.%' AND kv LIKE '%\"action\": \"block\"%'"

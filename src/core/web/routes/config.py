@@ -159,10 +159,15 @@ def config_skills() -> dict:
         from cli.skill_registry import load_skill_registry
         from cli.skills_list import CORE_SKILLS_DIR, TEMPLATES_DIR
 
-        for s in sorted(load_skill_registry(CORE_SKILLS_DIR).values(), key=lambda s: (s.tier, s.name)):
+        for s in sorted(
+            load_skill_registry(CORE_SKILLS_DIR).values(), key=lambda s: (s.tier, s.name)
+        ):
             skills.append(
                 _skill_row(
-                    s, provenance="core", extras=extras, disabled=disabled,
+                    s,
+                    provenance="core",
+                    extras=extras,
+                    disabled=disabled,
                     stacks=sorted(membership.get(s.name, set())),
                 )
             )
@@ -177,7 +182,9 @@ def config_skills() -> dict:
                 if s.name in seen:
                     continue
                 skills.append(
-                    _skill_row(s, provenance=f"stack:{sid}", extras=extras, disabled=disabled, stacks=[sid])
+                    _skill_row(
+                        s, provenance=f"stack:{sid}", extras=extras, disabled=disabled, stacks=[sid]
+                    )
                 )
                 seen.add(s.name)
     except Exception as exc:
@@ -334,21 +341,46 @@ _SLUG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 def _safe_id(value: str) -> bool:
     return bool(_SLUG_RE.match(value or ""))
 
+
 # Curated first-party stdio MCP servers (no secret / extra config needed). The
 # pre-Extension-Manager allow-list; the EM registry supersedes it with the
 # trust / SSRF / upload machinery for custom + remote servers.
 _MCP_ALLOWLIST: list[dict] = [
-    {"id": "fetch", "name": "Fetch", "command": "uvx", "args": ["mcp-server-fetch"],
-     "description": "Fetch a URL and return its content as markdown."},
-    {"id": "git", "name": "Git", "command": "uvx", "args": ["mcp-server-git"],
-     "description": "Read, search, and inspect a local git repository."},
-    {"id": "sequential-thinking", "name": "Sequential Thinking", "command": "npx",
-     "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
-     "description": "A structured step-by-step reasoning scratchpad."},
-    {"id": "playwright", "name": "Playwright", "command": "npx", "args": ["-y", "@playwright/mcp@latest"],
-     "description": "Drive a real browser for end-to-end testing and scraping."},
-    {"id": "context7", "name": "Context7", "command": "npx", "args": ["-y", "@upstash/context7-mcp"],
-     "description": "Up-to-date, version-specific library docs and code examples."},
+    {
+        "id": "fetch",
+        "name": "Fetch",
+        "command": "uvx",
+        "args": ["mcp-server-fetch"],
+        "description": "Fetch a URL and return its content as markdown.",
+    },
+    {
+        "id": "git",
+        "name": "Git",
+        "command": "uvx",
+        "args": ["mcp-server-git"],
+        "description": "Read, search, and inspect a local git repository.",
+    },
+    {
+        "id": "sequential-thinking",
+        "name": "Sequential Thinking",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+        "description": "A structured step-by-step reasoning scratchpad.",
+    },
+    {
+        "id": "playwright",
+        "name": "Playwright",
+        "command": "npx",
+        "args": ["-y", "@playwright/mcp@latest"],
+        "description": "Drive a real browser for end-to-end testing and scraping.",
+    },
+    {
+        "id": "context7",
+        "name": "Context7",
+        "command": "npx",
+        "args": ["-y", "@upstash/context7-mcp"],
+        "description": "Up-to-date, version-specific library docs and code examples.",
+    },
 ]
 
 
@@ -418,7 +450,8 @@ def _run_cos(args: list[str], timeout: int = 300) -> tuple[bool, dict, str]:
 
 def _fail(status: int, category: str, message: str) -> JSONResponse:
     return JSONResponse(
-        status_code=status, content={"ok": False, "error": {"category": category, "message": message}}
+        status_code=status,
+        content={"ok": False, "error": {"category": category, "message": message}},
     )
 
 
@@ -433,7 +466,12 @@ def _audit(root: Path, action: str, unit: str, detail: str = "") -> None:
 
         log = root / ".coding-os" / "extensions-audit.log"
         log.parent.mkdir(parents=True, exist_ok=True)
-        row = {"ts": datetime.now(timezone.utc).isoformat(), "action": action, "unit": unit, "detail": detail}
+        row = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "action": action,
+            "unit": unit,
+            "detail": detail,
+        }
         with log.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(row) + "\n")
     except OSError as exc:
@@ -508,7 +546,9 @@ def config_adapter_remove(agent: str) -> JSONResponse:
             409, "conflict", f"cannot remove '{agent}' — a project needs at least one adapter."
         )
     data["agents"] = [a for a in agents if a != agent]
-    cfg_path.write_text(yaml.dump(data, default_flow_style=False, sort_keys=False), encoding="utf-8")
+    cfg_path.write_text(
+        yaml.dump(data, default_flow_style=False, sort_keys=False), encoding="utf-8"
+    )
     _audit(root, "adapter.remove", agent)
     return _ok(
         {
@@ -570,7 +610,11 @@ def config_mcp_add(body: dict = Body(...)) -> JSONResponse:
 def config_mcp_remove(name: str) -> JSONResponse:
     """Remove an MCP server from the active project's .mcp.json (never the managed coding-os one)."""
     if name == "coding-os":
-        return _fail(409, "conflict", "the coding-os MCP server is managed by cos and cannot be removed here.")
+        return _fail(
+            409,
+            "conflict",
+            "the coding-os MCP server is managed by cos and cannot be removed here.",
+        )
     if not _safe_id(name):
         return _fail(400, "validation", "invalid MCP server id")
     root = _project_root()

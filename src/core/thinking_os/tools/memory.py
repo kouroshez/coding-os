@@ -21,7 +21,16 @@ logger = logging.getLogger("thinking_os.memory")
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-VALID_MEMORY_TYPES = {"pattern", "workflow", "error", "decision", "discovery", "config", "working", "changelog"}
+VALID_MEMORY_TYPES = {
+    "pattern",
+    "workflow",
+    "error",
+    "decision",
+    "discovery",
+    "config",
+    "working",
+    "changelog",
+}
 VALID_SOURCES = {"observations", "learned_patterns", "task_outcomes"}
 VALID_PROMOTE_TARGETS = {"feedback", "rule"}
 
@@ -344,8 +353,11 @@ def _mmr_select(candidates: list[dict], limit: int, lam: float = MMR_LAMBDA) -> 
     while pool and len(selected) < limit:
         best = max(
             pool,
-            key=lambda c: lam * rel[id(c)]
-            - (1.0 - lam) * max((_jaccard(sig[id(c)], sig[id(s)]) for s in selected), default=0.0),
+            key=lambda c: (
+                lam * rel[id(c)]
+                - (1.0 - lam)
+                * max((_jaccard(sig[id(c)], sig[id(s)]) for s in selected), default=0.0)
+            ),
         )
         selected.append(best)
         pool = [c for c in pool if c is not best]

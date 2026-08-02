@@ -101,7 +101,9 @@ def test_autonomous_autocommits_drift(tmp_path: Path, monkeypatch) -> None:
     assert r.get("drift") is True and r.get("committed") is True and r.get("sha"), r
     porcelain = subprocess.run(
         ["git", "status", "--porcelain", "--", "docs/tasks"],
-        cwd=repo, capture_output=True, text=True,
+        cwd=repo,
+        capture_output=True,
+        text=True,
     ).stdout.strip()
     assert porcelain == "", porcelain
     conn = sqlite3.connect(db_path)
@@ -156,7 +158,9 @@ def test_missing_row_does_not_block_committing_the_rest(tmp_path: Path, monkeypa
     # drift task's own .md (it lands in the next pass).
     porcelain = subprocess.run(
         ["git", "status", "--porcelain", "--", "docs/tasks"],
-        cwd=repo, capture_output=True, text=True,
+        cwd=repo,
+        capture_output=True,
+        text=True,
     ).stdout.strip()
     leftover = [line for line in porcelain.splitlines() if r["task_id"] not in line]
     assert leftover == [], porcelain

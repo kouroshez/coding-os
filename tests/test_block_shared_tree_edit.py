@@ -13,11 +13,7 @@ import subprocess
 from pathlib import Path
 
 HOOK = (
-    Path(__file__).resolve().parent.parent
-    / "src"
-    / "core"
-    / "hooks"
-    / "block-shared-tree-edit.sh"
+    Path(__file__).resolve().parent.parent / "src" / "core" / "hooks" / "block-shared-tree-edit.sh"
 )
 
 

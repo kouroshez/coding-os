@@ -303,9 +303,9 @@ class _GitSettingsIn(BaseModel):
     # LOCAL integration after a green verify, zero network; draft/auto_merge/autonomous
     # push. Literal rejects a typo'd rung at the API edge instead of letting it reach
     # cos-env → COS_GIT_AUTONOMY where it would silently behave as draft.
-    autonomy_level: Literal[
-        "local", "local_autonomous", "draft", "auto_merge", "autonomous"
-    ] = "draft"
+    autonomy_level: Literal["local", "local_autonomous", "draft", "auto_merge", "autonomous"] = (
+        "draft"
+    )
     # Explicit fields so a PATCH persists them — an exclude_unset model_dump would
     # else silently drop these as unknown keys.
     worktree_include: list[str] = []

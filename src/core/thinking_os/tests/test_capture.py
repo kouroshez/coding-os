@@ -466,7 +466,15 @@ class TestChangelogRecallExclusion:
             "memory_type, title, narrative, concepts) VALUES (?, ?, ?, ?, ?, ?, ?)",
             [
                 ("s", "Edit", "edit", "changelog", "Modified parser.py", "edit", "parser"),
-                ("s", "Manual", "discovery", "discovery", "Parser insight", "why parser changed", "parser"),
+                (
+                    "s",
+                    "Manual",
+                    "discovery",
+                    "discovery",
+                    "Parser insight",
+                    "why parser changed",
+                    "parser",
+                ),
             ],
         )
         conn.commit()
@@ -486,9 +494,7 @@ class TestExpiresAtStamp:
     def test_changelog_capture_stamps_ttl(self, db_path: Path) -> None:
         from datetime import datetime, timezone
 
-        capture_observation(
-            {"tool_name": "Write", "tool_input": {"file_path": "svc.py"}}, db_path
-        )
+        capture_observation({"tool_name": "Write", "tool_input": {"file_path": "svc.py"}}, db_path)
         c = init_db(db_path)
         row = c.execute(
             "SELECT memory_type, expires_at FROM observations ORDER BY id DESC LIMIT 1"

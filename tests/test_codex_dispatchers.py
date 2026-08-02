@@ -188,8 +188,8 @@ def test_codex_userprompt_dispatch_forwards_delegate_context(tmp_path: Path) -> 
         if delegate == "nudge-model-routing.sh":
             script.write_text(
                 "#!/bin/sh\nprintf '%s\\n' "
-                "'{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\","
-                "\"additionalContext\":\"route now\"}}'\n"
+                '\'{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit",'
+                '"additionalContext":"route now"}}\'\n'
             )
         else:
             script.write_text("#!/bin/sh\nexit 0\n")

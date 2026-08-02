@@ -169,12 +169,20 @@ class TestSchemaVersioning:
         )
         conn.commit()
         assert cur.rowcount == 0
-        assert conn.execute("SELECT COUNT(*) FROM observations WHERE content_hash='H'").fetchone()[0] == 1
+        assert (
+            conn.execute("SELECT COUNT(*) FROM observations WHERE content_hash='H'").fetchone()[0]
+            == 1
+        )
         # NULLs are exempt (not dedup targets).
         for _ in range(2):
             conn.execute("INSERT OR IGNORE INTO observations (session_id, title) VALUES ('S','n')")
         conn.commit()
-        assert conn.execute("SELECT COUNT(*) FROM observations WHERE content_hash IS NULL").fetchone()[0] == 2
+        assert (
+            conn.execute("SELECT COUNT(*) FROM observations WHERE content_hash IS NULL").fetchone()[
+                0
+            ]
+            == 2
+        )
 
     def test_v51_collapses_existing_duplicates_keeping_earliest(
         self, migrated_conn: sqlite3.Connection

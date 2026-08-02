@@ -294,10 +294,14 @@ def test_verify_state_contract(tmp_path, monkeypatch) -> None:
     assert cli._verify_state() == (False, None)
 
     # a recent PASS → satisfied, age is small and non-negative
-    path.write_text(json.dumps({"cli": {"status": "PASS", "ts": int(time.time())}}), encoding="utf-8")
+    path.write_text(
+        json.dumps({"cli": {"status": "PASS", "ts": int(time.time())}}), encoding="utf-8"
+    )
     ok, age = cli._verify_state()
     assert ok is True and age is not None and 0 <= age < 60
 
     # only a FAIL entry → not satisfied (a red run never unlocks the close)
-    path.write_text(json.dumps({"cli": {"status": "FAIL", "ts": int(time.time())}}), encoding="utf-8")
+    path.write_text(
+        json.dumps({"cli": {"status": "FAIL", "ts": int(time.time())}}), encoding="utf-8"
+    )
     assert cli._verify_state() == (False, None)

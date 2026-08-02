@@ -388,16 +388,12 @@ def learn_extract(
         distill_budget = 20
     distill_state = {"remaining": max(0, distill_budget)}
     extracted.extend(
-        _mine_friction_lessons(
-            conn, min_occurrences=min_occurrences, distill_state=distill_state
-        )
+        _mine_friction_lessons(conn, min_occurrences=min_occurrences, distill_state=distill_state)
     )
     # Hook BLOCKs live in the activity log (not observations) on Claude — mine
     # them too so the richest friction signal becomes a lesson.
     extracted.extend(
-        _mine_hook_block_lessons(
-            conn, min_occurrences=min_occurrences, distill_state=distill_state
-        )
+        _mine_hook_block_lessons(conn, min_occurrences=min_occurrences, distill_state=distill_state)
     )
     # fix:/revert: commit subjects — the real engineering-lesson signal that
     # reasoning records in git history, not in any friction table (§5).
@@ -955,7 +951,12 @@ def _adopt_legacy_template(conn: sqlite3.Connection, template_text: str, new_id:
             "UPDATE learned_patterns SET times_seen = COALESCE(times_seen, 0) + ?, "
             "times_validated = times_validated + ?, access_count = access_count + ? "
             "WHERE id = ?",
-            (cand["times_seen"] or 0, cand["times_validated"] or 0, cand["access_count"] or 0, new_id),
+            (
+                cand["times_seen"] or 0,
+                cand["times_validated"] or 0,
+                cand["access_count"] or 0,
+                new_id,
+            ),
         )
         conn.execute(
             "UPDATE learned_patterns SET promoted_to = 'archived', "
@@ -1204,9 +1205,7 @@ def _mine_hook_block_lessons(
         rule_match = _BLOCK_RULE_RE.search(rest)
         rule = rule_match.group(1) if rule_match else ""
         key = f"{hook}:{rule}"
-        cluster = clusters.setdefault(
-            key, {"count": 0, "hook": hook, "rule": rule, "samples": []}
-        )
+        cluster = clusters.setdefault(key, {"count": 0, "hook": hook, "rule": rule, "samples": []})
         cluster["count"] += 1
         if rest and len(cluster["samples"]) < 3:
             cluster["samples"].append(rest)
@@ -1696,8 +1695,7 @@ def validate_surfaced_lessons(
         lesson_norm = _normalize_full(text)
         fingerprint, evidence_norm = lesson_meta.get(pid, ("", ""))
         recurred = (fingerprint and fingerprint in failure_fingerprints) or any(
-            key in lesson_norm or (evidence_norm and key in evidence_norm)
-            for key in failure_keys
+            key in lesson_norm or (evidence_norm and key in evidence_norm) for key in failure_keys
         )
         learn_validate(conn, pattern_id=pid, was_helpful=not recurred)
         if recurred:

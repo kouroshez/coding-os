@@ -117,13 +117,17 @@ def test_rearms_on_state_change(tmp_path: Path) -> None:
     assert "TASK-99" in json.loads(rearmed.stdout)["hookSpecificOutput"]["additionalContext"]
 
 
-def _run_created_icebox(tmp_path: Path, labels_json: str | None) -> subprocess.CompletedProcess[bytes]:
+def _run_created_icebox(
+    tmp_path: Path, labels_json: str | None
+) -> subprocess.CompletedProcess[bytes]:
     # One icebox card CREATED by ses-claude-test — attributed via the
     # task_status_history 'created' row while tasks.agent_session is left NULL,
     # the exact parked-lane blind spot the create-then-park clause closes.
     db = tmp_path / "coding-os.db"
     conn = sqlite3.connect(db)
-    conn.execute("CREATE TABLE tasks (task_id TEXT, status TEXT, agent_session TEXT, labels_json TEXT)")
+    conn.execute(
+        "CREATE TABLE tasks (task_id TEXT, status TEXT, agent_session TEXT, labels_json TEXT)"
+    )
     conn.execute(
         "CREATE TABLE task_status_history "
         "(task_id TEXT, old_status TEXT, new_status TEXT, agent_session TEXT, reason TEXT, transitioned_at INTEGER)"
@@ -137,7 +141,9 @@ def _run_created_icebox(tmp_path: Path, labels_json: str | None) -> subprocess.C
     panel = tmp_path / "panels" / "wa-panel"
     panel.mkdir(parents=True)
     (panel / "session-id").write_text("ses-claude-test", encoding="utf-8")
-    return _run({"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"})
+    return _run(
+        {"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"}
+    )
 
 
 def test_warns_on_created_then_parked_icebox(tmp_path: Path) -> None:

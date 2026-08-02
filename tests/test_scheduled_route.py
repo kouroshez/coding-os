@@ -20,9 +20,7 @@ from core.web.routes import scheduled as sched
 
 
 def _write_plist(path: Path, hour: int) -> None:
-    path.write_bytes(
-        plistlib.dumps({"StartCalendarInterval": {"Hour": hour, "Minute": 0}})
-    )
+    path.write_bytes(plistlib.dumps({"StartCalendarInterval": {"Hour": hour, "Minute": 0}}))
 
 
 def test_plist_hour_reads_installed_schedule(tmp_path, monkeypatch):

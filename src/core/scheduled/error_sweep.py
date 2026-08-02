@@ -67,10 +67,14 @@ def rollup_fingerprints(conn: sqlite3.Connection) -> int:
         )
     # Reconcile: an open fingerprint with no remaining fault-class events (e.g.
     # reclassified to policy) is stale — drop it so it is never filed as a bug.
-    open_fps = [r[0] for r in conn.execute("SELECT fingerprint FROM log_fingerprints WHERE status = 'open'")]
+    open_fps = [
+        r[0] for r in conn.execute("SELECT fingerprint FROM log_fingerprints WHERE status = 'open'")
+    ]
     for fp in open_fps:
         if fp not in agg:
-            conn.execute("DELETE FROM log_fingerprints WHERE fingerprint = ? AND status = 'open'", (fp,))
+            conn.execute(
+                "DELETE FROM log_fingerprints WHERE fingerprint = ? AND status = 'open'", (fp,)
+            )
     conn.commit()
     return len(agg)
 

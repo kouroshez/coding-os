@@ -1042,9 +1042,7 @@ def _overlay_scaffold(
                 continue
             content = _resolve_placeholders(content, substitutions)
             if src_file.suffix == ".md":
-                skip_file, content = _apply_doc_conditions(
-                    content, disabled_modules, active_stacks
-                )
+                skip_file, content = _apply_doc_conditions(content, disabled_modules, active_stacks)
                 if skip_file:
                     continue
             dest.write_text(content, encoding="utf-8")

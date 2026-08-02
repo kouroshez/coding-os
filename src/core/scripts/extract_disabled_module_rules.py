@@ -42,7 +42,10 @@ def main(argv: list[str]) -> int:
         return 0
     state_file = Path(argv[1]) / ".coding-os" / "subsystems-state.json"
     try:
-        disabled = {str(x) for x in (json.loads(state_file.read_text(encoding="utf-8")).get("disabled") or [])}
+        disabled = {
+            str(x)
+            for x in (json.loads(state_file.read_text(encoding="utf-8")).get("disabled") or [])
+        }
     except (OSError, json.JSONDecodeError):
         return 0
     if not disabled:
