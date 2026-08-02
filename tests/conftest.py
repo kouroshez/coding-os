@@ -31,6 +31,12 @@ import pytest
 # qualified via `src/core` on the path instead.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+# Golden fixtures are scaffold snapshots, not this repo's tests — every
+# section ships a sample suite (test_health.py etc.) whose duplicate basenames
+# collide at collection ("import file mismatch"). Their gates run inside real
+# scaffolds via scaffold-verify.yml, never from here.
+collect_ignore = ["golden"]
+
 for _p in (
     REPO_ROOT,
     REPO_ROOT / "src",
