@@ -1460,8 +1460,6 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
-        ".ruff_cache/.gitignore",
-        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -1522,7 +1520,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 254
+      "count": 252
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1723,8 +1721,6 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
-        ".ruff_cache/.gitignore",
-        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -1777,7 +1773,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 244
     },
     "claude_flutter": {
       "agent": "claude",
@@ -3512,8 +3508,6 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
-        ".ruff_cache/.gitignore",
-        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -3559,7 +3553,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 269
+      "count": 267
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -4543,8 +4537,6 @@
         ".editorconfig",
         ".gitignore",
         ".mcp.json",
-        ".ruff_cache/.gitignore",
-        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -4592,7 +4584,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 232
     },
     "claude_rails": {
       "agent": "claude",
@@ -8626,8 +8618,6 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
-        ".ruff_cache/.gitignore",
-        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -8688,7 +8678,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 259
+      "count": 257
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8894,8 +8884,6 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
-        ".ruff_cache/.gitignore",
-        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -8948,7 +8936,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 249
     },
     "codex_flutter": {
       "agent": "codex",
@@ -10718,8 +10706,6 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
-        ".ruff_cache/.gitignore",
-        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -10765,7 +10751,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 274
+      "count": 272
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -11769,8 +11755,6 @@
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
         ".gitignore",
-        ".ruff_cache/.gitignore",
-        ".ruff_cache/CACHEDIR.TAG",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -11818,7 +11802,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 237
     },
     "codex_rails": {
       "agent": "codex",

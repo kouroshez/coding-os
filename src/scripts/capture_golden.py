@@ -42,7 +42,7 @@ RUNTIME_PATHS = {
     ".coding-os/.last-verify",
     ".coding-os/.fresh-init",
 }
-IGNORED_PREFIXES = (".git/", "node_modules/", ".venv/", ".build/")
+IGNORED_PREFIXES = (".git/", "node_modules/", ".venv/", ".build/", ".ruff_cache/", "__pycache__/")
 
 FIXTURE_NAME = "cos-golden-fixture"
 FROZEN_DATE = "2026-01-01"  # passed to `cos init --today` for determinism
