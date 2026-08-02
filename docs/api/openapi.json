@@ -756,6 +756,17 @@
       },
       "ScheduledConfigUpdate": {
         "properties": {
+          "archive_prune_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archive Prune Days"
+          },
           "decay_throttle_days": {
             "anyOf": [
               {
@@ -777,6 +788,28 @@
               }
             ],
             "title": "Enabled"
+          },
+          "error_sweep_occ_threshold": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Sweep Occ Threshold"
+          },
+          "error_sweep_session_threshold": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Sweep Session Threshold"
           },
           "hour": {
             "anyOf": [
@@ -875,6 +908,19 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "_AutoSpawnIn": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "_AutoSpawnIn",
+        "type": "object"
+      },
       "_BudgetCapIn": {
         "properties": {
           "cap_usd": {
@@ -891,6 +937,85 @@
           "cap_usd"
         ],
         "title": "_BudgetCapIn",
+        "type": "object"
+      },
+      "_ClaudeAuthIn": {
+        "properties": {
+          "api_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key"
+          },
+          "mode": {
+            "default": "subscription",
+            "enum": [
+              "subscription",
+              "api_key"
+            ],
+            "title": "Mode",
+            "type": "string"
+          }
+        },
+        "title": "_ClaudeAuthIn",
+        "type": "object"
+      },
+      "_GitSettingsIn": {
+        "properties": {
+          "autonomy_level": {
+            "default": "draft",
+            "enum": [
+              "local",
+              "local_autonomous",
+              "draft",
+              "auto_merge",
+              "autonomous"
+            ],
+            "title": "Autonomy Level",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "integration_branch": {
+            "default": "main",
+            "title": "Integration Branch",
+            "type": "string"
+          },
+          "protected_branches": {
+            "default": [
+              "production"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "title": "Protected Branches",
+            "type": "array"
+          },
+          "worktree_include": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Worktree Include",
+            "type": "array"
+          },
+          "worktree_setup_cmd": {
+            "default": "",
+            "title": "Worktree Setup Cmd",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "_GitSettingsIn",
         "type": "object"
       },
       "_ModelRoutingIn": {
@@ -913,10 +1038,40 @@
       },
       "_PatchBody": {
         "properties": {
+          "auto_spawn": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/_AutoSpawnIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "budget_cap": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/_BudgetCapIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "claude_auth": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/_ClaudeAuthIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "git_settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/_GitSettingsIn"
               },
               {
                 "type": "null"
@@ -3526,6 +3681,86 @@
         ]
       }
     },
+    "/api/cognition/cost/health": {
+      "get": {
+        "description": "Cost-health gauges over formula_dispatches: MAD anomaly, burn-rate, budget ladder.",
+        "operationId": "dispatcher_cost_health_api_cognition_cost_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Dispatcher Cost Health",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
     "/api/cognition/dispatchers": {
       "get": {
         "description": "List recent formula dispatches with telemetry (T19.1).",
@@ -3929,6 +4164,86 @@
         ]
       }
     },
+    "/api/cognition/onboarding-status/dismiss": {
+      "post": {
+        "description": "Persist the onboarding hero dismissal so it stops reappearing on reload.",
+        "operationId": "onboarding_dismiss_api_cognition_onboarding_status_dismiss_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Onboarding Dismiss",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
     "/api/cognition/roles": {
       "get": {
         "description": "List the semantic roles a chat session can adopt (producer: thinking_os/agents/*.md).",
@@ -4126,6 +4441,123 @@
         ]
       }
     },
+    "/api/cognition/trace/{session_id}/stream": {
+      "get": {
+        "description": "SSE: tail (and replay from the start) a session's append-only cognition trace jsonl.",
+        "operationId": "stream_trace_api_cognition_trace__session_id__stream_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Stream Trace",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
     "/api/cognition/traces": {
       "get": {
         "description": "List trace + session-only entries with activity sort.",
@@ -4260,6 +4692,86 @@
         ]
       }
     },
+    "/api/config/adapters/{agent}": {
+      "delete": {
+        "description": "Remove an agent adapter from the active project (never the last one).",
+        "operationId": "config_adapter_remove_api_config_adapters__agent__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agent",
+            "required": true,
+            "schema": {
+              "title": "Agent",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Config Adapter Remove",
+        "tags": [
+          "config"
+        ]
+      },
+      "post": {
+        "description": "Add an agent adapter to the active project (cos add-adapter).",
+        "operationId": "config_adapter_add_api_config_adapters__agent__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agent",
+            "required": true,
+            "schema": {
+              "title": "Agent",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Config Adapter Add",
+        "tags": [
+          "config"
+        ]
+      }
+    },
     "/api/config/mcp": {
       "get": {
         "description": "List MCP servers configured in the project's .mcp.json.",
@@ -4282,11 +4794,116 @@
         "tags": [
           "config"
         ]
+      },
+      "post": {
+        "description": "Add a first-party allow-listed MCP server to the active project's .mcp.json.",
+        "operationId": "config_mcp_add_api_config_mcp_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Config Mcp Add",
+        "tags": [
+          "config"
+        ]
+      }
+    },
+    "/api/config/mcp/catalog": {
+      "get": {
+        "description": "First-party allow-list of MCP servers installable from the Hub (pre-Extension-Manager).",
+        "operationId": "config_mcp_catalog_api_config_mcp_catalog_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Config Mcp Catalog Api Config Mcp Catalog Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Config Mcp Catalog",
+        "tags": [
+          "config"
+        ]
+      }
+    },
+    "/api/config/mcp/{name}": {
+      "delete": {
+        "description": "Remove an MCP server from the active project's .mcp.json (never the managed coding-os one).",
+        "operationId": "config_mcp_remove_api_config_mcp__name__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Config Mcp Remove",
+        "tags": [
+          "config"
+        ]
       }
     },
     "/api/config/skills": {
       "get": {
-        "description": "List the core skill registry (name, tier, domain, globs, phase) + project extras.",
+        "description": "List active skills (core + installed-stack) with their stack membership + project extras.",
         "operationId": "config_skills_api_config_skills_get",
         "responses": {
           "200": {
@@ -4380,6 +4997,86 @@
           }
         },
         "summary": "Config Stacks",
+        "tags": [
+          "config"
+        ]
+      }
+    },
+    "/api/config/stacks/{stack_id}": {
+      "delete": {
+        "description": "Remove a stack from the active project (cos remove-stack).",
+        "operationId": "config_stack_remove_api_config_stacks__stack_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "stack_id",
+            "required": true,
+            "schema": {
+              "title": "Stack Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Config Stack Remove",
+        "tags": [
+          "config"
+        ]
+      },
+      "post": {
+        "description": "Install a stack into the active project (cos add-stack).",
+        "operationId": "config_stack_install_api_config_stacks__stack_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "stack_id",
+            "required": true,
+            "schema": {
+              "title": "Stack Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Config Stack Install",
         "tags": [
           "config"
         ]
@@ -5669,6 +6366,8 @@
             "required": false,
             "schema": {
               "default": 2000,
+              "maximum": 50000,
+              "minimum": 1,
               "title": "Max Nodes",
               "type": "integer"
             }
@@ -5863,7 +6562,7 @@
             "name": "confidence_min",
             "required": false,
             "schema": {
-              "default": 0.5,
+              "default": 0.3,
               "title": "Confidence Min",
               "type": "number"
             }
@@ -10127,7 +10826,7 @@
     },
     "/api/sessions/active": {
       "get": {
-        "description": "Return all known agent presence records grouped by lifecycle state.\n\nState values:\n  - active   : tool/prompt activity within last 30 s and pid alive\n  - present  : activity within PRESENCE_TTL_S (default 300 s) and pid alive\n  - idle     : pid alive but no recent activity\n  - offline  : pid not alive\n  - ended    : ended_at recorded\n\nEach record also carries `is_current` — true when its session_id\nmatches the agent's `session-id` marker (the agent's live session).",
+        "description": "Return all known agent presence records grouped by lifecycle state.\n\nState values (windows imported from board_os.presence, the SSOT):\n  - active   : tool activity within ACTIVE_WINDOW_SECS (90 s) and pid alive\n  - present  : activity within PRESENT_WINDOW_SECS (30 min) and pid alive\n  - idle     : pid alive but no recent activity\n  - offline  : pid not alive\n  - ended    : ended_at recorded\n\nEach record also carries `is_current` — true when its session_id\nmatches the agent's `session-id` marker (the agent's live session).",
         "operationId": "list_active_sessions_api_sessions_active_get",
         "responses": {
           "200": {
@@ -10201,6 +10900,54 @@
         ]
       }
     },
+    "/api/settings/git-state": {
+      "get": {
+        "description": "Read-only pr-mode capability + real repo git-state (branches/current/remote) for the Config Git tab.",
+        "operationId": "get_git_state_api_settings_git_state_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "integration",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Integration"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Git State",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
     "/api/settings/modules": {
       "get": {
         "description": "Per-module subsystem state for the Config tab (TASK-354).",
@@ -10223,7 +10970,7 @@
     },
     "/api/settings/modules/drift": {
       "get": {
-        "description": "Non-PASS module drift (skill/command/state_integrity) for a Hub WARN banner.\n\nReuses the three existing `cos doctor` check functions verbatim — no new check\nlogic — so the toggle UI surfaces the drift its own cascade can produce\n(HUB-PB2 / TASK-504).",
+        "description": "Non-PASS module drift (skill/command/rule/doc/state_integrity) for a Hub WARN banner.\n\nReuses the existing `cos doctor` check functions verbatim — no new check\nlogic — so the toggle UI surfaces the drift its own cascade can produce\n(HUB-PB2 / TASK-504; rule/doc drift added TASK-812).",
         "operationId": "get_module_drift_api_settings_modules_drift_get",
         "responses": {
           "200": {
