@@ -5,13 +5,13 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ci, release-unblock, case-sensitivity, manifest, embeddings, ready]
-status: blocked
+status: in_progress
 priority: P0
 appetite: 1d
 created: 2026-06-22
 started: 2026-06-22
 completed: null
-agent_session: ses-claude-20260621-232203-5c3d
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
@@ -67,3 +67,6 @@ Clean clone on case-sensitive FS (or Linux CI), then run: `uv run pytest tests/t
 - 2026-06-22 [claude]: Edit dev-pollution-leaks-into-manifest.md
 - 2026-06-22 [claude]: Edit MEMORY.md
 - 2026-06-22 [claude]: CI was red across MANY masked layers; all fixed + verified locally (zero GitHub minutes). Recent: docs-lint links,…
+- 2026-08-02 [claude]: Edit scaffold-verify.yml
+- 2026-08-02 [claude]: Edit scaffold-verify.yml
+- 2026-08-02 [claude]: commit fe32399c57 — ci: set SV_DIR per-job — runner context is invalid at workflow-level env

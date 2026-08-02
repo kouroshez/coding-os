@@ -22,3 +22,4 @@ references: []
 **Outcome (one sentence):** Measure whether coding-os's real task stream has enough recurring, checkable instances to form a held-out set with signal above stochastic-rollout variance, under a per-night cost_usd ceiling, BEFORE building the L-effort eval leg. Probes include input_slice persistence and recurring-task clustering. Output: go/no-go for the eval build with measured signal-vs-noise. See ADR-0016.
 
 ## Work Log
+- 2026-08-02 [claude]: Triage 2026-08-02: deliberately staying keep — this spike measures recurring-instance volume vs rollout variance over…

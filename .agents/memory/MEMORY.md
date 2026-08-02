@@ -2,14 +2,16 @@
 ## Trusted lessons (auto-generated)
 
 - Recurring block (32 occurrences): test-governor → satisfy the blocked rule before retrying the action _(seen 116×)_
-- Recurring block (29 occurrences): branch-guard — worktree-add → satisfy the blocked rule before retrying the action _(seen 636×)_
+- Recurring backtrack root cause 'tool_failure' (35 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 13×)_
+- Recurring block (30 occurrences): block-dangerous-commands — force-push-main → satisfy the blocked rule before retrying the action _(seen 5×)_
 - Recurring block (4 occurrences): block-dangerous-commands — rm-rf-critical → satisfy the blocked rule before retrying the action _(seen 410×)_
 - Recurring block (4 occurrences): block-secrets — env-file → satisfy the blocked rule before retrying the action _(seen 158×)_
-- Recurring backtrack root cause 'tool_failure' (34 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 12×)_
+- Recurring block (29 occurrences): branch-guard — worktree-add → satisfy the blocked rule before retrying the action _(seen 636×)_
 - Recurring block (4 occurrences): block-uv-heredoc — uv-run-heredoc → satisfy the blocked rule before retrying the action _(seen 60×)_
 - Recurring block (10 occurrences): thinking_os-gate — gate-not-recorded → satisfy the blocked rule before retrying the action _(seen 63×)_
 - Recurring block (23 occurrences): enforce-skill — no-domain-skill → satisfy the blocked rule before retrying the action _(seen 106×)_
 - Recurring block (26 occurrences): enforce-commit-message — commit-msg-contract → satisfy the blocked rule before retrying the action _(seen 120×)_
+- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (8 occurrences) _(seen 78×)_
 - Recurring block (27 occurrences): branch-guard — reset-head-rewrite → satisfy the blocked rule before retrying the action _(seen 4×)_
 - Recurring block (6 occurrences): branch-guard — checkout-branch-switch → satisfy the blocked rule before retrying the action _(seen 4×)_
 - Recurring block (12 occurrences): branch-guard — rebase-history-rewrite → satisfy the blocked rule before retrying the action _(seen 4×)_
@@ -25,7 +27,6 @@
 - Recurring block (32 occurrences): block-dangerous-commands — git-clean-force → satisfy the blocked rule before retrying the action _(seen 4×)_
 - Recurring block (12 occurrences): enforce-skill — graph-explorer-required → satisfy the blocked rule before retrying the action _(seen 4×)_
 - Recurring block (37 occurrences): enforce-verify → satisfy the blocked rule before retrying the action _(seen 4×)_
-- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (8 occurrences) _(seen 77×)_
 - Recurring block (4 occurrences): branch-guard — history-rewrite → satisfy the blocked rule before retrying the action _(seen 4×)_
 - Recurring block (4 occurrences): branch-guard — switch-branch → satisfy the blocked rule before retrying the action _(seen 4×)_
 - Recurring block (4 occurrences): enforce-doc-anchor → satisfy the blocked rule before retrying the action _(seen 4×)_

@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [cli, modules, profiles, review-followup, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-07-29
-started: null
-completed: null
-agent_session: null
+started: 2026-08-02
+completed: 2026-08-02
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-858: Give module selection an authoritative-set escape (--enable-module / --modules-exact)
 
 **Outcome (one sentence):** A caller can state the exact module set it wants without knowing that profile and `--disable-module` are unioned.
@@ -35,3 +34,16 @@ references: []
 - **Given** the CLI help, **When** a user reads it, **Then** the union semantics and the escape are both stated.
 
 ## Work Log
+- 2026-08-02 [claude]: Edit hub-architecture.md
+- 2026-08-02 [claude]: Edit main.py
+- 2026-08-02 [claude]: Edit main.py
+- 2026-08-02 [claude]: Edit main.py
+- 2026-08-02 [claude]: Edit main.py
+- 2026-08-02 [claude]: Edit main.py
+- 2026-08-02 [claude]: Edit main.py
+- 2026-08-02 [claude]: Edit main.py
+- 2026-08-02 [claude]: Edit hub.py
+- 2026-08-02 [claude]: Edit hub.py
+- 2026-08-02 [claude]: Edit test_hub_init_route.py
+- 2026-08-02 [claude]: Edit test_cli.py
+- 2026-08-02 [claude]: Implemented --enable-module on init+adopt (validated, dep-closing, conflict-rejecting); hub route emits…

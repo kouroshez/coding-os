@@ -30,3 +30,4 @@ references: []
 Given a validated lesson cluster, When the distiller proposes a skill/rule change, Then it writes a bounded (<= learning_rate edits) prose-only diff to .coding-os/memory/drafts/ and never touches the file directly. Given a staged draft, When no governance/docs-update task adopts it within the expiry window, Then it decays/archives. Given an attempt to apply a draft, Then it passes through block-protected-files (governance marker required), never around it.
 
 ## Work Log
+- 2026-08-02 [claude]: Triage 2026-08-02: deliberately staying keep — stage 3 of ADR-0016; gated behind the TASK-851 feasibility verdict,…

@@ -11,7 +11,6 @@ Read next: any of the entries below.
 ### Policy (13)
 
 - [Stack Anatomy Contract](anatomy-contract.md) — `ssot:true` · updated 2026-04-29
-- [Task Lifecycle Policy](task-lifecycle.md) — `ssot:true` · updated 2026-05-08
 - [Documentation System Policy](docs-system.md) — `ssot:true` · updated 2026-05-08
 - [Agent Workflow Policy](agent-workflow.md) — `ssot:true` · updated 2026-05-08
 - [Wrapper Derivation Policy](wrapper-derivation.md) — `ssot:true` · updated 2026-05-10
@@ -23,6 +22,7 @@ Read next: any of the entries below.
 - [Release Process (SSOT)](release-process.md) — `ssot:true` · updated 2026-06-07
 - [The coding-os Constitution — Values the Rules Derive From](constitution.md) — `ssot:true` · updated 2026-06-21
 - [Product Vision — coding-os](vision.md) — `ssot:true` · updated 2026-07-16
+- [Task Lifecycle Policy](task-lifecycle.md) — `ssot:true` · updated 2026-08-02
 
 ### Runbook (1)
 
