@@ -5,12 +5,12 @@ swimlane: "board_os"
 kind: bug
 epic: null
 labels: [lifecycle, drift, concurrency, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-02
 started: 2026-08-02
-completed: null
+completed: 2026-08-02
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -51,3 +51,16 @@ references: []
 - 2026-08-03 [claude]: Caller NAMED with captured evidence (acceptance 1): conversation beea135e (resumed June transcript = the idle…
 - 2026-08-03 [claude]: Deliberation: chose the "sharing made safe" arm over re-minting per-panel session ids — the agent-level mirror in…
 - 2026-08-03 [claude]: Edit task-859-when-an-enforcement-chain-silently-never.md
+- 2026-08-03 [claude]: committed 36932e03 · 75 files
+- 2026-08-03 [claude]: Edit learning.py
+- 2026-08-03 [claude]: Edit learning.py
+- 2026-08-03 [claude]: Edit task-861-platform-probe-chains-must-put-the-fail-l.md
+- 2026-08-03 [claude]: Edit learning.py
+- 2026-08-03 [claude]: commit cca0db43e2 — fix(learning): link filed narratives to the real slugged task file
+- 2026-08-03 [claude]: Edit learning.py
+- 2026-08-03 [claude]: Edit task-861-platform-probe-chains-must-put-the-fail-l.md
+- 2026-08-03 [claude]: Edit learning.py
+- 2026-08-03 [claude]: Edit learning.py
+- 2026-08-03 [claude]: Edit learning.py
+- 2026-08-03 [claude]: commit c58ff385c6 — fix(learning): emit enum-valid domain header on filed narratives
+- 2026-08-03 [claude]: Status transitioned to complete via cos task-done.

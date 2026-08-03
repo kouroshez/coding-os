@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ci, linux-only, full-sweep, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-03
 started: 2026-08-02
-completed: null
+completed: 2026-08-02
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -55,3 +55,4 @@ All 7 pass on macOS (verified 2026-08-02) and fail on ubuntu-latest across py3.1
 - 2026-08-03 [claude]: Edit pyproject.toml
 - 2026-08-03 [claude]: Edit pyproject.toml
 - 2026-08-03 [claude]: commit d51c753d35 — fix(ci): resolve 7 Linux-only full-sweep failures + unblock fresh uv resolution
+- 2026-08-03 [claude]: Status transitioned to complete via cos task-done.
