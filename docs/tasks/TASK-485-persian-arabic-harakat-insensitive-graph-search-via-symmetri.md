@@ -53,3 +53,4 @@ references: []
 - 2026-08-02 [claude]: commit 0b05077b86 — style: ruff format on the registry-test edit
 - 2026-08-03 [claude]: Edit test_branding.py
 - 2026-08-03 [claude]: commit 677abfe441 — test: allow descriptive Claude Code reference in SettingsPage auth help
+- 2026-08-03 [claude]: committed d635486f · 3 files
