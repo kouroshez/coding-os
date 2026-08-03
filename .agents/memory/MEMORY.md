@@ -2,8 +2,7 @@
 ## Trusted lessons (auto-generated)
 
 - Recurring block (32 occurrences): test-governor → satisfy the blocked rule before retrying the action _(seen 117×)_
-- Recurring backtrack root cause 'tool_failure' (35 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 14×)_
-- Recurring block (30 occurrences): block-dangerous-commands — force-push-main → satisfy the blocked rule before retrying the action _(seen 6×)_
+- Recurring backtrack root cause 'tool_failure' (35 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 15×)_
 - Recurring block (5 occurrences): block-dangerous-commands — rm-rf-critical → satisfy the blocked rule before retrying the action _(seen 411×)_
 - Recurring block (5 occurrences): block-secrets — env-file → satisfy the blocked rule before retrying the action _(seen 159×)_
 - Recurring block (29 occurrences): branch-guard — worktree-add → satisfy the blocked rule before retrying the action _(seen 636×)_
@@ -11,7 +10,7 @@
 - Recurring block (14 occurrences): thinking_os-gate — gate-not-recorded → satisfy the blocked rule before retrying the action _(seen 64×)_
 - Recurring block (27 occurrences): enforce-skill — no-domain-skill → satisfy the blocked rule before retrying the action _(seen 107×)_
 - Recurring block (29 occurrences): enforce-commit-message — commit-msg-contract → satisfy the blocked rule before retrying the action _(seen 121×)_
-- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (8 occurrences) _(seen 79×)_
+- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (8 occurrences) _(seen 80×)_
 - Recurring block (27 occurrences): branch-guard — reset-head-rewrite → satisfy the blocked rule before retrying the action _(seen 5×)_
 - Recurring block (6 occurrences): branch-guard — checkout-branch-switch → satisfy the blocked rule before retrying the action _(seen 5×)_
 - Recurring block (12 occurrences): branch-guard — rebase-history-rewrite → satisfy the blocked rule before retrying the action _(seen 5×)_
