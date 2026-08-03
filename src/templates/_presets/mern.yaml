@@ -1,0 +1,9 @@
+version: 1
+id: mern
+label: "MERN (Mongo + Express + React + Node)"
+description: >-
+  The most-searched JavaScript stack: an Express/TypeScript API with a React
+  frontend (Next.js as the modern React harness), document-store oriented —
+  the React sibling of MEAN. db-design covers the data model.
+stacks: [node-express, nextjs]
+skills: [db-design]

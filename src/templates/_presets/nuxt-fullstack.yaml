@@ -1,0 +1,9 @@
+version: 1
+id: nuxt-fullstack
+label: "Nuxt full-stack (Vue 3)"
+description: >-
+  Single-app full-stack Vue in the Nuxt spirit: one Nuxt codebase owning UI
+  and server routes, typed end to end — the Vue counterpart of T3-style.
+  db-design and api-design cover the data and contract decisions.
+stacks: [vue-nuxt]
+skills: [db-design, api-design]

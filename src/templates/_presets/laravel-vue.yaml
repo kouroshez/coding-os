@@ -1,0 +1,8 @@
+version: 1
+id: laravel-vue
+label: "Laravel + Vue"
+description: >-
+  The Laravel ecosystem's signature pairing: a Laravel PHP backend with a
+  Vue 3 + Nuxt frontend. api-design governs the contract across the seam.
+stacks: [laravel, vue-nuxt]
+skills: [api-design]
