@@ -5,12 +5,12 @@ swimlane: adapters
 kind: bug
 epic: null
 labels: [codex, desktop, adapter, hub, hooks, skills, mcp, parity, dogfood, ready]
-status: testing
+status: complete
 priority: P0
 appetite: 3d
 created: 2026-08-03
 started: 2026-08-03
-completed: null
+completed: 2026-08-03
 agent_session: ses-codex-019fc9ac-216e-7211-a224-dad139ff5712
 depends_on: []
 blocked_by: []
@@ -56,3 +56,5 @@ Run Codex Desktop in this repository with CODEX_SESSION_ID, CODEX_AGENT_DIR, and
 ## Work Log
 - 2026-08-03 [codex]: Implemented adapter-owned Codex identity for rendered hooks, shell subprocesses, MCP, SessionEnd presence,…
 - 2026-08-03 [codex]: Verification passed: adapters 52, CLI 277, doctor identity/drift 3, renderer 8, verify-hooks, docs-lint, Ruff,…
+- 2026-08-03 [claude]: committed 12a8bb65 · 25 files
+- 2026-08-03 [codex]: Attribution correction: commit 12a8bb65 was executed by the already-open Desktop task before project shell config…
