@@ -31,7 +31,7 @@ Read next: any of the entries below.
 
 - [Naming Contract](naming-contract.md) — `ssot:true` · updated 2026-04-26
 
-### Engineering (41)
+### Engineering (42)
 
 - [Template Location — In-Repo Files vs In-CLI vs Hybrid](templates-location-analysis.md) — `ssot:true` · updated 2026-04-18
 - [Rules Loading — How `src/core/rules/*.md` Actually Become Active](rules-loading.md) — `ssot:true` · updated 2026-04-18
@@ -74,5 +74,6 @@ Read next: any of the entries below.
 - [Adapter Parity - Claude vs Codex Coverage](adapter-parity.md) — `ssot:true` · updated 2026-07-10
 - [Dispatcher Contract](dispatcher-contract.md) — `ssot:true` · updated 2026-07-10
 - [Modularity / Auto-Sync Audit — July 2026](modularity-audit-2026-07.md) — `ssot:true` · updated 2026-07-16
+- [Hub Web UI — Pre-Release Audit (2026-08-03, TASK-864)](hub-release-audit-2026-08-03.md) — `ssot:false` · updated 2026-08-03
 
 <!-- END auto-index -->

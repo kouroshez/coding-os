@@ -9,4 +9,4 @@ Domain-aware enforcement via `enforce-verify.sh` — detects changed files and r
 | {{ substitutions.VERIFY_DOCS_GLOB }} | {{ substitutions.VERIFY_DOCS_SUITES }} | {{ substitutions.VERIFY_DOCS }} |
 | {{ substitutions.VERIFY_HOOKS_GLOB }} | verify-hooks | `make verify-hooks` |
 
-Results stored in `$COS_STATE_DIR/.last-verify.json` per-suite with timestamps. Each suite must be PASS and < 30 min old. `make task-done` is **BLOCKED** if any required suite is missing or stale.
+Results stored in `$COS_STATE_DIR/.last-verify.json` per-suite with timestamps. Each suite must be PASS and < 30 min old.{% if modules.tasks %} `make task-done` is **BLOCKED** if any required suite is missing or stale.{% endif %}

@@ -2,7 +2,7 @@
 
 **Gate 1 — Complexity Gate** (`$COS_STATE_DIR/rules/thinking_os.md`): Q1 Cynefin (CLEAR/COMPLICATED/COMPLEX/CHAOTIC) → Q2 Dimension count. Record classification.
 
-**Gate 2 — Request Type**: A (Question) → answer directly or Zoom. B (Task) → Core Loop. C (Ad-hoc) → trivial: inline, else `make task-create` first. D (Audit) → verify command or Zoom first. Details: `docs/governance/agent-workflow.md`
+**Gate 2 — Request Type**: A (Question) → answer directly or Zoom. B (Task) → Core Loop. C (Ad-hoc) → trivial: inline{% if modules.tasks %}, else `make task-create` first{% else %}, else treat as a Task{% endif %}. D (Audit) → verify command or Zoom first. Details: `docs/governance/agent-workflow.md`
 
 ## Core Loop
 
@@ -10,7 +10,7 @@ Five phases: **Initialize → Classify → Orient → Plan → Execute → Verif
 
 ### Initialize
 
-1. `make session-init` (ONCE per session). 2. `make task-start TASK=<num>`.
+1. `make session-init` (ONCE per session).{% if modules.tasks %} 2. `make task-start TASK=<num>`.{% endif %}
 
 ### Classify (dry — zero file reads)
 
@@ -46,7 +46,7 @@ For **CLEAR**: skip Plan.
 
 ### Verify & Close
 
-1. Run domain verification commands (see Verification Matrix below). Fail 2x → `make task-block`. [P6]
-2. `make task-done TASK=<num> TYPE=<type> MSG="..." WHAT="..." FILES="..."`. Always WHAT+FILES. [P6]
-{% if modules.observability or modules.memory %}3. {% if modules.observability %}`cos_metric_record` outcome (auto-recorded by session-end.sh — manual call optional). {% endif %}{% if modules.memory %}Every 10 tasks: `cos_learn_extract`.{% endif %}
+1. Run domain verification commands (see Verification Matrix below).{% if modules.tasks %} Fail 2x → `make task-block`.{% else %} Fail 2x → stop and surface to the user.{% endif %} [P6]
+{% if modules.tasks %}2. `make task-done TASK=<num> TYPE=<type> MSG="..." WHAT="..." FILES="..."`. Always WHAT+FILES. [P6]
+{% endif %}{% if modules.observability or modules.memory %}{% if modules.tasks %}3{% else %}2{% endif %}. {% if modules.observability %}`cos_metric_record` outcome (auto-recorded by session-end.sh — manual call optional). {% endif %}{% if modules.memory %}Every 10 tasks: `cos_learn_extract`.{% endif %}
 {% endif %}

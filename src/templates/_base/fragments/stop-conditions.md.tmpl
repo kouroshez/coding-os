@@ -1,3 +1,3 @@
 ## Stop Conditions
 
-Stop when: SSOT files conflict, product intent not inferable, production-impacting execution required, risky assumption changes behavior/schema/security. Log: `make task-block`.
+Stop when: SSOT files conflict, product intent not inferable, production-impacting execution required, risky assumption changes behavior/schema/security. {% if modules.tasks %}Log: `make task-block`.{% else %}Surface the blocker to the user before continuing.{% endif %}

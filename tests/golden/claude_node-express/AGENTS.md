@@ -104,7 +104,7 @@ Impl: `lint-backend`, `test-backend`
 
 ## Retrieval Routing (pick before you retrieve)
 
-The MCP layer answers different questions at three layers. Classify the query *before* calling any tool:
+Each retrieval layer answers a different question shape. Classify the query *before* calling any tool:
 
 | Query shape | Tool | Why |
 |---|---|---|
@@ -112,11 +112,13 @@ The MCP layer answers different questions at three layers. Classify the query *b
 | Conceptual / synonym-heavy ("auth flow", "money handling", "payment split") | `cos_doc_search` | Embedding index finds chunks where the spec uses a synonym of the agent's query. |
 | "Have I seen this before?" / past pattern / prior solution | `cos_search` + `cos_learn_suggest` | Memory has 5-signal ranking + spaced repetition. |
 | Task graph / dependency / status | `cos_task_*` | Structured tasks table, dependency JSON walks. |
+| Structural code question (who calls X, blast radius, rename, API surface) | `cos_graph_references` / `cos_graph_impact` / `cos_graph_context` | Graph traversal is symbol-precise where grep floods on common names. |
 | Behavioral rule / protocol (how to classify, how to verify) | **full-read `core/rules/*.md`** | Rule is already in context — never retrieve it. |
 
 Every `cos_*` response carries `data.meta.layer` (`memory|docs|tasks|metrics|routing|graph|health|learning`) and `data.meta.tokens_estimated`. If you got the wrong layer, re-route; if `data.meta.truncated=true`, page with a smaller `limit`.
 
-Order of preference when two layers look equally plausible: **Memory → Docs → Tasks.** Memory already ranks by past outcome success; docs and tasks are static index lookups.
+Order of preference when two layers look equally plausible: **Memory → Docs → Tasks.** Memory already ranks by past outcome success; the rest are static index lookups.
+
 
 **Versioned lessons — `.agents/memory/MEMORY.md` (committed):** the portable, in-repo mirror of the memory layer (Trusted lessons + imported notes), so cross-session knowledge survives a fresh clone. It is the SAME layer as `cos_search`, not a fifth store — the DB is machine-local, this file travels. Claude auto-loads it (the harness memory dir is symlinked to `.agents/memory/`); **other runtimes have no auto-load — read `.agents/memory/MEMORY.md` yourself during Orient.**
 
