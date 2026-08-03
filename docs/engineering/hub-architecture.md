@@ -306,6 +306,21 @@ match wins). Three kinds exist:
   mutation MUST pass an explicit `ses-system-*` session — `agent_session=None`
   on a daemon write silently misattributes the row to the human operator.
 
+**Task history panel — commits-first, details on demand.** `cos_task_history`
+returns one merged stream (`created`/`status`/`edit`/`worklog`/`commit`), and
+for an agent-driven task the worklog events dominate it: `capture-work-log.sh`
+appends a bullet per file Edit, so a real task shows dozens of `Edit foo.py`
+rows drowning the handful of commits a human actually scans for.
+`TaskHistoryPanel` therefore renders **commit rows only** by default (each
+expandable to its per-task file list and line diffs via `/api/board/commit` +
+`/api/board/diff`) with a `show details (N)` toggle that reveals the full
+chronological stream. In the detailed view, presentation-layer de-noising
+applies: a worklog bullet that merely echoes a commit already shown as a
+commit row (`commit <sha> — …` / `committed <sha> …`) is dropped, and
+consecutive bullets with identical type + text + actor collapse into one row
+with a `×N` counter. This is UI-only policy — the `cos_task_history` envelope
+is unchanged, and MCP consumers still receive every event.
+
 ## Command palette (Cmd/Ctrl+K)
 
 `CommandPalette` (mounted in `AppShell`, built on the shared `Modal`) reserves

@@ -71,6 +71,46 @@ const HISTORY_ICON: Record<TaskHistoryEvent['type'], string> = {
   worklog: '✐',
 };
 
+interface TimelineRow {
+  event: TaskHistoryEvent;
+  repeats: number;
+}
+
+const COMMIT_ECHO_PATTERN = /^commit(?:ted)?\s+([0-9a-f]{7,40})\b/i;
+
+// A work-log bullet like "commit fe32399c57 — …" duplicates the commit row the
+// panel already renders from git; sha lengths differ per source, so match on
+// either prefix direction.
+export function isCommitEcho(event: TaskHistoryEvent, commitShas: string[]): boolean {
+  if (event.type !== 'worklog' || !event.text) return false;
+  const match = COMMIT_ECHO_PATTERN.exec(event.text);
+  if (!match) return false;
+  const echoSha = match[1].toLowerCase();
+  return commitShas.some((sha) => sha.startsWith(echoSha) || echoSha.startsWith(sha));
+}
+
+export function collapseRepeats(events: TaskHistoryEvent[]): TimelineRow[] {
+  const rows: TimelineRow[] = [];
+  for (const event of events) {
+    const previous = rows[rows.length - 1];
+    const collapsible = event.type === 'worklog' || event.type === 'edit';
+    if (
+      previous &&
+      collapsible &&
+      previous.event.type === event.type &&
+      previous.event.text === event.text &&
+      previous.event.field === event.field &&
+      previous.event.actor?.label === event.actor?.label
+    ) {
+      previous.repeats += 1;
+      previous.event = { ...previous.event, at: event.at };
+      continue;
+    }
+    rows.push({ event, repeats: 1 });
+  }
+  return rows;
+}
+
 interface CommitFileDTO {
   path: string;
   added: number | null;
@@ -275,6 +315,7 @@ export function TaskHistoryPanel({ taskId }: { taskId: string }) {
     { include_commits: true },
     { enabled: !!taskId },
   );
+  const [showDetails, setShowDetails] = useState(false);
 
   const baseFont = "'JetBrains Mono', monospace";
   if (isLoading) {
@@ -301,19 +342,45 @@ export function TaskHistoryPanel({ taskId }: { taskId: string }) {
     return `commit ${e.sha} · ${e.subject}`;
   };
 
+  const commitShas = events
+    .filter((e) => e.type === 'commit' && e.sha)
+    .map((e) => (e.sha as string).toLowerCase());
+  const detailRows = collapseRepeats(events.filter((e) => !isCommitEcho(e, commitShas)));
+  const commitRows = detailRows.filter((row) => row.event.type === 'commit');
+  const hiddenCount = detailRows.length - commitRows.length;
+  // With zero commits the collapsed view would be empty — show the full stream.
+  const detailsOpen = showDetails || commitRows.length === 0;
+  const rows = detailsOpen ? detailRows : commitRows;
+
   return (
     <div style={{ marginTop: 24, borderTop: '1px solid var(--col-border)', paddingTop: 14 }}>
       <div
         style={{
-          fontFamily: baseFont,
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '.08em',
-          color: 'var(--ink-soft)',
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
           marginBottom: 8,
         }}
       >
-        HISTORY
+        <div
+          style={{
+            fontFamily: baseFont,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '.08em',
+            color: 'var(--ink-soft)',
+          }}
+        >
+          HISTORY
+        </div>
+        {commitRows.length > 0 && hiddenCount > 0 && (
+          <button
+            onClick={() => setShowDetails((v) => !v)}
+            style={{ ...linkBtn, fontFamily: baseFont, fontSize: 10.5, color: 'var(--ink-faint)' }}
+          >
+            {showDetails ? '▾ hide details' : `▸ show details (${hiddenCount} more)`}
+          </button>
+        )}
       </div>
       {s && (
         <div style={{ fontFamily: baseFont, fontSize: 11, color: 'var(--ink-faint)', marginBottom: 10 }}>
@@ -323,10 +390,10 @@ export function TaskHistoryPanel({ taskId }: { taskId: string }) {
         </div>
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {events
+        {rows
           .slice()
           .reverse()
-          .map((e, i) =>
+          .map(({ event: e, repeats }, i) =>
             e.type === 'commit' && e.sha ? (
               <CommitRow key={`commit-${e.sha}-${i}`} e={e} fmt={fmt} baseFont={baseFont} taskId={taskId} />
             ) : (
@@ -338,7 +405,10 @@ export function TaskHistoryPanel({ taskId }: { taskId: string }) {
                   {HISTORY_ICON[e.type]}
                 </span>
                 <span style={{ color: 'var(--ink-faint)', minWidth: 132, flex: '0 0 auto' }}>{fmt(e.at)}</span>
-                <span style={{ color: 'var(--ink)' }}>{describe(e)}</span>
+                <span style={{ color: 'var(--ink)' }}>
+                  {describe(e)}
+                  {repeats > 1 && <span style={{ color: 'var(--ink-faint)' }}> ×{repeats}</span>}
+                </span>
               </div>
             ),
           )}
