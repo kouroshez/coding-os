@@ -1,4 +1,4 @@
-<!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-07-10 -->
+<!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-08-03 -->
 # Codex Adapter
 
 Purpose: Current contract for the OpenAI Codex adapter: execution backends, hook translation, capability bounds, dependency policy, and the path to full interactive parity.
@@ -12,21 +12,21 @@ Skip when: the change is Claude-only and does not alter a shared adapter port.
 
 ## Verified Baseline
 
-The following was verified on 2026-07-10 against package registries, the installed binaries, official documentation, and executable smoke tests.
+The following was verified on 2026-08-03 against package registries, the installed binaries, official documentation, and executable interface probes.
 
 | Surface | Repository state | Current upstream | Decision |
 |---|---|---|---|
-| Codex CLI | installed `0.144.1` | stable `0.144.1` | Primary production backend. No upgrade needed. |
-| TypeScript Codex SDK | not a repo dependency | `@openai/codex-sdk` `0.144.1` | Do not add a Node-to-Python bridge. The SDK itself wraps `codex exec` and JSONL. |
-| Python Codex SDK | optional `codex-sdk` extra | `openai-codex` `0.1.0b3` | Optional beta backend only; never replace the stable CLI automatically. |
-| Generic Python OpenAI SDK | not a repo dependency | `openai` `2.45.0` | Do not add it for Codex dispatch. It is an API client, not the Codex thread runtime. |
-| Claude Agent SDK | locked `0.2.110` | `0.2.115` | Comparison baseline only; a Claude patch refresh is independent of Codex parity. |
+| Codex CLI | installed `0.146.0` | stable `0.146.0` | Primary production backend. No upgrade needed. |
+| TypeScript Codex SDK | not a repo dependency | `@openai/codex-sdk` `0.146.0` | Do not add a Node-to-Python bridge. coding-os already has an official Python SDK path. |
+| Python Codex SDK | optional `codex-sdk` extra | `openai-codex` `0.144.4` | Official beta backend, selected explicitly; published builds include a pinned CLI runtime. |
+| Generic Python OpenAI SDK | not a repo dependency | n/a | Do not add it for Codex dispatch. It is an API client, not the Codex thread runtime. |
+| Claude Agent SDK | locked `0.2.110` | comparison only | Claude dependency changes are independent of this Codex-only scope. |
 
-The Python Codex SDK is official but still beta. Version `0.1.0b3` pins `openai-codex-cli-bin==0.137.0a4`, while the stable CLI is `0.144.1`. Its `CodexConfig(codex_bin=...)` override successfully ran a read-only turn against `0.144.1`, but `models()` failed validation because the newer CLI reports `max` and `ultra` reasoning levels that the beta SDK does not yet model. Therefore:
+The Python Codex SDK is official but still beta. Version `0.144.4` publishes with `openai-codex-cli-bin==0.144.4`. Its public `CodexConfig`, `AsyncCodex.thread_start()`, `AsyncThread.run()`, `Sandbox`, `ApprovalMode`, and `TurnResult` interfaces match the adapter's required one-turn contract. Therefore:
 
 1. Stable CLI execution is the default.
 2. The Python SDK may be installed through an optional extra and selected explicitly.
-3. SDK calls must use the active `codex` binary, not the older bundled binary.
+3. SDK calls use the SDK's pinned runtime by default, as the official documentation recommends. `CodexConfig(codex_bin=...)` is reserved for an intentional executable override, not normal dispatch.
 4. Protocol validation failures must not silently fall back after a turn has started, because that could execute the same task twice.
 5. `runtime: in_process` stays false until the shared Hub runtime port exists and the SDK model/session surface passes compatibility checks.
 
@@ -68,7 +68,8 @@ The former invocation, `codex --no-interactive --json <prompt>`, is not valid on
 
 The optional Python SDK backend uses `AsyncCodex` with:
 
-- the active `codex` path through `CodexConfig(codex_bin=...)`;
+- the published SDK's pinned Codex runtime;
+- `CodexConfig.config_overrides` to disable hooks and MCP servers;
 - `Sandbox.read_only` and `ApprovalMode.deny_all` for formula output;
 - `developer_instructions` for the formula body;
 - `thread.run()` for one turn;
@@ -86,8 +87,9 @@ Parity means equivalent kernel outcomes, not identical provider APIs.
 | Reusable skills | Claude skills | Codex agent skills | native |
 | Slash-command Markdown | `.claude/commands` | Codex custom prompts are deprecated; skills are the supported replacement | degraded, migrate to skills |
 | MCP client | stdio/HTTP through Claude config | stdio/HTTP through `.codex/config.toml` | native |
+| Read-tool policy hooks | native `Read` matcher | native local-function `Read` matcher | native and rendered |
 | Formula dispatch | Claude Agent SDK | stable CLI plus optional Python SDK | implemented by adapter |
-| Structured output | SDK output format | CLI `--output-schema` / SDK output schema | native and wired |
+| Structured output | SDK output format | CLI/SDK strict schema when compatible; JSON-block extraction otherwise | native with deterministic fallback |
 | Session continuation | SDK resume | CLI `exec resume` / SDK thread resume | native, not required by one-turn formula dispatch |
 | Sandbox | SDK permissions and tools | `read-only`, `workspace-write`, `danger-full-access` | native |
 | Per-tool allowlist | SDK `allowed_tools`/`disallowed_tools` | no equivalent Python SDK argument | degraded; formula runs narrow to read-only with MCP disabled |
@@ -101,6 +103,21 @@ Parity means equivalent kernel outcomes, not identical provider APIs.
 | Permission hook | SDK/CLI permission callbacks | `PermissionRequest` | native, output schemas differ |
 | Hook trust | project/settings trust | hash-based review for non-managed hooks | explicit operator step required |
 | Hub interactive chat | in process | blocked by Claude-coupled core route | requires shared runtime port |
+
+## 2026-08 Refresh Checklist
+
+- [x] Read the current official Codex SDK and hooks references.
+- [x] Compare installed CLI, published TypeScript SDK, published Python SDK, lockfile, and adapter dependency floors.
+- [x] Compare Claude and Codex manifests, installers, dispatcher contracts, hook coverage, and executable tests.
+- [x] Upgrade the optional Python SDK and its bundled runtime floor to the current compatible release.
+- [x] Make dispatcher availability backend-aware and let the Python SDK use its officially pinned runtime without requiring a global `codex` binary.
+- [x] Normalize strict-compatible Pydantic schemas and reject incompatible arbitrary-map/default schemas before the provider rejects the turn.
+- [x] Render supported Codex `Read` hooks so graph-first and task-discovery policy is not silently weaker than Claude.
+- [x] Regenerate derived templates and Codex golden fixtures; review every generated diff.
+- [x] Run targeted dispatcher, adapter, hook, CLI, docs, and real read-only SDK smoke verification.
+- [x] Run graph change detection and final diff review before closing the task.
+
+The checklist deliberately leaves unsupported controls visible rather than emulating them unsafely: Codex still has no per-turn USD ceiling, no independent `PostToolUseFailure` event, and no adapter-local path to the Claude-coupled Hub chat route. OpenAI Structured Outputs also requires every object to set `additionalProperties: false` and every property to be required. Role schemas with arbitrary dictionaries or defaulted fields therefore use the existing JSON-block path instead of starting a turn that the provider will reject.
 
 ## Hook Translation
 
@@ -154,6 +171,14 @@ Adding a directory is easy. Shipping an adapter that preserves safety, lifecycle
 - Add adapter-private `apply_patch` normalization and deterministic edit dispatchers.
 - Forward `additionalContext` from prompt, Stop, pre-tool, and post-tool dispatcher groups.
 - Regenerate templates and golden fixtures; run adapter, hook, dispatcher, and real read-only smoke tests.
+
+### Phase A2 - Current SDK Refresh (2026-08-03)
+
+- Replace the obsolete `0.1.0b3` Python SDK line with the current compatible `0.144.4` line.
+- Stop overriding the SDK's bundled runtime during normal Python dispatch.
+- Make CLI and Python SDK availability independent while preserving CLI as the default.
+- Validate Codex strict-output compatibility before forwarding a role schema.
+- Close verified `Read` hook coverage and regenerate adapter artifacts.
 
 ### Phase B - Shared Interactive Runtime Port
 

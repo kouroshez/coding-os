@@ -132,7 +132,7 @@ web = []
 claude-sdk = []
 
 codex-sdk = [
-    "openai-codex>=0.1.0b3,<0.2.0",
+    "openai-codex>=0.144.4,<0.145.0",
 ]
 
 [project.scripts]
@@ -167,15 +167,6 @@ dev = [
     "types-pyyaml>=6.0.0",
     "types-jsonschema>=4.0.0",
 ]
-
-[tool.uv]
-# The codex-sdk extra's openai-codex 0.1.0b3 pins openai-codex-cli-bin to a
-# prerelease (==0.137.0a4). Once cli-bin published its first stable release,
-# uv's implicit prerelease exemption for the package vanished and every fresh
-# `uv sync`/`uv lock` failed (uv.lock is gitignored — CI re-resolves each
-# run). Naming the prerelease here makes it an explicit request, re-enabling
-# it for this ONE package without allowing prereleases globally.
-constraint-dependencies = ["openai-codex-cli-bin>=0.137.0a4"]
 
 [build-system]
 requires = ["setuptools>=77", "wheel"]

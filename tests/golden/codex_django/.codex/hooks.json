@@ -51,6 +51,23 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__SANDBOX__/.codex/hooks/enforce-graph-first-read.sh",
+            "statusMessage": "🧭 Checking graph-first discipline before Read...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "__SANDBOX__/.codex/hooks/nudge-task-discovery.sh",
+            "statusMessage": "🗂️ Suggesting cos task-show over a docs/tasks Read...",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [

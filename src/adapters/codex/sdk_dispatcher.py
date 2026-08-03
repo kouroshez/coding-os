@@ -28,6 +28,14 @@ def _codex_binary() -> str | None:
     return shutil.which("codex")
 
 
+def _python_sdk_available() -> bool:
+    try:
+        import openai_codex  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 def _dispatch_context(request: DispatchRequest) -> str:
     return (
         "## Dispatch Context\n"
@@ -94,6 +102,26 @@ def _jsonable(value: Any) -> Any:
     return str(value)
 
 
+def _normalize_strict_schema(value: Any) -> bool:
+    if isinstance(value, list):
+        return all(_normalize_strict_schema(item) for item in value)
+    if not isinstance(value, dict):
+        return True
+
+    if value.get("type") == "object":
+        properties = value.get("properties")
+        required = value.get("required")
+        if not isinstance(properties, dict) or not isinstance(required, list):
+            return False
+        if value.get("additionalProperties") not in (None, False):
+            return False
+        if set(required) != set(properties):
+            return False
+        value["additionalProperties"] = False
+
+    return all(_normalize_strict_schema(item) for item in value.values())
+
+
 def _resolve_output_schema(meta: dict[str, Any]) -> dict[str, Any] | None:
     if not meta.get("structured_output"):
         return None
@@ -115,10 +143,17 @@ def _resolve_output_schema(meta: dict[str, Any]) -> dict[str, Any] | None:
         logger.warning("no Pydantic class %s in cognition_schemas", class_name)
         return None
     try:
-        return schema_class.model_json_schema()
+        schema = schema_class.model_json_schema()
     except (TypeError, ValueError) as exc:
         logger.warning("model_json_schema() failed for %s: %s", class_name, exc)
         return None
+    if not _normalize_strict_schema(schema):
+        logger.warning(
+            "%s is not compatible with Codex strict output; using JSON-block extraction",
+            class_name,
+        )
+        return None
+    return schema
 
 
 class CodexSDKDispatcher:
@@ -126,10 +161,15 @@ class CodexSDKDispatcher:
 
     def __init__(self) -> None:
         self._binary = _codex_binary()
+        self._sdk_available = _python_sdk_available()
         self._backend = os.environ.get(_BACKEND_ENV, _CLI_BACKEND).strip().lower()
 
     def available(self) -> bool:
-        return self._binary is not None
+        if self._backend == _CLI_BACKEND:
+            return self._binary is not None
+        if self._backend == _PYTHON_SDK_BACKEND:
+            return self._sdk_available
+        return self._binary is not None or self._sdk_available
 
     def _result(
         self,
@@ -177,19 +217,19 @@ class CodexSDKDispatcher:
 
     async def dispatch(self, request: DispatchRequest) -> DispatchResult:
         started_at = time.monotonic()
-        if self._binary is None:
-            return self._result(
-                request,
-                started_at,
-                status="error",
-                error="codex binary not in PATH",
-            )
         if self._backend not in _BACKENDS:
             return self._result(
                 request,
                 started_at,
                 status="error",
                 error=f"unsupported {_BACKEND_ENV}={self._backend!r}",
+            )
+        if self._backend == _CLI_BACKEND and self._binary is None:
+            return self._result(
+                request,
+                started_at,
+                status="error",
+                error="codex binary not in PATH",
             )
         if request.max_budget_usd is not None:
             return self._result(
@@ -329,7 +369,6 @@ class CodexSDKDispatcher:
         output_schema: dict[str, Any] | None,
         started_at: float,
     ) -> DispatchResult:
-        assert self._binary is not None
         try:
             from openai_codex import ApprovalMode, AsyncCodex, CodexConfig, Sandbox
         except ImportError:
@@ -347,7 +386,6 @@ class CodexSDKDispatcher:
 
         async def run_turn() -> Any:
             config = CodexConfig(
-                codex_bin=self._binary,
                 config_overrides=("features.hooks=false", "mcp_servers={}"),
             )
             async with AsyncCodex(config) as client:

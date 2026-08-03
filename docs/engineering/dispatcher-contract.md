@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-07-10 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-08-03 -->
 # Dispatcher Contract
 
 Purpose: Define the provider-neutral request/result protocol and the adapter-owned execution responsibilities for formula agents.
@@ -18,7 +18,7 @@ per agent CLI:
 | Agent  | Spawn channel | SDK kind |
 |--------|---------------|----------|
 | Claude | `claude-agent-sdk.query()` | required Python library |
-| Codex  | default `codex exec --json`; optional `openai-codex` app-server | stable CLI plus opt-in beta Python SDK |
+| Codex  | default `codex exec --json`; optional `openai-codex` app-server | stable CLI plus opt-in beta Python SDK with a pinned runtime |
 | any    | `DefaultDispatcher` (DB-only fallback) | n/a - inline only |
 
 The contract here is the **agent-agnostic shape** every dispatcher must
@@ -147,7 +147,7 @@ Every adapter dispatcher MUST:
 6. Forward `model`; surface unsupported budget, context, tool, or turn controls instead of silently dropping them.
 7. Never retry on another backend after a provider turn may have started; duplicate execution is worse than a visible error.
 
-The Codex CLI backend additionally MUST use the current non-interactive surface (`codex exec`), write the prompt to stdin, parse JSONL events, and run formula output in a read-only sandbox with approvals disabled. Formula dispatch ignores user configuration, disables hooks, and clears MCP servers so host customizations cannot recurse into or mutate a supervised sub-run. The optional Python SDK is beta and selected explicitly until its schema stays compatible with the stable CLI.
+The Codex CLI backend additionally MUST use the current non-interactive surface (`codex exec`), write the prompt to stdin, parse JSONL events, and run formula output in a read-only sandbox with approvals disabled. Formula dispatch ignores user configuration, disables hooks, and clears MCP servers so host customizations cannot recurse into or mutate a supervised sub-run. The optional Python SDK is beta and selected explicitly. Its availability is independent of a global CLI installation because published SDK builds include a pinned runtime; normal SDK dispatch must not replace that runtime with a newer system binary implicitly.
 
 ## Adding a new adapter dispatcher
 

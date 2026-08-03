@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-07-10 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-08-03 -->
 # Adapter Parity - Claude vs Codex Coverage
 
 Purpose: Define equivalent behavior across Claude and Codex without claiming that their runtime APIs are identical.
@@ -22,7 +22,7 @@ The implementation may differ. Claude can receive a native `Write` payload while
 ## Current Summary
 
 - Both adapters install the shared hooks, rules, skills, and MCP server.
-- Claude and Codex both support Bash, file-edit, MCP, prompt, compact, subagent, Stop, and permission lifecycle hooks, but their event names and payload shapes differ.
+- Claude and Codex both support Bash, Read, file-edit, MCP, prompt, compact, subagent, Stop, and permission lifecycle hooks, but their event names and payload shapes differ.
 - Codex file edits are intercepted through `apply_patch`. Its adapter canonicalizes the runtime alias to `Edit`, extracts every affected path, and sequences the unchanged core hooks.
 - Codex still has no `PostToolUseFailure` equivalent and no native Claude `Skill` tool matcher. These remain honest deficits.
 - Non-managed Codex hooks require hash-based review through `/hooks`; installation cannot safely auto-trust them.
@@ -30,11 +30,12 @@ The implementation may differ. Claude can receive a native `Write` payload while
 
 ## Runtime Event Matrix
 
-Verified against the official runtime documentation on 2026-07-10.
+Verified against the official runtime documentation on 2026-08-03.
 
 | Outcome | Claude | Codex | Adapter handling |
 |---|---|---|---|
 | Shell pre/post gate | `PreToolUse`/`PostToolUse` Bash | same | direct or sequential dispatcher |
+| Read pre-gate | `PreToolUse` Read | same local-function matcher | direct registry render |
 | File edit pre/post gate | `Write`/`Edit` with `file_path` | `apply_patch` with patch in `tool_input.command`; aliases `Edit`/`Write` | Codex edit normalizer |
 | MCP pre/post gate | MCP tool matcher | MCP tool-name matcher | direct registry render |
 | Prompt context | `UserPromptSubmit` | `UserPromptSubmit` | dispatcher forwards `additionalContext` |
@@ -55,6 +56,7 @@ The renderer reads [registry.yaml](../../src/core/hooks/registry.yaml), filters 
 | Bash safety and verification | yes | yes | Codex coalesces concurrent matches into `codex-pretool-dispatch.sh`. |
 | Edit safety (`block-*`) | yes | yes | Codex receives one normalized payload per patch path. |
 | Docs/task/skill gates | yes | yes for file edits | Codex edit dispatcher preserves fail-closed exit `2`. |
+| Graph-first/task-discovery read gate | yes | yes | Direct `PreToolUse::Read` hooks. |
 | Post-edit capture/index/reminders | yes | yes | Advisory after the patch has applied. |
 | Prompt cognition/context | yes | yes | Dispatcher output must not be discarded. |
 | Session start/recovery | yes | yes | `startup`, `resume`, `compact`, and `clear` are supported. |
@@ -142,7 +144,7 @@ Project-local hooks still require project trust plus `/hooks` review. Trust is r
 |---|---|---|
 | No Codex `PostToolUseFailure` hook | failure-only capture is weaker | inspect JSONL error/failed items in programmatic runs |
 | No Codex `Skill` tool hook | no exact skill-use telemetry | use skill instructions and downstream outcome evidence |
-| Python SDK beta lags stable CLI schema | model discovery can fail validation | stable CLI default; SDK opt-in and compatibility smoke |
+| Python SDK remains beta and may trail stable CLI | app-server schema can change before a stable SDK release | stable CLI default; SDK-pinned runtime; compatibility smoke |
 | Hub route imports Claude SDK | Codex cannot be marked `runtime: in_process` honestly | extract and migrate a shared interactive runtime port |
 | Codex custom prompts deprecated | `.codex/commands` is not a durable native UX | move command semantics into skills |
 

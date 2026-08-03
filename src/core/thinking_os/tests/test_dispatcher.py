@@ -319,6 +319,7 @@ def test_codex_sdk_dispatcher_unavailable_when_no_binary(monkeypatch):
 
     monkeypatch.setattr(shutil, "which", lambda _: None)
     mod = _import_codex_sdk_dispatcher_module()
+    monkeypatch.setattr(mod, "_python_sdk_available", lambda: False)
     d = mod.CodexSDKDispatcher()
     assert d.available() is False
 
@@ -332,12 +333,23 @@ def test_codex_sdk_dispatcher_available_when_binary_present(monkeypatch):
     assert d.available() is True
 
 
+def test_codex_sdk_dispatcher_available_with_python_sdk_only(monkeypatch):
+    import shutil
+
+    monkeypatch.setenv("COS_CODEX_DISPATCH_BACKEND", "python-sdk")
+    monkeypatch.setattr(shutil, "which", lambda _: None)
+    mod = _import_codex_sdk_dispatcher_module()
+    monkeypatch.setattr(mod, "_python_sdk_available", lambda: True)
+    assert mod.CodexSDKDispatcher().available() is True
+
+
 def test_codex_sdk_dispatcher_error_when_unavailable(monkeypatch, tmp_path):
     """dispatch() returns error result when binary absent."""
     import shutil
 
     monkeypatch.setattr(shutil, "which", lambda _: None)
     mod = _import_codex_sdk_dispatcher_module()
+    monkeypatch.setattr(mod, "_python_sdk_available", lambda: False)
     d = mod.CodexSDKDispatcher()
     agent_file = tmp_path / "F1_test.md"
     agent_file.write_text("---\nid: F1\n---\n\nTest.")
@@ -554,6 +566,16 @@ def test_codex_sdk_dispatcher_forwards_output_schema(monkeypatch, tmp_path):
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     mod = _import_codex_sdk_dispatcher_module()
+    monkeypatch.setattr(
+        mod,
+        "_resolve_output_schema",
+        lambda _: {
+            "type": "object",
+            "properties": {"summary": {"type": "string"}},
+            "required": ["summary"],
+            "additionalProperties": False,
+        },
+    )
     agent_file = tmp_path / "F_schema.md"
     agent_file.write_text(
         "---\nid: F\nstructured_output: true\n"
@@ -568,13 +590,48 @@ def test_codex_sdk_dispatcher_forwards_output_schema(monkeypatch, tmp_path):
     assert captured["schema"]["type"] == "object"
 
 
+def test_codex_strict_schema_normalizes_nested_objects():
+    mod = _import_codex_sdk_dispatcher_module()
+    schema = {
+        "type": "object",
+        "properties": {
+            "result": {
+                "type": "object",
+                "properties": {"summary": {"type": "string"}},
+                "required": ["summary"],
+            }
+        },
+        "required": ["result"],
+    }
+
+    assert mod._normalize_strict_schema(schema) is True
+    assert schema["additionalProperties"] is False
+    assert schema["properties"]["result"]["additionalProperties"] is False
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        {"type": "object", "additionalProperties": True},
+        {
+            "type": "object",
+            "properties": {"required_value": {}, "defaulted_value": {}},
+            "required": ["required_value"],
+        },
+    ],
+)
+def test_codex_strict_schema_rejects_incompatible_objects(schema):
+    mod = _import_codex_sdk_dispatcher_module()
+    assert mod._normalize_strict_schema(schema) is False
+
+
 def test_codex_python_sdk_backend(monkeypatch, tmp_path):
     import shutil
     import sys
     import types
 
     monkeypatch.setenv("COS_CODEX_DISPATCH_BACKEND", "python-sdk")
-    monkeypatch.setattr(shutil, "which", lambda _: "/usr/bin/codex")
+    monkeypatch.setattr(shutil, "which", lambda _: None)
     captured: dict = {}
     fake_module = types.ModuleType("openai_codex")
 
@@ -624,7 +681,7 @@ def test_codex_python_sdk_backend(monkeypatch, tmp_path):
     )
     assert result.status == "ok"
     assert result.output_json == {"summary": "sdk"}
-    assert captured["config"]["codex_bin"] == "/usr/bin/codex"
+    assert "codex_bin" not in captured["config"]
     assert captured["config"]["config_overrides"] == (
         "features.hooks=false",
         "mcp_servers={}",
