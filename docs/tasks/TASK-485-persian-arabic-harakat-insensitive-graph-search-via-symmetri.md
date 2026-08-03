@@ -5,13 +5,13 @@ swimlane: "graph_os"
 kind: feature
 epic: null
 labels: [i18n, fts5, ready]
-status: blocked
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-20
 started: 2026-06-20
 completed: null
-agent_session: ses-claude-20260620-144553-a8b6
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
@@ -33,3 +33,23 @@ references: []
 - 2026-06-20 [claude]: Edit test_mcp_tools.py
 - 2026-06-20 [claude]: Shipped query-side harakat folding: _fold_harakat() + applied in _fts5_safe_query (graph.py) strips U+064B–U+0652 +…
 - 2026-06-20 [claude]: committed 9dbd0bd5 · 2 files
+- 2026-08-02 [claude]: Archive triage 2026-08-02 (investigated to the mechanism): graph_nodes_fts is EXTERNAL-CONTENT (content=graph_nodes),…
+- 2026-08-02 [claude]: Edit pyproject.toml
+- 2026-08-02 [claude]: commit ec1f6078ab — build: pin ruff==0.15.15 — floating pin broke the CI format gate on each release
+- 2026-08-02 [claude]: Edit icebox-parking-structural-failure.md
+- 2026-08-02 [claude]: commit d97eee55ed — docs(api): regenerate openapi.json — spec drifted from live routes
+- 2026-08-02 [claude]: Edit test_mcp_tools.py
+- 2026-08-02 [claude]: Edit test_mcp_tools.py
+- 2026-08-02 [claude]: commit 2fdf517b25 — test(ci): recapture goldens + manifest; probe real model in graph embedding tests
+- 2026-08-02 [claude]: Edit conftest.py
+- 2026-08-02 [claude]: commit 10a17fadca — test(ci): ignore golden fixtures at collection + restore gitignore-swallowed changes.log
+- 2026-08-02 [claude]: Edit generate_manifest.py
+- 2026-08-02 [claude]: Edit capture_golden.py
+- 2026-08-02 [claude]: commit 85979f7914 — fix(ci): exclude .ruff_cache from manifest + golden capture — dev-cache pollution
+- 2026-08-02 [claude]: Edit test_hook_registry_integration.py
+- 2026-08-02 [claude]: Edit _pre_commit_body.sh
+- 2026-08-02 [claude]: Edit _pre_commit_body.sh
+- 2026-08-02 [claude]: commit 416148fec1 — fix(ci): resolve adapter-scoped hooks in registry test + drop herestring read-loop
+- 2026-08-02 [claude]: commit 0b05077b86 — style: ruff format on the registry-test edit
+- 2026-08-03 [claude]: Edit test_branding.py
+- 2026-08-03 [claude]: commit 677abfe441 — test: allow descriptive Claude Code reference in SettingsPage auth help

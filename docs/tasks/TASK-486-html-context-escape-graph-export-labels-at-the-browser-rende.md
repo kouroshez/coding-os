@@ -5,13 +5,13 @@ swimlane: core
 kind: security
 epic: null
 labels: [hub, xss, ready]
-status: blocked
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-06-20
 started: 2026-06-20
 completed: null
-agent_session: ses-claude-20260620-144553-a8b6
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
@@ -48,3 +48,4 @@ references: []
 - 2026-06-20 [claude]: Edit hub-threat-model.md
 - 2026-06-20 [claude]: Edit hub-architecture.md
 - 2026-06-20 [claude]: commit 40d5f4ca46 — feat(core): gate Hub read routes behind COS_HUB_TOKEN on non-loopback hosts
+- 2026-08-02 [claude]: Archive triage 2026-08-02: correctly gated on a consumer that does not exist (SPA renders format=json via Sigma WebGL…

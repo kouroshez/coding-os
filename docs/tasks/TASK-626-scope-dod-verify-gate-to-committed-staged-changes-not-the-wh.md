@@ -5,13 +5,13 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: blocked
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-06-27
 started: 2026-06-27
 completed: null
-agent_session: ses-claude-20260627-161919-30e5
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
@@ -34,3 +34,4 @@ Dogfooded 2026-06-27 (TASK-622 close): a docs/chore task-close demanded the 762s
 ## Work Log
 - 2026-06-27 [claude]: Edit enforce-verify.sh
 - 2026-06-27 [claude]: Investigated + REVERTED. Probed two scopings against the live tree: (a) committed+staged via origin/main..HEAD…
+- 2026-08-02 [claude]: Archive triage 2026-08-02: both probed scopings (committed+staged via origin/main..HEAD, and variant b) were reverted…

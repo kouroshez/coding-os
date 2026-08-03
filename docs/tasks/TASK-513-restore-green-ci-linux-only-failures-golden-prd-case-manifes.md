@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ci, release-unblock, case-sensitivity, manifest, embeddings, ready]
-status: in_progress
+status: complete
 priority: P0
 appetite: 1d
 created: 2026-06-22
 started: 2026-06-22
-completed: null
+completed: 2026-08-02
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -70,3 +70,5 @@ Clean clone on case-sensitive FS (or Linux CI), then run: `uv run pytest tests/t
 - 2026-08-02 [claude]: Edit scaffold-verify.yml
 - 2026-08-02 [claude]: Edit scaffold-verify.yml
 - 2026-08-02 [claude]: commit fe32399c57 — ci: set SV_DIR per-job — runner context is invalid at workflow-level env
+- 2026-08-02 [claude]: committed 135cfaf8 · 2 files
+- 2026-08-03 [claude]: All 3 acceptance classes verified fixed ON CI: golden parity green (modularity job), manifest green…
