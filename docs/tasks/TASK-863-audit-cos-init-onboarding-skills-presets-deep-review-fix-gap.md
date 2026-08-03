@@ -56,3 +56,4 @@ The `cos init` onboarding flow's skills and presets are fully inventoried, deep-
 - 2026-08-03 [claude]: commit 4fb5ad5dd2 — feat(hub): tag presets with provenance and clarify the composer preset choice
 - 2026-08-03 [claude]: commit 54c69dff76 — feat(cli): mention --preset in the interactive stack prompt
 - 2026-08-03 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-03 [claude]: committed c8144d6e · 1 file
