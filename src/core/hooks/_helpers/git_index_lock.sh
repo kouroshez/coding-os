@@ -19,8 +19,10 @@ cos_wait_for_git_index_lock() {
 
   while [ -e "$lock" ] && [ "$i" -lt "$max" ]; do
     now="$(date +%s)"
-    # stat -f (BSD/macOS) | stat -c (GNU/Linux); fall back to "now" => age 0.
-    mtime="$(stat -f %m "$lock" 2>/dev/null || stat -c %Y "$lock" 2>/dev/null || echo "$now")"
+    # GNU stat -c first: BSD-first probing is unsafe — GNU `stat -f %m FILE`
+    # exits 0 and prints filesystem info (%m parsed as a file operand), so the
+    # BSD arm poisons mtime on Linux instead of falling through.
+    mtime="$(stat -c %Y "$lock" 2>/dev/null || stat -f %m "$lock" 2>/dev/null || echo "$now")"
     age=$(( now - mtime ))
     if [ "$age" -ge "$stale" ]; then
       # The holder is long gone — a real commit would have finished by now.

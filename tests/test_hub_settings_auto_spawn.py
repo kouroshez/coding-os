@@ -91,14 +91,17 @@ def test_gate_skips_when_toggle_off(monkeypatch, spawn_capture):
     assert spawn_capture == []
 
 
-def test_gate_dedups_inflight_spawns(monkeypatch, spawn_capture):
+def test_gate_dedups_inflight_spawns(monkeypatch, spawn_capture, tmp_path):
     monkeypatch.setattr(board_routes, "_auto_spawn_enabled", lambda: True)
+    # The inflight set is keyed by "<project_root>::<task_id>" (board.py) so
+    # two projects' identically-numbered cards never collide in one hub.
+    inflight_key = f"{tmp_path}::TASK-7"
     with board_routes._auto_spawn_lock:
-        board_routes._auto_spawn_inflight.add("TASK-7")
+        board_routes._auto_spawn_inflight.add(inflight_key)
     try:
         board_routes._auto_spawn_safe("TASK-7", "icebox", "in_progress", None)
         _wait_threads()
         assert spawn_capture == []
     finally:
         with board_routes._auto_spawn_lock:
-            board_routes._auto_spawn_inflight.discard("TASK-7")
+            board_routes._auto_spawn_inflight.discard(inflight_key)

@@ -135,6 +135,8 @@ def test_drain_trace_events_missing_file(tmp_path):
 
 
 def test_stream_trace_route_registered():
+    # Introspect via the OpenAPI paths, not app.routes — starlette >= 1.3
+    # wraps included routers in a path-less _IncludedRouter entry.
     app = create_app()
-    paths = {getattr(r, "path", "") for r in app.routes}
+    paths = app.openapi()["paths"]
     assert "/api/cognition/trace/{session_id}/stream" in paths

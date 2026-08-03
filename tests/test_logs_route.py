@@ -152,10 +152,12 @@ def test_recent_corrupt_json_lines_skipped(client):
 
 
 def test_stream_route_is_registered(client):
+    # Introspect via the OpenAPI paths, not app.routes — starlette >= 1.3
+    # wraps included routers in a path-less _IncludedRouter entry.
     c, _state = client
-    routes = {getattr(r, "path", "") for r in c.app.routes}
-    assert "/api/logs/stream" in routes
-    assert "/api/logs/recent" in routes
+    paths = c.app.openapi()["paths"]
+    assert "/api/logs/stream" in paths
+    assert "/api/logs/recent" in paths
 
 
 def test_logs_envelope_contract(client):

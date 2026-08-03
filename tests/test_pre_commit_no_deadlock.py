@@ -26,18 +26,23 @@ def test_source_has_no_heredoc_redirect() -> None:
 def test_array_build_does_not_deadlock_on_large_list() -> None:
     # 5000 paths (~300 KB) — far above any pipe buffer. The old `<<<` form
     # deadlocks here; the process-substitution form completes line-by-line.
+    # Fed via stdin, not argv: Linux MAX_ARG_STRLEN caps a single argv element
+    # at 128 KiB (execve fails with E2BIG), and the real hook holds the list
+    # in a command-substitution variable anyway.
     n = 5000
     staged = "\n".join(f"src/core/hooks/file_{i}.sh" for i in range(n))
     script = (
+        'STAGED_FILES="$(cat)"\n'
         "FILE_ARGS=()\n"
         "while IFS= read -r FILE; do\n"
         '  [[ -z "$FILE" ]] && continue\n'
         '  FILE_ARGS+=("$FILE")\n'
-        "done < <(printf '%s\\n' \"$1\")\n"
+        "done < <(printf '%s\\n' \"$STAGED_FILES\")\n"
         'echo "${#FILE_ARGS[@]}"\n'
     )
     proc = subprocess.run(
-        ["bash", "-c", script, "bash", staged],
+        ["bash", "-c", script],
+        input=staged,
         capture_output=True,
         text=True,
         timeout=20,  # a deadlock would blow this; the fix returns in <1s
