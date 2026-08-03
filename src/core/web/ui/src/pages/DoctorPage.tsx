@@ -44,6 +44,26 @@ const TABS: { id: Tab; label: string }[] = [
 
 const MAX_SAMPLES = 60; // 2 minutes at 2s/poll
 
+// Routes the SPA hits on its own timers (presence beacons, hook feeds, the
+// Doctor page's own health/metrics polling). Excluded from the charts by
+// default so an idle hub reads as idle — the counters otherwise climb from
+// the dashboard measuring itself.
+const SELF_POLL_ROUTES = new Set([
+  'presence.agents',
+  'presence.now',
+  'hooks.recent',
+  'hooks.stream',
+  'sessions.active',
+  'logs.summary',
+  'board.list',
+  'cognition.chats',
+  'cognition.traces',
+  'graph.doctor',
+  'health',
+  'health.db',
+  'metrics',
+]);
+
 function fmtAge(epoch: number | null | undefined): string {
   if (!epoch) return '—';
   const diff = Math.max(0, Math.floor(Date.now() / 1000) - epoch);
@@ -405,7 +425,16 @@ function HealthTab() {
     lastFetched: 0,
     err: null,
   });
+  const [includeSelfPolling, setIncludeSelfPolling] = useState(false);
+  const includeSelfPollingRef = useRef(includeSelfPolling);
+  includeSelfPollingRef.current = includeSelfPolling;
   const stopRef = useRef(false);
+
+  // Flipping the filter changes the totals' scale — reset the sparkline so it
+  // never mixes filtered and unfiltered points.
+  useEffect(() => {
+    setState((prev) => ({ ...prev, totalsHistory: [], lastTotal: null }));
+  }, [includeSelfPolling]);
 
   useEffect(() => {
     stopRef.current = false;
@@ -419,7 +448,11 @@ function HealthTab() {
         const text = await r.text();
         const samples = parsePrometheus(text);
         const total = samples
-          .filter((s) => s.name === 'cos_web_requests_total')
+          .filter(
+            (s) =>
+              s.name === 'cos_web_requests_total' &&
+              (includeSelfPollingRef.current || !SELF_POLL_ROUTES.has(s.labels.route ?? '')),
+          )
           .reduce((acc, s) => acc + s.value, 0);
         setState((prev) => ({
           samples,
@@ -447,11 +480,12 @@ function HealthTab() {
   // Top routes by request count.
   const topRoutes = useMemo(() => {
     const rows = (byName.get('cos_web_requests_total') ?? [])
+      .filter((s) => includeSelfPolling || !SELF_POLL_ROUTES.has(s.labels.route ?? ''))
       .map((s) => ({ label: s.labels.route ?? 'unknown', value: s.value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 10);
     return rows;
-  }, [byName]);
+  }, [byName, includeSelfPolling]);
 
   // Latency p95 per route.
   const latencyRows = useMemo(() => {
@@ -478,10 +512,13 @@ function HealthTab() {
       else if (which === '0.95') byRoute[r].p95 = q.value;
       else if (which === '0.99') byRoute[r].p99 = q.value;
     }
-    for (const [route, m] of Object.entries(byRoute)) rows.push({ route, ...m });
+    for (const [route, m] of Object.entries(byRoute)) {
+      if (!includeSelfPolling && SELF_POLL_ROUTES.has(route)) continue;
+      rows.push({ route, ...m });
+    }
     rows.sort((a, b) => b.p95 - a.p95);
     return rows.slice(0, 10);
-  }, [byName]);
+  }, [byName, includeSelfPolling]);
 
   const totalRequests = state.lastTotal ?? 0;
   const reqRate = (() => {
@@ -495,10 +532,19 @@ function HealthTab() {
 
   return (
     <div className="space-y-3">
-      <header className="flex items-center gap-3 text-[10px] text-[var(--cos-muted)]">
+      <header className="flex flex-wrap items-center gap-3 text-[10px] text-[var(--cos-muted)]">
         <span>polling /metrics every 2s · buffer = last {MAX_SAMPLES * 2}s</span>
         <span>·</span>
-        <span>real Prometheus counters from FastAPI middleware (cos_web_requests_total) — the numbers move because the SPA itself polls /api in the background</span>
+        <span>Prometheus counters from FastAPI middleware (cos_web_requests_total)</span>
+        <label className="flex cursor-pointer items-center gap-1.5">
+          <input
+            type="checkbox"
+            checked={includeSelfPolling}
+            onChange={(e) => setIncludeSelfPolling(e.target.checked)}
+            className="h-3 w-3 accent-[var(--cos-accent)]"
+          />
+          <span>include the Hub UI's own background polling</span>
+        </label>
         {state.err && <span className="text-[var(--cos-err)]">{state.err}</span>}
       </header>
 

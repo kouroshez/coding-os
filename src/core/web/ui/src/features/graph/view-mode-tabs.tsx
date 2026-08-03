@@ -19,8 +19,8 @@ const TABS: ReadonlyArray<{ value: ViewMode; label: string; hint: string }> = [
   },
   {
     value: 'processes',
-    label: 'Processes',
-    hint: 'Louvain communities (TASK-075)',
+    label: 'Communities',
+    hint: 'Louvain community detection — one header node per subsystem + its top member hubs',
   },
 ];
 

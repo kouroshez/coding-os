@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Brain, FileText, KanbanSquare, Network, Search as SearchIcon } from 'lucide-react';
 import { useApiGet } from '@/lib/hooks';
 import { kindColor } from '@/lib/node-colors';
 import { useGraphStore } from '@/store/graph-store';
@@ -179,11 +180,23 @@ export default function UnifiedSearch() {
   const recentOpenNow = recentOpen && recent.length > 0;
   const recentListId = useId();
 
+  const layerCards = [
+    { Icon: Brain, name: 'Memory', desc: 'past observations + learned patterns' },
+    { Icon: FileText, name: 'Docs', desc: 'project markdown, specs, ADRs' },
+    { Icon: KanbanSquare, name: 'Tasks', desc: 'the Scrumban board store' },
+    { Icon: Network, name: 'Graph', desc: 'code + doc knowledge-graph nodes' },
+  ];
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="border-b border-[var(--cos-border)] bg-[var(--cos-panel)] p-4">
-        <form onSubmit={onSubmit} className="relative flex gap-2">
+      <div className="border-b border-[var(--cos-border)] bg-[var(--cos-panel)]/60 px-4 py-4 backdrop-blur-sm">
+        <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-3xl gap-2">
           <div className="relative flex-1">
+            <SearchIcon
+              size={15}
+              aria-hidden
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--cos-muted)]"
+            />
             <input
               ref={inputRef}
               type="search"
@@ -195,16 +208,16 @@ export default function UnifiedSearch() {
               onChange={(e) => setQ(e.target.value)}
               onFocus={() => setRecentOpen(recent.length > 0)}
               onBlur={() => setTimeout(() => setRecentOpen(false), 150)}
-              placeholder='search memory · docs · tasks · graph        ( / to focus )'
+              placeholder="Search memory, docs, tasks, and the graph…"
               aria-label="Unified search input"
-              className="w-full rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-3 py-2 text-sm text-[var(--cos-text)] focus:border-[var(--cos-accent)] focus:outline-none"
+              className="w-full rounded-lg border border-[var(--cos-border)] bg-[var(--cos-bg)] py-2.5 pl-9 pr-3 text-sm text-[var(--cos-text)] shadow-sm transition-colors placeholder:text-[var(--cos-faint)] focus:border-[var(--cos-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]/40"
             />
             {recentOpenNow && (
               <ul
                 id={recentListId}
                 role="listbox"
                 aria-label="Recent queries"
-                className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 overflow-hidden rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] shadow-lg"
+                className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 overflow-hidden rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] shadow-lg"
               >
                 {recent.map((r) => (
                   <li key={r} role="presentation">
@@ -227,12 +240,12 @@ export default function UnifiedSearch() {
               </ul>
             )}
           </div>
-          <label className="flex items-center gap-1 text-[10px] text-[var(--cos-muted)]">
-            limit
+          <label className="flex items-center gap-1.5 text-[11px] text-[var(--cos-muted)]">
+            Limit
             <select
               value={limit}
               onChange={(e) => setLimit(Number(e.target.value))}
-              className="rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-1 py-1 text-xs text-[var(--cos-text)]"
+              className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-2 text-xs text-[var(--cos-text)] focus:border-[var(--cos-accent)] focus:outline-none"
             >
               {[5, 8, 15, 25, 50].map((n) => (
                 <option key={n} value={n}>{n}</option>
@@ -241,38 +254,100 @@ export default function UnifiedSearch() {
           </label>
           <button
             type="submit"
-            className="rounded border border-[var(--cos-accent)] bg-[var(--cos-accent)]/10 px-3 py-2 text-sm font-semibold text-[var(--cos-accent)] hover:bg-[var(--cos-accent)]/20"
+            className="rounded-lg bg-[var(--cos-accent-solid)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
           >
-            search
+            Search
           </button>
         </form>
         {submitted && (
-          <div className="mt-2 flex items-center gap-3 text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
-            <span>q: {submitted}</span>
-            <span>·</span>
-            <span>{totalCount} hits</span>
-            <span>· memory {totals.memory}</span>
-            <span>· docs {totals.docs}</span>
-            <span>· tasks {totals.tasks}</span>
-            <span>· graph {totals.graph}</span>
+          <div className="mx-auto mt-3 flex w-full max-w-3xl flex-wrap items-center gap-2 text-xs text-[var(--cos-muted)]">
+            <span>
+              <span className="font-semibold text-[var(--cos-text)]">{totalCount}</span> results for{' '}
+              <span className="font-medium text-[var(--cos-text)]">“{submitted}”</span>
+            </span>
+            <span aria-hidden>·</span>
+            {(
+              [
+                ['Memory', totals.memory],
+                ['Docs', totals.docs],
+                ['Tasks', totals.tasks],
+                ['Graph', totals.graph],
+              ] as const
+            ).map(([name, n]) => (
+              <span
+                key={name}
+                className={[
+                  'rounded-full border px-2 py-0.5 text-[10px]',
+                  n > 0
+                    ? 'border-[var(--cos-accent)]/40 bg-[var(--cos-accent)]/10 text-[var(--cos-accent)]'
+                    : 'border-[var(--cos-border)] text-[var(--cos-faint)]',
+                ].join(' ')}
+              >
+                {name} {n}
+              </span>
+            ))}
           </div>
         )}
       </div>
 
       <div className="flex-1 overflow-auto cos-scroll p-4">
         {!submitted && (
-          <div className="mx-auto max-w-md py-12 text-center text-sm text-[var(--cos-muted)]">
-            <p className="mb-2">submit a query to search across all four retrieval layers in parallel.</p>
-            <p className="text-xs">
-              memory (past observations + learned patterns) · docs (project markdown) ·
-              tasks (Scrumban store) · graph (knowledge graph nodes)
+          <div className="mx-auto max-w-2xl py-14 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)] shadow-sm">
+              <SearchIcon size={20} className="text-[var(--cos-accent)]" aria-hidden />
+            </div>
+            <h1 className="text-base font-semibold text-[var(--cos-text)]">
+              Search everything this project knows
+            </h1>
+            <p className="mt-1 text-xs text-[var(--cos-muted)]">
+              One query fans out across all four retrieval layers in parallel.
             </p>
-            <p className="mt-4 text-[10px]">tip: press <kbd className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] px-1.5 py-0.5 font-mono">/</kbd> anywhere to jump back here</p>
+            <div className="mt-6 grid grid-cols-2 gap-3 text-left sm:grid-cols-4">
+              {layerCards.map(({ Icon, name, desc }) => (
+                <div
+                  key={name}
+                  className="rounded-xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/70 p-3"
+                >
+                  <Icon size={16} className="mb-2 text-[var(--cos-accent)]" aria-hidden />
+                  <p className="text-xs font-semibold text-[var(--cos-text)]">{name}</p>
+                  <p className="mt-0.5 text-[10px] leading-snug text-[var(--cos-muted)]">{desc}</p>
+                </div>
+              ))}
+            </div>
+            {recent.length > 0 && (
+              <div className="mt-6">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--cos-faint)]">
+                  Recent
+                </p>
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {recent.map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => {
+                        setQ(r);
+                        setSubmitted(r);
+                      }}
+                      className="rounded-full border border-[var(--cos-border)] bg-[var(--cos-panel)] px-2.5 py-1 text-[11px] text-[var(--cos-text)] transition-colors hover:border-[var(--cos-accent)]/60 hover:text-[var(--cos-accent)]"
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <p className="mt-6 text-[10px] text-[var(--cos-faint)]">
+              Tip: press{' '}
+              <kbd className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] px-1.5 py-0.5 font-mono">
+                /
+              </kbd>{' '}
+              anywhere to jump back here
+            </p>
           </div>
         )}
 
         {submitted && (
-          <div className="grid gap-6">
+          <div className="mx-auto grid w-full max-w-3xl gap-6">
             <Section title="Memory" count={totals.memory} isLoading={memory.isLoading} error={memory.error}>
               {(memory.data?.results ?? []).map((r, i) => {
                 const key = `m-${r.id ?? i}`;
@@ -433,10 +508,10 @@ function RowButton({
         type="button"
         onClick={onClick}
         className={[
-          'block w-full rounded border bg-[var(--cos-panel)] p-2 text-left text-xs text-[var(--cos-text)] transition-colors',
+          'block w-full rounded-lg border bg-[var(--cos-panel)]/70 p-2.5 text-left text-xs text-[var(--cos-text)] transition-colors',
           active
             ? 'border-[var(--cos-accent)] bg-[var(--cos-accent)]/5'
-            : 'border-[var(--cos-border)] hover:border-[var(--cos-accent)]/60',
+            : 'border-[var(--cos-border)] hover:border-[var(--cos-accent)]/60 hover:bg-[var(--cos-panel)]',
         ].join(' ')}
       >
         {children}

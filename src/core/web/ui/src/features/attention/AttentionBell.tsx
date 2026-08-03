@@ -8,10 +8,11 @@ import {
   summarizeStreamEvent,
 } from '@/lib/attention';
 
-// Only 'dispatch-completed' is emitted by /api/stream/events today (see
-// stream.py::_poll_tick). 'agent-blocked'/'needs-input' have no producer yet,
-// so subscribing to them is dead — re-add here once the stream emits them.
-const ATTENTION_EVENTS = ['dispatch-completed'] as const;
+// 'dispatch-completed' + 'task-updated' are what /api/stream/events emits today
+// (see stream.py::_poll_tick) — task transitions are the everyday agent-activity
+// signal; dispatches only fire on the SDK formula path. 'agent-blocked'/
+// 'needs-input' have no producer yet — re-add once the stream emits them.
+const ATTENTION_EVENTS = ['dispatch-completed', 'task-updated'] as const;
 const FEED_CAP = 30;
 
 interface FeedItem {

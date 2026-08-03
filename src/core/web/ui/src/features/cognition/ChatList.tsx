@@ -67,8 +67,12 @@ export default function ChatList({
 
         const isSystem =
           id.includes('test') || id.includes('smoke') || id.includes('pytest') || id.includes('temp') || id.includes('tmp') ||
+          id.startsWith('ses-claude-sdk-') ||
           title.includes('smoke test') || title.includes('pytest') || title.includes('healthcheck') || title.includes('health-check') ||
           prompt.includes('smoke test') || prompt.includes('pytest') || prompt === 'ping' || prompt === 'test' ||
+          // formula-composer sub-sessions open with this exact preamble — they
+          // are agent-spawned dispatch runs, not human chats.
+          prompt.startsWith('input slice (upstream formulas only') ||
           s.tag === 'system' || s.tag === 'test';
 
         return !isSystem;

@@ -18,6 +18,13 @@ export function summarizeStreamEvent(type: string, data: unknown): string {
       const status = String(d.status ?? 'ok');
       return status === 'ok' ? `${formula} finished` : `${formula} ${status}`;
     }
+    case 'task-updated': {
+      const task = String(d.task_id ?? 'task');
+      const to = d.new_status ? String(d.new_status) : '';
+      return d.old_status
+        ? `${task} → ${to}`
+        : `${task} created`;
+    }
     case 'agent-blocked':
       return d.reason ? `Agent blocked: ${String(d.reason)}` : 'Agent blocked';
     case 'needs-input':

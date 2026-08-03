@@ -152,8 +152,10 @@ export default function GraphCanvas() {
         </div>
       )}
       {!isLoading && !error && pruned && pruned.nodes?.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center text-sm text-[var(--cos-muted)]">
-          no nodes reachable at this depth
+        <div className="absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-[var(--cos-muted)]">
+          {viewMode === 'processes'
+            ? 'no communities computed — run `cos graph-reindex`, then reload; community detection also needs the networkx package in the hub environment'
+            : 'no nodes reachable at this depth'}
         </div>
       )}
       {/* TASK-023/TASK-402: honest truncation badge. Reads the server's
