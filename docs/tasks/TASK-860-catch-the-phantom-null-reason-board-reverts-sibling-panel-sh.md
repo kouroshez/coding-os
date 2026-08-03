@@ -5,18 +5,17 @@ swimlane: "board_os"
 kind: bug
 epic: null
 labels: [lifecycle, drift, concurrency, ready]
-status: icebox
+status: in_progress
 priority: P2
 appetite: 1d
 created: 2026-08-02
-started: null
+started: 2026-08-02
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-860: Catch the phantom NULL-reason board reverts (sibling panel shares session id)
 
 **Outcome (one sentence):** The writer of unattributed in_progress→icebox reverts is identified and prevented: two panels can no longer share one session id (or the sharing is made safe), and every backward move carries an honest actor + reason.
@@ -37,3 +36,18 @@ references: []
 3. **Given** any backward status move, **When** it is recorded, **Then** task_status_history carries a non-empty reason or a synthesized source tag.
 
 ## Work Log
+- 2026-08-03 [claude]: Edit workflow.py
+- 2026-08-03 [claude]: Edit board_commands.py
+- 2026-08-03 [claude]: Edit server.py
+- 2026-08-03 [claude]: Edit board.py
+- 2026-08-03 [claude]: Edit cos-env.sh
+- 2026-08-03 [claude]: Edit nudge-reentry.sh
+- 2026-08-03 [claude]: Edit nudge-reentry.sh
+- 2026-08-03 [claude]: Edit warn-abandoned-task.sh
+- 2026-08-03 [claude]: Edit warn-abandoned-task.sh
+- 2026-08-03 [claude]: Edit test_workflow.py
+- 2026-08-03 [claude]: Edit test_nudge_reentry.py
+- 2026-08-03 [claude]: Edit test_warn_abandoned_task.py
+- 2026-08-03 [claude]: Caller NAMED with captured evidence (acceptance 1): conversation beea135e (resumed June transcript = the idle…
+- 2026-08-03 [claude]: Deliberation: chose the "sharing made safe" arm over re-minting per-panel session ids — the agent-level mirror in…
+- 2026-08-03 [claude]: Edit task-859-when-an-enforcement-chain-silently-never.md

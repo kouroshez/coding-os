@@ -486,7 +486,7 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
   # as valid, then the next Write/Edit BLOCKs on "gate stale". Flag staleness
   # here so the banner tells the truth. Override: COS_GATE_TTL_SECONDS.
   if [ -n "$GATE_STATE" ] && [ -f "${COS_PANEL_DIR}/.thinking_os-gate" ]; then
-    _GATE_MTIME=$(stat -f %m "${COS_PANEL_DIR}/.thinking_os-gate" 2>/dev/null || stat -c %Y "${COS_PANEL_DIR}/.thinking_os-gate" 2>/dev/null || echo 0)
+    _GATE_MTIME=$(stat -c %Y "${COS_PANEL_DIR}/.thinking_os-gate" 2>/dev/null || stat -f %m "${COS_PANEL_DIR}/.thinking_os-gate" 2>/dev/null || echo 0)
     _GATE_AGE=$(( $(date +%s) - _GATE_MTIME ))
     if [ "$_GATE_AGE" -gt "${COS_GATE_TTL_SECONDS:-7200}" ]; then
       GATE_STATE="${GATE_STATE} ⌛stale"

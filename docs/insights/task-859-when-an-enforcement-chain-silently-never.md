@@ -3,7 +3,7 @@
 
 **Date:** 2026-08-02  
 **Domain:** INFRA  
-**Source task:** [TASK-859](../tasks/TASK-859.md)
+**Source task:** [TASK-859](../tasks/TASK-859-close-lifecycle-drift-bilingual-mode-classifier-unadvertised.md)
 
 ## Key Insight
 

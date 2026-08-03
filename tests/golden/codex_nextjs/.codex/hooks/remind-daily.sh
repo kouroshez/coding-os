@@ -12,7 +12,7 @@ cos_log_hook "remind-daily" "entry" 2>/dev/null || true
 
 marker="${COS_AGENT_DIR:-.coding-os/claude}/.daily-last-run"
 if [[ -f "$marker" ]]; then
-    last_run=$(stat -f %m "$marker" 2>/dev/null || stat -c %Y "$marker" 2>/dev/null || echo 0)
+    last_run=$(stat -c %Y "$marker" 2>/dev/null || stat -f %m "$marker" 2>/dev/null || echo 0)
     now=$(date +%s)
     age=$((now - last_run))
     if (( age < 86400 )); then

@@ -36,11 +36,22 @@ esac
 
 # Compute the open set FIRST so the debounce can re-arm when it changes.
 # `testing` is included: the testing-first protocol parks near-done work there,
-# so it is the status a task most often dies in.
-STUCK="$(sqlite3 "$COS_DB_PATH" \
-  "SELECT group_concat(task_id || ' (' || status || ')', ', ') FROM tasks
+# so it is the status a task most often dies in. A task bound in a LIVE
+# sibling panel is skipped — two panels can share one session id (resumed
+# conversation), and warning the idle one about its sibling's live work
+# invited "rescue" parks (the phantom NULL-reason reverts).
+STUCK=""
+while IFS='|' read -r _t _s; do
+  [ -n "$_t" ] || continue
+  if command -v cos_task_bound_in_live_sibling >/dev/null 2>&1 \
+     && cos_task_bound_in_live_sibling "$_t"; then
+    continue
+  fi
+  STUCK="${STUCK:+$STUCK, }$_t ($_s)"
+done < <(sqlite3 "$COS_DB_PATH" \
+  "SELECT task_id || '|' || status FROM tasks
    WHERE status IN ('in_progress','testing') AND agent_session = '$SESSION_ID';" \
-  2>/dev/null || true)"
+  2>/dev/null || true)
 
 # Create-then-park: icebox cards THIS session CREATED and left un-ready. The
 # creating session comes from the task_status_history 'created' row (old_status=''
@@ -75,7 +86,7 @@ echo "$DEBOUNCE_KEY" >> "$MARKER"
 cos_log_hook warn-abandoned-task warn || true
 MSG=""
 if [ -n "$STUCK" ]; then
-  MSG="[board] Task(s) still open for this session: ${STUCK}. Close each with \`cos task-done\` (or park via \`cos task-move --to blocked\`) — a task left in in_progress/testing is stranded on the board with no owner action."
+  MSG="[board] Task(s) still open for this session: ${STUCK}. Close each with \`cos task-done\` (or park via \`cos task-move --to blocked --reason '<why>'\`) — a task left in in_progress/testing is stranded on the board with no owner action. Never park work you did not start this conversation."
 fi
 if [ -n "$PARKED" ]; then
   [ -n "$MSG" ] && MSG="${MSG}"$'\n'

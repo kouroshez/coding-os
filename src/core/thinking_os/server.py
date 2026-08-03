@@ -1813,7 +1813,7 @@ if _BOARD_OS_AVAILABLE:
             get_pooled_conn(),
             task_id=task_id,
             to=to,
-            reason=reason or None,
+            reason=reason or "mcp:cos_task_move (no reason given)",
             bypass_wip=bypass_wip,
             agent_session=resolved_session,
         )

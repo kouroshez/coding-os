@@ -354,6 +354,11 @@ def transition(
     if force:
         bypass_wip = True
         bypass_gates = True
+    # Every history row must carry an honest reason — NULL-reason moves are
+    # unauditable (the phantom in_progress→icebox reverts). Entry doors tag
+    # their own source; this catches any caller that passed nothing.
+    if not reason:
+        reason = "(unattributed — caller passed no reason)"
     if to_status not in STATUS_ENUM:
         return TransitionResult(
             ok=False,

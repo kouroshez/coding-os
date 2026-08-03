@@ -34,7 +34,7 @@ cos_log_hook warn-mcp-down fire
 # successful probe is trusted across panels. Override: COS_MCP_PROBE_TTL (s).
 _PROBE_MARKER="${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/claude}/.mcp-probe-ok"
 if [[ -f "$_PROBE_MARKER" ]]; then
-  _probe_mtime=$(stat -f %m "$_PROBE_MARKER" 2>/dev/null || stat -c %Y "$_PROBE_MARKER" 2>/dev/null || echo 0)
+  _probe_mtime=$(stat -c %Y "$_PROBE_MARKER" 2>/dev/null || stat -f %m "$_PROBE_MARKER" 2>/dev/null || echo 0)
   if [[ $(( $(date +%s) - _probe_mtime )) -lt "${COS_MCP_PROBE_TTL:-600}" ]]; then
     cos_log_hook warn-mcp-down skip "reason=recent_probe_ok"
     exit 0

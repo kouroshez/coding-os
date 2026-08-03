@@ -68,6 +68,31 @@ def test_silent_when_no_stuck_task(tmp_path: Path) -> None:
     assert result.stdout.strip() == b""
 
 
+def test_silent_when_sibling_panel_binds_task(tmp_path: Path) -> None:
+    """A task bound in a LIVE sibling panel is actively driven there —
+    warning this (idle) panel about it invited the phantom NULL-reason
+    icebox parks."""
+    db = tmp_path / "coding-os.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE tasks (task_id TEXT, status TEXT, agent_session TEXT)")
+    conn.execute("INSERT INTO tasks VALUES ('TASK-99', 'in_progress', 'ses-claude-test')")
+    conn.commit()
+    conn.close()
+    panel = tmp_path / "panels" / "wa-panel"
+    panel.mkdir(parents=True)
+    (panel / "session-id").write_text("ses-claude-test", encoding="utf-8")
+    sib = tmp_path / "panels" / "wa-sibling"
+    sib.mkdir(parents=True)
+    (sib / ".task-current").write_text("ses-other-session TASK-99", encoding="utf-8")
+    (sib / "heartbeat").write_text("1\n", encoding="utf-8")
+
+    result = _run(
+        {"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"}
+    )
+    assert result.returncode == 0
+    assert result.stdout.strip() == b""
+
+
 def test_debounced_after_first_warning(tmp_path: Path) -> None:
     db = tmp_path / "coding-os.db"
     conn = sqlite3.connect(db)

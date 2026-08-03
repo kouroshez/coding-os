@@ -62,7 +62,7 @@ BULK_RE='git[[:space:]]+(checkout|restore|reset|stash)([[:space:]]+\.|[[:space:]
 if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
   SENTINEL="${STATE_DIR}/.reindex-scheduled"
   if [[ -f "$SENTINEL" ]]; then
-    AGE=$(($(date +%s) - $(stat -f %m "$SENTINEL" 2>/dev/null || stat -c %Y "$SENTINEL" 2>/dev/null || echo 0)))
+    AGE=$(($(date +%s) - $(stat -c %Y "$SENTINEL" 2>/dev/null || stat -f %m "$SENTINEL" 2>/dev/null || echo 0)))
     if (( AGE < 30 )); then
       cos_log_hook auto-graph-reconcile-shell debounced "age=${AGE}s" || true
       exit 0

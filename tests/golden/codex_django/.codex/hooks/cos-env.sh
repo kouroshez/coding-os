@@ -1273,3 +1273,29 @@ cos_panel_upgrade_from_payload() {
       || rm -f "$_tmp" 2>/dev/null
   fi
 }
+
+# ---------------------------------------------------------------------------
+# cos_task_bound_in_live_sibling <task-id>
+#
+# rc 0 when ANOTHER panel of this agent binds <task-id> via its .task-current
+# (last whitespace field — write-state.sh prefixes a session id) AND that
+# panel's heartbeat is fresh. A task actively driven in a sibling panel is
+# not stranded: nudging an idle panel about it invites a "rescue" park of
+# live work (the phantom NULL-reason in_progress→icebox reverts).
+# ---------------------------------------------------------------------------
+cos_task_bound_in_live_sibling() {
+  local task="${1:-}" pd ptask hb now
+  [[ -n "$task" && -d "${COS_AGENT_DIR:-}/panels" ]] || return 1
+  now=$(date +%s)
+  for pd in "${COS_AGENT_DIR}/panels"/*/; do
+    [[ -d "$pd" ]] || continue
+    [[ "${pd%/}" == "${COS_PANEL_DIR:-}" ]] && continue
+    ptask="$(awk '{print $NF}' "${pd}.task-current" 2>/dev/null | head -1 || true)"
+    [[ "$ptask" == "$task" ]] || continue
+    hb=$(stat -c %Y "${pd}heartbeat" 2>/dev/null || stat -f %m "${pd}heartbeat" 2>/dev/null || echo 0)
+    if [[ "$hb" -gt 0 && $((now - hb)) -lt "${COS_SIBLING_BIND_TTL:-3600}" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}

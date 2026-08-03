@@ -97,3 +97,46 @@ def test_debounced_after_first_nudge(tmp_path: Path) -> None:
     second = _run(tmp_path, db)
     assert first.stdout.strip() != b""
     assert second.stdout.strip() == b""
+
+
+def _sibling(tmp_path: Path, panel_id: str, task_current: str, heartbeat_age_s: int = 0) -> None:
+    sib = tmp_path / "panels" / panel_id
+    sib.mkdir(parents=True, exist_ok=True)
+    # Production shape: write-state.sh prefixes the session id.
+    (sib / ".task-current").write_text(f"ses-other-session {task_current}", encoding="utf-8")
+    hb = sib / "heartbeat"
+    hb.write_text("1\n", encoding="utf-8")
+    if heartbeat_age_s:
+        old = hb.stat().st_mtime - heartbeat_age_s
+        os.utime(hb, (old, old))
+
+
+def test_silent_when_sibling_panel_binds_task(tmp_path: Path) -> None:
+    """A task bound in a LIVE sibling panel is actively driven there —
+    nudging this (idle) panel about it invited the phantom NULL-reason
+    icebox parks."""
+    db = _make_db(tmp_path, "TASK-99", "in_progress", "ses-claude-test")
+    _panel(tmp_path, "ses-claude-test")  # this panel: unbound
+    _sibling(tmp_path, "sibling-panel", "TASK-99")  # fresh heartbeat
+    result = _run(tmp_path, db)
+    assert result.returncode == 0
+    assert result.stdout.strip() == b""
+
+
+def test_nudges_when_sibling_binding_is_stale(tmp_path: Path) -> None:
+    db = _make_db(tmp_path, "TASK-99", "in_progress", "ses-claude-test")
+    _panel(tmp_path, "ses-claude-test")
+    _sibling(tmp_path, "sibling-panel", "TASK-99", heartbeat_age_s=7200)
+    result = _run(tmp_path, db)
+    assert result.returncode == 0
+    assert "TASK-99" in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+
+
+def test_silent_when_bound_with_session_prefix(tmp_path: Path) -> None:
+    """Production .task-current carries a session-id prefix; the bound-check
+    must parse the task token, not the raw first 32 bytes."""
+    db = _make_db(tmp_path, "TASK-99", "in_progress", "ses-claude-test")
+    _panel(tmp_path, "ses-claude-test", task_current="ses-claude-20260527-151803-0b9f TASK-99")
+    result = _run(tmp_path, db)
+    assert result.returncode == 0
+    assert result.stdout.strip() == b""

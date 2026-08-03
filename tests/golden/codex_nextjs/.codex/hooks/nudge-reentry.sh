@@ -47,8 +47,11 @@ OPEN="$(sqlite3 "$COS_DB_PATH" \
 [ -n "$OPEN" ] || exit 0
 
 # Bound task marker (panel-first, matching session-context's TASK_CUR read).
-TASK_CUR="$(cat "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current" 2>/dev/null || true)"
-[ -n "$TASK_CUR" ] || TASK_CUR="$(cat "${COS_AGENT_DIR}/.task-current" 2>/dev/null || true)"
+# write-state.sh prefixes a session id ("<sid> <task>"), so take the LAST
+# whitespace field — a raw cat|head -c 32 only ever saw the 31-char sid and
+# made this bound-check dead code in production.
+TASK_CUR="$(awk '{print $NF}' "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current" 2>/dev/null | head -1 || true)"
+[ -n "$TASK_CUR" ] || TASK_CUR="$(awk '{print $NF}' "${COS_AGENT_DIR}/.task-current" 2>/dev/null | head -1 || true)"
 TASK_CUR="$(printf '%s' "$TASK_CUR" | tr -d '\n\r' | head -c 32)"
 
 # Bound iff .task-current names one of the session's in_progress tasks. When it
@@ -56,6 +59,27 @@ TASK_CUR="$(printf '%s' "$TASK_CUR" | tr -d '\n\r' | head -c 32)"
 case ",$OPEN," in
   *",$TASK_CUR,"*) [ -n "$TASK_CUR" ] && exit 0 ;;
 esac
+
+# A task bound in a LIVE sibling panel is actively driven there — drop it from
+# this panel's nudge set. Two panels can share one session id (resumed
+# conversation mirrors the agent-level id), and nudging the idle one about its
+# sibling's live work invited the "rescue" parks recorded as phantom
+# NULL-reason in_progress→icebox reverts. Real strands still nudge.
+if command -v cos_task_bound_in_live_sibling >/dev/null 2>&1; then
+  KEEP=""
+  OLDIFS=$IFS; IFS=','
+  for t in $OPEN; do
+    [ -n "$t" ] || continue
+    if cos_task_bound_in_live_sibling "$t"; then continue; fi
+    KEEP="${KEEP:+$KEEP,}$t"
+  done
+  IFS=$OLDIFS
+  OPEN="$KEEP"
+  if [ -z "$OPEN" ]; then
+    cos_log_hook nudge-reentry skip "reason=sibling_bound" || true
+    exit 0
+  fi
+fi
 
 # Debounce keyed on (session, open-set), not session alone — so the nudge
 # re-arms when the in_progress set changes but an unchanged mismatch stays
@@ -69,7 +93,7 @@ fi
 echo "$DEBOUNCE_KEY" >> "$MARKER"
 
 cos_log_hook nudge-reentry warn || true
-MSG="[board] This session holds in_progress task(s) not bound to .task-current: ${OPEN}. Re-bind with \`cos task-start ${OPEN%%,*}\` (or park via \`cos task-move --to testing/blocked\`) so the pulse, work-log capture, and DoD gate track the right task."
+MSG="[board] This session holds in_progress task(s) not bound to .task-current: ${OPEN}. Re-bind with \`cos task-start ${OPEN%%,*}\` (or park via \`cos task-move --to blocked --reason '<why>'\`) so the pulse, work-log capture, and DoD gate track the right task. Never park work you did not start this conversation."
 printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":%s}}\n' \
   "$(printf '%s' "$MSG" | jq -R -s '.')"
 

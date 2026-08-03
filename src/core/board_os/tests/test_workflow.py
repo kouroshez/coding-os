@@ -657,3 +657,18 @@ def test_patch_task_frontmatter_scalars_swimlane(tmp_path: Path):
     text = md.read_text(encoding="utf-8")
     assert "swimlane: docs" in text
     assert "status: icebox" in text
+
+
+def test_transition_without_reason_synthesizes_source_tag(conn: sqlite3.Connection):
+    """A history row must never carry a NULL reason — an unattributed backward
+    move is unauditable (the phantom in_progress→icebox reverts)."""
+    _insert_task(conn, "TASK-001", status="in_progress")
+    result = transition(conn, "TASK-001", "icebox", bypass_gates=True)
+    assert result.ok, result.error
+    row = conn.execute(
+        "SELECT reason FROM task_status_history WHERE task_id = 'TASK-001' "
+        "ORDER BY transitioned_at DESC, rowid DESC LIMIT 1"
+    ).fetchone()
+    assert row is not None
+    assert row[0], "reason must be non-empty"
+    assert "unattributed" in row[0]

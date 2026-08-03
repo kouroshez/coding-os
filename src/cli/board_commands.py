@@ -418,7 +418,7 @@ def task_move_cmd(task_id, to, reason, force):
             conn,
             task_id=task_id,
             to=to,
-            reason=reason,
+            reason=reason or "cli:task-move (no --reason given)",
             bypass_wip=force,
             force=force,
             agent_session=_agent_session_id(),

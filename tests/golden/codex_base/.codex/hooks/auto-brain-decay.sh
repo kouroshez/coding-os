@@ -55,7 +55,7 @@ if [[ -d "${COS_AGENT_DIR:-}" ]]; then
                 .graph-context .task-current; do
     f="$COS_AGENT_DIR/$marker"
     if [[ -f "$f" ]]; then
-      mtime=$(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f" 2>/dev/null || echo 0)
+      mtime=$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null || echo 0)
       if [[ "$mtime" -gt 0 ]] && [[ $((NOW_TS - mtime)) -gt $((7 * 24 * 60 * 60)) ]]; then
         rm -f "$f" 2>/dev/null || true
         cos_log_hook auto-brain-decay gc "removed=${marker} age_s=$((NOW_TS - mtime))"
@@ -111,11 +111,11 @@ if [[ -d "${COS_AGENT_DIR:-}/panels" ]]; then
     if [[ ! -s "$session_id_file" ]]; then
       orphan_age=0
       if [[ -f "$heartbeat_file" ]]; then
-        hb=$(stat -f %m "$heartbeat_file" 2>/dev/null || stat -c %Y "$heartbeat_file" 2>/dev/null || echo 0)
+        hb=$(stat -c %Y "$heartbeat_file" 2>/dev/null || stat -f %m "$heartbeat_file" 2>/dev/null || echo 0)
         [[ "$hb" -gt 0 ]] && orphan_age=$((NOW_TS - hb))
       else
         # No heartbeat either — use dir mtime.
-        mt=$(stat -f %m "$panel_dir" 2>/dev/null || stat -c %Y "$panel_dir" 2>/dev/null || echo 0)
+        mt=$(stat -c %Y "$panel_dir" 2>/dev/null || stat -f %m "$panel_dir" 2>/dev/null || echo 0)
         [[ "$mt" -gt 0 ]] && orphan_age=$((NOW_TS - mt))
       fi
       if [[ "$orphan_age" -gt "$COS_PANEL_GC_ORPHAN_TTL" ]]; then

@@ -596,7 +596,7 @@ def board_move(
             conn,
             task_id=task_id,
             to=to,
-            reason=reason,
+            reason=reason or "hub:board.move (no reason given)",
             bypass_wip=bypass_wip,
             force=force,
             agent_session=agent_session,
