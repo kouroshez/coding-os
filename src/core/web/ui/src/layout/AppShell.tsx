@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  Brain,
   HeartPulse,
   LayoutDashboard,
   Network,
@@ -38,10 +37,13 @@ import ThemeToggle from '@/layout/ThemeToggle';
  *          doesn't silently drop you back into the unscoped cwd-default.
  */
 
+// Cognition intentionally has no nav entry (TASK-864): its Live view duplicated
+// Diagnostics › Observability's hook stream, and Traces/Roles only populate on
+// the SDK dispatch path. The /p/:slug/cognition routes stay reachable via
+// deep-links from HubHome live-agent cards and Diagnostics › Sessions.
 const NAV = [
   { feature: 'workspace', label: 'Workspace', Icon: LayoutDashboard, end: false },
   { feature: 'graph', label: 'Graph', Icon: Network, end: false },
-  { feature: 'cognition', label: 'Cognition', Icon: Brain, end: false },
   { feature: 'config', label: 'Config', Icon: SlidersHorizontal, end: false },
   { feature: 'marketplace', label: 'Marketplace', Icon: Store, end: false },
   { feature: 'diagnostics', label: 'Diagnostics', Icon: HeartPulse, end: false },

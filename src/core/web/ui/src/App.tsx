@@ -11,7 +11,6 @@ import DashboardPage from './pages/DashboardPage';
 import ChatLanding from './pages/ChatLanding';
 import ConfigPage from './pages/ConfigPage';
 import MarketplacePage from './pages/MarketplacePage';
-import SettingsPage from './pages/SettingsPage';
 import ObservabilityPage from './pages/ObservabilityPage';
 import LogsPage from './pages/LogsPage';
 import SessionsPage from './pages/SessionsPage';
@@ -19,7 +18,6 @@ import DoctorPage from './pages/DoctorPage';
 import MemoryPage from './pages/MemoryPage';
 import NeedProjectPage from './pages/NeedProjectPage';
 import WorkspacePage from './pages/WorkspacePage';
-import DesignComingSoon from './pages/DesignComingSoon';
 import DiagnosticsPage from './pages/DiagnosticsPage';
 
 // Redirect helpers to transition old deep-links smoothly to nested hub routes
@@ -31,6 +29,13 @@ function RedirectToWorkspace({ sub }: { sub: string }) {
 function RedirectToDiagnostics({ sub }: { sub: string }) {
   const { slug } = useParams<{ slug?: string }>();
   return <Navigate to={slug ? `/p/${encodeURIComponent(slug)}/diagnostics/${sub}` : `/diagnostics/${sub}`} replace />;
+}
+
+// Settings merged into Config (TASK-864) — old settings deep-links land on the
+// Config tab; the global scope has no config surface, so it falls back to `/`.
+function RedirectToConfigSettings() {
+  const { slug } = useParams<{ slug?: string }>();
+  return <Navigate to={slug ? `/p/${encodeURIComponent(slug)}/config?tab=settings` : '/config'} replace />;
 }
 
 export default function App() {
@@ -51,7 +56,8 @@ export default function App() {
             <Route path="chat" element={<NeedProjectPage feature="chat" />} />
             <Route path="board" element={<NeedProjectPage feature="board" />} />
             <Route path="search" element={<NeedProjectPage feature="search" />} />
-            <Route path="design" element={<DesignComingSoon />} />
+            <Route path="memory" element={<NeedProjectPage feature="memory" />} />
+            <Route path="design" element={<Navigate to="/workspace/chat" replace />} />
           </Route>
 
           {/* Unified Diagnostics Hub (Global) */}
@@ -63,8 +69,8 @@ export default function App() {
             <Route path="logs" element={<LogsPage />} />
             <Route path="observability" element={<ObservabilityPage />} />
             <Route path="sessions" element={<SessionsPage />} />
-            <Route path="memory" element={<MemoryPage />} />
-            <Route path="settings" element={<SettingsPage />} />
+            <Route path="memory" element={<Navigate to="/workspace/memory" replace />} />
+            <Route path="settings" element={<RedirectToConfigSettings />} />
           </Route>
 
           {/* Legacy & flat unscoped route redirects */}
@@ -75,7 +81,7 @@ export default function App() {
           <Route path="/sessions" element={<RedirectToDiagnostics sub="sessions" />} />
           <Route path="/observability" element={<RedirectToDiagnostics sub="observability" />} />
           <Route path="/logs" element={<RedirectToDiagnostics sub="logs" />} />
-          <Route path="/settings" element={<RedirectToDiagnostics sub="settings" />} />
+          <Route path="/settings" element={<RedirectToConfigSettings />} />
 
           {/* Project-scoped features */}
           <Route path="/p/:slug/graph" element={<GraphPage />} />
@@ -92,7 +98,8 @@ export default function App() {
             <Route path="chat/:sessionId" element={<ChatLanding />} />
             <Route path="board" element={<CosBoardPage />} />
             <Route path="search" element={<SearchPage />} />
-            <Route path="design" element={<DesignComingSoon />} />
+            <Route path="memory" element={<MemoryPage />} />
+            <Route path="design" element={<RedirectToWorkspace sub="chat" />} />
           </Route>
 
           {/* Unified Diagnostics Hub (Project-Scoped) */}
@@ -104,8 +111,8 @@ export default function App() {
             <Route path="logs" element={<LogsPage />} />
             <Route path="observability" element={<ObservabilityPage />} />
             <Route path="sessions" element={<SessionsPage />} />
-            <Route path="memory" element={<MemoryPage />} />
-            <Route path="settings" element={<SettingsPage />} />
+            <Route path="memory" element={<RedirectToWorkspace sub="memory" />} />
+            <Route path="settings" element={<RedirectToConfigSettings />} />
           </Route>
 
           {/* Redirect old flat project routes to nested hubs */}

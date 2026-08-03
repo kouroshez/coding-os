@@ -8,6 +8,7 @@ import { AdaptersTab } from '@/features/config/AdaptersTab';
 import { HooksTab } from '@/features/config/HooksTab';
 import { ModulesTab } from '@/features/config/ModulesTab';
 import { GitTab } from '@/features/config/GitTab';
+import SettingsPage from './SettingsPage';
 
 /**
  * Per-project Configuration surface. Shows what tech stacks, skills, MCP
@@ -16,8 +17,8 @@ import { GitTab } from '@/features/config/GitTab';
  * features/config/; shared table chrome lives in features/config/shared.
  */
 
-type Tab = 'stacks' | 'skills' | 'mcp' | 'adapters' | 'hooks' | 'modules' | 'git';
-const TABS: Tab[] = ['stacks', 'skills', 'mcp', 'adapters', 'hooks', 'modules', 'git'];
+type Tab = 'stacks' | 'skills' | 'mcp' | 'adapters' | 'hooks' | 'modules' | 'git' | 'settings';
+const TABS: Tab[] = ['stacks', 'skills', 'mcp', 'adapters', 'hooks', 'modules', 'git', 'settings'];
 const TAB_LABEL: Record<Tab, string> = {
   stacks: 'Stacks',
   skills: 'Skills',
@@ -26,6 +27,7 @@ const TAB_LABEL: Record<Tab, string> = {
   hooks: 'Hooks',
   modules: 'Modules',
   git: 'Git',
+  settings: 'Settings',
 };
 
 export default function ConfigPage() {
@@ -78,6 +80,7 @@ export default function ConfigPage() {
           {tab === 'hooks' && <HooksTab />}
           {tab === 'modules' && <ModulesTab />}
           {tab === 'git' && <GitTab />}
+          {tab === 'settings' && <SettingsPage />}
         </div>
       </div>
     </div>
