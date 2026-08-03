@@ -1977,18 +1977,26 @@ def _format_narrative_markdown(
     what_worked: str,
     history_id: int,
     pattern_id: int,
+    task_file_name: str | None = None,
 ) -> str:
     date_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     domain_line = domain or "n/a"
     failed_block = what_failed.strip() or "_(not recorded)_"
     worked_block = what_worked.strip() or "_(not recorded)_"
+    # Task files are slugged (TASK-NNN-<slug>.md) — a guessed TASK-NNN.md link
+    # is always dead and trips the docs-lint hard gate; plain text when unknown.
+    source_line = (
+        f"**Source task:** [{task_id}](../tasks/{task_file_name})\n\n"
+        if task_file_name
+        else f"**Source task:** {task_id}\n\n"
+    )
     return (
         f"<!-- domain:{domain_line} | layer:reference | ssot:false | "
         f"source:outcome_history#{history_id} | updated:{date_iso} -->\n"
         f"# {task_id}: {key_insight}\n\n"
         f"**Date:** {date_iso}  \n"
         f"**Domain:** {domain_line}  \n"
-        f"**Source task:** [{task_id}](../tasks/{task_id}.md)\n\n"
+        f"{source_line}"
         f"## Key Insight\n\n{key_insight}\n\n"
         f"## What Failed\n\n{failed_block}\n\n"
         f"## What Worked\n\n{worked_block}\n\n"
@@ -2026,6 +2034,15 @@ def _file_back_narrative_safe(
 
         slug = _slugify(f"{task_id}-{key_insight}")
         target_path = target_dir / f"{slug}.md"
+        task_file_name: str | None = None
+        try:
+            row = conn.execute(
+                "SELECT file_path FROM tasks WHERE task_id = ?", (task_id,)
+            ).fetchone()
+            if row and row[0] and (project_root / str(row[0])).exists():
+                task_file_name = Path(str(row[0])).name
+        except sqlite3.Error as exc:
+            logger.debug("narrative task-file lookup failed: %s", exc)
         content = _format_narrative_markdown(
             task_id=task_id,
             domain=domain,
@@ -2034,6 +2051,7 @@ def _file_back_narrative_safe(
             what_worked=what_worked,
             history_id=history_id,
             pattern_id=pattern_id,
+            task_file_name=task_file_name,
         )
         target_path.write_text(content, encoding="utf-8")
         return target_path
