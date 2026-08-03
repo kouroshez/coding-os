@@ -120,17 +120,18 @@ The SPA is organized into two nested hubs, each served at a global path and a
 | Route | Component | Backend endpoints |
 |---|---|---|
 | `/` | `HubHome` | `/api/hub/*` |
-| `/workspace` · `/p/:slug/workspace` → `chat` / `board` / `search` / `memory` | `WorkspacePage` → `ChatLanding` / `CosBoardPage` / `SearchPage` / `MemoryPage` | cognition+board · `/api/cognition/*` · `/api/board/*` · `/api/search/*` · `/api/patterns/*` |
-| `/diagnostics` · `/p/:slug/diagnostics` → `overview` / `doctor` / `logs` / `observability` / `sessions` | `DiagnosticsPage` → `DashboardPage` (Overview) / `DoctorPage` / `LogsPage` / `ObservabilityPage` / `SessionsPage` | telemetry (cost/board/traces/agents) · `/api/health` + `/api/health/db` · `/api/logs/*` · `/api/hooks/*` + `/api/observability/*` · `/api/sessions/*` |
+| `/workspace` · `/p/:slug/workspace` → `overview` / `chat` / `board` / `search` / `memory` / `design` | `WorkspacePage` → `DashboardPage` (Overview) / `ChatLanding` / `CosBoardPage` / `SearchPage` / `MemoryPage` / `DesignComingSoon` | telemetry + cognition+board · `/api/sessions/*` · `/api/cognition/*` · `/api/board/*` · `/api/search/*` · `/api/patterns/*` |
+| `/diagnostics` · `/p/:slug/diagnostics` → `doctor` / `logs` / `observability` / `sessions` | `DiagnosticsPage` → `DoctorPage` / `LogsPage` / `ObservabilityPage` / `SessionsPage` | `/api/health` + `/api/health/db` · `/api/logs/*` · `/api/hooks/*` + `/api/observability/*` · `/api/sessions/*` |
 | `/p/:slug/config` → `stacks` / `skills` / `mcp` / `adapters` / `hooks` / `modules` / `git` / `settings` | `ConfigPage` (Settings tab embeds the hub-level settings form) | `/api/config/*` · `/api/settings` |
 | `/p/:slug/graph[/:rootUid]` | `GraphPage` | `/api/graph/*` |
 | `/p/:slug/cognition[/:sessionId]` | `CognitionPage` | `/api/cognition/*` |
 
-The chat-first landing replaced the Mission-Control dashboard at `/workspace`;
-the dashboard's telemetry widgets were re-homed to **Diagnostics › Overview**
-(`DashboardPage` now serves that route) and the orphan `/workspace/dashboard`
-route was removed (TASK-250). Legacy `…/dashboard` deep-links redirect to
-Diagnostics › Overview; a bare `/p/:slug` redirects to the chat landing.
+The chat-first landing stays the Workspace default (`index` → `chat`); the
+Mission-Control dashboard (`DashboardPage`) is the Workspace **Overview** tab
+(operator decision, TASK-868 — it had been parked under Diagnostics by
+TASK-250). Legacy `…/dashboard` and `/diagnostics/overview` deep-links
+redirect to Workspace › Overview; a bare `/p/:slug` redirects to the chat
+landing; Diagnostics lands on Doctor.
 
 Both hubs render at a global (unscoped) path and a `/p/:slug/` project-scoped
 path; **Graph** and **Cognition** are project-scoped only. The Doctor page reads
@@ -151,9 +152,9 @@ misplaced tab:
   Observability › Hook stream (same SSE tail); Traces/Roles only populate when
   the SDK dispatch path runs. All `/p/:slug/cognition…` routes stay routable —
   Diagnostics › Sessions rows and HubHome live-agent cards deep-link into them.
-- **The Workspace Design tab was removed** (a coming-soon placeholder; the
-  `design` module id in `subsystems.yaml` is unaffected). Marketplace stays as
-  the single roadmap anchor because Config › MCP copy points at it.
+- **The Workspace Design tab stays** as the `design` module's coming-soon
+  surface (removed in the first audit pass, restored by operator decision in
+  TASK-868 alongside Marketplace — the two roadmap anchors).
 
 ### Graph view modes + budget (what the toolbar means)
 

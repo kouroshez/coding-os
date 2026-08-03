@@ -1,6 +1,5 @@
 import { NavLink, Outlet, useParams } from 'react-router-dom';
 import {
-  LayoutDashboard,
   HeartPulse,
   FileText,
   Activity,
@@ -15,7 +14,6 @@ export default function DiagnosticsPage() {
     slug ? `/p/${encodeURIComponent(slug)}/diagnostics/${subPath}` : `/diagnostics/${subPath}`;
 
   const tabs = [
-    { path: 'overview', label: 'Overview', Icon: LayoutDashboard },
     { path: 'doctor', label: 'Doctor', Icon: HeartPulse },
     { path: 'logs', label: 'Logs', Icon: FileText },
     { path: 'observability', label: 'Observability', Icon: Activity },

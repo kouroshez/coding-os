@@ -99,3 +99,16 @@ re-exercised live via Playwright after the rebuild.
 2. Sessions › History should read `session_summaries` (202 rows) instead of disk only.
 3. `set_project_skill` round-trips `.coding-os.yaml` through `yaml.dump`, destroying file comments — needs a comment-preserving writer.
 4. Board standup rollup shows duplicate task ids with em-dash gaps — cosmetic.
+
+## Post-audit operator revisions (TASK-868, same day)
+
+Two verdicts above were overturned by operator decision after review:
+
+- **Workspace Design tab restored** — the coming-soon surface returns as the
+  `design` module's roadmap anchor (audit §1 had removed it).
+- **Overview moved out of Diagnostics into Workspace** as its first tab
+  (`/workspace/overview`); Diagnostics now lands on Doctor with four tabs, and
+  `/diagnostics/overview` + legacy `/dashboard` redirect to the new home
+  (audit §5 had kept it under Diagnostics).
+
+[hub-architecture.md](hub-architecture.md) reflects the final IA.

@@ -4,26 +4,25 @@ import { describe, expect, it } from 'vitest';
 
 import DiagnosticsPage from './DiagnosticsPage';
 
-describe('DiagnosticsPage (TASK-250)', () => {
-  it('lists an Overview tab linking to the overview sub-route', () => {
+describe('DiagnosticsPage', () => {
+  it('leads with the Doctor tab and hosts no Overview (moved to Workspace, TASK-868)', () => {
     render(
       <MemoryRouter initialEntries={['/diagnostics']}>
         <DiagnosticsPage />
       </MemoryRouter>,
     );
-    const link = screen.getByRole('link', { name: /overview/i });
-    expect(link).toHaveAttribute('href', '/diagnostics/overview');
+    const doctor = screen.getByRole('link', { name: /doctor/i });
+    expect(doctor).toHaveAttribute('href', '/diagnostics/doctor');
+    expect(screen.queryByRole('link', { name: /overview/i })).toBeNull();
   });
 
-  it('scopes the Overview link under the active project slug', () => {
+  it('lists exactly the four diagnostics tabs', () => {
     render(
       <MemoryRouter initialEntries={['/p/demo/diagnostics']}>
         <DiagnosticsPage />
       </MemoryRouter>,
     );
-    // useParams reads :slug only when the route pattern declares it; rendered
-    // bare here the global link is correct — the scoped variant is covered by
-    // the route table. Assert the tab exists either way.
-    expect(screen.getByRole('link', { name: /overview/i })).toBeInTheDocument();
+    const names = screen.getAllByRole('link').map((l) => l.textContent?.trim());
+    expect(names).toEqual(['Doctor', 'Logs', 'Observability', 'Sessions']);
   });
 });

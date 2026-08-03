@@ -18,6 +18,7 @@ import DoctorPage from './pages/DoctorPage';
 import MemoryPage from './pages/MemoryPage';
 import NeedProjectPage from './pages/NeedProjectPage';
 import WorkspacePage from './pages/WorkspacePage';
+import DesignComingSoon from './pages/DesignComingSoon';
 import DiagnosticsPage from './pages/DiagnosticsPage';
 
 // Redirect helpers to transition old deep-links smoothly to nested hub routes
@@ -53,18 +54,19 @@ export default function App() {
           {/* Unified Workspace Hub (Global / Unscoped) */}
           <Route path="/workspace" element={<WorkspacePage />}>
             <Route index element={<Navigate to="chat" replace />} />
+            {/* Mission-control dashboard — moved home from Diagnostics (TASK-868). */}
+            <Route path="overview" element={<DashboardPage />} />
             <Route path="chat" element={<NeedProjectPage feature="chat" />} />
             <Route path="board" element={<NeedProjectPage feature="board" />} />
             <Route path="search" element={<NeedProjectPage feature="search" />} />
             <Route path="memory" element={<NeedProjectPage feature="memory" />} />
-            <Route path="design" element={<Navigate to="/workspace/chat" replace />} />
+            <Route path="design" element={<DesignComingSoon />} />
           </Route>
 
           {/* Unified Diagnostics Hub (Global) */}
           <Route path="/diagnostics" element={<DiagnosticsPage />}>
-            <Route index element={<Navigate to="overview" replace />} />
-            {/* DashboardPage now serves the Diagnostics Overview (TASK-250). */}
-            <Route path="overview" element={<DashboardPage />} />
+            <Route index element={<Navigate to="doctor" replace />} />
+            <Route path="overview" element={<Navigate to="/workspace/overview" replace />} />
             <Route path="doctor" element={<DoctorPage />} />
             <Route path="logs" element={<LogsPage />} />
             <Route path="observability" element={<ObservabilityPage />} />
@@ -74,7 +76,7 @@ export default function App() {
           </Route>
 
           {/* Legacy & flat unscoped route redirects */}
-          <Route path="/dashboard" element={<RedirectToDiagnostics sub="overview" />} />
+          <Route path="/dashboard" element={<RedirectToWorkspace sub="overview" />} />
           <Route path="/board" element={<RedirectToWorkspace sub="board" />} />
           <Route path="/search" element={<RedirectToWorkspace sub="search" />} />
           <Route path="/doctor" element={<RedirectToDiagnostics sub="doctor" />} />
@@ -94,19 +96,20 @@ export default function App() {
           {/* Unified Workspace Hub (Project-Scoped) — chat-first landing */}
           <Route path="/p/:slug/workspace" element={<WorkspacePage />}>
             <Route index element={<Navigate to="chat" replace />} />
+            {/* Mission-control dashboard — moved home from Diagnostics (TASK-868). */}
+            <Route path="overview" element={<DashboardPage />} />
             <Route path="chat" element={<ChatLanding />} />
             <Route path="chat/:sessionId" element={<ChatLanding />} />
             <Route path="board" element={<CosBoardPage />} />
             <Route path="search" element={<SearchPage />} />
             <Route path="memory" element={<MemoryPage />} />
-            <Route path="design" element={<RedirectToWorkspace sub="chat" />} />
+            <Route path="design" element={<DesignComingSoon />} />
           </Route>
 
           {/* Unified Diagnostics Hub (Project-Scoped) */}
           <Route path="/p/:slug/diagnostics" element={<DiagnosticsPage />}>
-            <Route index element={<Navigate to="overview" replace />} />
-            {/* Re-homed dashboard telemetry widgets (TASK-250). */}
-            <Route path="overview" element={<DashboardPage />} />
+            <Route index element={<Navigate to="doctor" replace />} />
+            <Route path="overview" element={<RedirectToWorkspace sub="overview" />} />
             <Route path="doctor" element={<DoctorPage />} />
             <Route path="logs" element={<LogsPage />} />
             <Route path="observability" element={<ObservabilityPage />} />
@@ -117,7 +120,7 @@ export default function App() {
 
           {/* Redirect old flat project routes to nested hubs */}
           <Route path="/p/:slug" element={<RedirectToWorkspace sub="chat" />} />
-          <Route path="/p/:slug/dashboard" element={<RedirectToDiagnostics sub="overview" />} />
+          <Route path="/p/:slug/dashboard" element={<RedirectToWorkspace sub="overview" />} />
           <Route path="/p/:slug/board" element={<RedirectToWorkspace sub="board" />} />
           <Route path="/p/:slug/search" element={<RedirectToWorkspace sub="search" />} />
           <Route path="/p/:slug/doctor" element={<RedirectToDiagnostics sub="doctor" />} />
