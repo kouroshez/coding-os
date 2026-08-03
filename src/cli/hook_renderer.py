@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shlex
 import sys
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -67,7 +68,12 @@ def _matchers_overlap(left: str, right: str) -> bool:
 
 
 def _command_script(entry: dict[str, Any]) -> str:
-    return str(entry.get("command", "")).rsplit("/", 1)[-1]
+    parts = shlex.split(str(entry.get("command", "")))
+    return parts[-1].rsplit("/", 1)[-1] if parts else ""
+
+
+def _hook_command(agent_id: str, script: str) -> str:
+    return f'env COS_AGENT={agent_id} "{HOOKS_DIR_PLACEHOLDER}/{script}"'
 
 
 @dataclass(frozen=True)
@@ -252,7 +258,7 @@ def render_for_adapter(registry: list[HookEntry], caps: AdapterCapabilities) -> 
 
             entry: dict[str, Any] = {
                 "type": "command",
-                "command": f"{HOOKS_DIR_PLACEHOLDER}/{hook.script}",
+                "command": _hook_command(caps.agent_id, hook.script),
             }
             if ev.get("status_message"):
                 entry["statusMessage"] = ev["status_message"]
@@ -298,7 +304,7 @@ def render_for_adapter(registry: list[HookEntry], caps: AdapterCapabilities) -> 
             groups.append(group)
         entry: dict[str, Any] = {
             "type": "command",
-            "command": f"{HOOKS_DIR_PLACEHOLDER}/{dispatcher['script']}",
+            "command": _hook_command(caps.agent_id, dispatcher["script"]),
         }
         if dispatcher.get("status_message"):
             entry["statusMessage"] = dispatcher["status_message"]

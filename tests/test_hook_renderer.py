@@ -58,7 +58,8 @@ def test_render_for_adapter_replaces_group_with_dispatcher() -> None:
     hooks = rendered["hooks"]["PreToolUse"][0]["hooks"]
 
     assert len(hooks) == 1
-    assert hooks[0]["command"].endswith("/codex-pretool-dispatch.sh")
+    assert "/codex-pretool-dispatch.sh" in hooks[0]["command"]
+    assert hooks[0]["command"].startswith("env COS_AGENT=codex ")
     assert hooks[0]["statusMessage"] == "dispatch"
 
 
@@ -101,7 +102,9 @@ def test_dispatcher_removes_delegates_from_overlapping_composite_matchers() -> N
 
     assert [group["matcher"] for group in groups] == ["startup", "compact|resume"]
     assert all(
-        group["hooks"][0]["command"].endswith("/codex-sessionstart-dispatch.sh") for group in groups
+        "/codex-sessionstart-dispatch.sh" in group["hooks"][0]["command"]
+        and group["hooks"][0]["command"].startswith("env COS_AGENT=codex ")
+        for group in groups
     )
 
 
@@ -135,7 +138,8 @@ def test_dispatcher_keeps_same_script_on_non_overlapping_matcher() -> None:
     mcp_group = next(
         group for group in groups if group["matcher"] == "mcp__coding-os__cos_task_move"
     )
-    assert mcp_group["hooks"][0]["command"].endswith("/sync-task-current.sh")
+    assert "/sync-task-current.sh" in mcp_group["hooks"][0]["command"]
+    assert mcp_group["hooks"][0]["command"].startswith("env COS_AGENT=codex ")
 
 
 def test_dispatcher_does_not_drop_partially_covered_composite_matcher() -> None:
@@ -163,7 +167,28 @@ def test_dispatcher_does_not_drop_partially_covered_composite_matcher() -> None:
     groups = render_for_adapter(registry, caps)["hooks"]["SessionStart"]
 
     composite = next(group for group in groups if group["matcher"] == "startup|resume")
-    assert composite["hooks"][0]["command"].endswith("/recover.sh")
+    assert "/recover.sh" in composite["hooks"][0]["command"]
+    assert composite["hooks"][0]["command"].startswith("env COS_AGENT=codex ")
+
+
+def test_direct_hook_commands_establish_each_adapter_identity() -> None:
+    registry = [
+        HookEntry(
+            id="presence",
+            script="agent-presence.sh",
+            description="x",
+            category="observability",
+            phase="0",
+            events=[{"event": "SessionEnd", "matcher": ""}],
+        )
+    ]
+
+    for agent_id in ("claude", "codex"):
+        caps = AdapterCapabilities(agent_id=agent_id, by_event={"SessionEnd": [""]})
+        command = render_for_adapter(registry, caps)["hooks"]["SessionEnd"][0]["hooks"][0][
+            "command"
+        ]
+        assert command == f'env COS_AGENT={agent_id} "{{{{HOOKS_DIR}}}}/agent-presence.sh"'
 
 
 def test_render_for_adapter_records_parity_deficit_not_silent_drop() -> None:

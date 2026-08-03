@@ -260,8 +260,8 @@ coding-os/
 │   │   ├── skills/         # Universal skills
 │   │   └── scripts/        # Kernel-internal regen tooling
 │   ├── adapters/         # Per-agent translation (mRNA, adapter.yaml manifests)
-│   │   ├── claude/         # Claude Code adapter (most hooks fire)
-│   │   └── codex/          # OpenAI Codex CLI adapter (Bash-only subset)
+│   │   ├── claude/         # Claude Code adapter
+│   │   └── codex/          # OpenAI Codex CLI/Desktop adapter
 │   ├── templates/        # Per-stack scaffolds (phenotype, stack.yaml-driven)
 │   │   ├── _base/          # Generic base + fragments/
 │   │   ├── django/         # Django + DRF + PostgreSQL
@@ -494,11 +494,11 @@ Deep dive: [docs/engineering/graph_os-queries.md](./docs/engineering/graph_os-qu
 
 ## Supported agents
 
-| Agent           | Hook coverage | Skills              | MCP server | Notes                          |
-| --------------- | ------------- | ------------------- | ---------- | ------------------------------ |
-| Claude Code     | Full ✅        | Native Skill tool   | ✅          | Most complete enforcement.     |
-| Codex CLI       | Partial ⚠️     | Via instructions    | ✅          | Bash-only PreToolUse matcher.  |
-| Codex GUI       | None ❌        | Via instructions    | ✅          | `.codex/hooks.json` ignored upstream — do NOT use for protected work. |
+| Agent | Hook coverage | Skills | MCP server | Notes |
+| --- | --- | --- | --- | --- |
+| Claude Code | Full for its native events ✅ | Native skills | ✅ | No native `SessionEnd`. |
+| Codex CLI | Full for supported Codex events ✅ | Native agent skills | ✅ | Includes Bash, Read, `apply_patch`, MCP, prompt, compact, subagent, permission, Stop, and SessionEnd hooks. |
+| Codex Desktop | Same project hook/config contract as Codex CLI ✅ | Native agent skills | ✅ | Project hooks require trust/review; Hub observability is native, while Hub interactive chat is still Claude-only. |
 
 Audit + reasoning: [docs/engineering/workflow-audit-2026-04-25.md](./docs/engineering/workflow-audit-2026-04-25.md).
 
@@ -594,7 +594,7 @@ CI runs the matrix on every PR. See `.github/workflows/ci.yml`.
 | `cos init` fails on `npm ci` step | Node.js missing or below 20 | Install Node ≥20 (`brew install node@20`); only required if your template touches `src/core/web/ui/` |
 | Docker build OOM on `npm ci` | Default Docker memory < 4 GB | Docker Desktop → Settings → Resources → bump memory to 4 GB+ |
 | `ToolSearch` returns `InputValidationError` for a `cos_*` tool | First-call schema not loaded (Claude defers MCP schemas) | `ToolSearch("select:cos_<name>")` first, then call the tool |
-| Hooks silently skip on Codex | Agent runtime doesn't expose that `{event, matcher}` pair | Expected — see [Persona Enforcement Coverage](#supported-agents); use Claude Code for protected work |
+| Codex hook is skipped | Project/hash trust is missing, the hooks feature is disabled, or the event/matcher is unsupported | Run `/hooks`, confirm `[features] hooks = true`, then inspect `cos hooks-list --agent codex` |
 | Hub rejects the meta-repo checkout with `sits inside … already a coding-os project` | A stray `.coding-os/` exists higher up (e.g. `~/.coding-os/` from a test run) — fixed 2026-05-23: only **registered** ancestors block | Update + restart Hub: `git pull && cos hub stop && cos hub start`. If still blocking, the ancestor is genuinely registered: `cos registry remove <ancestor-path>` |
 
 Still stuck? Run `cos doctor --verbose` and open a

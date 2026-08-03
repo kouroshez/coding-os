@@ -26,6 +26,7 @@ The implementation may differ. Claude can receive a native `Write` payload while
 - Codex file edits are intercepted through `apply_patch`. Its adapter canonicalizes the runtime alias to `Edit`, extracts every affected path, and sequences the unchanged core hooks.
 - Codex still has no `PostToolUseFailure` equivalent and no native Claude `Skill` tool matcher. These remain honest deficits.
 - Non-managed Codex hooks require hash-based review through `/hooks`; installation cannot safely auto-trust them.
+- Rendered hook commands establish their adapter identity explicitly. Runtime-marker probing and `.coding-os/.agent` are fallback mechanisms, not the multi-adapter identity contract.
 - Formula dispatch is adapter-loaded for both providers. Hub chat is not yet fully hexagonal because its core route imports the Claude SDK directly.
 
 ## Runtime Event Matrix
@@ -43,6 +44,7 @@ Verified against the official runtime documentation on 2026-08-03.
 | Compaction | compact source / `PreCompact` | compact source, `PreCompact`, `PostCompact` | shared hooks only where registered |
 | Subagent lifecycle | start/stop | start/stop | native shared pair |
 | Stop continuation/context | `Stop` | `Stop` JSON output | Codex dispatcher aggregates output |
+| Session close | no native event | `SessionEnd` | Codex final presence transition |
 | Permission request | supported | supported | provider-specific decision schema |
 | Tool failure | `PostToolUseFailure` | no equivalent hook | Codex stream/error observation only |
 | Skill invocation | `Skill` matcher | no native matcher | skill guidance, not tool-hook parity |
@@ -50,6 +52,8 @@ Verified against the official runtime documentation on 2026-08-03.
 ## Hook Coverage
 
 The renderer reads [registry.yaml](../../src/core/hooks/registry.yaml), filters each event/matcher through `adapter.yaml::hook_capabilities`, then replaces selected groups with adapter dispatchers.
+
+Every emitted command also establishes `COS_AGENT=<adapter-id>` before the script starts. This is required for Codex Desktop, where optional `CODEX_*` environment markers may be absent, and it makes the same contract deterministic for all adapters.
 
 | Hook family | Claude | Codex | Notes |
 |---|---|---|---|
@@ -60,6 +64,7 @@ The renderer reads [registry.yaml](../../src/core/hooks/registry.yaml), filters 
 | Post-edit capture/index/reminders | yes | yes | Advisory after the patch has applied. |
 | Prompt cognition/context | yes | yes | Dispatcher output must not be discarded. |
 | Session start/recovery | yes | yes | `startup`, `resume`, `compact`, and `clear` are supported. |
+| Session end presence | no native event | yes | Codex `SessionEnd` marks the presence row ended. |
 | Presence on tool failure | yes | no | No Codex `PostToolUseFailure` event. |
 | Presence on subagents | yes | yes | Start and stop are shared. |
 | Skill-use telemetry | yes | no | Codex has skills but not a `Skill` tool hook. |
@@ -71,6 +76,8 @@ cos hooks-list --agent claude
 cos hooks-list --agent codex
 uv run pytest tests/test_adapter_parity.py tests/test_hook_renderer.py -q
 ```
+
+`cos doctor` also compares each declared adapter's installed hook map with its generated registry template after normalizing absolute/relative hook roots. Healthy symlinks are not enough: a stale `.codex/hooks.json` can silently omit newly rendered events while every linked script still exists.
 
 ## Deterministic Ordering
 
@@ -137,6 +144,8 @@ hooks = true
 ```
 
 Project-local hooks still require project trust plus `/hooks` review. Trust is recorded against the exact hook hash; regeneration or upgrades can require review again. The installer reports this step and never modifies Codex's private trust state.
+
+The Codex project config also injects the same identity into shell subprocesses and the project-local `coding-os` MCP process. Hook identity, shell identity, and MCP identity must agree; testing only one leg is insufficient because task/work-log attribution can bypass hook-local state.
 
 ## Remaining Capability Bounds
 

@@ -20,6 +20,7 @@ presence:
     - SubagentStart
     - SubagentStop
     - Stop
+    - SessionEnd
 settings_file: ".codex/hooks.json"
 hooks_dir: ".codex/hooks"
 rules_dir: ".codex/rules"
@@ -88,11 +89,19 @@ hook_capabilities:
     matchers: [""]
   UserPromptSubmit:
     matchers: [""]
+  SessionEnd:
+    matchers: [""]
 
 # Codex launches multiple matching command hooks concurrently for the same
 # event. Coalesce selected groups into one dispatcher so sequencing and UI
 # visibility stay deterministic.
 hook_dispatchers:
+  - event: SessionEnd
+    matcher: ""
+    script: agent-presence.sh
+    timeout: 3
+    delegates:
+      - agent-presence.sh
   - event: PreToolUse
     matcher: Bash
     script: codex-pretool-dispatch.sh

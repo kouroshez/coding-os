@@ -16,7 +16,7 @@ what.
 |---|---|---|
 | **Meta repo** `/Users/<you>/.../coding-os/` | `src/core/` + `src/adapters/` + `src/templates/` + `src/cli/` (source of truth) | humans + agents edit directly |
 | **Hub state** `~/.coding-os/` | `registry.json`, `hub.pid`, `hub.log`, `groups/` | `cos registry`, `cos hub`, `cos graph-groups`, first-run bootstrap |
-| **Project state** `<repo>/.coding-os/` | `coding-os.db`, `.agent`, `<agent>/session-id`, `<agent>/sessions/*.json`, `.hooks.log`, `installed-manifest.json` | hooks, MCP server, `install.sh`, CLI commands run inside the project |
+| **Project state** `<repo>/.coding-os/` | `coding-os.db`, legacy `.agent` fallback, `<agent>/session-id`, `<agent>/sessions/*.json`, `.hooks.log`, `installed-manifest.json` | hooks, MCP server, `install.sh`, CLI commands run inside the project |
 
 **`~/.coding-os/` does NOT hold code.** The hub loads every byte of
 `src/core/` and `src/adapters/` directly from the meta repo — `uv tool install
@@ -45,6 +45,8 @@ Successful board list payloads include:
 | `is_current` | `true` when the row's `session_id` equals the agent's `session-id` marker — i.e. this is the agent's live session, not a recycled-PID leftover. |
 
 The dashboard counts `active`/`present` rows **plus** any `is_current` row whose pid is alive. Without the `is_current` clause a read-only session (verify/git/pytest, no `Write`/`Edit`) aged past the 300s TTL would classify `idle` and be silently dropped — the agent shows as working while the HUD reads "no agent running". `agent-presence.sh` also fires on `PostToolUse Bash` so such sessions refresh `last_tool_at` and mostly never reach `idle` in the first place; `is_current` is the defense-in-depth backstop.
+
+Agent labels are not inferred from `model`. The source directory and presence payload must already carry the adapter identity established by the calling runtime. Board events and work logs use the `ses-<agent>-*` task attribution. If a `gpt-*` session is rendered as Claude, the fault is upstream identity propagation; relabeling it in the UI would leave task history, traces, and state directories corrupt.
 
 ### Live-agent context window (`context_pct`)
 

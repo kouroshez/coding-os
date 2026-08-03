@@ -236,6 +236,12 @@ class TestCodexAdapter:
         assert len(stop) == 1
         assert "codex-stop-dispatch.sh" in stop[0]["command"]
 
+        session_end = data["hooks"]["SessionEnd"][0]["hooks"]
+        assert len(session_end) == 1
+        assert "agent-presence.sh" in session_end[0]["command"]
+        assert session_end[0]["command"].startswith("env COS_AGENT=codex ")
+        assert session_end[0]["timeout"] == 3
+
     def test_codex_bash_hooks_are_quiet_by_default(self, project: Path) -> None:
         run_adapter_install("codex", project)
         hooks_json = project / ".codex" / "hooks.json"
@@ -314,6 +320,34 @@ class TestCodexAdapter:
         assert "[mcp_servers.coding-os]" in content
         assert "[features]" in content
         assert "hooks = true" in content
+        assert "[shell_environment_policy.set]" in content
+        assert 'COS_AGENT = "codex"' in content
+        assert str(project / ".coding-os") in content
+        assert str(project / ".coding-os" / "codex") in content
+
+    def test_codex_mcp_receives_adapter_owned_identity(self, project: Path) -> None:
+        run_adapter_install("codex", project)
+        content = (project / ".codex" / "config.toml").read_text(encoding="utf-8")
+        mcp_section = content.split("[mcp_servers.coding-os]", 1)[1]
+
+        assert 'COS_AGENT = "codex"' in mcp_section
+        assert f'COS_STATE_DIR = "{project / ".coding-os"}"' in mcp_section
+        assert f'COS_AGENT_DIR = "{project / ".coding-os" / "codex"}"' in mcp_section
+
+    def test_codex_config_preserves_unrelated_shell_environment_values(self, project: Path) -> None:
+        codex_cfg = project / ".codex" / "config.toml"
+        codex_cfg.parent.mkdir(parents=True, exist_ok=True)
+        codex_cfg.write_text(
+            '[shell_environment_policy.set]\nKEEP_ME = "yes"\nCOS_AGENT = "stale"\n',
+            encoding="utf-8",
+        )
+
+        run_adapter_install("codex", project)
+
+        content = codex_cfg.read_text(encoding="utf-8")
+        assert 'KEEP_ME = "yes"' in content
+        assert content.count('COS_AGENT = "codex"') == 2
+        assert 'COS_AGENT = "stale"' not in content
 
     def test_mcp_registration_idempotent(self, project: Path) -> None:
         # Running install twice must not duplicate the [mcp_servers.coding-os]
@@ -326,7 +360,49 @@ class TestCodexAdapter:
         assert codex_cfg.read_text().count("[mcp_servers.coding-os]") == 1
         assert codex_cfg.read_text().count("[features]") == 1
         assert codex_cfg.read_text().count("hooks = true") == 1
+        assert codex_cfg.read_text().count("[shell_environment_policy.set]") == 1
         assert "codex_hooks" not in codex_cfg.read_text()
+
+    def test_installed_hooks_assert_codex_identity_without_runtime_markers(
+        self, project: Path
+    ) -> None:
+        run_adapter_install("codex", project)
+        (project / ".coding-os" / ".agent").write_text("claude\n", encoding="utf-8")
+        data = json.loads((project / ".codex" / "hooks.json").read_text(encoding="utf-8"))
+        command = data["hooks"]["SessionStart"][0]["hooks"][0]["command"]
+        blocked = {
+            "COS_AGENT",
+            "COS_AGENT_DIR",
+            "CODEX_SESSION_ID",
+            "CODEX_AGENT_DIR",
+            "CODEX_HOME",
+            "CLAUDECODE",
+            "CLAUDE_CODE_SSE_PORT",
+            "CLAUDE_CODE_ENTRYPOINT",
+            "CLAUDE_AGENT_SDK_VERSION",
+            "CLAUDE_PROJECT_DIR",
+        }
+        env = {k: v for k, v in os.environ.items() if k not in blocked}
+        result = subprocess.run(
+            ["/bin/sh", "-c", command],
+            input=json.dumps(
+                {
+                    "session_id": "codex-desktop-test",
+                    "hook_event_name": "SessionStart",
+                    "source": "startup",
+                    "cwd": str(project),
+                }
+            ),
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(project),
+            env=env,
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert any((project / ".coding-os" / "codex" / "sessions").glob("*.json"))
+        assert not (project / ".coding-os" / "claude" / "sessions").exists()
 
     def test_repairs_false_hooks_without_corrupting_next_section(self, project: Path) -> None:
         codex_cfg = project / ".codex" / "config.toml"
@@ -334,6 +410,7 @@ class TestCodexAdapter:
         codex_cfg.write_text(
             "[features]\n"
             "codex_hooks = false\n\n"
+            "rmcp_client = true\n"
             "[mcp_servers.coding-os]\n"
             'command = "cos"\n'
             'args = ["server-start"]\n',
@@ -345,6 +422,7 @@ class TestCodexAdapter:
         content = codex_cfg.read_text(encoding="utf-8")
         assert "hooks = true\n\n[mcp_servers.coding-os]" in content
         assert "codex_hooks" not in content
+        assert "rmcp_client" not in content
         assert content.count("[mcp_servers.coding-os]") == 1
 
     def test_repairs_stale_mcp_entry_in_place(self, project: Path) -> None:

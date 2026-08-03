@@ -26,6 +26,7 @@ SECTION_RE = re.compile(r"(?ms)^\[features\]\s*\n(?P<body>.*?)(?=^\[|\Z)")
 TRUE_RE = re.compile(r"(?m)^[ \t]*hooks[ \t]*=[ \t]*true[ \t]*$")
 FALSE_RE = re.compile(r"(?m)^[ \t]*hooks[ \t]*=[ \t]*false[ \t]*$")
 LEGACY_RE = re.compile(r"(?m)^[ \t]*codex_hooks[ \t]*=[ \t]*(?:true|false)[ \t]*\n?")
+OBSOLETE_RE = re.compile(r"(?m)^[ \t]*rmcp_client[ \t]*=[ \t]*(?:true|false)[ \t]*\n?")
 
 
 def _status(path: Path, enabled: bool) -> str:
@@ -45,7 +46,7 @@ def _update(path: Path, text: str) -> tuple[str, str]:
     match = SECTION_RE.search(text)
     if match:
         old_body = match.group("body")
-        body = LEGACY_RE.sub("", old_body)
+        body = OBSOLETE_RE.sub("", LEGACY_RE.sub("", old_body))
         has_next_section = match.end("body") < len(text)
         if TRUE_RE.search(body):
             body = _finish_body(body, has_next_section)

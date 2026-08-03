@@ -6,7 +6,7 @@ Read when: editing `src/adapters/codex/`, changing adapter manifests or hook ren
 Skip when: the change is Claude-only and does not alter a shared adapter port.
 
 > Nav: [AGENTS.md](../../AGENTS.md) > [adapters](.) > **codex**
-> Status: live for install, MCP, skills, hooks, and formula dispatch; Hub chat remains roadmap pending the shared runtime port.
+> Status: live for Codex CLI/Desktop install, MCP, skills, hooks, formula dispatch, and Hub observability; Hub interactive chat remains roadmap pending the shared runtime port.
 
 ---
 
@@ -102,7 +102,22 @@ Parity means equivalent kernel outcomes, not identical provider APIs.
 | Tool-failure hook | `PostToolUseFailure` | no matching Codex event | impossible today; observe error items instead |
 | Permission hook | SDK/CLI permission callbacks | `PermissionRequest` | native, output schemas differ |
 | Hook trust | project/settings trust | hash-based review for non-managed hooks | explicit operator step required |
+| Hub sessions, board, logs, traces | native Claude identity | native Codex identity | parity through adapter-owned environment and `ses-codex-*` ids |
 | Hub interactive chat | in process | blocked by Claude-coupled core route | requires shared runtime port |
+
+## Runtime Identity Contract
+
+Codex Desktop does not guarantee `CODEX_SESSION_ID`, `CODEX_AGENT_DIR`, or `CODEX_HOME` in every hook and shell subprocess. Adapter identity must therefore be established by the adapter, not inferred from `.coding-os/.agent` or from the selected model name.
+
+The Codex install has three required identity legs:
+
+1. Every rendered hook command starts with `COS_AGENT=codex`; adapter-private dispatchers repeat that assertion before sourcing `cos-env.sh` so direct invocation is safe too.
+2. Project-local `.codex/config.toml` sets `COS_AGENT`, `COS_STATE_DIR`, and `COS_AGENT_DIR` for Codex shell subprocesses and for the `coding-os` MCP server.
+3. Each hook payload's `session_id` upgrades the panel identity, producing `ses-codex-*` session ids and state under `.coding-os/codex/`.
+
+`.coding-os/.agent` is only a legacy/plain-shell fallback. It is intentionally not the source of truth for a project that installs both Claude and Codex, because one scalar cannot identify two concurrent runtimes. `.coding-os.yaml::agents` is the installed-adapter SSOT; adapter-owned runtime environment is the calling-agent SSOT.
+
+Hub does not guess an agent from `model`. It reads the agent-owned presence directory and payload, while board and work-log attribution follow `agent_session`. A GPT model appearing under `claude` is therefore evidence of an upstream identity failure, not a UI-label bug.
 
 ## 2026-08 Refresh Checklist
 
@@ -116,6 +131,8 @@ Parity means equivalent kernel outcomes, not identical provider APIs.
 - [x] Regenerate derived templates and Codex golden fixtures; review every generated diff.
 - [x] Run targeted dispatcher, adapter, hook, CLI, docs, and real read-only SDK smoke verification.
 - [x] Run graph change detection and final diff review before closing the task.
+- [x] Prove a fresh Codex CLI/Desktop-compatible session writes `.coding-os/codex`, uses `ses-codex-*`, and renders as Codex in Hub sessions, board, work logs, and traces.
+- [x] Prove Codex project shell and MCP subprocesses retain Codex identity when all optional `CODEX_*` markers are absent and `.coding-os/.agent` names Claude.
 
 The checklist deliberately leaves unsupported controls visible rather than emulating them unsafely: Codex still has no per-turn USD ceiling, no independent `PostToolUseFailure` event, and no adapter-local path to the Claude-coupled Hub chat route. OpenAI Structured Outputs also requires every object to set `additionalProperties: false` and every property to be required. Role schemas with arbitrary dictionaries or defaulted fields therefore use the existing JSON-block path instead of starting a turn that the provider will reject.
 
@@ -135,11 +152,14 @@ This avoids leaking Codex patch grammar into `src/core/hooks/**` and keeps the k
 
 Codex runs multiple matching command hooks concurrently. Dispatcher groups therefore preserve the registry's safety-to-observability ordering. A dispatcher must also forward delegate `additionalContext`; dropping stdout makes prompt, Stop, and reminder hooks silent even though the runtime supports them.
 
+Codex also emits `SessionEnd`. Coding OS uses it for a final presence transition to `ended`; per-turn recap and learning remain on `Stop`, because `Stop` and `SessionEnd` have different lifecycle meanings.
+
 ## Hook Trust
 
 Non-managed Codex command hooks are trusted by exact hash. New or changed hooks are skipped until reviewed with `/hooks`. The installer must:
 
 - enable the canonical `hooks` feature;
+- remove obsolete project feature keys that current Codex rejects, including `codex_hooks` and `rmcp_client`;
 - install and render the project hook configuration;
 - print a clear `/hooks` review step;
 - never mutate Codex's private trust store or use `--dangerously-bypass-hook-trust` as a persistent default.
@@ -203,7 +223,11 @@ After both runtimes implement the shared port, let the supervisor select an adap
 
 ## Sources
 
-- [Codex hooks](https://developers.openai.com/codex/hooks)
+- [Codex SDK](https://learn.chatgpt.com/docs/codex-sdk)
+- [Codex hooks](https://learn.chatgpt.com/docs/hooks)
+- [Codex advanced config and hooks](https://learn.chatgpt.com/docs/config-file/config-advanced#hooks)
+- [Codex config reference](https://learn.chatgpt.com/docs/config-file/config-reference)
+- [Codex AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
 - [Codex CLI reference](https://developers.openai.com/codex/cli/reference)
 - [Codex MCP](https://developers.openai.com/codex/mcp)
 - [Codex subagents](https://developers.openai.com/codex/subagents)

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
 from pathlib import Path
 
 import pytest
@@ -27,7 +28,14 @@ CODEX_ADAPTER = CODING_OS_ROOT / "src" / "adapters" / "codex" / "adapter.yaml"
 
 # Events Codex supports. Any hook Claude registers under one of these
 # events with a Bash-compatible matcher must also appear in Codex.
-CODEX_SUPPORTED_EVENTS = {"PreToolUse", "PostToolUse", "Stop", "SessionStart", "UserPromptSubmit"}
+CODEX_SUPPORTED_EVENTS = {
+    "PreToolUse",
+    "PostToolUse",
+    "Stop",
+    "SessionStart",
+    "SessionEnd",
+    "UserPromptSubmit",
+}
 
 # Matchers Codex can trigger. Claude supports "Write|Edit" etc. which
 # Codex cannot fire — hooks scoped to those matchers are Claude-only.
@@ -52,8 +60,8 @@ CLAUDE_ONLY_WHITELIST: set[str] = {
 
 def _hook_command(entry: dict) -> str:
     """Return the bare script basename from a hook entry's command field."""
-    cmd = entry.get("command", "")
-    return cmd.rsplit("/", 1)[-1]
+    parts = shlex.split(entry.get("command", ""))
+    return parts[-1].rsplit("/", 1)[-1] if parts else ""
 
 
 def _collect_hooks_by_event_matcher(template: dict) -> dict[tuple[str, str], set[str]]:

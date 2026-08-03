@@ -109,6 +109,12 @@ are tracked in **TASK-498**.
 - If two *panels of the same agent* (two Claude tabs) could have DIFFERENT answers, the file is **panel-private** → lives at `$COS_PANEL_DIR/` (`$COS_AGENT_DIR/panels/<panel-id>/`).
 - If there's only one correct answer (DB row, install manifest, log stream, runtime model, task-mode classifier output), it's **shared** → lives at `$COS_STATE_DIR/` or `$COS_AGENT_DIR/` per scope.
 
+### Calling-agent resolution
+
+`COS_AGENT` is an execution-boundary value. Rendered adapter hook commands set it explicitly, and the Codex project config sets it for Codex shell and MCP subprocesses. Runtime-specific markers are secondary signals. `.coding-os/.agent` is a legacy fallback for a plain shell and may reflect whichever adapter was installed last; it must never be used to distinguish concurrent adapters in a multi-adapter project.
+
+The installed-adapter list comes from `.coding-os.yaml::agents`. The calling runtime comes from its adapter-owned environment. Keeping those concepts separate prevents Codex Desktop from writing a GPT-backed session under `.coding-os/claude/` merely because Claude was installed most recently.
+
 ### `.active-session` — attribution for the long-lived MCP server (TASK-094)
 
 Task `agent_session` attribution faces an architectural seam: the MCP

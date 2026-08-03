@@ -11,6 +11,8 @@ from __future__ import annotations
 import json
 import logging
 import re
+import shlex
+import shutil
 import sqlite3
 import urllib.error
 import urllib.request
@@ -28,6 +30,18 @@ from cli.doctor import (
 )
 
 logger = logging.getLogger("coding_os.doctor.extras")
+
+
+def _normalized_hook_map(hooks: dict[str, Any] | None) -> dict[str, Any]:
+    normalized = json.loads(json.dumps(hooks or {}))
+    for groups in normalized.values():
+        for group in groups:
+            for entry in group.get("hooks", []):
+                parts = shlex.split(str(entry.get("command", "")))
+                agent_token = next((part for part in parts if part.startswith("COS_AGENT=")), "")
+                script = Path(parts[-1]).name if parts else ""
+                entry["command"] = f"{agent_token}|{script}"
+    return normalized
 
 
 # ---------------------------------------------------------------------------
@@ -129,13 +143,39 @@ def _check_all_installed_adapters_healthy(project: Path, report: DoctorReport) -
             for entry in subdir.rglob("*"):
                 if entry.is_symlink() and not entry.exists():
                     broken_links.append(str(entry.relative_to(project)))
-        if broken_links or empty_subdirs:
+        config_issues: list[str] = []
+        manifest_path = (
+            Path(__file__).resolve().parents[1] / "adapters" / agent_name / "adapter.yaml"
+        )
+        try:
+            manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
+            settings_file = manifest.get("settings_file")
+            template_name = manifest.get("hook_registry_output")
+            hooks_dir = manifest.get("hooks_dir")
+            if settings_file and not (project / str(settings_file)).is_file():
+                config_issues.append(f"missing {settings_file}")
+            if settings_file and template_name and hooks_dir:
+                template_path = manifest_path.parent / str(template_name)
+                installed_path = project / str(settings_file)
+                expected_text = template_path.read_text(encoding="utf-8").replace(
+                    "{{HOOKS_DIR}}", str((project / str(hooks_dir)).resolve())
+                )
+                expected_hooks = (json.loads(expected_text) or {}).get("hooks")
+                installed_hooks = (
+                    json.loads(installed_path.read_text(encoding="utf-8")) or {}
+                ).get("hooks")
+                if _normalized_hook_map(installed_hooks) != _normalized_hook_map(expected_hooks):
+                    config_issues.append(f"{settings_file} hook map is stale")
+        except (OSError, json.JSONDecodeError, yaml.YAMLError) as exc:
+            config_issues.append(f"adapter config unreadable: {exc}")
+        if broken_links or empty_subdirs or config_issues:
             unhealthy.append(
                 {
                     "agent": agent_name,
                     "broken_symlinks": broken_links[:5],
                     "broken_symlink_count": len(broken_links),
                     "missing_subdirs": empty_subdirs,
+                    "config_issues": config_issues,
                 }
             )
         else:
@@ -663,8 +703,6 @@ def _check_mcp_envelope_contract_sample(_project: Path, report: DoctorReport) ->
 # A user running `cos` from a stale path gets `ModuleNotFoundError: cli`,
 # which is exactly the failure mode caught after the src-layout migration.
 # ---------------------------------------------------------------------------
-
-import shutil
 
 
 def _check_cli_binary_health(_project: Path, report: DoctorReport) -> None:

@@ -104,6 +104,21 @@ def test_doctor_fresh_scaffold_all_pass(tmp_path: Path, agent: str) -> None:
         )
 
 
+def test_doctor_detects_stale_codex_hook_map(tmp_path: Path) -> None:
+    target = tmp_path / "proj"
+    _cos_init(target, agent="codex", template="nextjs")
+    hooks_path = target / ".codex" / "hooks.json"
+    hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
+    hooks["hooks"].pop("SessionEnd", None)
+    hooks_path.write_text(json.dumps(hooks), encoding="utf-8")
+
+    report = run_doctor(target)
+    check = next(c for c in report.checks if c.id == "adapter.all_installed_healthy")
+
+    assert check.severity == SEV_FAIL
+    assert "hook map is stale" in json.dumps(check.details)
+
+
 @pytest.mark.parametrize("agent", ["claude", "codex"])
 def test_doctor_base_template_pass(tmp_path: Path, agent: str) -> None:
     target = tmp_path / "proj"

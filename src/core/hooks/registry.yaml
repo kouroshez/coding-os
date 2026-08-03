@@ -770,6 +770,8 @@ hooks:
         matcher: ""
       - event: Stop
         matcher: ""
+      - event: SessionEnd
+        matcher: ""
 
   - id: warn-mcp-down
     script: warn-mcp-down.sh
