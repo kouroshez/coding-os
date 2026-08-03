@@ -394,12 +394,16 @@ def hub_presets() -> dict:
         registry = load_preset_registry(TEMPLATES_DIR, known_stacks=known)
     except Exception as exc:
         return _err("unavailable", f"preset registry unavailable: {exc}", status=503)
+    templates_root = TEMPLATES_DIR.resolve()
     presets = [
         {
             "id": p.id,
             "label": p.label,
             "description": p.description,
             "stacks": list(p.stacks),
+            "provenance": (
+                "core" if p.source_path.resolve().is_relative_to(templates_root) else "user"
+            ),
         }
         for p in sorted(registry.values(), key=lambda p: p.id)
     ]

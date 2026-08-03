@@ -95,7 +95,10 @@ composing stacks by hand. Data model:
   relocation, composition, and every derived artifact behave exactly as if
   the stacks were passed by hand. Discovery: `cos list-stacks` prints a
   Presets section (and a `presets` key in `--format json`);
-  the hub exposes `GET /api/hub/presets`.
+  the hub exposes `GET /api/hub/presets` — each entry carries
+  `provenance: core|user` (user presets come from `~/.coding-os/presets/`
+  and are badged "yours" in the composer so they never masquerade as
+  shipped compositions).
 
 ## Merge preview + conflict surfacing (TASK-356)
 

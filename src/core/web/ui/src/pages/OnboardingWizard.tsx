@@ -20,7 +20,10 @@ import { slugifyProjectName } from './HubHome';
  *          host several adapters (agents is a list — hub.py::_resolve_agents).
  */
 
-interface PresetItem { id: string; label: string; description: string; stacks: string[] }
+interface PresetItem {
+  id: string; label: string; description: string; stacks: string[];
+  provenance?: 'core' | 'user';
+}
 interface StackItem { id: string; label: string; category: string; language: string }
 interface AdapterItem { id: string; label: string }
 interface ModuleItem { id: string; label: string; kernel: boolean; depends_on: string[] }
@@ -553,13 +556,29 @@ export default function OnboardingWizard({
                             : 'border-[var(--cos-border)] bg-[var(--cos-panel)]/50 hover:border-[var(--accent)]/60',
                         ].join(' ')}
                       >
-                        <div className="text-sm font-semibold text-[var(--cos-text)]">{p.label}</div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-semibold text-[var(--cos-text)]">{p.label}</span>
+                          {p.provenance === 'user' && (
+                            <span
+                              title="Authored by you (cos preset create) — not shipped with coding-os."
+                              className="rounded bg-[var(--cos-bg)]/60 px-1.5 py-px text-[9px] font-medium uppercase tracking-wide text-[var(--cos-faint)]"
+                            >
+                              yours
+                            </span>
+                          )}
+                        </div>
                         <div className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-[var(--cos-muted)]">{p.description}</div>
                         <div className="mt-1.5 font-mono text-[10px] text-[var(--accent)]">{p.stacks.join(' + ')}</div>
                       </button>
                     </li>
                   ))}
                 </ul>
+                {state.preset === '' && (
+                  <p className="text-[11px] leading-snug text-[var(--cos-muted)]">
+                    Pick a preset to continue — or switch to “Compose my own” to select stacks
+                    yourself (selecting none gives a base-only project).
+                  </p>
+                )}
               </div>
             ) : (
               <div className="space-y-3">

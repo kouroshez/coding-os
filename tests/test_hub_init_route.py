@@ -64,8 +64,10 @@ class TestPresetsEndpoint:
         assert data["count"] == len(data["presets"]) > 0
         by_id = {p["id"]: p for p in data["presets"]}
         assert by_id["nextjs-fastapi"]["stacks"] == ["nextjs", "fastapi"]
+        assert by_id["nextjs-fastapi"]["provenance"] == "core"
         for p in data["presets"]:
             assert p["label"] and p["id"] and p["stacks"]
+            assert p["provenance"] in {"core", "user"}
 
 
 class TestSkillCatalogEndpoints:

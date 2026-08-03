@@ -15,6 +15,14 @@ const FIXTURES: Record<string, unknown> = {
         label: 'Next.js + FastAPI full-stack',
         description: 'TS frontend + Python API',
         stacks: ['nextjs', 'fastapi'],
+        provenance: 'core',
+      },
+      {
+        id: 'my-combo',
+        label: 'My Combo',
+        description: 'hand-authored preset',
+        stacks: ['nextjs'],
+        provenance: 'user',
       },
     ],
   },
@@ -134,6 +142,17 @@ describe('Composer (TASK-419)', () => {
     fireEvent.click(screen.getByText('Next.js + FastAPI full-stack'));
     // live validate fires on a debounce; VALIDATE_OK has valid: true
     await waitFor(() => expect(createBtn()).toBeEnabled());
+  });
+
+  it('marks user-authored presets with a badge and hints until a preset is picked', async () => {
+    renderComposer();
+    // guidance hint shows while nothing is selected, clears on pick
+    expect(screen.getByText(/Pick a preset to continue/)).toBeInTheDocument();
+    // only the user-authored preset carries the provenance badge
+    expect(screen.getByText('yours')).toBeInTheDocument();
+    expect(screen.getByText('My Combo')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Next.js + FastAPI full-stack'));
+    await waitFor(() => expect(screen.queryByText(/Pick a preset to continue/)).toBeNull());
   });
 
   it('shows a live preview (swimlanes, agents) from validate-init', async () => {
