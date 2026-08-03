@@ -112,26 +112,65 @@ Contract:
 
 The SPA is organized into two nested hubs, each served at a global path and a
 `/p/:slug/` project-scoped path. Legacy flat routes (`/dashboard`, `/board`,
-`/search`, `/doctor`, `/logs`, `/observability`, `/sessions`, `/audits`,
+`/search`, `/doctor`, `/logs`, `/observability`, `/sessions`,
 `/settings`) redirect into the hubs (see `App.tsx`).
 
 | Route | Component | Backend endpoints |
 |---|---|---|
 | `/` | `HubHome` | `/api/hub/*` |
-| `/workspace` · `/p/:slug/workspace` → `chat` / `board` / `search` | `WorkspacePage` → `ChatLanding` / `CosBoardPage` / `SearchPage` | cognition+board · `/api/cognition/*` · `/api/board/*` · `/api/search/*` |
-| `/diagnostics` · `/p/:slug/diagnostics` → `overview` / `doctor` / `logs` / `observability` / `sessions` / `audits` / `memory` / `settings` | `DiagnosticsPage` → `DashboardPage` (Overview) / `DoctorPage` / `LogsPage` / `ObservabilityPage` / `SessionsPage` / `AuditsPage` / `MemoryPage` / `SettingsPage` | telemetry (cost/board/traces/agents) · `/api/health` + `/api/health/db` · `/api/logs/*` · `/api/hooks/*` + `/api/observability/*` · `/api/sessions/*` · `/api/audits/*` · `/api/settings` |
+| `/workspace` · `/p/:slug/workspace` → `chat` / `board` / `search` / `memory` | `WorkspacePage` → `ChatLanding` / `CosBoardPage` / `SearchPage` / `MemoryPage` | cognition+board · `/api/cognition/*` · `/api/board/*` · `/api/search/*` · `/api/patterns/*` |
+| `/diagnostics` · `/p/:slug/diagnostics` → `overview` / `doctor` / `logs` / `observability` / `sessions` | `DiagnosticsPage` → `DashboardPage` (Overview) / `DoctorPage` / `LogsPage` / `ObservabilityPage` / `SessionsPage` | telemetry (cost/board/traces/agents) · `/api/health` + `/api/health/db` · `/api/logs/*` · `/api/hooks/*` + `/api/observability/*` · `/api/sessions/*` |
+| `/p/:slug/config` → `stacks` / `skills` / `mcp` / `adapters` / `hooks` / `modules` / `git` / `settings` | `ConfigPage` (Settings tab embeds the hub-level settings form) | `/api/config/*` · `/api/settings` |
+| `/p/:slug/graph[/:rootUid]` | `GraphPage` | `/api/graph/*` |
+| `/p/:slug/cognition[/:sessionId]` | `CognitionPage` | `/api/cognition/*` |
 
 The chat-first landing replaced the Mission-Control dashboard at `/workspace`;
 the dashboard's telemetry widgets were re-homed to **Diagnostics › Overview**
 (`DashboardPage` now serves that route) and the orphan `/workspace/dashboard`
 route was removed (TASK-250). Legacy `…/dashboard` deep-links redirect to
 Diagnostics › Overview; a bare `/p/:slug` redirects to the chat landing.
-| `/p/:slug/graph[/:rootUid]` | `GraphPage` | `/api/graph/*` |
-| `/p/:slug/cognition[/:sessionId]` | `CognitionPage` | `/api/cognition/*` |
 
 Both hubs render at a global (unscoped) path and a `/p/:slug/` project-scoped
 path; **Graph** and **Cognition** are project-scoped only. The Doctor page reads
 `/api/health` + `/api/health/db` (per-uvicorn) and parses Prometheus client-side.
+
+### Pre-release IA consolidation (TASK-864)
+
+One fact, one surface — the release audit collapsed every duplicated or
+misplaced tab:
+
+- **Settings lives in Config** (`?tab=settings`), not Diagnostics: hub-level
+  knobs (budget cap, trace rotation, model routing, auth) are configuration,
+  not telemetry. `/diagnostics/settings` and legacy `/settings` redirect there.
+- **Memory lives in Workspace** (`/workspace/memory`): lessons the agent
+  learned are project knowledge the operator acts on — a sibling of Board and
+  Search, not a diagnostic. `/diagnostics/memory` redirects there.
+- **Cognition left the primary nav.** Its Live view duplicated Diagnostics ›
+  Observability › Hook stream (same SSE tail); Traces/Roles only populate when
+  the SDK dispatch path runs. All `/p/:slug/cognition…` routes stay routable —
+  Diagnostics › Sessions rows and HubHome live-agent cards deep-link into them.
+- **The Workspace Design tab was removed** (a coming-soon placeholder; the
+  `design` module id in `subsystems.yaml` is unaffected). Marketplace stays as
+  the single roadmap anchor because Config › MCP copy points at it.
+
+### Graph view modes + budget (what the toolbar means)
+
+The Graph toolbar's mode tabs map 1:1 to `/api/graph/export?mode=…`:
+
+| Tab | Wire value | Meaning |
+|---|---|---|
+| Auto | `auto` | balanced blend of containment + dependency edges (server `_AUTO_BLEND_BUCKETS`) |
+| Containment | `containment` | folder → file → class → method spine, dagre tree layout |
+| Dependencies | `dependencies` | imports / calls / inherits / handles_* edges, force layout |
+| Communities | `processes` | Louvain community detection — one synthetic header node per subsystem plus its top member hubs. Requires `networkx` (a base dependency); an empty result renders an explicit "no communities computed" state, never a silent blank canvas. |
+
+The overview **budget** control maps to `max_nodes`: low = 200, med = 800,
+high = 3000, max = 20 000. The badge under the canvas reports
+`shown / fetched` plus a truncation warning sourced from the server's
+`meta.result_truncated` — at `max` the full noise-filtered blend fits the
+budget, so the absence of the badge genuinely means "complete view", while
+the raw graph (including doc-heading / frontmatter / import noise nodes that
+the blend deliberately excludes) is far larger.
 
 ### First screen — `HubHome` with zero projects
 

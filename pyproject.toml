@@ -30,6 +30,11 @@ dependencies = [
     # leaving a half-broken contract.
     "claude-agent-sdk>=0.2.110,<0.3.0",
     "anyio>=4.0.0",
+    # graph_os community detection (Graph tab "Communities" view +
+    # cos_graph_communities). Pure-python and small; without it in core the
+    # hub's tool venv silently renders an empty Communities canvas — the
+    # detector import-guards networkx and returns [] (TASK-864).
+    "networkx>=3.0",
 ]
 authors = [
     { name = "Kourosh Ebrahimzadeh", email = "thisiskourosh@gmail.com" },
