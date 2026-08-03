@@ -288,6 +288,7 @@ def _prompt_templates() -> tuple[str, ...]:
             available.append(profile.id)
             click.echo(f"  {len(available)}. {profile.id:17s} — {profile.label}")
     click.echo("  0. none")
+    click.echo("  (ready-made compositions: cos init --preset <id> — list with `cos list-stacks`)")
     raw = click.prompt(
         "Select stacks (numbers, names, or a language — e.g. '1,4', 'django,nextjs', 'go')",
         default="0",
