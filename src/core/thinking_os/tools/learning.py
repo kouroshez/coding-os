@@ -1822,11 +1822,20 @@ def learn_narrative(
             (what_failed, what_worked, key_insight, history_id),
         )
 
-    # Get task domain for the pattern
+    # Get task domain for the pattern; a still-open task has no outcome row
+    # yet, so fall back to the board's tasks table before giving up.
     task_row = conn.execute(
         "SELECT domain, complexity FROM task_outcomes WHERE task_id = ?", (task_id,)
     ).fetchone()
     domain = task_row["domain"] if task_row else None
+    if not domain:
+        try:
+            board_row = conn.execute(
+                "SELECT domain FROM tasks WHERE task_id = ?", (task_id,)
+            ).fetchone()
+            domain = board_row[0] if board_row and board_row[0] else None
+        except sqlite3.Error as exc:
+            logger.debug("narrative domain fallback lookup failed: %s", exc)
 
     # Build concepts from narrative text
     words = set()
@@ -1980,6 +1989,12 @@ def _format_narrative_markdown(
     task_file_name: str | None = None,
 ) -> str:
     date_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    # The docs-lint hard gate requires `domain:[A-Z_]+` in the header; XXX is
+    # the canonical unknown-placeholder in its enum ("n/a" fails the regex).
+    # The body's **Domain:** line stays human-readable.
+    domain_header = (domain or "").strip().upper().replace("-", "_")
+    if not re.fullmatch(r"[A-Z_]+", domain_header):
+        domain_header = "XXX"
     domain_line = domain or "n/a"
     failed_block = what_failed.strip() or "_(not recorded)_"
     worked_block = what_worked.strip() or "_(not recorded)_"
@@ -1991,7 +2006,7 @@ def _format_narrative_markdown(
         else f"**Source task:** {task_id}\n\n"
     )
     return (
-        f"<!-- domain:{domain_line} | layer:reference | ssot:false | "
+        f"<!-- domain:{domain_header} | layer:reference | ssot:false | "
         f"source:outcome_history#{history_id} | updated:{date_iso} -->\n"
         f"# {task_id}: {key_insight}\n\n"
         f"**Date:** {date_iso}  \n"

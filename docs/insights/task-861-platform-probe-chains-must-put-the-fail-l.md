@@ -1,4 +1,4 @@
-<!-- domain:n/a | layer:reference | ssot:false | source:outcome_history#943 | updated:2026-08-03 -->
+<!-- domain:INFRA | layer:reference | ssot:false | source:outcome_history#943 | updated:2026-08-03 -->
 # TASK-861: Platform-probe chains must put the FAIL-LOUD variant first: a probe that "succeeds with garbage" (GNU stat -f %m) poisons every fallback chain that trusts exit codes. When a CI failure is Linux-only, reproduce in a container with CI-faithful dependency resolution before touching code — three of seven "Linux" failures were actually fresh-latest-deps or env-tool differences, not the OS.
 
 **Date:** 2026-08-03  
