@@ -5,13 +5,13 @@ swimlane: adapters
 kind: feature
 epic: null
 labels: [codex, adapter, openai-sdk, parity, research, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 3d
 created: 2026-08-03
 started: 2026-08-03
-completed: null
-agent_session: ses-claude-20260527-151803-0b9f
+completed: 2026-08-03
+agent_session: ses-claude-20260803-182242-1f78
 depends_on: []
 blocked_by: []
 references: []
@@ -43,3 +43,5 @@ references: []
 
 ## Work Log
 - 2026-08-03 [claude]: Refreshed Codex adapter to openai-codex 0.144.4; added backend-aware SDK availability, pinned-runtime behavior,…
+- 2026-08-03 [claude]: committed 2abec02a · 11 files
+- 2026-08-03 [claude]: Status transitioned to complete via cos task-done.
