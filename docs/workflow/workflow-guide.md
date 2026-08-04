@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:reference | ssot:true | updated:2026-05-25 -->
+<!-- domain:DOCS | layer:reference | ssot:true | updated:2026-08-04 -->
 # Workflow Guide
 
 Purpose: Quick-start guide for new contributors and AI agents joining the project.
@@ -10,10 +10,11 @@ Read next: `../governance/agent-workflow.md`, `../governance/task-lifecycle.md`
 
 ## TL;DR
 
-> **How much of this applies to you?** coding-os is modular — every subsystem
-> below (docs, board, graph, memory, cognition) is a module you can disable, and
-> gates only fire for enabled modules. A `--profile lite` install keeps just the
-> kernel; see README § Modular by design.
+> **How much of this applies to you?** coding-os is modular. This guide is
+> rendered for the subsystem modules this project enabled at create time —
+> `cos module list` shows the current set, `cos module enable|disable <id>`
+> changes it. Disabling one takes its tools, commands, and hooks with it; the
+> kernel's safety and task-hygiene gates stay on either way.
 
 This project uses **coding-os** — a documentation-driven workflow with SSOT files,
 a Scrumban task board, and AI-agent enforcement hooks. Work flows through tasks:

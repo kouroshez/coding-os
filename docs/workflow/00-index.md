@@ -10,6 +10,6 @@ Read next: any of the entries below.
 
 ### Reference (1)
 
-- [Workflow Guide](workflow-guide.md) — `ssot:true` · updated 2026-05-25
+- [Workflow Guide](workflow-guide.md) — `ssot:true` · updated 2026-08-04
 
 <!-- END auto-index -->
