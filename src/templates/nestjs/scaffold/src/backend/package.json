@@ -23,6 +23,6 @@
     "@nestjs/testing": "^10.3.0",
     "supertest": "^7.0.0",
     "typescript": "^5.4.0",
-    "vitest": "^2.0.0"
+    "vitest": "^3.2.6"
   }
 }

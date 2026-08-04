@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "next": ">=14",
+    "next": ">=15.5.21",
     "react": ">=18",
     "react-dom": ">=18"
   },
@@ -23,6 +23,6 @@
     "eslint": ">=9",
     "typescript": ">=5.4",
     "typescript-eslint": ">=8",
-    "vitest": ">=2"
+    "vitest": ">=3.2.6"
   }
 }

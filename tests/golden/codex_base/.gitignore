@@ -31,3 +31,6 @@ out/
 target/
 coverage/
 .cache/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/

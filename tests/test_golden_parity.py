@@ -40,6 +40,11 @@ IGNORED_PREFIXES = (
     "node_modules/",
     ".venv/",
     ".build/",
+    # Tool caches a scaffold-time lint/format pass may leave behind; gitignored
+    # in the scaffold, so they never reach the committed golden tree.
+    ".ruff_cache/",
+    ".pytest_cache/",
+    ".mypy_cache/",
     # The whole .coding-os/ project-state dir is gitignored (DBs, session
     # markers, the wall-clock core-version.json, plus deterministic config and
     # the local stack copy under .coding-os/src/). None of it lands in the

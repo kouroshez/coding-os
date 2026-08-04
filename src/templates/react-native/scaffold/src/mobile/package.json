@@ -18,6 +18,6 @@
     "eslint": ">=9",
     "typescript": ">=5.4",
     "typescript-eslint": ">=8",
-    "vitest": ">=2"
+    "vitest": ">=3.2.6"
   }
 }
