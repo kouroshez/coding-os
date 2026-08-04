@@ -277,7 +277,9 @@ def test_codex_sessionend_closes_payload_session_presence(tmp_path: Path) -> Non
     )
     assert ended.returncode == 0, ended.stderr
 
-    records = [json.loads(path.read_text()) for path in (state / "codex" / "sessions").glob("*.json")]
+    records = [
+        json.loads(path.read_text()) for path in (state / "codex" / "sessions").glob("*.json")
+    ]
     matching = [record for record in records if record.get("sdk_uuid") == sdk_id]
     assert len(matching) == 1
     assert matching[0]["ended_at"] is not None

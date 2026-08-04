@@ -46,7 +46,9 @@ def providers() -> tuple[ChatProvider, ...]:
         if not provider_path.is_file():
             logger.warning("chat provider missing for %s: %s", agent, provider_path)
             continue
-        spec = importlib.util.spec_from_file_location(f"coding_os_chat_provider_{agent}", provider_path)
+        spec = importlib.util.spec_from_file_location(
+            f"coding_os_chat_provider_{agent}", provider_path
+        )
         if spec is None or spec.loader is None:
             continue
         module = importlib.util.module_from_spec(spec)

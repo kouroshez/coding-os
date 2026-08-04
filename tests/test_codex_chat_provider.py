@@ -43,7 +43,11 @@ def _thread():
         source=Wrapped("vscode"),
         status=Wrapped("active"),
         model_provider="openai",
-        turns=[SimpleNamespace(items=[Wrapped(user), Wrapped(reasoning), Wrapped(command), Wrapped(assistant)])],
+        turns=[
+            SimpleNamespace(
+                items=[Wrapped(user), Wrapped(reasoning), Wrapped(command), Wrapped(assistant)]
+            )
+        ],
     )
 
 
