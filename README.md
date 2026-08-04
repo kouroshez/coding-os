@@ -3,7 +3,7 @@
 [![release](https://img.shields.io/badge/release-v0.3.2)](https://github.com/kouroshez/coding-os/releases) <!-- x-release-please-version -->
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
 [![python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](./pyproject.toml)
-[![tests](https://img.shields.io/badge/tests-passing-green)](./tests/)
+[![CI](https://github.com/kouroshez/coding-os/actions/workflows/ci.yml/badge.svg)](https://github.com/kouroshez/coding-os/actions/workflows/ci.yml)
 [![cli](https://img.shields.io/badge/cli-cos-informational)](./docs/architecture/meta-project.md)
 
 > **Coding OS — the cognitive operating system that gives AI agents memory, structure, and discipline.**
