@@ -42,3 +42,4 @@ references: []
 - 2026-08-03 [claude]: commit d7f041431b — feat(hub): move Overview into Workspace and restore the Design tab
 - 2026-08-03 [claude]: Restored DesignComingSoon page+test from git history (0c6e6656^); Workspace tabs now…
 - 2026-08-03 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-04 [claude]: committed 12dd1ca9 · 1 file
