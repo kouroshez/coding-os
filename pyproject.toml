@@ -37,7 +37,7 @@ dependencies = [
     "networkx>=3.0",
 ]
 authors = [
-    { name = "Kourosh Ebrahimzadeh", email = "thisiskourosh@gmail.com" },
+    { name = "Kourosh Ebrahimzadeh", email = "info@coding-os.dev" },
 ]
 license = "Apache-2.0"
 license-files = ["LICENSE"]

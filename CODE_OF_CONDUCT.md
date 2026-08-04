@@ -30,7 +30,7 @@ Instances of abusive, harassing, or otherwise unacceptable behavior
 may be reported to the project maintainers responsible for
 enforcement at:
 
-- **Email:** `conduct@coding-os.dev`
+- **Email:** `info@coding-os.dev`
 - Or via a private report to a maintainer.
 
 All complaints will be reviewed and investigated promptly and fairly.

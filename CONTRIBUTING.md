@@ -28,7 +28,7 @@ adapters, or templates to the project.
 
 This project follows the [Contributor Covenant 2.1](./CODE_OF_CONDUCT.md).
 By participating you agree to uphold it. Report unacceptable behavior
-to `conduct@coding-os.dev`.
+to `info@coding-os.dev`.
 
 ## Ways to Contribute
 

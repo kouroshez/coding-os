@@ -20,7 +20,7 @@ Instead, report them privately via one of these channels:
 1. **GitHub Security Advisories (preferred):** open a draft advisory at
    <https://github.com/kouroshez/coding-os/security/advisories/new>.
    This stays private until coordinated disclosure.
-2. **Email:** `security@coding-os.dev` (PGP key fingerprint published
+2. **Email:** `info@coding-os.dev` (PGP key fingerprint published
    in the repository's `.well-known/security.txt` once available).
 
 When reporting, please include:
