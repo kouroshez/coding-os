@@ -43,3 +43,15 @@ references:
 - 2026-05-15 [claude]: pyproject.toml testpaths extended with src/core/logging_os/tests so future `uv run pytest` auto-discovers. Graph reindexed for src/core/logging_os/ (11 files) + src/core/hooks/_helpers/ (17 files).
 - 2026-05-15 [claude]: `make verify-hooks` clean (bash -n + shellcheck warning level). Existing hooks (enforce-doc-anchor.sh, cos_log_hook) regression-tested — no break.
 - 2026-05-15 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit workflow-guide.md
+- 2026-08-04 [claude]: Edit dor_check3.py
+- 2026-08-04 [claude]: Edit workflow-guide.md
+- 2026-08-04 [claude]: Edit agile-scrum-guide.md
+- 2026-08-04 [claude]: Edit agile-scrum-guide.md
+- 2026-08-04 [claude]: Edit agile-scrum-guide.md
+- 2026-08-04 [claude]: Edit main.py
+- 2026-08-04 [claude]: Edit test_cli.py
+- 2026-08-04 [claude]: Edit workflow-guide.md

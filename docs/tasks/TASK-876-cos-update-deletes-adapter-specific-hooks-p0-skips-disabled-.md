@@ -34,3 +34,4 @@ references: []
 - Secondary (same area, may split): wheel omits core/scripts/extract_disabled_*.py (pyproject package-data); per-agent manifest overwrite; dead --yes flag; site-packages/src legacy paths in 14 CLI files.
 
 ## Work Log
+- 2026-08-04 [claude]: P0 CONFIRMED by execution on a fresh consumer project (TASK-884 review): cos init → doctor 59 PASS/0 FAIL; then cos…

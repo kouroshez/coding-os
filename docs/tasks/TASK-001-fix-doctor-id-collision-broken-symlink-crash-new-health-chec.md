@@ -174,3 +174,9 @@ Actual: ID collision, potential crash, silent WARN, gaps in coverage
 - 2026-07-12 [claude]: Edit page.tsx
 - 2026-07-12 [claude]: Edit page.tsx
 - 2026-07-12 [claude]: Edit docs-search.tsx
+- 2026-08-04 [claude]: Edit dor_check.py
+- 2026-08-04 [claude]: Edit dor_check.py
+- 2026-08-04 [claude]: Edit dor_check2.py
+- 2026-08-04 [claude]: Edit main.py
+- 2026-08-04 [claude]: Edit main.py
+- 2026-08-04 [claude]: Edit check_quickstart.py
