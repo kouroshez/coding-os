@@ -63,3 +63,4 @@ README/docs lead with the modular story (use only what you need — e.g. core+gr
 - 2026-08-04 [claude]: Edit README.md
 - 2026-08-04 [claude]: Ten review agents landed after the fix pass; folded in what was still live — hub-extras missing from the core profile…
 - 2026-08-04 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-04 [claude]: committed 358ffe99 · 1 file
