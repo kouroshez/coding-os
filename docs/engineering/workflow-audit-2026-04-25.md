@@ -1,6 +1,10 @@
 <!-- domain:CORE | layer:engineering | ssot:true | updated:2026-04-25 -->
 # Workflow Audit — V1 Flowchart vs Current Source
 
+> **Historical snapshot (2026-04-25) — superseded on adapter coverage.**
+> The Codex figures below (21/62, Bash-only, Codex.app 0) predate the
+> 2026-08-03 parity work; the current SSOT is [adapter-parity.md](adapter-parity.md).
+
 > P: Gap analysis of the original workflow flowchart against the live source as of late April 2026, ranked by remediation priority.
 > R: Updating the flowchart, deciding which gaps deserve dedicated tasks.
 > S: Day-to-day implementation work — the audit is historical and informational.

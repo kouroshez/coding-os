@@ -41,7 +41,7 @@ See src/core/rules/test-discipline.md for the matrix.
 - [ ] Matrix-targeted tests pass locally.
 - [ ] `make verify-hooks` passes (if `src/core/hooks/` touched).
 - [ ] `make docs-lint` passes (if `docs/**/*.md` touched).
-- [ ] CHANGELOG entry added under `## [Unreleased]` for user-visible changes.
+- [ ] `CHANGELOG.md` NOT edited (release-please generates it from commit titles).
 - [ ] New MCP tool wrapped with `@safe_tool` returning `ok / fail` (Rule 13).
 - [ ] New hook registered in `src/core/hooks/registry.yaml` + templates regenerated.
 - [ ] No secrets, no absolute developer paths, no client-specific identifiers.

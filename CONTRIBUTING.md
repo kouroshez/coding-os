@@ -34,8 +34,8 @@ to `conduct@coding-os.dev`.
 
 | You want to…                       | Start here                                      |
 | ---------------------------------- | ----------------------------------------------- |
-| Report a bug                       | [Bug report template](.github/ISSUE_TEMPLATE/bug.yml) |
-| Request a feature                  | [Feature request template](.github/ISSUE_TEMPLATE/feature.yml) |
+| Report a bug                       | [Bug report template](.github/ISSUE_TEMPLATE/bug_report.yml) |
+| Request a feature                  | [Feature request template](.github/ISSUE_TEMPLATE/feature_request.yml) |
 | Report a security vulnerability    | [SECURITY.md](./SECURITY.md) (privately, please) |
 | Improve docs                       | Edit any file under `docs/` and open a PR       |
 | Add a stack template               | See `docs/playbooks/template-authoring.md`      |
@@ -101,7 +101,7 @@ cd src/core/web/ui && npm install     # optional, only for Hub UI work
 Smoke test:
 
 ```bash
-cos --version                         # should print cos 0.3.0
+cos --version                         # should print coding-os, version X.Y.Z
 cos doctor                            # should report no critical issues
 uv run --extra rag pytest src/core/thinking_os/tests/ -q   # ~3 min, full thinking_os suite
 ```
@@ -151,9 +151,10 @@ Practically:
    matching issue — it's easier to align on scope upfront.
 2. **Branch.** Naming: `<kind>/<short-slug>` — e.g. `feat/add-redis-template`,
    `fix/hook-deadlock`. Branch from `main`. (Plain-git humans branch freely.
-   If you contribute *through an AI agent session*, export
-   `COS_GIT_WORKFLOW=pr` first — the repo defaults to trunk-based and the
-   `branch-guard` hook otherwise blocks branch creation in an agent shell.)
+   If you contribute *through an AI agent session*, create the branch
+   yourself in a plain terminal first — the repo defaults to trunk-based
+   and the `branch-guard` hook blocks branch *creation* inside an agent
+   shell; committing on an existing branch works normally.)
 3. **Make focused changes.** One PR = one concern. Refactors get
    their own PR even if they touch the same area.
 4. **Run the matrix-targeted test for what changed.** See
@@ -245,7 +246,8 @@ Before requesting review, confirm:
 - [ ] Matrix-targeted tests pass locally.
 - [ ] `make verify-hooks` passes if you touched `src/core/hooks/`.
 - [ ] `make docs-lint` passes if you touched `docs/**/*.md`.
-- [ ] CHANGELOG entry added under `## [Unreleased]` for user-visible changes.
+- [ ] Do **not** edit `CHANGELOG.md` — release-please generates it from
+      your Conventional Commit titles ([release-process.md](docs/governance/release-process.md)).
 - [ ] New public symbol → has at least the one-line docstring required
       by Rule 12.
 - [ ] New MCP tool → wrapped with `@safe_tool` returning `ok/fail`
@@ -300,11 +302,12 @@ If you're reviewing:
 
 ## Release Process
 
-Releases are cut via [release-please](https://github.com/google-github-actions/release-please-action),
+Releases are cut via [release-please](https://github.com/googleapis/release-please),
 which reads Conventional Commits and prepares a CHANGELOG + version
 bump PR automatically. Maintainer's only manual step is to merge that
 PR; tagging + GitHub release + PyPI publish happen via the
-`.github/workflows/release.yml` workflow.
+`.github/workflows/release-please.yml` workflow. Full model:
+[docs/governance/release-process.md](docs/governance/release-process.md).
 
 If you need a fix released sooner than the next scheduled minor, ping
 a maintainer on the PR or the corresponding issue.

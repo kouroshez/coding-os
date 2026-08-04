@@ -6,43 +6,43 @@
 # automatically on any PR touching the matching files.
 
 # Default owner — everything not matched below
-*                                @kouroshebra
+*                                @kouroshez
 
 # ---- Core kernel (agent-agnostic) ----
-/src/core/thinking_os/           @kouroshebra
-/src/core/graph_os/              @kouroshebra
-/src/core/board_os/              @kouroshebra
-/src/core/web/                   @kouroshebra
-/src/core/hooks/                 @kouroshebra
-/src/core/rules/                 @kouroshebra
-/src/core/skills/                @kouroshebra
+/src/core/thinking_os/           @kouroshez
+/src/core/graph_os/              @kouroshez
+/src/core/board_os/              @kouroshez
+/src/core/web/                   @kouroshez
+/src/core/hooks/                 @kouroshez
+/src/core/rules/                 @kouroshez
+/src/core/skills/                @kouroshez
 
 # ---- Hub UI (React + TypeScript) ----
-/src/core/web/ui/                @kouroshebra
+/src/core/web/ui/                @kouroshez
 
 # ---- Adapters ----
-/src/adapters/claude/            @kouroshebra
-/src/adapters/codex/             @kouroshebra
+/src/adapters/claude/            @kouroshez
+/src/adapters/codex/             @kouroshez
 
 # ---- Templates (per-stack scaffolds) ----
-/src/templates/                  @kouroshebra
+/src/templates/                  @kouroshez
 
 # ---- CLI ----
-/src/cli/                        @kouroshebra
+/src/cli/                        @kouroshez
 
 # ---- CI / build / release ----
-/.github/                        @kouroshebra
-/pyproject.toml                  @kouroshebra
-/Makefile                        @kouroshebra
-/.pre-commit-config.yaml         @kouroshebra
+/.github/                        @kouroshez
+/pyproject.toml                  @kouroshez
+/Makefile                        @kouroshez
+/.pre-commit-config.yaml         @kouroshez
 
 # ---- Governance docs (highest care) ----
-/docs/governance/                @kouroshebra
-/docs/architecture/              @kouroshebra
-/AGENTS.md                       @kouroshebra
-/CLAUDE.md                       @kouroshebra
-/LICENSE                         @kouroshebra
-/SECURITY.md                     @kouroshebra
-/CHANGELOG.md                    @kouroshebra
-/CONTRIBUTING.md                 @kouroshebra
-/CODE_OF_CONDUCT.md              @kouroshebra
+/docs/governance/                @kouroshez
+/docs/architecture/              @kouroshez
+/AGENTS.md                       @kouroshez
+/CLAUDE.md                       @kouroshez
+/LICENSE                         @kouroshez
+/SECURITY.md                     @kouroshez
+/CHANGELOG.md                    @kouroshez
+/CONTRIBUTING.md                 @kouroshez
+/CODE_OF_CONDUCT.md              @kouroshez

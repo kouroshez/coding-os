@@ -5,10 +5,12 @@ All notable changes to coding-os are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Pre-public development happened on a private branch and is preserved
-> locally under the `archive/full-history` branch and the tag
-> `archive/pre-public-2026-05-20`. The public history starts at the
-> [0.3.0](#030--2026-05-20) entry below.
+> Development began in April 2026 and the full history is preserved in
+> this repository. Release automation (release-please) starts at the
+> [0.3.0](#030--2026-05-20) baseline below; entries before the first
+> tagged release were written by hand and describe the project *as it
+> was on that date* — the current adapter/parity state lives in
+> [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
 ## [Unreleased]
 
@@ -82,6 +84,9 @@ inherits the same skeleton (own hooks, own MCP, own `AGENTS.md`).
   skips registry entries the agent's CLI can't fire.
 - Claude Code: 58/62 hooks fire. Cursor: 59/62. Codex CLI: 21/62
   (Bash-only). Codex GUI: 0/62 (`.codex/hooks.json` ignored upstream).
+  *(Historical — the Cursor adapter was removed 2026-06-15 and Codex
+  reached full hook parity 2026-08-03; current matrix:
+  [adapter-parity.md](docs/engineering/adapter-parity.md).)*
 
 #### Performance
 
@@ -108,7 +113,8 @@ inherits the same skeleton (own hooks, own MCP, own `AGENTS.md`).
   fixtures, and the E2E verification script.
 - Developer-local path defaults in `verify_phase_c_e2e.py`; the script
   now requires `COS_CORPUS_PATH` explicitly.
-- Pre-public development history (preserved locally — see top of file).
+- Internal experiment artifacts predating the 0.3.0 baseline (see note
+  at top of file).
 
 ### Acknowledgements
 
@@ -118,5 +124,5 @@ inherits the same skeleton (own hooks, own MCP, own `AGENTS.md`).
 - The graph_os layer draws on Roy Fielding's REST dissertation,
   tree-sitter, and the GraphRAG literature.
 
-[Unreleased]: https://github.com/kouroshebra/coding-os/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/kouroshebra/coding-os/releases/tag/v0.3.0
+[Unreleased]: https://github.com/kouroshez/coding-os/commits/main
+[0.3.0]: https://github.com/kouroshez/coding-os/tree/c4166d9d39b9f4c781883aa8bf7f51ddbc33b403

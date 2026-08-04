@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Question / discussion
-    url: https://github.com/kouroshebra/coding-os/discussions
+    url: https://github.com/kouroshez/coding-os/discussions
     about: Ask a question, share an idea, or discuss the workflow — not a bug.
   - name: Security vulnerability
-    url: https://github.com/kouroshebra/coding-os/security/advisories/new
+    url: https://github.com/kouroshez/coding-os/security/advisories/new
     about: Report a vulnerability privately. Do NOT open a public issue.

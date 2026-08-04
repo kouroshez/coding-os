@@ -10,6 +10,8 @@
 > Teaches AI agents *how to think* (thinking_os) and *how to code*
 > (workflow, hooks, skills, rules) — agent-agnostic so the same kernel
 > serves Claude Code and OpenAI Codex without rewriting.
+>
+> Website: <https://coding-os.dev> · Community: <https://community.coding-os.dev>
 
 ---
 
@@ -51,9 +53,9 @@ cd coding-os
 uv tool install --editable .
 
 # 2. Verify
-cos --version                          # → cos 0.3.0
+cos --version                          # → coding-os, version X.Y.Z
 cos doctor --bootstrap                 # preflight: python/bash/git/uv/sed prerequisites
-cos doctor                             # 14-point health check (must be all-green)
+cos doctor                             # full health sweep (must be all-green)
 
 # 3. Spawn a new project, scaffolded with an agent + a stack
 #    (--agent takes several: --agent claude,codex)
@@ -201,7 +203,7 @@ src/core/  ──►  src/adapters/<agent>/  ──►  src/templates/<stack>/  
 | ---------------- | ------------------------------------------------------------------ |
 | `src/core/`      | MCP server, hooks, rules, skills — **agent-agnostic, stack-agnostic** |
 | `src/adapters/`  | Per-agent translation: `.claude/`, `.codex/` rendering             |
-| `src/templates/` | Per-stack overlays: Django, Next.js, FastAPI, Go, Go+Fiber, React Native, Python, Meta |
+| `src/templates/` | Per-stack overlays: 27 stacks — Django, Next.js, FastAPI, Laravel, Rails, Flutter, Go, Rust, … (`cos list-stacks`) |
 | `src/cli/`       | The `cos` factory CLI that composes the three layers               |
 
 Adding a new stack or a new agent is a pure YAML + Markdown change.
@@ -234,12 +236,13 @@ No Python edits required.
 A singleton FastAPI + Vite/React SPA that serves every registered
 project via `/api/p/<slug>/*`:
 
-- **Graph** — Sigma.js canvas with three views (Overview, Tree,
-  Code) + smart export + dagre layout.
-- **Board** — Scrumban (kind × swimlane × epic) with WIP enforcement.
-- **Cognition** — JSONL trace timeline + replay with audit-mode
-  guardrails.
-- **Search** — unified across memory, docs, tasks, graph.
+- **Workspace** — project overview, Scrumban board (kind × swimlane ×
+  epic, WIP enforcement), memory, cognition traces, unified search.
+- **Graph** — Sigma.js canvas with deliberate view modes + smart
+  export + dagre layout.
+- **Config** — modules, git settings, hub settings, per-project chips.
+- **Marketplace** — community skills/stacks (rolling out).
+- **Diagnostics** — health, hooks log, token-burn audit.
 
 `cos hub start` boots the hub. `cos hub status` reports health.
 Source: `src/core/web/`. UI: `src/core/web/ui/` (`npm run dev`).
@@ -255,7 +258,7 @@ coding-os/
 │   │   ├── graph_os/       # Polyglot knowledge graph (SQLite backend)
 │   │   ├── board_os/       # Scrumban task system
 │   │   ├── web/            # Hub UI + FastAPI backbone
-│   │   ├── hooks/          # 62 hook scripts (SSOT: registry.yaml)
+│   │   ├── hooks/          # Hook scripts (SSOT: registry.yaml)
 │   │   ├── rules/          # Always-active rules + auto-generated artifacts
 │   │   ├── skills/         # Universal skills
 │   │   └── scripts/        # Kernel-internal regen tooling
@@ -268,17 +271,18 @@ coding-os/
 │   │   ├── nextjs/         # Next.js + React + TypeScript + Tailwind
 │   │   ├── fastapi/        # FastAPI + Pydantic + SQLAlchemy
 │   │   ├── go/             # Go stdlib + chi router
-│   │   ├── go-fiber/       # Go + Fiber v2
+│   │   ├── go-fiber/       # Go + Fiber v3
 │   │   ├── react-native/   # React Native + Expo
 │   │   ├── python/         # Python library / CLI / MCP server
-│   │   └── meta/           # Meta-stack (for coding-os contributors)
+│   │   ├── meta/           # Meta-stack (for coding-os contributors)
+│   │   └── …               # 27 stacks total — `cos list-stacks`
 │   └── scripts/          # Maintenance + regen tooling
 ├── tests/              # cross-cutting tests
 ├── docs/               # Governance, engineering, playbooks, architecture
 └── .coding-os/         # Per-project runtime state (gitignored)
 ```
 
-## Command index (highlights · 74 `cos` subcommands total)
+## Command index (highlights · 98 `cos` subcommands total)
 
 ```
 Project lifecycle    init · adopt · setup · add-adapter · add-stack · update · materialize · materialize-file · eject
@@ -294,14 +298,14 @@ Graph (analysis)     graph-centrality · graph-ranking · graph-communities · g
 Graph (review)       graph-contracts · graph-rename-plan · graph-diff · graph-detect-changes · graph-export
 ```
 
-28 `graph-*` subcommands: **21 mirror a `cos_graph_*` MCP tool one-for-one**
+29 `graph-*` subcommands: **22 mirror a `cos_graph_*` MCP tool one-for-one**
 (same envelope — agents use the MCP tool, humans/CI use the CLI), 7 are
 build/ingest-only. A parity test (`tests/test_graph_cli_parity.py`)
 fails CI if the two surfaces ever drift again.
 
 Full catalogue with flows: [docs/architecture/meta-project.md](./docs/architecture/meta-project.md).
 
-## Slash commands (20 commands)
+## Slash commands (25 commands)
 
 The `cos` CLI above is the *factory*. Inside an agent session you also get
 **slash commands** — packaged workflows invoked by typing `/`. They ship in
@@ -310,15 +314,17 @@ available to every teammate on clone.
 
 ```
 Scrumban     /board · /daily · /retro · /task
-Cognition    /classify · /memory-search
+Cognition    /classify · /compose · /memory-search
 Quality      /verify · /review · /diagnose
-Roles (11)   /role-researcher · /role-analyst · /role-architect · /role-documenter
+Scaffolding  /new-project
+Roles (14)   /role-researcher · /role-analyst · /role-architect · /role-documenter
              /role-implementer · /role-reviewer · /role-debugger · /role-security_auditor
-             /role-deployer · /role-observer · /role-refactorer
+             /role-deployer · /role-observer · /role-refactorer · /role-onboarder
+             /role-distiller · /role-repairer
 ```
 
-The 9 workflow commands are sourced from [src/core/commands/](./src/core/commands/);
-the 11 `/role-*` commands from [src/core/thinking_os/agents/](./src/core/thinking_os/agents/)
+The 11 workflow commands are sourced from [src/core/commands/](./src/core/commands/);
+the 14 `/role-*` commands from [src/core/thinking_os/agents/](./src/core/thinking_os/agents/)
 (the semantic roles of the cognition chain). Day-to-day usage:
 [docs/workflow/workflow-guide.md](./docs/workflow/workflow-guide.md).
 
@@ -333,7 +339,7 @@ the 11 `/role-*` commands from [src/core/thinking_os/agents/](./src/core/thinkin
 | Routing      | `cos_route_model` · `cos_route_skill`                             |
 | Docs         | `cos_doc_search` · `cos_doc_header` · `cos_doc_headers_by`        |
 | Tasks        | `cos_task_search` · `cos_task_board` · `cos_task_move` (+ 13 more) |
-| Graph        | `cos_graph_query` · `cos_graph_references` · `cos_graph_impact` · `cos_graph_rename_plan` · `cos_graph_cycles` · `cos_graph_test_gap` (21 total) |
+| Graph        | `cos_graph_query` · `cos_graph_references` · `cos_graph_impact` · `cos_graph_rename_plan` · `cos_graph_cycles` · `cos_graph_test_gap` (22 total) |
 | Cognition    | `cos_analyze_task` · `cos_compose_chain` · `cos_supervise` · `cos_backtrack_log` |
 | Retrieval    | `cos_search` (memory) · `cos_doc_search` (docs) · `cos_graph_search` (code) |
 
@@ -500,7 +506,8 @@ Deep dive: [docs/engineering/graph_os-queries.md](./docs/engineering/graph_os-qu
 | Codex CLI | Full for supported Codex events ✅ | Native agent skills | ✅ | Includes Bash, Read, `apply_patch`, MCP, prompt, compact, subagent, permission, Stop, and SessionEnd hooks. |
 | Codex Desktop | Same project hook/config contract as Codex CLI ✅ | Native agent skills | ✅ | Project hooks require trust/review; Hub observability is native, while Hub interactive chat is still Claude-only. |
 
-Audit + reasoning: [docs/engineering/workflow-audit-2026-04-25.md](./docs/engineering/workflow-audit-2026-04-25.md).
+Parity matrix + reasoning: [docs/engineering/adapter-parity.md](./docs/engineering/adapter-parity.md)
+(the 2026-04-25 workflow audit is a historical snapshot predating Codex parity).
 
 ## Configuration
 
@@ -572,7 +579,7 @@ CI runs the matrix on every PR. See `.github/workflows/ci.yml`.
 | ----------------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | [AGENTS.md](./AGENTS.md)                                                            | **Agent entry point** — Core Loop, Critical Rules, Verification Matrix |
 | [docs/architecture/meta-project.md](./docs/architecture/meta-project.md)            | Hexagonal design, DNA/mRNA/phenotype, propagation matrix    |
-| [docs/governance/critical-rules.md](./docs/governance/critical-rules.md)            | 22 critical rules with rationale + repair steps             |
+| [docs/governance/critical-rules.md](./docs/governance/critical-rules.md)            | 27 critical rules with rationale + repair steps             |
 | [docs/governance/mcp-tool-inventory.md](./docs/governance/mcp-tool-inventory.md)    | Per-tool spec + envelope contract                           |
 | [docs/governance/agent-workflow.md](./docs/governance/agent-workflow.md)            | Domain routing, task protocol, memory contract              |
 | [docs/engineering/graph_os-queries.md](./docs/engineering/graph_os-queries.md)      | When to query the graph vs grep                             |
@@ -607,17 +614,14 @@ If coding-os saves you time, a star helps others find it. These links also
 live in the Hub footer (never inside the new-project Composer).
 
 - ★ Star / follow on GitHub: <https://github.com/kouroshez/coding-os>
-- Sponsor (GitHub Sponsors): <https://github.com/sponsors/kouroshebra> <!-- TODO(TASK-372): verify Sponsors enabled -->
-- Buy Me a Coffee: <https://www.buymeacoffee.com/TODO-handle> <!-- TODO(TASK-372): real handle pending -->
-- Support via crypto: wallet address pending <!-- TODO(TASK-372) -->
 - Questions / ideas: <https://github.com/kouroshez/coding-os/discussions>
+- Community forum: <https://community.coding-os.dev>
 
 ## License
 
 Apache License 2.0 — see [LICENSE](./LICENSE). Copyright 2026
 Kourosh Ebrahimzadeh and coding-os contributors.
 
-Pre-public development history is archived locally under
-`archive/full-history` and the tag `archive/pre-public-2026-05-20`
-for auditability; it is not part of the public history that begins
-with the 0.3.0 release.
+Development began in April 2026; the full history is preserved in this
+repository. Release automation (release-please) starts at the 0.3.0
+baseline (2026-05-20) — see [CHANGELOG.md](./CHANGELOG.md).

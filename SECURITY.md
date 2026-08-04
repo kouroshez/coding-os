@@ -18,7 +18,7 @@ days after a new minor lands.
 Instead, report them privately via one of these channels:
 
 1. **GitHub Security Advisories (preferred):** open a draft advisory at
-   <https://github.com/kouroshebra/coding-os/security/advisories/new>.
+   <https://github.com/kouroshez/coding-os/security/advisories/new>.
    This stays private until coordinated disclosure.
 2. **Email:** `security@coding-os.dev` (PGP key fingerprint published
    in the repository's `.well-known/security.txt` once available).

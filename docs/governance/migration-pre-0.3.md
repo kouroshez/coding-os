@@ -53,8 +53,10 @@ cos sync-doctor --repair        # re-runs install.sh on projects with dangling l
 ### 3. Refresh the verify config
 
 Pre-0.3 `.coding-os.yaml` has an empty `verify:` map, so `enforce-verify.sh`
-cannot tell which suite a changed-file glob requires. `cos update` repopulates
-the map from the installed stacks. Confirm it landed:
+cannot tell which suite a changed-file glob requires. Only `cos init`
+derives the map from the installed stacks — `cos update` leaves it
+untouched, so add the entries to `.coding-os.yaml::verify` by hand (copy
+the shape from a fresh `cos init` project). Confirm it landed:
 
 ```bash
 cos doctor                      # reports verify-map coverage + symlink health
