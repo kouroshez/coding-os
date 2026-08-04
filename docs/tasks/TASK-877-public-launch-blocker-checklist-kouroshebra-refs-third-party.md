@@ -4,7 +4,7 @@ title: "Public-launch blocker checklist: kouroshebra refs, third-party IP docs, 
 swimlane: core
 kind: chore
 epic: null
-labels: []
+labels: [ready]
 status: icebox
 priority: P2
 appetite: 1d
@@ -37,6 +37,7 @@ All launch blockers found in the TASK-874 audit are cleared before flipping the 
 - docs/governance/release-process.md
 
 ## Acceptance
-- GIVEN the checklist WHEN each group is done THEN repo flips public with zero 404 links, no third-party IP, truthful docs, hardened CI, and a tagged first release.
+- **Given** the four pre-flip groups above, **When** each item is done and verified, **Then** the repo flips public with zero 404 links, no third-party IP, truthful docs, and hardened CI.
+- **Given** the post-flip group, **When** the repo is public, **Then** main has a ruleset, the PyPI trusted publisher is registered, and release PR #29 is merged as the first public release.
 
 ## Work Log
