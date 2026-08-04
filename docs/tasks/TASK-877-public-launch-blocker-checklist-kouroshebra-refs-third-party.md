@@ -5,18 +5,17 @@ swimlane: core
 kind: chore
 epic: null
 labels: [ready, docs-update, governance, launch]
-status: "in_progress"
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-04
 started: 2026-08-04
-completed: null
-agent_session: ses-claude-20260803-153956-0acf
+completed: 2026-08-04
+agent_session: ses-claude-20260803-180632-5fca
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-877: Public-launch blocker checklist: kouroshebra refs, third-party IP docs, README/CHANGELOG staleness, CI hardening, PyPI trusted publisher
 
 ## Outcome
@@ -95,3 +94,15 @@ All launch blockers found in the TASK-874 audit are cleared before flipping the 
 - 2026-08-04 [claude]: Edit ci.yml
 - 2026-08-04 [claude]: Edit ci.yml
 - 2026-08-04 [claude]: commit 1268226ad4 — chore(docs): remove third-party copyrighted material from the tree
+- 2026-08-04 [claude]: REPO IS PUBLIC. Operator ran reset --hard (local=a4417196) + flipped visibility + set all General settings per…
+- 2026-08-04 [claude]: commit c0426ace38 — style: ruff format on codex chat provider + dispatcher tests
+- 2026-08-04 [claude]: Edit test_hook_registry_integration.py
+- 2026-08-04 [claude]: Edit test_config_routes.py
+- 2026-08-04 [claude]: Edit test_codex_chat_provider.py
+- 2026-08-04 [claude]: commit 306858831c — fix: regenerate derived artifacts left stale by the codex-parity change
+- 2026-08-04 [claude]: commit 5bbd467d81 — style: ruff format on registry-integration test
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: commit 488531cd68 — docs(readme): live CI workflow badge now that Actions run green in public
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: SHIPPED end-to-end: CI fully green after regen fixes (run 30943978080 all jobs success); PR #45 squash-merged →…
+- 2026-08-04 [claude]: Status transitioned to complete via cos task-done.
