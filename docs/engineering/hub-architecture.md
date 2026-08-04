@@ -764,3 +764,44 @@ The result: you edit `src/core/**`, every registered project sees it via
 symlink or `cos sync-all`; you edit `src/core/web/ui/**`, one SPA build
 updates every project's panel. No fanned-out `.coding-os/` copies to
 keep in sync.
+
+## Docker deployment (Hub layer)
+
+Moved from the README (kept there in summary form). The Hub container
+reads the host's projects via a read-only bind mount plus the host's
+registry file, so absolute paths stay valid inside the container.
+
+### Auto-discovery
+
+```bash
+# (a) On the host, register projects via the native CLI:
+cos registry scan ~              # walks $HOME, prints every .coding-os/
+cos registry scan ~ --register   # register everything it finds
+cos registry add ~/projects/my-shop
+
+# (b) Or from the Hub UI: 'Add project' → paste a host path → the Hub
+#     validates via /api/hub/registry/add.
+```
+
+No container restart needed after registry changes — the registry file
+is re-read on every `/api/hub/projects` request.
+
+### Narrowing the mount
+
+`$HOME` is the convenient default but broader than production wants;
+mount only a projects directory: `SCAN_ROOT=$HOME/projects docker compose up`.
+
+### Manual `docker run` (no compose)
+
+```bash
+docker build -t coding-os-hub .
+docker run --rm -p 9188:9188 \
+  -e COS_REGISTRY_PATH=/host/.config/coding-os/registry.json \
+  -v "$HOME:$HOME:ro" \
+  -v "$HOME:/host:ro" \
+  -v cos-state:/app/.coding-os \
+  coding-os-hub
+```
+
+Hub state (SQLite, traces) lives in the `cos-state` named volume and
+survives `down` / `up`.

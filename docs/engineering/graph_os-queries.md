@@ -210,3 +210,83 @@ that mentions a graph has a specific `cos_graph_*` call behind it:
   `cos_graph_query`.
 - `cos graph-viz [--root <uid>]` — produce the HTML viewer (plan
   §15 / I.10).
+
+## Coverage, budgets, and benchmarks (README deep-dive)
+
+Moved from the README front page (kept there in summary form). Live
+measurements on this repo unless noted.
+
+### Most-depended nodes (`cos_graph_centrality` / `cos_graph_ranking`)
+
+| Node | Kind | Inbound deps | Why it's load-bearing |
+|---|---|---:|---|
+| `GraphNode` | class | 118 | data contract every extractor + backend constructs |
+| `init_db` | function | 108 | DB bootstrap — also the #1 *betweenness* chokepoint |
+| `GraphEdge` | class | 106 | the edge half of the node/edge contract |
+| `ok` / `safe_tool` | function | 89 / 84 | MCP envelope wrappers around every `cos_*` tool |
+| `cos-env.sh` | file | 79 | every hook sources it (top file-level hub) |
+
+`cos graph-centrality --metric betweenness` re-ranks by *bridge*
+importance: `init_db` and `_backend` top that list. The repo is
+**acyclic** (`cos graph-cycles` → 0 import cycles).
+
+### Per-kind coverage
+
+All 23 indexed node kinds probed end-to-end (one `cos_graph_context`
+call per kind on the highest-degree sample): **23/23 `ok=true`,
+non-empty neighbours, zero errors, latency 0–23 ms.**
+
+| Kind | Latency | Typical context tokens |
+|---|---:|---:|
+| `function`, `method`, `class` | 1–5 ms | 5K–13K |
+| `file`, `folder`, `module` | 3–16 ms | 9K–71K |
+| `route`, `mcp_tool`, `hook`, `task` | <1 ms | 250–760 |
+| `doc_file`, `doc_heading`, `rule`, `skill` | 1 ms | 1K–85K |
+| `interface`, `import_`, `variable`, `event`, `tool`, `contract` | <1 ms | 250–700 |
+
+Tip: for high-degree hubs (folders, large modules, `unresolved:str`)
+start with `cos_graph_references(limit=20)` or
+`cos_graph_impact(depth=2)`, not `cos_graph_context(depth=2)`.
+
+### View modes (Hub Graph tab)
+
+Four deliberate views at `http://127.0.0.1:9188/graph`, each backed by
+a different edge-bucket recipe in `cos_graph_export`:
+
+| Mode | What you see | Use for |
+|---|---|---|
+| `auto` (default) | Balanced blend across 8 edge buckets | One-glance "how is this system wired?" |
+| `containment` | Folder → file → class → method spine only | Navigating the structural skeleton |
+| `dependencies` | Semantic edges only (no contains) | Auditing call graphs / API surface |
+| `processes` | Louvain communities + member edges | Discovering implicit subsystems |
+
+### Budgets, truncation, and "did I see everything?"
+
+| Tool | Knob | Default | Coverage signal |
+|---|---|---:|---|
+| `cos_graph_references` | `limit` (edges returned) | 100 | `data.total_count` · `data.meta.result_truncated` · `data.meta.limit` |
+| `cos_graph_impact` | `depth` + `visit_limit` | 3 / 500 | `data.meta.walk_truncated` · `data.meta.visit_limit` |
+| `cos_graph_context` | `depth` + `visit_limit` | 1 / 500 | `data.meta.walk_truncated` · `data.meta.visit_limit` |
+| `cos_graph_export` | `max_nodes` + `max_hops` | 500 / 3 | UI "truncated · raise depth budget" badge |
+| `cos_graph_path` | `max_hops` | 5 | `data.meta.walk_truncated` · `data.meta.hop_limit` |
+
+Two distinct names: `data.meta.truncated` = envelope *token-budget*
+trimming; `result_truncated` / `walk_truncated` = tool-level coverage
+truncation (limit cut a result set / BFS hit its node cap).
+
+Recommended workflow: **probe** with defaults → **check coverage**
+(`total_count > count`? `result_truncated`? `walk_truncated`?) →
+if incomplete, widen `limit`, narrow `kinds`, or split the question.
+Exhaustive sweeps: explicit `limit=10_000` is fine (<50 ms even on the
+highest-degree hubs). `limit=20` is a probe default; `limit=100` is the
+correctness default.
+
+### Health, freshness, hallucination guards
+
+- `cos_graph_doctor` reports orphans, dangling/duplicate edges,
+  self-loops, and stale-path nodes; `fix=true` sweeps remediable issues
+  (it caught 3,727 ghost nodes after the pre-`src/` reorganization).
+- Idempotent re-indexing fires on every Write/Edit (PostToolUse hook,
+  touched file only); bulk changes via `cos graph-reindex`.
+- Confidence-tiered edges: `cos_graph_impact` groups results by tier
+  (`will_break` / `should_review` / `context`).

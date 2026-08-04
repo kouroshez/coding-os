@@ -124,46 +124,9 @@ the same path inside the container so `cos registry scan ~` finds
 every `.coding-os/` directory below it. Hub state (SQLite, traces)
 lives in the `cos-state` named volume and survives `down` / `up`.
 
-### Auto-discovery
-
-Inside the running container the Hub reads your host's registry
-file. Two paths to populate it:
-
-```bash
-# (a) On the host, register projects via the native CLI:
-cos registry scan ~              # walks $HOME, prints every .coding-os/
-cos registry scan ~ --register   # register everything it finds
-cos registry add ~/projects/my-shop
-
-# (b) Or from the Hub UI: 'Add project' → paste a host path → the
-#     Hub validates via /api/hub/registry/add (which calls registry
-#     scan/add under the hood).
-```
-
-Restart of the Hub container is **not** required after registry
-changes — the registry file is re-read on every `/api/hub/projects`
-request.
-
-### Narrowing the mount
-
-`$HOME` is the convenient default but broader than you want for
-production. Mount only a projects directory:
-
-```bash
-SCAN_ROOT=$HOME/projects docker compose up
-```
-
-### Manual `docker run` (no compose)
-
-```bash
-docker build -t coding-os-hub .
-docker run --rm -p 9188:9188 \
-  -e COS_REGISTRY_PATH=/host/.config/coding-os/registry.json \
-  -v "$HOME:$HOME:ro" \
-  -v "$HOME:/host:ro" \
-  -v cos-state:/app/.coding-os \
-  coding-os-hub
-```
+Project auto-discovery, narrowing the mount for production, and manual
+`docker run` (no compose): [docs/engineering/hub-architecture.md § Docker
+deployment](./docs/engineering/hub-architecture.md#docker-deployment-hub-layer).
 
 ## MCP server wire-up (Claude / Codex)
 
@@ -285,67 +248,36 @@ coding-os/
 ## Command index (highlights · 98 `cos` subcommands total)
 
 ```
-Project lifecycle    init · adopt · setup · add-adapter · add-stack · update · materialize · materialize-file · eject
+Project lifecycle    init · adopt · setup · add-adapter · add-stack · update · materialize · eject
 Diagnostics          doctor · health · list-stacks · list-adapters · hooks-dir · hooks-log
-Brain                docs-index · task-sync · reindex · server-start
 Hub                  hub start · hub status · hub stop
-Board                board · task-show · task-create · task-start · task-ready · task-move · task-done · task-reclaim · daily · retro · wip
-Cognition            cognition trace · cognition trace-replay · cognition trace-summary
-Graph (build)        graph-reindex · graph-stats · graph-doctor · graph-group · graph-index-{local,github,zip} · graph-viz
-Graph (find)         graph-resolve · graph-query · graph-context · graph-entrypoints
-Graph (deps)         graph-references · graph-impact · graph-path · graph-trace · graph-similar
-Graph (analysis)     graph-centrality · graph-ranking · graph-communities · graph-cycles · graph-test-gap · graph-dead-code
-Graph (review)       graph-contracts · graph-rename-plan · graph-diff · graph-detect-changes · graph-export
+Board                board · task-create · task-start · task-move · task-done · daily · retro · wip
+Cognition            cognition trace · trace-replay · trace-summary
+Graph                29 graph-* subcommands (build · find · deps · analysis · review);
+                     22 mirror a cos_graph_* MCP tool one-for-one, enforced by a parity test
 ```
-
-29 `graph-*` subcommands: **22 mirror a `cos_graph_*` MCP tool one-for-one**
-(same envelope — agents use the MCP tool, humans/CI use the CLI), 7 are
-build/ingest-only. A parity test (`tests/test_graph_cli_parity.py`)
-fails CI if the two surfaces ever drift again.
 
 Full catalogue with flows: [docs/architecture/meta-project.md](./docs/architecture/meta-project.md).
 
 ## Slash commands (25 commands)
 
 The `cos` CLI above is the *factory*. Inside an agent session you also get
-**slash commands** — packaged workflows invoked by typing `/`. They ship in
-`.claude/commands/` (and `.codex/commands/`), are version-controlled, and are
-available to every teammate on clone.
-
-```
-Scrumban     /board · /daily · /retro · /task
-Cognition    /classify · /compose · /memory-search
-Quality      /verify · /review · /diagnose
-Scaffolding  /new-project
-Roles (14)   /role-researcher · /role-analyst · /role-architect · /role-documenter
-             /role-implementer · /role-reviewer · /role-debugger · /role-security_auditor
-             /role-deployer · /role-observer · /role-refactorer · /role-onboarder
-             /role-distiller · /role-repairer
-```
-
-The 11 workflow commands are sourced from [src/core/commands/](./src/core/commands/);
-the 14 `/role-*` commands from [src/core/thinking_os/agents/](./src/core/thinking_os/agents/)
-(the semantic roles of the cognition chain). Day-to-day usage:
+**slash commands** — packaged workflows invoked by typing `/`: 11 workflow
+commands (`/board`, `/daily`, `/retro`, `/task`, `/classify`, `/compose`,
+`/memory-search`, `/verify`, `/review`, `/diagnose`, `/new-project`) and 14
+`/role-*` commands (the semantic roles of the cognition chain). They ship in
+`.claude/commands/` (and `.codex/commands/`) and are version-controlled, so
+every teammate gets them on clone. Day-to-day usage:
 [docs/workflow/workflow-guide.md](./docs/workflow/workflow-guide.md).
 
 ## MCP tools (`cos_*` family, all `ok / fail` envelope)
 
-| Family       | Examples                                                          |
-| ------------ | ----------------------------------------------------------------- |
-| Health       | `cos_health`                                                      |
-| Memory       | `cos_search` · `cos_timeline` · `cos_details` · `cos_promote`     |
-| Learning     | `cos_learn_extract` · `cos_learn_suggest` · `cos_learn_validate`  |
-| Metrics      | `cos_metric_record` · `cos_metric_query` · `cos_metric_trend`     |
-| Routing      | `cos_route_model` · `cos_route_skill`                             |
-| Docs         | `cos_doc_search` · `cos_doc_header` · `cos_doc_headers_by`        |
-| Tasks        | `cos_task_search` · `cos_task_board` · `cos_task_move` (+ 13 more) |
-| Graph        | `cos_graph_query` · `cos_graph_references` · `cos_graph_impact` · `cos_graph_rename_plan` · `cos_graph_cycles` · `cos_graph_test_gap` (22 total) |
-| Cognition    | `cos_analyze_task` · `cos_compose_chain` · `cos_supervise` · `cos_backtrack_log` |
-| Retrieval    | `cos_search` (memory) · `cos_doc_search` (docs) · `cos_graph_search` (code) |
-
-Per-tool docs + envelope spec: [docs/governance/mcp-tool-inventory.md](./docs/governance/mcp-tool-inventory.md).
-
-The MCP server is launched by `.mcp.json` → `cos server-start`.
+One MCP server (launched by `.mcp.json` → `cos server-start`) exposes every
+`cos_*` tool across ten families: health, memory (`cos_search`), learning,
+metrics, routing, docs (`cos_doc_search`), tasks (`cos_task_*`), graph
+(`cos_graph_*`, 22 tools), cognition (`cos_compose_chain`), and retrieval.
+Per-tool docs + envelope spec:
+[docs/governance/mcp-tool-inventory.md](./docs/governance/mcp-tool-inventory.md).
 
 ## The knowledge graph — why it changes the economics
 
@@ -364,24 +296,6 @@ types (`contains`, `calls`, `imports`, `inherits_from`,
 `links_to`, …). The agent then asks the graph — `cos_graph_references`,
 `cos_graph_impact`, `cos_graph_rename_plan` — and gets a small,
 high-confidence JSON envelope back.
-
-### Most-depended nodes (live `cos_graph_centrality` / `cos_graph_ranking`)
-
-The graph knows its own pressure points. The structural hubs in this
-repo — the nodes a change ripples furthest from:
-
-| Node | Kind | Inbound deps | Why it's load-bearing |
-|---|---|---:|---|
-| `GraphNode` | class | 118 | data contract every extractor + backend constructs |
-| `init_db` | function | 108 | DB bootstrap — also the #1 *betweenness* chokepoint |
-| `GraphEdge` | class | 106 | the edge half of the node/edge contract |
-| `ok` / `safe_tool` | function | 89 / 84 | MCP envelope wrappers around every `cos_*` tool |
-| `cos-env.sh` | file | 79 | every hook sources it (top file-level hub) |
-
-`cos graph-centrality --metric betweenness` re-ranks the same set by
-*bridge* importance: `init_db` and `_backend` top that list — removing
-either disconnects whole subgraphs. The repo is **acyclic**
-(`cos graph-cycles` → 0 import cycles: clean hexagonal layering).
 
 ### Benchmark — graph vs read-the-file (live repo · 33,548 nodes · 72,797 edges)
 
@@ -407,92 +321,15 @@ The savings compound: an agent asking 50 structural questions over a
 feature spends ~50–400 KB of context, not the multiple MB an exhaustive
 file sweep would cost — leaving the budget for actual reasoning.
 
-### Per-kind coverage
+### Coverage, budgets, health — the anti-hallucination contract
 
-All 23 indexed node kinds were probed end-to-end (one
-`cos_graph_context` call per kind on the highest-degree sample):
-**23/23 returned `ok=true` with non-empty neighbours, zero errors,
-latency 0–23 ms.** Full breakdown:
-
-| Kind | Latency | Typical context tokens |
-|---|---:|---:|
-| `function`, `method`, `class` | 1–5 ms | 5K–13K |
-| `file`, `folder`, `module` | 3–16 ms | 9K–71K |
-| `route`, `mcp_tool`, `hook`, `task` | <1 ms | 250–760 |
-| `doc_file`, `doc_heading`, `rule`, `skill` | 1 ms | 1K–85K |
-| `interface`, `import_`, `variable`, `event`, `tool`, `contract` | <1 ms | 250–700 |
-
-Tips: for high-degree hubs (folders, large modules, the `unresolved:str`
-identifier) **always start with `cos_graph_references(limit=20)` or
-`cos_graph_impact(depth=2)`** rather than `cos_graph_context(depth=2)`
-— the latter expands quickly on the well-connected nodes.
-
-### View modes (Hub Graph tab)
-
-The bundled web UI at `http://127.0.0.1:9188/graph` exposes four
-deliberate views — each backed by a different edge-bucket recipe in
-[`cos_graph_export`](./src/core/graph_os/tools/graph.py):
-
-| Mode | What you see | Use for |
-|---|---|---|
-| `auto` (default) | Balanced blend across 8 edge buckets — calls, imports, inheritance, route/MCP handlers, types, doc cross-links, decorators, contains | One-glance "how is this system wired?" |
-| `containment` | Folder → file → class → method spine only | Navigating the structural skeleton |
-| `dependencies` | Semantic edges only (no contains) | Auditing call graphs / API surface |
-| `processes` | Louvain communities + member edges | Discovering implicit subsystems |
-
-### Budgets, truncation, and "did I see everything?"
-
-Every coverage-sensitive graph tool exposes its budget knobs and tells
-the agent when the answer is **incomplete** — there is no silent
-truncation:
-
-| Tool | Knob | Default | Coverage signal |
-|---|---|---:|---|
-| `cos_graph_references` | `limit` (edges returned) | 100 | `data.total_count` (true total) · `data.meta.result_truncated` (limit hit) · `data.meta.limit` (echo) |
-| `cos_graph_impact` | `depth` (BFS hops) + `visit_limit` (nodes) | 3 / 500 | `data.meta.walk_truncated` set when the BFS hits `visit_limit` · `data.meta.visit_limit` (echo) |
-| `cos_graph_context` | `depth` (BFS hops) + `visit_limit` (nodes) | 1 / 500 | `data.meta.walk_truncated` set when the BFS hits `visit_limit` · `data.meta.visit_limit` (echo) |
-| `cos_graph_export` | `max_nodes` + `max_hops` | 500 / 3 | UI surfaces a "truncated · raise depth budget" badge |
-| `cos_graph_path` | `max_hops` | 5 | `data.meta.walk_truncated` set when any hop saturates the 1000-edge cap · `data.meta.hop_limit` (echo) |
-
-Two distinct names matter: the envelope layer also writes
-`data.meta.truncated`, but that signals *token-budget* trimming (the
-framework cut tail rows because the response was too big). Tool-level
-coverage truncation lives under separate keys — `result_truncated`
-when a limit cut a result set, `walk_truncated` when a BFS hit its
-node cap — so the agent can tell which kind of incompleteness
-happened and react accordingly.
-
-Recommended agent workflow — never blindly accept a single call:
-
-1. **Probe** with the default `limit` / `depth`.
-2. **Check coverage** — `data.total_count > data.count`? `meta.result_truncated == true` (limit hit)? `meta.walk_truncated == true` (BFS cap hit)?
-3. **If incomplete**: either widen `limit` (cheap — references is O(N)), or
-   narrow `kinds` to focus on the edge class that matters (e.g. drop
-   `imports` and `references_doc` when auditing only `calls`), or split
-   the question (e.g. impact `depth=2` on each direct caller instead of
-   `depth=4` on the original symbol).
-4. **For exhaustive sweeps** (rename refactor, security audit), explicit
-   `limit=10_000` is fine — references runs in <50 ms even on the
-   highest-degree hubs.
-
-Bottom line: `limit=20` is a fine *probe* default ("show me a sample
-fast"). `limit=100` (the actual default) is the *correctness* default.
-For audits, set it to whatever the graph's actual total demands and
-let the response's `total_count` confirm full coverage.
-
-### Health, freshness, hallucination guards
-
-- **`cos_graph_doctor`** reports orphans, dangling edges, duplicate
-  edges, self-loops, **and stale-path nodes** (file_path nodes whose
-  underlying file no longer exists). Pass `fix=true` to sweep
-  remediable issues. The detector caught and removed 3,727 ghost
-  nodes left over from a pre-`src/` reorganization in our own repo.
-- **Idempotent re-indexing** is fire-and-forget on every Write/Edit —
-  the PostToolUse hook re-extracts only the file just written. Bulk
-  changes: `cos graph-reindex`.
-- **Confidence-tiered edges** so weak heuristics never get treated as
-  facts. Tools like `cos_graph_impact` group their result by tier
-  (`will_break` / `should_review` / `context`).
+Every coverage-sensitive tool reports its own incompleteness
+(`total_count` · `result_truncated` · `walk_truncated` — never silent),
+all 23 node kinds answer end-to-end in 0–23 ms, `cos_graph_doctor`
+sweeps stale nodes, and every Write/Edit re-indexes just the touched
+file. The full contract — budget knobs, per-kind latency, Hub view
+modes, and the probe-then-widen workflow — lives in
+[graph_os-queries.md § Coverage, budgets, and benchmarks](./docs/engineering/graph_os-queries.md#coverage-budgets-and-benchmarks-readme-deep-dive).
 
 Deep dive: [docs/engineering/graph_os-queries.md](./docs/engineering/graph_os-queries.md)
 · [docs/engineering/graph-hallucination-cures.md](./docs/engineering/graph-hallucination-cures.md)
@@ -528,36 +365,13 @@ protected_files:
 
 ## Adding a new stack (zero Python changes)
 
-Create `src/templates/<id>/stack.yaml` plus any skills, rules,
-playbooks, and scaffold docs. The CLI auto-discovers stacks.
-
-Minimum viable stack:
-
-```
-src/templates/myrails/
-├── stack.yaml                                    # REQUIRED
-├── skills/ruby-rails/SKILL.md                    # primary skill
-├── rules/backend.md                              # path-scoped rules
-└── scaffold/docs/
-    ├── playbooks/rails-service.md
-    └── engineering/rails-rules.md
-```
-
-`stack.yaml` schema example: `src/templates/fastapi/stack.yaml`.
-
-After creating the directory:
-
-```bash
-cos list-stacks                       # myrails now appears
-make manifest-regen                   # update src/core/scaffold_manifest.json
-make regen-rules                      # update auto-generated rule artifacts
-cos init --agent claude --template myrails --name proof
-cos doctor -d proof                   # health check
-```
-
-The same pattern works for new **adapters** — create
-`src/adapters/<id>/adapter.yaml` + `install.sh`, and `cos list-adapters`
-picks it up.
+Create `src/templates/<id>/stack.yaml` plus skills, rules, and scaffold
+docs — the CLI auto-discovers it (`cos list-stacks`), then
+`make manifest-regen && make regen-rules` refreshes the derived
+artifacts. The same pattern works for new **adapters**
+(`src/adapters/<id>/adapter.yaml` + `install.sh`). Step-by-step:
+[docs/playbooks/template-authoring.md](./docs/playbooks/template-authoring.md)
+· [docs/playbooks/adapter-authoring.md](./docs/playbooks/adapter-authoring.md).
 
 ## Project structure (for contributors)
 
