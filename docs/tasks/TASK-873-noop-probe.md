@@ -1,6 +1,6 @@
 ---
 id: TASK-873
-title: noop-probe
+title: "retired probe record"
 swimlane: docs
 kind: chore
 epic: null
@@ -16,8 +16,11 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-873: noop-probe
 
-**Outcome (one sentence):** (fill in: one-sentence outcome — e.g. 'Bump dependency X to v2.3 for security patch.')
+# TASK-873: retired probe record
+
+## Outcome
+
+Empty probe record, retired.
 
 ## Work Log

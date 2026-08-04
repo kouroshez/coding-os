@@ -180,3 +180,5 @@ Actual: ID collision, potential crash, silent WARN, gaps in coverage
 - 2026-08-04 [claude]: Edit main.py
 - 2026-08-04 [claude]: Edit main.py
 - 2026-08-04 [claude]: Edit check_quickstart.py
+- 2026-08-04 [claude]: commit ce1ba8152c — docs(readme): accurate profile ladder + paste-safe shell fences
+- 2026-08-04 [claude]: commit 467776ab62 — docs(workflow): ship the modularity note to consumer projects, not just the meta-repo
