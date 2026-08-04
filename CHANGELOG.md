@@ -12,6 +12,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.2](https://github.com/kouroshez/coding-os/compare/v0.3.1...v0.3.2) (2026-08-04)
+
+
+### Added
+
+* **docs-lint:** audit all root *.md and resolve link targets case-exactly ([a441719](https://github.com/kouroshez/coding-os/commit/a4417196baf172e46d1e5a79385ae55775100b99))
+
+
+### Fixed
+
+* regenerate derived artifacts left stale by the codex-parity change ([3068588](https://github.com/kouroshez/coding-os/commit/306858831cf170a40550fb2baef7e2ba0ad212ab))
+* **release:** self-updating README release badge via release-please extra-files ([a11c909](https://github.com/kouroshez/coding-os/commit/a11c909603856c7807b91260affeeed9e50f42ba))
+
+
+### Documentation
+
+* **readme:** dynamic release badge so the version never goes stale ([3a35cf5](https://github.com/kouroshez/coding-os/commit/3a35cf5f837990e661012e242eca38d774b4e940))
+* **readme:** restore Sponsor links now that GitHub Sponsors is live ([1eba56d](https://github.com/kouroshez/coding-os/commit/1eba56dd80b191b049142338f82a030e05c936f8))
+* **readme:** slim the front page — move graph/docker deep-dives to engineering docs ([5a792da](https://github.com/kouroshez/coding-os/commit/5a792dad7b3199d2927c400177ae146f3fbd5837))
+* replace absolute developer paths with neutral placeholders ([e0ff839](https://github.com/kouroshez/coding-os/commit/e0ff839b8c1a36603c766764976309136ddc9ec1))
+
 ## [0.3.1](https://github.com/kouroshez/coding-os/compare/v0.3.0...v0.3.1) (2026-08-04)
 
 

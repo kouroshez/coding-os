@@ -1,6 +1,6 @@
 [project]
 name = "coding-os"
-version = "0.3.1"
+version = "0.3.2"
 description = "The cognitive operating system that gives AI agents memory, structure, and discipline"
 readme = "README.md"
 requires-python = ">=3.10"
