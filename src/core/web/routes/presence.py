@@ -286,8 +286,81 @@ def presence_now(
 
 
 def _context_window(model: str | None) -> int:
-    """Context-window size for a model id: 1M for a `[1m]` id, else 200K."""
-    return 1_000_000 if (model and "[1m]" in model) else 200_000
+    """Context-window size for a model id: 1M for `[1m]`-marked and fable ids, else 200K."""
+    if model and ("[1m]" in model or "fable" in model):
+        return 1_000_000
+    return 200_000
+
+
+_CODEX_ROLLOUT_PATHS: dict[str, Path] = {}
+
+
+def _codex_rollout_path(sdk_uuid: str) -> Path | None:
+    cached = _CODEX_ROLLOUT_PATHS.get(sdk_uuid)
+    if cached is not None and cached.exists():
+        return cached
+    base = Path.home() / ".codex" / "sessions"
+    if not base.is_dir():
+        return None
+    try:
+        for path in base.glob(f"*/*/*/rollout-*{sdk_uuid}.jsonl"):
+            _CODEX_ROLLOUT_PATHS[sdk_uuid] = path
+            return path
+    except OSError as exc:
+        logger.debug("codex rollout glob failed for %s: %s", sdk_uuid, exc)
+    return None
+
+
+def _codex_rollout_context(sdk_uuid: str | None) -> tuple[int, int] | None:
+    """Tail a codex rollout for (used_tokens, context_window) from its last token_count event.
+
+    Codex has no Stop hook surface to stamp used_tokens, so the read side tails
+    the rollout the codex CLI itself writes. Honest-None on any gap."""
+    if not sdk_uuid:
+        return None
+    path = _codex_rollout_path(sdk_uuid)
+    if path is None:
+        return None
+    try:
+        size = path.stat().st_size
+        with path.open("rb") as fh:
+            window = min(size, 256 * 1024)
+            fh.seek(-window, os.SEEK_END)
+            tail = fh.read().decode("utf-8", errors="replace")
+    except OSError as exc:
+        logger.debug("codex rollout tail failed %s: %s", path, exc)
+        return None
+    for line in reversed(tail.splitlines()):
+        if '"token_count"' not in line:
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        payload = obj.get("payload")
+        info = payload.get("info") if isinstance(payload, dict) else None
+        if not isinstance(info, dict):
+            continue
+        last = info.get("last_token_usage")
+        used = last.get("total_tokens") if isinstance(last, dict) else None
+        model_window = info.get("model_context_window")
+        try:
+            used_i = int(used)
+            window_i = int(model_window)
+        except (TypeError, ValueError):
+            continue
+        if used_i <= 0 or window_i <= 0:
+            continue
+        return used_i, window_i
+    return None
+
+
+def _effective_window(model: str | None, used: int) -> int:
+    """Window for pct math: the model id when stamped; else inferred — a used
+    count above 200K is proof of a 1M window (a 200K session can't exceed it)."""
+    if model:
+        return _context_window(model)
+    return 1_000_000 if used > 200_000 else 200_000
 
 
 def _context_pct_from_used_tokens(used_tokens: Any, model: str | None) -> float | None:
@@ -301,7 +374,7 @@ def _context_pct_from_used_tokens(used_tokens: Any, model: str | None) -> float 
         return None
     if used <= 0:
         return None
-    return round(min(100.0, used / _context_window(model) * 100.0), 1)
+    return round(min(100.0, used / _effective_window(model, used) * 100.0), 1)
 
 
 def _context_pct_from_usage(usage: dict, model: str | None) -> float | None:
@@ -402,16 +475,21 @@ def presence_agents(
             # transcript tail (COS_SNAPSHOT_TRANSCRIPT=1).
             context_pct: float | None = None
             sid = snap.get("session_id")
-            if isinstance(sess, dict) and sess.get("used_tokens") is not None:
-                context_pct = _context_pct_from_used_tokens(
-                    sess.get("used_tokens"), snap.get("model")
-                )
+            used_tokens = sess.get("used_tokens") if isinstance(sess, dict) else None
+            context_window = _context_window(snap.get("model"))
+            if used_tokens is not None:
+                context_pct = _context_pct_from_used_tokens(used_tokens, snap.get("model"))
             if context_pct is None and sid:
                 tpath = state / agent_id / "sessions" / "transcripts" / f"{sid}.jsonl"
                 if tpath.exists():
                     usage = _latest_transcript_usage(tpath)
                     if usage:
                         context_pct = _context_pct_from_usage(usage, snap.get("model"))
+            if context_pct is None:
+                rollout = _codex_rollout_context(sdk_uuid)
+                if rollout is not None:
+                    used_tokens, context_window = rollout
+                    context_pct = round(min(100.0, used_tokens / context_window * 100.0), 1)
             agents.append(
                 {
                     "agent": agent_id,
@@ -426,8 +504,8 @@ def presence_agents(
                     "chain": chain,
                     "state": states.get(agent_id, "offline"),
                     "context_pct": context_pct,
-                    "used_tokens": (sess.get("used_tokens") if isinstance(sess, dict) else None),
-                    "context_window": _context_window(snap.get("model")),
+                    "used_tokens": used_tokens,
+                    "context_window": context_window,
                 }
             )
 

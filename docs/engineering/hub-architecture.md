@@ -68,6 +68,22 @@ renders a `ctx N%` badge (`DashboardPage.tsx::ContextPctBadge`, green/amber/red
 at 60/85%), with an explicit `ctx ?` state when the value is honest-null —
 never a fabricated 0%.
 
+**Per-session contract (TASK-871).** The badge's producer is the session row
+itself: `/api/sessions/active` stamps `context_pct` / `used_tokens` /
+`context_window` on **every** row (the panel lists multiple concurrent
+sessions per agent; `/api/presence/agents` only covers each agent's
+current-marker session, so an agent-level lookup misses sibling rows — the
+"ctx ? everywhere" bug). Per-adapter sources:
+
+- **claude** — the stamped `used_tokens` (above) over the model window
+  (1M for `[1m]`-marked and `fable` model ids, else 200K).
+- **codex** — the session's `sdk_uuid` resolves its rollout file
+  (`~/.codex/sessions/<y>/<m>/<d>/rollout-*<uuid>.jsonl`); the tail's last
+  `token_count` event provides `last_token_usage.total_tokens` over the
+  self-reported `model_context_window`. Read-side only — codex (Bash-only
+  hook surface) has no Stop event to stamp on.
+- Anything else — honest-null.
+
 ### Live-agent owning project (`slug`) — home-level click-through (TASK-435)
 
 `/api/presence/agents` stamps each agent with `slug`: the owning project's

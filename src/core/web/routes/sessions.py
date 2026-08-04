@@ -98,6 +98,33 @@ def _classify(presence: dict, now: int) -> str:
     return verdict
 
 
+def _session_context_fields(presence: dict) -> dict:
+    """Per-session context fill for the dashboard badge (TASK-871).
+
+    claude stamps used_tokens on Stop; codex is read-side from its rollout
+    tail. Honest-null fields when no usage signal exists."""
+    from web.routes.presence import (  # type: ignore
+        _codex_rollout_context,
+        _context_pct_from_used_tokens,
+        _effective_window,
+    )
+
+    model = presence.get("model")
+    used = presence.get("used_tokens")
+    window = _effective_window(model, int(used) if isinstance(used, (int, float)) else 0)
+    pct = _context_pct_from_used_tokens(used, model) if used is not None else None
+    if pct is None:
+        rollout = _codex_rollout_context(presence.get("sdk_uuid"))
+        if rollout is not None:
+            used, window = rollout
+            pct = round(min(100.0, used / window * 100.0), 1)
+    return {
+        "context_pct": pct,
+        "used_tokens": used if pct is not None else None,
+        "context_window": window if pct is not None else None,
+    }
+
+
 def _load_presence_for_agent(agent_dir: Path, agent: str, now: int) -> list[dict]:
     sessions_dir = agent_dir / "sessions"
     if not sessions_dir.is_dir():
@@ -129,6 +156,10 @@ def _load_presence_for_agent(agent_dir: Path, agent: str, now: int) -> list[dict
         record["agent"] = data.get("agent") or agent
         record["state"] = state
         record["is_current"] = is_current
+        try:
+            record.update(_session_context_fields(data))
+        except Exception as exc:
+            logger.debug("context fields failed for %s: %s", path, exc)
         out.append(record)
     return out
 

@@ -64,6 +64,12 @@ interface ActiveSession {
   state: 'active' | 'present' | 'idle' | 'offline' | 'ended';
   is_current?: boolean;
   model?: string | null;
+  // Per-session context fill stamped by /api/sessions/active (TASK-871) —
+  // the row's own values beat the per-agent /api/presence/agents lookup,
+  // which only covers each agent's current-marker session.
+  context_pct?: number | null;
+  used_tokens?: number | null;
+  context_window?: number | null;
 }
 interface ActiveSessionsPayload {
   sessions: ActiveSession[];
@@ -468,9 +474,19 @@ export default function DashboardPage() {
                         </span>
                       )}
                       <ContextPctBadge
-                        row={contextAgents.data?.agents.find(
-                          (a) => a.session_id === s.session_id || a.agent === s.agent,
-                        )}
+                        row={
+                          s.context_pct != null
+                            ? {
+                                agent: s.agent,
+                                session_id: s.session_id,
+                                context_pct: s.context_pct,
+                                used_tokens: s.used_tokens,
+                                context_window: s.context_window,
+                              }
+                            : contextAgents.data?.agents.find(
+                                (a) => a.session_id === s.session_id || a.agent === s.agent,
+                              )
+                        }
                       />
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-2 font-mono text-[10px] text-[var(--cos-muted)]">
