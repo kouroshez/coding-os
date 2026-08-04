@@ -2,8 +2,7 @@
 ## Trusted lessons (auto-generated)
 
 - Recurring block (37 occurrences): test-governor → satisfy the blocked rule before retrying the action _(seen 119×)_
-- Recurring backtrack root cause 'tool_failure' (36 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 17×)_
-- Recurring block (32 occurrences): block-dangerous-commands — force-push-main → satisfy the blocked rule before retrying the action _(seen 8×)_
+- Recurring backtrack root cause 'tool_failure' (36 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 18×)_
 - Recurring block (5 occurrences): block-dangerous-commands — rm-rf-critical → satisfy the blocked rule before retrying the action _(seen 413×)_
 - Recurring block (5 occurrences): block-secrets — env-file → satisfy the blocked rule before retrying the action _(seen 161×)_
 - Recurring block (5 occurrences): block-uv-heredoc — uv-run-heredoc → satisfy the blocked rule before retrying the action _(seen 63×)_
@@ -11,7 +10,7 @@
 - Recurring block (35 occurrences): enforce-skill — no-domain-skill → satisfy the blocked rule before retrying the action _(seen 109×)_
 - Recurring block (36 occurrences): enforce-commit-message — commit-msg-contract → satisfy the blocked rule before retrying the action _(seen 123×)_
 - Recurring block (29 occurrences): branch-guard — worktree-add → satisfy the blocked rule before retrying the action _(seen 636×)_
-- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (8 occurrences) _(seen 82×)_
+- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (8 occurrences) _(seen 83×)_
 - Recurring block (27 occurrences): branch-guard — reset-head-rewrite → satisfy the blocked rule before retrying the action _(seen 7×)_
 - Recurring block (6 occurrences): branch-guard — checkout-branch-switch → satisfy the blocked rule before retrying the action _(seen 7×)_
 - Recurring block (12 occurrences): branch-guard — rebase-history-rewrite → satisfy the blocked rule before retrying the action _(seen 7×)_
@@ -37,3 +36,4 @@
 - [Sample-test lint-gate blind spot](sample-test-lint-gate-blindspot.md) — stack-lint only checks a sample test exists; run the stack's real `npm run lint` + `npm test` to trust it.
 - [No parking actionable findings](no-parking-actionable-findings.md) — small fixable finding = fix in-session, never an icebox card; icebox stays empty.
 - [Icebox parking is a structural failure](icebox-parking-structural-failure.md) — task-parking is by-design (frictionless create, no autonomous icebox→in_progress drain); keystone fix = stamp created_by_session on every card.
+- [Never infer user location](never-infer-user-location.md) — verify operating country before payments/KYC guidance; never derive it from language
