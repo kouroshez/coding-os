@@ -71,9 +71,9 @@ Read next: any of the entries below.
 - [Derived-Store Coherence Audit — 2026-06-30](derived-store-coherence-audit-2026-06-30.md) — `ssot:true` · updated 2026-06-30
 - [Learning Extraction](learning-extraction.md) — `ssot:true` · updated 2026-07-02
 - [Modularity / Auto-Sync Audit — June 2026](modularity-audit-2026-06.md) — `ssot:true` · updated 2026-07-03
-- [Adapter Parity - Claude vs Codex Coverage](adapter-parity.md) — `ssot:true` · updated 2026-07-10
-- [Dispatcher Contract](dispatcher-contract.md) — `ssot:true` · updated 2026-07-10
 - [Modularity / Auto-Sync Audit — July 2026](modularity-audit-2026-07.md) — `ssot:true` · updated 2026-07-16
+- [Adapter Parity - Claude vs Codex Coverage](adapter-parity.md) — `ssot:true` · updated 2026-08-03
 - [Hub Web UI — Pre-Release Audit (2026-08-03, TASK-864)](hub-release-audit-2026-08-03.md) — `ssot:false` · updated 2026-08-03
+- [Dispatcher Contract](dispatcher-contract.md) — `ssot:true` · updated 2026-08-03
 
 <!-- END auto-index -->
