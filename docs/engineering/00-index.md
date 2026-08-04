@@ -59,7 +59,6 @@ Read next: any of the entries below.
 - [Using RTK (Rust Token Killer) with coding-os](rtk-integration.md) — `ssot:true` · updated 2026-05-30
 - [Doc-System Overhaul — Audit & Roadmap (2026-06)](doc-system-overhaul-roadmap.md) — `ssot:true` · updated 2026-06-03
 - [Config Composition — per-stack `.coding-os/` merge at `cos init`](config-composition.md) — `ssot:true` · updated 2026-06-05
-- [Agent Hub & Multi-Agent Orchestration](agent-hub-orchestration.md) — `ssot:true` · updated 2026-06-05
 - [logging_os — Central Log Helpers](logging_os.md) — `ssot:true` · updated 2026-06-05
 - [Extension Manager — Architecture & Security/Trust Model](extension-manager.md) — `ssot:true` · updated 2026-06-06
 - [Observability Eye — Enterprise Error & Log Pipeline](observability-eye.md) — `ssot:true` · updated 2026-06-07
@@ -73,6 +72,7 @@ Read next: any of the entries below.
 - [Modularity / Auto-Sync Audit — June 2026](modularity-audit-2026-06.md) — `ssot:true` · updated 2026-07-03
 - [Modularity / Auto-Sync Audit — July 2026](modularity-audit-2026-07.md) — `ssot:true` · updated 2026-07-16
 - [Adapter Parity - Claude vs Codex Coverage](adapter-parity.md) — `ssot:true` · updated 2026-08-03
+- [Agent Hub & Multi-Agent Orchestration](agent-hub-orchestration.md) — `ssot:true` · updated 2026-08-03
 - [Hub Web UI — Pre-Release Audit (2026-08-03, TASK-864)](hub-release-audit-2026-08-03.md) — `ssot:false` · updated 2026-08-03
 - [Dispatcher Contract](dispatcher-contract.md) — `ssot:true` · updated 2026-08-03
 
