@@ -35,6 +35,7 @@ cli_binary: codex
 sdk_package: openai-codex
 sdk_optional_extra: codex-sdk
 auth_env_vars: [CODEX_API_KEY, OPENAI_API_KEY]
+chat_provider: chat_provider.py
 
 # Env vars the Codex CLI runtime exports.  Same purpose as the field on
 # the Claude adapter — keeps agent detection data-driven (rule #11).
@@ -98,7 +99,7 @@ hook_capabilities:
 hook_dispatchers:
   - event: SessionEnd
     matcher: ""
-    script: agent-presence.sh
+    script: codex-sessionend-dispatch.sh
     timeout: 3
     delegates:
       - agent-presence.sh

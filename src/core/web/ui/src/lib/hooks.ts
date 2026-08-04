@@ -38,6 +38,8 @@ export interface UseApiGetOptions {
    * from the truncation badge (TASK-402). Object payloads only.
    */
   includeMeta?: boolean;
+  /** Override TanStack retry behavior for terminal API failures such as 404. */
+  retry?: boolean | number | ((failureCount: number, error: Error) => boolean);
 }
 
 export function useApiGet<T>(
@@ -63,6 +65,7 @@ export function useApiGet<T>(
     enabled: options?.enabled ?? true,
     refetchInterval: options?.refetchIntervalMs,
     staleTime: options?.staleTimeMs,
+    retry: options?.retry,
   });
 }
 

@@ -860,6 +860,8 @@ def _serialize_session_info(info: Any) -> dict:
         "cwd": getattr(info, "cwd", None),
         "tag": getattr(info, "tag", None),
         "created_at": getattr(info, "created_at", None),
+        "agent": "claude",
+        "writable": True,
     }
 
 
@@ -936,33 +938,54 @@ def _serialize_message(msg: Any) -> dict:
     }
 
 
+def _session_agent_hints(session_id: str) -> set[str]:
+    hints: set[str] = set()
+    state = _state_dir()
+    if not state.is_dir():
+        return hints
+    for agent_dir in state.iterdir():
+        sessions_dir = agent_dir / "sessions"
+        if not sessions_dir.is_dir():
+            continue
+        for path in sessions_dir.glob("*.json"):
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if payload.get("sdk_uuid") == session_id:
+                hints.add(str(payload.get("agent") or agent_dir.name))
+    return hints
+
+
 @router.get("/chats")
-def list_chats(
+async def list_chats(
     limit: int = Query(50, ge=1, le=500),
     _rl=Depends(make_rate_limit_dep("cognition.chats")),
     _m=Depends(make_metrics_dep("cognition.chats")),
 ):
-    """List Claude Agent SDK chat sessions for the current project."""
+    """List chat sessions from every available transcript provider."""
+    from web.chat_providers import list_sessions as list_adapter_sessions
+
+    cwd = _project_cwd()
+    adapter_rows, adapter_sources = await list_adapter_sessions(cwd, limit)
+    rows_by_id = {str(row["session_id"]): row for row in adapter_rows}
+    sources = [f"{agent}_sdk" for agent in adapter_sources]
     sdk = _claude_sdk()
-    if sdk is None:
-        return unwrap(_unavailable("claude_agent_sdk not installed"))
-    try:
-        sessions = sdk.list_sessions(directory=_project_cwd(), limit=limit)
-    except Exception as exc:
-        return unwrap(
-            json.dumps(
-                {
-                    "ok": False,
-                    "error": {
-                        "category": "internal",
-                        "retryable": False,
-                        "message": f"list_sessions failed: {exc}",
-                    },
-                }
-            )
-        )
-    rows = [_serialize_session_info(s) for s in sessions]
+    if sdk is not None:
+        try:
+            sessions = sdk.list_sessions(directory=cwd, limit=limit)
+        except Exception as exc:
+            logger.warning("Claude chat list failed: %s", exc)
+        else:
+            for session in sessions:
+                row = _serialize_session_info(session)
+                rows_by_id.setdefault(str(row["session_id"]), row)
+            sources.append("claude_agent_sdk")
+    if not sources:
+        return unwrap(_unavailable("no chat transcript provider is available"))
+    rows = list(rows_by_id.values())
     rows.sort(key=lambda r: r.get("last_modified") or 0, reverse=True)
+    rows = rows[:limit]
     return unwrap(
         json.dumps(
             {
@@ -970,8 +993,8 @@ def list_chats(
                 "data": {
                     "sessions": rows,
                     "count": len(rows),
-                    "cwd": _project_cwd(),
-                    "meta": {"layer": "cognition", "source": "claude_agent_sdk"},
+                    "cwd": cwd,
+                    "meta": {"layer": "cognition", "sources": sources},
                 },
             }
         )
@@ -1041,26 +1064,42 @@ def _dispatch_transcript_chat(session_id: str) -> dict | None:
 
 
 @router.get("/chat/{session_id}")
-def get_chat(
+async def get_chat(
     session_id: str,
     limit: int = Query(500, ge=1, le=5000),
     offset: int = Query(0, ge=0),
     _rl=Depends(make_rate_limit_dep("cognition.chat_get")),
     _m=Depends(make_metrics_dep("cognition.chat_get")),
 ):
-    """Return a Claude SDK session's metadata + parsed messages."""
-    sdk = _claude_sdk()
-    if sdk is None:
-        return unwrap(_unavailable("claude_agent_sdk not installed"))
+    """Return one adapter-normalized transcript."""
+    from web.chat_providers import get_session as get_adapter_session
+
     cwd = _project_cwd()
-    try:
-        info = sdk.get_session_info(session_id, directory=cwd)
-    except Exception as exc:
-        info = None
-        # A user is actively viewing this id — a failure here IS the "session
-        # vanished" symptom, so log at warning (captured by logging_os), not debug.
-        logger.warning("get_session_info(%s) failed: %s", session_id, exc)
+    agent_hints = _session_agent_hints(session_id)
+    if agent_hints and "claude" not in agent_hints:
+        adapter_data = await get_adapter_session(
+            session_id, cwd, limit, offset, agent_hints=agent_hints
+        )
+        if adapter_data is not None:
+            return unwrap(json.dumps({"ok": True, "data": adapter_data}))
+
+    sdk = _claude_sdk()
+    info = None
+    if sdk is not None:
+        try:
+            info = sdk.get_session_info(session_id, directory=cwd)
+        except Exception as exc:
+            logger.warning("get_session_info(%s) failed: %s", session_id, exc)
     if info is None:
+        adapter_data = await get_adapter_session(
+            session_id,
+            cwd,
+            limit,
+            offset,
+            agent_hints=agent_hints or None,
+        )
+        if adapter_data is not None:
+            return unwrap(json.dumps({"ok": True, "data": adapter_data}))
         fallback = _dispatch_transcript_chat(session_id)
         if fallback is not None:
             return unwrap(json.dumps({"ok": True, "data": fallback}))

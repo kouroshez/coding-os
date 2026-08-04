@@ -34,6 +34,8 @@ export interface SessionMeta {
   file_size?: number | null;
   git_branch?: string | null;
   cwd?: string | null;
+  agent?: string | null;
+  writable?: boolean;
 }
 
 export interface ChatPayload {
@@ -131,4 +133,3 @@ export function buildTurns(messages: ChatMessage[]): Turn[] {
   }
   return turns;
 }
-

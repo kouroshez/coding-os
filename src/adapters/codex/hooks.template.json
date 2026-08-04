@@ -198,7 +198,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env COS_AGENT=codex \"{{HOOKS_DIR}}/agent-presence.sh\"",
+            "command": "env COS_AGENT=codex \"{{HOOKS_DIR}}/codex-sessionend-dispatch.sh\"",
             "timeout": 3
           }
         ]

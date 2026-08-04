@@ -14,6 +14,7 @@ PRETOOL = HOOKS_DIR / "codex-pretool-dispatch.sh"
 PREEDIT = HOOKS_DIR / "codex-preedit-dispatch.sh"
 POSTEDIT = HOOKS_DIR / "codex-postedit-dispatch.sh"
 SESSIONSTART = HOOKS_DIR / "codex-sessionstart-dispatch.sh"
+SESSIONEND = HOOKS_DIR / "codex-sessionend-dispatch.sh"
 STOP = HOOKS_DIR / "codex-stop-dispatch.sh"
 NORMALIZER = HOOKS_DIR / "codex-normalize-edit.py"
 MERGER = HOOKS_DIR / "codex-merge-hook-output.py"
@@ -249,3 +250,34 @@ def test_codex_stop_dispatch_returns_valid_json(tmp_path: Path) -> None:
     )
     assert result.returncode == 0
     assert json.loads(result.stdout) == {}
+
+
+def test_codex_sessionend_closes_payload_session_presence(tmp_path: Path) -> None:
+    state = tmp_path / ".coding-os"
+    state.mkdir()
+    env = {
+        "COS_STATE_DIR": str(state),
+        "COS_AGENT": "codex",
+        "CODEX_HOME": str(tmp_path / "home"),
+    }
+    sdk_id = "019fc9f3-343c-7301-9981-89b6a87afd59"
+    started = _invoke(
+        SESSIONSTART,
+        {"hook_event_name": "SessionStart", "source": "startup", "session_id": sdk_id},
+        env=env,
+        cwd=tmp_path,
+    )
+    assert started.returncode == 0, started.stderr
+
+    ended = _invoke(
+        SESSIONEND,
+        {"hook_event_name": "SessionEnd", "session_id": sdk_id},
+        env=env,
+        cwd=tmp_path,
+    )
+    assert ended.returncode == 0, ended.stderr
+
+    records = [json.loads(path.read_text()) for path in (state / "codex" / "sessions").glob("*.json")]
+    matching = [record for record in records if record.get("sdk_uuid") == sdk_id]
+    assert len(matching) == 1
+    assert matching[0]["ended_at"] is not None

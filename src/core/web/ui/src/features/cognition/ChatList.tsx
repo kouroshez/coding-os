@@ -12,6 +12,8 @@ export interface ChatSession {
   git_branch?: string | null;
   cwd?: string | null;
   tag?: string | null;
+  agent?: string | null;
+  writable?: boolean;
 }
 
 interface ChatsPayload {
@@ -82,7 +84,7 @@ export default function ChatList({
     const q = query.trim().toLowerCase();
     if (!q) return list;
     return list.filter((s) => {
-      const hay = [s.session_id, s.summary, s.custom_title, s.first_prompt, s.git_branch]
+      const hay = [s.session_id, s.summary, s.custom_title, s.first_prompt, s.git_branch, s.agent]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
@@ -156,6 +158,11 @@ export default function ChatList({
                   ].join(' ')}
                 >
                   <div className="flex items-center gap-2">
+                    {s.agent && (
+                      <span className="rounded-full border border-[var(--cos-accent)]/35 bg-[var(--cos-accent)]/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[var(--cos-accent)]">
+                        {s.agent}
+                      </span>
+                    )}
                     {s.git_branch && (
                       <span className="rounded border border-[var(--cos-border)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[var(--cos-muted)] bg-black/10">
                         {s.git_branch}

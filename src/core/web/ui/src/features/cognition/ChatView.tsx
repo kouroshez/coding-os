@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { ArrowLeft, LoaderCircle, MessageSquareOff, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
 import { consumeSse, streamDeltaText, streamToolName } from '@/lib/chat-stream';
@@ -7,6 +8,73 @@ import { useScopedLink } from '@/lib/use-scoped-link';
 import { buildTurns } from './chat-turns';
 import type { ChatPayload, LiveEvent } from './chat-turns';
 import { AssistantTurn, HumanTurn, LiveAssistant, LiveEventList, LiveEventRow } from './chat-turn-views';
+
+function TranscriptState({
+  kind,
+  title,
+  description,
+  sessionId,
+  onRetry,
+  backTo,
+}: {
+  kind: 'loading' | 'syncing' | 'error';
+  title: string;
+  description: string;
+  sessionId: string;
+  onRetry?: () => void;
+  backTo: string;
+}) {
+  const pending = kind !== 'error';
+  const Icon = pending ? LoaderCircle : MessageSquareOff;
+  return (
+    <div className="flex h-full min-h-[360px] items-center justify-center p-6">
+      <section
+        role={pending ? 'status' : 'alert'}
+        aria-live={pending ? 'polite' : 'assertive'}
+        aria-busy={pending || undefined}
+        className="relative w-full max-w-md overflow-hidden rounded-3xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/75 px-8 py-9 text-center shadow-2xl shadow-black/10 backdrop-blur-xl"
+      >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-12 -top-20 h-36 rounded-full bg-[var(--cos-accent)]/15 blur-3xl"
+        />
+        <div className="relative mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-bg)]/80 text-[var(--cos-accent)] shadow-inner">
+          <Icon
+            size={25}
+            aria-hidden
+            className={pending ? 'motion-safe:animate-spin motion-reduce:animate-none' : ''}
+          />
+        </div>
+        <h2 className="relative text-lg font-semibold tracking-tight text-[var(--cos-text)]">
+          {title}
+        </h2>
+        <p className="relative mx-auto mt-2 max-w-sm text-sm leading-6 text-[var(--cos-muted)]">
+          {description}
+        </p>
+        <p className="relative mt-4 truncate font-mono text-[10px] text-[var(--cos-faint)]" title={sessionId}>
+          {sessionId}
+        </p>
+        {!pending && (
+          <div className="relative mt-6 flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--cos-accent-solid)] px-4 py-2 text-xs font-semibold text-white transition hover:-translate-y-px hover:shadow-lg hover:shadow-[var(--cos-accent)]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
+            >
+              <RefreshCw size={13} aria-hidden /> Retry
+            </button>
+            <Link
+              to={backTo}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--cos-border)] px-4 py-2 text-xs font-medium text-[var(--cos-muted)] transition hover:border-[var(--cos-accent)] hover:text-[var(--cos-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
+            >
+              <ArrowLeft size={13} aria-hidden /> Back to chats
+            </Link>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
 
 export default function ChatView({ sessionId }: { sessionId: string }) {
   const { scopedLink } = useScopedLink();
@@ -24,7 +92,13 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
     // just-sent user turn immediately, so a mid-stream refetch rendered it
     // alongside the live pending-user echo → the message showed twice
     // (TASK-283). The live SSE covers updates; finally{} does one refetch after.
-    { refetchIntervalMs: streaming ? 0 : 2000 },
+    {
+      refetchIntervalMs: streaming ? 0 : 2000,
+      retry: (failureCount, queryError) => {
+        const status = (queryError as { status?: number }).status;
+        return status !== 404 && failureCount < 2;
+      },
+    },
   );
   const [draft, setDraft] = useState('');
   const [fork, setFork] = useState(false);
@@ -154,7 +228,18 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
     return session.custom_title ?? session.summary ?? sessionId;
   }, [session, sessionId]);
 
-  if (isLoading && !data) return <p className="p-4 text-sm text-[var(--cos-muted)]">loading transcript…</p>;
+  const backToChats = scopedLink('workspace', 'chat');
+  if (isLoading && !data) {
+    return (
+      <TranscriptState
+        kind="loading"
+        title="Loading transcript"
+        description="Reading the latest messages from this agent session."
+        sessionId={sessionId}
+        backTo={backToChats}
+      />
+    );
+  }
   // Show an error screen ONLY when there is no transcript to display. A 404 right
   // after navigating to a freshly-minted session = the SDK jsonl isn't queryable
   // yet; the 2s refetch catches it, so show "syncing…" rather than a hard error
@@ -164,16 +249,28 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
     const status = (error as { status?: number }).status;
     if (status === 404 && !slowSync) {
       return (
-        <p className="p-4 text-sm text-[var(--cos-muted)]">
-          syncing this session…{' '}
-          <span className="text-[var(--cos-faint)]">(just created — one moment)</span>
-        </p>
+        <TranscriptState
+          kind="syncing"
+          title="Connecting to this session"
+          description="The agent is still publishing its first transcript events. This view will update automatically."
+          sessionId={sessionId}
+          backTo={backToChats}
+        />
       );
     }
     return (
-      <p role="alert" className="p-4 text-sm text-[var(--cos-err)]">
-        {status === 404 ? `chat session not found: ${sessionId}` : error.message}
-      </p>
+      <TranscriptState
+        kind="error"
+        title={status === 404 ? 'This session is no longer available' : 'Transcript could not be loaded'}
+        description={
+          status === 404
+            ? 'The agent process ended without a persisted transcript, or this session was removed. It is safe to return to the chat list.'
+            : error.message
+        }
+        sessionId={sessionId}
+        onRetry={() => void refetch()}
+        backTo={backToChats}
+      />
     );
   }
 
@@ -183,6 +280,11 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
         <h2 className="text-sm font-semibold text-[var(--cos-text)]">{titleLine}</h2>
         <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-[var(--cos-muted)]">
           <span className="font-mono">{sessionId}</span>
+          {session?.agent && (
+            <span className="rounded-full border border-[var(--cos-accent)]/30 bg-[var(--cos-accent)]/10 px-1.5 py-0.5 font-sans text-[9px] font-bold uppercase tracking-wider text-[var(--cos-accent)]">
+              {session.agent}
+            </span>
+          )}
           {session?.git_branch && <span>· {session.git_branch}</span>}
           <span>· {turns.length} turn{turns.length === 1 ? '' : 's'}</span>
           <span>· {data?.count ?? 0} msg{data?.count === 1 ? '' : 's'}</span>
@@ -235,6 +337,12 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
         </div>
       </div>
 
+      {session?.writable === false ? (
+        <div className="shrink-0 border-t border-[var(--cos-border)]/40 bg-[var(--cos-panel)]/90 px-4 py-3 text-center text-xs text-[var(--cos-muted)] backdrop-blur-md">
+          <span className="font-semibold text-[var(--cos-text)]">Read-only {session.agent ?? 'agent'} transcript.</span>{' '}
+          Continue this thread in its native client; Hub send support is not enabled for this adapter yet.
+        </div>
+      ) : (
       <form onSubmit={send} className="shrink-0 border-t border-[var(--cos-border)]/40 bg-[var(--cos-panel)]/90 backdrop-blur-md p-4">
         <textarea
           value={draft}
@@ -283,6 +391,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
           </div>
         </div>
       </form>
+      )}
     </div>
   );
 }
@@ -290,4 +399,3 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
 // ---------------------------------------------------------------------------
 // Turn renderers
 // ---------------------------------------------------------------------------
-

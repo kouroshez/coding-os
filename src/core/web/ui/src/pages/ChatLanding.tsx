@@ -54,8 +54,8 @@ const SUGGESTIONS: { icon: typeof ListTodo; label: string; prompt: string; role?
  * even inside a conversation) with a "+ New chat" affordance. Right: the live
  * conversation (ChatView) when a session is in the URL, else a warm hero +
  * composer + suggestions. Handoff is in-place (same tab) so the index never
- * disappears. Chat is Claude-SDK-gated; an `unavailable` envelope degrades to
- * install guidance — never a raw error on the first screen.
+ * disappears. Transcript history is adapter-loaded; writable new-chat and
+ * follow-up turns remain Claude-backed until the shared runtime port lands.
  */
 export default function ChatLanding() {
   const { slug, sessionId } = useParams<{ slug?: string; sessionId?: string }>();
@@ -77,9 +77,9 @@ export default function ChatLanding() {
   if (unavailable) {
     return (
       <div className="h-full overflow-auto p-8">
-        <EmptyState icon={<MessageSquare size={28} />} title="Chat needs Claude Code">
-          <p>The Claude Agent SDK isn’t available in this project yet, so chat sessions can’t run here.</p>
-          <p className="mt-2">Connect Claude Code to this folder (install the Claude Agent SDK), then reload this page.</p>
+        <EmptyState icon={<MessageSquare size={28} />} title="No chat runtime is available">
+          <p>No installed adapter currently exposes transcript history for this project.</p>
+          <p className="mt-2">Install the Claude or Codex SDK extra, then reload this page.</p>
         </EmptyState>
       </div>
     );

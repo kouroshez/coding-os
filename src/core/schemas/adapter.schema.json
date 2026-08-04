@@ -57,6 +57,10 @@
       "type": "string",
       "description": "Relative filename of the adapter install script (usually install.sh)."
     },
+    "chat_provider": {
+      "type": ["string", "null"],
+      "description": "Optional adapter-local Python module that exposes read-only Hub transcript list/get operations."
+    },
     "cli_binary": {
       "type": "string",
       "description": "Executable name discoverable on PATH for this agent (e.g. \"claude\"). Consumed by src/cli/doctor.py::_probe_agent_sdk so that file stays free of hardcoded adapter literals (rule #11). Optional — defaults to the adapter id when missing."

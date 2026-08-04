@@ -205,6 +205,7 @@ class TestCodexAdapter:
         assert (hooks_dir / "codex-preedit-dispatch.sh").exists()
         assert (hooks_dir / "codex-postedit-dispatch.sh").exists()
         assert (hooks_dir / "codex-sessionstart-dispatch.sh").exists()
+        assert (hooks_dir / "codex-sessionend-dispatch.sh").exists()
         assert (hooks_dir / "codex-stop-dispatch.sh").exists()
         assert (hooks_dir / "codex-normalize-edit.py").is_symlink()
         assert (hooks_dir / "codex-merge-hook-output.py").is_symlink()
@@ -238,7 +239,7 @@ class TestCodexAdapter:
 
         session_end = data["hooks"]["SessionEnd"][0]["hooks"]
         assert len(session_end) == 1
-        assert "agent-presence.sh" in session_end[0]["command"]
+        assert "codex-sessionend-dispatch.sh" in session_end[0]["command"]
         assert session_end[0]["command"].startswith("env COS_AGENT=codex ")
         assert session_end[0]["timeout"] == 3
 

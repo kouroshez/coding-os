@@ -10,14 +10,15 @@ vi.mock('@/lib/hooks', () => ({
 import ChatLanding from './ChatLanding';
 
 describe('ChatLanding', () => {
-  it('degrades to install guidance when the Claude SDK is unavailable', () => {
+  it('degrades to adapter install guidance when no chat runtime is available', () => {
     hoisted.error = { category: 'unavailable', message: 'claude_agent_sdk not installed' };
     render(
       <MemoryRouter initialEntries={['/p/demo/workspace/chat']}>
         <ChatLanding />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/chat needs claude code/i)).toBeInTheDocument();
+    expect(screen.getByText(/no chat runtime is available/i)).toBeInTheDocument();
+    expect(screen.getByText(/claude or codex sdk extra/i)).toBeInTheDocument();
     // the sidebar must NOT render in the unavailable state (no raw error)
     expect(screen.queryByLabelText(/chat sessions/i)).toBeNull();
   });

@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-05 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-08-03 -->
 # Agent Hub & Multi-Agent Orchestration
 
 Purpose: Canonical contract for the task-system web UX, multi-agent concurrency stabilization, the session↔transcript id bridge, and the live-agents/traces surfaces. This is the doc-anchor for the `agent-hub` epic (TASK-167+).
@@ -47,7 +47,28 @@ panel, never sees it). This single bridge unblocks T10, T11, and traces↔chat.
 | Session governance | **No concurrency cap.** Root cause of "stuck" is the MCP attribution bug, not session count. Keep the unlimited-sessions design (`per_session_wip`); fix attribution only (TASK-F2). |
 | Traces UX | **Human summary as default + raw cognition trace behind a developer toggle.** |
 | context-window | Build it, **honestly Claude-only**. Codex renders `N/A` (no runtime usage signal) — never a fabricated number. |
-| Adapter scope | Claude only for now. The chat/runner endpoints stay adapter-generic in shape but only the Claude path is wired. |
+| Adapter scope | Transcript list/read is adapter-loaded. Claude remains the writable chat runtime; Codex is read-only until start/send/cancel move behind the shared runtime port. |
+
+### 2.1 Adapter-loaded transcript contract
+
+`GET /api/cognition/chats` and `GET /api/cognition/chat/{id}` may read from
+adapter-owned transcript providers declared as `chat_provider` in
+`src/adapters/<agent>/adapter.yaml`. A provider normalizes its native thread
+objects into the existing Hub payload and declares whether the transcript is
+writable. Core discovers providers from manifests; it must not import an
+adapter SDK or parse a provider's private transcript files.
+
+The Codex provider uses the official Python SDK/app-server surface:
+`thread/list` for project history and `thread/read(includeTurns=true)` for a
+stored transcript. Codex threads are intentionally read-only in Hub until the
+mutation operations below share one runtime port. The composer must therefore
+be hidden for a Codex transcript instead of sending its id to Claude's resume
+endpoint.
+
+Presence is only a link hint, never proof that a transcript exists. A dead
+runtime process with no `SessionEnd` transition is stale and must not remain an
+active clickable agent. Adapter lifecycle dispatchers must upgrade identity
+from the hook payload before writing their final presence transition.
 
 ## 3. Concurrency-safety guardrails for the implementing agent
 

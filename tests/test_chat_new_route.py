@@ -243,8 +243,71 @@ def test_get_chat_missing_session_returns_404(client, monkeypatch):
             return None
 
     _patch_sdk(monkeypatch, FakeSDK())
+    import web.chat_providers as chat_providers
+
+    async def missing(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(chat_providers, "get_session", missing)
     r = client.get("/api/cognition/chat/does-not-exist")
     assert r.status_code == 404
+
+
+def test_get_chat_uses_codex_provider_before_claude_for_codex_presence(client, monkeypatch):
+    class FailingClaudeSDK:
+        def get_session_info(self, session_id, directory):
+            raise AssertionError("Codex ids must not be sent to Claude")
+
+    _patch_sdk(monkeypatch, FailingClaudeSDK())
+    for modname in ("web.routes.cognition", "core.web.routes.cognition"):
+        mod = sys.modules.get(modname)
+        if mod is not None:
+            monkeypatch.setattr(mod, "_session_agent_hints", lambda session_id: {"codex"})
+
+    import web.chat_providers as chat_providers
+
+    async def codex_session(session_id, cwd, limit, offset, agent_hints=None):
+        assert agent_hints == {"codex"}
+        return {
+            "session": {"session_id": session_id, "agent": "codex", "writable": False},
+            "messages": [],
+            "count": 0,
+            "offset": offset,
+            "meta": {"source": "codex_sdk"},
+        }
+
+    monkeypatch.setattr(chat_providers, "get_session", codex_session)
+    r = client.get("/api/cognition/chat/codex-thread-id")
+    assert r.status_code == 200
+    data = r.json()["data"]
+    assert data["session"]["agent"] == "codex"
+    assert data["session"]["writable"] is False
+
+
+def test_list_chats_works_with_codex_provider_without_claude(client, monkeypatch):
+    _patch_sdk(monkeypatch, None)
+    import web.chat_providers as chat_providers
+
+    async def codex_sessions(cwd, limit):
+        return (
+            [
+                {
+                    "session_id": "codex-thread-id",
+                    "custom_title": "Codex task",
+                    "last_modified": 123,
+                    "agent": "codex",
+                    "writable": False,
+                }
+            ],
+            ["codex"],
+        )
+
+    monkeypatch.setattr(chat_providers, "list_sessions", codex_sessions)
+    r = client.get("/api/cognition/chats")
+    assert r.status_code == 200
+    data = r.json()["data"]
+    assert data["sessions"][0]["agent"] == "codex"
+    assert r.json()["meta"]["sources"] == ["codex_sdk"]
 
 
 def test_chat_send_streams_partial_and_skips_project_hooks(client, monkeypatch):

@@ -6,7 +6,7 @@ Read when: editing `src/adapters/codex/`, changing adapter manifests or hook ren
 Skip when: the change is Claude-only and does not alter a shared adapter port.
 
 > Nav: [AGENTS.md](../../AGENTS.md) > [adapters](.) > **codex**
-> Status: live for Codex CLI/Desktop install, MCP, skills, hooks, formula dispatch, and Hub observability; Hub interactive chat remains roadmap pending the shared runtime port.
+> Status: live for Codex CLI/Desktop install, MCP, skills, hooks, formula dispatch, Hub observability, and read-only Hub transcripts; interactive start/send/cancel remains pending the shared runtime port.
 
 ---
 
@@ -50,7 +50,7 @@ thinking_os DispatchResult
 
 The kernel must not import `openai_codex`, know Codex CLI flags, parse Codex JSONL, or translate Codex hook payloads. A second adapter should require a manifest, installer, optional dispatcher, and tests, not provider conditionals in `src/core/`.
 
-The current exception is Hub chat: `src/core/web/routes/cognition.py` imports `claude_agent_sdk` directly and loads a Claude-only session-options builder. That is a real hexagonal violation. Making Codex interactive there requires extracting a shared runtime port and migrating Claude behind it; it is not an adapter-local edit.
+The remaining exception is writable Hub chat: `src/core/web/routes/cognition.py` still owns Claude-only start/send behavior. Transcript discovery and reading are adapter-loaded through the manifest `chat_provider` port, so core does not import `openai_codex`. Making Codex writable still requires extracting start/resume/send/cancel into the shared runtime port and migrating Claude behind it.
 
 ## Dispatcher Contract
 
@@ -103,7 +103,8 @@ Parity means equivalent kernel outcomes, not identical provider APIs.
 | Permission hook | SDK/CLI permission callbacks | `PermissionRequest` | native, output schemas differ |
 | Hook trust | project/settings trust | hash-based review for non-managed hooks | explicit operator step required |
 | Hub sessions, board, logs, traces | native Claude identity | native Codex identity | parity through adapter-owned environment and `ses-codex-*` ids |
-| Hub interactive chat | in process | blocked by Claude-coupled core route | requires shared runtime port |
+| Hub transcript list/read | Claude Agent SDK | official Codex Python SDK `thread/list` + `thread/read` | native, adapter-loaded |
+| Hub start/send/cancel | Claude Agent SDK | official Codex Python SDK/app-server | requires shared writable runtime port |
 
 ## Runtime Identity Contract
 
@@ -152,7 +153,13 @@ This avoids leaking Codex patch grammar into `src/core/hooks/**` and keeps the k
 
 Codex runs multiple matching command hooks concurrently. Dispatcher groups therefore preserve the registry's safety-to-observability ordering. A dispatcher must also forward delegate `additionalContext`; dropping stdout makes prompt, Stop, and reminder hooks silent even though the runtime supports them.
 
-Codex also emits `SessionEnd`. Coding OS uses it for a final presence transition to `ended`; per-turn recap and learning remain on `Stop`, because `Stop` and `SessionEnd` have different lifecycle meanings.
+Codex also emits `SessionEnd`. Coding OS uses an adapter dispatcher that first
+upgrades panel identity from the event payload and then writes the final
+presence transition to `ended`. Directly invoking the shared presence hook
+without that upgrade can target the wrong panel or no session at all, leaving
+a dead process rendered as an active Codex chat. Per-turn recap and learning
+remain on `Stop`, because `Stop` and `SessionEnd` have different lifecycle
+meanings.
 
 ## Hook Trust
 
@@ -202,13 +209,13 @@ Adding a directory is easy. Shipping an adapter that preserves safety, lifecycle
 
 ### Phase B - Shared Interactive Runtime Port
 
-Extract an adapter-loaded protocol from Hub cognition with operations for:
+Complete the adapter-loaded protocol from Hub cognition with operations for:
 
 - availability and capability discovery;
 - start/resume/send/cancel;
 - normalized stream events (`text`, `tool_start`, `tool_end`, `usage`, `error`, `done`);
 - model and reasoning-effort discovery;
-- session identity, presence, and transcript lookup;
+- session identity and presence lookup (transcript list/read is implemented);
 - sandbox, approval, tool, and budget capabilities.
 
 Migrate Claude behind that port without changing behavior, then add Codex. This phase changes the Claude path and requires its own migration task and rollback evidence.
