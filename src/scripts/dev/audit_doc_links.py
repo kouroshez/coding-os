@@ -1,9 +1,11 @@
 """Audit internal markdown links across docs/ for broken targets, anchors, and duplicates.
 
-Also scans the repo-root agent entrypoint (AGENTS.md) and flags
-symlinked directories inside the doc tree — a symlink dir resolves
+Also scans every repo-root *.md (README, CONTRIBUTING, SECURITY, …) and
+flags symlinked directories inside the doc tree — a symlink dir resolves
 transparently on a local filesystem but renders as a plain file on
-GitHub, so every link that traverses it 404s in the web view.
+GitHub, so every link that traverses it 404s in the web view. Link
+targets resolve case-exactly: macOS's case-insensitive filesystem
+accepts `Foo.md` for `foo.md`, but the same link 404s on GitHub/Linux.
 """
 
 from __future__ import annotations
@@ -23,9 +25,10 @@ DOCS = (REPO / "docs").resolve()
 #   `./<related>.md`), so auditing them as navigable docs is a
 #   category error.
 SKIP_DIRS = {"code-os-core-docs", "_templates"}
-# Repo-root markdown files that are agent entrypoints — scanned for
-# links but exempt from the doc frontmatter contract.
-ROOT_DOCS = ["AGENTS.md"]
+# Repo-root markdown files (agent entrypoints + community files) —
+# scanned for links but exempt from the doc frontmatter contract.
+# Symlinks (CLAUDE.md → AGENTS.md) are skipped to avoid double-scanning.
+ROOT_DOCS = sorted(p.name for p in REPO.glob("*.md") if not p.is_symlink())
 # Categories that signal real breakage — non-zero exit when any are present.
 _FAIL_CATEGORIES = {"BROKEN-FILE", "BROKEN-ANCHOR", "DEAD-NEXT-LINK", "SYMLINK-DIR"}
 
@@ -39,6 +42,30 @@ _HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
 def _blank(match: re.Match) -> str:
     """Replace a region with spaces, preserving newlines (so offsets hold)."""
     return re.sub(r"[^\n]", " ", match.group(0))
+
+
+def _exists_exact(path: Path) -> bool:
+    """True when path exists with byte-exact casing on every segment.
+
+    macOS's default case-insensitive filesystem lets `Foo.md` satisfy a
+    link written `foo.md`; the same link 404s on GitHub and Linux CI, so
+    a plain .exists() check structurally cannot catch it here.
+    """
+    if not path.exists():
+        return False
+    try:
+        parts = path.resolve().relative_to(REPO).parts
+    except ValueError:
+        return True
+    current = REPO
+    for part in parts:
+        try:
+            if part not in os.listdir(current):
+                return False
+        except OSError:
+            return True
+        current = current / part
+    return True
 
 
 def _strip_for_links(text: str) -> str:
@@ -178,9 +205,9 @@ def _check_links(path: Path, anchor_cache: dict[Path, set[str]]) -> list[tuple[s
 
         if file_part:
             target = (path.parent / file_part).resolve()
-            if not target.exists():
+            if not _exists_exact(target):
                 root_target = (REPO / file_part.lstrip("/")).resolve()
-                if not root_target.exists():
+                if not _exists_exact(root_target):
                     findings.append(("BROKEN-FILE", f"{rel} -> {url}"))
                     continue
                 target = root_target
