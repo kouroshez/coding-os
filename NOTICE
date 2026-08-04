@@ -6,3 +6,7 @@ This product includes software developed by the coding-os project
 
 Licensed under the Apache License, Version 2.0 (the "License").
 See the LICENSE file for the full text of the license.
+
+This product bundles the Apache Maven Wrapper (mvnw + .mvn/wrapper) in its
+Java scaffold templates, licensed under the Apache License 2.0 by the Apache
+Software Foundation.

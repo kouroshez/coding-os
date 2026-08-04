@@ -7,8 +7,6 @@
 
 SpaceX's Raptor engine evolved from a machine wrapped in visible plumbing, sensors, and glue (Raptor 1) to a compact unit where the plumbing is internalized, consolidated, or deleted (Raptor 3) — smaller, cheaper, *and* more powerful. The capability did not shrink; the parasitic structure around it did.
 
-![Raptor 1 → 2 → 3 consolidation](../assets/raptor-variants-2024.webp)
-
 coding-os aims for the same trajectory: maximum structural simplification **simultaneous with** a leap in performance and density — every generation of the kernel carries **more capability per moving part**, never more parts per capability.
 
 ## The four principles
