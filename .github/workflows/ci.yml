@@ -25,7 +25,9 @@ on:
 # complete or the PR can never merge.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # A newer run on the same ref always supersedes — the older tree's
+  # verdict is irrelevant once a newer commit exists (trunk-based).
+  cancel-in-progress: true
 
 # Default to restrictive permissions; jobs that need more bump explicitly.
 permissions:
@@ -349,9 +351,12 @@ jobs:
         # CI). The SSOT frontmatter sub-check inside the target stays
         # advisory until that baseline is cleared.
       - name: docs-lint strict on changed docs
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
         run: |
-          base="${{ github.event.pull_request.base.sha }}"
-          [ -n "$base" ] || base="${{ github.event.before }}"
+          base="$PR_BASE_SHA"
+          [ -n "$base" ] || base="$PUSH_BEFORE_SHA"
           if [ -n "$base" ] && [ "$base" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$base" 2>/dev/null; then
             COS_DOCS_LINT_STRICT=1 COS_DOCS_LINT_BASE="$base" bash src/core/scripts/docs-lint.sh --changed
           else
@@ -384,6 +389,7 @@ jobs:
     if: always()
     needs: [lint, test-python, test-hooks, test-frontend, test-modularity, test-matrix, docs-lint]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Verify all required jobs succeeded
         run: |
