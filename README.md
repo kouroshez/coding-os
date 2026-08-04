@@ -614,6 +614,7 @@ If coding-os saves you time, a star helps others find it. These links also
 live in the Hub footer (never inside the new-project Composer).
 
 - ★ Star / follow on GitHub: <https://github.com/kouroshez/coding-os>
+- Sponsor the project: <https://github.com/sponsors/kouroshez> · <https://coding-os.dev/donate>
 - Questions / ideas: <https://github.com/kouroshez/coding-os/discussions>
 - Community forum: <https://community.coding-os.dev>
 
