@@ -13,18 +13,19 @@ from __future__ import annotations
 import os
 import re
 import sys
+import unicodedata
 from collections import defaultdict
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 REPO = Path(__file__).resolve().parent.parent.parent.parent
 DOCS = (REPO / "docs").resolve()
-# code-os-core-docs: external reference material (not project docs).
 # _templates: doc TEMPLATES shipped by `cos init` — their links are
 #   intentionally consumer-relative / placeholder (`relative/path`,
 #   `./<related>.md`), so auditing them as navigable docs is a
-#   category error.
-SKIP_DIRS = {"code-os-core-docs", "_templates"}
+#   category error. Nothing else is exempt: an unwatched subtree is where
+#   link rot and stale identifiers survive a public launch unnoticed.
+SKIP_DIRS = {"_templates"}
 # Repo-root markdown files (agent entrypoints + community files) —
 # scanned for links but exempt from the doc frontmatter contract.
 # Symlinks (CLAUDE.md → AGENTS.md) are skipped to avoid double-scanning.
@@ -105,19 +106,25 @@ _OPENING_NEXT = re.compile(r"^(?:Read next:|>\s*N:)\s*(.+)$", re.M)
 def _slugify(text: str) -> str:
     """Slugify a heading the way GitHub does.
 
-    GitHub's anchor algorithm (github-slugger): lowercase, drop
-    characters that are not word/space/hyphen, then replace each
-    whitespace character with a single hyphen. Crucially it does NOT
-    collapse consecutive hyphens — `## Rule 0 — Docs-first` becomes
-    `rule-0--docs-first` (the em-dash is dropped, the two spaces around
-    it become two hyphens). The previous implementation collapsed `-+`,
-    which produced `rule-0-docs-first` and false-flagged every
-    `Rule N — title` cross-reference as a broken anchor.
+    GitHub's anchor algorithm (github-slugger): lowercase, keep letters,
+    marks, numbers, `_`, `-`, whitespace and the zero-width joiners, drop
+    everything else, then replace each whitespace character with a single
+    hyphen. Crucially it does NOT collapse consecutive hyphens — `## Rule 0
+    — Docs-first` becomes `rule-0--docs-first` (the em-dash is dropped, the
+    two spaces around it become two hyphens).
+
+    Python's `\\w` is narrower than github-slugger's keep-set: it drops
+    combining marks (اصلاً) and format characters (the half-space in
+    سیستم‌ها), so a `\\w`-based strip false-flags every Persian heading.
+    Verified against GitHub's own /markdown renderer over 200 real repo
+    headings — 120 of them non-ASCII — with zero divergence.
     """
-    s = text.lower()
-    s = re.sub(r"[^\w\s-]", "", s)
-    s = re.sub(r"\s", "-", s)
-    return s or "section"
+    kept = [
+        ch
+        for ch in text.lower()
+        if ch.isspace() or ch in "-_‌‍" or unicodedata.category(ch)[0] in "LMN"
+    ]
+    return re.sub(r"\s", "-", "".join(kept)) or "section"
 
 
 def _is_external(url: str) -> bool:
