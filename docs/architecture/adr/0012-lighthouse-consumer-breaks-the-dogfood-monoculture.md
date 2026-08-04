@@ -41,7 +41,7 @@ running the full cognitive loop on a real app, not by more meta-repo work. The
 multi-week build is owner-driven; this ADR fixes the strategy, the choice, and the
 success criteria so the work is measured, not vibes.**
 
-1. **Lighthouse = `streamos`** (`/Users/ciro/Files/Project/streamos`, Go +
+1. **Lighthouse = `streamos`** (`~/Projects/<consumer-project>`, Go +
    SvelteKit). It is already a registered consumer with a live
    `.coding-os/coding-os.db` and a seeded board — "half-wired" exactly as the
    audit found. It is a real product (BACKEND + FRONTEND), not INFRA, so its work

@@ -26,7 +26,7 @@ references: []
 - docs/engineering/state-files.md
 
 ## Repro Steps
-cd /Users/ciro/Files/Project/streamos/src/backend && env -u CLAUDE_PROJECT_DIR -u COS_PROJECT_ROOT -u COS_STATE_DIR bash -c 'source /Users/ciro/Files/Project/streamos/.claude/hooks/cos-env.sh; echo "$COS_STATE_DIR"' → today resolves a relative .coding-os under src/backend (bug); expected <root>/.coding-os.
+cd ~/Projects/<consumer-project>/src/backend && env -u CLAUDE_PROJECT_DIR -u COS_PROJECT_ROOT -u COS_STATE_DIR bash -c 'source ~/Projects/<consumer-project>/.claude/hooks/cos-env.sh; echo "$COS_STATE_DIR"' → today resolves a relative .coding-os under src/backend (bug); expected <root>/.coding-os.
 
 ## Resolution Order (cos-env.sh, only when COS_STATE_DIR is the bare `.coding-os`)
 1. COS_STATE_DIR set to a non-default value → used verbatim (unchanged from today).
