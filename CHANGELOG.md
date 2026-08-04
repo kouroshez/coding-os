@@ -12,6 +12,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.3](https://github.com/kouroshez/coding-os/compare/v0.3.2...v0.3.3) (2026-08-04)
+
+
+### Fixed
+
+* **cli:** honest post-init next steps + document the Hub-optional CLI loop ([cf434fa](https://github.com/kouroshez/coding-os/commit/cf434fab4b4df3126336fbe112c1e6b71019b5f8))
+* **cli:** post-init quick start prints commands that actually run ([729ce10](https://github.com/kouroshez/coding-os/commit/729ce10d16f3e70c11c0804ac35adfeac6fd94b1))
+* **readme:** color-safe release badge URL so release-please version bumps keep the color ([4ff70b4](https://github.com/kouroshez/coding-os/commit/4ff70b4a2b98c625615b064093a2fac5a260287b))
+* **readme:** dynamic GitHub release badge — works now the repo is public ([70a4699](https://github.com/kouroshez/coding-os/commit/70a469911860ba4a2d6c9257c857433c5724402d))
+
+
+### Documentation
+
+* lead with the modular story — take only what you need ([50e4bb6](https://github.com/kouroshez/coding-os/commit/50e4bb693b1241fb0d81b66e14e7300da3c92ea4))
+* Maven Wrapper attribution per Apache-2.0 4(d) + final name sweep ([6068c3e](https://github.com/kouroshez/coding-os/commit/6068c3e7fe327aed8249209b0dc5a33cea70ccda))
+* **readme:** accurate profile ladder + paste-safe shell fences ([ce1ba81](https://github.com/kouroshez/coding-os/commit/ce1ba8152ce6331a02ca7f4644dcfbe468b7d683))
+* **readme:** live CI workflow badge now that Actions run green in public ([488531c](https://github.com/kouroshez/coding-os/commit/488531cd681c2fdaefeb6d19a104eda4b27b6279))
+* **workflow:** ship the modularity note to consumer projects, not just the meta-repo ([467776a](https://github.com/kouroshez/coding-os/commit/467776ab62d39ea64b8a4518048e3424acbc089d))
+
 ## [0.3.2](https://github.com/kouroshez/coding-os/compare/v0.3.1...v0.3.2) (2026-08-04)
 
 
