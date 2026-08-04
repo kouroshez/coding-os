@@ -4,14 +4,14 @@ title: "Public-launch blocker checklist: kouroshebra refs, third-party IP docs, 
 swimlane: core
 kind: chore
 epic: null
-labels: [ready]
-status: icebox
+labels: [ready, docs-update, governance, launch]
+status: "in_progress"
 priority: P2
 appetite: 1d
 created: 2026-08-04
-started: null
+started: 2026-08-04
 completed: null
-agent_session: null
+agent_session: ses-claude-20260803-153956-0acf
 depends_on: []
 blocked_by: []
 references: []
@@ -41,3 +41,35 @@ All launch blockers found in the TASK-874 audit are cleared before flipping the 
 - **Given** the post-flip group, **When** the repo is public, **Then** main has a ruleset, the PyPI trusted publisher is registered, and release PR #29 is merged as the first public release.
 
 ## Work Log
+- 2026-08-04 [claude]: Edit CHANGELOG.md
+- 2026-08-04 [claude]: Edit CHANGELOG.md
+- 2026-08-04 [claude]: Edit CHANGELOG.md
+- 2026-08-04 [claude]: Edit CHANGELOG.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: Edit CONTRIBUTING.md
+- 2026-08-04 [claude]: Edit CONTRIBUTING.md
+- 2026-08-04 [claude]: Edit CONTRIBUTING.md
+- 2026-08-04 [claude]: Edit CONTRIBUTING.md
+- 2026-08-04 [claude]: Edit CONTRIBUTING.md
+- 2026-08-04 [claude]: Edit PULL_REQUEST_TEMPLATE.md
+- 2026-08-04 [claude]: Edit workflow-audit-2026-04-25.md
+- 2026-08-04 [claude]: Edit migration-pre-0.3.md
+- 2026-08-04 [claude]: Edit AGENTS.md
+- 2026-08-04 [claude]: commit 0e64f463a9 — docs: align public-facing docs with current reality before first release
+- 2026-08-04 [claude]: Edit README.md
+- 2026-08-04 [claude]: commit bde8558075 — docs(readme): dynamic release badge so the version never goes stale
+- 2026-08-04 [claude]: Groups 1+3 (identity/links + docs-truth) DONE: kouroshebra→kouroshez in 6 files; CONTRIBUTING template links/workflow…
