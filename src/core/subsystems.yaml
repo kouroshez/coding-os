@@ -36,7 +36,7 @@ version: 1
 default_profile: standard
 profiles:
   lite: { disabled: [docs, tasks, graph, memory, cognition, observability, hub-extras, cicd] }  # kernel-only: discipline + safety, ~zero MCP tools (MCP-averse adopters)
-  core: { disabled: [memory, cognition, observability, cicd] }   # kernel + docs + tasks + graph
+  core: { disabled: [memory, cognition, observability, cicd] }   # kernel + docs + tasks + graph + hub-extras
   standard: { disabled: [cognition, cicd] }                      # + memory + observability (default)
   full: { disabled: [] }                                         # everything (today's behaviour)
 

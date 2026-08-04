@@ -58,9 +58,9 @@ Two adapters are wired today: `claude`, `codex` (under
 runs the right one based on `--agent`. Both speak the same MCP
 server defined in `.mcp.json`.
 
-Note on modules: consumer projects default to the `standard` profile, but
-this meta-repo dogfoods at `full` — every subsystem on. Module model:
-`src/core/subsystems.yaml` + README § Modular by design.
+Note on modules: this meta-repo dogfoods at `full` — every subsystem on, which
+is more than a consumer project enables by default. Module model:
+README § Modular by design.
 
 ### Option A — native install (recommended for daily work)
 

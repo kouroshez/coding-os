@@ -146,7 +146,7 @@ turns off:
 | Profile | Disables | Fits |
 |---|---|---|
 | `lite` | everything optional | kernel only — discipline + safety with a near-zero MCP surface (MCP-averse adopters) |
-| `core` | `memory`, `cognition`, `observability`, `cicd` | kernel + docs + tasks + graph |
+| `core` | `memory`, `cognition`, `observability`, `cicd` | kernel + docs + tasks + graph + hub-extras |
 | `standard` *(default)* | `cognition`, `cicd` | the balanced default |
 | `full` | — | every subsystem |
 
@@ -157,7 +157,7 @@ per-project state lives in `.coding-os/subsystems-state.json`.
 
 **The two flags are UNIONED, never merged** — a profile plus
 `--disable-module` can only ever remove more; `--enable-module <id>`
-(repeatable) is the escape that keeps a module on regardless, pulling its
+(repeatable) is the escape that keeps a module on against a profile, pulling its
 `depends_on` closure with it (e.g. `--profile lite --enable-module graph` =
 kernel + graph only). That asymmetry is why the Hub Composer pins the widest
 profile and sends the exact chip state (see

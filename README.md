@@ -1,6 +1,6 @@
 # coding-os
 
-[![release](https://img.shields.io/github/v/release/kouroshez/coding-os)](https://github.com/kouroshez/coding-os/releases)
+[![release](https://img.shields.io/github/v/release/kouroshez/coding-os?color=blue)](https://github.com/kouroshez/coding-os/releases)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
 [![python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](./pyproject.toml)
 [![CI](https://github.com/kouroshez/coding-os/actions/workflows/ci.yml/badge.svg)](https://github.com/kouroshez/coding-os/actions/workflows/ci.yml)
@@ -49,7 +49,7 @@ clicks. ([ADR-0007](docs/architecture/adr/0007-gui-first-install-path.md))
 ## 60-second quickstart (native `uv`)
 
 ```bash
-# 1. Install the `cos` CLI globally
+# 1. Install the cos CLI globally
 git clone https://github.com/kouroshez/coding-os.git
 cd coding-os
 uv tool install --editable .
@@ -60,12 +60,12 @@ cos doctor --bootstrap                 # preflight: python/bash/git/uv/sed prere
 cos doctor                             # full health sweep (must be all-green)
 
 # 3. Spawn a new project, scaffolded with an agent + a stack
-#    (--agent takes several: --agent claude,codex)
+#    --agent takes several at once: --agent claude,codex
 cos init --agent claude --template django --name my-shop --yes
 cd my-shop                             # adapter installer ran for you and wrote
                                        # .claude/, .mcp.json, .coding-os/
 
-# 4. Boot the multi-project Web Hub (graph + board + cognition + search)
+# 4. Boot the multi-project Web Hub: graph + board + cognition + search
 cos hub start                          # → http://127.0.0.1:9188
 ```
 
@@ -75,10 +75,10 @@ trace timeline, and unified search across all retrieval layers.
 
 **The Hub is optional.** The CLI-only loop is complete on its own: `cd
 my-shop`, open your agent (e.g. `claude` — MCP + hooks are already
-wired), then `cos daily` / `cos task-create` / `cos task-start`. Every
-project ships its own guide at `docs/workflow/workflow-guide.md`, and
-`cos update` upgrades it later. For an existing repo, use `cos adopt`
-instead of `init`.
+wired), then `cos daily` / `cos task-create` / `cos task-start` — `cos init`
+prints the exact first commands for your project. Every project ships its own
+guide at `docs/workflow/workflow-guide.md`. For an existing repo, use
+`cos adopt` instead of `init`.
 
 For Codex, swap `--agent claude` for `--agent codex` (or pass
 both — `--agent claude,codex`) — everything else is identical. Each agent's
@@ -93,26 +93,23 @@ always on; everything else is a **subsystem module** you switch on or off:
 `observability` · `hub-extras` · `cicd`. Named **profiles** curate the set, so
 the agent's MCP tool surface stays as small as you want it.
 
+Wanted just the knowledge graph? That is the entire install:
+
 ```bash
-# Only wanted the knowledge graph? This is the whole install.
 cos init --agent claude --name my-app --profile lite --enable-module graph --yes
-
-# The balanced default (what a bare `cos init` gives you: no cognition, no CI/CD).
-cos init --agent claude --name my-app --profile standard --yes
-
-# Docs + board + graph, no memory/telemetry — then change your mind later.
-cos init --agent claude --name my-app --profile core --yes
-cos module enable memory
 ```
 
-`lite` is kernel-only, `core` adds docs + tasks + graph, `standard`
-*(recommended default)* adds memory + observability, `full` is everything.
-`--profile` and `--disable-module` are **unioned** — they can only remove;
-`--enable-module` is the escape that keeps one on (and pulls its dependencies
-with it). `cos init --help` lists the live ids straight from
+`lite` is kernel-only; `core` adds docs, tasks, graph and the Hub hooks;
+`standard` *(the recommended default)* adds memory + observability; `full` is
+everything. Start lean and change your mind later — from the project root,
+`cos module enable memory`. `--profile` and `--disable-module` are **unioned**:
+they can only remove. `--enable-module` is the escape that keeps one on and
+pulls its dependencies with it — passing the same id to both flags is an error,
+not an override. `cos init --help` lists the live ids straight from
 `src/core/subsystems.yaml`, `cos module list` shows what you ended up with, and
-Hub **Config → Modules** flips any of it later. Full model:
-[meta-project.md § subsystem modules](docs/architecture/meta-project.md).
+Hub **Config → Modules** — or the Composer's *Advanced* section at create
+time — flips any of it later. Full model:
+[meta-project.md § subsystem modules](docs/architecture/meta-project.md#the-fourth-axis--subsystem-modules-which-kernel-surfaces-ship).
 
 ## Run with Docker (Hub layer; native for projects)
 
