@@ -117,6 +117,16 @@ class TestInit:
         assert (initialized / "docs").is_dir()
         assert (initialized / "changes.log").exists()
 
+    def test_quickstart_swimlane_validates(self, initialized: Path) -> None:
+        # The post-init quick start pastes a runnable `cos task-create`; a literal
+        # swimlane there fails validation on every stack that overrides the base set.
+        import yaml
+
+        from cli.main import _example_swimlane
+
+        config = yaml.safe_load((initialized / ".coding-os" / "scrumban-config.yaml").read_text())
+        assert _example_swimlane(initialized) in {lane["id"] for lane in config["swimlanes"]}
+
     def test_creates_makefile(self, initialized: Path) -> None:
         makefile = initialized / "Makefile"
         assert makefile.exists()

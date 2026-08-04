@@ -805,6 +805,16 @@ def _dry_run_preview(
     click.echo("(dry-run — nothing written)")
 
 
+def _example_swimlane(project: Path) -> str:
+    # Swimlane ids are per-stack (angular: components…, wordpress: theme…), so a
+    # literal in the quick-start example would fail validation in most projects —
+    # read the set this project actually composed.
+    with contextlib.suppress(Exception):
+        raw = (project / STATE_DIR / "scrumban-config.yaml").read_text(encoding="utf-8")
+        return str((yaml.safe_load(raw) or {})["swimlanes"][0]["id"])
+    return "<swimlane>"
+
+
 def _registered_slug(project: Path) -> str:
     # The hub slug the Composer navigates by; "" under --no-register or a failed
     # registry write, both of which are non-fatal for init itself.
@@ -1853,11 +1863,17 @@ def init(
     click.echo(f"  Config:   {CONFIG_FILE}")
     click.echo(f"  State:    {STATE_DIR}/")
     click.echo("  Makefile: make help")
-    click.echo("\nQuick start (the Hub is optional — this is the full CLI loop):")
-    click.echo("  cd <project> && <your agent>   # e.g. `claude` — MCP + hooks already wired")
-    click.echo("  cos daily              # Project status + today's tasks")
-    click.echo('  cos task-create --title "..." --swimlane general --kind feature --ready')
-    click.echo("  cos task-start <ID>    # Guide: docs/workflow/workflow-guide.md")
+    click.echo("\nQuick start (no Hub required — this all runs from the CLI):")
+    click.echo(f"  cd {project.name} && {agents[0] if agents else '<your agent>'}")
+    if "tasks" in disabled_modules:
+        click.echo("  cos module list        # Subsystems on here (the task board is off)")
+    else:
+        click.echo("  cos daily              # Project status + today's tasks")
+        click.echo(
+            f'  cos task-create --title "First task" --swimlane {_example_swimlane(project)} '
+            '--kind chore --outcome "Walk the CLI loop end to end" --ready'
+        )
+        click.echo("  cos task-start <ID>    # Guide: docs/workflow/workflow-guide.md")
 
     if not template:
         available = sorted(_get_stack_registry().keys())
