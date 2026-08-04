@@ -4,6 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
+pytest.importorskip("openai_codex", reason="optional Codex SDK not installed")
+
 from adapters.codex import chat_provider
 
 

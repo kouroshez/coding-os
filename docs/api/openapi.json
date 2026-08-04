@@ -3220,7 +3220,7 @@
     },
     "/api/cognition/chat/{session_id}": {
       "get": {
-        "description": "Return a Claude SDK session's metadata + parsed messages.",
+        "description": "Return one adapter-normalized transcript.",
         "operationId": "get_chat_api_cognition_chat__session_id__get",
         "parameters": [
           {
@@ -3457,7 +3457,7 @@
     },
     "/api/cognition/chats": {
       "get": {
-        "description": "List Claude Agent SDK chat sessions for the current project.",
+        "description": "List chat sessions from every available transcript provider.",
         "operationId": "list_chats_api_cognition_chats_get",
         "parameters": [
           {

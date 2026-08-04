@@ -1,6 +1,12 @@
 [features]
 hooks = true
 
+[shell_environment_policy.set]
+COS_AGENT = "codex"
+COS_STATE_DIR = "__SANDBOX__/.coding-os"
+COS_AGENT_DIR = "__SANDBOX__/.coding-os/codex"
+
 [mcp_servers.coding-os]
 command = "cos"
 args = ["server-start"]
+env = { COS_AGENT = "codex", COS_STATE_DIR = "__SANDBOX__/.coding-os", COS_AGENT_DIR = "__SANDBOX__/.coding-os/codex" }

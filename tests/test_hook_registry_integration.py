@@ -61,7 +61,12 @@ def test_claude_template_renders_every_supported_registry_event() -> None:
     fire are intentionally skipped by the renderer (adapter-parity rule)."""
     template = json.loads(CLAUDE_TEMPLATE.read_text(encoding="utf-8"))
     rendered = _flatten_claude_template(template)
-    rendered_index = {(event, matcher, Path(cmd).name) for event, matcher, cmd in rendered}
+    # Rendered commands carry an `env COS_AGENT=<id>` prefix and quote the
+    # script path — strip both down to the script basename before matching.
+    rendered_index = {
+        (event, matcher, Path(cmd.strip().strip('"')).name)
+        for event, matcher, cmd in rendered
+    }
     capabilities = _claude_capabilities()
 
     missing: list[str] = []

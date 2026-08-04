@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export COS_AGENT=codex
 HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${HOOK_DIR}/cos-env.sh" 2>/dev/null || source "${HOOK_DIR}/../../../core/hooks/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi

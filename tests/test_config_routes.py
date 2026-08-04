@@ -85,9 +85,10 @@ def test_adapters_groups_models_by_adapter(client):
             "mcp_config_paths",
             "installed",
         } <= set(a)
-    # installed reflects .coding-os.yaml::agents — the meta-repo runs claude only.
+    # installed reflects .coding-os.yaml::agents — the meta-repo dogfoods
+    # both adapters since the Codex parity work.
     assert claude["installed"] is True
-    assert adapters["codex"]["installed"] is False
+    assert adapters["codex"]["installed"] is True
 
     # MCP wiring target per adapter (deduped mcp_launch.config_paths) — the
     # Adapters tab shows this so the UI never guesses the wiring file.

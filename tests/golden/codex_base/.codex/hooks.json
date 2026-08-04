@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/codex-pretool-dispatch.sh"
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/codex-pretool-dispatch.sh\""
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/codex-preedit-dispatch.sh"
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/codex-preedit-dispatch.sh\""
           }
         ]
       },
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/inject-mcp-caller-session.sh",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/inject-mcp-caller-session.sh\"",
             "statusMessage": "🪪 Attributing task move to this panel...",
             "timeout": 5
           }
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/inject-mcp-caller-session.sh",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/inject-mcp-caller-session.sh\"",
             "statusMessage": "🪪 Attributing task create to this panel...",
             "timeout": 5
           }
@@ -46,7 +46,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/inject-mcp-caller-session.sh",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/inject-mcp-caller-session.sh\"",
             "statusMessage": "🪪 Attributing work-log to this panel...",
             "timeout": 5
           }
@@ -57,13 +57,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/enforce-graph-first-read.sh",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/enforce-graph-first-read.sh\"",
             "statusMessage": "🧭 Checking graph-first discipline before Read...",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/nudge-task-discovery.sh",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/nudge-task-discovery.sh\"",
             "statusMessage": "🗂️ Suggesting cos task-show over a docs/tasks Read...",
             "timeout": 10
           }
@@ -76,7 +76,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/codex-posttool-dispatch.sh"
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/codex-posttool-dispatch.sh\""
           }
         ]
       },
@@ -85,7 +85,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/codex-postedit-dispatch.sh"
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/codex-postedit-dispatch.sh\""
           }
         ]
       },
@@ -94,7 +94,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/sync-task-current.sh",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/sync-task-current.sh\"",
             "statusMessage": "📌 Syncing .task-current...",
             "timeout": 10
           }
@@ -105,7 +105,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/track-backtrack.sh",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/track-backtrack.sh\"",
             "statusMessage": "↩️ Backtrack counter updated...",
             "timeout": 5
           }
@@ -118,7 +118,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/codex-sessionstart-dispatch.sh",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/codex-sessionstart-dispatch.sh\"",
             "statusMessage": "🚀 Loading session context + MCP health..."
           }
         ]
@@ -128,7 +128,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/codex-sessionstart-dispatch.sh",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/codex-sessionstart-dispatch.sh\"",
             "statusMessage": "🔄 Recovering workflow context + MCP health..."
           }
         ]
@@ -138,7 +138,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/codex-sessionstart-dispatch.sh",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/codex-sessionstart-dispatch.sh\"",
             "statusMessage": "Loading clean session context..."
           }
         ]
@@ -150,7 +150,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/codex-userpromptsubmit-dispatch.sh"
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/codex-userpromptsubmit-dispatch.sh\""
           }
         ]
       }
@@ -161,7 +161,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/codex-stop-dispatch.sh",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/codex-stop-dispatch.sh\"",
             "statusMessage": "📝 Finalizing session recap + memory enrichment...",
             "timeout": 5000
           }
@@ -174,7 +174,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/agent-presence.sh",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/agent-presence.sh\"",
             "timeout": 5
           }
         ]
@@ -186,8 +186,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "__SANDBOX__/.codex/hooks/agent-presence.sh",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/agent-presence.sh\"",
             "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/codex-sessionend-dispatch.sh\"",
+            "timeout": 3
           }
         ]
       }

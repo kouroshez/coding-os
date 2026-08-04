@@ -7194,6 +7194,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -7369,7 +7370,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 235
     },
     "codex_angular": {
       "agent": "codex",
@@ -7437,6 +7438,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -7640,7 +7642,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 262
+      "count": 263
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7708,6 +7710,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -7899,7 +7902,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 250
+      "count": 251
     },
     "codex_astro": {
       "agent": "codex",
@@ -7967,6 +7970,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -8166,7 +8170,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 258
+      "count": 259
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -8234,6 +8238,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -8412,7 +8417,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 238
     },
     "codex_django": {
       "agent": "codex",
@@ -8480,6 +8485,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -8678,7 +8684,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 258
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8746,6 +8752,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -8936,7 +8943,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 249
+      "count": 250
     },
     "codex_flutter": {
       "agent": "codex",
@@ -9004,6 +9011,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -9196,7 +9204,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 252
     },
     "codex_go": {
       "agent": "codex",
@@ -9264,6 +9272,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -9455,7 +9464,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 250
+      "count": 251
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9523,6 +9532,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -9715,7 +9725,7 @@
         "src/backend/go.sum",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 252
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -9783,6 +9793,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -9962,7 +9973,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 239
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -10030,6 +10041,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -10210,7 +10222,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 240
     },
     "codex_laravel": {
       "agent": "codex",
@@ -10278,6 +10290,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -10470,7 +10483,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 252
     },
     "codex_meta": {
       "agent": "codex",
@@ -10538,6 +10551,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -10751,7 +10765,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 272
+      "count": 273
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -10819,6 +10833,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -11017,7 +11032,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 257
+      "count": 258
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -11085,6 +11100,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -11294,7 +11310,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 268
+      "count": 269
     },
     "codex_node-express": {
       "agent": "codex",
@@ -11362,6 +11378,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -11556,7 +11573,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 253
+      "count": 254
     },
     "codex_python": {
       "agent": "codex",
@@ -11624,6 +11641,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -11802,7 +11820,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 238
     },
     "codex_rails": {
       "agent": "codex",
@@ -11870,6 +11888,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -12065,7 +12084,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 254
+      "count": 255
     },
     "codex_react-native": {
       "agent": "codex",
@@ -12133,6 +12152,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -12339,7 +12359,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 265
+      "count": 266
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -12407,6 +12427,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -12586,7 +12607,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 239
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -12654,6 +12675,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -12845,7 +12867,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 250
+      "count": 251
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -12913,6 +12935,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -13093,7 +13116,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 240
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -13161,6 +13184,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -13353,7 +13377,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 252
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -13421,6 +13445,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -13622,7 +13647,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 260
+      "count": 261
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -13690,6 +13715,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -13871,7 +13897,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 240
+      "count": 241
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -13939,6 +13965,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -14132,7 +14159,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 252
+      "count": 253
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -14200,6 +14227,7 @@
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-preedit-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
+        ".codex/hooks/codex-sessionend-dispatch.sh",
         ".codex/hooks/codex-sessionstart-dispatch.sh",
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
@@ -14396,7 +14424,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 255
+      "count": 256
     }
   }
 }
