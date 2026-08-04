@@ -1853,10 +1853,11 @@ def init(
     click.echo(f"  Config:   {CONFIG_FILE}")
     click.echo(f"  State:    {STATE_DIR}/")
     click.echo("  Makefile: make help")
-    click.echo("\nQuick start:")
+    click.echo("\nQuick start (the Hub is optional — this is the full CLI loop):")
+    click.echo("  cd <project> && <your agent>   # e.g. `claude` — MCP + hooks already wired")
     click.echo("  cos daily              # Project status + today's tasks")
-    click.echo("  cos task-pick          # See next recommended task")
-    click.echo("  cos task-start TASK-001   # Start working")
+    click.echo('  cos task-create --title "..." --swimlane general --kind feature --ready')
+    click.echo("  cos task-start <ID>    # Guide: docs/workflow/workflow-guide.md")
 
     if not template:
         available = sorted(_get_stack_registry().keys())

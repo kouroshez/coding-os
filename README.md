@@ -73,6 +73,13 @@ Open `http://127.0.0.1:9188` in your browser. You will see the
 knowledge graph of `my-shop`, the Scrumban board, the cognition
 trace timeline, and unified search across all retrieval layers.
 
+**The Hub is optional.** The CLI-only loop is complete on its own: `cd
+my-shop`, open your agent (e.g. `claude` — MCP + hooks are already
+wired), then `cos daily` / `cos task-create` / `cos task-start`. Every
+project ships its own guide at `docs/workflow/workflow-guide.md`, and
+`cos update` upgrades it later. For an existing repo, use `cos adopt`
+instead of `init`.
+
 For Codex, swap `--agent claude` for `--agent codex` (or pass
 both — `--agent claude,codex`) — everything else is identical. Each agent's
 installer is `src/adapters/<agent>/install.sh`; `cos init` runs it
