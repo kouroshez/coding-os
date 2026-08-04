@@ -46,7 +46,8 @@ and loses the viewer.
 
 ## Recommended: vhs tape
 
-Create `docs/assets/demo.tape`:
+Create `docs/assets/demo.tape` — run `mkdir -p docs/assets` first, the
+directory is not tracked in the repo:
 
 ```tape
 Output docs/assets/demo.gif

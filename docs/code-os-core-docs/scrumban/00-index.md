@@ -8,7 +8,7 @@ Read next: any of the entries below.
 
 <!-- BEGIN auto-index -->
 
-### Reference (2)
+### Reference (1)
 
 - [ Agile Scrum Kanban ](agile-scrum-guide.md) — `ssot:ref` · updated 2026-04-19
 
