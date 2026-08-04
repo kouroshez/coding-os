@@ -9,7 +9,9 @@
 > **Coding OS — the cognitive operating system that gives AI agents memory, structure, and discipline.**
 > Teaches AI agents *how to think* (thinking_os) and *how to code*
 > (workflow, hooks, skills, rules) — agent-agnostic so the same kernel
-> serves Claude Code and OpenAI Codex without rewriting.
+> serves Claude Code and OpenAI Codex without rewriting. **Modular by
+> design**: take only what you need — even just the knowledge graph
+> (`--profile lite --enable-module graph`).
 >
 > Website: <https://coding-os.dev> · Community: <https://community.coding-os.dev>
 
@@ -76,26 +78,33 @@ both — `--agent claude,codex`) — everything else is identical. Each agent's
 installer is `src/adapters/<agent>/install.sh`; `cos init` runs it
 for you and re-runs it on `cos update`.
 
-### Choosing how much coding-os you install
+### Modular by design — take only what you need
 
-The kernel ships as **subsystem modules** — docs, tasks (Scrumban), knowledge
-graph, agent memory, cognition, observability, hub extras, CI/CD — and you pick
-the set at create time. Prefer a small MCP surface, or don't want the web panel
-at all? Start lean:
+coding-os is not all-or-nothing. The **kernel** (session lifecycle + safety) is
+always on; everything else is a **subsystem module** you switch on or off:
+`docs` · `tasks` (Scrumban) · `graph` · `memory` · `cognition` ·
+`observability` · `hub-extras` · `cicd`. Named **profiles** curate the set, so
+the agent's MCP tool surface stays as small as you want it.
 
 ```bash
-cos init --agent claude --name my-app --profile lite --yes   # kernel only: discipline + safety
-cos init --agent claude --name my-app --profile full --yes   # every subsystem
-cos init --agent claude --name my-app --disable-module memory --yes
+# Only wanted the knowledge graph? This is the whole install.
+cos init --agent claude --name my-app --profile lite --enable-module graph --yes
+
+# The balanced default (what a bare `cos init` gives you: no cognition, no CI/CD).
+cos init --agent claude --name my-app --profile standard --yes
+
+# Docs + board + graph, no memory/telemetry — then change your mind later.
+cos init --agent claude --name my-app --profile core --yes
+cos module enable memory
 ```
 
-`cos init --help` lists the live profiles and module ids (both are read from
-`src/core/subsystems.yaml`, so the help never drifts). Omitting `--profile`
-applies the registry default — today `standard`, which leaves `cognition` and
-`cicd` off. The two flags are **unioned**: a profile can only remove more, so to
-re-enable something start from a wider profile. Everything stays adjustable
-later with `cos module enable|disable` or Hub **Config → Modules**, and the same
-chips appear in the Composer's *Advanced* section. Full model:
+`lite` is kernel-only, `core` adds docs + tasks + graph, `standard`
+*(recommended default)* adds memory + observability, `full` is everything.
+`--profile` and `--disable-module` are **unioned** — they can only remove;
+`--enable-module` is the escape that keeps one on (and pulls its dependencies
+with it). `cos init --help` lists the live ids straight from
+`src/core/subsystems.yaml`, `cos module list` shows what you ended up with, and
+Hub **Config → Modules** flips any of it later. Full model:
 [meta-project.md § subsystem modules](docs/architecture/meta-project.md).
 
 ## Run with Docker (Hub layer; native for projects)
@@ -249,6 +258,7 @@ coding-os/
 
 ```
 Project lifecycle    init · adopt · setup · add-adapter · add-stack · update · materialize · eject
+Modules              module list · module enable · module disable   (per-project surface control)
 Diagnostics          doctor · health · list-stacks · list-adapters · hooks-dir · hooks-log
 Hub                  hub start · hub status · hub stop
 Board                board · task-create · task-start · task-move · task-done · daily · retro · wip

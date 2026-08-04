@@ -155,10 +155,12 @@ Selection happens at create (`cos init --profile <name>` and/or repeatable
 adjustable afterwards via `cos module enable|disable` or Hub **Config → Modules**;
 per-project state lives in `.coding-os/subsystems-state.json`.
 
-**The two flags are UNIONED, never merged** — a profile can only ever remove
-more, so re-enabling something a profile turned off means starting from a wider
-profile. That asymmetry is why the Hub Composer pins the widest profile and
-sends the exact chip state (see
+**The two flags are UNIONED, never merged** — a profile plus
+`--disable-module` can only ever remove more; `--enable-module <id>`
+(repeatable) is the escape that keeps a module on regardless, pulling its
+`depends_on` closure with it (e.g. `--profile lite --enable-module graph` =
+kernel + graph only). That asymmetry is why the Hub Composer pins the widest
+profile and sends the exact chip state (see
 [hub-architecture.md](../engineering/hub-architecture.md)). Both entrypoints
 close the requested set over its dependents first
 (`cli.subsystems.close_over_dependents`), because the state writer refuses an

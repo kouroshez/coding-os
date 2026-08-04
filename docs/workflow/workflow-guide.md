@@ -10,6 +10,11 @@ Read next: `../governance/agent-workflow.md`, `../governance/task-lifecycle.md`
 
 ## TL;DR
 
+> **How much of this applies to you?** coding-os is modular — every subsystem
+> below (docs, board, graph, memory, cognition) is a module you can disable, and
+> gates only fire for enabled modules. A `--profile lite` install keeps just the
+> kernel; see README § Modular by design.
+
 This project uses **coding-os** — a documentation-driven workflow with SSOT files,
 a Scrumban task board, and AI-agent enforcement hooks. Work flows through tasks:
 `icebox → in_progress → testing → complete` (plus `blocked` / `archive`). The `cos` CLI and slash

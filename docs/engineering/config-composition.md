@@ -87,9 +87,9 @@ composing stacks by hand. Data model:
   `modules` are stored into the project's `.coding-os.yaml` verbatim — linking
   extra skills is TASK-370, subsystem toggle behavior is TASK-349. Modules can
   also be toggled per-create independent of a preset via
-  `cos init --disable-module <id>` (repeatable; the Composer's module chips feed
-  the same path) — both merge into `config["modules"]` before the scaffold copy
-  (TASK-421).
+  `cos init --profile <id>`, `--disable-module <id>`, and `--enable-module <id>`
+  (all repeatable where sensible; the Composer's module chips feed the same
+  path) — merged into `config["modules"]` before the scaffold copy.
 - **CLI:** `cos init --preset <id>` (mutually exclusive with `--template`)
   expands to the preset's stack list and then follows the normal init flow —
   relocation, composition, and every derived artifact behave exactly as if
