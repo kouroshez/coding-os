@@ -36,3 +36,4 @@ In Hub, select the active Codex session 019fc9f3-343c-7301-9981-89b6a87afd59 and
 - Given the fix, when targeted backend and UI tests plus a live Hub browser flow run, then Codex and Claude paths are both verified.
 
 ## Work Log
+- 2026-08-04 [claude]: committed ba5b320d · 20 files

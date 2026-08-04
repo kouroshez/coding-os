@@ -5,13 +5,13 @@ swimlane: core
 kind: bug
 epic: null
 labels: [hub, codex, chat, ux, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-03
 started: 2026-08-03
-completed: null
-agent_session: ses-codex-mcp-86642
+completed: 2026-08-03
+agent_session: ses-claude-20260803-153956-0acf
 depends_on: []
 blocked_by: []
 references: []
@@ -37,3 +37,4 @@ In Hub, select the active Codex session 019fc9f3-343c-7301-9981-89b6a87afd59 and
 ## Work Log
 - 2026-08-04 [codex]: Root cause confirmed: clicked Codex presence had a dead PID and no Codex thread record; SessionEnd bypassed payload…
 - 2026-08-04 [claude]: Implemented manifest-loaded Codex transcript list/read, fixed SessionEnd identity closure, and centered accessible…
+- 2026-08-04 [claude]: Status transitioned to complete via cos task-done.
