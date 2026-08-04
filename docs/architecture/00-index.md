@@ -10,9 +10,10 @@ Read next: any of the entries below.
 
 <!-- BEGIN auto-index -->
 
-### Architecture (2)
+### Architecture (3)
 
 - [coding-os — Meta-Project Architecture](meta-project.md) — `ssot:true` · updated 2026-05-06
 - [Raptor Consolidation Lens — Architecture Review Standard](raptor-consolidation.md) — `ssot:true` · updated 2026-07-16
+- [Multi-Adapter Supervisor](multi-adapter-supervisor.md) — `ssot:true` · updated 2026-08-03
 
 <!-- END auto-index -->
