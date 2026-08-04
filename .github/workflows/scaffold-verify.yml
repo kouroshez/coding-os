@@ -44,7 +44,7 @@ jobs:
           - { stack: react-native, sub: src/mobile, prepare: "" }
           - { stack: nestjs, sub: src/backend, prepare: "" }
           - { stack: node-express, sub: src/backend, prepare: "" }
-          - { stack: svelte-sveltekit, sub: src/frontend, prepare: "npx --yes svelte-kit sync" }
+          - { stack: svelte-sveltekit, sub: src/frontend, prepare: "" }
           - { stack: vue-nuxt, sub: src/frontend, prepare: "npx --yes nuxt prepare" }
     steps:
       - uses: actions/checkout@v4
