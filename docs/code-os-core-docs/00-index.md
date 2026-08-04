@@ -10,8 +10,5 @@ Read next: any of the entries below.
 
 ### Reference (3)
 
-- [Architectural Styles and the Design of Network-based Software Architectures](Architectural Styles and the Design of Network-based Software Architectures.md) — `ssot:ref` · updated 2026-04-19
-- [instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide](instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide.md) — `ssot:ref` · updated 2026-04-19
-- [The Complete Guide](how-to-write-skills.md) — `ssot:ref` · updated 2026-06-04
 
 <!-- END auto-index -->

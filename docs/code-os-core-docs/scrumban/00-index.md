@@ -10,7 +10,6 @@ Read next: any of the entries below.
 
 ### Reference (2)
 
-- [:  —  Silicon Valley](silicon-valley-s01e05-scrum-board-reference.md) — `ssot:ref` · updated 2026-04-19
 - [ Agile Scrum Kanban ](agile-scrum-guide.md) — `ssot:ref` · updated 2026-04-19
 
 <!-- END auto-index -->

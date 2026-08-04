@@ -4,7 +4,7 @@
 > P: The canonical standard for what a coding-os skill *is* — anatomy, frontmatter, script discipline, version-pinning, cross-skill linking, and the 10/10 scoring rubric. This is the SSOT every skill is measured against.
 > R: Creating a skill, enriching a thin one (SKILL.md only) to rich, reviewing a skill, or auditing the skill library for gaps/duplication.
 > S: Routing a skill to a glob — that is `skill_enforcement:` in `src/templates/<stack>/stack.yaml` (regen target), not a skill-content task.
-> N: [how-to-write-skills.md](../code-os-core-docs/how-to-write-skills.md), [skill-enforcement.md](../../src/core/rules/skill-enforcement.md), [hook-authoring.md](./hook-authoring.md), [anti-overengineering.md](../../src/core/rules/anti-overengineering.md)
+> N: [skill-enforcement.md](../../src/core/rules/skill-enforcement.md), [hook-authoring.md](./hook-authoring.md), [anti-overengineering.md](../../src/core/rules/anti-overengineering.md)
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
@@ -198,6 +198,6 @@ A skill ships only at 10/10. Anything less is a draft.
 
 ## See also
 
-- [how-to-write-skills.md](../code-os-core-docs/how-to-write-skills.md) — the upstream guide this standard is built on.
+- Anthropic's "Complete Guide to Building Skills for Claude" (external) — the upstream guide this standard is built on.
 - [skill-enforcement.md](../../src/core/rules/skill-enforcement.md) — generated routing table (regen target).
 - [anti-overengineering.md](../../src/core/rules/anti-overengineering.md) — Rule 22, applied to skills.
