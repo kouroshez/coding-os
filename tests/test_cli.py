@@ -967,7 +967,9 @@ class TestLanguageLayer:
         assert result.exit_code == 0, result.output
         go_mod = project / "src" / "backend" / "go.mod"
         assert go_mod.exists()
-        assert "module plainproj" in go_mod.read_text()
+        # Quoted because the template must parse before substitution (TASK-890);
+        # Go normalises it away on the project's first `go mod tidy`.
+        assert 'module "plainproj"' in go_mod.read_text()
         assert (project / "tsconfig.json").exists()
         index_ts = project / "src" / "index.ts"
         assert index_ts.exists()
@@ -1077,7 +1079,7 @@ class TestProjectAnatomy:
         assert result.exit_code == 0, result.output
         relocated = project / "src" / "services" / "go-plain" / "go.mod"
         assert relocated.exists()
-        assert "module twoback" in relocated.read_text()
+        assert 'module "twoback"' in relocated.read_text()
         assert not (project / "src" / "backend" / "go.mod").exists()
 
 
