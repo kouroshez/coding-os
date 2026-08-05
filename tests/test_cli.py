@@ -39,6 +39,16 @@ def _stub_initial_indexing(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(main_module, "_initial_graph_index", lambda *a, **k: None)
 
 
+def _claude_entrypoint_name() -> str:
+    """The root entrypoint filename the claude adapter declares (Rule 11 — the
+    literal lives in adapter.yaml, not in CLI code or in this test)."""
+    from cli.adapter_registry import load_adapter_registry
+
+    name = load_adapter_registry(main_module.ADAPTERS_DIR)["claude"].entrypoint_file
+    assert name, "claude adapter must declare an entrypoint_file"
+    return name
+
+
 @pytest.fixture
 def runner() -> CliRunner:
     return CliRunner()
@@ -135,6 +145,16 @@ class TestInit:
 
     def test_creates_agents_md(self, initialized: Path) -> None:
         assert (initialized / "AGENTS.md").exists()
+
+    def test_links_adapter_entrypoint_at_agents_md(self, initialized: Path) -> None:
+        # Claude Code reads CLAUDE.md, not AGENTS.md — init links the two so the
+        # instruction SSOT can never fork. Relative, so the project stays movable.
+        entrypoint = initialized / _claude_entrypoint_name()
+        assert entrypoint.is_symlink()
+        assert os.readlink(entrypoint) == "AGENTS.md"
+        assert entrypoint.read_text(encoding="utf-8") == (initialized / "AGENTS.md").read_text(
+            encoding="utf-8"
+        )
 
     def test_creates_gitignore(self, initialized: Path) -> None:
         gitignore = initialized / ".gitignore"
@@ -567,6 +587,17 @@ class TestEject:
         assert not (initialized_project / "AGENTS.md").exists()
         # user code byte-identical
         assert hashlib.sha256(user_file.read_bytes()).hexdigest() == user_hash
+
+    def test_eject_keeps_entrypoint_the_user_replaced_with_a_real_file(
+        self, runner: CliRunner, initialized_project: Path
+    ) -> None:
+        entrypoint = initialized_project / _claude_entrypoint_name()
+        entrypoint.unlink()
+        entrypoint.write_text("my own instructions\n", encoding="utf-8")
+
+        result = runner.invoke(cli, ["eject", "-d", str(initialized_project), "--yes"])
+        assert result.exit_code == 0, result.output
+        assert entrypoint.read_text(encoding="utf-8") == "my own instructions\n"
 
     def test_eject_idempotent_noop_on_clean_dir(self, runner: CliRunner, tmp_path: Path) -> None:
         result = runner.invoke(cli, ["eject", "-d", str(tmp_path), "--yes"])

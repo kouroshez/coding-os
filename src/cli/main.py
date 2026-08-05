@@ -38,6 +38,7 @@ from cli._resources import (
 from cli._init_helpers import (
     InitError,
     ensure_agents_md,
+    ensure_entrypoint_symlink,
     ensure_gitignore,
     install_consumer_git_hooks,
     materialize_ci_workflow,
@@ -2335,6 +2336,14 @@ def _run_scaffold_phase(
     if ensure_agents_md(project, world):
         click.echo("  Generated AGENTS.md")
 
+    # 10b. Link each agent's own root entrypoint (Claude reads CLAUDE.md, not
+    # AGENTS.md) at that one SSOT. Filename comes from the adapter's own yaml,
+    # never a literal here (Rule 11).
+    for agent in agents:
+        entrypoint = _get_adapter_registry()[agent].entrypoint_file
+        if ensure_entrypoint_symlink(project, entrypoint):
+            click.echo(f"  Linked {entrypoint} → AGENTS.md")
+
     # 11. Initial RAG indexing of the scaffolded docs so `cos_doc_search`
     # returns hits from the very first session. Without this, the
     # consumer's document_chunks table is empty until the user runs
@@ -2522,6 +2531,10 @@ def add_adapter(agent: str, project_dir: str) -> None:
     world = _build_world(agent, templates, project)
     if ensure_agents_md(project, world):
         click.echo("  Generated AGENTS.md")
+
+    entrypoint = _get_adapter_registry()[agent].entrypoint_file
+    if ensure_entrypoint_symlink(project, entrypoint):
+        click.echo(f"  Linked {entrypoint} → AGENTS.md")
 
 
 @cli.command("codex-mcp-install")
@@ -2719,12 +2732,18 @@ def eject(project_dir: str, yes: bool) -> None:
         for p in (Path(root) / n for root, _d, fs in os.walk(project) for n in fs)
         if p.is_symlink() and _is_coding_os_symlink(p)
     ]
-    # CLAUDE.md is the generated symlink to AGENTS.md (points at a sibling, so
-    # the meta-repo filter above misses it) — treat any symlinked one as ours.
-    claude_md = project / "CLAUDE.md"
+    # An adapter's root entrypoint is a generated symlink to AGENTS.md; it
+    # points at a sibling, so the meta-repo filter above misses it. Only a
+    # still-symlinked one is ours — a user who replaced it with a real file
+    # keeps that file. Filenames come from adapter.yaml, never a literal here.
     generated_entrypoints = [config, project / "AGENTS.md"]
-    if claude_md.is_symlink():
-        generated_entrypoints.append(claude_md)
+    generated_entrypoints += [
+        link
+        for name in sorted(
+            {p.entrypoint_file for p in _get_adapter_registry().values() if p.entrypoint_file}
+        )
+        if (link := project / name).is_symlink()
+    ]
 
     present = [f for f in generated_entrypoints if f.exists() or f.is_symlink()]
     if not coding_os_links and not state_dir.exists() and not present:

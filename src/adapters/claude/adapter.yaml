@@ -65,6 +65,9 @@ hooks_dir: ".claude/hooks"
 rules_dir: ".claude/rules"
 skills_dir: ".claude/skills"
 commands_dir: ".claude/commands"
+# Claude Code reads CLAUDE.md, not AGENTS.md — scaffolding links it at the
+# AGENTS.md SSOT instead of copying, so the two can never fork.
+entrypoint_file: "CLAUDE.md"
 sourced_hooks: [cos-env.sh]
 supports_rules: true
 supports_settings_json: true

@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 from cli._init_helpers import (
     ensure_agents_md,
+    ensure_entrypoint_symlink,
     materialize_ci_workflow,
     materialize_dockerfiles,
     materialize_makefile_targets,
@@ -553,6 +554,19 @@ def update(
                     if materialize_dockerfiles(project, world):
                         click.echo("  Refreshed backend Dockerfile(s)")
                         overall_changes = True
+
+            # Backfill each agent's root entrypoint symlink — projects
+            # scaffolded before adapter.yaml declared one never got it. Runs
+            # after the AGENTS.md gap-fill above, which it links at.
+            adapter_profiles = load_adapter_registry(
+                ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs()
+            )
+            for agent in agents:
+                profile = adapter_profiles.get(agent)
+                entrypoint = profile.entrypoint_file if profile else None
+                if ensure_entrypoint_symlink(project, entrypoint):
+                    click.echo(f"  Linked {entrypoint} → AGENTS.md")
+                    overall_changes = True
 
         # Symlinks still dangling AFTER re-link point at a source the current
         # registry no longer ships (or a meta-repo path that no longer exists)

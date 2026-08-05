@@ -54,6 +54,30 @@ def test_codex_declares_symmetric_dirs() -> None:
     assert codex.commands_dir == ".codex/commands"
 
 
+def test_entrypoint_file_declared_per_runtime() -> None:
+    # Claude Code reads CLAUDE.md; Codex reads AGENTS.md natively, so it
+    # declares no entrypoint of its own.
+    adapters = load_adapter_registry(REPO_ROOT / "src" / "adapters")
+    assert adapters["claude"].entrypoint_file == "CLAUDE.md"
+    assert adapters["codex"].entrypoint_file is None
+
+
+@pytest.mark.parametrize("bad", ["../escape.md", "nested/CLAUDE.md", ".."])
+def test_entrypoint_file_rejects_path_traversal(tmp_path: Path, bad: str) -> None:
+    # A community adapter must not be able to make the scaffolder link outside
+    # the project root.
+    _copy_adapter_as("claude", tmp_path, "rogue")
+    manifest = tmp_path / "rogue" / "adapter.yaml"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            'entrypoint_file: "CLAUDE.md"', f'entrypoint_file: "{bad}"'
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(AdapterManifestError, match="entrypoint_file"):
+        load_adapter_registry(tmp_path)
+
+
 def test_missing_adapter_dir_raises(tmp_path: Path) -> None:
     with pytest.raises(AdapterManifestError):
         load_adapter_registry(tmp_path / "missing")

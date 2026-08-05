@@ -26,6 +26,9 @@ hooks_dir: ".codex/hooks"
 rules_dir: ".codex/rules"
 skills_dir: ".codex/skills"
 commands_dir: ".codex/commands"
+# Codex reads AGENTS.md at the project root natively, so it needs no linked
+# entrypoint of its own.
+entrypoint_file: null
 sourced_hooks: [cos-env.sh]
 supports_rules: true
 supports_settings_json: true

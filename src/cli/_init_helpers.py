@@ -483,6 +483,26 @@ def ensure_agents_md(project: Path, world: AggregatedWorld) -> bool:
     return True
 
 
+def ensure_entrypoint_symlink(project: Path, entrypoint_file: str | None) -> bool:
+    """Link an adapter's root entrypoint filename at AGENTS.md. Idempotent.
+
+    Returns True if the symlink was just created. A relative link — never a
+    copy — so the instruction SSOT cannot fork. An adapter that declares no
+    entrypoint gets nothing, and an existing file or symlink of that name is
+    left alone, which is what lets `init`, `add-adapter`, and `update` all
+    call this without clobbering a user's own file.
+    """
+    if not entrypoint_file:
+        return False
+    link = project / entrypoint_file
+    if link.exists() or link.is_symlink():
+        return False
+    if not (project / "AGENTS.md").exists():
+        return False
+    link.symlink_to("AGENTS.md")
+    return True
+
+
 def materialize_makefile_targets(project: Path, state: Path, world: AggregatedWorld) -> bool:
     """Render stack-contributed make targets into a generated include and wire
     it into the project Makefile.

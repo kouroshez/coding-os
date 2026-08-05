@@ -40,6 +40,11 @@
       "type": ["string", "null"],
       "description": "Relative path for slash-command files (e.g. Claude's .claude/commands). Null for adapters that merge commands into a single instructions file."
     },
+    "entrypoint_file": {
+      "type": ["string", "null"],
+      "pattern": "^[^/\\\\]+$",
+      "description": "Project-root filename this runtime reads as its instruction entrypoint (e.g. \"CLAUDE.md\"). cos init/update create it as a relative symlink to AGENTS.md and cos eject removes it, keeping the CLI free of adapter filename literals (rule #11). Null/absent = the runtime reads AGENTS.md directly. Must be a bare filename — no path separators. Spec: docs/playbooks/adapter-authoring.md § The root entrypoint."
+    },
     "sourced_hooks": {
       "type": "array",
       "items": {"type": "string"},

@@ -82,6 +82,21 @@ class TestUpdateRepairsDrift:
         assert result.exit_code == 0
         assert hook.exists()
 
+    def test_missing_adapter_entrypoint_backfilled(self, tmp_path: Path) -> None:
+        # Projects scaffolded before adapter.yaml declared an entrypoint never
+        # got the link; update fills the gap without touching AGENTS.md.
+        from cli.adapter_registry import load_adapter_registry
+        from cli.main import ADAPTERS_DIR
+
+        project = _init(tmp_path)
+        entrypoint = project / load_adapter_registry(ADAPTERS_DIR)["claude"].entrypoint_file
+        entrypoint.unlink()
+
+        runner = CliRunner()
+        result = runner.invoke(cos_cli, ["update", "-d", str(project)])
+        assert result.exit_code == 0, result.output
+        assert entrypoint.is_symlink()
+
     def test_dry_run_does_not_apply(self, tmp_path: Path) -> None:
         project = _init(tmp_path, "django")
         skill = project / ".claude/skills/python-django/SKILL.md"

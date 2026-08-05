@@ -14,9 +14,21 @@ An adapter is the **mRNA layer** that translates the agent-agnostic kernel (`src
 
 Three contracts every adapter must satisfy:
 
-1. **`adapter.yaml`** declares the agent's identity, the directory layout it expects (`hooks_dir`, `rules_dir`, `skills_dir`, `commands_dir`), and the `hook_capabilities` list — the `(event, matcher)` pairs the runtime can actually fire.
+1. **`adapter.yaml`** declares the agent's identity, the directory layout it expects (`hooks_dir`, `rules_dir`, `skills_dir`, `commands_dir`), the root `entrypoint_file` its runtime reads (below), and the `hook_capabilities` list — the `(event, matcher)` pairs the runtime can actually fire.
 2. **A settings template** (e.g. `src/adapters/claude/settings.template.json`) is GENERATED from `src/core/hooks/registry.yaml` by `src/cli/hook_renderer.py`. The renderer filters registry entries against `hook_capabilities` so an adapter never claims coverage it cannot deliver.
 3. **`install.sh`** is the consumer-side entry point. It must be idempotent and source-of-truth-compatible — running it twice on the same project produces no diff.
+
+## The root entrypoint (`entrypoint_file`)
+
+`AGENTS.md` at the project root is the single instruction SSOT. An agent runtime that reads it under a different filename declares that filename in `adapter.yaml::entrypoint_file` — Claude Code reads `CLAUDE.md`, so the Claude adapter declares `entrypoint_file: CLAUDE.md`; Codex reads `AGENTS.md` natively and declares none.
+
+The contract, honored by `cos init`, `cos update`, `cos add-adapter`, and `cos eject`:
+
+- The filename is created as a **relative symlink to `AGENTS.md`** — never a copy, so the SSOT can never fork.
+- It is **idempotent and non-destructive**: an existing file or symlink of that name is left alone, and an adapter declaring no entrypoint gets nothing.
+- `cos eject` removes it, but only when it is still a symlink — a user who replaced it with a real file keeps their file.
+- It must be a **bare filename** (no `/`, no `..`); the registry rejects anything else so a community adapter cannot link outside the project root.
+- No adapter filename appears in `src/cli/**` (Rule 11) — the declaration is the only source.
 
 ## Steps to add a new adapter
 

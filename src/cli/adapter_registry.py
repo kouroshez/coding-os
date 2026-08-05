@@ -156,6 +156,19 @@ def _load_one(manifest_path: Path) -> AdapterProfile:
             paths.append(McpLaunchConfigPath(scope=scope, path=path_val))
         mcp_launch = McpLaunchSpec(loader=loader, config_paths=tuple(paths))
 
+    # A community adapter must not be able to link outside the project root, so
+    # the entrypoint is restricted to a bare filename before it ever reaches a
+    # symlink call. Spec: docs/playbooks/adapter-authoring.md § The root entrypoint.
+    entrypoint_file = data.get("entrypoint_file") or None
+    if entrypoint_file is not None and (
+        not isinstance(entrypoint_file, str)
+        or Path(entrypoint_file).name != entrypoint_file
+        or entrypoint_file in (".", "..")
+    ):
+        raise AdapterManifestError(
+            f"{manifest_path}: 'entrypoint_file' must be a bare filename, got {entrypoint_file!r}"
+        )
+
     runtime_env_markers_raw = data.get("runtime_env_markers") or []
     if not isinstance(runtime_env_markers_raw, list) or not all(
         isinstance(v, str) and v for v in runtime_env_markers_raw
@@ -181,6 +194,7 @@ def _load_one(manifest_path: Path) -> AdapterProfile:
         mcp_helper=mcp_helper,
         mcp_launch=mcp_launch,
         runtime_env_markers=tuple(runtime_env_markers_raw),
+        entrypoint_file=entrypoint_file,
     )
 
 

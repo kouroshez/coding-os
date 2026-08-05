@@ -217,6 +217,10 @@ class AdapterProfile:
     # src/cli/board_commands.py::_detect_agent_runtime so the CLI can attribute
     # task transitions without hardcoded adapter-name literals (rule #11).
     runtime_env_markers: tuple[str, ...] = ()
+    # Project-root filename this runtime reads as its instruction entrypoint
+    # (Claude: CLAUDE.md). Scaffolding links it at AGENTS.md, eject removes it;
+    # None means the runtime reads AGENTS.md directly, like Codex.
+    entrypoint_file: str | None = None
 
 
 @dataclass(frozen=True)
