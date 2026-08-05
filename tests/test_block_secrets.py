@@ -10,6 +10,9 @@ import pytest
 
 HOOK = Path(__file__).resolve().parent.parent / "src" / "core" / "hooks" / "block-secrets.sh"
 
+# Credential SHAPES, not credentials: composed at run time so the literal never
+# exists in the tree for any scanner to match, per SECURITY.md § Test fixtures
+# for secret detection.
 _REAL_ANT = "sk-ant-api03-" + "A1b2C3d4" * 11  # 88-char alnum body
 _REAL_PROJ = "sk-proj-" + "A1b2C3d4" * 6  # 48-char body
 _REAL_CLASSIC = "sk-" + "T3BlbkFJ" * 6  # 48-char alnum

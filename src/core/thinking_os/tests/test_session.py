@@ -550,6 +550,7 @@ class TestSessionObserveWorker:
             [
                 {
                     "observation_id": oid,
+                    # AWS's reserved documentation identifier — never valid.
                     "narrative": "wired client with AKIAIOSFODNN7EXAMPLE key",
                     "concepts": ["aws"],
                     "has_signal": True,

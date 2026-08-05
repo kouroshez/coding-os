@@ -106,8 +106,9 @@ if [[ "$TOOL" == "Write" || "$TOOL" == "Edit" ]]; then
     exit 2
   fi
 
-  # Block AWS credentials
-  if echo "$CONTENT" | grep -qE 'AKIA[0-9A-Z]{16}'; then
+  # Block AWS credentials, long-lived (AKIA) and temporary STS (ASIA). Ids ending
+  # in EXAMPLE are AWS's own reserved documentation values and never authenticate.
+  if echo "$CONTENT" | grep -oE '(AKIA|ASIA)[0-9A-Z]{16}' | grep -qvE 'EXAMPLE$'; then
     echo "BLOCKED: AWS access key ID detected. Use environment variables or IAM roles." >&2
     exit 2
   fi

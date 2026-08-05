@@ -85,6 +85,45 @@ When deploying coding-os in a multi-user or production environment:
 - Use GitHub's dependency-graph + Dependabot (already configured in
   `.github/dependabot.yml`) to track CVEs in transitive deps.
 
+## Test fixtures for secret detection
+
+This repository ships a secret detector
+([`src/core/hooks/block-secrets.sh`](src/core/hooks/block-secrets.sh)), and a
+detector can only be trusted if something feeds it credential-shaped input. So a
+small, enumerated set of files contains strings that *look* like AWS, GitHub,
+Stripe, Anthropic or Slack credentials.
+
+**None of them is a credential, and you should not have to take our word for it.**
+Every fixture is unusable by construction, using one of three techniques:
+
+| Technique | Why it is safe | Example |
+| --- | --- | --- |
+| **Composed at run time** | The literal never exists in the tree, so no scanner — ours, GitHub's, or yours — can match it | `"sk-ant-api03-" + "A1b2C3d4" * 11` in `tests/test_block_secrets.py` |
+| **Deliberately sub-threshold** | The body is shorter than the vendor's real key length, so it is not a valid key shape | a Stripe-prefixed string with a 15-character body, where real keys carry 24 or 99 |
+| **Vendor-published example** | The vendor reserves the value and it can never authenticate | AWS's documented access-key identifier ending in `EXAMPLE` |
+
+If you are writing a new detector test, **use one of those three** — preferably
+the first. Do not paste a realistic full-length value, even a made-up one: it
+will fire GitHub secret scanning on every fork, and the next reader cannot tell
+your invention from a real leak.
+
+This is not an honour system:
+
+- [`.github/secret_scanning.yml`](.github/secret_scanning.yml) declares the
+  fixture paths to GitHub in the repository itself, so the reasoning is public
+  and reviewable in a pull request rather than buried in an alert dismissal.
+- `tests/test_secret_fixture_policy.py` fails the build if any tracked file
+  gains a literal that would match a real vendor pattern at full length.
+- `block-secrets.sh` and the git `pre-commit` hook scan **every** commit and do
+  not honour `paths-ignore`, so the exclusion above narrows dashboard noise, not
+  the actual guard.
+
+**Found a credential-shaped string in this repo and want to be sure?** Check its
+length against the vendor's published key format first — most of ours are
+visibly short — then report it via the process above. A false positive reported
+in good faith is always welcome; we would rather answer ten of those than miss
+one real leak.
+
 ## Hall of Fame
 
 Researchers who report valid vulnerabilities and follow this policy

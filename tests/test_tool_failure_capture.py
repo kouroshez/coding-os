@@ -23,9 +23,11 @@ def test_failure_capture_scrubs_username_and_secrets(tmp_path: Path) -> None:
     conn = init_db(db)
     home = str(Path.home())
     user = Path.home().name
+    # Composed, never a literal — SECURITY.md § Test fixtures for secret detection.
+    aws_shaped = "AKIA" + "1234567890ABCDEF"
     payload = {
         "tool_name": "Edit",
-        "error": f"Edit failed at {home}/proj/x.py key=AKIA1234567890ABCDEF mail a@b.com",
+        "error": f"Edit failed at {home}/proj/x.py key={aws_shaped} mail a@b.com",
         "tool_input": {"file_path": f"{home}/proj/x.py"},
     }
 

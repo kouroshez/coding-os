@@ -604,6 +604,8 @@ class TestBlockSecrets:
         assert result.returncode == 0
 
     def test_blocks_private_key_in_code(self) -> None:
+        # A bare PEM header with no key material — SECURITY.md § Test fixtures
+        # for secret detection.
         payload = json.dumps(
             {
                 "tool_name": "Edit",

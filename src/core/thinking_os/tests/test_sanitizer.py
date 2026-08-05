@@ -293,6 +293,8 @@ class TestSanitizeReject:
 
 
 class TestSanitizeRedaction:
+    # Every value below is deliberately sub-threshold or an AWS-reserved example
+    # — see SECURITY.md § Test fixtures for secret detection.
     @pytest.mark.parametrize(
         "text,must_not_contain",
         [
