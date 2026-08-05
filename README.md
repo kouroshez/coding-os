@@ -15,6 +15,51 @@
 >
 > Website: <https://coding-os.dev> · Community: <https://community.coding-os.dev>
 
+<table>
+<tr>
+<td align="center" width="34%">
+<h3>💛 Sponsor</h3>
+<a href="https://github.com/sponsors/kouroshez"><b>GitHub Sponsors</b></a><br/>
+<a href="https://coding-os.dev/donate">One-off donation</a>
+<br/><sub>Keeps a single maintainer shipping</sub>
+</td>
+<td align="center" width="33%">
+<h3>💬 Community</h3>
+<a href="https://community.coding-os.dev"><b>Forum</b></a><br/>
+<a href="https://github.com/kouroshez/coding-os/discussions">Discussions</a>
+<br/><sub>Questions, setups, rough edges</sub>
+</td>
+<td align="center" width="33%">
+<h3>⭐ Star</h3>
+<a href="https://github.com/kouroshez/coding-os"><b>Follow the repo</b></a><br/>
+<a href="./CHANGELOG.md">Read the changelog</a>
+<br/><sub>The cheapest way to help</sub>
+</td>
+</tr>
+</table>
+
+**Free, and staying that way.** Apache-2.0, no paid tier, no telemetry, no
+gated features — the kernel you run is the whole thing. Sponsorship buys
+maintenance time, not access.
+
+### Right-sized by construction
+
+Loading a catalogue of skills into every prompt is how agents run out of
+context before they run out of task. coding-os composes a project from the
+**subsystem modules and stack skills that project actually declares**, and
+keeps the rest on disk until something asks for it. Measured on a freshly
+scaffolded Next.js project:
+
+| Layer | Cost | When it is paid |
+|---|---|---|
+| Always-on — `AGENTS.md` + the 8 rules the enabled modules ship | **~11k tokens** | every session |
+| Skill catalogue — 46 skills | ~122k tokens | **only the one invoked**, never the catalogue |
+
+The always-on layer is what you actually pay per session; the catalogue is
+**11× larger** and stays out of context. Disable a module and its rules,
+tools and slash commands leave with it — see
+[Modular by design](#modular-by-design--take-only-what-you-need).
+
 ---
 
 ## Prerequisites
