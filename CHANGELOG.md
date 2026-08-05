@@ -12,6 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.4](https://github.com/kouroshez/coding-os/compare/v0.3.3...v0.3.4) (2026-08-05)
+
+
+### Fixed
+
+* **docs-lint:** audit the last unwatched doc subtree + GitHub-accurate anchor slugs ([02c8a5b](https://github.com/kouroshez/coding-os/commit/02c8a5bed5db35d118df8f2bf1d89f67f4e8ff22))
+* **hub-ui:** update vulnerable transitives + react-router-dom to the patched 7.18 ([f4a942d](https://github.com/kouroshez/coding-os/commit/f4a942d1e21f3e357b8cdd24312c7ea44a52dee5))
+* **security:** declare and enforce why credential-shaped test fixtures are safe ([bad64a7](https://github.com/kouroshez/coding-os/commit/bad64a76717d3a099391342dc8d52211303e0b60))
+* **templates:** nestjs 11, laravel 12 and puma 7.2.1 floors clear their advisories ([1a602ec](https://github.com/kouroshez/coding-os/commit/1a602ec7a05cec143d90e3350de388afb93058d9))
+* **templates:** npm floors above known-vulnerable ranges + repair the SvelteKit toolchain ([5143d3a](https://github.com/kouroshez/coding-os/commit/5143d3aee14eec181603f2d6996c1e8cf0237a92))
+* **templates:** quote the go.mod module placeholder so Go can parse it ([3254a44](https://github.com/kouroshez/coding-os/commit/3254a44dab4d03766e3a1d1409be3aa874cb199d))
+
 ## [0.3.3](https://github.com/kouroshez/coding-os/compare/v0.3.2...v0.3.3) (2026-08-04)
 
 
