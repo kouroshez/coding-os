@@ -27,3 +27,4 @@ references: []
 - 2026-08-05 [claude]: Edit README.md
 - 2026-08-05 [claude]: commit eee352cfd8 — docs(readme): lead with measured context economics + a visible support surface
 - 2026-08-05 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-05 [claude]: committed 3a5d6c25 · 1 file
