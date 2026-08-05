@@ -1,3 +1,3 @@
-module {{PROJECT_NAME}}
+module "{{PROJECT_NAME}}"
 
 go 1.22

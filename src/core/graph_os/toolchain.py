@@ -258,7 +258,7 @@ def _load_ts_base_url(root: Path) -> str:
 # ---------------------------------------------------------------------------
 
 
-_GO_MODULE_RE = re.compile(r"^module\s+(\S+)\s*$", re.MULTILINE)
+_GO_MODULE_RE = re.compile(r"^module\s+\"?([^\"\s]+)\"?\s*$", re.MULTILINE)
 
 
 def _load_go_module(root: Path) -> str:

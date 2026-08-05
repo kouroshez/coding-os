@@ -17,7 +17,10 @@ Covers:
 
 from __future__ import annotations
 
+import json
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -1080,3 +1083,36 @@ class TestVueNuxtStack:
         assert "vue-nuxt" in registry_text
         dimensions_text = Path("src/core/rules/dimension-registry.md").read_text(encoding="utf-8")
         assert "Nuxt page / route" in dimensions_text
+
+
+class TestGoModuleDirectiveParses:
+    """Guard TASK-890: `module {{PROJECT_NAME}}` is unparseable by Go's modfile lexer.
+
+    `{` and `}` are token delimiters there, so the unquoted placeholder passes more
+    than one argument to the `module` directive. GitHub's dependency-graph job hit
+    exactly that and put a "Dependency file checks have 1 error" banner on the public
+    security page. Quoting keeps the literal placeholder (which the scaffold-verify
+    "no leftover placeholders" gate requires) while parsing cleanly; Go's own tooling
+    normalises the quotes away on the first `go mod edit -fmt` / `go mod tidy`.
+    """
+
+    GO_STACKS = ("go", "go-plain", "go-fiber")
+
+    @pytest.mark.parametrize("stack", GO_STACKS)
+    def test_module_placeholder_is_quoted(self, stack: str) -> None:
+        go_mod = Path(f"src/templates/{stack}/scaffold/src/backend/go.mod")
+        first = go_mod.read_text(encoding="utf-8").splitlines()[0]
+        assert first == 'module "{{PROJECT_NAME}}"', (
+            f"{go_mod}: expected the module path quoted so Go can parse the template; "
+            f"got {first!r}. See the class docstring before 'tidying' this."
+        )
+
+    @pytest.mark.skipif(shutil.which("go") is None, reason="go toolchain not installed")
+    @pytest.mark.parametrize("stack", GO_STACKS)
+    def test_go_toolchain_parses_the_template(self, stack: str) -> None:
+        mod_dir = Path(f"src/templates/{stack}/scaffold/src/backend").resolve()
+        proc = subprocess.run(
+            ["go", "mod", "edit", "-json"], cwd=mod_dir, capture_output=True, text=True
+        )
+        assert proc.returncode == 0, f"{mod_dir}/go.mod does not parse:\n{proc.stderr}"
+        assert json.loads(proc.stdout)["Module"]["Path"] == "{{PROJECT_NAME}}"
