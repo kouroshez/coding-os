@@ -5,12 +5,12 @@ swimlane: cli
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-05
 started: 2026-08-05
-completed: null
+completed: 2026-08-05
 agent_session: ses-claude-20260803-180632-5fca
 depends_on: []
 blocked_by: []
@@ -83,3 +83,8 @@ references: []
 - 2026-08-05 [claude]: Added adapter.yaml::entrypoint_file (claude=CLAUDE.md, codex=null) + schema/registry guard rejecting non-bare…
 - 2026-08-05 [claude]: Verified by execution: cos init in a scratch dir produces CLAUDE.md -> AGENTS.md (relative symlink), cos eject…
 - 2026-08-05 [claude]: committed eed07bb8 · 12 files
+- 2026-08-05 [claude]: commit a0c2e94b46 — chore(board): record the TASK-892 implementation commit in its work log
+- 2026-08-05 [claude]: Edit test_cli.py
+- 2026-08-05 [claude]: Edit test_cli.py
+- 2026-08-05 [claude]: commit 40dfe71790 — test(cli): expect the quoted go.mod module directive
+- 2026-08-05 [claude]: Status transitioned to complete via cos task-done.
