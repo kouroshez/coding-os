@@ -193,6 +193,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -236,7 +237,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 230
     },
     "claude_angular": {
       "agent": "claude",
@@ -438,6 +439,7 @@
         ".mcp.json",
         ".prettierrc.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -502,7 +504,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 257
+      "count": 258
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -703,6 +705,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -756,7 +759,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 246
     },
     "claude_astro": {
       "agent": "claude",
@@ -958,6 +961,7 @@
         ".mcp.json",
         ".prettierrc.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -1018,7 +1022,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 253
+      "count": 254
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1214,6 +1218,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -1259,7 +1264,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 233
     },
     "claude_django": {
       "agent": "claude",
@@ -1461,6 +1466,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -1520,7 +1526,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 252
+      "count": 253
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1722,6 +1728,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -1773,7 +1780,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 245
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1974,6 +1981,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "analysis_options.yaml",
         "changes.log",
@@ -2028,7 +2036,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 247
     },
     "claude_go": {
       "agent": "claude",
@@ -2234,6 +2242,7 @@
         ".golangci.yml",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -2282,7 +2291,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 246
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2488,6 +2497,7 @@
         ".golangci.yml",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -2537,7 +2547,7 @@
         "src/backend/go.sum",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 247
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2734,6 +2744,7 @@
         ".golangci.yml",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -2779,7 +2790,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 234
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2975,6 +2986,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -3022,7 +3034,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 235
     },
     "claude_laravel": {
       "agent": "claude",
@@ -3223,6 +3235,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -3277,7 +3290,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 247
     },
     "claude_meta": {
       "agent": "claude",
@@ -3509,6 +3522,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -3553,7 +3567,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 267
+      "count": 268
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3755,6 +3769,7 @@
         ".mcp.json",
         ".prettierrc.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -3814,7 +3829,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 252
+      "count": 253
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -4017,6 +4032,7 @@
         ".mcp.json",
         ".prettierrc.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -4086,7 +4102,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 263
+      "count": 264
     },
     "claude_node-express": {
       "agent": "claude",
@@ -4288,6 +4304,7 @@
         ".mcp.json",
         ".prettierrc.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -4343,7 +4360,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 248
+      "count": 249
     },
     "claude_python": {
       "agent": "claude",
@@ -4538,6 +4555,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -4584,7 +4602,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 233
     },
     "claude_rails": {
       "agent": "claude",
@@ -4786,6 +4804,7 @@
         ".mcp.json",
         ".rubocop.yml",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -4842,7 +4861,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 249
+      "count": 250
     },
     "claude_react-native": {
       "agent": "claude",
@@ -5054,6 +5073,7 @@
         ".mcp.json",
         ".prettierrc.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -5111,7 +5131,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 260
+      "count": 261
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -5308,6 +5328,7 @@
         ".mcp.json",
         ".rubocop.yml",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -5353,7 +5374,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 234
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5554,6 +5575,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "clippy.toml",
@@ -5607,7 +5629,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 246
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5803,6 +5825,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "clippy.toml",
@@ -5850,7 +5873,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 235
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -6051,6 +6074,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -6105,7 +6129,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 247
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -6307,6 +6331,7 @@
         ".mcp.json",
         ".prettierrc.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -6369,7 +6394,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 255
+      "count": 256
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6566,6 +6591,7 @@
         ".mcp.json",
         ".prettierrc.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -6613,7 +6639,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 235
+      "count": 236
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6815,6 +6841,7 @@
         ".mcp.json",
         ".prettierrc.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -6869,7 +6896,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 247
+      "count": 248
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -7074,6 +7101,7 @@
         ".gitignore",
         ".mcp.json",
         "AGENTS.md",
+        "CLAUDE.md",
         "Makefile",
         "changes.log",
         "docs/00-index.md",
@@ -7128,7 +7156,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 250
+      "count": 251
     },
     "codex_base": {
       "agent": "codex",
