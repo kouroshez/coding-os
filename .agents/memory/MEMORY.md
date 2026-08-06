@@ -2,7 +2,7 @@
 ## Trusted lessons (auto-generated)
 
 - Recurring block (44 occurrences): test-governor → satisfy the blocked rule before retrying the action _(seen 121×)_
-- Recurring backtrack root cause 'tool_failure' (36 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 21×)_
+- Recurring backtrack root cause 'tool_failure' (36 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 22×)_
 - Recurring block (40 occurrences): block-dangerous-commands — force-push-main → satisfy the blocked rule before retrying the action _(seen 10×)_
 - Recurring block (6 occurrences): block-dangerous-commands — rm-rf-critical → satisfy the blocked rule before retrying the action _(seen 415×)_
 - Recurring block (6 occurrences): block-secrets — env-file → satisfy the blocked rule before retrying the action _(seen 163×)_
@@ -11,7 +11,7 @@
 - Recurring block (38 occurrences): enforce-skill — no-domain-skill → satisfy the blocked rule before retrying the action _(seen 111×)_
 - Recurring block (39 occurrences): enforce-commit-message — commit-msg-contract → satisfy the blocked rule before retrying the action _(seen 125×)_
 - Recurring block (29 occurrences): branch-guard — worktree-add → satisfy the blocked rule before retrying the action _(seen 636×)_
-- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (8 occurrences) _(seen 86×)_
+- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (8 occurrences) _(seen 87×)_
 - Recurring block (28 occurrences): branch-guard — reset-head-rewrite → satisfy the blocked rule before retrying the action _(seen 9×)_
 - Recurring block (6 occurrences): branch-guard — checkout-branch-switch → satisfy the blocked rule before retrying the action _(seen 9×)_
 - Recurring block (12 occurrences): branch-guard — rebase-history-rewrite → satisfy the blocked rule before retrying the action _(seen 9×)_
