@@ -250,7 +250,7 @@ _CI_LANGUAGE_SETUP: dict[str, tuple[str, ...]] = {
     "typescript": (
         "uses: actions/setup-node@v4",
         "with:",
-        '  node-version: "20"',
+        '  node-version: "22"',
     ),
     "go": (
         "uses: actions/setup-go@v5",
@@ -420,14 +420,14 @@ CMD ["python", "-m", "app.main"]
 """,
     "typescript": """\
 # syntax=docker/dockerfile:1
-FROM node:20-slim AS build
+FROM node:22-slim AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build --if-present
 
-FROM node:20-slim AS runtime
+FROM node:22-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app ./

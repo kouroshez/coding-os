@@ -29,7 +29,7 @@ jobs:
       - uses: actions/setup-node@v4
         if: matrix.language == 'typescript'
         with:
-          node-version: "20"
+          node-version: "22"
       - name: deps (typescript)
         if: matrix.language == 'typescript'
         run: |
