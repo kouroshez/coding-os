@@ -29,3 +29,10 @@ references: []
 - 2026-08-06 [claude]: commit 234fd5fb7c — chore(board): record the PyPI publish and CI-repair work log on TASK-895
 - 2026-08-06 [claude]: commit b5db7e8cc3 — chore(deps): bump jsdom from 29.1.1 to 30.0.1 in /src/core/web/ui
 - 2026-08-06 [claude]: Closed out the PR backlog: 0 open PRs, only main remains. #15 could not be rebased because GitHub throttled webhooks…
+- 2026-08-06 [claude]: commit 68d9e8490a — chore(board): log the PR-backlog closeout on TASK-895
+- 2026-08-06 [claude]: Edit release-please.yml
+- 2026-08-06 [claude]: Edit release-please.yml
+- 2026-08-06 [claude]: Edit renderer.py
+- 2026-08-06 [claude]: Edit renderer.py
+- 2026-08-06 [claude]: commit cceba34500 — fix(cli): emit Node 22 in generated CI and the TypeScript Dockerfile
+- 2026-08-06 [claude]: commit ce2d180a0d — fix(release): keep the PyPI recovery hatch reachable and pin checkout to the release sha
