@@ -26,3 +26,6 @@ references: []
 - 2026-08-06 [claude]: commit 2903f7b91d — ci: move the frontend jobs and UI build image off end-of-life Node 20
 - 2026-08-06 [claude]: commit 5927792173 — chore(board): bind TASK-895 to the active session
 - 2026-08-06 [claude]: Published coding-os 0.3.5 to PyPI directly (wheel+sdist) after the Actions outage blocked the OIDC job three times;…
+- 2026-08-06 [claude]: commit 234fd5fb7c — chore(board): record the PyPI publish and CI-repair work log on TASK-895
+- 2026-08-06 [claude]: commit b5db7e8cc3 — chore(deps): bump jsdom from 29.1.1 to 30.0.1 in /src/core/web/ui
+- 2026-08-06 [claude]: Closed out the PR backlog: 0 open PRs, only main remains. #15 could not be rebased because GitHub throttled webhooks…
