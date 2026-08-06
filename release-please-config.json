@@ -7,8 +7,7 @@
       "changelog-path": "CHANGELOG.md",
       "include-component-in-tag": false,
       "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": true,
-      "last-release-sha": "3bdcd8675ddf26205451a32a8c6e74b906eb7fe7"
+      "bump-patch-for-minor-pre-major": true
     }
   },
   "changelog-sections": [
