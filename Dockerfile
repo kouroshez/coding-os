@@ -14,7 +14,7 @@
 # =====================================================================
 
 # ---- Stage 1: build the Hub SPA ------------------------------------
-FROM node:20-slim AS ui-build
+FROM node:22-slim AS ui-build
 WORKDIR /ui
 COPY src/core/web/ui/package.json src/core/web/ui/package-lock.json ./
 RUN npm ci
