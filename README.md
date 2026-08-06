@@ -44,20 +44,36 @@ maintenance time, not access.
 
 ### Right-sized by construction
 
-Loading a catalogue of skills into every prompt is how agents run out of
-context before they run out of task. coding-os composes a project from the
-**subsystem modules and stack skills that project actually declares**, and
-keeps the rest on disk until something asks for it. Measured on a freshly
-scaffolded Next.js project:
+Loading a whole skill catalogue into every prompt is how agents run out of
+context before they run out of task. coding-os narrows that catalogue
+twice — once when the project is created, and again on every turn.
 
-| Layer | Cost | When it is paid |
+**1 — Stack scoping, at `cos init`.** Each of the 20 stack templates ships
+its own skills, and only the stacks a project declares are installed. A
+WordPress project gets the `wordpress` skill; it never sees `go-patterns`,
+`rails`, `spring-boot` or the other 19 stacks' skills. Alongside them sit
+45 stack-agnostic skills — `clean-code`, `testing-strategy`, `api-design`,
+`a11y`, `security-web` — which apply to any codebase and are linked
+everywhere.
+
+**2 — On-demand loading, at every turn.** What is linked on disk is not
+what is in context. A generated rules table maps file globs to skills, and
+a hook loads the matching skill only when you are about to write a file it
+governs. Editing a React component loads `nextjs-react`; the other 45 stay
+on disk.
+
+Measured on a freshly scaffolded Next.js project:
+
+| Layer | Size | When you pay for it |
 |---|---|---|
-| Always-on — `AGENTS.md` + the 8 rules the enabled modules ship | **~11k tokens** | every session |
-| Skill catalogue — 46 skills | ~122k tokens | **only the one invoked**, never the catalogue |
+| Always-on — `AGENTS.md` + the rules the enabled modules ship | **~11k tokens** | every session |
+| Skills linked into the project — 46 | ~233k tokens | **only the one the glob matched** |
+| Skills for the 19 stacks not installed | ~64k tokens | never — they are not in the project |
 
-The always-on layer is what you actually pay per session; the catalogue is
-**11× larger** and stays out of context. Disable a module and its rules,
-tools and slash commands leave with it — see
+The always-on layer is what a session actually costs; the linked skill tree
+is **~20× larger** and stays out of context until something asks for it.
+Disable a subsystem module and its rules, tools and slash commands leave
+with it — see
 [Modular by design](#modular-by-design--take-only-what-you-need).
 
 ---
@@ -247,8 +263,9 @@ No Python edits required.
    (`cos_doc_search`) · task graph (`cos_task_*`) · knowledge graph
    (`cos_graph_*`).
 6. **Intent enforcement** — when the user uses exhaustive vocabulary
-   (FA + EN:  / all / completely / until done), the Stop hook
-   refuses premature "done" until an evidence bundle is recorded.
+   ("all" / "every" / "completely" / "until done", matched in English
+   and one additional language), the Stop hook refuses premature "done"
+   until an evidence bundle is recorded.
 7. **Upgrade path** — `cos update` keeps every consumer project in
    sync with `coding-os` without touching user content.
 
