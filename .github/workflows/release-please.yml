@@ -10,6 +10,15 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      publish_ref:
+        description: >-
+          Recovery hatch: git ref (tag) to build and publish to PyPI when the
+          automatic gate could not fire — e.g. an Actions outage swallowed the
+          push event and the release was tagged by hand. Leave blank for a
+          normal run.
+        required: false
+        default: ""
 
 permissions: {}
 
@@ -46,14 +55,16 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
 
   # Publishes wheel + sdist to PyPI via Trusted Publishing (OIDC, no
-  # token). Fires ONLY when release-please created a release on this push
-  # (releases_created == 'true'). Prerequisite: register this repo as a
-  # trusted publisher on the PyPI 'coding-os' project once. Until the repo
-  # is public AND a release PR is merged the gate is false, so wiring it
-  # now never publishes a private repo.
+  # token). Fires when release-please created a release on this push
+  # (releases_created == 'true'), or when publish_ref names a tag to
+  # recover a release whose automatic gate never fired. Prerequisite:
+  # register this repo as a trusted publisher on the PyPI 'coding-os'
+  # project once. Every ordinary push leaves both conditions false.
   publish-pypi:
     needs: release-please
-    if: ${{ needs.release-please.outputs.releases_created == 'true' }}
+    if: >-
+      ${{ needs.release-please.outputs.releases_created == 'true'
+          || inputs.publish_ref != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: pypi
@@ -62,6 +73,8 @@ jobs:
       id-token: write  # OIDC for Trusted Publishing — no API token stored
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.publish_ref || github.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
