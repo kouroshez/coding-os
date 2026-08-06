@@ -5,18 +5,17 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [ci, release, dependencies]
-status: "in_progress"
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-06
 started: 2026-08-06
-completed: null
+completed: 2026-08-06
 agent_session: ses-claude-20260803-180632-5fca
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-895: Restore green CI on main and clear the Dependabot PR backlog after the repo rebuild
 
 **Outcome (one sentence):** main is green, 0.3.5 is on PyPI, and the 3 open Dependabot PRs are merged or closed with a stated reason.
@@ -36,3 +35,6 @@ references: []
 - 2026-08-06 [claude]: Edit renderer.py
 - 2026-08-06 [claude]: commit cceba34500 — fix(cli): emit Node 22 in generated CI and the TypeScript Dockerfile
 - 2026-08-06 [claude]: commit ce2d180a0d — fix(release): keep the PyPI recovery hatch reachable and pin checkout to the release sha
+- 2026-08-06 [claude]: commit 6f42f5129a — chore(board): record the code-review findings on TASK-895
+- 2026-08-06 [claude]: CI run 31128609739 on main (6f42f512) is fully green — all 11 jobs pass, including the two that were red (modularity…
+- 2026-08-06 [claude]: Status transitioned to complete via cos task-done.
