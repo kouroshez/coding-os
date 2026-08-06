@@ -62,9 +62,12 @@ jobs:
   # project once. Every ordinary push leaves both conditions false.
   publish-pypi:
     needs: release-please
+    # `!cancelled()` keeps the manual hatch reachable when the
+    # release-please job itself failed — the exact case it recovers from.
     if: >-
-      ${{ needs.release-please.outputs.releases_created == 'true'
-          || inputs.publish_ref != '' }}
+      ${{ !cancelled()
+          && (needs.release-please.outputs.releases_created == 'true'
+              || inputs.publish_ref != '') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: pypi
@@ -74,7 +77,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.publish_ref || github.ref }}
+          # github.sha, not github.ref: a branch name resolves to main's tip
+          # at job start, which may already be past the release commit.
+          ref: ${{ inputs.publish_ref || github.sha }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
