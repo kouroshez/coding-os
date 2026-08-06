@@ -71,3 +71,4 @@ references: []
 - 2026-06-10 [claude]: Edit a reference document under docs/
 - 2026-06-10 [claude]: Added pure-bash case fast-paths + spawn-dedup to all 18 Bash-matcher hooks. No-op ls chain process spawns: 34 jq+5 py =
 - 2026-06-10 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-06 [claude]: committed 1783d623 · 3 files

@@ -42,3 +42,4 @@ references: []
 - 2026-08-06 [claude]: Edit 00-index.md
 - 2026-08-06 [claude]: Edit graph.py
 - 2026-08-06 [claude]: Edit README.md
+- 2026-08-06 [claude]: commit ce5e52700a — docs: translate all remaining non-English prose to English
