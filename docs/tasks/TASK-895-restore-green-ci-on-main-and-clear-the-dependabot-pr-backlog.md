@@ -24,3 +24,5 @@ references: []
 ## Work Log
 - 2026-08-06 [claude]: commit 4251243bb2 — fix(ci): refresh golden fixtures and scaffold manifest for the CLAUDE.md entrypoint
 - 2026-08-06 [claude]: commit 2903f7b91d — ci: move the frontend jobs and UI build image off end-of-life Node 20
+- 2026-08-06 [claude]: commit 5927792173 — chore(board): bind TASK-895 to the active session
+- 2026-08-06 [claude]: Published coding-os 0.3.5 to PyPI directly (wheel+sdist) after the Actions outage blocked the OIDC job three times;…
