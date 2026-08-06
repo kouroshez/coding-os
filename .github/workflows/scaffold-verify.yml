@@ -47,16 +47,16 @@ jobs:
           - { stack: svelte-sveltekit, sub: src/frontend, prepare: "" }
           - { stack: vue-nuxt, sub: src/frontend, prepare: "npx --yes nuxt prepare" }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Resolve scratch dir
         run: echo "SV_DIR=${RUNNER_TEMP}/scaffold-verify" >> "$GITHUB_ENV"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - run: uv sync --extra rag
@@ -90,13 +90,13 @@ jobs:
       matrix:
         stack: [django, fastapi]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Resolve scratch dir
         run: echo "SV_DIR=${RUNNER_TEMP}/scaffold-verify" >> "$GITHUB_ENV"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
       - run: uv sync --extra rag
@@ -128,16 +128,16 @@ jobs:
       matrix:
         stack: [go, go-fiber]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Resolve scratch dir
         run: echo "SV_DIR=${RUNNER_TEMP}/scaffold-verify" >> "$GITHUB_ENV"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: "stable"
       - run: uv sync --extra rag
