@@ -23,7 +23,6 @@ references: []
 ## Read First
 - docs/playbooks/doctor-checks.md
 - src/core/rules/transparency-banner.md
-- docs/code-os-core-docs/instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide.md
 
 ## Repro Steps
 In an autonomous run over multiple related icebox tasks, the agent completes 1-2 tasks then stops and recommends /clear because the ctx>150K marker + transparency-banner.md rule instruct it to "recommend a fresh session instead of pulling the next task" — even when remaining tasks are related. This breaks autonomy.

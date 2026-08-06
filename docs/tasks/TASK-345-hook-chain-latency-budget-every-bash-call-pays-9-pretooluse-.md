@@ -60,14 +60,14 @@ references: []
 - 2026-06-10 [claude]: Edit useBoardStream.test.ts
 - 2026-06-10 [claude]: Edit how-to-write-skills.md
 - 2026-06-10 [claude]: Edit agile-scrum-guide.md
-- 2026-06-10 [claude]: Edit silicon-valley-s01e05-scrum-board-reference.md
+- 2026-06-10 [claude]: Edit a reference document under docs/
 - 2026-06-10 [claude]: Edit TechSpec_Template.md
 - 2026-06-10 [claude]: Edit formulas-en.md
 - 2026-06-10 [claude]: Edit block-secrets.sh
 - 2026-06-10 [claude]: Edit formulas-v2.md
 - 2026-06-10 [claude]: commit f961febcbd — docs(rules): relocate Why/rationale prose to critical-rules.md, slim always-on payload
-- 2026-06-10 [claude]: Edit Architectural Styles and the Design of Network-based Software Architectures.md
+- 2026-06-10 [claude]: Edit a reference document under docs/
 - 2026-06-10 [claude]: Edit block-uv-heredoc.sh
-- 2026-06-10 [claude]: Edit instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide.md
+- 2026-06-10 [claude]: Edit a reference document under docs/
 - 2026-06-10 [claude]: Added pure-bash case fast-paths + spawn-dedup to all 18 Bash-matcher hooks. No-op ls chain process spawns: 34 jq+5 py =
 - 2026-06-10 [claude]: Status transitioned to complete via cos task-done.

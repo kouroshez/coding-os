@@ -45,7 +45,7 @@
 
 ## Source References
 
-- [Code OS Core Docs](code-os-core-docs/) — original instructional sources (Anthropic certification, REST dissertation, Scrumban guide, thinking_os formulas).
+- [Code OS Core Docs](code-os-core-docs/) — first-party reference material: the Scrumban methodology guide, the thinking_os formulas, and the technical-specification template.
 
 <!-- BEGIN auto-index -->
 

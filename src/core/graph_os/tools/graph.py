@@ -5102,9 +5102,8 @@ def cos_graph_doctor(
             #     `[text](path)` syntax including trailing backtick)
             #   - contains newline / control char (raw prose fragment)
             # NOTE: a plain space is NOT malformed — legitimate doc files
-            # have spaces in their names (e.g. Roy Fielding's REST
-            # dissertation). Flagging space caused a delete↔reindex churn
-            # of 475 real nodes (R4 follow-up false-positive).
+            # have spaces in their names. Flagging space caused a
+            # delete↔reindex churn of 475 real nodes.
             def _is_malformed(p: str) -> bool:
                 return (
                     ("../" in p)
