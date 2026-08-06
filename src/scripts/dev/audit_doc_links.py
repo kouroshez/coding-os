@@ -114,10 +114,11 @@ def _slugify(text: str) -> str:
     two spaces around it become two hyphens).
 
     Python's `\\w` is narrower than github-slugger's keep-set: it drops
-    combining marks (اصلاً) and format characters (the half-space in
-    سیستم‌ها), so a `\\w`-based strip false-flags every Persian heading.
-    Verified against GitHub's own /markdown renderer over 200 real repo
-    headings — 120 of them non-ASCII — with zero divergence.
+    Unicode combining marks (category Mn) and format characters such as
+    U+200C ZERO WIDTH NON-JOINER, so a `\\w`-based strip false-flags every
+    heading written in a script that uses them. Verified against GitHub's
+    own /markdown renderer over 200 real repo headings — 120 of them
+    non-ASCII — with zero divergence.
     """
     kept = [
         ch

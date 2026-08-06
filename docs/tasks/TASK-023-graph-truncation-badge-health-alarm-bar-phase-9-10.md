@@ -21,7 +21,7 @@ references:
 ---
 # TASK-023: Phase 9 truncation badge + Phase 10 alarm bar
 
-**Outcome (one sentence):** Graph canvas surfaces "X / Y nodes" so users *see* when the budget truncates the view, and the AppShell top bar shows an amber chip the moment graph_os reports issues or `/health` degrades — giving the user the alarm signal they explicitly asked for ("").
+**Outcome (one sentence):** Graph canvas surfaces "X / Y nodes" so users *see* when the budget truncates the view, and the AppShell top bar shows an amber chip the moment graph_os reports issues or `/health` degrades — giving the user the alarm signal they explicitly asked for: when something breaks, the system must raise an alarm.
 
 ## Read First
 - [src/core/web/ui/src/features/graph/GraphCanvas.tsx](../../src/core/web/ui/src/features/graph/GraphCanvas.tsx) — gains the bottom-right truncation badge

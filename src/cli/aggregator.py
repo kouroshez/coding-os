@@ -3,7 +3,7 @@
 No IO. No filesystem access. Deterministic output for a given input.
 Fully testable as a plain function.
 
-Merge rules (§ of the plan):
+Merge rules (§2 of the plan):
     1. substitutions       shallow merge, later wins, conflict warned
     2. verify_rows         concat + dedupe by (glob, suites)
     3. routing_entries     concat + dedupe by string, order preserved

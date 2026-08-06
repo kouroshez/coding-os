@@ -1,6 +1,6 @@
 """`cos add-stack <id>` — add a stack module to an already-initialized project.
 
-Design (see plan §.):
+Design (see plan §2.3):
 
 1. Load the project config. Check the project has been initialized.
 2. If the stack is already installed → idempotent skip with INFO.
@@ -290,7 +290,8 @@ def add_stack(
             agents_md_changed = True
         else:
             click.echo(
-                "  INFO: AGENTS.md not regenerated (--no-regen-agents-md set). ""Run with --regen-agents-md to refresh it.",
+                "  INFO: AGENTS.md not regenerated (--no-regen-agents-md set). "
+                "Run with --regen-agents-md to refresh it.",
                 err=True,
             )
 

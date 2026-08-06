@@ -18,7 +18,7 @@ references: []
 ---
 # TASK-004: Intent enforcement layer — exhaustive-intent detection + evidence verification
 
-**Outcome (one sentence):** Agent reads natural-language exhaustive intent ("", "all", "completely") correctly, writes findings to compaction-resilient artifact file, evidence-verified before "done" claim, auto-reviewer catches gaps. 15 functional groups split into 3 waves. No premature completion.
+**Outcome (one sentence):** Agent reads natural-language exhaustive intent ("all", "every", "completely", and their non-English equivalents) correctly, writes findings to compaction-resilient artifact file, evidence-verified before "done" claim, auto-reviewer catches gaps. 15 functional groups split into 3 waves. No premature completion.
 
 ## Read First
 - src/core/hooks/registry.yaml — SSOT for hook registration
@@ -31,7 +31,7 @@ references: []
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 
 **Wave 1 — Foundation**
-- **Given** user types prompt containing "", "all", "completely", "exhaustive" with a scope verb (fix/find/audit/migrate)
+- **Given** user types prompt containing "all", "every", "completely", "exhaustive" (or a non-English equivalent) with a scope verb (fix/find/audit/migrate)
 - **When** UserPromptSubmit fires
 - **Then** detect-exhaustive-intent.sh writes `.coding-os/<agent>/.intent.json` with `{kind, exhaustive: true, scope_verbs, detected_at}` AND injects context "Detected exhaustive intent. Evidence required."
 

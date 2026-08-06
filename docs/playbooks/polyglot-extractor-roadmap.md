@@ -329,7 +329,7 @@ stack for `cos init` is OUT of scope here (separate task).
   - [x] E1.1 Per-extractor timing in `file_index_state` (`duration_ms`, migration v28) — surfaced by `cos_graph_doctor` as the informational `slowest_extractions` category (top-10 by duration; TASK-325)
   - [ ] E1.2 Hub panel pie chart by extractor cost
 
-## 6. Edge-case catalog (the "" the user asked about)
+## 6. Edge-case catalog
 
 ### Shell
 - Functions defined with `function foo()` vs `foo() { … }` — both must emit same UID.

@@ -4,7 +4,7 @@
 Full Round 4 defect register (TASK-037).
 
 **Task:** TASK-037
-**Trigger:** user exhaustive intent — "", " mcp server", "", "", community: UID click error, 954/339 orphan/stale figures from Hub UI.
+**Trigger:** user exhaustive intent — turn the graph subsystem inside out, check every MCP server output and a per-language checklist; plus a `community:` UID click error and the 954/339 orphan/stale figures from the Hub UI.
 **Scope (delta over Round 3):** verify W6.1-W6.6 + W6.21 actually landed; surface defects R3 missed; per-language extractor matrix; hub UI surface bugs; community: UID scheme gap; deep probe each cos_graph_* tool with malformed inputs.
 **Methodology:** 4 parallel diagnostic subagents (per-language coverage, hub UI, 17-tool live probing, orphans/stales deep dive) + foreground SQL/MCP probes. All probes against live `.coding-os/coding-os.db` (37 756 nodes / 77 410 edges) at 2026-05-27.
 **Prior:** Round 3 register catalogued 60 defects (T1-T12, X1-X12, B1-B17, C1-C3, F1-F14, N1-N4); 6 waves landed (W6.1, W6.2, W6.3, W6.6, W6.14, W6.21) + 1 partial (W6.5) + 1 with taxonomy bug (W6.7).
@@ -74,7 +74,7 @@ Full Round 4 defect register (TASK-037).
 | ID | Tool | Symptom | Fix |
 |---|---|---|---|
 | **R4-14** | cos_graph (removed) | Stub still registered → `tools/list` exports it, costs handshake slot, pollutes `contracts` listing | Delete the stub + `@mcp.tool` decorator |
-| **R4-15** | query | `q="SqliteBackend test "` (mixed-script) → 0 results despite `SqliteBackend` alone returning 46 | FTS5 unicode_tokenizer ANDs all tokens; either split on script boundary or fall back to OR-query |
+| **R4-15** | query | A mixed-script query (`SqliteBackend` plus an Arabic-script term) → 0 results despite `SqliteBackend` alone returning 46 | FTS5 unicode_tokenizer ANDs all tokens; either split on script boundary or fall back to OR-query |
 | **R4-16** | centrality | `kind="bogus_kind"` silently returns `[]` (same shape as "no high-deg nodes of this kind") | Validate kind enum OR emit `meta.known_kinds` |
 | **R4-17** | communities | `top=5, max_members=10` returns `count=15` (inflated past request); `top_effective=15` while `top_requested=50` (BOTH inflated) | Cap count<=top_requested OR rename meta field |
 | **R4-18** | rename_plan | `new_name == old_name` happily returns 36-callsite plan with `risk=high` | Validate `new_name != current label`; return `risk: "no_op"` |
@@ -251,7 +251,7 @@ Total ~5-8 hours to reach genuinely-healthy doctor state with no noise.
 5. `cos_graph_entrypoints` finds main/cli/cmd_* across cli/, scripts/, hooks/_helpers/, templates/.
 6. `cos_graph_communities` honest meta: `members_truncated` vs `envelope_truncated` distinct (T11 partial).
 7. `cos_graph_doctor` schema invariants present (`fix_applied`, `fixed_count` set even on read-only).
-8. Persian FTS5 body content: `q=""` → clean `ok=true, results=[]`, no FTS5 error (G14 holds).
+8. Arabic-script FTS5 body content: a non-Latin query → clean `ok=true, results=[]`, no FTS5 error (G14 holds).
 9. `cos_graph_rename_plan` `risk` field correct (15 sites → medium; 36 sites → high).
 10. `cos_graph_impact` `semantic_scope` field present on every response.
 

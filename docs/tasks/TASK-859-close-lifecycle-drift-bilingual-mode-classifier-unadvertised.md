@@ -31,7 +31,7 @@ references: []
 TASK-843: created directly in icebox with work-log "Implemented + verified" + ready label → invisible to warn-abandoned-task (ready exempt), invisible to cos_task_reconcile (scans in_progress/testing only). TASK-830: post-commit hook attributed unrelated commit e0dc8f82 to a never-started icebox card. Root enabler: classify-task-mode.sh claims bilingual but IMPL_RE/QUERY_RE/EXPLORE_RE are English-only, so Persian sessions run adhoc → enforce-task-start exits early.
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
-1. **Given** a Persian implementation prompt ( / ), **When** classify-task-mode.sh classifies it, **Then** .task-mode is propose-formal — not adhoc or chore.
+1. **Given** a non-English implementation prompt (an "implement this feature" / "fix it" phrasing in a supported second language), **When** classify-task-mode.sh classifies it, **Then** .task-mode is propose-formal — not adhoc or chore.
 2. **Given** an icebox card whose work log carries "committed <sha>" or an implementation claim (TASK-843 shape), **When** cos_task_reconcile runs, **Then** the card is listed with classification zombie_icebox and an actionable recommendation.
 3. **Given** the same card, **When** cos_task_board renders it, **Then** the card is flagged stale with a zombie-specific reason.
 4. **Given** enforce-task-start blocks a code edit, **When** the remediation message prints, **Then** it offers only task-create/task-start and the trivial-gate path — no manual .task-current write-state line.

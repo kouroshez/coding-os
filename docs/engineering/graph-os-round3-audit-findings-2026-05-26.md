@@ -4,7 +4,7 @@
 Full Round 3 defect register (TASK-037).
 
 **Task:** TASK-037
-**Trigger:** user exhaustive intent — " graph ", "", "", "", "".
+**Trigger:** user exhaustive intent — test and benchmark the whole graph subsystem, every single tool output, walking as deep as the traversal allows.
 **Scope:** what TASK-029/032/033 did NOT cover — deep-walk stress (depth 3-5), envelope honesty across ALL 17 tools at default + extreme args, extractor coverage gaps post-fix, concurrency + reindex safety under P6 thread-local conns, persona end-to-end cross-tool agreement.
 **Methodology:** 5 parallel diagnostic subagents (deep-traversal, extractor-parity, envelope-budget, concurrency-stress, persona-flow) + reviewer subagent re-grep. All probes against live `.coding-os/coding-os.db` (37 617 nodes / 76 285 edges raw / 75 581 deduped).
 **Prior:** TASK-032 audit catalogued 63 defects (G1-G39, E1-E13, P1-P7, R1-R4); most landed via 14+ commits.

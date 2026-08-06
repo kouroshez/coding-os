@@ -10,6 +10,6 @@ Read next: any of the entries below.
 
 ### Reference (1)
 
-- [ Agile Scrum Kanban ](agile-scrum-guide.md) — `ssot:ref` · updated 2026-04-19
+- [Agile, Scrum, Kanban and Scrumban — the methodology behind `board_os`](agile-scrum-guide.md) — `ssot:ref` · updated 2026-08-05
 
 <!-- END auto-index -->

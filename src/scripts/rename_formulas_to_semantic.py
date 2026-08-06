@@ -109,7 +109,6 @@ EXCLUDE_DIR_FRAGMENTS = (
 
 PRESERVE_F_NUMBERING: tuple[str, ...] = (
     "docs/code-os-core-docs/thinkingos-formulas/formulas-en.md",
-    "docs/code-os-core-docs/thinkingos-formulas/formulas-v2.md",
     # Skip self — script's mapping table can't be rewritten.
     "src/scripts/rename_formulas_to_semantic.py",
 )

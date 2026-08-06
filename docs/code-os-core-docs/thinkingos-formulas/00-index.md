@@ -8,13 +8,12 @@ Read next: any of the entries below.
 
 <!-- BEGIN auto-index -->
 
-### Reference (2)
+### Reference (1)
 
-- [ — ](formulas-v2.md) — `ssot:ref` · updated 2026-04-19
 - [Zero-to-Production Problem Decomposition Formulas](formulas-en.md) — `ssot:ref` · updated 2026-04-19
 
 ### Template (1)
 
-- [🚀 Technical Specification Document](TechSpec_Template.md) — `ssot:ref` · updated 2026-04-19
+- [🚀 Technical Specification Document](TechSpec_Template.md) — `ssot:ref` · updated 2026-08-05
 
 <!-- END auto-index -->
