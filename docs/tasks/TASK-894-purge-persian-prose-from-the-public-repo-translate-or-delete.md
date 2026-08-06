@@ -5,12 +5,12 @@ swimlane: docs
 kind: chore
 epic: null
 labels: [public-launch, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-06
 started: 2026-08-05
-completed: null
+completed: 2026-08-05
 agent_session: ses-claude-20260803-180632-5fca
 depends_on: []
 blocked_by: []
@@ -43,3 +43,6 @@ references: []
 - 2026-08-06 [claude]: Edit graph.py
 - 2026-08-06 [claude]: Edit README.md
 - 2026-08-06 [claude]: commit ce5e52700a — docs: translate all remaining non-English prose to English
+- 2026-08-06 [claude]: commit 7e592792b4 — fix(templates): raise the go-fiber dependency floors past 21 advisories
+- 2026-08-06 [claude]: Non-Latin prose reduced 45,007 to 1,806 chars; every survivor is a classifier keyword, i18n test vector, or Unicode…
+- 2026-08-06 [claude]: Status transitioned to complete via cos task-done.
