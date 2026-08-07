@@ -132,3 +132,23 @@ references: []
 - 2026-08-07 [claude]: Edit dispatcher-contract.md
 - 2026-08-07 [claude]: Edit test_cognition_tools.py
 - 2026-08-07 [claude]: Closed the review gaps: trigger modes now enforced via one predicate (supervision.policy_applies) read by both the…
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit test_adapter_capacity_errors.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit test_supervision.py
+- 2026-08-07 [claude]: Edit test_supervision.py
+- 2026-08-07 [claude]: Edit agent-supervision.md
+- 2026-08-07 [claude]: Edit agent-supervision.md
+- 2026-08-07 [claude]: Edit agent-supervision-setup.md
+- 2026-08-07 [claude]: Edit agent-supervision-setup.md
+- 2026-08-07 [claude]: Edit agent-supervision-setup.md
+- 2026-08-07 [claude]: commit 21c608bb5c — fix(supervision): hold the recovery probe for its whole run and report the soonest recovery
+- 2026-08-07 [claude]: commit fc6f852ead — test(adapters): require every dispatch adapter to normalize provider limits
+- 2026-08-07 [claude]: commit ab68c36e02 — docs(supervision): document probe-lease duration, fleet exhaustion, and the adapter contract
+- 2026-08-07 [claude]: Simulated a two-adapter fleet hitting provider limits and found three real defects the unit tests missed: the 30s…

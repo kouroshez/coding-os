@@ -54,3 +54,5 @@ references: []
 - 2026-08-07 [claude]: commit 1229993103 — chore(board): log the supervision review-fix pass on TASK-882
 - 2026-08-07 [claude]: commit 58d0d87410 — docs: refresh the engineering index after the supervision doc update
 - 2026-08-07 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-07 [claude]: commit 05764b8070 — chore(board): close TASK-896 and park TASK-882 in testing
+- 2026-08-07 [claude]: Edit limit_sim.py
