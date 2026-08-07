@@ -284,7 +284,7 @@ def record_result(
             base = max(1, int(cooldown_policy.get("default_seconds") or 300))
             maximum = max(base, int(cooldown_policy.get("maximum_seconds") or 3600))
             delay = (
-                max(1, int(retry_after_s))
+                min(maximum, max(1, int(retry_after_s)))
                 if retry_after_s
                 else min(maximum, base * (2 ** (failures - 1)))
             )

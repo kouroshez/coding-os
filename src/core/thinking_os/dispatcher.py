@@ -113,7 +113,7 @@ def _known_agents() -> set[str]:
 def _detect_agent() -> str:
     known = _known_agents()
     explicit = os.environ.get("COS_AGENT", "").strip().lower()
-    if explicit:
+    if explicit in known:
         return explicit
 
     agent_dir = os.environ.get("COS_AGENT_DIR", "")
@@ -221,20 +221,9 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
     last_result: DispatchResult | None = None
     for adapter_id in candidates:
         record = records[adapter_id]
-        decision = supervision.check_capacity(db_path, adapter_id)
-        if not decision.allowed:
-            last_result = DispatchResult(
-                formula_id=request.formula_id,
-                status="error",
-                error=decision.reason or f"{adapter_id} is cooling down",
-                error_category="capacity",
-                retryable=True,
-                retry_after_s=decision.retry_after_s,
-                dispatcher_name="supervisor",
-                outcome="known_failed",
-            )
-            continue
-
+        # Request-shape validation runs BEFORE check_capacity: a capacity check
+        # consumes the single half-open recovery probe, so a request that can
+        # never reach the adapter must not starve its recovery.
         selected = request.model_copy(update={"adapter": adapter_id})
         if selected.effort and "effort_selection" not in record.capabilities:
             last_result = DispatchResult(
@@ -278,6 +267,20 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
                 status="error",
                 error=f"adapter {adapter_id!r} dispatch runtime is unavailable",
                 error_category="unavailable",
+                dispatcher_name="supervisor",
+                outcome="known_failed",
+            )
+            continue
+
+        decision = supervision.check_capacity(db_path, adapter_id)
+        if not decision.allowed:
+            last_result = DispatchResult(
+                formula_id=request.formula_id,
+                status="error",
+                error=decision.reason or f"{adapter_id} is cooling down",
+                error_category="capacity",
+                retryable=True,
+                retry_after_s=decision.retry_after_s,
                 dispatcher_name="supervisor",
                 outcome="known_failed",
             )

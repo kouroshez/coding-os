@@ -176,7 +176,9 @@ Why each line:
 | `allowed_tools` | list[str] | caller-provided allow-list — `mcp__coding-os__*` is always appended. |
 | `timeout_s` | float | hard timeout, default 300s. |
 | `cwd` | str\|None | project root for the sub-session. |
-| `model` | str\|None | (NEW) model id. None = SDK default. |
+| `model` | str\|None | model id. None = SDK default. |
+| `adapter` | str\|None | target adapter id. None = supervisor/`_detect_agent` picks. |
+| `effort` | str\|None | reasoning effort; rejected unless the adapter declares `effort_selection`. |
 
 **Model resolution at request build** (`_build_dispatch_request`) —
 precedence, first match wins; the decision source is logged
@@ -185,10 +187,11 @@ precedence, first match wins; the decision source is logged
 | tier | source | key |
 |---|---|---|
 | 1 | explicit `model` argument on the run tools | verbatim |
-| 2 | active preset's `roles_adapter_hints[<role>].model_pref` (presets/registry.yaml; the session's composed preset is read back from `persona_selections`) | `complexity` lowercased |
-| 3 | role frontmatter `model_pref` (`agents/README.md`) | `complexity` lowercased |
-| 4 | `cos_route_model` empirical recommendation — only when real outcome history exists (`data_points > 0`), never the cold-start static default | `complexity` |
-| 5 | `None` → SDK default | — |
+| 2 | project supervision policy `model_routing.roles[<role>].model` ([agent-supervision.md](../engineering/agent-supervision.md)) | role id |
+| 3 | active preset's `roles_adapter_hints[<role>].model_pref` (presets/registry.yaml; the session's composed preset is read back from `persona_selections`) | `complexity` lowercased |
+| 4 | role frontmatter `model_pref` (`agents/README.md`) | `complexity` lowercased |
+| 5 | `cos_route_model` empirical recommendation — only when real outcome history exists (`data_points > 0`), never the cold-start static default | `complexity` |
+| 6 | `None` → SDK default | — |
 
 Aliases pass through verbatim — the adapter, not the kernel, owns
 alias→id mapping (Rule 11). The caller passes `complexity` explicitly
@@ -204,9 +207,17 @@ agent can pick before calling the run tool.
 | `status` | `"ok"\|"timeout"\|"error"\|"skipped"` |
 | `output_json` | parsed JSON from the formula's ```json``` block |
 | `latency_ms` | wall clock |
-| `dispatcher_name` | `"claude-sdk"` or `"default"` |
+| `dispatcher_name` | `"claude-sdk"`, `"default"`, or `"supervisor"` |
 | `error` | str\|None |
 | `raw_transcript` | str\|None |
+| `error_category` | `"capacity"\|"auth"\|"unavailable"\|"timeout"\|"provider"\|"invalid"`\|None |
+| `retryable` | bool — capacity/timeout failures only |
+| `retry_after_s` | int\|None — provider-supplied hint, clamped to `cooldown.maximum_seconds` |
+| `outcome` | `"known_failed"\|"unknown"` — only `known_failed` may be replayed on another adapter |
+
+The last four drive the capacity circuit-breaker; the adapter normalizes
+its provider errors into them (`_failure_fields`). Contract:
+[dispatcher-contract.md](../engineering/dispatcher-contract.md).
 
 ### 7.4 Failure modes
 

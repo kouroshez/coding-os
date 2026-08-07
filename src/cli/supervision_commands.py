@@ -178,6 +178,12 @@ def supervision_set(
     }
     if (role_values or clear_role) and not role:
         raise click.UsageError("--role is required with role options or --clear-role")
+    if clear_role and role_values:
+        raise click.UsageError("--clear-role cannot be combined with --role-adapter/model/effort")
+    if orchestrator and clear_orchestrator:
+        raise click.UsageError(
+            "--clear-orchestrator cannot be combined with --orchestrator-adapter/model/effort"
+        )
     if role_values and role:
         patch["roles"] = {role: role_values}
     if not patch and not clear_role and not clear_orchestrator:

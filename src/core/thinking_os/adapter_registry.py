@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
@@ -13,14 +14,16 @@ logger = logging.getLogger("coding_os.adapter_registry")
 
 
 def _resolve_adapters_dir(module_path: Path) -> Path:
+    # COS_CODING_OS_ROOT wins: a consumer project points at the coding-os
+    # checkout that owns src/adapters, which is not a parent of this module.
+    configured = os.environ.get("COS_CODING_OS_ROOT", "").strip()
+    default = module_path.resolve().parents[2] / "adapters"
     candidates = (
-        module_path.resolve().parents[2] / "adapters",
+        *((Path(configured).resolve() / "src" / "adapters",) if configured else ()),
+        default,
         module_path.resolve().parents[1] / "adapters",
     )
-    return next((candidate for candidate in candidates if candidate.is_dir()), candidates[0])
-
-
-ADAPTERS_DIR = _resolve_adapters_dir(Path(__file__))
+    return next((candidate for candidate in candidates if candidate.is_dir()), default)
 
 
 @dataclass(frozen=True)
@@ -51,7 +54,7 @@ class AdapterRecord:
 
 
 def load_adapter_records(adapters_dir: Path | None = None) -> dict[str, AdapterRecord]:
-    root = adapters_dir or ADAPTERS_DIR
+    root = adapters_dir or _resolve_adapters_dir(Path(__file__))
     records: dict[str, AdapterRecord] = {}
     if not root.is_dir():
         return records

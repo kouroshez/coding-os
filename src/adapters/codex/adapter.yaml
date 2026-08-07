@@ -9,7 +9,7 @@ runtime: roadmap
 runtime_entrypoints:
   dispatch: sdk_dispatcher.py
   transcript: chat_provider.py
-  capabilities: [dispatch, model_selection, structured_output]
+  capabilities: [dispatch, transcript, model_selection, structured_output]
 models: []
 
 presence:

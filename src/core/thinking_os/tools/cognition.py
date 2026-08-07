@@ -1243,17 +1243,15 @@ def _resolve_dispatch_model(
     model: str,
     complexity: str,
     db_path,
+    supervised: dict[str, str] | None = None,
 ) -> str:
-    from thinking_os import supervision
-
     level = complexity.strip().lower()
     hint_pref = _preset_role_hint(session_id, formula_id, db_path).get("model_pref") or {}
     role_pref = meta.get("model_pref") or {}
-    supervised = supervision.role_policy(formula_id)
     resolved = ""
     for candidate, source in (
         (model.strip(), "explicit"),
-        (supervised.get("model", ""), "supervision_policy"),
+        ((supervised or {}).get("model", ""), "supervision_policy"),
         (hint_pref.get(level, ""), "preset_hint"),
         (role_pref.get(level, ""), "role_pref"),
     ):
@@ -1308,12 +1306,12 @@ def _build_dispatch_request(
     input_slice = cog.build_input_slice(formula_id, bundle)
     input_slice["intensity_steps"] = cog._intensity_steps(formula_id, intensity)
 
-    resolved_model = _resolve_dispatch_model(
-        formula_id, session_id, meta, model, complexity, db_path
-    )
     from thinking_os import supervision
 
     supervised = supervision.role_policy(formula_id)
+    resolved_model = _resolve_dispatch_model(
+        formula_id, session_id, meta, model, complexity, db_path, supervised
+    )
 
     return _disp.DispatchRequest(
         formula_id=formula_id,

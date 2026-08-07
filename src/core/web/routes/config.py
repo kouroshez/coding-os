@@ -365,6 +365,7 @@ def config_adapter_health_clear(adapter_id: str):
             content={"ok": False, "error": {"category": "not_found", "message": "unknown adapter"}},
         )
     cleared = supervision.clear_health(current_db_path(), adapter_id)
+    _audit(_project_root(), "adapter.health.clear", adapter_id, str(cleared))
     return {"ok": True, "data": {"adapter": adapter_id, "cleared": cleared}}
 
 
