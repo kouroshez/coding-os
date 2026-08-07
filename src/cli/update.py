@@ -161,10 +161,21 @@ def _build_target_assets(agent: str, templates: list[str]) -> dict[str, list[Ass
         "commands": [],
     }
 
-    # Hooks — always use src/core/hooks/ regardless of agent (path may differ).
+    # Hooks — the agent-agnostic core set, PLUS the adapter's own hooks. Omitting
+    # the adapter-owned ones made them look unknown to the diff, so `cos update`
+    # deleted them: for Codex that is every dispatcher, i.e. its whole hook
+    # parity mechanism. Helper .py files sit beside the .sh and link the same way.
     hooks_dir_rel = adapter.hooks_dir
     if hooks_dir_rel:
-        for hook in sorted((CORE_DIR / "hooks").glob("*.sh")):
+        sources = [*sorted((CORE_DIR / "hooks").glob("*.sh"))]
+        adapter_hooks = ADAPTERS_DIR / agent / "hooks"
+        if adapter_hooks.is_dir():
+            sources += sorted(
+                path
+                for path in adapter_hooks.iterdir()
+                if path.is_file() and path.suffix in (".sh", ".py")
+            )
+        for hook in sources:
             result["hooks"].append(
                 AssetRef(
                     name=hook.name,

@@ -782,6 +782,29 @@ class TestInstallResilience:
         assert "0.0.1" in result.output
         assert json.loads(stamp.read_text())["core_version"] != "0.0.1"
 
+    def test_update_keeps_adapter_owned_hooks(self) -> None:
+        """The diff must claim the adapter's own hooks, not just the core set.
+
+        Treating them as unknown made `cos update` delete them — for Codex that
+        is every dispatcher, i.e. its whole hook-parity mechanism.
+        """
+        from cli.update import ADAPTERS_DIR, _build_target_assets
+
+        for agent in ("claude", "codex"):
+            owned = ADAPTERS_DIR / agent / "hooks"
+            if not owned.is_dir():
+                continue
+            expected = {
+                path.name
+                for path in owned.iterdir()
+                if path.is_file() and path.suffix in (".sh", ".py")
+            }
+            assert expected, f"{agent} declares no adapter-owned hooks to guard"
+
+            claimed = {ref.name for ref in _build_target_assets(agent, [])["hooks"]}
+
+            assert expected <= claimed, sorted(expected - claimed)
+
     def test_update_heals_dangling_symlinks(
         self, runner: CliRunner, resilience_project: Path
     ) -> None:
