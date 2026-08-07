@@ -152,3 +152,40 @@ references: []
 - 2026-08-07 [claude]: commit fc6f852ead — test(adapters): require every dispatch adapter to normalize provider limits
 - 2026-08-07 [claude]: commit ab68c36e02 — docs(supervision): document probe-lease duration, fleet exhaustion, and the adapter contract
 - 2026-08-07 [claude]: Simulated a two-adapter fleet hitting provider limits and found three real defects the unit tests missed: the 30s…
+- 2026-08-07 [claude]: commit 443631f31a — chore(board): log the multi-adapter capacity findings on TASK-882
+- 2026-08-07 [claude]: Edit test_lease_leak.py
+- 2026-08-07 [claude]: Edit test_half_open_stick.py
+- 2026-08-07 [claude]: Edit test_empty_param.py
+- 2026-08-07 [claude]: Edit sdk_dispatcher.py
+- 2026-08-07 [claude]: Edit sdk_dispatcher.py
+- 2026-08-07 [claude]: Edit adapter.yaml
+- 2026-08-07 [claude]: Edit adapter.schema.json
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit config.py
+- 2026-08-07 [claude]: Edit test_supervision.py
+- 2026-08-07 [claude]: Edit test_supervision.py
+- 2026-08-07 [claude]: Edit test_supervision.py
+- 2026-08-07 [claude]: Edit test_adapter_capacity_errors.py
+- 2026-08-07 [claude]: Edit test_adapter_capacity_errors.py
+- 2026-08-07 [claude]: Edit agent-supervision.md
+- 2026-08-07 [claude]: Edit agent-supervision.md
+- 2026-08-07 [claude]: Edit agent-supervision.md
+- 2026-08-07 [claude]: Edit agent-supervision-setup.md
+- 2026-08-07 [claude]: Edit agent-supervision-setup.md
+- 2026-08-07 [claude]: Edit pool_sim.py
+- 2026-08-07 [claude]: commit ecce06695f — fix(supervision): meter capacity per model pool instead of per adapter
+- 2026-08-07 [claude]: commit 312334b772 — test(supervision): cover pool isolation, probe-lease leaks, and stale cooling state
+- 2026-08-07 [claude]: commit e745bf128e — docs(supervision): record what a provider limit actually applies to
+- 2026-08-07 [claude]: Researched the provider's own rate-limit spec and found the model was wrong at the root: limits are metered per…
