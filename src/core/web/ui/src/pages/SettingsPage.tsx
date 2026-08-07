@@ -472,7 +472,7 @@ function ScheduledMaintenanceSection({ formRef }: { formRef: Ref<ScheduledFormHa
   );
 }
 
-function ModelRoutingSection({
+export function ModelRoutingSection({
   routing,
   onChange,
 }: {
@@ -503,11 +503,26 @@ function ModelRoutingSection({
     onChange({ ...routing, roles: { ...routing.roles, [role]: { ...current, ...patch } } });
   };
   const targetControls = (role: string | null, target: AdapterTarget) => {
+    const knownAdapter = availableAdapters.find((item) => item.id === target.adapter);
     const implicitAdapter = availableAdapters.length === 1 ? availableAdapters[0] : undefined;
-    const adapter = availableAdapters.find((item) => item.id === target.adapter) ?? implicitAdapter;
+    // A saved target whose adapter was uninstalled (or whose runtime went away)
+    // still renders its own value: a blank control reads as "nothing is
+    // configured", which is the opposite of the truth and hides the outage.
+    const staleAdapter = target.adapter !== "" && knownAdapter === undefined;
+    const adapter = knownAdapter ?? (target.adapter === "" ? implicitAdapter : undefined);
+    const models = adapter?.models ?? [];
+    const efforts = adapter?.efforts ?? [];
+    // An adapter that selects models but publishes no catalog forwards any
+    // string — offer a text field rather than an empty, unusable select.
+    const freeformModel =
+      adapter !== undefined &&
+      models.length === 0 &&
+      (adapter.capabilities ?? []).includes("model_selection");
+    const staleOption = (value: string, known: boolean) =>
+      value !== "" && !known ? <option value={value}>{value} — unavailable</option> : null;
     return (
       <div className="flex flex-wrap gap-2">
-        {implicitAdapter ? (
+        {implicitAdapter && !staleAdapter ? (
           <span className="rounded border border-[var(--cos-border)] px-2 py-1.5 font-mono text-xs text-[var(--cos-muted)]">
             {implicitAdapter.label}
           </span>
@@ -526,21 +541,36 @@ function ModelRoutingSection({
                 {item.label}
               </option>
             ))}
+            {staleOption(target.adapter, !staleAdapter)}
           </select>
         )}
-        <select
-          aria-label={`${role ?? "orchestrator"} model`}
-          value={target.model}
-          onChange={(event) => updateTarget(role, { model: event.target.value })}
-          className={selectClass}
-        >
-          <option value="">adapter default</option>
-          {(adapter?.models ?? []).map((model) => (
-            <option key={model.id} value={model.id}>
-              {model.label}
-            </option>
-          ))}
-        </select>
+        {freeformModel ? (
+          <input
+            aria-label={`${role ?? "orchestrator"} model`}
+            value={target.model}
+            onChange={(event) => updateTarget(role, { model: event.target.value })}
+            placeholder="adapter default"
+            className={selectClass}
+          />
+        ) : (
+          <select
+            aria-label={`${role ?? "orchestrator"} model`}
+            value={target.model}
+            onChange={(event) => updateTarget(role, { model: event.target.value })}
+            className={selectClass}
+          >
+            <option value="">adapter default</option>
+            {models.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.label}
+              </option>
+            ))}
+            {staleOption(
+              target.model,
+              models.some((model) => model.id === target.model),
+            )}
+          </select>
+        )}
         <select
           aria-label={`${role ?? "orchestrator"} effort`}
           value={target.effort}
@@ -548,11 +578,12 @@ function ModelRoutingSection({
           className={selectClass}
         >
           <option value="">adapter default</option>
-          {(adapter?.efforts ?? []).map((effort) => (
+          {efforts.map((effort) => (
             <option key={effort} value={effort}>
               {effort}
             </option>
           ))}
+          {staleOption(target.effort, efforts.includes(target.effort))}
         </select>
       </div>
     );

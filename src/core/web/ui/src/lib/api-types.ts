@@ -2387,6 +2387,24 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdapterTargetPolicy */
+        AdapterTargetPolicy: {
+            /**
+             * Adapter
+             * @default
+             */
+            adapter: string;
+            /**
+             * Model
+             * @default
+             */
+            model: string;
+            /**
+             * Effort
+             * @default
+             */
+            effort: string;
+        };
         /** Body_board_create_api_board_create_post */
         Body_board_create_api_board_create_post: {
             /** Title */
@@ -2603,6 +2621,19 @@ export interface components {
             /** Was Helpful */
             was_helpful: boolean;
         };
+        /** CooldownPolicy */
+        CooldownPolicy: {
+            /**
+             * Default Seconds
+             * @default 300
+             */
+            default_seconds: number;
+            /**
+             * Maximum Seconds
+             * @default 3600
+             */
+            maximum_seconds: number;
+        };
         /** CronStatus */
         CronStatus: {
             /** Installed */
@@ -2648,6 +2679,45 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ModelRoutingPolicy */
+        ModelRoutingPolicy: {
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Orchestrator Model
+             * @default
+             */
+            orchestrator_model: string;
+            /**
+             * Mode
+             * @default explicit
+             * @enum {string}
+             */
+            mode: "explicit" | "suggest" | "adaptive";
+            /**
+             * Complexity Threshold
+             * @default COMPLICATED
+             * @enum {string}
+             */
+            complexity_threshold: "CLEAR" | "COMPLICATED" | "COMPLEX" | "CHAOTIC";
+            /**
+             * Fallback Policy
+             * @default fail_closed
+             * @enum {string}
+             */
+            fallback_policy: "fail_closed" | "same_adapter_default" | "next_eligible";
+            /**
+             * Max Parallel
+             * @default 3
+             */
+            max_parallel: number;
+            orchestrator?: components["schemas"]["AdapterTargetPolicy"];
+            /** Roles */
+            roles?: {
+                [key: string]: components["schemas"]["AdapterTargetPolicy"];
+            };
+            cooldown?: components["schemas"]["CooldownPolicy"];
         };
         /** ProjectScheduled */
         ProjectScheduled: {
@@ -2725,24 +2795,6 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
-        /** _AdapterTargetIn */
-        _AdapterTargetIn: {
-            /**
-             * Adapter
-             * @default
-             */
-            adapter: string;
-            /**
-             * Model
-             * @default
-             */
-            model: string;
-            /**
-             * Effort
-             * @default
-             */
-            effort: string;
-        };
         /** _AutoSpawnIn */
         _AutoSpawnIn: {
             /** Enabled */
@@ -2765,19 +2817,6 @@ export interface components {
             mode: "subscription" | "api_key";
             /** Api Key */
             api_key?: string | null;
-        };
-        /** _CooldownIn */
-        _CooldownIn: {
-            /**
-             * Default Seconds
-             * @default 300
-             */
-            default_seconds: number;
-            /**
-             * Maximum Seconds
-             * @default 3600
-             */
-            maximum_seconds: number;
         };
         /** _GitSettingsIn */
         _GitSettingsIn: {
@@ -2812,50 +2851,11 @@ export interface components {
              */
             worktree_setup_cmd: string;
         };
-        /** _ModelRoutingIn */
-        _ModelRoutingIn: {
-            /** Enabled */
-            enabled: boolean;
-            /**
-             * Orchestrator Model
-             * @default
-             */
-            orchestrator_model: string;
-            /**
-             * Mode
-             * @default explicit
-             * @enum {string}
-             */
-            mode: "explicit" | "suggest" | "adaptive";
-            /**
-             * Complexity Threshold
-             * @default COMPLICATED
-             * @enum {string}
-             */
-            complexity_threshold: "CLEAR" | "COMPLICATED" | "COMPLEX" | "CHAOTIC";
-            /**
-             * Fallback Policy
-             * @default fail_closed
-             * @enum {string}
-             */
-            fallback_policy: "fail_closed" | "same_adapter_default" | "next_eligible";
-            /**
-             * Max Parallel
-             * @default 3
-             */
-            max_parallel: number;
-            orchestrator?: components["schemas"]["_AdapterTargetIn"];
-            /** Roles */
-            roles?: {
-                [key: string]: components["schemas"]["_AdapterTargetIn"];
-            };
-            cooldown?: components["schemas"]["_CooldownIn"];
-        };
         /** _PatchBody */
         _PatchBody: {
             budget_cap?: components["schemas"]["_BudgetCapIn"] | null;
             trace_rotation?: components["schemas"]["_TraceRotationIn"] | null;
-            model_routing?: components["schemas"]["_ModelRoutingIn"] | null;
+            model_routing?: components["schemas"]["ModelRoutingPolicy"] | null;
             auto_spawn?: components["schemas"]["_AutoSpawnIn"] | null;
             git_settings?: components["schemas"]["_GitSettingsIn"] | null;
             claude_auth?: components["schemas"]["_ClaudeAuthIn"] | null;
