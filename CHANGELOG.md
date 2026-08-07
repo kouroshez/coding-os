@@ -12,6 +12,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.7](https://github.com/kouroshez/coding-os/compare/v0.3.6...v0.3.7) (2026-08-07)
+
+
+### Added
+
+* add configurable agent supervision ([b924120](https://github.com/kouroshez/coding-os/commit/b92412003248b2acc4421b7828d950af4ffe91f1))
+
+
+### Fixed
+
+* sync Hub OpenAPI snapshot ([bdbe6be](https://github.com/kouroshez/coding-os/commit/bdbe6be8ae3aca22f86bfbba427a4fd150aaf874))
+
+
+### Documentation
+
+* define configurable agent supervision ([bc5846f](https://github.com/kouroshez/coding-os/commit/bc5846ffcf2c91991488ba972242b086de791c0e))
+
 ## [0.3.6](https://github.com/kouroshez/coding-os/compare/v0.3.5...v0.3.6) (2026-08-06)
 
 
