@@ -908,6 +908,27 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "_AdapterTargetIn": {
+        "properties": {
+          "adapter": {
+            "default": "",
+            "title": "Adapter",
+            "type": "string"
+          },
+          "effort": {
+            "default": "",
+            "title": "Effort",
+            "type": "string"
+          },
+          "model": {
+            "default": "",
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "title": "_AdapterTargetIn",
+        "type": "object"
+      },
       "_AutoSpawnIn": {
         "properties": {
           "enabled": {
@@ -965,6 +986,26 @@
         "title": "_ClaudeAuthIn",
         "type": "object"
       },
+      "_CooldownIn": {
+        "properties": {
+          "default_seconds": {
+            "default": 300,
+            "maximum": 86400.0,
+            "minimum": 1.0,
+            "title": "Default Seconds",
+            "type": "integer"
+          },
+          "maximum_seconds": {
+            "default": 3600,
+            "maximum": 604800.0,
+            "minimum": 1.0,
+            "title": "Maximum Seconds",
+            "type": "integer"
+          }
+        },
+        "title": "_CooldownIn",
+        "type": "object"
+      },
       "_GitSettingsIn": {
         "properties": {
           "autonomy_level": {
@@ -1020,14 +1061,65 @@
       },
       "_ModelRoutingIn": {
         "properties": {
+          "complexity_threshold": {
+            "default": "COMPLICATED",
+            "enum": [
+              "CLEAR",
+              "COMPLICATED",
+              "COMPLEX",
+              "CHAOTIC"
+            ],
+            "title": "Complexity Threshold",
+            "type": "string"
+          },
+          "cooldown": {
+            "$ref": "#/components/schemas/_CooldownIn"
+          },
           "enabled": {
             "title": "Enabled",
             "type": "boolean"
+          },
+          "fallback_policy": {
+            "default": "fail_closed",
+            "enum": [
+              "fail_closed",
+              "same_adapter_default",
+              "next_eligible"
+            ],
+            "title": "Fallback Policy",
+            "type": "string"
+          },
+          "max_parallel": {
+            "default": 3,
+            "maximum": 16.0,
+            "minimum": 1.0,
+            "title": "Max Parallel",
+            "type": "integer"
+          },
+          "mode": {
+            "default": "explicit",
+            "enum": [
+              "explicit",
+              "suggest",
+              "adaptive"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "orchestrator": {
+            "$ref": "#/components/schemas/_AdapterTargetIn"
           },
           "orchestrator_model": {
             "default": "",
             "title": "Orchestrator Model",
             "type": "string"
+          },
+          "roles": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/_AdapterTargetIn"
+            },
+            "title": "Roles",
+            "type": "object"
           }
         },
         "required": [
@@ -4687,6 +4779,46 @@
           }
         },
         "summary": "Config Adapters",
+        "tags": [
+          "config"
+        ]
+      }
+    },
+    "/api/config/adapters/{adapter_id}/health": {
+      "delete": {
+        "operationId": "config_adapter_health_clear_api_config_adapters__adapter_id__health_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "adapter_id",
+            "required": true,
+            "schema": {
+              "title": "Adapter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Config Adapter Health Clear",
         "tags": [
           "config"
         ]
