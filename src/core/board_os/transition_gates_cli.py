@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import sqlite3
 import sys
@@ -17,6 +18,8 @@ from board_os.transition_gates_validator import (
     Verdict,
     validate_transition,
 )
+
+logger = logging.getLogger("coding_os.board_os.gates")
 
 
 def _read_stdin_payload() -> dict:
@@ -73,6 +76,19 @@ def _load_body_for_task(task_id: str, file_path: Path | None) -> tuple[str, str]
     return "", str(row[1] or "feature")
 
 
+def _verify_ledger_path() -> Path | None:
+    state_dir = Path(os.environ.get("COS_STATE_DIR", ".coding-os"))
+    if state_dir.is_absolute():
+        return state_dir / ".last-verify.json"
+    try:
+        from thinking_os.database import project_root  # type: ignore
+
+        return project_root() / state_dir / ".last-verify.json"
+    except Exception as exc:
+        logger.debug("project-root ledger resolution unavailable: %s", exc)
+        return state_dir / ".last-verify.json"
+
+
 def _verify_state() -> tuple[bool, int | None]:
     """Most-recent PASS in .last-verify.json (freshness gate, not a forge wall).
 
@@ -84,9 +100,12 @@ def _verify_state() -> tuple[bool, int | None]:
     it catches the FORGOTTEN run, not a deliberate forge. The real wall is the
     server-side required CI check in pr-mode, not this local marker. (TASK-620)
     """
-    state_dir = os.environ.get("COS_STATE_DIR", ".coding-os")
-    path = Path(state_dir) / ".last-verify.json"
-    if not path.exists():
+    # COS_STATE_DIR is routinely a RELATIVE path, so resolving it against the
+    # gate process's cwd read a different file than the verify runners wrote —
+    # the MCP/board process does not share the agent's working directory. Anchor
+    # it to the project root, the same way every other kernel path is resolved.
+    path = _verify_ledger_path()
+    if path is None or not path.exists():
         return False, None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
