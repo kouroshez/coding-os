@@ -7,10 +7,10 @@ CLI and desktop sessions receive the same project policy through the once-per-se
 ## The contract
 
 1. **Toggle off (default)** — nothing fires; dispatch behaviour is unchanged.
-2. **Explicit** — dispatch only when the operator or active procedure requests a child run.
-3. **Suggest** — propose the adapter/model/role route and wait for operator approval.
-4. **Adaptive** — after classification, supervise work at or above the configured complexity threshold.
-5. **Dispatch** — explicit request fields override per-role policy, then preset and role defaults. Every parallel role resolves its own adapter.
+2. **Explicit** (default mode) — the configured policy always applies; what is configured is what runs.
+3. **Suggest** — resolve the route and return `status="skipped"` with `proposed_route`, executing nothing. A dry run, not an approval prompt.
+4. **Adaptive** — apply the policy only at or above the configured complexity threshold; pass the gate level to the run tools, or the request stays unclassified and below every gate.
+5. **Dispatch** — explicit request fields override per-role policy, which overrides the project orchestrator default, then preset and role defaults. Every parallel role resolves its own adapter. The capacity breaker is never gated by trigger mode.
 6. **Capacity** — a normalized usage-limit failure pauses only that adapter. The dispatcher uses an eligible fallback only when the failed run is known not to have started; timeout or unknown outcomes are never replayed.
 7. **Recovery** — after cooldown, one half-open probe is allowed. Success restores normal routing; another capacity failure extends cooldown.
 
