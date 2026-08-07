@@ -275,7 +275,10 @@ def eligible_records(project_root: Path | None = None) -> list[AdapterRecord]:
 
 
 def check_capacity(
-    db_path: str | Path, adapter_id: str, now: float | None = None
+    db_path: str | Path,
+    adapter_id: str,
+    now: float | None = None,
+    lease_seconds: float = 300.0,
 ) -> HealthDecision:
     clock = time.time() if now is None else now
     try:
@@ -305,7 +308,11 @@ def check_capacity(
                     max(1, int(probe_lease_until - clock + 0.999)),
                     reason="capacity recovery probe already running",
                 )
-            lease_until = clock + 30
+            # The lease must outlive the probe dispatch itself. A lease shorter
+            # than the run lets a second caller in mid-probe — two live requests
+            # against the provider that just rate-limited us, which is the retry
+            # storm the breaker exists to prevent.
+            lease_until = clock + max(1.0, lease_seconds)
             conn.execute(
                 "UPDATE adapter_health SET state = 'half_open', probe_lease_until = ?, updated_at = ? "
                 "WHERE adapter_id = ?",
@@ -352,6 +359,15 @@ def record_result(
                 conn.commit()
                 return
             if error_category != "capacity" or not retryable:
+                # A probe that failed for an unrelated reason says nothing about
+                # capacity — release its lease instead of stalling recovery for
+                # the whole lease window.
+                conn.execute(
+                    "UPDATE adapter_health SET probe_lease_until = NULL, updated_at = ? "
+                    "WHERE adapter_id = ? AND state = 'half_open'",
+                    (clock, adapter_id),
+                )
+                conn.commit()
                 return
             row = conn.execute(
                 "SELECT failure_count FROM adapter_health WHERE adapter_id = ?",

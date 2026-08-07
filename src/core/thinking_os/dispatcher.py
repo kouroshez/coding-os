@@ -196,6 +196,23 @@ def _default_model(record) -> str | None:
     return None
 
 
+def _exhausted(
+    last_result: DispatchResult, capacity_waits: list[tuple[str, int | None]]
+) -> DispatchResult:
+    if len(capacity_waits) < 2 or last_result.error_category != "capacity":
+        return last_result
+    waits = [seconds for _, seconds in capacity_waits if seconds is not None]
+    soonest = min(waits) if waits else None
+    names = ", ".join(adapter_id for adapter_id, _ in capacity_waits)
+    recovery = f"soonest recovery in {soonest}s" if soonest is not None else "recovery time unknown"
+    return last_result.model_copy(
+        update={
+            "error": f"all eligible adapters are at capacity ({names}); {recovery}",
+            "retry_after_s": soonest,
+        }
+    )
+
+
 async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> DispatchResult:
     from thinking_os import supervision
 
@@ -225,6 +242,10 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
         )
 
     last_result: DispatchResult | None = None
+    # Every adapter refused for capacity, with the wait it reported. The caller
+    # needs the SOONEST recovery across the fleet, not whichever adapter the
+    # loop happened to check last.
+    capacity_waits: list[tuple[str, int | None]] = []
     for adapter_id in candidates:
         record = records[adapter_id]
         # Request-shape validation runs BEFORE check_capacity: a capacity check
@@ -298,8 +319,11 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
 
         # sqlite here is synchronous and takes a write lock; off-loading keeps a
         # parallel fan-out from serializing the event loop on the breaker.
-        decision = await asyncio.to_thread(supervision.check_capacity, db_path, adapter_id)
+        decision = await asyncio.to_thread(
+            supervision.check_capacity, db_path, adapter_id, lease_seconds=request.timeout_s
+        )
         if not decision.allowed:
+            capacity_waits.append((adapter_id, decision.retry_after_s))
             last_result = DispatchResult(
                 formula_id=request.formula_id,
                 status="error",
@@ -313,6 +337,13 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
             continue
 
         result = await runtime.dispatch(selected)
+        if result.status == "error" and result.error_category is None:
+            logger.warning(
+                "%s returned an unclassified failure, so the capacity breaker "
+                "cannot protect it (dispatcher-contract.md rule 7): %s",
+                adapter_id,
+                (result.error or "")[:120],
+            )
         await asyncio.to_thread(
             supervision.record_result,
             db_path,
@@ -344,11 +375,15 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
             and result.outcome == "known_failed"
             and policy.get("fallback_policy") == "next_eligible"
         ):
+            capacity_waits.append((adapter_id, result.retry_after_s))
             last_result = result
             continue
         return result
 
-    return last_result or DispatchResult(
+    if last_result is not None:
+        return _exhausted(last_result, capacity_waits)
+
+    return DispatchResult(
         formula_id=request.formula_id,
         status="error",
         error="no dispatch adapter accepted the request",
