@@ -66,6 +66,26 @@
       "type": ["string", "null"],
       "description": "Optional adapter-local Python module that exposes read-only Hub transcript list/get operations."
     },
+    "runtime_entrypoints": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Provider-neutral adapter-owned runtime modules and capabilities used by supervision. Entrypoints must be bare filenames inside the adapter directory.",
+      "properties": {
+        "dispatch": {
+          "type": ["string", "null"],
+          "pattern": "^[^/\\\\]+$"
+        },
+        "transcript": {
+          "type": ["string", "null"],
+          "pattern": "^[^/\\\\]+$"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+          "uniqueItems": true
+        }
+      }
+    },
     "cli_binary": {
       "type": "string",
       "description": "Executable name discoverable on PATH for this agent (e.g. \"claude\"). Consumed by src/cli/doctor.py::_probe_agent_sdk so that file stays free of hardcoded adapter literals (rule #11). Optional — defaults to the adapter id when missing."

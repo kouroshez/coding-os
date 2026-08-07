@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -22,6 +23,38 @@ _BACKEND_ENV = "COS_CODEX_DISPATCH_BACKEND"
 _CLI_BACKEND = "cli"
 _PYTHON_SDK_BACKEND = "python-sdk"
 _BACKENDS = {_CLI_BACKEND, _PYTHON_SDK_BACKEND}
+
+
+def _failure_fields(status: str, error: str | None) -> dict[str, Any]:
+    if status == "ok":
+        return {}
+    message = (error or "").lower()
+    if status == "timeout":
+        return {"error_category": "timeout", "retryable": True, "outcome": "unknown"}
+    retry_after: int | None = None
+    match = re.search(r"(?:retry after|try again in)\s+(\d+)\s*(?:seconds?|s)?", message)
+    if match:
+        retry_after = int(match.group(1))
+    if any(
+        token in message
+        for token in ("rate limit", "usage limit", "quota", "too many requests", "429", "capacity")
+    ):
+        return {
+            "error_category": "capacity",
+            "retryable": True,
+            "retry_after_s": retry_after,
+            "outcome": "known_failed",
+        }
+    if any(
+        token in message
+        for token in ("unauthorized", "authentication", "not logged in", "401", "403")
+    ):
+        return {"error_category": "auth", "outcome": "known_failed"}
+    if any(token in message for token in ("not in path", "not importable", "unsupported")):
+        return {"error_category": "unavailable", "outcome": "known_failed"}
+    if any(token in message for token in ("must be absolute", "cannot enforce", "invalid")):
+        return {"error_category": "invalid", "outcome": "known_failed"}
+    return {"error_category": "provider", "outcome": "unknown"}
 
 
 def _codex_binary() -> str | None:
@@ -189,6 +222,7 @@ class CodexSDKDispatcher:
             raw_transcript=raw_transcript,
             dispatcher_name=self.name,
             latency_ms=int((time.monotonic() - started_at) * 1000),
+            **_failure_fields(status, error),
         )
 
     def _completed(

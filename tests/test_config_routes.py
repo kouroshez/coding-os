@@ -66,6 +66,10 @@ def test_adapters_groups_models_by_adapter(client):
 
     claude = adapters["claude"]
     assert claude["runtime"] == "in_process" and claude["available"] is True
+    assert claude["dispatch_available"] is True
+    assert claude["dispatch_declared"] is True
+    assert "dispatch" in claude["capabilities"]
+    assert claude["health"]["state"] in {"disabled", "healthy", "cooling_down", "half_open"}
     assert len(claude["models"]) == 4
     assert sum(1 for m in claude["models"] if m["default"]) == 1  # exactly one default
 
@@ -84,6 +88,10 @@ def test_adapters_groups_models_by_adapter(client):
             "models",
             "mcp_config_paths",
             "installed",
+            "dispatch_available",
+            "dispatch_declared",
+            "capabilities",
+            "health",
         } <= set(a)
     # installed reflects .coding-os.yaml::agents — the meta-repo dogfoods
     # both adapters since the Codex parity work.
@@ -94,6 +102,17 @@ def test_adapters_groups_models_by_adapter(client):
     # Adapters tab shows this so the UI never guesses the wiring file.
     assert claude["mcp_config_paths"] == [".mcp.json"]
     assert adapters["codex"]["mcp_config_paths"] == [".codex/config.toml"]
+
+
+def test_adapter_health_can_be_cleared(client, monkeypatch):
+    from thinking_os import supervision
+
+    monkeypatch.setattr(supervision, "clear_health", lambda _db, adapter_id: adapter_id == "claude")
+
+    response = client.delete("/api/config/adapters/claude/health")
+
+    assert response.status_code == 200
+    assert response.json()["data"] == {"adapter": "claude", "cleared": True}
 
 
 def test_skills_expose_installed_stacks_and_stack_membership(client):

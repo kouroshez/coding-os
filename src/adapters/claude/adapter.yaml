@@ -5,6 +5,9 @@ label: "Anthropic Claude Code"
 # Hub chat model picker — adapter→models SSOT (served by /api/config/adapters).
 # runtime: in_process ⇒ runnable via the Claude Agent SDK inside Hub chat.
 runtime: in_process
+runtime_entrypoints:
+  dispatch: sdk_dispatcher.py
+  capabilities: [dispatch, model_selection, effort_selection, structured_output]
 models:
   - id: claude-fable-5
     label: "Fable 5"

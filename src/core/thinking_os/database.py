@@ -2184,6 +2184,37 @@ def _migrate_v52_derived_outcome_columns(conn: sqlite3.Connection) -> None:
     logger.info("Migration v52 applied: task_outcomes gained derived_outcome columns")
 
 
+def _migrate_v53_adapter_health(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+CREATE TABLE IF NOT EXISTS adapter_health (
+    adapter_id        TEXT PRIMARY KEY,
+    state             TEXT NOT NULL DEFAULT 'healthy'
+                      CHECK(state IN ('healthy', 'cooling_down', 'half_open')),
+    failure_count     INTEGER NOT NULL DEFAULT 0,
+    cooldown_until    REAL,
+    probe_lease_until REAL,
+    reason            TEXT,
+    updated_at        REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_adapter_health_state_cooldown
+    ON adapter_health(state, cooldown_until);
+"""
+    )
+    for column, sql_type in (
+        ("adapter", "TEXT"),
+        ("effort", "TEXT"),
+        ("error_category", "TEXT"),
+        ("retry_after_s", "INTEGER"),
+        ("health_state", "TEXT"),
+        ("health_probe", "INTEGER NOT NULL DEFAULT 0"),
+    ):
+        if not _column_exists_table(conn, "formula_dispatches", column):
+            conn.execute(f"ALTER TABLE formula_dispatches ADD COLUMN {column} {sql_type}")
+    conn.commit()
+    logger.info("Migration v53 applied: adapter capacity health and dispatch identity")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2566,6 +2597,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         "task_outcomes gains additive derived_outcome + derived_provenance — reward label sourced from the tree-keyed verify ledger, self-report fallback (ADR-0016 stage 1)",
         _migrate_v52_derived_outcome_columns,
     ),
+    (
+        53,
+        "adapter capacity health with persistent cooldown and half-open probe leases",
+        _migrate_v53_adapter_health,
+    ),
 ]
 
 
@@ -2792,6 +2828,7 @@ _TABLES = [
     "graph_evidence_v12",
     "file_index_state",
     "retrieval_router_log",
+    "adapter_health",
 ]
 
 

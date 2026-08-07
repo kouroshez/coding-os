@@ -1,10 +1,10 @@
-import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
-import type { Ref } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
-import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
-import { apiPatch, apiPost, type ApiPath, type paths } from '@/lib/api-client';
-import type { Adapter } from '@/features/cognition/ModelPicker';
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "react";
+import type { Ref } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { PageShell, PageHeader, StatusPill } from "@/layout/HubPrimitives";
+import { invalidateApiQueries, useApiGet } from "@/lib/hooks";
+import { apiPatch, apiPost, type ApiPath, type paths } from "@/lib/api-client";
+import type { Adapter } from "@/features/cognition/ModelPicker";
 
 interface BudgetCap {
   enabled: boolean;
@@ -19,7 +19,32 @@ interface TraceRotation {
 interface ModelRouting {
   enabled: boolean;
   orchestrator_model: string;
+  mode: "explicit" | "suggest" | "adaptive";
+  complexity_threshold: "CLEAR" | "COMPLICATED" | "COMPLEX" | "CHAOTIC";
+  fallback_policy: "fail_closed" | "same_adapter_default" | "next_eligible";
+  max_parallel: number;
+  orchestrator: AdapterTarget;
+  roles: Record<string, AdapterTarget>;
+  cooldown: { default_seconds: number; maximum_seconds: number };
 }
+
+interface AdapterTarget {
+  adapter: string;
+  model: string;
+  effort: string;
+}
+
+const DEFAULT_ROUTING: ModelRouting = {
+  enabled: false,
+  orchestrator_model: "",
+  mode: "explicit",
+  complexity_threshold: "COMPLICATED",
+  fallback_policy: "fail_closed",
+  max_parallel: 3,
+  orchestrator: { adapter: "", model: "", effort: "" },
+  roles: {},
+  cooldown: { default_seconds: 300, maximum_seconds: 3600 },
+};
 
 interface AutoSpawn {
   enabled: boolean;
@@ -28,7 +53,7 @@ interface AutoSpawn {
 // Masked shape returned by GET/PATCH — the raw key never crosses the wire
 // after being stored (settings.py::_masked_settings).
 interface ClaudeAuth {
-  mode: 'subscription' | 'api_key';
+  mode: "subscription" | "api_key";
   api_key_set: boolean;
   api_key_preview: string;
 }
@@ -100,11 +125,11 @@ function NumInput({
       disabled={disabled}
       onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
       className={[
-        'w-28 rounded border border-[var(--cos-border)] bg-[var(--cos-bg)]',
-        'px-2 py-1 font-mono text-xs text-[var(--cos-text)]',
-        'focus:outline-none focus:ring-1 focus:ring-[var(--accent)]',
-        disabled ? 'cursor-not-allowed opacity-50' : '',
-      ].join(' ')}
+        "w-28 rounded border border-[var(--cos-border)] bg-[var(--cos-bg)]",
+        "px-2 py-1 font-mono text-xs text-[var(--cos-text)]",
+        "focus:outline-none focus:ring-1 focus:ring-[var(--accent)]",
+        disabled ? "cursor-not-allowed opacity-50" : "",
+      ].join(" ")}
     />
   );
 }
@@ -127,21 +152,21 @@ function Toggle({
         aria-label={label}
         onClick={() => onChange(!checked)}
         className={[
-          'relative inline-block h-5 w-9 shrink-0 cursor-pointer rounded-full border transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]',
+          "relative inline-block h-5 w-9 shrink-0 cursor-pointer rounded-full border transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]",
           checked
-            ? 'border-[var(--accent)] bg-[var(--accent)]/30'
-            : 'border-[var(--cos-border)] bg-[var(--cos-bg)]',
-        ].join(' ')}
+            ? "border-[var(--accent)] bg-[var(--accent)]/30"
+            : "border-[var(--cos-border)] bg-[var(--cos-bg)]",
+        ].join(" ")}
       >
         <span
           aria-hidden
           className={[
-            'absolute top-0.5 h-4 w-4 rounded-full border transition-transform',
+            "absolute top-0.5 h-4 w-4 rounded-full border transition-transform",
             checked
-              ? 'translate-x-4 border-[var(--accent)] bg-[var(--accent)]'
-              : 'translate-x-0.5 border-[var(--cos-border)] bg-[var(--cos-muted)]',
-          ].join(' ')}
+              ? "translate-x-4 border-[var(--accent)] bg-[var(--accent)]"
+              : "translate-x-0.5 border-[var(--cos-border)] bg-[var(--cos-muted)]",
+          ].join(" ")}
         />
       </button>
       <span className="text-[var(--cos-text)]">{label}</span>
@@ -162,10 +187,10 @@ interface ScheduledConfig {
 // for these two) so a producer rename fails typecheck here. The config routes
 // below still return a bare dict, so their shape stays hand-written.
 type ScheduledStatus =
-  paths['/api/scheduled/status']['get']['responses']['200']['content']['application/json'];
-type ScheduledProject = ScheduledStatus['projects'][number];
+  paths["/api/scheduled/status"]["get"]["responses"]["200"]["content"]["application/json"];
+type ScheduledProject = ScheduledStatus["projects"][number];
 type RunResult =
-  paths['/api/scheduled/run/{slug}']['post']['responses']['200']['content']['application/json'];
+  paths["/api/scheduled/run/{slug}"]["post"]["responses"]["200"]["content"]["application/json"];
 
 interface ScheduledConfigResp {
   slug: string;
@@ -197,9 +222,9 @@ const ScheduledConfigForm = forwardRef(function ScheduledConfigForm(
       const [res] = await apiPatch<ScheduledConfigResp>(path, cfg);
       await invalidateApiQueries(qc, path);
       setCfg(res.config);
-      setNote('Scheduled config saved.');
+      setNote("Scheduled config saved.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'save failed');
+      setErr(e instanceof Error ? e.message : "save failed");
     } finally {
       setSaving(false);
     }
@@ -224,7 +249,7 @@ const ScheduledConfigForm = forwardRef(function ScheduledConfigForm(
           <Toggle
             checked={cfg.enabled}
             onChange={(v) => setCfg({ ...cfg, enabled: v })}
-            label={cfg.enabled ? 'Enabled' : 'Disabled (nightly skips this project)'}
+            label={cfg.enabled ? "Enabled" : "Disabled (nightly skips this project)"}
           />
         </FieldRow>
         <FieldRow label="Nightly hour (0–23)">
@@ -246,7 +271,9 @@ const ScheduledConfigForm = forwardRef(function ScheduledConfigForm(
             min={1}
             disabled={!cfg.enabled}
           />
-          <span className="text-xs text-[var(--cos-muted)]">skip decay if it ran more recently</span>
+          <span className="text-xs text-[var(--cos-muted)]">
+            skip decay if it ran more recently
+          </span>
         </FieldRow>
         <FieldRow label="Extract min outcomes">
           <NumInput
@@ -292,13 +319,13 @@ const ScheduledConfigForm = forwardRef(function ScheduledConfigForm(
           onClick={() => void save()}
           disabled={saving}
           className={[
-            'rounded border px-4 py-2 font-mono text-xs font-semibold transition-colors',
-            'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]',
-            'hover:bg-[var(--accent)]/20 disabled:cursor-not-allowed disabled:opacity-50',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
-          ].join(' ')}
+            "rounded border px-4 py-2 font-mono text-xs font-semibold transition-colors",
+            "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]",
+            "hover:bg-[var(--accent)]/20 disabled:cursor-not-allowed disabled:opacity-50",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+          ].join(" ")}
         >
-          {saving ? 'saving…' : 'Save scheduled config'}
+          {saving ? "saving…" : "Save scheduled config"}
         </button>
         <button
           type="button"
@@ -319,14 +346,17 @@ const ScheduledConfigForm = forwardRef(function ScheduledConfigForm(
 
 function ScheduledMaintenanceSection({ formRef }: { formRef: Ref<ScheduledFormHandle> }) {
   const qc = useQueryClient();
-  const { data: status } = useApiGet<ScheduledStatus>(['scheduled-status'], '/api/scheduled/status');
+  const { data: status } = useApiGet<ScheduledStatus>(
+    ["scheduled-status"],
+    "/api/scheduled/status",
+  );
   // The producer types slug as nullable (scheduled.py::ProjectScheduled); a row
   // without one can't be selected or run, so it never reaches the picker.
   const projects = (status?.projects ?? []).filter(
     (p): p is ScheduledProject & { slug: string } => !!p.slug,
   );
-  const [slug, setSlug] = useState('');
-  const activeSlug = slug || projects[0]?.slug || '';
+  const [slug, setSlug] = useState("");
+  const activeSlug = slug || projects[0]?.slug || "";
   const activeProj = projects.find((p) => p.slug === activeSlug);
   const [running, setRunning] = useState(false);
   const [runNote, setRunNote] = useState<string | null>(null);
@@ -339,16 +369,16 @@ function ScheduledMaintenanceSection({ formRef }: { formRef: Ref<ScheduledFormHa
       const [res] = await apiPost<RunResult>(
         `/api/scheduled/run/${encodeURIComponent(activeSlug)}`,
       );
-      await invalidateApiQueries(qc, '/api/scheduled/status');
-      setRunNote(res.ran ? 'Learning loop ran.' : `Failed: ${res.error ?? 'unknown'}`);
+      await invalidateApiQueries(qc, "/api/scheduled/status");
+      setRunNote(res.ran ? "Learning loop ran." : `Failed: ${res.error ?? "unknown"}`);
     } catch (e) {
-      setRunNote(e instanceof Error ? e.message : 'run failed');
+      setRunNote(e instanceof Error ? e.message : "run failed");
     } finally {
       setRunning(false);
     }
   }, [activeSlug, qc]);
   const { data: cfgResp } = useApiGet<ScheduledConfigResp>(
-    ['scheduled-config', activeSlug],
+    ["scheduled-config", activeSlug],
     `/api/scheduled/config/${encodeURIComponent(activeSlug)}`,
     undefined,
     { enabled: !!activeSlug },
@@ -378,7 +408,12 @@ function ScheduledMaintenanceSection({ formRef }: { formRef: Ref<ScheduledFormHa
             </select>
           </FieldRow>
           {cfgResp?.config ? (
-            <ScheduledConfigForm ref={formRef} key={activeSlug} slug={activeSlug} initial={cfgResp.config} />
+            <ScheduledConfigForm
+              ref={formRef}
+              key={activeSlug}
+              slug={activeSlug}
+              initial={cfgResp.config}
+            />
           ) : (
             <p className="mt-3 text-xs text-[var(--cos-muted)]">loading config…</p>
           )}
@@ -389,7 +424,7 @@ function ScheduledMaintenanceSection({ formRef }: { formRef: Ref<ScheduledFormHa
               disabled={running || !activeSlug}
               className="rounded border border-[var(--cos-border)] px-4 py-2 font-mono text-xs text-[var(--cos-text)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {running ? 'running…' : 'Run learning loop now'}
+              {running ? "running…" : "Run learning loop now"}
             </button>
             <span className="font-mono text-[11px] text-[var(--cos-muted)]">
               {runNote
@@ -398,14 +433,14 @@ function ScheduledMaintenanceSection({ formRef }: { formRef: Ref<ScheduledFormHa
                   ? `last run ${activeProj.last_run_at}` +
                     (activeProj.consecutive_failures
                       ? ` · ${activeProj.consecutive_failures} fail(s)`
-                      : '')
-                  : 'never run'}
+                      : "")
+                  : "never run"}
             </span>
           </div>
           {status?.cron_a ? (
             <p className="mt-2 font-mono text-[11px] text-[var(--cos-muted)]">
-              nightly cron: {status.cron_a.loaded ? 'loaded' : 'not loaded'}
-              {status.cron_a.next_run_at ? ` · next ${status.cron_a.next_run_at}` : ''}
+              nightly cron: {status.cron_a.loaded ? "loaded" : "not loaded"}
+              {status.cron_a.next_run_at ? ` · next ${status.cron_a.next_run_at}` : ""}
             </p>
           ) : null}
         </>
@@ -424,54 +459,198 @@ function ModelRoutingSection({
   // Producer: /api/config/adapters (adapter.yaml::models SSOT) — same payload
   // the chat ModelPicker consumes; field names verified against config.py.
   const { data } = useApiGet<{ adapters: Adapter[]; default_model: string; count: number }>(
-    ['config-adapters'],
-    '/api/config/adapters',
+    ["config-adapters"],
+    "/api/config/adapters",
   );
-  const availableAdapters = (data?.adapters ?? []).filter((a) => a.available && a.models.length > 0);
+  const { data: roleData } = useApiGet<{ roles: string[] }>(
+    ["cognition-roles"],
+    "/api/cognition/roles",
+  );
+  const availableAdapters = (data?.adapters ?? []).filter(
+    (a) => a.installed && a.dispatch_available,
+  );
+  const selectClass =
+    "rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1.5 font-mono text-xs text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50";
+  const updateTarget = (role: string | null, patch: Partial<AdapterTarget>) => {
+    if (role === null) {
+      onChange({ ...routing, orchestrator: { ...routing.orchestrator, ...patch } });
+      return;
+    }
+    const current = routing.roles[role] ?? { adapter: "", model: "", effort: "" };
+    onChange({ ...routing, roles: { ...routing.roles, [role]: { ...current, ...patch } } });
+  };
+  const targetControls = (role: string | null, target: AdapterTarget) => {
+    const implicitAdapter = availableAdapters.length === 1 ? availableAdapters[0] : undefined;
+    const adapter = availableAdapters.find((item) => item.id === target.adapter) ?? implicitAdapter;
+    return (
+      <div className="flex flex-wrap gap-2">
+        {implicitAdapter ? (
+          <span className="rounded border border-[var(--cos-border)] px-2 py-1.5 font-mono text-xs text-[var(--cos-muted)]">
+            {implicitAdapter.label}
+          </span>
+        ) : (
+          <select
+            aria-label={`${role ?? "orchestrator"} adapter`}
+            value={target.adapter}
+            onChange={(event) =>
+              updateTarget(role, { adapter: event.target.value, model: "", effort: "" })
+            }
+            className={selectClass}
+          >
+            <option value="">current adapter</option>
+            {availableAdapters.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        )}
+        <select
+          aria-label={`${role ?? "orchestrator"} model`}
+          value={target.model}
+          onChange={(event) => updateTarget(role, { model: event.target.value })}
+          className={selectClass}
+        >
+          <option value="">adapter default</option>
+          {(adapter?.models ?? []).map((model) => (
+            <option key={model.id} value={model.id}>
+              {model.label}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label={`${role ?? "orchestrator"} effort`}
+          value={target.effort}
+          onChange={(event) => updateTarget(role, { effort: event.target.value })}
+          className={selectClass}
+        >
+          <option value="">adapter default</option>
+          {(adapter?.efforts ?? []).map((effort) => (
+            <option key={effort} value={effort}>
+              {effort}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  };
 
   return (
     <section className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] p-5">
       <SectionHeader
-        title="Model Routing (Auto)"
-        desc="When enabled, the chat model picker offers an Auto option: the orchestrator model classifies each prompt and hands the session to the routed model. Disabled keeps the feature fully inert — no Auto option, no injected context, no dispatch change. Default: OFF."
+        title="Agent Supervision"
+        desc="Controls supervised formula work: choose an adapter, model, and effort per role, or let adaptive mode route eligible work. Disabled keeps dispatch behavior unchanged. Default: OFF."
       />
       <div className="divide-y divide-[var(--cos-border)]">
-        <FieldRow label="Enable auto routing">
+        <FieldRow label="Enable supervision">
           <Toggle
             checked={routing.enabled}
             onChange={(v) => onChange({ ...routing, enabled: v })}
-            label={routing.enabled ? 'Enabled' : 'Disabled'}
+            label={routing.enabled ? "Enabled" : "Disabled"}
           />
         </FieldRow>
-        <FieldRow label="Orchestrator model">
-          <select
-            value={routing.orchestrator_model}
-            onChange={(e) => onChange({ ...routing, orchestrator_model: e.target.value })}
-            disabled={!routing.enabled}
-            className="rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1.5 font-mono text-xs text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <option value="">adapter default</option>
-            {availableAdapters.map((adapter) => (
-              <optgroup key={adapter.id} label={adapter.label}>
-                {adapter.models.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.label}
-                  </option>
+        {routing.enabled && (
+          <>
+            <FieldRow label="Trigger mode">
+              <select
+                value={routing.mode}
+                onChange={(e) =>
+                  onChange({ ...routing, mode: e.target.value as ModelRouting["mode"] })
+                }
+                className={selectClass}
+              >
+                <option value="explicit">Explicit</option>
+                <option value="suggest">Suggest</option>
+                <option value="adaptive">Adaptive</option>
+              </select>
+              <select
+                value={routing.complexity_threshold}
+                onChange={(e) =>
+                  onChange({
+                    ...routing,
+                    complexity_threshold: e.target.value as ModelRouting["complexity_threshold"],
+                  })
+                }
+                disabled={routing.mode !== "adaptive"}
+                className={selectClass}
+              >
+                {["CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC"].map((level) => (
+                  <option key={level}>{level}</option>
                 ))}
-              </optgroup>
+              </select>
+            </FieldRow>
+            <FieldRow label="Fallback">
+              <select
+                value={routing.fallback_policy}
+                onChange={(e) =>
+                  onChange({
+                    ...routing,
+                    fallback_policy: e.target.value as ModelRouting["fallback_policy"],
+                  })
+                }
+                className={selectClass}
+              >
+                <option value="fail_closed">Fail closed</option>
+                <option value="same_adapter_default">Same adapter default</option>
+                <option value="next_eligible">Next eligible adapter</option>
+              </select>
+            </FieldRow>
+            <FieldRow label="Parallel limit">
+              <NumInput
+                value={routing.max_parallel}
+                min={1}
+                max={16}
+                onChange={(value) => onChange({ ...routing, max_parallel: value })}
+              />
+            </FieldRow>
+            <FieldRow label="Capacity cooldown">
+              <NumInput
+                value={routing.cooldown.default_seconds}
+                min={1}
+                max={86400}
+                onChange={(value) =>
+                  onChange({
+                    ...routing,
+                    cooldown: { ...routing.cooldown, default_seconds: value },
+                  })
+                }
+              />
+              <span className="text-xs text-[var(--cos-muted)]">to</span>
+              <NumInput
+                value={routing.cooldown.maximum_seconds}
+                min={1}
+                max={604800}
+                onChange={(value) =>
+                  onChange({
+                    ...routing,
+                    cooldown: { ...routing.cooldown, maximum_seconds: value },
+                  })
+                }
+              />
+              <span className="text-xs text-[var(--cos-muted)]">seconds</span>
+            </FieldRow>
+            <FieldRow label="Orchestrator">
+              {targetControls(null, routing.orchestrator)}
+              {availableAdapters.length === 0 && (
+                <span className="text-[10px] text-[var(--cos-warn)]">
+                  no dispatch-ready adapter installed
+                </span>
+              )}
+            </FieldRow>
+            {(roleData?.roles ?? []).map((role) => (
+              <FieldRow key={role} label={role}>
+                {targetControls(
+                  role,
+                  routing.roles[role] ?? { adapter: "", model: "", effort: "" },
+                )}
+              </FieldRow>
             ))}
-          </select>
-          {routing.enabled && availableAdapters.length === 0 && (
-            <span className="text-[10px] text-[var(--cos-warn)]">
-              no adapter models found — check /api/config/adapters
-            </span>
-          )}
-        </FieldRow>
+          </>
+        )}
       </div>
       <p className="mt-3 text-[10px] leading-relaxed text-[var(--cos-muted)]">
-        Models come from each adapter&apos;s <code>adapter.yaml::models</code>{' '}
-        registry — adding a model is a yaml edit, never a UI or code change.
-        CLI/VSCode sessions honor the same toggle via the routing hook.
+        Adapters, models, efforts, and dispatch capabilities come from each adapter descriptor.
+        Capacity failures pause only the affected adapter and recovery is probed automatically.
       </p>
     </section>
   );
@@ -484,21 +663,21 @@ function ClaudeAuthSection({
   onApiKeyDraftChange,
 }: {
   auth: ClaudeAuth;
-  onModeChange: (mode: ClaudeAuth['mode']) => void;
+  onModeChange: (mode: ClaudeAuth["mode"]) => void;
   apiKeyDraft: string | null;
   onApiKeyDraftChange: (v: string | null) => void;
 }) {
-  const modeButton = (mode: ClaudeAuth['mode'], label: string) => (
+  const modeButton = (mode: ClaudeAuth["mode"], label: string) => (
     <button
       type="button"
       onClick={() => onModeChange(mode)}
       aria-pressed={auth.mode === mode}
       className={[
-        'rounded border px-3 py-1.5 font-mono text-xs transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+        "rounded border px-3 py-1.5 font-mono text-xs transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
         auth.mode === mode
-          ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
-          : 'border-[var(--cos-border)] text-[var(--cos-muted)] hover:border-[var(--cos-text)] hover:text-[var(--cos-text)]',
-      ].join(' ')}
+          ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
+          : "border-[var(--cos-border)] text-[var(--cos-muted)] hover:border-[var(--cos-text)] hover:text-[var(--cos-text)]",
+      ].join(" ")}
     >
       {label}
     </button>
@@ -513,42 +692,43 @@ function ClaudeAuthSection({
       <div className="divide-y divide-[var(--cos-border)]">
         <FieldRow label="Auth mode">
           <div className="flex gap-2">
-            {modeButton('subscription', 'Subscription (OAuth)')}
-            {modeButton('api_key', 'API Key')}
+            {modeButton("subscription", "Subscription (OAuth)")}
+            {modeButton("api_key", "API Key")}
           </div>
         </FieldRow>
-        {auth.mode === 'api_key' && (
+        {auth.mode === "api_key" && (
           <FieldRow label="API key">
             <input
               type="password"
               autoComplete="off"
-              value={apiKeyDraft ?? ''}
+              value={apiKeyDraft ?? ""}
               onChange={(e) => onApiKeyDraftChange(e.target.value)}
               placeholder={
-                auth.api_key_set ? `configured (${auth.api_key_preview}) — leave blank to keep` : 'sk-ant-...'
+                auth.api_key_set
+                  ? `configured (${auth.api_key_preview}) — leave blank to keep`
+                  : "sk-ant-..."
               }
               className="w-72 rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1.5 font-mono text-xs text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             />
             {auth.api_key_set && (
               <button
                 type="button"
-                onClick={() => onApiKeyDraftChange('')}
+                onClick={() => onApiKeyDraftChange("")}
                 className="text-[10px] text-[var(--cos-muted)] underline hover:text-[var(--cos-warn)]"
               >
                 clear stored key
               </button>
             )}
-            {apiKeyDraft === '' && auth.api_key_set && (
+            {apiKeyDraft === "" && auth.api_key_set && (
               <span className="text-[10px] text-[var(--cos-warn)]">will clear on save</span>
             )}
           </FieldRow>
         )}
       </div>
       <p className="mt-3 text-[10px] leading-relaxed text-[var(--cos-muted)]">
-        The key is write-only past this form — reads only ever show{' '}
-        <code>api_key_set</code> + a last-4 preview, never the raw value.
-        Switching back to Subscription does not delete a stored key; it
-        just stops using it for this project.
+        The key is write-only past this form — reads only ever show <code>api_key_set</code> + a
+        last-4 preview, never the raw value. Switching back to Subscription does not delete a stored
+        key; it just stops using it for this project.
       </p>
     </section>
   );
@@ -556,10 +736,7 @@ function ClaudeAuthSection({
 
 export default function SettingsPage() {
   const qc = useQueryClient();
-  const { data, isLoading, error } = useApiGet<SettingsPayload>(
-    ['settings'],
-    '/api/settings',
-  );
+  const { data, isLoading, error } = useApiGet<SettingsPayload>(["settings"], "/api/settings");
 
   const [saving, setSaving] = useState(false);
   const [saveNote, setSaveNote] = useState<string | null>(null);
@@ -578,12 +755,18 @@ export default function SettingsPage() {
 
   // Sync draft with server data on first load (not on every refetch)
   const serverSettings = data?.settings;
-  const localBudget: BudgetCap = budget ?? serverSettings?.budget_cap ?? { enabled: false, cap_usd: 5.0 };
-  const localTrace: TraceRotation = trace ?? serverSettings?.trace_rotation ?? { gzip_age_days: 3, delete_age_days: 30 };
-  const localRouting: ModelRouting = routing ?? serverSettings?.model_routing ?? { enabled: false, orchestrator_model: '' };
+  const localBudget: BudgetCap = budget ??
+    serverSettings?.budget_cap ?? { enabled: false, cap_usd: 5.0 };
+  const localTrace: TraceRotation = trace ??
+    serverSettings?.trace_rotation ?? { gzip_age_days: 3, delete_age_days: 30 };
+  const localRouting: ModelRouting = routing ?? serverSettings?.model_routing ?? DEFAULT_ROUTING;
   const localAutoSpawn: AutoSpawn = autoSpawn ?? serverSettings?.auto_spawn ?? { enabled: false };
-  const localClaudeAuth: ClaudeAuth =
-    claudeAuth ?? serverSettings?.claude_auth ?? { mode: 'subscription', api_key_set: false, api_key_preview: '' };
+  const localClaudeAuth: ClaudeAuth = claudeAuth ??
+    serverSettings?.claude_auth ?? {
+      mode: "subscription",
+      api_key_set: false,
+      api_key_preview: "",
+    };
   const envOverrides = data?.env_overrides ?? {};
 
   const save = useCallback(async () => {
@@ -591,7 +774,7 @@ export default function SettingsPage() {
     setSaveNote(null);
     setSaveError(null);
     try {
-      const [result] = await apiPatch<SettingsPayload>('/api/settings', {
+      const [result] = await apiPatch<SettingsPayload>("/api/settings", {
         budget_cap: localBudget,
         trace_rotation: localTrace,
         model_routing: localRouting,
@@ -603,7 +786,7 @@ export default function SettingsPage() {
           ...(claudeAuthApiKeyDraft !== null ? { api_key: claudeAuthApiKeyDraft } : {}),
         },
       });
-      await invalidateApiQueries(qc, '/api/settings');
+      await invalidateApiQueries(qc, "/api/settings");
       setBudget(result.settings.budget_cap);
       setTrace(result.settings.trace_rotation);
       setRouting(result.settings.model_routing);
@@ -612,9 +795,9 @@ export default function SettingsPage() {
       setClaudeAuthApiKeyDraft(null);
       // Single save flow: also flush pending Scheduled-Maintenance edits.
       await scheduledFormRef.current?.saveIfDirty();
-      setSaveNote('Settings saved.');
+      setSaveNote("Settings saved.");
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'save failed');
+      setSaveError(err instanceof Error ? err.message : "save failed");
     } finally {
       setSaving(false);
     }
@@ -643,10 +826,11 @@ export default function SettingsPage() {
         title="Settings"
         subtitle={
           <>
-            Hub-level configuration. Values stored in{' '}
+            Hub-level configuration. Values stored in{" "}
             <code className="rounded bg-[var(--cos-panel)] px-1 py-0.5 text-[11px]">
               .coding-os/hub-settings.json
-            </code>. Env vars take precedence when set.
+            </code>
+            . Env vars take precedence when set.
           </>
         }
       />
@@ -688,10 +872,13 @@ export default function SettingsPage() {
               <Toggle
                 checked={localBudget.enabled}
                 onChange={(v) => setBudget({ ...localBudget, enabled: v })}
-                label={localBudget.enabled ? 'Enabled' : 'Disabled'}
+                label={localBudget.enabled ? "Enabled" : "Disabled"}
               />
-              {envOverrides['COS_DAILY_BUDGET_USD'] && (
-                <EnvBadge varName="COS_DAILY_BUDGET_USD" value={envOverrides['COS_DAILY_BUDGET_USD']} />
+              {envOverrides["COS_DAILY_BUDGET_USD"] && (
+                <EnvBadge
+                  varName="COS_DAILY_BUDGET_USD"
+                  value={envOverrides["COS_DAILY_BUDGET_USD"]}
+                />
               )}
             </FieldRow>
             <FieldRow label="Daily cap (USD)">
@@ -703,7 +890,7 @@ export default function SettingsPage() {
                 disabled={!localBudget.enabled}
               />
               <span className="text-xs text-[var(--cos-muted)]">USD / day</span>
-              {envOverrides['COS_DAILY_BUDGET_USD'] && (
+              {envOverrides["COS_DAILY_BUDGET_USD"] && (
                 <span className="text-[10px] text-[var(--cos-warn)]">
                   env var overrides this when set
                 </span>
@@ -711,8 +898,7 @@ export default function SettingsPage() {
             </FieldRow>
           </div>
           <p className="mt-3 text-[10px] leading-relaxed text-[var(--cos-muted)]">
-            Override via shell:{' '}
-            <code>export COS_DAILY_BUDGET_USD=5.00</code> — env var takes
+            Override via shell: <code>export COS_DAILY_BUDGET_USD=5.00</code> — env var takes
             precedence over this panel setting.
           </p>
         </section>
@@ -727,38 +913,46 @@ export default function SettingsPage() {
             <FieldRow label="Gzip after (days)">
               <NumInput
                 value={localTrace.gzip_age_days}
-                onChange={(v) => setTrace({ ...localTrace, gzip_age_days: Math.max(1, Math.round(v)) })}
+                onChange={(v) =>
+                  setTrace({ ...localTrace, gzip_age_days: Math.max(1, Math.round(v)) })
+                }
                 min={1}
               />
               <span className="text-xs text-[var(--cos-muted)]">
                 days — compress traces older than this
               </span>
-              {envOverrides['COS_TRACE_GZIP_AGE_DAYS'] && (
-                <EnvBadge varName="COS_TRACE_GZIP_AGE_DAYS" value={envOverrides['COS_TRACE_GZIP_AGE_DAYS']} />
+              {envOverrides["COS_TRACE_GZIP_AGE_DAYS"] && (
+                <EnvBadge
+                  varName="COS_TRACE_GZIP_AGE_DAYS"
+                  value={envOverrides["COS_TRACE_GZIP_AGE_DAYS"]}
+                />
               )}
             </FieldRow>
             <FieldRow label="Delete after (days)">
               <NumInput
                 value={localTrace.delete_age_days}
-                onChange={(v) => setTrace({ ...localTrace, delete_age_days: Math.max(1, Math.round(v)) })}
+                onChange={(v) =>
+                  setTrace({ ...localTrace, delete_age_days: Math.max(1, Math.round(v)) })
+                }
                 min={1}
               />
               <span className="text-xs text-[var(--cos-muted)]">
                 days — delete compressed archives older than this
               </span>
-              {envOverrides['COS_TRACE_DELETE_AGE_DAYS'] && (
-                <EnvBadge varName="COS_TRACE_DELETE_AGE_DAYS" value={envOverrides['COS_TRACE_DELETE_AGE_DAYS']} />
+              {envOverrides["COS_TRACE_DELETE_AGE_DAYS"] && (
+                <EnvBadge
+                  varName="COS_TRACE_DELETE_AGE_DAYS"
+                  value={envOverrides["COS_TRACE_DELETE_AGE_DAYS"]}
+                />
               )}
             </FieldRow>
           </div>
           <p className="mt-3 text-[10px] leading-relaxed text-[var(--cos-muted)]">
-            <strong className="text-[var(--cos-text)]">Gzip age</strong> —
-            after N days, raw <code>.jsonl</code> files are compressed to{' '}
-            <code>.jsonl.gz</code> to save disk.{' '}
-            <strong className="text-[var(--cos-text)]">Delete age</strong> —
-            after M days, <code>.jsonl.gz</code> archives are removed
-            permanently. Set M &gt; N. Override via shell:{' '}
-            <code>export COS_TRACE_GZIP_AGE_DAYS=3</code>,{' '}
+            <strong className="text-[var(--cos-text)]">Gzip age</strong> — after N days, raw{" "}
+            <code>.jsonl</code> files are compressed to <code>.jsonl.gz</code> to save disk.{" "}
+            <strong className="text-[var(--cos-text)]">Delete age</strong> — after M days,{" "}
+            <code>.jsonl.gz</code> archives are removed permanently. Set M &gt; N. Override via
+            shell: <code>export COS_TRACE_GZIP_AGE_DAYS=3</code>,{" "}
             <code>export COS_TRACE_DELETE_AGE_DAYS=30</code>.
           </p>
         </section>
@@ -777,7 +971,7 @@ export default function SettingsPage() {
               <Toggle
                 checked={localAutoSpawn.enabled}
                 onChange={(v) => setAutoSpawn({ enabled: v })}
-                label={localAutoSpawn.enabled ? 'Enabled' : 'Disabled'}
+                label={localAutoSpawn.enabled ? "Enabled" : "Disabled"}
               />
             </FieldRow>
           </div>
@@ -800,12 +994,12 @@ export default function SettingsPage() {
             onClick={() => void save()}
             disabled={saving}
             className={[
-              'rounded border px-4 py-2 font-mono text-xs font-semibold transition-colors',
-              'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]',
-              'hover:bg-[var(--accent)]/20 disabled:cursor-not-allowed disabled:opacity-50',
-            ].join(' ')}
+              "rounded border px-4 py-2 font-mono text-xs font-semibold transition-colors",
+              "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]",
+              "hover:bg-[var(--accent)]/20 disabled:cursor-not-allowed disabled:opacity-50",
+            ].join(" ")}
           >
-            {saving ? 'saving…' : 'Save settings'}
+            {saving ? "saving…" : "Save settings"}
           </button>
           <button
             type="button"

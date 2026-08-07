@@ -2,20 +2,16 @@
 
 from __future__ import annotations
 
-import importlib.util
 import inspect
 import logging
 from dataclasses import dataclass
 from functools import lru_cache
-from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-import yaml
+from thinking_os.adapter_registry import load_adapter_records, load_entrypoint_module
 
 logger = logging.getLogger(__name__)
-
-_ADAPTERS_DIR = Path(__file__).resolve().parents[2] / "adapters"
 
 
 @dataclass(frozen=True)
@@ -27,38 +23,14 @@ class ChatProvider:
 @lru_cache(maxsize=1)
 def providers() -> tuple[ChatProvider, ...]:
     loaded: list[ChatProvider] = []
-    if not _ADAPTERS_DIR.is_dir():
-        return ()
-    for adapter_dir in sorted(path for path in _ADAPTERS_DIR.iterdir() if path.is_dir()):
-        manifest_path = adapter_dir / "adapter.yaml"
-        if not manifest_path.is_file():
+    for record in load_adapter_records().values():
+        if "transcript" not in record.capabilities:
             continue
-        try:
-            manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
-        except (OSError, yaml.YAMLError) as exc:
-            logger.debug("chat provider manifest skipped %s: %s", manifest_path, exc)
-            continue
-        provider_name = manifest.get("chat_provider")
-        agent = str(manifest.get("id") or adapter_dir.name)
-        if not isinstance(provider_name, str) or Path(provider_name).name != provider_name:
-            continue
-        provider_path = adapter_dir / provider_name
-        if not provider_path.is_file():
-            logger.warning("chat provider missing for %s: %s", agent, provider_path)
-            continue
-        spec = importlib.util.spec_from_file_location(
-            f"coding_os_chat_provider_{agent}", provider_path
-        )
-        if spec is None or spec.loader is None:
-            continue
-        module = importlib.util.module_from_spec(spec)
-        try:
-            spec.loader.exec_module(module)
-        except Exception as exc:
-            logger.warning("chat provider load failed for %s: %s", agent, exc)
+        module = load_entrypoint_module(record, "transcript")
+        if module is None:
             continue
         if callable(getattr(module, "available", None)) and module.available():
-            loaded.append(ChatProvider(agent=agent, module=module))
+            loaded.append(ChatProvider(agent=record.id, module=module))
     return tuple(loaded)
 
 

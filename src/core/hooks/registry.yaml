@@ -1101,11 +1101,10 @@ hooks:
   - id: nudge-model-routing
     script: nudge-model-routing.sh
     description: |
-      UserPromptSubmit nudge — model-routing directive (TASK-319). When
+      UserPromptSubmit nudge — agent-supervision directive. When
       hub-settings.json::model_routing.enabled, injects a one-line
-      additional-context directive (once per session) telling the agent to
-      consult cos_route_model at Classify and pass model+complexity at
-      dispatch — CLI/VSCode parity with the hub chat Auto option. Toggle
+      additional-context directive (once per session) with the configured
+      trigger mode and complexity threshold. Toggle
       off = silent exit, zero injected tokens. Contract:
       src/core/rules/model-routing.md.
     category: cognition

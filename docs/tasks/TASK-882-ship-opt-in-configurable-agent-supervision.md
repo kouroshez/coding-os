@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [orchestration, adapters, model-routing, hub, docs-update, ready]
-status: "in_progress"
+status: testing
 priority: P1
 appetite: 3d
 created: 2026-08-04
 started: 2026-08-06
 completed: null
-agent_session: ses-codex-019fc9ac-216e-7211-a224-dad139ff5712
+agent_session: codex-supervision-20260806
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-882: Ship opt-in configurable agent supervision
 
 **Outcome (one sentence):** Users can opt into manifest-discovered supervision, route roles across any installed runtime or model, and keep unhealthy or rate-limited capacity out of selection until it safely recovers.
@@ -69,3 +68,5 @@ references: []
 ## Work Log
 - 2026-08-04 [019fc9ac-216e-7211-a224-]: Research and architecture pass complete. Raptor review favors one capability-driven adapter registry, the existing…
 - 2026-08-07 [019fc9ac-216e-7211-a224-]: Docs-first contract now defines one manifest-driven registry, one persistent capacity circuit, default-off policy,…
+- 2026-08-07 [codex]: Implemented opt-in provider-neutral supervision: descriptor discovery, per-role adapter/model/effort policy, mixed…
+- 2026-08-07 [codex]: Implemented opt-in adapter-neutral formula supervision with manifest discovery, per-role adapter/model/effort policy,…

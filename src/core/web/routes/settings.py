@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import fcntl
 import json
 import logging
@@ -13,7 +14,9 @@ from typing import Literal
 
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ValidationError, model_validator
+
+from thinking_os.supervision import DEFAULT_MODEL_ROUTING
 
 logger = logging.getLogger("coding_os.web.settings")
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -21,7 +24,7 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 _DEFAULTS: dict = {
     "budget_cap": {"enabled": False, "cap_usd": 5.0},
     "trace_rotation": {"gzip_age_days": 3, "delete_age_days": 30},
-    "model_routing": {"enabled": False, "orchestrator_model": ""},
+    "model_routing": copy.deepcopy(DEFAULT_MODEL_ROUTING),
     # Board drag auto-spawn — default OFF: a human panel drag icebox→in_progress
     # dispatches an implementer sub-session on the task (board.py::_auto_spawn_safe).
     "auto_spawn": {"enabled": False},
@@ -91,7 +94,21 @@ def _merge_defaults(raw: dict) -> dict:
     merged: dict = {**raw}
     for section, defaults in _DEFAULTS.items():
         merged[section] = {**defaults, **(raw.get(section) or {})}
+    routing = merged["model_routing"]
+    raw_routing = raw.get("model_routing") if isinstance(raw.get("model_routing"), dict) else {}
+    for key in ("orchestrator", "cooldown"):
+        routing[key] = {**defaults_for(key), **(raw_routing.get(key) or {})}
+    if not routing["orchestrator"].get("model") and routing.get("orchestrator_model"):
+        routing["orchestrator"]["model"] = routing["orchestrator_model"]
+    routing["roles"] = (
+        raw_routing.get("roles") if isinstance(raw_routing.get("roles"), dict) else {}
+    )
     return merged
+
+
+def defaults_for(key: str) -> dict:
+    value = DEFAULT_MODEL_ROUTING.get(key)
+    return value if isinstance(value, dict) else {}
 
 
 def _load() -> dict:
@@ -286,9 +303,33 @@ class _TraceRotationIn(BaseModel):
     delete_age_days: int
 
 
+class _AdapterTargetIn(BaseModel):
+    adapter: str = ""
+    model: str = ""
+    effort: str = ""
+
+
+class _CooldownIn(BaseModel):
+    default_seconds: int = Field(default=300, ge=1, le=86400)
+    maximum_seconds: int = Field(default=3600, ge=1, le=604800)
+
+    @model_validator(mode="after")
+    def validate_range(self):
+        if self.maximum_seconds < self.default_seconds:
+            raise ValueError("maximum_seconds must be greater than or equal to default_seconds")
+        return self
+
+
 class _ModelRoutingIn(BaseModel):
     enabled: bool
     orchestrator_model: str = ""
+    mode: Literal["explicit", "suggest", "adaptive"] = "explicit"
+    complexity_threshold: Literal["CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC"] = "COMPLICATED"
+    fallback_policy: Literal["fail_closed", "same_adapter_default", "next_eligible"] = "fail_closed"
+    max_parallel: int = Field(default=3, ge=1, le=16)
+    orchestrator: _AdapterTargetIn = Field(default_factory=_AdapterTargetIn)
+    roles: dict[str, _AdapterTargetIn] = Field(default_factory=dict)
+    cooldown: _CooldownIn = Field(default_factory=_CooldownIn)
 
 
 class _AutoSpawnIn(BaseModel):
@@ -358,6 +399,39 @@ def patch_settings(body: _PatchBody):
         }
         for name, model in sections.items():
             if model is not None:
-                current[name] = {**current.get(name, {}), **model.model_dump(exclude_unset=True)}
+                patch = model.model_dump(exclude_unset=True)
+                if name == "model_routing":
+                    for nested in ("orchestrator", "cooldown"):
+                        if nested in patch:
+                            patch[nested] = {
+                                **current[name].get(nested, {}),
+                                **patch[nested],
+                            }
+                    if "roles" in patch:
+                        patch["roles"] = {
+                            **current[name].get("roles", {}),
+                            **{
+                                role: {
+                                    **current[name].get("roles", {}).get(role, {}),
+                                    **target,
+                                }
+                                for role, target in patch["roles"].items()
+                            },
+                        }
+                    if "orchestrator" in patch and "model" in patch["orchestrator"]:
+                        patch["orchestrator_model"] = patch["orchestrator"]["model"]
+                    elif "orchestrator_model" in patch:
+                        patch["orchestrator"] = {
+                            **current[name].get("orchestrator", {}),
+                            "model": patch["orchestrator_model"],
+                        }
+                current[name] = {**current.get(name, {}), **patch}
+        if body.model_routing is not None:
+            try:
+                current["model_routing"] = _ModelRoutingIn.model_validate(
+                    current["model_routing"]
+                ).model_dump()
+            except ValidationError as exc:
+                return _module_error(422, "validation", str(exc), False)
         _save(current)
     return {"data": {"settings": _masked_settings(current), "env_overrides": _env_overrides()}}

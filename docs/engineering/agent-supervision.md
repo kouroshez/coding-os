@@ -209,35 +209,35 @@ retaining model and effort policy.
 
 ### Contract and discovery
 
-- [ ] Replace research-oriented documentation and remove obsolete public wording.
-- [ ] Add manifest runtime entrypoints and capability validation.
-- [ ] Consolidate descriptor loading for config, dispatch, and transcript paths.
-- [ ] Prove a fixture adapter is discovered without a core literal.
+- [x] Replace research-oriented documentation and remove obsolete public wording.
+- [x] Add manifest runtime entrypoints and capability validation.
+- [x] Consolidate descriptor loading for config, dispatch, and transcript paths.
+- [x] Prove a fixture adapter is discovered without a core literal.
 
 ### Policy and Hub
 
-- [ ] Extend settings with default-off supervision policy and migration-safe defaults.
-- [ ] Add role adapter/model/effort controls sourced from descriptors.
-- [ ] Hide the feature surface when disabled.
-- [ ] Show readiness, cooldown reason, and recovery time.
+- [x] Extend settings with default-off supervision policy and migration-safe defaults.
+- [x] Add role adapter/model/effort controls sourced from descriptors.
+- [x] Hide the feature surface when disabled.
+- [x] Show readiness, cooldown reason, and recovery time.
 
 ### Dispatch and health
 
-- [ ] Resolve a dispatcher per request and support mixed-adapter fan-out.
-- [ ] Preserve single-adapter multi-model routing.
-- [ ] Normalize capacity failures in adapter-owned code.
-- [ ] Persist cooldown and half-open probe leases.
-- [ ] Apply fail-closed and explicit fallback policies deterministically.
-- [ ] Prevent automatic replay after an uncertain write.
+- [x] Resolve a dispatcher per request and support mixed-adapter fan-out.
+- [x] Preserve single-adapter multi-model routing.
+- [x] Normalize capacity failures in adapter-owned code.
+- [x] Persist cooldown and half-open probe leases.
+- [x] Apply fail-closed and explicit fallback policies deterministically.
+- [x] Prevent automatic replay after an uncertain write.
 
 ### Verification and release
 
-- [ ] Unit-test policy precedence and future-adapter discovery.
-- [ ] Test capacity cooldown, persistence, half-open concurrency, and recovery.
-- [ ] Test disabled zero-overhead behavior.
-- [ ] Run adapter, cognition, Hub API, UI, docs, and release verification matrices.
-- [ ] Smoke installed Claude and Codex entrypoints with capability limits reported.
-- [ ] Adversarially review Raptor part count, failure modes, privacy, and compatibility.
+- [x] Unit-test policy precedence and future-adapter discovery.
+- [x] Test capacity cooldown, persistence, half-open concurrency, and recovery.
+- [x] Test disabled zero-overhead behavior.
+- [x] Run adapter, cognition, Hub API, UI, docs, and release verification matrices.
+- [x] Smoke installed Claude and Codex entrypoints with capability limits reported.
+- [x] Adversarially review Raptor part count, failure modes, privacy, and compatibility.
 - [ ] Publish matching GitHub and PyPI versions from the verified commit.
 
 ## Release boundary

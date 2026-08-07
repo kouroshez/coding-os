@@ -985,7 +985,7 @@ export interface paths {
         };
         /**
          * List Chats
-         * @description List Claude Agent SDK chat sessions for the current project.
+         * @description List chat sessions from every available transcript provider.
          */
         get: operations["list_chats_api_cognition_chats_get"];
         put?: never;
@@ -1005,7 +1005,7 @@ export interface paths {
         };
         /**
          * Get Chat
-         * @description Return a Claude SDK session's metadata + parsed messages.
+         * @description Return one adapter-normalized transcript.
          */
         get: operations["get_chat_api_cognition_chat__session_id__get"];
         put?: never;
@@ -1265,6 +1265,23 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/config/adapters/{adapter_id}/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Config Adapter Health Clear */
+        delete: operations["config_adapter_health_clear_api_config_adapters__adapter_id__health_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2708,6 +2725,24 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** _AdapterTargetIn */
+        _AdapterTargetIn: {
+            /**
+             * Adapter
+             * @default
+             */
+            adapter: string;
+            /**
+             * Model
+             * @default
+             */
+            model: string;
+            /**
+             * Effort
+             * @default
+             */
+            effort: string;
+        };
         /** _AutoSpawnIn */
         _AutoSpawnIn: {
             /** Enabled */
@@ -2730,6 +2765,19 @@ export interface components {
             mode: "subscription" | "api_key";
             /** Api Key */
             api_key?: string | null;
+        };
+        /** _CooldownIn */
+        _CooldownIn: {
+            /**
+             * Default Seconds
+             * @default 300
+             */
+            default_seconds: number;
+            /**
+             * Maximum Seconds
+             * @default 3600
+             */
+            maximum_seconds: number;
         };
         /** _GitSettingsIn */
         _GitSettingsIn: {
@@ -2773,6 +2821,35 @@ export interface components {
              * @default
              */
             orchestrator_model: string;
+            /**
+             * Mode
+             * @default explicit
+             * @enum {string}
+             */
+            mode: "explicit" | "suggest" | "adaptive";
+            /**
+             * Complexity Threshold
+             * @default COMPLICATED
+             * @enum {string}
+             */
+            complexity_threshold: "CLEAR" | "COMPLICATED" | "COMPLEX" | "CHAOTIC";
+            /**
+             * Fallback Policy
+             * @default fail_closed
+             * @enum {string}
+             */
+            fallback_policy: "fail_closed" | "same_adapter_default" | "next_eligible";
+            /**
+             * Max Parallel
+             * @default 3
+             */
+            max_parallel: number;
+            orchestrator?: components["schemas"]["_AdapterTargetIn"];
+            /** Roles */
+            roles?: {
+                [key: string]: components["schemas"]["_AdapterTargetIn"];
+            };
+            cooldown?: components["schemas"]["_CooldownIn"];
         };
         /** _PatchBody */
         _PatchBody: {
@@ -7677,6 +7754,37 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    config_adapter_health_clear_api_config_adapters__adapter_id__health_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                adapter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

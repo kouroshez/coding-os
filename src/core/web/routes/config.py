@@ -255,34 +255,37 @@ def config_mcp() -> dict:
 @router.get("/adapters")
 def config_adapters() -> dict:
     """List agent adapters and the chat models each declares (adapter→models SSOT)."""
+    from thinking_os import supervision
+    from thinking_os.adapter_registry import (
+        entrypoint_path,
+        load_adapter_records,
+        load_entrypoint_module,
+    )
+    from web._project_context import current_db_path
+
     adapters: list[dict] = []
     default_model = ""
     installed_agents = set(_project_config_skill_list("agents"))
+    routing_enabled = supervision.enabled(_project_root())
+    health = supervision.health_snapshot(current_db_path()) if routing_enabled else {}
     try:
-        from cli.list_stacks import TEMPLATES_DIR
-
-        adapters_dir = TEMPLATES_DIR.parent / "adapters"
-        for manifest in sorted(adapters_dir.glob("*/adapter.yaml")):
-            try:
-                data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
-            except Exception as exc:
-                logger.debug("read %s failed: %s", manifest, exc)
-                continue
+        for record in load_adapter_records().values():
+            data = record.manifest
             runtime = str(data.get("runtime") or "roadmap")
             models: list[dict] = []
-            for m in data.get("models") or []:
-                if not isinstance(m, dict) or not m.get("id"):
+            for model in record.models:
+                if not model.get("id"):
                     continue
-                is_default = bool(m.get("default"))
+                is_default = bool(model.get("default"))
                 models.append(
                     {
-                        "id": str(m["id"]),
-                        "label": str(m.get("label") or m["id"]),
+                        "id": str(model["id"]),
+                        "label": str(model.get("label") or model["id"]),
                         "default": is_default,
                     }
                 )
                 if is_default and not default_model:
-                    default_model = str(m["id"])
+                    default_model = str(model["id"])
             presence = data.get("presence") if isinstance(data.get("presence"), dict) else {}
             cs = data.get("chat_status") if isinstance(data.get("chat_status"), dict) else {}
             tool_labels = cs.get("tool_labels") if isinstance(cs.get("tool_labels"), dict) else {}
@@ -299,17 +302,43 @@ def config_adapters() -> dict:
                     if path not in seen_paths:
                         seen_paths.add(path)
                         mcp_config_paths.append(path)
-            adapter_id = str(data.get("id") or manifest.parent.name)
+            adapter_id = record.id
+            dispatch_declared = (
+                "dispatch" in record.capabilities
+                and entrypoint_path(record, "dispatch") is not None
+            )
+            dispatch_available = False
+            if dispatch_declared:
+                module = load_entrypoint_module(record, "dispatch")
+                factory = getattr(module, "build_dispatcher", None) if module else None
+                try:
+                    runtime_dispatcher = factory() if callable(factory) else None
+                    dispatch_available = bool(
+                        runtime_dispatcher is not None and runtime_dispatcher.available()
+                    )
+                except Exception as exc:
+                    logger.debug("%s dispatch readiness failed: %s", adapter_id, exc)
+            adapter_health = health.get(adapter_id) or {
+                "state": "healthy" if routing_enabled else "disabled",
+                "failure_count": 0,
+                "retry_after_s": 0,
+                "probe_active": False,
+                "reason": "",
+            }
             adapters.append(
                 {
                     "id": adapter_id,
-                    "label": str(data.get("label") or manifest.parent.name),
+                    "label": str(data.get("label") or adapter_id),
                     "runtime": runtime,
                     "available": runtime == "in_process",
                     "installed": adapter_id in installed_agents,
+                    "dispatch_declared": dispatch_declared,
+                    "dispatch_available": dispatch_available,
+                    "capabilities": sorted(record.capabilities),
+                    "health": adapter_health,
                     "glyph": presence.get("hub_glyph"),
                     "color": presence.get("hub_color"),
-                    "efforts": [str(e) for e in (data.get("efforts") or [])],
+                    "efforts": list(record.efforts),
                     "default_effort": str(data.get("default_effort") or ""),
                     "chat_status": chat_status,
                     "models": models,
@@ -322,6 +351,21 @@ def config_adapters() -> dict:
     # in_process adapters first, then alpha — the runnable one leads the picker.
     adapters.sort(key=lambda a: (a["runtime"] != "in_process", a["id"]))
     return {"adapters": adapters, "default_model": default_model, "count": len(adapters)}
+
+
+@router.delete("/adapters/{adapter_id}/health")
+def config_adapter_health_clear(adapter_id: str):
+    from thinking_os import supervision
+    from thinking_os.adapter_registry import load_adapter_records
+    from web._project_context import current_db_path
+
+    if adapter_id not in load_adapter_records():
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": {"category": "not_found", "message": "unknown adapter"}},
+        )
+    cleared = supervision.clear_health(current_db_path(), adapter_id)
+    return {"ok": True, "data": {"adapter": adapter_id, "cleared": cleared}}
 
 
 # --------------------------------------------------------------------------

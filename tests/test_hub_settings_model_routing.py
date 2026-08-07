@@ -31,6 +31,13 @@ def test_model_routing_defaults_off(client):
     assert payload["settings"]["model_routing"] == {
         "enabled": False,
         "orchestrator_model": "",
+        "mode": "explicit",
+        "complexity_threshold": "COMPLICATED",
+        "fallback_policy": "fail_closed",
+        "max_parallel": 3,
+        "orchestrator": {"adapter": "", "model": "", "effort": ""},
+        "roles": {},
+        "cooldown": {"default_seconds": 300, "maximum_seconds": 3600},
     }
 
 
@@ -41,10 +48,75 @@ def test_model_routing_patch_round_trips(client, tmp_path):
     assert patched["settings"]["model_routing"]["orchestrator_model"] == "claude-haiku-4-5"
 
     fetched = client.get("/api/settings").json()["data"]
-    assert fetched["settings"]["model_routing"] == body["model_routing"]
+    assert fetched["settings"]["model_routing"]["enabled"] is True
+    assert fetched["settings"]["model_routing"]["orchestrator_model"] == "claude-haiku-4-5"
 
     on_disk = json.loads((tmp_path / "hub-settings.json").read_text())
-    assert on_disk["model_routing"] == body["model_routing"]
+    assert on_disk["model_routing"]["orchestrator_model"] == "claude-haiku-4-5"
+
+
+def test_model_routing_policy_round_trips(client):
+    body = {
+        "model_routing": {
+            "enabled": True,
+            "mode": "adaptive",
+            "fallback_policy": "next_eligible",
+            "max_parallel": 5,
+            "orchestrator": {"adapter": "codex", "model": "gpt-5", "effort": "high"},
+            "roles": {"reviewer": {"adapter": "claude", "model": "sonnet", "effort": "high"}},
+            "cooldown": {"default_seconds": 60, "maximum_seconds": 900},
+        }
+    }
+
+    response = client.patch("/api/settings", json=body)
+
+    assert response.status_code == 200
+    routing = response.json()["data"]["settings"]["model_routing"]
+    assert routing["mode"] == "adaptive"
+    assert routing["orchestrator_model"] == "gpt-5"
+    assert routing["roles"]["reviewer"]["adapter"] == "claude"
+    assert routing["cooldown"]["maximum_seconds"] == 900
+
+
+def test_model_routing_rejects_invalid_concurrency(client):
+    response = client.patch(
+        "/api/settings",
+        json={"model_routing": {"enabled": True, "max_parallel": 0}},
+    )
+
+    assert response.status_code == 422
+
+
+def test_model_routing_nested_patch_preserves_existing_fields(client):
+    client.patch(
+        "/api/settings",
+        json={
+            "model_routing": {
+                "enabled": True,
+                "cooldown": {"default_seconds": 60, "maximum_seconds": 900},
+                "roles": {"reviewer": {"adapter": "claude", "model": "sonnet"}},
+            }
+        },
+    )
+
+    response = client.patch(
+        "/api/settings",
+        json={
+            "model_routing": {
+                "enabled": True,
+                "cooldown": {"maximum_seconds": 1200},
+                "roles": {"reviewer": {"effort": "high"}},
+            }
+        },
+    )
+
+    routing = response.json()["data"]["settings"]["model_routing"]
+    assert routing["cooldown"] == {"default_seconds": 60, "maximum_seconds": 1200}
+    assert routing["roles"]["reviewer"] == {
+        "adapter": "claude",
+        "model": "sonnet",
+        "effort": "high",
+    }
 
 
 def test_model_routing_patch_leaves_other_sections(client):

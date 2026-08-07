@@ -70,6 +70,38 @@ _CHAT_BASE_TOOLS = (
 _CHAT_PROFILES = ("chat", "chat_resume")
 
 
+def _failure_fields(status: str, error: str | None) -> dict[str, Any]:
+    if status == "ok":
+        return {}
+    message = (error or "").lower()
+    if status == "timeout":
+        return {"error_category": "timeout", "retryable": True, "outcome": "unknown"}
+    retry_after: int | None = None
+    match = re.search(r"(?:retry after|try again in)\s+(\d+)\s*(?:seconds?|s)?", message)
+    if match:
+        retry_after = int(match.group(1))
+    if any(
+        token in message
+        for token in ("rate limit", "usage limit", "quota", "too many requests", "429", "capacity")
+    ):
+        return {
+            "error_category": "capacity",
+            "retryable": True,
+            "retry_after_s": retry_after,
+            "outcome": "known_failed",
+        }
+    if any(
+        token in message
+        for token in ("unauthorized", "authentication", "not logged in", "401", "403")
+    ):
+        return {"error_category": "auth", "outcome": "known_failed"}
+    if any(token in message for token in ("not importable", "not found")):
+        return {"error_category": "unavailable", "outcome": "known_failed"}
+    if any(token in message for token in ("must be absolute", "max_budget_usd", "max_turns")):
+        return {"error_category": "invalid", "outcome": "known_failed"}
+    return {"error_category": "provider", "outcome": "unknown"}
+
+
 def _cos_mcp_servers(cwd: str) -> dict[str, Any]:
     try:
         data = json.loads((Path(cwd) / ".mcp.json").read_text(encoding="utf-8"))
@@ -371,6 +403,9 @@ class ClaudeSDKDispatcher:
                 error=f"claude-agent-sdk not importable: {self._import_error}",
                 dispatcher_name=self.name,
                 latency_ms=int((time.monotonic() - t0) * 1000),
+                **_failure_fields(
+                    "error", f"claude-agent-sdk not importable: {self._import_error}"
+                ),
             )
 
         from claude_agent_sdk import (
@@ -394,6 +429,9 @@ class ClaudeSDKDispatcher:
                 error=f"agent_file must be absolute, got: {request.agent_file!r}",
                 dispatcher_name=self.name,
                 latency_ms=int((time.monotonic() - t0) * 1000),
+                **_failure_fields(
+                    "error", f"agent_file must be absolute, got: {request.agent_file!r}"
+                ),
             )
 
         try:
@@ -405,6 +443,7 @@ class ClaudeSDKDispatcher:
                 error=str(exc),
                 dispatcher_name=self.name,
                 latency_ms=int((time.monotonic() - t0) * 1000),
+                **_failure_fields("error", str(exc)),
             )
 
         # Skill inheritance — formula sub-sessions get a fresh context, so
@@ -465,9 +504,9 @@ class ClaudeSDKDispatcher:
 
         # High-tier models get "xhigh"; everything else uses the SDK
         # default (None → "high"). See _XHIGH_EFFORT_MODEL_PREFIXES.
-        effort: str | None = None
+        effort: str | None = request.effort
         if resolved_model and resolved_model.startswith(_XHIGH_EFFORT_MODEL_PREFIXES):
-            effort = "xhigh"
+            effort = effort or "xhigh"
 
         # Structured output (T1) — opt-in per role via
         # `structured_output: true` frontmatter. SDK enforces the
@@ -739,6 +778,7 @@ class ClaudeSDKDispatcher:
                     dispatcher_name=self.name,
                     latency_ms=int((time.monotonic() - t0) * 1000),
                     raw_transcript="\n".join(transcript_parts) or None,
+                    **_failure_fields("timeout", f"timed out after {request.timeout_s}s"),
                 )
             except Exception as exc:
                 logger.exception("claude-sdk dispatch failed")
@@ -749,6 +789,7 @@ class ClaudeSDKDispatcher:
                     dispatcher_name=self.name,
                     latency_ms=int((time.monotonic() - t0) * 1000),
                     raw_transcript="\n".join(transcript_parts) or None,
+                    **_failure_fields("error", f"{type(exc).__name__}: {exc}"),
                 )
         finally:
             _presence_write(project_root, "claude", sub_session_id, "end")
@@ -804,6 +845,7 @@ class ClaudeSDKDispatcher:
                 latency_ms=latency_ms,
                 dispatcher_name=self.name,
                 raw_transcript=transcript or None,
+                **_failure_fields("error", f"max_budget_usd={request.max_budget_usd} exhausted"),
             )
         if result_subtype == "error_max_turns":
             return DispatchResult(
@@ -814,6 +856,7 @@ class ClaudeSDKDispatcher:
                 latency_ms=latency_ms,
                 dispatcher_name=self.name,
                 raw_transcript=transcript or None,
+                **_failure_fields("error", "max_turns exhausted"),
             )
         if result_subtype == "error_max_structured_output_retries":
             # Schema enforcement gave up; fall through to regex extraction
@@ -858,6 +901,7 @@ class ClaudeSDKDispatcher:
             dispatcher_name=self.name,
             error=error_str,
             raw_transcript=transcript,
+            **_failure_fields("ok" if ok else "error", error_str),
         )
 
 

@@ -6,6 +6,10 @@ label: "OpenAI Codex CLI"
 # runtime: roadmap ⇒ declared but not yet runnable inside Hub chat (Claude SDK
 # only today). Models intentionally empty — no fabricated IDs (P7 no-guessing).
 runtime: roadmap
+runtime_entrypoints:
+  dispatch: sdk_dispatcher.py
+  transcript: chat_provider.py
+  capabilities: [dispatch, model_selection, structured_output]
 models: []
 
 presence:

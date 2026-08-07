@@ -1104,8 +1104,9 @@ def _persist_dispatch_output(
                 "output_hash, latency_ms, status, ts, "
                 "cost_usd, budget_usd, usage_jsonb, model_usage_jsonb, "
                 "tool_calls_jsonb, tool_failures_jsonb, "
-                "sub_session_id, model, checkpoints_jsonb, error, raw_transcript) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "sub_session_id, model, checkpoints_jsonb, error, raw_transcript, "
+                "adapter, effort, error_category, retry_after_s, health_state, health_probe) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     session_id,
                     task_marker,
@@ -1127,6 +1128,12 @@ def _persist_dispatch_output(
                     _jsonb(meta.get("checkpoints")),
                     str(meta.get("error"))[:1000] if meta.get("error") else None,
                     raw_transcript[:50000] if raw_transcript else None,
+                    meta.get("adapter"),
+                    meta.get("effort"),
+                    meta.get("error_category"),
+                    meta.get("retry_after_s"),
+                    meta.get("health_state"),
+                    1 if meta.get("health_probe") else 0,
                 ),
             )
     except Exception as exc:
@@ -1237,12 +1244,16 @@ def _resolve_dispatch_model(
     complexity: str,
     db_path,
 ) -> str:
+    from thinking_os import supervision
+
     level = complexity.strip().lower()
     hint_pref = _preset_role_hint(session_id, formula_id, db_path).get("model_pref") or {}
     role_pref = meta.get("model_pref") or {}
+    supervised = supervision.role_policy(formula_id)
     resolved = ""
     for candidate, source in (
         (model.strip(), "explicit"),
+        (supervised.get("model", ""), "supervision_policy"),
         (hint_pref.get(level, ""), "preset_hint"),
         (role_pref.get(level, ""), "role_pref"),
     ):
@@ -1280,6 +1291,8 @@ def _build_dispatch_request(
     model: str = "",
     complexity: str = "",
     db_path=None,
+    adapter: str = "",
+    effort: str = "",
 ):
     """Build a DispatchRequest from session state (shared by run-one and run-parallel)."""
     from thinking_os import dispatcher as _disp  # lazy: avoid circular at import time
@@ -1298,6 +1311,9 @@ def _build_dispatch_request(
     resolved_model = _resolve_dispatch_model(
         formula_id, session_id, meta, model, complexity, db_path
     )
+    from thinking_os import supervision
+
+    supervised = supervision.role_policy(formula_id)
 
     return _disp.DispatchRequest(
         formula_id=formula_id,
@@ -1310,6 +1326,8 @@ def _build_dispatch_request(
         session_id=session_id,
         long_context=bool(meta.get("long_context", False)),
         model=resolved_model or None,
+        adapter=adapter.strip() or supervised.get("adapter") or None,
+        effort=effort.strip() or supervised.get("effort") or None,
     )
 
 
@@ -1339,6 +1357,8 @@ def register_cos_dispatch_formula_run(mcp, db_path):
         timeout_s: float | None = None,
         model: str = "",
         complexity: str = "",
+        adapter: str = "",
+        effort: str = "",
     ) -> str:
         import asyncio as _asyncio
 
@@ -1362,11 +1382,11 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                 model,
                 complexity,
                 db_path,
+                adapter=adapter,
+                effort=effort,
             )
         except Exception as exc:
             return fail("validation", f"failed to build request: {exc}")
-
-        d = _disp.get_dispatcher(request=req)
 
         # Trace event — visible in cos cognition trace replay so the
         # flowchart shows the actual sub-agent execution span.
@@ -1378,7 +1398,7 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                 "dispatch_started",
                 {
                     "formula_id": formula_id,
-                    "dispatcher_name": getattr(d, "name", "unknown"),
+                    "dispatcher_name": req.adapter or "supervisor",
                     "intensity": intensity,
                     "model": req.model,
                     "long_context": req.long_context,
@@ -1390,7 +1410,7 @@ def register_cos_dispatch_formula_run(mcp, db_path):
             logger.debug("dispatch_started trace emit failed: %s", exc)
 
         try:
-            result = _asyncio.run(d.dispatch(req))
+            result = _asyncio.run(_disp.dispatch_request(req, db_path))
         except RuntimeError as exc:
             # Nested loop — fall back to a fresh thread-owned loop
             if "already running" in str(exc):
@@ -1401,7 +1421,9 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                 def _runner():
                     loop = _asyncio.new_event_loop()
                     try:
-                        box["result"] = loop.run_until_complete(d.dispatch(req))
+                        box["result"] = loop.run_until_complete(
+                            _disp.dispatch_request(req, db_path)
+                        )
                     finally:
                         loop.close()
 
@@ -1458,6 +1480,9 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                     "model": _meta.get("model"),
                     "bundle_fields_filled": filled,
                     "error": result.error,
+                    "error_category": result.error_category,
+                    "retry_after_s": result.retry_after_s,
+                    "adapter": _meta.get("adapter"),
                 },
                 role=formula_id,
                 phase="EXECUTE",
@@ -1473,6 +1498,10 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                 "latency_ms": result.latency_ms,
                 "output_json": result.output_json,
                 "error": result.error,
+                "error_category": result.error_category,
+                "retryable": result.retryable,
+                "retry_after_s": result.retry_after_s,
+                "outcome": result.outcome,
                 "bundle_fields_filled": filled,
             },
             meta={"layer": "dispatch"},
@@ -1501,6 +1530,8 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
         timeout_s: float | None = None,
         model: str = "",
         complexity: str = "",
+        adapter: str = "",
+        effort: str = "",
     ) -> str:
         import asyncio as _asyncio
 
@@ -1531,17 +1562,27 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
                     model,
                     complexity,
                     db_path,
+                    adapter=adapter,
+                    effort=effort,
                 )
                 for fid in formula_ids
             ]
         except Exception as exc:
             return fail("validation", f"failed to build requests: {exc}")
 
-        d = _disp.get_dispatcher()
+        from thinking_os import supervision as _supervision
+
+        parallel_limit = int(_supervision.load_policy().get("max_parallel") or 3)
 
         async def _gather_all():
+            semaphore = _asyncio.Semaphore(max(1, parallel_limit))
+
+            async def _limited(req):
+                async with semaphore:
+                    return await _disp.dispatch_request(req, db_path)
+
             return await _asyncio.gather(
-                *(d.dispatch(req) for req in requests),
+                *(_limited(req) for req in requests),
                 return_exceptions=True,
             )
 
@@ -1572,16 +1613,20 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
 
         results = []
         ok_count = 0
-        for req, outcome in zip(requests, gathered):
+        for req, outcome in zip(requests, gathered, strict=False):
             if isinstance(outcome, Exception):
                 results.append(
                     {
                         "status": "error",
                         "formula_id": req.formula_id,
                         "error": f"{type(outcome).__name__}: {outcome}",
-                        "dispatcher_name": d.name,
+                        "dispatcher_name": "supervisor",
                         "latency_ms": 0,
                         "output_json": {},
+                        "error_category": "provider",
+                        "retryable": False,
+                        "retry_after_s": None,
+                        "outcome": "unknown",
                         "bundle_fields_filled": 0,
                     }
                 )
@@ -1608,6 +1653,10 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
                     "latency_ms": outcome.latency_ms,
                     "output_json": outcome.output_json,
                     "error": outcome.error,
+                    "error_category": outcome.error_category,
+                    "retryable": outcome.retryable,
+                    "retry_after_s": outcome.retry_after_s,
+                    "outcome": outcome.outcome,
                     "bundle_fields_filled": filled,
                 }
             )

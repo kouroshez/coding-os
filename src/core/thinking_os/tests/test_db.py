@@ -225,6 +225,7 @@ EXPECTED_TABLES = [
     "log_events",
     "log_fingerprints",
     "task_dependencies",
+    "adapter_health",
 ]
 
 
@@ -278,6 +279,22 @@ class TestTableCreation:
         assert "error" in cols
         assert "status" in cols
         assert "cost_usd" in cols
+
+    def test_formula_dispatches_has_supervised_identity_columns(
+        self, migrated_conn: sqlite3.Connection
+    ) -> None:
+        cols = {
+            row[1]
+            for row in migrated_conn.execute("PRAGMA table_info(formula_dispatches)").fetchall()
+        }
+        assert {
+            "adapter",
+            "effort",
+            "error_category",
+            "retry_after_s",
+            "health_state",
+            "health_probe",
+        } <= cols
 
 
 # ---------------------------------------------------------------------------

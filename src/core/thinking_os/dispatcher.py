@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import logging
 import os
 from pathlib import Path
@@ -33,6 +32,7 @@ class DispatchRequest(BaseModel):
     # "claude-sonnet-4-6"). None = let the adapter pick its default. Kept
     # generic so non-Claude adapters can use their own model strings.
     model: str | None = None
+    effort: str | None = None
     # Per-call cost ceiling (USD). None = no ceiling. Adapters that
     # cannot enforce this MUST surface a warning rather than silently
     # dropping the cap. The Claude adapter forwards this to
@@ -73,6 +73,12 @@ class DispatchResult(BaseModel):
     error: str | None = None
     dispatcher_name: str = ""  # "claude-sdk" | "default" | ...
     raw_transcript: str | None = None  # optional, for debugging
+    error_category: (
+        Literal["capacity", "auth", "unavailable", "timeout", "provider", "invalid"] | None
+    ) = None
+    retryable: bool = False
+    retry_after_s: int | None = None
+    outcome: Literal["known_failed", "unknown"] = "unknown"
 
 
 # ---------------------------------------------------------------------------
@@ -97,22 +103,17 @@ class AgentDispatcher(Protocol):
 # Factory
 # ---------------------------------------------------------------------------
 
-_ADAPTERS_DIR = Path(__file__).resolve().parent.parent.parent / "adapters"
-
 
 def _known_agents() -> set[str]:
-    # SSOT: scan src/adapters via the shared manifest scanner so a new adapter dir
-    # is recognised with no edit here. Lazy import avoids a module-load cycle; the
-    # scanner already fails soft to board defaults.
-    from board_os.hub_adapter_manifest import list_agent_ids
+    from thinking_os.adapter_registry import load_adapter_records
 
-    return set(list_agent_ids())
+    return set(load_adapter_records())
 
 
 def _detect_agent() -> str:
     known = _known_agents()
     explicit = os.environ.get("COS_AGENT", "").strip().lower()
-    if explicit in known:
+    if explicit:
         return explicit
 
     agent_dir = os.environ.get("COS_AGENT_DIR", "")
@@ -125,22 +126,13 @@ def _detect_agent() -> str:
 
 
 def _try_load_adapter_dispatcher(agent: str) -> AgentDispatcher | None:
-    adapter_path = _ADAPTERS_DIR / agent / "sdk_dispatcher.py"
-    if not adapter_path.exists():
-        return None
+    from thinking_os.adapter_registry import load_adapter_records, load_entrypoint_module
 
-    mod_name = f"cos_adapters_{agent}_sdk_dispatcher"
-    spec = importlib.util.spec_from_file_location(mod_name, adapter_path)
-    if spec is None or spec.loader is None:
+    record = load_adapter_records().get(agent)
+    if record is None or "dispatch" not in record.capabilities:
         return None
-    try:
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-    except ImportError as exc:
-        logger.debug("%s-sdk dispatcher unavailable: %s", agent, exc)
-        return None
-    except Exception as exc:
-        logger.warning("%s-sdk dispatcher load failed: %s", agent, exc)
+    module = load_entrypoint_module(record, "dispatch")
+    if module is None:
         return None
 
     factory = getattr(module, "build_dispatcher", None)
@@ -190,3 +182,147 @@ def get_dispatcher(
     from thinking_os.dispatchers.default import DefaultDispatcher
 
     return DefaultDispatcher()
+
+
+def _default_model(record) -> str | None:
+    for model in record.models:
+        if model.get("default") and model.get("id"):
+            return str(model["id"])
+    return None
+
+
+async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> DispatchResult:
+    from thinking_os import supervision
+
+    project_root = (
+        Path(request.cwd).resolve() if request.cwd else supervision.current_project_root()
+    )
+    policy = supervision.load_policy(project_root)
+    if policy.get("enabled") is not True:
+        return await get_dispatcher(request=request).dispatch(request)
+
+    records = {record.id: record for record in supervision.eligible_records(project_root)}
+    target = request.adapter or _detect_agent()
+    candidates = [target] if target in records else []
+    if not candidates and len(records) == 1:
+        candidates = list(records)
+    if policy.get("fallback_policy") == "next_eligible":
+        candidates.extend(adapter_id for adapter_id in records if adapter_id not in candidates)
+    if not candidates:
+        return DispatchResult(
+            formula_id=request.formula_id,
+            status="error",
+            error=f"no eligible dispatch adapter for {target!r}",
+            error_category="unavailable",
+            dispatcher_name="supervisor",
+            outcome="known_failed",
+        )
+
+    last_result: DispatchResult | None = None
+    for adapter_id in candidates:
+        record = records[adapter_id]
+        decision = supervision.check_capacity(db_path, adapter_id)
+        if not decision.allowed:
+            last_result = DispatchResult(
+                formula_id=request.formula_id,
+                status="error",
+                error=decision.reason or f"{adapter_id} is cooling down",
+                error_category="capacity",
+                retryable=True,
+                retry_after_s=decision.retry_after_s,
+                dispatcher_name="supervisor",
+                outcome="known_failed",
+            )
+            continue
+
+        selected = request.model_copy(update={"adapter": adapter_id})
+        if selected.effort and "effort_selection" not in record.capabilities:
+            last_result = DispatchResult(
+                formula_id=request.formula_id,
+                status="error",
+                error=f"adapter {adapter_id!r} does not support effort selection",
+                error_category="invalid",
+                dispatcher_name="supervisor",
+                outcome="known_failed",
+            )
+            continue
+        model_ids = {str(model.get("id")) for model in record.models if model.get("id")}
+        if selected.model and model_ids and selected.model not in model_ids:
+            if adapter_id != target or policy.get("fallback_policy") == "same_adapter_default":
+                selected = selected.model_copy(update={"model": _default_model(record)})
+            else:
+                last_result = DispatchResult(
+                    formula_id=request.formula_id,
+                    status="error",
+                    error=f"model {selected.model!r} is not declared by adapter {adapter_id!r}",
+                    error_category="invalid",
+                    dispatcher_name="supervisor",
+                    outcome="known_failed",
+                )
+                continue
+        if selected.effort and record.efforts and selected.effort not in record.efforts:
+            last_result = DispatchResult(
+                formula_id=request.formula_id,
+                status="error",
+                error=f"effort {selected.effort!r} is not declared by adapter {adapter_id!r}",
+                error_category="invalid",
+                dispatcher_name="supervisor",
+                outcome="known_failed",
+            )
+            continue
+
+        runtime = get_dispatcher(agent=adapter_id)
+        if runtime.name == "default":
+            last_result = DispatchResult(
+                formula_id=request.formula_id,
+                status="error",
+                error=f"adapter {adapter_id!r} dispatch runtime is unavailable",
+                error_category="unavailable",
+                dispatcher_name="supervisor",
+                outcome="known_failed",
+            )
+            continue
+
+        result = await runtime.dispatch(selected)
+        supervision.record_result(
+            db_path,
+            adapter_id,
+            success=result.status == "ok",
+            error_category=result.error_category,
+            retryable=result.retryable,
+            retry_after_s=result.retry_after_s,
+            reason=result.error or "",
+            policy=policy,
+        )
+        meta = result.output_json.setdefault("_meta", {})
+        if isinstance(meta, dict):
+            meta.update(
+                {
+                    "adapter": adapter_id,
+                    "model": selected.model,
+                    "effort": selected.effort,
+                    "health_state": decision.state,
+                    "health_probe": decision.probe,
+                    "error_category": result.error_category,
+                    "retry_after_s": result.retry_after_s,
+                }
+            )
+        if (
+            result.status == "error"
+            and result.error_category == "capacity"
+            and result.retryable
+            and result.outcome == "known_failed"
+            and policy.get("fallback_policy") == "next_eligible"
+        ):
+            last_result = result
+            continue
+        return result
+
+    return last_result or DispatchResult(
+        formula_id=request.formula_id,
+        status="error",
+        error="no dispatch adapter accepted the request",
+        error_category="unavailable",
+        dispatcher_name="supervisor",
+        outcome="known_failed",
+    )
