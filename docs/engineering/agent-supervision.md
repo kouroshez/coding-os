@@ -254,8 +254,43 @@ accepted mutable work.
 
 ## Runtime health and capacity
 
-Health is keyed by `(project, adapter)` and is generic across present and future
-adapters. The state machine is:
+### What a limit actually applies to
+
+Providers do not meter "an adapter". They meter an **account** and, within it,
+**each model pool separately** — Anthropic states both plainly: limits "are set
+at the organization level", and "rate limits are applied separately for each
+model; therefore you can use different models up to their respective limits
+simultaneously" ([rate limits](https://docs.claude.com/en/api/rate-limits)).
+Pools are not one-per-model: Opus 4.x share a pool, Opus 5 has its own, Sonnet 5
+is separate from Sonnet 4.x.
+
+Cooling a whole adapter therefore removes capacity that provably still exists —
+and it defeats the feature's main use, since routing a reviewer to a cheap model
+and an architect to an expensive one is exactly a bet on independent pools.
+
+So health is keyed by **model pool**, declared by the adapter because it cannot
+be derived from a model id:
+
+```yaml
+models:
+  - id: claude-opus-4-8
+    bucket: opus-4x        # shares a pool with the other Opus 4.x models
+  - id: claude-haiku-4-5
+    bucket: haiku-4-5      # independent pool
+```
+
+The health key is `<adapter>:<bucket>`, or plain `<adapter>` when the adapter
+declares no pools — which keeps a pool-less adapter behaving exactly as before.
+Hub summarises an adapter across its pools: the most restrictive state, the
+**soonest** recovery, and which pools are limited. Clearing an adapter's health
+clears every pool it meters against.
+
+Scope stops at the project, not the account: two projects sharing one
+organization each discover the same limit separately. Account-wide health needs
+a credential identity the kernel must not read (P8), so it is deferred until a
+real multi-project account limit is observed rather than guessed at.
+
+The state machine is:
 
 ```text
 healthy -> cooling_down -> half_open -> healthy
@@ -293,6 +328,14 @@ Rules:
 - Another capacity failure extends the cooldown.
 - Authentication and configuration failures remain unavailable until readiness
   changes; they are not treated as timed capacity limits.
+- **Provider-side overload (529) and internal errors (5xx) are not your quota.**
+  They classify as `provider` + `retryable`, never `capacity`, so a brief
+  provider blip cannot cool an adapter for the configured window — while still
+  telling the caller the request is worth retrying.
+- A probe that is settled back to healthy keeps its `failure_count`, so an
+  unrelated error cannot reset an escalating backoff.
+- An adapter that raises instead of returning a result still releases its probe
+  lease; otherwise a crash would strand recovery for the whole lease window.
 - Process restart preserves cooldown state. Wall-clock timestamps make recovery
   deterministic across sessions.
 - Operators may clear a cooldown explicitly, but enabling supervision never
@@ -328,27 +371,31 @@ account limit is observed.
 
 ## Dispatch identity and evidence
 
-Each supervised child records:
+Identity uses the [OpenTelemetry GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai)
+rather than names invented here, so a new runtime learns what to emit from a
+public spec and any OTel-aware tool can read the envelope. Each supervised child
+returns, in its result metadata:
 
-```text
-run_id
-parent_run_id
-adapter_id
-native_thread_id
-role
-model
-effort
-capability_snapshot
-health_decision
-status
-error_category
-retry_after_s
-partial
-```
+| Attribute | Meaning |
+|---|---|
+| `gen_ai.provider.name` | the adapter that ran the work |
+| `gen_ai.agent.id` | the semantic role |
+| `gen_ai.request.model` | the model actually used |
+| `capacity_scope` | the model pool its health is metered against |
+| `health_state` · `health_probe` | breaker state at dispatch, and whether this was the recovery probe |
+| `error_category` · `retry_after_s` | normalized failure and provider-supplied wait |
 
 The parent receives an `EvidenceBundle` or an explicit failure. Raw child
 transcripts remain adapter-owned and are linked by native identity rather than
 copied into parent context.
+
+**Not yet built:** the standard also expresses a child's native session as
+`gen_ai.conversation.id`, and parent/child as span parenting rather than a
+bespoke column. Neither is emitted today, so a fan-out has no tree and Hub
+cannot open a child's native transcript. The `formula_dispatches` columns added
+for this (`adapter`, `effort`, `error_category`, `retry_after_s`,
+`health_state`, `health_probe`) are currently written by nothing — adding more
+columns before these have a writer would be dead weight.
 
 ## Hub behavior
 

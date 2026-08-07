@@ -117,7 +117,12 @@ list, so the Hub shows a free-text field and the string is yours to get right.
 
 ## 7. Living with capacity limits
 
-When an adapter reports a rate/usage limit, it enters `cooling_down` for the
+Providers meter **each model pool separately**, so a limit cools only the pool
+that hit it. If your architect exhausts the Opus pool, a reviewer pinned to
+Haiku keeps running — that independence is the whole point of per-role tiering,
+and the adapter declares its pools in `adapter.yaml::models[].bucket`.
+
+When a pool reports a rate/usage limit, it enters `cooling_down` for the
 provider's `retry-after` (clamped by your configured maximum) or an exponential
 backoff. Work is not sent to it during that window. At expiry exactly one
 caller gets a half-open probe; success restores it, another limit extends it.
@@ -166,6 +171,7 @@ on what the adapter reports:
 |---|---|
 | rate/usage limit, quota, 429 | `capacity`, `retryable=True`, `outcome="known_failed"` |
 | a limit that names a delay | the same, plus `retry_after_s` |
+| provider overload (529) or 5xx | `provider`, `retryable=True`, `outcome="unknown"` — **not** `capacity`; it is not your quota |
 | timeout | `timeout`, `outcome="unknown"` — never replayed |
 | not logged in / 401 / 403 | `auth` — not a timed limit, waiting will not fix it |
 | anything unanticipated | `provider`, `outcome="unknown"` |
