@@ -508,9 +508,11 @@ class TestSupervisionConfig:
         (tmp_path / ".coding-os").mkdir()
         monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
 
+        # The model id is irrelevant here — the conflict is rejected before any
+        # descriptor lookup — so keep it a placeholder rather than a real id.
         for kwargs in (
-            {"role": "reviewer", "clear_role": True, "role_model": "claude-haiku-4-5"},
-            {"clear_orchestrator": True, "orchestrator_model": "claude-haiku-4-5"},
+            {"role": "reviewer", "clear_role": True, "role_model": "any-model"},
+            {"clear_orchestrator": True, "orchestrator_model": "any-model"},
         ):
             result = mcp_tools.call("cos_supervision_config", action="set", **kwargs)
 
