@@ -97,10 +97,24 @@ def entrypoint_path(record: AdapterRecord, capability: str) -> Path | None:
     return path if path.is_file() else None
 
 
+_MODULE_CACHE: dict[tuple[str, str], tuple[float, ModuleType]] = {}
+
+
 def load_entrypoint_module(record: AdapterRecord, capability: str) -> ModuleType | None:
     path = entrypoint_path(record, capability)
     if path is None:
         return None
+    # Executing an adapter entrypoint re-imports its provider SDK, which is far
+    # too expensive for a polled Hub route. Keyed on mtime so an edited adapter
+    # still reloads rather than serving a stale module.
+    key = (record.id, capability)
+    try:
+        stamp = path.stat().st_mtime
+    except OSError:
+        stamp = 0.0
+    cached = _MODULE_CACHE.get(key)
+    if cached is not None and cached[0] == stamp:
+        return cached[1]
     module_name = f"coding_os_adapter_{record.id}_{capability}"
     spec = importlib.util.spec_from_file_location(module_name, path)
     if spec is None or spec.loader is None:
@@ -111,4 +125,5 @@ def load_entrypoint_module(record: AdapterRecord, capability: str) -> ModuleType
     except Exception as exc:
         logger.warning("%s %s entrypoint load failed: %s", record.id, capability, exc)
         return None
+    _MODULE_CACHE[key] = (stamp, module)
     return module

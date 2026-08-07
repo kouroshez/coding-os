@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from pathlib import Path
@@ -33,6 +34,10 @@ class DispatchRequest(BaseModel):
     # generic so non-Claude adapters can use their own model strings.
     model: str | None = None
     effort: str | None = None
+    # Cynefin level of the originating request (CLEAR/COMPLICATED/COMPLEX/
+    # CHAOTIC). Empty means unclassified, which never satisfies an adaptive
+    # supervision gate — an unknown request is not escalated by accident.
+    complexity: str = ""
     # Per-call cost ceiling (USD). None = no ceiling. Adapters that
     # cannot enforce this MUST surface a warning rather than silently
     # dropping the cap. The Claude adapter forwards this to
@@ -198,9 +203,10 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
         Path(request.cwd).resolve() if request.cwd else supervision.current_project_root()
     )
     policy = supervision.load_policy(project_root)
-    if policy.get("enabled") is not True:
+    if not supervision.policy_applies(policy, request.complexity):
         return await get_dispatcher(request=request).dispatch(request)
 
+    propose_only = str(policy.get("mode") or "explicit") == "suggest"
     records = {record.id: record for record in supervision.eligible_records(project_root)}
     target = request.adapter or _detect_agent()
     candidates = [target] if target in records else []
@@ -272,7 +278,27 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
             )
             continue
 
-        decision = supervision.check_capacity(db_path, adapter_id)
+        if propose_only:
+            return DispatchResult(
+                formula_id=request.formula_id,
+                status="skipped",
+                dispatcher_name="supervisor",
+                output_json={
+                    "proposed_route": {
+                        "adapter": adapter_id,
+                        "model": selected.model,
+                        "effort": selected.effort,
+                    },
+                    "reason": (
+                        "supervision mode 'suggest' resolves the route without "
+                        "executing it; switch to 'explicit' or 'adaptive' to run"
+                    ),
+                },
+            )
+
+        # sqlite here is synchronous and takes a write lock; off-loading keeps a
+        # parallel fan-out from serializing the event loop on the breaker.
+        decision = await asyncio.to_thread(supervision.check_capacity, db_path, adapter_id)
         if not decision.allowed:
             last_result = DispatchResult(
                 formula_id=request.formula_id,
@@ -287,7 +313,8 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
             continue
 
         result = await runtime.dispatch(selected)
-        supervision.record_result(
+        await asyncio.to_thread(
+            supervision.record_result,
             db_path,
             adapter_id,
             success=result.status == "ok",

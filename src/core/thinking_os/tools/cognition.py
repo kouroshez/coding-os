@@ -1308,7 +1308,7 @@ def _build_dispatch_request(
 
     from thinking_os import supervision
 
-    supervised = supervision.role_policy(formula_id)
+    supervised = supervision.role_policy(formula_id, complexity=complexity)
     resolved_model = _resolve_dispatch_model(
         formula_id, session_id, meta, model, complexity, db_path, supervised
     )
@@ -1326,6 +1326,7 @@ def _build_dispatch_request(
         model=resolved_model or None,
         adapter=adapter.strip() or supervised.get("adapter") or None,
         effort=effort.strip() or supervised.get("effort") or None,
+        complexity=complexity.strip(),
     )
 
 
@@ -1974,6 +1975,13 @@ def register_cos_supervision_config(mcp, db_path):
         }
         if (role_target or clear_role) and not role.strip():
             return fail("validation", "role is required with role fields or clear_role")
+        if clear_role and role_target:
+            return fail("validation", "clear_role cannot be combined with role adapter/model/effort")
+        if clear_orchestrator and orchestrator:
+            return fail(
+                "validation",
+                "clear_orchestrator cannot be combined with orchestrator adapter/model/effort",
+            )
         if role_target:
             patch["roles"] = {role.strip(): role_target}
         if not patch and not clear_role and not clear_orchestrator:

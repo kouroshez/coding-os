@@ -300,6 +300,19 @@ class _PatchBody(BaseModel):
     claude_auth: _ClaudeAuthIn | None = None
 
 
+def _validate_routing_targets(submitted, normalized: dict) -> None:
+    from thinking_os.supervision import validate_targets
+    from web._project_context import current_project_root
+
+    patch = submitted.model_dump(exclude_unset=True)
+    targets: list[tuple[str, dict]] = []
+    if "orchestrator" in patch:
+        targets.append(("orchestrator", normalized.get("orchestrator", {})))
+    for role in patch.get("roles") or {}:
+        targets.append((f"role {role!r}", normalized.get("roles", {}).get(role, {})))
+    validate_targets(targets, current_project_root())
+
+
 @router.patch("")
 def patch_settings(body: _PatchBody):
     with _settings_lock():
@@ -359,6 +372,10 @@ def patch_settings(body: _PatchBody):
             try:
                 current["model_routing"] = normalize_policy(current["model_routing"])
             except ValidationError as exc:
+                return _module_error(422, "validation", str(exc), False)
+            try:
+                _validate_routing_targets(body.model_routing, current["model_routing"])
+            except ValueError as exc:
                 return _module_error(422, "validation", str(exc), False)
         _save(current)
     return {"data": {"settings": _masked_settings(current), "env_overrides": _env_overrides()}}

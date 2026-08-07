@@ -63,6 +63,9 @@ class ModelRoutingPolicy(BaseModel):
     cooldown: CooldownPolicy = Field(default_factory=CooldownPolicy)
 
 
+COMPLEXITY_ORDER = ("CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC")
+
+
 @dataclass(frozen=True)
 class HealthDecision:
     allowed: bool
@@ -70,6 +73,11 @@ class HealthDecision:
     retry_after_s: int | None = None
     probe: bool = False
     reason: str = ""
+
+
+def complexity_rank(value: str) -> int:
+    normalized = str(value or "").strip().upper()
+    return COMPLEXITY_ORDER.index(normalized) if normalized in COMPLEXITY_ORDER else -1
 
 
 def current_project_root() -> Path:
@@ -93,6 +101,51 @@ def normalize_policy(raw: dict[str, Any] | None = None) -> dict[str, Any]:
     if merged["orchestrator"].get("model"):
         merged["orchestrator_model"] = merged["orchestrator"]["model"]
     return ModelRoutingPolicy.model_validate(merged).model_dump()
+
+
+def _accepts_model(record: AdapterRecord, model: str) -> bool:
+    if "model_selection" not in record.capabilities:
+        return False
+    declared = {str(entry.get("id")) for entry in record.models if entry.get("id")}
+    # An empty catalog means the runtime forwards any model string; core does not
+    # invent ids for a runtime that has not published a list.
+    return not declared or model in declared
+
+
+def _accepts_effort(record: AdapterRecord, effort: str) -> bool:
+    if "effort_selection" not in record.capabilities:
+        return False
+    return not record.efforts or effort in record.efforts
+
+
+def _target_errors(label: str, target: dict[str, Any], records: list[AdapterRecord]) -> list[str]:
+    known = {record.id: record for record in records}
+    adapter_id = str(target.get("adapter") or "")
+    if adapter_id and adapter_id not in known:
+        return [f"{label}: unknown adapter {adapter_id!r} (eligible: {', '.join(sorted(known))})"]
+    candidates = [known[adapter_id]] if adapter_id else records
+    where = repr(adapter_id) if adapter_id else "any eligible adapter"
+    errors = []
+    model = str(target.get("model") or "")
+    if model and not any(_accepts_model(record, model) for record in candidates):
+        errors.append(f"{label}: model {model!r} is not declared by {where}")
+    effort = str(target.get("effort") or "")
+    if effort and not any(_accepts_effort(record, effort) for record in candidates):
+        errors.append(f"{label}: effort {effort!r} is not supported by {where}")
+    return errors
+
+
+def validate_targets(targets: list[tuple[str, dict[str, Any]]], project_root: Path) -> None:
+    records = eligible_records(project_root)
+    if not records:
+        return
+    errors = [
+        message
+        for label, target in targets
+        for message in _target_errors(label, target if isinstance(target, dict) else {}, records)
+    ]
+    if errors:
+        raise ValueError("; ".join(errors))
 
 
 def load_policy(project_root: Path | None = None) -> dict[str, Any]:
@@ -146,6 +199,16 @@ def update_policy(
             candidate["orchestrator"] = copy.deepcopy(DEFAULT_MODEL_ROUTING["orchestrator"])
             candidate["orchestrator_model"] = ""
         normalized = normalize_policy(candidate)
+        # Validate only what this patch touched: a role pinned to an adapter that
+        # was later uninstalled must not lock the operator out of every other edit.
+        touched: list[tuple[str, dict[str, Any]]] = []
+        if isinstance(patch.get("orchestrator"), dict) and not clear_orchestrator:
+            touched.append(("orchestrator", normalized["orchestrator"]))
+        if isinstance(role_patch, dict):
+            touched.extend(
+                (f"role {name!r}", normalized["roles"].get(name, {})) for name in role_patch
+            )
+        validate_targets(touched, root)
         settings["model_routing"] = normalized
         write_settings(path, settings)
     return normalized
@@ -173,14 +236,30 @@ def enabled(project_root: Path | None = None) -> bool:
     return load_policy(project_root).get("enabled") is True
 
 
-def role_policy(role: str, project_root: Path | None = None) -> dict[str, str]:
+def policy_applies(policy: dict[str, Any], complexity: str = "") -> bool:
+    if policy.get("enabled") is not True:
+        return False
+    if str(policy.get("mode") or "explicit") != "adaptive":
+        return True
+    threshold = complexity_rank(str(policy.get("complexity_threshold") or ""))
+    return complexity_rank(complexity) >= threshold
+
+
+def role_policy(
+    role: str, project_root: Path | None = None, complexity: str = ""
+) -> dict[str, str]:
     policy = load_policy(project_root)
-    value = policy.get("roles", {}).get(role, {}) if policy.get("enabled") else {}
+    if not policy_applies(policy, complexity):
+        return {"adapter": "", "model": "", "effort": ""}
+    # The orchestrator target is the project-wide default; a role entry overrides
+    # it field by field, so pinning one role does not restate the others.
+    default = policy.get("orchestrator")
+    default = default if isinstance(default, dict) else {}
+    value = policy.get("roles", {}).get(role, {})
     value = value if isinstance(value, dict) else {}
     return {
-        "adapter": str(value.get("adapter") or ""),
-        "model": str(value.get("model") or ""),
-        "effort": str(value.get("effort") or ""),
+        key: str(value.get(key) or default.get(key) or "")
+        for key in ("adapter", "model", "effort")
     }
 
 

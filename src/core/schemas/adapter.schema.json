@@ -251,7 +251,7 @@
     },
     "models": {
       "type": "array",
-      "description": "Chat models this adapter offers, grouped under the adapter in the Hub chat model picker. Empty for roadmap adapters (no fabricated IDs — P7).",
+      "description": "Model catalog this adapter offers — drives the Hub pickers and supervision write-time validation. Empty means either a roadmap adapter or a runtime that forwards any model string; core never fabricates IDs (P7), so an empty catalog accepts any non-empty string and the Hub renders a free-text field.",
       "items": {
         "type": "object",
         "required": ["id"],
