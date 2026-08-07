@@ -94,6 +94,15 @@ cos supervision set --fallback-policy fail_closed      # default
 paying a different bill and getting different behaviour than the policy you
 reviewed. Fallback never happens after a run has already accepted mutable work.
 
+> **If you run two or more adapters and want one to cover for the other when it
+> hits its provider limit, you must set `next_eligible`.** Under the default
+> `fail_closed`, a limited adapter returns the wait time and the healthy adapter
+> is left alone — correct, but not automatic failover.
+
+When every eligible adapter is cooling at once, the error names all of them and
+reports the *soonest* recovery, so the retry you schedule matches the first
+adapter that will actually be able to answer.
+
 ## 6. Multiple runtimes
 
 Only when more than one adapter is installed **and** declares `dispatch`:
@@ -146,6 +155,26 @@ The policy is preserved, and the disabled path is the pre-feature path: no
 health probe, no state write, no injected tokens. Health rows survive a
 disable — enabling never implicitly clears a cooldown.
 
+## 10. Adding a new runtime to the fleet
+
+A new adapter joins supervision with no kernel change — it is discovered from
+`src/adapters/<id>/adapter.yaml`. To participate *safely* it must translate its
+runtime's failures into the normalized shape, because the breaker can only act
+on what the adapter reports:
+
+| Native failure | Must become |
+|---|---|
+| rate/usage limit, quota, 429 | `capacity`, `retryable=True`, `outcome="known_failed"` |
+| a limit that names a delay | the same, plus `retry_after_s` |
+| timeout | `timeout`, `outcome="unknown"` — never replayed |
+| not logged in / 401 / 403 | `auth` — not a timed limit, waiting will not fix it |
+| anything unanticipated | `provider`, `outcome="unknown"` |
+
+`tests/test_adapter_capacity_errors.py` runs this over **every** adapter
+declaring `dispatch`, so a new runtime cannot ship without it. An adapter that
+returns no category is not protected by the breaker at all — it would retry a
+limit that cannot succeed until the provider blocks it harder.
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
@@ -154,5 +183,7 @@ disable — enabling never implicitly clears a cooldown.
 | `adapter '<id>' does not support effort selection` | Effort set on an adapter without `effort_selection`. | Clear the effort for that role. |
 | `model '<id>' is not declared by adapter '<id>'` | Model not in that adapter's catalog. | Use a declared id, or switch the role's adapter. |
 | `<id> is cooling down` | Capacity breaker is open. | Wait for `retry_after_s`, or clear it in Hub if the limit is known-resolved. |
-| `capacity recovery probe already running` | Another caller holds the 30s half-open lease. | Retry after the lease expires. |
+| `all eligible adapters are at capacity` | Every configured runtime is cooling. | Retry after the reported soonest recovery. |
+| `capacity recovery probe already running` | Another caller holds the half-open lease for the duration of its probe. | Retry after that probe finishes. |
+| A limited adapter keeps being retried | Its `_failure_fields` does not classify that wording as `capacity` — check the warning in the log. | Extend that adapter's token list and add the wording to the parity suite. |
 | Policy saved but nothing routes | `mode=adaptive` and the request is below `complexity_threshold`, or `mode=suggest` (dry run). | Lower the threshold, or switch to `explicit`. |

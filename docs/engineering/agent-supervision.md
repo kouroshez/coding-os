@@ -279,7 +279,16 @@ Rules:
 - Work is not sent to a cooling adapter. This avoids retry storms and paid
   probes that cannot succeed.
 - At expiry, exactly one caller obtains the half-open probe lease. Concurrent
-  callers continue to use fallback or fail closed.
+  callers continue to use fallback or fail closed. The lease is held for the
+  probe request's own timeout, not a fixed window — a lease shorter than the run
+  it guards admits a second caller mid-probe, which is the retry storm the
+  breaker exists to prevent.
+- A probe that fails for a non-capacity reason releases its lease immediately.
+  That failure says nothing about capacity, so it must not stall recovery for
+  the rest of the lease.
+- When every eligible adapter is cooling, the caller is told the **soonest**
+  recovery across the fleet and which adapters are waiting — not whichever
+  adapter the resolution loop happened to check last.
 - A successful probe resets failure count and returns the adapter to healthy.
 - Another capacity failure extends the cooldown.
 - Authentication and configuration failures remain unavailable until readiness
@@ -292,6 +301,30 @@ Rules:
 The first release detects capacity from adapter-normalized errors. It does not
 poll provider billing endpoints or claim to know subscription quota before a
 runtime reports it.
+
+### Normalization is an adapter obligation, not a convention
+
+The kernel cannot guess a category it was never given: an adapter that returns
+`error_category=None` for a provider limit never opens its breaker and will
+retry-storm a limit that cannot succeed. Because every future runtime inherits
+this path, the requirement is enforced rather than documented — a parity suite
+runs over **every** adapter declaring `dispatch` and requires that it:
+
+- classifies at least one common provider limit wording as retryable `capacity`
+  with `outcome="known_failed"`;
+- extracts a provider-supplied retry delay when the message carries one;
+- leaves a timeout `unknown` so it can never be replayed;
+- reports auth failure as `auth`, never as a timed limit;
+- returns some category for an unanticipated failure rather than a success shape.
+
+A dispatch that still returns an unclassified failure is logged at warning level
+naming the adapter, so a third-party runtime that skipped the contract is
+visible in the log rather than silently unprotected.
+
+Health state lives in the project's own database, so the cooldown one project
+learns is not shared with a sibling project using the same account. Adding
+account-scoped health is deliberately deferred until a real multi-project
+account limit is observed.
 
 ## Dispatch identity and evidence
 
