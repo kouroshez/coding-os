@@ -8,16 +8,24 @@ runtime: in_process
 runtime_entrypoints:
   dispatch: sdk_dispatcher.py
   capabilities: [dispatch, model_selection, effort_selection, structured_output]
+# `bucket` names the provider's rate-limit pool. Anthropic applies limits
+# separately per model, and Opus 4.x share one pool while Opus 5 has its own
+# (docs.claude.com/en/api/rate-limits) — so a limit on one bucket must not
+# take the others out of service.
 models:
   - id: claude-fable-5
     label: "Fable 5"
+    bucket: fable-5
   - id: claude-opus-4-8
     label: "Opus 4.8"
     default: true
+    bucket: opus-4x
   - id: claude-sonnet-5
     label: "Sonnet 5"
+    bucket: sonnet-5
   - id: claude-haiku-4-5
     label: "Haiku 4.5"
+    bucket: haiku-4-5
 # Reasoning-effort levels the Claude Agent SDK accepts (EffortLevel) — shown in
 # the Hub chat composer so a turn can be weighted per adapter.
 efforts: [low, medium, high, xhigh, max]

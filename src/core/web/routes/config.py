@@ -318,7 +318,7 @@ def config_adapters() -> dict:
                     )
                 except Exception as exc:
                     logger.debug("%s dispatch readiness failed: %s", adapter_id, exc)
-            adapter_health = health.get(adapter_id) or {
+            adapter_health = supervision.adapter_health(health, adapter_id) or {
                 "state": "healthy" if routing_enabled else "disabled",
                 "failure_count": 0,
                 "retry_after_s": 0,

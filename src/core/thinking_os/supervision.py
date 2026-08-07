@@ -274,12 +274,49 @@ def eligible_records(project_root: Path | None = None) -> list[AdapterRecord]:
     ]
 
 
+def capacity_key(record: AdapterRecord, model: str | None) -> str:
+    # Providers meter separately per model pool, so one pool's limit must not
+    # take the others out of service. An adapter that declares no pool is
+    # treated as a single one, keyed by its id exactly as before.
+    wanted = str(model or "")
+    for entry in record.models:
+        if str(entry.get("id")) == wanted and entry.get("bucket"):
+            return f"{record.id}:{entry['bucket']}"
+    return record.id
+
+
+def adapter_of(scope: str) -> str:
+    return scope.split(":", 1)[0]
+
+
+# Back to healthy, not half_open: the cooldown already expired and nothing here
+# is evidence of a capacity problem. failure_count survives so escalating
+# backoff is not reset by an unrelated error.
+_RELEASE_PROBE_SQL = (
+    "UPDATE adapter_health SET state = 'healthy', probe_lease_until = NULL, "
+    "cooldown_until = NULL, reason = NULL, updated_at = ? "
+    "WHERE adapter_id = ? AND state = 'half_open'"
+)
+
+
+def release_probe(db_path: str | Path, scope: str, now: float | None = None) -> None:
+    clock = time.time() if now is None else now
+    try:
+        with sqlite3.connect(str(db_path), timeout=5) as conn:
+            conn.execute(_RELEASE_PROBE_SQL, (clock, scope))
+            conn.commit()
+    except sqlite3.OperationalError as exc:
+        logger.debug("probe release unavailable for %s: %s", scope, exc)
+
+
 def check_capacity(
     db_path: str | Path,
-    adapter_id: str,
+    scope: str,
+    *,
     now: float | None = None,
     lease_seconds: float = 300.0,
 ) -> HealthDecision:
+    adapter_id = scope
     clock = time.time() if now is None else now
     try:
         with sqlite3.connect(str(db_path), timeout=5) as conn:
@@ -360,13 +397,9 @@ def record_result(
                 return
             if error_category != "capacity" or not retryable:
                 # A probe that failed for an unrelated reason says nothing about
-                # capacity — release its lease instead of stalling recovery for
-                # the whole lease window.
-                conn.execute(
-                    "UPDATE adapter_health SET probe_lease_until = NULL, updated_at = ? "
-                    "WHERE adapter_id = ? AND state = 'half_open'",
-                    (clock, adapter_id),
-                )
+                # capacity — settle it instead of stalling recovery for the whole
+                # lease window or pinning the adapter to half_open forever.
+                conn.execute(_RELEASE_PROBE_SQL, (clock, adapter_id))
                 conn.commit()
                 return
             row = conn.execute(
@@ -414,21 +447,55 @@ def health_snapshot(db_path: str | Path, now: float | None = None) -> dict[str, 
     except sqlite3.OperationalError:
         return {}
     return {
-        str(adapter_id): {
-            "state": str(state),
-            "failure_count": int(failure_count or 0),
-            "retry_after_s": max(0, int(float(cooldown_until or 0) - clock)),
-            "probe_active": str(state) == "half_open" and float(probe_lease_until or 0) > clock,
-            "reason": str(reason or ""),
-        }
-        for adapter_id, state, failure_count, cooldown_until, probe_lease_until, reason in rows
+        str(scope): _health_row(state, failure_count, cooldown_until, probe_lease_until, reason, clock)
+        for scope, state, failure_count, cooldown_until, probe_lease_until, reason in rows
+    }
+
+
+def _health_row(state, failure_count, cooldown_until, probe_lease_until, reason, clock) -> dict:
+    waiting = max(0, int(float(cooldown_until or 0) - clock))
+    probing = str(state) == "half_open" and float(probe_lease_until or 0) > clock
+    # An expired cooldown is over: check_capacity already lets the next caller
+    # through, so reporting 'cooling_down · 0s' forever misleads the operator.
+    settled = str(state) == "cooling_down" and waiting == 0
+    return {
+        "state": "healthy" if settled else str(state),
+        "failure_count": int(failure_count or 0),
+        "retry_after_s": waiting,
+        "probe_active": probing,
+        "reason": "" if settled else str(reason or ""),
+    }
+
+
+def adapter_health(snapshot: dict[str, dict[str, Any]], adapter_id: str) -> dict[str, Any] | None:
+    scoped = {
+        scope: row for scope, row in snapshot.items() if adapter_of(scope) == adapter_id
+    }
+    if not scoped:
+        return None
+    rank = {"cooling_down": 2, "half_open": 1, "healthy": 0}
+    worst = max(scoped.items(), key=lambda item: rank.get(item[1]["state"], 0))
+    waits = [row["retry_after_s"] for row in scoped.values() if row["retry_after_s"] > 0]
+    limited = sorted(scope for scope, row in scoped.items() if row["state"] != "healthy")
+    return {
+        **worst[1],
+        # The soonest pool to recover, and which pools are limited — an adapter
+        # whose Opus pool is capped still has its other pools available.
+        "retry_after_s": min(waits) if waits else 0,
+        "buckets": scoped,
+        "limited_buckets": limited,
     }
 
 
 def clear_health(db_path: str | Path, adapter_id: str) -> bool:
     try:
         with sqlite3.connect(str(db_path), timeout=5) as conn:
-            cursor = conn.execute("DELETE FROM adapter_health WHERE adapter_id = ?", (adapter_id,))
+            # Operator intent is "clear this adapter", so every pool it meters
+            # against goes with it.
+            cursor = conn.execute(
+                "DELETE FROM adapter_health WHERE adapter_id = ? OR adapter_id GLOB ?",
+                (adapter_id, f"{adapter_id}:*"),
+            )
             conn.commit()
             return cursor.rowcount > 0
     except sqlite3.OperationalError as exc:

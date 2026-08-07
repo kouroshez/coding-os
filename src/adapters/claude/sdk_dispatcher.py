@@ -95,6 +95,11 @@ def _failure_fields(status: str, error: str | None) -> dict[str, Any]:
         for token in ("unauthorized", "authentication", "not logged in", "401", "403")
     ):
         return {"error_category": "auth", "outcome": "known_failed"}
+    # Provider-side overload (529) and internal errors (5xx) are NOT your quota,
+    # so they must not open the capacity breaker — but they are the most
+    # retryable class there is, and reporting them non-retryable is wrong.
+    if any(token in message for token in ("overloaded", "529", "api_error", "500", "502", "503")):
+        return {"error_category": "provider", "retryable": True, "outcome": "unknown"}
     if any(token in message for token in ("not importable", "not found")):
         return {"error_category": "unavailable", "outcome": "known_failed"}
     if any(token in message for token in ("must be absolute", "max_budget_usd", "max_turns")):

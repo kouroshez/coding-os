@@ -196,18 +196,18 @@ def _default_model(record) -> str | None:
     return None
 
 
-def _exhausted(
+def _with_fleet_recovery_hint(
     last_result: DispatchResult, capacity_waits: list[tuple[str, int | None]]
 ) -> DispatchResult:
     if len(capacity_waits) < 2 or last_result.error_category != "capacity":
         return last_result
     waits = [seconds for _, seconds in capacity_waits if seconds is not None]
     soonest = min(waits) if waits else None
-    names = ", ".join(adapter_id for adapter_id, _ in capacity_waits)
+    names = ", ".join(scope for scope, _ in capacity_waits)
     recovery = f"soonest recovery in {soonest}s" if soonest is not None else "recovery time unknown"
     return last_result.model_copy(
         update={
-            "error": f"all eligible adapters are at capacity ({names}); {recovery}",
+            "error": f"every eligible model pool is at capacity ({names}); {recovery}",
             "retry_after_s": soonest,
         }
     )
@@ -319,11 +319,15 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
 
         # sqlite here is synchronous and takes a write lock; off-loading keeps a
         # parallel fan-out from serializing the event loop on the breaker.
+        scope = supervision.capacity_key(record, selected.model or _default_model(record))
+        # The lease must cover the probe, but timeout_s is caller-supplied and
+        # unbounded — clamp it to the same ceiling that bounds a cooldown.
+        lease = min(float(request.timeout_s), float(policy["cooldown"]["maximum_seconds"]))
         decision = await asyncio.to_thread(
-            supervision.check_capacity, db_path, adapter_id, lease_seconds=request.timeout_s
+            supervision.check_capacity, db_path, scope, lease_seconds=lease
         )
         if not decision.allowed:
-            capacity_waits.append((adapter_id, decision.retry_after_s))
+            capacity_waits.append((scope, decision.retry_after_s))
             last_result = DispatchResult(
                 formula_id=request.formula_id,
                 status="error",
@@ -336,7 +340,13 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
             )
             continue
 
-        result = await runtime.dispatch(selected)
+        try:
+            result = await runtime.dispatch(selected)
+        except Exception:
+            # An adapter that raises never reaches record_result, so the probe
+            # lease it holds would strand recovery for the whole lease window.
+            await asyncio.to_thread(supervision.release_probe, db_path, scope)
+            raise
         if result.status == "error" and result.error_category is None:
             logger.warning(
                 "%s returned an unclassified failure, so the capacity breaker "
@@ -347,7 +357,7 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
         await asyncio.to_thread(
             supervision.record_result,
             db_path,
-            adapter_id,
+            scope,
             success=result.status == "ok",
             error_category=result.error_category,
             retryable=result.retryable,
@@ -357,11 +367,18 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
         )
         meta = result.output_json.setdefault("_meta", {})
         if isinstance(meta, dict):
+            # Identity uses the OpenTelemetry GenAI attribute names so a future
+            # runtime learns what to emit from a public spec rather than from
+            # this repo's docs, and any OTel-aware tool can read the envelope.
             meta.update(
                 {
                     "adapter": adapter_id,
                     "model": selected.model,
                     "effort": selected.effort,
+                    "gen_ai.provider.name": adapter_id,
+                    "gen_ai.agent.id": request.formula_id,
+                    "gen_ai.request.model": selected.model,
+                    "capacity_scope": scope,
                     "health_state": decision.state,
                     "health_probe": decision.probe,
                     "error_category": result.error_category,
@@ -375,13 +392,13 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
             and result.outcome == "known_failed"
             and policy.get("fallback_policy") == "next_eligible"
         ):
-            capacity_waits.append((adapter_id, result.retry_after_s))
+            capacity_waits.append((scope, result.retry_after_s))
             last_result = result
             continue
         return result
 
     if last_result is not None:
-        return _exhausted(last_result, capacity_waits)
+        return _with_fleet_recovery_hint(last_result, capacity_waits)
 
     return DispatchResult(
         formula_id=request.formula_id,

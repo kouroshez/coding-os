@@ -259,7 +259,8 @@
         "properties": {
           "id": {"type": "string", "minLength": 1, "description": "Model identifier passed to the agent runtime."},
           "label": {"type": "string", "description": "Human-facing model name shown in the picker."},
-          "default": {"type": "boolean", "description": "Whether this is the adapter's default model. At most one per adapter."}
+          "default": {"type": "boolean", "description": "Whether this is the adapter's default model. At most one per adapter."},
+          "bucket": {"type": "string", "minLength": 1, "description": "Provider rate-limit pool this model draws from. Models sharing a pool share one capacity cooldown; models in different pools stay independent when one is limited. Absent = the adapter is treated as a single pool."}
         }
       }
     },
