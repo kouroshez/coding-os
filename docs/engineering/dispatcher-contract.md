@@ -44,6 +44,7 @@ class DispatchRequest(BaseModel):
     session_id: str | None
     cwd: str | None
     model: str | None          # forwarded to the adapter; None = adapter default
+    effort: str | None         # adapter-declared reasoning effort
     max_budget_usd: float | None
     long_context: bool
     adapter: str | None        # target-runtime HINT (e.g. "codex"); see below
@@ -57,6 +58,10 @@ class DispatchResult(BaseModel):
     error: str | None
     dispatcher_name: str       # "claude-sdk" | "codex-sdk" | "default" | ...
     raw_transcript: str | None
+    error_category: str | None # capacity | auth | unavailable | timeout | provider | invalid
+    retryable: bool
+    retry_after_s: int | None
+    outcome: str               # known_failed | unknown
 ```
 
 ### Protocol
@@ -122,15 +127,12 @@ async generator vs. subprocess vs. nothing). Hexagonal here gives us:
 The loader is `importlib.util.spec_from_file_location` so `src/core/` never has
 a static import on `src/adapters/`.
 
-6. **Adapter hint, not adapter switch.** `DispatchRequest.adapter` is a HINT:
-   when set and different from the session's resolved adapter,
-   `get_dispatcher(request=…)` logs a warning naming both and proceeds on the
-   session adapter — one adapter per session remains the invariant. The field
-   exists so supervisor decisions (preset `roles_adapter_hints`, TASK-321) have
-   a typed carrier today; honoring the hint with a real cross-adapter dispatch
-   is the explicit follow-up seam, not implied behaviour. Per-call cost ceilings
-   ride on `max_budget_usd`; a separate `adapter_budget_usd` carrier was removed
-   (audit 2026-06 F-axis-5 — it was never read, only defaulted).
+6. **Supervision-gated adapter switch.** `DispatchRequest.adapter` remains an
+   advisory hint while supervision is disabled. When project settings enable
+   supervision, the dispatcher resolves that id through the manifest registry,
+   applies runtime health policy, and invokes that adapter for the request.
+   A run never changes adapter after execution starts. Per-call cost ceilings
+   ride on `max_budget_usd`; adapter-specific budget carriers are not added.
 
 ## Parity rules
 
@@ -144,8 +146,12 @@ Every adapter dispatcher MUST:
 4. Return `status="error"` (not raise) on FileNotFoundError, SDK import
    failure, subprocess rc≠0, parse failure, etc.
 5. Set `dispatcher_name` to the same string as `self.name`.
-6. Forward `model`; surface unsupported budget, context, tool, or turn controls instead of silently dropping them.
-7. Never retry on another backend after a provider turn may have started; duplicate execution is worse than a visible error.
+6. Forward declared `model` and `effort`; surface unsupported budget, context,
+   tool, or turn controls instead of silently dropping them.
+7. Normalize native capacity failures into `error_category`, `retryable`, and
+   `retry_after_s` without leaking credentials or full provider payloads.
+8. Never retry on another backend after a provider turn may have started;
+   duplicate execution is worse than a visible error.
 
 The Codex CLI backend additionally MUST use the current non-interactive surface (`codex exec`), write the prompt to stdin, parse JSONL events, and run formula output in a read-only sandbox with approvals disabled. Formula dispatch ignores user configuration, disables hooks, and clears MCP servers so host customizations cannot recurse into or mutate a supervised sub-run. The optional Python SDK is beta and selected explicitly. Its availability is independent of a global CLI installation because published SDK builds include a pinned runtime; normal SDK dispatch must not replace that runtime with a newer system binary implicitly.
 
@@ -155,9 +161,10 @@ The Codex CLI backend additionally MUST use the current non-interactive surface 
 2. Import the contract + helpers from `thinking_os.*`.
 3. Implement a class with `name`, `available()`, and `async dispatch()`.
 4. Add `build_dispatcher() -> YourDispatcher`.
-5. Add a parity test in `tests/test_adapter_parity.py`.
-6. Update `src/adapters/<agent>/adapter.yaml` if presence/hook capabilities
-   change. No edits to `src/core/` are needed.
+5. Declare `runtime_entrypoints.dispatch`, capabilities, models, and efforts in
+   `src/adapters/<agent>/adapter.yaml`.
+6. Add a parity test in `tests/test_adapter_parity.py`.
+7. Core routing needs no provider-specific edit.
 
 ## Tests
 

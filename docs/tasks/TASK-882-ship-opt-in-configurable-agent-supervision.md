@@ -5,13 +5,13 @@ swimlane: core
 kind: feature
 epic: null
 labels: [orchestration, adapters, model-routing, hub, docs-update, ready]
-status: icebox
+status: "in_progress"
 priority: P1
 appetite: 3d
 created: 2026-08-04
-started: null
+started: 2026-08-06
 completed: null
-agent_session: null
+agent_session: ses-codex-019fc9ac-216e-7211-a224-dad139ff5712
 depends_on: []
 blocked_by: []
 references: []
@@ -19,12 +19,12 @@ references: []
 
 # TASK-882: Ship opt-in configurable agent supervision
 
-**Outcome (one sentence):** Users can opt into a manifest-discovered supervision feature, choose installed runtimes and per-role model policies, and keep the system completely inert when disabled or when only one runtime is installed.
+**Outcome (one sentence):** Users can opt into manifest-discovered supervision, route roles across any installed runtime or model, and keep unhealthy or rate-limited capacity out of selection until it safely recovers.
 
 ## Read First
 - docs/architecture/raptor-consolidation.md
 - docs/governance/vision.md
-- docs/engineering/agent-hub-orchestration.md
+- docs/engineering/agent-supervision.md
 - docs/engineering/hub-architecture.md
 - docs/engineering/config-composition.md
 - docs/adapters/claude-sdk.md
@@ -35,24 +35,37 @@ references: []
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 
-- **Given** the feature is disabled
+- **Given** supervision is disabled
   **When** prompts, formula runs, Hub chats, hooks, and CLI sessions execute
-  **Then** current single-runtime behavior is unchanged and no supervision tokens, processes, persistence, or UI controls are activated.
-- **Given** one or more installed adapters advertise interactive runtime capabilities
+  **Then** current single-runtime behavior is unchanged and no supervision tokens, processes, health persistence, or UI controls are activated.
+- **Given** one or more configured adapters advertise dispatch capabilities
   **When** the user enables supervision
-  **Then** all adapter/model/effort choices are discovered from manifests and editable as per-role policies without provider or model literals in core.
-- **Given** a user selects one adapter with several models
+  **Then** adapter, model, and effort choices are discovered from manifests and editable as per-role policies without provider or model literals in core.
+- **Given** one adapter exposes several models
   **When** a supervised workflow runs
   **Then** roles can be routed among those models without requiring another adapter.
-- **Given** several compatible adapters
-  **When** a workflow fans out, retries, resumes, cancels, or requests permission
-  **Then** stable run identity, capability negotiation, checkpoints, budgets, cancellation propagation, writer leases, and typed evidence outputs remain deterministic and observable.
-- **Given** an adapter or capability is missing, stale, unauthenticated, or fails mid-run
+- **Given** several eligible adapters
+  **When** a workflow fans out
+  **Then** each role resolves and invokes its own adapter, model, and effort policy while the parent receives deterministic typed evidence.
+- **Given** an adapter reports a retryable capacity or rate-limit failure
+  **When** more work is routed before its retry window
+  **Then** the adapter is excluded without repeated paid probes, its cooldown and reason are observable, and configured fallback policy is applied.
+- **Given** an adapter cooldown expires
+  **When** new work becomes eligible
+  **Then** the adapter enters a bounded half-open probe, returns to healthy after success, and extends cooldown without a retry storm after another capacity failure.
+- **Given** future adapters add manifest-compatible runtime entrypoints and normalized failure metadata
+  **When** they are installed
+  **Then** supervision discovers and routes them without editing provider literals in core.
+- **Given** an adapter is missing, unauthenticated, incompatible, or fails with an uncertain write
   **When** policy resolution occurs
-  **Then** the system follows the configured fallback/fail policy and never invents parity or silently replays an uncertain write.
+  **Then** the configured fail or fallback behavior is followed without invented parity, unsafe replay, or silent adapter switching.
+- **Given** implementation verification passes
+  **When** the release workflow runs
+  **Then** the next version is published from the verified commit to GitHub and PyPI with matching version and artifact evidence.
 - **Given** the feature is shipped
-  **When** the current repository tree, UI copy, public metadata, application logs, and newly created commit metadata are inspected
-  **Then** implementation language stays product-native and contains no benchmark-project names or research-document title/path.
+  **When** the current tree, UI copy, public metadata, application logs, and newly created commit metadata are inspected
+  **Then** implementation language remains product-native and contains no external benchmark names or obsolete research-document title/path.
 
 ## Work Log
 - 2026-08-04 [019fc9ac-216e-7211-a224-]: Research and architecture pass complete. Raptor review favors one capability-driven adapter registry, the existing…
+- 2026-08-07 [019fc9ac-216e-7211-a224-]: Docs-first contract now defines one manifest-driven registry, one persistent capacity circuit, default-off policy,…

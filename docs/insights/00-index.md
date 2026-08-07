@@ -10,9 +10,10 @@ Read next: any of the entries below.
 
 <!-- BEGIN auto-index -->
 
-### Reference (2)
+### Reference (3)
 
 - [TASK-859: When an enforcement chain silently never fires, check the CLASSIFIER at its head before the enforcer at its tail — a language/locale-blind classifier (English-only verb regex vs Persian operator) disables every downstream gate while each gate looks correct in isolation. And forensics shortcut: task_status_history reason=NULL means a bare transition() caller; sync writes 'file-sync', reclaim writes 'reclaim:…' — the reason field fingerprints the writer.](task-859-when-an-enforcement-chain-silently-never.md) — `ssot:false` · updated 2026-08-02
 - [TASK-861: Platform-probe chains must put the FAIL-LOUD variant first: a probe that "succeeds with garbage" (GNU stat -f %m) poisons every fallback chain that trusts exit codes. When a CI failure is Linux-only, reproduce in a container with CI-faithful dependency resolution before touching code — three of seven "Linux" failures were actually fresh-latest-deps or env-tool differences, not the OS.](task-861-platform-probe-chains-must-put-the-fail-l.md) — `ssot:false` · updated 2026-08-03
+- [TASK-863: Bash cwd persists across tool calls — always run matrix pytest with an absolute repo-root path (cd /repo && pytest tests/...) and treat "no tests ran" as failure: the verify ledger keys on exit code, so a 0-collected run poisons it with a false green until COS_TEST_FORCE=1.](task-863-bash-cwd-persists-across-tool-calls-alway.md) — `ssot:false` · updated 2026-08-03
 
 <!-- END auto-index -->
