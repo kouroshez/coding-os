@@ -306,7 +306,7 @@ coding-os/
 └── .coding-os/         # Per-project runtime state (gitignored)
 ```
 
-## Command index (highlights · 98 `cos` subcommands total)
+## Command index (highlights · 99 `cos` subcommands total)
 
 ```
 Project lifecycle    init · adopt · setup · add-adapter · add-stack · update · materialize · eject
@@ -315,6 +315,7 @@ Diagnostics          doctor · health · list-stacks · list-adapters · hooks-d
 Hub                  hub start · hub status · hub stop
 Board                board · task-create · task-start · task-move · task-done · daily · retro · wip
 Cognition            cognition trace · trace-replay · trace-summary
+Supervision          supervision show · enable · disable · set   (per-role adapter/model/effort)
 Graph                29 graph-* subcommands (build · find · deps · analysis · review);
                      22 mirror a cos_graph_* MCP tool one-for-one, enforced by a parity test
 ```
@@ -424,9 +425,13 @@ cos supervision show
 ```
 
 Adapters and their model catalogs are discovered from `adapter.yaml`, so a new
-runtime is configurable the day it is installed. When a provider reports a rate
-or capacity limit, that adapter is put on a persistent cooldown with a single
-half-open recovery probe instead of retry-storming a limit that cannot succeed.
+runtime is configurable the day it is installed.
+
+When a provider reports a rate limit, only the **model pool** that hit it goes
+into a persistent cooldown — providers meter each pool separately, so an
+exhausted Opus pool must not stop a reviewer running on Haiku. Recovery is one
+half-open probe, not a retry storm against a limit that cannot succeed.
+
 Same policy from the Hub (**Config → Settings**), the CLI, or MCP — no Hub
 required. Disabled means disabled: no probe, no state write, no tokens.
 
