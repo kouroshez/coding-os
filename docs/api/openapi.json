@@ -1,6 +1,27 @@
 {
   "components": {
     "schemas": {
+      "AdapterTargetPolicy": {
+        "properties": {
+          "adapter": {
+            "default": "",
+            "title": "Adapter",
+            "type": "string"
+          },
+          "effort": {
+            "default": "",
+            "title": "Effort",
+            "type": "string"
+          },
+          "model": {
+            "default": "",
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "title": "AdapterTargetPolicy",
+        "type": "object"
+      },
       "Body_board_create_api_board_create_post": {
         "properties": {
           "agent_session": {
@@ -539,6 +560,26 @@
         "title": "Body_validate_pattern_api_patterns__pattern_id__validate_post",
         "type": "object"
       },
+      "CooldownPolicy": {
+        "properties": {
+          "default_seconds": {
+            "default": 300,
+            "maximum": 86400.0,
+            "minimum": 1.0,
+            "title": "Default Seconds",
+            "type": "integer"
+          },
+          "maximum_seconds": {
+            "default": 3600,
+            "maximum": 604800.0,
+            "minimum": 1.0,
+            "title": "Maximum Seconds",
+            "type": "integer"
+          }
+        },
+        "title": "CooldownPolicy",
+        "type": "object"
+      },
       "CronStatus": {
         "properties": {
           "installed": {
@@ -639,6 +680,75 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ModelRoutingPolicy": {
+        "properties": {
+          "complexity_threshold": {
+            "default": "COMPLICATED",
+            "enum": [
+              "CLEAR",
+              "COMPLICATED",
+              "COMPLEX",
+              "CHAOTIC"
+            ],
+            "title": "Complexity Threshold",
+            "type": "string"
+          },
+          "cooldown": {
+            "$ref": "#/components/schemas/CooldownPolicy"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "fallback_policy": {
+            "default": "fail_closed",
+            "enum": [
+              "fail_closed",
+              "same_adapter_default",
+              "next_eligible"
+            ],
+            "title": "Fallback Policy",
+            "type": "string"
+          },
+          "max_parallel": {
+            "default": 3,
+            "maximum": 16.0,
+            "minimum": 1.0,
+            "title": "Max Parallel",
+            "type": "integer"
+          },
+          "mode": {
+            "default": "explicit",
+            "enum": [
+              "explicit",
+              "suggest",
+              "adaptive"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "orchestrator": {
+            "$ref": "#/components/schemas/AdapterTargetPolicy"
+          },
+          "orchestrator_model": {
+            "default": "",
+            "title": "Orchestrator Model",
+            "type": "string"
+          },
+          "roles": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AdapterTargetPolicy"
+            },
+            "title": "Roles",
+            "type": "object"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "ModelRoutingPolicy",
         "type": "object"
       },
       "ProjectScheduled": {
@@ -908,27 +1018,6 @@
         "title": "ValidationError",
         "type": "object"
       },
-      "_AdapterTargetIn": {
-        "properties": {
-          "adapter": {
-            "default": "",
-            "title": "Adapter",
-            "type": "string"
-          },
-          "effort": {
-            "default": "",
-            "title": "Effort",
-            "type": "string"
-          },
-          "model": {
-            "default": "",
-            "title": "Model",
-            "type": "string"
-          }
-        },
-        "title": "_AdapterTargetIn",
-        "type": "object"
-      },
       "_AutoSpawnIn": {
         "properties": {
           "enabled": {
@@ -986,26 +1075,6 @@
         "title": "_ClaudeAuthIn",
         "type": "object"
       },
-      "_CooldownIn": {
-        "properties": {
-          "default_seconds": {
-            "default": 300,
-            "maximum": 86400.0,
-            "minimum": 1.0,
-            "title": "Default Seconds",
-            "type": "integer"
-          },
-          "maximum_seconds": {
-            "default": 3600,
-            "maximum": 604800.0,
-            "minimum": 1.0,
-            "title": "Maximum Seconds",
-            "type": "integer"
-          }
-        },
-        "title": "_CooldownIn",
-        "type": "object"
-      },
       "_GitSettingsIn": {
         "properties": {
           "autonomy_level": {
@@ -1059,75 +1128,6 @@
         "title": "_GitSettingsIn",
         "type": "object"
       },
-      "_ModelRoutingIn": {
-        "properties": {
-          "complexity_threshold": {
-            "default": "COMPLICATED",
-            "enum": [
-              "CLEAR",
-              "COMPLICATED",
-              "COMPLEX",
-              "CHAOTIC"
-            ],
-            "title": "Complexity Threshold",
-            "type": "string"
-          },
-          "cooldown": {
-            "$ref": "#/components/schemas/_CooldownIn"
-          },
-          "enabled": {
-            "title": "Enabled",
-            "type": "boolean"
-          },
-          "fallback_policy": {
-            "default": "fail_closed",
-            "enum": [
-              "fail_closed",
-              "same_adapter_default",
-              "next_eligible"
-            ],
-            "title": "Fallback Policy",
-            "type": "string"
-          },
-          "max_parallel": {
-            "default": 3,
-            "maximum": 16.0,
-            "minimum": 1.0,
-            "title": "Max Parallel",
-            "type": "integer"
-          },
-          "mode": {
-            "default": "explicit",
-            "enum": [
-              "explicit",
-              "suggest",
-              "adaptive"
-            ],
-            "title": "Mode",
-            "type": "string"
-          },
-          "orchestrator": {
-            "$ref": "#/components/schemas/_AdapterTargetIn"
-          },
-          "orchestrator_model": {
-            "default": "",
-            "title": "Orchestrator Model",
-            "type": "string"
-          },
-          "roles": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/_AdapterTargetIn"
-            },
-            "title": "Roles",
-            "type": "object"
-          }
-        },
-        "required": [
-          "enabled"
-        ],
-        "title": "_ModelRoutingIn",
-        "type": "object"
-      },
       "_PatchBody": {
         "properties": {
           "auto_spawn": {
@@ -1173,7 +1173,7 @@
           "model_routing": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/_ModelRoutingIn"
+                "$ref": "#/components/schemas/ModelRoutingPolicy"
               },
               {
                 "type": "null"
