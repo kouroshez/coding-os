@@ -44,3 +44,6 @@ references: []
 - 2026-08-07 [claude]: FIXED (7bb6cc44): root cause was COS_STATE_DIR being a relative path resolved against the gate process's cwd — the…
 - 2026-08-07 [claude]: Status transitioned to complete via cos task-done.
 - 2026-08-07 [claude]: commit f8932a64be — chore(board): close TASK-880 and TASK-882, log the cos update P0 fix
+- 2026-08-07 [claude]: commit eaf72ded16 — style: apply ruff format to the supervision change set
+- 2026-08-07 [claude]: Edit test_cognition_tools.py
+- 2026-08-07 [claude]: commit 0a245206d4 — test(supervision): drop a hardcoded model id from the clear-flag guard test
