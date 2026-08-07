@@ -89,3 +89,4 @@ references: []
 - 2026-08-07 [claude]: Edit claude-sdk.md
 - 2026-08-07 [claude]: Edit adapter_registry.py
 - 2026-08-07 [claude]: commit aeaf4f148e — fix(supervision): restore adapter validation and protect the capacity recovery probe
+- 2026-08-07 [claude]: commit e76e67f75e — chore(board): record the supervision code-review fixes on TASK-882
