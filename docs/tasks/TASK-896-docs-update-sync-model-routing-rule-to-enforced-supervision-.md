@@ -5,18 +5,17 @@ swimlane: docs
 kind: chore
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-07
-started: null
-completed: null
-agent_session: null
+started: 2026-08-07
+completed: 2026-08-07
+agent_session: ses-claude-20260806-204356-2f94
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-896: docs-update: sync model-routing rule to enforced supervision trigger modes
 
 ## Outcome
@@ -52,3 +51,6 @@ references: []
 - 2026-08-07 [claude]: commit 61f6f66970 — test(supervision): cover trigger-mode gating, write-time validation, and stale targets
 - 2026-08-07 [claude]: commit 504d29cd9a — docs(supervision): document the enforced contract, add the operator playbook and README section
 - 2026-08-07 [claude]: commit cdb8963032 — docs(rules): sync the model-routing rule to the enforced supervision trigger modes
+- 2026-08-07 [claude]: commit 1229993103 — chore(board): log the supervision review-fix pass on TASK-882
+- 2026-08-07 [claude]: commit 58d0d87410 — docs: refresh the engineering index after the supervision doc update
+- 2026-08-07 [claude]: Status transitioned to complete via cos task-done.

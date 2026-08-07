@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: null
 labels: [orchestration, adapters, model-routing, hub, docs-update, ready]
-status: in_progress
+status: testing
 priority: P1
 appetite: 3d
 created: 2026-08-04
