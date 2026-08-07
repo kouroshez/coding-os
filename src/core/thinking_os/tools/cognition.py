@@ -1976,7 +1976,9 @@ def register_cos_supervision_config(mcp, db_path):
         if (role_target or clear_role) and not role.strip():
             return fail("validation", "role is required with role fields or clear_role")
         if clear_role and role_target:
-            return fail("validation", "clear_role cannot be combined with role adapter/model/effort")
+            return fail(
+                "validation", "clear_role cannot be combined with role adapter/model/effort"
+            )
         if clear_orchestrator and orchestrator:
             return fail(
                 "validation",

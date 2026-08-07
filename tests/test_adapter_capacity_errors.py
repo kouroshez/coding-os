@@ -72,7 +72,9 @@ def test_adapter_classifies_a_provider_limit_as_retryable_capacity(adapter_id: s
 
 @pytest.mark.parametrize("adapter_id", _dispatch_adapter_ids())
 def test_adapter_extracts_a_provider_supplied_retry_delay(adapter_id: str) -> None:
-    fields = _load(adapter_id)._failure_fields("error", "Usage limit reached; try again in 47 seconds")
+    fields = _load(adapter_id)._failure_fields(
+        "error", "Usage limit reached; try again in 47 seconds"
+    )
 
     assert fields["error_category"] == "capacity"
     assert fields["retry_after_s"] == 47

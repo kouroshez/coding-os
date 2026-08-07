@@ -2780,7 +2780,10 @@ class TestSupervisionCli:
 
         for args, expected in (
             (["--role", "reviewer", "--role-adapter", "ghost"], "unknown adapter"),
-            (["--role", "reviewer", "--role-adapter", "codex", "--role-effort", "high"], "not supported"),
+            (
+                ["--role", "reviewer", "--role-adapter", "codex", "--role-effort", "high"],
+                "not supported",
+            ),
             (
                 ["--role", "reviewer", "--role-adapter", "claude", "--role-model", "not-a-model"],
                 "not declared",

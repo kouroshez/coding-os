@@ -142,7 +142,9 @@ def test_model_routing_rejects_targets_dispatch_could_never_satisfy(client):
         ({"roles": {"reviewer": {"adapter": "claude", "model": "sonnet"}}}, "is not declared"),
         ({"orchestrator": {"adapter": "codex", "effort": "high"}}, "is not supported"),
     ):
-        response = client.patch("/api/settings", json={"model_routing": {"enabled": True, **target}})
+        response = client.patch(
+            "/api/settings", json={"model_routing": {"enabled": True, **target}}
+        )
 
         assert response.status_code == 422, response.json()
         assert expected in response.json()["error"]["message"]

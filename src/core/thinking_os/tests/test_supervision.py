@@ -469,9 +469,7 @@ def test_write_time_validation_accepts_free_form_model_on_an_empty_catalog(
     assert policy["roles"]["reviewer"]["model"] == "anything-goes"
 
 
-def test_write_time_validation_only_covers_the_patched_targets(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_write_time_validation_only_covers_the_patched_targets(tmp_path: Path, monkeypatch) -> None:
     state = tmp_path / ".coding-os"
     state.mkdir()
     # A role pinned to an adapter that was later uninstalled must not lock the
@@ -518,7 +516,12 @@ def test_entrypoint_module_is_cached_until_the_file_changes(tmp_path: Path) -> N
 def test_probe_lease_outlives_the_dispatch_it_guards(tmp_path: Path) -> None:
     db_path = _health_db(tmp_path / "health.db")
     supervision.record_result(
-        db_path, "claude", success=False, error_category="capacity", retryable=True, retry_after_s=60
+        db_path,
+        "claude",
+        success=False,
+        error_category="capacity",
+        retryable=True,
+        retry_after_s=60,
     )
     after_cooldown = time.time() + 120
 
@@ -538,7 +541,12 @@ def test_probe_lease_outlives_the_dispatch_it_guards(tmp_path: Path) -> None:
 def test_failed_probe_releases_its_lease_instead_of_stalling_recovery(tmp_path: Path) -> None:
     db_path = _health_db(tmp_path / "health.db")
     supervision.record_result(
-        db_path, "claude", success=False, error_category="capacity", retryable=True, retry_after_s=60
+        db_path,
+        "claude",
+        success=False,
+        error_category="capacity",
+        retryable=True,
+        retry_after_s=60,
     )
     after_cooldown = time.time() + 120
     supervision.check_capacity(db_path, "claude", now=after_cooldown, lease_seconds=300)
@@ -561,7 +569,12 @@ def test_exhausted_fleet_reports_the_soonest_recovery(tmp_path: Path, monkeypatc
     _settings(tmp_path)
     records = [_record(tmp_path, "slow"), _record(tmp_path, "quick")]
     supervision.record_result(
-        db_path, "slow", success=False, error_category="capacity", retryable=True, retry_after_s=3000
+        db_path,
+        "slow",
+        success=False,
+        error_category="capacity",
+        retryable=True,
+        retry_after_s=3000,
     )
     supervision.record_result(
         db_path, "quick", success=False, error_category="capacity", retryable=True, retry_after_s=30
@@ -684,12 +697,20 @@ def test_one_limited_pool_does_not_take_the_others_out_of_service(
 def test_hub_summary_reports_the_worst_pool_and_the_soonest_recovery(tmp_path: Path) -> None:
     db_path = _health_db(tmp_path / "health.db")
     supervision.record_result(
-        db_path, "claude:opus-4x", success=False, error_category="capacity",
-        retryable=True, retry_after_s=900,
+        db_path,
+        "claude:opus-4x",
+        success=False,
+        error_category="capacity",
+        retryable=True,
+        retry_after_s=900,
     )
     supervision.record_result(
-        db_path, "claude:haiku", success=False, error_category="capacity",
-        retryable=True, retry_after_s=60,
+        db_path,
+        "claude:haiku",
+        success=False,
+        error_category="capacity",
+        retryable=True,
+        retry_after_s=60,
     )
     supervision.record_result(db_path, "codex", success=True)
 
@@ -706,8 +727,12 @@ def test_hub_summary_reports_the_worst_pool_and_the_soonest_recovery(tmp_path: P
 def test_expired_cooldown_is_not_reported_as_still_cooling(tmp_path: Path) -> None:
     db_path = _health_db(tmp_path / "health.db")
     supervision.record_result(
-        db_path, "claude", success=False, error_category="capacity",
-        retryable=True, retry_after_s=30,
+        db_path,
+        "claude",
+        success=False,
+        error_category="capacity",
+        retryable=True,
+        retry_after_s=30,
     )
 
     assert supervision.health_snapshot(db_path)["claude"]["state"] == "cooling_down"
@@ -722,8 +747,12 @@ def test_clear_health_removes_every_pool_of_one_adapter(tmp_path: Path) -> None:
     db_path = _health_db(tmp_path / "health.db")
     for scope in ("claude", "claude:opus-4x", "claude:haiku", "codex"):
         supervision.record_result(
-            db_path, scope, success=False, error_category="capacity",
-            retryable=True, retry_after_s=300,
+            db_path,
+            scope,
+            success=False,
+            error_category="capacity",
+            retryable=True,
+            retry_after_s=300,
         )
 
     assert supervision.clear_health(db_path, "claude") is True
@@ -736,8 +765,12 @@ def test_a_raising_adapter_does_not_strand_the_recovery_probe(tmp_path: Path, mo
     _settings(tmp_path, fallback="fail_closed")
     records = [_record(tmp_path, "claude")]
     supervision.record_result(
-        db_path, "claude", success=False, error_category="capacity",
-        retryable=True, retry_after_s=1,
+        db_path,
+        "claude",
+        success=False,
+        error_category="capacity",
+        retryable=True,
+        retry_after_s=1,
     )
 
     class Runtime:

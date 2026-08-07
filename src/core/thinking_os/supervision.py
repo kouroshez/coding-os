@@ -258,8 +258,7 @@ def role_policy(
     value = policy.get("roles", {}).get(role, {})
     value = value if isinstance(value, dict) else {}
     return {
-        key: str(value.get(key) or default.get(key) or "")
-        for key in ("adapter", "model", "effort")
+        key: str(value.get(key) or default.get(key) or "") for key in ("adapter", "model", "effort")
     }
 
 
@@ -447,7 +446,9 @@ def health_snapshot(db_path: str | Path, now: float | None = None) -> dict[str, 
     except sqlite3.OperationalError:
         return {}
     return {
-        str(scope): _health_row(state, failure_count, cooldown_until, probe_lease_until, reason, clock)
+        str(scope): _health_row(
+            state, failure_count, cooldown_until, probe_lease_until, reason, clock
+        )
         for scope, state, failure_count, cooldown_until, probe_lease_until, reason in rows
     }
 
@@ -468,9 +469,7 @@ def _health_row(state, failure_count, cooldown_until, probe_lease_until, reason,
 
 
 def adapter_health(snapshot: dict[str, dict[str, Any]], adapter_id: str) -> dict[str, Any] | None:
-    scoped = {
-        scope: row for scope, row in snapshot.items() if adapter_of(scope) == adapter_id
-    }
+    scoped = {scope: row for scope, row in snapshot.items() if adapter_of(scope) == adapter_id}
     if not scoped:
         return None
     rank = {"cooling_down": 2, "half_open": 1, "healthy": 0}
