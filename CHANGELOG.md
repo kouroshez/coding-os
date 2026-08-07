@@ -12,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.6](https://github.com/kouroshez/coding-os/compare/v0.3.5...v0.3.6) (2026-08-06)
+
+
+### Fixed
+
+* **ci:** refresh golden fixtures and scaffold manifest for the CLAUDE.md entrypoint ([4251243](https://github.com/kouroshez/coding-os/commit/4251243bb2a10ef3378645da5856261a9997c27e))
+* **cli:** emit Node 22 in generated CI and the TypeScript Dockerfile ([cceba34](https://github.com/kouroshez/coding-os/commit/cceba345005e627e181550de7b64ef873e0ed357))
+* **release:** keep the PyPI recovery hatch reachable and pin checkout to the release sha ([ce2d180](https://github.com/kouroshez/coding-os/commit/ce2d180a0d6c2b93887321bc4be9ac67f2b28fbc))
+
 ## [0.3.5](https://github.com/kouroshez/coding-os/compare/v0.3.4...v0.3.5) (2026-08-06)
 
 
