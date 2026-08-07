@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.8](https://github.com/kouroshez/coding-os/compare/v0.3.7...v0.3.8) (2026-08-07)
+
+
+### Fixed
+
+* make supervision configurable without Hub ([33001c0](https://github.com/kouroshez/coding-os/commit/33001c04397843281c0422dc124a99d477e7341e))
+* sync shared supervision OpenAPI schema ([29e2509](https://github.com/kouroshez/coding-os/commit/29e2509adef06a165705bcf463e13af52b12166a))
+
 ## [0.3.7](https://github.com/kouroshez/coding-os/compare/v0.3.6...v0.3.7) (2026-08-07)
 
 
