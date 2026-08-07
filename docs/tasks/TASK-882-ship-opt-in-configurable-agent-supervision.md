@@ -190,3 +190,7 @@ references: []
 - 2026-08-07 [claude]: commit e745bf128e — docs(supervision): record what a provider limit actually applies to
 - 2026-08-07 [claude]: Researched the provider's own rate-limit spec and found the model was wrong at the root: limits are metered per…
 - 2026-08-07 [claude]: commit cc202aab9c — chore(board): log the pool-scoping research and fixes on TASK-882
+- 2026-08-07 [claude]: commit a4b5c4e502 — chore(board): record the closing work-log entry on TASK-882
+- 2026-08-07 [claude]: Edit SettingsPage.tsx
+- 2026-08-07 [claude]: Edit SettingsPage.test.tsx
+- 2026-08-07 [claude]: commit 5147541bb6 — fix(hub): stop the settings toggle reading inverted
