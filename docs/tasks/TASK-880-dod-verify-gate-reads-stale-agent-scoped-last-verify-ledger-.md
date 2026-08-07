@@ -43,3 +43,4 @@ references: []
 ## Work Log
 - 2026-08-07 [claude]: FIXED (7bb6cc44): root cause was COS_STATE_DIR being a relative path resolved against the gate process's cwd — the…
 - 2026-08-07 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-07 [claude]: commit f8932a64be — chore(board): close TASK-880 and TASK-882, log the cos update P0 fix
