@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sqlite3
+import time
 from pathlib import Path
 
 from thinking_os import dispatcher, supervision
@@ -512,6 +513,81 @@ def test_entrypoint_module_is_cached_until_the_file_changes(tmp_path: Path) -> N
 
     assert reloaded is not first
     assert reloaded.VALUE == 2
+
+
+def test_probe_lease_outlives_the_dispatch_it_guards(tmp_path: Path) -> None:
+    db_path = _health_db(tmp_path / "health.db")
+    supervision.record_result(
+        db_path, "claude", success=False, error_category="capacity", retryable=True, retry_after_s=60
+    )
+    after_cooldown = time.time() + 120
+
+    probe = supervision.check_capacity(db_path, "claude", now=after_cooldown, lease_seconds=300)
+    assert probe.allowed and probe.probe
+
+    # A formula dispatch routinely runs for minutes; a second caller must not be
+    # let through while the first probe is still in flight.
+    for elapsed in (45, 120, 299):
+        concurrent = supervision.check_capacity(
+            db_path, "claude", now=after_cooldown + elapsed, lease_seconds=300
+        )
+        assert not concurrent.allowed, f"second probe admitted {elapsed}s into the first"
+        assert "probe already running" in concurrent.reason
+
+
+def test_failed_probe_releases_its_lease_instead_of_stalling_recovery(tmp_path: Path) -> None:
+    db_path = _health_db(tmp_path / "health.db")
+    supervision.record_result(
+        db_path, "claude", success=False, error_category="capacity", retryable=True, retry_after_s=60
+    )
+    after_cooldown = time.time() + 120
+    supervision.check_capacity(db_path, "claude", now=after_cooldown, lease_seconds=300)
+
+    # The probe died for an unrelated reason — that says nothing about capacity.
+    supervision.record_result(
+        db_path, "claude", success=False, error_category="provider", retryable=False
+    )
+
+    retry = supervision.check_capacity(db_path, "claude", now=after_cooldown + 1, lease_seconds=300)
+
+    assert retry.allowed and retry.probe
+
+
+def test_exhausted_fleet_reports_the_soonest_recovery(tmp_path: Path, monkeypatch) -> None:
+    db_path = _health_db(tmp_path / "health.db")
+    _settings(tmp_path)
+    records = [_record(tmp_path, "slow"), _record(tmp_path, "quick")]
+    supervision.record_result(
+        db_path, "slow", success=False, error_category="capacity", retryable=True, retry_after_s=3000
+    )
+    supervision.record_result(
+        db_path, "quick", success=False, error_category="capacity", retryable=True, retry_after_s=30
+    )
+
+    class Runtime:
+        name = "never-called"
+
+        async def dispatch(self, request):
+            raise AssertionError("a cooling adapter must not be dispatched to")
+
+    monkeypatch.setattr(supervision, "eligible_records", lambda _root: records)
+    monkeypatch.setattr(dispatcher, "get_dispatcher", lambda agent=None, request=None: Runtime())
+    request = dispatcher.DispatchRequest(
+        formula_id="reviewer",
+        agent_file="agent.md",
+        prompt="review",
+        adapter="slow",
+        cwd=str(tmp_path),
+    )
+
+    result = asyncio.run(dispatcher.dispatch_request(request, db_path))
+
+    assert result.error_category == "capacity"
+    # 'slow' was the requested target and 'quick' the fallback; the caller needs
+    # the soonest wait across the fleet, not the last adapter checked.
+    assert result.retry_after_s is not None and result.retry_after_s <= 31
+    assert "all eligible adapters are at capacity" in (result.error or "")
+    assert "quick" in (result.error or "") and "slow" in (result.error or "")
 
 
 def test_complexity_rank_orders_the_cynefin_levels() -> None:
