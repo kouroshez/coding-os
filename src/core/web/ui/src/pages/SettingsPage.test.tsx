@@ -61,6 +61,43 @@ describe("normalizeModelRouting", () => {
   });
 });
 
+describe("supervision toggle", () => {
+  const trackOf = () => screen.getByRole("switch");
+  const knobOf = () => trackOf().firstElementChild as HTMLElement;
+
+  const renderToggle = (enabled: boolean) =>
+    render(
+      <ModelRoutingSection routing={normalizeModelRouting({ enabled })} onChange={() => {}} />,
+    );
+
+  it("carries the state on the track and keeps the knob a constant light puck", () => {
+    const { unmount } = renderToggle(false);
+
+    expect(trackOf().getAttribute("aria-checked")).toBe("false");
+    expect(trackOf().className).not.toContain("bg-[var(--accent)]");
+    // The inversion was a tinted knob: "off" read as filled and "on" as empty.
+    expect(knobOf().className).toContain("bg-white");
+    expect(knobOf().className).not.toContain("var(--accent)");
+    unmount();
+
+    renderToggle(true);
+
+    expect(trackOf().getAttribute("aria-checked")).toBe("true");
+    expect(trackOf().className).toContain("bg-[var(--accent)]");
+    expect(knobOf().className).toContain("bg-white");
+    expect(knobOf().className).not.toContain("var(--accent)");
+  });
+
+  it("moves the knob only between the two ends of its track", () => {
+    const { unmount } = renderToggle(false);
+    expect(knobOf().className).toContain("translate-x-0");
+    unmount();
+
+    renderToggle(true);
+    expect(knobOf().className).toContain("translate-x-4");
+  });
+});
+
 describe("ModelRoutingSection targets", () => {
   const routing = (roles: Record<string, { adapter?: string; model?: string; effort?: string }>) =>
     normalizeModelRouting({ enabled: true, roles });

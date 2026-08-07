@@ -167,7 +167,7 @@ function Toggle({
   label: string;
 }) {
   return (
-    <span className="flex items-center gap-2 text-xs">
+    <span className="flex min-w-0 items-center gap-2 text-xs">
       <button
         type="button"
         role="switch"
@@ -175,24 +175,27 @@ function Toggle({
         aria-label={label}
         onClick={() => onChange(!checked)}
         className={[
-          "relative inline-block h-5 w-9 shrink-0 cursor-pointer rounded-full border transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]",
+          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full",
+          "border transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+          // The TRACK carries the state and the knob stays a constant light
+          // puck. Tinting the knob instead made "off" (a dark dot on a pale
+          // track) read as filled and "on" as empty — the state inverted.
           checked
-            ? "border-[var(--accent)] bg-[var(--accent)]/30"
-            : "border-[var(--cos-border)] bg-[var(--cos-bg)]",
+            ? "border-[var(--accent)] bg-[var(--accent)]"
+            : "border-[var(--cos-border)] bg-[var(--cos-muted)]/40",
         ].join(" ")}
       >
         <span
           aria-hidden
           className={[
-            "absolute top-0.5 h-4 w-4 rounded-full border transition-transform",
-            checked
-              ? "translate-x-4 border-[var(--accent)] bg-[var(--accent)]"
-              : "translate-x-0.5 border-[var(--cos-border)] bg-[var(--cos-muted)]",
+            "pointer-events-none absolute left-0.5 h-3.5 w-3.5 rounded-full",
+            "bg-white shadow-sm transition-transform",
+            checked ? "translate-x-4" : "translate-x-0",
           ].join(" ")}
         />
       </button>
-      <span className="text-[var(--cos-text)]">{label}</span>
+      <span className="truncate text-[var(--cos-text)]">{label}</span>
     </span>
   );
 }
