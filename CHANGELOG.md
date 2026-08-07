@@ -12,6 +12,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.9](https://github.com/kouroshez/coding-os/compare/v0.3.8...v0.3.9) (2026-08-07)
+
+
+### Fixed
+
+* **board:** anchor the DoD verify ledger to the project root ([1a04d6e](https://github.com/kouroshez/coding-os/commit/1a04d6ee629c038ce34788962a2d119a09dcb534))
+* **cli:** stop cos update deleting adapter-owned hooks ([54dac1d](https://github.com/kouroshez/coding-os/commit/54dac1d7cafcc4e3da36f44ec43b74efa439ffd5))
+* **hub:** keep a saved supervision target visible when its adapter is unavailable ([9d54c91](https://github.com/kouroshez/coding-os/commit/9d54c91db3cc0bb8b7f595bd0036053cb8fd9163))
+* **hub:** stop the settings toggle reading inverted ([5966767](https://github.com/kouroshez/coding-os/commit/5966767657b86192d0248b7e687841e19aaf661a))
+* **supervision:** enforce trigger modes and make the orchestrator target the role default ([f221330](https://github.com/kouroshez/coding-os/commit/f2213309825fcc2ccb02aad11e034ef9b542b26a))
+* **supervision:** hold the recovery probe for its whole run and report the soonest recovery ([44cfb37](https://github.com/kouroshez/coding-os/commit/44cfb37d2a69193740b875c89dd0fc6346fdd015))
+* **supervision:** meter capacity per model pool instead of per adapter ([bfe13e6](https://github.com/kouroshez/coding-os/commit/bfe13e6e0b084ba0df917c619f4bbcd5ff2624b0))
+* **supervision:** restore adapter validation and protect the capacity recovery probe ([8451079](https://github.com/kouroshez/coding-os/commit/84510794d60b6a4d77b2b651dfdfac5051aa2b0a))
+
+
+### Documentation
+
+* refresh the engineering index after the supervision doc update ([501687f](https://github.com/kouroshez/coding-os/commit/501687f91c092339fd9dd5729f808b546a44723c))
+* **rules:** sync the model-routing rule to the enforced supervision trigger modes ([96cefa4](https://github.com/kouroshez/coding-os/commit/96cefa429057e033d7257038e5092b7eb7455c29))
+* **supervision:** document probe-lease duration, fleet exhaustion, and the adapter contract ([05ee39c](https://github.com/kouroshez/coding-os/commit/05ee39c3c92e79e286808049ddd35c24eb659800))
+* **supervision:** document the enforced contract, add the operator playbook and README section ([b1d0633](https://github.com/kouroshez/coding-os/commit/b1d06334da87b4c51f3eb98155587d3557dfe96f))
+* **supervision:** record what a provider limit actually applies to ([72c8c2b](https://github.com/kouroshez/coding-os/commit/72c8c2bfbf609d0cf26c8db80d144ebe1405907a))
+
 ## [0.3.8](https://github.com/kouroshez/coding-os/compare/v0.3.7...v0.3.8) (2026-08-07)
 
 
