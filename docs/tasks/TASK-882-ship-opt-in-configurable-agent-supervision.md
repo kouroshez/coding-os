@@ -11,7 +11,7 @@ appetite: 3d
 created: 2026-08-04
 started: 2026-08-06
 completed: null
-agent_session: ses-codex-20260806-212501-3786
+agent_session: ses-claude-20260806-204356-2f94
 depends_on: []
 blocked_by: []
 references: []
@@ -73,3 +73,19 @@ references: []
 - 2026-08-07 [codex]: GitHub CI exposed generated OpenAPI snapshot drift for the new adapter-health route. Regenerated…
 - 2026-08-07 [codex]: Regenerated all 8 golden sections after hook/rule changes. Full modularity gate now passes: referential/render/toggle…
 - 2026-08-07 [codex]: Added one kernel-owned supervision policy service shared by Hub, CLI, and MCP; introduced cos supervision and…
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit adapter_registry.py
+- 2026-08-07 [claude]: Edit adapter_registry.py
+- 2026-08-07 [claude]: Edit adapter_registry.py
+- 2026-08-07 [claude]: Edit cognition.py
+- 2026-08-07 [claude]: Edit cognition.py
+- 2026-08-07 [claude]: Edit cognition.py
+- 2026-08-07 [claude]: Edit config.py
+- 2026-08-07 [claude]: Edit supervision_commands.py
+- 2026-08-07 [claude]: Edit claude-sdk.md
+- 2026-08-07 [claude]: Edit claude-sdk.md
+- 2026-08-07 [claude]: Edit adapter_registry.py
+- 2026-08-07 [claude]: commit aeaf4f148e — fix(supervision): restore adapter validation and protect the capacity recovery probe
