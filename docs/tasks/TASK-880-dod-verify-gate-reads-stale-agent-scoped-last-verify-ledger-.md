@@ -47,3 +47,7 @@ references: []
 - 2026-08-07 [claude]: commit eaf72ded16 — style: apply ruff format to the supervision change set
 - 2026-08-07 [claude]: Edit test_cognition_tools.py
 - 2026-08-07 [claude]: commit 0a245206d4 — test(supervision): drop a hardcoded model id from the clear-flag guard test
+- 2026-08-07 [claude]: Edit README.md
+- 2026-08-07 [claude]: Edit README.md
+- 2026-08-07 [claude]: Edit README.md
+- 2026-08-07 [claude]: commit 299c4f033f — docs(readme): correct the supervision cooldown scope and list the command
