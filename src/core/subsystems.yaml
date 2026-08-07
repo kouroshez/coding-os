@@ -152,7 +152,7 @@ modules:
     # The reasoning-assist tool surface: role composition, formula dispatch,
     # supervision, model/skill routing, situation detect. cos_classify_prompt
     # (Record Gate, core loop) + cos_health (diagnostic) stay KERNEL by design.
-    tools: ["cos_dispatch_*", "cos_route_*", cos_compose_chain, cos_supervise, cos_supervise_record_output, cos_role_info, cos_situation_detect, cos_takeover, cos_analyze_task, cos_ambiguity_check, cos_backtrack_log, cos_discovery]
+    tools: ["cos_dispatch_*", "cos_route_*", cos_compose_chain, cos_supervise, cos_supervise_record_output, cos_supervision_config, cos_role_info, cos_situation_detect, cos_takeover, cos_analyze_task, cos_ambiguity_check, cos_backtrack_log, cos_discovery]
     # /compose is the role-chain composition surface; /role-* commands map from
     # thinking_os/agents/ (a separate source) and stay always-on (Rule 22 — not
     # worth the agents/ source-mapping to gate a low-frequency advanced surface).

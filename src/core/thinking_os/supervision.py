@@ -1,15 +1,23 @@
 from __future__ import annotations
 
-import json
+import copy
 import logging
 import os
 import sqlite3
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field, model_validator
 
 from thinking_os.adapter_registry import AdapterRecord, configured_adapter_ids, load_adapter_records
+from thinking_os.project_settings import (
+    project_settings_path,
+    read_settings,
+    settings_lock,
+    write_settings,
+)
 
 logger = logging.getLogger("coding_os.supervision")
 
@@ -26,6 +34,35 @@ DEFAULT_MODEL_ROUTING: dict[str, Any] = {
 }
 
 
+class AdapterTargetPolicy(BaseModel):
+    adapter: str = ""
+    model: str = ""
+    effort: str = ""
+
+
+class CooldownPolicy(BaseModel):
+    default_seconds: int = Field(default=300, ge=1, le=86400)
+    maximum_seconds: int = Field(default=3600, ge=1, le=604800)
+
+    @model_validator(mode="after")
+    def validate_range(self):
+        if self.maximum_seconds < self.default_seconds:
+            raise ValueError("maximum_seconds must be greater than or equal to default_seconds")
+        return self
+
+
+class ModelRoutingPolicy(BaseModel):
+    enabled: bool
+    orchestrator_model: str = ""
+    mode: Literal["explicit", "suggest", "adaptive"] = "explicit"
+    complexity_threshold: Literal["CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC"] = "COMPLICATED"
+    fallback_policy: Literal["fail_closed", "same_adapter_default", "next_eligible"] = "fail_closed"
+    max_parallel: int = Field(default=3, ge=1, le=16)
+    orchestrator: AdapterTargetPolicy = Field(default_factory=AdapterTargetPolicy)
+    roles: dict[str, AdapterTargetPolicy] = Field(default_factory=dict)
+    cooldown: CooldownPolicy = Field(default_factory=CooldownPolicy)
+
+
 @dataclass(frozen=True)
 class HealthDecision:
     allowed: bool
@@ -40,30 +77,96 @@ def current_project_root() -> Path:
     return Path(value).resolve() if value else Path.cwd().resolve()
 
 
-def _settings_path(project_root: Path | None = None) -> Path:
-    if project_root is not None:
-        return project_root / ".coding-os" / "hub-settings.json"
-    state_dir = os.environ.get("COS_STATE_DIR")
-    if state_dir:
-        return Path(state_dir) / "hub-settings.json"
-    return current_project_root() / ".coding-os" / "hub-settings.json"
+def normalize_policy(raw: dict[str, Any] | None = None) -> dict[str, Any]:
+    source = raw if isinstance(raw, dict) else {}
+    merged = {**copy.deepcopy(DEFAULT_MODEL_ROUTING), **source}
+    for key in ("orchestrator", "cooldown"):
+        value = source.get(key)
+        merged[key] = {
+            **copy.deepcopy(DEFAULT_MODEL_ROUTING[key]),
+            **(value if isinstance(value, dict) else {}),
+        }
+    roles = source.get("roles")
+    merged["roles"] = roles if isinstance(roles, dict) else {}
+    if not merged["orchestrator"].get("model") and merged.get("orchestrator_model"):
+        merged["orchestrator"]["model"] = merged["orchestrator_model"]
+    if merged["orchestrator"].get("model"):
+        merged["orchestrator_model"] = merged["orchestrator"]["model"]
+    return ModelRoutingPolicy.model_validate(merged).model_dump()
 
 
 def load_policy(project_root: Path | None = None) -> dict[str, Any]:
-    raw: dict[str, Any] = {}
     try:
-        data = json.loads(_settings_path(project_root).read_text(encoding="utf-8"))
-        if isinstance(data, dict) and isinstance(data.get("model_routing"), dict):
-            raw = data["model_routing"]
-    except (OSError, ValueError):
-        pass
-    policy = {**DEFAULT_MODEL_ROUTING, **raw}
-    for key in ("orchestrator", "cooldown"):
-        base = DEFAULT_MODEL_ROUTING[key]
-        value = raw.get(key)
-        policy[key] = {**base, **(value if isinstance(value, dict) else {})}
-    policy["roles"] = raw.get("roles") if isinstance(raw.get("roles"), dict) else {}
-    return policy
+        data = read_settings(project_settings_path(project_root))
+        raw = data.get("model_routing")
+        return normalize_policy(raw if isinstance(raw, dict) else {})
+    except ValueError as exc:
+        logger.debug("supervision settings unavailable: %s", exc)
+        return normalize_policy()
+
+
+def update_policy(
+    project_root: Path,
+    patch: dict[str, Any],
+    *,
+    clear_role: str = "",
+    clear_orchestrator: bool = False,
+) -> dict[str, Any]:
+    root = project_root.resolve()
+    state_dir = root / ".coding-os"
+    if not state_dir.is_dir():
+        raise ValueError(f"{root} is not a coding-os project (.coding-os/ missing)")
+    path = project_settings_path(root)
+    with settings_lock(path):
+        settings = read_settings(path)
+        raw_policy = settings.get("model_routing", {})
+        if not isinstance(raw_policy, dict):
+            raise ValueError("model_routing must be a JSON object")
+        current = normalize_policy(raw_policy)
+        candidate = {**current, **patch}
+        for key in ("orchestrator", "cooldown"):
+            value = patch.get(key)
+            candidate[key] = {
+                **current[key],
+                **(value if isinstance(value, dict) else {}),
+            }
+        roles = {**current["roles"]}
+        role_patch = patch.get("roles")
+        if isinstance(role_patch, dict):
+            for role, target in role_patch.items():
+                if not role.strip():
+                    raise ValueError("role id must not be empty")
+                if not isinstance(target, dict):
+                    raise ValueError(f"role {role!r} must be an object")
+                roles[role] = {**roles.get(role, {}), **target}
+        if clear_role:
+            roles.pop(clear_role, None)
+        candidate["roles"] = roles
+        if clear_orchestrator:
+            candidate["orchestrator"] = copy.deepcopy(DEFAULT_MODEL_ROUTING["orchestrator"])
+            candidate["orchestrator_model"] = ""
+        normalized = normalize_policy(candidate)
+        settings["model_routing"] = normalized
+        write_settings(path, settings)
+    return normalized
+
+
+def policy_snapshot(project_root: Path | None = None) -> dict[str, Any]:
+    root = (project_root or current_project_root()).resolve()
+    records = eligible_records(root)
+    return {
+        "policy": load_policy(root),
+        "settings_path": str(project_settings_path(root)),
+        "adapters": [
+            {
+                "id": record.id,
+                "models": [str(model.get("id")) for model in record.models if model.get("id")],
+                "efforts": list(record.efforts),
+                "capabilities": sorted(record.capabilities),
+            }
+            for record in records
+        ],
+    }
 
 
 def enabled(project_root: Path | None = None) -> bool:

@@ -443,3 +443,64 @@ class TestDispatchTranscriptPersistence:
                 ("sess-tx-2",),
             ).fetchone()[0]
         assert tx is None
+
+
+class TestSupervisionConfig:
+    def test_show_returns_complete_default_policy(
+        self, mcp_tools, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        (tmp_path / ".coding-os").mkdir()
+        monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+
+        result = mcp_tools.call("cos_supervision_config", action="show")
+
+        assert result["ok"] is True
+        assert result["data"]["policy"]["enabled"] is False
+        assert result["data"]["policy"]["cooldown"]["default_seconds"] == 300
+
+    def test_enable_and_set_round_trip_without_hub(
+        self, mcp_tools, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        state = tmp_path / ".coding-os"
+        state.mkdir()
+        (state / "hub-settings.json").write_text('{"foreign":{"keep":true}}', encoding="utf-8")
+        monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+
+        enabled = mcp_tools.call("cos_supervision_config", action="enable")
+        configured = mcp_tools.call(
+            "cos_supervision_config",
+            action="set",
+            mode="adaptive",
+            role="reviewer",
+            role_adapter="codex",
+            role_effort="high",
+        )
+
+        assert enabled["data"]["policy"]["enabled"] is True
+        assert configured["data"]["policy"]["mode"] == "adaptive"
+        assert configured["data"]["policy"]["roles"]["reviewer"]["adapter"] == "codex"
+        stored = json.loads((state / "hub-settings.json").read_text(encoding="utf-8"))
+        assert stored["foreign"] == {"keep": True}
+
+    def test_invalid_action_returns_validation_envelope(self, mcp_tools) -> None:
+        result = mcp_tools.call("cos_supervision_config", action="unknown")
+
+        assert result["ok"] is False
+        assert result["error"]["category"] == "validation"
+
+    def test_invalid_cooldown_returns_validation_envelope(
+        self, mcp_tools, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        (tmp_path / ".coding-os").mkdir()
+        monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+
+        result = mcp_tools.call(
+            "cos_supervision_config",
+            action="set",
+            cooldown_default_seconds=600,
+            cooldown_maximum_seconds=300,
+        )
+
+        assert result["ok"] is False
+        assert result["error"]["category"] == "validation"
+        assert "maximum_seconds must be greater" in result["error"]["message"]

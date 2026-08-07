@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import sqlite3
 from pathlib import Path
 
@@ -299,3 +300,61 @@ def test_orchestrator_target_does_not_override_unconfigured_role(tmp_path: Path)
         "model": "",
         "effort": "",
     }
+
+
+def test_partial_policy_is_deep_normalized(tmp_path: Path) -> None:
+    state = tmp_path / ".coding-os"
+    state.mkdir()
+    (state / "hub-settings.json").write_text(
+        '{"model_routing":{"enabled":true,"cooldown":{"default_seconds":90}}}',
+        encoding="utf-8",
+    )
+
+    policy = supervision.load_policy(tmp_path)
+
+    assert policy["cooldown"] == {"default_seconds": 90, "maximum_seconds": 3600}
+    assert policy["orchestrator"] == {"adapter": "", "model": "", "effort": ""}
+
+
+def test_policy_update_preserves_foreign_sections_and_permissions(tmp_path: Path) -> None:
+    state = tmp_path / ".coding-os"
+    state.mkdir()
+    path = state / "hub-settings.json"
+    path.write_text(
+        json.dumps({"foreign": {"keep": True}, "model_routing": {"enabled": False}}),
+        encoding="utf-8",
+    )
+
+    policy = supervision.update_policy(
+        tmp_path,
+        {
+            "enabled": True,
+            "mode": "adaptive",
+            "roles": {"reviewer": {"adapter": "codex", "effort": "high"}},
+        },
+    )
+
+    stored = json.loads(path.read_text(encoding="utf-8"))
+    assert policy["roles"]["reviewer"] == {
+        "adapter": "codex",
+        "model": "",
+        "effort": "high",
+    }
+    assert stored["foreign"] == {"keep": True}
+    assert path.stat().st_mode & 0o777 == 0o600
+
+
+def test_policy_update_rejects_corrupt_file_without_overwrite(tmp_path: Path) -> None:
+    state = tmp_path / ".coding-os"
+    state.mkdir()
+    path = state / "hub-settings.json"
+    path.write_text("not-json", encoding="utf-8")
+
+    try:
+        supervision.update_policy(tmp_path, {"enabled": True})
+    except ValueError as exc:
+        assert "refusing to overwrite" in str(exc)
+    else:
+        raise AssertionError("corrupt settings should fail closed")
+
+    assert path.read_text(encoding="utf-8") == "not-json"

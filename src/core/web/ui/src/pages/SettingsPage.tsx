@@ -46,6 +46,29 @@ const DEFAULT_ROUTING: ModelRouting = {
   cooldown: { default_seconds: 300, maximum_seconds: 3600 },
 };
 
+type ModelRoutingPayload = Partial<
+  Omit<ModelRouting, "orchestrator" | "roles" | "cooldown">
+> & {
+  orchestrator?: Partial<AdapterTarget>;
+  roles?: Record<string, Partial<AdapterTarget>>;
+  cooldown?: Partial<ModelRouting["cooldown"]>;
+};
+
+export function normalizeModelRouting(value?: ModelRoutingPayload | null): ModelRouting {
+  return {
+    ...DEFAULT_ROUTING,
+    ...value,
+    orchestrator: { ...DEFAULT_ROUTING.orchestrator, ...(value?.orchestrator ?? {}) },
+    roles: Object.fromEntries(
+      Object.entries(value?.roles ?? {}).map(([role, target]) => [
+        role,
+        { adapter: "", model: "", effort: "", ...target },
+      ]),
+    ),
+    cooldown: { ...DEFAULT_ROUTING.cooldown, ...(value?.cooldown ?? {}) },
+  };
+}
+
 interface AutoSpawn {
   enabled: boolean;
 }
@@ -759,7 +782,7 @@ export default function SettingsPage() {
     serverSettings?.budget_cap ?? { enabled: false, cap_usd: 5.0 };
   const localTrace: TraceRotation = trace ??
     serverSettings?.trace_rotation ?? { gzip_age_days: 3, delete_age_days: 30 };
-  const localRouting: ModelRouting = routing ?? serverSettings?.model_routing ?? DEFAULT_ROUTING;
+  const localRouting = normalizeModelRouting(routing ?? serverSettings?.model_routing);
   const localAutoSpawn: AutoSpawn = autoSpawn ?? serverSettings?.auto_spawn ?? { enabled: false };
   const localClaudeAuth: ClaudeAuth = claudeAuth ??
     serverSettings?.claude_auth ?? {
@@ -789,7 +812,7 @@ export default function SettingsPage() {
       await invalidateApiQueries(qc, "/api/settings");
       setBudget(result.settings.budget_cap);
       setTrace(result.settings.trace_rotation);
-      setRouting(result.settings.model_routing);
+      setRouting(normalizeModelRouting(result.settings.model_routing));
       setAutoSpawn(result.settings.auto_spawn);
       setClaudeAuth(result.settings.claude_auth);
       setClaudeAuthApiKeyDraft(null);
@@ -822,11 +845,13 @@ export default function SettingsPage() {
   return (
     <PageShell>
       <PageHeader
-        eyebrow={<StatusPill label="settings · hub config" dotColor="bg-[var(--cos-brand-tint)]" />}
+        eyebrow={
+          <StatusPill label="settings · project policy" dotColor="bg-[var(--cos-brand-tint)]" />
+        }
         title="Settings"
         subtitle={
           <>
-            Hub-level configuration. Values stored in{" "}
+            Project configuration shared by Hub, CLI, and MCP. Values stored in{" "}
             <code className="rounded bg-[var(--cos-panel)] px-1 py-0.5 text-[11px]">
               .coding-os/hub-settings.json
             </code>

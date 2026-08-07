@@ -1894,8 +1894,108 @@ def register_cos_classify_prompt(mcp, db_path):
     return cos_classify_prompt
 
 
+def register_cos_supervision_config(mcp, db_path):
+    @mcp.tool(
+        name="cos_supervision_config",
+        description=(
+            "Show, enable, disable, or partially configure the current project's "
+            "adapter-neutral supervision policy without requiring Hub."
+        ),
+    )
+    @safe_tool
+    def cos_supervision_config(
+        action: str = "show",
+        mode: str = "",
+        complexity_threshold: str = "",
+        fallback_policy: str = "",
+        max_parallel: int = 0,
+        cooldown_default_seconds: int = 0,
+        cooldown_maximum_seconds: int = 0,
+        orchestrator_adapter: str = "",
+        orchestrator_model: str = "",
+        orchestrator_effort: str = "",
+        clear_orchestrator: bool = False,
+        role: str = "",
+        role_adapter: str = "",
+        role_model: str = "",
+        role_effort: str = "",
+        clear_role: bool = False,
+    ) -> str:
+        """Manage the normalized project supervision policy without Hub."""
+        from thinking_os import supervision
+
+        normalized_action = action.strip().lower()
+        if normalized_action not in {"show", "enable", "disable", "set"}:
+            return fail("validation", "action must be show, enable, disable, or set")
+        root = supervision.current_project_root()
+        if normalized_action == "show":
+            return ok(supervision.policy_snapshot(root), meta={"layer": "routing"})
+        if normalized_action in {"enable", "disable"}:
+            try:
+                supervision.update_policy(root, {"enabled": normalized_action == "enable"})
+            except ValueError as exc:
+                return fail("validation", str(exc))
+            return ok(supervision.policy_snapshot(root), meta={"layer": "routing"})
+
+        patch: dict[str, object] = {}
+        for key, value in (
+            ("mode", mode),
+            ("complexity_threshold", complexity_threshold),
+            ("fallback_policy", fallback_policy),
+        ):
+            if value:
+                patch[key] = value
+        if max_parallel:
+            patch["max_parallel"] = max_parallel
+        cooldown: dict[str, int] = {}
+        if cooldown_default_seconds:
+            cooldown["default_seconds"] = cooldown_default_seconds
+        if cooldown_maximum_seconds:
+            cooldown["maximum_seconds"] = cooldown_maximum_seconds
+        if cooldown:
+            patch["cooldown"] = cooldown
+        orchestrator = {
+            key: value
+            for key, value in (
+                ("adapter", orchestrator_adapter),
+                ("model", orchestrator_model),
+                ("effort", orchestrator_effort),
+            )
+            if value
+        }
+        if orchestrator:
+            patch["orchestrator"] = orchestrator
+        role_target = {
+            key: value
+            for key, value in (
+                ("adapter", role_adapter),
+                ("model", role_model),
+                ("effort", role_effort),
+            )
+            if value
+        }
+        if (role_target or clear_role) and not role.strip():
+            return fail("validation", "role is required with role fields or clear_role")
+        if role_target:
+            patch["roles"] = {role.strip(): role_target}
+        if not patch and not clear_role and not clear_orchestrator:
+            return fail("validation", "set requires at least one policy field")
+        try:
+            supervision.update_policy(
+                root,
+                patch,
+                clear_role=role.strip() if clear_role else "",
+                clear_orchestrator=clear_orchestrator,
+            )
+        except ValueError as exc:
+            return fail("validation", str(exc))
+        return ok(supervision.policy_snapshot(root), meta={"layer": "routing"})
+
+    return cos_supervision_config
+
+
 def register_all(mcp, db_path: str) -> None:
-    """Register all 15 cognition tools with the MCP server."""
+    """Register all cognition tools with the MCP server."""
     register_cos_supervise(mcp, db_path)
     register_cos_supervise_record_output(mcp, db_path)
     register_cos_dispatch_formula(mcp, db_path)
@@ -1914,3 +2014,4 @@ def register_all(mcp, db_path: str) -> None:
     register_cos_dispatch_parallel_run(mcp, db_path)
     # auto-Classify (eliminates manual gate recording)
     register_cos_classify_prompt(mcp, db_path)
+    register_cos_supervision_config(mcp, db_path)

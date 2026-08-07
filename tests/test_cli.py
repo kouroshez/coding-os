@@ -2683,6 +2683,92 @@ class TestSubsystems:
 # ---------------------------------------------------------------------------
 
 
+class TestSupervisionCli:
+    def _project(self, tmp_path: Path) -> Path:
+        project = tmp_path / "supervision-project"
+        (project / ".coding-os").mkdir(parents=True)
+        (project / ".coding-os.yaml").write_text(
+            "version: 1\nagents: [claude, codex]\ntemplates: []\n", encoding="utf-8"
+        )
+        return project
+
+    def test_show_deep_normalizes_legacy_policy(self, runner: CliRunner, tmp_path: Path) -> None:
+        project = self._project(tmp_path)
+        (project / ".coding-os" / "hub-settings.json").write_text(
+            '{"model_routing":{"enabled":false}}', encoding="utf-8"
+        )
+
+        result = runner.invoke(
+            cli,
+            ["supervision", "show", "-d", str(project), "--format", "json"],
+        )
+
+        assert result.exit_code == 0, result.output
+        policy = json.loads(result.output)["policy"]
+        assert policy["cooldown"] == {"default_seconds": 300, "maximum_seconds": 3600}
+        assert policy["orchestrator"] == {"adapter": "", "model": "", "effort": ""}
+
+    def test_enable_configure_disable_preserves_other_settings(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        project = self._project(tmp_path)
+        path = project / ".coding-os" / "hub-settings.json"
+        path.write_text('{"foreign":{"keep":true}}', encoding="utf-8")
+
+        enabled = runner.invoke(cli, ["supervision", "enable", "-d", str(project)])
+        configured = runner.invoke(
+            cli,
+            [
+                "supervision",
+                "set",
+                "-d",
+                str(project),
+                "--mode",
+                "adaptive",
+                "--fallback-policy",
+                "next_eligible",
+                "--cooldown-default-seconds",
+                "90",
+                "--role",
+                "reviewer",
+                "--role-adapter",
+                "codex",
+                "--role-effort",
+                "high",
+            ],
+        )
+        disabled = runner.invoke(cli, ["supervision", "disable", "-d", str(project)])
+
+        assert enabled.exit_code == 0, enabled.output
+        assert configured.exit_code == 0, configured.output
+        assert disabled.exit_code == 0, disabled.output
+        stored = json.loads(path.read_text(encoding="utf-8"))
+        assert stored["foreign"] == {"keep": True}
+        assert stored["model_routing"]["enabled"] is False
+        assert stored["model_routing"]["mode"] == "adaptive"
+        assert stored["model_routing"]["roles"]["reviewer"]["adapter"] == "codex"
+
+    def test_set_rejects_inverted_cooldown(self, runner: CliRunner, tmp_path: Path) -> None:
+        project = self._project(tmp_path)
+
+        result = runner.invoke(
+            cli,
+            [
+                "supervision",
+                "set",
+                "-d",
+                str(project),
+                "--cooldown-default-seconds",
+                "600",
+                "--cooldown-maximum-seconds",
+                "300",
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert "maximum_seconds must be greater" in result.output
+
+
 class TestModuleCli:
     def _init(self, runner: CliRunner, tmp_path: Path) -> Path:
         project = tmp_path / "modproj"

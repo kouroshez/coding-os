@@ -247,18 +247,23 @@ The no-root Graph home renders `cos_graph_export(mode="processes")` as a communi
 
 **De-emphasis styling** (`buildGraph` in [src/core/web/ui/src/features/graph/graph-adapter.ts](../../src/core/web/ui/src/features/graph/graph-adapter.ts), wired by [GraphCanvas.tsx](../../src/core/web/ui/src/features/graph/GraphCanvas.tsx) passing `mode`): in `processes` mode community headers are the **focus** tier — forced label (`forceLabel`), full group color from [node-colors.ts](../../src/core/web/ui/src/lib/node-colors.ts), hub size — and member nodes are **context** — a small uniform dot, alpha-muted color (`#RRGGBBAA`), no forced label and no icon. Other modes (`auto`/`containment`/`dependencies`) are untouched.
 
-## Hub settings contract (`/api/settings` ↔ `hub-settings.json`)
+## Project settings contract (`/api/settings` ↔ `hub-settings.json`)
 
-`GET/PATCH /api/settings` round-trips `$COS_STATE_DIR/hub-settings.json`
-section-by-section; defaults live in `routes/settings.py::_DEFAULTS` and
-unknown keys in the file survive untouched. Sections:
+`hub-settings.json` is project state despite its historical filename. Its
+storage, locking, atomic-write, and corruption contract lives in the kernel so
+Hub is optional. `GET/PATCH /api/settings`, `cos supervision`, and
+`cos_supervision_config` are peer surfaces over the same file; no Hub process
+is needed for CLI or MCP configuration. Unknown keys survive every round-trip.
+Hub-specific section defaults live in `routes/settings.py::_DEFAULTS`, while
+the complete nested `model_routing` policy is normalized by the shared
+supervision service. Sections:
 
 | Section | Keys | Consumers |
 |---|---|---|
 | `budget_cap` | `enabled`, `cap_usd` | dispatch budget gate |
 | `trace_rotation` | `gzip_age_days`, `delete_age_days` | `auto-trace-rotate` hook |
 | `task_closure` | `mode` | board closure enforcement |
-| `model_routing` | `enabled` (default **false**), `orchestrator_model` | chat Auto picker (TASK-318) · agent-side routing hook (TASK-319) |
+| `model_routing` | `enabled` (default **false**), mode, threshold, fallback, parallel limit, orchestrator, roles, cooldown | supervised dispatch · chat Auto picker · agent-side routing hook · CLI/MCP policy controls |
 | `auto_spawn` | `enabled` (default **false**) | board drag auto-spawn: a **human** panel drag icebox→in_progress fires a fire-and-forget `implementer` dispatch on that task (`/api/board/reposition` — the panel drag path — and `/api/board/move`, both → `_auto_spawn_safe`; one in-flight spawn per task); the outcome lands in `formula_dispatches`, so the stream's `dispatch-completed` row is the visible success/failure signal. Agent-initiated moves never trigger it. |
 | `git_settings` | `enabled` (default **false**), `integration_branch` (`main`), `protected_branches` (`["production"]`) | pr-mode enablement — surfaced in **Config → Git** (per-project), not Settings (TASK-518) |
 
@@ -273,7 +278,8 @@ read-only git-state row comes from `GET /api/settings/git-state`. Full flow:
 [docs/playbooks/pr-workflow.md § 1](../playbooks/pr-workflow.md) · [ADR-0013](../architecture/adr/0013-pr-mode-multi-agent-git-workflow-consumer-only.md).
 
 `model_routing.enabled=false` keeps the auto-routing feature fully inert
-everywhere — no UI option, no injected context, no dispatch change. The
+everywhere — only its disabled state and enable control remain visible; there is
+no injected context or dispatch change. The
 `orchestrator_model` value MUST be one of the ids the adapter→models SSOT
 exposes (`/api/config/adapters`, sourced from `src/adapters/*/adapter.yaml::models`
 — Rule 11: no model id literal lives in code). Kernel-side consumers read the

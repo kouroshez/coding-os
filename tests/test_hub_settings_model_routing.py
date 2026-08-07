@@ -41,6 +41,19 @@ def test_model_routing_defaults_off(client):
     }
 
 
+def test_model_routing_legacy_payload_receives_nested_defaults(client, tmp_path):
+    (tmp_path / "hub-settings.json").write_text(
+        '{"model_routing":{"enabled":false,"orchestrator_model":""}}',
+        encoding="utf-8",
+    )
+
+    routing = client.get("/api/settings").json()["data"]["settings"]["model_routing"]
+
+    assert routing["cooldown"] == {"default_seconds": 300, "maximum_seconds": 3600}
+    assert routing["orchestrator"] == {"adapter": "", "model": "", "effort": ""}
+    assert routing["roles"] == {}
+
+
 def test_model_routing_patch_round_trips(client, tmp_path):
     body = {"model_routing": {"enabled": True, "orchestrator_model": "claude-haiku-4-5"}}
     patched = client.patch("/api/settings", json=body).json()["data"]

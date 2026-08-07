@@ -4,19 +4,22 @@ from __future__ import annotations
 
 import contextlib
 import copy
-import fcntl
-import json
 import logging
 import os
-import tempfile
 from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from pydantic import BaseModel, ValidationError
 
-from thinking_os.supervision import DEFAULT_MODEL_ROUTING
+from thinking_os.project_settings import (
+    SettingsConflictError,
+    read_settings,
+    settings_lock,
+    write_settings,
+)
+from thinking_os.supervision import DEFAULT_MODEL_ROUTING, ModelRoutingPolicy, normalize_policy
 
 logger = logging.getLogger("coding_os.web.settings")
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -73,17 +76,11 @@ def _read_raw() -> tuple[dict, bool]:
     # (raw, corrupt). corrupt=True only when the file EXISTS but is unparseable or
     # not a JSON object — so a write path can refuse rather than clobber a present
     # but momentarily-unreadable file with all-defaults.
-    path = _settings_path()
-    if not path.exists():
-        return {}, False
     try:
-        data = json.loads(path.read_text())
-    except Exception as exc:
+        return read_settings(_settings_path()), False
+    except SettingsConflictError as exc:
         logger.debug("hub-settings.json load error: %s", exc)
         return {}, True
-    if not isinstance(data, dict):
-        return {}, True
-    return data, False
 
 
 def _merge_defaults(raw: dict) -> dict:
@@ -94,21 +91,9 @@ def _merge_defaults(raw: dict) -> dict:
     merged: dict = {**raw}
     for section, defaults in _DEFAULTS.items():
         merged[section] = {**defaults, **(raw.get(section) or {})}
-    routing = merged["model_routing"]
     raw_routing = raw.get("model_routing") if isinstance(raw.get("model_routing"), dict) else {}
-    for key in ("orchestrator", "cooldown"):
-        routing[key] = {**defaults_for(key), **(raw_routing.get(key) or {})}
-    if not routing["orchestrator"].get("model") and routing.get("orchestrator_model"):
-        routing["orchestrator"]["model"] = routing["orchestrator_model"]
-    routing["roles"] = (
-        raw_routing.get("roles") if isinstance(raw_routing.get("roles"), dict) else {}
-    )
+    merged["model_routing"] = normalize_policy(raw_routing)
     return merged
-
-
-def defaults_for(key: str) -> dict:
-    value = DEFAULT_MODEL_ROUTING.get(key)
-    return value if isinstance(value, dict) else {}
 
 
 def _load() -> dict:
@@ -117,40 +102,13 @@ def _load() -> dict:
 
 
 def _save(data: dict) -> None:
-    path = _settings_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    # Atomic: write a sibling temp, fsync, then os.replace (atomic within a
-    # filesystem) so a concurrent reader (cos-env.sh jq, cos pr self-read) sees
-    # either the old or the new complete file, never a torn/empty one.
-    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".hub-settings.", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w") as fh:
-            fh.write(json.dumps(data, indent=2))
-            fh.flush()
-            os.fsync(fh.fileno())
-        # Owner-only — this file now carries claude_auth.api_key (TASK-756).
-        os.chmod(tmp, 0o600)
-        os.replace(tmp, path)
-    except Exception:
-        with contextlib.suppress(OSError):
-            os.unlink(tmp)
-        raise
+    write_settings(_settings_path(), data)
 
 
 @contextlib.contextmanager
 def _settings_lock():
-    # Exclusive lock across a load→merge→save so two concurrent PATCHes (two Hub
-    # tabs, or git vs budget tab) cannot last-writer-wins clobber each other's
-    # section. Cross-process flock pairs with the atomic os.replace above.
-    path = _settings_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    lock_path = path.with_name("hub-settings.lock")
-    with open(lock_path, "w") as lf:
-        try:
-            fcntl.flock(lf, fcntl.LOCK_EX)
-            yield
-        finally:
-            fcntl.flock(lf, fcntl.LOCK_UN)
+    with settings_lock(_settings_path()):
+        yield
 
 
 def _env_overrides() -> dict:
@@ -303,35 +261,6 @@ class _TraceRotationIn(BaseModel):
     delete_age_days: int
 
 
-class _AdapterTargetIn(BaseModel):
-    adapter: str = ""
-    model: str = ""
-    effort: str = ""
-
-
-class _CooldownIn(BaseModel):
-    default_seconds: int = Field(default=300, ge=1, le=86400)
-    maximum_seconds: int = Field(default=3600, ge=1, le=604800)
-
-    @model_validator(mode="after")
-    def validate_range(self):
-        if self.maximum_seconds < self.default_seconds:
-            raise ValueError("maximum_seconds must be greater than or equal to default_seconds")
-        return self
-
-
-class _ModelRoutingIn(BaseModel):
-    enabled: bool
-    orchestrator_model: str = ""
-    mode: Literal["explicit", "suggest", "adaptive"] = "explicit"
-    complexity_threshold: Literal["CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC"] = "COMPLICATED"
-    fallback_policy: Literal["fail_closed", "same_adapter_default", "next_eligible"] = "fail_closed"
-    max_parallel: int = Field(default=3, ge=1, le=16)
-    orchestrator: _AdapterTargetIn = Field(default_factory=_AdapterTargetIn)
-    roles: dict[str, _AdapterTargetIn] = Field(default_factory=dict)
-    cooldown: _CooldownIn = Field(default_factory=_CooldownIn)
-
-
 class _AutoSpawnIn(BaseModel):
     enabled: bool
 
@@ -365,7 +294,7 @@ class _ClaudeAuthIn(BaseModel):
 class _PatchBody(BaseModel):
     budget_cap: _BudgetCapIn | None = None
     trace_rotation: _TraceRotationIn | None = None
-    model_routing: _ModelRoutingIn | None = None
+    model_routing: ModelRoutingPolicy | None = None
     auto_spawn: _AutoSpawnIn | None = None
     git_settings: _GitSettingsIn | None = None
     claude_auth: _ClaudeAuthIn | None = None
@@ -428,9 +357,7 @@ def patch_settings(body: _PatchBody):
                 current[name] = {**current.get(name, {}), **patch}
         if body.model_routing is not None:
             try:
-                current["model_routing"] = _ModelRoutingIn.model_validate(
-                    current["model_routing"]
-                ).model_dump()
+                current["model_routing"] = normalize_policy(current["model_routing"])
             except ValidationError as exc:
                 return _module_error(422, "validation", str(exc), False)
         _save(current)

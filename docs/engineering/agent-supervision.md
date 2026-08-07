@@ -16,9 +16,10 @@ runtime health, model routing, or supervised-run persistence.
 
 Supervision is part of the optional `cognition` module and is additionally
 guarded by `model_routing.enabled`. When either gate is off, existing dispatch,
-chat, hooks, storage, and UI behavior stays byte-for-byte equivalent at the
+chat, hooks, and storage behavior stays byte-for-byte equivalent at the
 supervision boundary: no child process, health probe, state write, or token is
-spent by this feature.
+spent by this feature. Configuration surfaces may still show the disabled
+state and the control that enables it.
 
 When enabled, the conversation's current runtime remains the parent. The
 supervisor may assign bounded child work to any configured, ready adapter and
@@ -33,6 +34,35 @@ Three trigger modes are supported:
 
 Manual role policies always outrank adaptive selection. A project with one
 adapter can still route roles among that adapter's models and efforts.
+
+## Control surfaces and ownership
+
+The policy is project state owned by the kernel, not by Hub. One shared service
+loads, validates, deep-merges, locks, and atomically writes
+`.coding-os/hub-settings.json::model_routing`; it preserves every unrelated and
+unknown settings section. Hub, CLI, and MCP are peer adapters over that service:
+
+- Hub: **Config → Settings → Agent Supervision**;
+- CLI: `cos supervision show|enable|disable|set`;
+- MCP: `cos_supervision_config` with `show`, `enable`, `disable`, or `set`.
+
+The CLI and MCP surfaces work without installing or starting Hub. All three
+surfaces must round-trip the same normalized policy, including nested
+`orchestrator`, `roles`, and `cooldown` defaults. A partial or older settings
+file is migration-safe: readers receive the current complete shape, while a
+write keeps unrelated settings intact. A malformed file fails closed on write
+instead of being replaced with defaults.
+
+Headless examples:
+
+```bash
+cos supervision enable
+cos supervision set --mode adaptive --complexity-threshold COMPLICATED \
+  --fallback-policy next_eligible --max-parallel 3
+cos supervision set --role reviewer --role-adapter codex \
+  --role-model gpt-5 --role-effort high
+cos supervision disable
+```
 
 ## Raptor shape
 
@@ -180,8 +210,8 @@ copied into parent context.
 
 ## Hub behavior
 
-When supervision is disabled, no supervision controls appear. When enabled,
-Hub shows:
+When supervision is disabled, Hub shows the disabled status and enable toggle,
+but hides routing controls. When enabled, Hub shows:
 
 - trigger mode and complexity threshold;
 - orchestrator and per-role adapter/model/effort policies;
@@ -218,8 +248,10 @@ retaining model and effort policy.
 
 - [x] Extend settings with default-off supervision policy and migration-safe defaults.
 - [x] Add role adapter/model/effort controls sourced from descriptors.
-- [x] Hide the feature surface when disabled.
+- [x] Hide routing controls when disabled while retaining the enable control.
 - [x] Show readiness, cooldown reason, and recovery time.
+- [x] Expose the same policy through Hub, CLI, and MCP without a Hub dependency.
+- [x] Deep-normalize older/partial settings payloads before Hub rendering.
 
 ### Dispatch and health
 
