@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: null
 labels: [orchestration, adapters, model-routing, hub, docs-update, ready]
-status: testing
+status: in_progress
 priority: P1
 appetite: 3d
 created: 2026-08-04
@@ -90,3 +90,45 @@ references: []
 - 2026-08-07 [claude]: Edit adapter_registry.py
 - 2026-08-07 [claude]: commit aeaf4f148e — fix(supervision): restore adapter validation and protect the capacity recovery probe
 - 2026-08-07 [claude]: commit e76e67f75e — chore(board): record the supervision code-review fixes on TASK-882
+- 2026-08-07 [claude]: Edit agent-supervision.md
+- 2026-08-07 [claude]: Edit agent-supervision.md
+- 2026-08-07 [claude]: Edit agent-supervision.md
+- 2026-08-07 [claude]: Edit agent-supervision.md
+- 2026-08-07 [claude]: Edit agent-supervision.md
+- 2026-08-07 [claude]: Edit agent-supervision.md
+- 2026-08-07 [claude]: Edit README.md
+- 2026-08-07 [claude]: Edit agent-supervision-setup.md
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit cognition.py
+- 2026-08-07 [claude]: Edit adapter_registry.py
+- 2026-08-07 [claude]: Edit settings.py
+- 2026-08-07 [claude]: Edit settings.py
+- 2026-08-07 [claude]: Edit SettingsPage.tsx
+- 2026-08-07 [claude]: Edit SettingsPage.tsx
+- 2026-08-07 [claude]: Edit adapter.schema.json
+- 2026-08-07 [claude]: Edit supervision.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit dispatcher.py
+- 2026-08-07 [claude]: Edit cognition.py
+- 2026-08-07 [claude]: Edit agent-supervision.md
+- 2026-08-07 [claude]: Edit agent-supervision-setup.md
+- 2026-08-07 [claude]: Edit agent-supervision-setup.md
+- 2026-08-07 [claude]: Edit test_supervision.py
+- 2026-08-07 [claude]: Edit test_supervision.py
+- 2026-08-07 [claude]: Edit test_supervision.py
+- 2026-08-07 [claude]: Edit test_supervision.py
+- 2026-08-07 [claude]: Edit cognition.py
+- 2026-08-07 [claude]: Edit test_cli.py
+- 2026-08-07 [claude]: Edit test_cli.py
+- 2026-08-07 [claude]: Edit claude-sdk.md
+- 2026-08-07 [claude]: Edit claude-sdk.md
+- 2026-08-07 [claude]: Edit dispatcher-contract.md
+- 2026-08-07 [claude]: Edit test_cognition_tools.py
+- 2026-08-07 [claude]: Closed the review gaps: trigger modes now enforced via one predicate (supervision.policy_applies) read by both the…
