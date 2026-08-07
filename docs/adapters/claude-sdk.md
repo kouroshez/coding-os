@@ -179,6 +179,7 @@ Why each line:
 | `model` | str\|None | model id. None = SDK default. |
 | `adapter` | str\|None | target adapter id. None = supervisor/`_detect_agent` picks. |
 | `effort` | str\|None | reasoning effort; rejected unless the adapter declares `effort_selection`. |
+| `complexity` | str | Cynefin level of the originating request; `""` is below every gate, so `mode: adaptive` never escalates an unclassified request. |
 
 **Model resolution at request build** (`_build_dispatch_request`) —
 precedence, first match wins; the decision source is logged
@@ -187,7 +188,7 @@ precedence, first match wins; the decision source is logged
 | tier | source | key |
 |---|---|---|
 | 1 | explicit `model` argument on the run tools | verbatim |
-| 2 | project supervision policy `model_routing.roles[<role>].model` ([agent-supervision.md](../engineering/agent-supervision.md)) | role id |
+| 2 | project supervision policy `model_routing.roles[<role>].model`, falling back to `model_routing.orchestrator.model` ([agent-supervision.md](../engineering/agent-supervision.md)); skipped entirely when the trigger mode's gate does not apply | role id |
 | 3 | active preset's `roles_adapter_hints[<role>].model_pref` (presets/registry.yaml; the session's composed preset is read back from `persona_selections`) | `complexity` lowercased |
 | 4 | role frontmatter `model_pref` (`agents/README.md`) | `complexity` lowercased |
 | 5 | `cos_route_model` empirical recommendation — only when real outcome history exists (`data_points > 0`), never the cold-start static default | `complexity` |

@@ -1,4 +1,4 @@
-<!-- domain:ADAPTERS | layer:engineering | ssot:true | updated:2026-08-06 -->
+<!-- domain:ADAPTERS | layer:engineering | ssot:true | updated:2026-08-07 -->
 # Agent Supervision
 
 Purpose: Define the opt-in, adapter-neutral control plane that routes role work
@@ -26,14 +26,41 @@ supervisor may assign bounded child work to any configured, ready adapter and
 model. Children return typed evidence to the parent; they do not replace the
 conversation or freely message one another.
 
-Three trigger modes are supported:
+Three trigger modes decide **whether the configured policy applies to a given
+request**:
 
-- `explicit`: supervise only when the caller requests it.
-- `suggest`: propose a route and wait for approval.
-- `adaptive`: supervise requests that meet the configured complexity gate.
+| Mode | Policy applies | Effect |
+|---|---|---|
+| `explicit` (default) | always, while supervision is enabled | the configured route is the contract: validate, check capacity, dispatch |
+| `adaptive` | only when the request's complexity is at or above `complexity_threshold` | cheap work skips the policy and runs on the session default |
+| `suggest` | always | resolve the full route and return it **without executing** (`status="skipped"`, `output_json.proposed_route`) |
 
-Manual role policies always outrank adaptive selection. A project with one
-adapter can still route roles among that adapter's models and efforts.
+Complexity ranks `CLEAR < COMPLICATED < COMPLEX < CHAOTIC`. A request carrying
+no complexity is below every gate, so an unclassified request is never
+escalated by accident under `adaptive`.
+
+The gate applies at both ends of the same rule: the cognition layer stops
+injecting the role/orchestrator route, and the dispatcher falls back to the
+plain session dispatch path. One predicate, two call sites — never two
+definitions of "supervised".
+
+`suggest` is a **dry run**, not an interactive approval prompt: it spends no
+provider tokens and returns the route it would have taken. Approval is an
+operator action — switch the mode to `explicit` or `adaptive`. An
+in-conversation approval channel is deliberately deferred; a mode that silently
+behaved like `explicit` would be worse than one that does not exist.
+
+**The breaker follows the policy, not the routing preference.** Under
+`explicit` — the default — every dispatch goes through the capacity check, so
+an operator who enabled supervision purely for rate-limit protection and
+configured no roles still gets it. The only paths that skip the breaker are
+`enabled: false` and `adaptive` below its gate, both of which are explicit
+operator choices to leave that request unsupervised.
+
+A per-role entry outranks the orchestrator default, which outranks the
+adapter's own default. A project with one adapter can still route roles among
+that adapter's models and efforts — the single-adapter, multi-model case is a
+first-class use, not a degraded one.
 
 ## Control surfaces and ownership
 
@@ -59,10 +86,17 @@ Headless examples:
 cos supervision enable
 cos supervision set --mode adaptive --complexity-threshold COMPLICATED \
   --fallback-policy next_eligible --max-parallel 3
-cos supervision set --role reviewer --role-adapter codex \
-  --role-model gpt-5 --role-effort high
+cos supervision set --orchestrator-model claude-sonnet-5 --orchestrator-effort medium
+cos supervision set --role reviewer --role-model claude-haiku-4-5 --role-effort low
+cos supervision set --role architect --role-model claude-opus-4-8 --role-effort xhigh
 cos supervision disable
 ```
+
+Every write is validated against the adapter descriptors before it lands: a
+role pinned to an unknown adapter, to a model that adapter does not declare, or
+to an effort on an adapter without `effort_selection` is rejected at write time
+with the reason. This is deliberate — a policy the dispatcher can never satisfy
+is a silent outage discovered at the worst moment.
 
 ## Raptor shape
 
@@ -76,6 +110,58 @@ The feature adds one cohesive registry and one health state machine. It reuses:
 
 It does not add a second board, workflow engine, transcript store, provider
 gateway, or provider SDK import in `src/core/**`.
+
+## Design precedents
+
+A survey of production multi-agent orchestrators and agent-interop protocols
+preceded this design. The findings are recorded as portable patterns; the
+systems they came from are not named here, because a rule that only holds while
+you remember its source is a rule that rots.
+
+**Scope the runtime, not the conversation.** The mature systems bind an agent
+to a *workspace* and record the chosen runtime on the run itself, immutably.
+Changing settings never retargets a conversation that is already in flight.
+Coding OS follows this: a Hub project supplies the workspace scope, and a run's
+adapter plus capability snapshot are frozen at creation.
+
+**Carry two identities.** Every implementation that bridged an external agent
+hit the same defect: the orchestrator's session id and the runtime's native
+thread id are different id-spaces, and code that conflates them breaks on
+resume. Supervised runs persist `run_id` *and* `native_thread_id`, and Hub
+links transcripts by native identity rather than copying them.
+
+**Negotiate capability; never simulate it.** The protocols that aged well
+advertise features and let the client degrade honestly; the integrations that
+aged badly faked resume or fork and failed at the edge. Hence
+`runtime_entrypoints.capabilities`: a missing capability is an explicit
+`invalid` failure, never a quiet success on a downgraded path.
+
+**Keep orchestration deterministic and above the agent.** Sequential,
+concurrent, hand-off, and group patterns are *policy*, not provider features.
+The systems that put them in plain, checkpointed control flow stayed debuggable;
+the ones that relied on agents freely messaging each other could not be
+budgeted, cancelled, or reproduced. Supervision is therefore a typed state
+machine, and free agent-to-agent chat is not a control plane.
+
+**Prefer the runtime's own surface.** Where a runtime already exposes
+parent-controlled child agents with per-child model, effort, and sandbox, going
+through a lowest-common-denominator protocol discards exactly the capabilities
+worth having. Adapters drive native surfaces; a portability protocol belongs at
+the edge, as an optional compatibility adapter, not as the internal contract.
+
+**Return evidence, not transcripts.** Children hand their parent a typed slice.
+Unbounded transcript relay is what turns a fan-out into a context-window
+incident.
+
+### Rejected alternatives
+
+| Alternative | Why not |
+|---|---|
+| Adopt a general multi-agent framework as the kernel | Duplicates the board, roles, formula chains, persistence, and tracing this repo already owns, and still does not solve native runtime identity. |
+| Use an interop protocol as the internal contract | Real implementations have capability gaps (resume/fork), while the kernel needs native steer, hooks, and evidence semantics. |
+| Route through a model-provider gateway | Switching *providers* is not switching *agent runtimes* — it discards tools, sandboxes, sessions, subscriptions, and hooks. |
+| Let agents message each other freely | Cannot be checkpointed, budgeted, cancelled, or reproduced. |
+| Hardcode adapter routing in core | Breaks adapter autonomy (P8) and makes every future adapter a kernel change. |
 
 ## Adapter descriptor
 
@@ -121,18 +207,41 @@ model_routing:
   roles: {}
 ```
 
+`orchestrator` is the **project-wide default target** for supervised work: any
+role without its own entry inherits its adapter, model, and effort. A per-role
+entry overrides it field by field, so pinning one cheap reviewer does not force
+you to re-state the default for every other role. The orchestrator model and
+effort are also what the Hub chat composer falls back to when a turn does not
+name its own.
+
 Resolution order is deterministic:
 
 1. explicit request override;
 2. project role policy;
-3. active preset hint;
-4. role default;
-5. adaptive eligible-set ranking;
-6. adapter default.
+3. project orchestrator policy;
+4. active preset hint;
+5. role default;
+6. empirical routing history;
+7. adapter default.
 
 Adapter selection happens before model and effort validation. A selected model
 must belong to the selected adapter descriptor. Every parallel request resolves
 its own dispatcher; a fan-out never shares one implicit session dispatcher.
+
+### Model catalogs
+
+`models:` in an adapter descriptor is the catalog offered to operators — it
+drives the Hub pickers and write-time validation. An adapter may declare
+`model_selection` with an **empty** catalog: that means "this runtime forwards
+any model string, but Coding OS does not maintain its list". Core does not
+invent model ids for a runtime that has not published one. The consequence is
+explicit rather than silent:
+
+- validation accepts any non-empty model string for that adapter;
+- the Hub renders a free-text field instead of an empty, unusable select;
+- the operator owns the correctness of the string they typed.
+
+A populated catalog is strictly better and is the expected end state.
 
 `fallback_policy` values:
 
@@ -224,6 +333,12 @@ An installed but unavailable adapter remains visible and disabled so the user
 can diagnose it. A one-adapter project hides redundant adapter choice while
 retaining model and effort policy.
 
+A saved policy always renders its saved value, even when the named adapter is
+no longer installed or its runtime went unavailable: the stale target is shown
+and labelled as unavailable rather than collapsing to a blank control. An empty
+control reads as "nothing is configured", which is the opposite of the truth
+and hides the reason dispatch is failing.
+
 ## Safety invariants
 
 - One mutable scope has one writer; read-only children may run concurrently.
@@ -271,6 +386,18 @@ retaining model and effort policy.
 - [x] Smoke installed Claude and Codex entrypoints with capability limits reported.
 - [x] Adversarially review Raptor part count, failure modes, privacy, and compatibility.
 - [ ] Publish matching GitHub and PyPI versions from the verified commit.
+
+### Review follow-ups
+
+- [x] Enforce `mode` and `complexity_threshold` at dispatch instead of describing them.
+- [x] Give `orchestrator.adapter/model/effort` a real consumer as the default role target.
+- [x] Validate role and orchestrator targets at write time, not only at dispatch.
+- [x] Define empty-catalog semantics and stop rendering an unusable empty select.
+- [x] Cache adapter dispatch readiness instead of executing entrypoints per request.
+- [x] Keep the capacity check off the async event loop.
+- [x] Render a saved-but-unavailable target instead of a blank control.
+- [x] Restore the design rationale as portable, source-free patterns.
+- [x] Document the feature in the README and the operator playbook.
 
 ## Release boundary
 

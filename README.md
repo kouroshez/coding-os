@@ -408,6 +408,31 @@ Deep dive: [docs/engineering/graph_os-queries.md](./docs/engineering/graph_os-qu
 Parity matrix + reasoning: [docs/engineering/adapter-parity.md](./docs/engineering/adapter-parity.md)
 (the 2026-04-25 workflow audit is a historical snapshot predating Codex parity).
 
+## Agent supervision — pick the model per role (opt-in)
+
+Off by default. Turn it on and each of the 11 semantic roles can run on its own
+adapter, model, and reasoning effort — a cheap model reviewing, an expensive one
+architecting. It works with a **single** adapter too: routing across Claude's own
+model tiers is the common case, not a fallback.
+
+```bash
+cos supervision enable
+cos supervision set --orchestrator-model claude-sonnet-5     # project default
+cos supervision set --role reviewer  --role-model claude-haiku-4-5 --role-effort low
+cos supervision set --role architect --role-model claude-opus-4-8  --role-effort xhigh
+cos supervision show
+```
+
+Adapters and their model catalogs are discovered from `adapter.yaml`, so a new
+runtime is configurable the day it is installed. When a provider reports a rate
+or capacity limit, that adapter is put on a persistent cooldown with a single
+half-open recovery probe instead of retry-storming a limit that cannot succeed.
+Same policy from the Hub (**Config → Settings**), the CLI, or MCP — no Hub
+required. Disabled means disabled: no probe, no state write, no tokens.
+
+Full contract: [docs/engineering/agent-supervision.md](./docs/engineering/agent-supervision.md)
+· operator guide: [docs/playbooks/agent-supervision-setup.md](./docs/playbooks/agent-supervision-setup.md)
+
 ## Configuration
 
 `.coding-os.yaml` at every project root:
@@ -460,6 +485,7 @@ CI runs the matrix on every PR. See `.github/workflows/ci.yml`.
 | [docs/governance/agent-workflow.md](./docs/governance/agent-workflow.md)            | Domain routing, task protocol, memory contract              |
 | [docs/engineering/graph_os-queries.md](./docs/engineering/graph_os-queries.md)      | When to query the graph vs grep                             |
 | [docs/engineering/hub-architecture.md](./docs/engineering/hub-architecture.md)      | Hub: FastAPI ↔ React SPA contract                           |
+| [docs/engineering/agent-supervision.md](./docs/engineering/agent-supervision.md)    | Per-role adapter/model routing, capacity breaker, trigger modes |
 | [docs/playbooks/](./docs/playbooks/)                                                | Hook authoring · adapter authoring · template authoring · MCP tool authoring |
 | [docs/adapters/](./docs/adapters/)                                                  | Claude SDK · Codex CLI integration                          |
 | [CONTRIBUTING.md](./CONTRIBUTING.md)                                                | Setup, contribution loop, PR checklist                      |

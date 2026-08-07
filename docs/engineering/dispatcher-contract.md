@@ -45,6 +45,7 @@ class DispatchRequest(BaseModel):
     cwd: str | None
     model: str | None          # forwarded to the adapter; None = adapter default
     effort: str | None         # adapter-declared reasoning effort
+    complexity: str            # Cynefin level; "" is below every adaptive gate
     max_budget_usd: float | None
     long_context: bool
     adapter: str | None        # target-runtime HINT (e.g. "codex"); see below
