@@ -189,3 +189,4 @@ references: []
 - 2026-08-07 [claude]: commit 312334b772 — test(supervision): cover pool isolation, probe-lease leaks, and stale cooling state
 - 2026-08-07 [claude]: commit e745bf128e — docs(supervision): record what a provider limit actually applies to
 - 2026-08-07 [claude]: Researched the provider's own rate-limit spec and found the model was wrong at the root: limits are metered per…
+- 2026-08-07 [claude]: commit cc202aab9c — chore(board): log the pool-scoping research and fixes on TASK-882
