@@ -75,6 +75,6 @@ Read next: any of the entries below.
 - [Agent Hub & Multi-Agent Orchestration](agent-hub-orchestration.md) — `ssot:true` · updated 2026-08-03
 - [Hub Web UI — Pre-Release Audit (2026-08-03, TASK-864)](hub-release-audit-2026-08-03.md) — `ssot:false` · updated 2026-08-03
 - [Dispatcher Contract](dispatcher-contract.md) — `ssot:true` · updated 2026-08-03
-- [Agent Supervision](agent-supervision.md) — `ssot:true` · updated 2026-08-06
+- [Agent Supervision](agent-supervision.md) — `ssot:true` · updated 2026-08-07
 
 <!-- END auto-index -->
