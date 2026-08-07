@@ -21,8 +21,22 @@ def _dispatch_adapter_ids() -> list[str]:
     return ids
 
 
+def test_the_contract_covers_the_installed_dispatch_adapters() -> None:
+    # Without this, a path or layout change that empties the glob makes every
+    # parametrized case below vanish and the suite pass having tested nothing.
+    covered = _dispatch_adapter_ids()
+
+    assert {"claude", "codex"} <= set(covered), covered
+
+
+def _dispatch_entrypoint(adapter_id: str) -> Path:
+    manifest = yaml.safe_load((ADAPTERS / adapter_id / "adapter.yaml").read_text(encoding="utf-8"))
+    filename = (manifest.get("runtime_entrypoints") or {}).get("dispatch") or "sdk_dispatcher.py"
+    return ADAPTERS / adapter_id / str(filename)
+
+
 def _load(adapter_id: str):
-    path = ADAPTERS / adapter_id / "sdk_dispatcher.py"
+    path = _dispatch_entrypoint(adapter_id)
     spec = util.spec_from_file_location(f"test_{adapter_id}_capacity", path)
     assert spec is not None and spec.loader is not None
     module = util.module_from_spec(spec)
@@ -78,6 +92,21 @@ def test_adapter_does_not_treat_auth_failure_as_a_timed_limit(adapter_id: str) -
 
     assert fields["error_category"] == "auth"
     assert fields.get("retryable") is not True
+
+
+@pytest.mark.parametrize("adapter_id", _dispatch_adapter_ids())
+def test_adapter_separates_provider_overload_from_your_own_quota(adapter_id: str) -> None:
+    classify = _load(adapter_id)._failure_fields
+
+    for message in ("529 overloaded_error: Overloaded", "500 api_error: internal error"):
+        fields = classify("error", message)
+
+        # Provider-side, not your quota: it must stay retryable and must NOT be
+        # `capacity`, or a brief provider blip would cool your adapter for the
+        # whole configured window.
+        assert fields["error_category"] != "capacity", message
+        assert fields["retryable"] is True, message
+        assert fields["outcome"] == "unknown", message
 
 
 @pytest.mark.parametrize("adapter_id", _dispatch_adapter_ids())

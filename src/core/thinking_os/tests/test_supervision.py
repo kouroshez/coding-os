@@ -550,7 +550,10 @@ def test_failed_probe_releases_its_lease_instead_of_stalling_recovery(tmp_path: 
 
     retry = supervision.check_capacity(db_path, "claude", now=after_cooldown + 1, lease_seconds=300)
 
-    assert retry.allowed and retry.probe
+    # Settled back to healthy rather than pinned to half_open: the cooldown had
+    # already expired and a provider error is no evidence of a capacity problem.
+    assert retry.allowed and not retry.probe and retry.state == "healthy"
+    assert supervision.health_snapshot(db_path)["claude"]["state"] == "healthy"
 
 
 def test_exhausted_fleet_reports_the_soonest_recovery(tmp_path: Path, monkeypatch) -> None:
@@ -586,8 +589,184 @@ def test_exhausted_fleet_reports_the_soonest_recovery(tmp_path: Path, monkeypatc
     # 'slow' was the requested target and 'quick' the fallback; the caller needs
     # the soonest wait across the fleet, not the last adapter checked.
     assert result.retry_after_s is not None and result.retry_after_s <= 31
-    assert "all eligible adapters are at capacity" in (result.error or "")
+    assert "every eligible model pool is at capacity" in (result.error or "")
     assert "quick" in (result.error or "") and "slow" in (result.error or "")
+
+
+def _pooled_record(tmp_path: Path) -> AdapterRecord:
+    path = tmp_path / "claude"
+    path.mkdir(exist_ok=True)
+    return AdapterRecord(
+        "claude",
+        path,
+        {
+            "id": "claude",
+            "runtime_entrypoints": {"dispatch": "sdk.py", "capabilities": ["dispatch"]},
+            "models": [
+                {"id": "big", "bucket": "opus-4x", "default": True},
+                {"id": "small", "bucket": "haiku"},
+                {"id": "unpooled"},
+            ],
+        },
+    )
+
+
+def test_capacity_is_keyed_per_declared_model_pool(tmp_path: Path) -> None:
+    record = _pooled_record(tmp_path)
+
+    assert supervision.capacity_key(record, "big") == "claude:opus-4x"
+    assert supervision.capacity_key(record, "small") == "claude:haiku"
+    # A model with no declared pool, and an unknown model, fall back to treating
+    # the adapter as one pool — exactly the pre-existing behaviour.
+    assert supervision.capacity_key(record, "unpooled") == "claude"
+    assert supervision.capacity_key(record, None) == "claude"
+
+
+def test_one_limited_pool_does_not_take_the_others_out_of_service(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db_path = _health_db(tmp_path / "health.db")
+    _settings(tmp_path, fallback="fail_closed")
+    record = _pooled_record(tmp_path)
+    used: list[str] = []
+
+    class Runtime:
+        name = "claude-sdk"
+
+        async def dispatch(self, request):
+            used.append(request.model or "")
+            if request.model == "big":
+                return dispatcher.DispatchResult(
+                    formula_id=request.formula_id,
+                    status="error",
+                    error="usage limit",
+                    error_category="capacity",
+                    retryable=True,
+                    retry_after_s=600,
+                    outcome="known_failed",
+                    dispatcher_name=self.name,
+                )
+            return dispatcher.DispatchResult(
+                formula_id=request.formula_id, status="ok", dispatcher_name=self.name
+            )
+
+    monkeypatch.setattr(supervision, "eligible_records", lambda _root: [record])
+    monkeypatch.setattr(dispatcher, "get_dispatcher", lambda agent=None, request=None: Runtime())
+
+    def run(model: str):
+        return asyncio.run(
+            dispatcher.dispatch_request(
+                dispatcher.DispatchRequest(
+                    formula_id="architect",
+                    agent_file="a.md",
+                    prompt="p",
+                    adapter="claude",
+                    model=model,
+                    cwd=str(tmp_path),
+                ),
+                db_path,
+            )
+        )
+
+    assert run("big").error_category == "capacity"
+    assert supervision.health_snapshot(db_path)["claude:opus-4x"]["state"] == "cooling_down"
+
+    # The provider meters these pools separately, so the cheap model is still
+    # fully available — blocking it would delete capacity that provably exists.
+    assert run("small").status == "ok"
+    assert used == ["big", "small"]
+
+    # And the limited pool stays shut.
+    assert run("big").error_category == "capacity"
+    assert used == ["big", "small"]
+
+
+def test_hub_summary_reports_the_worst_pool_and_the_soonest_recovery(tmp_path: Path) -> None:
+    db_path = _health_db(tmp_path / "health.db")
+    supervision.record_result(
+        db_path, "claude:opus-4x", success=False, error_category="capacity",
+        retryable=True, retry_after_s=900,
+    )
+    supervision.record_result(
+        db_path, "claude:haiku", success=False, error_category="capacity",
+        retryable=True, retry_after_s=60,
+    )
+    supervision.record_result(db_path, "codex", success=True)
+
+    summary = supervision.adapter_health(supervision.health_snapshot(db_path), "claude")
+
+    assert summary["state"] == "cooling_down"
+    assert 0 < summary["retry_after_s"] <= 60
+    assert summary["limited_buckets"] == ["claude:haiku", "claude:opus-4x"]
+    assert supervision.adapter_health(supervision.health_snapshot(db_path), "codex")["state"] == (
+        "healthy"
+    )
+
+
+def test_expired_cooldown_is_not_reported_as_still_cooling(tmp_path: Path) -> None:
+    db_path = _health_db(tmp_path / "health.db")
+    supervision.record_result(
+        db_path, "claude", success=False, error_category="capacity",
+        retryable=True, retry_after_s=30,
+    )
+
+    assert supervision.health_snapshot(db_path)["claude"]["state"] == "cooling_down"
+
+    later = supervision.health_snapshot(db_path, now=time.time() + 60)
+
+    assert later["claude"]["state"] == "healthy"
+    assert later["claude"]["retry_after_s"] == 0
+
+
+def test_clear_health_removes_every_pool_of_one_adapter(tmp_path: Path) -> None:
+    db_path = _health_db(tmp_path / "health.db")
+    for scope in ("claude", "claude:opus-4x", "claude:haiku", "codex"):
+        supervision.record_result(
+            db_path, scope, success=False, error_category="capacity",
+            retryable=True, retry_after_s=300,
+        )
+
+    assert supervision.clear_health(db_path, "claude") is True
+
+    assert set(supervision.health_snapshot(db_path)) == {"codex"}
+
+
+def test_a_raising_adapter_does_not_strand_the_recovery_probe(tmp_path: Path, monkeypatch) -> None:
+    db_path = _health_db(tmp_path / "health.db")
+    _settings(tmp_path, fallback="fail_closed")
+    records = [_record(tmp_path, "claude")]
+    supervision.record_result(
+        db_path, "claude", success=False, error_category="capacity",
+        retryable=True, retry_after_s=1,
+    )
+
+    class Runtime:
+        name = "claude-sdk"
+
+        async def dispatch(self, request):
+            raise RuntimeError("adapter blew up mid-probe")
+
+    monkeypatch.setattr(supervision, "eligible_records", lambda _root: records)
+    monkeypatch.setattr(dispatcher, "get_dispatcher", lambda agent=None, request=None: Runtime())
+    request = dispatcher.DispatchRequest(
+        formula_id="reviewer",
+        agent_file="a.md",
+        prompt="p",
+        adapter="claude",
+        timeout_s=3600,
+        cwd=str(tmp_path),
+    )
+    time.sleep(1.1)
+
+    try:
+        asyncio.run(dispatcher.dispatch_request(request, db_path))
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("the adapter's exception must propagate")
+
+    # Without the release the lease would hold for the full timeout_s.
+    assert supervision.check_capacity(db_path, "claude").allowed
 
 
 def test_complexity_rank_orders_the_cynefin_levels() -> None:
