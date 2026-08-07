@@ -286,20 +286,240 @@ def test_disabled_policy_uses_existing_dispatch_path_without_health_state(
     assert not (tmp_path / "missing.db").exists()
 
 
-def test_orchestrator_target_does_not_override_unconfigured_role(tmp_path: Path) -> None:
+def test_orchestrator_target_is_the_default_for_unconfigured_roles(tmp_path: Path) -> None:
     state = tmp_path / ".coding-os"
     state.mkdir()
     (state / "hub-settings.json").write_text(
         '{"model_routing":{"enabled":true,"orchestrator":{"adapter":"first",'
-        '"model":"large","effort":"high"},"roles":{}}}',
+        '"model":"large","effort":"high"},"roles":{"reviewer":{"model":"small"}}}}',
         encoding="utf-8",
     )
 
-    assert supervision.role_policy("reviewer", tmp_path) == {
-        "adapter": "",
-        "model": "",
-        "effort": "",
+    assert supervision.role_policy("architect", tmp_path) == {
+        "adapter": "first",
+        "model": "large",
+        "effort": "high",
     }
+    # A role entry overrides field by field — pinning one model must not drop
+    # the orchestrator's adapter and effort.
+    assert supervision.role_policy("reviewer", tmp_path) == {
+        "adapter": "first",
+        "model": "small",
+        "effort": "high",
+    }
+
+
+def test_adaptive_mode_skips_policy_below_the_complexity_gate(tmp_path: Path) -> None:
+    state = tmp_path / ".coding-os"
+    state.mkdir()
+    (state / "hub-settings.json").write_text(
+        '{"model_routing":{"enabled":true,"mode":"adaptive",'
+        '"complexity_threshold":"COMPLEX","orchestrator":{"model":"large"}}}',
+        encoding="utf-8",
+    )
+
+    assert supervision.role_policy("architect", tmp_path, complexity="COMPLICATED")["model"] == ""
+    assert supervision.role_policy("architect", tmp_path, complexity="COMPLEX")["model"] == "large"
+    assert supervision.role_policy("architect", tmp_path, complexity="CHAOTIC")["model"] == "large"
+    # An unclassified request is below every gate rather than escalated.
+    assert supervision.role_policy("architect", tmp_path, complexity="")["model"] == ""
+
+
+def test_explicit_mode_applies_policy_without_a_complexity(tmp_path: Path) -> None:
+    state = tmp_path / ".coding-os"
+    state.mkdir()
+    (state / "hub-settings.json").write_text(
+        '{"model_routing":{"enabled":true,"orchestrator":{"model":"large"}}}',
+        encoding="utf-8",
+    )
+
+    assert supervision.role_policy("architect", tmp_path, complexity="")["model"] == "large"
+
+
+def test_adaptive_gate_below_threshold_bypasses_the_supervisor(tmp_path: Path, monkeypatch) -> None:
+    state = tmp_path / ".coding-os"
+    state.mkdir()
+    (state / "hub-settings.json").write_text(
+        '{"model_routing":{"enabled":true,"mode":"adaptive","complexity_threshold":"COMPLEX"}}',
+        encoding="utf-8",
+    )
+
+    class Runtime:
+        name = "session"
+
+        async def dispatch(self, request):
+            return dispatcher.DispatchResult(
+                formula_id=request.formula_id,
+                status="ok",
+                dispatcher_name="existing",
+            )
+
+    monkeypatch.setattr(dispatcher, "get_dispatcher", lambda agent=None, request=None: Runtime())
+    request = dispatcher.DispatchRequest(
+        formula_id="analyst",
+        agent_file="agent.md",
+        prompt="analyze",
+        complexity="CLEAR",
+        cwd=str(tmp_path),
+    )
+
+    result = asyncio.run(dispatcher.dispatch_request(request, tmp_path / "missing.db"))
+
+    assert result.dispatcher_name == "existing"
+    assert not (tmp_path / "missing.db").exists()
+
+
+def test_suggest_mode_returns_the_route_without_executing(tmp_path: Path, monkeypatch) -> None:
+    db_path = _health_db(tmp_path / "health.db")
+    state = tmp_path / ".coding-os"
+    state.mkdir()
+    (state / "hub-settings.json").write_text(
+        '{"model_routing":{"enabled":true,"mode":"suggest"}}', encoding="utf-8"
+    )
+    records = [_record(tmp_path, "only")]
+    calls: list[str] = []
+
+    class Runtime:
+        name = "only-sdk"
+
+        async def dispatch(self, request):
+            calls.append(request.formula_id)
+            return dispatcher.DispatchResult(formula_id=request.formula_id, status="ok")
+
+    monkeypatch.setattr(supervision, "eligible_records", lambda _root: records)
+    monkeypatch.setattr(dispatcher, "get_dispatcher", lambda agent=None, request=None: Runtime())
+    request = dispatcher.DispatchRequest(
+        formula_id="reviewer",
+        agent_file="agent.md",
+        prompt="review",
+        adapter="only",
+        cwd=str(tmp_path),
+    )
+
+    result = asyncio.run(dispatcher.dispatch_request(request, db_path))
+
+    assert result.status == "skipped"
+    assert result.output_json["proposed_route"]["adapter"] == "only"
+    assert calls == []
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM adapter_health").fetchone()[0] == 0
+
+
+def _rich_record(tmp_path: Path, adapter_id: str, manifest: dict) -> AdapterRecord:
+    path = tmp_path / adapter_id
+    path.mkdir(exist_ok=True)
+    return AdapterRecord(adapter_id, path, {"id": adapter_id, **manifest})
+
+
+def _catalog_records(tmp_path: Path) -> list[AdapterRecord]:
+    return [
+        _rich_record(
+            tmp_path,
+            "rich",
+            {
+                "runtime_entrypoints": {
+                    "capabilities": ["dispatch", "model_selection", "effort_selection"]
+                },
+                "models": [{"id": "big"}, {"id": "small"}],
+                "efforts": ["low", "high"],
+            },
+        ),
+        _rich_record(
+            tmp_path,
+            "freeform",
+            {
+                "runtime_entrypoints": {"capabilities": ["dispatch", "model_selection"]},
+                "models": [],
+            },
+        ),
+    ]
+
+
+def test_write_time_validation_rejects_targets_dispatch_could_never_satisfy(
+    tmp_path: Path, monkeypatch
+) -> None:
+    (tmp_path / ".coding-os").mkdir()
+    monkeypatch.setattr(supervision, "eligible_records", lambda _root: _catalog_records(tmp_path))
+
+    for patch, expected in (
+        ({"roles": {"reviewer": {"adapter": "ghost"}}}, "unknown adapter"),
+        ({"roles": {"reviewer": {"adapter": "rich", "model": "huge"}}}, "is not declared"),
+        ({"roles": {"reviewer": {"adapter": "freeform", "effort": "high"}}}, "is not supported"),
+        ({"orchestrator": {"adapter": "rich", "effort": "extreme"}}, "is not supported"),
+    ):
+        try:
+            supervision.update_policy(tmp_path, patch)
+        except ValueError as exc:
+            assert expected in str(exc)
+        else:
+            raise AssertionError(f"{patch} should have been rejected")
+
+
+def test_write_time_validation_accepts_free_form_model_on_an_empty_catalog(
+    tmp_path: Path, monkeypatch
+) -> None:
+    (tmp_path / ".coding-os").mkdir()
+    monkeypatch.setattr(supervision, "eligible_records", lambda _root: _catalog_records(tmp_path))
+
+    policy = supervision.update_policy(
+        tmp_path, {"roles": {"reviewer": {"adapter": "freeform", "model": "anything-goes"}}}
+    )
+
+    assert policy["roles"]["reviewer"]["model"] == "anything-goes"
+
+
+def test_write_time_validation_only_covers_the_patched_targets(
+    tmp_path: Path, monkeypatch
+) -> None:
+    state = tmp_path / ".coding-os"
+    state.mkdir()
+    # A role pinned to an adapter that was later uninstalled must not lock the
+    # operator out of every other edit.
+    (state / "hub-settings.json").write_text(
+        '{"model_routing":{"enabled":true,"roles":{"reviewer":{"adapter":"gone"}}}}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(supervision, "eligible_records", lambda _root: _catalog_records(tmp_path))
+
+    policy = supervision.update_policy(tmp_path, {"max_parallel": 5})
+
+    assert policy["max_parallel"] == 5
+    assert policy["roles"]["reviewer"]["adapter"] == "gone"
+
+
+def test_entrypoint_module_is_cached_until_the_file_changes(tmp_path: Path) -> None:
+    from thinking_os import adapter_registry
+
+    adapter = tmp_path / "cached"
+    adapter.mkdir()
+    runtime = adapter / "runtime.py"
+    runtime.write_text("VALUE = 1\n", encoding="utf-8")
+    record = AdapterRecord(
+        "cached",
+        adapter,
+        {"id": "cached", "runtime_entrypoints": {"dispatch": "runtime.py"}},
+    )
+    adapter_registry._MODULE_CACHE.pop(("cached", "dispatch"), None)
+
+    first = adapter_registry.load_entrypoint_module(record, "dispatch")
+    assert adapter_registry.load_entrypoint_module(record, "dispatch") is first
+
+    import os
+
+    runtime.write_text("VALUE = 2\n", encoding="utf-8")
+    os.utime(runtime, (0, 0))
+    reloaded = adapter_registry.load_entrypoint_module(record, "dispatch")
+
+    assert reloaded is not first
+    assert reloaded.VALUE == 2
+
+
+def test_complexity_rank_orders_the_cynefin_levels() -> None:
+    ranks = [supervision.complexity_rank(level) for level in supervision.COMPLEXITY_ORDER]
+
+    assert ranks == sorted(ranks) and len(set(ranks)) == len(ranks)
+    assert supervision.complexity_rank("complicated") == supervision.complexity_rank("COMPLICATED")
+    assert supervision.complexity_rank("nonsense") == -1
 
 
 def test_partial_policy_is_deep_normalized(tmp_path: Path) -> None:
@@ -330,13 +550,13 @@ def test_policy_update_preserves_foreign_sections_and_permissions(tmp_path: Path
         {
             "enabled": True,
             "mode": "adaptive",
-            "roles": {"reviewer": {"adapter": "codex", "effort": "high"}},
+            "roles": {"reviewer": {"adapter": "claude", "effort": "high"}},
         },
     )
 
     stored = json.loads(path.read_text(encoding="utf-8"))
     assert policy["roles"]["reviewer"] == {
-        "adapter": "codex",
+        "adapter": "claude",
         "model": "",
         "effort": "high",
     }

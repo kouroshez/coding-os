@@ -473,7 +473,9 @@ class TestSupervisionConfig:
             mode="adaptive",
             role="reviewer",
             role_adapter="codex",
-            role_effort="high",
+            # codex declares model_selection with an empty catalog (any string
+            # forwards); it declares no effort_selection, so effort is rejected.
+            role_model="gpt-5-codex",
         )
 
         assert enabled["data"]["policy"]["enabled"] is True
@@ -481,6 +483,39 @@ class TestSupervisionConfig:
         assert configured["data"]["policy"]["roles"]["reviewer"]["adapter"] == "codex"
         stored = json.loads((state / "hub-settings.json").read_text(encoding="utf-8"))
         assert stored["foreign"] == {"keep": True}
+
+    def test_unsatisfiable_role_target_returns_validation_envelope(
+        self, mcp_tools, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        (tmp_path / ".coding-os").mkdir()
+        monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+
+        result = mcp_tools.call(
+            "cos_supervision_config",
+            action="set",
+            role="reviewer",
+            role_adapter="codex",
+            role_effort="high",
+        )
+
+        assert result["ok"] is False
+        assert result["error"]["category"] == "validation"
+        assert "is not supported" in result["error"]["message"]
+
+    def test_clear_flags_reject_conflicting_values(
+        self, mcp_tools, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        (tmp_path / ".coding-os").mkdir()
+        monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+
+        for kwargs in (
+            {"role": "reviewer", "clear_role": True, "role_model": "claude-haiku-4-5"},
+            {"clear_orchestrator": True, "orchestrator_model": "claude-haiku-4-5"},
+        ):
+            result = mcp_tools.call("cos_supervision_config", action="set", **kwargs)
+
+            assert result["ok"] is False
+            assert result["error"]["category"] == "validation"
 
     def test_invalid_action_returns_validation_envelope(self, mcp_tools) -> None:
         result = mcp_tools.call("cos_supervision_config", action="unknown")

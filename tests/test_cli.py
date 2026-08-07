@@ -2733,8 +2733,10 @@ class TestSupervisionCli:
                 "reviewer",
                 "--role-adapter",
                 "codex",
-                "--role-effort",
-                "high",
+                # codex declares model_selection with an empty catalog, so any
+                # non-empty string is accepted; effort would be rejected.
+                "--role-model",
+                "gpt-5-codex",
             ],
         )
         disabled = runner.invoke(cli, ["supervision", "disable", "-d", str(project)])
@@ -2747,6 +2749,24 @@ class TestSupervisionCli:
         assert stored["model_routing"]["enabled"] is False
         assert stored["model_routing"]["mode"] == "adaptive"
         assert stored["model_routing"]["roles"]["reviewer"]["adapter"] == "codex"
+
+    def test_set_rejects_a_target_dispatch_could_never_satisfy(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        project = self._project(tmp_path)
+
+        for args, expected in (
+            (["--role", "reviewer", "--role-adapter", "ghost"], "unknown adapter"),
+            (["--role", "reviewer", "--role-adapter", "codex", "--role-effort", "high"], "not supported"),
+            (
+                ["--role", "reviewer", "--role-adapter", "claude", "--role-model", "not-a-model"],
+                "not declared",
+            ),
+        ):
+            result = runner.invoke(cli, ["supervision", "set", "-d", str(project), *args])
+
+            assert result.exit_code != 0, result.output
+            assert expected in result.output
 
     def test_set_rejects_inverted_cooldown(self, runner: CliRunner, tmp_path: Path) -> None:
         project = self._project(tmp_path)

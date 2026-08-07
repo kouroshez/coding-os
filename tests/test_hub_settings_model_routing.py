@@ -75,8 +75,12 @@ def test_model_routing_policy_round_trips(client):
             "mode": "adaptive",
             "fallback_policy": "next_eligible",
             "max_parallel": 5,
-            "orchestrator": {"adapter": "codex", "model": "gpt-5", "effort": "high"},
-            "roles": {"reviewer": {"adapter": "claude", "model": "sonnet", "effort": "high"}},
+            # codex declares model_selection with an empty catalog (free-form
+            # string) and no effort_selection; claude declares both.
+            "orchestrator": {"adapter": "codex", "model": "gpt-5", "effort": ""},
+            "roles": {
+                "reviewer": {"adapter": "claude", "model": "claude-sonnet-5", "effort": "high"}
+            },
             "cooldown": {"default_seconds": 60, "maximum_seconds": 900},
         }
     }
@@ -107,7 +111,7 @@ def test_model_routing_nested_patch_preserves_existing_fields(client):
             "model_routing": {
                 "enabled": True,
                 "cooldown": {"default_seconds": 60, "maximum_seconds": 900},
-                "roles": {"reviewer": {"adapter": "claude", "model": "sonnet"}},
+                "roles": {"reviewer": {"adapter": "claude", "model": "claude-sonnet-5"}},
             }
         },
     )
@@ -127,9 +131,21 @@ def test_model_routing_nested_patch_preserves_existing_fields(client):
     assert routing["cooldown"] == {"default_seconds": 60, "maximum_seconds": 1200}
     assert routing["roles"]["reviewer"] == {
         "adapter": "claude",
-        "model": "sonnet",
+        "model": "claude-sonnet-5",
         "effort": "high",
     }
+
+
+def test_model_routing_rejects_targets_dispatch_could_never_satisfy(client):
+    for target, expected in (
+        ({"roles": {"reviewer": {"adapter": "ghost"}}}, "unknown adapter"),
+        ({"roles": {"reviewer": {"adapter": "claude", "model": "sonnet"}}}, "is not declared"),
+        ({"orchestrator": {"adapter": "codex", "effort": "high"}}, "is not supported"),
+    ):
+        response = client.patch("/api/settings", json={"model_routing": {"enabled": True, **target}})
+
+        assert response.status_code == 422, response.json()
+        assert expected in response.json()["error"]["message"]
 
 
 def test_model_routing_patch_leaves_other_sections(client):
