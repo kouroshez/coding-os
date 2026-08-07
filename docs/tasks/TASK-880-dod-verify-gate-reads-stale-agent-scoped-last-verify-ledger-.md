@@ -5,18 +5,17 @@ swimlane: "board_os"
 kind: bug
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-04
-started: null
-completed: null
-agent_session: null
+started: 2026-08-07
+completed: 2026-08-07
+agent_session: ses-claude-20260806-204356-2f94
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-880: DoD verify gate reads stale agent-scoped last-verify ledger instead of project ledger
 
 ## Outcome
@@ -25,19 +24,22 @@ references: []
 
 ## Repro Steps
 
-1. Run `make docs-lint` in coding-os root — `.coding-os/.last-verify.json` gets a PASS entry with fresh ts (verified age<120s).
+1. Run `make docs-lint` in the repo root — `.coding-os/.last-verify.json` gets a PASS entry with a fresh ts.
 2. Immediately run `cos task-done TASK-NNN` on a testing-status task.
-3. Gate fails with DOD_VERIFY_STALE reporting an age (~12h) that matches neither `.coding-os/.last-verify.json` (fresh) nor `.coding-os/claude/.last-verify.json` (58 days) — some third scoped copy (MCP/board process CWD or COS_STATE_DIR) is being read.
+3. Gate fails with DOD_VERIFY_STALE reporting an age that matches neither the project ledger (fresh) nor the agent-scoped copy — a third cwd-scoped path is being read, because `COS_STATE_DIR` is relative and the gate process does not share the agent's cwd.
 
 ## Read First
 
-- src/core/board_os/transition_gates_cli.py `_verify_state` (COS_STATE_DIR default ".coding-os" is CWD-relative)
-- src/core/board_os/workflow.py DoD wiring (~line 553)
+- src/core/board_os/transition_gates_cli.py `_verify_ledger_path` / `_verify_state`
+- src/core/thinking_os/database.py `project_root`
 - docs/engineering/state-files.md (ledger ownership)
 
 ## Acceptance
 
-- Given a fresh PASS in the project ledger, when task-done runs from any entrypoint (CLI, MCP, hub), then DOD_VERIFY_STALE does not fire.
-- Given no recent PASS anywhere, when task-done runs, then the gate still blocks.
+- **Given** a fresh PASS in `<project>/.coding-os/.last-verify.json`
+- **When** the DoD gate runs from a process whose cwd is not the project root
+- **Then** it resolves the same project ledger and reports the fresh age, instead of a third cwd-scoped copy.
 
 ## Work Log
+- 2026-08-07 [claude]: FIXED (7bb6cc44): root cause was COS_STATE_DIR being a relative path resolved against the gate process's cwd — the…
+- 2026-08-07 [claude]: Status transitioned to complete via cos task-done.

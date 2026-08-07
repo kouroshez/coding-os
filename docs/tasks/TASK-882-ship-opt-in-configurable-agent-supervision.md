@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [orchestration, adapters, model-routing, hub, docs-update, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 3d
 created: 2026-08-04
 started: 2026-08-06
-completed: null
+completed: 2026-08-07
 agent_session: ses-claude-20260806-204356-2f94
 depends_on: []
 blocked_by: []
@@ -194,3 +194,12 @@ references: []
 - 2026-08-07 [claude]: Edit SettingsPage.tsx
 - 2026-08-07 [claude]: Edit SettingsPage.test.tsx
 - 2026-08-07 [claude]: commit 5147541bb6 — fix(hub): stop the settings toggle reading inverted
+- 2026-08-07 [claude]: commit 7b13fd6d85 — chore(board): log the graph cleanup and toggle fix on TASK-882
+- 2026-08-07 [claude]: Edit transition_gates_cli.py
+- 2026-08-07 [claude]: Edit transition_gates_cli.py
+- 2026-08-07 [claude]: Edit transition_gates_cli.py
+- 2026-08-07 [claude]: Edit transition_gates_cli.py
+- 2026-08-07 [claude]: Edit update.py
+- 2026-08-07 [claude]: Edit test_cli.py
+- 2026-08-07 [claude]: commit 7bb6cc4438 — fix(board): anchor the DoD verify ledger to the project root
+- 2026-08-07 [claude]: Status transitioned to complete via cos task-done.
