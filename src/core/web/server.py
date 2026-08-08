@@ -160,10 +160,10 @@ def create_app() -> FastAPI:
     from web.routes.logs import router as logs_router
     from web.routes.metrics import router as metrics_router
     from web.routes.observability import router as observability_router
+    from web.routes.patterns import router as patterns_router
     from web.routes.presence import router as presence_router
     from web.routes.roles import router as roles_router
     from web.routes.scheduled import router as scheduled_router
-    from web.routes.patterns import router as patterns_router
     from web.routes.search import router as search_router
     from web.routes.sessions import router as sessions_router
     from web.routes.settings import router as settings_router
@@ -221,7 +221,7 @@ def create_app() -> FastAPI:
                 try:
                     candidate.relative_to(_SPA_DIST.resolve())
                 except ValueError:
-                    raise HTTPException(status_code=404, detail="Not Found")
+                    raise HTTPException(status_code=404, detail="Not Found") from None
                 if candidate.is_file():
                     return FileResponse(candidate)
             # Default — hand control to the React SPA. index.html must NOT be

@@ -44,7 +44,6 @@ import hashlib
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 logger = logging.getLogger("coding_os.task_parser")
 

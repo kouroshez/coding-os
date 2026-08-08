@@ -795,7 +795,7 @@ class TestTransparencyBanner:
         assert "TASK-Y" not in banner
 
     def test_wip_without_task_emits_warn_marker(self, tmp_path: Path) -> None:
-        agent_dir, env = self._setup(tmp_path, mode="formal")
+        _agent_dir, env = self._setup(tmp_path, mode="formal")
         # Build a minimal DB with one in_progress task; query is
         # SELECT COUNT(*) FROM tasks WHERE status IN ('in_progress','testing').
         # We seed enough columns to satisfy NOT NULL constraints by reusing

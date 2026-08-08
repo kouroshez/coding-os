@@ -176,7 +176,6 @@ def thinking_os_health() -> str:
 # ---------------------------------------------------------------------------
 # Import tool modules
 # ---------------------------------------------------------------------------
-from graph import query_related
 from tools.docs import doc_search, list_doc_headers, parse_doc_header
 from tools.learning import (
     learn_extract,
@@ -211,7 +210,7 @@ def _detect_agent_session_default() -> str | None:
     if explicit:
         return explicit
 
-    def _first_line(p: "_P") -> str:
+    def _first_line(p: _P) -> str:
         try:
             return p.read_text(encoding="utf-8", errors="ignore").strip() if p.is_file() else ""
         except OSError:
@@ -2063,7 +2062,7 @@ def cos_retrieval_cite(retrieval_ids: str) -> str:
     try:
         ids = [int(x) for x in retrieval_ids.split(",") if x.strip()]
     except ValueError:
-        raise ValueError("retrieval_ids must be comma-separated integers")
+        raise ValueError("retrieval_ids must be comma-separated integers") from None
     result = cite_retrievals(_db_conn, ids)
     return ok(result, meta={"layer": "learning"})
 

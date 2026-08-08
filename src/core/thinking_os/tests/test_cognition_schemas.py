@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from cognition_schemas import (
     Actor,
     AmbiguityCriterion,

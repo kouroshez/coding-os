@@ -69,7 +69,7 @@ def _plan_nav(path: Path) -> str | None:
 
     rel = path.relative_to(DOCS)
     nav = _nav_for(rel)
-    new_lines = lines[:insert_at] + ["", nav] + lines[insert_at:]
+    new_lines = [*lines[:insert_at], "", nav, *lines[insert_at:]]
     new_text = "\n".join(new_lines)
     if not new_text.endswith("\n"):
         new_text += "\n"

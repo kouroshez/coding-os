@@ -18,8 +18,8 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from cli.module_commands import module_state_payload  # noqa: E402
-from core.thinking_os.tools._shared import _gated_module, fail, ok, safe_tool  # noqa: E402
+from cli.module_commands import module_state_payload
+from core.thinking_os.tools._shared import _gated_module, fail, ok, safe_tool
 
 
 def _write_disabled(state_dir: Path, disabled: list[str]) -> None:

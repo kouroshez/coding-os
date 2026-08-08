@@ -18,7 +18,7 @@ sys.path.insert(
     ),
 )
 
-import which_layer as wl  # noqa: E402
+import which_layer as wl
 
 
 def test_hooks_are_dna_live_symlink() -> None:

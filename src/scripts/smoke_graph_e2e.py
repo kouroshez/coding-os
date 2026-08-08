@@ -19,7 +19,6 @@ Exit: 0 if all PASS; 1 if any FAIL or envelope shape wrong.
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
 from collections.abc import Callable

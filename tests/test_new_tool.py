@@ -18,7 +18,7 @@ sys.path.insert(
     ),
 )
 
-import new_tool as nt  # noqa: E402
+import new_tool as nt
 
 
 def test_adds_cos_prefix() -> None:

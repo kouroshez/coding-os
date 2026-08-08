@@ -13,7 +13,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from cli.sync_all import (  # noqa: E402
+from cli.sync_all import (
     _dangling,
     _iter_symlinks,
     sync_all_cmd,

@@ -33,7 +33,6 @@ import json
 import os
 import sys
 import tempfile
-from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -984,9 +983,9 @@ def register(cli: click.Group) -> None:
                 )
             files = [line.strip() for line in result.stdout.splitlines() if line.strip()]
         except FileNotFoundError:
-            raise click.ClickException("git not found on PATH")
+            raise click.ClickException("git not found on PATH") from None
         except subprocess.TimeoutExpired:
-            raise click.ClickException("git diff timed out after 30 s")
+            raise click.ClickException("git diff timed out after 30 s") from None
 
         _, tools = _open_backend()
         _json_echo(

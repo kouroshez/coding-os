@@ -60,8 +60,8 @@ _PYDANTIC_NAMES = [
     "Observer",
     "Refactorer",
 ]
-ROLE_MAP: dict[str, str] = dict(zip([_D(h) for h in _CODE_HEX], _NAMES))
-PYDANTIC_MAP: dict[str, str] = dict(zip([_D(h) for h in _CODE_HEX], _PYDANTIC_NAMES))
+ROLE_MAP: dict[str, str] = dict(zip([_D(h) for h in _CODE_HEX], _NAMES, strict=False))
+PYDANTIC_MAP: dict[str, str] = dict(zip([_D(h) for h in _CODE_HEX], _PYDANTIC_NAMES, strict=False))
 
 # Compound field names like  hex(F2_decompose) used in Pydantic schemas.
 _VERBS = [
@@ -78,12 +78,12 @@ _VERBS = [
     "refactor",
 ]
 COMPOUND_MAP: dict[str, str] = {
-    f"{_D(h)}_{verb}": name for h, verb, name in zip(_CODE_HEX, _VERBS, _NAMES)
+    f"{_D(h)}_{verb}": name for h, verb, name in zip(_CODE_HEX, _VERBS, _NAMES, strict=False)
 }
 
 FILE_RENAMES: dict[str, str] = {}
 PATH_FRAGMENT_RENAMES: dict[str, str] = {}
-for h, verb, name in zip(_CODE_HEX, _VERBS, _NAMES):
+for h, verb, name in zip(_CODE_HEX, _VERBS, _NAMES, strict=False):
     code = _D(h)
     # roles/F<n>_<name>.yaml → <name>.yaml
     FILE_RENAMES[f"{code}_{name}.yaml"] = f"{name}.yaml"

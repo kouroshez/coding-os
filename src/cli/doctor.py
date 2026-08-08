@@ -2185,10 +2185,9 @@ def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
             matcher_list = caps.get(event)
             if matcher_list is None:
                 continue
-            if matcher == "":
-                if "" in matcher_list or matcher_list == []:
-                    out.append(name)
-                    continue
+            if matcher == "" and ("" in matcher_list or matcher_list == []):
+                out.append(name)
+                continue
             if matcher in matcher_list:
                 out.append(name)
                 continue

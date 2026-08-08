@@ -28,7 +28,7 @@ CLI_DIR = REPO_ROOT / "src" / "cli"
 # test and the PreToolUse front-guard (block-hardcoded-literals.sh) share the
 # SAME narrowed forbidden set + scan logic, so they can never diverge.
 sys.path.insert(0, str(REPO_ROOT / "src" / "core" / "scripts"))
-from check_hardcoded_literals import discover_literals, scan  # noqa: E402
+from check_hardcoded_literals import discover_literals, scan
 
 FORBIDDEN_LITERALS = discover_literals()
 

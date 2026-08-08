@@ -17,7 +17,7 @@ sys.path.insert(
     ),
 )
 
-import check_frontend as cf  # noqa: E402
+import check_frontend as cf
 
 
 def test_clean_component() -> None:

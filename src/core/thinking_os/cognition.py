@@ -219,7 +219,7 @@ def _next_dispatch(
     parallel = meta.get("parallel_siblings", [])
     parallel_available = [f for f in parallel if f not in state.dispatched and f in remaining]
     if parallel_available:
-        all_parallel = [formula_id] + parallel_available
+        all_parallel = [formula_id, *parallel_available]
         state.phase = "AWAITING_AGENT"
         return NextAction(
             action="dispatch_parallel",

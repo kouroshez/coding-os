@@ -17,7 +17,7 @@ from click.testing import CliRunner
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from cli.main import cli  # noqa: E402
+from cli.main import cli
 
 HOOK = REPO_ROOT / "src" / "core" / "hooks" / "enforce-doc-anchor.sh"
 

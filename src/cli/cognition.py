@@ -34,7 +34,9 @@ def _parse_since(since: str | None) -> str | None:
     try:
         n = int(since[:-1])
     except ValueError:
-        raise click.BadParameter(f"Invalid --since value: {since!r} (use e.g. 1h, 30m, 2d)")
+        raise click.BadParameter(
+            f"Invalid --since value: {since!r} (use e.g. 1h, 30m, 2d)"
+        ) from None
     if unit == "h":
         delta = timedelta(hours=n)
     elif unit == "m":

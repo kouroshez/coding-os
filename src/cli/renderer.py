@@ -74,7 +74,7 @@ def _modules_context(active_modules: dict[str, bool] | None) -> dict[str, bool]:
     (backward compatible default for regen scripts and golden fixtures)."""
     from cli.subsystems import load_subsystems
 
-    base = {module_id: True for module_id in load_subsystems()}
+    base = dict.fromkeys(load_subsystems(), True)
     if active_modules:
         base.update({k: bool(v) for k, v in active_modules.items() if k in base})
     return base

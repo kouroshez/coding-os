@@ -17,7 +17,7 @@ sys.path.insert(
     ),
 )
 
-import lint_logging as ll  # noqa: E402
+import lint_logging as ll
 
 
 def test_structured_log_clean() -> None:

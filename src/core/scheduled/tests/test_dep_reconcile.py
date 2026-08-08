@@ -141,7 +141,7 @@ def test_surfaces_unblocked_but_unauthored(project: Path, conn: sqlite3.Connecti
     # Dependent left with the create-stub body (DoR incomplete). Drive the dep
     # complete with the cascade SUPPRESSED so the reconciler is what surfaces it.
     dependent_id, _ = _create(conn, project, title="unauthored dependent", depends_on=[dep_id])
-    import core.board_os.mcp_tools as _m  # noqa: PLC0415
+    import core.board_os.mcp_tools as _m
 
     orig = _m._cascade_ready_dependents_safe
     _m._cascade_ready_dependents_safe = lambda *a, **k: {

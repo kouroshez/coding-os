@@ -31,7 +31,6 @@ import logging
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 try:
     from tools.trajectory import trajectory_digest_line as _trajectory_digest_line

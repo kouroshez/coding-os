@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 import sys
 from pathlib import Path
 
@@ -14,9 +13,11 @@ for _p in (str(_CORE), str(_THINKING_OS)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from scheduled import config as cfg_mod  # noqa: E402
-from scheduled import responsive_extract  # noqa: E402
-from scheduled._state import state_dir  # noqa: E402
+from scheduled import (
+    config as cfg_mod,
+    responsive_extract,
+)
+from scheduled._state import state_dir
 
 
 class TestConfig:

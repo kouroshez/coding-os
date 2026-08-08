@@ -14,7 +14,6 @@ import logging
 import re
 import sqlite3
 from datetime import datetime, timezone
-from typing import Optional
 
 logger = logging.getLogger("thinking_os.memory")
 
@@ -660,7 +659,7 @@ def memory_timeline(
         f"SELECT task_id, type, domain, outcome, created_at "
         f"FROM task_outcomes WHERE {where} "
         "ORDER BY created_at DESC LIMIT ?",
-        params + [limit],
+        [*params, limit],
     ).fetchall()
 
     for row in outcome_rows:
@@ -688,7 +687,7 @@ def memory_timeline(
         f"SELECT id, title, memory_type, created_at "
         f"FROM observations WHERE {obs_where} "
         "ORDER BY created_at DESC LIMIT ?",
-        obs_params + [limit],
+        [*obs_params, limit],
     ).fetchall()
 
     for row in obs_rows:

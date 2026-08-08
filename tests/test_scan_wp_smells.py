@@ -18,7 +18,7 @@ sys.path.insert(
     ),
 )
 
-import scan_wp_smells as sw  # noqa: E402
+import scan_wp_smells as sw
 
 SECURE = """<?php
 function mp_save() {

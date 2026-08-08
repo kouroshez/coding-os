@@ -19,7 +19,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from git_command_parse import all_segments, normalize, tokenize  # noqa: E402
+from git_command_parse import all_segments, normalize, tokenize
 
 _POLICY_BASENAMES = {"hub-settings.json"}
 _POLICY_PARENT = ".coding-os"

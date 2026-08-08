@@ -15,7 +15,7 @@ for _p in (_REPO_ROOT, _REPO_ROOT / "src" / "core"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from web import init_jobs  # noqa: E402
+from web import init_jobs
 
 
 def _wait_terminal(job, timeout=15.0):

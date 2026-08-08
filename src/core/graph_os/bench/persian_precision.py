@@ -82,7 +82,7 @@ def _score(conn: sqlite3.Connection, model_name: str) -> dict:
         vectors = [row[1] for row in candidates]
         scores = embeddings.cosine_similarity(vec, vectors)
         ranked = sorted(
-            zip((row[2] for row in candidates), scores),
+            zip((row[2] for row in candidates), scores, strict=False),
             key=lambda pair: pair[1],
             reverse=True,
         )

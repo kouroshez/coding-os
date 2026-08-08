@@ -11,7 +11,6 @@ import subprocess
 import sys
 import uuid
 from pathlib import Path
-from typing import Optional
 
 from fastapi import APIRouter, Body, Query
 from fastapi.responses import JSONResponse
@@ -692,7 +691,8 @@ def _build_cos_init_cmd(
     disabled_modules: list[str] | None = None,
 ) -> list[str]:
     """One argv builder for sync AND job-based init (parity stays in the CLI)."""
-    cmd = _cos_init_command() + [
+    cmd = [
+        *_cos_init_command(),
         "init",
         "--name",
         name,
@@ -759,9 +759,7 @@ def _run_cos_init(
         disabled_modules=disabled_modules,
     )
     try:
-        proc = subprocess.run(  # noqa: S603 — fixed argv list, never shell=True
-            cmd, capture_output=True, text=True, timeout=timeout, cwd=parent_dir
-        )
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=parent_dir)
     except subprocess.TimeoutExpired:
         return False, None, f"init timed out after {timeout}s"
     except OSError as exc:
@@ -917,7 +915,7 @@ async def hub_init_job_events(job_id: str):
         return _err("not_found", f"no init job {job_id!r}", status=404)
 
     def _frame(event: str, payload: dict) -> bytes:
-        return f"event: {event}\ndata: {json.dumps(payload)}\n\n".encode("utf-8")
+        return f"event: {event}\ndata: {json.dumps(payload)}\n\n".encode()
 
     async def _gen():
         offset = 0
@@ -1141,7 +1139,7 @@ def hub_registry_gc(
 ):
     """Remove registry entries whose directory no longer exists."""
     try:
-        from cli.registry import Registry, load_registry, save_registry  # type: ignore
+        from cli.registry import load_registry, save_registry  # type: ignore
     except Exception as exc:
         return _err("unavailable", f"cli.registry unavailable: {exc}", status=503)
 

@@ -12,7 +12,7 @@ sys.path.insert(
     str(Path(__file__).resolve().parents[1] / "src" / "core" / "skills" / "typescript" / "scripts"),
 )
 
-import check_tsconfig as ct  # noqa: E402
+import check_tsconfig as ct
 
 STRICT = {
     "strict": True,

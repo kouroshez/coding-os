@@ -10,7 +10,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from tools._shared import (  # noqa: E402
+from tools._shared import (
     _MODULE_GATE_CACHE,
     _gated_module,
     apply_module_tool_gating,

@@ -20,16 +20,15 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
-
 import formula_composer as fc
+import pytest
 import roles_state
 
 # advance_role helper lives under hooks/_helpers — add it to the path once.
 _HELPERS_DIR = Path(__file__).resolve().parents[3] / "core" / "hooks" / "_helpers"
 if str(_HELPERS_DIR) not in sys.path:
     sys.path.insert(0, str(_HELPERS_DIR))
-import advance_role  # noqa: E402  (path set up above)
+import advance_role
 
 
 # ---------------------------------------------------------------------------

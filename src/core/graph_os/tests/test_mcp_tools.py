@@ -9,12 +9,11 @@ Ship gate (Section 19 I.8):
 from __future__ import annotations
 
 import json
-from contextlib import contextmanager
 
 import pytest
 
 from graph_os.tools import graph
-from graph_os.types import EvidenceSignal, GraphEdge, GraphNode
+from graph_os.types import GraphEdge, GraphNode
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -257,7 +256,7 @@ class TestConsultMarker:
         data = _assert_ok(graph.cos_graph_context("code:file:target.py"))
 
         disk = hashlib.sha256(body.encode("utf-8")).hexdigest()[:16]
-        key = hashlib.sha1("target.py".encode("utf-8")).hexdigest()
+        key = hashlib.sha1(b"target.py").hexdigest()
         marker = agent_dir / ".graph" / f"ctx-{key}"
         assert marker.is_file(), "cos_graph_context must write its own consult marker"
         payload = json.loads(marker.read_text(encoding="utf-8"))
@@ -528,6 +527,7 @@ class TestSimilar:
         hybrid semantic + lexical + centrality blend."""
         pytest.importorskip("sentence_transformers")
         import embeddings as emb  # type: ignore
+
         from graph_os.backends.sqlite_backend import SqliteBackend
 
         # is_available() only proves the package imports; offline CI has no
@@ -591,6 +591,7 @@ class TestSimilar:
         encode over the full pool, no per-candidate on-the-fly encoding."""
         pytest.importorskip("sentence_transformers")
         import embeddings as emb  # type: ignore
+
         from graph_os.backends.sqlite_backend import SqliteBackend
 
         # Same real-model probe as above: package-import alone passes on
@@ -1135,8 +1136,9 @@ def test_resolve_fts5_preserves_uid_kind_label(seeded_backend):
 def test_context_envelope_token_budget(seeded_backend):
     """Seed a 200-edge fan-in on a single file uid + assert that a
     depth=2 context call comes back ≤32KB with meta.truncated=true."""
-    from graph_os.types import GraphEdge, GraphNode
     from tools._shared import TOKEN_BUDGET_CHARS
+
+    from graph_os.types import GraphEdge, GraphNode
 
     seeded_backend.upsert_node(
         GraphNode(

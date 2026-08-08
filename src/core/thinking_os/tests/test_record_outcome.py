@@ -14,8 +14,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from database import init_db  # noqa: E402
-from record_outcome import (  # noqa: E402
+from database import init_db
+from record_outcome import (
     _derive_blocked,
     _derive_rework,
     _read_gate_file,

@@ -953,10 +953,9 @@ class SqliteBackend:
                 """
                 SELECT edge_id, signal_name, weight, note
                 FROM graph_evidence_v12
-                WHERE edge_id IN (%s)
+                WHERE edge_id IN ({})
                 ORDER BY id ASC
-                """
-                % ",".join(str(int(r[0])) for r in rows)
+                """.format(",".join(str(int(r[0])) for r in rows))
             ).fetchall()
             for ev in ev_rows:
                 evidence_by_edge.setdefault(int(ev[0]), []).append(ev)

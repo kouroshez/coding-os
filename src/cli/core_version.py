@@ -7,8 +7,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from importlib.metadata import PackageNotFoundError
-from importlib.metadata import version as _pkg_version
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
 from pathlib import Path
 
 STAMP_FILENAME = "core-version.json"

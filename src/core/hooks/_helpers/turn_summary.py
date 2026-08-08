@@ -8,6 +8,7 @@ UserPromptSubmit. Bounded — silent on any error.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import sys
 from collections import Counter
@@ -51,10 +52,8 @@ def main(argv: list[str]) -> int:
             last_detail[cat] = detail
 
     if not counts:
-        try:
+        with contextlib.suppress(OSError):
             log.write_text("", encoding="utf-8")
-        except OSError:
-            pass
         return 0
 
     fragments: list[str] = []
@@ -71,10 +70,8 @@ def main(argv: list[str]) -> int:
             fragments.append(f"{cat}:{n}")
 
     sys.stdout.write(" ".join(fragments))
-    try:
+    with contextlib.suppress(OSError):
         log.write_text("", encoding="utf-8")
-    except OSError:
-        pass
     return 0
 
 

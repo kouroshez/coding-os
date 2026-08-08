@@ -19,7 +19,7 @@ sys.path.insert(
     ),
 )
 
-import analyze_plan as ap  # noqa: E402
+import analyze_plan as ap
 
 
 def _plan(node: dict) -> list:

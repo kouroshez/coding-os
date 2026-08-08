@@ -107,7 +107,7 @@ def test_scanner_exclusions_are_declared_and_narrow() -> None:
     ]
     assert listed, "secret_scanning.yml declares no paths-ignore entries"
     for entry in listed:
-        assert not entry.rstrip("/*") in {"src", "tests", "docs", ""}, (
+        assert entry.rstrip("/*") not in {"src", "tests", "docs", ""}, (
             f"paths-ignore entry {entry!r} suppresses scanning for a whole hand-authored "
             "tree; keep the list to detector fixtures and generated snapshots."
         )

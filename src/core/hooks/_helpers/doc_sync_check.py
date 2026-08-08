@@ -26,7 +26,6 @@ Always exits 0 — this is a WARN signal, never a BLOCK.
 
 from __future__ import annotations
 
-import os
 import re
 import sqlite3
 import sys
@@ -75,9 +74,7 @@ def _is_public(name: str) -> bool:
         return False
     if name.startswith("__") and name.endswith("__"):
         return False
-    if name.startswith("_") and not name.startswith("__"):
-        return False
-    return True
+    return not (name.startswith("_") and not name.startswith("__"))
 
 
 def _normalise_params(params: str) -> tuple[int, str]:
@@ -480,9 +477,9 @@ def main(argv: list[str]) -> int:
             break
 
     try:
-        rel_code = code_file.resolve().relative_to(project_root.resolve())
+        code_file.resolve().relative_to(project_root.resolve())
     except ValueError:
-        rel_code = code_file
+        pass
     for doc, reason in findings[:3]:
         try:
             rel_doc = doc.resolve().relative_to(project_root.resolve())

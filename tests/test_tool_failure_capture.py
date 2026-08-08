@@ -13,8 +13,8 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "src" / "core" / "thinking_os"))
 sys.path.insert(0, str(_ROOT / "src" / "core" / "hooks" / "_helpers"))
 
-from database import init_db  # noqa: E402
-import tool_failure_capture  # noqa: E402
+import tool_failure_capture
+from database import init_db
 
 
 def test_failure_capture_scrubs_username_and_secrets(tmp_path: Path) -> None:

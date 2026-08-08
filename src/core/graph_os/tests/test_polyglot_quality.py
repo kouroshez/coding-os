@@ -37,7 +37,7 @@ import pytest
 
 pytest.importorskip("tree_sitter")
 
-from graph_os.extractors import (  # noqa: E402
+from graph_os.extractors import (
     code_generic,
     code_go,
     code_json,

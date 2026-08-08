@@ -6,7 +6,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-
 ROOT = Path(__file__).resolve().parent.parent
 ADAPTERS = ROOT / "src" / "adapters"
 
@@ -58,7 +57,7 @@ LIMIT_MESSAGES = (
 @pytest.mark.parametrize("adapter_id", _dispatch_adapter_ids())
 def test_adapter_classifies_a_provider_limit_as_retryable_capacity(adapter_id: str) -> None:
     classify = _load(adapter_id)._failure_fields
-    classified = [fields for fields in (classify("error", m) for m in LIMIT_MESSAGES)]
+    classified = [classify("error", m) for m in LIMIT_MESSAGES]
 
     capacity = [f for f in classified if f.get("error_category") == "capacity"]
     assert capacity, (

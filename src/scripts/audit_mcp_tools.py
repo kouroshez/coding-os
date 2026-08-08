@@ -662,7 +662,7 @@ async def main():
     print("═" * 60)
 
     groups: dict[str, dict[str, int]] = {}
-    for group, name, result in Results:
+    for group, _name, result in Results:
         s = groups.setdefault(group, {"PASS": 0, "WARN": 0, "FAIL": 0})
         for k in ("PASS", "WARN", "FAIL"):
             if result.startswith(k):

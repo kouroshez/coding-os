@@ -58,7 +58,7 @@ def test_role_system_prompt_resolution():
     sp = cognition._role_system_prompt("analyst")
     assert isinstance(sp, dict)
     assert sp["type"] == "preset"
-    assert "append" in sp and sp["append"]
+    assert sp.get("append")
 
 
 def test_author_task_empty_prompt_rejected(client):
@@ -106,7 +106,7 @@ def test_chat_new_session_event_uses_sdk_resolved_id(client, monkeypatch):
         subtype: str = "init"
 
     class FakeSDK:
-        def ClaudeAgentOptions(self, **kwargs):  # noqa: N802 — mirrors SDK name
+        def ClaudeAgentOptions(self, **kwargs):
             return kwargs
 
         async def query(self, prompt, options):
@@ -153,7 +153,7 @@ def _event_ids(body: str, event_name: str) -> list[str]:
 
 def _make_fake_sdk(events, captured_opts=None):
     class FakeSDK:
-        def ClaudeAgentOptions(self, **kwargs):  # noqa: N802 — mirrors SDK name
+        def ClaudeAgentOptions(self, **kwargs):
             if captured_opts is not None:
                 captured_opts.update(kwargs)
             return kwargs

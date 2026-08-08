@@ -18,7 +18,7 @@ sys.path.insert(
     ),
 )
 
-import check_model_ids as cm  # noqa: E402
+import check_model_ids as cm
 
 
 def test_current_fable_clean() -> None:

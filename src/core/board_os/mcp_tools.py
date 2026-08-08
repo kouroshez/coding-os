@@ -29,6 +29,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from board_os._agent_runtime import SYSTEM_SESSION_PREFIX
 from board_os.config import (
     APPETITE_RE,
     KIND_ENUM,
@@ -38,7 +39,6 @@ from board_os.config import (
     TASK_ID_FORMAT_RE,
     load_config,
 )
-from board_os._agent_runtime import SYSTEM_SESSION_PREFIX
 from board_os.parser import parse_task
 from board_os.sync import sync_one
 from board_os.workflow import (
@@ -1020,8 +1020,8 @@ def _keyset_column_page(
     config,
 ) -> tuple[list[dict], str | None, int]:
     page_size = max(1, min(int(page_size), _PAGE_SIZE_HARD_MAX))
-    col_clauses = list(base_clauses) + ["status = ?"]
-    col_params = list(base_params) + [status]
+    col_clauses = [*list(base_clauses), "status = ?"]
+    col_params = [*list(base_params), status]
 
     total = conn.execute(
         f"SELECT COUNT(*) FROM tasks WHERE {' AND '.join(col_clauses)}", col_params
@@ -1097,7 +1097,7 @@ def cos_task_board(
             a_clauses.append("status NOT IN ('complete', 'archive')")
         where = f"WHERE {' AND '.join(a_clauses)}" if a_clauses else ""
         query = f"{_BOARD_SELECT} {where} ORDER BY swimlane, status, priority LIMIT ?"
-        a_rows = conn.execute(query, a_params + [active_cap + 1]).fetchall()
+        a_rows = conn.execute(query, [*a_params, active_cap + 1]).fetchall()
         active_truncated = len(a_rows) > active_cap
         a_rows = a_rows[:active_cap]
         cards.extend(_flag_stale(_task_card(r), config) for r in a_rows)
@@ -1361,7 +1361,7 @@ def _cascade_ready_dependents_safe(
     # failure must never turn a successful close into an error.
     try:
         return cascade_ready_dependents(conn, task_id, agent_session=agent_session)
-    except Exception as exc:  # noqa: BLE001 - fire-and-forget
+    except Exception as exc:
         logger.debug("dependent cascade after %s complete failed: %s", task_id, exc)
         return {"readied": [], "needs_authoring": [], "still_blocked": []}
 
@@ -1825,7 +1825,7 @@ def _commits_referencing_batch(task_ids: list[str], project_root: Path) -> dict[
     ids = [t for t in dict.fromkeys(task_ids) if t]
     if not ids:
         return {}
-    counts: dict[str, int | None] = {tid: 0 for tid in ids}
+    counts: dict[str, int | None] = dict.fromkeys(ids, 0)
     grep_args: list[str] = []
     for tid in ids:
         grep_args += ["--grep", f"{tid}([^0-9]|$)"]
@@ -1847,9 +1847,9 @@ def _commits_referencing_batch(task_ids: list[str], project_root: Path) -> dict[
             timeout=15,
         )
     except (OSError, subprocess.SubprocessError):
-        return {tid: None for tid in ids}
+        return dict.fromkeys(ids)
     if out.returncode != 0:
-        return {tid: None for tid in ids}
+        return dict.fromkeys(ids)
     patterns = {tid: re.compile(re.escape(tid) + r"([^0-9]|$)") for tid in ids}
     for line in out.stdout.splitlines():
         for tid, pat in patterns.items():
@@ -2335,7 +2335,7 @@ def cos_task_daily(
         rec_env = json.loads(cos_task_reclaim(conn, agent_session=agent_session))
         if rec_env.get("ok"):
             reclaimed = rec_env["data"]["reclaimed"]
-    except Exception as exc:  # noqa: BLE001 - fire-and-forget
+    except Exception as exc:
         logger.debug("daily reclaim skipped: %s", exc)
 
     # Icebox outflow — auto-archive aged backlog/complete cards when the project
@@ -2344,7 +2344,7 @@ def cos_task_daily(
     auto_archived: list[dict] = []
     try:
         auto_archived = _archive_stale_sweep(conn, config)
-    except Exception as exc:  # noqa: BLE001 - fire-and-forget
+    except Exception as exc:
         logger.debug("daily archive sweep skipped: %s", exc)
 
     # Bounded standup queries (TASK-227): a 24h window or a runaway icebox must

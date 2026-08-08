@@ -17,9 +17,9 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tools._shared import (
+    _TRIMMABLE_LIST_KEYS,
     TOKEN_BUDGET_CHARS,
     VALID_LAYERS,
-    _TRIMMABLE_LIST_KEYS,
     _estimate_tokens,
     fail,
     ok,

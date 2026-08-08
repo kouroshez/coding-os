@@ -17,8 +17,8 @@ for _p in (_REPO_ROOT, _REPO_ROOT / "src"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from cli import project_overrides as po  # noqa: E402
-from cli.hook_renderer import load_registry  # noqa: E402
+from cli import project_overrides as po
+from cli.hook_renderer import load_registry
 
 _COS_ENV = _REPO_ROOT / "src" / "core" / "hooks" / "cos-env.sh"
 

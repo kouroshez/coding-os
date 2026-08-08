@@ -205,26 +205,26 @@ def claude_session_options(
         )
 
     model = _resolve_model_alias(model)  # tier alias → concrete id (R10/F6)
-    opts: dict[str, Any] = dict(
-        cwd=cwd,
-        model=model,
-        permission_mode="dontAsk",
+    opts: dict[str, Any] = {
+        "cwd": cwd,
+        "model": model,
+        "permission_mode": "dontAsk",
         # Fast conversational surface: skip the ~40s project SessionStart hook
         # suite. Capability comes from programmatic mcp_servers below, NOT from
         # setting_sources, so cos_* works without that latency.
-        setting_sources=[],
-        include_partial_messages=True,
+        "setting_sources": [],
+        "include_partial_messages": True,
         # P2 capability: register coding-os MCP programmatically — renders
         # --mcp-config independent of setting_sources (subprocess_cli.py:307).
-        mcp_servers=_cos_mcp_servers(cwd),
+        "mcp_servers": _cos_mcp_servers(cwd),
         # Exclusive allow-list under dontAsk: base tools + the MCP wildcard.
-        allowed_tools=[*_CHAT_BASE_TOOLS, _DEFAULT_COS_MCP_ALLOW],
+        "allowed_tools": [*_CHAT_BASE_TOOLS, _DEFAULT_COS_MCP_ALLOW],
         # P3: destructive-Bash deny floor (rm -rf / force-push / sudo / pipe-to-sh).
-        disallowed_tools=list(_DESTRUCTIVE_BASH_DENY),
+        "disallowed_tools": list(_DESTRUCTIVE_BASH_DENY),
         # Hub Settings → Claude Auth (TASK-756): subscription OAuth by default,
         # ANTHROPIC_API_KEY when the project opted into api_key mode.
-        env=_claude_auth_env(cwd),
-    )
+        "env": _claude_auth_env(cwd),
+    }
     if system_prompt is not None:
         opts["system_prompt"] = system_prompt
     if effort:
@@ -641,28 +641,28 @@ class ClaudeSDKDispatcher:
             if request.max_turns is not None
             else (3 if output_format is not None else 1)
         )
-        opts_kwargs: dict[str, Any] = dict(
-            system_prompt=system_prompt,
-            max_turns=max_turns,
-            allowed_tools=allow_list,
-            disallowed_tools=list(_DESTRUCTIVE_BASH_DENY),
-            cwd=request.cwd,
+        opts_kwargs: dict[str, Any] = {
+            "system_prompt": system_prompt,
+            "max_turns": max_turns,
+            "allowed_tools": allow_list,
+            "disallowed_tools": list(_DESTRUCTIVE_BASH_DENY),
+            "cwd": request.cwd,
             # Headless dispatch: never prompt the user. Allow-list is the
             # contract; unmatched tools deny silently.
-            permission_mode="dontAsk",
+            "permission_mode": "dontAsk",
             # Isolate from the host user's ~/.claude/. The formula sub-
             # session must be reproducible across machines — user
             # settings, memory, and CLAUDE.md outside the project root
             # would silently change behavior.
-            setting_sources=["project"],
-            model=resolved_model,
-            effort=effort,
+            "setting_sources": ["project"],
+            "model": resolved_model,
+            "effort": effort,
             # Per-role skill inheritance. Sub-sessions don't inherit
             # parent skills, so each role declares its required skills
             # in its agent file's frontmatter. None = use SDK default.
-            skills=role_skills,
-            env=env,
-        )
+            "skills": role_skills,
+            "env": env,
+        }
         if output_format is not None:
             opts_kwargs["output_format"] = output_format
         if request.max_budget_usd is not None:
@@ -884,7 +884,7 @@ class ClaudeSDKDispatcher:
         if result_subtype:
             output_json.setdefault("_meta", {})["subtype"] = result_subtype
 
-        ok = bool(output_json) and any(k != "_meta" for k in output_json.keys())
+        ok = bool(output_json) and any(k != "_meta" for k in output_json)
         # T1.5: surface the retry-exhausted subtype in the error field so callers
         # can route to a retry-with-relaxed-prompt path. Status stays "ok" when
         # regex fallback recovered usable JSON — the output bundle is still

@@ -21,10 +21,10 @@ from tools.routing import (
     _data_confidence,
     _sample_beta,
     recalculate_weights,
+    reviewer_model,
     route_model,
     route_model_bandit,
     route_skill,
-    reviewer_model,
 )
 
 # ---------------------------------------------------------------------------

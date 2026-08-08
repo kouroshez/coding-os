@@ -13,7 +13,6 @@ still SIGKILLed by group on timeout.
 from __future__ import annotations
 
 import importlib.util
-import sqlite3
 import subprocess
 import time
 from pathlib import Path

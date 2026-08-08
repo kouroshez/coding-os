@@ -15,11 +15,9 @@ real doc_indexer or task_sync pipelines (speed + isolation).
 from __future__ import annotations
 
 import sys
-import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
-from typing import Optional
 
 import pytest
 

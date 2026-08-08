@@ -64,7 +64,7 @@ def _imports_via_tree_sitter(content: str) -> list[_ImportDecl] | None:
         prepend the dot count to source_module to match ast semantics.
     """
     try:
-        from ..tree_sitter_overlay import node_text, parse
+        from ..tree_sitter_overlay import parse
     except ImportError:
         return None
 
@@ -250,7 +250,7 @@ def _heritage_via_tree_sitter(
             if name_node is None:
                 return
             class_name = _node_text(name_node, content_bytes)
-            new_qual = qual_stack + [class_name]
+            new_qual = [*qual_stack, class_name]
             class_qualname = ".".join(new_qual)
             class_uid_ = class_uid(path, class_qualname)
 
@@ -282,7 +282,7 @@ def _heritage_via_tree_sitter(
             if name_node is None:
                 return
             fn_name = _node_text(name_node, content_bytes)
-            new_qual = qual_stack + [fn_name]
+            new_qual = [*qual_stack, fn_name]
             qualname = ".".join(new_qual)
             in_class = scope_uid is not None and scope_uid.startswith("code:class:")
             uid = (
@@ -932,7 +932,7 @@ class _PythonVisitor(ast.NodeVisitor):
                         end_line=getattr(stmt, "end_lineno", None),
                         signature=ann_name or "",
                         docstring=None,
-                        decorators=tuple(),
+                        decorators=(),
                         parent_uid=uid,
                     )
                 )

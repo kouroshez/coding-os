@@ -241,11 +241,13 @@ class TestUpsertEmbedding:
 
     def test_unavailable_skipped(self, tmp_db: sqlite3.Connection) -> None:
         embeddings.is_available.cache_clear()
-        with patch.object(embeddings, "is_available", return_value=True):
-            with patch.object(embeddings, "_get_model", return_value=None):
-                with patch.object(embeddings, "embed_text", return_value=None):
-                    result = embeddings.upsert_embedding(tmp_db, "observations", 1, "text")
-                    assert result["status"] in ("skipped",)
+        with (
+            patch.object(embeddings, "is_available", return_value=True),
+            patch.object(embeddings, "_get_model", return_value=None),
+            patch.object(embeddings, "embed_text", return_value=None),
+        ):
+            result = embeddings.upsert_embedding(tmp_db, "observations", 1, "text")
+            assert result["status"] in ("skipped",)
 
 
 # ---------------------------------------------------------------------------
@@ -423,7 +425,7 @@ class TestReindexAll:
             ("identifier", "unresolved:str", None, None),  # must be SKIPPED
             ("import_", "os", None, None),  # must be SKIPPED
         ]
-        for i, (kind, label, sig, doc) in enumerate(rows, start=1):
+        for _i, (kind, label, sig, doc) in enumerate(rows, start=1):
             tmp_db.execute(
                 "INSERT INTO graph_nodes (kind, label, uid, signature, doc_blob, "
                 "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",

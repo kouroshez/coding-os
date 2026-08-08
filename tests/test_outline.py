@@ -17,7 +17,7 @@ sys.path.insert(
     ),
 )
 
-import outline as ol  # noqa: E402
+import outline as ol
 
 PY = """
 class Foo:

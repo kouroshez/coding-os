@@ -26,10 +26,10 @@ empty/zero results instead of raising.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import sqlite3
 from collections.abc import Iterable
-from typing import Optional
 
 logger = logging.getLogger("coding_os.tools.retrieve")
 
@@ -182,10 +182,8 @@ def log_retrieval(
         except sqlite3.OperationalError as exc:
             logger.debug("log_retrieval skipped row: %s", exc)
             continue
-    try:
+    with contextlib.suppress(sqlite3.OperationalError):
         conn.commit()
-    except sqlite3.OperationalError:
-        pass
     return inserted
 
 

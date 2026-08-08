@@ -51,7 +51,6 @@ from __future__ import annotations
 import logging
 import sqlite3
 from dataclasses import asdict, dataclass
-from typing import Optional
 
 logger = logging.getLogger("coding_os.precision")
 

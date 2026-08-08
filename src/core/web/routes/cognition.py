@@ -12,7 +12,7 @@ import sys
 import time
 from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -91,8 +91,9 @@ def _auto_route_model(prompt: str) -> dict:
     routed = ""
     source = "orchestrator_default"
     try:
-        from thinking_os.database import resolve_db_path  # type: ignore
         from tools.routing import route_model  # type: ignore
+
+        from thinking_os.database import resolve_db_path  # type: ignore
 
         conn = sqlite3.connect(str(resolve_db_path()))
         try:
@@ -798,14 +799,14 @@ def _chat_session_options(
             )
         except Exception as exc:
             logger.debug("session-options builder call failed (%s); generic seam fallback", exc)
-    kwargs = dict(
-        cwd=cwd,
-        model=model,
-        permission_mode="dontAsk",
-        setting_sources=[],
-        include_partial_messages=True,
-        system_prompt=system_prompt,
-    )
+    kwargs = {
+        "cwd": cwd,
+        "model": model,
+        "permission_mode": "dontAsk",
+        "setting_sources": [],
+        "include_partial_messages": True,
+        "system_prompt": system_prompt,
+    }
     if effort:
         kwargs["effort"] = effort
     if profile == "chat_resume":

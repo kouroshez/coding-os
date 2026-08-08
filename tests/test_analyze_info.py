@@ -9,7 +9,7 @@ sys.path.insert(
     0, str(Path(__file__).resolve().parents[1] / "src" / "core" / "skills" / "redis" / "scripts")
 )
 
-import analyze_info as ai  # noqa: E402
+import analyze_info as ai
 
 
 def test_parse_skips_comments_and_blanks() -> None:

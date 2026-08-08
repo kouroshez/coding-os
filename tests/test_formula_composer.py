@@ -24,8 +24,8 @@ _THINKING_OS = Path(__file__).resolve().parent.parent / "src" / "core" / "thinki
 if str(_THINKING_OS) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS))
 
-from cognition_schemas import TaskSignals  # noqa: E402
-from formula_composer import (  # noqa: E402
+from cognition_schemas import TaskSignals
+from formula_composer import (
     compose_chain,
     reset_registry_cache,
     score_all_roles,

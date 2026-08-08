@@ -109,7 +109,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    excluded = set(s for s in args.exclude.split(",") if s)
+    excluded = {s for s in args.exclude.split(",") if s}
     target_files: list[Path] = []
     for root in args.paths:
         p = Path(root)

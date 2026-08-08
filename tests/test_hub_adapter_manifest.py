@@ -12,7 +12,7 @@ _REPO = Path(__file__).resolve().parent.parent
 if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
 
-from board_os import hub_adapter_manifest as ham  # noqa: E402
+from board_os import hub_adapter_manifest as ham
 
 
 @pytest.fixture(autouse=True)

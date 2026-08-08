@@ -8,7 +8,6 @@ Tests for evolution features:
 
 from __future__ import annotations
 
-import json
 import sqlite3
 import sys
 from pathlib import Path
@@ -206,7 +205,7 @@ class TestRoutingEvolution:
         self._seed_outcomes(conn, 20)
         recalculate_weights(conn)
 
-        row = conn.execute(
+        conn.execute(
             "SELECT MAX(outcomes_at_recalc) AS at_recalc, MAX(last_recalc_at) AS recalc_at "
             "FROM routing_weights"
         ).fetchone()

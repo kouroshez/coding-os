@@ -13,7 +13,7 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "src" / "core" / "hooks" / "_helpers"))
 
-import context_budget  # noqa: E402
+import context_budget
 
 
 def _usage(total: int) -> dict:

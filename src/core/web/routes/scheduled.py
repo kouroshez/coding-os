@@ -23,6 +23,7 @@ for _p in (str(_CORE_PKG), str(_SCHEDULED_DIR)):
         sys.path.insert(0, _p)
 
 from _state import read_registry, read_state  # type: ignore  # noqa: E402
+
 from scheduled.config import DEFAULTS, load_config, save_config  # type: ignore  # noqa: E402
 
 router = APIRouter(prefix="/api/scheduled", tags=["scheduled"])

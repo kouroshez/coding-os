@@ -14,7 +14,7 @@ for _p in (_REPO_ROOT, _REPO_ROOT / "src" / "core"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from core.web.server import create_app  # noqa: E402
+from core.web.server import create_app
 
 _PLACEHOLDER = "# Snapshot\n\n_TODO: write the elevator pitch._\n- _TODO: Year 1._\n"
 _AUTHORED = "# Snapshot\n\nWe build X for Y. Year 1: ship. Year 2: grow.\n"

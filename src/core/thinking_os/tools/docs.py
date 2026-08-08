@@ -301,13 +301,13 @@ def doc_search(
 
     results: list[dict] = []
 
-    md_kwargs = dict(
-        source_types=source_types,
-        domain=applied_domain,
-        layer=layer,
-        since_iso=since_iso,
-        include_inactive=include_inactive,
-    )
+    md_kwargs = {
+        "source_types": source_types,
+        "domain": applied_domain,
+        "layer": layer,
+        "since_iso": since_iso,
+        "include_inactive": include_inactive,
+    }
 
     if mode == "lexical":
         results = _lexical_search(conn, query, limit, **md_kwargs)
@@ -458,13 +458,13 @@ def _lexical_search(
     from database import has_document_chunks_fts  # avoid circular at module top
 
     overfetch = limit * _OVERFETCH_MULTIPLIER
-    md_kwargs = dict(
-        source_types=source_types,
-        domain=domain,
-        layer=layer,
-        since_iso=since_iso,
-        include_inactive=include_inactive,
-    )
+    md_kwargs = {
+        "source_types": source_types,
+        "domain": domain,
+        "layer": layer,
+        "since_iso": since_iso,
+        "include_inactive": include_inactive,
+    }
 
     if has_document_chunks_fts(conn):
         try:

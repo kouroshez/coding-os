@@ -21,7 +21,7 @@ spec = importlib.util.spec_from_file_location("agent_memory_sync", HELPER)
 sync = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sync)
 
-from database import init_db  # noqa: E402
+from database import init_db
 
 
 @pytest.fixture()

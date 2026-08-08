@@ -17,7 +17,7 @@ for _p in (_REPO_ROOT, _REPO_ROOT / "src" / "core"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from web.server import create_app  # noqa: E402
+from web.server import create_app
 
 _LOCAL = "http://localhost:9188"
 
@@ -547,7 +547,6 @@ class TestInitJobRoutes:
         )
 
     def test_background_create_returns_job_id(self, hub_env, monkeypatch):
-        import web.routes.hub as hub_routes
         from web import init_jobs
 
         captured: dict = {}

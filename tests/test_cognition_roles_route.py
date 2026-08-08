@@ -53,6 +53,6 @@ def test_roles_endpoint_lists_canonical_roles():
     assert r.status_code == 200
     roles = r.json()["data"]["roles"]
     # The real producer dir must carry at least the 11 canonical roles.
-    assert _CANONICAL <= set(roles)
+    assert set(roles) >= _CANONICAL
     assert all(name.islower() and not name.startswith("_") for name in roles)
     assert "README" not in roles

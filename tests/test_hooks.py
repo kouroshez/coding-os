@@ -57,7 +57,7 @@ def _resolve_cos_var(
     env = {k: v for k, v in os.environ.items() if k not in strip}
     if env_overrides:
         env.update(env_overrides)
-    script = 'source "%s"; echo "$%s"' % (HOOKS_DIR / "cos-env.sh", var)
+    script = 'source "{}"; echo "${}"'.format(HOOKS_DIR / "cos-env.sh", var)
     return subprocess.run(
         ["bash", "-c", script],
         capture_output=True,
@@ -73,9 +73,9 @@ def _python_resolve_root(cwd: str) -> str:
     import sys
 
     code = (
-        "import sys; sys.path.insert(0, %r); "
+        f"import sys; sys.path.insert(0, {str(REPO_SRC)!r}); "
         "from core.thinking_os.database import _find_project_root_from_cwd; "
-        "print(_find_project_root_from_cwd())" % str(REPO_SRC)
+        "print(_find_project_root_from_cwd())"
     )
     return subprocess.run(
         [sys.executable, "-c", code],

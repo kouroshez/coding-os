@@ -6,13 +6,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from cli.core_version import (  # noqa: E402
+from cli.core_version import (
     STAMP_FILENAME,
     current_core_version,
     read_stamped_version,
     stamp_core_version,
 )
-from cli.doctor import (  # noqa: E402
+from cli.doctor import (
     SEV_PASS,
     SEV_WARN,
     DoctorReport,

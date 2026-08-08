@@ -18,7 +18,7 @@ sys.path.insert(
     ),
 )
 
-import scan_rn_perf as rn  # noqa: E402
+import scan_rn_perf as rn
 
 
 def test_clean_list() -> None:

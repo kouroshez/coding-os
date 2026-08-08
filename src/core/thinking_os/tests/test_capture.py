@@ -294,7 +294,7 @@ class TestContentHashDedup:
 # inline embedding side effects
 # ---------------------------------------------------------------------------
 
-import embeddings  # noqa: E402
+import embeddings
 
 REQUIRES_RAG = pytest.mark.skipif(
     not embeddings.is_available(),

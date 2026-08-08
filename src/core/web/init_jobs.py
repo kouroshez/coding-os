@@ -133,7 +133,7 @@ def start_job(cmd: list[str], target: Path, cwd: str, parse_payload) -> InitJob:
 
     def _worker() -> None:
         try:
-            proc = subprocess.Popen(  # noqa: S603 — fixed argv list, never shell=True
+            proc = subprocess.Popen(
                 cmd,
                 cwd=cwd,
                 stdout=subprocess.PIPE,

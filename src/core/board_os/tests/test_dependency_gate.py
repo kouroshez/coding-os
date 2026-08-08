@@ -89,7 +89,7 @@ def test_start_blocked_when_dependency_incomplete(project: Path, conn: sqlite3.C
 
 
 def test_start_allowed_once_dependency_complete(project: Path, conn: sqlite3.Connection):
-    dep_id, dep_path = _create(conn, project, title="prerequisite")
+    dep_id, _dep_path = _create(conn, project, title="prerequisite")
     task_id, task_path = _create(conn, project, title="dependent", depends_on=[dep_id], ready=True)
     _fill_dor(task_path)  # so the body DoR gate isn't what blocks the pull
 

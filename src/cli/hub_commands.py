@@ -10,7 +10,7 @@ NOTES:        Stale-pid detection via os.kill(pid, 0); SIGTERM→SIGKILL escalat
 
 from __future__ import annotations
 
-import json
+import contextlib
 import os
 import platform
 import signal
@@ -208,19 +208,15 @@ def hub_start(port: int, foreground: bool, reload_: bool) -> None:
             f"http://{HUB_HOST}:{port}/health; stopping and starting fresh.",
             err=True,
         )
-        try:
+        with contextlib.suppress(ProcessLookupError):
             os.kill(existing, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
         for _ in range(30):
             time.sleep(0.1)
             if _read_pid() is None:
                 break
         if _read_pid() is not None:
-            try:
+            with contextlib.suppress(ProcessLookupError):
                 os.kill(existing, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
             for _ in range(20):
                 time.sleep(0.1)
                 if _read_pid() is None:
@@ -318,10 +314,8 @@ def hub_stop() -> None:
         f"Hub pid {pid} did not exit after SIGTERM; sending SIGKILL.",
         err=True,
     )
-    try:
+    with contextlib.suppress(ProcessLookupError):
         os.kill(pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
     for _ in range(30):
         time.sleep(0.1)
         if _read_pid() is None:

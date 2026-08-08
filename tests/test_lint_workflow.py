@@ -17,7 +17,7 @@ sys.path.insert(
     ),
 )
 
-import lint_workflow as lw  # noqa: E402
+import lint_workflow as lw
 
 GOOD = """name: ci
 on: [push]

@@ -227,15 +227,15 @@ class TestDispatch:
 
         db = str(tmp_path / "t.db")
         rel = "docs/engineering/sample-note.md"
-        common = dict(
-            content_hash="h",
-            nodes_written=0,
-            edges_written=0,
-            last_error=None,
-            project_root=project,
-            db_path=db,
-            advance_hash=True,
-        )
+        common = {
+            "content_hash": "h",
+            "nodes_written": 0,
+            "edges_written": 0,
+            "last_error": None,
+            "project_root": project,
+            "db_path": db,
+            "advance_hash": True,
+        }
         # old graph chain with a stale parse error + the legit docs row
         _record_state_safe(rel, chain_key="task_deps,md_links", parse_errors_count=1, **common)
         _record_state_safe(rel, chain_key="docs:md", parse_errors_count=0, **common)

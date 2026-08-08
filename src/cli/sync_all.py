@@ -13,7 +13,6 @@ NOTES:        Idempotent — install.sh re-links are safe to repeat.
 from __future__ import annotations
 
 import json
-import os
 import sys
 from pathlib import Path
 

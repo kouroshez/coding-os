@@ -229,7 +229,7 @@ def seed_observations(conn: sqlite3.Connection, count: int = 500) -> int:
     inserted = 0
     sessions = [_random_session_id() for _ in range(30)]
 
-    for i in range(count):
+    for _i in range(count):
         domain = random.choice(DOMAINS)
         files = DOMAIN_FILES[domain]
         file_path = random.choice(files)
@@ -278,7 +278,7 @@ def seed_observations(conn: sqlite3.Connection, count: int = 500) -> int:
 
 def seed_agent_metrics(conn: sqlite3.Connection, count: int = 100) -> int:
     """Seed agent_metrics with performance data."""
-    for i in range(count):
+    for _i in range(count):
         task_id = f"TASK-{random.randint(1, 200):03d}"
         agent = random.choice(AGENT_TYPES)
         model = random.choice(MODELS)

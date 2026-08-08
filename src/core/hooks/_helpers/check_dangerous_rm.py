@@ -28,9 +28,7 @@ def _is_dangerous_target(tok: str) -> bool:
         return True
     # Top-level absolute dir (e.g. /etc, /usr, /etc/) — one slash after the
     # trailing-slash strip so the slash variant can't bypass the check.
-    if base.startswith("/") and base.count("/") == 1 and len(base) > 1:
-        return True
-    return False
+    return bool(base.startswith("/") and base.count("/") == 1 and len(base) > 1)
 
 
 def _is_recursive(flags: list[str]) -> bool:

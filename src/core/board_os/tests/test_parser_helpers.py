@@ -8,7 +8,6 @@ the H1-derived id/title fallbacks in parse_task.
 
 from __future__ import annotations
 
-from board_os import parser
 from board_os.parser import (
     KIND_ENUM,
     _extract_outcome,
@@ -19,7 +18,6 @@ from board_os.parser import (
     is_lean_format,
     parse_task,
 )
-
 
 # ---------------------------------------------------------------------------
 # extract_frontmatter

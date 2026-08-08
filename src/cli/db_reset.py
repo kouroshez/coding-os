@@ -232,7 +232,7 @@ def register(cli: click.Group) -> None:
         if not no_backup:
             bak_root.mkdir(parents=True, exist_ok=True)
             click.echo(f"Backup -> {bak_root}")
-            for label, p, _ in targets:
+            for _label, p, _ in targets:
                 dst = bak_root / p.name
                 try:
                     if p.is_dir():
@@ -250,7 +250,7 @@ def register(cli: click.Group) -> None:
 
         click.echo("Wiping...")
         wiped: list[str] = []
-        for label, p, _ in targets:
+        for _label, p, _ in targets:
             try:
                 if p.is_dir():
                     shutil.rmtree(p)

@@ -163,7 +163,7 @@ def _model_success_rows(conn: sqlite3.Connection, complexity: str, domain: str |
         "WHERE model IS NOT NULL "
         "GROUP BY model "
         "HAVING total >= ?",
-        params + [MIN_SAMPLES_PER_BUCKET],
+        [*params, MIN_SAMPLES_PER_BUCKET],
     ).fetchall()
 
 

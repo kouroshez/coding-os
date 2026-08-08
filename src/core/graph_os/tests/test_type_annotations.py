@@ -192,7 +192,7 @@ class TestFieldTypes:
         edges = _edges_of(r, "field_of_type")
         # Two edges: name → str, count → int
         assert len(edges) == 2
-        types = {e.target_uid for e in edges}
+        {e.target_uid for e in edges}
         # `str` and `int` are builtins → resolved as code:external:unresolved:str
         # under the current Python extractor's resolver.  What matters is
         # the source_uid stub format and edge_type.

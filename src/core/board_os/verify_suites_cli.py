@@ -214,9 +214,11 @@ def _pytest_segments(cmd: str) -> list[list[str]]:
         head = seg[0]
         is_pytest = head == "pytest" or head.endswith("/pytest")
         is_uv = head == "uv" or head.endswith("/uv")
-        if is_pytest or (is_uv and "pytest" in seg):
-            out.append(seg)
-        elif head in ("python", "python3") and "-m" in seg and "pytest" in seg:
+        if (
+            is_pytest
+            or (is_uv and "pytest" in seg)
+            or (head in ("python", "python3") and "-m" in seg and "pytest" in seg)
+        ):
             out.append(seg)
     return out
 
@@ -274,7 +276,7 @@ def cmd_match_command(args: argparse.Namespace) -> int:
     }
     verify_file = Path(args.verify_file)
     if suite and verify_file.exists():
-        missing, fresh_ok = _check_suites([suite], verify_file)
+        _missing, fresh_ok = _check_suites([suite], verify_file)
         out["fresh"] = suite in fresh_ok
         if out["fresh"]:
             try:

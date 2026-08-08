@@ -57,7 +57,7 @@ def _plan(path: Path) -> str | None:
     tail = new_lines[last_opening_idx + 1 :]
     while tail and tail[0].strip() == "":
         tail = tail[1:]
-    fixed = head + ["", nav_line, ""] + tail
+    fixed = [*head, "", nav_line, "", *tail]
 
     new_text = "\n".join(fixed)
     if not new_text.endswith("\n"):

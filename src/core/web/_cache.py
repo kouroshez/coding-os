@@ -72,7 +72,7 @@ class SignatureLRUCache:
             logger.debug("cache signature unavailable, bypassing: %s", exc)
             return producer()
 
-        full_key = (sig,) + tuple(cache_key)
+        full_key = (sig, *tuple(cache_key))
         now = time.monotonic()
 
         with self._lock:

@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import repair  # noqa: E402
+import repair
 
 
 def test_disabled_when_flag_off(monkeypatch) -> None:

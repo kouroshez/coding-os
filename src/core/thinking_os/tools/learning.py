@@ -17,7 +17,6 @@ import re
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger("thinking_os.learning")
 
@@ -515,7 +514,7 @@ def _consolidate_semantic_duplicates(
         if not cands:
             continue
         scores = cosine_similarity(survivor["embedding"], [c["embedding"] for c in cands])
-        for cand, score in zip(cands, scores):
+        for cand, score in zip(cands, scores, strict=False):
             if score < threshold:
                 continue
             if not dry_run:
@@ -610,7 +609,7 @@ def generalize_lessons(
         if not rest:
             break
         scores = cosine_similarity(seed["embedding"], [c["embedding"] for c in rest])
-        cluster = [seed] + [c for c, s in zip(rest, scores) if s >= sim_threshold]
+        cluster = [seed] + [c for c, s in zip(rest, scores, strict=False) if s >= sim_threshold]
         if len(cluster) < min_cluster:
             continue
         for c in cluster:
@@ -1545,7 +1544,8 @@ def learn_validate(
     # guard: locked/core patterns cannot be mutated via this path
     # even though the trigger would also block it. Return a clean validation
     # error instead of letting SQLite raise.
-    trust_tier = row["trust_tier"] if "trust_tier" in row.keys() else "volatile"
+    # sqlite3.Row has no .get(), and bare `in row` scans VALUES — keys() is required.
+    trust_tier = row["trust_tier"] if "trust_tier" in row.keys() else "volatile"  # noqa: SIM118
     if trust_tier in {"locked", "core"}:
         return {
             "error": f"Pattern {pattern_id} is {trust_tier} — immutable via cos_learn_validate",

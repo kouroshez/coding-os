@@ -959,7 +959,7 @@ def extract(path: str, content: str) -> ExtractionResult:
     # S3: File→Class / File→Function / File→Interface direct ``contains``
     # edges (ts extractor already wires Module→decl; add File→decl for
     # the SPA tree-view spine). Uniqueness is enforced by the backend.
-    for name, decl_uid in local_names.items():
+    for _name, decl_uid in local_names.items():
         if (
             decl_uid.startswith("code:class:")
             or decl_uid.startswith("code:function:")

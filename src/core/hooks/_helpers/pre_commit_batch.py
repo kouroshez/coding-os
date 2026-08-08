@@ -18,7 +18,6 @@ import json
 import os
 import re
 import signal
-import sqlite3
 import subprocess
 import sys
 import tempfile

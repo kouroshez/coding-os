@@ -108,8 +108,8 @@ def test_hook_ids_are_unique() -> None:
 # ---------------------------------------------------------------------------
 
 
-import subprocess  # noqa: E402
-import textwrap  # noqa: E402
+import subprocess
+import textwrap
 
 
 def _run_hook(script: Path, payload: dict, env: dict | None = None) -> tuple[int, str, str]:

@@ -17,7 +17,7 @@ sys.path.insert(
     ),
 )
 
-import check_layering as cl  # noqa: E402
+import check_layering as cl
 
 
 def test_clean_service_passes() -> None:

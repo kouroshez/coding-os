@@ -25,7 +25,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from thinking_os.database import init_db  # noqa: E402
+from thinking_os.database import init_db
 
 
 @pytest.fixture

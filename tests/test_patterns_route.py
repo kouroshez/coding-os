@@ -18,8 +18,8 @@ for _p in (_REPO_ROOT, _REPO_ROOT / "src" / "core", _REPO_ROOT / "src" / "core" 
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from core.web.server import create_app  # noqa: E402
-from thinking_os.database import init_db  # noqa: E402
+from core.web.server import create_app
+from thinking_os.database import init_db
 
 
 def _seed(conn: sqlite3.Connection) -> None:

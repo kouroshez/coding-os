@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import sqlite3
 from pathlib import PurePosixPath
-from typing import Optional
 
 # Path noise: segments that are never meaningful concepts
 _PATH_NOISE = {
@@ -124,7 +123,7 @@ def extract_concepts(
     else:
         from _agent_markers import agent_state_prefixes
 
-        infra_prefixes = (".coding-os/", "core/") + tuple(agent_state_prefixes())
+        infra_prefixes = (".coding-os/", "core/", *tuple(agent_state_prefixes()))
         if rel_lower.startswith(infra_prefixes):
             concepts.add("infra")
 

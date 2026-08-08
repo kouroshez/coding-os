@@ -241,9 +241,7 @@ def _matches(line: Line, sources: set[str], agents: set[str], level: str, grep: 
             cur_idx = 1
         if cur_idx < min_idx:
             return False
-    if grep and grep not in line.text:
-        return False
-    return True
+    return not (grep and grep not in line.text)
 
 
 def _spawn_tail(

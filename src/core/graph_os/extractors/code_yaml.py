@@ -115,7 +115,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         return result
 
     try:
-        data = yaml.load(content, Loader=_key_preserving_loader())  # noqa: S506 - SafeLoader subclass
+        data = yaml.load(content, Loader=_key_preserving_loader())
     except Exception as exc:
         result.parse_errors.append(ParseError(kind="yaml_parse_error", detail=str(exc)))
         emit_contains_spine(

@@ -132,7 +132,7 @@ def test_cos_docs_index_force_reindexes(tmp_path: Path) -> None:
     assert first.returncode == 0
 
     second = subprocess.run(
-        base_cmd + ["--force"],
+        [*base_cmd, "--force"],
         env=env,
         capture_output=True,
         text=True,

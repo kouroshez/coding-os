@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 import subprocess
 import zipfile
 from pathlib import Path

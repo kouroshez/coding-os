@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 import yaml
@@ -642,7 +643,9 @@ class TestVersion:
 # and refuses to init when the target directory looks like the coding-os
 # repo itself.
 
-from cli.main import _refuse_coding_os_self_init, _resolve_project_dir  # noqa: E402
+import contextlib
+
+from cli.main import _refuse_coding_os_self_init, _resolve_project_dir
 
 pytestmark = pytest.mark.slow  # dominated by cos-init / subprocess tests
 
@@ -756,16 +759,16 @@ class TestInstallResilience:
     def test_update_and_sync_roots_resolve_via_resources(self) -> None:
         """update/sync_all must use the importlib-resolved trees (TASK-219),
         not Path(__file__) hops that break under wheels / moved checkouts."""
-        from cli._resources import data_root
         import cli.sync_all as sync_module
         import cli.update as update_module
+        from cli._resources import data_root
 
         root = data_root()
-        assert update_module.CORE_DIR == root / "core"
-        assert update_module.ADAPTERS_DIR == root / "adapters"
-        assert update_module.TEMPLATES_DIR == root / "templates"
-        assert sync_module.CORE_DIR == root / "core"
-        assert sync_module.ADAPTERS_DIR == root / "adapters"
+        assert root / "core" == update_module.CORE_DIR
+        assert root / "adapters" == update_module.ADAPTERS_DIR
+        assert root / "templates" == update_module.TEMPLATES_DIR
+        assert root / "core" == sync_module.CORE_DIR
+        assert root / "adapters" == sync_module.ADAPTERS_DIR
 
     def test_update_warns_on_core_version_skew_and_restamps(
         self, runner: CliRunner, resilience_project: Path
@@ -901,14 +904,14 @@ class TestLanguageLayer:
     def test_every_stack_declares_language_and_validates(self) -> None:
         result = self._registry()
         assert list(result.warnings) == []
-        for stack_id in result.keys():
+        for stack_id in result:
             assert result[stack_id].language, f"{stack_id} missing language"
 
     def test_discovery_groups_by_language(self) -> None:
         from cli.stack_registry import group_stacks_by_language
 
         result = self._registry()
-        profiles = {sid: result[sid] for sid in result.keys()}
+        profiles = {sid: result[sid] for sid in result}
         groups = group_stacks_by_language(profiles)
         go_ids = [p.id for p in groups["go"]]
         assert "go-plain" in go_ids and "go-fiber" in go_ids
@@ -917,7 +920,7 @@ class TestLanguageLayer:
         from cli.stack_registry import plain_stack_by_language
 
         result = self._registry()
-        profiles = {sid: result[sid] for sid in result.keys()}
+        profiles = {sid: result[sid] for sid in result}
         plain = plain_stack_by_language(profiles)
         assert plain["go"] == "go-plain"  # explicit -plain wins over the chi 'go' stack
         assert plain["python"] == "python"  # pre-convention fallback
@@ -963,7 +966,7 @@ class TestLanguageLayer:
             "version: 1\nid: beta\nlanguage: go\nlabel: B\ncategory: library\nextends: alpha\n",
         )
         result = load_stack_registry(tmp_path)
-        assert "alpha" not in result.keys() and "beta" not in result.keys()
+        assert "alpha" not in result and "beta" not in result
         assert any("cycle" in w for w in result.warnings)
 
     def test_plain_stacks_scaffold_runnable_skeletons(
@@ -1010,7 +1013,7 @@ class TestProjectAnatomy:
         from cli.stack_registry import load_stack_registry
 
         result = load_stack_registry(templates_dir())
-        for stack_id in result.keys():
+        for stack_id in result:
             structure = result[stack_id].structure
             assert structure.get("root"), f"{stack_id} missing structure.root"
             assert structure.get("tree"), f"{stack_id} missing structure.tree"
@@ -1071,8 +1074,8 @@ class TestProjectAnatomy:
             roots = [(p.id, (p.structure or {}).get("root", "").rstrip("/")) for p in profiles]
             for index, (id_a, root_a) in enumerate(roots):
                 for id_b, root_b in roots[index + 1 :]:
-                    lang_a = registry[id_a].language if id_a in registry.keys() else ""
-                    lang_b = registry[id_b].language if id_b in registry.keys() else ""
+                    lang_a = registry[id_a].language if id_a in registry else ""
+                    lang_b = registry[id_b].language if id_b in registry else ""
                     assert not _roots_collide(root_a, lang_a, root_b, lang_b), (
                         f"preset '{pid}': roots {id_a}={root_a!r} and {id_b}={root_b!r} "
                         f"overlap after resolution — ambiguous file_pattern owner"
@@ -2132,8 +2135,9 @@ class TestSubsystems:
         """Audit F9 invariant: no orphan hooks, no double-claims. Every hook in
         the registry is owned by exactly one subsystems.yaml module so a new
         hook cannot silently land untoggleable."""
-        import yaml as _yaml
         from collections import Counter
+
+        import yaml as _yaml
 
         from cli.subsystems import load_subsystems
 
@@ -3137,7 +3141,7 @@ class TestFlagshipHexagonalPreset:
 
 
 class TestPresetCatalogV1:
-    CATALOG = {
+    CATALOG: ClassVar[dict[str, list[str]]] = {
         "ai-saas": ["nextjs", "fastapi"],
         "t3-style": ["nextjs"],
         "pern": ["node-express", "nextjs"],
@@ -3554,7 +3558,14 @@ class TestDoctorTokens:
 class TestAdopt:
     """`cos adopt` — brownfield overlay onto an existing repo (TASK-387)."""
 
-    ADOPT_FLAGS = ["--agent", "claude", "--yes", "--no-git", "--no-index", "--no-register"]
+    ADOPT_FLAGS: ClassVar[list[str]] = [
+        "--agent",
+        "claude",
+        "--yes",
+        "--no-git",
+        "--no-index",
+        "--no-register",
+    ]
 
     def _seed_brownfield(self, root: Path) -> dict[str, str]:
         """Seed representative user files (build markers + code); return hashes."""
@@ -3966,10 +3977,8 @@ class TestCosPr:
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
         old = time.time() - 3600
         for path in [wt, *wt.rglob("*")]:
-            try:
+            with contextlib.suppress(OSError):
                 os.utime(path, (old, old))
-            except OSError:
-                pass
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "agents/adhoc/ses-test-abc" not in self._branches(repo)  # dead owner → reaped
@@ -4004,10 +4013,8 @@ class TestCosPr:
         )
         old = time.time() - 3600
         for path in [wt, *wt.rglob("*")]:
-            try:
+            with contextlib.suppress(OSError):
                 os.utime(path, (old, old))
-            except OSError:
-                pass
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # live pid parsed past the quote
@@ -4030,10 +4037,8 @@ class TestCosPr:
         old = time.time() - 3600
         for wt in (tmp_path / "wt").rglob("adhoc-ses-test-*"):
             for path in [wt, *wt.rglob("*")]:
-                try:
+                with contextlib.suppress(OSError):
                     os.utime(path, (old, old))
-                except OSError:
-                    pass
         counts = {"wl": 0}
         real_git_out = prc._git_out
 
@@ -4079,10 +4084,8 @@ class TestCosPr:
         )
         old = time.time() - 3600
         for path in [wt, *wt.rglob("*")]:
-            try:
+            with contextlib.suppress(OSError):
                 os.utime(path, (old, old))
-            except OSError:
-                pass
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "agents/adhoc/ses-test-abc" not in self._branches(repo)  # foreign host → reaped
@@ -4115,10 +4118,8 @@ class TestCosPr:
         old = time.time() - 3600
         for wt in (tmp_path / "wt").rglob("adhoc-ses-s*"):
             for p in [wt, *wt.rglob("*")]:
-                try:
+                with contextlib.suppress(OSError):
                     os.utime(p, (old, old))
-                except OSError:
-                    pass
 
         errors: list[str] = []
 
@@ -4126,7 +4127,7 @@ class TestCosPr:
             time.sleep(0.001 * (idx % 3))  # fixed, deterministic stagger
             try:
                 prc.pr_reap.callback(str(repo), False, False)  # raw fn, not the Click wrapper
-            except Exception as exc:  # noqa: BLE001 — record, assert below
+            except Exception as exc:
                 errors.append(repr(exc))
 
         threads = [threading.Thread(target=worker, args=(i,)) for i in range(5)]

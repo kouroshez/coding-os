@@ -25,9 +25,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from distill import enrich_enabled, observe_session  # noqa: E402
-from sanitizer import redact_secrets, scrub_username  # noqa: E402
-from session_enrich import apply_session_facts  # noqa: E402
+from distill import enrich_enabled, observe_session
+from sanitizer import redact_secrets, scrub_username
+from session_enrich import apply_session_facts
 
 _TOP_N = 12  # cap changelog rows enriched per session — bounds cost and keeps focus
 

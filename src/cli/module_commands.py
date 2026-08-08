@@ -94,7 +94,7 @@ def _cascade_skills_after_toggle(
         from cli.skill_commands import cascade_module_skills
 
         out = cascade_module_skills(project, module_id, enabled, keep_skills=keep_skills)
-    except Exception as exc:  # noqa: BLE001 — toggle already committed; surface, don't fail
+    except Exception as exc:
         return [f"skills: cascade skipped ({exc}) — run `cos doctor`"]
     notes: list[str] = []
     if out["unlinked"]:
@@ -192,7 +192,7 @@ def _cascade_commands_after_toggle(project: Path, module_id: str, enabled: bool)
         return ["commands: cascade skipped (coding-os meta-repo — adapter links preserved)"]
     try:
         out = cascade_module_commands(project, module_id, enabled)
-    except Exception as exc:  # noqa: BLE001 — toggle already committed; surface, don't fail
+    except Exception as exc:
         return [f"commands: cascade skipped ({exc}) — run `cos doctor`"]
     notes: list[str] = []
     if out["unlinked"]:
@@ -289,7 +289,7 @@ def _cascade_rules_after_toggle(project: Path, module_id: str, enabled: bool) ->
         return ["rules: cascade skipped (coding-os meta-repo — adapter links preserved)"]
     try:
         out = cascade_module_rules(project, module_id, enabled)
-    except Exception as exc:  # noqa: BLE001 — toggle already committed; surface, don't fail
+    except Exception as exc:
         return [f"rules: cascade skipped ({exc}) — run `cos doctor`"]
     notes: list[str] = []
     if out["unlinked"]:
@@ -345,7 +345,7 @@ def _sync_module_docs_after_toggle(project: Path, module_id: str, enabled: bool)
         config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8")) or {}
         templates = tuple(config.get("templates") or [])
         out = sync_module_docs(project, templates, module_id, enabled)
-    except Exception as exc:  # noqa: BLE001 — toggle already committed; surface, don't fail
+    except Exception as exc:
         return [f"docs: sync skipped ({exc}) — run `cos doctor`"]
     notes: list[str] = []
     if out["pruned"]:
@@ -385,7 +385,7 @@ def toggle_and_regen(
 
         try:
             write_runtime_allowlist(project)
-        except Exception as restore_exc:  # noqa: BLE001 — original error wins; surface both
+        except Exception as restore_exc:
             return (
                 ToggleResult(
                     ok=False,

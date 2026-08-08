@@ -74,7 +74,7 @@ def run_single(mcp, db_path) -> dict:
     print(f"  status: {data.get('status')}")
     print(f"  dispatcher: {data.get('dispatcher_name')}")
     print(f"  latency_ms: {data.get('latency_ms')}")
-    print(f"  output keys: {sorted(list(data.get('output_json', {}).keys()))[:6]}")
+    print(f"  output keys: {sorted(data.get('output_json', {}).keys())[:6]}")
     print(f"  bundle_fields_filled: {data.get('bundle_fields_filled')}")
     print(f"  wall_ms: {wall_ms}")
     return {"envelope": envelope, "wall_ms": wall_ms}

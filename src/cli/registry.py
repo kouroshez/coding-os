@@ -83,7 +83,7 @@ def load_registry() -> Registry:
     except json.JSONDecodeError as exc:
         raise click.ClickException(
             f"Registry file {path} is corrupt: {exc}. Inspect manually; do not auto-repair."
-        )
+        ) from exc
     return Registry.from_dict(raw)
 
 
@@ -92,20 +92,17 @@ def save_registry(registry: Registry) -> None:
     path = registry_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(registry.to_dict(), indent=2, ensure_ascii=False) + "\n"
-    tmp = tempfile.NamedTemporaryFile(
+    with tempfile.NamedTemporaryFile(
         mode="w",
         encoding="utf-8",
         dir=str(path.parent),
         prefix=".registry-",
         suffix=".tmp",
         delete=False,
-    )
-    try:
+    ) as tmp:
         tmp.write(payload)
         tmp.flush()
         os.fsync(tmp.fileno())
-    finally:
-        tmp.close()
     os.replace(tmp.name, path)
 
 

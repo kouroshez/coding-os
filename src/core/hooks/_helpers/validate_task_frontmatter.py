@@ -84,12 +84,11 @@ try:
     config = load_config(project_root)
 except (FileNotFoundError, Exception):
     config = None
-if config is not None and fm.get("swimlane"):
-    if fm["swimlane"] not in config.swimlane_ids:
-        errors.append(
-            f"swimlane {fm['swimlane']!r} not in scrumban-config.yaml; "
-            f"valid: {sorted(config.swimlane_ids)}"
-        )
+if config is not None and fm.get("swimlane") and fm["swimlane"] not in config.swimlane_ids:
+    errors.append(
+        f"swimlane {fm['swimlane']!r} not in scrumban-config.yaml; "
+        f"valid: {sorted(config.swimlane_ids)}"
+    )
 
 if errors:
     print("ERROR validate-task-frontmatter:", file=sys.stderr)

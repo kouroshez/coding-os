@@ -16,7 +16,7 @@ HELPERS = REPO / "src" / "core" / "hooks" / "_helpers"
 HOOK = REPO / "src" / "core" / "hooks" / "enforce-commit-message.sh"
 
 sys.path.insert(0, str(HELPERS))
-import extract_commit_msg_arg as extractor  # noqa: E402
+import extract_commit_msg_arg as extractor
 
 
 def _extract(command: str) -> str:

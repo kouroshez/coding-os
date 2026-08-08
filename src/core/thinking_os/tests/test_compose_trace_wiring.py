@@ -19,7 +19,7 @@ import tracing
 _HELPERS_DIR = Path(__file__).resolve().parents[3] / "core" / "hooks" / "_helpers"
 if str(_HELPERS_DIR) not in sys.path:
     sys.path.insert(0, str(_HELPERS_DIR))
-import auto_compose  # noqa: E402
+import auto_compose
 
 
 def _compose_done_events(agent_dir: Path, session_id: str) -> list[dict]:

@@ -5,6 +5,7 @@ DEPENDS:  graph_os.types, graph_os.backend, graph_os.backends.*.
 
 from __future__ import annotations
 
+import contextlib
 import difflib
 import hashlib
 import json
@@ -15,7 +16,7 @@ import sqlite3
 import sys
 import threading
 from collections import deque
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -146,7 +147,7 @@ def _mark_file_consulted(
     disk = _file_disk_hash(file_path)
     file_node = backend_obj.get_node(f"code:file:{file_path}")
     indexed = file_node.content_hash if file_node else None
-    key = hashlib.sha1(file_path.encode("utf-8")).hexdigest()  # noqa: S324 non-crypto path key
+    key = hashlib.sha1(file_path.encode("utf-8")).hexdigest()
     _write_consult_marker(
         f"ctx-{key}",
         {"file": file_path, "content_hash": disk, "indexed_hash": indexed, "tool": tool},
@@ -265,10 +266,8 @@ def _rotate_telemetry_atomically(path: str) -> None:
         os.replace(tmp, path)
     except OSError as exc:
         logger.debug("telemetry rotation skipped: %s", exc)
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tmp)
-        except OSError:
-            pass
 
 
 def _emit_telemetry(*, meta: dict[str, Any], ok: bool) -> None:
@@ -1078,7 +1077,7 @@ def _walk_bfs(
 
         if frontier_uids:
             fetched = _bulk_nodes(backend, frontier_uids)
-            for edge, next_uid in zip(frontier_edges, frontier_uids):
+            for edge, next_uid in zip(frontier_edges, frontier_uids, strict=False):
                 node = fetched.get(next_uid)
                 if node is None:
                     continue
@@ -1231,7 +1230,7 @@ def cos_graph_query(
     # S3: when include_spine is set, attach a ``spine`` list per result
     # — the CONTAINS-ancestor chain from repo-root down to the result.
     if include_spine:
-        for result_dict, node in zip(results, nodes):
+        for result_dict, node in zip(results, nodes, strict=False):
             ancestors, _ = _contains_ancestors(be, leaf_uid=node.uid)
             result_dict["spine"] = [NodeSummary.from_node(a).to_dict() for a in ancestors]
     # B22: cap meta.query to 500 chars with ellipsis suffix so the
@@ -2096,7 +2095,7 @@ def cos_graph_similar(
                 if valid:
                     sims = cosine_similarity(ref_vec, valid)
                     valid_iter = iter(sims)
-                    for n, vec in zip(candidates, cand_vecs):
+                    for n, vec in zip(candidates, cand_vecs, strict=False):
                         if vec is not None:
                             embed_scores[n.uid] = float(next(valid_iter))
                     scorer_name = "bge-m3+difflib-blend"
@@ -2229,7 +2228,7 @@ def cos_graph_search(
             f"SELECT id, uid FROM graph_nodes WHERE id IN ({ph})", id_list
         ).fetchall()
     }
-    nodes_by_uid = be.get_nodes_bulk([u for u in id_to_uid.values()])
+    nodes_by_uid = be.get_nodes_bulk(list(id_to_uid.values()))
     scored: list[tuple[float, GraphNode]] = []
     for gid in cand_ids:
         uid = id_to_uid.get(gid)
@@ -3309,7 +3308,7 @@ def _lexical_search(
                     f"       signature, lang, doc_blob, ast_hash, content_hash,"
                     f"       metadata_json"
                     f" FROM graph_nodes WHERE kind IN ({placeholders}) LIMIT ?",
-                    tuple(list(kinds) + [int(limit) * 6]),
+                    (*list(kinds), int(limit) * 6),
                 ).fetchall()
             else:
                 # F13: try the maintained FTS5 index first (indexed MATCH,
@@ -3664,7 +3663,7 @@ def cos_graph_entrypoints(
         meta={
             "backend": be.backend_id,
             "count": len(rows),
-            "scanned_kinds": list(("code:function", "code:method", "function", "method")),
+            "scanned_kinds": ["code:function", "code:method", "function", "method"],
             "top": top,
             "result_truncated": total > top,
         },
@@ -3980,7 +3979,7 @@ def cos_graph_centrality(
                 f"SELECT id, uid FROM graph_nodes WHERE uid IN ({id_ph})",
                 tuple(all_uids_list),
             ).fetchall()
-            id_to_uid = {nid: uid for nid, uid in id_rows}
+            id_to_uid = dict(id_rows)
             for s_id, t_id, etype in _edges_among(sqlite_conn, list(id_to_uid)):
                 if not include_structural and etype not in _BEHAVIOURAL_EDGE_TYPES:
                     continue
@@ -4524,7 +4523,7 @@ def cos_graph_ranking(
             truncated = True
         node_ids_str = list(uid_set)[:_NODE_CAP]
         uid_to_int = {u: i for i, u in enumerate(node_ids_str)}
-        int_to_uid = {i: u for i, u in enumerate(node_ids_str)}
+        int_to_uid = dict(enumerate(node_ids_str))
         int_to_meta = {}
         valid_ids_int = set(range(len(node_ids_str)))
         out_links_str: dict[int, list[int]] = {i: [] for i in valid_ids_int}
@@ -5518,7 +5517,7 @@ def cos_graph_resolve(
 # the common case (harakat-typed query vs harakat-free index) matches. Full
 # symmetric folding of harakat-bearing INDEXED text needs an FTS-rebuild
 # migration and is deferred until Persian/Arabic is a named market (TASK-485).
-_HARAKAT_STRIP = {cp: None for cp in (*range(0x064B, 0x0653), 0x0670)}
+_HARAKAT_STRIP = dict.fromkeys((*range(1611, 1619), 1648))
 
 
 def _fold_harakat(raw: str) -> str:

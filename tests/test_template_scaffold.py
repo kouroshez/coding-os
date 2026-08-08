@@ -980,7 +980,6 @@ class TestNodeExpressStack:
         assert "express-service.md" in agents_md  # playbook routed
 
     def test_scaffold_typechecks_pre_install(self, tmp_path):
-        import shutil as _shutil
         import subprocess
 
         tsc = Path("src/core/web/ui/node_modules/.bin/tsc").resolve()

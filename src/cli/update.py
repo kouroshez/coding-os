@@ -319,7 +319,7 @@ def _compute_diff(target: dict[str, list[AssetRef]], present: dict[str, list[str
     # For "skills", we compare skill_dir names; for others, file names.
     for cat, targets in target.items():
         current_names = set(present.get(cat, []))
-        target_keys = {t.name if cat != "skills" else t.name: t for t in targets}
+        target_keys = {t.name: t for t in targets}
         # We need the skill-dir-name mapping: since rel_link for skill is
         # <dir>/<skill_name>/SKILL.md, the presence list stores <skill_name>.
         added = [t for key, t in target_keys.items() if key not in current_names]
@@ -334,7 +334,7 @@ def _compute_diff(target: dict[str, list[AssetRef]], present: dict[str, list[str
 def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
     """Create missing symlinks; remove orphans."""
     # Add
-    for cat, items in diff.added.items():
+    for _cat, items in diff.added.items():
         for item in items:
             link = project / item.rel_link
             link.parent.mkdir(parents=True, exist_ok=True)

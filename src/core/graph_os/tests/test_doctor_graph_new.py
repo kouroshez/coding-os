@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import sqlite3
 
-import pytest
-
 from cli.doctor import DoctorReport
 from cli.doctor_graph import (
     add_check_evidence_table,

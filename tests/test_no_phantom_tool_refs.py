@@ -99,9 +99,8 @@ def _is_phantom(token: str) -> bool:
         return False
     if token.endswith("_"):  # wildcard like cos_graph_* -> token "cos_graph_"
         return False
-    if any(tool.startswith(token + "_") for tool in KNOWN_TOOLS):  # family shorthand cos_graph
-        return False
-    return True
+    # family shorthand like cos_graph is fine when a real cos_graph_* tool exists
+    return not any(tool.startswith(token + "_") for tool in KNOWN_TOOLS)
 
 
 def _phantoms_in(path: Path) -> list[str]:

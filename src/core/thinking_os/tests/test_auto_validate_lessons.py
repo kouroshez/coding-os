@@ -17,8 +17,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # thinking_os
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "hooks" / "_helpers"))
 
-from auto_validate_lessons import auto_validate  # noqa: E402
-from database import init_db  # noqa: E402
+from auto_validate_lessons import auto_validate
+from database import init_db
 
 # A real-shaped friction lesson: the cleaned failure display is embedded in the
 # text, so a recurring failure's cluster key is a contiguous substring.

@@ -11,7 +11,7 @@ import sys
 import time
 from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse

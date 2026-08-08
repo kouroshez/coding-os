@@ -23,7 +23,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from database import DEFAULT_DB_PATH, get_connection
 from gate_marker import (
-    newest_panel_gate as _newest_panel_gate,
     read_gate_file as _read_gate_file,
     state_search_dirs as _state_search_dirs,
 )

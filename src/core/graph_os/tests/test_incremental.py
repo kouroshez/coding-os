@@ -49,7 +49,7 @@ def _state_rows(db_path: Path) -> list[dict]:
         "last_indexed_at",
         "last_error",
     ]
-    return [dict(zip(keys, r)) for r in rows]
+    return [dict(zip(keys, r, strict=False)) for r in rows]
 
 
 class TestIncrementalCache:
@@ -95,7 +95,7 @@ class TestIncrementalCache:
         from graph_os.tools.reindex_dispatch import dispatch
 
         db = tmp_path / "test.db"
-        first = dispatch(src, project_root=project, db_path=str(db))
+        dispatch(src, project_root=project, db_path=str(db))
         h1 = _state_rows(db)[0]["content_hash"]
 
         # Modify file content — new hash, extractor must re-run.

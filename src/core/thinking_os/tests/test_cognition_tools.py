@@ -44,7 +44,7 @@ class _FakeMcp:
     def __init__(self):
         self._tools: dict = {}
 
-    def tool(self, name: str = "", description: str = "", annotations: dict = None):
+    def tool(self, name: str = "", description: str = "", annotations: dict | None = None):
         def decorator(fn):
             self._tools[name or fn.__name__] = fn
             return fn
@@ -186,7 +186,6 @@ class TestCosAmbiguityCheck:
         assert result["data"]["passed"] is True
 
     def test_f2_missing_actors_fails(self, mcp_tools, db_path):
-        import json
         from pathlib import Path
 
         from cognition_schemas import AnalystOutput, EvidenceBundle

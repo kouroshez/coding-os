@@ -15,7 +15,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from git_command_parse import recover_indirect_commands  # noqa: E402
+from git_command_parse import recover_indirect_commands
 
 
 def main() -> int:

@@ -14,7 +14,7 @@ from pathlib import Path
 # the fire-and-forget hook simply skips this capture — fail-safe. A best-effort
 # fallback here would silently disable secret redaction, the worse failure mode.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "thinking_os"))
-from sanitizer import redact_secrets, scrub_username  # noqa: E402
+from sanitizer import redact_secrets, scrub_username
 
 
 def _clean(text: str) -> str:
@@ -46,9 +46,8 @@ def _is_hook_blocked(error: str) -> bool:
 def _extract_file_path(tool_input: dict) -> str:
     """Best-effort extraction of file path from tool_input."""
     for key in ("file_path", "path", "command"):
-        if val := tool_input.get(key, ""):
-            if isinstance(val, str):
-                return val[:200]
+        if (val := tool_input.get(key, "")) and isinstance(val, str):
+            return val[:200]
     return ""
 
 

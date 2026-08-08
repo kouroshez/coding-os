@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from cognition import (
     advance,
     ambiguity_check,
@@ -15,7 +14,6 @@ from cognition import (
 from cognition_schemas import (
     Actor,
     AnalystOutput,
-    ArchitectOutput,
     EvidenceBundle,
     ResearcherOutput,
     Scenario,
@@ -69,13 +67,17 @@ class TestRegistries:
 
 
 def _make_state(**kwargs) -> SupervisorState:
-    defaults = dict(session_id="ses-test-1", task_marker="feat-auth", persona_id="senior-backend")
+    defaults = {
+        "session_id": "ses-test-1",
+        "task_marker": "feat-auth",
+        "persona_id": "senior-backend",
+    }
     defaults.update(kwargs)
     return SupervisorState(**defaults)
 
 
 def _make_bundle(**kwargs) -> EvidenceBundle:
-    defaults = dict(task_marker="feat-auth", persona_id="senior-backend")
+    defaults = {"task_marker": "feat-auth", "persona_id": "senior-backend"}
     defaults.update(kwargs)
     return EvidenceBundle(**defaults)
 

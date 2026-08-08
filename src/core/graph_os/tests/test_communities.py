@@ -19,7 +19,6 @@ from __future__ import annotations
 import pytest
 
 from graph_os.communities import (
-    Community,
     communities_to_processes,
     compute_communities,
     reset_cache,

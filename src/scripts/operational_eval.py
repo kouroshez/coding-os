@@ -199,7 +199,7 @@ def _step_init_sandbox(
     sandbox = SANDBOX_DIR / template
     _clean_sandbox(sandbox)
 
-    cmd = cos_cmd_prefix + ["init", "--agent", "claude", "--project-dir", str(sandbox)]
+    cmd = [*cos_cmd_prefix, "init", "--agent", "claude", "--project-dir", str(sandbox)]
     if template != "base":
         cmd.extend(["--template", template])
 
@@ -225,7 +225,7 @@ def _step_health(
     cos_cmd_prefix: list[str],
     snapshot: Snapshot,
 ) -> None:
-    cmd = cos_cmd_prefix + ["health", "--project-dir", str(sandbox)]
+    cmd = [*cos_cmd_prefix, "health", "--project-dir", str(sandbox)]
     log = LOG_DIR / "cli" / f"health-{template}.log"
     env = os.environ.copy()
     env.setdefault("PYTHONPATH", str(REPO_ROOT))
@@ -240,13 +240,7 @@ def _step_doctor(
     snapshot: Snapshot,
 ) -> None:
     """Run `cos doctor --format json` against the sandbox."""
-    cmd = cos_cmd_prefix + [
-        "doctor",
-        "--project-dir",
-        str(sandbox),
-        "--format",
-        "json",
-    ]
+    cmd = [*cos_cmd_prefix, "doctor", "--project-dir", str(sandbox), "--format", "json"]
     log = LOG_DIR / "doctor" / f"{template}.log"
     env = os.environ.copy()
     env.setdefault("PYTHONPATH", str(REPO_ROOT))

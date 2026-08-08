@@ -18,7 +18,7 @@ sys.path.insert(
     ),
 )
 
-import check_envelope as ce  # noqa: E402
+import check_envelope as ce
 
 GOOD = '''
 @safe_tool

@@ -1,4 +1,4 @@
-"""graph_os — PHP source file extractor (tree-sitter-php primary, regex fallback).
+r"""graph_os — PHP source file extractor (tree-sitter-php primary, regex fallback).
 
 Targets Python-gold parity for the PHP ecosystem (TASK-069, spec §4.9):
 

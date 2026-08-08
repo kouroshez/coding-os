@@ -9,7 +9,6 @@ import sqlite3
 import sys
 import threading
 from pathlib import Path
-from typing import List, Optional
 
 from fastapi import APIRouter, Body, Depends, Query
 from fastapi.responses import JSONResponse
@@ -61,8 +60,6 @@ def _unavailable():
 # export the constants the tests still reference.
 from board_os.presence import (  # noqa: E402  (after sys.path bootstrap above)
     ACTIVE_WINDOW_SECS as _ACTIVE_WINDOW_SECS,
-    PRESENT_WINDOW_SECS as _PRESENT_WINDOW_SECS,
-    WORKING_WINDOW_SECS as _WORKING_WINDOW_SECS,
     agent_state as _agent_state_fs,
     pid_alive as _pid_alive_fn,
     session_inventory as _session_inventory_fs,
@@ -719,7 +716,7 @@ def _run_git(args: list[str], cwd: Path, timeout: float = 8.0) -> tuple[int, str
             ["git", *args], cwd=str(cwd), capture_output=True, text=True, timeout=timeout
         )
         return proc.returncode, proc.stdout or ""
-    except Exception as exc:  # noqa: BLE001 — fail-open
+    except Exception as exc:
         logging.getLogger("coding_os.web.board").debug("git %s failed: %s", args[:2], exc)
         return 1, ""
 
@@ -749,7 +746,7 @@ def board_commit(
             content={"error": {"category": "not_found", "message": f"commit {sha} not found"}},
         )
     header, _, body = out.partition("\n")
-    parts = (header.split("\x00") + ["", "", "", ""])[:4]
+    parts = ([*header.split("\x00"), "", "", "", ""])[:4]
     full_sha, author, date, subject = parts
     files = []
     for line in body.splitlines():

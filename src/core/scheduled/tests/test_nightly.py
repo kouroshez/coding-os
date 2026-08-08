@@ -17,7 +17,7 @@ for _p in (_SCHED, _THINKING_OS):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from _activity import activity_since, observations_since_marker, outcomes_since_marker
+from _activity import activity_since, outcomes_since_marker
 from _state import (
     days_since_marker,
     read_registry,

@@ -18,8 +18,8 @@ import json
 from pathlib import Path
 
 import pytest
-
 import server
+
 from core.thinking_os.tools._shared import _gated_module, _tool_module_map
 
 # Registered cos_* tools that intentionally belong to NO module — always served

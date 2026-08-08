@@ -11,8 +11,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CODEX_COMMANDS = REPO_ROOT / "src" / "adapters" / "codex" / "commands"
 AGENTS_DIR = REPO_ROOT / "src" / "core" / "thinking_os" / "agents"

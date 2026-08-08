@@ -327,7 +327,7 @@ def test_f6_reviewer_can_preview_any_task_via_validate(
 ) -> None:
     """F6 Reviewer's primary verb is preview — task-validate must work
     on any kind without modifying state."""
-    for persona, kind, outcome in PERSONAS[:3]:  # sample
+    for persona, kind, _outcome in PERSONAS[:3]:  # sample
         env = json.loads(
             mcp_tools.cos_task_create(
                 conn,

@@ -55,7 +55,7 @@ labs = {k: hex_to_lab(v[0]) for k, v in PALETTE.items()}
 
 
 def de(a, b):
-    return sum((x - y) ** 2 for x, y in zip(labs[a], labs[b])) ** 0.5
+    return sum((x - y) ** 2 for x, y in zip(labs[a], labs[b], strict=False)) ** 0.5
 
 
 pairs = sorted((de(a, b), a, b) for a, b in itertools.combinations(PALETTE, 2))
@@ -65,7 +65,7 @@ print("=== closest 16 pairs ===")
 for d, a, b in pairs[:16]:
     cross = "" if PALETTE[a][1] == PALETTE[b][1] else " [cross-family]"
     flag = "  <-- TOO CLOSE" if d < THRESH else ""
-    print("  dE=%5.1f  %-16s vs %-16s%s%s" % (d, a, b, cross, flag))
+    print(f"  dE={d:5.1f}  {a:<16} vs {b:<16}{cross}{flag}")
 below = [(d, a, b) for d, a, b in pairs if d < THRESH]
 print("\n" + str(len(below)) + " pair(s) below threshold (incl. intentional gray-noise cluster).")
 
@@ -90,6 +90,6 @@ violations = [(d, a, b) for d, a, b in pairs if d < THRESH and a in COMMON and b
 print("=== GATE: common-vs-common pairs below " + str(THRESH) + " ===")
 if violations:
     for d, a, b in violations:
-        print("  FAIL dE=%.1f %s vs %s" % (d, a, b))
+        print(f"  FAIL dE={d:.1f} {a} vs {b}")
 else:
     print("  PASS — every common-kind pair is >= " + str(THRESH) + " dE apart.")

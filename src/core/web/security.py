@@ -126,9 +126,8 @@ class SecurityGateMiddleware(BaseHTTPMiddleware):
             if origin is not None:
                 if _hostname_of_url(origin) not in allowed:
                     return _forbidden(f"cross-origin request from {origin!r} rejected")
-            elif referer is not None:
-                if _hostname_of_url(referer) not in allowed:
-                    return _forbidden(f"cross-origin referer {referer!r} rejected")
+            elif referer is not None and _hostname_of_url(referer) not in allowed:
+                return _forbidden(f"cross-origin referer {referer!r} rejected")
 
             if origin is not None or referer is not None:
                 # DNS-rebinding defense: a rebound page sends the attacker's

@@ -7,9 +7,7 @@ active-task context helpers.
 
 from __future__ import annotations
 
-import os
 import sqlite3
-from pathlib import Path
 
 import pytest
 from database import run_migrations  # type: ignore
@@ -162,7 +160,7 @@ class TestMetadataFilter:
         assert params == []
 
     def test_table_alias(self):
-        clause, params = _build_metadata_filter(
+        clause, _params = _build_metadata_filter(
             source_types=None,
             domain="OPS",
             layer=None,
@@ -392,7 +390,7 @@ class TestAutoContextAndReturnMeta:
     def test_auto_context_applies_swimlane(self, seeded_conn, monkeypatch, tmp_path):
         monkeypatch.setenv("COS_AGENT_DIR", str(tmp_path))
         (tmp_path / ".swimlane").write_text("backend\n", encoding="utf-8")
-        results, meta = doc_search(
+        _results, meta = doc_search(
             seeded_conn,
             "audit log",
             mode="lexical",

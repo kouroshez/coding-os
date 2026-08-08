@@ -3,21 +3,21 @@ from __future__ import annotations
 from pathlib import Path
 
 try:
-    from core.thinking_os.database import init_db
     from core.scheduled.error_sweep import (
         SWEEP_SCOPE,
         rollup_fingerprints,
         run_error_sweep,
         select_for_filing,
     )
+    from core.thinking_os.database import init_db
 except ImportError:  # runner path differences
-    from thinking_os.database import init_db
     from scheduled.error_sweep import (
         SWEEP_SCOPE,
         rollup_fingerprints,
         run_error_sweep,
         select_for_filing,
     )
+    from thinking_os.database import init_db
 
 
 def _seed(tmp_path: Path):

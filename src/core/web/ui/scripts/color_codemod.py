@@ -3,7 +3,9 @@
 Usage: color_codemod.py [--apply]   (default = dry run, prints per-file counts)
 The mapping IS the enterprise rule (docs/engineering/design-system.md)."""
 
-import re, sys, pathlib
+import pathlib
+import re
+import sys
 
 ROOT = pathlib.Path("src/core/web/ui/src")
 EXEMPT = {  # canonical canvas / single-source maps (WebGL can't read CSS vars)

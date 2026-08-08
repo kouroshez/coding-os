@@ -15,7 +15,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 _HELPER = _ROOT / "src" / "core" / "hooks" / "_helpers" / "narrative_signal.py"
 sys.path.insert(0, str(_ROOT / "src" / "core" / "thinking_os"))
 
-from database import init_db  # noqa: E402
+from database import init_db
 
 _OBS = (
     "INSERT INTO observations (session_id, tool_name, observation_type, memory_type, "

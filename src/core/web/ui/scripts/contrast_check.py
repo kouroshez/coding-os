@@ -24,7 +24,7 @@ def blend(fg, alpha, bg):
         f = int(fh[i : i + 2], 16)
         b = int(bh[i : i + 2], 16)
         out.append(round(f * alpha + b * (1 - alpha)))
-    return "#%02x%02x%02x" % tuple(out)
+    return "#{:02x}{:02x}{:02x}".format(*tuple(out))
 
 
 DARK_CANVAS = "#0a0b0e"
@@ -53,7 +53,7 @@ KIND = {  # (dark chip, light chip)
 
 
 def run(theme, canvas, idx):
-    print("\n=== %s (canvas %s) ===" % (theme, canvas))
+    print(f"\n=== {theme} (canvas {canvas}) ===")
     fails = 0
     # card text pairs on card body (≈ canvas)
     pairs = [
@@ -68,7 +68,7 @@ def run(theme, canvas, idx):
         ok = "ok " if r >= mn else "FAIL"
         if r < mn:
             fails += 1
-        print("  [%s] %-12s %.2f:1 (min %.1f)" % (ok, name, r, mn))
+        print(f"  [{ok}] {name:<12} {r:.2f}:1 (min {mn:.1f})")
     # kind badge: chip text on 22%-chip-over-canvas tint
     for k, chips in KIND.items():
         chip = chips[idx]
@@ -78,7 +78,7 @@ def run(theme, canvas, idx):
         ok = "ok " if r >= mn else "FAIL"
         if r < mn:
             fails += 1
-        print("  [%s] badge %-9s %.2f:1 (text %s on tint %s)" % (ok, k, r, chip, bg))
+        print(f"  [{ok}] badge {k:<9} {r:.2f}:1 (text {chip} on tint {bg})")
     # status badge: status fg on 14%-status-over-panel
     panel = "#111317" if idx == 0 else "#ffffff"
     for s in ("ok", "warn", "err", "info"):
@@ -89,10 +89,10 @@ def run(theme, canvas, idx):
         ok = "ok " if r >= mn else "FAIL"
         if r < mn:
             fails += 1
-        print("  [%s] status %-7s %.2f:1" % (ok, s, r))
+        print(f"  [{ok}] status {s:<7} {r:.2f}:1")
     return fails
 
 
 f1 = run("DARK", DARK_CANVAS, 0)
 f2 = run("LIGHT", LIGHT_CANVAS, 1)
-print("\nTOTAL FAILURES: %d" % (f1 + f2))
+print(f"\nTOTAL FAILURES: {f1 + f2}")

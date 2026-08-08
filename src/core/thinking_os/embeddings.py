@@ -361,7 +361,7 @@ def embed_texts(texts: list[str], model_name: str | None = None) -> list[bytes |
             batch_size=32,
         )
         results: list[bytes | None] = [None] * len(texts)
-        for idx, vec in zip(indices, vectors):
+        for idx, vec in zip(indices, vectors, strict=False):
             results[idx] = np.asarray(vec, dtype=np.float32).tobytes()
         return results
     except Exception as exc:
@@ -672,7 +672,7 @@ def search_similar(
             scores = cosine_similarity(query_vecs[0], cand_vecs)
         else:
             per_model = [cosine_similarity(qv, cand_vecs) for qv in query_vecs]
-            scores = [max(col) for col in zip(*per_model)]
+            scores = [max(col) for col in zip(*per_model, strict=False)]
         for i, score in enumerate(scores):
             if score < threshold:
                 continue
@@ -879,7 +879,7 @@ def reindex_all(conn: sqlite3.Connection) -> dict:
             if not texts:
                 continue
             vectors = embed_texts(texts, model_name=name)
-            for (source_id, text_hash, existing_id), vector in zip(pending, vectors):
+            for (source_id, text_hash, existing_id), vector in zip(pending, vectors, strict=False):
                 if vector is None:
                     stats["skipped"] += 1
                     continue

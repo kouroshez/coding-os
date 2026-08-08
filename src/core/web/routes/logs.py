@@ -13,7 +13,7 @@ import time
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Body, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -49,11 +49,11 @@ _CLIENT_LEVEL_LABELS: dict[str, str] = {
 
 
 def _jsonl_log_path() -> Path:
-    from web._project_context import current_project_root, is_explicit_project_scope  # type: ignore
-
     # Path resolution delegates to logging_os.config.jsonl_log_path (the SSOT) so
     # a rename there cannot silently desync this reader (api-contract-discipline).
     from logging_os.config import jsonl_log_path  # type: ignore
+
+    from web._project_context import current_project_root, is_explicit_project_scope  # type: ignore
 
     # A bound /api/p/<slug>/ scope must win over the ambient COS_LOG_FILE (the
     # Hub launch project's), else scoped log reads leak the launch project's sink.
@@ -169,6 +169,7 @@ def report_client_log(
     # Record into the ACTIVE project's sink (not the process-ambient one) so a
     # scoped /api/p/<slug>/ beacon lands where that project's LogsPage reads.
     from logging_os.sinks import append_jsonl_event  # type: ignore
+
     from web._project_context import current_project_root  # type: ignore
 
     event = {

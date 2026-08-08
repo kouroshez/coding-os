@@ -57,7 +57,7 @@ def _parse_lenient(content: str) -> tuple[Any | None, str | None]:
     """Parse JSON, falling back to JSON5-like stripping on failure."""
     try:
         return json.loads(content), None
-    except json.JSONDecodeError as exc:
+    except json.JSONDecodeError:
         try:
             return json.loads(_strip_jsonc(content)), None
         except json.JSONDecodeError as exc2:
@@ -104,7 +104,7 @@ def _emit_package_json(
         deps = data.get(dep_key)
         if not isinstance(deps, dict):
             continue
-        for dep_name in deps.keys():
+        for dep_name in deps:
             if not isinstance(dep_name, str) or not dep_name:
                 continue
             target = f"npm:package:{dep_name}"
@@ -120,7 +120,7 @@ def _emit_package_json(
             )
     scripts = data.get("scripts")
     if isinstance(scripts, dict):
-        for script_name in scripts.keys():
+        for script_name in scripts:
             if not isinstance(script_name, str) or not script_name:
                 continue
             uid = _config_uid(path, f"/scripts/{script_name}")
@@ -170,7 +170,7 @@ def _emit_tsconfig_json(
     compiler = data.get("compilerOptions") or {}
     paths = compiler.get("paths") if isinstance(compiler, dict) else None
     if isinstance(paths, dict):
-        for alias in paths.keys():
+        for alias in paths:
             if not isinstance(alias, str):
                 continue
             uid = _config_uid(path, f"/compilerOptions/paths/{alias}")
@@ -205,7 +205,7 @@ def _emit_mcp_json(
     servers = data.get("mcpServers")
     if not isinstance(servers, dict):
         return
-    for srv_name in servers.keys():
+    for srv_name in servers:
         if not isinstance(srv_name, str):
             continue
         uid = f"mcp:server:{srv_name}"
@@ -240,7 +240,7 @@ def _emit_settings_json(
     hooks = data.get("hooks")
     if not isinstance(hooks, dict):
         return
-    for event_name in hooks.keys():
+    for event_name in hooks:
         if not isinstance(event_name, str):
             continue
         uid = _config_uid(path, f"/hooks/{event_name}")

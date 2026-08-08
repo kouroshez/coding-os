@@ -477,7 +477,7 @@ def _run_cos(args: list[str], timeout: int = 300) -> tuple[bool, dict, str]:
     subprocess cwd stays on the coding-os tree (see _cos_root)."""
     root = _cos_root()
     try:
-        proc = subprocess.run(  # noqa: S603 — fixed argv, never shell=True
+        proc = subprocess.run(
             [*_cos_bin(), *args],
             capture_output=True,
             text=True,

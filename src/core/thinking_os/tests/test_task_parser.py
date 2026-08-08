@@ -147,7 +147,7 @@ class TestExtractH1:
 
     def test_domain_with_hyphen(self) -> None:
         """Domain tags like [FULL-STACK] should be accepted."""
-        task_id, domain, title = extract_task_id_from_h1("TASK-042: [FULL-STACK] API + UI")
+        task_id, domain, _title = extract_task_id_from_h1("TASK-042: [FULL-STACK] API + UI")
         assert task_id == "TASK-042"
         assert domain == "FULL-STACK"
 

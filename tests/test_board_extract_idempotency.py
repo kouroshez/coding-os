@@ -3,7 +3,6 @@ marker (audit: it bypassed the marker, double-extracting with nightly/responsive
 
 from __future__ import annotations
 
-import sqlite3
 import sys
 from pathlib import Path
 
@@ -14,10 +13,11 @@ for _p in (_ROOT, _ROOT / "src", _ROOT / "src" / "core", _ROOT / "src" / "core" 
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from cli import board_commands  # noqa: E402
-from database import init_db  # noqa: E402
-from scheduled._activity import outcomes_since_marker  # noqa: E402
-from scheduled._state import state_dir  # noqa: E402
+from database import init_db
+
+from cli import board_commands
+from scheduled._activity import outcomes_since_marker
+from scheduled._state import state_dir
 
 
 @pytest.fixture
@@ -56,9 +56,9 @@ def test_every10_touches_shared_marker(project) -> None:
 def test_skips_when_marker_already_fresh(project, monkeypatch) -> None:
     # Discriminating: spy on learn_extract so we prove the MARKER gates the call,
     # not that the empty corpus happens to mint nothing (the old tautology).
-    tmp_path, db, conn = project
-    from scheduled._state import touch_marker
+    tmp_path, _db, conn = project
     import thinking_os.tools.learning as learning_mod
+    from scheduled._state import touch_marker
 
     calls: list[int] = []
     monkeypatch.setattr(
@@ -75,7 +75,7 @@ def test_skips_when_marker_already_fresh(project, monkeypatch) -> None:
 def test_extracts_when_marker_stale(project, monkeypatch) -> None:
     # Control for the above: with NO fresh marker, the same 10 outcomes ARE
     # "since" → learn_extract is actually invoked. Proves the gate has two sides.
-    tmp_path, db, conn = project
+    _tmp_path, _db, conn = project
     import thinking_os.tools.learning as learning_mod
 
     calls: list[int] = []

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from typing import Optional
 
 logger = logging.getLogger("thinking_os.metrics")
 
@@ -126,7 +125,7 @@ def metric_query(
     rows = conn.execute(
         f"SELECT id, task_id, agent_type, model, duration_ms, outcome, domain, complexity, created_at "
         f"FROM agent_metrics WHERE {where} ORDER BY created_at DESC LIMIT ?",
-        params + [limit],
+        [*params, limit],
     ).fetchall()
 
     return {

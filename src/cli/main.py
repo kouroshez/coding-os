@@ -15,6 +15,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import json
+import logging
 import os
 import re
 import shlex
@@ -27,14 +28,6 @@ import click
 import yaml
 
 from cli._data_types import AggregatedWorld
-from cli._resources import (
-    adapters_dir,
-    core_dir,
-    data_root,
-    overlay_adapter_dirs,
-    overlay_template_dirs,
-    templates_dir,
-)
 from cli._init_helpers import (
     InitError,
     ensure_agents_md,
@@ -48,10 +41,16 @@ from cli._init_helpers import (
     maybe_initial_commit,
     resolve_init_target,
 )
+from cli._resources import (
+    adapters_dir,
+    core_dir,
+    data_root,
+    overlay_adapter_dirs,
+    overlay_template_dirs,
+    templates_dir,
+)
 from cli.adapter_registry import load_adapter_registry
 from cli.add_stack import add_stack as add_stack_cmd
-from cli.remove_stack import remove_stack as remove_stack_cmd
-from cli.config_composer import COMPOSED_FILENAMES, compose_coding_os_configs
 from cli.aggregator import aggregate, today_iso
 from cli.brain_commands import (
     brain_decay as brain_decay_cmd,
@@ -61,11 +60,13 @@ from cli.brain_commands import (
     reindex as reindex_cmd,
     task_sync as task_sync_cmd,
 )
+from cli.config_composer import COMPOSED_FILENAMES, compose_coding_os_configs
 from cli.core_version import stamp_core_version
 from cli.doctor import doctor as doctor_cmd
-from cli.materialize_file import materialize_file as materialize_file_cmd
 from cli.list_adapters import list_adapters as list_adapters_cmd
 from cli.list_stacks import list_stacks as list_stacks_cmd
+from cli.materialize_file import materialize_file as materialize_file_cmd
+from cli.remove_stack import remove_stack as remove_stack_cmd
 from cli.setup import setup as setup_cmd
 from cli.skills_list import skills_list as skills_list_cmd
 from cli.stack_registry import (
@@ -277,7 +278,7 @@ def _prompt_templates() -> tuple[str, ...]:
     registry = _get_stack_registry()
     if not registry.keys():
         return ()
-    profiles = {sid: registry[sid] for sid in registry.keys()}
+    profiles = {sid: registry[sid] for sid in registry}
     groups = group_stacks_by_language(profiles)
     language_to_plain = plain_stack_by_language(profiles)
 
@@ -628,7 +629,7 @@ def module_scaffold_doc_rels(templates: tuple[str, ...], module_id: str) -> list
     relocations = _service_relocations(templates)
     sources: list[tuple[Path, str | None]] = [(TEMPLATES_DIR / "_base" / "scaffold", None)]
     for name in templates:
-        stack_root = registry[name].source_dir if name in registry.keys() else TEMPLATES_DIR / name
+        stack_root = registry[name].source_dir if name in registry else TEMPLATES_DIR / name
         candidate = stack_root / "scaffold"
         if candidate.exists():
             sources.append((candidate, name))
@@ -639,7 +640,7 @@ def module_scaffold_doc_rels(templates: tuple[str, ...], module_id: str) -> list
         relocated_root = relocations.get(stack_id) if stack_id else None
         declared_root = (
             (registry[stack_id].structure or {}).get("root", "").rstrip("/")
-            if stack_id and stack_id in registry.keys()
+            if stack_id and stack_id in registry
             else ""
         )
         for src_file in src_root.rglob("*.md"):
@@ -715,7 +716,7 @@ def _scaffold_tree_preview(
     sources: list[tuple[Path, str | None]] = [(TEMPLATES_DIR / "_base" / "scaffold", None)]
     for name in templates:
         # Community stacks resolve from source_dir, not the bundled tree (TASK-479).
-        stack_root = registry[name].source_dir if name in registry.keys() else TEMPLATES_DIR / name
+        stack_root = registry[name].source_dir if name in registry else TEMPLATES_DIR / name
         candidate = stack_root / "scaffold"
         if candidate.exists():
             sources.append((candidate, name))
@@ -726,7 +727,7 @@ def _scaffold_tree_preview(
         relocated_root = relocations.get(stack_id) if stack_id else None
         declared_root = (
             (registry[stack_id].structure or {}).get("root", "").rstrip("/")
-            if stack_id and stack_id in registry.keys()
+            if stack_id and stack_id in registry
             else ""
         )
         for src_file in src_root.rglob("*"):
@@ -981,7 +982,7 @@ def _overlay_scaffold(
     registry = _get_stack_registry()
     sources: list[tuple[Path, str | None]] = [(TEMPLATES_DIR / "_base" / "scaffold", None)]
     for name in templates:
-        stack_root = registry[name].source_dir if name in registry.keys() else TEMPLATES_DIR / name
+        stack_root = registry[name].source_dir if name in registry else TEMPLATES_DIR / name
         candidate = stack_root / "scaffold"
         if candidate.exists():
             sources.append((candidate, name))
@@ -991,7 +992,7 @@ def _overlay_scaffold(
     # Overlaid LAST so a stack's own scaffold config wins the idempotent first-write.
     seen_languages: set[str] = set()
     for name in templates:
-        language = registry[name].language if name in registry.keys() else ""
+        language = registry[name].language if name in registry else ""
         if not language or language in seen_languages:
             continue
         seen_languages.add(language)
@@ -1015,7 +1016,7 @@ def _overlay_scaffold(
         relocated_root = relocations.get(stack_id) if stack_id else None
         declared_root = (
             (registry[stack_id].structure or {}).get("root", "").rstrip("/")
-            if stack_id and stack_id in registry.keys()
+            if stack_id and stack_id in registry
             else ""
         )
         for src_file in src_root.rglob("*"):
@@ -1082,7 +1083,7 @@ def _aggregate_scaffold_boundaries(
         except yaml.YAMLError as exc:
             raise click.ClickException(
                 f"src/templates/{stack_id}/scaffold-boundary.yaml is not valid YAML: {exc}"
-            )
+            ) from exc
         if not isinstance(data, dict):
             continue
         stacks_data.append(
@@ -1109,13 +1110,13 @@ def _aggregate_scaffold_boundaries(
         registry = _get_stack_registry()
         for entry in stacks_data:
             new_root = relocations.get(entry["stack"])
-            if not new_root or entry["stack"] not in registry.keys():
+            if not new_root or entry["stack"] not in registry:
                 continue
             declared = (registry[entry["stack"]].structure or {}).get("root", "").rstrip("/")
             if not declared:
                 continue
 
-            def _remap(path: str) -> str:
+            def _remap(path: str, declared: str = declared, new_root: str = new_root) -> str:
                 stripped = path.rstrip("/")
                 if stripped == declared or stripped.startswith(declared + "/"):
                     remapped = new_root + stripped[len(declared) :]
@@ -1293,11 +1294,11 @@ cli.add_command(materialize_file_cmd)
 cli.add_command(tail_cmd)
 cli.add_command(skills_list_cmd)
 
-from cli.module_commands import module_group as module_group_cmd  # noqa: E402
-from cli.preset_commands import preset_group as preset_group_cmd  # noqa: E402
-from cli.skill_commands import skill_group as skill_group_cmd  # noqa: E402
-from cli.stack_lint import stack_lint as stack_lint_cmd  # noqa: E402
-from cli.supervision_commands import supervision_group as supervision_group_cmd  # noqa: E402
+from cli.module_commands import module_group as module_group_cmd
+from cli.preset_commands import preset_group as preset_group_cmd
+from cli.skill_commands import skill_group as skill_group_cmd
+from cli.stack_lint import stack_lint as stack_lint_cmd
+from cli.supervision_commands import supervision_group as supervision_group_cmd
 
 cli.add_command(module_group_cmd)
 cli.add_command(preset_group_cmd)
@@ -1307,8 +1308,7 @@ cli.add_command(supervision_group_cmd)
 
 # Durable error/log query CLI (cos errors / cos logs).
 try:
-    from cli.logs_commands import errors_cmd as _errors_cmd
-    from cli.logs_commands import logs_cmd as _logs_cmd
+    from cli.logs_commands import errors_cmd as _errors_cmd, logs_cmd as _logs_cmd
 
     cli.add_command(_logs_cmd)
     cli.add_command(_errors_cmd)
@@ -1319,9 +1319,11 @@ except ImportError as _logs_cli_exc:  # pragma: no cover — defensive
 
 # Doc lifecycle CLI (cos doc-new / doc-history / doc-lint).
 try:
-    from cli.doc_commands import doc_history_cmd as _doc_history_cmd
-    from cli.doc_commands import doc_lint_cmd as _doc_lint_cmd
-    from cli.doc_commands import doc_new_cmd as _doc_new_cmd
+    from cli.doc_commands import (
+        doc_history_cmd as _doc_history_cmd,
+        doc_lint_cmd as _doc_lint_cmd,
+        doc_new_cmd as _doc_new_cmd,
+    )
 
     cli.add_command(_doc_new_cmd)
     cli.add_command(_doc_history_cmd)
@@ -1917,7 +1919,7 @@ def _detect_stacks_from_markers(path: Path) -> list[str]:
     from cli.stack_registry import plain_stack_by_language
 
     registry = _get_stack_registry()
-    profiles = {sid: registry[sid] for sid in registry.keys()}
+    profiles = {sid: registry[sid] for sid in registry}
     language_to_plain = plain_stack_by_language(profiles)
     detected: list[str] = []
     for marker, language in _STACK_MARKER_LANGUAGES.items():
@@ -2221,7 +2223,7 @@ def _run_scaffold_phase(
         for module_id in module_toggles:
             try:
                 cascade = cascade_module_skills(project, module_id, enabled=False)
-            except Exception as exc:  # noqa: BLE001 — best-effort; `cos doctor` reconciles drift
+            except Exception as exc:
                 click.echo(f"  WARN: skill cascade for '{module_id}' skipped ({exc})", err=True)
             else:
                 if cascade["unlinked"]:
@@ -2230,7 +2232,7 @@ def _run_scaffold_phase(
                     )
             try:
                 cmd_cascade = cascade_module_commands(project, module_id, enabled=False)
-            except Exception as exc:  # noqa: BLE001 — best-effort; `cos doctor` reconciles drift
+            except Exception as exc:
                 click.echo(f"  WARN: command cascade for '{module_id}' skipped ({exc})", err=True)
             else:
                 if cmd_cascade["unlinked"]:
@@ -2683,7 +2685,7 @@ def materialize(project_dir: str) -> None:
     project = _resolve_project_dir(project_dir)
     materialized = 0
 
-    for root, dirs, files in os.walk(project):
+    for root, _dirs, files in os.walk(project):
         for name in files:
             filepath = Path(root) / name
             if filepath.is_symlink():

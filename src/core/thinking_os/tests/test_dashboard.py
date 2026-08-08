@@ -6,7 +6,6 @@ Covers each section, empty DB, absent DB, and data-filled scenarios.
 
 from __future__ import annotations
 
-import sqlite3
 import sys
 from pathlib import Path
 

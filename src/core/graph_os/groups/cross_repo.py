@@ -8,7 +8,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 from ..types import EvidenceSignal, GraphEdge
-from .manifest import GroupManifest, GroupMember
+from .manifest import GroupManifest
 
 logger = logging.getLogger("graph_os.groups.cross_repo")
 

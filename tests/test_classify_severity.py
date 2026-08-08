@@ -17,17 +17,17 @@ sys.path.insert(
     ),
 )
 
-import classify_severity as cs  # noqa: E402
+import classify_severity as cs
 
 
 def _c(**kw) -> int:
-    base = dict(
-        users_affected=0.0,
-        data_loss=False,
-        security_breach=False,
-        core_down=False,
-        workaround=False,
-    )
+    base = {
+        "users_affected": 0.0,
+        "data_loss": False,
+        "security_breach": False,
+        "core_down": False,
+        "workaround": False,
+    }
     base.update(kw)
     return cs.classify(**base)[0]
 

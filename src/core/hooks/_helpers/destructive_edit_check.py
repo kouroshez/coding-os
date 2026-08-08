@@ -46,9 +46,7 @@ def _is_load_bearing(rel: str, abs_str: str, config_path: str) -> bool:
     if rel.startswith("docs/"):
         if any(rel.startswith(x) for x in _DOCS_EXCLUDE):
             return False
-        if "/archive/" in f"/{rel}":
-            return False
-        return True
+        return "/archive/" not in f"/{rel}"
     return _matches_code_globs(config_path, abs_str)
 
 

@@ -18,7 +18,7 @@ sys.path.insert(
     ),
 )
 
-import new_extractor as ne  # noqa: E402
+import new_extractor as ne
 
 
 def test_render_uses_lang_in_fn_name() -> None:

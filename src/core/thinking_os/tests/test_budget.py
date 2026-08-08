@@ -14,8 +14,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import budget  # noqa: E402
-from database import init_db  # noqa: E402
+import budget
+from database import init_db
 
 
 @pytest.fixture

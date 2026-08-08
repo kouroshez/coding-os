@@ -1036,7 +1036,6 @@ def _task_validate_lint_all() -> None:
 
 def _task_validate_preflight(task_id: str, for_status: str, as_json: bool) -> None:
     """Run the transition gate validator without applying any change."""
-    import json as _json
 
     from board_os.parser import extract_frontmatter
     from board_os.transition_gates import GatesConfigError, load_gates_config

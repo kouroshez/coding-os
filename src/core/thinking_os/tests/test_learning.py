@@ -123,7 +123,7 @@ class TestLearnExtract:
         assert len(frontend_rework) == 0
 
     def test_idempotent(self, seeded_conn: sqlite3.Connection) -> None:
-        result1 = learn_extract(seeded_conn, min_occurrences=3)
+        learn_extract(seeded_conn, min_occurrences=3)
         result2 = learn_extract(seeded_conn, min_occurrences=3)
         # Second run should update, not create duplicates
         for p in result2["extracted"]:
@@ -1104,8 +1104,8 @@ class TestG6EvidenceBasedDefaults:
 # inline embedding side effects
 # ---------------------------------------------------------------------------
 
-import embeddings  # noqa: E402
-from tools.learning import _upsert_pattern, learn_narrative  # noqa: E402
+import embeddings
+from tools.learning import _upsert_pattern, learn_narrative
 
 REQUIRES_RAG = pytest.mark.skipif(
     not embeddings.is_available(),
@@ -1345,7 +1345,7 @@ class TestLearnNarrativeEmbedding:
 # Filing-back: markdown artifact in docs/insights/
 # ---------------------------------------------------------------------------
 
-from tools.learning import (  # noqa: E402
+from tools.learning import (
     _derive_project_root,
     _file_back_narrative_safe,
     _format_narrative_markdown,
@@ -1540,9 +1540,13 @@ class TestTimesSeenSplit:
         conn.row_factory = sqlite3.Row
         from tools.learning import _upsert_pattern
 
-        kw = dict(
-            memory_type="pattern", domain="BACKEND", source="mined", confidence=0.6, concepts="[]"
-        )
+        kw = {
+            "memory_type": "pattern",
+            "domain": "BACKEND",
+            "source": "mined",
+            "confidence": 0.6,
+            "concepts": "[]",
+        }
         first = _upsert_pattern(conn, pattern="Always use the services layer for DB writes", **kw)
         pid = first["id"]
         assert first["action"] == "created"
@@ -1558,7 +1562,7 @@ class TestTimesSeenSplit:
         conn.row_factory = sqlite3.Row
         from tools.learning import _upsert_pattern
 
-        kw = dict(memory_type="pattern", domain="BACKEND", source="mined", concepts="[]")
+        kw = {"memory_type": "pattern", "domain": "BACKEND", "source": "mined", "concepts": "[]"}
         pid = _upsert_pattern(conn, pattern="Guard None before deref", confidence=0.4, **kw)["id"]
         # A validation (LTD) penalized the belief down to 0.2.
         conn.execute("UPDATE learned_patterns SET confidence = 0.2 WHERE id = ?", (pid,))

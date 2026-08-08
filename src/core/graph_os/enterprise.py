@@ -19,11 +19,8 @@ import json
 import os
 import threading
 import time
-from collections import deque
-from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 # ---------------------------------------------------------------------------
 # Rate limiter — token bucket per tool name.
@@ -151,7 +148,7 @@ def _percentile(series: list[float], fraction: float) -> float:
     if not series:
         return 0.0
     sorted_series = sorted(series)
-    idx = int(round((len(sorted_series) - 1) * fraction))
+    idx = round((len(sorted_series) - 1) * fraction)
     return sorted_series[idx]
 
 

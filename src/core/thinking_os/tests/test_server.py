@@ -166,7 +166,7 @@ class TestSchemaIntegrity:
     def test_agent_metrics_has_autoincrement(self, tmp_db) -> None:
         conn, _ = tmp_db
         info = conn.execute("PRAGMA table_info(agent_metrics)").fetchall()
-        id_col = [row for row in info if row[1] == "id"][0]
+        id_col = next(row for row in info if row[1] == "id")
         assert id_col[5] == 1  # pk flag
 
     def test_observations_defaults(self, tmp_db) -> None:

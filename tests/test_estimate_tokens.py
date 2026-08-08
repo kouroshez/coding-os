@@ -12,7 +12,7 @@ sys.path.insert(
     ),
 )
 
-import estimate_tokens as et  # noqa: E402
+import estimate_tokens as et
 
 
 def test_empty_text() -> None:
@@ -32,7 +32,7 @@ def test_scales_with_length() -> None:
 
 def test_brackets_realistic_range() -> None:
     # ~100 short words -> hundreds of tokens, not thousands
-    low, mid, high = et.estimate("word " * 100)
+    _low, mid, _high = et.estimate("word " * 100)
     assert 100 <= mid <= 200
 
 

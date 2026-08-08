@@ -23,11 +23,9 @@ import pytest
 # Make doc_indexer + db importable from the package root
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import doc_indexer
 import embeddings
 from database import init_db
 from doc_indexer import (
-    DEFAULT_MAX_CHARS,
     _build_heading_path,
     _extract_h1,
     _strip_front_matter,

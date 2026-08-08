@@ -149,7 +149,10 @@ def _hnsw_knn(conn, query_blob: bytes, k: int) -> list[tuple[int, float]] | None
         q = np.frombuffer(query_blob, dtype=np.float32)
         res = idx.search(q, max(1, int(k)))
         # usearch 'cos' returns cosine DISTANCE in [0,2]; similarity = 1 - dist.
-        return [(int(key), 1.0 - float(dist)) for key, dist in zip(res.keys, res.distances)]
+        return [
+            (int(key), 1.0 - float(dist))
+            for key, dist in zip(res.keys, res.distances, strict=False)
+        ]
     except Exception as exc:
         logger.debug("hnsw knn failed (%s); falling back", exc)
         return None
@@ -269,9 +272,9 @@ def knn(conn, query_blob: bytes, k: int) -> list[tuple[int, float]] | None:
 
 
 __all__ = [
+    "ensure_loaded",
     "has_usearch",
     "is_vec_available",
-    "ensure_loaded",
-    "rebuild",
     "knn",
+    "rebuild",
 ]

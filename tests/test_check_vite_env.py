@@ -18,7 +18,7 @@ sys.path.insert(
     ),
 )
 
-import check_vite_env as cve  # noqa: E402
+import check_vite_env as cve
 
 
 def test_vite_prefixed_clean() -> None:

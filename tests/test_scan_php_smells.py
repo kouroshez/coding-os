@@ -9,7 +9,7 @@ sys.path.insert(
     0, str(Path(__file__).resolve().parents[1] / "src" / "core" / "skills" / "php" / "scripts")
 )
 
-import scan_php_smells as sp  # noqa: E402
+import scan_php_smells as sp
 
 CLEAN = '<?php\ndeclare(strict_types=1);\n$stmt = $pdo->prepare("SELECT 1");\n'
 

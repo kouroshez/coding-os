@@ -69,7 +69,7 @@ def log_query(
         f"session_id, trace_id, fingerprint "
         f"FROM log_events WHERE {where_sql} "
         f"ORDER BY ts DESC, id DESC LIMIT ?",
-        params + [limit],
+        [*params, limit],
     ).fetchall()
 
     return {

@@ -12,10 +12,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import budget  # noqa: E402
-from database import init_db  # noqa: E402
-from dispatcher import DispatchRequest  # noqa: E402
-from tools import cognition  # noqa: E402
+import budget
+from database import init_db
+from dispatcher import DispatchRequest
+from tools import cognition
 
 
 def _dispatch(conn: sqlite3.Connection, task_marker: str, cost: float) -> None:

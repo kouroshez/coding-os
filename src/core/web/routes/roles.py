@@ -13,6 +13,7 @@ NOTES:   Data sources are local files:
 
 from __future__ import annotations
 
+import contextlib
 import importlib
 import json
 import logging
@@ -64,10 +65,8 @@ def _newest_marker(agent_dir: Path, basename: str) -> str | None:
     candidates = [agent_dir / basename]
     panels = agent_dir / "panels"
     if panels.is_dir():
-        try:
+        with contextlib.suppress(OSError):
             candidates.extend(p / basename for p in panels.iterdir() if p.is_dir())
-        except OSError:
-            pass
     best_text: str | None = None
     best_mtime = -1.0
     for path in candidates:

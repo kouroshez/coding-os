@@ -17,6 +17,7 @@ Design rules:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import subprocess
@@ -43,10 +44,8 @@ def thinking_os_on_path():
         yield
     finally:
         for p in added:
-            try:
+            with contextlib.suppress(ValueError):
                 sys.path.remove(p)
-            except ValueError:
-                pass
 
 
 @pytest.fixture()
@@ -204,9 +203,11 @@ class TestIndexProject:
             (root / f"pad_{i}.py").write_text(f"x = {i}\n", encoding="utf-8")
         import graph_indexer  # type: ignore
 
+        from graph_os.ingest import IngestError
+
         backend = graph_indexer.open_backend(db_path)
         try:
-            with pytest.raises(Exception):
+            with pytest.raises(IngestError):
                 graph_indexer.index_project(
                     backend=backend,
                     project_root=root,

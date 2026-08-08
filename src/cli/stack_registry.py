@@ -439,7 +439,7 @@ def group_stacks_by_language(
     groups: dict[str, list[StackProfile]] = {}
     for profile in stacks.values():
         groups.setdefault(profile.language or "other", []).append(profile)
-    for language, members in groups.items():
+    for _language, members in groups.items():
         members.sort(key=lambda p: (not _is_plain_stack(p), p.id))
     return dict(sorted(groups.items()))
 
@@ -490,7 +490,8 @@ def service_relocations(
     nextjs init (`src` containing `src/frontend`) is the motivating case."""
     entries: list[tuple[str, str, str]] = []
     for name in templates:
-        profile = stacks[name] if name in stacks else None
+        # StackLoadResult is dict-like via __contains__/__getitem__ but has no .get().
+        profile = stacks[name] if name in stacks else None  # noqa: SIM401
         if profile is None:
             continue
         root = (profile.structure or {}).get("root")

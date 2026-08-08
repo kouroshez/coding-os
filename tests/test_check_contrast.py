@@ -19,7 +19,7 @@ sys.path.insert(
     ),
 )
 
-import check_contrast as cc  # noqa: E402
+import check_contrast as cc
 
 
 def test_black_on_white_is_max() -> None:

@@ -19,7 +19,7 @@ sys.path.insert(
     ),
 )
 
-import coverage_gate as cg  # noqa: E402
+import coverage_gate as cg
 
 
 def test_coveragepy_json() -> None:

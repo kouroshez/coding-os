@@ -64,14 +64,14 @@ def test_blocks_edit_via_symlinked_repo_path_in_pr_mode(tmp_path: Path) -> None:
 
 
 def test_allows_edit_in_worktree_in_pr_mode(tmp_path: Path) -> None:
-    repo, state = _repo(tmp_path)
+    _, state = _repo(tmp_path)
     wt_file = f"{tmp_path}/.coding-os/worktrees/slug/wt/src/app.py"
     code, _ = _run(wt_file, workflow="pr", state_dir=state)
     assert code == 0
 
 
 def test_allows_edit_outside_repo_in_pr_mode(tmp_path: Path) -> None:
-    repo, state = _repo(tmp_path)
+    _, state = _repo(tmp_path)
     other = tmp_path / "scratch" / "note.txt"
     other.parent.mkdir(parents=True)
     code, _ = _run(str(other), workflow="pr", state_dir=state)

@@ -11,7 +11,6 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-
 import server
 
 # Tool name as the agent calls it -> kwargs the agent-memory / thinking_os skills document.

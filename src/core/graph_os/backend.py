@@ -11,7 +11,7 @@ from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
-from .types import EvidenceSignal, GraphEdge, GraphNode
+from .types import GraphEdge, GraphNode
 
 logger = logging.getLogger("graph_os.backend")
 

@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
 import sys
 from pathlib import Path
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
@@ -51,7 +49,6 @@ def _module_disabled(module_id: str) -> bool:
     gating error must never take the search route down."""
     try:
         from cli.subsystems import module_state  # type: ignore
-
         from web._project_context import current_project_root
 
         return not module_state(current_project_root()).get(module_id, True)

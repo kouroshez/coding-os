@@ -174,5 +174,5 @@ class TestInvariants:
 
         backend = SqliteBackend(conn=migrated_conn)
         r = code_toml.extract("pyproject.toml", self._SRC)
-        n, e = backend.bulk_upsert(r.nodes, r.edges)
+        n, _e = backend.bulk_upsert(r.nodes, r.edges)
         assert n == len(r.nodes)

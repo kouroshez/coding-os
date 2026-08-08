@@ -111,8 +111,6 @@ class TestTemplate:
 
 class TestNonceUniqueness:
     def test_two_builds_differ(self, simple_graph, tmp_path):
-        from graph_os.backends.sqlite_backend import SqliteBackend
-        from graph_os.viewer.exporter import ViewerExporter
 
         # We only need a backend instance for the exporter — construct
         # a minimal one using the conftest fixture's pattern.

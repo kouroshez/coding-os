@@ -12,7 +12,6 @@ from cli._data_types import (
     AggregatedWorld,
     HookEntry,
     MakefileTarget,
-    VerifyRow,
 )
 from cli.renderer import (
     RenderError,
@@ -58,21 +57,21 @@ _BASE_DIR = Path(__file__).resolve().parent.parent / "src" / "templates" / "_bas
 
 
 def _adapter(**overrides) -> AdapterProfile:
-    defaults = dict(
-        id="claude",
-        label="Claude",
-        settings_file=".claude/settings.json",
-        hooks_dir=".claude/hooks",
-        rules_dir=".claude/rules",
-        skills_dir=".claude/skills",
-        commands_dir=".claude/commands",
-        sourced_hooks=(),
-        supports_rules=True,
-        supports_settings_json=True,
-        install_script=Path("."),
-        default_settings={},
-        source_dir=Path("."),
-    )
+    defaults = {
+        "id": "claude",
+        "label": "Claude",
+        "settings_file": ".claude/settings.json",
+        "hooks_dir": ".claude/hooks",
+        "rules_dir": ".claude/rules",
+        "skills_dir": ".claude/skills",
+        "commands_dir": ".claude/commands",
+        "sourced_hooks": (),
+        "supports_rules": True,
+        "supports_settings_json": True,
+        "install_script": Path("."),
+        "default_settings": {},
+        "source_dir": Path("."),
+    }
     defaults.update(overrides)
     return AdapterProfile(**defaults)
 

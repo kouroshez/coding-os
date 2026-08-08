@@ -163,7 +163,7 @@ def report_json(rows: list[TokenCostRow] | None = None) -> str:
     return json.dumps([r.to_dict() for r in rows], indent=2)
 
 
-__all__ = ["TokenCostRow", "WORKFLOWS", "measure_token_cost", "report_json"]
+__all__ = ["WORKFLOWS", "TokenCostRow", "measure_token_cost", "report_json"]
 
 
 if __name__ == "__main__":

@@ -153,7 +153,7 @@ class TestRegexFallback:
             e.edge_type == "calls" and e.target_uid.endswith("sample.sh") for e in r.edges
         )
 
-    def test_dynamic_source_is_not_a_parse_error(self, regex_mode):
+    def test_dynamic_source_unquoted_var_is_not_a_parse_error(self, regex_mode):
         # TASK-303: an unresolvable dynamic source is expected, not a parse
         # error (was kind="dynamic" in parse_errors, inflating shell counts).
         r = _extract("source $SOME_DIR/x.sh\n")

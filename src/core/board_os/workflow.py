@@ -17,6 +17,7 @@ Public API:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -322,7 +323,7 @@ def _validate_dependencies_no_cycle_fallback(
 
     def dfs(node: str) -> None:
         if node in stack:
-            cycle = stack[stack.index(node) :] + [node]
+            cycle = [*stack[stack.index(node) :], node]
             cycles.append(" → ".join(cycle))
             return
         if node in visited:
@@ -906,10 +907,8 @@ def _write_status_to_frontmatter(
             fh.write(new_content)
         os.replace(tmp_path, path)
     except Exception:
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tmp_path)
-        except OSError:
-            pass
         raise
 
 
@@ -960,8 +959,6 @@ def patch_task_frontmatter_scalars(path: Path, updates: dict[str, str]) -> None:
             fh.write(new_content)
         os.replace(tmp_path, path)
     except Exception:
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tmp_path)
-        except OSError:
-            pass
         raise

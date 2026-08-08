@@ -415,10 +415,10 @@ def _parse_kv_lines(stdout: str) -> dict[str, str]:
 
 
 def main() -> None:
-    nako_count = precheck()
+    precheck()
     project = init_project()
     try:
-        copied = copy_tasks(project)
+        copy_tasks(project)
         first = sync_first_run(project)
         sync_second_run(project, expected_count=first["new"] + first["updated"])
         python_queries(project)

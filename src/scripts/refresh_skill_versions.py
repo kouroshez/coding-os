@@ -32,9 +32,9 @@ import re
 import sys
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable
 
 VERSIONS_FILENAME = "versions.json"
 REQUIRED_KEYS = ("ecosystem", "package", "version")

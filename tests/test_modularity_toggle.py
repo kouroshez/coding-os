@@ -394,7 +394,7 @@ class TestModuleStateHardening:
             try:
                 barrier.wait()  # release all writers at once → maximal contention
                 set_module_enabled(tmp_path, module_id, False)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 errors.append(exc)
 
         threads = [threading.Thread(target=_worker, args=(m,)) for m in mods]

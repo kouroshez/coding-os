@@ -8,7 +8,6 @@ from cognition_schemas import (
     ArchitectOutput,
     DebuggerOutput,
     DeployerOutput,
-    DocumenterOutput,
     EvidenceBundle,
     ImplementerOutput,
     ObserverOutput,

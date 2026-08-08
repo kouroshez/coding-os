@@ -8,6 +8,7 @@ learned_patterns, outcome_history narratives) must route through
 
 from __future__ import annotations
 
+import dataclasses
 import sqlite3
 import sys
 from pathlib import Path
@@ -446,5 +447,5 @@ class TestScrubUsername:
             original_len=1,
             cleaned_len=1,
         )
-        with pytest.raises(Exception):  # FrozenInstanceError subclasses Exception
+        with pytest.raises(dataclasses.FrozenInstanceError):
             result.ok = False  # type: ignore[misc]

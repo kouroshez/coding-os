@@ -5,7 +5,6 @@ now threads the derived outcome through."""
 
 from __future__ import annotations
 
-import sqlite3
 import sys
 from pathlib import Path
 
@@ -14,8 +13,9 @@ for _p in (_ROOT, _ROOT / "src", _ROOT / "src" / "core", _ROOT / "src" / "core" 
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from cli import board_commands  # noqa: E402
-from database import init_db  # noqa: E402
+from database import init_db
+
+from cli import board_commands
 
 
 def test_retrievals_backfill_carries_derived_rework(tmp_path, monkeypatch) -> None:

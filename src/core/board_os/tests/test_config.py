@@ -14,7 +14,6 @@ from core.board_os.config import (
     STATUS_ENUM,
     ConfigValidationError,
     ScrumbanConfig,
-    Swimlane,
     WipLimits,
     load_config,
     parse_config,

@@ -45,7 +45,7 @@ def main() -> int:
         print("missing")
         return 0
 
-    key = hashlib.sha1(rel.encode("utf-8")).hexdigest()  # noqa: S324 non-crypto path key
+    key = hashlib.sha1(rel.encode("utf-8")).hexdigest()
     marker = Path(marker_dir) / f"ctx-{key}"
     if not marker.is_file():
         print("missing")

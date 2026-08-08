@@ -106,7 +106,7 @@ class TestMetricRecord:
         assert row["duration_ms"] is None
 
     def test_record_multiple(self, conn: sqlite3.Connection) -> None:
-        for i in range(5):
+        for _i in range(5):
             metric_record(conn, agent_type="general", outcome="success")
         count = conn.execute("SELECT COUNT(*) FROM agent_metrics").fetchone()[0]
         assert count == 5

@@ -219,7 +219,7 @@ def add_stack(
     adapter_profile = adapters[agent]
     base = load_base_profile(TEMPLATES_DIR / "_base")
 
-    new_stack_list = installed_templates + [stack_id]
+    new_stack_list = [*installed_templates, stack_id]
     stack_profiles = []
     for s in new_stack_list:
         if s not in stacks:

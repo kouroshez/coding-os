@@ -12,9 +12,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from core.board_os import config as cfg_mod
-from core.board_os import mcp_tools
-from core.board_os import parser as board_parser
+from core.board_os import config as cfg_mod, mcp_tools, parser as board_parser
 from core.thinking_os import database as db
 
 

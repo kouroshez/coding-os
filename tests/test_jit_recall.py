@@ -7,7 +7,6 @@ concept token minted by learning._mine_friction_lessons.
 
 from __future__ import annotations
 
-import sqlite3
 import sys
 from pathlib import Path
 
@@ -15,8 +14,8 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "src" / "core" / "thinking_os"))
 sys.path.insert(0, str(_ROOT / "src" / "core" / "hooks" / "_helpers"))
 
-from database import init_db  # noqa: E402
-from jit_recall import relevant_lesson  # noqa: E402
+from database import init_db
+from jit_recall import relevant_lesson
 
 _INS = (
     "INSERT INTO learned_patterns (pattern, memory_type, source, confidence, concepts) "

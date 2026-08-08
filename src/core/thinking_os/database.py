@@ -14,10 +14,9 @@ import logging
 import os
 import sqlite3
 from collections.abc import Callable, Generator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from contextvars import ContextVar
 from pathlib import Path
-from typing import Union
 
 # Per-request project scope hook.  The web layer (Hub) binds this CV in
 # `ProjectScopeMiddleware` so every downstream lookup that goes through
@@ -310,7 +309,7 @@ END;
 # sql_or_callable is either a SQL string (executed via executescript)
 # or a callable(conn) for migrations needing runtime logic (e.g. FTS5 check).
 # Migrations MUST be append-only — never edit an applied migration.
-MigrationAction = Union[str, Callable[[sqlite3.Connection], None]]
+MigrationAction = str | Callable[[sqlite3.Connection], None]
 
 
 def _migrate_v4_brain_features(conn: sqlite3.Connection) -> None:
@@ -2691,10 +2690,8 @@ def close_pool() -> None:
     """Close all pooled connections for the current thread. Safe to call repeatedly."""
     conns = getattr(_thread_local, "conns", {})
     for conn in conns.values():
-        try:
+        with suppress(sqlite3.Error):
             conn.close()
-        except sqlite3.Error:
-            pass
     _thread_local.conns = {}
     with _pool_lock:
         _pool_stats["active"] = max(0, _pool_stats["active"] - len(conns))

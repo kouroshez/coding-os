@@ -20,7 +20,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from git_command_parse import abbrev_resolves, git_invocations  # noqa: E402
+from git_command_parse import abbrev_resolves, git_invocations
 
 # Competitor long options for prefix disambiguation. `git reset --hard` has no
 # other `--ha*` option, so `--ha`/`--har` resolve to it; `git clean --force`

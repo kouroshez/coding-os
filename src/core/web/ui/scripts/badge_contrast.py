@@ -19,9 +19,11 @@ def cr(fg, bg):
 
 def blend(base, alpha, panel):
     bh, ph = base.lstrip("#"), panel.lstrip("#")
-    return "#%02x%02x%02x" % tuple(
-        round(int(bh[i : i + 2], 16) * alpha + int(ph[i : i + 2], 16) * (1 - alpha))
-        for i in (0, 2, 4)
+    return "#{:02x}{:02x}{:02x}".format(
+        *tuple(
+            round(int(bh[i : i + 2], 16) * alpha + int(ph[i : i + 2], 16) * (1 - alpha))
+            for i in (0, 2, 4)
+        )
     )
 
 

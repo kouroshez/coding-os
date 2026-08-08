@@ -25,7 +25,9 @@ from pathlib import Path
 # Ensure db module is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from database import DEFAULT_DB_PATH, get_connection, get_schema_version
+import contextlib
+
+from database import DEFAULT_DB_PATH, get_connection
 
 from core.logging_os import setup as _logging_os_setup
 
@@ -162,10 +164,8 @@ def run_decay_locked(
             if dry_run:
                 return {"status": "dry_run", "would_run": True, "marker_age_days": age}
             result = run_decay(path, archive_prune_days=archive_prune_days)
-            try:
+            with contextlib.suppress(OSError):
                 marker.write_text(datetime.now(timezone.utc).isoformat())
-            except OSError:
-                pass
             return {"status": "ok", **result}
         finally:
             fcntl.flock(lock_f, fcntl.LOCK_UN)

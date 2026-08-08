@@ -77,7 +77,7 @@ def list_patterns(
         rows = conn.execute(
             f"SELECT {columns} FROM learned_patterns{where} "
             "ORDER BY confidence DESC, impact_score DESC LIMIT ?",
-            params + [limit],
+            [*params, limit],
         ).fetchall()
         total = conn.execute("SELECT COUNT(*) FROM learned_patterns").fetchone()[0]
     finally:

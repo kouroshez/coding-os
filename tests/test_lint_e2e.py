@@ -17,7 +17,7 @@ sys.path.insert(
     ),
 )
 
-import lint_e2e as le  # noqa: E402
+import lint_e2e as le
 
 GOOD = """
 test('login', async ({ page }) => {

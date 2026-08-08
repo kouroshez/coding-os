@@ -61,9 +61,7 @@ def _is_silent_return(node: ast.AST) -> bool:
         return True
     if isinstance(val, ast.Dict) and not val.keys:
         return True
-    if isinstance(val, (ast.List, ast.Set, ast.Tuple)) and not val.elts:
-        return True
-    return False
+    return bool(isinstance(val, (ast.List, ast.Set, ast.Tuple)) and not val.elts)
 
 
 def _is_pass(node: ast.AST) -> bool:
@@ -131,7 +129,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    excluded = set(s for s in args.exclude.split(",") if s)
+    excluded = {s for s in args.exclude.split(",") if s}
     py_files: list[Path] = []
     for root in args.paths:
         p = Path(root)

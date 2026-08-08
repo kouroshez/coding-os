@@ -10,7 +10,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src" / "scripts"))
 
-import refresh_skill_versions as rsv  # noqa: E402
+import refresh_skill_versions as rsv
 
 
 def _entry(version: str = "1.0.0") -> dict:

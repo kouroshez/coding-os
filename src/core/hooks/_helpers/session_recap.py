@@ -6,6 +6,7 @@ pulse. Bounded — silent on any error.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import sqlite3
 import sys
@@ -53,10 +54,8 @@ def main() -> int:
         cur, "SELECT COUNT(*) FROM formula_dispatches WHERE session_id = ?", (session_id,)
     )
     bt = _scalar(cur, "SELECT COUNT(*) FROM backtrack_events WHERE session_id = ?", (session_id,))
-    try:
+    with contextlib.suppress(sqlite3.Error):
         conn.close()
-    except sqlite3.Error:
-        pass
 
     ses_tail = session_id[-8:]
     text = (

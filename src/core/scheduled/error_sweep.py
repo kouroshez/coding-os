@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
-from typing import Callable
+from collections.abc import Callable
 
 # Reserved scope for the sweep's own diagnostics — EXCLUDED from its input so a
 # sweep error can never file a bug task about itself (anti-recursion invariant).
@@ -104,7 +104,7 @@ def select_for_filing(
 def run_error_sweep(
     conn: sqlite3.Connection,
     *,
-    create_bug_task: Callable[[sqlite3.Row, str], "str | None"],
+    create_bug_task: Callable[[sqlite3.Row, str], str | None],
     occ_threshold: int = 3,
     session_threshold: int = 2,
     dry_run: bool = False,

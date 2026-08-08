@@ -37,7 +37,6 @@ def _extractor_edge_types() -> set[str]:
     # with synthetic ContractMatch objects and capture the edge_type from
     # the emitted edges.
     from graph_os.extractors.md_links import ExtractionResult  # type: ignore
-    from graph_os.types import GraphNode  # type: ignore
 
     # Minimal file node to satisfy _emit's source_uid.
     dummy_file_uid = "code:file:test_contracts_dummy.py"

@@ -15,7 +15,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from database import has_fts5, has_fts5_table, init_db
+from database import has_fts5_table, init_db
 from tools.memory import (
     _access_score,
     _compute_score,
@@ -594,8 +594,8 @@ class TestMemoryPromote:
 # semantic augmentation of memory_search
 # ---------------------------------------------------------------------------
 
-import embeddings  # noqa: E402
-from tools.memory import _jaccard, _mmr_select, _rrf_fuse, _tokenize  # noqa: E402
+import embeddings
+from tools.memory import _jaccard, _mmr_select, _rrf_fuse, _tokenize
 
 REQUIRES_RAG = pytest.mark.skipif(
     not embeddings.is_available(),

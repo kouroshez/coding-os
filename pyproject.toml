@@ -342,6 +342,12 @@ ignore = [
     "RUF001", # ambiguous-unicode-character-string
     "RUF002", # ambiguous-unicode-character-docstring
     "RUF003", # ambiguous-unicode-character-comment
+    # Burndown (2026-08-07, tracked in the lint-burndown board task):
+    # style-only residue accepted to make `ruff check` a hard CI gate.
+    # Remove each entry once its count reaches 0 — never add new ones.
+    "SIM105", # try-except-pass vs contextlib.suppress (9 left)
+    "SIM102", # collapsible-if (7 left)
+    "E741",   # ambiguous single-letter names (7 left)
 ]
 unfixable = [
     "F401",   # unused-import — never auto-remove (could hide intent)
@@ -349,11 +355,25 @@ unfixable = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["B011"]                          # asserts in tests are fine
-"src/core/thinking_os/tests/**" = ["B011"]
-"src/core/graph_os/tests/**" = ["B011"]
-"src/core/board_os/tests/**" = ["B011"]
+# E402 — sys.path bootstrap before imports is the established pattern in
+# tests, hook helpers, and the CLI's late circular-import-avoiding imports.
+"tests/**" = ["B011", "E402"]                  # asserts in tests are fine
+"src/core/thinking_os/tests/**" = ["B011", "E402"]
+"src/core/graph_os/tests/**" = ["B011", "E402"]
+"src/core/board_os/tests/**" = ["B011", "E402"]
+"src/core/scheduled/tests/**" = ["E402"]
+"src/core/hooks/_helpers/*.py" = ["E402"]
+"src/cli/aggregator.py" = ["E402"]
+"src/cli/main.py" = ["E402"]
+"src/cli/stack_registry.py" = ["E402"]
+"src/cli/update.py" = ["E402"]
+"src/core/thinking_os/server.py" = ["E402"]
+"src/core/thinking_os/session_summary.py" = ["E402"]
 "src/scripts/**" = ["E402"]                    # late imports in scripts are OK
+# Bench/demo scripts lean on NamedTemporaryFile(delete=False).name for a
+# throwaway path — the held fd is harmless in a short-lived script.
+"src/core/graph_os/bench/**" = ["SIM115"]
+"src/scripts/graph_demo.py" = ["SIM115"]
 "src/templates/**" = ["ALL"]                   # consumer-shipped files
 
 [tool.ruff.lint.isort]

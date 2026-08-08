@@ -1643,7 +1643,7 @@ def test_reclaim_returns_stale_testing_to_in_progress(project, conn, monkeypatch
     """RC3: a stale testing zombie is reclaimed back to in_progress (not icebox)."""
     monkeypatch.setattr(mcp_tools, "_commits_referencing", lambda *a, **k: 0)  # git-verified zero
     monkeypatch.setattr(
-        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: {t: 0 for t in ids}
+        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: dict.fromkeys(ids, 0)
     )
     mcp_tools.cos_task_create(
         conn, title="Testing zombie", swimlane="core", kind="bug", status="icebox"
@@ -1676,7 +1676,7 @@ def test_reclaim_per_status_testing_sooner_than_in_progress(project, conn, monke
     """A 7h testing card reclaims (>6h) though it is under the 24h in_progress floor."""
     monkeypatch.setattr(mcp_tools, "_commits_referencing", lambda *a, **k: 0)  # git-verified zero
     monkeypatch.setattr(
-        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: {t: 0 for t in ids}
+        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: dict.fromkeys(ids, 0)
     )
     mcp_tools.cos_task_create(
         conn, title="7h testing", swimlane="core", kind="bug", status="icebox"
@@ -1869,7 +1869,7 @@ def test_reconcile_classifies_likely_complete_via_worklog(project: Path, conn: s
 def test_reconcile_classifies_likely_abandoned(project, conn, monkeypatch):
     monkeypatch.setattr(mcp_tools, "_commits_referencing", lambda *a, **k: 0)  # git-verified zero
     monkeypatch.setattr(
-        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: {t: 0 for t in ids}
+        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: dict.fromkeys(ids, 0)
     )
     mcp_tools.cos_task_create(conn, title="Nothing", swimlane="core", kind="bug", status="icebox")
     _backdate_task(conn, "TASK-001", "in_progress", 30 * 3600)
@@ -1888,7 +1888,7 @@ def test_reconcile_fail_safe_when_git_unverifiable(project, conn, monkeypatch):
     likely_complete (never abandoned) and reclaim must NOT recycle it."""
     monkeypatch.setattr(mcp_tools, "_commits_referencing", lambda *a, **k: None)  # can't verify
     monkeypatch.setattr(
-        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: {t: None for t in ids}
+        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: dict.fromkeys(ids)
     )
     mcp_tools.cos_task_create(conn, title="No git", swimlane="core", kind="bug", status="icebox")
     _backdate_task(conn, "TASK-001", "testing", 8 * 3600)
@@ -1923,7 +1923,7 @@ def test_reconcile_is_read_only(project: Path, conn: sqlite3.Connection):
 def test_reconcile_flags_icebox_zombie_with_completion_claim(project, conn, monkeypatch):
     """A card filed straight into icebox whose log claims implemented+verified is a zombie."""
     monkeypatch.setattr(
-        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: {t: 1 for t in ids}
+        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: dict.fromkeys(ids, 1)
     )
     mcp_tools.cos_task_create(
         conn, title="Born zombie", swimlane="core", kind="bug", status="icebox"
@@ -1943,7 +1943,7 @@ def test_reconcile_flags_icebox_zombie_with_completion_claim(project, conn, monk
 def test_reconcile_ignores_icebox_card_without_completion_claim(project, conn, monkeypatch):
     """A merely-annotated icebox card (scope notes, no completion claim) is not a zombie."""
     monkeypatch.setattr(
-        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: {t: 1 for t in ids}
+        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: dict.fromkeys(ids, 1)
     )
     mcp_tools.cos_task_create(
         conn, title="Just parked", swimlane="core", kind="bug", status="icebox"

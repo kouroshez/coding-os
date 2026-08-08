@@ -12,7 +12,7 @@ sys.path.insert(
     ),
 )
 
-import check_package as cp  # noqa: E402
+import check_package as cp
 
 
 def test_healthy_package_clean() -> None:

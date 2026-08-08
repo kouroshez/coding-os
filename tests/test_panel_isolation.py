@@ -14,8 +14,6 @@ import os
 import subprocess
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOKS_DIR = REPO_ROOT / "src" / "core" / "hooks"
 WRITE_STATE = HOOKS_DIR / "write-state.sh"
@@ -418,7 +416,7 @@ def _resolve_git_env(env: dict[str, str], cwd: Path) -> tuple[str, str, str]:
         ["bash", "-c", script], env=env, cwd=str(cwd), capture_output=True, text=True
     )
     out = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "||"
-    workflow, integration, protected = (out.split("|") + ["", "", ""])[:3]
+    workflow, integration, protected = ([*out.split("|"), "", "", ""])[:3]
     return workflow, integration, protected
 
 

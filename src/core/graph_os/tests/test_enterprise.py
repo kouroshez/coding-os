@@ -4,9 +4,6 @@ from __future__ import annotations
 
 import json
 import time
-from pathlib import Path
-
-import pytest
 
 from graph_os.enterprise import (
     PrometheusSnapshot,
@@ -74,7 +71,7 @@ class TestPrometheusSnapshot:
 
     def test_timing_cap_bounds_memory(self):
         m = PrometheusSnapshot()
-        for i in range(m._timing_cap + 50):
+        for _i in range(m._timing_cap + 50):
             m.record_timing("x", 0.001)
         assert len(m._timings["x"]) == m._timing_cap
 

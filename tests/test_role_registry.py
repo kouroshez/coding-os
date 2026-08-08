@@ -22,7 +22,7 @@ _THINKING_OS = Path(__file__).resolve().parent.parent / "src" / "core" / "thinki
 if str(_THINKING_OS) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS))
 
-from formula_composer import (  # noqa: E402
+from formula_composer import (
     load_presets,
     load_roles,
     load_situations,

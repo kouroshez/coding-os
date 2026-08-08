@@ -7,8 +7,6 @@ import os
 import subprocess
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOK_DIR = REPO_ROOT / "src" / "core" / "hooks"
 

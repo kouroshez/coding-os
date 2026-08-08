@@ -106,7 +106,7 @@ def preset_import(source: Path) -> None:
     try:
         data = yaml.safe_load(source.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
-        raise click.ClickException(f"{source} is not valid YAML: {exc}")
+        raise click.ClickException(f"{source} is not valid YAML: {exc}") from exc
     if not isinstance(data, dict) or not data.get("id"):
         raise click.ClickException(f"{source} is not a preset file (missing id)")
     preset_id = str(data["id"])

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 from tools.docs import list_doc_headers, parse_doc_header
 
 

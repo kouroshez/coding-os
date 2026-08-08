@@ -129,7 +129,7 @@ def _emit_pyproject(
                 _emit_dep_list(group_deps, f"pep735_group_{group_name}")
         scripts = project.get("scripts")
         if isinstance(scripts, dict):
-            for script_name in scripts.keys():
+            for script_name in scripts:
                 if not isinstance(script_name, str):
                     continue
                 uid = _config_uid(path, f"/project/scripts/{script_name}")
@@ -189,7 +189,7 @@ def _emit_cargo(
         deps = data.get(dep_section)
         if not isinstance(deps, dict):
             continue
-        for crate_name in deps.keys():
+        for crate_name in deps:
             if not isinstance(crate_name, str):
                 continue
             result.edges.append(

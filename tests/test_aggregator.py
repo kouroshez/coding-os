@@ -32,45 +32,45 @@ def aggregate(base, stacks, adapter, project_name):
 
 
 def _dummy_base(**overrides) -> BaseProfile:
-    defaults = dict(
-        id="base",
-        label="Base",
-        skills=("clean-code",),
-        substitutions={"PROJECT_NAME": "${auto:project_name}"},
-        verify=(VerifyRow("docs/", "docs-lint", "`make docs-lint`"),),
-        routing_entries=(),
-        ref_codes=(),
-        makefile_targets=(),
-        rules=(),
-        dimensions=(),
-        skill_enforcement=(),
-        agents_md_sections=(),
-        hooks=(),
-        source_dir=Path("."),
-    )
+    defaults = {
+        "id": "base",
+        "label": "Base",
+        "skills": ("clean-code",),
+        "substitutions": {"PROJECT_NAME": "${auto:project_name}"},
+        "verify": (VerifyRow("docs/", "docs-lint", "`make docs-lint`"),),
+        "routing_entries": (),
+        "ref_codes": (),
+        "makefile_targets": (),
+        "rules": (),
+        "dimensions": (),
+        "skill_enforcement": (),
+        "agents_md_sections": (),
+        "hooks": (),
+        "source_dir": Path("."),
+    }
     defaults.update(overrides)
     return BaseProfile(**defaults)
 
 
 def _dummy_stack(stack_id: str, **overrides) -> StackProfile:
-    defaults = dict(
-        id=stack_id,
-        label=f"{stack_id} label",
-        category="backend",
-        primary_skill=None,
-        skills=(),
-        substitutions={},
-        verify=(),
-        routing_entries=(),
-        ref_codes=(),
-        makefile_targets=(),
-        rules=(),
-        dimensions=(),
-        skill_enforcement=(),
-        agents_md_sections=(),
-        hooks=(),
-        source_dir=Path("."),
-    )
+    defaults = {
+        "id": stack_id,
+        "label": f"{stack_id} label",
+        "category": "backend",
+        "primary_skill": None,
+        "skills": (),
+        "substitutions": {},
+        "verify": (),
+        "routing_entries": (),
+        "ref_codes": (),
+        "makefile_targets": (),
+        "rules": (),
+        "dimensions": (),
+        "skill_enforcement": (),
+        "agents_md_sections": (),
+        "hooks": (),
+        "source_dir": Path("."),
+    }
     defaults.update(overrides)
     return StackProfile(**defaults)
 
