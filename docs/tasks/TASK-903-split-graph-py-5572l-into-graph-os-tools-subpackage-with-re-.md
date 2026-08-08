@@ -5,18 +5,17 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [graph, god-file, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 3d
 created: 2026-08-08
-started: null
-completed: null
-agent_session: null
+started: 2026-08-08
+completed: 2026-08-08
+agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-903: Split graph.py (5572L) into graph_os tools subpackage with re-exported cos_graph_* surface
 
 **Outcome (one sentence):** graph.py decomposed into cohesive modules; tool names + envelopes unchanged; ratchet MAX lowered
@@ -29,3 +28,11 @@ references: []
 - **Given** the graph_os test suite and MCP self-test\n- **When** graph.py is split into a subpackage re-exporting all cos_graph_* tools\n- **Then** uv run --extra graph_os pytest src/core/graph_os/tests/ -q passes and python src/core/thinking_os/server.py --test registers the same tool inventory
 
 ## Work Log
+- 2026-08-08 [claude]: Edit graph_inventory.py
+- 2026-08-08 [claude]: Edit split_graph.py
+- 2026-08-08 [claude]: Edit graph.py
+- 2026-08-08 [claude]: Edit graph.py
+- 2026-08-08 [claude]: Edit test_file_size_budget.py
+- 2026-08-08 [claude]: Chose private sibling modules + kernel re-export over a package dir: preserves graph.py as the single…
+- 2026-08-08 [claude]: commit 8478d64081 — refactor(graph_os): split graph.py into four private tool-family modules
+- 2026-08-08 [claude]: Status transitioned to complete via cos task-done.
