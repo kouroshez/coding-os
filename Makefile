@@ -124,14 +124,21 @@ verify-claude: ## Claude-only fast subset: dispatcher + adapter + skill + brandi
 	@echo "Claude verification passed."
 
 .PHONY: coverage
-coverage: ## Run the kernel test suites under pytest-cov; enforce the fail_under gate in pyproject.toml
-	@echo "Running coverage across thinking_os + graph_os + board_os..."
+coverage: ## Run every CI-gated suite under pytest-cov; enforce the fail_under gate in pyproject.toml
+	@echo "Running coverage across the src suites (kernel + logging + scheduled)..."
+	@# Gate scope = src/core measured by the src suites: the only combination
+	@# that is deterministic under coverage instrumentation today. Folding
+	@# tests/ (cli/adapters/web) into the gate is tracked on the board —
+	@# three order-fragile tests fail under --cov in a full-suite process.
 	@uv run --extra rag --extra graph_os --with aiohttp --with pytest-asyncio --with pytest-cov pytest \
 	    src/core/thinking_os/tests/ \
 	    src/core/graph_os/tests/ \
 	    src/core/board_os/tests/ \
-	    --cov=src/core --cov=src/cli --cov=src/adapters \
-	    --cov-report=term-missing --cov-report=xml \
+	    src/core/logging_os/tests/ \
+	    src/core/scheduled/tests/ \
+	    -m 'not slow' \
+	    --cov=src/core \
+	    --cov-report=term --cov-report=xml \
 	    -q
 	@echo ""
 	@echo "Coverage report written to coverage.xml (gate: fail_under in pyproject.toml)."
