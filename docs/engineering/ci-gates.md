@@ -1,3 +1,4 @@
+<!-- domain:OPS | layer:engineering | ssot:true | updated:2026-08-08 -->
 # CI Quality Gates — SSOT
 
 Every blocking gate in `.github/workflows/ci.yml`, what it enforces, and how its

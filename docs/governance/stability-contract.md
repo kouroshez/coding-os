@@ -1,3 +1,4 @@
+<!-- domain:OPS | layer:policy | ssot:true | updated:2026-08-08 -->
 # Stability Contract — what 1.0 freezes
 
 The concrete surface behind the six
