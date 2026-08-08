@@ -34,8 +34,7 @@ def test_local_fixture_repo_produces_report(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     (repo / "app.py").write_text(
-        "from core import shared_helper\n\n"
-        "def caller_two(x):\n    return shared_helper(x) * 2\n",
+        "from core import shared_helper\n\ndef caller_two(x):\n    return shared_helper(x) * 2\n",
         encoding="utf-8",
     )
     out = tmp_path / "report.json"
