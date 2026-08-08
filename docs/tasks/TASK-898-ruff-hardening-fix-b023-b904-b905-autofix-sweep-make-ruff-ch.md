@@ -5,12 +5,12 @@ swimlane: core
 kind: chore
 epic: null
 labels: [quality, ci, lint, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-08
 started: 2026-08-07
-completed: null
+completed: 2026-08-08
 agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
@@ -60,3 +60,4 @@ references: []
 - 2026-08-08 [claude]: Edit ci.yml
 - 2026-08-08 [claude]: Edit test_file_size_budget.py
 - 2026-08-08 [claude]: Chose baseline-burndown (fix bug-rules, ignore 3 style rules with counts) over fixing all 247 —…
+- 2026-08-08 [claude]: Status transitioned to complete via cos task-done.

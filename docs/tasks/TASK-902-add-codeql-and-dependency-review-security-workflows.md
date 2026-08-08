@@ -5,12 +5,12 @@ swimlane: core
 kind: security
 epic: null
 labels: [ci, supply-chain, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2h
 created: 2026-08-08
 started: 2026-08-07
-completed: null
+completed: 2026-08-08
 agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
@@ -49,3 +49,4 @@ references: []
 - 2026-08-08 [claude]: commit f94f34b984 — test(quality): add file-size ratchet gate capping tracked python files at 5700 lines
 - 2026-08-08 [claude]: commit 7caea1ed35 — fix(lint): clear the ruff baseline and fix bug-prone patterns
 - 2026-08-08 [claude]: commit d1ae7e2a20 — ci: make ruff check blocking, add coverage gate job, key caches on committed uv.lock
+- 2026-08-08 [claude]: Status transitioned to complete via cos task-done.

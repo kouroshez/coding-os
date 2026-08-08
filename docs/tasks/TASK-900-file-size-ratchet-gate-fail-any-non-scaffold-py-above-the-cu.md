@@ -5,18 +5,17 @@ swimlane: core
 kind: test
 epic: null
 labels: [quality, refactor-prep, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 2h
 created: 2026-08-08
-started: null
-completed: null
-agent_session: null
+started: 2026-08-08
+completed: 2026-08-08
+agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-900: File-size ratchet gate: fail any non-scaffold .py above the current max, ratchet down
 
 **Outcome (one sentence):** tests/test_file_size_budget.py blocks growth of god files
@@ -28,3 +27,4 @@ references: []
 - **Given** the ratchet test with MAX at current ceiling\n- **When** any tracked non-scaffold .py exceeds it\n- **Then** the root tests/ suite fails; lowering MAX only requires shrinking files
 
 ## Work Log
+- 2026-08-08 [claude]: Status transitioned to complete via cos task-done.
