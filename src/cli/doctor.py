@@ -22,7 +22,7 @@ Severity semantics (plan D9):
     --strict promotes WARN to exit 1.
 """
 
-from ._doctor_shared import (  # noqa: F401
+from ._doctor_shared import (
     _DOCTOR_CFG,
     CODING_OS_ROOT,
     CONFIG_FILE,
@@ -241,7 +241,7 @@ def _format_json(report: DoctorReport, *, strict: bool) -> str:
 # Split modules — cli.doctor stays the single public surface; checks live in
 # doctor_checks_* siblings (imported last so they can import the kernel types).
 # ---------------------------------------------------------------------------
-from .doctor_checks_bootstrap import (  # noqa: E402, F401
+from .doctor_checks_bootstrap import (  # noqa: E402
     _BOOTSTRAP_MIN_BASH_MAJOR,
     _BOOTSTRAP_MIN_PYTHON,
     _capture_tool_version,
@@ -254,7 +254,7 @@ from .doctor_checks_bootstrap import (  # noqa: E402, F401
     _probe_otel,
     run_bootstrap_doctor,
 )
-from .doctor_checks_core import (  # noqa: E402, F401
+from .doctor_checks_core import (  # noqa: E402
     _ANATOMY_TOP_LEVEL,
     _check_config,
     _check_core_version,
@@ -274,7 +274,7 @@ from .doctor_checks_modules import (  # noqa: E402
     _check_runtime_errors,
     _check_subsystems_state_integrity,
 )
-from .doctor_checks_registry import (  # noqa: E402, F401
+from .doctor_checks_registry import (  # noqa: E402
     _check_agents_md_present,
     _check_category_balance,
     _check_mcp_actually_launches,
@@ -289,7 +289,7 @@ from .doctor_checks_runtime import (  # noqa: E402
     _check_presence_zombies,
     _check_scheduled,
 )
-from .doctor_checks_scaffold import (  # noqa: E402, F401
+from .doctor_checks_scaffold import (  # noqa: E402
     _check_adapter,
     _check_manifest,
     _check_mcp_selftest,
@@ -439,3 +439,107 @@ def doctor(
     else:
         click.echo(_format_text(report, strict=strict))
     sys.exit(report.exit_code(strict=strict))
+
+
+__all__ = [
+    "CODING_OS_ROOT",
+    "CONFIG_FILE",
+    "EXPECTED_SCHEMA_VERSION",
+    "EXPECTED_TABLES",
+    "IGNORED_PREFIXES",
+    "MANIFEST_PATH_DEFAULT",
+    "MCP_SERVER_PATH",
+    "PLACEHOLDER_MAX_BYTES",
+    "PLACEHOLDER_RE",
+    "PLACEHOLDER_SCAN_EXTENSIONS",
+    "PLACEHOLDER_SCAN_NAMES",
+    "PLACEHOLDER_SCAN_ROOTS",
+    "PLACEHOLDER_SCAN_SKIP",
+    "RUNTIME_PATHS",
+    "SEV_FAIL",
+    "SEV_PASS",
+    "SEV_WARN",
+    "STATE_DIR_DEFAULT",
+    "_ANATOMY_TOP_LEVEL",
+    "_BOOTSTRAP_MIN_BASH_MAJOR",
+    "_BOOTSTRAP_MIN_PYTHON",
+    "_DOCTOR_CFG",
+    "Any",
+    "CheckResult",
+    "DoctorReport",
+    "Path",
+    "_capture_tool_version",
+    "_check_adapter",
+    "_check_agents_md_present",
+    "_check_bootstrap_bash",
+    "_check_bootstrap_git",
+    "_check_bootstrap_python",
+    "_check_bootstrap_sed",
+    "_check_bootstrap_uv",
+    "_check_category_balance",
+    "_check_cognition_registries",
+    "_check_config",
+    "_check_core_version",
+    "_check_database",
+    "_check_hook_coverage",
+    "_check_hub_code_fresh",
+    "_check_manifest",
+    "_check_mcp_actually_launches",
+    "_check_mcp_portable",
+    "_check_mcp_selftest",
+    "_check_module_command_drift",
+    "_check_module_consistency",
+    "_check_module_doc_drift",
+    "_check_module_rule_drift",
+    "_check_module_skill_drift",
+    "_check_placeholders",
+    "_check_presence_zombies",
+    "_check_runtime_errors",
+    "_check_scaffold_roots",
+    "_check_scheduled",
+    "_check_stack_registry_consistency",
+    "_check_stack_skills_linked",
+    "_check_state_dir",
+    "_check_structure",
+    "_check_subsystems_state_integrity",
+    "_declared_src_segments",
+    "_derive_expected_schema_version",
+    "_explain_check",
+    "_format_json",
+    "_format_text",
+    "_ignore_globs_from_config",
+    "_load_coding_os_mcp_launch",
+    "_load_doctor_config",
+    "_load_runtime_paths",
+    "_probe_agent_sdk",
+    "_probe_otel",
+    "_scan_cfg",
+    "_scan_project_files",
+    "_schema_cfg",
+    "_section_id",
+    "_suppress_checks",
+    "_tick",
+    "adapters_dir",
+    "asdict",
+    "click",
+    "contextlib",
+    "core_dir",
+    "current_core_version",
+    "data_root",
+    "dataclass",
+    "doctor",
+    "field",
+    "json",
+    "logger",
+    "logging",
+    "os",
+    "re",
+    "read_stamped_version",
+    "run_bootstrap_doctor",
+    "run_doctor",
+    "sqlite3",
+    "subprocess",
+    "sys",
+    "templates_dir",
+    "yaml",
+]

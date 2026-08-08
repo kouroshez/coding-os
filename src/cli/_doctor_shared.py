@@ -13,15 +13,15 @@ import re
 import sqlite3  # noqa: F401
 import subprocess  # noqa: F401
 import sys
-from dataclasses import asdict, dataclass, field  # noqa: F401
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
 import click  # noqa: F401
 import yaml
 
-from cli._resources import adapters_dir, core_dir, data_root, templates_dir  # noqa: F401
-from cli.core_version import current_core_version, read_stamped_version  # noqa: F401
+from cli._resources import adapters_dir, core_dir, data_root, templates_dir
+from cli.core_version import current_core_version, read_stamped_version
 
 logger = logging.getLogger(__name__)
 
@@ -184,3 +184,48 @@ def _tick(label: str) -> None:
     """Stream a per-check progress line to stderr (interactive runs only)."""
     if sys.stderr.isatty():
         print(f"  [doctor] {label}…", file=sys.stderr, flush=True)
+
+
+__all__ = [
+    "CODING_OS_ROOT",
+    "CONFIG_FILE",
+    "EXPECTED_SCHEMA_VERSION",
+    "EXPECTED_TABLES",
+    "IGNORED_PREFIXES",
+    "MANIFEST_PATH_DEFAULT",
+    "MCP_SERVER_PATH",
+    "PLACEHOLDER_MAX_BYTES",
+    "PLACEHOLDER_RE",
+    "PLACEHOLDER_SCAN_EXTENSIONS",
+    "PLACEHOLDER_SCAN_NAMES",
+    "PLACEHOLDER_SCAN_ROOTS",
+    "PLACEHOLDER_SCAN_SKIP",
+    "RUNTIME_PATHS",
+    "SEV_FAIL",
+    "SEV_PASS",
+    "SEV_WARN",
+    "STATE_DIR_DEFAULT",
+    "_DOCTOR_CFG",
+    "Any",
+    "CheckResult",
+    "DoctorReport",
+    "Path",
+    "_derive_expected_schema_version",
+    "_load_doctor_config",
+    "_load_runtime_paths",
+    "_scan_cfg",
+    "_scan_project_files",
+    "_schema_cfg",
+    "_tick",
+    "adapters_dir",
+    "annotations",
+    "asdict",
+    "core_dir",
+    "current_core_version",
+    "data_root",
+    "dataclass",
+    "field",
+    "logger",
+    "read_stamped_version",
+    "templates_dir",
+]

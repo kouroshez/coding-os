@@ -11,11 +11,11 @@ import time
 
 # The full original mcp_tools import surface is kept here (and re-exported by
 # the facade) because tests and consumers address these names as module attrs.
-from datetime import datetime  # noqa: F401
+from datetime import datetime
 from pathlib import Path
 
-from board_os._agent_runtime import SYSTEM_SESSION_PREFIX  # noqa: F401
-from board_os.config import (  # noqa: F401
+from board_os._agent_runtime import SYSTEM_SESSION_PREFIX
+from board_os.config import (
     APPETITE_RE,
     KIND_ENUM,
     PRIORITY_ENUM,
@@ -24,9 +24,9 @@ from board_os.config import (  # noqa: F401
     TASK_ID_FORMAT_RE,
     load_config,
 )
-from board_os.parser import parse_task  # noqa: F401
-from board_os.sync import sync_one  # noqa: F401
-from board_os.workflow import (  # noqa: F401
+from board_os.parser import parse_task
+from board_os.sync import sync_one
+from board_os.workflow import (
     _format_yaml_scalar_token,
     _has_task_dependencies_table,
     check_wip,
@@ -36,7 +36,7 @@ from board_os.workflow import (  # noqa: F401
     transition,
     validate_dependencies_no_cycle,
 )
-from thinking_os.tools._shared import (  # noqa: F401
+from thinking_os.tools._shared import (
     TOKEN_BUDGET_CHARS,
     _budget_size,
     fail,
@@ -552,3 +552,68 @@ def _parse_since(since: str) -> float:
 def check_cycle(conn: sqlite3.Connection, task_id: str, new_deps: list[str]) -> list[str]:
     """Thin passthrough to workflow.validate_dependencies_no_cycle."""
     return validate_dependencies_no_cycle(conn, task_id, new_deps)
+
+
+__all__ = [
+    "APPETITE_RE",
+    "KIND_ENUM",
+    "PRIORITY_ENUM",
+    "READY_LABEL",
+    "STATUS_ENUM",
+    "SYSTEM_SESSION_PREFIX",
+    "TASK_ID_FORMAT_RE",
+    "TOKEN_BUDGET_CHARS",
+    "_BOARD_SELECT",
+    "_COMMIT_SCAN_CAP",
+    "_COMPLETION_EVIDENCE_RE",
+    "_SLUG_RE",
+    "_STRANDED_SCAN_LIMIT",
+    "_TASK_ID_ALLOCATORS",
+    "Path",
+    "_LocalAllocator",
+    "_NamespacedAllocator",
+    "_actor_view",
+    "_agent_label",
+    "_allocate_with_prefix",
+    "_assign_guard",
+    "_budget_size",
+    "_commits_referencing",
+    "_completion_evidence",
+    "_current_config",
+    "_derive_ns_from_git",
+    "_detect_forge",
+    "_flag_stale",
+    "_format_yaml_scalar_token",
+    "_has_table",
+    "_has_task_dependencies_table",
+    "_humanize_duration",
+    "_last_log_line",
+    "_namespace_segment",
+    "_next_task_id",
+    "_normalize_external_ref",
+    "_parse_since",
+    "_project_root",
+    "_resolve_attribution",
+    "_resolve_task_id_allocator",
+    "_sla_threshold_seconds",
+    "_slugify",
+    "_status_dwell_seconds",
+    "_task_card",
+    "annotations",
+    "check_cycle",
+    "check_wip",
+    "cos_task_link",
+    "datetime",
+    "dependents_of",
+    "fail",
+    "incomplete_dependencies",
+    "load_config",
+    "logger",
+    "ok",
+    "parse_task",
+    "patch_task_frontmatter_scalars",
+    "safe_tool",
+    "sync_one",
+    "transition",
+    "validate_dependencies_no_cycle",
+]
