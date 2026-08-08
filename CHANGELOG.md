@@ -12,6 +12,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.10](https://github.com/kouroshez/coding-os/compare/v0.3.9...v0.3.10) (2026-08-08)
+
+
+### Fixed
+
+* **lint:** clear the ruff baseline and fix bug-prone patterns ([7caea1e](https://github.com/kouroshez/coding-os/commit/7caea1ed35f974ba091a17cf2c012d0a1a51eb9a))
+
+
+### Changed
+
+* **graph_os:** split graph.py into four private tool-family modules ([8478d64](https://github.com/kouroshez/coding-os/commit/8478d6408108d8838e78d284fde7a4181377c241))
+
+
+### Documentation
+
+* **readme:** correct the supervision cooldown scope and list the command ([299c4f0](https://github.com/kouroshez/coding-os/commit/299c4f033f0263212ad9c137f7305ed970490fff))
+
+
+### Build
+
+* **coverage:** scope the coverage gate to src/core on the src suites ([f7a7dec](https://github.com/kouroshez/coding-os/commit/f7a7dec6dd4eff5e6230935de064802298d8ac62))
+
 ## [0.3.9](https://github.com/kouroshez/coding-os/compare/v0.3.8...v0.3.9) (2026-08-07)
 
 
