@@ -179,6 +179,34 @@ Practically:
 [docs/workflow/workflow-guide.md](docs/workflow/workflow-guide.md); the
 sources live in [src/core/commands/](src/core/commands/).
 
+## Reproducing the Maintainer's Agent-Assisted Workflow
+
+Most of this repo is developed *through* the tool itself (P5 Dogfood) —
+an AI agent session driving the board, gates, and hooks. That workflow is
+reproducible, not folklore; a session looks like this:
+
+1. **Clone + install the toolchain:** `uv sync --extra rag --extra graph_os`,
+   then open the repo in Claude Code or Codex CLI. The `.claude/` /
+   `.codex/` adapters (hooks, rules, skills) load automatically.
+2. **Every request starts at the board.** The agent runs
+   `cos task-create … --ready` / `cos task-start` before touching code —
+   the WIP limit is 1 task per session, and hooks BLOCK code edits until
+   the Complexity Gate + a matching domain skill are recorded.
+3. **Structural questions hit the graph first** (`cos_graph_references`,
+   `cos_graph_impact`) instead of grep — see the measured token savings in
+   [docs/engineering/third-party-token-bench.md](docs/engineering/third-party-token-bench.md).
+4. **Verification is executed, never assumed:** the matrix command for
+   what changed, smoke-running any new entrypoint (`--help`), then
+   `cos task-move --to testing` → `cos task-done`. Hooks block a close
+   whose verify ledger is stale.
+5. **Commits are small, per logical unit, straight to `main`,** with
+   Conventional-Commit titles the release automation parses.
+
+Watching one session end-to-end (`cos board --web` shows the live board)
+is the fastest way to understand why the hooks and rules exist: they are
+the guardrails that let an agent work autonomously without shipping
+unverified changes.
+
 ## Commit Message Style
 
 We use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
