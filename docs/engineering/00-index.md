@@ -31,7 +31,7 @@ Read next: any of the entries below.
 
 - [Naming Contract](naming-contract.md) — `ssot:true` · updated 2026-04-26
 
-### Engineering (43)
+### Engineering (44)
 
 - [Template Location — In-Repo Files vs In-CLI vs Hybrid](templates-location-analysis.md) — `ssot:true` · updated 2026-04-18
 - [Rules Loading — How `src/core/rules/*.md` Actually Become Active](rules-loading.md) — `ssot:true` · updated 2026-04-18
@@ -76,5 +76,6 @@ Read next: any of the entries below.
 - [Hub Web UI — Pre-Release Audit (2026-08-03, TASK-864)](hub-release-audit-2026-08-03.md) — `ssot:false` · updated 2026-08-03
 - [Dispatcher Contract](dispatcher-contract.md) — `ssot:true` · updated 2026-08-03
 - [Agent Supervision](agent-supervision.md) — `ssot:true` · updated 2026-08-07
+- [CI Quality Gates — SSOT](ci-gates.md) — `ssot:true` · updated 2026-08-08
 
 <!-- END auto-index -->

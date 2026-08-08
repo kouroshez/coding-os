@@ -8,7 +8,7 @@ Read next: any of the entries below.
 
 <!-- BEGIN auto-index -->
 
-### Policy (13)
+### Policy (14)
 
 - [Stack Anatomy Contract](anatomy-contract.md) — `ssot:true` · updated 2026-04-29
 - [Documentation System Policy](docs-system.md) — `ssot:true` · updated 2026-05-08
@@ -23,6 +23,7 @@ Read next: any of the entries below.
 - [The coding-os Constitution — Values the Rules Derive From](constitution.md) — `ssot:true` · updated 2026-06-21
 - [Product Vision — coding-os](vision.md) — `ssot:true` · updated 2026-07-16
 - [Task Lifecycle Policy](task-lifecycle.md) — `ssot:true` · updated 2026-08-02
+- [Stability Contract — what 1.0 freezes](stability-contract.md) — `ssot:true` · updated 2026-08-08
 
 ### Runbook (1)
 
