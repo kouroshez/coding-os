@@ -22,11 +22,13 @@ should be able to predict how any change lands without asking.
   ([critical-rules.md § Rule 23](docs/governance/critical-rules.md#rule-23--trunk-based-git-workflow)).
   External contributors work via fork + pull request.
 - **Quality gates are the reviewer of record:** every push runs the
-  blocking `CI Pass` check — ruff (zero findings), format, the full test
+  blocking `CI Pass` check — ruff (zero findings, incl. complexity
+  gates), format, the mypy count-ratchet, shellcheck, the full test
   matrix, the coverage gate (`fail_under` in `pyproject.toml`), the
   file-size ratchet, docs-lint, CodeQL, and (on PRs) dependency-review +
   diff-cover ≥80% on changed lines. Branch protection on `main` requires
-  `CI Pass` and linear history.
+  `CI Pass` and linear history. Gate detail + ratchet protocol:
+  [docs/engineering/ci-gates.md](docs/engineering/ci-gates.md).
 - **External PRs** additionally get a human maintainer review before
   merge; the merge queue serializes them against `main`.
 

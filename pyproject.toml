@@ -331,6 +331,12 @@ select = [
     "C4",     # flake8-comprehensions
     "SIM",    # flake8-simplify
     "RUF",    # ruff-specific (mostly correctness)
+    # Complexity gates — thresholds in [tool.ruff.lint.mccabe]/[tool.ruff.lint.pylint];
+    # pre-existing offenders are baselined in per-file-ignores (shrink, never grow).
+    "C901",   # mccabe cyclomatic complexity
+    "PLR0912",# too-many-branches
+    "PLR0913",# too-many-arguments
+    "PLR0915",# too-many-statements
 ]
 ignore = [
     "E501",   # line-too-long — formatter handles it; long URLs are fine
@@ -364,10 +370,10 @@ unfixable = [
 "src/core/scheduled/tests/**" = ["E402"]
 "src/core/hooks/_helpers/*.py" = ["E402"]
 "src/cli/aggregator.py" = ["E402"]
-"src/cli/main.py" = ["E402"]
+"src/cli/main.py" = ["E402", "C901", "PLR0912", "PLR0913", "PLR0915"]
 "src/cli/stack_registry.py" = ["E402"]
-"src/cli/update.py" = ["E402"]
-"src/core/thinking_os/server.py" = ["E402"]
+"src/cli/update.py" = ["E402", "C901", "PLR0912"]
+"src/core/thinking_os/server.py" = ["E402", "PLR0913"]
 "src/core/thinking_os/session_summary.py" = ["E402"]
 "src/scripts/**" = ["E402"]                    # late imports in scripts are OK
 # Bench/demo scripts lean on NamedTemporaryFile(delete=False).name for a
@@ -375,6 +381,54 @@ unfixable = [
 "src/core/graph_os/bench/**" = ["SIM115"]
 "src/scripts/graph_demo.py" = ["SIM115"]
 "src/templates/**" = ["ALL"]                   # consumer-shipped files
+# Complexity baseline (2026-08-08): 101 violations in 40 files at the
+# thresholds above. Entries may only shrink — refactor a function below
+# threshold, delete its rule here. Never add a file to this list.
+"src/adapters/claude/sdk_dispatcher.py" = ["C901", "PLR0912", "PLR0915"]
+"src/cli/board_commands.py" = ["PLR0913"]
+"src/cli/db_reset.py" = ["C901", "PLR0912", "PLR0915"]
+"src/cli/doctor.py" = ["C901", "PLR0912", "PLR0913", "PLR0915"]
+"src/cli/graph_commands.py" = ["C901", "PLR0912", "PLR0915"]
+"src/cli/hook_renderer.py" = ["C901"]
+"src/cli/stack_lint.py" = ["C901", "PLR0912"]
+"src/cli/supervision_commands.py" = ["PLR0913"]
+"src/cli/verify_since_edit.py" = ["C901"]
+"src/core/board_os/config.py" = ["C901", "PLR0912", "PLR0915"]
+"src/core/board_os/mcp_tools.py" = ["C901", "PLR0913"]
+"src/core/board_os/transition_gates_validator.py" = ["PLR0913"]
+"src/core/board_os/workflow.py" = ["C901", "PLR0912", "PLR0913", "PLR0915"]
+"src/core/graph_os/entry_points.py" = ["C901"]
+"src/core/graph_os/extractors/code_go.py" = ["PLR0913"]
+"src/core/graph_os/extractors/code_php.py" = ["C901", "PLR0915"]
+"src/core/graph_os/extractors/code_python.py" = ["C901", "PLR0912"]
+"src/core/graph_os/extractors/code_shell.py" = ["C901", "PLR0912"]
+"src/core/graph_os/extractors/code_ts.py" = ["C901", "PLR0912", "PLR0915"]
+"src/core/graph_os/ingest/base.py" = ["C901"]
+"src/core/graph_os/tools/_graph_analysis.py" = ["C901"]
+"src/core/graph_os/tools/_graph_export.py" = ["C901", "PLR0912"]
+"src/core/graph_os/tools/_graph_insights.py" = ["C901", "PLR0912", "PLR0915"]
+"src/core/graph_os/tools/_graph_read.py" = ["C901", "PLR0912"]
+"src/core/graph_os/tools/graph.py" = ["C901", "PLR0912", "PLR0915"]
+"src/core/graph_os/tools/reindex_dispatch.py" = ["C901", "PLR0912", "PLR0913"]
+"src/core/hooks/_helpers/branch_guard_check.py" = ["C901", "PLR0912"]
+"src/core/hooks/_helpers/doc_sync_check.py" = ["C901", "PLR0912"]
+"src/core/scheduled/nightly.py" = ["C901", "PLR0912", "PLR0915"]
+"src/core/thinking_os/capture.py" = ["C901"]
+"src/core/thinking_os/concepts.py" = ["C901"]
+"src/core/thinking_os/session_enrich.py" = ["C901", "PLR0912"]
+"src/core/thinking_os/tools/cognition.py" = ["PLR0913"]
+"src/core/thinking_os/tools/docs.py" = ["PLR0913"]
+"src/core/thinking_os/tools/memory.py" = ["C901"]
+"src/core/web/routes/board.py" = ["PLR0913"]
+"src/core/web/routes/hub.py" = ["C901", "PLR0912", "PLR0913"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 20
+
+[tool.ruff.lint.pylint]
+max-args = 10
+max-branches = 24
+max-statements = 100
 
 [tool.ruff.lint.isort]
 known-first-party = [

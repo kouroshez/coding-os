@@ -64,10 +64,10 @@ jobs:
         # tracked on the board — shrink that list, never grow it.
       - name: ruff format --check
         run: uv run ruff format --check src/ tests/
-      - name: mypy (core)
-        run: uv run mypy src/core/thinking_os src/core/board_os src/core/graph_os || true
-        # mypy is informational-only for the first stable release;
-        # promote to required after the baseline noise is cleared.
+      - name: mypy ratchet (core)
+        run: uv run python src/scripts/mypy_ratchet.py
+        # Count-ratchet gate: fails when the mypy error count rises above
+        # the committed BASELINE. Promotion path: docs/engineering/ci-gates.md.
 
       - name: Set up Node
         uses: actions/setup-node@v7
@@ -326,7 +326,8 @@ jobs:
           done
           exit $fail
       - name: shellcheck (warning level)
-        run: shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh || true
+        run: shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh
+        # Hard gate since 2026-08-08 — the tree was clean at flip time.
 
   # ============================================================
   # Frontend tests (vitest + build).
