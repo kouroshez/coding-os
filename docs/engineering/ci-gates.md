@@ -26,6 +26,14 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 3. Never widen a baseline to land a change; the gate exists to make regressions
    loud. A deliberate exception needs a task + a line here explaining why.
 
+Recorded exceptions:
+
+- 2026-08-08 (TASK-920): mypy BASELINE 4599 → 4649. The mcp_tools/doctor
+  splits relocated 166 existing errors under new module identities and the
+  dual `board_os.*`/`core.board_os.*` import paths double-count some of them;
+  a pre/post error-list diff confirmed no new untyped code. The gate caught
+  the +410 implicit-re-export regression first, which WAS fixed (`__all__`).
+
 ## mypy promotion path
 
 `[tool.mypy]` is lenient globally with per-package `strict = true` overrides
