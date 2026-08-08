@@ -22,3 +22,7 @@ references: []
 
 ## Work Log
 - 2026-08-08 [claude]: Reused make coverage as SSOT for the CI job instead of a parallel pytest invocation — one source for the gate;…
+- 2026-08-08 [claude]: Edit Makefile
+- 2026-08-08 [claude]: Edit Makefile
+- 2026-08-08 [claude]: Edit Makefile
+- 2026-08-08 [claude]: Edit Makefile
