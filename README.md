@@ -4,6 +4,7 @@
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
 [![python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](./pyproject.toml)
 [![CI](https://github.com/kouroshez/coding-os/actions/workflows/ci.yml/badge.svg)](https://github.com/kouroshez/coding-os/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/kouroshez/coding-os/badge)](https://scorecard.dev/viewer/?uri=github.com/kouroshez/coding-os)
 [![cli](https://img.shields.io/badge/cli-cos-informational)](./docs/architecture/meta-project.md)
 
 > **Coding OS — the cognitive operating system that gives AI agents memory, structure, and discipline.**
@@ -495,6 +496,9 @@ CI runs the matrix on every PR. See `.github/workflows/ci.yml`.
 | [docs/adapters/](./docs/adapters/)                                                  | Claude SDK · Codex CLI integration                          |
 | [CONTRIBUTING.md](./CONTRIBUTING.md)                                                | Setup, contribution loop, PR checklist                      |
 | [SECURITY.md](./SECURITY.md)                                                        | Vulnerability disclosure policy                             |
+| [GOVERNANCE.md](./GOVERNANCE.md)                                                    | Decision model, quality gates, becoming a maintainer        |
+| [KNOWN_LIMITATIONS.md](./KNOWN_LIMITATIONS.md)                                      | Honest constraints + the ratchets that shrink them          |
+| [docs/governance/stability-contract.md](./docs/governance/stability-contract.md)    | What 1.0 freezes + the deprecation ladder                   |
 | [CHANGELOG.md](./CHANGELOG.md)                                                      | Release notes                                               |
 
 ## Troubleshooting

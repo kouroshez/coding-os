@@ -141,7 +141,7 @@ the contracts below are frozen — it is a set of gates, not a date. All must ho
 | 3 | Hook contract frozen | `$COS_*` env + `registry.yaml` shape stable; no consumer-visible hook renames |
 | 4 | Adapter contract frozen | `adapter.yaml` schema stable across claude / codex |
 | 5 | Quality gates promoted to required | ruff / mypy / eslint flipped from advisory to hard-fail in CI; baseline cleared |
-| 6 | Deprecation policy published | post-1.0 breaks follow deprecate → warn → remove over ≥2 minors, documented here |
+| 6 | Deprecation policy published | post-1.0 breaks follow deprecate → warn → remove over ≥2 minors — [stability-contract.md](stability-contract.md) |
 
 When all six hold, bump to `1.0.0` (a `feat!:` commit, or merge the release PR
 after a manual manifest bump). Until then stay on `0.x` and flag every breaking
