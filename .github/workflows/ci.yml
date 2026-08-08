@@ -196,7 +196,7 @@ jobs:
           version: "latest"
           enable-cache: true
           cache-dependency-glob: "uv.lock"
-      - name: Kernel suites under pytest-cov (gate = fail_under in pyproject.toml)
+      - name: All CI suites under pytest-cov (gate = fail_under in pyproject.toml)
         run: make coverage
       - name: Diff coverage — new code ≥80% (PRs only)
         if: github.event_name == 'pull_request'

@@ -457,4 +457,4 @@ exclude_lines = [
 ]
 show_missing = true
 skip_covered = false
-fail_under = 60       # baseline for 0.3.0; raise per release
+fail_under = 62       # measured 63% across all suites 2026-08-08; 1pt noise headroom — ratchet toward 70/80

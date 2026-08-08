@@ -125,11 +125,11 @@ verify-claude: ## Claude-only fast subset: dispatcher + adapter + skill + brandi
 
 .PHONY: coverage
 coverage: ## Run every CI-gated suite under pytest-cov; enforce the fail_under gate in pyproject.toml
-	@echo "Running coverage across the src suites (kernel + logging + scheduled)..."
-	@# Gate scope = src/core measured by the src suites: the only combination
-	@# that is deterministic under coverage instrumentation today. Folding
-	@# tests/ (cli/adapters/web) into the gate is tracked on the board —
-	@# three order-fragile tests fail under --cov in a full-suite process.
+	@echo "Running coverage across all CI suites (kernel + logging + scheduled + root)..."
+	@# Two invocations, mirroring CI's process isolation. The env-fragile root
+	@# tests were hardened (COS_* stripped/deleted where derivation is asserted)
+	@# so the combined gate is deterministic; the fail_under gate fires on the
+	@# second invocation once the appended data covers everything.
 	@uv run --extra rag --extra graph_os --with aiohttp --with pytest-asyncio --with pytest-cov pytest \
 	    src/core/thinking_os/tests/ \
 	    src/core/graph_os/tests/ \
@@ -137,7 +137,13 @@ coverage: ## Run every CI-gated suite under pytest-cov; enforce the fail_under g
 	    src/core/logging_os/tests/ \
 	    src/core/scheduled/tests/ \
 	    -m 'not slow' \
-	    --cov=src/core \
+	    --cov=src/core --cov=src/cli --cov=src/adapters \
+	    --cov-report= --cov-fail-under=0 \
+	    -q
+	@uv run --with pytest-cov pytest \
+	    tests/ \
+	    -m 'not slow' \
+	    --cov=src/core --cov=src/cli --cov=src/adapters --cov-append \
 	    --cov-report=term --cov-report=xml \
 	    -q
 	@echo ""

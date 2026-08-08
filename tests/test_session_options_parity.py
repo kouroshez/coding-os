@@ -17,6 +17,13 @@ DISPATCHER = REPO / "src" / "adapters" / "claude" / "sdk_dispatcher.py"
 pytest.importorskip("claude_agent_sdk")
 
 
+@pytest.fixture(autouse=True)
+def _isolate_cos_state_dir(monkeypatch):
+    # _hub_settings_path prefers $COS_STATE_DIR over the cwd argument; these
+    # tests assert cwd-derived resolution, so ambient state must not leak in.
+    monkeypatch.delenv("COS_STATE_DIR", raising=False)
+
+
 def _load_module():
     spec = importlib.util.spec_from_file_location("cos_test_claude_sdk_dispatcher", DISPATCHER)
     mod = importlib.util.module_from_spec(spec)

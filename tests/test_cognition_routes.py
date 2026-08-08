@@ -24,6 +24,9 @@ def client(tmp_path, monkeypatch):
     state = tmp_path / ".coding-os"
     (state / "claude" / "traces").mkdir(parents=True)
     monkeypatch.setenv("COS_STATE_DIR", str(state))
+    # An ambient COS_DB_PATH would route cost/health at the real project DB
+    # (fresh dispatch rows there flip the fail-open assertions).
+    monkeypatch.delenv("COS_DB_PATH", raising=False)
     app = create_app()
     with TestClient(app) as c:
         yield c, state

@@ -111,6 +111,14 @@ class TestHookSyntax:
 # ---------------------------------------------------------------------------
 
 
+def _cos_clean_env(**overrides: str) -> dict[str, str]:
+    """Inherited env minus every COS_* var — derived-value assertions must not
+    depend on whatever the host shell or a sibling test exported."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("COS_")}
+    env.update(overrides)
+    return env
+
+
 class TestCosEnv:
     def test_default_state_dir(self, tmp_path: Path) -> None:
         """Without COS_STATE_DIR, defaults to .coding-os."""
@@ -360,7 +368,7 @@ class TestCosEnv:
             capture_output=True,
             text=True,
             cwd=str(tmp_path),
-            env={**os.environ, "COS_STATE_DIR": ".my-custom-dir"},
+            env=_cos_clean_env(COS_STATE_DIR=".my-custom-dir"),
             timeout=10,
         )
         assert result.stdout.strip() == ".my-custom-dir"
@@ -377,12 +385,9 @@ class TestCosEnv:
             capture_output=True,
             text=True,
             cwd=str(tmp_path),
-            env={
-                **os.environ,
-                "COS_STATE_DIR": ".custom",
-                "COS_AGENT": "claude",
-                "COS_PANEL_ID": "test-panel",
-            },
+            env=_cos_clean_env(
+                COS_STATE_DIR=".custom", COS_AGENT="claude", COS_PANEL_ID="test-panel"
+            ),
             timeout=10,
         )
         assert result.stdout.strip() == ".custom/claude/panels/test-panel/session-id"
@@ -396,7 +401,7 @@ class TestCosEnv:
             capture_output=True,
             text=True,
             cwd=str(tmp_path),
-            env={**os.environ, "COS_STATE_DIR": ".custom", "COS_AGENT": "claude"},
+            env=_cos_clean_env(COS_STATE_DIR=".custom", COS_AGENT="claude"),
             timeout=10,
         )
         result_codex = subprocess.run(
@@ -404,7 +409,7 @@ class TestCosEnv:
             capture_output=True,
             text=True,
             cwd=str(tmp_path),
-            env={**os.environ, "COS_STATE_DIR": ".custom", "COS_AGENT": "codex"},
+            env=_cos_clean_env(COS_STATE_DIR=".custom", COS_AGENT="codex"),
             timeout=10,
         )
         assert result_claude.stdout.strip() == ".custom/claude"
@@ -418,7 +423,7 @@ class TestCosEnv:
             capture_output=True,
             text=True,
             cwd=str(tmp_path),
-            env={**os.environ, "COS_STATE_DIR": ".custom"},
+            env=_cos_clean_env(COS_STATE_DIR=".custom"),
             timeout=10,
         )
         assert result.stdout.strip() == ".custom/coding-os.db"
@@ -431,7 +436,7 @@ class TestCosEnv:
             capture_output=True,
             text=True,
             cwd=str(tmp_path),
-            env={**os.environ, "COS_DB_PATH": "/tmp/custom.db"},
+            env=_cos_clean_env(COS_DB_PATH="/tmp/custom.db"),
             timeout=10,
         )
         assert result.stdout.strip() == "/tmp/custom.db"
