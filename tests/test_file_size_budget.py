@@ -1,9 +1,10 @@
 """File-size ratchet: no tracked Python file may exceed the current ceiling.
 
-The ceiling is the largest file at gate-introduction time (tests/test_cli.py
-5652 lines; graph.py 5572). It only goes DOWN: after splitting a god-file,
-lower MAX_LINES to the new largest file. Raising it is a review-rejected
-change by policy (docs/governance/release-process.md § quality gates).
+The ceiling tracks the largest tracked file (tests/test_cli.py, 5652 lines
+— graph.py was split to ~1950). It only goes DOWN: after splitting a
+god-file, lower MAX_LINES to the new largest file. Raising it is a
+review-rejected change by policy (docs/governance/release-process.md
+§ quality gates).
 """
 
 from __future__ import annotations
@@ -11,7 +12,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-MAX_LINES = 5700
+MAX_LINES = 5660
 
 EXCLUDED_PREFIXES = (
     "src/templates/",  # consumer-shipped scaffold; downstream owns style
