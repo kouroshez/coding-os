@@ -53,19 +53,15 @@ jobs:
         with:
           version: "latest"
           enable-cache: true
-          # uv.lock is intentionally gitignored (see .gitignore) — key the
-          # cache on pyproject.toml so setup-uv does not hard-fail with
-          # "No matches found for glob **/uv.lock".
-          cache-dependency-glob: "pyproject.toml"
+          cache-dependency-glob: "uv.lock"
       - name: Install Python deps
         run: uv sync --extra rag
       - name: ruff check
-        run: uv run ruff check src/ tests/ || true
-        # Informational for the 0.3.x line: ~283 baseline findings
-        # predate ruff adoption (mostly F401 unused-import + import
-        # ordering in legacy modules). `ruff format` IS enforced (next
-        # step) — formatting drift is a hard fail. The lint gate flips
-        # to required once the baseline is cleared.
+        run: uv run ruff check src/ tests/
+        # Hard gate since the 2026-08-07 baseline burndown: zero findings
+        # at flip time. The three style rules still ignored (SIM105 /
+        # SIM102 / E741) are listed with counts in pyproject.toml and
+        # tracked on the board — shrink that list, never grow it.
       - name: ruff format --check
         run: uv run ruff format --check src/ tests/
       - name: mypy (core)
@@ -116,10 +112,7 @@ jobs:
         with:
           version: "latest"
           enable-cache: true
-          # uv.lock is intentionally gitignored (see .gitignore) — key the
-          # cache on pyproject.toml so setup-uv does not hard-fail with
-          # "No matches found for glob **/uv.lock".
-          cache-dependency-glob: "pyproject.toml"
+          cache-dependency-glob: "uv.lock"
       - name: Install deps
         run: uv sync --extra rag --extra graph_os
       - name: Install bash 5 (macOS)
@@ -160,7 +153,7 @@ jobs:
         with:
           version: "latest"
           enable-cache: true
-          cache-dependency-glob: "pyproject.toml"
+          cache-dependency-glob: "uv.lock"
       - name: Install deps
         run: uv sync --extra rag --extra graph_os
       - name: Install bash 5 (macOS)
@@ -177,6 +170,41 @@ jobs:
         run: uv run --extra rag pytest src/core/scheduled/tests/ -q
       - name: Cross-cutting tests (selected; skip slow scaffold tests)
         run: uv run pytest tests/ -q -m 'not slow'
+
+  # ============================================================
+  # Coverage gate — kernel suites under pytest-cov. fail_under lives
+  # in pyproject.toml ([tool.coverage.report]); diff-cover addition-
+  # ally gates NEW code on PRs at 80% so total coverage can only
+  # ratchet up. Runs one Python (3.12) — the matrix job already
+  # proves version compat; coverage % is version-independent.
+  # ============================================================
+  coverage:
+    name: coverage (fail_under + diff-cover)
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # diff-cover diffs against the PR base — needs real history.
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: Kernel suites under pytest-cov (gate = fail_under in pyproject.toml)
+        run: make coverage
+      - name: Diff coverage — new code ≥80% (PRs only)
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          uv run --with diff-cover diff-cover coverage.xml \
+            --compare-branch "origin/${{ github.base_ref }}" \
+            --fail-under 80
 
   # ============================================================
   # Modularity safety net — the @slow re-render guards the matrix
@@ -198,7 +226,7 @@ jobs:
         with:
           version: "latest"
           enable-cache: true
-          cache-dependency-glob: "pyproject.toml"
+          cache-dependency-glob: "uv.lock"
       - name: Install deps
         run: uv sync --extra rag --extra graph_os
       - name: Referential-integrity + all-stacks render smoke + toggle round-trips (fast)
@@ -238,7 +266,7 @@ jobs:
         with:
           version: "latest"
           enable-cache: true
-          cache-dependency-glob: "pyproject.toml"
+          cache-dependency-glob: "uv.lock"
       - name: Install deps
         run: uv sync --extra rag --extra graph_os
       - name: cli + adapters + doctor matrix suites
@@ -264,7 +292,7 @@ jobs:
         with:
           version: "latest"
           enable-cache: true
-          cache-dependency-glob: "pyproject.toml"
+          cache-dependency-glob: "uv.lock"
       - name: Install deps
         run: uv sync --extra rag --extra graph_os
       - name: make test-slow
@@ -387,7 +415,7 @@ jobs:
   ci-pass:
     name: CI Pass
     if: always()
-    needs: [lint, test-python, test-hooks, test-frontend, test-modularity, test-matrix, docs-lint]
+    needs: [lint, test-python, coverage, test-hooks, test-frontend, test-modularity, test-matrix, docs-lint]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -395,6 +423,7 @@ jobs:
         run: |
           if [[ "${{ needs.lint.result }}" != "success" ]] \
              || [[ "${{ needs.test-python.result }}" != "success" ]] \
+             || [[ "${{ needs.coverage.result }}" != "success" ]] \
              || [[ "${{ needs.test-hooks.result }}" != "success" ]] \
              || [[ "${{ needs.test-frontend.result }}" != "success" ]] \
              || [[ "${{ needs.test-modularity.result }}" != "success" ]] \

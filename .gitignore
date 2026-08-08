@@ -22,8 +22,8 @@ coverage.xml
 .coverage
 .coverage.*
 
-# uv lockfile is intentionally NOT committed for libraries; flip if this becomes an app.
-uv.lock
+# uv.lock IS committed: cos ships as an installed application (uv tool /
+# uvx), so reproducible installs + supply-chain review need the lockfile.
 
 # ---- Node / web UI ---------------------------------------------------
 # Any nested node_modules anywhere in the tree.
