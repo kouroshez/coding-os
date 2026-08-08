@@ -1,0 +1,21 @@
+# Supply-chain gate: fails a PR that introduces a dependency with a known
+# vulnerability (GitHub Advisory Database). Complements CodeQL (our code)
+# by covering what we pull in (their code).
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
