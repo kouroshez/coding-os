@@ -48,3 +48,9 @@ references: []
 - 2026-08-09 [claude]: Verified closed: repo recreated 2026-08-06T02:53:57Z (API created_at), forks=0 network=0, all 4 pre-purge SHAs return…
 - 2026-08-09 [claude]: Retained-files audit: 6 .md remain under docs/code-os-core-docs/ but all carry this project's own SSOT headers…
 - 2026-08-09 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-09 [claude]: Edit test_hooks_phase_f.py
+- 2026-08-09 [claude]: Edit update.py
+- 2026-08-09 [claude]: Edit update.py
+- 2026-08-09 [claude]: Edit update.py
+- 2026-08-09 [claude]: Edit ci.yml
+- 2026-08-09 [claude]: Edit ci-gates.md
