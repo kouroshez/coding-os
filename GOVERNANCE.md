@@ -22,13 +22,17 @@ should be able to predict how any change lands without asking.
   ([critical-rules.md § Rule 23](docs/governance/critical-rules.md#rule-23--trunk-based-git-workflow)).
   External contributors work via fork + pull request.
 - **Quality gates are the reviewer of record:** every push runs the
-  blocking `CI Pass` check — ruff (zero findings, incl. complexity
-  gates), format, the mypy count-ratchet, shellcheck, the full test
-  matrix, the coverage gate (`fail_under` in `pyproject.toml`), the
-  file-size ratchet, docs-lint, CodeQL, and (on PRs) dependency-review +
-  diff-cover ≥80% on changed lines. Branch protection on `main` requires
-  `CI Pass` and linear history. Gate detail + ratchet protocol:
-  [docs/engineering/ci-gates.md](docs/engineering/ci-gates.md).
+  `CI Pass` check — ruff (zero findings, incl. complexity gates), format,
+  the mypy count-ratchet, shellcheck, the full test matrix, the coverage
+  gate (`fail_under` in `pyproject.toml`), the file-size ratchet,
+  docs-lint, CodeQL, and the nightly slow suite. Branch protection on
+  `main` requires `CI Pass` and linear history.
+  **Scope, stated honestly:** `enforce_admins` is off so trunk pushes keep
+  working, which makes `CI Pass` a *pre-merge block for pull requests* and
+  *post-push reporting for the maintainer* — a red `main` is fixed forward,
+  not prevented. dependency-review and diff-cover ≥80% are `pull_request`-only
+  and therefore gate contributions, not direct pushes. Full scope notes +
+  ratchet protocol: [docs/engineering/ci-gates.md](docs/engineering/ci-gates.md).
 - **External PRs** additionally get a human maintainer review before
   merge; the merge queue serializes them against `main`.
 

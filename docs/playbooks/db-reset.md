@@ -23,6 +23,11 @@ Default `cos db-reset --confirm` wipes the first **two** only. Use `--wipe-sessi
 
 - A single observation is wrong → `UPDATE observations SET … WHERE id=…;`
 - A task file is malformed → `cos task-validate TASK-NNN` and fix the YAML.
+- A task file grew a **second, stale frontmatter block** (`sync_one` then
+  rejects the file outright and its board row silently freezes) →
+  `cos task-validate --repair`: it drops the stale block, keeps the live one,
+  and re-syncs. CI runs the detector on every push, so this is a repair path,
+  not a routine step.
 - Graph extraction missed a file → `cos graph-reindex --force --path <dir>`.
 - Schema drift after a migration was applied → roll the migration forward; never edit a past migration (Rule 9).
 

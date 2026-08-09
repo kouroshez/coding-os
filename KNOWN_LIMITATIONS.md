@@ -5,7 +5,7 @@ the ratchet (if any) lives. Gate detail: [docs/engineering/ci-gates.md](docs/eng
 
 ## Type safety
 
-- mypy runs as a **count-ratchet**, not a zero-error gate: 4,599 baseline
+- mypy runs as a **count-ratchet**, not a zero-error gate: 4,649 baseline
   errors across the kernel (`src/scripts/mypy_ratchet.py`). Strict typing is
   enforced only on `thinking_os.tools.*`, `graph_os.backends.*`, and
   `board_os.workflow`; the rest is promoted package-by-package.

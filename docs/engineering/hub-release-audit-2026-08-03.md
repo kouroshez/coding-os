@@ -1,4 +1,4 @@
-<!-- domain:WEB | layer:engineering | ssot:false | updated:2026-08-03 -->
+<!-- domain:CORE | layer:engineering | ssot:false | updated:2026-08-03 -->
 # Hub Web UI — Pre-Release Audit (2026-08-03, TASK-864)
 
 > P: Tick-by-tick Playwright audit of every Hub screen before the first public release — verdict + evidence per item, fixes shipped in the same pass.

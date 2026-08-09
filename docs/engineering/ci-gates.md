@@ -11,9 +11,10 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 | ruff lint | `uv run ruff check .` | 0 findings; burndown ignores in `pyproject.toml` (`SIM105`, `SIM102`, `E741`) | ignore list may only shrink |
 | ruff format | `uv run ruff format --check .` | exact | — |
 | Complexity | part of `ruff check` — `C901` (mccabe ≤20), `PLR0912` (branches ≤24), `PLR0913` (args ≤10), `PLR0915` (statements ≤100) | per-file baseline in `pyproject.toml` `per-file-ignores` (101 violations / 40 files, 2026-08-08) | baseline may only shrink; never add a file |
-| mypy ratchet | `uv run python src/scripts/mypy_ratchet.py` | error count ≤ `BASELINE` in the script (4599, 2026-08-08) | count may only fall; lower `BASELINE` when you fix errors |
+| mypy ratchet | `uv run python src/scripts/mypy_ratchet.py` | error count ≤ `BASELINE` in the script (4649, 2026-08-08 — see the exception log below) | count may only fall; lower `BASELINE` when you fix errors |
 | Tests + coverage | `make coverage` | `fail_under` in `pyproject.toml` (62; measured 63) | ratchet toward 70 → 80 |
-| diff-cover (PRs) | `diff-cover coverage.xml --fail-under 80` | 80% on changed lines | fixed |
+| Slow suite (nightly) | `make test-slow` + the graph phantom gate, on the `schedule` trigger only | 0 failures; phantom count ≤ baseline | counted by `CI Pass`: `skipped` (push/PR) passes, `failure` fails |
+| diff-cover (PRs only) | `diff-cover coverage.xml --fail-under 80` | 80% on changed lines | fixed — see the scope note below |
 | File-size ratchet | `tests/test_file_size_budget.py` | `MAX_LINES` | may only fall |
 | shellcheck | `shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh` | 0 warnings | fixed |
 | docs-lint | `make docs-lint` | 0 findings | fixed |
@@ -34,6 +35,22 @@ Recorded exceptions:
   dual `board_os.*`/`core.board_os.*` import paths double-count some of them;
   a pre/post error-list diff confirmed no new untyped code. The gate caught
   the +410 implicit-re-export regression first, which WAS fixed (`__all__`).
+
+## What each gate does NOT cover (scope honesty)
+
+The gates are real, but two of them only ever see pull requests, and this repo
+is trunk-based — the maintainer pushes straight to `main`:
+
+- **diff-cover ≥80%** and **dependency-review** run on `pull_request` only.
+  In practice that means Dependabot and release-please PRs; a hand-written
+  commit pushed to `main` is never measured by either. Treat them as gates for
+  *external contributions*, not as a guarantee over all code.
+- **Branch protection** requires `CI Pass` with `enforce_admins: false`, which
+  is what keeps trunk pushes working. For the maintainer the check is therefore
+  *post-push reporting*, not a pre-merge block — a red `main` is visible and
+  must be fixed forward, not prevented.
+- **`make docs-lint`** hard-gates the link audit; its front-matter and staleness
+  half is advisory locally and only strict-gated on *changed* docs in CI.
 
 ## mypy promotion path
 

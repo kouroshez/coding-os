@@ -1,3 +1,4 @@
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-08-08 -->
 # Third-Party Token-Cost Benchmark — graph envelope vs grep + read
 
 Reproducible, third-party-runnable measurement of the claim behind the
