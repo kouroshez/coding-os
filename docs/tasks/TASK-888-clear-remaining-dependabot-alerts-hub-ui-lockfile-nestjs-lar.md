@@ -18,26 +18,6 @@ references: []
 ---
 # TASK-888: Clear remaining Dependabot alerts — Hub UI lockfile + nestjs/laravel/rails template floors
 
----
-id: TASK-888
-title: "Clear remaining Dependabot alerts — Hub UI lockfile + nestjs/laravel/rails template floors"
-swimlane: core
-kind: security
-epic: null
-labels: [ready]
-status: icebox
-priority: P1
-appetite: 1d
-created: 2026-08-04
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-888: Clear remaining Dependabot alerts — Hub UI lockfile + nestjs/laravel/rails template floors
 
 **Outcome (one sentence):** Zero open Dependabot alerts — the Hub UI lockfile's 25 transitive advisories are resolved and every advisory-flagged template floor is raised past its patched version.
 

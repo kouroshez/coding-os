@@ -5,39 +5,19 @@ swimlane: infra
 kind: security
 epic: null
 labels: [ready]
-status: blocked
+status: complete
 priority: P0
 appetite: 1d
 created: 2026-08-05
 started: 2026-08-05
-completed: null
-agent_session: ses-claude-20260804-151316-9ae7
+completed: 2026-08-09
+agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
 references: []
 ---
 # TASK-891: Pre-purge history survives in GitHub pull-request refs — third-party material still publicly fetchable
 
----
-id: TASK-891
-title: "Pre-purge history survives in GitHub pull-request refs — third-party material still publicly fetchable"
-swimlane: infra
-kind: security
-epic: null
-labels: [ready]
-status: icebox
-priority: P0
-appetite: 1d
-created: 2026-08-05
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-891: Pre-purge history survives in GitHub pull-request refs — third-party material still publicly fetchable
 
 **Outcome (one sentence):** No third-party copyrighted file is retrievable from any ref of the public repository, including the read-only `refs/pull/*` refs that a force-push cannot rewrite.
 
@@ -65,3 +45,6 @@ references: []
 
 ## Work Log
 - 2026-08-05 [claude]: Reproduced unauthenticated, from outside: the pre-purge root commit is not an ancestor of main, but it IS an ancestor…
+- 2026-08-09 [claude]: Verified closed: repo recreated 2026-08-06T02:53:57Z (API created_at), forks=0 network=0, all 4 pre-purge SHAs return…
+- 2026-08-09 [claude]: Retained-files audit: 6 .md remain under docs/code-os-core-docs/ but all carry this project's own SSOT headers…
+- 2026-08-09 [claude]: Status transitioned to complete via cos task-done.

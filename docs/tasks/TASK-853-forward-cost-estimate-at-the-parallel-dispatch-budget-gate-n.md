@@ -18,26 +18,6 @@ references: []
 ---
 # TASK-853: Forward-cost estimate at the parallel dispatch budget gate (N-way fan-out can overrun the cap)
 
----
-id: TASK-853
-title: "Forward-cost estimate at the parallel dispatch budget gate (N-way fan-out can overrun the cap)"
-swimlane: core
-kind: bug
-epic: null
-labels: [budget, dispatch, safety, ready]
-status: icebox
-priority: P2
-appetite: 1d
-created: 2026-07-24
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-853: Forward-cost estimate at the parallel dispatch budget gate (N-way fan-out can overrun the cap)
 
 **Outcome (one sentence):** `cos_dispatch_parallel_run` authorizes N concurrent sub-agents from a single spent-only budget check, so the daily/chain cap can be overrun by up to N x one dispatch — populate the already-plumbed `additional_estimate_usd` with a median-recent-cost x N forward estimate so the breaker stops the fan-out before it spawns.
 

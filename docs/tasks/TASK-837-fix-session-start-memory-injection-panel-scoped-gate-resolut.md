@@ -18,26 +18,6 @@ references: []
 ---
 # TASK-837: fix session-start memory injection: panel-scoped gate resolution in session_enrich
 
----
-id: TASK-837
-title: "fix session-start memory injection: panel-scoped gate resolution in session_enrich"
-swimlane: core
-kind: bug
-epic: null
-labels: [ready]
-status: icebox
-priority: P1
-appetite: 1d
-created: 2026-07-17
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-837: fix session-start memory injection: panel-scoped gate resolution in session_enrich
 
 **Outcome (one sentence):** session_enrich resolves the complexity gate from the panel dir (via the canonical record_outcome resolver), so agent_metrics records real complexity and the enrichment observer can spawn — closing root-cause cluster D (dead injection) from the memory audit.
 

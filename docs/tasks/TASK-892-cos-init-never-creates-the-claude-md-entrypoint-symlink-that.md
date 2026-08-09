@@ -18,26 +18,6 @@ references: []
 ---
 # TASK-892: cos init never creates the CLAUDE.md entrypoint symlink that eject already assumes exists
 
----
-id: TASK-892
-title: "cos init never creates the CLAUDE.md entrypoint symlink that eject already assumes exists"
-swimlane: cli
-kind: bug
-epic: null
-labels: [ready]
-status: icebox
-priority: P1
-appetite: 1d
-created: 2026-08-05
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-892: cos init never creates the CLAUDE.md entrypoint symlink that eject already assumes exists
 
 **Outcome (one sentence):** Every consumer project gets the entrypoint file its agent runtime actually reads, created from a declaration in the adapter's own yaml rather than a literal in CLI code.
 

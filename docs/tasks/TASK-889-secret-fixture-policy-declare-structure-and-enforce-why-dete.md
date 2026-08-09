@@ -18,26 +18,6 @@ references: []
 ---
 # TASK-889: Secret-fixture policy — declare, structure and enforce why detector test data is safe
 
----
-id: TASK-889
-title: "Secret-fixture policy — declare, structure and enforce why detector test data is safe"
-swimlane: core
-kind: security
-epic: null
-labels: [ready]
-status: icebox
-priority: P1
-appetite: 1d
-created: 2026-08-05
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-889: Secret-fixture policy — declare, structure and enforce why detector test data is safe
 
 **Outcome (one sentence):** A contributor or security researcher can verify from the repository alone — without asking a maintainer — that every credential-shaped string in the tree is synthetic test data, and the rule that keeps it that way is enforced by a test rather than by reviewer memory.
 

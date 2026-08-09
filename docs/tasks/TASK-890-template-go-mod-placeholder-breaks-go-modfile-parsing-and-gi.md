@@ -18,26 +18,6 @@ references: []
 ---
 # TASK-890: Template go.mod placeholder breaks Go modfile parsing and GitHub dependency graph
 
----
-id: TASK-890
-title: "Template go.mod placeholder breaks Go modfile parsing and GitHub dependency graph"
-swimlane: templates
-kind: bug
-epic: null
-labels: [ready]
-status: icebox
-priority: P1
-appetite: 1d
-created: 2026-08-05
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-890: Template go.mod placeholder breaks Go modfile parsing and GitHub dependency graph
 
 **Outcome (one sentence):** All three Go template `go.mod` files parse with the real Go toolchain, clearing the "Dependency file checks have 1 error" banner on the public repository's security page.
 

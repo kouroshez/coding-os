@@ -18,26 +18,6 @@ references: []
 ---
 # TASK-886: Raise template npm dependency floors above known-vulnerable ranges
 
----
-id: TASK-886
-title: "Raise template npm dependency floors above known-vulnerable ranges"
-swimlane: templates
-kind: security
-epic: null
-labels: [ready]
-status: icebox
-priority: P1
-appetite: 1d
-created: 2026-08-04
-started: null
-completed: null
-agent_session: null
-depends_on: []
-blocked_by: []
-references: []
----
-
-# TASK-886: Raise template npm dependency floors above known-vulnerable ranges
 
 **Outcome (one sentence):** Every shipped template package.json declares a dependency floor that excludes known-critical versions, so a fresh `npm install` in a scaffolded project cannot resolve a vulnerable release.
 
