@@ -12,6 +12,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.10](https://github.com/kouroshez/coding-os/compare/v0.3.9...v0.3.10) (2026-08-09)
+
+
+### Added
+
+* **board:** add cos task-validate --repair for stale duplicate frontmatter ([d609a32](https://github.com/kouroshez/coding-os/commit/d609a32b174aefeaa816930154a94b0fecba04c4))
+* **graph_os:** reproducible third-party token-cost benchmark harness ([ba8d79c](https://github.com/kouroshez/coding-os/commit/ba8d79c65f368bedd2d302ba69bf49f34074d6cb))
+
+
+### Fixed
+
+* **cli:** stop cos init rejecting piped stdin for the agent prompt ([e1b4a86](https://github.com/kouroshez/coding-os/commit/e1b4a86f7878f2da76dddd4850bd6ec63f922e8c))
+* **cli:** stop cos update reporting drift on a freshly initialised project ([6e0a95f](https://github.com/kouroshez/coding-os/commit/6e0a95fa2bd9cefcd2b5656303c745a0f5a02a06))
+* **lint:** clear the ruff baseline and fix bug-prone patterns ([7caea1e](https://github.com/kouroshez/coding-os/commit/7caea1ed35f974ba091a17cf2c012d0a1a51eb9a))
+* **tests:** type the frontmatter-repair tests and use the core.board_os import path ([d20bcbc](https://github.com/kouroshez/coding-os/commit/d20bcbc7666a07bd37e954e8cff0f0e02a942411))
+* **types:** declare __all__ on the split facades so re-exports are explicit for mypy ([2c6fdac](https://github.com/kouroshez/coding-os/commit/2c6fdac48106d74dfd6b9303ecd5ad7c4523df53))
+
+
+### Changed
+
+* **board_os:** split mcp_tools.py into a facade over private _mcp_* siblings ([6f0e9fc](https://github.com/kouroshez/coding-os/commit/6f0e9fc4f78ec84ed0a211641aadade4287639c3))
+* **cli:** split doctor.py into a facade over doctor_checks_* siblings ([2ec606b](https://github.com/kouroshez/coding-os/commit/2ec606b4004486da3c27b1efb7db15287d3c8b30))
+* **graph_os:** split graph.py into four private tool-family modules ([8478d64](https://github.com/kouroshez/coding-os/commit/8478d6408108d8838e78d284fde7a4181377c241))
+* **tests:** split test_cli.py into _cli_suite part modules ([141e102](https://github.com/kouroshez/coding-os/commit/141e1029ec6977c022347e0ad56d9b436a814542))
+
+
+### Documentation
+
+* add front-matter headers to ci-gates and stability-contract ([b19fcf1](https://github.com/kouroshez/coding-os/commit/b19fcf1a87dd1c82151b08aaf93d108edca58079))
+* correct the mypy baseline and state each gate's real scope ([863c5b4](https://github.com/kouroshez/coding-os/commit/863c5b44ecb0753bbbbe60a1b374eb184d914034))
+* **governance:** add GOVERNANCE + MAINTAINERS and the agent-workflow contributor guide ([4915a67](https://github.com/kouroshez/coding-os/commit/4915a67172dd5cffabad1585c01e727cc4b442e7))
+* **readme:** correct the supervision cooldown scope and list the command ([299c4f0](https://github.com/kouroshez/coding-os/commit/299c4f033f0263212ad9c137f7305ed970490fff))
+* refresh generated indexes for ci-gates and stability-contract ([6bd0391](https://github.com/kouroshez/coding-os/commit/6bd0391662e7dde5dbba693a9e4eb2b1c17ced10))
+
+
+### Build
+
+* **coverage:** scope the coverage gate to src/core on the src suites ([f7a7dec](https://github.com/kouroshez/coding-os/commit/f7a7dec6dd4eff5e6230935de064802298d8ac62))
+
 ## [0.3.9](https://github.com/kouroshez/coding-os/compare/v0.3.8...v0.3.9) (2026-08-07)
 
 
