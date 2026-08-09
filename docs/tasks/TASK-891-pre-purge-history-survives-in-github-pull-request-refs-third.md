@@ -58,3 +58,8 @@ references: []
 - 2026-08-09 [claude]: Edit mypy_ratchet.py
 - 2026-08-09 [claude]: Edit ci-gates.md
 - 2026-08-09 [claude]: commit a11ebb31e4 — ci: re-measure the mypy baseline from CI and make a rise diagnosable
+- 2026-08-09 [claude]: commit 8bd7c6862c — chore(board): sync TASK-891 work log
+- 2026-08-09 [claude]: Edit release-please.yml
+- 2026-08-09 [claude]: Edit release-please.yml
+- 2026-08-09 [claude]: commit 652744fece — fix(ci): write the release SBOM to an existing directory
+- 2026-08-09 [claude]: Edit release-please.yml
