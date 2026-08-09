@@ -92,12 +92,14 @@ jobs:
         with:
           subject-path: dist/*
       # SPDX SBOM of the built distribution, attached to the GitHub release.
+      # output-file must land in an EXISTING directory — the action does not
+      # create the parent and fails ENOENT (it did, on the v0.3.10 publish).
       - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           path: .
           format: spdx-json
           artifact-name: coding-os-sbom.spdx.json
-          output-file: dist-sbom/coding-os-sbom.spdx.json
+          output-file: coding-os-sbom.spdx.json
       # Sigstore keyless signatures for wheel + sdist (bundles land in dist/).
       - uses: sigstore/gh-action-sigstore-python@790bc6befb9d733738f18d8f895854b453640ec9 # v3.5.0
         with:
@@ -110,7 +112,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.publish_ref || needs.release-please.outputs.tag_name }}
         run: |
-          gh release upload "$TAG" dist-sbom/coding-os-sbom.spdx.json --clobber
+          gh release upload "$TAG" coding-os-sbom.spdx.json --clobber
           gh release upload "$TAG" dist/*.sigstore.json --clobber
       # ------------------------------------------------------------------
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
