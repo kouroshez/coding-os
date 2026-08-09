@@ -988,7 +988,13 @@ def task_history_cmd(task_id):
     help="Status to validate as the target. Default: in_progress (DoR check).",
 )
 @click.option("--json", "as_json", is_flag=True, default=False)
-def task_validate_cmd(task_id, for_status, as_json):
+@click.option(
+    "--repair",
+    is_flag=True,
+    default=False,
+    help="Lint mode only: drop stale duplicate frontmatter blocks in place, then re-sync.",
+)
+def task_validate_cmd(task_id, for_status, as_json, repair):
     """Two modes:
 
     1. No TASK_ID → lint every TASK-*.md file (legacy behavior).
@@ -997,13 +1003,20 @@ def task_validate_cmd(task_id, for_status, as_json):
        gate, so the verdict matches what `cos task-start` would do.
     """
     if not task_id:
-        _task_validate_lint_all()
+        _task_validate_lint_all(repair=repair)
         return
+    if repair:
+        click.echo("ERROR: --repair applies to lint mode only (drop the TASK_ID).", err=True)
+        sys.exit(2)
     _task_validate_preflight(task_id, for_status, as_json)
 
 
-def _task_validate_lint_all() -> None:
-    from board_os.parser import detect_duplicate_frontmatter, parse_task
+def _task_validate_lint_all(*, repair: bool = False) -> None:
+    from board_os.parser import (
+        detect_duplicate_frontmatter,
+        parse_task,
+        repair_duplicate_frontmatter,
+    )
 
     root = _project_root()
     tasks_dir = root / "docs" / "tasks"
@@ -1012,9 +1025,17 @@ def _task_validate_lint_all() -> None:
         return
     errors = 0
     warnings = 0
+    repaired = 0
     for p in sorted(tasks_dir.glob("TASK-*.md")):
         content = p.read_text(encoding="utf-8")
         duplicate = detect_duplicate_frontmatter(content)
+        if duplicate and repair:
+            fixed = repair_duplicate_frontmatter(content)
+            if fixed is not None:
+                p.write_text(fixed, encoding="utf-8")
+                click.echo(f"  ⟳ {p.name}: repaired (stale duplicate block dropped)")
+                repaired += 1
+                content, duplicate = fixed, None
         if duplicate:
             click.echo(f"  ✗ {p.name}: {duplicate}", err=True)
             errors += 1
@@ -1030,8 +1051,28 @@ def _task_validate_lint_all() -> None:
                 warnings += 1
         else:
             click.echo(f"  ✓ {p.name}")
-    click.echo(f"\n  Total: {errors} errors, {warnings} warnings")
+    if repaired:
+        # A repaired file was previously rejected by sync_one, so its DB row is
+        # stale — re-sync before reporting success or the board keeps the old
+        # priority/status it was frozen at.
+        _resync_repaired_tasks(root)
+    suffix = f", {repaired} repaired" if repaired else ""
+    click.echo(f"\n  Total: {errors} errors, {warnings} warnings{suffix}")
     sys.exit(1 if errors > 0 else 0)
+
+
+def _resync_repaired_tasks(root: Path) -> None:
+    from board_os.sync import sync_all
+
+    conn = _db_conn()
+    try:
+        stats = sync_all(conn, root)
+    except Exception as exc:
+        click.echo(f"  ⚠ re-sync failed ({exc}) — run `cos task-sync` manually", err=True)
+        return
+    finally:
+        conn.close()
+    click.echo(f"  ⟳ board re-synced: {stats['upserted']} upserted of {stats['scanned']} scanned")
 
 
 def _task_validate_preflight(task_id: str, for_status: str, as_json: bool) -> None:

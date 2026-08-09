@@ -112,6 +112,34 @@ def detect_duplicate_frontmatter(content: str) -> str | None:
     )
 
 
+def repair_duplicate_frontmatter(content: str) -> str | None:
+    """Drop the stale second frontmatter block (and the H1 it duplicates).
+
+    Returns the repaired text, or None when there is nothing to repair. The
+    FIRST block is authoritative — it is the one the parser and the board
+    already use — so the second block plus its trailing duplicate H1 are the
+    only things removed; the body is untouched.
+    """
+    if detect_duplicate_frontmatter(content) is None:
+        return None
+    m = _FRONTMATTER_RE.match(content)
+    if not m:
+        return None
+    head, body = content[: m.start("body")], m.group("body")
+    stale = re.compile(
+        r"\n?---\s*\n.*?\n---\s*\n"  # the stale block
+        r"(?:\s*^\#\s+TASK-[^\n]*\n)?",  # ... and the H1 it duplicates
+        re.DOTALL | re.MULTILINE,
+    )
+    repaired_body, count = stale.subn("\n", body, count=1)
+    if count == 0:
+        return None
+    repaired = head + repaired_body
+    if detect_duplicate_frontmatter(repaired) is not None:
+        return None  # more than one stale block — refuse rather than half-fix
+    return repaired
+
+
 def _extract_body_sections(body: str) -> dict[str, str]:
     sections: dict[str, str] = {}
     matches = list(_H2_RE.finditer(body))
