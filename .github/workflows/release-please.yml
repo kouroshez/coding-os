@@ -104,6 +104,14 @@ jobs:
       - uses: sigstore/gh-action-sigstore-python@790bc6befb9d733738f18d8f895854b453640ec9 # v3.5.0
         with:
           inputs: dist/*.whl dist/*.tar.gz
+      - name: Move signature bundles out of dist/
+        # gh-action-pypi-publish uploads EVERY file in packages-dir, so a
+        # .sigstore.json left beside the wheel fails the whole publish with
+        # "Unknown distribution format" (it did, on the v0.3.10 recovery run).
+        run: |
+          mkdir -p signatures
+          mv dist/*.sigstore.json signatures/
+          ls -l dist signatures
       - name: Attach SBOM + signature bundles to the GitHub release
         # The trigger is a push (not a release event), so auto-upload paths
         # in the actions above don't fire — attach the evidence explicitly.
@@ -113,6 +121,6 @@ jobs:
           TAG: ${{ inputs.publish_ref || needs.release-please.outputs.tag_name }}
         run: |
           gh release upload "$TAG" coding-os-sbom.spdx.json --clobber
-          gh release upload "$TAG" dist/*.sigstore.json --clobber
+          gh release upload "$TAG" signatures/*.sigstore.json --clobber
       # ------------------------------------------------------------------
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
