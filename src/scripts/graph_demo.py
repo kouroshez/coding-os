@@ -20,8 +20,8 @@ import webbrowser
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "core"))
-sys.path.insert(0, str(REPO_ROOT / "core" / "thinking_os"))
+sys.path.insert(0, str(REPO_ROOT / "src" / "core"))
+sys.path.insert(0, str(REPO_ROOT / "src" / "core" / "thinking_os"))
 
 from database import init_db  # type: ignore
 

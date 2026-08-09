@@ -23,14 +23,14 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(ROOT / "core" / "thinking_os"))
+sys.path.insert(0, str(ROOT / "src" / "core" / "thinking_os"))
 
 from dispatcher import DispatchRequest
 
 # Load the claude-sdk dispatcher by path (core/ can't import it directly)
 spec = importlib.util.spec_from_file_location(
     "claude_sdk_dispatcher",
-    ROOT / "adapters" / "claude" / "sdk_dispatcher.py",
+    ROOT / "src" / "adapters" / "claude" / "sdk_dispatcher.py",
 )
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
