@@ -35,6 +35,14 @@ Recorded exceptions:
   dual `board_os.*`/`core.board_os.*` import paths double-count some of them;
   a pre/post error-list diff confirmed no new untyped code. The gate caught
   the +410 implicit-re-export regression first, which WAS fixed (`__all__`).
+- 2026-08-09 (TASK-921): mypy BASELINE 4649 → 4651. The gate caught a real
+  regression from the new repair tests (wrong import path + unnarrowed
+  `Optional`s) and that WAS fixed; the residual +2 sits inside the
+  local↔CI counting gap (local reports 4635 for the same tree), so the
+  baseline is re-measured from CI. **Always re-measure from a CI log** — a
+  laptop number will silently under-set the gate. The failure output now
+  prints per-file counts so the next rise is diagnosable without a CI
+  round-trip.
 
 ## What each gate does NOT cover (scope honesty)
 

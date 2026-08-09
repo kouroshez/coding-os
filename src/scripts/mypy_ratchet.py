@@ -11,10 +11,11 @@ import re
 import subprocess
 import sys
 
-# 4599 measured 2026-08-08; re-measured to 4649 (CI env) after the
-# mcp_tools/doctor module splits relocated 166 existing errors under new
-# module identities — no new untyped code (diff audited, ci-gates.md).
-BASELINE = 4649
+# Measured in the CI environment, which reports ~16 more than a local run
+# (the documented dual `board_os.*`/`core.board_os.*` counting artifact) —
+# always re-measure from a CI log, never from a laptop. History + rationale:
+# docs/engineering/ci-gates.md § Recorded exceptions.
+BASELINE = 4651
 SCOPE = ["src/core/thinking_os", "src/core/board_os", "src/core/graph_os"]
 
 
@@ -38,8 +39,17 @@ def main() -> int:
 
     if count > BASELINE:
         print(f"mypy-ratchet: FAIL — {count} errors > baseline {BASELINE} (+{count - BASELINE})")
-        new_lines = [line for line in out.splitlines() if ": error:" in line]
-        print("\n".join(new_lines[-40:]))
+        # Per-file counts, not a tail of raw lines: a rise is diagnosed by
+        # diffing this table against a local run. The old tail-40 output hid
+        # which file grew and cost a CI round-trip to find out.
+        per_file: dict[str, int] = {}
+        for line in out.splitlines():
+            if ": error:" in line:
+                path = line.split(":", 1)[0]
+                per_file[path] = per_file.get(path, 0) + 1
+        print("errors per file (diff against a local `uv run mypy <scope>`):")
+        for path, n in sorted(per_file.items(), key=lambda kv: -kv[1]):
+            print(f"  {n:>5}  {path}")
         return 1
     if count < BASELINE:
         print(
