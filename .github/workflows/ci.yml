@@ -298,6 +298,9 @@ jobs:
       - name: make test-slow
         run: make test-slow
       - name: Graph phantom-regression gate (full reindex — nightly-only, too slow per-PR)
+        # always(): an independent signal, so a `make test-slow` failure must not
+        # shadow it — before this it had never executed once in 72 runs.
+        if: always()
         # Builds the graph from scratch (~44K nodes, minutes) then fails if
         # orphaned_phantom nodes exceed the baseline — the real "graph rotted"
         # signal (the 70 cursor-node spike class). A raw healthy:false gate was
@@ -393,6 +396,13 @@ jobs:
           fi
         # NEW/CHANGED docs must satisfy the full SSOT header contract (strict);
         # the pre-existing backlog stays advisory via the make docs-lint step above.
+      - name: Task-file lint (no duplicate frontmatter)
+        run: uv run cos task-validate
+        # Required: a duplicated frontmatter block makes sync_one reject the
+        # file outright, silently freezing its board row (TASK-891 read P0 in
+        # the file and P2 on the board). The detector already existed and was
+        # wired to nothing, which is why it recurred three times — repair with
+        # `cos task-validate --repair`.
       - name: OpenAPI snapshot in sync
         run: uv run python src/scripts/dump_openapi.py --check
         # Required: a drifted Hub API contract must regenerate the
@@ -416,7 +426,18 @@ jobs:
   ci-pass:
     name: CI Pass
     if: always()
-    needs: [lint, test-python, coverage, test-hooks, test-frontend, test-modularity, test-matrix, docs-lint]
+    needs:
+      [
+        lint,
+        test-python,
+        coverage,
+        test-hooks,
+        test-frontend,
+        test-modularity,
+        test-matrix,
+        docs-lint,
+        test-slow-nightly,
+      ]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -431,6 +452,13 @@ jobs:
              || [[ "${{ needs.test-matrix.result }}" != "success" ]] \
              || [[ "${{ needs.docs-lint.result }}" != "success" ]]; then
             echo "One or more required jobs failed."
+            exit 1
+          fi
+          # Nightly-only: 'skipped' is the correct result on push/PR runs, but a
+          # real failure must not report green (it did — run 31246768706).
+          if [[ "${{ needs.test-slow-nightly.result }}" != "success" \
+             && "${{ needs.test-slow-nightly.result }}" != "skipped" ]]; then
+            echo "Nightly slow suite failed (result: ${{ needs.test-slow-nightly.result }})."
             exit 1
           fi
           echo "All required jobs passed."
