@@ -1696,20 +1696,21 @@ def init(
         click.echo("Aborted.")
         sys.exit(0)
 
-    # Non-TTY without --yes: refuse to guess targets silently (TASK-359).
+    # Non-TTY without --yes: refuse to guess the TARGET silently (TASK-359).
+    # Gated on the target alone — a missing --agent is NOT pre-empted here,
+    # because the agent prompt below already exits 2 when no input arrives,
+    # while pre-empting would also reject a pipe that IS carrying the answer
+    # (`printf 'claude\n0\ny\n' | cos init -d DIR`). The message still names
+    # every missing flag so a bare `cos init` reports the whole gap at once.
     # Sits AFTER existing-install detection so the idempotent sync path keeps
     # working for a bare re-`cos init` inside a project.
     if not yes and not sys.stdin.isatty():
-        if agent is None:
-            click.echo(
-                "ERROR: non-interactive shell — pass --agent (and --name/--project-dir), "
-                "or use --yes.",
-                err=True,
-            )
-            sys.exit(2)
         if name is None and project_dir is None and not debug:
+            missing = "--name and/or --project-dir"
+            if agent is None:
+                missing = f"--agent, {missing}"
             click.echo(
-                "ERROR: non-interactive shell — pass --name and/or --project-dir "
+                f"ERROR: non-interactive shell — pass {missing} "
                 "(or --yes to scaffold into the current directory).",
                 err=True,
             )
