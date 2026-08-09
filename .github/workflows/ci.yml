@@ -454,11 +454,14 @@ jobs:
             echo "One or more required jobs failed."
             exit 1
           fi
-          # Nightly-only: 'skipped' is the correct result on push/PR runs, but a
-          # real failure must not report green (it did — run 31246768706).
-          if [[ "${{ needs.test-slow-nightly.result }}" != "success" \
-             && "${{ needs.test-slow-nightly.result }}" != "skipped" ]]; then
-            echo "Nightly slow suite failed (result: ${{ needs.test-slow-nightly.result }})."
-            exit 1
+          # Nightly slow suite: SURFACED, not yet gating. Run 31246768706 was
+          # red under a green CI Pass, which is why it is reported here at all.
+          # It stays non-blocking until the suite's order-fragility is fixed
+          # (issue #39): two back-to-back local runs on an identical tree
+          # produced different failure sets, so gating on it would make `main`
+          # flaky-red. Promote to `exit 1` once those runs are reproducible.
+          nightly="${{ needs.test-slow-nightly.result }}"
+          if [[ "$nightly" != "success" && "$nightly" != "skipped" ]]; then
+            echo "::warning::Nightly slow suite result=$nightly (not gating — see issue #39)."
           fi
           echo "All required jobs passed."

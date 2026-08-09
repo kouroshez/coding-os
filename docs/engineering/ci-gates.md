@@ -13,7 +13,7 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 | Complexity | part of `ruff check` — `C901` (mccabe ≤20), `PLR0912` (branches ≤24), `PLR0913` (args ≤10), `PLR0915` (statements ≤100) | per-file baseline in `pyproject.toml` `per-file-ignores` (101 violations / 40 files, 2026-08-08) | baseline may only shrink; never add a file |
 | mypy ratchet | `uv run python src/scripts/mypy_ratchet.py` | error count ≤ `BASELINE` in the script (4649, 2026-08-08 — see the exception log below) | count may only fall; lower `BASELINE` when you fix errors |
 | Tests + coverage | `make coverage` | `fail_under` in `pyproject.toml` (62; measured 63) | ratchet toward 70 → 80 |
-| Slow suite (nightly) | `make test-slow` + the graph phantom gate, on the `schedule` trigger only | 0 failures; phantom count ≤ baseline | counted by `CI Pass`: `skipped` (push/PR) passes, `failure` fails |
+| Slow suite (nightly) | `make test-slow` + the graph phantom gate, on the `schedule` trigger only | 0 failures; phantom count ≤ baseline | **surfaced, not gating** — `CI Pass` emits a warning; see the order-fragility note below |
 | diff-cover (PRs only) | `diff-cover coverage.xml --fail-under 80` | 80% on changed lines | fixed — see the scope note below |
 | File-size ratchet | `tests/test_file_size_budget.py` | `MAX_LINES` | may only fall |
 | shellcheck | `shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh` | 0 warnings | fixed |
@@ -51,6 +51,14 @@ is trunk-based — the maintainer pushes straight to `main`:
   must be fixed forward, not prevented.
 - **`make docs-lint`** hard-gates the link audit; its front-matter and staleness
   half is advisory locally and only strict-gated on *changed* docs in CI.
+- **The nightly slow suite is order-fragile**, so it reports rather than gates.
+  Measured 2026-08-09: two back-to-back `make test-slow` runs on an identical
+  tree failed on *different* sets — the second run cleared five fixed failures
+  and surfaced two new ones (`TestPersonaGoFiber`) that had passed an hour
+  earlier. Root cause class: tests inheriting ambient `COS_*` env and shared
+  scaffold state (issue #39). Until a run is reproducible, `CI Pass` emits a
+  warning instead of failing; gating on a flaky suite would just teach everyone
+  to ignore a red `main`.
 
 ## mypy promotion path
 
