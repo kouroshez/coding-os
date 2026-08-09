@@ -54,3 +54,7 @@ references: []
 - 2026-08-09 [claude]: Edit update.py
 - 2026-08-09 [claude]: Edit ci.yml
 - 2026-08-09 [claude]: Edit ci-gates.md
+- 2026-08-09 [claude]: Edit test_frontmatter_repair.py
+- 2026-08-09 [claude]: Edit mypy_ratchet.py
+- 2026-08-09 [claude]: Edit ci-gates.md
+- 2026-08-09 [claude]: commit a11ebb31e4 — ci: re-measure the mypy baseline from CI and make a rise diagnosable
