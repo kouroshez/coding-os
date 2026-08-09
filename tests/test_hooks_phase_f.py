@@ -574,7 +574,11 @@ class TestHookVisibility:
             "COS_AGENT": "codex",
             "CODEX_HOME": str(tmp_path / "home"),
         }
-        p = {"tool_name": "Bash", "tool_input": {"command": "ls -la"}}
+        # The command must carry one of the hook's trigger literals ("git push"
+        # here) or the fast-skip returns before the fire log ever runs — a plain
+        # `ls -la` exits at the no-match short-circuit. Non-force push to a
+        # feature branch reaches the log and is still allowed.
+        p = {"tool_name": "Bash", "tool_input": {"command": "git push origin feature-x"}}
         r = _invoke(BLOCK_DANGEROUS_COMMANDS, p, env=env)
         assert r.returncode == 0
         log_text = (state / ".hooks.log").read_text()

@@ -151,7 +151,48 @@ def _load_adapter(agent: str):
     return adapters[agent]
 
 
-def _build_target_assets(agent: str, templates: list[str]) -> dict[str, list[AssetRef]]:
+# install-adapter.sh deliberately leaves these two unlinked (on-demand reference
+# only, audit 2026-06 token-economics C1). Enumerating them here made every fresh
+# install report drift on the very next `cos update`.
+_NON_ACTIVE_RULES = frozenset({"dimension-registry.md", "skill-enforcement.md"})
+
+
+def _module_disabled_assets(project: Path | None, key: str) -> frozenset[str]:
+    """Core rule/command filenames owned ONLY by disabled subsystem modules.
+
+    Mirrors install-adapter.sh's ref-counted sweep so `cos update` expects the
+    same set the installer actually links (TASK-876).
+    """
+    if project is None:
+        return frozenset()
+    try:
+        manifest = yaml.safe_load((CORE_DIR / "subsystems.yaml").read_text(encoding="utf-8")) or {}
+        state = json.loads(
+            (project / ".coding-os" / "subsystems-state.json").read_text(encoding="utf-8")
+        )
+    except (OSError, yaml.YAMLError, json.JSONDecodeError):
+        return frozenset()
+    disabled = {str(x) for x in (state.get("disabled") or [])}
+    if not disabled:
+        return frozenset()
+    modules = manifest.get("modules") or []
+
+    def _enabled(module: dict) -> bool:
+        return bool(module.get("kernel")) or str(module.get("id")) not in disabled
+
+    owned_by_enabled = {n for m in modules if _enabled(m) for n in (m.get(key) or [])}
+    return frozenset(
+        name
+        for m in modules
+        if not _enabled(m)
+        for name in (m.get(key) or [])
+        if name not in owned_by_enabled
+    )
+
+
+def _build_target_assets(
+    agent: str, templates: list[str], project: Path | None = None
+) -> dict[str, list[AssetRef]]:
     """Enumerate every symlink we expect to exist for this install."""
     adapter = _load_adapter(agent)
     result: dict[str, list[AssetRef]] = {
@@ -187,7 +228,10 @@ def _build_target_assets(agent: str, templates: list[str]) -> dict[str, list[Ass
     # Rules — only when adapter supports them.
     rules_dir_rel = adapter.rules_dir
     if rules_dir_rel:
+        skip_rules = _NON_ACTIVE_RULES | _module_disabled_assets(project, "rules")
         for rule in sorted((CORE_DIR / "rules").glob("*.md")):
+            if rule.name in skip_rules:
+                continue
             result["rules"].append(
                 AssetRef(
                     name=rule.name,
@@ -238,7 +282,12 @@ def _build_target_assets(agent: str, templates: list[str]) -> dict[str, list[Ass
     if commands_dir_rel:
         commands_src = CORE_DIR / "commands"
         if commands_src.exists():
+            skip_commands = {
+                f"{stem}.md" for stem in _module_disabled_assets(project, "commands")
+            } | _module_disabled_assets(project, "commands")
             for cmd in sorted(commands_src.glob("*.md")):
+                if cmd.name in skip_commands:
+                    continue
                 result["commands"].append(
                     AssetRef(
                         name=cmd.name,
@@ -488,7 +537,7 @@ def update(
     applied_summary: dict[str, dict] = {}
 
     for agent in agents:
-        target = _build_target_assets(agent, templates)
+        target = _build_target_assets(agent, templates, project)
         present = _scan_project_assets(
             project,
             list(target.keys()),
