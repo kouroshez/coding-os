@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from board_os.parser import (
+from core.board_os.parser import (
     detect_duplicate_frontmatter,
     extract_frontmatter,
     parse_task,
@@ -60,12 +60,14 @@ def test_repair_drops_the_stale_block_and_keeps_the_live_one() -> None:
     assert fixed is not None
     assert detect_duplicate_frontmatter(fixed) is None
     front = extract_frontmatter(fixed)
+    assert front is not None
     assert front["status"] == "blocked"
     assert front["priority"] == "P0"
 
 
 def test_repair_preserves_the_body() -> None:
     fixed = repair_duplicate_frontmatter(_corrupted())
+    assert fixed is not None
     assert "## Acceptance (G/W/T)" in fixed
     assert "Something measurable." in fixed
     assert fixed.count("# TASK-001: Live") == 1
@@ -73,6 +75,7 @@ def test_repair_preserves_the_body() -> None:
 
 def test_repaired_file_parses_and_would_sync(tmp_path: Path) -> None:
     fixed = repair_duplicate_frontmatter(_corrupted())
+    assert fixed is not None
     path = tmp_path / "TASK-001-live.md"
     path.write_text(fixed, encoding="utf-8")
     parsed = parse_task(fixed, path=path)
@@ -87,6 +90,7 @@ def test_repair_is_a_noop_on_a_clean_file() -> None:
 
 def test_repair_is_idempotent() -> None:
     once = repair_duplicate_frontmatter(_corrupted())
+    assert once is not None
     assert repair_duplicate_frontmatter(once) is None
 
 
