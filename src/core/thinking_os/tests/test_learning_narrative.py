@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -17,14 +18,14 @@ from tools._learning_store import _derive_project_root
 
 
 @pytest.fixture
-def conn(tmp_path: Path) -> sqlite3.Connection:
+def conn(tmp_path: Path) -> Iterator[sqlite3.Connection]:
     c = init_db(tmp_path / "test.db")
     yield c
     c.close()
 
 
 @pytest.fixture
-def project_conn(tmp_path: Path) -> sqlite3.Connection:
+def project_conn(tmp_path: Path) -> Iterator[sqlite3.Connection]:
     """DB in <tmp>/.coding-os/coding-os.db with a sibling docs/ dir."""
     state_dir = tmp_path / ".coding-os"
     state_dir.mkdir()

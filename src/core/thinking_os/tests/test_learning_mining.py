@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 import subprocess
+from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -20,7 +21,7 @@ from tools.learning import learn_extract
 
 
 @pytest.fixture
-def conn(tmp_path: Path) -> sqlite3.Connection:
+def conn(tmp_path: Path) -> Iterator[sqlite3.Connection]:
     c = init_db(tmp_path / "test.db")
     yield c
     c.close()
