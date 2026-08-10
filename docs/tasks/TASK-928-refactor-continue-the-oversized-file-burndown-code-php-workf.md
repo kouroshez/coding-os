@@ -45,3 +45,19 @@ references: []
 - 2026-08-10 [claude]: Edit mypy_ratchet.py
 - 2026-08-10 [claude]: Edit ci-gates.md
 - 2026-08-10 [claude]: code_php.py 979 → 300: split into _php_uids (leaf: uid grammar + node primitives), _php_symbols (declaration walker,…
+- 2026-08-10 [claude]: commit 1bf573adc5 — refactor(graph_os): split code_php into a uid leaf, symbol walker, and call walker
+- 2026-08-10 [claude]: Edit _workflow_types.py
+- 2026-08-10 [claude]: Edit _workflow_deps.py
+- 2026-08-10 [claude]: Edit _workflow_frontmatter.py
+- 2026-08-10 [claude]: Edit _workflow_wip.py
+- 2026-08-10 [claude]: Edit _workflow_gates.py
+- 2026-08-10 [claude]: Edit _workflow_gates.py
+- 2026-08-10 [claude]: Edit _workflow_gates.py
+- 2026-08-10 [claude]: Edit workflow.py
+- 2026-08-10 [claude]: Edit diff_workflow_baseline.py
+- 2026-08-10 [claude]: Edit pyproject.toml
+- 2026-08-10 [claude]: Edit verify_workflow_split.py
+- 2026-08-10 [claude]: Edit pyproject.toml
+- 2026-08-10 [claude]: Edit mypy_ratchet.py
+- 2026-08-10 [claude]: Edit ci-gates.md
+- 2026-08-10 [claude]: workflow.py 964 → 422: split into _workflow_types (leaf: edges, WIP columns, result types), _workflow_wip (65),…

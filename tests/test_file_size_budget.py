@@ -51,7 +51,6 @@ BASELINE: dict[str, int] = {
     "tests/test_template_scaffold.py": 1117,
     "src/core/web/routes/board.py": 1086,
     "src/core/graph_os/backends/sqlite_backend.py": 1052,
-    "src/core/board_os/workflow.py": 964,
     "src/core/thinking_os/tools/_shared.py": 947,
     "src/core/thinking_os/embeddings.py": 943,
     "src/core/board_os/_mcp_reclaim.py": 935,

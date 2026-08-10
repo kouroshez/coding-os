@@ -65,6 +65,18 @@ Recorded exceptions:
   The file stays on the backlog with this note so the next attempt starts from
   the test suite, not from the module.
 
+- 2026-08-10 (TASK-928): mypy BASELINE 4524 → **4500** and the `workflow.py`
+  file-size entry (964) deleted — the split dropped it to 422. The +2 the split
+  first introduced were the flat-sibling `import-not-found` class again, so
+  `board_os.config` and the three `transition_gates*` names joined
+  `ignore_missing_imports` rather than widening the count; that fix cleared 24
+  errors repo-wide. All five new `_workflow_*` siblings were added to the mypy
+  strict list so the split does not silently drop the strict coverage
+  `board_os.workflow` had. Ruff `PLR0915` is no longer needed on `workflow.py`
+  (4 ignores → 3). Behaviour verified by a 20-scenario differential against the
+  pre-split module comparing every `TransitionResult` field, the tasks row, the
+  `task_status_history` entry, and the written frontmatter.
+
 - 2026-08-10 (TASK-928): mypy BASELINE 4540 → **4524** and the `code_php.py`
   file-size entry (979) deleted rather than lowered — the split dropped it to
   300, under `SOFT_LIMIT`. The ruff `C901`/`PLR0915` per-file ignore moved from

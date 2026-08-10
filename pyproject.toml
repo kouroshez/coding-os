@@ -410,7 +410,7 @@ unfixable = [
 "src/core/board_os/_mcp_create.py" = ["C901", "PLR0913"]
 "src/core/board_os/_mcp_history.py" = ["PLR0913"]
 "src/core/board_os/transition_gates_validator.py" = ["PLR0913"]
-"src/core/board_os/workflow.py" = ["C901", "PLR0912", "PLR0913", "PLR0915"]
+"src/core/board_os/workflow.py" = ["C901", "PLR0912", "PLR0913"]
 "src/core/graph_os/entry_points.py" = ["C901"]
 "src/core/graph_os/extractors/_php_symbols.py" = ["C901", "PLR0915"]
 "src/core/graph_os/extractors/code_go.py" = ["PLR0913"]
@@ -488,6 +488,11 @@ module = [
     "thinking_os.tools.*",
     "graph_os.backends.*",
     "board_os.workflow",
+    "board_os._workflow_types",
+    "board_os._workflow_wip",
+    "board_os._workflow_deps",
+    "board_os._workflow_frontmatter",
+    "board_os._workflow_gates",
 ]
 strict = true
 
@@ -520,6 +525,13 @@ module = [
     "sanitizer",
     "embeddings",
     "capture",
+    # Same class, board_os flavour: `from board_os.config import …` resolves at
+    # runtime (src/core is on sys.path) but not from the repo root. Splitting
+    # workflow.py multiplied the one pre-existing error by each new sibling.
+    "board_os.config",
+    "board_os.transition_gates",
+    "board_os.transition_gates_validator",
+    "board_os.transition_gates_cli",
 ]
 ignore_missing_imports = true
 
