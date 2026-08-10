@@ -10,10 +10,10 @@ from pathlib import Path
 import pytest
 
 
-def _load_db_module():
+def _load_module(alias: str, filename: str):
     spec = importlib.util.spec_from_file_location(
-        "_db_under_test",
-        Path(__file__).resolve().parents[2] / "thinking_os" / "database.py",
+        alias,
+        Path(__file__).resolve().parents[2] / "thinking_os" / filename,
     )
     mod = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
@@ -21,7 +21,13 @@ def _load_db_module():
     return mod
 
 
+def _load_db_module():
+    return _load_module("_db_under_test", "database.py")
+
+
 db = _load_db_module()
+# Private migration helpers live in the append-only ledger since the 2026-08-10 split.
+migrations = _load_module("_db_migrations_under_test", "_db_migrations.py")
 
 
 @pytest.fixture
@@ -100,8 +106,8 @@ def test_v13_helpers_report_present(fresh_conn: sqlite3.Connection):
 
 def test_v13_is_idempotent(fresh_conn: sqlite3.Connection):
     """Re-running the migration must not error or duplicate columns."""
-    db._migrate_v13_board_os(fresh_conn)
-    db._migrate_v13_board_os(fresh_conn)  # second time
+    migrations._migrate_v13_board_os(fresh_conn)
+    migrations._migrate_v13_board_os(fresh_conn)  # second time
     # Still exactly one column per name
     col_counts: dict[str, int] = {}
     for row in fresh_conn.execute("PRAGMA table_info(tasks)").fetchall():
@@ -144,7 +150,7 @@ def test_v13_preserves_existing_tasks_rows(tmp_path: Path):
     conn.commit()
     # Re-run v13 (idempotent) and verify the row is still there with all
     # legacy values intact and new columns NULL/default.
-    db._migrate_v13_board_os(conn)
+    migrations._migrate_v13_board_os(conn)
     row = conn.execute(
         "SELECT task_id, title, status, swimlane, kind, labels_json "
         "FROM tasks WHERE task_id='TASK-001'"
