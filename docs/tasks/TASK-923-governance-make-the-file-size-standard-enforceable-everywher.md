@@ -65,3 +65,5 @@ references: []
 - 2026-08-10 [claude]: Edit check_file_size.py
 - 2026-08-10 [claude]: Edit check_file_size.py
 - 2026-08-10 [claude]: Standard revised 800 -> 500 backstop with cohesion-first precedence; the "no new file below the ceiling" clause was…
+- 2026-08-10 [claude]: commit 541b6439a7 — feat(quality): make the file-size budget cohesion-first and surface it everywhere
+- 2026-08-10 [claude]: Edit _init_registries.py

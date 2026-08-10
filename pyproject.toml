@@ -372,10 +372,16 @@ unfixable = [
 "src/core/hooks/_helpers/*.py" = ["E402"]
 "src/cli/aggregator.py" = ["E402"]
 "src/cli/main.py" = ["E402", "C901", "PLR0912", "PLR0913", "PLR0915"]
+# Relocated verbatim from main.py by the 2026-08-10 split — same code, new home.
+"src/cli/_init_phase.py" = ["C901", "PLR0912", "PLR0913", "PLR0915"]
+"src/cli/_init_scaffold.py" = ["C901", "PLR0912", "PLR0915"]
+"src/cli/_init_world.py" = ["C901", "PLR0912", "PLR0913", "PLR0915"]
+"src/cli/_init_preview.py" = ["C901", "PLR0912", "PLR0915"]
 "src/cli/stack_registry.py" = ["E402"]
 "src/cli/update.py" = ["E402", "C901", "PLR0912"]
 "src/core/thinking_os/server.py" = ["E402", "PLR0913"]
 "src/core/thinking_os/_tools_tasks.py" = ["PLR0913"]
+"src/cli/_init_boundaries.py" = ["C901"]
 "src/core/thinking_os/session_summary.py" = ["E402"]
 "src/scripts/**" = ["E402"]                    # late imports in scripts are OK
 # Bench/demo scripts lean on NamedTemporaryFile(delete=False).name for a
