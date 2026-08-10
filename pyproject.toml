@@ -382,6 +382,8 @@ unfixable = [
 "src/core/thinking_os/server.py" = ["E402", "PLR0913"]
 "src/core/thinking_os/_tools_tasks.py" = ["PLR0913"]
 "src/cli/_init_boundaries.py" = ["C901"]
+# Relocated verbatim from graph.py by the 2026-08-10 split.
+"src/core/graph_os/tools/_graph_doctor.py" = ["C901", "PLR0912", "PLR0915"]
 "src/core/thinking_os/session_summary.py" = ["E402"]
 "src/scripts/**" = ["E402"]                    # late imports in scripts are OK
 # Bench/demo scripts lean on NamedTemporaryFile(delete=False).name for a

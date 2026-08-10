@@ -164,7 +164,7 @@ class TestFrictionLessons:
         conn.commit()
 
     def test_mines_lesson_from_recurring_block(self, seeded_conn: sqlite3.Connection) -> None:
-        from tools.learning import _mine_friction_lessons
+        from tools._learning_mining import _mine_friction_lessons
 
         self._seed_failures(
             seeded_conn,
@@ -181,14 +181,14 @@ class TestFrictionLessons:
         assert "occurrences" in rows[0]["pattern"]
 
     def test_one_off_failure_not_minted(self, seeded_conn: sqlite3.Connection) -> None:
-        from tools.learning import _mine_friction_lessons
+        from tools._learning_mining import _mine_friction_lessons
 
         self._seed_failures(seeded_conn, 1, "BLOCKED: a unique one-off thing", session="ses-one")
         lessons = _mine_friction_lessons(seeded_conn, min_occurrences=3)
         assert lessons == []  # floor=2 — a single occurrence never becomes a rule
 
     def test_re_mine_updates_not_duplicates(self, seeded_conn: sqlite3.Connection) -> None:
-        from tools.learning import _mine_friction_lessons
+        from tools._learning_mining import _mine_friction_lessons
 
         self._seed_failures(
             seeded_conn, 2, "BLOCKED: write through symlink CLAUDE.md", session="ses-a"
@@ -215,13 +215,13 @@ class TestFrictionLessons:
         assert lesson_count >= 1
 
     def test_no_observations_no_lessons(self, seeded_conn: sqlite3.Connection) -> None:
-        from tools.learning import _mine_friction_lessons
+        from tools._learning_mining import _mine_friction_lessons
 
         assert _mine_friction_lessons(seeded_conn, min_occurrences=3) == []
 
     def test_old_observations_age_out(self, seeded_conn: sqlite3.Connection) -> None:
         # failures older than the recency window must NOT be re-minted as lessons
-        from tools.learning import _mine_friction_lessons
+        from tools._learning_mining import _mine_friction_lessons
 
         self._seed_failures(
             seeded_conn, 3, "BLOCKED: ancient resolved trap", session="ses-old", days_ago=120
@@ -230,7 +230,7 @@ class TestFrictionLessons:
 
     def test_noise_failures_not_minted(self, seeded_conn: sqlite3.Connection) -> None:
         # tool-fumbles + expected refusals are never lessons, even when recurring
-        from tools.learning import _mine_friction_lessons
+        from tools._learning_mining import _mine_friction_lessons
 
         noise = (
             "EISDIR: illegal operation on a directory, read '/x/y/learning.py'",
@@ -251,7 +251,7 @@ class TestFrictionLessons:
     def test_noise_in_title_filtered(self, seeded_conn: sqlite3.Connection) -> None:
         # StructuredOutput marks the TITLE; the narrative reads like a generic
         # schema error — must still be filtered (title is screened too).
-        from tools.learning import _mine_friction_lessons
+        from tools._learning_mining import _mine_friction_lessons
 
         for i in range(3):
             seeded_conn.execute(
@@ -271,7 +271,7 @@ class TestFrictionLessons:
     def test_lesson_carries_file_concept(self, seeded_conn: sqlite3.Connection) -> None:
         # friction lessons embed file:<basename> in concepts so JIT recall can
         # key on the source file (not basename-in-text, which never matched).
-        from tools.learning import _mine_friction_lessons
+        from tools._learning_mining import _mine_friction_lessons
 
         for i in range(3):
             seeded_conn.execute(
@@ -297,7 +297,7 @@ class TestHumanizeAndTier:
     replace bare percentages. Contract: learning-extraction.md."""
 
     def test_humanize_translates_jargon(self) -> None:
-        from tools.learning import _humanize_signature
+        from tools._learning_mining import _humanize_signature
 
         out = _humanize_signature(
             "predicates_unsatisfied: no EvidenceBundle for predicates ['coverage_100']"
@@ -306,7 +306,7 @@ class TestHumanizeAndTier:
         assert "proof" in out.lower()
 
     def test_humanize_passthrough_plain_text(self) -> None:
-        from tools.learning import _humanize_signature
+        from tools._learning_mining import _humanize_signature
 
         assert _humanize_signature("plain readable message") == "plain readable message"
 
@@ -338,7 +338,7 @@ class TestCommitLessons:
         return repo
 
     def test_fix_commit_regex(self) -> None:
-        from tools.learning import _FIX_COMMIT_RE
+        from tools._learning_mining_logs import _FIX_COMMIT_RE
 
         assert _FIX_COMMIT_RE.match("fix(cli): something")
         assert _FIX_COMMIT_RE.match("revert: bad change")
@@ -347,14 +347,14 @@ class TestCommitLessons:
         assert not _FIX_COMMIT_RE.match("docs: update")
 
     def test_subject_key_normalises_ids(self) -> None:
-        from tools.learning import _commit_subject_key
+        from tools._learning_mining_logs import _commit_subject_key
 
         a = _commit_subject_key("repoint spec link for TASK-077 anchor")
         b = _commit_subject_key("repoint spec link for TASK-099 anchor")
         assert a == b  # TASK ids + digits normalised → same cluster
 
     def test_recurring_fix_minted_at_threshold(self, tmp_path: Path) -> None:
-        from tools.learning import _mine_commit_lessons
+        from tools._learning_mining_logs import _mine_commit_lessons
 
         repo = self._make_repo(tmp_path)
         for _ in range(3):  # >= _COMMIT_FIX_MIN_RECURRENCE → systemic-gap signal
@@ -379,7 +379,7 @@ class TestCommitLessons:
 
     def test_one_off_fix_not_minted(self, tmp_path: Path) -> None:
         # a fix subject below the recurrence threshold is terse noise → dropped
-        from tools.learning import _mine_commit_lessons
+        from tools._learning_mining_logs import _mine_commit_lessons
 
         repo = self._make_repo(tmp_path)
         for _ in range(2):
@@ -398,7 +398,7 @@ class TestCommitLessons:
             c.close()
 
     def test_single_revert_minted(self, tmp_path: Path) -> None:
-        from tools.learning import _mine_commit_lessons
+        from tools._learning_mining_logs import _mine_commit_lessons
 
         repo = self._make_repo(tmp_path)
         self._git(
@@ -416,7 +416,7 @@ class TestCommitLessons:
 
     def test_no_git_repo_noop(self, conn: sqlite3.Connection) -> None:
         # conn's db is not under a .coding-os/ project root → no-op, no crash
-        from tools.learning import _mine_commit_lessons
+        from tools._learning_mining_logs import _mine_commit_lessons
 
         assert _mine_commit_lessons(conn) == []
 
@@ -456,19 +456,19 @@ class TestNarrativeQualityBar:
     'be careful' slop the Stop nudge could otherwise elicit (the C path)."""
 
     def test_rejects_generic_insight(self, conn: sqlite3.Connection) -> None:
-        from tools.learning import learn_narrative
+        from tools._learning_narrative import learn_narrative
 
         r = learn_narrative(conn, task_id="TASK-1", key_insight="be careful")
         assert "error" in r
 
     def test_rejects_too_short_insight(self, conn: sqlite3.Connection) -> None:
-        from tools.learning import learn_narrative
+        from tools._learning_narrative import learn_narrative
 
         r = learn_narrative(conn, task_id="TASK-1", key_insight="fix it")
         assert "error" in r
 
     def test_accepts_specific_insight(self, conn: sqlite3.Connection) -> None:
-        from tools.learning import learn_narrative
+        from tools._learning_narrative import learn_narrative
 
         r = learn_narrative(
             conn,
@@ -503,7 +503,7 @@ class TestHookBlockLessons:
         return f"[{ts}] [{hook}] [block] agent=claude session=s task=t rule={rule}"
 
     def test_mines_recurring_block(self, conn, tmp_path, monkeypatch):
-        from tools.learning import _mine_hook_block_lessons
+        from tools._learning_mining_logs import _mine_hook_block_lessons
 
         log = tmp_path / ".hooks.log"
         self._write_log(
@@ -519,7 +519,7 @@ class TestHookBlockLessons:
         assert "enforce-skill" in rows[0]["pattern"]
 
     def test_one_off_block_not_minted(self, conn, tmp_path, monkeypatch):
-        from tools.learning import _mine_hook_block_lessons
+        from tools._learning_mining_logs import _mine_hook_block_lessons
 
         log = tmp_path / ".hooks.log"
         self._write_log(log, [self._block_line("enforce-skill", "only-once")])
@@ -527,7 +527,7 @@ class TestHookBlockLessons:
         assert _mine_hook_block_lessons(conn, min_occurrences=3) == []
 
     def test_old_blocks_ignored(self, conn, tmp_path, monkeypatch):
-        from tools.learning import _mine_hook_block_lessons
+        from tools._learning_mining_logs import _mine_hook_block_lessons
 
         log = tmp_path / ".hooks.log"
         self._write_log(
@@ -537,7 +537,7 @@ class TestHookBlockLessons:
         assert _mine_hook_block_lessons(conn, min_occurrences=3) == []
 
     def test_missing_log_is_safe(self, conn, tmp_path, monkeypatch):
-        from tools.learning import _mine_hook_block_lessons
+        from tools._learning_mining_logs import _mine_hook_block_lessons
 
         monkeypatch.setenv("COS_HOOK_LOG", str(tmp_path / "does-not-exist.log"))
         monkeypatch.delenv("COS_HOOK_BLOCK_LOG", raising=False)
@@ -546,7 +546,7 @@ class TestHookBlockLessons:
     def test_mines_from_block_only_log_when_main_flooded(self, conn, tmp_path, monkeypatch):
         # The fix: the main log is flooded with non-block lines (blocks evicted),
         # but the block-only durable log retains them → still mined.
-        from tools.learning import _mine_hook_block_lessons
+        from tools._learning_mining_logs import _mine_hook_block_lessons
 
         main = tmp_path / ".hooks.log"
         self._write_log(
@@ -564,7 +564,7 @@ class TestHookBlockLessons:
     def test_mirrored_block_not_double_counted(self, conn, tmp_path, monkeypatch):
         # Every block is mirrored to BOTH logs. The miner reads ONE source (block
         # log preferred), so 3 real blocks count as 3 — never 6 from summing both.
-        from tools.learning import _mine_hook_block_lessons
+        from tools._learning_mining_logs import _mine_hook_block_lessons
 
         mirrored = [
             self._block_line("thinking_os-gate", "gate-not-recorded", days_ago=d) for d in (0, 1, 2)
@@ -618,7 +618,7 @@ class TestStatClassification:
     def test_remine_reclassifies_legacy_pattern_to_stat(
         self, seeded_conn: sqlite3.Connection
     ) -> None:
-        from tools.learning import _upsert_pattern
+        from tools._learning_store import _upsert_pattern
 
         # legacy garbage row minted (pre-fix) as a generic 'pattern'
         seeded_conn.execute(
@@ -651,7 +651,7 @@ class TestPatternIdentityDedup:
     count-agnostic so a re-mined fact updates its single row."""
 
     def test_pattern_identity_strips_counts(self) -> None:
-        from tools.learning import _pattern_identity
+        from tools._learning_store import _pattern_identity
 
         a = _pattern_identity("INFRA domain succeeds at 100% (32/32 tasks) — reliable baseline")
         b = _pattern_identity("INFRA domain succeeds at 100% (83/83 tasks) — reliable baseline")
@@ -661,7 +661,7 @@ class TestPatternIdentityDedup:
         assert a != c
 
     def test_growing_count_updates_not_duplicates(self, seeded_conn: sqlite3.Connection) -> None:
-        from tools.learning import _upsert_pattern
+        from tools._learning_store import _upsert_pattern
 
         first = _upsert_pattern(
             seeded_conn,
@@ -1021,7 +1021,7 @@ class TestG6EvidenceBasedDefaults:
         """Previously learn_narrative inserted at confidence=0.7 impact=0.85.
         Audit A7 — self-fabricated breakthroughs with high trust. G.6 drops
         those defaults to 0.3 / 0.5 and stamps provenance=agent_self."""
-        from tools.learning import learn_narrative
+        from tools._learning_narrative import learn_narrative
 
         res = learn_narrative(
             seeded_conn,
@@ -1060,7 +1060,7 @@ class TestG6EvidenceBasedDefaults:
     def test_upsert_pattern_explicit_provenance_override(
         self, seeded_conn: sqlite3.Connection
     ) -> None:
-        from tools.learning import _upsert_pattern
+        from tools._learning_store import _upsert_pattern
 
         res = _upsert_pattern(
             seeded_conn,
@@ -1082,7 +1082,7 @@ class TestG6EvidenceBasedDefaults:
     def test_upsert_pattern_unknown_source_falls_back_agent_self(
         self, seeded_conn: sqlite3.Connection
     ) -> None:
-        from tools.learning import _upsert_pattern
+        from tools._learning_store import _upsert_pattern
 
         res = _upsert_pattern(
             seeded_conn,
@@ -1105,7 +1105,8 @@ class TestG6EvidenceBasedDefaults:
 # ---------------------------------------------------------------------------
 
 import embeddings
-from tools.learning import _upsert_pattern, learn_narrative
+from tools._learning_narrative import learn_narrative
+from tools._learning_store import _upsert_pattern
 
 REQUIRES_RAG = pytest.mark.skipif(
     not embeddings.is_available(),
@@ -1345,12 +1346,12 @@ class TestLearnNarrativeEmbedding:
 # Filing-back: markdown artifact in docs/insights/
 # ---------------------------------------------------------------------------
 
-from tools.learning import (
-    _derive_project_root,
+from tools._learning_narrative import (
     _file_back_narrative_safe,
     _format_narrative_markdown,
     _slugify,
 )
+from tools._learning_store import _derive_project_root
 
 
 @pytest.fixture
@@ -1538,7 +1539,7 @@ class TestFileBackNarrative:
 class TestTimesSeenSplit:
     def test_remine_bumps_times_seen_not_times_validated(self, conn: sqlite3.Connection) -> None:
         conn.row_factory = sqlite3.Row
-        from tools.learning import _upsert_pattern
+        from tools._learning_store import _upsert_pattern
 
         kw = {
             "memory_type": "pattern",
@@ -1560,7 +1561,7 @@ class TestTimesSeenSplit:
 
     def test_remine_does_not_raise_penalized_confidence(self, conn: sqlite3.Connection) -> None:
         conn.row_factory = sqlite3.Row
-        from tools.learning import _upsert_pattern
+        from tools._learning_store import _upsert_pattern
 
         kw = {"memory_type": "pattern", "domain": "BACKEND", "source": "mined", "concepts": "[]"}
         pid = _upsert_pattern(conn, pattern="Guard None before deref", confidence=0.4, **kw)["id"]

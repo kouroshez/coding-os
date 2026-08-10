@@ -19,7 +19,10 @@ import json
 
 import pytest
 
-from graph_os.tools import graph as graph_tools
+from graph_os.tools import (
+    _graph_doctor,
+    graph as graph_tools,
+)
 from graph_os.types import GraphEdge, GraphNode
 
 # ---------------------------------------------------------------------------
@@ -620,6 +623,8 @@ class TestStalePathsDetector:
             )
         )
         monkeypatch.setattr(graph_tools, "_repo_root_for_paths", lambda: tmp_path)
+        monkeypatch.setattr(_graph_doctor, "_repo_root_for_paths", lambda: tmp_path)
+        monkeypatch.setattr(_graph_doctor, "_backend", lambda backend=None: captured)
         captured = backend
         monkeypatch.setattr(graph_tools, "_BACKEND_SINGLETON", captured)
         monkeypatch.setattr(graph_tools, "_backend", lambda backend=None: captured)
