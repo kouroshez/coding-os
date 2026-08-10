@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ast
+import re
 from dataclasses import dataclass
 
 _STRING_CAPTURE = r"""['"](?P<path>[^'"]+)['"]"""
@@ -30,3 +32,27 @@ def _join_paths(a: str, b: str) -> str:
     if not b.startswith("/"):
         b = "/" + b
     return f"{a}{b}"
+
+
+def _parse_method_list(raw: str) -> list[str]:
+    methods: list[str] = []
+    for part in raw.split(","):
+        cleaned = part.strip().strip("'\"")
+        if cleaned:
+            methods.append(cleaned)
+    return methods
+
+
+def _next_def_name(content: str, start: int) -> str | None:
+    """Find the next `def name(` after `start` — the decorated handler."""
+    match = re.search(r"\s*def\s+([A-Za-z_][\w]*)", content[start:])
+    return match.group(1) if match else None
+
+
+def _python_file_docstring(content: str) -> str | None:
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        return None
+    doc = ast.get_docstring(tree)
+    return doc.strip() if doc else None
