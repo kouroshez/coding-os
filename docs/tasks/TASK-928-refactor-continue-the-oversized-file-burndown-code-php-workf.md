@@ -63,3 +63,31 @@ references: []
 - 2026-08-10 [claude]: workflow.py 964 → 422: split into _workflow_types (leaf: edges, WIP columns, result types), _workflow_wip (65),…
 - 2026-08-10 [claude]: commit 926297dc03 — refactor(board_os): split workflow into types, wip, deps, frontmatter, and gates
 - 2026-08-10 [claude]: HANDOFF — 2 of 4 files done (code_php 979→300, workflow 964→422), both committed with CI green. Remaining:…
+- 2026-08-10 [claude]: commit 69fd898067 — chore(board): record the workflow split and the handoff note on TASK-928
+- 2026-08-10 [claude]: Edit capture_shared_baseline.py
+- 2026-08-10 [claude]: Edit capture_shared_baseline.py
+- 2026-08-10 [claude]: Edit capture_shared_baseline.py
+- 2026-08-10 [claude]: Edit _envelope_size.py
+- 2026-08-10 [claude]: Edit _envelope_subgraph.py
+- 2026-08-10 [claude]: Edit _envelope_trim.py
+- 2026-08-10 [claude]: Edit _envelope_errors.py
+- 2026-08-10 [claude]: Edit _envelope_gating.py
+- 2026-08-10 [claude]: Edit _envelope_gating.py
+- 2026-08-10 [claude]: Edit _shared.py
+- 2026-08-10 [claude]: Edit _shared.py
+- 2026-08-10 [claude]: Edit _envelope_trim.py
+- 2026-08-10 [claude]: Edit _envelope_subgraph.py
+- 2026-08-10 [claude]: Edit test_file_size_budget.py
+- 2026-08-10 [claude]: Edit pyproject.toml
+- 2026-08-10 [claude]: Edit annotate_envelope.py
+- 2026-08-10 [claude]: Edit pyproject.toml
+- 2026-08-10 [claude]: Edit _shared.py
+- 2026-08-10 [claude]: Edit check_identities.py
+- 2026-08-10 [claude]: Edit commit_shared.txt
+- 2026-08-10 [claude]: commit d11b6ceae5 — refactor(thinking_os): split the MCP envelope into size, trim, subgraph, errors, and gating
+- 2026-08-10 [claude]: _shared.py 947 → 398: split into _envelope_size (measurement leaf), _envelope_trim (the ladder), _envelope_subgraph…
+- 2026-08-10 [claude]: commit d11b6cea — verified by differential against the pre-split module (trim ladder, validators, safe_tool exception…
+- 2026-08-10 [claude]: Edit ci-gates.md
+- 2026-08-10 [claude]: Edit commit_docs.txt
+- 2026-08-10 [claude]: commit bf34bad901 — docs(ci-gates): record why embeddings.py stays whole and how the envelope split cleared mypy
+- 2026-08-10 [claude]: embeddings.py (943) left whole — recorded exception in ci-gates.md (commit bf34bad9). It has cohesion seams but none…
