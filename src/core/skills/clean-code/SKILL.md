@@ -556,6 +556,18 @@ Find the seam by asking what changes together:
 
 Keep the facade's importable names identical so callers, tests, and monkeypatches never notice — a split that changes the public surface is a refactor plus a breaking change, and should not be one commit.
 
+**A split changes five resolution mechanisms at once, and no linter sees any of them.** Verify each by executing, not by reading:
+
+| Mechanism | How it breaks | Check |
+|---|---|---|
+| Import binding | flat vs package vs path-loaded imports resolve differently | run each entry point |
+| Monkeypatch target | the moved function reads its OWN module globals, so a patch on the facade misses half the call sites | have siblings call facade helpers through the module object |
+| Decorator registration | an ImportError silently drops a command or route — no crash, no failing test | count registered commands/routes before and after |
+| Test fixtures | a split test file loses its `conn`-style fixtures, reported only at run time | run the suite, not just collection |
+| Derived artifacts | openapi.json, generated types, golden snapshots drift | regenerate and re-check |
+
+Module-level state must move **with** the function that declares `global` on it — an AST scan reports nothing, because `global x` marks the name local. Anything two siblings need goes in a leaf module that imports neither.
+
 ### The companion budgets — a file rule alone is gameable
 
 A 280-line file holding one 230-line function passes every file check and is still unmaintainable. Four budgets carry equal weight, and the *tightest* one that trips is the one to act on:

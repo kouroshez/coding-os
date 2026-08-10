@@ -39,3 +39,4 @@ references: []
 - 2026-08-10 [claude]: commit 917f3f061d — test(board_os): split the 2202-line mcp tools suite by tool group
 - 2026-08-10 [claude]: Six splits landed green; pr_commands reverted (its suite patches 11 private helpers) with the reason recorded in…
 - 2026-08-10 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-10 [claude]: Edit SKILL.md
