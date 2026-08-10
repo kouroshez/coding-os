@@ -53,6 +53,10 @@ is trunk-based — the maintainer pushes straight to `main`:
   In practice that means Dependabot and release-please PRs; a hand-written
   commit pushed to `main` is never measured by either. Treat them as gates for
   *external contributions*, not as a guarantee over all code.
+  Worse until 2026-08-10: diff-cover fetched the base branch with `--depth=1`,
+  so `origin/<base>...HEAD` had no merge base and the step *crashed* on every
+  PR. The gate had never measured a single line — it failed closed, blocking
+  the whole Dependabot queue. A gate that only ever fails is not a gate.
 - **Branch protection** requires `CI Pass` with `enforce_admins: false`, which
   is what keeps trunk pushes working. For the maintainer the check is therefore
   *post-push reporting*, not a pre-merge block — a red `main` is visible and
