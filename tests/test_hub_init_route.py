@@ -36,9 +36,11 @@ def _client() -> TestClient:
 
 def _patch_init(monkeypatch, fn):
     # Deterministic import — never depend on an earlier test having built the app.
-    import web.routes.hub as hub_routes
+    # Patch the module that DEFINES and CALLS _run_cos_init: the route resolves it
+    # from its own globals, so patching the hub facade's re-export would miss.
+    import web.routes._hub_init_routes as init_routes
 
-    monkeypatch.setattr(hub_routes, "_run_cos_init", fn)
+    monkeypatch.setattr(init_routes, "_run_cos_init", fn)
 
 
 class TestStacksEndpoint:
