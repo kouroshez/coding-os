@@ -5,13 +5,13 @@ swimlane: adapters
 kind: feature
 epic: null
 labels: [codex, adapter, openai-sdk, parity, research, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 3d
 created: 2026-07-10
 started: 2026-07-10
 completed: 2026-07-10
-agent_session: ses-codex-20260710-112709-c0f9
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
