@@ -387,6 +387,7 @@ unfixable = [
 # Relocated verbatim from graph.py by the 2026-08-10 split.
 "src/core/graph_os/tools/_graph_doctor.py" = ["C901", "PLR0912", "PLR0915"]
 "src/core/thinking_os/tools/_cognition_dispatch.py" = ["PLR0913"]
+"src/core/thinking_os/tools/_cognition_supervise.py" = ["PLR0913"]
 "src/core/thinking_os/session_summary.py" = ["E402"]
 "src/scripts/**" = ["E402"]                    # late imports in scripts are OK
 # Bench/demo scripts lean on NamedTemporaryFile(delete=False).name for a
@@ -435,7 +436,6 @@ unfixable = [
 "src/core/thinking_os/capture.py" = ["C901"]
 "src/core/thinking_os/concepts.py" = ["C901"]
 "src/core/thinking_os/session_enrich.py" = ["C901", "PLR0912"]
-"src/core/thinking_os/tools/cognition.py" = ["PLR0913", "E402"]
 # Facade: the part modules decorate the router defined above them.
 "src/core/web/routes/cognition.py" = ["E402"]
 "src/core/thinking_os/tools/docs.py" = ["PLR0913"]

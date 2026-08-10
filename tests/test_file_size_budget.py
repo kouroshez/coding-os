@@ -26,7 +26,6 @@ BASELINE: dict[str, int] = {
     # Append-only schema ledger — recorded exception, see ci-gates.md.
     "src/core/thinking_os/_db_migrations.py": 2316,
     "src/core/thinking_os/tools/learning.py": 1061,
-    "src/core/thinking_os/tools/cognition.py": 1237,
     "src/cli/pr_commands.py": 2024,
     "tests/_cli_suite/pr.py": 2018,
     "src/core/graph_os/extractors/code_ts.py": 930,
