@@ -33,7 +33,7 @@ BASELINE: dict[str, int] = {
     "src/core/graph_os/tools/graph.py": 1271,
     "src/core/graph_os/extractors/code_ts.py": 930,
     "src/core/thinking_os/tests/test_learning.py": 1598,
-    "src/core/graph_os/extractors/contracts.py": 1592,
+    "src/core/graph_os/extractors/contracts.py": 1196,
     "src/core/thinking_os/tests/test_db.py": 1538,
     "src/core/graph_os/extractors/code_python.py": 1454,
     "src/core/graph_os/extractors/code_go.py": 1422,
