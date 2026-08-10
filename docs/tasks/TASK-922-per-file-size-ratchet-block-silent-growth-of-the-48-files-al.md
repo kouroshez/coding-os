@@ -5,12 +5,12 @@ swimlane: core
 kind: chore
 epic: null
 labels: [ci, tech-debt, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-10
 started: 2026-08-10
-completed: null
+completed: 2026-08-10
 agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
@@ -27,3 +27,5 @@ references: []
 - 2026-08-10 [claude]: Edit KNOWN_LIMITATIONS.md
 - 2026-08-10 [claude]: Edit ci-gates.md
 - 2026-08-10 [claude]: commit bd15d39646 — chore(deps): sync uv.lock to the 0.3.10 version bump
+- 2026-08-10 [claude]: commit 84ebb96bca — test(quality): ratchet every oversized file individually, not just the largest
+- 2026-08-10 [claude]: Status transitioned to complete via cos task-done.
