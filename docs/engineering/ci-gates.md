@@ -12,6 +12,7 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 | ruff format | `uv run ruff format --check .` | exact | — |
 | Complexity | part of `ruff check` — `C901` (mccabe ≤20), `PLR0912` (branches ≤24), `PLR0913` (args ≤10), `PLR0915` (statements ≤100) | per-file baseline in `pyproject.toml` `per-file-ignores` (101 violations / 40 files, 2026-08-08) | baseline may only shrink; never add a file |
 | mypy ratchet | `uv run python src/scripts/mypy_ratchet.py` | error count ≤ `BASELINE` in the script (4649, 2026-08-08 — see the exception log below) | count may only fall; lower `BASELINE` when you fix errors |
+| mypy fatal codes | same command | `FATAL_CODES` in the script — **0 occurrences**, over a wider scope than the count baseline | zero-tolerance; a code leaves the set only with a recorded exception |
 | Tests + coverage | `make coverage` | `fail_under` in `pyproject.toml` (62; measured 63) | ratchet toward 70 → 80 |
 | Slow suite (nightly) | `make test-slow` + the graph phantom gate, on the `schedule` trigger only | 0 failures; phantom count ≤ baseline | **surfaced, not gating** — `CI Pass` emits a warning; see the order-fragility note below |
 | diff-cover (PRs only) | `diff-cover coverage.xml --fail-under 80` | 80% on changed lines | fixed — see the scope note below |
@@ -42,6 +43,32 @@ as the burndown deletes entries — never by widening `BASELINE`.
 The consumer script is likewise absent from *this* repo's CI: it would fail on
 every run today. coding-os uses the per-file ratchet until the burndown lands; a
 fresh consumer project starts clean and can gate on the script from day one.
+
+## Why the mypy gate has two tiers
+
+A count ratchet cannot tell a genuine new bug from noise. On 2026-08-10 a module
+split dropped the `return normalized` line from a function annotated
+`-> dict[str, Any]`; mypy reported `Missing return statement [return]` and the
+gate still passed, because that one error sat inside a 4,482-error budget. The
+shipped effect was silent: the function returned `None`, every hook-map
+comparison became `None != None`, and `cos doctor` reported a stale adapter as
+healthy. Only a test that asserted the FAIL severity caught it.
+
+So the script enforces two things from one mypy run:
+
+- **Count** — total ≤ `BASELINE`, over `SCOPE` (the three kernel packages the
+  baseline was measured against). Legacy-debt pressure.
+- **Fatal codes** — `FATAL_CODES` must stay at **zero**, over `FATAL_SCOPE`,
+  which is wider (`src/cli` and `src/core/web` included) because those packages
+  carry no count baseline and were therefore ungated entirely. Each code in the
+  set was measured at zero when added and names a bug class that a refactor
+  actually produces: `return` (a dropped `return` on a value-returning
+  function), `call-arg` (a moved function called with the old signature),
+  `used-before-def` (a reordered module-level statement).
+
+Adding a code to `FATAL_CODES` requires it to be at zero first — fix the
+occurrences, then add it, in that order. Removing one requires a recorded
+exception below.
 
 ## Ratchet protocol (applies to every "may only shrink" baseline)
 

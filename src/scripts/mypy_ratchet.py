@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""mypy count-ratchet gate: fail when the error count rises above BASELINE.
+"""mypy gate: a count ratchet over the kernel, plus zero-tolerance error codes.
 
 Spec: docs/engineering/ci-gates.md. Lower BASELINE in the same commit that
-fixes errors — the count may only fall.
+fixes errors — the count may only fall. FATAL_CODES must stay at zero: a
+count budget of several thousand cannot surface one genuine new bug.
 """
 
 from __future__ import annotations
@@ -18,8 +19,36 @@ import sys
 BASELINE = 4500
 SCOPE = ["src/core/thinking_os", "src/core/board_os", "src/core/graph_os"]
 
+# Bug classes a refactor actually produces, each measured at zero when added.
+# Widening the scope beyond SCOPE is safe precisely because these are zero:
+# src/cli and src/core/web carry no count baseline, so they were ungated.
+FATAL_CODES = ("return", "call-arg", "used-before-def")
+FATAL_SCOPE = [*SCOPE, "src/cli", "src/core/web"]
+
+
+def _fatal_findings(scope: list[str]) -> list[str]:
+    proc = subprocess.run(
+        ["uv", "run", "mypy", *scope], capture_output=True, text=True, check=False
+    )
+    wanted = {f"[{code}]" for code in FATAL_CODES}
+    return [
+        line
+        for line in proc.stdout.splitlines()
+        if ": error:" in line and line.rsplit(" ", 1)[-1] in wanted
+    ]
+
 
 def main() -> int:
+    fatal = _fatal_findings(FATAL_SCOPE)
+    if fatal:
+        print(
+            f"mypy-ratchet: FAIL — {len(fatal)} zero-tolerance error(s): {', '.join(FATAL_CODES)}"
+        )
+        print("These name real defects, not legacy debt — fix them, never baseline them:")
+        for line in fatal:
+            print(f"  {line}")
+        return 1
+
     proc = subprocess.run(
         ["uv", "run", "mypy", *SCOPE],
         capture_output=True,
