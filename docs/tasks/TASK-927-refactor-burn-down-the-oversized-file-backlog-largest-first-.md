@@ -41,3 +41,4 @@ references: []
 - 2026-08-10 [claude]: Status transitioned to complete via cos task-done.
 - 2026-08-10 [claude]: Edit SKILL.md
 - 2026-08-10 [claude]: commit e768e4bbcc — docs(clean-code): record the five resolution mechanisms a module split breaks
+- 2026-08-10 [claude]: commit b0f4a076f6 — chore(board): record the split-playbook work on TASK-927
