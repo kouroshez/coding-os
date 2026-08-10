@@ -168,3 +168,40 @@ references: []
 - 2026-08-10 [claude]: Edit misc.py
 - 2026-08-10 [claude]: Edit test_cli.py
 - 2026-08-10 [claude]: commit 311aeb227a — fix(cli): register every command before the __main__ guard runs
+- 2026-08-10 [claude]: commit 290fa7f6fc — chore(board): record the entrypoint regression fix on TASK-928
+- 2026-08-10 [claude]: Edit enumerate_tools.py
+- 2026-08-10 [claude]: Edit split_cognition.py
+- 2026-08-10 [claude]: Edit _cognition_audit.py
+- 2026-08-10 [claude]: Edit pyproject.toml
+- 2026-08-10 [claude]: Edit pyproject.toml
+- 2026-08-10 [claude]: Edit test_file_size_budget.py
+- 2026-08-10 [claude]: commit 5f11a81d39 — refactor(thinking_os): split cognition into supervise, audit, routing and classify
+- 2026-08-10 [claude]: Edit enumerate_routes.py
+- 2026-08-10 [claude]: Edit split_hub.py
+- 2026-08-10 [claude]: Edit split_hub.py
+- 2026-08-10 [claude]: Edit split_hub.py
+- 2026-08-10 [claude]: Edit pyproject.toml
+- 2026-08-10 [claude]: Edit test_hub_init_route.py
+- 2026-08-10 [claude]: Edit split_hub.py
+- 2026-08-10 [claude]: Edit split_hub.py
+- 2026-08-10 [claude]: Edit split_hub.py
+- 2026-08-10 [claude]: Edit split_hub.py
+- 2026-08-10 [claude]: Edit test_file_size_budget.py
+- 2026-08-10 [claude]: commit 7dad131e99 — refactor(web): split hub routes into shared, init, init-routes and scan
+- 2026-08-10 [claude]: Edit diff_contracts.py
+- 2026-08-10 [claude]: Edit split_contracts.py
+- 2026-08-10 [claude]: Edit test_file_size_budget.py
+- 2026-08-10 [claude]: commit 2b87fffc58 — refactor(graph_os): split the contracts extractor into one module per ecosystem
+- 2026-08-10 [claude]: Edit split_doctor.py
+- 2026-08-10 [claude]: Edit split_doctor.py
+- 2026-08-10 [claude]: Edit split_doctor.py
+- 2026-08-10 [claude]: Edit split_doctor.py
+- 2026-08-10 [claude]: Edit split_doctor.py
+- 2026-08-10 [claude]: Edit test_file_size_budget.py
+- 2026-08-10 [claude]: commit b77220bf61 — refactor(cli): split doctor_extras into runtime, adapter and project checks
+- 2026-08-10 [claude]: Edit ci-gates.md
+- 2026-08-10 [claude]: commit fbb77e5a4e — docs(ci-gates): record the four burndown splits and the two traps they surfaced
+- 2026-08-10 [claude]: cognition.py 1237 to 81: split into _cognition_supervise/_audit/_routing/_classify. Live 87-tool MCP registry (names,…
+- 2026-08-10 [claude]: hub.py 1217 to 326: split into _hub_shared/_hub_init/_hub_init_routes/_hub_scan. Router moved to the leaf after a…
+- 2026-08-10 [claude]: contracts.py 1196 to 310 (commit 2b87fffc) and doctor_extras.py 1121 to 85 (commit b77220bf). Contracts differential…
+- 2026-08-10 [claude]: Pre-existing failure found, NOT caused by this slice: tests/test_doctor.py::test_doctor_detects_stale_codex_hook_map…
