@@ -53,6 +53,26 @@ fresh consumer project starts clean and can gate on the script from day one.
 
 Recorded exceptions:
 
+- 2026-08-10 (TASK-928): the `cognition.py` (1,237), `routes/hub.py` (1,217),
+  `extractors/contracts.py` (1,196) and `doctor_extras.py` (1,121) entries were
+  deleted rather than lowered — the facades are 81, 326, 310 and 85. Each gate
+  was the runtime surface the file owns, captured before and after: the live
+  87-tool MCP registry with every name, description and parameter list plus
+  `server.py --test`; all 19 `/api/hub` routes plus ten live responses through a
+  started Hub; the extractor over a pinned 1,270-file corpus plus a synthetic one
+  covering all 25 scanner families, byte-identical; and `cos doctor` +
+  `cos doctor --tokens` run end to end through both `cos` and `python -m
+  cli.main`, 63 checks with matching severities. Two traps surfaced. `hub.py`
+  could not keep the `APIRouter` in the facade: with `from .hub import router` in
+  the part modules and the facade importing them back, importing any part module
+  first raised `ImportError` on a partially-initialised sibling — a real failure a
+  `-k` selection reproduced. The router and the `sys.path` bootstrap moved to the
+  `_hub_shared` leaf, and all five import orders now register 19 routes.
+  `tests/test_hub_init_route.py` patched `_run_cos_init` on the hub facade, which
+  stops reaching the route once the route resolves the name from its own module;
+  the patch now targets `_hub_init_routes`, verified by confirming the old target
+  fails on the new layout.
+
 - 2026-08-10 (TASK-928): `src/cli/main.py` (1,601 lines) was split into
   `_cli_paths` plus `init_command`, `adopt_command`, `install_commands` and
   `runtime_commands`; the entry was deleted rather than lowered — the facade is
