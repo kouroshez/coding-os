@@ -51,7 +51,7 @@ try:  # package import
         pattern_tier,
     )
 except ImportError:  # flat import
-    from _learning_mining import (  # noqa: F401
+    from _learning_mining import (  # type: ignore[no-redef]  # noqa: F401
         _clean_failure_text,
         _failure_cluster_key,
         _friction_kind,
@@ -59,17 +59,17 @@ except ImportError:  # flat import
         _mint_friction_lesson,
         _normalize_full,
     )
-    from _learning_mining_logs import (  # noqa: F401
+    from _learning_mining_logs import (  # type: ignore[no-redef]  # noqa: F401
         _commit_subject_key,
         _mine_commit_lessons,
         _mine_hook_block_lessons,
     )
-    from _learning_narrative import (  # noqa: F401
+    from _learning_narrative import (  # type: ignore[no-redef]  # noqa: F401
         _file_back_narrative_safe,
         _is_low_quality_insight,
         learn_narrative,
     )
-    from _learning_store import (  # noqa: F401
+    from _learning_store import (  # type: ignore[no-redef]  # noqa: F401
         _adopt_legacy_template,
         _derive_project_root,
         _distill_fingerprint_safe,

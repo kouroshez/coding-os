@@ -29,7 +29,7 @@ try:  # package import
     )
     from ._learning_store import _derive_project_root, _upsert_pattern
 except ImportError:  # flat import
-    from _learning_mining import (
+    from _learning_mining import (  # type: ignore[no-redef]
         _FRICTION_MIN_OCCURRENCES,
         _LESSON_WINDOW_DAYS,
         _LONGHEX_RE,
@@ -38,7 +38,7 @@ except ImportError:  # flat import
         _clean_failure_text,
         _mint_friction_lesson,
     )
-    from _learning_store import _derive_project_root, _upsert_pattern
+    from _learning_store import _derive_project_root, _upsert_pattern  # type: ignore[no-redef]
 
 
 # A hook-log block line: "[<ts>] [<hook>] [block] … rule=<rule> …".

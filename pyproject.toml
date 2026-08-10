@@ -513,6 +513,11 @@ module = [
     "_tools_*",
     "tools.*",
     "background",
+    "cognition",
+    "cognition_schemas",
+    "sanitizer",
+    "embeddings",
+    "capture",
 ]
 ignore_missing_imports = true
 

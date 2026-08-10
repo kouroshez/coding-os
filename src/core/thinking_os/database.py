@@ -61,7 +61,7 @@ try:  # package import
         set_active_project_root,
     )
 except ImportError:  # flat import
-    from _db_migrations import (  # noqa: F401 — re-exported: callers do `from database import has_fts5`
+    from _db_migrations import (  # type: ignore[no-redef]  # noqa: F401 — re-exported: callers do `from database import has_fts5`
         MIGRATIONS,
         MigrationAction,
         _column_exists,
@@ -87,7 +87,7 @@ except ImportError:  # flat import
         has_tasks_table,
         has_tasks_v13_columns,
     )
-    from _db_paths import (  # noqa: F401 — re-exported: `from database import project_root` is used repo-wide
+    from _db_paths import (  # type: ignore[no-redef]  # noqa: F401 — re-exported: `from database import project_root` is used repo-wide
         DB_FILENAME,
         DEFAULT_DB_PATH,
         LEGACY_DB_FILENAME,

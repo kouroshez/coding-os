@@ -24,7 +24,7 @@ try:  # package import
         _upsert_pattern,
     )
 except ImportError:  # flat import
-    from _learning_store import (
+    from _learning_store import (  # type: ignore[no-redef]
         _adopt_legacy_template,
         _distill_safe,
         _upsert_pattern,

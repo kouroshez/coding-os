@@ -22,7 +22,7 @@ logger = logging.getLogger("thinking_os.learning")
 try:  # package import
     from ._learning_store import _derive_project_root
 except ImportError:  # flat import
-    from _learning_store import _derive_project_root
+    from _learning_store import _derive_project_root  # type: ignore[no-redef]
 
 
 # Breakthrough narrative capture
