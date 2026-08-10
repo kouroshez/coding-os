@@ -358,12 +358,34 @@ class TestPipelineInvariants:
         """The extractor must handle its own source without errors."""
         import inspect
 
-        src = inspect.getsource(code_python)
-        r = code_python.extract("core/graph_os/extractors/code_python.py", src)
-        assert r.parse_errors == []
-        # Expect at least one class + several functions.
-        assert sum(1 for n in r.nodes if n.kind == "code:class") >= 1
-        assert sum(1 for n in r.nodes if n.kind == "code:function") >= 5
+        from graph_os.extractors import (
+            _python_decls,
+            _python_emit,
+            _python_tree_sitter,
+            _python_uids,
+            _python_visitor,
+        )
+
+        modules = [
+            code_python,
+            _python_uids,
+            _python_decls,
+            _python_tree_sitter,
+            _python_visitor,
+            _python_emit,
+        ]
+        classes = 0
+        functions = 0
+        for module in modules:
+            src = inspect.getsource(module)
+            rel = f"core/graph_os/extractors/{module.__name__.split('.')[-1]}.py"
+            r = code_python.extract(rel, src)
+            assert r.parse_errors == [], rel
+            classes += sum(1 for n in r.nodes if n.kind == "code:class")
+            functions += sum(1 for n in r.nodes if n.kind == "code:function")
+        # The visitor class plus the three declaration records.
+        assert classes >= 1
+        assert functions >= 5
 
 
 # ---------------------------------------------------------------------------
