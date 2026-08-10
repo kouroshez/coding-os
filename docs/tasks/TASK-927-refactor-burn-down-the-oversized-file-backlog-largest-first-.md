@@ -32,3 +32,5 @@ references: []
 
 ## Work Log
 - 2026-08-10 [claude]: commit da130a23be — refactor(core): split learning.py and graph.py along their real cohesion seams
+- 2026-08-10 [claude]: commit 6506f745ba — refactor(thinking_os): split cognition.py into dispatch, a shared leaf, and the gates
+- 2026-08-10 [claude]: commit 004fd5b17d — fix(ci): resolve the remaining flat sibling imports for mypy
