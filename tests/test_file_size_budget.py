@@ -35,7 +35,6 @@ BASELINE: dict[str, int] = {
     "src/core/thinking_os/tests/test_db.py": 1538,
     "tests/test_hooks.py": 1287,
     "src/core/graph_os/tests/test_mcp_tools.py": 1274,
-    "src/cli/graph_commands.py": 1264,
     "src/cli/board_commands.py": 1258,
     "tests/_cli_suite/subsystems.py": 1243,
     "src/core/web/routes/hub.py": 1217,
