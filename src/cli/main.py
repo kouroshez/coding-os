@@ -371,9 +371,6 @@ except ImportError as _web_cli_exc:  # pragma: no cover — defensive
     _logging.getLogger("coding_os.cli").debug("web CLI unavailable: %s", _web_cli_exc)
 
 
-if __name__ == "__main__":
-    cli()
-
 from cli.adopt_command import adopt
 from cli.init_command import init
 from cli.install_commands import add_adapter, codex_mcp_install, eject, health, materialize
@@ -391,3 +388,9 @@ cli.add_command(hooks_log)
 cli.add_command(hooks_list)
 cli.add_command(server_start)
 cli.add_command(session_state)
+
+
+# Must stay last: `python -m cli.main` executes the module top-to-bottom, so an
+# earlier guard would invoke the CLI before the commands above are registered.
+if __name__ == "__main__":
+    cli()

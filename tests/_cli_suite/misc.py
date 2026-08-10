@@ -330,3 +330,23 @@ class TestBrainSweepChangelog:
         # dry run — it must never mutate.
         result = runner.invoke(cli, ["brain-sweep-changelog", "-d", str(initialized_project)])
         assert result.exit_code == 0, result.output
+
+
+class TestModuleEntrypointParity:
+    # `python -m cli.main` runs the module top-to-bottom, so a `__main__` guard
+    # placed above a registration block invokes the CLI before those commands
+    # exist. The console script imports instead, and never sees it — CliRunner
+    # and an import-based command count both stay green while `python -m` and
+    # every subprocess caller lose the tail of the registry.
+    def test_module_run_exposes_every_registered_command(self) -> None:
+        import subprocess
+        import sys
+
+        listed = subprocess.run(
+            [sys.executable, "-m", "cli.main", "--help"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        missing = [name for name in cli.commands if name not in listed]
+        assert not missing, f"registered but unreachable via python -m: {missing}"

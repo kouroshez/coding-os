@@ -82,6 +82,7 @@ from _cli_suite.misc import (  # noqa: F401
     TestBrainSweepChangelog,
     TestDoctorTokens,
     TestGraphReindexFailureClassification,
+    TestModuleEntrypointParity,
     TestProjectExtraSkills,
 )
 from _cli_suite.pr import TestCosPr  # noqa: F401
