@@ -70,10 +70,6 @@ _LARAVEL_PREFIX_IN_CHAIN_RE = re.compile(r"""prefix\(\s*['"](?P<p>[^'"]+)['"]"""
 _LARAVEL_PREFIX_IN_ARRAY_RE = re.compile(r"""['"]prefix['"]\s*=>\s*['"](?P<p>[^'"]+)['"]""")
 
 
-def _php_short_name(name: str) -> str:
-    return name.replace("/", "\\").split("\\")[-1]
-
-
 def _match_brace(content: str, open_idx: int) -> int:
     """Index of the `}` matching the `{` at open_idx, skipping strings/comments."""
     depth = 0
