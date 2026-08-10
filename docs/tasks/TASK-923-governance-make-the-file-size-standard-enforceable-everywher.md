@@ -5,12 +5,12 @@ swimlane: core
 kind: chore
 epic: null
 labels: [governance, hooks, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-10
 started: 2026-08-10
-completed: null
+completed: 2026-08-10
 agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
@@ -67,3 +67,5 @@ references: []
 - 2026-08-10 [claude]: Standard revised 800 -> 500 backstop with cohesion-first precedence; the "no new file below the ceiling" clause was…
 - 2026-08-10 [claude]: commit 541b6439a7 — feat(quality): make the file-size budget cohesion-first and surface it everywhere
 - 2026-08-10 [claude]: Edit _init_registries.py
+- 2026-08-10 [claude]: commit 3f1cabc175 — refactor(cli): split main.py into cohesive init modules, 3111 lines to 1605
+- 2026-08-10 [claude]: Status transitioned to complete via cos task-done.
