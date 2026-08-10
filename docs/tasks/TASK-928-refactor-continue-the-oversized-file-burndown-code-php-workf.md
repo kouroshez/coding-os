@@ -162,3 +162,9 @@ references: []
 - 2026-08-10 [claude]: commit 9a8dccf666 — refactor(cli): split board commands into shared, lifecycle, views, outcome and validate
 - 2026-08-10 [claude]: graph_os tool layer + CLI slice: graph.py 1271→369, _graph_read 1256→375, _graph_insights 1248→315, graph_commands…
 - 2026-08-10 [claude]: commit c8d13fe906 — chore(board): record the graph_os tool-layer and CLI splits on TASK-928
+- 2026-08-10 [claude]: commit 5e27b56e48 — docs(insights): record the type-checker re-export trap in a facade split
+- 2026-08-10 [claude]: Edit main.py
+- 2026-08-10 [claude]: Edit main.py
+- 2026-08-10 [claude]: Edit misc.py
+- 2026-08-10 [claude]: Edit test_cli.py
+- 2026-08-10 [claude]: commit 311aeb227a — fix(cli): register every command before the __main__ guard runs
