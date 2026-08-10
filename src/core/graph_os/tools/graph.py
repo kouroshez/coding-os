@@ -354,12 +354,16 @@ from ._graph_insights import (  # noqa: E402, F401
     cos_graph_ranking,
     cos_graph_test_gap,
 )
-from ._graph_read import (  # noqa: E402, F401
-    cos_graph_context,
+from ._graph_paths import (  # noqa: E402
     cos_graph_path,
+    cos_graph_trace,
+)
+from ._graph_read import (  # noqa: E402
+    cos_graph_context,
     cos_graph_query,
-    cos_graph_references,
+)
+from ._graph_references import cos_graph_references  # noqa: E402
+from ._graph_similar import (  # noqa: E402, F401
     cos_graph_search,
     cos_graph_similar,
-    cos_graph_trace,
 )
