@@ -9,6 +9,7 @@ subprocess and assert the gating decision only.
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -36,7 +37,7 @@ def test_graph_index_skipped_when_graph_module_disabled(tmp_path, monkeypatch):
     _set_disabled(state, ["graph"])
     calls: list = []
     monkeypatch.setattr(
-        main_module.subprocess,
+        subprocess,
         "run",
         lambda *a, **k: calls.append(a) or SimpleNamespace(returncode=0, stdout="", stderr=""),
     )
@@ -57,7 +58,7 @@ def test_graph_index_runs_when_graph_module_enabled(tmp_path, monkeypatch):
             returncode=0, stdout="  Built knowledge graph: 5/5 file(s) indexed", stderr=""
         )
 
-    monkeypatch.setattr(main_module.subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "run", fake_run)
     main_module._initial_graph_index(project, state)
     assert captured, "graph build must run when the graph module is enabled"
     # Runs the in-process python (not the global `cos`) so an extras-less env
@@ -72,9 +73,9 @@ def test_graph_index_degrades_gracefully_on_timeout(tmp_path, monkeypatch):
     project, state = _project(tmp_path)
 
     def boom(cmd, **kwargs):
-        raise main_module.subprocess.TimeoutExpired(cmd, kwargs.get("timeout", 0))
+        raise subprocess.TimeoutExpired(cmd, kwargs.get("timeout", 0))
 
-    monkeypatch.setattr(main_module.subprocess, "run", boom)
+    monkeypatch.setattr(subprocess, "run", boom)
     # Must swallow the timeout — init continues, graph left empty (valid).
     main_module._initial_graph_index(project, state)
 

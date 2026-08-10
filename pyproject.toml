@@ -371,7 +371,9 @@ unfixable = [
 "src/core/scheduled/tests/**" = ["E402"]
 "src/core/hooks/_helpers/*.py" = ["E402"]
 "src/cli/aggregator.py" = ["E402"]
-"src/cli/main.py" = ["E402", "C901", "PLR0912", "PLR0913", "PLR0915"]
+"src/cli/main.py" = ["E402"]
+"src/cli/init_command.py" = ["C901", "PLR0912", "PLR0913", "PLR0915"]
+"src/cli/adopt_command.py" = ["PLR0913"]
 # Relocated verbatim from main.py by the 2026-08-10 split — same code, new home.
 "src/cli/_init_phase.py" = ["C901", "PLR0912", "PLR0913", "PLR0915"]
 "src/cli/_init_scaffold.py" = ["C901", "PLR0912", "PLR0915"]

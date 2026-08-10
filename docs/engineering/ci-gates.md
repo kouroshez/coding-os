@@ -53,6 +53,32 @@ fresh consumer project starts clean and can gate on the script from day one.
 
 Recorded exceptions:
 
+- 2026-08-10 (TASK-928): `src/cli/main.py` (1,601 lines) was split into
+  `_cli_paths` plus `init_command`, `adopt_command`, `install_commands` and
+  `runtime_commands`; the entry was deleted rather than lowered — the facade is
+  393 and now owns only the `cli` group and its registrations. The blast radius
+  here is command registration, so the gate was a full CLI-surface snapshot
+  (every command, its help line, and every option's flags and defaults) diffed
+  before and after: 154 commands, byte-identical. Two monkeypatch traps surfaced
+  and were fixed at the patch site, not papered over. Both predate the split and
+  were only made visible by it: the autouse `_stub_initial_indexing` fixture
+  patched `cli.main._initial_doc_index`, but the call site is
+  `cli._init_phase`, so the stub never applied and every `cos init` in the suite
+  ran the real doc + graph indexer; and six tests across three files reached the
+  stdlib through `main.os` / `main.shutil` / `main.subprocess`, which worked only
+  because the facade happened to import them. Both now patch the module that owns
+  the call, which took `tests/test_cli.py` from 12m17s to 3m53s.
+
+- 2026-08-10 (TASK-928): the `code_python.py` (1,454) and `code_go.py` (1,422)
+  file-size entries were deleted rather than lowered — the facades are 242 and
+  321. Both keep `extract()` and the whole pre-split public surface; the walkers
+  live in leaves that import the uid module and never each other. Verified by a
+  differential that runs the pre-split module and the facade over the same corpus
+  in both parse modes and compares nodes, edges and parse errors byte-for-byte
+  (Python: 158 sources x ast/tree-sitter; Go: 44 sources x tree-sitter/regex).
+  `code_go`'s overlay handle is now bound by assignment rather than
+  `import ... as`, so importers get an explicit export and mypy holds at 4,482.
+
 - 2026-08-10 (TASK-928): `src/core/thinking_os/embeddings.py` (943 lines) keeps
   its `BASELINE` entry and is **not** split. It has clean cohesion seams (model
   config, encoding, similarity, storage, search, outbox/reindex) but no seam that

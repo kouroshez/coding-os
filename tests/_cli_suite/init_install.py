@@ -388,7 +388,7 @@ class TestCodexMcpInstall:
         def fake_which(name: str) -> str | None:
             return None if name == "cos" else shutil.which(name)
 
-        monkeypatch.setattr(main_module.shutil, "which", fake_which)
+        monkeypatch.setattr(shutil, "which", fake_which)
         result = runner.invoke(cli, ["codex-mcp-install", "--config", str(target)])
         assert result.exit_code == 0
         content = target.read_text(encoding="utf-8")
@@ -414,7 +414,7 @@ class TestServerStart:
             captured["env"] = env
             raise SystemExit(0)
 
-        monkeypatch.setattr(main_module.os, "execvpe", fake_execvpe)
+        monkeypatch.setattr(os, "execvpe", fake_execvpe)
         monkeypatch.chdir(tmp_path)
 
         result = runner.invoke(cli, ["server-start"])
@@ -804,7 +804,7 @@ class TestInstallResilience:
                 return subprocess.CompletedProcess(args, 1, stdout="", stderr="boom")
             return real_run(args, **kwargs)
 
-        monkeypatch.setattr(main_module.subprocess, "run", _fail_init_db)
+        monkeypatch.setattr(subprocess, "run", _fail_init_db)
         project = tmp_path / "dbfail"
         project.mkdir()
         result = runner.invoke(

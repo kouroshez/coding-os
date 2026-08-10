@@ -21,7 +21,7 @@ from click.testing import CliRunner
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _cli_suite.shared import main_module
+from _cli_suite.shared import init_phase_module
 from cli.main import cli
 
 pytestmark = pytest.mark.slow  # dominated by cos-init / subprocess tests
@@ -32,8 +32,8 @@ def _stub_initial_indexing(monkeypatch: pytest.MonkeyPatch) -> None:
     """Unit tests must not run the real doc/graph index on every `cos init` — it
     loads the embedding model and walks the scaffold (minutes across the suite)
     and both are covered by their own tests. Stub them to no-ops (TASK-423)."""
-    monkeypatch.setattr(main_module, "_initial_doc_index", lambda *a, **k: None)
-    monkeypatch.setattr(main_module, "_initial_graph_index", lambda *a, **k: None)
+    monkeypatch.setattr(init_phase_module, "_initial_doc_index", lambda *a, **k: None)
+    monkeypatch.setattr(init_phase_module, "_initial_graph_index", lambda *a, **k: None)
 
 
 @pytest.fixture

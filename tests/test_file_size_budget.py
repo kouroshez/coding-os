@@ -23,7 +23,6 @@ from pathlib import Path
 SOFT_LIMIT = 800
 
 BASELINE: dict[str, int] = {
-    "src/cli/main.py": 1601,
     # Append-only schema ledger — recorded exception, see ci-gates.md.
     "src/core/thinking_os/_db_migrations.py": 2316,
     "src/core/thinking_os/tools/learning.py": 1061,
