@@ -5,12 +5,12 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [tech-debt, file-size, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-10
 started: 2026-08-10
-completed: null
+completed: 2026-08-10
 agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
@@ -38,3 +38,4 @@ references: []
 - 2026-08-10 [claude]: commit b2c8f70b4a — docs(ci): record why the pr_commands split was reverted
 - 2026-08-10 [claude]: commit 917f3f061d — test(board_os): split the 2202-line mcp tools suite by tool group
 - 2026-08-10 [claude]: Six splits landed green; pr_commands reverted (its suite patches 11 private helpers) with the reason recorded in…
+- 2026-08-10 [claude]: Status transitioned to complete via cos task-done.
