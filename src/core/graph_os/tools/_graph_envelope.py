@@ -136,6 +136,17 @@ def _validate_non_negative_int(value: Any, field: str) -> Any:
     return None
 
 
+def _validate_enum(value: Any, allowed: tuple[str, ...], field: str) -> Any:
+    if value not in allowed:
+        return _fail("validation", f"{field} must be one of {allowed} (got {value!r})")
+    return None
+
+
+def _clamp_int(value: int, *, min_v: int, max_v: int) -> tuple[int, bool]:
+    clamped = max(min_v, min(int(value), max_v))
+    return clamped, clamped != value
+
+
 def _validate_confidence(value: Any, field: str) -> Any:
     # W7.1 / R4-19/R4-26: confidence is in [0.0, 1.0]; impact + query
     # silently accepted 999 and filtered everything.

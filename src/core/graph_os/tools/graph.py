@@ -328,6 +328,7 @@ from ._graph_analysis import (  # noqa: E402, F401
     cos_graph_impact,
     cos_graph_rename_plan,
 )
+from ._graph_centrality import cos_graph_centrality  # noqa: E402
 
 # Re-exported so `from graph_os.tools.graph import cos_graph_doctor` keeps
 # resolving after the split (the MCP wrapper and the CLI both use that path).
@@ -345,19 +346,20 @@ from ._graph_export import (  # noqa: E402, F401
     _safe_id,
     cos_graph_export,
 )
+from ._graph_hygiene import (  # noqa: E402, F401
+    cos_graph_dead_code,
+    cos_graph_test_gap,
+)
 from ._graph_insights import (  # noqa: E402, F401
-    cos_graph_centrality,
     cos_graph_communities,
     cos_graph_cycles,
-    cos_graph_dead_code,
     cos_graph_entrypoints,
-    cos_graph_ranking,
-    cos_graph_test_gap,
 )
 from ._graph_paths import (  # noqa: E402
     cos_graph_path,
     cos_graph_trace,
 )
+from ._graph_ranking import cos_graph_ranking  # noqa: E402
 from ._graph_read import (  # noqa: E402
     cos_graph_context,
     cos_graph_query,
