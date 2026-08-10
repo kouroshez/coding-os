@@ -5,18 +5,17 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [tech-debt, file-size, ready]
-status: icebox
+status: in_progress
 priority: P1
 appetite: 1d
 created: 2026-08-10
-started: null
+started: 2026-08-10
 completed: null
-agent_session: null
+agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-928: refactor: continue the oversized-file burndown — code_php, workflow, _shared, embeddings
 
 **Outcome (one sentence):** The next four files in the 800-1000 band drop under the backstop along real cohesion seams, using the five-mechanism verification checklist in the clean-code skill, one commit and one CI pass per file.
@@ -32,3 +31,17 @@ references: []
 **Given** a file with no honest seam **When** it is left whole **Then** a recorded exception in ci-gates.md explains why.
 
 ## Work Log
+- 2026-08-10 [claude]: Edit _php_uids.py
+- 2026-08-10 [claude]: Edit _php_calls.py
+- 2026-08-10 [claude]: Edit _php_symbols.py
+- 2026-08-10 [claude]: Edit code_php.py
+- 2026-08-10 [claude]: Edit pyproject.toml
+- 2026-08-10 [claude]: Edit verify_php_split.py
+- 2026-08-10 [claude]: Edit verify_php_split.py
+- 2026-08-10 [claude]: Edit verify_php_split.py
+- 2026-08-10 [claude]: Edit diff_php_baseline.py
+- 2026-08-10 [claude]: Edit verify_php_split.py
+- 2026-08-10 [claude]: Edit test_file_size_budget.py
+- 2026-08-10 [claude]: Edit mypy_ratchet.py
+- 2026-08-10 [claude]: Edit ci-gates.md
+- 2026-08-10 [claude]: code_php.py 979 → 300: split into _php_uids (leaf: uid grammar + node primitives), _php_symbols (declaration walker,…

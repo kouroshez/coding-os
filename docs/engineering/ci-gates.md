@@ -65,6 +65,14 @@ Recorded exceptions:
   The file stays on the backlog with this note so the next attempt starts from
   the test suite, not from the module.
 
+- 2026-08-10 (TASK-928): mypy BASELINE 4540 → **4524** and the `code_php.py`
+  file-size entry (979) deleted rather than lowered — the split dropped it to
+  300, under `SOFT_LIMIT`. The ruff `C901`/`PLR0915` per-file ignore moved from
+  `code_php.py` to `_php_symbols.py`, the one function that earns it; the facade
+  now passes with no ignore at all. Verified by a differential that runs the
+  pre-split module and the facade over the same corpus in both parse modes and
+  compares nodes, edges and parse errors exactly.
+
 - 2026-08-10 (TASK-927): mypy BASELINE 4599 → **4540**, tightened not widened.
   Four more god-file splits pushed the count up +46 by repeating flat sibling
   imports and by the dual-identity `try/except` guards reading as `no-redef`.
