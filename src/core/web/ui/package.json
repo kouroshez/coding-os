@@ -27,7 +27,7 @@
     "graphology": "^0.26.0",
     "graphology-layout-forceatlas2": "^0.10.1",
     "graphology-layout-noverlap": "^0.4.2",
-    "lucide-react": "^1.28.0",
+    "lucide-react": "^1.30.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-force-graph-3d": "1.29.1",
@@ -50,7 +50,7 @@
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
-    "@types/three": "^0.185.3",
+    "@types/three": "^0.185.4",
     "@vitejs/plugin-react": "^6.0.5",
     "eslint": "^9.17.0",
     "eslint-plugin-react": "^7.37.3",
@@ -62,7 +62,7 @@
     "tailwindcss": "^4.0.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.66.0",
-    "vite": "^8.0.14",
+    "vite": "^8.2.1",
     "vitest": "^4.1.10"
   }
 }
