@@ -18,10 +18,13 @@ the ratchet (if any) lives. Gate detail: [docs/engineering/ci-gates.md](docs/eng
   shrink-only burndown.
 - Coverage is 63% measured, gated at `fail_under = 62`; the target ratchet is
   70 → 80. PRs additionally need ≥80% coverage on changed lines (diff-cover).
-- 48 files exceed 800 lines, the largest being `thinking_os/server.py` at
-  3,159. Each is pinned at its current size by the per-file ratchet in
+- 118 files exceed the 500-line backstop (31 over 1,000; 3 over 2,000). Every
+  one is pinned at its current size by the per-file ratchet in
   `tests/test_file_size_budget.py`, so they can shrink but never grow, and no
-  new file may cross 800 lines. Paying the debt down is unscheduled.
+  new file may cross 500. The 2026-08-10 session cleared every file over 3,000
+  lines; `_db_migrations.py` (append-only schema ledger) and `pr_commands.py`
+  (its suite patches eleven private helpers) carry recorded exceptions in
+  `docs/engineering/ci-gates.md`. The rest is unscheduled burndown.
 
 ## Platform
 
