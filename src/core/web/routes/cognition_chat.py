@@ -22,9 +22,14 @@ from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import unwrap
-from .cognition import _auto_route_model, _db_path, _state_dir, _unavailable, router
+from . import cognition as _cog
+from .cognition import router
 
 logger = logging.getLogger(__name__)
+
+# Lazy adapter-dispatcher probe state (moved with _adapter_dispatcher).
+_ADAPTER_DISPATCHER_MOD = None
+_ADAPTER_DISPATCHER_TRIED = False
 
 _CORE_DIR = Path(__file__).resolve().parents[3]
 if str(_CORE_DIR) not in sys.path:
@@ -243,7 +248,7 @@ def _serialize_message(msg: Any) -> dict:
 
 def _session_agent_hints(session_id: str) -> set[str]:
     hints: set[str] = set()
-    state = _state_dir()
+    state = _cog._state_dir()
     if not state.is_dir():
         return hints
     for agent_dir in state.iterdir():
@@ -285,7 +290,7 @@ async def list_chats(
                 rows_by_id.setdefault(str(row["session_id"]), row)
             sources.append("claude_agent_sdk")
     if not sources:
-        return unwrap(_unavailable("no chat transcript provider is available"))
+        return unwrap(_cog._unavailable("no chat transcript provider is available"))
     rows = list(rows_by_id.values())
     rows.sort(key=lambda r: r.get("last_modified") or 0, reverse=True)
     rows = rows[:limit]
@@ -309,7 +314,7 @@ def _dispatch_transcript_chat(session_id: str) -> dict | None:
     # Claude SDK session no longer exists on disk — resolves the dead sdk_uuid
     # modal link (TASK-667). Keyed on formula_dispatches.sub_session_id (= the
     # SDK session_id the UI links from). Read-only, fail-open.
-    db_path = _db_path()
+    db_path = _cog._db_path()
     if not db_path:
         return None
     try:
@@ -567,7 +572,7 @@ async def chat_new(
         )
     sdk = _claude_sdk()
     if sdk is None:
-        return unwrap(_unavailable("claude_agent_sdk not installed"))
+        return unwrap(_cog._unavailable("claude_agent_sdk not installed"))
 
     import secrets
     import time as _time
@@ -575,7 +580,7 @@ async def chat_new(
     model = body.get("model") or None
     routing_decision: dict | None = None
     if model == "auto":
-        routing_decision = _auto_route_model(prompt)
+        routing_decision = _cog._auto_route_model(prompt)
         if "error" in routing_decision:
             return unwrap(
                 json.dumps(
@@ -741,7 +746,7 @@ async def chat_send(
         )
     sdk = _claude_sdk()
     if sdk is None:
-        return unwrap(_unavailable("claude_agent_sdk not installed"))
+        return unwrap(_cog._unavailable("claude_agent_sdk not installed"))
 
     cwd = _project_cwd()
     fork = bool(body.get("fork"))

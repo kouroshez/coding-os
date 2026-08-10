@@ -18,7 +18,8 @@ from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import unwrap
-from .cognition import _state_dir, _unavailable, router
+from . import cognition as _cog
+from .cognition import router
 from .cognition_chat import (
     _build_agent_options,
     _claude_sdk,
@@ -70,7 +71,7 @@ async def author_task(
         )
     sdk = _claude_sdk()
     if sdk is None:
-        return unwrap(_unavailable("claude_agent_sdk not installed"))
+        return unwrap(_cog._unavailable("claude_agent_sdk not installed"))
 
     import secrets
     import time as _time
@@ -223,7 +224,7 @@ def onboarding_status(
     from web._project_context import current_project_root  # type: ignore
 
     project = current_project_root()
-    state = _state_dir()
+    state = _cog._state_dir()
     payload = _onboarding_state(project, state)
     payload["meta"] = {"layer": "cognition"}
     return unwrap(json.dumps({"ok": True, "data": payload}))
@@ -235,7 +236,7 @@ def onboarding_dismiss(
     _m=Depends(make_metrics_dep("cognition.onboarding_dismiss")),
 ):
     """Persist the onboarding hero dismissal so it stops reappearing on reload."""
-    state = _state_dir()
+    state = _cog._state_dir()
     marker = state / "onboarding.json"
     try:
         state.mkdir(parents=True, exist_ok=True)
@@ -284,7 +285,7 @@ async def onboard(
         )
     sdk = _claude_sdk()
     if sdk is None:
-        return unwrap(_unavailable("claude_agent_sdk not installed"))
+        return unwrap(_cog._unavailable("claude_agent_sdk not installed"))
 
     import secrets
     import time as _time

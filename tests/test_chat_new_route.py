@@ -20,6 +20,31 @@ for _p in (_REPO_ROOT, _REPO_ROOT / "src" / "core"):
 
 from core.web.server import create_app
 
+_COGNITION_MODULES = (
+    "web.routes.cognition",
+    "core.web.routes.cognition",
+    "web.routes.cognition_chat",
+    "core.web.routes.cognition_chat",
+    "web.routes.cognition_onboarding",
+    "core.web.routes.cognition_onboarding",
+)
+
+
+def _patch_cognition(monkeypatch, name, value) -> bool:
+    """Patch a helper across every loaded cognition module.
+
+    src/core on sys.path means each module may register under two names, and the
+    2026-08-10 split moved some helpers into siblings — so the only reliable
+    patch is "wherever this attribute currently lives".
+    """
+    patched = False
+    for modname in _COGNITION_MODULES:
+        mod = sys.modules.get(modname)
+        if mod is not None and hasattr(mod, name):
+            monkeypatch.setattr(mod, name, value, raising=False)
+            patched = True
+    return patched
+
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
@@ -39,12 +64,7 @@ def test_unavailable_without_sdk(client, monkeypatch):
     # src/core on sys.path means the app may register the module as either
     # 'web.routes.cognition' or 'core.web.routes.cognition' — patch whichever
     # is loaded so we never spawn a real Claude process in the test.
-    patched = False
-    for modname in ("web.routes.cognition", "core.web.routes.cognition"):
-        mod = sys.modules.get(modname)
-        if mod is not None:
-            monkeypatch.setattr(mod, "_claude_sdk", lambda: None, raising=False)
-            patched = True
+    patched = _patch_cognition(monkeypatch, "_claude_sdk", lambda: None)
     assert patched, "cognition module not loaded"
     r = client.post("/api/cognition/chat", json={"prompt": "hello"})
     assert r.json()["error"]["category"] == "unavailable"
@@ -67,12 +87,7 @@ def test_author_task_empty_prompt_rejected(client):
 
 
 def test_author_task_unavailable_without_sdk(client, monkeypatch):
-    patched = False
-    for modname in ("web.routes.cognition", "core.web.routes.cognition"):
-        mod = sys.modules.get(modname)
-        if mod is not None:
-            monkeypatch.setattr(mod, "_claude_sdk", lambda: None, raising=False)
-            patched = True
+    patched = _patch_cognition(monkeypatch, "_claude_sdk", lambda: None)
     assert patched
     r = client.post("/api/cognition/author-task", json={"prompt": "make a task for X"})
     assert r.json()["error"]["category"] == "unavailable"
@@ -113,12 +128,7 @@ def test_chat_new_session_event_uses_sdk_resolved_id(client, monkeypatch):
             yield FakeInit("real-sdk-uuid-9999")
 
     fake = FakeSDK()
-    patched = False
-    for modname in ("web.routes.cognition", "core.web.routes.cognition"):
-        mod = sys.modules.get(modname)
-        if mod is not None:
-            monkeypatch.setattr(mod, "_claude_sdk", lambda: fake, raising=False)
-            patched = True
+    patched = _patch_cognition(monkeypatch, "_claude_sdk", lambda: fake)
     assert patched
 
     with client.stream("POST", "/api/cognition/chat", json={"prompt": "hi"}) as r:
@@ -168,12 +178,7 @@ def _make_fake_sdk(events, captured_opts=None):
 
 
 def _patch_sdk(monkeypatch, fake):
-    patched = False
-    for modname in ("web.routes.cognition", "core.web.routes.cognition"):
-        mod = sys.modules.get(modname)
-        if mod is not None:
-            monkeypatch.setattr(mod, "_claude_sdk", lambda: fake, raising=False)
-            patched = True
+    patched = _patch_cognition(monkeypatch, "_claude_sdk", lambda: fake)
     assert patched, "cognition module not loaded"
 
 
@@ -204,7 +209,7 @@ def test_chat_new_no_session_id_warns_and_falls_back(client, monkeypatch):
     """When the SDK never yields a session_id the UI is handed the minted id
     (which 404s). That MUST be logged at warning — never silent."""
     warned: list[str] = []
-    for modname in ("web.routes.cognition", "core.web.routes.cognition"):
+    for modname in _COGNITION_MODULES:
         mod = sys.modules.get(modname)
         if mod is not None:
             monkeypatch.setattr(
@@ -259,10 +264,7 @@ def test_get_chat_uses_codex_provider_before_claude_for_codex_presence(client, m
             raise AssertionError("Codex ids must not be sent to Claude")
 
     _patch_sdk(monkeypatch, FailingClaudeSDK())
-    for modname in ("web.routes.cognition", "core.web.routes.cognition"):
-        mod = sys.modules.get(modname)
-        if mod is not None:
-            monkeypatch.setattr(mod, "_session_agent_hints", lambda session_id: {"codex"})
+    _patch_cognition(monkeypatch, "_session_agent_hints", lambda session_id: {"codex"})
 
     import web.chat_providers as chat_providers
 
