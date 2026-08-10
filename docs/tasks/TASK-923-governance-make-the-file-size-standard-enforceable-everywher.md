@@ -69,3 +69,6 @@ references: []
 - 2026-08-10 [claude]: Edit _init_registries.py
 - 2026-08-10 [claude]: commit 3f1cabc175 — refactor(cli): split main.py into cohesive init modules, 3111 lines to 1605
 - 2026-08-10 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-10 [claude]: commit 26e85acbe7 — chore(board): close TASK-923 and TASK-924
+- 2026-08-10 [claude]: commit 3602dcef54 — fix(ci): reformat after the main.py split and tighten the size ratchet
+- 2026-08-10 [claude]: Edit ci-gates.md

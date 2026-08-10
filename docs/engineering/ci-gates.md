@@ -58,6 +58,16 @@ Recorded exceptions:
   dual `board_os.*`/`core.board_os.*` import paths double-count some of them;
   a pre/post error-list diff confirmed no new untyped code. The gate caught
   the +410 implicit-re-export regression first, which WAS fixed (`__all__`).
+- 2026-08-10 (TASK-925): mypy BASELINE 4651 → 4687. The server.py split moved
+  code verbatim into seven `_tools_*` siblings; each repeats the flat imports
+  (`from _server_runtime import …`, `from tools._shared import …`) that mypy
+  cannot resolve, so **one** `import-not-found` became seven. No new untyped
+  code — the delta is entirely `[import-not-found]` on modules that were
+  already unresolvable from server.py. The root fix is a `mypy_path` that makes
+  the flat-import convention resolvable; a naive `MYPYPATH=src:src/core:…`
+  produces a duplicate-module error (`dispatcher.py` reachable two ways) and
+  needs `explicit_package_bases`, so it is tracked as its own task rather than
+  bolted onto a refactor.
 - 2026-08-09 (TASK-921): mypy BASELINE 4649 → 4651. The gate caught a real
   regression from the new repair tests (wrong import path + unnarrowed
   `Optional`s) and that WAS fixed; the residual +2 sits inside the
