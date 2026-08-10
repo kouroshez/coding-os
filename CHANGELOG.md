@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.11](https://github.com/kouroshez/coding-os/compare/v0.3.10...v0.3.11) (2026-08-10)
+
+
+### Fixed
+
+* **ci:** keep sigstore bundles out of the PyPI upload directory ([5080d3c](https://github.com/kouroshez/coding-os/commit/5080d3c90b9a3ee13328773a84a4e365e3f52c0e))
+* **ci:** write the release SBOM to an existing directory ([3461b46](https://github.com/kouroshez/coding-os/commit/3461b46a0512b2e869a082b2670c5116ceef8001))
+
 ## [0.3.10](https://github.com/kouroshez/coding-os/compare/v0.3.9...v0.3.10) (2026-08-09)
 
 
