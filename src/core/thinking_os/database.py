@@ -16,44 +16,89 @@ from collections.abc import Generator
 from contextlib import contextmanager, suppress
 from pathlib import Path
 
-from _db_migrations import (  # noqa: F401 — re-exported: callers do `from database import has_fts5`
-    MIGRATIONS,
-    MigrationAction,
-    _column_exists,
-    has_backtrack_events_table,
-    has_document_chunks_fts,
-    has_embeddings_table,
-    has_file_index_state_table,
-    has_formula_dispatches_table,
-    has_fts5,
-    has_fts5_table,
-    has_graph_edges_table,
-    has_graph_evidence_table,
-    has_graph_nodes_fts,
-    has_graph_nodes_table,
-    has_memory_audit_table,
-    has_pattern_validations_table,
-    has_persona_selections_table,
-    has_retrieval_quality_table,
-    has_retrievals_table,
-    has_task_dependencies_table,
-    has_task_status_history_table,
-    has_tasks_fts,
-    has_tasks_table,
-    has_tasks_v13_columns,
-)
-from _db_paths import (  # noqa: F401 — re-exported: `from database import project_root` is used repo-wide
-    DB_FILENAME,
-    DEFAULT_DB_PATH,
-    LEGACY_DB_FILENAME,
-    STATE_DIRNAME,
-    get_active_project_root,
-    migrate_legacy_db_filename,
-    project_root,
-    reset_active_project_root,
-    resolve_db_path,
-    set_active_project_root,
-)
+# database.py is imported BOTH flat (`import database`, with this dir on
+# sys.path — the MCP server + hooks) and as a package member
+# (`thinking_os.database`, `core.thinking_os.database` — the CLI and web).
+# A relative import breaks the first, a bare one breaks the second, so try
+# the package form and fall back. Same dual identity documented for board_os.
+try:  # package import
+    from ._db_migrations import (
+        MIGRATIONS,
+        MigrationAction,
+        _column_exists,
+        has_backtrack_events_table,
+        has_document_chunks_fts,
+        has_embeddings_table,
+        has_file_index_state_table,
+        has_formula_dispatches_table,
+        has_fts5,
+        has_fts5_table,
+        has_graph_edges_table,
+        has_graph_evidence_table,
+        has_graph_nodes_fts,
+        has_graph_nodes_table,
+        has_memory_audit_table,
+        has_pattern_validations_table,
+        has_persona_selections_table,
+        has_retrieval_quality_table,
+        has_retrievals_table,
+        has_task_dependencies_table,
+        has_task_status_history_table,
+        has_tasks_fts,
+        has_tasks_table,
+        has_tasks_v13_columns,
+    )
+    from ._db_paths import (
+        DB_FILENAME,
+        DEFAULT_DB_PATH,
+        LEGACY_DB_FILENAME,
+        STATE_DIRNAME,
+        get_active_project_root,
+        migrate_legacy_db_filename,
+        project_root,
+        reset_active_project_root,
+        resolve_db_path,
+        set_active_project_root,
+    )
+except ImportError:  # flat import
+    from _db_migrations import (  # noqa: F401 — re-exported: callers do `from database import has_fts5`
+        MIGRATIONS,
+        MigrationAction,
+        _column_exists,
+        has_backtrack_events_table,
+        has_document_chunks_fts,
+        has_embeddings_table,
+        has_file_index_state_table,
+        has_formula_dispatches_table,
+        has_fts5,
+        has_fts5_table,
+        has_graph_edges_table,
+        has_graph_evidence_table,
+        has_graph_nodes_fts,
+        has_graph_nodes_table,
+        has_memory_audit_table,
+        has_pattern_validations_table,
+        has_persona_selections_table,
+        has_retrieval_quality_table,
+        has_retrievals_table,
+        has_task_dependencies_table,
+        has_task_status_history_table,
+        has_tasks_fts,
+        has_tasks_table,
+        has_tasks_v13_columns,
+    )
+    from _db_paths import (  # noqa: F401 — re-exported: `from database import project_root` is used repo-wide
+        DB_FILENAME,
+        DEFAULT_DB_PATH,
+        LEGACY_DB_FILENAME,
+        STATE_DIRNAME,
+        get_active_project_root,
+        migrate_legacy_db_filename,
+        project_root,
+        reset_active_project_root,
+        resolve_db_path,
+        set_active_project_root,
+    )
 
 logger = logging.getLogger("coding_os.db")
 

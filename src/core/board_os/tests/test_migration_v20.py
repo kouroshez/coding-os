@@ -6,10 +6,12 @@ import sqlite3
 
 import pytest
 
-from core.thinking_os.database import (
-    MIGRATIONS,
+from core.thinking_os._db_migrations import (
     _migrate_v13_board_os,
     _migrate_v20_override_audit,
+)
+from core.thinking_os.database import (
+    MIGRATIONS,
     get_schema_version,
     has_task_status_history_table,
     run_migrations,

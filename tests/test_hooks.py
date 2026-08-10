@@ -74,7 +74,7 @@ def _python_resolve_root(cwd: str) -> str:
 
     code = (
         f"import sys; sys.path.insert(0, {str(REPO_SRC)!r}); "
-        "from core.thinking_os.database import _find_project_root_from_cwd; "
+        "from core.thinking_os._db_paths import _find_project_root_from_cwd; "
         "print(_find_project_root_from_cwd())"
     )
     return subprocess.run(
