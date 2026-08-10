@@ -129,7 +129,6 @@ VALID_TEMPLATES: list[str] = _discover_valid_templates()
 # them via _reset_registries_for_tests().
 
 
-
 # _merge_profiles, _build_substitutions, _list_installed_skills have all
 # been replaced by the aggregator pipeline. See _build_world() above and
 # src/cli/aggregator.py::aggregate() for the data-driven replacement.

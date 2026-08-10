@@ -23,7 +23,7 @@ from pathlib import Path
 SOFT_LIMIT = 800
 
 BASELINE: dict[str, int] = {
-        "src/cli/main.py": 3111,
+    "src/cli/main.py": 1601,
     "src/core/thinking_os/database.py": 2917,
     "src/core/board_os/tests/test_mcp_tools.py": 2202,
     "src/core/thinking_os/tools/learning.py": 2078,
