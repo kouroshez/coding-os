@@ -24,7 +24,8 @@ SOFT_LIMIT = 800
 
 BASELINE: dict[str, int] = {
     "src/cli/main.py": 1601,
-    "src/core/thinking_os/database.py": 2917,
+    # Append-only schema ledger — recorded exception, see ci-gates.md.
+    "src/core/thinking_os/_db_migrations.py": 2316,
     "src/core/board_os/tests/test_mcp_tools.py": 2202,
     "src/core/thinking_os/tools/learning.py": 2078,
     "src/core/thinking_os/tools/cognition.py": 2025,
@@ -35,7 +36,7 @@ BASELINE: dict[str, int] = {
     "src/core/graph_os/extractors/code_ts.py": 1665,
     "src/core/thinking_os/tests/test_learning.py": 1597,
     "src/core/graph_os/extractors/contracts.py": 1592,
-    "src/core/thinking_os/tests/test_db.py": 1537,
+    "src/core/thinking_os/tests/test_db.py": 1538,
     "src/core/graph_os/extractors/code_python.py": 1454,
     "src/core/graph_os/extractors/code_go.py": 1422,
     "tests/test_hooks.py": 1287,

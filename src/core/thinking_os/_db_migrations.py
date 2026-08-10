@@ -1,0 +1,2316 @@
+"""The append-only schema ledger: every migration v1..vN and its capability probe.
+
+Rule 9 freezes each entry the moment it ships, so this file has exactly one
+reason to change — appending. That is why it stays whole and over the file-size
+backstop: slicing an ordered ledger by subsystem would interleave versions and
+turn "what is the schema history" into a four-file scan. Recorded exception in
+docs/engineering/ci-gates.md.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import sqlite3
+from collections.abc import Callable
+from pathlib import Path
+
+logger = logging.getLogger("coding_os.db")
+
+
+def has_fts5(conn: sqlite3.Connection) -> bool:
+    """Check whether the current SQLite build supports FTS5."""
+    try:
+        conn.execute("CREATE VIRTUAL TABLE _fts5_probe USING fts5(x)")
+        conn.execute("DROP TABLE _fts5_probe")
+        return True
+    except sqlite3.OperationalError:
+        return False
+
+
+def has_fts5_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the observations_fts table exists (FTS5 was successfully created)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='observations_fts'"
+    ).fetchone()
+    return row is not None
+
+
+def _migrate_v2_fts5(conn: sqlite3.Connection) -> None:
+    """Migration v2: create FTS5 virtual table and sync triggers.
+
+    Gracefully degrades if FTS5 is not available — logs a warning and skips.
+    """
+    if not has_fts5(conn):
+        logger.warning(
+            "FTS5 not available in this SQLite build — skipping FTS5 table creation. "
+            "Search will fall back to LIKE queries."
+        )
+        return
+
+    conn.executescript("""\
+CREATE VIRTUAL TABLE IF NOT EXISTS observations_fts USING fts5(
+    title, narrative, concepts,
+    content='observations', content_rowid='id'
+);
+
+-- Auto-populate on INSERT
+CREATE TRIGGER IF NOT EXISTS observations_ai AFTER INSERT ON observations BEGIN
+    INSERT INTO observations_fts(rowid, title, narrative, concepts)
+    VALUES (new.id, new.title, new.narrative, new.concepts);
+END;
+
+-- Re-sync on UPDATE (needed for TASK-155 compression)
+CREATE TRIGGER IF NOT EXISTS observations_au AFTER UPDATE ON observations BEGIN
+    INSERT INTO observations_fts(observations_fts, rowid, title, narrative, concepts)
+    VALUES ('delete', old.id, old.title, old.narrative, old.concepts);
+    INSERT INTO observations_fts(rowid, title, narrative, concepts)
+    VALUES (new.id, new.title, new.narrative, new.concepts);
+END;
+
+-- Auto-cleanup on DELETE
+CREATE TRIGGER IF NOT EXISTS observations_ad AFTER DELETE ON observations BEGIN
+    INSERT INTO observations_fts(observations_fts, rowid, title, narrative, concepts)
+    VALUES ('delete', old.id, old.title, old.narrative, old.concepts);
+END;
+""")
+    logger.info("FTS5 observations_fts table and triggers created successfully")
+
+
+# or a callable(conn) for migrations needing runtime logic (e.g. FTS5 check).
+# Migrations MUST be append-only — never edit an applied migration.
+MigrationAction = str | Callable[[sqlite3.Connection], None]
+
+
+def _migrate_v4_brain_features(conn: sqlite3.Connection) -> None:
+    """Migration v4: outcome_history, concept_graph, session_summaries enrichment."""
+
+    # 1. outcome_history — append-only log of every outcome transition
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS outcome_history (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id                 TEXT NOT NULL,
+    outcome                 TEXT NOT NULL,
+    previous_outcome        TEXT,
+    is_breakthrough         INTEGER DEFAULT 0,
+    narrative_what_failed   TEXT,
+    narrative_what_worked   TEXT,
+    narrative_key_insight   TEXT,
+    triggered_by            TEXT,
+    created_at              DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_outcome_history_task
+    ON outcome_history(task_id);
+CREATE INDEX IF NOT EXISTS idx_outcome_history_breakthrough
+    ON outcome_history(is_breakthrough) WHERE is_breakthrough = 1;
+
+-- 2. concept_graph — lightweight adjacency list for file/concept relationships
+CREATE TABLE IF NOT EXISTS concept_graph (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    source      TEXT NOT NULL,
+    target      TEXT NOT NULL,
+    edge_type   TEXT NOT NULL,
+    weight      REAL DEFAULT 1.0,
+    evidence    TEXT,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(source, target, edge_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_concept_graph_source ON concept_graph(source);
+CREATE INDEX IF NOT EXISTS idx_concept_graph_target ON concept_graph(target);
+CREATE INDEX IF NOT EXISTS idx_concept_graph_type ON concept_graph(edge_type);
+""")
+
+    # 3. session_summaries enrichment — add columns if missing
+    existing_columns = {
+        row[1] for row in conn.execute("PRAGMA table_info(session_summaries)").fetchall()
+    }
+    new_columns = [
+        ("previous_session_id", "TEXT"),
+        ("duration_minutes", "INTEGER"),
+        ("files_touched", "TEXT"),
+        ("observations_count", "INTEGER DEFAULT 0"),
+        ("breakthrough_ids", "TEXT"),
+    ]
+    for col_name, col_type in new_columns:
+        if col_name not in existing_columns:
+            conn.execute(f"ALTER TABLE session_summaries ADD COLUMN {col_name} {col_type}")
+
+    logger.info(
+        "Brain features migration v4 applied: outcome_history, concept_graph, session_summaries enrichment"
+    )
+
+
+def _migrate_v5_rag(conn: sqlite3.Connection) -> None:
+    """Migration v5: embeddings + document_chunks for RAG.
+
+    Adds two new tables:
+      - embeddings: vector storage for any source row (observations,
+        learned_patterns, outcome_history, document_chunks, tasks).
+        BLOB column holds float32 bytes (1536 bytes for 384-dim model).
+      - document_chunks: heading-aware chunks of project docs/ for the
+        document RAG knowledge base.
+
+    Both tables are additive — no existing tables are modified. Embeddings
+    are populated lazily by the embeddings module, so this migration is
+    safe even when sentence-transformers is not installed.
+    """
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS embeddings (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_table TEXT NOT NULL,
+    source_id    INTEGER NOT NULL,
+    text_hash    TEXT NOT NULL,
+    embedding    BLOB NOT NULL,
+    model_name   TEXT DEFAULT 'BAAI/bge-m3',
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(source_table, source_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_embeddings_source
+    ON embeddings(source_table, source_id);
+CREATE INDEX IF NOT EXISTS idx_embeddings_model
+    ON embeddings(model_name);
+
+CREATE TABLE IF NOT EXISTS document_chunks (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_path  TEXT NOT NULL,
+    source_type  TEXT NOT NULL,
+    chunk_index  INTEGER NOT NULL,
+    heading_path TEXT,
+    content      TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    priority     REAL DEFAULT 0.5,
+    mtime        INTEGER NOT NULL,
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(source_path, chunk_index)
+);
+
+CREATE INDEX IF NOT EXISTS idx_doc_chunks_path
+    ON document_chunks(source_path);
+CREATE INDEX IF NOT EXISTS idx_doc_chunks_type
+    ON document_chunks(source_type);
+""")
+    logger.info("RAG migration v5 applied: embeddings + document_chunks tables created")
+
+
+def has_embeddings_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the embeddings table exists (migration v5 applied).
+
+    Mirrors `has_fts5_table` — used by callers that need to know whether
+    semantic search is structurally available before attempting it.
+    """
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='embeddings'"
+    ).fetchone()
+    return row is not None
+
+
+def _migrate_v6_tasks(conn: sqlite3.Connection) -> None:
+    """Migration v6: tasks table for hybrid task store.
+
+    Mirrors the structure of `docs/tasks/TASK-###-slug.md` files as a
+    queryable index. Files remain SSOT — the table is a derived cache
+    populated by `board_os/sync.py` (sole writer since TASK-398).
+    Dependencies are stored as a JSON-encoded
+    list so we can do `LIKE '%"TASK-195"%'` lookups for `cos_task_dependents`
+    without false-positive substring matches (TASK-19 vs TASK-195).
+    """
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS tasks (
+    task_id         TEXT PRIMARY KEY,
+    title           TEXT NOT NULL,
+    domain          TEXT,
+    status          TEXT NOT NULL DEFAULT 'open',
+    file_path       TEXT NOT NULL,
+    content_hash    TEXT NOT NULL,
+    mtime           INTEGER NOT NULL,
+    goal_text       TEXT,
+    scope_in        TEXT,
+    scope_out       TEXT,
+    requirements    TEXT,
+    dependencies    TEXT,
+    source_of_truth TEXT,
+    read_first      TEXT,
+    open_questions  TEXT,
+    rabbit_holes    TEXT,
+    verification    TEXT,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_domain ON tasks(domain);
+CREATE INDEX IF NOT EXISTS idx_tasks_file_path ON tasks(file_path);
+""")
+    logger.info("Tasks migration v6 applied: tasks table created")
+
+
+def has_tasks_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the tasks table exists (migration v6 applied).
+
+    Mirrors `has_fts5_table` / `has_embeddings_table` — callers can guard
+    task-related queries when running against an older DB.
+    """
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='tasks'"
+    ).fetchone()
+    return row is not None
+
+
+def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
+    """Return True if `column` is present in `table` per PRAGMA table_info."""
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return any(r[1] == column for r in rows)
+
+
+def _migrate_v7_brain_hardening(conn: sqlite3.Connection) -> None:
+    """Migration v7: trust_tier + provenance + memory_audit."""
+    # 1. Add trust_tier + provenance to learned_patterns (idempotent per column)
+    if not _column_exists(conn, "learned_patterns", "trust_tier"):
+        conn.execute(
+            "ALTER TABLE learned_patterns ADD COLUMN trust_tier TEXT NOT NULL DEFAULT 'volatile'"
+        )
+    if not _column_exists(conn, "learned_patterns", "provenance"):
+        conn.execute(
+            "ALTER TABLE learned_patterns ADD COLUMN provenance TEXT NOT NULL DEFAULT 'agent_self'"
+        )
+
+    # 2. Add provenance to observations
+    if not _column_exists(conn, "observations", "provenance"):
+        conn.execute(
+            "ALTER TABLE observations ADD COLUMN provenance TEXT NOT NULL DEFAULT 'agent_self'"
+        )
+
+    # 3. memory_audit — append-only audit log
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS memory_audit (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    actor        TEXT NOT NULL,
+    action       TEXT NOT NULL,
+    source_table TEXT NOT NULL,
+    source_id    INTEGER,
+    old_value    TEXT,
+    new_value    TEXT,
+    reason       TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_memory_audit_table
+    ON memory_audit(source_table, source_id);
+CREATE INDEX IF NOT EXISTS idx_memory_audit_created
+    ON memory_audit(created_at);
+
+-- memory_audit is append-only: block any UPDATE or DELETE
+CREATE TRIGGER IF NOT EXISTS trg_memory_audit_no_update
+    BEFORE UPDATE ON memory_audit
+    BEGIN
+        SELECT RAISE(ABORT, 'memory_audit is append-only');
+    END;
+
+CREATE TRIGGER IF NOT EXISTS trg_memory_audit_no_delete
+    BEFORE DELETE ON memory_audit
+    BEGIN
+        SELECT RAISE(ABORT, 'memory_audit is append-only');
+    END;
+
+-- Protect locked/core patterns from UPDATE
+CREATE TRIGGER IF NOT EXISTS trg_learned_patterns_protect_update
+    BEFORE UPDATE ON learned_patterns
+    WHEN OLD.trust_tier IN ('locked', 'core')
+    BEGIN
+        SELECT RAISE(ABORT, 'learned_patterns: trust_tier locked/core is immutable via standard path');
+    END;
+
+-- Protect locked/core patterns from DELETE
+CREATE TRIGGER IF NOT EXISTS trg_learned_patterns_protect_delete
+    BEFORE DELETE ON learned_patterns
+    WHEN OLD.trust_tier IN ('locked', 'core')
+    BEGIN
+        SELECT RAISE(ABORT, 'learned_patterns: trust_tier locked/core cannot be deleted via standard path');
+    END;
+""")
+    logger.info("Brain-hardening migration v7 applied: trust_tier, provenance, memory_audit")
+
+
+def has_memory_audit_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the memory_audit table exists (migration v7 applied)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='memory_audit'"
+    ).fetchone()
+    return row is not None
+
+
+def _migrate_v8_validation_throttle(conn: sqlite3.Connection) -> None:
+    """Migration v8: pattern_validations table for anti-sycophancy."""
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS pattern_validations (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id     TEXT NOT NULL,
+    pattern_id     INTEGER NOT NULL,
+    was_helpful    INTEGER NOT NULL,
+    was_throttled  INTEGER NOT NULL DEFAULT 0,
+    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pattern_validations_session_pattern
+    ON pattern_validations(session_id, pattern_id);
+CREATE INDEX IF NOT EXISTS idx_pattern_validations_created
+    ON pattern_validations(created_at);
+""")
+    logger.info("Validation-throttle migration v8 applied: pattern_validations")
+
+
+def has_pattern_validations_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the pattern_validations table exists (migration v8)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='pattern_validations'"
+    ).fetchone()
+    return row is not None
+
+
+def _migrate_v9_docs_fts(conn: sqlite3.Connection) -> None:
+    """Migration v9: FTS5 virtual table over document_chunks."""
+    if not has_fts5(conn):
+        logger.warning(
+            "FTS5 unavailable — skipping document_chunks_fts. doc_search "
+            "lexical fallback will degrade to LIKE."
+        )
+        return
+
+    conn.executescript("""\
+CREATE VIRTUAL TABLE IF NOT EXISTS document_chunks_fts USING fts5(
+    heading_path, content,
+    content='document_chunks', content_rowid='id'
+);
+
+CREATE TRIGGER IF NOT EXISTS document_chunks_ai AFTER INSERT ON document_chunks BEGIN
+    INSERT INTO document_chunks_fts(rowid, heading_path, content)
+    VALUES (new.id, new.heading_path, new.content);
+END;
+
+CREATE TRIGGER IF NOT EXISTS document_chunks_au AFTER UPDATE ON document_chunks BEGIN
+    INSERT INTO document_chunks_fts(document_chunks_fts, rowid, heading_path, content)
+    VALUES ('delete', old.id, old.heading_path, old.content);
+    INSERT INTO document_chunks_fts(rowid, heading_path, content)
+    VALUES (new.id, new.heading_path, new.content);
+END;
+
+CREATE TRIGGER IF NOT EXISTS document_chunks_ad AFTER DELETE ON document_chunks BEGIN
+    INSERT INTO document_chunks_fts(document_chunks_fts, rowid, heading_path, content)
+    VALUES ('delete', old.id, old.heading_path, old.content);
+END;
+""")
+
+    conn.execute(
+        "INSERT INTO document_chunks_fts(rowid, heading_path, content) "
+        "SELECT id, heading_path, content FROM document_chunks "
+        "WHERE id NOT IN (SELECT rowid FROM document_chunks_fts)"
+    )
+    logger.info("FTS5 docs migration v9 applied: document_chunks_fts")
+
+
+def has_document_chunks_fts(conn: sqlite3.Connection) -> bool:
+    """Check whether document_chunks_fts exists (v9 + FTS5 available)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='document_chunks_fts'"
+    ).fetchone()
+    return row is not None
+
+
+def has_tasks_fts(conn: sqlite3.Connection) -> bool:
+    """Check whether tasks_fts exists (v35 + FTS5 available)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='tasks_fts'"
+    ).fetchone()
+    return row is not None
+
+
+def has_task_dependencies_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the task_dependencies junction exists (v35 applied)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='task_dependencies'"
+    ).fetchone()
+    return row is not None
+
+
+def _migrate_v10_retrievals(conn: sqlite3.Connection) -> None:
+    """Migration v10: retrievals table for outcome-driven priority."""
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS retrievals (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id     TEXT NOT NULL,
+    task_id        TEXT,
+    layer          TEXT NOT NULL,
+    query          TEXT NOT NULL,
+    source_table   TEXT NOT NULL,
+    source_id      INTEGER NOT NULL,
+    score          REAL,
+    was_cited      INTEGER NOT NULL DEFAULT 0,
+    outcome        TEXT,
+    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+    outcome_at     DATETIME
+);
+
+CREATE INDEX IF NOT EXISTS idx_retrievals_task      ON retrievals(task_id);
+CREATE INDEX IF NOT EXISTS idx_retrievals_session   ON retrievals(session_id);
+CREATE INDEX IF NOT EXISTS idx_retrievals_source    ON retrievals(source_table, source_id);
+CREATE INDEX IF NOT EXISTS idx_retrievals_outcome   ON retrievals(outcome);
+""")
+    logger.info("Retrievals migration v10 applied")
+
+
+def has_retrievals_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the retrievals table exists (migration v10)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='retrievals'"
+    ).fetchone()
+    return row is not None
+
+
+def _migrate_v11_retrieval_quality(conn: sqlite3.Connection) -> None:
+    """Migration v11: retrieval precision tracking."""
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS retrieval_quality (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    retrieval_id    INTEGER NOT NULL,
+    task_id         TEXT,
+    layer           TEXT NOT NULL,
+    query           TEXT,
+    precision       REAL,
+    signal_source   TEXT NOT NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_retrieval_quality_task
+    ON retrieval_quality(task_id);
+CREATE INDEX IF NOT EXISTS idx_retrieval_quality_layer
+    ON retrieval_quality(layer);
+CREATE INDEX IF NOT EXISTS idx_retrieval_quality_created
+    ON retrieval_quality(created_at);
+""")
+
+    # Contextual chunk text — LLM-generated situating sentence prepended at
+    # embed time. Column is nullable until G.11 enrichment runs; retrieval
+    # stays on the plain heading-path prefix meanwhile.
+    if not _column_exists(conn, "document_chunks", "contextual_prefix"):
+        conn.execute("ALTER TABLE document_chunks ADD COLUMN contextual_prefix TEXT")
+    if not _column_exists(conn, "document_chunks", "context_model"):
+        conn.execute("ALTER TABLE document_chunks ADD COLUMN context_model TEXT")
+    logger.info("Migration v11 applied: retrieval_quality + contextual chunk columns")
+
+
+def has_retrieval_quality_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the retrieval_quality table exists (migration v11)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='retrieval_quality'"
+    ).fetchone()
+    return row is not None
+
+
+def _migrate_v12_graph_os(conn: sqlite3.Connection) -> None:
+    """Migration v12: graph_os knowledge-graph tables."""
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS graph_nodes (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind          TEXT    NOT NULL,
+    label         TEXT    NOT NULL,
+    uid           TEXT    NOT NULL UNIQUE,
+    file_path     TEXT,
+    start_line    INTEGER,
+    end_line      INTEGER,
+    signature     TEXT,
+    lang          TEXT,
+    doc_blob      TEXT,
+    ast_hash      TEXT,
+    content_hash  TEXT,
+    metadata_json TEXT DEFAULT '{}',
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_graph_nodes_kind_lang ON graph_nodes(kind, lang);
+CREATE INDEX IF NOT EXISTS idx_graph_nodes_file      ON graph_nodes(file_path);
+
+CREATE TABLE IF NOT EXISTS graph_edges_v12 (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_id     INTEGER NOT NULL,
+    target_id     INTEGER NOT NULL,
+    edge_type     TEXT    NOT NULL,
+    confidence    REAL    NOT NULL DEFAULT 1.0,
+    extractor     TEXT    NOT NULL,
+    source_span   TEXT,
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL,
+    UNIQUE(source_id, target_id, edge_type, extractor),
+    FOREIGN KEY (source_id) REFERENCES graph_nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_id) REFERENCES graph_nodes(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_graph_edges_source ON graph_edges_v12(source_id, edge_type);
+CREATE INDEX IF NOT EXISTS idx_graph_edges_target ON graph_edges_v12(target_id, edge_type);
+CREATE INDEX IF NOT EXISTS idx_graph_edges_type   ON graph_edges_v12(edge_type);
+
+CREATE TABLE IF NOT EXISTS graph_evidence_v12 (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    edge_id      INTEGER NOT NULL,
+    signal_name  TEXT    NOT NULL,
+    weight       REAL    NOT NULL,
+    note         TEXT,
+    created_at   INTEGER NOT NULL,
+    FOREIGN KEY (edge_id) REFERENCES graph_edges_v12(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_graph_evidence_edge ON graph_evidence_v12(edge_id);
+""")
+
+    if has_fts5(conn):
+        conn.executescript("""\
+CREATE VIRTUAL TABLE IF NOT EXISTS graph_nodes_fts USING fts5(
+    label, signature, doc_blob,
+    content=graph_nodes,
+    content_rowid=id,
+    tokenize='porter unicode61'
+);
+
+CREATE TRIGGER IF NOT EXISTS graph_nodes_fts_ai AFTER INSERT ON graph_nodes BEGIN
+    INSERT INTO graph_nodes_fts(rowid, label, signature, doc_blob)
+      VALUES (new.id, new.label, COALESCE(new.signature, ''), COALESCE(new.doc_blob, ''));
+END;
+CREATE TRIGGER IF NOT EXISTS graph_nodes_fts_ad AFTER DELETE ON graph_nodes BEGIN
+    INSERT INTO graph_nodes_fts(graph_nodes_fts, rowid, label, signature, doc_blob)
+      VALUES ('delete', old.id, old.label, COALESCE(old.signature, ''), COALESCE(old.doc_blob, ''));
+END;
+CREATE TRIGGER IF NOT EXISTS graph_nodes_fts_au AFTER UPDATE ON graph_nodes BEGIN
+    INSERT INTO graph_nodes_fts(graph_nodes_fts, rowid, label, signature, doc_blob)
+      VALUES ('delete', old.id, old.label, COALESCE(old.signature, ''), COALESCE(old.doc_blob, ''));
+    INSERT INTO graph_nodes_fts(rowid, label, signature, doc_blob)
+      VALUES (new.id, new.label, COALESCE(new.signature, ''), COALESCE(new.doc_blob, ''));
+END;
+""")
+
+    if has_embeddings_table(conn) and not _column_exists(conn, "embeddings", "embedding_dim"):
+        conn.execute("ALTER TABLE embeddings ADD COLUMN embedding_dim INTEGER DEFAULT 384")
+
+    logger.info(
+        "Migration v12 applied: graph_nodes + graph_edges_v12 + "
+        "graph_evidence_v12 + graph_nodes_fts; embeddings.embedding_dim added"
+    )
+
+
+def has_graph_nodes_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the graph_nodes table exists (migration v12)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='graph_nodes'"
+    ).fetchone()
+    return row is not None
+
+
+def has_graph_edges_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the graph_edges_v12 table exists (migration v12)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='graph_edges_v12'"
+    ).fetchone()
+    return row is not None
+
+
+def has_graph_evidence_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the graph_evidence_v12 table exists (migration v12)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='graph_evidence_v12'"
+    ).fetchone()
+    return row is not None
+
+
+def has_graph_nodes_fts(conn: sqlite3.Connection) -> bool:
+    """Check whether the graph_nodes_fts virtual table exists (v12)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='graph_nodes_fts'"
+    ).fetchone()
+    return row is not None
+
+
+def _migrate_v13_board_os(conn: sqlite3.Connection) -> None:
+    """Migration v13: board_os Scrumban task workflow extensions."""
+    # Idempotent ADD COLUMN (re-running is safe).
+    if not _column_exists(conn, "tasks", "swimlane"):
+        conn.execute("ALTER TABLE tasks ADD COLUMN swimlane TEXT")
+    if not _column_exists(conn, "tasks", "kind"):
+        conn.execute("ALTER TABLE tasks ADD COLUMN kind TEXT")
+    if not _column_exists(conn, "tasks", "epic"):
+        conn.execute("ALTER TABLE tasks ADD COLUMN epic TEXT")
+    if not _column_exists(conn, "tasks", "labels_json"):
+        conn.execute("ALTER TABLE tasks ADD COLUMN labels_json TEXT DEFAULT '[]'")
+    if not _column_exists(conn, "tasks", "priority"):
+        conn.execute("ALTER TABLE tasks ADD COLUMN priority TEXT")
+    if not _column_exists(conn, "tasks", "appetite"):
+        conn.execute("ALTER TABLE tasks ADD COLUMN appetite TEXT")
+    if not _column_exists(conn, "tasks", "started_at"):
+        conn.execute("ALTER TABLE tasks ADD COLUMN started_at INTEGER")
+    if not _column_exists(conn, "tasks", "completed_at"):
+        conn.execute("ALTER TABLE tasks ADD COLUMN completed_at INTEGER")
+    if not _column_exists(conn, "tasks", "agent_session"):
+        conn.execute("ALTER TABLE tasks ADD COLUMN agent_session TEXT")
+    if not _column_exists(conn, "tasks", "work_log_last_5"):
+        conn.execute("ALTER TABLE tasks ADD COLUMN work_log_last_5 TEXT DEFAULT '[]'")
+
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS task_status_history (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id         TEXT    NOT NULL,
+    old_status      TEXT    NOT NULL,
+    new_status      TEXT    NOT NULL,
+    agent_session   TEXT,
+    reason          TEXT,
+    transitioned_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_tsh_task
+    ON task_status_history(task_id, transitioned_at);
+CREATE INDEX IF NOT EXISTS idx_tsh_session
+    ON task_status_history(agent_session, transitioned_at)
+    WHERE agent_session IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_tasks_swimlane_status
+    ON tasks(swimlane, status);
+CREATE INDEX IF NOT EXISTS idx_tasks_kind_status
+    ON tasks(kind, status);
+CREATE INDEX IF NOT EXISTS idx_tasks_epic
+    ON tasks(epic) WHERE epic IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_tasks_priority_status
+    ON tasks(priority, status)
+    WHERE status IN ('ready', 'in_progress', 'emergency');
+""")
+
+    logger.info(
+        "Migration v13 applied: tasks +swimlane/kind/epic/"
+        "priority/appetite/started_at/completed_at/agent_session/"
+        "labels_json/work_log_last_5; task_status_history table; "
+        "5 new indices"
+    )
+
+
+def _migrate_v14_cognition(conn: sqlite3.Connection) -> None:
+    """Migration v14: formula-agent supervisor cognition tables."""
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS backtrack_events (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id  TEXT    NOT NULL,
+    from_formula TEXT   NOT NULL,
+    to_formula  TEXT    NOT NULL,
+    reason      TEXT    NOT NULL,
+    ts          TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_backtrack_session
+    ON backtrack_events(session_id, ts);
+
+CREATE TABLE IF NOT EXISTS persona_selections (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id  TEXT    NOT NULL,
+    task_marker TEXT,
+    persona_id  TEXT    NOT NULL,
+    confidence  REAL    NOT NULL,
+    reason      TEXT,
+    intensity   TEXT    NOT NULL,
+    ts          TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_persona_session
+    ON persona_selections(session_id);
+
+CREATE TABLE IF NOT EXISTS ambiguity_violations (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id  TEXT    NOT NULL,
+    formula_id  TEXT    NOT NULL,
+    step_id     TEXT,
+    criterion   TEXT    NOT NULL,
+    detail      TEXT,
+    ts          TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_ambiguity_session
+    ON ambiguity_violations(session_id);
+
+CREATE TABLE IF NOT EXISTS formula_dispatches (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id  TEXT    NOT NULL,
+    task_marker TEXT,
+    persona_id  TEXT    NOT NULL,
+    formula_id  TEXT    NOT NULL,
+    input_hash  TEXT    NOT NULL,
+    output_hash TEXT,
+    latency_ms  INTEGER,
+    status      TEXT    NOT NULL,
+    ts          TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_dispatches_session
+    ON formula_dispatches(session_id, ts);
+""")
+    logger.info(
+        "Migration v14 applied: backtrack_events, persona_selections, "
+        "ambiguity_violations, formula_dispatches + 4 indices"
+    )
+
+
+def _migrate_v15_graph_edges_confidence_check(conn: sqlite3.Connection) -> None:
+    """Migration v15 (graph_os S1 / B17): CHECK (confidence BETWEEN 0 AND 1)."""
+    conn.executescript("""\
+CREATE TRIGGER IF NOT EXISTS graph_edges_v12_confidence_ins
+BEFORE INSERT ON graph_edges_v12
+FOR EACH ROW
+WHEN NEW.confidence IS NULL
+  OR NEW.confidence < 0.0
+  OR NEW.confidence > 1.0
+BEGIN
+    SELECT RAISE(ABORT, 'graph_edges_v12.confidence must lie in [0,1]');
+END;
+
+CREATE TRIGGER IF NOT EXISTS graph_edges_v12_confidence_upd
+BEFORE UPDATE OF confidence ON graph_edges_v12
+FOR EACH ROW
+WHEN NEW.confidence IS NULL
+  OR NEW.confidence < 0.0
+  OR NEW.confidence > 1.0
+BEGIN
+    SELECT RAISE(ABORT, 'graph_edges_v12.confidence must lie in [0,1]');
+END;
+""")
+    logger.info("Migration v15 applied: graph_edges_v12 confidence CHECK triggers")
+
+
+def _migrate_v16_normalize_graph_node_kinds(conn: sqlite3.Connection) -> None:
+    """Migration v16 (graph_os S3): normalize graph_nodes.kind values."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='graph_nodes'"
+    ).fetchone()
+    if row is None:
+        logger.debug("Migration v16: graph_nodes table not present — skip")
+        return
+
+    # Resolve ``normalize_kind`` via a sys.path-side-door so this
+    # migration works both under the MCP server (which already has
+    # ``core/`` on sys.path) and under test fixtures that only
+    # pre-register ``core/thinking_os``.
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+
+        core_dir = _Path(__file__).resolve().parent.parent
+        core_str = str(core_dir)
+        if core_str not in _sys.path:
+            _sys.path.insert(0, core_str)
+        from graph_os.types import normalize_kind as _normalize  # type: ignore
+    except Exception as exc:
+        logger.warning(
+            "Migration v16 could not import normalize_kind (%s) — "
+            "skipping normalization; rows remain in legacy form",
+            exc,
+        )
+        return
+
+    rows = conn.execute("SELECT DISTINCT kind FROM graph_nodes").fetchall()
+    rename_map: dict[str, str] = {}
+    for r in rows:
+        legacy = r[0]
+        if legacy is None:
+            continue
+        try:
+            canonical = _normalize(legacy).value
+        except ValueError:
+            # Unknown kind — leave as-is so we don't silently drop data.
+            continue
+        if canonical != legacy:
+            rename_map[legacy] = canonical
+
+    total_updated = 0
+    for legacy, canonical in rename_map.items():
+        cur = conn.execute(
+            "UPDATE graph_nodes SET kind = ? WHERE kind = ?",
+            (canonical, legacy),
+        )
+        total_updated += cur.rowcount or 0
+    conn.commit()
+    logger.info(
+        "Migration v16 applied: graph_nodes.kind normalized "
+        "(%d kind(s) rewritten, %d row(s) updated)",
+        len(rename_map),
+        total_updated,
+    )
+
+
+def _migrate_v17_file_index_state(conn: sqlite3.Connection) -> None:
+    """Migration v17 (graph_os V1): per-file content-hash cache."""
+    conn.executescript(
+        """
+CREATE TABLE IF NOT EXISTS file_index_state (
+    file_path           TEXT NOT NULL,
+    content_hash        TEXT NOT NULL,
+    extractor_chain     TEXT NOT NULL,
+    nodes_written       INTEGER NOT NULL,
+    edges_written       INTEGER NOT NULL,
+    parse_errors_count  INTEGER NOT NULL DEFAULT 0,
+    last_indexed_at     INTEGER NOT NULL,
+    last_error          TEXT,
+    PRIMARY KEY (file_path, extractor_chain)
+);
+CREATE INDEX IF NOT EXISTS idx_file_index_state_hash
+    ON file_index_state(content_hash);
+"""
+    )
+    conn.commit()
+    logger.info("Migration v17 applied: file_index_state table + hash index")
+
+
+def _migrate_v18_retrieval_router_log(conn: sqlite3.Connection) -> None:
+    """Migration v18: retrieval_router_log append-only table."""
+    conn.executescript(
+        """
+CREATE TABLE IF NOT EXISTS retrieval_router_log (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    query_hash      TEXT NOT NULL,
+    query_shape     TEXT NOT NULL,
+    confidence      REAL NOT NULL,
+    chosen_layer    TEXT,
+    fanout_layers   TEXT,
+    bytes_returned  INTEGER,
+    truncated       INTEGER DEFAULT 0,
+    agent_override  TEXT,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_router_log_created
+    ON retrieval_router_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_router_log_shape
+    ON retrieval_router_log(query_shape);
+"""
+    )
+    conn.commit()
+    logger.info("Migration v18 applied: retrieval_router_log table + indexes")
+
+
+def _migrate_v19_drop_ready_status(conn: sqlite3.Connection) -> None:
+    """Migration v19: fold 'ready' status into icebox + 'ready' label."""
+    rows = conn.execute(
+        "SELECT task_id, labels_json FROM tasks WHERE status = 'ready'",
+    ).fetchall()
+
+    if not rows:
+        logger.info("Migration v19 applied: no 'ready' rows to migrate (clean DB)")
+        return
+
+    import json as _json
+    import time as _time
+
+    now_epoch = int(_time.time())
+
+    for task_id, labels_json in rows:
+        try:
+            labels = _json.loads(labels_json) if labels_json else []
+            if not isinstance(labels, list):
+                labels = []
+        except (TypeError, ValueError):
+            labels = []
+        if "ready" not in labels:
+            labels.append("ready")
+        conn.execute(
+            "UPDATE tasks SET status = 'icebox', labels_json = ? WHERE task_id = ?",
+            (_json.dumps(labels, ensure_ascii=False), task_id),
+        )
+        conn.execute(
+            """
+            INSERT INTO task_status_history
+                (task_id, old_status, new_status, agent_session,
+                 reason, transitioned_at)
+            VALUES (?, 'ready', 'icebox', NULL, ?, ?)
+            """,
+            (task_id, "migrated from ready column (v19)", now_epoch),
+        )
+    conn.commit()
+    logger.info(
+        "Migration v19 applied: folded %d 'ready' task(s) into icebox + label",
+        len(rows),
+    )
+
+
+def _column_exists_table(conn: sqlite3.Connection, table: str, column: str) -> bool:
+    """Local helper — pragma table_info reads. Defined inline to keep
+    the migration self-contained (the file already has _column_exists
+    earlier; this is only used by v20)."""
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return any(r[1] == column for r in rows)
+
+
+def _migrate_v20_override_audit(conn: sqlite3.Connection) -> None:
+    """Migration v20 — override audit columns on task_status_history."""
+    if not has_task_status_history_table(conn):
+        # Older DBs that never reached v13 don't have this table; the
+        # v13 migration will create it with the modern shape via
+        # _migrate_v13_board_os, but if a future re-run order is shuffled
+        # we should be defensive.
+        logger.info(
+            "Migration v20 skipped: task_status_history not present yet "
+            "(v13 will create it; v20 re-runs once v13 lands)"
+        )
+        return
+
+    if not _column_exists_table(conn, "task_status_history", "override_reason"):
+        conn.execute("ALTER TABLE task_status_history ADD COLUMN override_reason TEXT")
+    if not _column_exists_table(conn, "task_status_history", "override_actor"):
+        conn.execute("ALTER TABLE task_status_history ADD COLUMN override_actor TEXT")
+
+    # Index lets retro/audit queries scan only override rows efficiently.
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_tsh_override "
+        "ON task_status_history(override_reason) "
+        "WHERE override_reason IS NOT NULL"
+    )
+    conn.commit()
+    logger.info("Migration v20 applied: override audit columns on task_status_history")
+
+
+def _migrate_v21_doc_audit_trail(conn: sqlite3.Connection) -> None:
+    """Migration v21 — append-only doc edit + decision-history log."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS doc_audit_trail (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            doc_path          TEXT NOT NULL,
+            session_id        TEXT,
+            agent             TEXT,
+            action            TEXT NOT NULL CHECK (action IN (
+                'created','updated','deleted','reverted','moved','renamed'
+            )),
+            old_frontmatter   TEXT,
+            new_frontmatter   TEXT,
+            old_content_hash  TEXT,
+            new_content_hash  TEXT,
+            reason            TEXT,
+            supersedes_id     INTEGER REFERENCES doc_audit_trail(id),
+            created_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_doc_audit_path_created
+            ON doc_audit_trail(doc_path, created_at DESC);
+
+        CREATE INDEX IF NOT EXISTS idx_doc_audit_session
+            ON doc_audit_trail(session_id);
+
+        CREATE INDEX IF NOT EXISTS idx_doc_audit_supersedes
+            ON doc_audit_trail(supersedes_id)
+            WHERE supersedes_id IS NOT NULL;
+
+        -- Append-only: forbid UPDATE / DELETE on this table. The audit
+        -- log is meaningful only if it cannot be rewritten.
+        CREATE TRIGGER IF NOT EXISTS doc_audit_trail_no_update
+        BEFORE UPDATE ON doc_audit_trail
+        BEGIN
+            SELECT RAISE(FAIL, 'doc_audit_trail is append-only');
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS doc_audit_trail_no_delete
+        BEFORE DELETE ON doc_audit_trail
+        BEGIN
+            SELECT RAISE(FAIL, 'doc_audit_trail is append-only');
+        END;
+        """
+    )
+    conn.commit()
+    logger.info("Migration v21 applied: doc_audit_trail (append-only)")
+
+
+def has_doc_audit_trail_table(conn: sqlite3.Connection) -> bool:
+    """Check whether doc_audit_trail exists (migration v21)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='doc_audit_trail'"
+    ).fetchone()
+    return row is not None
+
+
+def _migrate_v22_doc_chunks_metadata(conn: sqlite3.Connection) -> None:
+    """Migration v22 — frontmatter metadata columns on document_chunks."""
+    if not _table_exists(conn, "document_chunks"):
+        logger.info("Migration v22 skipped: document_chunks not present yet")
+        return
+
+    cols = [
+        ("domain", "TEXT"),
+        ("layer", "TEXT"),
+        ("ssot", "TEXT"),
+        ("updated_iso", "TEXT"),
+        ("is_active", "INTEGER DEFAULT 1"),
+    ]
+    for name, decl in cols:
+        if not _column_exists_table(conn, "document_chunks", name):
+            conn.execute(f"ALTER TABLE document_chunks ADD COLUMN {name} {decl}")
+
+    # Backfill is_active for rows that pre-date this migration.
+    conn.execute("UPDATE document_chunks SET is_active = 1 WHERE is_active IS NULL")
+
+    conn.executescript(
+        """
+        CREATE INDEX IF NOT EXISTS idx_chunks_domain
+            ON document_chunks(domain) WHERE domain IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_chunks_layer
+            ON document_chunks(layer) WHERE layer IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_chunks_active
+            ON document_chunks(is_active);
+        CREATE INDEX IF NOT EXISTS idx_chunks_updated
+            ON document_chunks(updated_iso) WHERE updated_iso IS NOT NULL;
+        """
+    )
+    conn.commit()
+    logger.info(
+        "Migration v22 applied: document_chunks gained domain/layer/ssot/updated_iso/is_active"
+    )
+
+
+def _migrate_v23_dispatch_cost(conn: sqlite3.Connection) -> None:
+    """Migration v23 — formula_dispatches cost columns."""
+    if not _table_exists(conn, "formula_dispatches"):
+        logger.info("Migration v23 skipped: formula_dispatches not present yet")
+        return
+
+    cols = [
+        ("cost_usd", "REAL"),
+        ("budget_usd", "REAL"),
+        ("usage_jsonb", "TEXT"),
+        ("model_usage_jsonb", "TEXT"),
+        ("tool_calls_jsonb", "TEXT"),
+        ("tool_failures_jsonb", "TEXT"),
+    ]
+    for name, decl in cols:
+        if not _column_exists_table(conn, "formula_dispatches", name):
+            conn.execute(f"ALTER TABLE formula_dispatches ADD COLUMN {name} {decl}")
+
+    conn.executescript(
+        """
+        CREATE INDEX IF NOT EXISTS idx_dispatches_cost
+            ON formula_dispatches(cost_usd) WHERE cost_usd IS NOT NULL;
+        """
+    )
+    conn.commit()
+    logger.info(
+        "Migration v23 applied: formula_dispatches gained "
+        "cost_usd / budget_usd / usage_jsonb / model_usage_jsonb / "
+        "tool_calls_jsonb / tool_failures_jsonb"
+    )
+
+
+def _migrate_v24_project_trajectory(conn: sqlite3.Connection) -> None:
+    """Migration v24 — project_trajectory table for long-term project intent."""
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS project_trajectory (
+    id                          INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id                  TEXT NOT NULL,
+    phase                       TEXT,
+    current_focus               TEXT,
+    architectural_decisions     TEXT DEFAULT '[]',
+    anti_patterns_discovered    TEXT DEFAULT '[]',
+    open_questions              TEXT DEFAULT '[]',
+    next_logical_step           TEXT,
+    confidence                  REAL DEFAULT 0.7,
+    created_at                  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    supersedes_id               INTEGER REFERENCES project_trajectory(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_trajectory_session
+    ON project_trajectory(session_id);
+CREATE INDEX IF NOT EXISTS idx_trajectory_created
+    ON project_trajectory(created_at DESC);
+""")
+    conn.commit()
+    logger.info("Migration v24 applied: project_trajectory table created")
+
+
+def _migrate_v25_backtrack_failure_anatomy(conn: sqlite3.Connection) -> None:
+    """Migration v25 — structured failure anatomy columns on backtrack_events."""
+    if not _table_exists(conn, "backtrack_events"):
+        logger.info("Migration v25 skipped: backtrack_events not present yet")
+        return
+
+    cols = [
+        ("hypothesis", "TEXT"),
+        ("failure_signal", "TEXT"),
+        ("root_cause", "TEXT"),
+        ("corrective_action", "TEXT"),
+    ]
+    for name, decl in cols:
+        if not _column_exists_table(conn, "backtrack_events", name):
+            conn.execute(f"ALTER TABLE backtrack_events ADD COLUMN {name} {decl}")
+
+    conn.executescript("""\
+CREATE INDEX IF NOT EXISTS idx_backtrack_root_cause
+    ON backtrack_events(root_cause) WHERE root_cause IS NOT NULL;
+""")
+    conn.commit()
+    logger.info(
+        "Migration v25 applied: backtrack_events gained "
+        "hypothesis / failure_signal / root_cause / corrective_action"
+    )
+
+
+def _migrate_v26_routing_evolution(conn: sqlite3.Connection) -> None:
+    """Migration v26 — routing_weights staleness tracking for autonomous refresh."""
+    if not _table_exists(conn, "routing_weights"):
+        logger.info("Migration v26 skipped: routing_weights not present yet")
+        return
+
+    for name, decl in [("last_recalc_at", "TEXT"), ("outcomes_at_recalc", "INTEGER")]:
+        if not _column_exists_table(conn, "routing_weights", name):
+            conn.execute(f"ALTER TABLE routing_weights ADD COLUMN {name} {decl}")
+    conn.commit()
+    logger.info("Migration v26 applied: routing_weights gained last_recalc_at / outcomes_at_recalc")
+
+
+def _migrate_v27_dispatch_sdk_columns(conn: sqlite3.Connection) -> None:
+    """Migration v27 — full SDK telemetry on formula_dispatches."""
+    if not _table_exists(conn, "formula_dispatches"):
+        logger.info("Migration v27 skipped: formula_dispatches not present yet")
+        return
+
+    cols = [
+        ("sub_session_id", "TEXT"),
+        ("model", "TEXT"),
+        ("checkpoints_jsonb", "TEXT"),
+    ]
+    for name, decl in cols:
+        if not _column_exists_table(conn, "formula_dispatches", name):
+            conn.execute(f"ALTER TABLE formula_dispatches ADD COLUMN {name} {decl}")
+
+    conn.executescript(
+        """
+        CREATE INDEX IF NOT EXISTS idx_dispatches_sub_session
+            ON formula_dispatches(sub_session_id) WHERE sub_session_id IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_dispatches_model
+            ON formula_dispatches(model) WHERE model IS NOT NULL;
+        """
+    )
+    conn.commit()
+    logger.info(
+        "Migration v27 applied: formula_dispatches gained "
+        "sub_session_id / model / checkpoints_jsonb"
+    )
+
+
+def _migrate_v28_file_index_duration(conn: sqlite3.Connection) -> None:
+    """Migration v28 — per-extractor timing on file_index_state."""
+    if not _table_exists(conn, "file_index_state"):
+        logger.info("Migration v28 skipped: file_index_state not present yet")
+        return
+    if not _column_exists_table(conn, "file_index_state", "duration_ms"):
+        conn.execute("ALTER TABLE file_index_state ADD COLUMN duration_ms INTEGER")
+    conn.commit()
+    logger.info("Migration v28 applied: file_index_state gained duration_ms")
+
+
+def _migrate_v29_fts5_unicode_tokenizer(conn: sqlite3.Connection) -> None:
+    """Migration v29 (G14) — drop `porter` from FTS5 so non-English tokens
+    (Persian, Arabic, Chinese) are actually indexed. porter is an
+    English-only stemmer that strips Persian body content silently;
+    unicode61 alone normalises + tokenises by Unicode letter classes.
+    """
+    if not _table_exists(conn, "graph_nodes"):
+        logger.info("Migration v29 skipped: graph_nodes not present yet")
+        return
+    # Detect current tokenizer; only act when porter is still configured.
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='graph_nodes_fts'"
+    ).fetchone()
+    if row is None:
+        logger.info("Migration v29 skipped: graph_nodes_fts not present")
+        return
+    current_sql = row[0] or ""
+    if "porter" not in current_sql:
+        logger.info("Migration v29 skipped: FTS5 already on unicode61-only tokenizer")
+        return
+    conn.executescript(
+        """
+        DROP TRIGGER IF EXISTS graph_nodes_fts_ai;
+        DROP TRIGGER IF EXISTS graph_nodes_fts_ad;
+        DROP TRIGGER IF EXISTS graph_nodes_fts_au;
+        DROP TABLE IF EXISTS graph_nodes_fts;
+        CREATE VIRTUAL TABLE graph_nodes_fts USING fts5(
+            label, signature, doc_blob,
+            content=graph_nodes,
+            content_rowid=id,
+            tokenize='unicode61 remove_diacritics 2'
+        );
+        INSERT INTO graph_nodes_fts(rowid, label, signature, doc_blob)
+            SELECT id, label, COALESCE(signature, ''), COALESCE(doc_blob, '')
+            FROM graph_nodes;
+        CREATE TRIGGER graph_nodes_fts_ai AFTER INSERT ON graph_nodes BEGIN
+            INSERT INTO graph_nodes_fts(rowid, label, signature, doc_blob)
+                VALUES (new.id, new.label, COALESCE(new.signature, ''), COALESCE(new.doc_blob, ''));
+        END;
+        CREATE TRIGGER graph_nodes_fts_ad AFTER DELETE ON graph_nodes BEGIN
+            INSERT INTO graph_nodes_fts(graph_nodes_fts, rowid, label, signature, doc_blob)
+                VALUES ('delete', old.id, old.label, COALESCE(old.signature, ''), COALESCE(old.doc_blob, ''));
+        END;
+        CREATE TRIGGER graph_nodes_fts_au AFTER UPDATE ON graph_nodes BEGIN
+            INSERT INTO graph_nodes_fts(graph_nodes_fts, rowid, label, signature, doc_blob)
+                VALUES ('delete', old.id, old.label, COALESCE(old.signature, ''), COALESCE(old.doc_blob, ''));
+            INSERT INTO graph_nodes_fts(rowid, label, signature, doc_blob)
+                VALUES (new.id, new.label, COALESCE(new.signature, ''), COALESCE(new.doc_blob, ''));
+        END;
+        """
+    )
+    conn.commit()
+    logger.info(
+        "Migration v29 applied: FTS5 tokenizer porter→unicode61 (Persian/Arabic/CJK now indexed)"
+    )
+
+
+def _migrate_v30_observation_access_signal(conn: sqlite3.Connection) -> None:
+    """Migration v30 — observations gain access_count + last_accessed_at so the
+    5-signal ranker's access + recency-on-use terms apply to raw observations,
+    not just learned_patterns. Closes the ranking asymmetry where an
+    often-retrieved observation could never accrue an access boost."""
+    if not _table_exists(conn, "observations"):
+        logger.info("Migration v30 skipped: observations not present yet")
+        return
+    if not _column_exists(conn, "observations", "access_count"):
+        conn.execute("ALTER TABLE observations ADD COLUMN access_count INTEGER DEFAULT 0")
+    if not _column_exists(conn, "observations", "last_accessed_at"):
+        conn.execute("ALTER TABLE observations ADD COLUMN last_accessed_at DATETIME")
+    conn.commit()
+    logger.info("Migration v30 applied: observations gained access_count + last_accessed_at")
+
+
+def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
+    ).fetchone()
+    return row is not None
+
+
+def has_file_index_state_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the file_index_state table exists (migration v17)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='file_index_state'"
+    ).fetchone()
+    return row is not None
+
+
+def has_formula_dispatches_table(conn: sqlite3.Connection) -> bool:
+    """Check whether formula_dispatches exists (migration v14)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='formula_dispatches'"
+    ).fetchone()
+    return row is not None
+
+
+def has_backtrack_events_table(conn: sqlite3.Connection) -> bool:
+    """Check whether backtrack_events exists (migration v14)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='backtrack_events'"
+    ).fetchone()
+    return row is not None
+
+
+def has_persona_selections_table(conn: sqlite3.Connection) -> bool:
+    """Check whether persona_selections exists (migration v14)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='persona_selections'"
+    ).fetchone()
+    return row is not None
+
+
+def has_task_status_history_table(conn: sqlite3.Connection) -> bool:
+    """Check whether task_status_history exists (migration v13)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='task_status_history'"
+    ).fetchone()
+    return row is not None
+
+
+def has_tasks_v13_columns(conn: sqlite3.Connection) -> bool:
+    """Quick check whether the v13 columns are on the tasks table."""
+    return _column_exists(conn, "tasks", "swimlane") and _column_exists(conn, "tasks", "kind")
+
+
+def _migrate_v31_task_edit_history(conn: sqlite3.Connection) -> None:
+    """Migration v31 — append-only, actor-attributed field-edit history for tasks."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS task_edit_history (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id     TEXT    NOT NULL,
+            field       TEXT    NOT NULL,
+            old_value   TEXT,
+            new_value   TEXT,
+            actor_type  TEXT    NOT NULL DEFAULT 'agent',
+            actor_id    TEXT,
+            source      TEXT,
+            edited_at   INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_teh_task
+            ON task_edit_history(task_id, edited_at);
+        CREATE INDEX IF NOT EXISTS idx_teh_actor
+            ON task_edit_history(actor_id, edited_at) WHERE actor_id IS NOT NULL;
+        """
+    )
+    conn.commit()
+    logger.info("Migration v31 applied: task_edit_history (actor-attributed field edits)")
+
+
+def _migrate_v32_log_events(conn: sqlite3.Connection) -> None:
+    """Migration v32 — durable WARN+ error store + permanent fingerprint rollup (observability eye)."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS log_events (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            ts           TEXT    NOT NULL,
+            lvl          TEXT    NOT NULL,
+            scope        TEXT    NOT NULL,
+            msg          TEXT    NOT NULL,
+            kv           TEXT,
+            exc_type     TEXT,
+            stack        TEXT,
+            session_id   TEXT,
+            trace_id     TEXT,
+            fingerprint  TEXT    NOT NULL,
+            created_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_log_events_fp  ON log_events(fingerprint);
+        CREATE INDEX IF NOT EXISTS idx_log_events_ts  ON log_events(ts);
+        CREATE INDEX IF NOT EXISTS idx_log_events_lvl ON log_events(lvl);
+
+        CREATE TABLE IF NOT EXISTS log_fingerprints (
+            fingerprint        TEXT    PRIMARY KEY,
+            scope              TEXT    NOT NULL,
+            exc_type           TEXT,
+            sample_msg         TEXT    NOT NULL,
+            max_lvl            TEXT    NOT NULL,
+            first_seen         TEXT    NOT NULL,
+            last_seen          TEXT    NOT NULL,
+            count              INTEGER NOT NULL DEFAULT 0,
+            distinct_sessions  INTEGER NOT NULL DEFAULT 0,
+            task_id            TEXT,
+            status             TEXT    NOT NULL DEFAULT 'open'
+        );
+        CREATE INDEX IF NOT EXISTS idx_log_fp_status ON log_fingerprints(status, last_seen);
+        """
+    )
+    conn.commit()
+    logger.info(
+        "Migration v32 applied: log_events + log_fingerprints (observability eye durable store)"
+    )
+
+
+def _migrate_v33_pattern_archived_at(conn: sqlite3.Connection) -> None:
+    """Migration v33 — learned_patterns.archived_at so the decay prune measures a
+    real time-since-archived grace window (was COALESCE of access/validate/create)."""
+    if not _column_exists(conn, "learned_patterns", "archived_at"):
+        conn.execute("ALTER TABLE learned_patterns ADD COLUMN archived_at DATETIME")
+    logger.info("Migration v33 applied: learned_patterns gained archived_at")
+
+
+def _migrate_v34_dispatch_error(conn: sqlite3.Connection) -> None:
+    """Migration v34 — formula_dispatches.error captures the dispatch failure reason."""
+    if not _table_exists(conn, "formula_dispatches"):
+        logger.info("Migration v34 skipped: formula_dispatches not present yet")
+        return
+    if not _column_exists_table(conn, "formula_dispatches", "error"):
+        conn.execute("ALTER TABLE formula_dispatches ADD COLUMN error TEXT")
+    conn.commit()
+    logger.info("Migration v34 applied: formula_dispatches gained error")
+
+
+def _migrate_v35_scale_foundation(conn: sqlite3.Connection) -> None:
+    """Migration v35 — scale foundation for 100K+ tasks (TASK-226).
+
+    Adds the keyset/board indexes pagination + bounded queries need at
+    scale, an FTS5 table so task_search stops full-scanning title/goal, and
+    a task_dependencies junction that replaces the O(n) `dependencies LIKE
+    '%"TASK-NNN"%'` scan with indexed lookups in both directions.
+    """
+    if not has_tasks_table(conn):
+        logger.info("Migration v35 skipped: tasks table not present yet")
+        return
+
+    # 1. Keyset/board indexes. (task_status_history(task_id, transitioned_at)
+    #    already exists as idx_tsh_task from v13 — no duplicate needed.)
+    conn.executescript(
+        """
+CREATE INDEX IF NOT EXISTS idx_tasks_status_completed
+    ON tasks(status, completed_at);
+CREATE INDEX IF NOT EXISTS idx_tasks_swimlane_status_priority
+    ON tasks(swimlane, status, priority);
+"""
+    )
+
+    # 2. task_dependencies junction. PK(task_id, depends_on) indexes the
+    #    dependencies() direction; idx on depends_on indexes dependents().
+    #    Triggers derive it from the tasks.dependencies JSON column so EVERY
+    #    writer (board_os sync, orphan-delete) keeps it in
+    #    step with zero per-writer code. json_each is built into SQLite 3.38+
+    #    (the repo already floors at 3.27+ for FTS5 remove_diacritics 2).
+    conn.executescript(
+        """
+CREATE TABLE IF NOT EXISTS task_dependencies (
+    task_id    TEXT NOT NULL,
+    depends_on TEXT NOT NULL,
+    PRIMARY KEY (task_id, depends_on)
+);
+CREATE INDEX IF NOT EXISTS idx_task_deps_depends_on
+    ON task_dependencies(depends_on);
+
+CREATE TRIGGER IF NOT EXISTS tasks_deps_ai AFTER INSERT ON tasks BEGIN
+    INSERT OR IGNORE INTO task_dependencies(task_id, depends_on)
+        SELECT new.task_id, je.value
+        FROM json_each(COALESCE(NULLIF(new.dependencies, ''), '[]')) je;
+END;
+CREATE TRIGGER IF NOT EXISTS tasks_deps_au AFTER UPDATE OF dependencies ON tasks BEGIN
+    DELETE FROM task_dependencies WHERE task_id = new.task_id;
+    INSERT OR IGNORE INTO task_dependencies(task_id, depends_on)
+        SELECT new.task_id, je.value
+        FROM json_each(COALESCE(NULLIF(new.dependencies, ''), '[]')) je;
+END;
+CREATE TRIGGER IF NOT EXISTS tasks_deps_ad AFTER DELETE ON tasks BEGIN
+    DELETE FROM task_dependencies WHERE task_id = old.task_id;
+END;
+"""
+    )
+    # Backfill from any populated dependencies JSON (idempotent; the live
+    # column is normally empty — sync.py populates the junction going forward).
+    for task_id, deps_json in conn.execute(
+        "SELECT task_id, dependencies FROM tasks "
+        "WHERE dependencies IS NOT NULL AND dependencies NOT IN ('', '[]')"
+    ).fetchall():
+        try:
+            dep_ids = json.loads(deps_json)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        for dep in dep_ids:
+            if isinstance(dep, str) and dep:
+                conn.execute(
+                    "INSERT OR IGNORE INTO task_dependencies (task_id, depends_on) VALUES (?, ?)",
+                    (task_id, dep),
+                )
+
+    # 3. FTS5 over tasks(title, goal_text). A regular (own-content) table,
+    #    NOT external-content: external-content FTS5 raises "database disk
+    #    image is malformed" when its 'delete' trigger runs against rows that
+    #    were backfilled rather than trigger-inserted (the delete tokens can't
+    #    be reconciled). Own-content deletes by rowid and is corruption-safe.
+    #    DROP-first heals any partially-applied earlier build of this table.
+    #    unicode61 matches v29 so Persian/Arabic/CJK task text is indexed.
+    if has_fts5(conn):
+        conn.executescript(
+            """
+DROP TRIGGER IF EXISTS tasks_fts_ai;
+DROP TRIGGER IF EXISTS tasks_fts_ad;
+DROP TRIGGER IF EXISTS tasks_fts_au;
+DROP TABLE IF EXISTS tasks_fts;
+CREATE VIRTUAL TABLE tasks_fts USING fts5(
+    title, goal_text,
+    tokenize='unicode61 remove_diacritics 2'
+);
+CREATE TRIGGER tasks_fts_ai AFTER INSERT ON tasks BEGIN
+    INSERT INTO tasks_fts(rowid, title, goal_text)
+        VALUES (new.rowid, new.title, COALESCE(new.goal_text, ''));
+END;
+CREATE TRIGGER tasks_fts_ad AFTER DELETE ON tasks BEGIN
+    DELETE FROM tasks_fts WHERE rowid = old.rowid;
+END;
+CREATE TRIGGER tasks_fts_au AFTER UPDATE ON tasks BEGIN
+    DELETE FROM tasks_fts WHERE rowid = new.rowid;
+    INSERT INTO tasks_fts(rowid, title, goal_text)
+        VALUES (new.rowid, new.title, COALESCE(new.goal_text, ''));
+END;
+"""
+        )
+        conn.execute(
+            "INSERT INTO tasks_fts(rowid, title, goal_text) "
+            "SELECT rowid, title, COALESCE(goal_text, '') FROM tasks"
+        )
+    else:
+        logger.warning("Migration v35: FTS5 unavailable — tasks_fts skipped (LIKE fallback active)")
+
+    conn.commit()
+    logger.info(
+        "Migration v35 applied: idx_tasks_status_completed + "
+        "idx_tasks_swimlane_status_priority, task_dependencies junction, tasks_fts"
+    )
+
+
+def _migrate_v36_scrub_username_from_observations(conn: sqlite3.Connection) -> None:
+    """Migration v36 — backfill: strip the local OS username from existing
+    observations.files_modified + title (pre-fix rows leaked /Users/<name>/…,
+    a PII exposure per memory.md § Privacy). Idempotent: re-running finds no
+    home/root prefix to replace. The capture-time fix (_scrub_username) keeps
+    new rows clean; this scrubs the historical corpus with no backfill before it."""
+    import os
+
+    if not _table_exists(conn, "observations"):
+        logger.info("Migration v36 skipped: observations not present yet")
+        return
+
+    root = None
+    for row in conn.execute("PRAGMA database_list").fetchall():
+        db_str = row[2] if len(row) > 2 else None
+        if db_str and db_str not in ("", ":memory:"):
+            dbp = Path(db_str).resolve()
+            if dbp.parent.name == ".coding-os":
+                root = str(dbp.parent.parent)
+                break
+    home = os.path.expanduser("~")
+
+    def _scrub(text: str) -> str:
+        out = text or ""
+        if root:
+            out = out.replace(root + "/", "")
+        if home and home != "~":
+            out = out.replace(home + "/", "~/")
+        return out
+
+    scrubbed = 0
+    for rid, title, fm in conn.execute(
+        "SELECT id, title, files_modified FROM observations"
+    ).fetchall():
+        new_title, new_fm = _scrub(title or ""), _scrub(fm or "")
+        if new_title != (title or "") or new_fm != (fm or ""):
+            conn.execute(
+                "UPDATE observations SET title = ?, files_modified = ? WHERE id = ?",
+                (new_title, new_fm, rid),
+            )
+            scrubbed += 1
+    conn.commit()
+    logger.info("Migration v36 applied: scrubbed username from %d observation row(s)", scrubbed)
+
+
+def _migrate_v37_scrub_narrative_and_dash(conn: sqlite3.Connection) -> None:
+    """Migration v37 — completes the v36 PII backfill: (1) scrub observations.narrative
+    (v36 only touched title+files_modified), and (2) strip the dash-encoded username
+    that survives inside agent project-dir slugs (~/.claude/projects/-Users-<name>-…)
+    across title+narrative+files_modified. Idempotent. SSOT scrub: sanitizer.scrub_username."""
+    import os
+
+    if not _table_exists(conn, "observations"):
+        logger.info("Migration v37 skipped: observations not present yet")
+        return
+
+    from sanitizer import scrub_username
+
+    root = None
+    for row in conn.execute("PRAGMA database_list").fetchall():
+        db_str = row[2] if len(row) > 2 else None
+        if db_str and db_str not in ("", ":memory:"):
+            dbp = Path(db_str).resolve()
+            if dbp.parent.name == ".coding-os":
+                root = str(dbp.parent.parent)
+                break
+    home = os.path.expanduser("~")
+
+    def _scrub(text: str) -> str:
+        out = text or ""
+        if root:
+            out = out.replace(root + "/", "")
+        return scrub_username(out, home=home)
+
+    scrubbed = 0
+    for rid, title, narrative, fm in conn.execute(
+        "SELECT id, title, narrative, files_modified FROM observations"
+    ).fetchall():
+        nt, nn, nf = _scrub(title or ""), _scrub(narrative or ""), _scrub(fm or "")
+        if nt != (title or "") or nn != (narrative or "") or nf != (fm or ""):
+            conn.execute(
+                "UPDATE observations SET title = ?, narrative = ?, files_modified = ? WHERE id = ?",
+                (nt, nn, nf, rid),
+            )
+            scrubbed += 1
+    conn.commit()
+    logger.info("Migration v37 applied: scrubbed narrative/dash-username from %d row(s)", scrubbed)
+
+
+def _migrate_v38_backfill_rework_outcome(conn: sqlite3.Connection) -> None:
+    """Migration v38 — backfill honest outcomes for the historical corpus.
+    Pre-fix every task_outcomes row was hardcoded 'success' (board_commands), so
+    the variance gate suppressed every rework/stat extractor and learn_extract
+    was starved (192 tasks → 4 patterns). Flip 'success' → 'rework' for any task
+    whose task_status_history shows a backward move (reopened after testing/
+    complete/review). Idempotent: only touches rows still 'success' with a reopen."""
+    if not (_table_exists(conn, "task_outcomes") and _table_exists(conn, "task_status_history")):
+        logger.info("Migration v38 skipped: outcome/history tables not present yet")
+        return
+    cur = conn.execute(
+        "UPDATE task_outcomes SET outcome = 'rework' "
+        "WHERE outcome = 'success' AND task_id IN ("
+        "  SELECT DISTINCT task_id FROM task_status_history "
+        "  WHERE old_status IN ('testing','complete','done','review') "
+        "    AND new_status IN ('in_progress','open','ready','icebox'))"
+    )
+    conn.commit()
+    logger.info("Migration v38 applied: backfilled %d task(s) to rework", cur.rowcount)
+
+
+def _migrate_v39_observations_task_id(conn: sqlite3.Connection) -> None:
+    """Migration v39 — add observations.task_id so an observation can be linked
+    to the task active when it was written. Until now observations carried only
+    session_id, and a session spans many tasks, so NO per-task rework signal
+    (file churn, in-task errors) could be derived — the root reason the learning
+    loop is blind to mid-task rework (audit 2026-06-08). Forward-only: historical
+    rows stay NULL (the linkage was never captured and cannot be recovered);
+    capture.py stamps it going forward. Idempotent — skips if the column exists."""
+    if not _table_exists(conn, "observations"):
+        logger.info("Migration v39 skipped: observations not present yet")
+        return
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(observations)").fetchall()}
+    if "task_id" in cols:
+        logger.info("Migration v39 skipped: observations.task_id already present")
+        return
+    conn.execute("ALTER TABLE observations ADD COLUMN task_id TEXT")
+    conn.commit()
+    logger.info("Migration v39 applied: observations.task_id added")
+
+
+def _migrate_v40_embedding_outbox(conn: sqlite3.Connection) -> None:
+    """Migration v40 — durable embedding_outbox so the capture hot path can defer
+    embedding off the interactive path (Wave 4). The PostToolUse capture skips
+    the model load (COS_CAPTURE_SKIP_EMBED) to keep Edits fast; without an outbox
+    those rows had NO embedding until a manual reindex that might never run. This
+    table records the backlog; a Stop-hook drains it. UNIQUE(source_table,
+    source_id) makes enqueue idempotent. Idempotent — skips if the table exists."""
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS embedding_outbox (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_table TEXT    NOT NULL,
+    source_id    INTEGER NOT NULL,
+    enqueued_at  INTEGER NOT NULL,
+    attempts     INTEGER NOT NULL DEFAULT 0,
+    last_error   TEXT,
+    UNIQUE(source_table, source_id)
+);
+CREATE INDEX IF NOT EXISTS idx_embedding_outbox_pending
+    ON embedding_outbox(attempts, enqueued_at);
+""")
+    conn.commit()
+    logger.info("Migration v40 applied: embedding_outbox table")
+
+
+def _migrate_v41_tasks_lean_columns(conn: sqlite3.Connection) -> None:
+    """Migration v41 — tasks table catches up with the lean card contract
+    (TASK-398): adds blocked_by_json / references_json / external_ref
+    (parsed since the Scrumban migration but never persisted) and drops the
+    eight v6-era columns with no reader or writer after the legacy
+    task_sync retirement. domain / goal_text / dependencies stay — the
+    cos_task_* tools read them. Idempotent — guarded per column; DROP
+    COLUMN is best-effort so a pre-3.35 SQLite degrades to harmless
+    residue instead of a blocked init."""
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(tasks)")}
+    for name in ("blocked_by_json", "references_json", "external_ref"):
+        if name not in cols:
+            conn.execute(f"ALTER TABLE tasks ADD COLUMN {name} TEXT")
+    dead = (
+        "scope_in",
+        "scope_out",
+        "requirements",
+        "source_of_truth",
+        "open_questions",
+        "rabbit_holes",
+        "verification",
+        "read_first",
+    )
+    for name in dead:
+        if name not in cols:
+            continue
+        try:
+            conn.execute(f"ALTER TABLE tasks DROP COLUMN {name}")
+        except sqlite3.OperationalError as exc:
+            logger.warning(
+                "Migration v41: could not drop tasks.%s (%s) — leaving in place", name, exc
+            )
+    conn.commit()
+    logger.info("Migration v41 applied: lean task columns added, v6 dead columns dropped")
+
+
+def _migrate_v42_drop_doc_audit_trail(conn: sqlite3.Connection) -> None:
+    """Migration v42 — drop doc_audit_trail (TASK-401): the audit concept is
+    retired project-wide; git is the forensic record for doc edits. Drops
+    the append-only guard triggers first (they would block any future
+    cleanup), then the table. Idempotent via IF EXISTS."""
+    conn.executescript("""\
+DROP TRIGGER IF EXISTS doc_audit_trail_no_update;
+DROP TRIGGER IF EXISTS doc_audit_trail_no_delete;
+DROP TABLE IF EXISTS doc_audit_trail;
+""")
+    conn.commit()
+    logger.info("Migration v42 applied: doc_audit_trail dropped (audit retirement)")
+
+
+def _migrate_v43_drop_experiment_log(conn: sqlite3.Connection) -> None:
+    """Migration v43 — drop experiment_log (audit 2026-06-19, group B5). The table
+    was created in the v1 schema for the Experiment Protocol but never got a write
+    path (zero writers in 260 tasks); only a dashboard reader + stats count showed
+    a perpetual 0. Speculative scaffolding for a feature with no demand → removed
+    per anti-overengineering. If the Experiment Protocol later needs persistence, a
+    task adds the table + its write tool together. Idempotent (IF EXISTS)."""
+    conn.executescript("""\
+DROP TABLE IF EXISTS experiment_log;
+""")
+    conn.commit()
+    logger.info("Migration v43 applied: experiment_log dropped (no writer, B5)")
+
+
+def _migrate_v44_dispatch_transcript(conn: sqlite3.Connection) -> None:
+    """Migration v44 — formula_dispatches.raw_transcript so a dispatched
+    sub-agent's chat/session is auditable, not just its summarized output."""
+    if not _table_exists(conn, "formula_dispatches"):
+        logger.info("Migration v44 skipped: formula_dispatches not present yet")
+        return
+    if not _column_exists_table(conn, "formula_dispatches", "raw_transcript"):
+        conn.execute("ALTER TABLE formula_dispatches ADD COLUMN raw_transcript TEXT")
+    conn.commit()
+    logger.info("Migration v44 applied: formula_dispatches gained raw_transcript")
+
+
+def _migrate_v45_task_child_cascade(conn: sqlite3.Connection) -> None:
+    """Migration v45 — a deleted tasks row cascades to its child tables."""
+    conn.executescript(
+        """
+CREATE TRIGGER IF NOT EXISTS task_status_history_ad AFTER DELETE ON tasks BEGIN
+    DELETE FROM task_status_history WHERE task_id = old.task_id;
+END;
+CREATE TRIGGER IF NOT EXISTS task_outcomes_ad AFTER DELETE ON tasks BEGIN
+    DELETE FROM task_outcomes WHERE task_id = old.task_id;
+END;
+CREATE TRIGGER IF NOT EXISTS task_edit_history_ad AFTER DELETE ON tasks BEGIN
+    DELETE FROM task_edit_history WHERE task_id = old.task_id;
+END;
+"""
+    )
+    conn.commit()
+    logger.info("Migration v45 applied: task child-table delete-cascade triggers")
+
+
+def _migrate_v46_log_event_class(conn: sqlite3.Connection) -> None:
+    """Migration v46 — log_events.event_class splits policy enforcement (hook
+    BLOCKs) from faults so error_sweep files only genuine bugs."""
+    if not _table_exists(conn, "log_events"):
+        logger.info("Migration v46 skipped: log_events not present yet")
+        return
+    if not _column_exists_table(conn, "log_events", "event_class"):
+        conn.execute("ALTER TABLE log_events ADD COLUMN event_class TEXT NOT NULL DEFAULT 'fault'")
+        conn.execute(
+            "UPDATE log_events SET event_class = 'policy' "
+            "WHERE scope LIKE 'hook.%' AND kv LIKE '%\"action\": \"block\"%'"
+        )
+    conn.commit()
+    logger.info("Migration v46 applied: log_events gained event_class")
+
+
+def _migrate_v47_distill_columns(conn: sqlite3.Connection) -> None:
+    """Migration v47 — learned_patterns gains distill_fingerprint (idempotent
+    LLM distillation per friction cluster) and evidence_json (sanitized sample
+    failures backing the lesson)."""
+    if not _column_exists_table(conn, "learned_patterns", "distill_fingerprint"):
+        conn.execute("ALTER TABLE learned_patterns ADD COLUMN distill_fingerprint TEXT")
+    if not _column_exists_table(conn, "learned_patterns", "evidence_json"):
+        conn.execute("ALTER TABLE learned_patterns ADD COLUMN evidence_json TEXT")
+    conn.commit()
+    logger.info("Migration v47 applied: learned_patterns gained distill columns")
+
+
+def _migrate_v48_reclassify_mechanical_observations(conn: sqlite3.Connection) -> None:
+    cur = conn.execute(
+        "UPDATE observations SET memory_type = 'changelog' "
+        "WHERE observation_type IN ('write', 'edit', 'multiedit') "
+        "AND COALESCE(memory_type, '') != 'changelog'"
+    )
+    conn.commit()
+    logger.info(
+        "Migration v48 applied: reclassified %d mechanical observation(s) to changelog",
+        cur.rowcount,
+    )
+
+
+def _migrate_v49_add_times_seen(conn: sqlite3.Connection) -> None:
+    conn.execute("ALTER TABLE learned_patterns ADD COLUMN times_seen INTEGER DEFAULT 0")
+    cur = conn.execute("UPDATE learned_patterns SET times_seen = COALESCE(times_validated, 0)")
+    conn.commit()
+    logger.info(
+        "Migration v49 applied: learned_patterns gained times_seen; backfilled %d row(s) from times_validated",
+        cur.rowcount,
+    )
+
+
+def _migrate_v50_reset_times_validated_from_ledger(conn: sqlite3.Connection) -> None:
+    # v49 moved occurrence counts to times_seen but left the historical
+    # times_validated values inflated by the pre-split re-mine/dedup bumps (up to
+    # 534, with zero real validations behind them). Rebuild the counter from the
+    # pattern_validations ledger — the append-only record of genuine validations
+    # (was_helpful, non-throttled) — so pattern_tier's "Trusted" reflects real
+    # confirmation. An empty ledger resets every row to 0; trust is then re-earned
+    # by the now-firing validation loop.
+    try:
+        cur = conn.execute(
+            "UPDATE learned_patterns SET times_validated = ("
+            "  SELECT COUNT(*) FROM pattern_validations pv "
+            "  WHERE pv.pattern_id = learned_patterns.id "
+            "    AND pv.was_helpful = 1 AND COALESCE(pv.was_throttled, 0) = 0"
+            ")"
+        )
+    except sqlite3.OperationalError:
+        # No ledger table → no real validations exist; honest baseline is 0.
+        cur = conn.execute("UPDATE learned_patterns SET times_validated = 0")
+    conn.commit()
+    logger.info(
+        "Migration v50 applied: rebuilt times_validated from pattern_validations ledger (%d row(s))",
+        cur.rowcount,
+    )
+
+
+def _migrate_v51_observations_dedup_unique(conn: sqlite3.Connection) -> None:
+    # The write path deduped observations by (content_hash, session_id) with a
+    # race-prone SELECT-then-INSERT: two concurrent captures both miss the SELECT
+    # and both insert. Collapse existing duplicates (keep the earliest id) and add
+    # a partial UNIQUE index so INSERT OR IGNORE enforces one row per group
+    # atomically. NULL content_hash/session_id rows are exempt (not dedup targets;
+    # SQLite already treats their NULLs as distinct). The observations_fts index
+    # stays consistent via the AFTER DELETE trigger; no FK references observations.id.
+    cur = conn.execute(
+        "DELETE FROM observations "
+        "WHERE content_hash IS NOT NULL AND session_id IS NOT NULL "
+        "  AND id NOT IN ("
+        "    SELECT MIN(id) FROM observations "
+        "    WHERE content_hash IS NOT NULL AND session_id IS NOT NULL "
+        "    GROUP BY content_hash, session_id"
+        "  )"
+    )
+    removed = cur.rowcount
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_observations_content_session "
+        "ON observations(content_hash, session_id) "
+        "WHERE content_hash IS NOT NULL AND session_id IS NOT NULL"
+    )
+    conn.commit()
+    logger.info(
+        "Migration v51 applied: collapsed %d duplicate observation(s); "
+        "added partial UNIQUE(content_hash, session_id)",
+        removed,
+    )
+
+
+def _migrate_v52_derived_outcome_columns(conn: sqlite3.Connection) -> None:
+    if not _column_exists_table(conn, "task_outcomes", "derived_outcome"):
+        conn.execute("ALTER TABLE task_outcomes ADD COLUMN derived_outcome TEXT")
+    if not _column_exists_table(conn, "task_outcomes", "derived_provenance"):
+        conn.execute("ALTER TABLE task_outcomes ADD COLUMN derived_provenance TEXT")
+    conn.commit()
+    logger.info("Migration v52 applied: task_outcomes gained derived_outcome columns")
+
+
+def _migrate_v53_adapter_health(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+CREATE TABLE IF NOT EXISTS adapter_health (
+    adapter_id        TEXT PRIMARY KEY,
+    state             TEXT NOT NULL DEFAULT 'healthy'
+                      CHECK(state IN ('healthy', 'cooling_down', 'half_open')),
+    failure_count     INTEGER NOT NULL DEFAULT 0,
+    cooldown_until    REAL,
+    probe_lease_until REAL,
+    reason            TEXT,
+    updated_at        REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_adapter_health_state_cooldown
+    ON adapter_health(state, cooldown_until);
+"""
+    )
+    for column, sql_type in (
+        ("adapter", "TEXT"),
+        ("effort", "TEXT"),
+        ("error_category", "TEXT"),
+        ("retry_after_s", "INTEGER"),
+        ("health_state", "TEXT"),
+        ("health_probe", "INTEGER NOT NULL DEFAULT 0"),
+    ):
+        if not _column_exists_table(conn, "formula_dispatches", column):
+            conn.execute(f"ALTER TABLE formula_dispatches ADD COLUMN {column} {sql_type}")
+    conn.commit()
+    logger.info("Migration v53 applied: adapter capacity health and dispatch identity")
+
+
+MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
+    (
+        1,
+        "TASK-141: initial schema — task_outcomes, agent_metrics, learned_patterns, experiment_log, observations, session_summaries",
+        """\
+-- task_outcomes: one row per completed task
+CREATE TABLE IF NOT EXISTS task_outcomes (
+    task_id     TEXT PRIMARY KEY,
+    type        TEXT NOT NULL,
+    domain      TEXT NOT NULL,
+    complexity  TEXT NOT NULL,
+    dimensions  INTEGER DEFAULT 1,
+    outcome     TEXT NOT NULL,
+    duration_min INTEGER,
+    model       TEXT,
+    skills_used TEXT,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- agent_metrics: per-agent-invocation telemetry
+CREATE TABLE IF NOT EXISTS agent_metrics (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id     TEXT,
+    agent_type  TEXT NOT NULL,
+    model       TEXT,
+    duration_ms INTEGER,
+    domain      TEXT,
+    complexity  TEXT,
+    outcome     TEXT,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- learned_patterns: extracted reusable patterns with confidence
+CREATE TABLE IF NOT EXISTS learned_patterns (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    pattern         TEXT NOT NULL,
+    memory_type     TEXT DEFAULT 'pattern',
+    domain          TEXT,
+    source          TEXT,
+    confidence      REAL DEFAULT 0.5,
+    decay_rate      REAL DEFAULT 0.1,
+    impact_score    REAL DEFAULT 0.5,
+    concepts        TEXT,
+    times_validated INTEGER DEFAULT 0,
+    times_violated  INTEGER DEFAULT 0,
+    access_count    INTEGER DEFAULT 0,
+    last_accessed_at DATETIME,
+    promoted_to     TEXT,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_validated  DATETIME,
+    archived_at     DATETIME
+);
+
+-- experiment_log: hypothesis tracking per task
+CREATE TABLE IF NOT EXISTS experiment_log (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id         TEXT,
+    hypothesis      TEXT NOT NULL,
+    test_description TEXT,
+    outcome         TEXT,
+    learning        TEXT,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- observations: raw captured observations from tool use
+CREATE TABLE IF NOT EXISTS observations (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id      TEXT,
+    tool_name       TEXT,
+    observation_type TEXT,
+    memory_type     TEXT DEFAULT 'discovery',
+    impact_score    REAL DEFAULT 0.5,
+    title           TEXT,
+    narrative       TEXT,
+    facts           TEXT,
+    concepts        TEXT,
+    files_read      TEXT,
+    files_modified  TEXT,
+    content_hash    TEXT,
+    cost_tokens     INTEGER DEFAULT 0,
+    expires_at      DATETIME,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- session_summaries: end-of-session digests.
+--
+-- Writer matrix (2026-04):
+--   session_id, task_id, previous_session_id, files_touched,
+--   observations_count, breakthrough_ids, duration_minutes
+--       → filled by session_summary.build_session_summary on Stop hook.
+--   request, learned
+--       → filled by session_enrich.py from tool/outcome signal.
+--   investigated, completed, next_steps
+--       → RESERVED for narrative fields the agent populates via
+--         cos_learn_narrative on breakthrough + a future explicit
+--         retro tool. Nullable by design; NULL is not a bug.
+CREATE TABLE IF NOT EXISTS session_summaries (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id  TEXT,
+    task_id     TEXT,
+    request     TEXT,
+    investigated TEXT,
+    learned     TEXT,
+    completed   TEXT,
+    next_steps  TEXT,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+""",
+    ),
+    # FTS5 full-text search layer (callable migration — needs runtime FTS5 check)
+    (
+        2,
+        "TASK-152: FTS5 observations_fts virtual table + INSERT/UPDATE/DELETE triggers",
+        _migrate_v2_fts5,
+    ),
+    # routing_weights table for adaptive model/skill routing
+    (
+        3,
+        "TASK-148: routing_weights table for adaptive routing",
+        """\
+CREATE TABLE IF NOT EXISTS routing_weights (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    domain          TEXT NOT NULL,
+    complexity      TEXT NOT NULL,
+    model           TEXT,
+    skill           TEXT,
+    success_rate    REAL DEFAULT 0.0,
+    sample_count    INTEGER DEFAULT 0,
+    last_updated    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(domain, complexity, model, skill)
+);
+""",
+    ),
+    # Brain features: outcome_history, concept_graph, session_summaries enrichment
+    (
+        4,
+        "Brain features: outcome_history, concept_graph, session_summaries enrichment",
+        _migrate_v4_brain_features,
+    ),
+    # embeddings + document_chunks for RAG vector search
+    (5, "RAG: embeddings + document_chunks tables", _migrate_v5_rag),
+    # tasks table for hybrid task store
+    (6, "Task store: tasks table indexing docs/tasks/*.md", _migrate_v6_tasks),
+    # brain hardening — trust_tier, provenance, memory_audit
+    (
+        7,
+        "Brain hardening: trust_tier + provenance + memory_audit",
+        _migrate_v7_brain_hardening,
+    ),
+    # self-validation throttle
+    (
+        8,
+        "Validation throttle: pattern_validations table",
+        _migrate_v8_validation_throttle,
+    ),
+    # FTS5 over document_chunks for lexical doc fallback
+    (9, "Docs FTS: document_chunks_fts + triggers", _migrate_v9_docs_fts),
+    # retrievals table — audit + feedback loop
+    (10, "Retrieval-outcome loop: retrievals table", _migrate_v10_retrievals),
+    # retrieval quality tracker + contextual-chunk scaffolding
+    (
+        11,
+        "Retrieval quality: retrieval_quality + contextual chunk columns",
+        _migrate_v11_retrieval_quality,
+    ),
+    # graph_os knowledge-graph tables + embedding_dim column
+    (
+        12,
+        "graph_os: graph_nodes + graph_edges_v12 + graph_evidence_v12 + graph_nodes_fts + embeddings.embedding_dim",
+        _migrate_v12_graph_os,
+    ),
+    # board_os Scrumban — extend tasks + task_status_history
+    (
+        13,
+        "board_os: tasks +swimlane/kind/epic/priority/appetite/started_at/completed_at/agent_session/labels_json/work_log_last_5; task_status_history",
+        _migrate_v13_board_os,
+    ),
+    # formula-agent supervisor — 4 cognition tables
+    (
+        14,
+        "Formula-agents: backtrack_events + persona_selections + ambiguity_violations + formula_dispatches",
+        _migrate_v14_cognition,
+    ),
+    # graph_os S1 / B17: CHECK(confidence BETWEEN 0 AND 1) triggers on graph_edges_v12
+    (
+        15,
+        "graph_os S1 B17: graph_edges_v12 confidence CHECK triggers (INSERT + UPDATE)",
+        _migrate_v15_graph_edges_confidence_check,
+    ),
+    # graph_os S3: data migration — normalize graph_nodes.kind legacy values
+    (
+        16,
+        "graph_os S3: normalize graph_nodes.kind via NodeKind/normalize_kind",
+        _migrate_v16_normalize_graph_node_kinds,
+    ),
+    # graph_os V1: file-level incremental indexing — file_index_state cache
+    (
+        17,
+        "graph_os V1: file_index_state cache table for incremental reindex",
+        _migrate_v17_file_index_state,
+    ),
+    # retrieval router telemetry table
+    (
+        18,
+        "Retrieval router telemetry: retrieval_router_log table",
+        _migrate_v18_retrieval_router_log,
+    ),
+    # drop 'ready' column — fold into icebox + 'ready' label
+    (
+        19,
+        "board_os: drop 'ready' status, migrate existing rows to icebox + 'ready' label",
+        _migrate_v19_drop_ready_status,
+    ),
+    # override audit — task_status_history.override_reason/actor
+    (20, "Override audit columns on task_status_history", _migrate_v20_override_audit),
+    # doc_audit_trail — append-only doc edit + decision history
+    (
+        21,
+        "doc_audit_trail (append-only) for doc edits + decision history",
+        _migrate_v21_doc_audit_trail,
+    ),
+    # document_chunks frontmatter metadata for Stage-1 RAG pre-filter
+    (
+        22,
+        "document_chunks frontmatter metadata (domain/layer/ssot/updated_iso/is_active)",
+        _migrate_v22_doc_chunks_metadata,
+    ),
+    (
+        23,
+        "formula_dispatches cost / budget / usage / tool_calls columns",
+        _migrate_v23_dispatch_cost,
+    ),
+    # v24: project_trajectory — long-term project intent across sessions
+    (
+        24,
+        "v24: project_trajectory table for cross-session project intent",
+        _migrate_v24_project_trajectory,
+    ),
+    # v25: structured failure anatomy on backtrack_events
+    (
+        25,
+        "v25: backtrack_events failure anatomy (hypothesis/failure_signal/root_cause/corrective_action)",
+        _migrate_v25_backtrack_failure_anatomy,
+    ),
+    # v26: routing_weights staleness tracking for autonomous refresh
+    (
+        26,
+        "v26: routing_weights last_recalc_at + outcomes_at_recalc",
+        _migrate_v26_routing_evolution,
+    ),
+    # formula_dispatches gains sub_session_id (SDK key),
+    # model (claude-opus-4-7 / claude-sonnet-4-6), checkpoints_jsonb (T9.2).
+    (
+        27,
+        "v27: formula_dispatches sub_session_id / model / checkpoints_jsonb",
+        _migrate_v27_dispatch_sdk_columns,
+    ),
+    (
+        28,
+        "Polyglot v28: file_index_state.duration_ms for per-extractor latency telemetry",
+        _migrate_v28_file_index_duration,
+    ),
+    (
+        29,
+        "G14 FTS5 v29: porter→unicode61 tokenizer so Persian/Arabic body content is indexed",
+        _migrate_v29_fts5_unicode_tokenizer,
+    ),
+    (
+        30,
+        "Memory ranking symmetry v30: observations.access_count + last_accessed_at",
+        _migrate_v30_observation_access_signal,
+    ),
+    (
+        31,
+        "G4 v31: task_edit_history (append-only, actor-attributed field edits)",
+        _migrate_v31_task_edit_history,
+    ),
+    (
+        32,
+        "Observability eye v32: log_events + log_fingerprints durable error store",
+        _migrate_v32_log_events,
+    ),
+    (
+        33,
+        "Memory durability v33: learned_patterns.archived_at for prune grace window",
+        _migrate_v33_pattern_archived_at,
+    ),
+    (
+        34,
+        "formula_dispatches.error captures the dispatch failure reason",
+        _migrate_v34_dispatch_error,
+    ),
+    (
+        35,
+        "Scale foundation: keyset indexes + tasks_fts + task_dependencies junction",
+        _migrate_v35_scale_foundation,
+    ),
+    (
+        36,
+        "PII backfill v36: scrub local username from observations.files_modified + title",
+        _migrate_v36_scrub_username_from_observations,
+    ),
+    (
+        37,
+        "PII backfill v37: scrub observations.narrative + dash-encoded username in project slugs",
+        _migrate_v37_scrub_narrative_and_dash,
+    ),
+    (
+        38,
+        "Backfill honest rework outcomes from task_status_history reopen signal (unstarves learn_extract)",
+        _migrate_v38_backfill_rework_outcome,
+    ),
+    (
+        39,
+        "Add observations.task_id — per-task linkage so mid-task rework signals become derivable",
+        _migrate_v39_observations_task_id,
+    ),
+    (
+        40,
+        "Add embedding_outbox — durable backlog so hot-path-skipped embeddings drain off the interactive path",
+        _migrate_v40_embedding_outbox,
+    ),
+    (
+        41,
+        "Tasks lean columns — add blocked_by/references/external_ref, drop dead v6 columns (TASK-398)",
+        _migrate_v41_tasks_lean_columns,
+    ),
+    (
+        42,
+        "Drop doc_audit_trail — audit concept retired project-wide; git is the forensic record (TASK-401)",
+        _migrate_v42_drop_doc_audit_trail,
+    ),
+    (
+        43,
+        "Drop experiment_log — created in v1 but never wired (zero writers); speculative scaffolding removed (B5)",
+        _migrate_v43_drop_experiment_log,
+    ),
+    (
+        44,
+        "formula_dispatches.raw_transcript — persist dispatched sub-agent transcript for audit",
+        _migrate_v44_dispatch_transcript,
+    ),
+    (
+        45,
+        "Delete-cascade triggers: a pruned task removes its task_status_history / task_outcomes / task_edit_history rows (mirrors tasks_deps_ad)",
+        _migrate_v45_task_child_cascade,
+    ),
+    (
+        46,
+        "log_events.event_class (fault|policy|audit) — hook BLOCKs are policy, not faults, so error_sweep stops mis-filing them as bugs",
+        _migrate_v46_log_event_class,
+    ),
+    (
+        47,
+        "learned_patterns.distill_fingerprint + evidence_json — idempotent LLM lesson distillation with auditable evidence",
+        _migrate_v47_distill_columns,
+    ),
+    (
+        48,
+        "Reclassify mechanical auto-capture observations (write/edit/multiedit) to memory_type=changelog so recall exclusion is complete; forward-only, re-derivable from files_modified",
+        _migrate_v48_reclassify_mechanical_observations,
+    ),
+    (
+        49,
+        "learned_patterns.times_seen — split the conflated times_validated: occurrence re-mines / dedup folds move to times_seen; times_validated reserved for real validation events",
+        _migrate_v49_add_times_seen,
+    ),
+    (
+        50,
+        "Rebuild times_validated from the pattern_validations ledger — retire the pre-split inflated values so pattern_tier 'Trusted' reflects genuine validations; trust is re-earned by the firing loop",
+        _migrate_v50_reset_times_validated_from_ledger,
+    ),
+    (
+        51,
+        "Atomic write-path dedup: collapse duplicate observations and add a partial UNIQUE(content_hash, session_id) index so INSERT OR IGNORE enforces one-per-group without the race-prone SELECT-then-INSERT",
+        _migrate_v51_observations_dedup_unique,
+    ),
+    (
+        52,
+        "task_outcomes gains additive derived_outcome + derived_provenance — reward label sourced from the tree-keyed verify ledger, self-report fallback (ADR-0016 stage 1)",
+        _migrate_v52_derived_outcome_columns,
+    ),
+    (
+        53,
+        "adapter capacity health with persistent cooldown and half-open probe leases",
+        _migrate_v53_adapter_health,
+    ),
+]

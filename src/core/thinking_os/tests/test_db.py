@@ -110,7 +110,7 @@ class TestSchemaVersioning:
         assert get_schema_version(fresh_conn) == len(MIGRATIONS)
 
     def test_v49_backfills_times_seen_from_times_validated(self) -> None:
-        from database import _migrate_v49_add_times_seen
+        from _db_migrations import _migrate_v49_add_times_seen
 
         conn = sqlite3.connect(":memory:")
         conn.execute(
@@ -124,7 +124,7 @@ class TestSchemaVersioning:
         assert seen == 7
 
     def test_v50_rebuilds_times_validated_from_ledger(self) -> None:
-        from database import _migrate_v50_reset_times_validated_from_ledger
+        from _db_migrations import _migrate_v50_reset_times_validated_from_ledger
 
         conn = sqlite3.connect(":memory:")
         conn.execute(
@@ -187,7 +187,7 @@ class TestSchemaVersioning:
     def test_v51_collapses_existing_duplicates_keeping_earliest(
         self, migrated_conn: sqlite3.Connection
     ) -> None:
-        from database import _migrate_v51_observations_dedup_unique
+        from _db_migrations import _migrate_v51_observations_dedup_unique
 
         conn = migrated_conn
         conn.execute("DROP INDEX idx_observations_content_session")
@@ -1024,7 +1024,7 @@ class TestMigrationV9DocsFTS:
 def test_find_project_root_prefers_marker_over_stray(tmp_path: Path) -> None:
     """TASK-047: a subdir holding a STRAY .coding-os must resolve to the
     marker-co-located project root, not the stray."""
-    from database import _find_project_root_from_cwd
+    from _db_paths import _find_project_root_from_cwd
 
     root = tmp_path / "proj"
     (root / ".coding-os").mkdir(parents=True)
@@ -1038,7 +1038,7 @@ def test_find_project_root_falls_back_to_innermost_without_marker(
     tmp_path: Path,
 ) -> None:
     """No marker anywhere → innermost .coding-os (TASK-117 anti-lazy-create)."""
-    from database import _find_project_root_from_cwd
+    from _db_paths import _find_project_root_from_cwd
 
     root = tmp_path / "bare"
     (root / ".coding-os").mkdir(parents=True)
@@ -1050,7 +1050,7 @@ def test_find_project_root_falls_back_to_innermost_without_marker(
 def test_find_project_root_stops_below_home(tmp_path: Path, monkeypatch) -> None:
     """TASK-498: $HOME/.coding-os is the global hub, never a project root. A
     subdir under $HOME with no project .coding-os must NOT resolve to $HOME."""
-    from database import _find_project_root_from_cwd
+    from _db_paths import _find_project_root_from_cwd
 
     home = tmp_path / "home"
     (home / ".coding-os").mkdir(parents=True)  # global-hub state
@@ -1149,7 +1149,8 @@ def test_bare_home_refuses_project_db(tmp_path: Path, monkeypatch) -> None:
     complete guard, since every DB-open path (incl. the graph backend / cognition
     route that connect directly) funnels through it — and init_db adds a second
     guard for the DEFAULT_DB_PATH / explicit-path route that skips the resolver."""
-    from database import _find_project_root_from_cwd, init_db, resolve_db_path
+    from _db_paths import _find_project_root_from_cwd, resolve_db_path
+    from database import init_db
 
     home = tmp_path / "home"
     (home / ".coding-os").mkdir(parents=True)  # global hub state dir
@@ -1317,7 +1318,7 @@ class TestV36ScrubUsername:
     def test_backfill_scrubs_root_and_home(self, tmp_path: Path) -> None:
         import os
 
-        from database import _migrate_v36_scrub_username_from_observations
+        from _db_migrations import _migrate_v36_scrub_username_from_observations
 
         db = tmp_path / ".coding-os" / "coding-os.db"
         db.parent.mkdir(parents=True)
@@ -1350,7 +1351,7 @@ class TestV36ScrubUsername:
             assert home + "/" not in (fm or "")
 
     def test_backfill_idempotent(self, tmp_path: Path) -> None:
-        from database import _migrate_v36_scrub_username_from_observations
+        from _db_migrations import _migrate_v36_scrub_username_from_observations
 
         db = tmp_path / ".coding-os" / "coding-os.db"
         db.parent.mkdir(parents=True)
@@ -1381,7 +1382,7 @@ class TestV37ScrubNarrativeAndDash:
     def test_backfill_scrubs_narrative_and_dash(self, tmp_path: Path) -> None:
         import os
 
-        from database import _migrate_v37_scrub_narrative_and_dash
+        from _db_migrations import _migrate_v37_scrub_narrative_and_dash
 
         db = tmp_path / ".coding-os" / "coding-os.db"
         db.parent.mkdir(parents=True)
@@ -1410,7 +1411,7 @@ class TestV37ScrubNarrativeAndDash:
     def test_backfill_idempotent(self, tmp_path: Path) -> None:
         import os
 
-        from database import _migrate_v37_scrub_narrative_and_dash
+        from _db_migrations import _migrate_v37_scrub_narrative_and_dash
 
         db = tmp_path / ".coding-os" / "coding-os.db"
         db.parent.mkdir(parents=True)
@@ -1450,7 +1451,7 @@ class TestV38BackfillRework:
             )
 
     def test_reopened_flipped_clean_unchanged(self, tmp_path: Path) -> None:
-        from database import _migrate_v38_backfill_rework_outcome
+        from _db_migrations import _migrate_v38_backfill_rework_outcome
 
         db = tmp_path / ".coding-os" / "coding-os.db"
         db.parent.mkdir(parents=True)
@@ -1469,7 +1470,7 @@ class TestV38BackfillRework:
         assert rows["TASK-OK"] == "success"  # never reopened — untouched
 
     def test_idempotent(self, tmp_path: Path) -> None:
-        from database import _migrate_v38_backfill_rework_outcome
+        from _db_migrations import _migrate_v38_backfill_rework_outcome
 
         db = tmp_path / ".coding-os" / "coding-os.db"
         db.parent.mkdir(parents=True)
@@ -1493,7 +1494,7 @@ class TestV39ObservationsTaskId:
     rework signals (file churn, in-task errors) derivable. Idempotent."""
 
     def test_column_added_and_idempotent(self, tmp_path: Path) -> None:
-        from database import _migrate_v39_observations_task_id
+        from _db_migrations import _migrate_v39_observations_task_id
 
         db = tmp_path / ".coding-os" / "coding-os.db"
         db.parent.mkdir(parents=True)
@@ -1511,7 +1512,7 @@ class TestV40EmbeddingOutbox:
     embeddings (Wave 4). Idempotent; UNIQUE(source_table, source_id)."""
 
     def test_table_created_and_idempotent(self, tmp_path: Path) -> None:
-        from database import _migrate_v40_embedding_outbox
+        from _db_migrations import _migrate_v40_embedding_outbox
 
         db = tmp_path / ".coding-os" / "coding-os.db"
         db.parent.mkdir(parents=True)

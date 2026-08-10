@@ -53,6 +53,15 @@ fresh consumer project starts clean and can gate on the script from day one.
 
 Recorded exceptions:
 
+- 2026-08-10 (TASK-926): `src/core/thinking_os/_db_migrations.py` stays at ~2,240
+  lines, over the 500 backstop, and is baselined in the file-size ratchet rather
+  than split. It is the append-only schema ledger: Rule 9 freezes every entry the
+  moment it ships, so the file has exactly one reason to change — appending. The
+  only available cuts are by version range (arbitrary) or by subsystem (graph
+  migrations sit at v12 *and* v28, so ordering breaks and reading the schema
+  history becomes a four-file scan). Splitting here would produce exactly the
+  incoherent fragments anti-overengineering.md sub-rule 6 forbids.
+
 - 2026-08-08 (TASK-920): mypy BASELINE 4599 → 4649. The mcp_tools/doctor
   splits relocated 166 existing errors under new module identities and the
   dual `board_os.*`/`core.board_os.*` import paths double-count some of them;

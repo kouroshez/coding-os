@@ -73,3 +73,4 @@ references: []
 - 2026-08-10 [claude]: commit 3602dcef54 — fix(ci): reformat after the main.py split and tighten the size ratchet
 - 2026-08-10 [claude]: Edit ci-gates.md
 - 2026-08-10 [claude]: commit 9e80391b84 — chore(ci): re-baseline mypy at 4687 after the server.py split
+- 2026-08-10 [claude]: commit 35a155293d — chore(regen): refresh openapi, api-types and golden fixtures after the new route and hook
