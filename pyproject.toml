@@ -162,7 +162,7 @@ dev = [
     # Exact pin: uv.lock is gitignored, so CI resolves this fresh — a floating
     # bound let every new ruff release reformat the world and fail the enforced
     # format gate daily. Bump deliberately together with a format sweep.
-    "ruff==0.15.15",
+    "ruff==0.16.1",
     "mypy>=1.10.0",
     "types-pyyaml>=6.0.0",
     "types-jsonschema>=4.0.0",
@@ -311,6 +311,7 @@ extend-exclude = [
     ".coding-os",
     ".build",
     "archive",
+    "*.md",                  # ruff 0.16 formats python inside md fences; docs-lint owns markdown
     "tests/golden",          # generated snapshots
     "src/templates/*/scaffold",  # consumer-shipped files; downstream owns style
     "src/core/web/ui/node_modules",
