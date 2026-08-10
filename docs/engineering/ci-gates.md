@@ -53,6 +53,18 @@ fresh consumer project starts clean and can gate on the script from day one.
 
 Recorded exceptions:
 
+- 2026-08-10 (TASK-927): `src/cli/pr_commands.py` (2,024 lines) was split into a
+  `_pr_shared` leaf plus a `pr_reap_commands` module and then **reverted**. The
+  split itself worked — `cos pr/reap/heal` all smoke-ran and the command count
+  held at 99 — but its test suite patches eleven private helpers directly on the
+  `pr_commands` module. Once a helper moves, a patch on the facade no longer
+  reaches calls made from inside the sibling, so ~20 tests fail for reasons that
+  have nothing to do with behaviour. Making them pass means either patching two
+  namespaces per helper or rewriting the suite's patch strategy — a change to the
+  *tests'* design that deserves its own task rather than riding a file move.
+  The file stays on the backlog with this note so the next attempt starts from
+  the test suite, not from the module.
+
 - 2026-08-10 (TASK-927): mypy BASELINE 4599 → **4540**, tightened not widened.
   Four more god-file splits pushed the count up +46 by repeating flat sibling
   imports and by the dual-identity `try/except` guards reading as `no-redef`.
