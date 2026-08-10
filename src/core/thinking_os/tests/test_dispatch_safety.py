@@ -142,7 +142,14 @@ class TestDispatchRequestMaxTurns:
 
 class TestEvidenceBundleFlock:
     def test_concurrent_writes_stay_valid_json(self, tmp_path, monkeypatch) -> None:
-        monkeypatch.setattr(cognition, "_bundle_path", lambda sid: tmp_path / f"b_{sid}.json")
+        # Patch where _bundle_path is DEFINED: _save_bundle/_load_bundle live in the
+        # shared leaf and call their own module-level name, so patching the facade
+        # would leave them writing to the real path.
+        from tools import _cognition_shared
+
+        monkeypatch.setattr(
+            _cognition_shared, "_bundle_path", lambda sid: tmp_path / f"b_{sid}.json"
+        )
 
         class _Bundle:
             def __init__(self, size: int) -> None:
