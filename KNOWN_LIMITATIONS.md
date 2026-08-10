@@ -18,8 +18,10 @@ the ratchet (if any) lives. Gate detail: [docs/engineering/ci-gates.md](docs/eng
   shrink-only burndown.
 - Coverage is 63% measured, gated at `fail_under = 62`; the target ratchet is
   70 → 80. PRs additionally need ≥80% coverage on changed lines (diff-cover).
-- Largest file is 3,159 lines (`thinking_os/server.py`); the file-size ratchet
-  (`tests/test_file_size_budget.py`) only goes down.
+- 48 files exceed 800 lines, the largest being `thinking_os/server.py` at
+  3,159. Each is pinned at its current size by the per-file ratchet in
+  `tests/test_file_size_budget.py`, so they can shrink but never grow, and no
+  new file may cross 800 lines. Paying the debt down is unscheduled.
 
 ## Platform
 

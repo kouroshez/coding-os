@@ -15,7 +15,7 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 | Tests + coverage | `make coverage` | `fail_under` in `pyproject.toml` (62; measured 63) | ratchet toward 70 → 80 |
 | Slow suite (nightly) | `make test-slow` + the graph phantom gate, on the `schedule` trigger only | 0 failures; phantom count ≤ baseline | **surfaced, not gating** — `CI Pass` emits a warning; see the order-fragility note below |
 | diff-cover (PRs only) | `diff-cover coverage.xml --fail-under 80` | 80% on changed lines | fixed — see the scope note below |
-| File-size ratchet | `tests/test_file_size_budget.py` | `MAX_LINES` | may only fall |
+| File-size ratchet | `tests/test_file_size_budget.py` | per-file `BASELINE` (48 files over the 800-line `SOFT_LIMIT`, 2026-08-10) | each entry may only fall; a file outside `BASELINE` may never cross `SOFT_LIMIT` |
 | shellcheck | `shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh` | 0 warnings | fixed |
 | docs-lint | `make docs-lint` | 0 findings | fixed |
 | CodeQL / dependency-review | GitHub-native | high severity | fixed |
@@ -24,7 +24,7 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 
 1. Fix the underlying finding (refactor below threshold, type the module, split the file).
 2. Shrink the baseline in the same commit — delete the per-file-ignore entry,
-   lower `BASELINE` / `MAX_LINES` / raise `fail_under`.
+   lower `BASELINE` (mypy count, or the file's line entry) / raise `fail_under`.
 3. Never widen a baseline to land a change; the gate exists to make regressions
    loud. A deliberate exception needs a task + a line here explaining why.
 
