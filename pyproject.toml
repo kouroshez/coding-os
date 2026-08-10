@@ -497,6 +497,19 @@ module = [
     "tree_sitter_go.*",
     "sentence_transformers.*",
     "kuzu.*",                   # retired backend; ignored if anything still imports it
+    # Flat sibling imports inside src/core/thinking_os (`from database import …`,
+    # `from _server_runtime import …`). They resolve at runtime because the package
+    # dir is on sys.path, but mypy runs from the repo root and cannot see them — so
+    # every module split multiplied the same import-not-found error. Root fix is a
+    # mypy_path with explicit_package_bases (TASK-925); until then, silence the
+    # class instead of re-baselining after each split.
+    "database",
+    "_db_paths",
+    "_db_migrations",
+    "_server_runtime",
+    "_tools_*",
+    "tools.*",
+    "background",
 ]
 ignore_missing_imports = true
 
