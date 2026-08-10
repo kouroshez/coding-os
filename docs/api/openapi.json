@@ -8026,6 +8026,26 @@
         ]
       }
     },
+    "/api/health/file-size": {
+      "get": {
+        "description": "Files over the line backstop, worst first — the Hub Doctor tab's code-budget panel.\n\nSame scanner `cos doctor` and `make check-file-size` use, so the CLI, CI, and\nthe panel can never disagree about what counts as oversized.",
+        "operationId": "api_health_file_size_api_health_file_size_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Api Health File Size",
+        "tags": [
+          "health"
+        ]
+      }
+    },
     "/api/hooks/list": {
       "get": {
         "description": "List registered hooks with their event, matcher, scope, category.",
