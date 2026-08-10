@@ -18,7 +18,7 @@ references: []
 ---
 # TASK-923: governance: make the file-size standard enforceable everywhere (rule + skill + write-time hook)
 
-**Outcome (one sentence):** A file over the 800-line standard can no longer be authored in coding-os or in any consumer project: the always-active rule and the clean-code skill state the ceiling, and the existing PreToolUse hook blocks a Write that would create one — reaching consumers through the live-symlink propagation that already exists, with no new hook, registry entry, or adapter template.
+**Outcome (one sentence):** A file over the 500-line backstop can no longer be authored in coding-os or any consumer project, and cohesion — not the number — decides when to split: the always-active rule, the clean-code skill, the PreToolUse hook, `cos doctor`, the Hub `/api/health/file-size` endpoint and `make check-file-size` all read one definition.
 
 ## Work Log
 - 2026-08-10 [claude]: Edit anti-overengineering.md
@@ -64,3 +64,4 @@ references: []
 - 2026-08-10 [claude]: Edit anti-overengineering.md
 - 2026-08-10 [claude]: Edit check_file_size.py
 - 2026-08-10 [claude]: Edit check_file_size.py
+- 2026-08-10 [claude]: Standard revised 800 -> 500 backstop with cohesion-first precedence; the "no new file below the ceiling" clause was…

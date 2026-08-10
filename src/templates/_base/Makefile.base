@@ -189,8 +189,8 @@ ref: ## Resolve REF code to file path (REF=PLAYBOOK-BACKEND [READ=1])
 # ── Hooks & Health ──────────────────────────────────────────────────
 
 .PHONY: check-file-size
-check-file-size: ## Fail if any source file exceeds the 800-line ceiling (COS_MAX_FILE_LINES to override)
-	@bash $(COS_SCRIPTS)/check-file-size.sh
+check-file-size: ## Fail if any source file exceeds the 500-line backstop, warn from 400 (COS_MAX_FILE_LINES / COS_WARN_FILE_LINES to override)
+	@python3 $(COS_SCRIPTS)/check_file_size.py
 
 .PHONY: verify-hooks
 verify-hooks: ## Syntax-check + shellcheck (warning level) on all hook scripts

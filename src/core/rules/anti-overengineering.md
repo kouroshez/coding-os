@@ -16,7 +16,18 @@ Why (cumulative cost of every line): [critical-rules.md § Rule 22](../../docs/g
 
 **5. Defer-by-Default** — at task close ask "what can I remove?", not "what should I add?". Sweep for unused params, dead imports, unreferenced functions, shipped/never-shipped feature flags, `# TODO` with no task, code-restating comments, unimported re-exports.
 
-**6. One-File-One-Reason (800-line ceiling)** — a source file over **800 lines** has more than one reason to change; split it along the seam, don't grow it. This is the arbiter for the tension between sub-rules 1 and 3: *below* the ceiling, reuse the existing module and add no file; *at* the ceiling, a new sibling module is the correct change, not over-engineering. Enforced at write time by `block-bad-patterns.sh` (BLOCK on a Write that authors an oversized file; warn on an Edit that grows one) and at merge time by the per-file ratchet in `tests/test_file_size_budget.py`. Generated code, vendored trees, and data tables are exempt — the ceiling counts *hand-written reasons to change*, not lines.
+**6. One File, One Cohesive Responsibility** — **cohesion decides, line count only backstops.** Split a file the moment a new *independently changeable* concern appears, even far below any budget; conversely, never carve arbitrary fragments just to satisfy a number — an extracted module must own a coherent responsibility and a clear boundary. Budgets for hand-written source: **≤300 LOC** preferred · **301–400** review for an extraction seam before adding substantial behavior · **401–500** growth demands strong cohesion; prefer extraction where a natural boundary exists · **>500** do not grow — split along an existing architectural seam first. A file rule alone is gameable (280 lines, one 230-line function), so the companion budgets in [clean-code](../skills/clean-code/SKILL.md) — function length, cyclomatic complexity, parameter and dependency count — carry equal weight. Enforced at write time by `block-bad-patterns.sh` and at merge time by `tests/test_file_size_budget.py` + `make check-file-size`. Exempt: generated code, vendored trees, machine-produced schemas/data, and explicitly recorded exceptions. Legacy files already over budget ratchet: unrelated changes must not grow them, substantial changes should shrink them when a safe seam exists.
+
+## The Raptor lens — the same discipline at architecture scale
+
+This rule governs the *size of a change*; the Raptor lens governs the *shape of the system*. SpaceX's Raptor went from a machine wrapped in visible plumbing to a compact unit where the plumbing is internalized or deleted — smaller **and** more powerful. Every generation of this kernel must carry **more capability per moving part, never more parts per capability**. Apply it whenever you design or review a subsystem, adapter, hook set, or refactor:
+
+1. **Consolidate components** — "do these two modules ever change independently? If not, why are they two?" (thinking_os / graph_os / board_os share one MCP process; one hook registry renders per adapter.)
+2. **Zero-overhead abstractions** — "does this interface make the caller's code shorter, or just relocate the complexity?" (`ok()`/`fail()` is one contract over ~140 tools.)
+3. **Delete parasitic complexity** — "if I remove this, what actually breaks — a behavior, or only a feeling of safety?" Prose that restates a hook-enforced rule is duplicate mass; two nudges with overlapping triggers should merge.
+4. **Internalize and cohere** — "can this unit be tested and reasoned about without loading its neighbors?" Behavior lives where its data lives; leaf modules import no siblings.
+
+A design that *adds* parts must name the capability paying for each one, and prefers deleting a seam over documenting it. Full lens + the worked case study + the engine photo: [raptor-consolidation.md](../../docs/architecture/raptor-consolidation.md). Cite it in the work log when a decision rests on one of the four.
 
 ## When refactoring / adding *is* justified
 
@@ -35,7 +46,7 @@ At least one must be true: the current code actively prevents the task (blocking
 
 ## Anti-patterns (reject in review, fix on sight)
 
-New file when an existing namespace fits *and that namespace is under the 800-line ceiling* · appending to an already-oversized file because "it belongs there" · new skill/hook/rule when one already covers the matcher · a class wrapping one method that calls one external function · one-branch config switch · helper "for testability" when the original was testable · refactor bundled with a bug fix · reimplementing a stdlib function · `IFoo` with one implementation · new doc when an existing one has the scope · two skills/rules with overlapping triggers (merge them).
+New file for a fragment with no responsibility of its own (splitting to hit a number, not a seam) · appending an independently changeable concern to an existing file because "it belongs there" · new skill/hook/rule when one already covers the matcher · a class wrapping one method that calls one external function · one-branch config switch · helper "for testability" when the original was testable · refactor bundled with a bug fix · reimplementing a stdlib function · `IFoo` with one implementation · new doc when an existing one has the scope · two skills/rules with overlapping triggers (merge them).
 
 ## Enforcement
 

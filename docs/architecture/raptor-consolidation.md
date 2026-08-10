@@ -5,7 +5,9 @@
 
 ## The metaphor
 
-SpaceX's Raptor engine evolved from a machine wrapped in visible plumbing, sensors, and glue (Raptor 1) to a compact unit where the plumbing is internalized, consolidated, or deleted (Raptor 3) — smaller, cheaper, *and* more powerful. The capability did not shrink; the parasitic structure around it did.
+![Raptor 1, Raptor 2, and Raptor 3 side by side — the same thrust with visibly fewer external parts each generation](assets/raptor-engine-variants.webp)
+
+SpaceX's Raptor engine evolved from a machine wrapped in visible plumbing, sensors, and glue (Raptor 1) to a compact unit where the plumbing is internalized, consolidated, or deleted (Raptor 3) — smaller, cheaper, *and* more powerful. The capability did not shrink; the parasitic structure around it did. Look at the three side by side: nothing was sacrificed to get there, and the last one is the one you would rather debug at 3am.
 
 coding-os aims for the same trajectory: maximum structural simplification **simultaneous with** a leap in performance and density — every generation of the kernel carries **more capability per moving part**, never more parts per capability.
 

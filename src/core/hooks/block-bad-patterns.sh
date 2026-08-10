@@ -20,17 +20,18 @@ fi
 FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
 CONTENT=$(printf '%s' "$INPUT" | cos_json_field tool_input.new_string tool_input.content)
 
-# === FILE SIZE CEILING ===
-# anti-overengineering.md sub-rule 6. One number, shared with the CI ratchet
-# (tests/test_file_size_budget.py::SOFT_LIMIT): past it a file has more than
-# one reason to change. A Write that AUTHORS an oversized file is blocked; a
+# === FILE SIZE BACKSTOP ===
+# anti-overengineering.md sub-rule 6. Cohesion decides when to split; these
+# numbers only catch the case where nobody asked. Same values as the CI ratchet
+# and check-file-size.sh. A Write that AUTHORS an oversized file is blocked; a
 # Write that shrinks one is not, so a split is never deadlocked by its own gate.
-MAX_FILE_LINES="${COS_MAX_FILE_LINES:-800}"
+MAX_FILE_LINES="${COS_MAX_FILE_LINES:-500}"
+WARN_FILE_LINES="${COS_WARN_FILE_LINES:-400}"
 
 case "$FILE_PATH" in
   *.py|*.ts|*.tsx|*.js|*.jsx|*.go|*.rs|*.rb|*.php|*.java|*.cs|*.dart|*.sh)
     case "$FILE_PATH" in
-      # Generated, vendored, or downstream-owned: the ceiling counts
+      # Generated, vendored, or downstream-owned: the backstop counts
       # hand-written reasons to change, not lines.
       */node_modules/*|*/__pycache__/*|*/dist/*|*/build/*|*/.venv/*|\
       */vendor/*|*/migrations/*|*/scaffold/*|*/golden/*) ;;
@@ -41,24 +42,30 @@ case "$FILE_PATH" in
           CURRENT_LINES=$(wc -l < "$FILE_PATH" | tr -d ' ')
         fi
 
-        if [[ "$TOOL" == "Write" ]] &&
-           [[ "$NEW_LINES" -gt "$MAX_FILE_LINES" ]] &&
-           [[ "$NEW_LINES" -ge "$CURRENT_LINES" ]]; then
-          echo "BLOCKED: this Write produces ${NEW_LINES} lines; the ceiling is ${MAX_FILE_LINES}." >&2
-          echo "         A file past it has more than one reason to change — split it" >&2
-          echo "         along the seam (facade + private siblings, or one module per" >&2
-          echo "         feature group) and keep the importable names identical." >&2
-          echo "         See anti-overengineering.md sub-rule 6 / clean-code § File Design." >&2
-          echo "         A Write that SHRINKS an already-oversized file is allowed." >&2
-          exit 2
+        if [[ "$TOOL" == "Write" ]] && [[ "$NEW_LINES" -ge "$CURRENT_LINES" ]]; then
+          if [[ "$NEW_LINES" -gt "$MAX_FILE_LINES" ]]; then
+            echo "BLOCKED: this Write produces ${NEW_LINES} lines; the backstop is ${MAX_FILE_LINES}." >&2
+            echo "         Split along an existing architectural seam BEFORE adding behavior" >&2
+            echo "         (facade + private siblings, or one module per feature group), and" >&2
+            echo "         keep the importable names identical. Do NOT carve an arbitrary" >&2
+            echo "         fragment just to get under the number — each module must own a" >&2
+            echo "         coherent responsibility." >&2
+            echo "         See anti-overengineering.md sub-rule 6 / clean-code § File Design." >&2
+            echo "         A Write that SHRINKS an already-oversized file is allowed." >&2
+            exit 2
+          fi
+          if [[ "$NEW_LINES" -gt "$WARN_FILE_LINES" ]]; then
+            echo "⚠️  ${FILE_PATH##*/} is now ${NEW_LINES} lines (backstop ${MAX_FILE_LINES})." >&2
+            echo "    Find the extraction seam before adding substantial behavior." >&2
+          fi
         fi
 
-        if [[ "$TOOL" == "Edit" ]] && [[ "$CURRENT_LINES" -gt "$MAX_FILE_LINES" ]]; then
+        if [[ "$TOOL" == "Edit" ]] && [[ "$CURRENT_LINES" -gt "$WARN_FILE_LINES" ]]; then
           OLD_LINES=$(printf '%s\n' "$(printf '%s' "$INPUT" | cos_json_field tool_input.old_string)" | wc -l | tr -d ' ')
           if [[ "$NEW_LINES" -gt "$OLD_LINES" ]]; then
-            echo "⚠️  ${FILE_PATH##*/} is ${CURRENT_LINES} lines (ceiling ${MAX_FILE_LINES}) and this edit grows it." >&2
-            echo "    Put the new code in a sibling module instead — the CI ratchet pins" >&2
-            echo "    this file at its current size and will fail on the growth." >&2
+            echo "⚠️  ${FILE_PATH##*/} is ${CURRENT_LINES} lines (backstop ${MAX_FILE_LINES}) and this edit grows it." >&2
+            echo "    Put an independently changeable concern in a sibling module instead;" >&2
+            echo "    the CI ratchet pins this file at its current size." >&2
           fi
         fi
         ;;

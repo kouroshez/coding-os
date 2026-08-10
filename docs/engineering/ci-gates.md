@@ -28,13 +28,20 @@ round trip:
 
 | Standard | Write-time | Merge-time |
 |---|---|---|
-| 800-line file ceiling | `block-bad-patterns.sh` — BLOCKs a `Write` that authors an oversized file, warns on an `Edit` that grows one | `tests/test_file_size_budget.py` per-file ratchet |
-| Whole-tree ceiling (consumers) | — | `make check-file-size` → `src/core/scripts/check-file-size.sh` |
+| File-size budget (500 backstop, 400 warn) | `block-bad-patterns.sh` — BLOCKs a `Write` that authors a file over 500, warns from 400 and on an `Edit` that grows one | `tests/test_file_size_budget.py` per-file ratchet |
+| Whole-tree budget (consumers) | — | `make check-file-size` → `src/core/scripts/check_file_size.py` |
 
-The consumer script is deliberately absent from *this* repo's CI: 48 files
-predate the ceiling, so it would fail on every run. coding-os uses the per-file
-ratchet until the burndown lands; a fresh consumer project starts clean and can
-gate on the script from day one. Both read `COS_MAX_FILE_LINES` (default 800).
+The two halves run at **different numbers on purpose, and the gap is the
+burndown**. Write-time and the consumer script read `COS_MAX_FILE_LINES`
+(default 500) / `COS_WARN_FILE_LINES` (default 400), so nothing NEW crosses 500.
+The merge-time ratchet still uses `SOFT_LIMIT = 800` because 114 files in this
+repo are already over 500; dropping it now would mean adding ~100 `BASELINE`
+entries, which the ratchet's own protocol forbids. Lower `SOFT_LIMIT` toward 500
+as the burndown deletes entries — never by widening `BASELINE`.
+
+The consumer script is likewise absent from *this* repo's CI: it would fail on
+every run today. coding-os uses the per-file ratchet until the burndown lands; a
+fresh consumer project starts clean and can gate on the script from day one.
 
 ## Ratchet protocol (applies to every "may only shrink" baseline)
 

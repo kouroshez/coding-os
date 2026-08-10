@@ -531,15 +531,22 @@ def process_download(user: User, product_id: str) -> DownloadUrl:
     return generate_signed_download_url(purchase)
 ```
 
-### File Design — the 800-line ceiling
+### File Design — One File, One Cohesive Responsibility
 
-Function design has a size limit; so does the file that holds them. **A hand-written source file over 800 lines has more than one reason to change** — split it.
+**Cohesion decides; line count is only a backstop.** Split the moment a new *independently changeable* concern appears — even at 80 lines. And never carve a fragment just to get under a number: an extracted module must own a coherent responsibility and a clear boundary, or you have traded one bad file for three bad ones.
 
-- **~200-500 lines** — a healthy module.
-- **>800 lines** — split along the seam *before* adding to it. `block-bad-patterns.sh` BLOCKS a `Write` that authors an oversized file and warns on an `Edit` that grows one; CI enforces a per-file ratchet that may only shrink.
-- **Exempt** — generated code, vendored trees, and pure data tables. The ceiling counts reasons to change, not lines.
+Budgets for hand-written source (the backstop, not a target to grow into):
 
-Line count is the *symptom*; the defect is a file that several unrelated changes must all touch. Find the seam by asking what changes together:
+| LOC | What it means |
+|---|---|
+| ≤300 | Preferred operating range. |
+| 301-400 | Look for the extraction seam *before* adding substantial behavior. |
+| 401-500 | Growth demands strong cohesion; extract where a natural boundary exists. |
+| >500 | Do not grow. Split along an existing architectural seam first. |
+
+`block-bad-patterns.sh` BLOCKs a `Write` that authors a file over 500 and warns from 400, and `make check-file-size` applies the same two numbers to a whole tree. The merge-time per-file ratchet still runs at 800 while the existing 114 over-500 files burn down — so the budget above binds everything NEW, and legacy files are held shrink-only rather than retro-failed ([ci-gates.md](../../../../docs/engineering/ci-gates.md) § Write-time counterparts). Exempt: generated code, vendored trees, machine-produced schemas/data, and recorded exceptions.
+
+Find the seam by asking what changes together:
 
 | Seam | Split into |
 |---|---|
@@ -548,6 +555,20 @@ Line count is the *symptom*; the defect is a file that several unrelated changes
 | Shared helpers pulled by both | a leaf `_shared` module that imports neither |
 
 Keep the facade's importable names identical so callers, tests, and monkeypatches never notice — a split that changes the public surface is a refactor plus a breaking change, and should not be one commit.
+
+### The companion budgets — a file rule alone is gameable
+
+A 280-line file holding one 230-line function passes every file check and is still unmaintainable. Four budgets carry equal weight, and the *tightest* one that trips is the one to act on:
+
+| Budget | Limit | Enforced by |
+|---|---|---|
+| File length | 500 (see tiers above) | `block-bad-patterns.sh`, `make check-file-size`, CI ratchet |
+| Function length | ~20 lines; 50 is the hard smell | review + `PLR0915` (statements) |
+| Cyclomatic complexity | 10 preferred, 20 hard | ruff `C901`, `PLR0912` (branches) |
+| Parameters | 3-4; use an options object beyond | ruff `PLR0913` |
+| Module dependencies | if a file imports from >6 sibling modules, it is probably a coordinator that should delegate | review |
+
+Ruff carries a per-file baseline for the first four in `pyproject.toml`; it may only shrink. A new violation is a design signal, not a number to baseline away.
 
 ## 5. Edge Case Awareness
 

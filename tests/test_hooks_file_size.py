@@ -16,7 +16,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOK = REPO_ROOT / "src" / "core" / "hooks" / "block-bad-patterns.sh"
-CEILING = 800
+CEILING = 500
+WARN_AT = 400
 
 
 def _invoke(payload: dict, env: dict | None = None) -> subprocess.CompletedProcess:
@@ -50,6 +51,18 @@ class TestWriteCeiling:
 
     def test_allows_a_file_exactly_at_the_ceiling(self, tmp_path: Path) -> None:
         assert _invoke(_write(str(tmp_path / "exact.py"), CEILING)).returncode == 0
+
+    def test_warns_without_blocking_between_the_warn_tier_and_the_ceiling(
+        self, tmp_path: Path
+    ) -> None:
+        result = _invoke(_write(str(tmp_path / "growing.py"), WARN_AT + 50))
+        assert result.returncode == 0
+        assert "is now" in result.stderr
+
+    def test_stays_quiet_below_the_warn_tier(self, tmp_path: Path) -> None:
+        result = _invoke(_write(str(tmp_path / "small.py"), WARN_AT - 50))
+        assert result.returncode == 0
+        assert "is now" not in result.stderr
 
     def test_allows_shrinking_an_already_oversized_file(self, tmp_path: Path) -> None:
         target = tmp_path / "legacy.py"

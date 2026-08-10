@@ -108,6 +108,8 @@ def run_doctor(
             logger = logging.getLogger("coding_os.doctor")
             logger.debug("graph doctor connection failed: %s", exc)
     _check_scaffold_roots(project, report)
+    _tick("file-size budget")
+    _check_file_size_budget(project, report)
     _check_adapter(project, report.agent, report)
     _tick("scanning scaffold manifest")
     _check_manifest(project, report, manifest_path or MANIFEST_PATH_DEFAULT)
@@ -274,6 +276,7 @@ from .doctor_checks_modules import (  # noqa: E402
     _check_runtime_errors,
     _check_subsystems_state_integrity,
 )
+from .doctor_checks_quality import _check_file_size_budget  # noqa: E402
 from .doctor_checks_registry import (  # noqa: E402
     _check_agents_md_present,
     _check_category_balance,
@@ -481,6 +484,7 @@ __all__ = [
     "_check_config",
     "_check_core_version",
     "_check_database",
+    "_check_file_size_budget",
     "_check_hook_coverage",
     "_check_hub_code_fresh",
     "_check_manifest",

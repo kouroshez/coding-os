@@ -178,3 +178,29 @@ def api_health_db():
         conn.close()
 
     return payload
+
+
+@router.get("/api/health/file-size")
+def api_health_file_size():
+    """Files over the line backstop, worst first — the Hub Doctor tab's code-budget panel.
+
+    Same scanner `cos doctor` and `make check-file-size` use, so the CLI, CI, and
+    the panel can never disagree about what counts as oversized.
+    """
+    import importlib.util
+
+    from web._project_context import current_project_root  # type: ignore
+
+    # _CORE_DIR is src/ despite the name (parents[3] of routes/health.py).
+    scanner_path = _CORE_DIR / "core" / "scripts" / "check_file_size.py"
+    spec = importlib.util.spec_from_file_location("cos_check_file_size", scanner_path)
+    if spec is None or spec.loader is None:
+        return {"ok": True, "available": False, "violations": []}
+    module = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(module)
+        result = module.scan(repo_root=current_project_root())
+    except Exception as exc:
+        return {"ok": True, "available": False, "error": str(exc), "violations": []}
+    result["available"] = True
+    return result
