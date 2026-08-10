@@ -53,6 +53,14 @@ fresh consumer project starts clean and can gate on the script from day one.
 
 Recorded exceptions:
 
+- 2026-08-10 (TASK-926): mypy BASELINE 4687 → 4567 → **4599**, a net fall of 88
+  across the session. The `ignore_missing_imports` override for the flat sibling
+  names removed 120 `import-not-found` errors; the try/except import guard in
+  `database.py` then made the *relative* branch resolvable, so mypy started
+  type-checking through `_db_migrations` instead of treating it as `Any` and
+  surfaced 32 real errors it had been blind to. A rise that buys visibility is
+  not the same as a rise that hides regressions — this one is the former.
+
 - 2026-08-10 (TASK-926): `src/core/thinking_os/_db_migrations.py` stays at ~2,240
   lines, over the 500 backstop, and is baselined in the file-size ratchet rather
   than split. It is the append-only schema ledger: Rule 9 freezes every entry the
