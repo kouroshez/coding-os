@@ -742,3 +742,16 @@ from . import (
     cognition_chat,  # noqa: F401
     cognition_onboarding,  # noqa: F401
 )
+
+# Re-exported so `from core.web.routes.cognition import _safe_serialize` keeps
+# resolving — the split moved the bodies, not the public reach.
+from .cognition_chat import _role_names, _safe_serialize
+from .cognition_onboarding import _onboarding_state
+
+__all__ = [
+    "_initial_trace_pos",
+    "_onboarding_state",
+    "_role_names",
+    "_safe_serialize",
+    "router",
+]
