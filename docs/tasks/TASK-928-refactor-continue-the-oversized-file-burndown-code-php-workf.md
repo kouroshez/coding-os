@@ -205,3 +205,11 @@ references: []
 - 2026-08-10 [claude]: hub.py 1217 to 326: split into _hub_shared/_hub_init/_hub_init_routes/_hub_scan. Router moved to the leaf after a…
 - 2026-08-10 [claude]: contracts.py 1196 to 310 (commit 2b87fffc) and doctor_extras.py 1121 to 85 (commit b77220bf). Contracts differential…
 - 2026-08-10 [claude]: Pre-existing failure found, NOT caused by this slice: tests/test_doctor.py::test_doctor_detects_stale_codex_hook_map…
+- 2026-08-10 [claude]: commit 8c25e856ad — chore(board): record the four-file burndown slice on TASK-928
+- 2026-08-10 [claude]: Edit _doctor_adapters.py
+- 2026-08-10 [claude]: Edit scan_returns.py
+- 2026-08-10 [claude]: Edit ci-gates.md
+- 2026-08-10 [claude]: Edit ci-gates.md
+- 2026-08-10 [claude]: Edit mypy_ratchet.py
+- 2026-08-10 [claude]: Edit mypy_ratchet.py
+- 2026-08-10 [claude]: commit d76583fb3f — fix(cli): restore the dropped return in _normalized_hook_map
