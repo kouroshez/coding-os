@@ -34,6 +34,7 @@ def _normalized_hook_map(hooks: dict[str, Any] | None) -> dict[str, Any]:
                 agent_token = next((part for part in parts if part.startswith("COS_AGENT=")), "")
                 script = Path(parts[-1]).name if parts else ""
                 entry["command"] = f"{agent_token}|{script}"
+    return normalized
 
 
 # ---------------------------------------------------------------------------
