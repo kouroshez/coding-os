@@ -398,7 +398,7 @@ unfixable = [
 # thresholds above. Entries may only shrink — refactor a function below
 # threshold, delete its rule here. Never add a file to this list.
 "src/adapters/claude/sdk_dispatcher.py" = ["C901", "PLR0912", "PLR0915"]
-"src/cli/board_commands.py" = ["PLR0913"]
+"src/cli/_board_cli_lifecycle.py" = ["PLR0913"]
 "src/cli/db_reset.py" = ["C901", "PLR0912", "PLR0915"]
 "src/cli/doctor.py" = ["PLR0913"]
 "src/cli/doctor_checks_registry.py" = ["C901"]

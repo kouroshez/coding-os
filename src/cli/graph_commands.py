@@ -34,17 +34,17 @@ import click
 from cli._graph_cli_group import register_group
 from cli._graph_cli_ingest import register_ingest
 from cli._graph_cli_query import register_query
-from cli._graph_cli_reindex import (  # noqa: F401 — pre-split re-export
-    _is_lock_shaped,
-    _parallel_dispatch,
-    _report_failure_reason,
-    register_reindex,
+from cli._graph_cli_reindex import (  # pre-split re-export
+    _is_lock_shaped as _is_lock_shaped,
+    _parallel_dispatch as _parallel_dispatch,
+    _report_failure_reason as _report_failure_reason,
+    register_reindex as register_reindex,
 )
-from cli._graph_cli_shared import (  # noqa: F401 — pre-split re-export
-    _bootstrap_paths,
-    _graph_reindex_print_status,
-    _json_echo,
-    _open_backend,
+from cli._graph_cli_shared import (  # pre-split re-export
+    _bootstrap_paths as _bootstrap_paths,
+    _graph_reindex_print_status as _graph_reindex_print_status,
+    _json_echo as _json_echo,
+    _open_backend as _open_backend,
 )
 
 
