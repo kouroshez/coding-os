@@ -431,6 +431,8 @@ unfixable = [
 "src/core/thinking_os/concepts.py" = ["C901"]
 "src/core/thinking_os/session_enrich.py" = ["C901", "PLR0912"]
 "src/core/thinking_os/tools/cognition.py" = ["PLR0913", "E402"]
+# Facade: the part modules decorate the router defined above them.
+"src/core/web/routes/cognition.py" = ["E402"]
 "src/core/thinking_os/tools/docs.py" = ["PLR0913"]
 "src/core/thinking_os/tools/memory.py" = ["C901"]
 "src/core/web/routes/board.py" = ["PLR0913"]
