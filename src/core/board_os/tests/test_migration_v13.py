@@ -6,11 +6,12 @@ from __future__ import annotations
 import importlib.util
 import sqlite3
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
 
-def _load_module(alias: str, filename: str):
+def _load_module(alias: str, filename: str) -> ModuleType:
     spec = importlib.util.spec_from_file_location(
         alias,
         Path(__file__).resolve().parents[2] / "thinking_os" / filename,
@@ -21,7 +22,7 @@ def _load_module(alias: str, filename: str):
     return mod
 
 
-def _load_db_module():
+def _load_db_module() -> ModuleType:
     return _load_module("_db_under_test", "database.py")
 
 
