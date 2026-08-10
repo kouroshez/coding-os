@@ -36,10 +36,17 @@ def test_onboard_empty_prompt_rejected(client):
 
 
 def test_onboard_unavailable_without_sdk(client, monkeypatch):
+    # Patch wherever _claude_sdk currently lives: src/core on sys.path gives each
+    # module two names, and the 2026-08-10 split moved it into cognition_chat.
     patched = False
-    for modname in ("web.routes.cognition", "core.web.routes.cognition"):
+    for modname in (
+        "web.routes.cognition",
+        "core.web.routes.cognition",
+        "web.routes.cognition_chat",
+        "core.web.routes.cognition_chat",
+    ):
         mod = sys.modules.get(modname)
-        if mod is not None:
+        if mod is not None and hasattr(mod, "_claude_sdk"):
             monkeypatch.setattr(mod, "_claude_sdk", lambda: None, raising=False)
             patched = True
     assert patched, "cognition module not loaded"

@@ -741,6 +741,7 @@ from . import (
 
 # Re-exported so `from core.web.routes.cognition import _safe_serialize` keeps
 # resolving — the split moved the bodies, not the public reach.
+from ._cognition_serialize import _sse_chunk
 from .cognition_chat import (
     _dispatch_transcript_chat,
     _prime_with_project_description,
@@ -748,15 +749,17 @@ from .cognition_chat import (
     _role_system_prompt,
     _safe_serialize,
 )
-from .cognition_onboarding import _onboarding_state
+from .cognition_onboarding import _onboard_write_allowed, _onboarding_state
 
 __all__ = [
     "_dispatch_transcript_chat",
     "_initial_trace_pos",
+    "_onboard_write_allowed",
     "_onboarding_state",
     "_prime_with_project_description",
     "_role_names",
     "_role_system_prompt",
     "_safe_serialize",
+    "_sse_chunk",
     "router",
 ]

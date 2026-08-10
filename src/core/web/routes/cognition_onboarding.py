@@ -18,11 +18,10 @@ from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import unwrap
-from . import cognition as _cog
+from . import cognition as _cog, cognition_chat as _chat
 from .cognition import router
 from .cognition_chat import (
     _build_agent_options,
-    _claude_sdk,
     _project_cwd,
     _role_system_prompt,
     _safe_serialize,
@@ -69,7 +68,7 @@ async def author_task(
                 }
             )
         )
-    sdk = _claude_sdk()
+    sdk = _chat._claude_sdk()
     if sdk is None:
         return unwrap(_cog._unavailable("claude_agent_sdk not installed"))
 
@@ -283,7 +282,7 @@ async def onboard(
                 }
             )
         )
-    sdk = _claude_sdk()
+    sdk = _chat._claude_sdk()
     if sdk is None:
         return unwrap(_cog._unavailable("claude_agent_sdk not installed"))
 
