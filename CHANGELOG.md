@@ -12,6 +12,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.12](https://github.com/kouroshez/coding-os/compare/v0.3.11...v0.3.12) (2026-08-10)
+
+
+### Added
+
+* **quality:** enforce an 800-line file ceiling at write time and in consumers ([859425a](https://github.com/kouroshez/coding-os/commit/859425a4d8ed0bdd47ff27ae059adeb8944bf59e))
+* **quality:** make the file-size budget cohesion-first and surface it everywhere ([541b643](https://github.com/kouroshez/coding-os/commit/541b6439a7ae895bc1f18522188067ecf87b53a8))
+
+
+### Fixed
+
+* **ci:** give diff-cover a real merge base so the gate can pass ([20248dd](https://github.com/kouroshez/coding-os/commit/20248ddef45aa61c2c8cf6438b2bd7ee71f29b9d))
+* **ci:** reformat after the main.py split and tighten the size ratchet ([3602dce](https://github.com/kouroshez/coding-os/commit/3602dcef542877cebef7912be261befb5dcab91e))
+* **ci:** stop counting unresolvable flat sibling imports in the mypy ratchet ([93a09ab](https://github.com/kouroshez/coding-os/commit/93a09ab8feeb6280b21c16c5bea3c2a25065c4c0))
+* **thinking_os:** make the database sibling imports work under both import identities ([e257310](https://github.com/kouroshez/coding-os/commit/e257310ed1607b412f6e954f9f6314001194f146))
+
+
+### Changed
+
+* **cli:** split main.py into cohesive init modules, 3111 lines to 1605 ([3f1cabc](https://github.com/kouroshez/coding-os/commit/3f1cabc17512a61058060c333a9465b32aac466d))
+* **thinking_os:** split database.py into paths, the migration ledger, and a facade ([70f3533](https://github.com/kouroshez/coding-os/commit/70f3533f59223e7a521023770afed5475d67719e))
+* **thinking_os:** split the 3159-line server.py into a facade plus domain modules ([4d12c4d](https://github.com/kouroshez/coding-os/commit/4d12c4deeb7b05f24ba491a1ec13d0617907e1f2))
+
+
+### Documentation
+
+* **insights:** record the four break modes of a dual-identity module split ([7414348](https://github.com/kouroshez/coding-os/commit/7414348a462775380e2ac946153281b133b02c3d))
+
+
+### Build
+
+* **deps:** bump aiohttp from 3.13.5 to 3.14.3 ([#29](https://github.com/kouroshez/coding-os/issues/29)) ([e96e7cf](https://github.com/kouroshez/coding-os/commit/e96e7cf596e3a329b2a91c7089c297f2063e76c1))
+* **deps:** bump cryptography from 48.0.0 to 50.0.0 ([#26](https://github.com/kouroshez/coding-os/issues/26)) ([0f70fed](https://github.com/kouroshez/coding-os/commit/0f70fed7169283b10f5202aa087950058baefe4d))
+* **deps:** bump mcp from 1.27.2 to 1.28.1 ([#27](https://github.com/kouroshez/coding-os/issues/27)) ([ea27f11](https://github.com/kouroshez/coding-os/commit/ea27f11ea7cfa5d4db2276883ba63fe61fd2a447))
+* **deps:** bump python-multipart from 0.0.29 to 0.0.31 ([#51](https://github.com/kouroshez/coding-os/issues/51)) ([64296e1](https://github.com/kouroshez/coding-os/commit/64296e100b1a78e5efb1145bc4a58842aebc0977))
+* **deps:** bump starlette from 1.2.1 to 1.3.1 ([#50](https://github.com/kouroshez/coding-os/issues/50)) ([86e2a15](https://github.com/kouroshez/coding-os/commit/86e2a15d289dc24d898ddc4906bcf56ba4e145a1))
+* **deps:** bump torch from 2.12.0 to 2.13.0 ([#28](https://github.com/kouroshez/coding-os/issues/28)) ([de6cc90](https://github.com/kouroshez/coding-os/commit/de6cc900490f99c4f9411288d86c2ecd9ae7cdcf))
+
 ## [0.3.11](https://github.com/kouroshez/coding-os/compare/v0.3.10...v0.3.11) (2026-08-10)
 
 
