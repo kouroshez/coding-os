@@ -15,6 +15,7 @@ Scope (each test maps to the risk register in docs/engineering/brain-hardening.m
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import sqlite3
@@ -70,9 +71,16 @@ def test_capture_accepts_multiedit(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
 
 def test_server_exports_observation_record_tool() -> None:
-    src = (BRAIN / "server.py").read_text()
-    assert 'name="cos_observation_record"' in src
-    assert "def cos_observation_record(" in src
+    # Asserted against the live registration, not server.py's source text: the
+    # tool bodies moved into the _tools_* siblings when server.py was split, and
+    # a grep-the-file test would have passed for the wrong reason (or failed for
+    # a purely cosmetic one).
+    sys.path.insert(0, str(BRAIN))
+    import server  # type: ignore
+
+    assert callable(server.cos_observation_record)
+    registered = {tool.name for tool in asyncio.run(server.mcp.list_tools())}
+    assert "cos_observation_record" in registered
 
 
 # --------------------------------------------------------------------------
