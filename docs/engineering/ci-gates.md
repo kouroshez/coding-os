@@ -53,6 +53,30 @@ fresh consumer project starts clean and can gate on the script from day one.
 
 Recorded exceptions:
 
+- 2026-08-10 (TASK-928): `src/core/thinking_os/embeddings.py` (943 lines) keeps
+  its `BASELINE` entry and is **not** split. It has clean cohesion seams (model
+  config, encoding, similarity, storage, search, outbox/reindex) but no seam that
+  survives its test contract: `is_available`, `_get_model` and `embed_text` are
+  patched with `patch.object(embeddings, …)` in six suites, and every other
+  section calls them — `cosine_similarity_with_meta`, `upsert_embedding`,
+  `search_similar`, `drain_outbox` and `reindex_all` each call `is_available()`
+  directly. The module is deliberately written that way (see the comment at
+  `embed_text`: "…so existing tests that patch it keep working"), so moving any
+  caller to a sibling means the facade patch stops reaching it and the test
+  silently exercises the real encoder. The same class of blocker as
+  `pr_commands.py` below; the next attempt starts from the patch strategy, not
+  from the module.
+
+- 2026-08-10 (TASK-928): the `_shared.py` file-size entry (947) was deleted
+  rather than lowered — the split dropped the facade to 398, under `SOFT_LIMIT`.
+  The five `_envelope_*` siblings carried the flat-sibling `import-not-found`
+  class again; this time it was silenced precisely at each fallback import
+  (`# type: ignore[no-redef,import-not-found]`) instead of via a bare-name
+  `ignore_missing_imports` glob, because those globs are inert — mypy reports the
+  whole list under `warn_unused_configs`. Typing the trimmers' `dict`/`list`
+  parameters took the local count to 4,482; `BASELINE` stays at 4,500 because it
+  is a CI-measured number and this one is not.
+
 - 2026-08-10 (TASK-927): `src/cli/pr_commands.py` (2,024 lines) was split into a
   `_pr_shared` leaf plus a `pr_reap_commands` module and then **reverted**. The
   split itself worked — `cos pr/reap/heal` all smoke-ran and the command count
