@@ -531,6 +531,24 @@ def process_download(user: User, product_id: str) -> DownloadUrl:
     return generate_signed_download_url(purchase)
 ```
 
+### File Design — the 800-line ceiling
+
+Function design has a size limit; so does the file that holds them. **A hand-written source file over 800 lines has more than one reason to change** — split it.
+
+- **~200-500 lines** — a healthy module.
+- **>800 lines** — split along the seam *before* adding to it. `block-bad-patterns.sh` BLOCKS a `Write` that authors an oversized file and warns on an `Edit` that grows one; CI enforces a per-file ratchet that may only shrink.
+- **Exempt** — generated code, vendored trees, and pure data tables. The ceiling counts reasons to change, not lines.
+
+Line count is the *symptom*; the defect is a file that several unrelated changes must all touch. Find the seam by asking what changes together:
+
+| Seam | Split into |
+|---|---|
+| Public surface vs implementation | facade module + private `_impl` siblings |
+| Independent feature groups | one module per group, re-exported from the facade |
+| Shared helpers pulled by both | a leaf `_shared` module that imports neither |
+
+Keep the facade's importable names identical so callers, tests, and monkeypatches never notice — a split that changes the public surface is a refactor plus a breaking change, and should not be one commit.
+
 ## 5. Edge Case Awareness
 
 Before writing any function, ask:

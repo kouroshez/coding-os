@@ -110,7 +110,7 @@ hooks:
 
   - id: block-bad-patterns
     script: block-bad-patterns.sh
-    description: "Rejects bare `except: pass`, mock-where-real-needed, and other anti-patterns."
+    description: "Rejects bare `except: pass`, files over the 800-line ceiling, and other anti-patterns."
     category: safety
     phase: "0"
     timeout: 5

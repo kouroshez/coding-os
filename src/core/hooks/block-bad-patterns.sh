@@ -20,6 +20,52 @@ fi
 FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
 CONTENT=$(printf '%s' "$INPUT" | cos_json_field tool_input.new_string tool_input.content)
 
+# === FILE SIZE CEILING ===
+# anti-overengineering.md sub-rule 6. One number, shared with the CI ratchet
+# (tests/test_file_size_budget.py::SOFT_LIMIT): past it a file has more than
+# one reason to change. A Write that AUTHORS an oversized file is blocked; a
+# Write that shrinks one is not, so a split is never deadlocked by its own gate.
+MAX_FILE_LINES="${COS_MAX_FILE_LINES:-800}"
+
+case "$FILE_PATH" in
+  *.py|*.ts|*.tsx|*.js|*.jsx|*.go|*.rs|*.rb|*.php|*.java|*.cs|*.dart|*.sh)
+    case "$FILE_PATH" in
+      # Generated, vendored, or downstream-owned: the ceiling counts
+      # hand-written reasons to change, not lines.
+      */node_modules/*|*/__pycache__/*|*/dist/*|*/build/*|*/.venv/*|\
+      */vendor/*|*/migrations/*|*/scaffold/*|*/golden/*) ;;
+      *)
+        NEW_LINES=$(printf '%s\n' "$CONTENT" | wc -l | tr -d ' ')
+        CURRENT_LINES=0
+        if [[ -f "$FILE_PATH" ]]; then
+          CURRENT_LINES=$(wc -l < "$FILE_PATH" | tr -d ' ')
+        fi
+
+        if [[ "$TOOL" == "Write" ]] &&
+           [[ "$NEW_LINES" -gt "$MAX_FILE_LINES" ]] &&
+           [[ "$NEW_LINES" -ge "$CURRENT_LINES" ]]; then
+          echo "BLOCKED: this Write produces ${NEW_LINES} lines; the ceiling is ${MAX_FILE_LINES}." >&2
+          echo "         A file past it has more than one reason to change — split it" >&2
+          echo "         along the seam (facade + private siblings, or one module per" >&2
+          echo "         feature group) and keep the importable names identical." >&2
+          echo "         See anti-overengineering.md sub-rule 6 / clean-code § File Design." >&2
+          echo "         A Write that SHRINKS an already-oversized file is allowed." >&2
+          exit 2
+        fi
+
+        if [[ "$TOOL" == "Edit" ]] && [[ "$CURRENT_LINES" -gt "$MAX_FILE_LINES" ]]; then
+          OLD_LINES=$(printf '%s\n' "$(printf '%s' "$INPUT" | cos_json_field tool_input.old_string)" | wc -l | tr -d ' ')
+          if [[ "$NEW_LINES" -gt "$OLD_LINES" ]]; then
+            echo "⚠️  ${FILE_PATH##*/} is ${CURRENT_LINES} lines (ceiling ${MAX_FILE_LINES}) and this edit grows it." >&2
+            echo "    Put the new code in a sibling module instead — the CI ratchet pins" >&2
+            echo "    this file at its current size and will fail on the growth." >&2
+          fi
+        fi
+        ;;
+    esac
+    ;;
+esac
+
 # === SHELL HOOK / INSTALLER GUARD (bash 5.3.9 deadlock) ===
 # Homebrew bash 5.3.9 sporadically deadlocks `cmd - <<HEREDOC` patterns
 # in heredoc_write before forking the child. Hot-path hooks accumulate

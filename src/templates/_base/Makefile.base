@@ -188,6 +188,10 @@ ref: ## Resolve REF code to file path (REF=PLAYBOOK-BACKEND [READ=1])
 
 # ── Hooks & Health ──────────────────────────────────────────────────
 
+.PHONY: check-file-size
+check-file-size: ## Fail if any source file exceeds the 800-line ceiling (COS_MAX_FILE_LINES to override)
+	@bash $(COS_SCRIPTS)/check-file-size.sh
+
 .PHONY: verify-hooks
 verify-hooks: ## Syntax-check + shellcheck (warning level) on all hook scripts
 	@FAIL=0; for f in $(COS_HOOKS)/*.sh; do bash -n "$$f" 2>&1 || FAIL=1; done; \

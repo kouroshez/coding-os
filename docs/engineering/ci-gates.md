@@ -20,6 +20,22 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 | docs-lint | `make docs-lint` | 0 findings | fixed |
 | CodeQL / dependency-review | GitHub-native | high severity | fixed |
 
+## Write-time counterparts (the same standards, earlier)
+
+A CI gate tells you at merge time; a hook tells you before the edit lands. Two
+of the standards above have a write-time half so the feedback is not a 20-minute
+round trip:
+
+| Standard | Write-time | Merge-time |
+|---|---|---|
+| 800-line file ceiling | `block-bad-patterns.sh` — BLOCKs a `Write` that authors an oversized file, warns on an `Edit` that grows one | `tests/test_file_size_budget.py` per-file ratchet |
+| Whole-tree ceiling (consumers) | — | `make check-file-size` → `src/core/scripts/check-file-size.sh` |
+
+The consumer script is deliberately absent from *this* repo's CI: 48 files
+predate the ceiling, so it would fail on every run. coding-os uses the per-file
+ratchet until the burndown lands; a fresh consumer project starts clean and can
+gate on the script from day one. Both read `COS_MAX_FILE_LINES` (default 800).
+
 ## Ratchet protocol (applies to every "may only shrink" baseline)
 
 1. Fix the underlying finding (refactor below threshold, type the module, split the file).
