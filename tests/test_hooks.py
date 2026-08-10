@@ -275,7 +275,7 @@ class TestCosEnv:
 
     def test_root_resolution_parity_with_database(self, tmp_path: Path) -> None:
         """cos-env.sh's walk must stay identical to the canonical Python resolver
-        database.py::_find_project_root_from_cwd — same marker set AND same root
+        _db_paths.py::_find_project_root_from_cwd — same marker set AND same root
         for representative trees — so the two implementations cannot drift. (The
         shell's extra $HOME hard-stop is asserted separately; Python's equivalent
         is TASK-498, so parity fixtures keep the marked root strictly below $HOME
@@ -283,9 +283,9 @@ class TestCosEnv:
         import re
 
         # (a) marker-set identity between the two implementations.
-        db_src = (HOOKS_DIR.parent / "thinking_os" / "database.py").read_text(encoding="utf-8")
+        db_src = (HOOKS_DIR.parent / "thinking_os" / "_db_paths.py").read_text(encoding="utf-8")
         m = re.search(r"_ROOT_MARKERS\s*=\s*\((.*?)\)", db_src, re.DOTALL)
-        assert m, "could not find _ROOT_MARKERS in database.py"
+        assert m, "could not find _ROOT_MARKERS in _db_paths.py"
         db_markers = set(re.findall(r"""["']([^"']+)["']""", m.group(1)))
         env_src = (HOOKS_DIR / "cos-env.sh").read_text(encoding="utf-8")
         fm = re.search(r"for marker in ([^\n;]+); do", env_src)

@@ -25,7 +25,7 @@ ALLOWED_MODEL_PATHS: set[str] = {
     "src/adapters/claude/sdk_dispatcher.py",  # _OPUS_47_MODEL_IDS gate
     "src/adapters/claude/adapter.yaml",  # adapter manifest
     "src/core/thinking_os/dispatcher.py",  # docstring example only
-    "src/core/thinking_os/database.py",  # migration docstring example
+    "src/core/thinking_os/_db_migrations.py",  # migration docstring example
     "src/core/hooks/_helpers/presence_write.py",  # docstring example of the model arg
     "src/core/thinking_os/compress.py",  # COS_COMPRESS_MODEL env default
     "src/core/thinking_os/tests/test_compress.py",  # asserts _stamp_provenance echoes the model id
