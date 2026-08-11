@@ -271,3 +271,47 @@ references: []
 - 2026-08-11 [claude]: commit a1a03642fc — chore(golden): recapture fixtures after the clean-code split-parity section
 - 2026-08-11 [claude]: Edit mypy_ratchet.py
 - 2026-08-11 [claude]: commit 3283e41813 — fix(ci): restore the mypy BASELINE to the CI-measured value
+- 2026-08-11 [claude]: Edit split_sdk.py
+- 2026-08-11 [claude]: Edit test_file_size_budget.py
+- 2026-08-11 [claude]: Edit test_no_hardcoded_anthropic.py
+- 2026-08-11 [claude]: Edit msg1.txt
+- 2026-08-11 [claude]: commit 9501dcde82 — refactor(claude): split the SDK dispatcher into options, telemetry and result modules
+- 2026-08-11 [claude]: Edit sdk_dispatcher.py
+- 2026-08-11 [claude]: Edit sdk_dispatcher.py
+- 2026-08-11 [claude]: Edit sdk_dispatcher.py
+- 2026-08-11 [claude]: Edit sdk_dispatcher.py
+- 2026-08-11 [claude]: Edit sdk_dispatcher.py
+- 2026-08-11 [claude]: Edit sdk_dispatcher.py
+- 2026-08-11 [claude]: Edit cg_corpus.py
+- 2026-08-11 [claude]: Edit cg_differential.py
+- 2026-08-11 [claude]: Edit cg_differential.py
+- 2026-08-11 [claude]: Edit split_cg.py
+- 2026-08-11 [claude]: Edit code_generic.py
+- 2026-08-11 [claude]: Edit test_file_size_budget.py
+- 2026-08-11 [claude]: Edit msg2.txt
+- 2026-08-11 [claude]: commit 01354419f6 — refactor(claude): lift prompt, schema, env and result mapping out of dispatch
+- 2026-08-11 [claude]: Edit msg3.txt
+- 2026-08-11 [claude]: commit 8299fa7044 — refactor(graph_os): split code_generic into spec, node walk and edge-hook modules
+- 2026-08-11 [claude]: Edit docs_differential.py
+- 2026-08-11 [claude]: Edit docs_differential.py
+- 2026-08-11 [claude]: Edit docs_differential.py
+- 2026-08-11 [claude]: Edit docs_differential.py
+- 2026-08-11 [claude]: Edit split_docs.py
+- 2026-08-11 [claude]: Edit _docs_headers.py
+- 2026-08-11 [claude]: Edit split_cognition.py
+- 2026-08-11 [claude]: Edit cognition_chat.py
+- 2026-08-11 [claude]: Edit cognition_onboarding.py
+- 2026-08-11 [claude]: Edit cognition.py
+- 2026-08-11 [claude]: Edit cognition_dispatch_views.py
+- 2026-08-11 [claude]: Edit msg4.txt
+- 2026-08-11 [claude]: commit 6c6fc314fd — refactor(thinking_os): split doc tools into hints, retrieval and header modules
+- 2026-08-11 [claude]: Edit msg5.txt
+- 2026-08-11 [claude]: commit e8c9169df4 — refactor(web): move the cognition router to a leaf and split out the dispatch views
+- 2026-08-11 [claude]: Edit split_bg.py
+- 2026-08-11 [claude]: Edit split_bg.py
+- 2026-08-11 [claude]: Batch eight: split sdk_dispatcher (920→460, two commits — move then dispatch decomposition), code_generic (914→159,…
+- 2026-08-11 [claude]: Edit split_bg.py
+- 2026-08-11 [claude]: Edit branch_guard_pr.py
+- 2026-08-11 [claude]: Edit pyproject.toml
+- 2026-08-11 [claude]: Edit msg6.txt
+- 2026-08-11 [claude]: commit 384d02bbe9 — refactor(hooks): split the branch guard into shared refs, trunk and pr policy
