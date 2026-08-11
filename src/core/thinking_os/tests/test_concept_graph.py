@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db
 from graph import record_co_edit
-from memory_gc import gc_memory
+from memory_gc import TRASH_PATH_PREFIXES, gc_memory
 
 
 @pytest.fixture
@@ -137,4 +137,73 @@ class TestOrphanReconcile:
         assert (
             c2.execute("SELECT COUNT(*) FROM graph_evidence_v12").fetchone()[0] == 1
         )  # valid kept
+        c2.close()
+
+    def test_sweeps_outbox_rows_whose_source_was_reaped(self, tmp_path: Path) -> None:
+        # The changelog TTL reaps observations the outbox still queues. The drain
+        # only clears `limit` rows per session, so orphans accumulate faster than
+        # they are consumed and starve the real rows behind them (TASK-937).
+        db = tmp_path / "outbox.db"
+        c = init_db(db)
+        c.execute(
+            "INSERT INTO observations (id, session_id, title, narrative, memory_type) "
+            "VALUES (1, 's', 'kept', 'n', 'changelog')"
+        )
+        for source_id in (1, 404, 405):
+            c.execute(
+                "INSERT INTO embedding_outbox (source_table, source_id, enqueued_at) "
+                "VALUES ('observations', ?, 0)",
+                (source_id,),
+            )
+        c.commit()
+        c.close()
+
+        stats = gc_memory(db)
+
+        assert stats["orphan_outbox_rows"] == 2
+        c2 = sqlite3.connect(db)
+        surviving = c2.execute("SELECT source_id FROM embedding_outbox").fetchall()
+        c2.close()
+        assert surviving == [(1,)]
+
+    def test_outbox_sweep_runs_after_the_deletes_that_orphan_rows(self, tmp_path: Path) -> None:
+        # Ordering guard: step 3 deletes trash observations, so a sweep placed
+        # before it leaves the rows it just orphaned for the next run.
+        db = tmp_path / "order.db"
+        c = init_db(db)
+        c.execute(
+            "INSERT INTO observations (id, session_id, title, narrative, memory_type, files_modified) "
+            "VALUES (1, 's', 'trash', 'n', 'changelog', ?)",
+            (f"{TRASH_PATH_PREFIXES[0]}sample.py",),
+        )
+        c.execute(
+            "INSERT INTO embedding_outbox (source_table, source_id, enqueued_at) "
+            "VALUES ('observations', 1, 0)"
+        )
+        c.commit()
+        c.close()
+
+        stats = gc_memory(db)
+
+        assert stats["trash_observations"] == 1
+        assert stats["orphan_outbox_rows"] == 1, "sweep ran before the trash delete"
+        c2 = sqlite3.connect(db)
+        assert c2.execute("SELECT COUNT(*) FROM embedding_outbox").fetchone()[0] == 0
+        c2.close()
+
+    def test_dry_run_counts_outbox_orphans_without_deleting(self, tmp_path: Path) -> None:
+        db = tmp_path / "outbox_dry.db"
+        c = init_db(db)
+        c.execute(
+            "INSERT INTO embedding_outbox (source_table, source_id, enqueued_at) "
+            "VALUES ('observations', 404, 0)"
+        )
+        c.commit()
+        c.close()
+
+        stats = gc_memory(db, dry_run=True)
+
+        assert stats["orphan_outbox_rows"] == 1
+        c2 = sqlite3.connect(db)
+        assert c2.execute("SELECT COUNT(*) FROM embedding_outbox").fetchone()[0] == 1
         c2.close()

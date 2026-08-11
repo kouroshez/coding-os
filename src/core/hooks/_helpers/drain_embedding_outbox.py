@@ -33,12 +33,19 @@ def main() -> int:
         import embeddings  # type: ignore
 
         rep = embeddings.drain_outbox(conn, limit=64)
-        if rep.get("drained"):
+        # Report any batch that did work, including one that only dropped
+        # source-less rows. Reporting on `drained` alone hid a starving queue
+        # behind a silent success for two months (TASK-937).
+        if rep.get("drained") or rep.get("dropped") or rep.get("failed"):
             print(
-                f"[outbox] drained {rep['drained']} embedding(s); "
+                f"[outbox] drained {rep.get('drained', 0)}, "
+                f"dropped {rep.get('dropped', 0)} source-less, "
+                f"failed {rep.get('failed', 0)}; "
                 f"{rep.get('remaining', 0)} remaining",
                 file=sys.stderr,
             )
+        elif rep.get("status") != "ok":
+            print(f"[outbox] drain {rep.get('status')}", file=sys.stderr)
     except Exception as exc:
         print(f"[outbox] drain error: {exc}", file=sys.stderr)
         return 0

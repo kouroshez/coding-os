@@ -754,11 +754,15 @@ def drain_outbox(conn: sqlite3.Connection, *, limit: int = 128, max_attempts: in
     # embeddings<->migrator circular import at module load.
     from migrator_embeddings import _text_for_row  # type: ignore
 
-    drained = failed = 0
+    drained = failed = dropped = 0
     for oid, source_table, source_id in rows:
         text = _text_for_row(conn, {"source_table": source_table, "source_id": source_id})
         if not text:
+            # Source row is gone (reaped by the TTL). Counted, not silent: a batch
+            # of pure orphans used to return drained=0/failed=0, which every
+            # caller reads as "nothing to do" rather than "the queue is starving".
             conn.execute("DELETE FROM embedding_outbox WHERE id = ?", (oid,))
+            dropped += 1
             continue
         res = upsert_embedding(conn, source_table, int(source_id), text)
         if res.get("status") in ("inserted", "updated", "unchanged"):
@@ -774,7 +778,13 @@ def drain_outbox(conn: sqlite3.Connection, *, limit: int = 128, max_attempts: in
     remaining = conn.execute(
         "SELECT COUNT(*) FROM embedding_outbox WHERE attempts < ?", (int(max_attempts),)
     ).fetchone()[0]
-    return {"status": "ok", "drained": drained, "failed": failed, "remaining": int(remaining)}
+    return {
+        "status": "ok",
+        "drained": drained,
+        "failed": failed,
+        "dropped": dropped,
+        "remaining": int(remaining),
+    }
 
 
 # ---------------------------------------------------------------------------

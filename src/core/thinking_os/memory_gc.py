@@ -43,6 +43,30 @@ def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
     return any(r[1] == column for r in conn.execute(f"PRAGMA table_info({table})"))
 
 
+def _sweep_outbox_orphans(conn: sqlite3.Connection, *, dry_run: bool) -> int:
+    # Called LAST in gc_memory: the trash-observation delete above orphans rows
+    # itself, so sweeping earlier leaves its own leftovers for the next run.
+    # The changelog TTL reaps sources the outbox still queues, and the drain
+    # clears only `limit` rows per session — orphans accumulate far faster than
+    # they are consumed and starve the real rows behind them (TASK-937).
+    if not _table_exists(conn, "embedding_outbox"):
+        return 0
+    orphaned = 0
+    for source in ("observations", "document_chunks", "learned_patterns"):
+        if not _table_exists(conn, source):
+            continue
+        predicate = (
+            f"source_table = ? AND NOT EXISTS (SELECT 1 FROM {source} t WHERE t.id = source_id)"
+        )
+        count = conn.execute(
+            f"SELECT COUNT(*) FROM embedding_outbox WHERE {predicate}", (source,)
+        ).fetchone()[0]
+        orphaned += int(count)
+        if count and not dry_run:
+            conn.execute(f"DELETE FROM embedding_outbox WHERE {predicate}", (source,))
+    return orphaned
+
+
 def gc_memory(
     db_path: str | Path | None = None,
     *,
@@ -58,6 +82,7 @@ def gc_memory(
         "orphan_embeddings_observations": 0,
         "orphan_embeddings_document_chunks": 0,
         "orphan_embeddings_learned_patterns": 0,
+        "orphan_outbox_rows": 0,
         "orphan_pattern_validations": 0,
         "orphan_graph_evidence": 0,
         "orphan_concept_graph_edges": 0,
@@ -173,6 +198,9 @@ def gc_memory(
                     f"DELETE FROM observations WHERE {like_terms}",
                     like_params,
                 )
+
+        # ---- 4. Orphan embedding_outbox rows — LAST on purpose (see helper) ----
+        stats["orphan_outbox_rows"] = _sweep_outbox_orphans(conn, dry_run=dry_run)
 
         if not dry_run:
             conn.commit()
