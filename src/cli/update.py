@@ -83,6 +83,42 @@ def _cleanup_legacy_codex_instructions(project: Path) -> bool:
     return False
 
 
+def _sync_hook_registration(project: Path, agent: str, *, dry_run: bool) -> bool:
+    """Re-register hooks in the agent's settings file from the shipped template.
+
+    Linking a hook script is only half an install: the runtime fires what the
+    settings file registers, so a newly shipped hook was symlinked by `cos
+    update` and then never ran. Only the `hooks` key is replaced — the rest of
+    the file (permissions, model, user edits) is the project's to own, which is
+    why this does not just re-run install.sh.
+
+    Returns True when the registration was out of date.
+    """
+    adapter = load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs()).get(agent)
+    if adapter is None or not adapter.supports_settings_json or not adapter.settings_file:
+        return False
+    template = ADAPTERS_DIR / agent / "settings.template.json"
+    settings = project / adapter.settings_file
+    if not template.is_file() or not settings.is_file():
+        return False
+    hooks_rel = f"{adapter.hooks_dir}" if adapter.hooks_dir else ""
+    try:
+        rendered = json.loads(
+            template.read_text(encoding="utf-8").replace("{{HOOKS_DIR}}", hooks_rel)
+        )
+        current = json.loads(settings.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.debug("hook re-registration skipped for %s: %s", agent, exc)
+        return False
+    expected = rendered.get("hooks") or {}
+    if current.get("hooks") == expected:
+        return False
+    if not dry_run:
+        current["hooks"] = expected
+        settings.write_text(json.dumps(current, indent=2) + "\n", encoding="utf-8")
+    return True
+
+
 def _aggregate_world(agent: str, templates: tuple[str, ...], project: Path):
     """Build an AggregatedWorld for the given agent + stacks.
 
@@ -163,6 +199,11 @@ def update(
             overall_changes = True
             if not dry_run:
                 _apply_diff(project, diff, agent)
+
+        if _sync_hook_registration(project, agent, dry_run=dry_run):
+            overall_changes = True
+            if output_format == "text":
+                click.echo(f"  Re-registered hooks in {agent} settings (was out of date)")
 
         applied_summary[agent] = {
             "added": {k: [a.name for a in v] for k, v in diff.added.items()},
