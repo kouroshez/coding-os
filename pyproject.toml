@@ -536,6 +536,7 @@ module = [
     "_server_runtime",
     "_agent_markers",
     "_board_bridge",
+    "_formula_signals",
     "_learning_mining",
     "_learning_store",
     "_tools_docs",
