@@ -11,57 +11,10 @@ import { useGraphStore } from '@/store/graph-store';
 import { useThemeStore } from '@/store/theme-store';
 import { kindColor, isRootUid, ROOT_COLOR } from '@/lib/node-colors';
 
-export type LayoutMode = 'force' | 'dagre';
+import type { LayoutMode, UseSigmaOptions, UseSigmaReturn } from './sigma-types';
+import { NOVERLAP_SETTINGS, _fa2Budget } from './sigma-layout';
 
-// Hook that owns a single Sigma instance bound to a container ref.
-// Usage:
-//   const { containerRef, setGraph } = useSigma({ onNodeClick: setSelected });
-//   useEffect(() => setGraph(buildGraph(payload)), [payload]);
-//
-// Layout: ForceAtlas2 runs in a Web Worker (FA2LayoutSupervisor) so the
-// main thread stays free for user interaction (click, pan, zoom) while
-// the layout converges. Wall-clock bounded so we always finish in
-// O(seconds). Noverlap is a fast sync polish pass after the worker stops.
-
-interface UseSigmaOptions {
-  onNodeClick?: (uid: string) => void;
-  onStageClick?: () => void;
-}
-
-interface UseSigmaReturn {
-  containerRef: React.RefObject<HTMLDivElement | null>;
-  setGraph: (
-    graph: Graph<SigmaNodeAttrs, SigmaEdgeAttrs>,
-    options?: { layout?: LayoutMode },
-  ) => void;
-  isLayoutRunning: boolean;
-}
-
-// Wall-clock budget for the FA2 worker. Scales with node count so a
-// small graph converges fast and a big one gets enough cycles, but
-// never blocks the user past ~3 s of waiting for "layout settled".
-// The worker runs off main thread so this never freezes the UI —
-// the budget caps how long the layout keeps adjusting, not how long
-// the user has to wait to interact.
-const FA2_BUDGET_MIN_MS = 800;
-const FA2_BUDGET_MAX_MS = 3000;
-const FA2_BUDGET_PER_NODE_MS = 1.2; // measured empirically on Barnes-Hut
-
-const NOVERLAP_SETTINGS = {
-  maxIterations: 30,
-  ratio: 1.1,
-  // TASK-406: wider margins give the layout more base spacing so the
-  // zoom-adaptive sizing has room to breathe at overview ratios.
-  margin: 10,
-  expansion: 1.08,
-};
-
-function _fa2Budget(nodeCount: number): number {
-  return Math.max(
-    FA2_BUDGET_MIN_MS,
-    Math.min(FA2_BUDGET_MAX_MS, Math.round(nodeCount * FA2_BUDGET_PER_NODE_MS)),
-  );
-}
+export type { LayoutMode };
 
 export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
   const containerRef = useRef<HTMLDivElement>(null);

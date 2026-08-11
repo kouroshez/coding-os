@@ -5,88 +5,14 @@ import { useApiGet } from '@/lib/hooks';
 import { kindColor } from '@/lib/node-colors';
 import { useGraphStore } from '@/store/graph-store';
 
-interface MemoryHit {
-  id?: string | number | null;
-  title?: string;
-  summary?: string;
-  content?: string;
-  memory_type?: string;
-  source_table?: string;
-  confidence?: number;
-  impact_score?: number;
-  semantic_score?: number;
-}
-
-interface MemoryPayload {
-  results?: MemoryHit[];
-  count?: number;
-}
-
-interface DocHit {
-  id?: number;
-  title?: string;
-  heading_path?: string;
-  path?: string;
-  source_path?: string;
-  source_type?: string;
-  snippet?: string;
-  content?: string;
-  score?: number;
-  cosine?: number;
-}
-
-interface DocsPayload {
-  results?: DocHit[];
-  count?: number;
-}
-
-interface TaskHit {
-  task_id?: string;
-  title?: string;
-  goal_text?: string;
-  status?: string;
-  domain?: string;
-  file_path?: string;
-  score?: number;
-}
-
-interface TasksPayload {
-  results?: TaskHit[];
-  count?: number;
-}
-
-interface GraphHit {
-  uid: string;
-  kind?: string;
-  label?: string;
-  file_path?: string;
-  confidence?: number;
-}
-
-interface GraphQueryPayload {
-  results?: GraphHit[];
-}
-
-const RECENT_KEY = 'cos.search.recent';
-const RECENT_LIMIT = 8;
-
-function loadRecent(): string[] {
-  try {
-    const raw = localStorage.getItem(RECENT_KEY);
-    return raw ? (JSON.parse(raw) as string[]).slice(0, RECENT_LIMIT) : [];
-  } catch {
-    return [];
-  }
-}
-function pushRecent(q: string): string[] {
-  const next = [q, ...loadRecent().filter((r) => r !== q)].slice(0, RECENT_LIMIT);
-  try {
-    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-  } catch {
-    // localStorage quota / disabled — non-fatal
-  }
-  return next;
-}
+import type {
+  DocsPayload,
+  GraphQueryPayload,
+  MemoryPayload,
+  TasksPayload,
+} from './search-types';
+import { loadRecent, pushRecent } from './search-recent';
+import { Empty, RowButton, Section, StatusTag, Tag } from './SearchPrimitives';
 
 export default function UnifiedSearch() {
   const initialQ = new URLSearchParams(window.location.search).get('q') ?? '';
@@ -463,91 +389,3 @@ export default function UnifiedSearch() {
   );
 }
 
-function Section({
-  title,
-  count,
-  isLoading,
-  error,
-  children,
-}: {
-  title: string;
-  count: number;
-  isLoading: boolean;
-  error: Error | null;
-  children: React.ReactNode;
-}) {
-  return (
-    <section aria-label={title}>
-      <h2 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[var(--cos-muted)]">
-        <span>{title}</span>
-        <span className="rounded bg-[var(--cos-border)]/40 px-1.5 py-0.5 font-mono text-[10px] text-[var(--cos-text)]">{count}</span>
-        {isLoading && <span className="text-[10px] normal-case text-[var(--cos-muted)]">loading…</span>}
-      </h2>
-      {error && (
-        <p role="alert" className="mb-2 text-xs text-[var(--cos-err)]">
-          {error.message}
-        </p>
-      )}
-      <ul className="space-y-2">{children}</ul>
-    </section>
-  );
-}
-
-function RowButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <li>
-      <button
-        type="button"
-        onClick={onClick}
-        className={[
-          'block w-full rounded-lg border bg-[var(--cos-panel)]/70 p-2.5 text-left text-xs text-[var(--cos-text)] transition-colors',
-          active
-            ? 'border-[var(--cos-accent)] bg-[var(--cos-accent)]/5'
-            : 'border-[var(--cos-border)] hover:border-[var(--cos-accent)]/60 hover:bg-[var(--cos-panel)]',
-        ].join(' ')}
-      >
-        {children}
-      </button>
-    </li>
-  );
-}
-
-function Tag({ children, muted }: { children: React.ReactNode; muted?: boolean }) {
-  return (
-    <span
-      className={[
-        'rounded px-1 py-0.5 text-[10px] uppercase tracking-wide',
-        muted
-          ? 'bg-[var(--cos-border)]/30 text-[var(--cos-muted)]'
-          : 'bg-[var(--cos-accent)]/15 text-[var(--cos-accent)]',
-      ].join(' ')}
-    >
-      {children}
-    </span>
-  );
-}
-
-function StatusTag({ status }: { status: string }) {
-  const palette: Record<string, string> = {
-    open: 'bg-[var(--cos-info-tint)] text-[var(--cos-info)]',
-    wip: 'bg-[var(--cos-warn-tint)] text-[var(--cos-warn)]',
-    in_progress: 'bg-[var(--cos-warn-tint)] text-[var(--cos-warn)]',
-    testing: 'bg-[var(--cos-brand-tint)] text-[var(--cos-brand-text)]',
-    blocked: 'bg-[var(--cos-err-tint)] text-[var(--cos-err)]',
-    done: 'bg-[var(--cos-ok-tint)] text-[var(--cos-ok)]',
-  };
-  const cls = palette[status] ?? 'bg-[var(--cos-border)]/30 text-[var(--cos-muted)]';
-  return <span className={['rounded px-1 py-0.5 text-[10px] uppercase tracking-wide', cls].join(' ')}>{status}</span>;
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="px-2 py-3 text-xs text-[var(--cos-muted)]">{children}.</p>;
-}
