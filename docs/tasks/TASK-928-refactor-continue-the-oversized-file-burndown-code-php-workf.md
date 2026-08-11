@@ -366,3 +366,12 @@ references: []
 - 2026-08-11 [claude]: Edit pyproject.toml
 - 2026-08-11 [claude]: Edit ci-gates.md
 - 2026-08-11 [claude]: commit 29a1eab1fb — fix(ci): spell out the flat-sibling mypy overrides so the dead glob stops hiding errors
+- 2026-08-11 [claude]: Edit split_settings.py
+- 2026-08-11 [claude]: Edit split_settings.py
+- 2026-08-11 [claude]: Edit split_settings.py
+- 2026-08-11 [claude]: commit 1db5d428ce — refactor(hub-ui): split SettingsPage into types, primitives and one module per section
+- 2026-08-11 [claude]: Edit split_dashboard.py
+- 2026-08-11 [claude]: Edit split_dashboard.py
+- 2026-08-11 [claude]: commit c26f5df4a4 — refactor(hub-ui): split DashboardPage into types, format leaf, data hook and widgets
+- 2026-08-11 [claude]: Edit split_hubhome.py
+- 2026-08-11 [claude]: commit 18813f1e91 — refactor(hub-ui): clear the last three files over the backstop
