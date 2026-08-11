@@ -459,3 +459,8 @@ references: []
 - 2026-08-11 [claude]: commit 9af0a9ce80 — refactor(cli): split the core-rule link cascade out of the module commands
 - 2026-08-11 [claude]: Batch thirteen: all 10 targets split under the backstop, one cohesive leaf each, 10 separate commits, nothing pushed.…
 - 2026-08-11 [claude]: commit 07c293f729 — chore(board): record batch thirteen on TASK-928
+- 2026-08-11 [claude]: commit 2aa9f463fc — chore(board): record batch thirteen on TASK-928
+- 2026-08-11 [claude]: Edit env_snapshot.sh
+- 2026-08-11 [claude]: Edit split_cos_env.py
+- 2026-08-11 [claude]: Edit test_hooks.py
+- 2026-08-11 [claude]: commit 017772fde9 — refactor(hooks): split cos-env.sh into path, log, io and state function leaves
