@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-11
-started: null
-completed: null
-agent_session: null
+started: 2026-08-11
+completed: 2026-08-11
+agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-932: Fix _chat_presence_write globals that are never bound at module level
 
 ## Outcome
@@ -43,3 +42,7 @@ Actual: nothing is written. `_chat_presence_write` declares `global _CHAT_PRESEN
 Found during the TASK-928 burndown while moving the function verbatim; deliberately not fixed there so a behaviour change would not ride inside a refactor commit.
 
 ## Work Log
+- 2026-08-11 [claude]: Edit _cognition_chat_sdk.py
+- 2026-08-11 [claude]: Edit test_chat_presence_write.py
+- 2026-08-11 [claude]: commit 08d0b651a2 — fix(presence): restore the chat presence probe globals a module split left behind
+- 2026-08-11 [claude]: Status transitioned to complete via cos task-done.

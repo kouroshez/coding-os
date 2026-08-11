@@ -5,18 +5,17 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [tech-debt, database, ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-10
-started: null
-completed: null
-agent_session: null
+started: 2026-08-11
+completed: 2026-08-11
+agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-926: refactor: split database.py (2917 lines) into paths, the append-only ledger, and a runtime facade
 
 **Outcome (one sentence):** src/core/thinking_os/database.py drops from 2917 to ~450 lines by moving project-root/path resolution into _db_paths.py and the append-only migration ledger into _db_migrations.py, with the public surface (project_root, resolve_db_path, init_db, run_migrations, MIGRATIONS, has_* probes) still importable from database.
@@ -32,3 +31,4 @@ references: []
 **Given** the migration ledger stays over the 500-line backstop **When** ci-gates.md is read **Then** a recorded exception explains why an append-only ledger is not split.
 
 ## Work Log
+- 2026-08-11 [claude]: Status transitioned to complete via cos task-done.

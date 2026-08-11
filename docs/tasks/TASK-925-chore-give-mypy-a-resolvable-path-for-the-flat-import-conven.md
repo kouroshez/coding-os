@@ -5,20 +5,20 @@ swimlane: core
 kind: chore
 epic: null
 labels: [ci, tech-debt, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-10
-started: null
-completed: null
-agent_session: null
+started: 2026-08-11
+completed: 2026-08-11
+agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-925: chore: give mypy a resolvable path for the flat-import convention so import-not-found stops multiplying
 
 **Outcome (one sentence):** mypy resolves the flat sibling imports used inside src/core/thinking_os (from database import …, from tools._shared import …, from _server_runtime import …) so the import-not-found class disappears and the ratchet BASELINE drops well below 4687 instead of rising every time a module is split.
 
 ## Work Log
+- 2026-08-11 [claude]: Status transitioned to complete via cos task-done.

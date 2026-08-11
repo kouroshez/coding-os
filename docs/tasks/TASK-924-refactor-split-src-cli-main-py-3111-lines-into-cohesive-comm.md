@@ -5,18 +5,17 @@ swimlane: cli
 kind: refactor
 epic: null
 labels: [tech-debt, cli, ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-10
-started: null
-completed: null
-agent_session: null
+started: 2026-08-11
+completed: 2026-08-11
+agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-924: refactor: split src/cli/main.py (3111 lines) into cohesive command and scaffold modules
 
 **Outcome (one sentence):** src/cli/main.py drops under the 500-line backstop by moving each independently changeable concern — the scaffold phase engine, the overlay/boundary machinery, the dry-run previews, the interactive world builder, and the standalone commands — into siblings, with the cos CLI surface (every command, flag and help string) unchanged.
@@ -32,3 +31,4 @@ references: []
 **Given** the file-size scanner runs **When** it reports on src/cli **Then** main.py is no longer listed as an error-tier violation.
 
 ## Work Log
+- 2026-08-11 [claude]: Status transitioned to complete via cos task-done.

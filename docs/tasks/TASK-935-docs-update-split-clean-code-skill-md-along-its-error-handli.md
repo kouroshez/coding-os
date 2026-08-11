@@ -5,18 +5,17 @@ swimlane: docs
 kind: refactor
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-11
-started: null
-completed: null
-agent_session: null
+started: 2026-08-11
+completed: 2026-08-11
+agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-935: docs-update: split clean-code SKILL.md along its error-handling seam to cut the always-loaded token tax
 
 ## Outcome
@@ -49,3 +48,14 @@ The seam is cohesion, not line count: the error-handling contract (fail-closed, 
 Do not thin the *rules* while moving the *examples* — the Post-Code Checklist references section numbers, so either keep the numbering or update every cross-reference in the same commit. `src/core/rules/*.md`, `docs/governance/critical-rules.md`, and the stack `skill-enforcement` table all link into this skill.
 
 ## Work Log
+- 2026-08-11 [claude]: Edit error-handling.md
+- 2026-08-11 [claude]: Edit SKILL.md
+- 2026-08-11 [claude]: Edit SKILL.md
+- 2026-08-11 [claude]: Edit SKILL.md
+- 2026-08-11 [claude]: Edit SKILL.md
+- 2026-08-11 [claude]: Edit file-design.md
+- 2026-08-11 [claude]: Edit SKILL.md
+- 2026-08-11 [claude]: Edit SKILL.md
+- 2026-08-11 [claude]: Edit SKILL.md
+- 2026-08-11 [claude]: commit dc6ac4e263 — refactor(clean-code): move the error-handling and split-mechanics depth into references
+- 2026-08-11 [claude]: Status transitioned to complete via cos task-done.
