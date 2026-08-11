@@ -318,3 +318,38 @@ references: []
 - 2026-08-11 [claude]: commit 6f7a65a349 — chore(board): record batch eight on TASK-928
 - 2026-08-11 [claude]: commit b370e77aa1 — chore(board): record the batch-eight commits on TASK-928
 - 2026-08-11 [claude]: Edit mypy_ratchet.py
+- 2026-08-11 [claude]: Edit _reindex_routing.py
+- 2026-08-11 [claude]: Edit _reindex_state.py
+- 2026-08-11 [claude]: Edit _reindex_layers.py
+- 2026-08-11 [claude]: Edit pyproject.toml
+- 2026-08-11 [claude]: Edit diff_reindex.py
+- 2026-08-11 [claude]: Edit _cognition_dispatch.py
+- 2026-08-11 [claude]: Edit pyproject.toml
+- 2026-08-11 [claude]: Edit diff_reindex.py
+- 2026-08-11 [claude]: commit 349d21b42a — refactor(graph_os): split the reindex dispatcher into routing, state and layer modules
+- 2026-08-11 [claude]: Edit diff_cognition.py
+- 2026-08-11 [claude]: commit cbf7fd4c47 — refactor(thinking_os): split formula dispatch into request building and persistence
+- 2026-08-11 [claude]: commit 421e0ae5fe — refactor(graph_os): move the doctor's orphan classifier to a leaf module
+- 2026-08-11 [claude]: Edit diff_doctor.py
+- 2026-08-11 [claude]: Edit _doctor_edges.py
+- 2026-08-11 [claude]: Edit _doctor_orphans.py
+- 2026-08-11 [claude]: Edit _doctor_orphans.py
+- 2026-08-11 [claude]: Edit _doctor_paths.py
+- 2026-08-11 [claude]: Edit _graph_doctor.py
+- 2026-08-11 [claude]: Edit test_centrality_ranking_doctor.py
+- 2026-08-11 [claude]: commit 5712ad4aa6 — refactor(graph_os): decompose cos_graph_doctor into edge, orphan and path checks
+- 2026-08-11 [claude]: Edit diff_analysis.py
+- 2026-08-11 [claude]: commit 7dde54a8a6 — refactor(graph_os): split change analysis into impact, rename and contract modules
+- 2026-08-11 [claude]: Edit split_config.py
+- 2026-08-11 [claude]: Edit fix_config.py
+- 2026-08-11 [claude]: Edit _config_shared.py
+- 2026-08-11 [claude]: Edit diff_config_routes.py
+- 2026-08-11 [claude]: Edit config.py
+- 2026-08-11 [claude]: commit a283be807d — refactor(web): split the config routes into shared, read and mutation modules
+- 2026-08-11 [claude]: Edit split_stack_registry.py
+- 2026-08-11 [claude]: Edit fix_stack_registry.py
+- 2026-08-11 [claude]: Edit cli_surface.py
+- 2026-08-11 [claude]: Edit diff_stack_registry.py
+- 2026-08-11 [claude]: Edit stack_registry.py
+- 2026-08-11 [claude]: Edit test_centrality_ranking_doctor.py
+- 2026-08-11 [claude]: commit 7cac4f206e — test(graph_os): keep the doctor test file inside its size ratchet
