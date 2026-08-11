@@ -225,3 +225,32 @@ references: []
 - 2026-08-11 [claude]: Edit ci-gates.md
 - 2026-08-11 [claude]: Edit SKILL.md
 - 2026-08-11 [claude]: commit 1b1f50808b — feat(scripts): add a split-parity guard that proves a module move edited nothing
+- 2026-08-11 [claude]: Edit _board_shared.py
+- 2026-08-11 [claude]: Edit _board_presence.py
+- 2026-08-11 [claude]: Edit _board_autospawn.py
+- 2026-08-11 [claude]: Edit _board_git.py
+- 2026-08-11 [claude]: Edit _board_tasks.py
+- 2026-08-11 [claude]: Edit _board_views.py
+- 2026-08-11 [claude]: Edit board.py
+- 2026-08-11 [claude]: Edit board.py
+- 2026-08-11 [claude]: Edit board.py
+- 2026-08-11 [claude]: Edit board.py
+- 2026-08-11 [claude]: Edit board.py
+- 2026-08-11 [claude]: Edit board.py
+- 2026-08-11 [claude]: Edit test_hub_settings_auto_spawn.py
+- 2026-08-11 [claude]: Edit test_file_size_budget.py
+- 2026-08-11 [claude]: Edit _board_presence.py
+- 2026-08-11 [claude]: Edit ci-gates.md
+- 2026-08-11 [claude]: commit 11721b0e89 — refactor(web): split board routes into shared, presence, autospawn, git and view modules
+- 2026-08-11 [claude]: Edit _learning_generalize.py
+- 2026-08-11 [claude]: Edit _learning_extract.py
+- 2026-08-11 [claude]: Edit _learning_suggest.py
+- 2026-08-11 [claude]: Edit _learning_validate.py
+- 2026-08-11 [claude]: Edit learning.py
+- 2026-08-11 [claude]: Edit ci-gates.md
+- 2026-08-11 [claude]: commit 789c734b41 — refactor(thinking_os): split learning into extract, suggest, validate and generalize modules
+- 2026-08-11 [claude]: Edit ci-gates.md
+- 2026-08-11 [claude]: commit 934695334d — refactor(graph_os): split the sqlite backend into a connection base and three mixins
+- 2026-08-11 [claude]: Edit _mcp_stranded.py
+- 2026-08-11 [claude]: Edit ci-gates.md
+- 2026-08-11 [claude]: commit 54d08b0ada — refactor(board_os): split reclaim into stranded, pick, report and work-log modules
