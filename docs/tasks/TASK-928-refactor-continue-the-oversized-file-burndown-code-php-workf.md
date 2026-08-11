@@ -431,3 +431,30 @@ references: []
 - 2026-08-11 [claude]: commit 573546b76f — style(lint): sort the routing facade re-exports and drop trailing newlines in the doctor leaves
 - 2026-08-11 [claude]: Batch twelve: split all 7 targets under the backstop (7 commits + 2 hygiene). _init_helpers 607->45,…
 - 2026-08-11 [claude]: commit 3378a77923 — chore(board): record batch twelve on TASK-928
+- 2026-08-11 [claude]: commit 7723db843a — chore(board): record batch twelve verification on TASK-928
+- 2026-08-11 [claude]: Edit _formula_signals.py
+- 2026-08-11 [claude]: Edit formula_composer.py
+- 2026-08-11 [claude]: Edit _graph_export.py
+- 2026-08-11 [claude]: Edit transition_gates_validator.py
+- 2026-08-11 [claude]: commit c4234fb191 — refactor(thinking_os): split the prompt keyword heuristics out of the formula composer
+- 2026-08-11 [claude]: Edit transition_gates_validator.py
+- 2026-08-11 [claude]: Edit transition_gates_validator.py
+- 2026-08-11 [claude]: commit f8112e0ec4 — refactor(board_os): split the override audit and result types out of the gate validator
+- 2026-08-11 [claude]: commit 0d366dce40 — refactor(graph_os): split the community processes view out of the export tool
+- 2026-08-11 [claude]: Edit stream.py
+- 2026-08-11 [claude]: Edit enum_routes.py
+- 2026-08-11 [claude]: Edit sse_probe.py
+- 2026-08-11 [claude]: commit 34d7fdefd1 — refactor(cli): split the doctor check-orchestration sequence into a leaf
+- 2026-08-11 [claude]: Edit sse_probe.py
+- 2026-08-11 [claude]: Edit sse_probe.py
+- 2026-08-11 [claude]: commit d4131700ec — refactor(web): split the presence and activity snapshots out of the SSE stream route
+- 2026-08-11 [claude]: Edit shell_diff.py
+- 2026-08-11 [claude]: Edit code_shell.py
+- 2026-08-11 [claude]: Edit cognition_schemas.py
+- 2026-08-11 [claude]: Edit class_parity.py
+- 2026-08-11 [claude]: commit 7681d00dac — refactor(graph_os): split uid derivation and node emission out of the shell extractor
+- 2026-08-11 [claude]: Edit cognition.py
+- 2026-08-11 [claude]: Edit count_commands.py
+- 2026-08-11 [claude]: commit 0ef8ce41b9 — refactor(thinking_os): split the cognitive artifact value types out of the schemas module
+- 2026-08-11 [claude]: commit 9af0a9ce80 — refactor(cli): split the core-rule link cascade out of the module commands
+- 2026-08-11 [claude]: Batch thirteen: all 10 targets split under the backstop, one cohesive leaf each, 10 separate commits, nothing pushed.…
