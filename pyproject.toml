@@ -589,9 +589,19 @@ module = [
     # runtime (src/core is on sys.path) but not from the repo root. Splitting
     # workflow.py multiplied the one pre-existing error by each new sibling.
     "board_os.config",
+    "board_os.parser",
+    "board_os.presence",
+    "board_os.sync",
     "board_os.transition_gates",
     "board_os.transition_gates_validator",
     "board_os.transition_gates_cli",
+    "board_os.verify_suites",
+    "board_os.workflow",
+    "thinking_os.database",
+    "thinking_os.gate_marker",
+    "thinking_os.record_outcome",
+    "thinking_os.tools._shared",
+    "thinking_os.tools.learning",
 ]
 ignore_missing_imports = true
 
