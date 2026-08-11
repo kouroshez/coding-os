@@ -408,3 +408,21 @@ references: []
 - 2026-08-11 [claude]: Edit doctor_graph.py
 - 2026-08-11 [claude]: commit 810b7630eb — refactor(cli): split the graph doctor checks into pipeline, storage and embedding leaves
 - 2026-08-11 [claude]: Batch eleven: split cognition_chat (674->414), routing (658->251), renderer (620->168), _mcp_shared (619->323),…
+- 2026-08-11 [claude]: commit 36c1c468db — chore(board): record batch eleven and file TASK-932 for the presence globals
+- 2026-08-11 [claude]: Edit baseline.py
+- 2026-08-11 [claude]: Edit tools_baseline.py
+- 2026-08-11 [claude]: Edit tools_baseline.py
+- 2026-08-11 [claude]: Edit _init_target.py
+- 2026-08-11 [claude]: Edit _init_git.py
+- 2026-08-11 [claude]: Edit _init_materialize.py
+- 2026-08-11 [claude]: Edit _init_helpers.py
+- 2026-08-11 [claude]: Edit scaffold_probe.sh
+- 2026-08-11 [claude]: Edit scaffold_probe.sh
+- 2026-08-11 [claude]: commit 39f81d7ee1 — refactor(cli): split init target resolution, git bootstrap and materializers into leaves
+- 2026-08-11 [claude]: Edit doctor_checks_runtime.py
+- 2026-08-11 [claude]: Edit pyproject.toml
+- 2026-08-11 [claude]: commit 5a8f65fa9f — refactor(cli): split the runtime doctor checks into cognition, hooks, presence and schedule
+- 2026-08-11 [claude]: Edit board_probe.py
+- 2026-08-11 [claude]: Edit pyproject.toml
+- 2026-08-11 [claude]: commit 1b5818b285 — refactor(board_os): split the ready label and reposition tools out of the lifecycle module
+- 2026-08-11 [claude]: commit e0d5fefc72 — refactor(board_os): split the git commit sources and the edit tool out of task history
