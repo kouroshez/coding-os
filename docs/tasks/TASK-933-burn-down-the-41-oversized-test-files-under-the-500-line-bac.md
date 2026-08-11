@@ -9,14 +9,13 @@ status: icebox
 priority: P2
 appetite: 1d
 created: 2026-08-11
-started: null
+started: 2026-08-11
 completed: null
-agent_session: null
+agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-933: Burn down the 41 oversized test files under the 500-line backstop
 
 ## Outcome
