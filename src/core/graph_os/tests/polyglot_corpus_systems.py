@@ -6,12 +6,11 @@ and precision against. Data, not logic: each language entry changes alone.
 
 from __future__ import annotations
 
-from graph_os.tests.polyglot_scenario import Scenario
-
 from graph_os.extractors import (
     code_generic,
     code_go,
 )
+from graph_os.tests.polyglot_scenario import Scenario
 
 CORPUS: dict[str, tuple[object, list[Scenario]]] = {
     "rust": (

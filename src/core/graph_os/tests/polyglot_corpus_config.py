@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from graph_os.tests.polyglot_scenario import Scenario
-
 from graph_os.extractors import (
     code_json,
     code_toml,
     code_yaml,
 )
+from graph_os.tests.polyglot_scenario import Scenario
 
 CONFIG_CORPUS: dict[str, tuple[object, list[Scenario]]] = {
     "yaml": (

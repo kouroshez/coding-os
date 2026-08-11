@@ -36,14 +36,13 @@ import pytest
 
 pytest.importorskip("tree_sitter")
 
+from graph_os.extractors import (
+    code_generic,
+)
 from graph_os.tests.polyglot_corpus_config import CONFIG_CORPUS
 from graph_os.tests.polyglot_corpus_scripting import CORPUS as _SCRIPTING_CORPUS
 from graph_os.tests.polyglot_corpus_systems import CORPUS as _SYSTEMS_CORPUS
 from graph_os.tests.polyglot_scenario import Scenario
-
-from graph_os.extractors import (
-    code_generic,
-)
 
 CORPUS: dict[str, tuple[object, list[Scenario]]] = {
     **_SYSTEMS_CORPUS,
