@@ -4,6 +4,10 @@ Split from cognition.py because chat changes with the Claude SDK surface (block
 shapes, session options, streaming) while traces and cost change with the
 dispatcher's own telemetry. Both attach to the same router, so the URL surface
 is byte-identical to before the split.
+
+The SDK/adapter seam, the system prompts, and the transcript lookups moved to
+leaf siblings; every name they own is re-exported below, so the helpers a test
+patches on this module are still the ones these routes call.
 """
 
 from __future__ import annotations
@@ -11,7 +15,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import sqlite3
 import sys
 from pathlib import Path
 
@@ -22,6 +25,26 @@ from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import unwrap
 from . import cognition as _cog
 from ._cognition_base import router
+from ._cognition_chat_lookup import (
+    _dispatch_transcript_chat as _dispatch_transcript_chat,
+    _session_agent_hints as _session_agent_hints,
+)
+from ._cognition_chat_prompts import (
+    _CHAT_SYSTEM as _CHAT_SYSTEM,
+    _chat_system_prompt as _chat_system_prompt,
+    _prime_with_project_description as _prime_with_project_description,
+    _role_names as _role_names,
+    _role_system_prompt as _role_system_prompt,
+)
+from ._cognition_chat_sdk import (
+    _adapter_dispatcher as _adapter_dispatcher,
+    _build_agent_options as _build_agent_options,
+    _chat_presence_write as _chat_presence_write,
+    _chat_session_options as _chat_session_options,
+    _claude_sdk as _claude_sdk,
+    _project_cwd as _project_cwd,
+    _session_options_builder as _session_options_builder,
+)
 from ._cognition_serialize import (  # noqa: F401 — re-exported for the facade
     _coerce_block,
     _safe_serialize,
@@ -32,152 +55,9 @@ from ._cognition_serialize import (  # noqa: F401 — re-exported for the facade
 
 logger = logging.getLogger(__name__)
 
-# Lazy adapter-dispatcher probe state (moved with _adapter_dispatcher).
-_ADAPTER_DISPATCHER_MOD = None
-_ADAPTER_DISPATCHER_TRIED = False
-
 _CORE_DIR = Path(__file__).resolve().parents[3]
 if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
-
-
-def _claude_sdk():
-    """Lazy import the Claude Agent SDK; return None when missing."""
-    try:
-        import claude_agent_sdk  # type: ignore
-
-        return claude_agent_sdk
-    except ImportError as exc:
-        logger.debug("claude_agent_sdk unavailable: %s", exc)
-        return None
-
-
-def _project_cwd() -> str:
-    from web._project_context import current_project_root
-
-    return str(current_project_root())
-
-
-def _adapter_dispatcher():
-    """Load src/adapters/claude/sdk_dispatcher.py once — the adapter SDK-construction
-    seam (P8: every ClaudeAgentOptions build crosses this boundary into the adapter)."""
-    global _ADAPTER_DISPATCHER_MOD, _ADAPTER_DISPATCHER_TRIED
-    if _ADAPTER_DISPATCHER_TRIED:
-        return _ADAPTER_DISPATCHER_MOD
-    _ADAPTER_DISPATCHER_TRIED = True
-    try:
-        import importlib.util
-        from pathlib import Path
-
-        path = Path(__file__).resolve().parents[3] / "adapters" / "claude" / "sdk_dispatcher.py"
-        spec = importlib.util.spec_from_file_location("cos_adapter_claude_dispatcher", path)
-        if spec and spec.loader:
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-            _ADAPTER_DISPATCHER_MOD = mod
-    except Exception as exc:
-        logger.debug("adapter dispatcher load failed: %s", exc)
-    return _ADAPTER_DISPATCHER_MOD
-
-
-def _session_options_builder():
-    """The adapter's profile-based session-options builder (SSOT), or None."""
-    mod = _adapter_dispatcher()
-    return getattr(mod, "claude_session_options", None) if mod else None
-
-
-def _build_agent_options(**kwargs):
-    """Construct ClaudeAgentOptions via the adapter seam — P8: core never builds the
-    SDK type itself. Raises if the adapter dispatcher cannot be loaded."""
-    mod = _adapter_dispatcher()
-    builder = getattr(mod, "claude_agent_options", None) if mod else None
-    if builder is None:
-        raise RuntimeError("claude adapter ClaudeAgentOptions seam unavailable")
-    return builder(**kwargs)
-
-
-def _chat_session_options(
-    profile, *, cwd, model, system_prompt, effort=None, resume=None, fork=False
-):
-    """Build chat ClaudeAgentOptions via the adapter SSOT builder; on builder error
-    fall back to the chat-light kwargs, still constructed through the adapter seam."""
-    build = _session_options_builder()
-    if build is not None:
-        try:
-            return build(
-                profile,
-                cwd=cwd,
-                model=model,
-                system_prompt=system_prompt,
-                effort=effort,
-                resume=resume,
-                fork=fork,
-            )
-        except Exception as exc:
-            logger.debug("session-options builder call failed (%s); generic seam fallback", exc)
-    kwargs = {
-        "cwd": cwd,
-        "model": model,
-        "permission_mode": "dontAsk",
-        "setting_sources": [],
-        "include_partial_messages": True,
-        "system_prompt": system_prompt,
-    }
-    if effort:
-        kwargs["effort"] = effort
-    if profile == "chat_resume":
-        if resume:
-            kwargs["resume"] = resume
-        kwargs["fork_session"] = fork
-    return _build_agent_options(**kwargs)
-
-
-def _chat_presence_write(cwd: str, sid: str, event: str) -> None:
-    """Fire-and-forget Hub-chat presence so the chat shows in the Live-agents HUD (P13)."""
-    # Reuse the adapter's unified 12-key writer and stamp the long-lived host
-    # pid, so the board's glob reader sees the live chat session (the chat path
-    # fires no shell hooks, so nothing else writes its presence).
-    global _CHAT_PRESENCE_WRITER, _CHAT_PRESENCE_TRIED
-    try:
-        if not _CHAT_PRESENCE_TRIED:
-            _CHAT_PRESENCE_TRIED = True
-            import importlib.util
-            from pathlib import Path as _Path
-
-            path = (
-                _Path(__file__).resolve().parents[3] / "adapters" / "claude" / "sdk_dispatcher.py"
-            )
-            spec = importlib.util.spec_from_file_location("cos_adapter_claude_presence", path)
-            if spec and spec.loader:
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)
-                _CHAT_PRESENCE_WRITER = getattr(mod, "_presence_write", None)
-        if _CHAT_PRESENCE_WRITER is not None:
-            import os
-            from pathlib import Path as _Path
-
-            _CHAT_PRESENCE_WRITER(_Path(cwd), "claude", sid, event, pid=os.getpid())
-    except Exception as exc:
-        logger.debug("chat presence write skipped (%s): %s", event, exc)
-
-
-def _session_agent_hints(session_id: str) -> set[str]:
-    hints: set[str] = set()
-    state = _cog._state_dir()
-    if not state.is_dir():
-        return hints
-    for agent_dir in state.iterdir():
-        sessions_dir = agent_dir / "sessions"
-        if not sessions_dir.is_dir():
-            continue
-        for path in sessions_dir.glob("*.json"):
-            try:
-                payload = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                continue
-            if payload.get("sdk_uuid") == session_id:
-                hints.add(str(payload.get("agent") or agent_dir.name))
-    return hints
 
 
 @router.get("/chats")
@@ -222,68 +102,6 @@ async def list_chats(
             }
         )
     )
-
-
-def _dispatch_transcript_chat(session_id: str) -> dict | None:
-    # Fall back to a dispatched sub-session's persisted transcript when the live
-    # Claude SDK session no longer exists on disk — resolves the dead sdk_uuid
-    # modal link (TASK-667). Keyed on formula_dispatches.sub_session_id (= the
-    # SDK session_id the UI links from). Read-only, fail-open.
-    db_path = _cog._db_path()
-    if not db_path:
-        return None
-    try:
-        with sqlite3.connect(db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            row = conn.execute(
-                "SELECT formula_id, status, model, raw_transcript "
-                "FROM formula_dispatches "
-                "WHERE sub_session_id = ? AND raw_transcript IS NOT NULL "
-                "ORDER BY ts DESC LIMIT 1",
-                (session_id,),
-            ).fetchone()
-    except sqlite3.Error as exc:
-        logger.debug("dispatch transcript fallback query failed: %s", exc)
-        return None
-    if row is None or not row["raw_transcript"]:
-        return None
-    return {
-        "session": {
-            "session_id": session_id,
-            "source": "dispatch_transcript",
-            "formula_id": row["formula_id"],
-            "model": row["model"],
-            "status": row["status"],
-            # Mirror the fields ChatView reads (custom_title ?? summary ?? id;
-            # git_branch/cwd/last_modified in the header) so the fallback renders
-            # a real title instead of the raw session id, and reads no undefined.
-            "custom_title": f"dispatch: {row['formula_id']} ({row['status']})",
-            "summary": None,
-            "first_prompt": None,
-            "last_modified": None,
-            "file_size": None,
-            "git_branch": None,
-            "cwd": None,
-            "tag": None,
-            "created_at": None,
-        },
-        "messages": [
-            {
-                "uuid": None,
-                "session_id": session_id,
-                "type": "assistant",
-                "role": "assistant",
-                "model": row["model"],
-                "stop_reason": None,
-                "usage": None,
-                "blocks": [{"type": "text", "text": row["raw_transcript"]}],
-                "parent_tool_use_id": None,
-            }
-        ],
-        "count": 1,
-        "offset": 0,
-        "meta": {"layer": "cognition", "source": "formula_dispatches"},
-    }
 
 
 @router.get("/chat/{session_id}")
@@ -360,39 +178,6 @@ async def get_chat(
 
 # field — they're disambiguated by Python class.  The frontend renders
 # blocks by `b.type === 'text' | 'thinking' | 'tool_use' | …`, so
-
-
-def _role_system_prompt(role: str | None):
-    """Load a role's agent prompt as a claude_code system-prompt append, if valid."""
-    import re as _re
-
-    if not role or not _re.match(r"^[a-z_]+$", role):
-        return None
-    agent_md = Path(__file__).resolve().parents[2] / "thinking_os" / "agents" / f"{role}.md"
-    try:
-        if agent_md.exists():
-            return {
-                "type": "preset",
-                "preset": "claude_code",
-                "append": agent_md.read_text(encoding="utf-8"),
-            }
-    except OSError:
-        pass
-    return None
-
-
-def _role_names(agents_dir: Path) -> list[str]:
-    import re as _re
-
-    try:
-        return sorted(
-            p.stem
-            for p in agents_dir.glob("*.md")
-            if _re.match(r"^[a-z_]+$", p.stem) and not p.stem.startswith("_")
-        )
-    except OSError as exc:
-        logger.debug("roles scan skipped %s: %s", agents_dir, exc)
-        return []
 
 
 @router.get("/roles")
@@ -538,51 +323,6 @@ async def chat_new(
             "Connection": "keep-alive",
         },
     )
-
-
-_CHAT_SYSTEM = (
-    "You are the coding-os Hub chat assistant — a direct, helpful conversational "
-    "agent for this project. Answer the user's message conversationally in Markdown. "
-    "Do NOT prepend the transparency banner (the line starting with the bell emoji) "
-    "and skip any cognitive-state / gate / work-log ceremony — that protocol is for "
-    "terminal sessions, not Hub chat; just answer. You MAY use the cos_* tools "
-    "(memory, graph, docs, board) to ground an answer when it genuinely helps, but "
-    "keep replies focused and readable rather than running a full work protocol. "
-    "When you commit code for a specific task, include its id like `(TASK-NNN)` in "
-    "the commit subject so the board links the commit to that task."
-)
-
-
-def _prime_with_project_description(system_prompt: dict, cwd: str) -> dict:
-    """Append the onboarding intake (docs/_meta/project-description.md) to the
-    chat system prompt so the first session knows what the project IS (TASK-364).
-    Fail-open: missing/unreadable intake leaves the prompt untouched."""
-    try:
-        intake = Path(cwd) / "docs" / "_meta" / "project-description.md"
-        if not intake.is_file():
-            return system_prompt
-        text = intake.read_text(encoding="utf-8").strip()[:2000]
-        if not text or not isinstance(system_prompt, dict) or "append" not in system_prompt:
-            return system_prompt
-        return {
-            **system_prompt,
-            "append": system_prompt["append"]
-            + "\n\n## Project context (onboarding intake)\n"
-            + text,
-        }
-    except OSError:
-        return system_prompt
-
-
-def _chat_system_prompt(model: str | None) -> dict:
-    """claude_code preset + the chat framing, pinning the model name when known."""
-    append = _CHAT_SYSTEM
-    if model:
-        append = (
-            f"{_CHAT_SYSTEM}\n\nYou are answering as the `{model}` model. If the user "
-            f"asks which model you are, tell them exactly `{model}`."
-        )
-    return {"type": "preset", "preset": "claude_code", "append": append}
 
 
 @router.post("/chat/{session_id}/send")
