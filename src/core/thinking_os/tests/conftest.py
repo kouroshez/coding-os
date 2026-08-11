@@ -12,8 +12,12 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    import sqlite3
 
 _THINKING_OS_DIR = Path(__file__).resolve().parent.parent
 
@@ -108,3 +112,31 @@ def _stub_embedding_models(request: pytest.FixtureRequest):
     yield
     for name in names:
         embeddings._override_model(name, None)
+
+
+@pytest.fixture
+def seeded_conn(tmp_path: Path) -> sqlite3.Connection:
+    """A fully seeded corpus DB, shared by the seed-simulation suites.
+
+    Lives here rather than in tests/seed_corpus.py because importing a fixture
+    by name makes every test method that takes it read as an F811 redefinition.
+    Suites with their own narrower seeded_conn shadow this one, as pytest
+    resolves module-local fixtures first.
+    """
+    import random
+
+    from database import init_db
+    from tests.seed_corpus import (
+        seed_agent_metrics,
+        seed_observations,
+        seed_sessions,
+        seed_task_outcomes,
+    )
+
+    random.seed(42)  # reproducible
+    conn = init_db(tmp_path / "test-seed.db")
+    seed_task_outcomes(conn, 200)
+    seed_observations(conn, 500)
+    seed_agent_metrics(conn, 100)
+    seed_sessions(conn, 30)
+    return conn
