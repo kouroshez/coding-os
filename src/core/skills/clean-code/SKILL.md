@@ -358,7 +358,7 @@ return Response(status=HTTPStatus.UNPROCESSABLE_ENTITY)   # not 422
 
 A magic number hides a literal's **meaning**; a hardcoded environment value hides its **deployment**. It works on the machine that wrote it and silently breaks everywhere else — and the test proves nothing, because the test runs on that same machine. Critical Rules 1 (`.claude/` in `src/core/`) and 11 (stack literals in the CLI) are two specific instances of this one mistake.
 
-Never inline: absolute filesystem paths (`/Users/…`, `/home/…`, `C:\`), hostnames and ports (`localhost`, `127.0.0.1:9188`), service URLs, credentials/tokens/keys of any kind, provider or model identifiers (`claude-opus-4-8`), a person's username or email, or an agent-runtime directory (`.claude/`, `.codex/`).
+Never inline: absolute filesystem paths (`/Users/…`, `/home/…`, `C:\`), hostnames and ports (`localhost`, `127.0.0.1:9188`), service URLs, credentials/tokens/keys of any kind, provider or model identifiers (any vendor's catalog string), a person's username or email, or an agent-runtime directory (`.claude/`, `.codex/`).
 
 Resolve them in this order: **(1)** a value the project's own config/registry already owns · **(2)** an environment variable with a documented default · **(3)** a named module-level constant, only when the value is genuinely invariant across every machine and account.
 
@@ -370,7 +370,7 @@ hub_url = f"http://{settings.hub_host}:{settings.hub_port}"
 # BAD — right on exactly one laptop
 state_dir = Path("/Users/ciro/Files/Project/coding-os/.coding-os")
 hub_url = "http://127.0.0.1:9188"
-default_model = "claude-opus-4-8"        # a provider's catalog is not your constant
+default_model = "<vendor>-<model>-<version>"   # a provider's catalog is not your constant
 ```
 
 The check before committing any literal: **would this line still be correct on another machine, another OS, another adapter, another account?** If not, it is configuration wearing a literal's clothes.

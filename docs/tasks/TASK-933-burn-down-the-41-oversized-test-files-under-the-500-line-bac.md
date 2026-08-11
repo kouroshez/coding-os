@@ -76,3 +76,6 @@ Several of these files are also pinned in the `BASELINE` of `tests/test_file_siz
 - 2026-08-11 [claude]: commit 46c7d4707b — test(hooks): split the last seven oversized suites in tests/
 - 2026-08-11 [claude]: Edit test_file_size_budget.py
 - 2026-08-11 [claude]: Edit SKILL.md
+- 2026-08-11 [claude]: commit 759362d825 — style(tests): sort the imports the corpus-module qualification unsorted
+- 2026-08-11 [claude]: Edit SKILL.md
+- 2026-08-11 [claude]: Edit SKILL.md
