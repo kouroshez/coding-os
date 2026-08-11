@@ -495,6 +495,14 @@ exclude = [
 
 [[tool.mypy.overrides]]
 # Strict only on the kernel subsystems we own end-to-end.
+#
+# The `core.` prefix is the module name mypy actually derives for these files:
+# src/ has no __init__.py and src/core/ does, so the walk-up base is src/ and
+# src/core/thinking_os/tools/memory.py is `core.thinking_os.tools.memory`. The
+# bare `thinking_os.tools.*` spelling bound only to whatever a test happened to
+# import, so the strict promise did not reach the source it names — mypy's own
+# `warn_unused_configs` note is what surfaced it. Both spellings are kept: the
+# `core.` one covers the crawl, the bare one covers import-resolved copies.
 module = [
     "thinking_os.tools.*",
     "graph_os.backends.*",
@@ -504,6 +512,14 @@ module = [
     "board_os._workflow_deps",
     "board_os._workflow_frontmatter",
     "board_os._workflow_gates",
+    "core.thinking_os.tools.*",
+    "core.graph_os.backends.*",
+    "core.board_os.workflow",
+    "core.board_os._workflow_types",
+    "core.board_os._workflow_wip",
+    "core.board_os._workflow_deps",
+    "core.board_os._workflow_frontmatter",
+    "core.board_os._workflow_gates",
 ]
 strict = true
 
@@ -592,29 +608,23 @@ module = [
     "tool_failure_capture",
     "tracing",
     "trajectory_autosnap",
-    # Same class, board_os flavour: `from board_os.config import …` resolves at
-    # runtime (src/core is on sys.path) but not from the repo root. Splitting
-    # workflow.py multiplied the one pre-existing error by each new sibling.
-    "board_os._gates_override",
-    "board_os._gates_result",
-    "board_os.config",
-    "board_os.parser",
-    "board_os.presence",
-    "board_os.sync",
-    "board_os.transition_gates",
-    "board_os.transition_gates_validator",
-    "board_os.transition_gates_cli",
-    "board_os.verify_suites",
-    "board_os.workflow",
-    "thinking_os._supervision_policy",
-    "thinking_os.adapter_registry",
-    "thinking_os.database",
-    "thinking_os.gate_marker",
-    "thinking_os.project_settings",
-    "thinking_os.record_outcome",
-    "thinking_os.sanitizer",
-    "thinking_os.tools._shared",
-    "thinking_os.tools.learning",
+    # Same class, package-qualified flavour: `from board_os.config import …`
+    # resolves at runtime (src/core is on sys.path) but not from the repo root,
+    # where the same file is named `core.board_os.config`. These were enumerated
+    # one name at a time, so every module split added another line — the growth
+    # this list exists to stop. A component wildcard covers the whole package
+    # and never needs editing again. Bare names are listed alongside because
+    # `pkg.*` does not match `pkg` itself.
+    #
+    # NOT covered by a wildcard, deliberately: `anthropic` (a src/core import of
+    # an adapter SDK is a P8 violation, and this error is the only thing that
+    # reports it) and `tomllib` (genuinely absent on the 3.10 target).
+    "board_os",
+    "board_os.*",
+    "graph_os",
+    "graph_os.*",
+    "thinking_os",
+    "thinking_os.*",
 ]
 ignore_missing_imports = true
 

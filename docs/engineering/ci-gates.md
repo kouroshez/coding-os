@@ -98,6 +98,30 @@ zero on that same run — the tier that would have caught a real one.
 volume gate measures kernel source; `FATAL_SCOPE` is unchanged, so a genuine
 `return` / `call-arg` / `used-before-def` bug in a test still fails the build.
 
+### Why `import-not-found` cannot reach zero (TASK-925)
+
+The kernel is imported under two conventions that both work at runtime because
+`src/` and `src/core/` are both on `sys.path`: `from thinking_os.tools import …`
+(220 files) and `from core.thinking_os.tools import …` (172 sites, kept alive by
+an explicit `packages` entry in `pyproject.toml`). mypy can only give a file one
+module name, and `src/core/__init__.py` forces it to be the `core.`-prefixed
+one — so the other spelling is unresolvable by construction. Pointing
+`MYPYPATH` at `src/core` does not help; it makes every kernel file resolve twice
+and mypy stops with `Source file found twice under different module names`.
+
+Two consequences worth knowing before touching this:
+
+- The `strict = true` overrides are spelled **twice**, once per convention. The
+  bare spelling alone bound to nothing in the crawl, so the strict promise did
+  not reach the source it named. Binding it cost zero new errors.
+- The unresolvable names are silenced per-package (`board_os.*`, `graph_os.*`,
+  `thinking_os.*`) rather than one module at a time, so a module split no longer
+  adds a line. The remaining flat spellings (`from database import …`) stay
+  enumerated: mypy's `*` matches a whole dotted component, never a bare prefix.
+
+Collapsing to one convention would delete the whole class, but it is a ~400-site
+import migration plus a packaging change — not a config fix.
+
 ## Ratchet protocol (applies to every "may only shrink" baseline)
 
 1. Fix the underlying finding (refactor below threshold, type the module, split the file).
