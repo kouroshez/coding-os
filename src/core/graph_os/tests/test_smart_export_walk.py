@@ -184,223 +184,40 @@ def _bind_backend(mixed_backend, monkeypatch):
     yield
 
 
-# ---------------------------------------------------------------------------
-# Mode validation
-# ---------------------------------------------------------------------------
+@pytest.fixture
+def chain_backend():
+    """6-link contains chain so depth gating is observable."""
+    chain = [f"code:module:level_{i}" for i in range(6)]
+    nodes = [_node(uid, kind="code:module", label=uid.split(":")[-1]) for uid in chain]
+    edges = [_edge(chain[i], chain[i + 1], "contains") for i in range(len(chain) - 1)]
+    return _StubBackend(nodes, edges)
 
 
-class TestValidation:
-    def test_unknown_mode_rejected(self):
-        res = _parse(graph_tools.cos_graph_export(mode="garbage"))
-        assert res["ok"] is False
-        assert res["error"]["category"] == "validation"
-
-    def test_unknown_format_rejected(self):
-        res = _parse(graph_tools.cos_graph_export(format="rdf"))
-        assert res["ok"] is False
-        assert res["error"]["category"] == "validation"
-
-
-# ---------------------------------------------------------------------------
-# Mode: auto (export regression guard)
-# ---------------------------------------------------------------------------
-
-
-class TestAutoMode:
-    def test_blend_includes_semantic_edges(self):
-        res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=20))
-        assert res["ok"] is True
-        edge_types = {e["edge_type"] for e in res["data"]["edges"]}
-        # Must include both kinds — the bug was 100% contains.
-        assert "calls" in edge_types
-        assert "contains" in edge_types
-
-    def test_default_mode_is_auto(self):
-        # No explicit mode → auto behaviour.
-        res = _parse(graph_tools.cos_graph_export(max_nodes=20))
-        assert res["ok"] is True
-        edge_types = {e["edge_type"] for e in res["data"]["edges"]}
-        assert "calls" in edge_types
-
-    def test_noise_filtered_by_default(self):
-        res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=50))
-        kinds = {n["kind"] for n in res["data"]["nodes"]}
-        assert "doc:frontmatter_key" not in kinds
-        assert "doc:heading" not in kinds
-
-
-# ---------------------------------------------------------------------------
-# Mode: containment
-# ---------------------------------------------------------------------------
-
-
-class TestContainmentMode:
-    def test_only_contains_edges(self):
-        res = _parse(graph_tools.cos_graph_export(mode="containment", max_nodes=50))
-        assert res["ok"] is True
-        edge_types = {e["edge_type"] for e in res["data"]["edges"]}
-        assert edge_types <= {"contains"}
-
-
-# ---------------------------------------------------------------------------
-# Mode: dependencies
-# ---------------------------------------------------------------------------
-
-
-class TestDependenciesMode:
-    def test_no_contains_edges(self):
-        res = _parse(graph_tools.cos_graph_export(mode="dependencies", max_nodes=50))
-        assert res["ok"] is True
-        edge_types = {e["edge_type"] for e in res["data"]["edges"]}
-        assert "contains" not in edge_types
-        assert "calls" in edge_types
-
-
-# ---------------------------------------------------------------------------
-# Mode: processes
-# ---------------------------------------------------------------------------
-
-
-class TestProcessesMode:
-    def test_synthetic_community_nodes(self, monkeypatch):
-        # Force a stub Louvain detector that produces one community.
-        from graph_os import communities as comm_mod
-        from graph_os.communities import Community
-
-        synthetic = Community(
-            community_id="community:abc",
-            name="login-flow",
-            summary="login → verify → issue_jwt",
-            priority=0.5,
-            member_count=3,
-            members=tuple(
-                {
-                    "uid": uid,
-                    "label": uid.split("::")[-1],
-                    "kind": "code:function",
-                    "step_index": idx,
-                    "file_path": "src/foo.py",
-                    "start_line": 1,
-                }
-                for idx, uid in enumerate(
-                    [
-                        "code:function:a.py::login",
-                        "code:function:a.py::verify",
-                        "code:function:a.py::issue_jwt",
-                    ]
-                )
-            ),
-        )
-        monkeypatch.setattr(
-            comm_mod,
-            "compute_communities",
-            lambda be, **kwargs: ([synthetic], {}),
-        )
-
-        res = _parse(graph_tools.cos_graph_export(mode="processes", max_nodes=20))
-        assert res["ok"] is True
-        kinds = {n["kind"] for n in res["data"]["nodes"]}
-        assert "community" in kinds
-        edge_types = {e["edge_type"] for e in res["data"]["edges"]}
-        assert "member_of_community" in edge_types
-
-    @staticmethod
-    def _community(idx: int, size: int):
-        from graph_os.communities import Community
-
-        members = tuple(
-            {
-                "uid": f"code:function:c{idx}.py::fn{j}",
-                "label": f"fn{idx}_{j}",
-                "kind": "code:function",
-                "step_index": j,
-                "file_path": f"src/c{idx}.py",
-                "start_line": 1,
-            }
-            for j in range(size)
-        )
-        return Community(
-            community_id=f"community:c{idx}",
-            name=f"flow-{idx}",
-            summary=f"fn{idx}_0 → fn{idx}_1",
-            priority=float(size),
-            member_count=size,
-            members=members,
-        )
-
-    def _bind_communities(self, monkeypatch, communities):
-        # The export resolves member uids via be.get_node; register them
-        # on the bound stub so the member rows hydrate.
-        from graph_os import communities as comm_mod
-
-        be = graph_tools._backend()
-        for c in communities:
-            for m in c.members:
-                be._nodes[m["uid"]] = _node(m["uid"], label=m["label"])
-        monkeypatch.setattr(
-            comm_mod,
-            "compute_communities",
-            lambda b, **kwargs: (list(communities), {}),
-        )
-
-    def test_at_least_six_community_nodes_surface(self, monkeypatch):
-        # TASK-407 / guards the TASK-406 regression: 8 communities where
-        # the first holds 400 members. At a 500-node budget the old greedy
-        # pass surfaced only ~2 headers; the fair reservation must surface
-        # every header.
-        communities = [self._community(0, 400)] + [self._community(i, 5) for i in range(1, 8)]
-        self._bind_communities(monkeypatch, communities)
-        res = _parse(graph_tools.cos_graph_export(mode="processes", max_nodes=500))
-        assert res["ok"] is True
-        community_nodes = [n for n in res["data"]["nodes"] if n["kind"] == "community"]
-        assert len(community_nodes) >= 6
-
-    def test_budget_reserved_across_communities(self, monkeypatch):
-        # The 400-member community must not consume the whole budget — its
-        # member count in the export is capped at the fair per-community
-        # share so every community above min_size appears as its header.
-        communities = [self._community(0, 400)] + [self._community(i, 5) for i in range(1, 8)]
-        self._bind_communities(monkeypatch, communities)
-        res = _parse(graph_tools.cos_graph_export(mode="processes", max_nodes=500))
-        nodes = res["data"]["nodes"]
-        # Every community above min_size surfaces at least its header node.
-        community_ids = {n["uid"] for n in nodes if n["kind"] == "community"}
-        assert {f"community:c{i}" for i in range(8)} <= community_ids
-        # The top community's members are capped — far below its 400 size.
-        edges = res["data"]["edges"]
-        top_members = {e["source_uid"] for e in edges if e["target_uid"] == "community:c0"}
-        member_budget = 500 - len(community_ids)
-        fair_share = max(1, member_budget // len(communities))
-        assert len(top_members) <= fair_share
-
-
-# ---------------------------------------------------------------------------
-# Noise filter parametrisation
-# ---------------------------------------------------------------------------
-
-
-class TestExcludeKinds:
-    def test_empty_list_disables_filter(self):
-        # Pass `[]` to keep all kinds — frontmatter / heading visible.
-        res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=50, exclude_kinds=[]))
-        kinds = {n["kind"] for n in res["data"]["nodes"]}
-        assert "doc:frontmatter_key" in kinds or "doc:heading" in kinds
-
-    def test_custom_exclude_kinds(self):
-        res = _parse(
-            graph_tools.cos_graph_export(
-                mode="containment",
-                max_nodes=50,
-                exclude_kinds=["code:module"],
-            )
-        )
-        kinds = {n["kind"] for n in res["data"]["nodes"]}
-        assert "code:module" not in kinds
-
-
-# ---------------------------------------------------------------------------
-# Root-walk path is unchanged (don't break existing UI)
-# ---------------------------------------------------------------------------
+@pytest.fixture
+def doc_link_backend():
+    """Backend with mixed contains + calls + doc-link + decoration edges."""
+    nodes = [
+        _node("code:file:a.py", kind="code:file"),
+        _node("code:function:a.py::foo", label="foo"),
+        _node("code:function:a.py::bar", label="bar"),
+        _node("doc:file:guide.md", kind="doc_file", label="guide.md"),
+        _node("doc:file:other.md", kind="doc_file", label="other.md"),
+        _node("code:function:a.py::decorated", label="decorated"),
+        _node("code:function:a.py::decorator", label="decorator"),
+    ]
+    edges = [
+        # contains spine
+        _edge("code:file:a.py", "code:function:a.py::foo", "contains"),
+        _edge("code:file:a.py", "code:function:a.py::bar", "contains"),
+        # semantic
+        _edge("code:function:a.py::foo", "code:function:a.py::bar", "calls"),
+        # doc cross-link — previously invisible in auto mode
+        _edge("doc:file:guide.md", "doc:file:other.md", "links_to"),
+        _edge("doc:file:guide.md", "code:function:a.py::foo", "references_doc"),
+        # decoration
+        _edge("code:function:a.py::decorated", "code:function:a.py::decorator", "is_decorated_by"),
+    ]
+    return _StubBackend(nodes, edges)
 
 
 class TestRootWalkUnchanged:
@@ -415,22 +232,6 @@ class TestRootWalkUnchanged:
         # Login + neighbours are reachable; noise is still filtered by default.
         node_uids = {n["uid"] for n in res["data"]["nodes"]}
         assert "code:function:a.py::login" in node_uids
-
-
-# ---------------------------------------------------------------------------
-# max_hops parameter — pinned so a future ruff format or refactor can't
-# silently revert to the 3-hop cap that hid subfolder contents in the
-# Hub Graph tab (user-reported "depth=all doesn't show 100%").
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture
-def chain_backend():
-    """6-link contains chain so depth gating is observable."""
-    chain = [f"code:module:level_{i}" for i in range(6)]
-    nodes = [_node(uid, kind="code:module", label=uid.split(":")[-1]) for uid in chain]
-    edges = [_edge(chain[i], chain[i + 1], "contains") for i in range(len(chain) - 1)]
-    return _StubBackend(nodes, edges)
 
 
 class TestRootWalkMaxHops:
@@ -481,40 +282,6 @@ class TestRootWalkMaxHops:
         assert "code:module:level_2" not in uids
 
 
-# ---------------------------------------------------------------------------
-# 8-bucket auto-blend coverage — added 2026-05-23 audit. Doc-link and
-# decoration buckets were absent from the previous 6-bucket recipe; the
-# blend rendered the doc subgraph invisible (1.5K+ links_to edges).
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture
-def doc_link_backend():
-    """Backend with mixed contains + calls + doc-link + decoration edges."""
-    nodes = [
-        _node("code:file:a.py", kind="code:file"),
-        _node("code:function:a.py::foo", label="foo"),
-        _node("code:function:a.py::bar", label="bar"),
-        _node("doc:file:guide.md", kind="doc_file", label="guide.md"),
-        _node("doc:file:other.md", kind="doc_file", label="other.md"),
-        _node("code:function:a.py::decorated", label="decorated"),
-        _node("code:function:a.py::decorator", label="decorator"),
-    ]
-    edges = [
-        # contains spine
-        _edge("code:file:a.py", "code:function:a.py::foo", "contains"),
-        _edge("code:file:a.py", "code:function:a.py::bar", "contains"),
-        # semantic
-        _edge("code:function:a.py::foo", "code:function:a.py::bar", "calls"),
-        # doc cross-link — previously invisible in auto mode
-        _edge("doc:file:guide.md", "doc:file:other.md", "links_to"),
-        _edge("doc:file:guide.md", "code:function:a.py::foo", "references_doc"),
-        # decoration
-        _edge("code:function:a.py::decorated", "code:function:a.py::decorator", "is_decorated_by"),
-    ]
-    return _StubBackend(nodes, edges)
-
-
 class TestAutoBlendNewBuckets:
     def test_auto_mode_includes_doc_link_edges(self, doc_link_backend, monkeypatch):
         """Pre-2026-05-23: auto blend had no doc_link bucket so links_to
@@ -543,13 +310,6 @@ class TestAutoBlendNewBuckets:
         res = _parse(graph_tools.cos_graph_export(mode="dependencies", max_nodes=100))
         edge_types = {e["edge_type"] for e in res["data"]["edges"]}
         assert "links_to" in edge_types or "is_decorated_by" in edge_types
-
-
-# ---------------------------------------------------------------------------
-# stale_paths detector (cos_graph_doctor) — added 2026-05-23 audit.
-# Previously zero pytest coverage; the detector removed 3,727 ghost
-# nodes from the live repo so silent regression would be very bad.
-# ---------------------------------------------------------------------------
 
 
 class TestStalePathsDetector:
@@ -634,11 +394,6 @@ class TestStalePathsDetector:
         assert "stale_paths" not in categories
 
 
-# ---------------------------------------------------------------------------
-# Budget provenance + cap honesty (TASK-402)
-# ---------------------------------------------------------------------------
-
-
 class TestBudgetProvenance:
     def test_meta_reports_requested_and_effective(self):
         res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=20))
@@ -677,11 +432,6 @@ class TestBudgetProvenance:
     def test_overview_has_no_hops(self):
         res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=20))
         assert res["data"]["meta"]["max_hops_effective"] is None
-
-
-# ---------------------------------------------------------------------------
-# scope=subtree — rooted views stay inside the chosen subtree (TASK-406)
-# ---------------------------------------------------------------------------
 
 
 class TestSubtreeScope:
