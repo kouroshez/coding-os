@@ -383,7 +383,8 @@ unfixable = [
 "src/cli/update.py" = ["E402", "C901", "PLR0912"]
 "src/cli/_update_manifest.py" = ["C901", "PLR0912"]
 "src/core/thinking_os/server.py" = ["E402", "PLR0913"]
-"src/core/thinking_os/_tools_tasks.py" = ["PLR0913"]
+"src/core/thinking_os/_tools_task_records.py" = ["PLR0913"]
+"src/core/thinking_os/_board_bridge.py" = ["F401"]
 "src/cli/_init_boundaries.py" = ["C901"]
 # Relocated verbatim from graph.py by the 2026-08-10 split.
 "src/core/graph_os/tools/_graph_doctor.py" = ["C901", "PLR0912", "PLR0915"]
