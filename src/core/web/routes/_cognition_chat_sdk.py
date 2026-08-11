@@ -18,6 +18,10 @@ logger = logging.getLogger(__name__)
 _ADAPTER_DISPATCHER_MOD = None
 _ADAPTER_DISPATCHER_TRIED = False
 
+# Lazy presence-writer probe state (moved with _chat_presence_write).
+_CHAT_PRESENCE_WRITER = None
+_CHAT_PRESENCE_TRIED = False
+
 _CORE_DIR = Path(__file__).resolve().parents[3]
 if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
