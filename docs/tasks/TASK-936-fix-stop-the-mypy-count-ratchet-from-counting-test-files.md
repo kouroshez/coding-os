@@ -5,7 +5,7 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [ready]
-status: in_progress
+status: icebox
 priority: P2
 appetite: 1d
 created: 2026-08-11
