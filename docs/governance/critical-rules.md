@@ -248,6 +248,15 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 
 ---
 
+## Rule 27 — Runtime cost is correctness (name `n`, hold the budget, measure the claim)
+
+- **Rule:** Before writing any loop, comprehension, recursion, or query, state its input size `n` at the **p99 in production** — not its size in the test fixture — and keep the implementation inside the complexity budget for that `n` (`≥10⁵` ⇒ O(n²) is rejected unconditionally; `≤100` ⇒ anything is fine and a hand-rolled index is over-engineering). Never put I/O inside a loop (the N+1), never membership-test against a list inside a loop, never recompute a loop-invariant, never fetch unbounded rows to use a few, never concatenate in a loop. Any claim that something is *faster* must carry a measured number for the **delivered path**, never an adjective. Accuracy travels with speed: money in `Decimal`/minor units, float comparison within a tolerance, timezone-aware datetimes — an "optimization" that changes results is a behavior change and lands as its own commit.
+- **Why:** Two implementations pass the same tests at 900 ms and 20 s, because the tests run on 10 rows and production runs on 400,000. At scale a slow-enough answer fails the user exactly as a wrong one does — timeout, retry storm, dropped request — so complexity sits in the same tier as fail-closed error handling, not in a "polish later" bucket. The decisive property is that the cheap moment is **free**: choosing a `set` over a `list` while writing costs nothing, while the same fix after the fact is an incident, a profiler session, and a refactor across call sites. This is the twin of Rule 22, not an exception to it — the rule is *don't write the accidentally-quadratic version*, never *micro-optimize everything*.
+- **How:** Carried by the universally-loaded `clean-code` skill §8 (budget table, the five slowdown shapes, the measurement contract) with the depth in its `references/algorithmic-efficiency.md`; `block-bad-patterns.sh` warns at write time on the two highest-signal shapes it can see statically (I/O in a loop, list-membership in a loop). The warn tier is deliberate — static detection of complexity is heuristic, and a false BLOCK on a legitimate `n ≤ 100` loop would train agents to route around the gate.
+- **Where:** `src/core/skills/clean-code/SKILL.md § 8`, `src/core/skills/clean-code/references/algorithmic-efficiency.md`, `src/core/hooks/block-bad-patterns.sh`. Measuring *deployed* systems (Web Vitals, P95, mobile FPS) stays in the separate `performance` skill.
+
+---
+
 ## Rule Index (quick lookup)
 
 | # | Rule | Hook |
@@ -279,3 +288,4 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 | 24 | Commit message contract | enforce-commit-message.sh + commit-msg hook |
 | 25 | Semantic state ops, no hand-edit | enforce-task-transition.sh |
 | 26 | Verify by executing, not reading | (none — convention; smoke-test new entrypoints) |
+| 27 | Runtime cost is correctness | block-bad-patterns.sh (warn tier) + clean-code §8 |

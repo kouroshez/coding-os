@@ -136,3 +136,74 @@ class TestEditWarning:
         )
         assert result.returncode == 0
         assert "grows it" not in result.stderr
+
+
+def _source_write(path: str, source: str) -> dict:
+    return {"tool_name": "Write", "tool_input": {"file_path": path, "content": source}}
+
+
+class TestRuntimeCostWarning:
+    """Critical Rule 27 rides the same hook, one tier softer.
+
+    Complexity cannot be proven statically, so every finding here warns and
+    none blocks: a false BLOCK on a legitimate small-n loop is how a gate
+    gets routed around, and then it protects nothing at all.
+    """
+
+    def test_warns_on_io_inside_a_loop(self, tmp_path: Path) -> None:
+        source = "def render(tasks):\n    for task in tasks:\n        database.execute(task)\n"
+        result = _invoke(_source_write(str(tmp_path / "n_plus_one.py"), source))
+        assert result.returncode == 0
+        assert "N+1" in result.stderr
+
+    def test_warns_on_list_membership_inside_a_loop(self, tmp_path: Path) -> None:
+        source = (
+            "def filter_new(incoming, existing):\n"
+            "    known = list(existing)\n"
+            "    for item in incoming:\n"
+            "        if item in known:\n"
+            "            continue\n"
+        )
+        result = _invoke(_source_write(str(tmp_path / "quadratic.py"), source))
+        assert result.returncode == 0
+        assert "scans" in result.stderr
+
+    def test_warns_on_string_concatenation_inside_a_loop(self, tmp_path: Path) -> None:
+        source = 'def report(rows):\n    out = ""\n    for row in rows:\n        out += f"{row}"\n'
+        result = _invoke(_source_write(str(tmp_path / "concat.py"), source))
+        assert result.returncode == 0
+        assert "accumulator" in result.stderr
+
+    def test_stays_quiet_on_the_batched_rewrite_of_the_same_logic(self, tmp_path: Path) -> None:
+        source = (
+            "def render(tasks, existing):\n"
+            "    known = set(existing)\n"
+            "    rows = database.fetch_all(tasks)\n"
+            '    return "".join(f"{row}" for row in rows if row.key in known)\n'
+        )
+        result = _invoke(_source_write(str(tmp_path / "batched.py"), source))
+        assert result.returncode == 0
+        assert "Runtime-cost" not in result.stderr
+
+    def test_never_blocks_even_when_every_shape_is_present(self, tmp_path: Path) -> None:
+        source = (
+            "def render(tasks, existing):\n"
+            "    known = list(existing)\n"
+            '    out = ""\n'
+            "    for task in tasks:\n"
+            "        row = database.execute(task)\n"
+            "        if row in known:\n"
+            '            out += f"{row}"\n'
+        )
+        assert _invoke(_source_write(str(tmp_path / "all_three.py"), source)).returncode == 0
+
+    def test_ignores_non_python_sources(self, tmp_path: Path) -> None:
+        source = "for (const task of tasks) { db.execute(task); }\n"
+        result = _invoke(_source_write(str(tmp_path / "loop.ts"), source))
+        assert "Runtime-cost" not in result.stderr
+
+    def test_survives_syntactically_invalid_python(self, tmp_path: Path) -> None:
+        source = "def broken(:\n    for x in y:\n        db.execute(x)\n"
+        result = _invoke(_source_write(str(tmp_path / "broken.py"), source))
+        assert result.returncode == 0
+        assert "Runtime-cost" not in result.stderr
