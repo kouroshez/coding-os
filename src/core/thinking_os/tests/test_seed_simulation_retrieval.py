@@ -14,7 +14,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import get_db_stats, has_fts5_table
-from tests.seed_corpus import (  # noqa: F401 — pytest resolves fixtures by name
+from thinking_os.tests.seed_corpus import (  # noqa: F401 — pytest resolves fixtures by name
     AGENT_TYPES,
     BACKEND_FILES,
     COMPLEXITIES,

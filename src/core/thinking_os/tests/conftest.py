@@ -126,7 +126,7 @@ def seeded_conn(tmp_path: Path) -> sqlite3.Connection:
     import random
 
     from database import init_db
-    from tests.seed_corpus import (
+    from thinking_os.tests.seed_corpus import (
         seed_agent_metrics,
         seed_observations,
         seed_sessions,
