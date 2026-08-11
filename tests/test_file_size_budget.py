@@ -37,7 +37,6 @@ BASELINE: dict[str, int] = {
     "tests/test_template_scaffold.py": 1117,
     "src/core/thinking_os/embeddings.py": 943,
     "tests/_cli_suite/init_install.py": 932,
-    "src/core/scheduled/nightly.py": 930,
     "src/core/graph_os/tests/test_centrality_ranking_doctor.py": 925,
     "src/adapters/claude/sdk_dispatcher.py": 920,
     "src/core/thinking_os/tests/test_dispatcher.py": 914,

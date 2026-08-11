@@ -431,7 +431,6 @@ unfixable = [
 "src/core/graph_os/tools/reindex_dispatch.py" = ["C901", "PLR0912", "PLR0913"]
 "src/core/hooks/_helpers/branch_guard_check.py" = ["C901", "PLR0912"]
 "src/core/hooks/_helpers/doc_sync_check.py" = ["C901", "PLR0912"]
-"src/core/scheduled/nightly.py" = ["C901", "PLR0912", "PLR0915"]
 "src/core/thinking_os/capture.py" = ["C901"]
 "src/core/thinking_os/concepts.py" = ["C901"]
 "src/core/thinking_os/session_enrich.py" = ["C901", "PLR0912"]
@@ -439,6 +438,7 @@ unfixable = [
 "src/core/web/routes/cognition.py" = ["E402"]
 "src/core/thinking_os/tools/docs.py" = ["PLR0913"]
 "src/core/thinking_os/tools/_memory_search.py" = ["C901"]
+"src/core/scheduled/nightly.py" = ["C901", "PLR0912", "PLR0915"]
 "src/core/web/routes/_board_tasks.py" = ["PLR0913"]
 # Relocated verbatim from hub.py by the 2026-08-10 split.
 "src/core/web/routes/_hub_init.py" = ["C901", "PLR0912"]

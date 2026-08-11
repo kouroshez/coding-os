@@ -5,6 +5,12 @@ Coding OS — Nightly maintenance script (CRON A).
 Runs per-project: decay · learn_extract · routing_recalc.
 Each task is independently gated and recorded in last_run.json.
 
+Module layout:
+    _nightly_memory  decay, learn_extract, routing_recalc, digest, sweeps, gc
+    _nightly_board   board coherence, reclaim, dependency reconcile
+    _nightly_index   doc chunk reconcile, stale graph reindex
+    this module      per-project orchestration + the CLI entry point
+
 See docs/engineering/scheduled-jobs.md for full contract.
 """
 
@@ -14,7 +20,6 @@ import argparse
 import json
 import logging
 import logging.handlers
-import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -30,15 +35,27 @@ for _bootstrap_path in (_SRC, _CORE, _THINKING_OS):
     if str(_bootstrap_path) not in sys.path:
         sys.path.insert(0, str(_bootstrap_path))
 
-from scheduled._activity import (  # noqa: E402
-    outcomes_since_marker,
+from scheduled._nightly_board import (  # noqa: E402
+    _run_board_coherence,
+    _run_dep_reconcile,
+    _run_reclaim,
+)
+from scheduled._nightly_index import (  # noqa: E402
+    _run_doc_reconcile,
+    _run_graph_reindex_if_stale,
+)
+from scheduled._nightly_memory import (  # noqa: E402
+    _run_decay,
+    _run_digest,
+    _run_error_sweep,
+    _run_learn_extract,
+    _run_memory_gc,
+    _run_routing_recalc,
 )
 from scheduled._state import (  # noqa: E402
     now_iso,
     read_registry,
     read_state,
-    state_dir,
-    touch_marker,
     write_state,
 )
 from scheduled.config import load_config  # noqa: E402
@@ -49,12 +66,8 @@ from scheduled.config import load_config  # noqa: E402
 
 _LOG_DIR = Path.home() / ".coding-os" / "scheduled"
 _LOG_FILE = _LOG_DIR / "nightly.log"
-_DECAY_THROTTLE_DAYS = 7
-_MIN_OUTCOMES = 3
-_CRON_B_OBS_THRESHOLD = 10
 _MAX_CONSECUTIVE_FAILURES = 3
 _SCHEMA_VERSION_MIN = 7
-_GRAPH_REINDEX_THRESHOLD_S = 86400  # 24h — match doctor_graph.FRESHNESS_SECONDS
 
 
 def _setup_logging(verbose: bool = False) -> None:
@@ -92,473 +105,6 @@ def _schema_ok(db_path: Path) -> bool:
 # ---------------------------------------------------------------------------
 # Task: decay
 # ---------------------------------------------------------------------------
-
-
-def _run_decay(
-    db_path: Path,
-    project_root: Path,
-    *,
-    dry_run: bool,
-    throttle_days: int = _DECAY_THROTTLE_DAYS,
-    prune_days: int = 90,
-) -> dict:
-    """Run confidence decay via decay.run_decay_locked — the shared throttle+flock
-    entry point so nightly never double-decays or races session_enrich."""
-    marker = project_root / ".coding-os" / ".last-decay"
-    try:
-        from decay import run_decay_locked
-
-        return run_decay_locked(
-            db_path,
-            throttle_days=throttle_days,
-            archive_prune_days=prune_days,
-            dry_run=dry_run,
-            marker_path=marker,
-        )
-    except ImportError as exc:
-        logger.warning("decay task import error (decay.py missing?): %s", exc)
-        return {"status": "error", "error": str(exc)}
-    except Exception as exc:
-        logger.warning("decay task unexpected error: %s", exc)
-        return {"status": "error", "error": str(exc)}
-
-
-# ---------------------------------------------------------------------------
-# Task: learn_extract
-# ---------------------------------------------------------------------------
-
-
-def _run_learn_extract(
-    db_path: Path,
-    project_root: Path,
-    *,
-    dry_run: bool,
-    min_outcomes: int = _MIN_OUTCOMES,
-) -> dict:
-    """Mine patterns from task_outcomes; gated on new outcomes since last run."""
-    marker = state_dir(project_root) / ".last-extract"
-
-    new_outcomes = outcomes_since_marker(db_path, marker)
-    if new_outcomes == 0:
-        return {"status": "skipped", "reason": "no_new_outcomes"}
-
-    try:
-        with sqlite3.connect(str(db_path), timeout=10) as conn:
-            conn.row_factory = sqlite3.Row
-            total = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
-            if total < min_outcomes:
-                return {
-                    "status": "skipped",
-                    "reason": f"insufficient_data (need {min_outcomes}, have {total})",
-                }
-
-    except sqlite3.Error as exc:
-        return {"status": "error", "error": str(exc)}
-
-    if dry_run:
-        return {"status": "dry_run", "would_run": True, "new_outcomes": new_outcomes}
-
-    try:
-        from tools.learning import learn_extract
-
-        with sqlite3.connect(str(db_path), timeout=10) as conn:
-            conn.row_factory = sqlite3.Row
-            result = learn_extract(conn)
-
-        touch_marker(marker)
-        return {"status": "ok", **result}
-
-    except ImportError as exc:
-        logger.warning("learn_extract import error: %s", exc)
-        return {"status": "error", "error": str(exc)}
-    except sqlite3.Error as exc:
-        logger.warning("learn_extract db error: %s", exc)
-        return {"status": "error", "error": str(exc)}
-    except Exception as exc:
-        logger.warning("learn_extract unexpected error: %s", exc)
-        return {"status": "error", "error": str(exc)}
-
-
-# ---------------------------------------------------------------------------
-# Task: routing_recalc
-# ---------------------------------------------------------------------------
-
-
-def _run_routing_recalc(db_path: Path, *, dry_run: bool) -> dict:
-    """Recalculate routing weights if drift detected."""
-    try:
-        from tools.routing import recalculate_weights, routing_drift
-
-        with sqlite3.connect(str(db_path), timeout=10) as conn:
-            conn.row_factory = sqlite3.Row
-            drift = routing_drift(conn)
-
-        if not drift.get("drift_detected", False):
-            return {
-                "status": "skipped",
-                "reason": drift.get("reason", "no_drift"),
-            }
-
-        if dry_run:
-            return {
-                "status": "dry_run",
-                "would_run": True,
-                "drift": drift,
-            }
-
-        with sqlite3.connect(str(db_path), timeout=10) as conn:
-            conn.row_factory = sqlite3.Row
-            result = recalculate_weights(conn)
-        return {"status": "ok", **result}
-
-    except ImportError as exc:
-        logger.warning("routing_recalc import error: %s", exc)
-        return {"status": "error", "error": str(exc)}
-    except sqlite3.Error as exc:
-        logger.warning("routing_recalc db error: %s", exc)
-        return {"status": "error", "error": str(exc)}
-    except Exception as exc:
-        logger.warning("routing_recalc unexpected error: %s", exc)
-        return {"status": "error", "error": str(exc)}
-
-
-# ---------------------------------------------------------------------------
-# CRON B info block (not executed here — printed for make cron-b-setup)
-# ---------------------------------------------------------------------------
-
-CRON_B_PROMPT = """\
-You are a coding-os maintenance agent running on a weekly schedule.
-For each project in ~/.coding-os/registry.json:
-  1. Read .coding-os/scheduled/last_run.json to get last_narrative_at.
-  2. Count observations added since that timestamp via cos_search or direct DB read.
-  3. If count >= 10: call cos_learn_narrative to synthesize insights.
-     Write last_narrative_at = <now> to last_run.json.
-  4. If count < 10: skip this project.
-Use only cos_* MCP tools for DB access. No destructive operations.
-Log results to stderr.
-"""
-
-
-# ---------------------------------------------------------------------------
-# Per-project run
-# ---------------------------------------------------------------------------
-
-
-# ---------------------------------------------------------------------------
-# Task: digest regenerate
-# ---------------------------------------------------------------------------
-
-
-def _run_digest(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
-    """Regenerate the always-in-context agent digest so a cron-maintained brain
-    stays fresh without an interactive SessionStart (digest was startup-only)."""
-    if dry_run:
-        return {"status": "dry_run", "would_run": True}
-    try:
-        from digest import regenerate as digest_regenerate
-
-        with sqlite3.connect(str(db_path), timeout=10) as conn:
-            conn.row_factory = sqlite3.Row
-            result = digest_regenerate(conn, project_root=project_root)
-        return {"status": result.get("status", "ok"), "size_chars": result.get("size_chars")}
-    except ImportError as exc:
-        logger.warning("digest import error: %s", exc)
-        return {"status": "error", "error": str(exc)}
-    except sqlite3.Error as exc:
-        logger.warning("digest db error: %s", exc)
-        return {"status": "error", "error": str(exc)}
-    except Exception as exc:  # fail-open
-        logger.warning("digest unexpected error: %s", exc)
-        return {"status": "error", "error": str(exc)}
-
-
-def _run_error_sweep(
-    db_path: Path, *, dry_run: bool, occ_threshold: int, session_threshold: int
-) -> dict:
-    """error_sweep — roll up durable errors into log_fingerprints + file board bug tasks (E12)."""
-    with sqlite3.connect(str(db_path), timeout=10) as conn:
-        conn.row_factory = sqlite3.Row
-        if (
-            conn.execute(
-                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='log_fingerprints'"
-            ).fetchone()
-            is None
-        ):
-            return {"status": "skipped", "reason": "log_fingerprints not present (pre-v32)"}
-
-        from scheduled.error_sweep import run_error_sweep
-
-        def _create(row: sqlite3.Row, severity: str) -> str | None:
-            from board_os.mcp_tools import cos_task_create
-
-            sample = (row["sample_msg"] or "")[:60].replace('"', "'")
-            outcome = (
-                f"Recurring {row['max_lvl']} from {row['scope']} "
-                f"(count={row['count']}, sessions={row['distinct_sessions']}, exc={row['exc_type']}). "
-                f"First {row['first_seen']}, last {row['last_seen']}. "
-                f"Investigate: cos errors --scope {row['scope']}"
-            )
-            envelope = cos_task_create(
-                conn,
-                title=f"[error] {row['scope']}: {sample}",
-                swimlane="infra",
-                kind="bug",
-                priority="P1" if severity == "fatal" else "P2",
-                status="icebox",
-                ready=True,
-                labels=[f"fp:{row['fingerprint']}", "auto-error", "error-sweep"],
-                outcome=outcome,
-            )
-            parsed = json.loads(envelope)
-            return parsed.get("data", {}).get("task_id") if parsed.get("ok") else None
-
-        result = run_error_sweep(
-            conn,
-            create_bug_task=_create,
-            occ_threshold=occ_threshold,
-            session_threshold=session_threshold,
-            dry_run=dry_run,
-        )
-    return {"status": "ok", **result}
-
-
-_AUTO_COMMIT_AUTONOMY = ("local", "local_autonomous", "autonomous")
-
-
-def _git_autonomy(project_root: Path) -> str:
-    env = os.environ.get("COS_GIT_AUTONOMY")
-    if env and env.strip():
-        return env.strip()
-    try:
-        raw = json.loads((project_root / ".coding-os" / "hub-settings.json").read_text())
-        level = (raw.get("git_settings") or {}).get("autonomy_level")
-        if isinstance(level, str) and level.strip():
-            return level.strip()
-    except (OSError, ValueError, AttributeError) as exc:
-        logger.debug("git autonomy read failed: %s", exc)
-    return "draft"
-
-
-def _commit_board_drift_tasks_only(project_root: Path, paths: list[str]) -> dict:
-    import subprocess
-
-    def _git(*args: str, timeout: int) -> subprocess.CompletedProcess:
-        return subprocess.run(
-            ["git", "-C", str(project_root), *args],
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-    try:
-        add = _git("add", "--", *paths, timeout=30)
-        if add.returncode != 0:
-            return {
-                "committed": False,
-                "error": f"git add rc={add.returncode}: {add.stderr[-200:]}",
-            }
-        msg = f"chore(board): commit {len(paths)} drifted task file(s) to match the board DB"
-        # The repo pre-commit hook scales with staged-file count; 368 files
-        # measured >120s. A premature timeout mis-reports a landed commit as
-        # failed and files a spurious drift task.
-        commit = _git("commit", "-m", msg, "--", *paths, timeout=600)
-        if commit.returncode != 0:
-            return {
-                "committed": False,
-                "error": f"git commit rc={commit.returncode}: {commit.stderr[-200:]}",
-            }
-        sha = _git("rev-parse", "--short", "HEAD", timeout=10).stdout.strip()
-        return {"committed": True, "sha": sha, "count": len(paths)}
-    except (OSError, subprocess.SubprocessError) as exc:
-        return {"committed": False, "error": str(exc)}
-
-
-def _run_board_coherence(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
-    """board_coherence — auto-commit board↔git drift (autonomy-gated) or file an idempotent task."""
-    from board_os.git_coherence import detect_board_git_drift, task_rows_from_db
-
-    with sqlite3.connect(str(db_path), timeout=10) as conn:
-        conn.row_factory = sqlite3.Row
-        if (
-            conn.execute(
-                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='tasks'"
-            ).fetchone()
-            is None
-        ):
-            return {"status": "skipped", "reason": "no tasks table"}
-
-        rows = task_rows_from_db(conn)
-        drift = detect_board_git_drift(project_root, rows)
-        if not drift.is_git_root or drift.skip_reason:
-            return {"status": "skipped", "reason": drift.skip_reason or "not a git work-tree root"}
-        if not drift.has_drift:
-            return {"status": "ok", "drift": False}
-
-        # Missing rows (DB row, no file) cannot be fixed by a commit and must
-        # not block it — one orphaned row would pin every other drifted file
-        # dirty forever. Commit the committable set; missing still files below.
-        path_by_id = dict(rows)
-        committable_paths = sorted(
-            {
-                path_by_id[task_id]
-                for task_id in (*drift.untracked, *drift.modified)
-                if path_by_id.get(task_id)
-            }
-        )
-        autonomy_allows_commit = _git_autonomy(project_root) in _AUTO_COMMIT_AUTONOMY
-        committed_sha: str | None = None
-        if committable_paths and not dry_run and autonomy_allows_commit:
-            result = _commit_board_drift_tasks_only(project_root, committable_paths)
-            if result.get("committed"):
-                committed_sha = result.get("sha")
-                if not drift.missing:
-                    return {
-                        "status": "ok",
-                        "drift": True,
-                        "committed": True,
-                        "sha": committed_sha,
-                        "count": len(committable_paths),
-                    }
-            else:
-                logger.warning("[board_coherence] auto-commit failed: %s", result.get("error"))
-
-        partial = {"committed": True, "sha": committed_sha} if committed_sha else {}
-        existing = conn.execute(
-            "SELECT task_id FROM tasks WHERE status NOT IN ('complete', 'archive') "
-            "AND labels_json LIKE '%\"auto-git-drift\"%'"
-        ).fetchone()
-        if existing is not None:
-            return {
-                "status": "ok",
-                "drift": True,
-                "filed": False,
-                "existing_task": existing[0],
-                **partial,
-            }
-        if dry_run:
-            return {"status": "ok", "drift": True, "filed": False, "dry_run": True}
-
-        from board_os.mcp_tools import cos_task_create
-
-        envelope = cos_task_create(
-            conn,
-            title=(
-                f"[board-drift] {len(drift.untracked)} untracked / "
-                f"{len(drift.modified)} modified / {len(drift.missing)} missing task file(s)"
-            ),
-            swimlane="infra",
-            kind="chore",
-            priority="P2",
-            status="icebox",
-            ready=True,
-            labels=["auto-git-drift", "board-coherence"],
-            outcome=(
-                drift.summary()
-                + " — commit the untracked/modified docs/tasks/*.md (or reconcile the DB rows) "
-                "so the board (DB) and git agree."
-            ),
-            acceptance=(
-                "**Given** board↔git drift (untracked/modified/missing docs/tasks/*.md) "
-                "**When** the drifted files are committed (or the orphaned DB rows reconciled) "
-                "**Then** `cos doctor` board.git_tracked reports no drift."
-            ),
-            read_first=["docs/governance/task-lifecycle.md", "src/core/board_os/git_coherence.py"],
-        )
-        parsed = json.loads(envelope)
-        task_id = parsed.get("data", {}).get("task_id") if parsed.get("ok") else None
-        filed = task_id is not None
-        if not filed:
-            logger.warning("[board_coherence] drift-task filing failed: %s", envelope[:200])
-    return {"status": "ok", "drift": True, "filed": filed, "task_id": task_id, **partial}
-
-
-def _run_reclaim(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
-    """reclaim — recover zombie in_progress/testing tasks of dead sessions and
-    auto-archive aged backlog (TASK-210 RC4). This is the UNATTENDED-TIMER leg:
-    an idle board with no new sessions (so the SessionStart sweep never fires)
-    still heals here. cos_task_reclaim resolves project context from
-    COS_PROJECT_ROOT, so we scope it to this project for the call."""
-    from board_os.config import load_config as _load_board_cfg
-    from board_os.mcp_tools import _archive_stale_sweep, cos_task_reclaim
-
-    prev_root = os.environ.get("COS_PROJECT_ROOT")
-    os.environ["COS_PROJECT_ROOT"] = str(project_root)
-    try:
-        with sqlite3.connect(str(db_path), timeout=10) as conn:
-            if (
-                conn.execute(
-                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='tasks'"
-                ).fetchone()
-                is None
-            ):
-                return {"status": "skipped", "reason": "tasks table not present"}
-            env = json.loads(cos_task_reclaim(conn, dry_run=dry_run))
-            reclaimed = env.get("data", {}).get("reclaimed", []) if env.get("ok") else []
-            archived: list = []
-            if not dry_run:
-                try:
-                    archived = _archive_stale_sweep(conn, _load_board_cfg(project_root))
-                except Exception as exc:
-                    logger.debug("[reclaim] archive sweep skipped: %s", exc)
-        return {
-            "status": "ok",
-            "reclaimed": len(reclaimed),
-            "auto_archived": len(archived),
-            "dry_run": dry_run,
-        }
-    finally:
-        if prev_root is None:
-            os.environ.pop("COS_PROJECT_ROOT", None)
-        else:
-            os.environ["COS_PROJECT_ROOT"] = prev_root
-
-
-def _run_dep_reconcile(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
-    """dep_reconcile — re-block tasks whose dependency reopened + surface
-    unblocked-but-unauthored and long-blocked tasks across the whole graph
-    (the gaps the per-completion cascade cannot reach, TASK-415). Reuses
-    board_os.cascade_ready_dependents; cos_task_move resolves file paths from
-    COS_PROJECT_ROOT, so scope it to this project for the call."""
-    from scheduled.dep_reconcile import run_dep_reconcile
-
-    prev_root = os.environ.get("COS_PROJECT_ROOT")
-    os.environ["COS_PROJECT_ROOT"] = str(project_root)
-    try:
-        with sqlite3.connect(str(db_path), timeout=10) as conn:
-            conn.row_factory = sqlite3.Row
-            return run_dep_reconcile(conn, dry_run=dry_run)
-    finally:
-        if prev_root is None:
-            os.environ.pop("COS_PROJECT_ROOT", None)
-        else:
-            os.environ["COS_PROJECT_ROOT"] = prev_root
-
-
-def _run_doc_reconcile(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
-    """doc_reconcile — prune document_chunks for docs deleted on disk (the edit
-    hook re-chunks single files but never sweeps deletions); reuses index_docs."""
-    config_path = project_root / ".coding-os" / "rag-config.yaml"
-    if not config_path.exists():
-        return {"status": "skipped", "reason": "no rag-config.yaml"}
-    if dry_run:
-        return {"status": "skipped", "reason": "dry_run"}
-    from thinking_os.doc_indexer import index_docs
-
-    with sqlite3.connect(str(db_path), timeout=30) as conn:
-        stats = index_docs(conn, config_path, project_root, force=False)
-    return {
-        "status": "ok",
-        "pruned": stats.get("deleted_files", 0),
-        "updated": stats.get("updated_files", 0),
-    }
-
-
-def _run_memory_gc(db_path: Path, *, dry_run: bool) -> dict:
-    """memory_gc — reclaim orphan embeddings + concept-graph edges + trash
-    observations (no FK/trigger covers embeddings when a source row is deleted)."""
-    from thinking_os.memory_gc import gc_memory
-
-    return gc_memory(db_path=db_path, dry_run=dry_run)
 
 
 def run_project(project: dict, *, dry_run: bool) -> dict:
@@ -785,73 +331,6 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
     write_state(project_root, run)
     logger.info("[%s] done (errors=%d)", slug, errors)
     return run
-
-
-# ---------------------------------------------------------------------------
-# Task: graph_reindex_if_stale
-# ---------------------------------------------------------------------------
-
-
-def _run_graph_reindex_if_stale(project_root: Path, *, dry_run: bool) -> dict:
-    """Trigger a full graph reindex when the backend probe is older than 24h.
-
-    The PostToolUse auto-reindex hook keeps the graph fresh on every Edit /
-    Write, but a project that hasn't been touched for >24h drifts out of
-    freshness silently. Nightly fills that gap so `cos doctor` keeps
-    `graph.freshness` PASS without manual intervention.
-    """
-    import time as _t
-
-    probe = project_root / ".coding-os" / ".graph-backend.json"
-    if not probe.exists():
-        return {"status": "skipped", "reason": "no_probe_yet"}
-    try:
-        data = json.loads(probe.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        return {"status": "skipped", "reason": f"probe_unreadable: {exc}"}
-
-    last_ok = data.get("last_ok_at")
-    if not isinstance(last_ok, int):
-        return {"status": "skipped", "reason": "probe_missing_last_ok_at"}
-    age = int(_t.time()) - last_ok
-    if age < _GRAPH_REINDEX_THRESHOLD_S:
-        return {
-            "status": "skipped",
-            "reason": f"fresh ({age}s < {_GRAPH_REINDEX_THRESHOLD_S}s)",
-            "age_seconds": age,
-        }
-
-    if dry_run:
-        return {"status": "dry_run", "would_reindex": True, "age_seconds": age}
-
-    import subprocess
-
-    # Invoke via `sys.executable -m cli.main graph-reindex` so launchd's
-    # stripped PATH (typically /usr/bin:/bin) cannot lose the binary —
-    # the interpreter we are already running with always resolves.
-    try:
-        completed = subprocess.run(
-            [sys.executable, "-m", "cli.main", "graph-reindex"],
-            cwd=str(project_root),
-            capture_output=True,
-            text=True,
-            timeout=600,
-        )
-    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
-        return {"status": "error", "error": str(exc)}
-
-    if completed.returncode != 0:
-        return {
-            "status": "error",
-            "error": f"cos graph-reindex rc={completed.returncode}",
-            "stderr_tail": completed.stderr[-500:],
-        }
-    summary_line = ""
-    for line in reversed(completed.stdout.splitlines()):
-        if "processed=" in line:
-            summary_line = line.strip()
-            break
-    return {"status": "ok", "summary": summary_line or "completed", "age_seconds": age}
 
 
 # ---------------------------------------------------------------------------
