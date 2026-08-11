@@ -92,6 +92,24 @@ exception below.
 
 Recorded exceptions:
 
+- 2026-08-10 (TASK-928): the `_mcp_reclaim.py` (935) entry was deleted rather
+  than lowered — the facade is 47 over `_mcp_stranded` (458), `_mcp_reports`
+  (309), `_mcp_pick` (189) and `_mcp_worklog` (138), named for what they own
+  rather than keeping "reclaim" over four unrelated concerns. The gate was a
+  real reclaim cycle, not an import check: a seeded five-task board with two
+  cards stranded under dead sessions, run against a `git archive` of the
+  pre-split tree — 34 keys covering reconcile, dry-run and live reclaim (which
+  actually moves a card back to icebox), re-reclaim idempotence, pick, claim,
+  daily, retro, WIP and work-log append, plus every private classifier. All
+  identical; `daily.yesterday` matches as a set, its list order being a
+  same-second `transitioned_at` tie. `board_os.mcp_tools` — the only real
+  consumer — exports the same 122 names. Two traps the parity guard could not
+  see and ruff did: an unused-import sweep deleted a function-LOCAL `import re`
+  inside `_commits_referencing_batch` (the guard caught that one as EDITED), and
+  `cos_task_daily` calls `cos_task_reclaim` across the new seam, which only
+  `F821` surfaced. Silencing the repeated absolute-import blocks took mypy from
+  4,478 to **4,474**.
+
 - 2026-08-10 (TASK-928): the `backends/sqlite_backend.py` (1,052) entry was
   deleted rather than lowered — the facade is 31 and now declares only
   `SqliteBackend(_SqliteWriteMixin, _SqliteLinkMixin, _SqliteReadMixin)`. This
