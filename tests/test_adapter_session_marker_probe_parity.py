@@ -16,14 +16,16 @@ import yaml
 
 REPO = Path(__file__).resolve().parent.parent
 COS_ENV = REPO / "src" / "core" / "hooks" / "cos-env.sh"
+# _cos_resolve_panel_id lives in the leaf cos-env.sh sources.
+COS_ENV_PATHS = REPO / "src" / "core" / "hooks" / "_cos_env_paths.sh"
 ADAPTERS = REPO / "src" / "adapters"
 
 
 def _probe_env_vars() -> set[str]:
     # Join shell line-continuations so the multi-line `for v in … ; do` reads as one.
-    joined = COS_ENV.read_text().replace("\\\n", " ")
+    joined = (COS_ENV.read_text() + COS_ENV_PATHS.read_text()).replace("\\\n", " ")
     m = re.search(r"for\s+v\s+in\s+(.+?);\s*do", joined)
-    assert m, "could not locate the panel-id probe loop in cos-env.sh"
+    assert m, "could not locate the panel-id probe loop in the cos-env sources"
     return {tok for tok in m.group(1).split() if re.fullmatch(r"[A-Z][A-Z0-9_]+", tok)}
 
 

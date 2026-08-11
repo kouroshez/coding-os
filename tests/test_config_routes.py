@@ -146,10 +146,12 @@ def test_mcp_add_rejects_units_off_the_allowlist(client):
 
 
 def test_adapter_remove_refuses_the_last_adapter(client, monkeypatch, tmp_path):
-    import web.routes.config as cfg  # the module the app actually serves
+    # Patch where the handler RESOLVES it: _config_mutate imported the value
+    # from the shared leaf, so patching the facade or the leaf misses it.
+    import web.routes._config_mutate as cfg_mutate
 
     (tmp_path / ".coding-os.yaml").write_text("agents:\n  - claude\n", encoding="utf-8")
-    monkeypatch.setattr(cfg, "_project_root", lambda: tmp_path)
+    monkeypatch.setattr(cfg_mutate, "_project_root", lambda: tmp_path)
     r = client.delete("/api/config/adapters/claude")
     assert r.status_code == 409
     assert "at least one adapter" in r.json()["error"]["message"]

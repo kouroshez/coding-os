@@ -25,9 +25,10 @@ ALLOWED_PATHS: set[str] = {
     # case ("long-dead Claude Code process").
     "src/core/web/ui/src/features/cognition/ChatView.tsx",
     "src/core/web/ui/src/pages/DashboardPage.tsx",
+    "src/core/web/ui/src/pages/dashboard/useDashboardData.ts",
     # SettingsPage's auth-mode field explains that Subscription mode reuses the
     # Claude Code CLI's own login — a description of Anthropic's product.
-    "src/core/web/ui/src/pages/SettingsPage.tsx",
+    "src/core/web/ui/src/pages/settings/ClaudeAuthSection.tsx",
     # ChatLanding's empty-state tells the user the chat feature needs Anthropic's
     # Claude Code / Claude Agent SDK installed — descriptive install guidance for
     # a genuinely Claude-SDK-gated feature, not coding-os self-branding.

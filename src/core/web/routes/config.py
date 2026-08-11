@@ -15,7 +15,11 @@ a scaffolded consumer that has no src/templates of its own.
 
 from __future__ import annotations
 
-from ._config_shared import router as router
+from ._config_shared import (
+    _parse_cos_json as _parse_cos_json,
+    _project_root as _project_root,
+    router as router,
+)
 
 # Import order IS the route order FastAPI resolves in: reads registered first,
 # mutations second, exactly as the single pre-split module declared them.
