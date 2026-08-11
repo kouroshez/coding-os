@@ -353,3 +353,12 @@ references: []
 - 2026-08-11 [claude]: Edit stack_registry.py
 - 2026-08-11 [claude]: Edit test_centrality_ranking_doctor.py
 - 2026-08-11 [claude]: commit 7cac4f206e — test(graph_os): keep the doctor test file inside its size ratchet
+- 2026-08-11 [claude]: commit 2f541a976b — chore(board): record batch nine and file TASK-929 for the reindex deadlock
+- 2026-08-11 [claude]: Edit skill_commands.py
+- 2026-08-11 [claude]: Edit skill_commands.py
+- 2026-08-11 [claude]: Edit update.py
+- 2026-08-11 [claude]: commit 4b29d21d2c — refactor(cli): move the installed-asset manifest engine out of cos update
+- 2026-08-11 [claude]: commit 3169a07b10 — refactor(thinking_os): split the cos_task_* tools into records and lifecycle modules
+- 2026-08-11 [claude]: commit 98bb073e31 — refactor(scripts): split the MCP audit into a shared harness and per-group probes
+- 2026-08-11 [claude]: commit e0f378f64d — refactor(hooks): move doc-sync symbol extraction to its own leaf module
+- 2026-08-11 [claude]: Batch ten: split skill_commands.py (689→383+334), update.py (682→292+426), _tools_tasks.py (684→183+264+252+27),…
