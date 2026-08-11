@@ -27,7 +27,6 @@ BASELINE: dict[str, int] = {
     "src/core/thinking_os/_db_migrations.py": 2316,
     "src/cli/pr_commands.py": 2024,
     "tests/_cli_suite/pr.py": 2018,
-    "src/core/graph_os/extractors/code_ts.py": 930,
     "src/core/thinking_os/tests/test_learning.py": 1068,
     "src/core/thinking_os/tests/test_db.py": 1538,
     "tests/test_hooks.py": 1287,
