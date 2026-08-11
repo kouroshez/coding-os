@@ -426,3 +426,7 @@ references: []
 - 2026-08-11 [claude]: Edit pyproject.toml
 - 2026-08-11 [claude]: commit 1b5818b285 — refactor(board_os): split the ready label and reposition tools out of the lifecycle module
 - 2026-08-11 [claude]: commit e0d5fefc72 — refactor(board_os): split the git commit sources and the edit tool out of task history
+- 2026-08-11 [claude]: commit 08b2780fc3 — refactor(thinking_os): split the metric, recall and learning tools out of _tools_memory
+- 2026-08-11 [claude]: commit 15f78dda59 — refactor(cli): split the stack-registry and MCP launch doctor checks into leaves
+- 2026-08-11 [claude]: commit 573546b76f — style(lint): sort the routing facade re-exports and drop trailing newlines in the doctor leaves
+- 2026-08-11 [claude]: Batch twelve: split all 7 targets under the backstop (7 commits + 2 hygiene). _init_helpers 607->45,…
