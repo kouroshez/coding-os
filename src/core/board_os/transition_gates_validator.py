@@ -4,10 +4,16 @@ from __future__ import annotations
 
 import os
 import re
-from enum import Enum
 
-from pydantic import BaseModel, Field
-
+from board_os._gates_override import (
+    OverrideRequest as OverrideRequest,
+    evaluate_override as evaluate_override,
+)
+from board_os._gates_result import (
+    ValidationMessage as ValidationMessage,
+    ValidationResult as ValidationResult,
+    Verdict as Verdict,
+)
 from board_os.parser import _extract_body_sections, _extract_outcome
 from board_os.transition_gates import (
     DoDKindRules,
@@ -15,41 +21,6 @@ from board_os.transition_gates import (
     GatesConfig,
     SectionRule,
 )
-
-# ────────────────────────────────────────────────────────────────────
-# Result types
-# ────────────────────────────────────────────────────────────────────
-
-
-class Verdict(str, Enum):
-    PASS = "pass"
-    WARN = "warn"
-    BLOCK = "block"
-
-
-class ValidationMessage(BaseModel):
-    code: str  # stable identifier (e.g. "DOR_OUTCOME_MISSING")
-    severity: Verdict
-    field: str | None = None
-    message: str  # human-readable repair hint
-
-
-class ValidationResult(BaseModel):
-    verdict: Verdict = Verdict.PASS
-    messages: list[ValidationMessage] = Field(default_factory=list)
-
-    @property
-    def blocked(self) -> bool:
-        return self.verdict is Verdict.BLOCK
-
-    def add(self, msg: ValidationMessage) -> None:
-        self.messages.append(msg)
-        # Verdict escalates: PASS → WARN → BLOCK; never demotes.
-        if msg.severity is Verdict.BLOCK:
-            self.verdict = Verdict.BLOCK
-        elif msg.severity is Verdict.WARN and self.verdict is Verdict.PASS:
-            self.verdict = Verdict.WARN
-
 
 # ────────────────────────────────────────────────────────────────────
 # Section evaluation
@@ -376,77 +347,6 @@ def evaluate_dod(
             ),
         )
     return result
-
-
-# ────────────────────────────────────────────────────────────────────
-# Override audit
-# ────────────────────────────────────────────────────────────────────
-
-
-class OverrideRequest(BaseModel):
-    """Captured when COS_*_OVERRIDE=1 is set; rejected if reason is missing."""
-
-    gate: str  # "dor" | "dod" | "wip" | "verify"
-    reason: str
-    actor: str  # COS_AGENT or fallback to "unknown"
-
-
-def evaluate_override(
-    gate: str,
-    *,
-    reason: str | None,
-    actor: str | None,
-    config: GatesConfig,
-) -> tuple[ValidationResult, OverrideRequest | None]:
-    """Validate an attempted gate override.
-
-    Returns (result, request_or_None). When result.blocked, the override
-    is rejected; callers must surface the message instead of bypassing
-    the gate.
-    """
-    result = ValidationResult()
-    pol = config.overrides
-    if not pol.require_reason:
-        return result, OverrideRequest(
-            gate=gate,
-            reason=reason or "",
-            actor=actor or "unknown",
-        )
-
-    if not reason or not reason.strip():
-        result.add(
-            ValidationMessage(
-                code="OVERRIDE_REASON_MISSING",
-                severity=Verdict.BLOCK,
-                message=(
-                    f"Gate override on {gate!r} rejected: COS_OVERRIDE_REASON "
-                    f"is required (>= {pol.min_reason_chars} chars). "
-                    f'Example: COS_OVERRIDE_REASON="hotfix for INC-1234, '
-                    f'verify will run in follow-up PR".'
-                ),
-            ),
-        )
-        return result, None
-
-    if len(reason.strip()) < pol.min_reason_chars:
-        result.add(
-            ValidationMessage(
-                code="OVERRIDE_REASON_TOO_SHORT",
-                severity=Verdict.BLOCK,
-                message=(
-                    f"Override reason has {len(reason.strip())} chars; "
-                    f"min is {pol.min_reason_chars}. Be specific so retro "
-                    f"reviewers can audit the bypass."
-                ),
-            ),
-        )
-        return result, None
-
-    return result, OverrideRequest(
-        gate=gate,
-        reason=reason.strip(),
-        actor=actor or "unknown",
-    )
 
 
 # ────────────────────────────────────────────────────────────────────

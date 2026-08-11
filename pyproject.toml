@@ -592,6 +592,8 @@ module = [
     # Same class, board_os flavour: `from board_os.config import …` resolves at
     # runtime (src/core is on sys.path) but not from the repo root. Splitting
     # workflow.py multiplied the one pre-existing error by each new sibling.
+    "board_os._gates_override",
+    "board_os._gates_result",
     "board_os.config",
     "board_os.parser",
     "board_os.presence",
