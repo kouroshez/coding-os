@@ -60,6 +60,36 @@ Per [raptor-consolidation.md](../raptor-consolidation.md) — a design that adds
 - **High cohesion (4):** the reward label lives where the outcome is recorded; the eval leg lives in `nightly.py` beside the mining it depends on; the edit-patch path lives in the distiller that already drafts.
 - **Part-count honesty:** the one genuinely new capability — a held-out validation gate — is explicitly gated behind a feasibility spike (TASK-851) because at solo-repo scale its signal-vs-noise is unproven; we do not pay for a part whose capability we have not measured.
 
+## Spike verdict — NO-GO, measured 2026-08-11 (TASK-851)
+
+The recorded risk materialised. Measured over `task_outcomes` on the dogfood
+repo, after TASK-850 landed the `derived_outcome` label:
+
+| Measure | Value |
+|---|---|
+| Labeled outcomes | 61 of 757 (8%) |
+| Class balance | 59 `success`, 1 `rework`, 1 `blocked` — 96.7% one class |
+| Largest recurring cluster (domain × complexity × type) | 14 instances |
+| Binomial SE at that rate and size | 4.8pp |
+| Headroom above the current success rate | 3.3pp |
+| Smallest observable change (one flipped instance) | 7.1pp |
+
+**The noise floor exceeds the entire measurable improvement.** A held-out split
+built from this stream cannot register a guidance improvement at all: the best
+achievable gain (3.3pp) is smaller than one cluster's sampling error (4.8pp),
+and the smallest change the metric can even express (7.1pp) is more than double
+the headroom. Spending per-night rollout cost to gate on that would be paying
+for a part whose capability we have now measured to be zero.
+
+So stage 2 (eval leg) and stage 3 (TASK-852, bounded edit patches) are **not
+built**; TASK-852 is archived rather than parked, because "wait for volume" with
+no trigger is the icebox-parking failure mode this ADR itself names.
+
+**Re-open trigger** — re-run this measurement when the labeled stream reaches
+**two classes with ≥30 instances each**, in a single recurring cluster. Until
+then the hand-authored status quo is strictly safer than an ungated auto-editor
+reaching every consumer through live symlinks.
+
 ## Consequences
 
 - The strongest, lowest-regret move (TASK-850) improves the current loop immediately and stands even if the held-out gate proves infeasible.
