@@ -226,10 +226,13 @@ Recorded exceptions:
   The five `_envelope_*` siblings carried the flat-sibling `import-not-found`
   class again; this time it was silenced precisely at each fallback import
   (`# type: ignore[no-redef,import-not-found]`) instead of via a bare-name
-  `ignore_missing_imports` glob, because those globs are inert — mypy reports the
-  whole list under `warn_unused_configs`. Typing the trimmers' `dict`/`list`
-  parameters took the local count to 4,482; `BASELINE` stays at 4,500 because it
-  is a CI-measured number and this one is not.
+  `ignore_missing_imports` glob, which at the time appeared inert. **Corrected
+  2026-08-11:** the exact-name entries always worked; only the `_tools_*` entry
+  was dead, because mypy's `*` matches a whole dotted component and never a
+  prefix — so every split kept multiplying the class. Spelling the flat sibling
+  names out dropped the local count 4,486 → **4,415**. Typing the trimmers'
+  `dict`/`list` parameters had earlier taken it to 4,482; `BASELINE` moves only
+  from a CI log, never a local run.
 
 - 2026-08-10 (TASK-927): `src/cli/pr_commands.py` (2,024 lines) was split into a
   `_pr_shared` leaf plus a `pr_reap_commands` module and then **reverted**. The
