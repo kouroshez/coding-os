@@ -61,21 +61,25 @@ def initialized_project(runner: CliRunner, project_dir: Path) -> Path:
 # keeps every historical node id (tests/test_cli.py::<Class>) collecting
 # under this module, and module-level fixtures above still apply to them.
 # ---------------------------------------------------------------------------
-from _cli_suite.init_install import (  # noqa: F401
+from _cli_suite.init_install_adapters import (  # noqa: F401
     TestAddAdapter,
     TestCodexMcpInstall,
-    TestEject,
     TestHealth,
     TestHooksDir,
-    TestInit,
-    TestInstallResilience,
-    TestLanguageLayer,
-    TestMakefileMaterialization,
-    TestMaterialize,
-    TestRefuseSelfInit,
-    TestResolveProjectDir,
     TestServerStart,
     TestVersion,
+)
+from _cli_suite.init_install_init import (  # noqa: F401
+    TestInit,
+    TestMakefileMaterialization,
+    TestRefuseSelfInit,
+    TestResolveProjectDir,
+)
+from _cli_suite.init_install_resilience import (  # noqa: F401
+    TestEject,
+    TestInstallResilience,
+    TestLanguageLayer,
+    TestMaterialize,
 )
 from _cli_suite.misc import (  # noqa: F401
     TestAdopt,
@@ -94,27 +98,37 @@ from _cli_suite.pr_settings import TestCosPrSettings  # noqa: F401
 from _cli_suite.pr_status import TestCosPrStatus  # noqa: F401
 from _cli_suite.pr_submit import TestCosPrSubmit  # noqa: F401
 from _cli_suite.pr_triage import TestCosPrTriage  # noqa: F401
-from _cli_suite.presets_skills import (  # noqa: F401
-    TestCliOnboardingParity,
-    TestDescriptionSeeding,
+from _cli_suite.presets_skills_doctor import (  # noqa: F401
     TestDoctorAgentSdk,
     TestDoctorBootstrap,
+)
+from _cli_suite.presets_skills_presets import (  # noqa: F401
+    TestCliOnboardingParity,
     TestPresets,
+)
+from _cli_suite.presets_skills_skills import (  # noqa: F401
+    TestDescriptionSeeding,
     TestSkillCatalog,
 )
-from _cli_suite.scaffold import (  # noqa: F401
-    TestCiWorkflow,
+from _cli_suite.scaffold_anatomy import (  # noqa: F401
     TestDockerfile,
     TestProjectAnatomy,
+)
+from _cli_suite.scaffold_ci import (  # noqa: F401
+    TestCiWorkflow,
     TestRegenChainRelocation,
 )
-from _cli_suite.subsystems import (  # noqa: F401
-    TestFlagshipHexagonalPreset,
+from _cli_suite.subsystems_cli import (  # noqa: F401
     TestModuleCli,
     TestModuleLifecycle,
+    TestSupervisionCli,
+)
+from _cli_suite.subsystems_drift import TestSubsystemsDrift  # noqa: F401
+from _cli_suite.subsystems_init_flags import TestSubsystemsInitFlags  # noqa: F401
+from _cli_suite.subsystems_presets import (  # noqa: F401
+    TestFlagshipHexagonalPreset,
     TestPresetAuthoring,
     TestPresetCatalogV1,
     TestSkillStandard,
-    TestSubsystems,
-    TestSupervisionCli,
 )
+from _cli_suite.subsystems_registry import TestSubsystemsRegistry  # noqa: F401
