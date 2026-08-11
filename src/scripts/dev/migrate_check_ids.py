@@ -126,7 +126,7 @@ def main() -> int:
     ]
     test_targets = [
         Path("tests/test_doctor.py"),
-        Path("tests/test_hooks_phase_f.py"),
+        Path("tests/test_hooks_phase_f_memory.py"),
         Path("tests/test_persona_integration.py"),
     ]
     total = 0

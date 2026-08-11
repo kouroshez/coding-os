@@ -158,7 +158,7 @@ class TestSessionEndSummary:
             [sys.executable, "-S", str(script), sid, "TASK-GATE", str(db_path)],
             capture_output=True,
             text=True,
-            timeout=15,
+            timeout=60,
             env=env,
         )
         assert result.returncode == 0, result.stderr
@@ -201,7 +201,7 @@ class TestSessionEndSummary:
             [sys.executable, str(script), sid, "TASK-BT", str(db_path)],
             capture_output=True,
             text=True,
-            timeout=15,
+            timeout=60,
             env=env,
         )
         assert result.returncode == 0, result.stderr

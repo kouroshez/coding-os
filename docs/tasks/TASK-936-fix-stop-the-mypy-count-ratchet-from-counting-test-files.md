@@ -24,3 +24,4 @@ references: []
 - 2026-08-11 [claude]: Edit mypy_ratchet.py
 - 2026-08-11 [claude]: Edit ci-gates.md
 - 2026-08-11 [claude]: Edit ci-gates.md
+- 2026-08-11 [claude]: commit 8d34505715 — chore(gates): record the mypy count rise the test-suite split produced

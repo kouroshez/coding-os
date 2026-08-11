@@ -112,13 +112,14 @@ smoke: ## Run-the-deliverable smoke: execute each as-file script (proves entrypo
 verify-claude: ## Claude-only fast subset: dispatcher + adapter + skill + branding tests (~30s)
 	@echo "Running Claude-only verification subset..."
 	@uv run --extra rag pytest \
-	    src/core/thinking_os/tests/test_dispatcher.py \
-	    src/core/thinking_os/tests/test_db.py \
+	    src/core/thinking_os/tests/test_dispatcher_protocol.py \
+	    src/core/thinking_os/tests/test_dispatcher_claude_sdk.py \
+	    src/core/thinking_os/tests/test_db_schema.py \
 	    tests/test_claude_dispatcher_options.py \
 	    tests/test_skill_frontmatter.py \
 	    tests/test_branding.py \
 	    tests/test_no_hardcoded_anthropic.py \
-	    tests/test_adapters.py \
+	    tests/test_adapters_claude.py \
 	    -q --tb=short
 	@echo ""
 	@echo "Claude verification passed."

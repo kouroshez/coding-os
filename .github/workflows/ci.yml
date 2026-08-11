@@ -233,7 +233,7 @@ jobs:
       - name: Install deps
         run: uv sync --extra rag --extra graph_os
       - name: Referential-integrity + all-stacks render smoke + toggle round-trips (fast)
-        run: uv run pytest tests/test_skill_ref_integrity.py tests/test_all_stacks_render_smoke.py tests/test_modularity_toggle.py -q
+        run: uv run pytest tests/test_skill_ref_integrity.py tests/test_all_stacks_render_smoke.py tests/test_modularity_toggle_cascade.py tests/test_modularity_toggle_state.py -q
       - name: Golden parity + rules freshness (the @slow re-render guards)
         run: uv run pytest tests/test_golden_parity.py tests/test_rules_fresh.py -q
       - name: Scaffold-manifest freshness (all 56 single-stack sections)
@@ -273,7 +273,7 @@ jobs:
       - name: Install deps
         run: uv sync --extra rag --extra graph_os
       - name: cli + adapters + doctor matrix suites
-        run: uv run --extra rag --extra graph_os pytest tests/test_cli.py tests/test_adapters.py tests/test_adapter_parity.py tests/test_doctor.py -q
+        run: uv run --extra rag --extra graph_os pytest tests/test_cli.py tests/test_adapters_claude.py tests/test_adapters_codex.py tests/test_adapters_skills.py tests/test_adapter_parity.py tests/test_doctor.py -q
 
   # ============================================================
   # Nightly full slow-suite — scaffold sandboxes + background
