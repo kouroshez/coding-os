@@ -36,7 +36,6 @@ BASELINE: dict[str, int] = {
     "src/core/graph_os/tests/test_polyglot_quality.py": 1153,
     "tests/test_branch_guard.py": 1120,
     "tests/test_template_scaffold.py": 1117,
-    "src/core/graph_os/backends/sqlite_backend.py": 1052,
     "src/core/thinking_os/embeddings.py": 943,
     "src/core/board_os/_mcp_reclaim.py": 935,
     "tests/_cli_suite/init_install.py": 932,

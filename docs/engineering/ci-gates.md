@@ -92,6 +92,23 @@ exception below.
 
 Recorded exceptions:
 
+- 2026-08-10 (TASK-928): the `backends/sqlite_backend.py` (1,052) entry was
+  deleted rather than lowered — the facade is 31 and now declares only
+  `SqliteBackend(_SqliteWriteMixin, _SqliteLinkMixin, _SqliteReadMixin)`. This
+  one is a class, not a module of functions, so the split is by mixin over a
+  `_sqlite_connection` base (204) that owns the write lock, the per-thread read
+  pool, schema verification and the two row primitives; the write (294), link
+  (249) and read (359) mixins each subclass it, which keeps `self._conn` and
+  friends typed and cost mypy nothing — the count held at 4,478. The gate was a
+  differential against a `git archive` of the pre-split tree over a seeded
+  24-node/5-edge graph: 43 keys covering `GraphBackend` Protocol conformance,
+  the full `dir(SqliteBackend)` surface, every read/write/link method, both the
+  caller-supplied and standalone (own-connection, WAL, migrations) constructor
+  paths, and the two raising paths — all identical. The delivered CLI was then
+  smoke-run against the live 69,796-node graph (`graph-stats`, `graph-context`,
+  `graph-references`, `graph-doctor`). No SQL moved out of the backend package,
+  so the tool layer stays backend-agnostic.
+
 - 2026-08-10 (TASK-928): the `tools/learning.py` (1,061) entry was deleted rather
   than lowered — the facade is 136 over four new siblings (`_learning_extract`
   329, `_learning_validate` 343, `_learning_generalize` 209, `_learning_suggest`
