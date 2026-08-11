@@ -404,7 +404,7 @@ unfixable = [
 "src/cli/_board_cli_lifecycle.py" = ["PLR0913"]
 "src/cli/db_reset.py" = ["C901", "PLR0912", "PLR0915"]
 "src/cli/doctor.py" = ["PLR0913"]
-"src/cli/doctor_checks_registry.py" = ["C901"]
+"src/cli/_doctor_mcp.py" = ["C901"]
 # Relocated verbatim from doctor_checks_runtime.py by the 2026-08-11 split.
 "src/cli/_doctor_cognition.py" = ["C901", "PLR0912"]
 "src/cli/_doctor_hook_coverage.py" = ["C901", "PLR0912", "PLR0915"]
