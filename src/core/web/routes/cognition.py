@@ -1,4 +1,17 @@
-"""core.web.routes.cognition — /api/cognition/* HTTP wrappers."""
+"""core.web.routes.cognition — /api/cognition/* HTTP wrappers.
+
+Module layout:
+  _cognition_base           the shared APIRouter + state/db/module accessors
+  cognition_dispatch_views  cost, dispatcher roster, tool calls, analyze
+  cognition_chat            the Claude Agent SDK transcript browser + resume
+  cognition_onboarding      the docs-scoped onboarding session
+  this module               the trace list, fetch and SSE stream
+
+The sibling route groups reach the shared accessors through THIS module object
+(`from . import cognition as _cog`), so a test that patches `cognition._db_path`
+still reaches them. That is why the names below are re-exported rather than
+called only where they are defined.
+"""
 
 from __future__ import annotations
 
@@ -6,109 +19,29 @@ import asyncio
 import json
 import logging
 import os
-import sqlite3
-import sys
 import time
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
-from .._envelope import ENVELOPE_ERROR_RESPONSES, unwrap
+from .._envelope import unwrap
 from ._bounded_read import DEFAULT_WINDOW, tail_lines
-
-# A trace jsonl can reach GBs (e.g. a long run_await loop). Read only the tail
-# so the viewer shows the most-recent events without OOMing the server. TASK-225.
-_MAX_TRACE_EVENTS = 2000
+from ._cognition_base import (
+    _CORE_DIR as _CORE_DIR,
+    _MAX_TRACE_EVENTS,
+    _auto_route_model as _auto_route_model,
+    _cognition_module as _cognition_module,
+    _db_path as _db_path,
+    _state_dir,
+    _unavailable as _unavailable,
+    router as router,
+)
 
 logger = logging.getLogger(__name__)
-
-_CORE_DIR = Path(__file__).resolve().parents[3]
-if str(_CORE_DIR) not in sys.path:
-    sys.path.insert(0, str(_CORE_DIR))
-
-router = APIRouter(prefix="/api/cognition", tags=["cognition"], responses=ENVELOPE_ERROR_RESPONSES)
-
-
-def _state_dir() -> Path:
-    """Resolve the .coding-os state directory.
-
-    Per-project requests (`/api/p/<slug>/...`) ALWAYS use that project's
-    `.coding-os/` — env vars cannot override scope. Otherwise env vars
-    win for backwards compatibility with tests + manual overrides.
-    """
-    from web._project_context import current_project_root, is_explicit_project_scope
-
-    if is_explicit_project_scope():
-        return current_project_root() / ".coding-os"
-    base = os.environ.get("COS_STATE_DIR") or os.environ.get("COS_AGENT_DIR")
-    if base:
-        return Path(base).resolve()
-    return current_project_root() / ".coding-os"
-
-
-def _cognition_module():
-    """Lazy import for cognition tools."""
-    try:
-        tos_dir = _CORE_DIR / "thinking_os"
-        if str(tos_dir) not in sys.path:
-            sys.path.insert(0, str(tos_dir))
-        from tools import cognition as _cog  # type: ignore
-
-        return _cog
-    except ImportError:
-        return None
-
-
-def _unavailable(msg: str = "cognition tools not available"):
-    return json.dumps(
-        {
-            "ok": False,
-            "error": {"category": "unavailable", "retryable": False, "message": msg},
-        }
-    )
-
-
-def _auto_route_model(prompt: str) -> dict:
-    """Deterministic Auto-model triage (hub-architecture.md § Hub settings
-    contract): classify the prompt, prefer cos_route_model's empirical pick
-    when history exists, else the settings' orchestrator_model."""
-    from .settings import _load as _load_hub_settings
-
-    routing_cfg = _load_hub_settings().get("model_routing") or {}
-    if not routing_cfg.get("enabled"):
-        return {"error": "model 'auto' requires settings.model_routing.enabled"}
-
-    cog = _cognition_module()
-    complexity = "COMPLICATED"
-    if cog is not None and hasattr(cog, "classify_prompt_heuristic"):
-        complexity = cog.classify_prompt_heuristic(prompt)["complexity"]
-
-    routed = ""
-    source = "orchestrator_default"
-    try:
-        from tools.routing import route_model  # type: ignore
-
-        from thinking_os.database import resolve_db_path  # type: ignore
-
-        conn = sqlite3.connect(str(resolve_db_path()))
-        try:
-            recommendation = route_model(conn, complexity=complexity)
-        finally:
-            conn.close()
-        if int(recommendation.get("data_points") or 0) > 0:
-            routed = str(recommendation.get("recommended_model") or "")
-            source = "empirical"
-    except Exception as exc:
-        logger.debug("auto-route empirical lookup failed: %s", exc)
-
-    if not routed:
-        routed = str(routing_cfg.get("orchestrator_model") or "")
-        source = "orchestrator_default"
-    return {"model": routed, "complexity": complexity, "source": source}
 
 
 def _enrich_trace_row(row: dict) -> dict:
@@ -449,293 +382,12 @@ async def stream_trace(
 # ---------------------------------------------------------------------------
 
 
-def _db_path() -> str | None:
-    """Resolve coding-os SQLite DB path via canonical helper.
-
-    Returns None when nothing exists yet (the route returns a typed
-    ``unavailable`` envelope in that case).
-    """
-    try:
-        from thinking_os.database import resolve_db_path  # type: ignore
-        from web._project_context import current_project_root  # type: ignore[import]
-
-        path = resolve_db_path(current_project_root())
-        if path.exists():
-            return str(path)
-    except Exception as exc:
-        logger.debug("project-root db path resolve failed: %s", exc)
-    return None
-
-
-@router.get("/cost")
-def dispatcher_cost_summary(
-    formula_id: str | None = Query(None, description="Filter to one formula"),
-    limit: int = Query(50, ge=1, le=500),
-    _rl=Depends(make_rate_limit_dep("cognition.cost")),
-    _m=Depends(make_metrics_dep("cognition.cost")),
-):
-    """Aggregate dispatch cost rolled up by formula and day (T2.4)."""
-    db = _db_path()
-    if db is None:
-        return unwrap(
-            json.dumps(
-                {
-                    "ok": True,
-                    "data": {
-                        "rows": [],
-                        "total_usd": 0.0,
-                        "count": 0,
-                        "meta": {"layer": "cognition"},
-                    },
-                }
-            )
-        )
-
-    try:
-        params: list = []
-        where = "WHERE cost_usd IS NOT NULL"
-        if formula_id:
-            where += " AND formula_id = ?"
-            params.append(formula_id)
-        query_sql = (
-            f"SELECT formula_id, date(ts) as day, "
-            f"SUM(cost_usd) as total_cost_usd, COUNT(*) as count, "
-            f"AVG(latency_ms) as avg_latency_ms "
-            f"FROM formula_dispatches {where} "
-            f"GROUP BY formula_id, day "
-            f"ORDER BY day DESC, total_cost_usd DESC "
-            f"LIMIT ?"
-        )
-        params.append(limit)
-        with sqlite3.connect(db) as conn:
-            conn.row_factory = sqlite3.Row
-            rows = [dict(r) for r in conn.execute(query_sql, params).fetchall()]
-            total_usd = sum(r["total_cost_usd"] or 0 for r in rows)
-    except Exception as exc:
-        return unwrap(
-            json.dumps(
-                {
-                    "ok": False,
-                    "error": {"category": "internal", "retryable": False, "message": str(exc)},
-                }
-            )
-        )
-
-    return unwrap(
-        json.dumps(
-            {
-                "ok": True,
-                "data": {
-                    "rows": rows,
-                    "total_usd": round(total_usd, 6),
-                    "count": len(rows),
-                    "meta": {"layer": "cognition"},
-                },
-            }
-        )
-    )
-
-
-@router.get("/cost/health")
-def dispatcher_cost_health(
-    _rl=Depends(make_rate_limit_dep("cognition.cost_health")),
-    _m=Depends(make_metrics_dep("cognition.cost_health")),
-):
-    """Cost-health gauges over formula_dispatches: MAD anomaly, burn-rate, budget ladder."""
-    empty = {
-        "anomaly": {"ok": True, "n": 0, "outliers": []},
-        "burn": {"days": 0},
-        "budget": {"level": "ok", "cap_usd": None, "spent_usd": 0.0, "allowed": True},
-        "overall_ok": True,
-        "meta": {"layer": "cognition"},
-    }
-    db = _db_path()
-    if db is None:
-        return unwrap(json.dumps({"ok": True, "data": empty}))
-    try:
-        from thinking_os import budget
-
-        anomaly = budget.cost_anomaly(db)
-        burn = budget.cost_burn_rate(db)
-        gate = budget.check(db)
-        data = {
-            "anomaly": anomaly,
-            "burn": burn,
-            "budget": {
-                "level": gate.level,
-                "cap_usd": gate.cap_usd,
-                "spent_usd": round(gate.spent_usd, 6),
-                "allowed": gate.allowed,
-            },
-            "overall_ok": bool(anomaly.get("ok", True) and gate.level != "hard_stop"),
-            "meta": {"layer": "cognition"},
-        }
-        return unwrap(json.dumps({"ok": True, "data": data}))
-    except Exception as exc:
-        logger.debug("cost/health failed, failing open: %s", exc)
-        return unwrap(json.dumps({"ok": True, "data": empty}))
-
-
-@router.get("/dispatchers")
-def list_dispatchers(
-    limit: int = Query(100, ge=1, le=1000),
-    status: str | None = Query(None),
-    _rl=Depends(make_rate_limit_dep("cognition.dispatchers")),
-    _m=Depends(make_metrics_dep("cognition.dispatchers")),
-):
-    """List recent formula dispatches with telemetry (T19.1)."""
-    db = _db_path()
-    if db is None:
-        return unwrap(
-            json.dumps(
-                {
-                    "ok": True,
-                    "data": {"dispatches": [], "count": 0, "meta": {"layer": "cognition"}},
-                }
-            )
-        )
-
-    try:
-        params: list = []
-        where = "WHERE cost_usd IS NOT NULL"
-        if status:
-            where += " AND status = ?"
-            params.append(status)
-        params.append(limit)
-        with sqlite3.connect(db) as conn:
-            conn.row_factory = sqlite3.Row
-            rows = [
-                dict(r)
-                for r in conn.execute(
-                    f"SELECT session_id, formula_id, ts, cost_usd, budget_usd, "
-                    f"status, latency_ms "
-                    f"FROM formula_dispatches {where} "
-                    f"ORDER BY ts DESC LIMIT ?",
-                    params,
-                ).fetchall()
-            ]
-    except Exception as exc:
-        return unwrap(
-            json.dumps(
-                {
-                    "ok": False,
-                    "error": {"category": "internal", "retryable": False, "message": str(exc)},
-                }
-            )
-        )
-
-    return unwrap(
-        json.dumps(
-            {
-                "ok": True,
-                "data": {"dispatches": rows, "count": len(rows), "meta": {"layer": "cognition"}},
-            }
-        )
-    )
-
-
-@router.get("/dispatchers/{session_id}/tools")
-def dispatcher_tools(
-    session_id: str,
-    _rl=Depends(make_rate_limit_dep("cognition.dispatcher_tools")),
-    _m=Depends(make_metrics_dep("cognition.dispatcher_tools")),
-):
-    """Parse tool_calls_jsonb for one dispatch session (T19.2)."""
-    db = _db_path()
-    if db is None:
-        raise HTTPException(status_code=503, detail="DB not available")
-
-    try:
-        with sqlite3.connect(db) as conn:
-            conn.row_factory = sqlite3.Row
-            row = conn.execute(
-                "SELECT tool_calls_jsonb, tool_failures_jsonb "
-                "FROM formula_dispatches WHERE session_id = ? "
-                "ORDER BY ts DESC LIMIT 1",
-                (session_id,),
-            ).fetchone()
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-
-    if row is None:
-        raise HTTPException(status_code=404, detail=f"session {session_id!r} not found")
-
-    def _parse(col: str | None) -> list:
-        if not col:
-            return []
-        try:
-            parsed = json.loads(col)
-            return parsed if isinstance(parsed, list) else []
-        except (json.JSONDecodeError, TypeError):
-            return []
-
-    tool_calls = _parse(row["tool_calls_jsonb"])
-    failures = _parse(row["tool_failures_jsonb"])
-    return unwrap(
-        json.dumps(
-            {
-                "ok": True,
-                "data": {
-                    "session_id": session_id,
-                    "tool_calls": tool_calls,
-                    "failures": failures,
-                    "count": len(tool_calls),
-                    "meta": {"layer": "cognition"},
-                },
-            }
-        )
-    )
-
-
-@router.get("/analyze")
-def cognition_analyze(
-    task_description: str = Query(...),
-    complexity_hint: str | None = Query(None),
-    _rl=Depends(make_rate_limit_dep("cognition.analyze")),
-    _m=Depends(make_metrics_dep("cognition.analyze")),
-):
-    """Analyze a task via cos_analyze_task."""
-    cog = _cognition_module()
-    if cog is None:
-        return unwrap(_unavailable())
-    # The cognition module exposes analyze_task directly (not through MCP wrapper).
-    try:
-        if hasattr(cog, "analyze_task"):
-            result = cog.analyze_task(task_description, complexity_hint=complexity_hint)
-            return unwrap(result if isinstance(result, str) else json.dumps(result))
-    except Exception as exc:
-        return unwrap(
-            json.dumps(
-                {
-                    "ok": False,
-                    "error": {"category": "internal", "retryable": False, "message": str(exc)},
-                }
-            )
-        )
-    return unwrap(_unavailable("analyze_task not available in this cognition module version"))
-
-
-# ---------------------------------------------------------------------------
-# Chat surface — Claude Agent SDK transcript browser + resume (TASK-chat)
-# ---------------------------------------------------------------------------
-
-
-_CHAT_PRESENCE_WRITER = None
-_CHAT_PRESENCE_TRIED = False
-
-
-# SDK content-block dataclasses don't carry a `type` discriminator
-
-
-# ---------------------------------------------------------------------------
-# Onboarding — docs-scoped session (TASK-246)
-
-
-# Import-for-side-effect: the chat and onboarding routes decorate the same
-# `router` above, so importing this module still registers every /api/cognition
-# path exactly as it did before the 2026-08-10 split.
+# Import-for-side-effect: the dispatch-view, chat and onboarding routes decorate
+# the same `router` above, so importing this module still registers every
+# /api/cognition path exactly as it did before the 2026-08-10 split.
 from . import (
     cognition_chat,  # noqa: F401
+    cognition_dispatch_views,  # noqa: F401
     cognition_onboarding,  # noqa: F401
 )
 
@@ -748,6 +400,13 @@ from .cognition_chat import (
     _role_names,
     _role_system_prompt,
     _safe_serialize,
+)
+from .cognition_dispatch_views import (
+    cognition_analyze as cognition_analyze,
+    dispatcher_cost_health as dispatcher_cost_health,
+    dispatcher_cost_summary as dispatcher_cost_summary,
+    dispatcher_tools as dispatcher_tools,
+    list_dispatchers as list_dispatchers,
 )
 from .cognition_onboarding import _onboard_write_allowed, _onboarding_state
 

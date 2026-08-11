@@ -19,7 +19,7 @@ from fastapi.responses import StreamingResponse
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import unwrap
 from . import cognition as _cog, cognition_chat as _chat
-from .cognition import router
+from ._cognition_base import router
 from .cognition_chat import (
     _build_agent_options,
     _project_cwd,

@@ -21,6 +21,7 @@ from fastapi.responses import StreamingResponse
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import unwrap
 from . import cognition as _cog
+from ._cognition_base import router
 from ._cognition_serialize import (  # noqa: F401 — re-exported for the facade
     _coerce_block,
     _safe_serialize,
@@ -28,7 +29,6 @@ from ._cognition_serialize import (  # noqa: F401 — re-exported for the facade
     _serialize_session_info,
     _sse_chunk,
 )
-from .cognition import router
 
 logger = logging.getLogger(__name__)
 
