@@ -6,10 +6,11 @@ method here takes the write lock; reads live in `_sqlite_read`.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import time
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from typing import Any
 
 from ..types import GraphEdge, GraphNode, normalize_kind
@@ -20,6 +21,20 @@ logger = logging.getLogger("graph_os.backends.sqlite")
 
 class _SqliteWriteMixin(_SqliteConnectionBase):
     """Node/edge upserts and deletes."""
+
+    @contextlib.contextmanager
+    def _write(self) -> Iterator[None]:
+        # The connection is thread-cached and never closed, so a statement that
+        # raises mid-write leaves the implicit transaction open and every other
+        # connection then blocks on "database is locked" until the process dies.
+        # Releasing the lock is not enough — the transaction outlives it.
+        with self._write_lock:
+            try:
+                yield
+            except BaseException:
+                with contextlib.suppress(Exception):
+                    self._conn.rollback()
+                raise
 
     def upsert_node(self, node: GraphNode) -> int:
         """Insert a node or update it in place; return the primary key.
@@ -35,7 +50,7 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
             kind_value = normalize_kind(node.kind).value
         except ValueError:
             kind_value = node.kind
-        with self._write_lock:
+        with self._write():
             row = self._conn.execute(
                 "SELECT id, doc_blob, signature, metadata_json, file_path, lang, "
                 "content_hash, start_line, end_line FROM graph_nodes WHERE uid = ?",
@@ -153,7 +168,7 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
             )
             return -1
         now = int(time.time())
-        with self._write_lock:
+        with self._write():
             source_id = self._node_id_for_uid(edge.source_uid)
             target_id = self._node_id_for_uid(edge.target_uid)
             cursor = self._conn.cursor()
@@ -257,7 +272,7 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
 
     def delete_node(self, uid: str) -> bool:
         """Remove a node; FK CASCADE removes edges + evidence."""
-        with self._write_lock:
+        with self._write():
             cursor = self._conn.execute("DELETE FROM graph_nodes WHERE uid=?", (uid,))
             self._conn.commit()
             return cursor.rowcount > 0
@@ -273,7 +288,7 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
         keeps no deletion ledger of its own — that would be pure churn.
         Node prune here is routine and logged at debug. See graph-os-authoring.
         """
-        with self._write_lock:
+        with self._write():
             if not extractors:
                 cursor = self._conn.execute(
                     "DELETE FROM graph_nodes WHERE file_path=?", (file_path,)
