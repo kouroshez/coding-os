@@ -218,4 +218,3 @@ def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
             detail,
         )
     )
-

@@ -157,4 +157,3 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
                 "Cognition registries: 11 roles, 12+ presets, 6 situations, 11 formula-agents — all valid",
             )
         )
-

@@ -119,4 +119,3 @@ def _check_presence_zombies(project: Path, report: DoctorReport) -> None:
             detail,
         )
     )
-

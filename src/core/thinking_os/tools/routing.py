@@ -40,9 +40,9 @@ from ._routing_stats import (
     _sample_gamma as _sample_gamma,
 )
 from ._routing_weights import (
+    _STALE_THRESHOLD as _STALE_THRESHOLD,
     WEIGHT_STORE_THRESHOLD as WEIGHT_STORE_THRESHOLD,
     WEIGHT_USE_THRESHOLD as WEIGHT_USE_THRESHOLD,
-    _STALE_THRESHOLD as _STALE_THRESHOLD,
     recalculate_weights as recalculate_weights,
     routing_drift as routing_drift,
 )
