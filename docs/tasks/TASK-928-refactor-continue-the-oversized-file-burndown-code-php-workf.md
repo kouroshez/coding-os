@@ -458,3 +458,4 @@ references: []
 - 2026-08-11 [claude]: commit 0ef8ce41b9 — refactor(thinking_os): split the cognitive artifact value types out of the schemas module
 - 2026-08-11 [claude]: commit 9af0a9ce80 — refactor(cli): split the core-rule link cascade out of the module commands
 - 2026-08-11 [claude]: Batch thirteen: all 10 targets split under the backstop, one cohesive leaf each, 10 separate commits, nothing pushed.…
+- 2026-08-11 [claude]: commit 07c293f729 — chore(board): record batch thirteen on TASK-928
