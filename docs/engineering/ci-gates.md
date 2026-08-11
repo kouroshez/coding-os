@@ -92,6 +92,21 @@ exception below.
 
 Recorded exceptions:
 
+- 2026-08-11 (TASK-928): `src/core/hooks/session-context.sh` (729) **stays whole**.
+  Its sibling `cos-env.sh` split cleanly 1301 → 350 because it is 22 order-
+  independent function definitions: they moved to four leaves, the facade
+  resolves its own symlink back to the meta-repo before sourcing them (so a
+  consumer gets the leaves the instant core changes, with no `cos update`), and
+  a snapshot of every `COS_*` value plus a sha of all 22 function bodies came
+  back identical apart from the `COS_HOOK_T0` timestamp. `session-context.sh`
+  has the opposite shape — one function and ~700 lines of order-dependent
+  statements threading `$INPUT`, `$SOURCE` and the panel state through each
+  other. Cutting it would mean `source part1.sh; source part2.sh` at fixed
+  positions: indirection with no independently testable boundary, which
+  anti-overengineering sub-rule 6 forbids ("never carve arbitrary fragments
+  just to satisfy a number"). A real split needs the emitter restructured
+  around the card sections first — its own task, not a move.
+
 - 2026-08-10 (TASK-928): the `_mcp_reclaim.py` (935) entry was deleted rather
   than lowered — the facade is 47 over `_mcp_stranded` (458), `_mcp_reports`
   (309), `_mcp_pick` (189) and `_mcp_worklog` (138), named for what they own

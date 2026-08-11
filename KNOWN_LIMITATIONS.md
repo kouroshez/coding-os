@@ -18,13 +18,17 @@ the ratchet (if any) lives. Gate detail: [docs/engineering/ci-gates.md](docs/eng
   shrink-only burndown.
 - Coverage is 63% measured, gated at `fail_under = 62`; the target ratchet is
   70 → 80. PRs additionally need ≥80% coverage on changed lines (diff-cover).
-- 118 files exceed the 500-line backstop (31 over 1,000; 3 over 2,000). Every
-  one is pinned at its current size by the per-file ratchet in
-  `tests/test_file_size_budget.py`, so they can shrink but never grow, and no
-  new file may cross 500. The 2026-08-10 session cleared every file over 3,000
-  lines; `_db_migrations.py` (append-only schema ledger) and `pr_commands.py`
-  (its suite patches eleven private helpers) carry recorded exceptions in
-  `docs/engineering/ci-gates.md`. The rest is unscheduled burndown.
+- 48 files exceed the 500-line backstop (11 over 1,000; 3 over 2,000), and 41 of
+  the 48 are test files. Every one is pinned at its current size by the per-file
+  ratchet in `tests/test_file_size_budget.py`, so they can shrink but never
+  grow, and no new file may cross 500. The 2026-08-10/11 sessions took the count
+  from 120 → 48 and cleared the whole Hub UI. Four files carry recorded
+  exceptions in `docs/engineering/ci-gates.md` with the specific blocker:
+  `_db_migrations.py` (append-only schema ledger, Rule 9), `pr_commands.py` and
+  `embeddings.py` (their suites patch private helpers on the module, so a move
+  silently bypasses the patch), and `session-context.sh` (order-dependent linear
+  script — a cut would add indirection without a testable boundary). The
+  remaining backlog is mostly test files and is unscheduled burndown.
 
 ## Platform
 
