@@ -854,10 +854,9 @@ class TestPhantomOrphan:
     def test_empty_registry_skips_legacy_rule(self, monkeypatch):
         # Registry unknown (import failure) must fail closed — never treat
         # every id as legacy and mass-delete.
-        # Patch where the helper is DEFINED: graph.py and _graph_doctor.py both
-        # re-export it, so patching either facade would leave _is_phantom_orphan
-        # calling its own module-level name.
-        # Imported in-function because the sibling imports graph.py at module load.
+        # Patch where the helper is DEFINED — graph.py and _graph_doctor.py both
+        # re-export it, so patching either facade leaves _is_phantom_orphan calling
+        # its own module-level name. In-function: the sibling imports graph.py.
         from graph_os.tools import _doctor_orphans
 
         monkeypatch.setattr(_doctor_orphans, "_current_extractor_ids", lambda: frozenset())
