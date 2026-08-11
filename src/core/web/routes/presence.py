@@ -1,10 +1,15 @@
-"""core.web.routes.presence — /api/presence/* live HUD summary."""
+"""core.web.routes.presence — /api/presence/* live HUD summary.
+
+The on-disk runtime readers and the context-window accounting moved to leaf
+siblings; this module owns the router and the two payload shapes built from
+them. Every helper is re-exported, so `from web.routes.presence import …` keeps
+resolving for sessions.py and the Hub route.
+"""
 
 from __future__ import annotations
 
 import json
 import logging
-import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -13,6 +18,28 @@ from fastapi import APIRouter, Depends
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import unwrap
+from ._presence_context import (
+    _CODEX_ROLLOUT_PATHS as _CODEX_ROLLOUT_PATHS,
+    _codex_rollout_context,
+    _codex_rollout_path as _codex_rollout_path,
+    _context_pct_from_usage,
+    _context_pct_from_used_tokens,
+    _context_window,
+    _effective_window as _effective_window,
+    _latest_transcript_usage,
+)
+from ._presence_runtime import (
+    _agent_runtime,
+    _canonical_agents,
+    _last_hook_event,
+    _latest_claude_chat_uuid,
+    _newest_marker as _newest_marker,
+    _project_slug,
+    _read_json as _read_json,
+    _read_text as _read_text,
+    _state_dir,
+    _strip_session_prefix as _strip_session_prefix,
+)
 
 logger = logging.getLogger("coding_os.web.presence")
 
@@ -27,203 +54,6 @@ router = APIRouter(prefix="/api/presence", tags=["presence"])
 # transcript paths + internal bookkeeping a read API must never leak. The UI
 # PresenceAgent type (ui/src/lib/presence.ts) reads only these scalars.
 _PRESENCE_NOW_FIELDS = ("agent", "session_id", "task", "skill_active", "model", "gate")
-
-
-def _state_dir() -> Path:
-    from web._project_context import current_project_root, is_explicit_project_scope  # type: ignore
-
-    if is_explicit_project_scope():
-        return current_project_root() / ".coding-os"
-    env = os.environ.get("COS_STATE_DIR") or os.environ.get("COS_AGENT_DIR")
-    if env:
-        return Path(env).resolve()
-    return current_project_root() / ".coding-os"
-
-
-def _read_text(p: Path) -> str | None:
-    try:
-        return p.read_text(encoding="utf-8").strip() or None
-    except (OSError, UnicodeDecodeError):
-        return None
-
-
-def _strip_session_prefix(value: str | None, session_id: str | None) -> str | None:
-    """write-state.sh prefixes each value with the writer's session/panel id — strip it."""
-    if not value:
-        return value
-    if session_id and value.startswith(session_id):
-        return value[len(session_id) :].strip() or None
-    # The prefix token is whatever write-state.sh had: a ses-… session id, a
-    # ppid-… panel id, or a raw UUID panel id (the fallback when the panel
-    # session-id file is unseeded — common on Claude, whose per-tool-call hook
-    # subprocesses each resolve a fresh ppid panel). Strip whichever leads.
-    import re as _re
-
-    m = _re.match(
-        r"^(?:ses-\S+|ppid-\S+|[0-9a-fA-F]{8}-[0-9a-fA-F-]{27})\s+(.*)$",
-        value,
-    )
-    if m:
-        return m.group(1).strip() or None
-    return value
-
-
-def _read_json(p: Path) -> dict[str, Any] | None:
-    try:
-        return json.loads(p.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
-        return None
-
-
-def _latest_claude_chat_uuid(project_root: Path) -> str | None:
-    """Newest Claude SDK transcript file (proxy for currently-active chat)."""
-    try:
-        from claude_agent_sdk import project_key_for_directory  # type: ignore
-
-        key = project_key_for_directory(project_root)
-    except Exception as exc:
-        logger.debug("project_key_for_directory unavailable: %s", exc)
-        key = "-" + str(project_root).replace("/", "-").lstrip("-")
-    base = Path.home() / ".claude" / "projects" / key
-    if not base.is_dir():
-        return None
-    newest: Path | None = None
-    newest_mtime = 0.0
-    for jsonl in base.glob("*.jsonl"):
-        try:
-            mt = jsonl.stat().st_mtime
-        except OSError:
-            continue
-        if mt > newest_mtime:
-            newest = jsonl
-            newest_mtime = mt
-    if newest is None:
-        return None
-    return newest.stem
-
-
-def _newest_marker(agent_dir: Path, basename: str) -> str | None:
-    """Newest copy of a per-panel marker across agent_dir + every panels/*/.
-
-    Post-TASK-035 the cognitive-state markers (.task-current,
-    .thinking_os-gate, .active-skill) live under panels/<id>/. The panel id is
-    NOT stable across Claude's per-tool-call hook subprocesses, so one
-    session's markers scatter across many ppid-* panels and the agent-level
-    copy is a stale fossil. The HUD wants the live value, so the newest mtime
-    wins (empty newest → None, i.e. "no current value").
-    """
-    candidates = [agent_dir / basename]
-    panels = agent_dir / "panels"
-    if panels.is_dir():
-        try:
-            candidates.extend(p / basename for p in panels.iterdir() if p.is_dir())
-        except OSError as exc:
-            logger.debug("panel scan failed for %s: %s", agent_dir, exc)
-    best_text: str | None = None
-    best_mtime = -1.0
-    for path in candidates:
-        try:
-            mtime = path.stat().st_mtime
-        except OSError:
-            continue
-        if mtime > best_mtime:
-            best_mtime = mtime
-            best_text = _read_text(path)
-    return best_text
-
-
-def _agent_runtime(agent_dir: Path, agent: str) -> dict[str, Any] | None:
-    """Best-effort runtime snapshot for one agent."""
-    if not agent_dir.is_dir():
-        return None
-    # Prefer the live panel-scoped session-id marker; the flat agent-level
-    # session-id is a startup fossil nothing writes anymore (P7).
-    sid = _newest_marker(agent_dir, "session-id") or _read_text(agent_dir / "session-id")
-    task = _strip_session_prefix(_newest_marker(agent_dir, ".task-current"), sid)
-    skill_active = _strip_session_prefix(_newest_marker(agent_dir, ".active-skill"), sid)
-    gate = _strip_session_prefix(_newest_marker(agent_dir, ".thinking_os-gate"), sid)
-    session_payload = None
-    if sid:
-        session_payload = _read_json(agent_dir / "sessions" / f"{sid}.json")
-    # Model is per-session — the shared $COS_AGENT_DIR/.model file is a
-    # stale fallback (gets overwritten by whichever runtime started last
-    # and never cleaned up).  Prefer sessions/<sid>.json::model so two
-    # concurrent agents on the same project can disagree on model without
-    # one trampling the other's display.
-    model: str | None = None
-    if isinstance(session_payload, dict):
-        candidate = session_payload.get("model")
-        if isinstance(candidate, str) and candidate.strip():
-            model = candidate.strip()
-    if not model:
-        model = _strip_session_prefix(_read_text(agent_dir / ".model"), sid)
-    return {
-        "agent": agent,
-        "session_id": sid,
-        "task": task,
-        "skill_active": skill_active,
-        "model": model,
-        "gate": gate,
-        "session": session_payload,
-    }
-
-
-def _last_hook_event(state: Path) -> dict[str, Any] | None:
-    log = state / ".hooks.log"
-    if not log.exists():
-        return None
-    try:
-        with log.open("rb") as fh:
-            fh.seek(0, os.SEEK_END)
-            size = fh.tell()
-            window = min(size, 8192)
-            fh.seek(-window, os.SEEK_END)
-            tail = fh.read().decode("utf-8", errors="ignore")
-    except OSError:
-        return None
-    from .hooks import _parse_hook_line  # type: ignore
-
-    for line in reversed(tail.splitlines()):
-        evt = _parse_hook_line(line)
-        if evt is not None:
-            return evt
-    return None
-
-
-def _canonical_agents() -> list[str]:
-    """Return the canonical adapter ids (scanned from src/adapters, fails soft)."""
-    from board_os.hub_adapter_manifest import list_agent_ids  # type: ignore
-
-    return list_agent_ids()
-
-
-def _project_slug(project_root: Path) -> str | None:
-    """Owning-project registry slug for a resolved root (fail-soft, TASK-435).
-
-    Home-level presence surfaces render at the unscoped '/' route and cannot
-    read a slug from the URL, so each agent carries its project's slug to build
-    an explicit /p/<slug>/cognition/... link instead of an unscoped one."""
-    try:
-        from cli.registry import load_registry  # type: ignore
-
-        reg = load_registry()
-    except Exception as exc:
-        logger.debug("load_registry unavailable for slug stamp: %s", exc)
-        reg = None
-    if reg is not None:
-        for entry in reg.projects:
-            try:
-                if Path(entry.path).resolve() == project_root:
-                    return entry.slug
-            except OSError:
-                continue
-    try:
-        from cli.registry import _derive_slug  # type: ignore
-
-        return _derive_slug(project_root)
-    except Exception as exc:
-        logger.debug("_derive_slug unavailable: %s", exc)
-        return None
 
 
 @router.get("/now")
@@ -283,143 +113,6 @@ def presence_now(
             }
         )
     )
-
-
-def _context_window(model: str | None) -> int:
-    """Context-window size for a model id: 1M for `[1m]`-marked and fable ids, else 200K."""
-    if model and ("[1m]" in model or "fable" in model):
-        return 1_000_000
-    return 200_000
-
-
-_CODEX_ROLLOUT_PATHS: dict[str, Path] = {}
-
-
-def _codex_rollout_path(sdk_uuid: str) -> Path | None:
-    cached = _CODEX_ROLLOUT_PATHS.get(sdk_uuid)
-    if cached is not None and cached.exists():
-        return cached
-    base = Path.home() / ".codex" / "sessions"
-    if not base.is_dir():
-        return None
-    try:
-        for path in base.glob(f"*/*/*/rollout-*{sdk_uuid}.jsonl"):
-            _CODEX_ROLLOUT_PATHS[sdk_uuid] = path
-            return path
-    except OSError as exc:
-        logger.debug("codex rollout glob failed for %s: %s", sdk_uuid, exc)
-    return None
-
-
-def _codex_rollout_context(sdk_uuid: str | None) -> tuple[int, int] | None:
-    """Tail a codex rollout for (used_tokens, context_window) from its last token_count event.
-
-    Codex has no Stop hook surface to stamp used_tokens, so the read side tails
-    the rollout the codex CLI itself writes. Honest-None on any gap."""
-    if not sdk_uuid:
-        return None
-    path = _codex_rollout_path(sdk_uuid)
-    if path is None:
-        return None
-    try:
-        size = path.stat().st_size
-        with path.open("rb") as fh:
-            window = min(size, 256 * 1024)
-            fh.seek(-window, os.SEEK_END)
-            tail = fh.read().decode("utf-8", errors="replace")
-    except OSError as exc:
-        logger.debug("codex rollout tail failed %s: %s", path, exc)
-        return None
-    for line in reversed(tail.splitlines()):
-        if '"token_count"' not in line:
-            continue
-        try:
-            obj = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        payload = obj.get("payload")
-        info = payload.get("info") if isinstance(payload, dict) else None
-        if not isinstance(info, dict):
-            continue
-        last = info.get("last_token_usage")
-        used = last.get("total_tokens") if isinstance(last, dict) else None
-        model_window = info.get("model_context_window")
-        try:
-            used_i = int(used)
-            window_i = int(model_window)
-        except (TypeError, ValueError):
-            continue
-        if used_i <= 0 or window_i <= 0:
-            continue
-        return used_i, window_i
-    return None
-
-
-def _effective_window(model: str | None, used: int) -> int:
-    """Window for pct math: the model id when stamped; else inferred — a used
-    count above 200K is proof of a 1M window (a 200K session can't exceed it)."""
-    if model:
-        return _context_window(model)
-    return 1_000_000 if used > 200_000 else 200_000
-
-
-def _context_pct_from_used_tokens(used_tokens: Any, model: str | None) -> float | None:
-    """Pure: context percent from a pre-summed token count + model.
-
-    Reads the `used_tokens` value the Stop hook stamps into sessions/<sid>.json
-    (TASK-255). Honest-null when there is no usable count (TASK-192)."""
-    try:
-        used = int(used_tokens)
-    except (TypeError, ValueError):
-        return None
-    if used <= 0:
-        return None
-    return round(min(100.0, used / _effective_window(model, used) * 100.0), 1)
-
-
-def _context_pct_from_usage(usage: dict, model: str | None) -> float | None:
-    """Pure: context-window percent from a transcript usage block + model.
-
-    1M window for a `[1m]` model id, else 200K. Returns None when there is no
-    usable token count — never a fabricated number (TASK-192)."""
-    if not isinstance(usage, dict):
-        return None
-    used = sum(
-        int(usage.get(k) or 0)
-        for k in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
-    )
-    if used <= 0:
-        return None
-    return round(min(100.0, used / _context_window(model) * 100.0), 1)
-
-
-def _latest_transcript_usage(transcript_path: Path) -> dict | None:
-    """Tail the in-tree snapshot transcript for the most recent usage block.
-
-    Cheap (last 256 KB only), fail-open. Only Claude writes these snapshots,
-    so non-Claude agents naturally yield no usage."""
-    try:
-        with transcript_path.open("rb") as fh:
-            fh.seek(0, os.SEEK_END)
-            size = fh.tell()
-            window = min(size, 256 * 1024)
-            fh.seek(-window, os.SEEK_END)
-            tail = fh.read().decode("utf-8", errors="ignore")
-    except OSError:
-        return None
-    for line in reversed(tail.splitlines()):
-        if '"usage"' not in line:
-            continue
-        try:
-            obj = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        msg = obj.get("message")
-        if isinstance(msg, dict) and isinstance(msg.get("usage"), dict):
-            return msg["usage"]
-        if isinstance(obj.get("usage"), dict):
-            return obj["usage"]
-    return None
 
 
 @router.get("/agents")
