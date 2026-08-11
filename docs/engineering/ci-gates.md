@@ -11,7 +11,7 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 | ruff lint | `uv run ruff check .` | 0 findings; burndown ignores in `pyproject.toml` (`SIM105`, `SIM102`, `E741`) | ignore list may only shrink |
 | ruff format | `uv run ruff format --check .` | exact | — |
 | Complexity | part of `ruff check` — `C901` (mccabe ≤20), `PLR0912` (branches ≤24), `PLR0913` (args ≤10), `PLR0915` (statements ≤100) | per-file baseline in `pyproject.toml` `per-file-ignores` (101 violations / 40 files, 2026-08-08) | baseline may only shrink; never add a file |
-| mypy ratchet | `uv run python src/scripts/mypy_ratchet.py` | error count ≤ `BASELINE` in the script (4649, 2026-08-08 — see the exception log below) | count may only fall; lower `BASELINE` when you fix errors |
+| mypy ratchet | `uv run python src/scripts/mypy_ratchet.py` | error count ≤ `BASELINE` in the script (1100, 2026-08-11 — kernel source only, `/tests/` excluded) | count may only fall; lower `BASELINE` when you fix errors |
 | mypy fatal codes | same command | `FATAL_CODES` in the script — **0 occurrences**, over a wider scope than the count baseline | zero-tolerance; a code leaves the set only with a recorded exception |
 | Tests + coverage | `make coverage` | `fail_under` in `pyproject.toml` (62; measured 63) | ratchet toward 70 → 80 |
 | Slow suite (nightly) | `make test-slow` + the graph phantom gate, on the `schedule` trigger only | 0 failures; phantom count ≤ baseline | **surfaced, not gating** — `CI Pass` emits a warning; see the order-fragility note below |
@@ -84,21 +84,19 @@ Adding a code to `FATAL_CODES` requires it to be at zero first — fix the
 occurrences, then add it, in that order. Removing one requires a recorded
 exception below.
 
-### The count tier measures test files, and that is a defect (TASK-936)
+### The count tier measures source only; the fatal tier still reads tests
 
-`SCOPE` is three package directories, and each contains its own `tests/`, so the
-count includes every untyped pytest fixture in the repo. That made the volume
-gate hostage to test refactors: splitting the oversized suites on 2026-08-11
-copied each module's untyped preamble into its siblings, mypy counted the same
-errors several times, and the count rose 4490 → 4621 without a single new type
-defect — the fatal tier measured zero on that same run, which is the tier that
-would have caught one.
+`SCOPE` is three package directories and each contains its own `tests/`, so the
+count used to include every untyped pytest fixture in the repo — 3,205 of 4,605
+errors, 70% of the gate. That made a volume gate hostage to test refactors:
+splitting the oversized suites on 2026-08-11 copied each module's untyped
+preamble into its siblings, mypy counted the same errors several times, and the
+count rose 4490 → 4621 without a single new type defect. The fatal tier measured
+zero on that same run — the tier that would have caught a real one.
 
-The count was raised to the CI-measured 4621 as the one recorded rise (below),
-because the alternative — leaving `main` red over a counting artifact — teaches
-agents that a red gate is normal. The real fix is TASK-936: drop `tests/` from
-the count `SCOPE` while keeping it in `FATAL_SCOPE`, so the volume gate measures
-source and the zero-tolerance gate keeps covering everything.
+`COUNT_EXCLUDE = r"/tests/"` now applies to the count run only (TASK-936). The
+volume gate measures kernel source; `FATAL_SCOPE` is unchanged, so a genuine
+`return` / `call-arg` / `used-before-def` bug in a test still fails the build.
 
 ## Ratchet protocol (applies to every "may only shrink" baseline)
 
@@ -116,9 +114,12 @@ Recorded exceptions:
   counts the same errors several times. Evidence it is an artifact and not a
   regression: `FATAL_CODES` measured **zero** on the same CI run, and no source
   file changed in that commit range. The number is taken from the CI log of run
-  31525204367, never from a local mypy. TASK-936 removes the cause by dropping
-  `tests/` from the count `SCOPE` (it stays in `FATAL_SCOPE`), after which the
-  baseline is re-measured downward from a CI log.
+  31525204367, never from a local mypy. Retired the same day by TASK-936 below.
+- 2026-08-11 (TASK-936): mypy count `BASELINE` **lowered** 4621 → 1100 by
+  excluding `/tests/` from the count run. Local measurement 4605 → 1069; the
+  baseline carries the usual CI headroom and is tightened to the exact CI number
+  once a green run publishes it. This retires the rise above rather than
+  inheriting it.
 
 - 2026-08-11 (TASK-928): `src/core/hooks/session-context.sh` (729) **stays whole**.
   Its sibling `cos-env.sh` split cleanly 1301 → 350 because it is 22 order-
