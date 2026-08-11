@@ -565,8 +565,17 @@ Keep the facade's importable names identical so callers, tests, and monkeypatche
 | Decorator registration | an ImportError silently drops a command or route — no crash, no failing test | count registered commands/routes before and after |
 | Test fixtures | a split test file loses its `conn`-style fixtures, reported only at run time | run the suite, not just collection |
 | Derived artifacts | openapi.json, generated types, golden snapshots drift | regenerate and re-check |
+| Statement order | a module-level side effect (`if __name__`, router include, cache priming) left above an appended registration block runs too early | invoke the delivered entry point, not an import |
 
 Module-level state must move **with** the function that declares `global` on it — an AST scan reports nothing, because `global x` marks the name local. Anything two siblings need goes in a leaf module that imports neither.
+
+**Then prove the move was a move.** A suite can stay green while a moved body quietly lost a line: a dropped `return` on a `-> dict` function made every caller compare `None != None`, and `cos doctor` reported a broken adapter as healthy. One command, seconds not minutes:
+
+```bash
+uv run python src/scripts/check_split_parity.py <pre-split-ref> <old-path> <package-dir>
+```
+
+It reports any function that vanished or whose body is no longer byte-identical. Pass the **directory** so nothing is missed. Deliberate edits are reported too — that is correct: land them as their own commit, never inside the move.
 
 ### The companion budgets — a file rule alone is gameable
 
