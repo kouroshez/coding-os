@@ -5,7 +5,7 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: [ready]
-status: icebox
+status: in_progress
 priority: P2
 appetite: 1d
 created: 2026-08-11
@@ -39,3 +39,40 @@ Test files carry a trap the source burndown did not: pytest fixtures resolve at 
 Several of these files are also pinned in the `BASELINE` of `tests/test_file_size_budget.py` — delete the entry once a file drops under `SOFT_LIMIT`; never raise one.
 
 ## Work Log
+- 2026-08-11 [claude]: Edit split_pr.py
+- 2026-08-11 [claude]: Edit test_cli.py
+- 2026-08-11 [claude]: Edit split_tests.py
+- 2026-08-11 [claude]: Edit split_tests.py
+- 2026-08-11 [claude]: Edit split_tests.py
+- 2026-08-11 [claude]: commit bd2a7e71a9 — test(thinking_os): split test_db.py into five suites along its schema and migration seams
+- 2026-08-11 [claude]: Edit tidy.sh
+- 2026-08-11 [claude]: Edit tidy.sh
+- 2026-08-11 [claude]: Edit tidy.py
+- 2026-08-11 [claude]: Edit do_split.py
+- 2026-08-11 [claude]: Edit tidy.py
+- 2026-08-11 [claude]: commit 4d81aea1b9 — test(thinking_os): split test_supervision.py into four suites by supervision concern
+- 2026-08-11 [claude]: Edit split_tests.py
+- 2026-08-11 [claude]: Edit split_tests.py
+- 2026-08-11 [claude]: Edit tidy.py
+- 2026-08-11 [claude]: Edit map_symbols.py
+- 2026-08-11 [claude]: Edit hoist.py
+- 2026-08-11 [claude]: Edit split_seed.py
+- 2026-08-11 [claude]: Edit split_seed.py
+- 2026-08-11 [claude]: Edit split_seed.py
+- 2026-08-11 [claude]: Edit split_seed.py
+- 2026-08-11 [claude]: Edit split_seed.py
+- 2026-08-11 [claude]: Edit conftest.py
+- 2026-08-11 [claude]: Edit conftest.py
+- 2026-08-11 [claude]: commit d0e5b93244 — test(thinking_os): split seed_simulation, memory, evo_smoke and session suites
+- 2026-08-11 [claude]: Edit batch1.sh
+- 2026-08-11 [claude]: Edit batch2.sh
+- 2026-08-11 [claude]: Edit split_polyglot.py
+- 2026-08-11 [claude]: Edit split_polyglot.py
+- 2026-08-11 [claude]: Edit split_graph_mcp.py
+- 2026-08-11 [claude]: Edit batch3.sh
+- 2026-08-11 [claude]: Edit split_subsystems.py
+- 2026-08-11 [claude]: Edit split_by_regex.py
+- 2026-08-11 [claude]: commit d475a13de3 — test(cli): split the four remaining _cli_suite parts and test_branch_guard
+- 2026-08-11 [claude]: commit 46c7d4707b — test(hooks): split the last seven oversized suites in tests/
+- 2026-08-11 [claude]: Edit test_file_size_budget.py
+- 2026-08-11 [claude]: Edit SKILL.md

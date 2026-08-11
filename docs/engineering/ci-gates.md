@@ -16,7 +16,7 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 | Tests + coverage | `make coverage` | `fail_under` in `pyproject.toml` (62; measured 63) | ratchet toward 70 → 80 |
 | Slow suite (nightly) | `make test-slow` + the graph phantom gate, on the `schedule` trigger only | 0 failures; phantom count ≤ baseline | **surfaced, not gating** — `CI Pass` emits a warning; see the order-fragility note below |
 | diff-cover (PRs only) | `diff-cover coverage.xml --fail-under 80` | 80% on changed lines | fixed — see the scope note below |
-| File-size ratchet | `tests/test_file_size_budget.py` | per-file `BASELINE` (48 files over the 800-line `SOFT_LIMIT`, 2026-08-10) | each entry may only fall; a file outside `BASELINE` may never cross `SOFT_LIMIT` |
+| File-size ratchet | `tests/test_file_size_budget.py` | `SOFT_LIMIT = 500` with three recorded `BASELINE` exceptions (2026-08-11) | each entry may only fall; a file outside `BASELINE` may never cross `SOFT_LIMIT` |
 | shellcheck | `shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh` | 0 warnings | fixed |
 | docs-lint | `make docs-lint` | 0 findings | fixed |
 | CodeQL / dependency-review | GitHub-native | high severity | fixed |
@@ -32,17 +32,19 @@ round trip:
 | File-size budget (500 backstop, 400 warn) | `block-bad-patterns.sh` — BLOCKs a `Write` that authors a file over 500, warns from 400 and on an `Edit` that grows one | `tests/test_file_size_budget.py` per-file ratchet |
 | Whole-tree budget (consumers) | — | `make check-file-size` → `src/core/scripts/check_file_size.py` |
 
-The two halves run at **different numbers on purpose, and the gap is the
-burndown**. Write-time and the consumer script read `COS_MAX_FILE_LINES`
-(default 500) / `COS_WARN_FILE_LINES` (default 400), so nothing NEW crosses 500.
-The merge-time ratchet still uses `SOFT_LIMIT = 800` because 114 files in this
-repo are already over 500; dropping it now would mean adding ~100 `BASELINE`
-entries, which the ratchet's own protocol forbids. Lower `SOFT_LIMIT` toward 500
-as the burndown deletes entries — never by widening `BASELINE`.
+**All three halves now run at 500.** They were deliberately split for a
+while — write-time and the consumer script read `COS_MAX_FILE_LINES` (default
+500) / `COS_WARN_FILE_LINES` (default 400), while the merge-time ratchet sat at
+`SOFT_LIMIT = 800` because 120 files in this repo were already over 500 and
+dropping the number would have meant adding ~100 `BASELINE` entries, which the
+ratchet's own protocol forbids.
 
-The consumer script is likewise absent from *this* repo's CI: it would fail on
-every run today. coding-os uses the per-file ratchet until the burndown lands; a
-fresh consumer project starts clean and can gate on the script from day one.
+The burndown closed that gap the only way the protocol allows: by deleting
+entries, never by widening `BASELINE`. Every tracked Python file outside the
+exclusion prefixes is now under 500 except the three recorded exceptions below,
+so `SOFT_LIMIT` is 500 and write-time and merge-time finally agree. A file that
+crosses 500 from here is a new offender, not legacy debt — split it; do not add
+a `BASELINE` key.
 
 ## Split parity — prove the move was a move
 

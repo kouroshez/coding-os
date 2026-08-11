@@ -20,29 +20,13 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-SOFT_LIMIT = 800
+SOFT_LIMIT = 500
 
 BASELINE: dict[str, int] = {
     # Append-only schema ledger — recorded exception, see ci-gates.md.
     "src/core/thinking_os/_db_migrations.py": 2316,
     "src/cli/pr_commands.py": 2024,
-    "tests/_cli_suite/pr.py": 2018,
-    "src/core/thinking_os/tests/test_learning.py": 1068,
-    "src/core/thinking_os/tests/test_db.py": 1538,
-    "tests/test_hooks.py": 1287,
-    "src/core/graph_os/tests/test_mcp_tools.py": 1274,
-    "tests/_cli_suite/subsystems.py": 1243,
-    "src/core/graph_os/tests/test_polyglot_quality.py": 1153,
-    "tests/test_branch_guard.py": 1120,
-    "tests/test_template_scaffold.py": 1117,
     "src/core/thinking_os/embeddings.py": 943,
-    "tests/_cli_suite/init_install.py": 932,
-    "src/core/graph_os/tests/test_centrality_ranking_doctor.py": 925,
-    "src/core/thinking_os/tests/test_dispatcher.py": 914,
-    "src/core/thinking_os/tests/test_supervision.py": 868,
-    "tests/test_hooks_phase_f.py": 837,
-    "src/core/graph_os/tests/test_i7_extractors.py": 825,
-    "src/core/thinking_os/tests/test_seed_simulation.py": 822,
 }
 
 EXCLUDED_PREFIXES = (

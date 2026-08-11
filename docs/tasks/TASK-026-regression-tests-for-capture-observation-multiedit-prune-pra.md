@@ -23,7 +23,7 @@ references:
 **Outcome (one sentence):** Both TASK-016 (MultiEdit shell filter) and TASK-017 (PRAGMA foreign_keys = ON) get pytest coverage so a future ruff format, refactor, or copy-paste cannot silently revert the fix without a red test.
 
 ## Read First
-- [tests/test_hooks_phase_f.py](../../tests/test_hooks_phase_f.py) — pattern for shell-hook tests (`_invoke` helper, env scoping)
+- [tests/test_hooks_phase_f_memory.py](../../tests/test_hooks_phase_f_memory.py) — pattern for shell-hook tests (`_invoke` helper, env scoping)
 - [src/core/hooks/capture-observation.sh](../../src/core/hooks/capture-observation.sh) — TASK-016 fix at line 28
 - [src/scripts/prune_deleted_path.py](../../src/scripts/prune_deleted_path.py) — TASK-017 fix at line 38
 

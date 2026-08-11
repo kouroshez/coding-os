@@ -565,7 +565,7 @@ Budgets for hand-written source (the backstop, not a target to grow into):
 | 401-500 | Growth demands strong cohesion; extract where a natural boundary exists. |
 | >500 | Do not grow. Split along an existing architectural seam first. |
 
-`block-bad-patterns.sh` BLOCKs a `Write` that authors a file over 500 and warns from 400, and `make check-file-size` applies the same two numbers to a whole tree. The merge-time per-file ratchet still runs at 800 while the existing 114 over-500 files burn down — so the budget above binds everything NEW, and legacy files are held shrink-only rather than retro-failed ([ci-gates.md](../../../../docs/engineering/ci-gates.md) § Write-time counterparts). Exempt: generated code, vendored trees, machine-produced schemas/data, and recorded exceptions.
+`block-bad-patterns.sh` BLOCKs a `Write` that authors a file over 500 and warns from 400, `make check-file-size` applies the same two numbers to a whole tree, and the merge-time ratchet (`tests/test_file_size_budget.py`) now enforces 500 as well — the burndown is finished, so write-time and merge-time agree on one number instead of the 800-line grace period that covered the legacy debt ([ci-gates.md](../../../../docs/engineering/ci-gates.md) § File-size ratchet). Exempt: generated code, vendored trees, machine-produced schemas/data, and the three recorded exceptions.
 
 Find the seam by asking what changes together:
 

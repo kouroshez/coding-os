@@ -275,7 +275,7 @@ Persona: Claude running, laptop lid closes without `Stop` firing.
 - On next Claude startup, `session-context.sh` runs `session_summary.py` idempotently for the PREVIOUS `session-id` **before** overwriting it — observations from the abandoned session get rolled up into a summary row. Then a fresh `ses-claude-…` is generated.
 - `.coding-os/claude/.*` volatile markers are cleared.
 
-Outcome: no observation loss, no zombie session-id bleeding into the next chat. Fully covered by [src/core/thinking_os/tests/test_session.py::TestOrphanSessionRecovery](../../src/core/thinking_os/tests/test_session.py).
+Outcome: no observation loss, no zombie session-id bleeding into the next chat. Fully covered by [src/core/thinking_os/tests/test_session_recovery.py::TestOrphanSessionRecovery](../../src/core/thinking_os/tests/test_session_recovery.py).
 
 ### S5 — Context compact (Claude compacts mid-chat)
 
