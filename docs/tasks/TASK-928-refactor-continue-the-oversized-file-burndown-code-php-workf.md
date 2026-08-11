@@ -362,3 +362,7 @@ references: []
 - 2026-08-11 [claude]: commit 98bb073e31 — refactor(scripts): split the MCP audit into a shared harness and per-group probes
 - 2026-08-11 [claude]: commit e0f378f64d — refactor(hooks): move doc-sync symbol extraction to its own leaf module
 - 2026-08-11 [claude]: Batch ten: split skill_commands.py (689→383+334), update.py (682→292+426), _tools_tasks.py (684→183+264+252+27),…
+- 2026-08-11 [claude]: commit eee4136367 — chore(board): record batch ten of the oversized-file burndown
+- 2026-08-11 [claude]: Edit pyproject.toml
+- 2026-08-11 [claude]: Edit ci-gates.md
+- 2026-08-11 [claude]: commit 29a1eab1fb — fix(ci): spell out the flat-sibling mypy overrides so the dead glob stops hiding errors
