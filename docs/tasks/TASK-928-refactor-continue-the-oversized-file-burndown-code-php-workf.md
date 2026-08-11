@@ -430,3 +430,4 @@ references: []
 - 2026-08-11 [claude]: commit 15f78dda59 — refactor(cli): split the stack-registry and MCP launch doctor checks into leaves
 - 2026-08-11 [claude]: commit 573546b76f — style(lint): sort the routing facade re-exports and drop trailing newlines in the doctor leaves
 - 2026-08-11 [claude]: Batch twelve: split all 7 targets under the backstop (7 commits + 2 hygiene). _init_helpers 607->45,…
+- 2026-08-11 [claude]: commit 3378a77923 — chore(board): record batch twelve on TASK-928
