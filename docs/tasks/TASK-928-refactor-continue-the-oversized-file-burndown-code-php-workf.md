@@ -492,3 +492,11 @@ references: []
 - 2026-08-11 [claude]: Edit test_hooks.py
 - 2026-08-11 [claude]: Edit test_hooks.py
 - 2026-08-11 [claude]: commit 9e27c13a3d — fix(tests): keep the cos-env marker-parity assertion within its size ratchet
+- 2026-08-11 [claude]: Edit config.py
+- 2026-08-11 [claude]: Edit test_adapter_session_marker_probe_parity.py
+- 2026-08-11 [claude]: Edit test_adapter_session_marker_probe_parity.py
+- 2026-08-11 [claude]: Edit test_branding.py
+- 2026-08-11 [claude]: Edit test_branding.py
+- 2026-08-11 [claude]: Edit test_branding.py
+- 2026-08-11 [claude]: Edit test_config_routes.py
+- 2026-08-11 [claude]: Edit test_config_routes.py
