@@ -16,7 +16,7 @@ import sys
 # (the documented dual `board_os.*`/`core.board_os.*` counting artifact) —
 # always re-measure from a CI log, never from a laptop. History + rationale:
 # docs/engineering/ci-gates.md § Recorded exceptions.
-BASELINE = 4500
+BASELINE = 4490
 SCOPE = ["src/core/thinking_os", "src/core/board_os", "src/core/graph_os"]
 
 # Bug classes a refactor actually produces, each measured at zero when added.
