@@ -85,7 +85,15 @@ from _cli_suite.misc import (  # noqa: F401
     TestModuleEntrypointParity,
     TestProjectExtraSkills,
 )
-from _cli_suite.pr import TestCosPr  # noqa: F401
+from _cli_suite.pr_bootstrap import TestCosPrBootstrap  # noqa: F401
+from _cli_suite.pr_land import TestCosPrLand  # noqa: F401
+from _cli_suite.pr_lifecycle import TestCosPrLifecycle  # noqa: F401
+from _cli_suite.pr_reap import TestCosPrReap  # noqa: F401
+from _cli_suite.pr_reap_recovery import TestCosPrReapRecovery  # noqa: F401
+from _cli_suite.pr_settings import TestCosPrSettings  # noqa: F401
+from _cli_suite.pr_status import TestCosPrStatus  # noqa: F401
+from _cli_suite.pr_submit import TestCosPrSubmit  # noqa: F401
+from _cli_suite.pr_triage import TestCosPrTriage  # noqa: F401
 from _cli_suite.presets_skills import (  # noqa: F401
     TestCliOnboardingParity,
     TestDescriptionSeeding,
