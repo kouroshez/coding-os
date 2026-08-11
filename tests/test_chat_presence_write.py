@@ -18,7 +18,7 @@ for _p in (_REPO_ROOT, _REPO_ROOT / "src" / "core"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from web.routes import _cognition_chat_sdk as chat_sdk  # noqa: E402
+from web.routes import _cognition_chat_sdk as chat_sdk
 
 
 def test_probe_state_is_bound_at_module_level() -> None:

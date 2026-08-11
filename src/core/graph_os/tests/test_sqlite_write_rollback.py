@@ -17,6 +17,7 @@ from __future__ import annotations
 import sqlite3
 
 import pytest
+
 from graph_os.backends.sqlite_backend import SqliteBackend
 from graph_os.types import GraphNode
 
@@ -49,7 +50,5 @@ def test_a_successful_write_still_commits(backend, migrated_conn) -> None:
     backend.upsert_node(node)
 
     assert migrated_conn.in_transaction is False
-    row = migrated_conn.execute(
-        "SELECT label FROM graph_nodes WHERE uid=?", (node.uid,)
-    ).fetchone()
+    row = migrated_conn.execute("SELECT label FROM graph_nodes WHERE uid=?", (node.uid,)).fetchone()
     assert row is not None and row[0] == "ok.py"
