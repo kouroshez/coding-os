@@ -375,3 +375,36 @@ references: []
 - 2026-08-11 [claude]: commit c26f5df4a4 — refactor(hub-ui): split DashboardPage into types, format leaf, data hook and widgets
 - 2026-08-11 [claude]: Edit split_hubhome.py
 - 2026-08-11 [claude]: commit 18813f1e91 — refactor(hub-ui): clear the last three files over the backstop
+- 2026-08-11 [claude]: Edit _cognition_chat_sdk.py
+- 2026-08-11 [claude]: Edit _cognition_chat_prompts.py
+- 2026-08-11 [claude]: Edit _cognition_chat_lookup.py
+- 2026-08-11 [claude]: Edit cognition_chat.py
+- 2026-08-11 [claude]: commit 825389c777 — refactor(web): split the cognition chat routes from their SDK, prompt and lookup seams
+- 2026-08-11 [claude]: Edit _routing_stats.py
+- 2026-08-11 [claude]: Edit _routing_skill.py
+- 2026-08-11 [claude]: Edit _routing_weights.py
+- 2026-08-11 [claude]: Edit _routing_failures.py
+- 2026-08-11 [claude]: Edit routing.py
+- 2026-08-11 [claude]: commit 021b7de8ea — refactor(thinking_os): split skill routing, weights and failure anatomy out of routing.py
+- 2026-08-11 [claude]: Edit _render_errors.py
+- 2026-08-11 [claude]: Edit _render_agents_md.py
+- 2026-08-11 [claude]: Edit _render_ci.py
+- 2026-08-11 [claude]: Edit _render_docker.py
+- 2026-08-11 [claude]: Edit renderer.py
+- 2026-08-11 [claude]: Edit renderer.py
+- 2026-08-11 [claude]: commit 0acefef5cd — refactor(cli): split AGENTS.md, CI and Docker rendering out of renderer.py
+- 2026-08-11 [claude]: Edit _mcp_task_ids.py
+- 2026-08-11 [claude]: Edit _mcp_cards.py
+- 2026-08-11 [claude]: Edit _mcp_forge.py
+- 2026-08-11 [claude]: Edit _mcp_shared.py
+- 2026-08-11 [claude]: commit a0dc6c6ef7 — refactor(board_os): split id allocation, card shaping and forge refs out of _mcp_shared
+- 2026-08-11 [claude]: Edit _presence_runtime.py
+- 2026-08-11 [claude]: Edit _presence_context.py
+- 2026-08-11 [claude]: Edit presence.py
+- 2026-08-11 [claude]: commit 8141db5525 — refactor(web): split presence runtime readers and context accounting into leaves
+- 2026-08-11 [claude]: Edit _doctor_graph_pipeline.py
+- 2026-08-11 [claude]: Edit _doctor_graph_embeddings.py
+- 2026-08-11 [claude]: Edit _doctor_graph_storage.py
+- 2026-08-11 [claude]: Edit doctor_graph.py
+- 2026-08-11 [claude]: commit 810b7630eb — refactor(cli): split the graph doctor checks into pipeline, storage and embedding leaves
+- 2026-08-11 [claude]: Batch eleven: split cognition_chat (674->414), routing (658->251), renderer (620->168), _mcp_shared (619->323),…
