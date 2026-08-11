@@ -30,206 +30,36 @@ Before writing any code, verify you have read the relevant context:
 
 ## 1. Error Handling: Fail-Closed Default
 
-Every error handling decision defaults to **reject / deny / fail**. Never silently swallow errors.
-
-### Principles
-
-- If verification cannot complete: **reject** (not log-and-allow)
-- If permission check fails: **deny access**
-- If payment state is unclear: **do not fulfill**
-- If external service is down: **fail the request** (not return stale/default data)
-
-### Python — Correct
-
-```python
-# GOOD: fail-closed — unknown state rejects
-def verify_purchase(user_id: str, product_id: str) -> Purchase:
-    try:
-        purchase = PurchaseService.get_verified(user_id, product_id)
-    except PurchaseNotFoundError:
-        raise PermissionDeniedError("Purchase not found")
-    except VerificationError:
-        logger.error("Purchase verification failed", extra={"user_id": user_id})
-        raise ServiceUnavailableError("Unable to verify purchase")
-
-    if purchase.status != PurchaseStatus.COMPLETED:
-        raise PermissionDeniedError("Purchase not completed")
-
-    return purchase
-```
-
-### Python — Wrong
-
-```python
-# BAD: fail-open — unknown state allows access
-def verify_purchase(user_id, product_id):
-    try:
-        purchase = Purchase.objects.get(user_id=user_id, product_id=product_id)
-        return purchase
-    except Exception:
-        # "Just log it" — user gets access anyway
-        logger.warning("Could not verify purchase")
-        return None  # caller treats None as "skip check"
-```
-
-### TypeScript — Correct
-
-```typescript
-// GOOD: fail-closed — catch re-throws, never swallows
-async function fetchUserProfile(userId: string): Promise<UserProfile> {
-  const response = await api.get(`/users/${userId}`);
-
-  if (!response.ok) {
-    throw new ApiError("Failed to fetch user profile", response.status);
-  }
-
-  return response.data;
-}
-```
-
-### TypeScript — Wrong
-
-```typescript
-// BAD: fail-open — returns fallback on error, caller never knows
-async function fetchUserProfile(userId: string) {
-  try {
-    const response = await api.get(`/users/${userId}`);
-    return response.data;
-  } catch {
-    return { name: "Unknown", email: "" }; // silent fallback
-  }
-}
-```
-
-### Pattern Summary
+Every error handling decision defaults to **reject / deny / fail**. Never silently swallow errors. A bare `except` that returns `None` or a default is the shape to reject: it converts an unknown failure into the value callers already treat as "nothing to check", so an outage becomes a permission bypass with no alarm.
 
 | Situation | Correct (fail-closed) | Wrong (fail-open) |
 |---|---|---|
-| Unhandled exception | Re-raise or wrap in typed error | `except Exception: pass` |
-| Permission check fails | Return 403 | Log and continue |
+| Verification cannot complete | Re-raise or wrap in a typed error | `except Exception: pass`, log-and-allow |
+| Permission check fails | Deny access — return 403 | Log and continue |
 | Payment state unknown | Halt fulfillment | Fulfill and reconcile later |
-| External service timeout | Return 503 | Return cached/default data |
+| External service down | Fail the request — return 503 | Return cached/default/stale data |
+
+Worked Python + TypeScript pairs: [references/error-handling.md](references/error-handling.md).
 
 ## 1b. No PII in Logger Calls
 
 Never pass PII (email, full name, IP address, phone) to any `logger.*` call. Use the user's UUID instead. If you need to log an email for debugging, use a masked form (`j***@example.com`). PII-exclusion + secret-redaction discipline is owned by the [security-web](../security-web/SKILL.md) and [observability](../observability/SKILL.md) skills (both co-ship).
 
-```python
-# GOOD
-logger.error("Payment failed", extra={"user_id": user.id})
-
-# BAD — leaks email
-logger.error("Payment failed for %s", user.email)
-```
-
 ## 1c. Never Manually Build Error Envelopes
 
-Never construct error response dicts by hand (e.g., `return Response({"error_code": ...})`). Raise a typed exception and let the custom exception handler produce the envelope. See `docs/api-contracts/error-format.md`.
-
-```python
-# GOOD
-raise ProductNotFoundError()
-
-# BAD — bypasses exception handler, duplicates envelope logic
-return Response({"error_code": "NOT_FOUND", "message": "Product not found"}, status=404)
-```
+Never construct error response dicts by hand (e.g., `return Response({"error_code": ...})`). Raise a typed exception and let the custom exception handler produce the envelope — a hand-built copy silently keeps the old shape the day the shared format changes. See `docs/api-contracts/error-format.md`.
 
 ## 2. No Internal Details in Responses
 
-Never expose implementation details to API consumers.
+Never expose implementation details to API consumers. Forbidden in a response body: `str(exc)` from any exception (it may carry SQL, paths, or internal state), database column/table names or query fragments, stack traces and file paths, internal service or infrastructure names.
 
-### Forbidden in API responses
-
-- `str(exc)` from any exception — may contain SQL, paths, or internal state
-- Database column names, table names, or query fragments
-- Stack traces or file paths
-- Internal service names or infrastructure details
-
-### Correct Pattern
-
-```python
-# GOOD: generic message to client, details in logs
-except IntegrityError as exc:
-    logger.error("Duplicate entry on user creation", extra={
-        "email_hash": hash_email(data["email"]),
-        "error": str(exc),
-    })
-    raise ConflictError("An account with this email already exists")
-```
-
-```typescript
-// GOOD: generic error to UI, details in server logs
-export async function createUser(data: UserInput) {
-  const res = await api.post("/users/", data);
-
-  if (res.status === 409) {
-    throw new UserFacingError("An account with this email already exists");
-  }
-
-  if (!res.ok) {
-    throw new UserFacingError("Something went wrong. Please try again.");
-  }
-
-  return res.data;
-}
-```
-
-### Wrong Pattern
-
-```python
-# BAD: leaks DB details
-except IntegrityError as exc:
-    return Response(
-        {"error": str(exc)},  # "duplicate key violates unique constraint users_email_key"
-        status=409,
-    )
-```
+The client gets a generic, human message; the specifics go to the logs with a correlating id. A leaked `str(exc)` from a database error names the table, the column and the constraint — a free schema map for anyone probing the endpoint. Correct + wrong pairs, Python and TypeScript: [references/error-handling.md](references/error-handling.md).
 
 ## 3. Typed Exceptions
 
-Use domain-specific exception classes. Never raise bare `ValueError` or `Exception`.
+Use domain-specific exception classes. Never raise bare `ValueError` or `Exception`. A typed exception carries its own status code and default message, so the handler maps it without a lookup table some new error forgets to join.
 
-### Backend Convention (Python)
-
-Each bounded context defines exceptions in its own `exceptions.py` module — for Django apps that's `apps/<domain>/exceptions.py`, for FastAPI services that's `domain/<name>/exceptions.py`, for the coding-os meta-repo that's `src/core/<subsystem>/exceptions.py`. The shape is the same regardless of framework:
-
-```python
-# domain-local exceptions.py
-from core.exceptions import AppError  # project's base AppError lives in a single shared module
-
-class ProductNotFoundError(AppError):
-    status_code = 404
-    default_detail = "Product not found"
-
-class ProductUnavailableError(AppError):
-    status_code = 410
-    default_detail = "Product is no longer available"
-```
-
-### Frontend Convention
-
-Typed errors live in the relevant module or a shared errors file:
-
-```typescript
-// lib/errors.ts
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    public statusCode: number,
-    public code?: string,
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
-}
-
-export class UserFacingError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "UserFacingError";
-  }
-}
-```
+Each bounded context defines its exceptions in its own `exceptions.py` module — for Django apps `apps/<domain>/exceptions.py`, for FastAPI services `domain/<name>/exceptions.py`, for the coding-os meta-repo `src/core/<subsystem>/exceptions.py`, all subclassing one shared base `AppError`. On the frontend they live in the relevant module or a shared `lib/errors.ts`. Both conventions, written out: [references/error-handling.md](references/error-handling.md).
 
 ## 4. Self-Documenting Code
 
@@ -567,50 +397,9 @@ Budgets for hand-written source (the backstop, not a target to grow into):
 
 `block-bad-patterns.sh` BLOCKs a `Write` that authors a file over 500 and warns from 400, `make check-file-size` applies the same two numbers to a whole tree, and the merge-time ratchet (`tests/test_file_size_budget.py`) now enforces 500 as well — the burndown is finished, so write-time and merge-time agree on one number instead of the 800-line grace period that covered the legacy debt ([ci-gates.md](../../../../docs/engineering/ci-gates.md) § File-size ratchet). Exempt: generated code, vendored trees, machine-produced schemas/data, and the three recorded exceptions.
 
-Find the seam by asking what changes together:
+A file rule alone is gameable — a 280-line file holding one 230-line function passes every file check and is still unmaintainable. Four companion budgets carry equal weight, and the *tightest* one that trips is the one to act on: **function length** ~20 lines (50 is the hard smell), **cyclomatic complexity** 10 preferred / 20 hard, **parameters** 3-4, and **module dependencies** — a file importing from >6 siblings is a coordinator that should delegate. Ruff carries a per-file baseline for the first four; it may only shrink.
 
-| Seam | Split into |
-|---|---|
-| Public surface vs implementation | facade module + private `_impl` siblings |
-| Independent feature groups | one module per group, re-exported from the facade |
-| Shared helpers pulled by both | a leaf `_shared` module that imports neither |
-
-Keep the facade's importable names identical so callers, tests, and monkeypatches never notice — a split that changes the public surface is a refactor plus a breaking change, and should not be one commit.
-
-**A split changes five resolution mechanisms at once, and no linter sees any of them.** Verify each by executing, not by reading:
-
-| Mechanism | How it breaks | Check |
-|---|---|---|
-| Import binding | flat vs package vs path-loaded imports resolve differently | run each entry point |
-| Monkeypatch target | the moved function reads its OWN module globals, so a patch on the facade misses half the call sites | have siblings call facade helpers through the module object |
-| Decorator registration | an ImportError silently drops a command or route — no crash, no failing test | count registered commands/routes before and after |
-| Test fixtures | a split test file loses its `conn`-style fixtures, reported only at run time | run the suite, not just collection |
-| Derived artifacts | openapi.json, generated types, golden snapshots drift | regenerate and re-check |
-| Statement order | a module-level side effect (`if __name__`, router include, cache priming) left above an appended registration block runs too early | invoke the delivered entry point, not an import |
-
-Module-level state must move **with** the function that declares `global` on it — an AST scan reports nothing, because `global x` marks the name local. Anything two siblings need goes in a leaf module that imports neither.
-
-**Then prove the move was a move.** A suite can stay green while a moved body quietly lost a line: a dropped `return` on a `-> dict` function made every caller compare `None != None`, and `cos doctor` reported a broken adapter as healthy. One command, seconds not minutes:
-
-```bash
-uv run python src/scripts/check_split_parity.py <pre-split-ref> <old-path> <package-dir>
-```
-
-It reports any function that vanished or whose body is no longer byte-identical. Pass the **directory** so nothing is missed. Deliberate edits are reported too — that is correct: land them as their own commit, never inside the move.
-
-### The companion budgets — a file rule alone is gameable
-
-A 280-line file holding one 230-line function passes every file check and is still unmaintainable. Four budgets carry equal weight, and the *tightest* one that trips is the one to act on:
-
-| Budget | Limit | Enforced by |
-|---|---|---|
-| File length | 500 (see tiers above) | `block-bad-patterns.sh`, `make check-file-size`, CI ratchet |
-| Function length | ~20 lines; 50 is the hard smell | review + `PLR0915` (statements) |
-| Cyclomatic complexity | 10 preferred, 20 hard | ruff `C901`, `PLR0912` (branches) |
-| Parameters | 3-4; use an options object beyond | ruff `PLR0913` |
-| Module dependencies | if a file imports from >6 sibling modules, it is probably a coordinator that should delegate | review |
-
-Ruff carries a per-file baseline for the first four in `pyproject.toml`; it may only shrink. A new violation is a design signal, not a number to baseline away.
+Splitting is where files silently break: a split changes six resolution mechanisms at once — import binding, monkeypatch target, decorator registration, test fixtures, derived artifacts, statement order — plus literal filenames in CI config, and no linter sees any of them. The seam table, the failure mode of each mechanism, and the byte-identity parity check (`check_split_parity.py`) to prove a move was a move: [references/file-design.md](references/file-design.md). Read it before the first cut.
 
 ## 5. Edge Case Awareness
 
@@ -625,74 +414,16 @@ Before writing any function, ask:
 | What if there is concurrent access? | Two users buy the last item simultaneously |
 | What if the data is stale? | Cached price after a price change |
 
-Address these explicitly — with guard clauses, validation, or documented assumptions.
-
-```python
-# GOOD: explicit None/empty handling
-def get_product_display_name(product: Product | None) -> str:
-    if product is None:
-        raise ProductNotFoundError("Product reference is missing")
-
-    if not product.name or not product.name.strip():
-        logger.warning("Product has empty name", extra={"product_id": product.id})
-        return f"Product #{product.id}"
-
-    return product.name.strip()
-```
+Address these explicitly — with guard clauses, validation, or documented assumptions, so each branch is a decision the reader can audit. Worked example: [references/error-handling.md](references/error-handling.md).
 
 ## 6. Test Error Paths
-
-### Rules
 
 - Every `try/except` block needs a test that triggers the `except` branch
 - Every validation rule needs a test with invalid input
 - Never write `test_does_not_crash` — assert the correct behavior
-- Test the error type, message, and status code
+- Test the error type, message, and status code — a test that only asserts "it threw" still passes after a refactor turns a 403 into a 500
 
-### Python Test Example
-
-```python
-class TestVerifyPurchase:
-    def test_returns_purchase_when_verified(self, verified_purchase):
-        result = verify_purchase(verified_purchase.user_id, verified_purchase.product_id)
-        assert result.id == verified_purchase.id
-        assert result.status == PurchaseStatus.COMPLETED
-
-    def test_raises_permission_denied_when_not_found(self):
-        with pytest.raises(PermissionDeniedError, match="Purchase not found"):
-            verify_purchase("nonexistent-user", "nonexistent-product")
-
-    def test_raises_service_unavailable_on_verification_failure(self, mocker):
-        mocker.patch(
-            "apps.purchases.services.PurchaseService.get_verified",
-            side_effect=VerificationError("upstream timeout"),
-        )
-        with pytest.raises(ServiceUnavailableError, match="Unable to verify"):
-            verify_purchase("user-1", "product-1")
-```
-
-### TypeScript Test Example
-
-```typescript
-describe("fetchUserProfile", () => {
-  it("returns profile data on success", async () => {
-    mockApi.get.mockResolvedValue({ ok: true, data: mockProfile });
-
-    const result = await fetchUserProfile("user-1");
-
-    expect(result).toEqual(mockProfile);
-  });
-
-  it("throws ApiError on non-OK response", async () => {
-    mockApi.get.mockResolvedValue({ ok: false, status: 404 });
-
-    await expect(fetchUserProfile("user-1")).rejects.toThrow(ApiError);
-    await expect(fetchUserProfile("user-1")).rejects.toMatchObject({
-      statusCode: 404,
-    });
-  });
-});
-```
+Python (`pytest.raises` with `match=`) and TypeScript (`rejects.toMatchObject`) test shapes: [references/error-handling.md](references/error-handling.md).
 
 ## 7. Cross-Service Code Placement — Reuse First
 
