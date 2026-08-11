@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useApiGet } from '@/lib/hooks';
-import { apiGet, apiPost } from '@/lib/api-client';
 import { Modal } from '@/components/Modal';
 import { ActionPill, Banner } from '@/layout/HubPrimitives';
-import { slugifyProjectName } from './HubHome';
+import { CORE_SKILLS, INPUT_CLASS, PHASE_LABELS, PHASE_ORDER, readParkedJob } from './onboarding/wizard-constants';
+import { Field, SkillRow, ToggleChip } from './onboarding/WizardControls';
+import { useWizardComposer } from './onboarding/useWizardComposer';
+
+// Re-exported for HubHome, which reads the parked job on mount.
+export { readParkedJob };
 
 /**
  * New-project Composer — TASK-419 (supersedes the 8-step wizard, TASK-358).
@@ -20,164 +22,6 @@ import { slugifyProjectName } from './HubHome';
  *          host several adapters (agents is a list — hub.py::_resolve_agents).
  */
 
-interface PresetItem {
-  id: string; label: string; description: string; stacks: string[];
-  provenance?: 'core' | 'user';
-}
-interface StackItem { id: string; label: string; category: string; language: string }
-interface AdapterItem { id: string; label: string }
-interface ModuleItem { id: string; label: string; kernel: boolean; depends_on: string[] }
-interface ModulesPayload { modules: ModuleItem[]; default_profile: string; default_disabled: string[] }
-interface SkillEntry {
-  name: string; tier: string | null; domain: string[];
-  description: string; provenance: string; validated: boolean;
-}
-interface StackSkillGroups {
-  stack: string;
-  groups: { required: SkillEntry[]; recommended: SkillEntry[]; optional: SkillEntry[] };
-}
-interface ValidatePayload {
-  valid: boolean; name: string; auto_named: boolean; target: string;
-  templates: string[]; agents: string[]; swimlanes: string[]; conflicts: string[];
-}
-
-interface JobSnapshot { job_id: string; status: string; phase: string; log: string[] }
-
-const PARKED_JOB_KEY = 'cos.init-job';
-const rememberJob = (id: string) => {
-  try { window.sessionStorage.setItem(PARKED_JOB_KEY, id); } catch { /* private mode */ }
-};
-export const readParkedJob = (): string => {
-  try { return window.sessionStorage.getItem(PARKED_JOB_KEY) ?? ''; } catch { return ''; }
-};
-const forgetJob = () => {
-  try { window.sessionStorage.removeItem(PARKED_JOB_KEY); } catch { /* private mode */ }
-};
-
-interface JobProgress {
-  jobId: string;
-  phase: string;
-  log: string[];
-  status: 'running' | 'succeeded' | 'failed' | 'cancelled';
-  error: string;
-}
-
-const PHASE_ORDER = ['validate', 'scaffold', 'adapters', 'docs-seed', 'register', 'done'];
-const PHASE_LABELS: Record<string, string> = {
-  validate: 'Validating your choices',
-  scaffold: 'Scaffolding the project tree',
-  adapters: 'Installing agent adapters',
-  'docs-seed': 'Agent is processing your description & docs',
-  register: 'Registering with the hub',
-  done: 'Done',
-};
-
-const NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
-
-// The 9 universal skills every project gets (base.yaml). Shown read-only so the
-// user understands the floor without us pretending they are choices.
-const CORE_SKILLS = [
-  'thinking_os', 'clean-code', 'graph-explorer', 'search', 'task-driver',
-  'codebase-explorer', 'testing-strategy', 'observability', 'incident-response',
-];
-
-interface ComposerState {
-  mode: 'preset' | 'custom';
-  preset: string;
-  stacks: string[];
-  agents: string[];
-  extraSkills: string[];
-  disabledModules: string[];
-  name: string;
-  skipName: boolean;
-  description: string;
-  parentDir: string;
-}
-
-// --------------------------------------------------------------------------
-// Presentational primitives (tokens + ActionPill vocabulary, no raw hex)
-// --------------------------------------------------------------------------
-
-function ToggleChip({
-  active, label, hint, locked, onClick, testId,
-}: {
-  active: boolean; label: string; hint?: string; locked?: boolean;
-  onClick?: () => void; testId?: string;
-}) {
-  return (
-    <button
-      type="button"
-      data-testid={testId}
-      onClick={onClick}
-      disabled={locked}
-      aria-pressed={active}
-      title={hint}
-      className={[
-        'rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
-        locked
-          ? 'cursor-default border-[var(--cos-border)] bg-[var(--cos-bg)]/40 text-[var(--cos-muted)]'
-          : active
-            ? 'border-[var(--accent)] bg-[var(--accent)]/12 text-[var(--accent)] shadow-sm'
-            : 'border-[var(--cos-border)] bg-[var(--cos-panel)]/60 text-[var(--cos-text)] hover:border-[var(--accent)]/60 hover:text-[var(--accent)]',
-      ].join(' ')}
-    >
-      {label}
-    </button>
-  );
-}
-
-function tierBadge(tier: string | null) {
-  if (!tier) return null;
-  return (
-    <span className="rounded bg-[var(--cos-bg)]/60 px-1.5 py-px text-[9px] font-medium uppercase tracking-wide text-[var(--cos-faint)]">
-      {tier}
-    </span>
-  );
-}
-
-function SkillRow({ entry, action }: { entry: SkillEntry; action?: React.ReactNode }) {
-  return (
-    <li className="flex items-start gap-2 rounded-lg border border-[var(--cos-border)]/70 bg-[var(--cos-bg)]/30 px-2.5 py-2">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <code className="text-xs font-semibold text-[var(--cos-text)]">{entry.name}</code>
-          {tierBadge(entry.tier)}
-          {entry.domain.slice(0, 3).map((d) => (
-            <span key={d} className="rounded bg-[var(--accent)]/10 px-1.5 py-px text-[9px] text-[var(--accent)]">
-              {d}
-            </span>
-          ))}
-        </div>
-        {entry.description && (
-          <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-[var(--cos-muted)]">
-            {entry.description}
-          </p>
-        )}
-      </div>
-      {action && <div className="shrink-0 self-center">{action}</div>}
-    </li>
-  );
-}
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-[var(--cos-text)]">{label}</span>
-      {hint && <span className="mb-1.5 block text-[11px] leading-snug text-[var(--cos-muted)]">{hint}</span>}
-      {children}
-    </label>
-  );
-}
-
-const INPUT_CLASS =
-  'w-full rounded-lg border border-[var(--cos-border)] bg-[var(--cos-bg)] px-3 py-2 text-sm text-[var(--cos-text)] '
-  + 'placeholder-[var(--cos-faint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
-
-// --------------------------------------------------------------------------
-// Composer
-// --------------------------------------------------------------------------
-
 export default function OnboardingWizard({
   suggestions, onClose, onCreated,
 }: {
@@ -185,261 +29,39 @@ export default function OnboardingWizard({
   onClose: () => void;
   onCreated: (slug: string) => void;
 }) {
-  const [state, setState] = useState<ComposerState>({
-    mode: 'preset', preset: '', stacks: [], agents: ['claude'],
-    extraSkills: [], disabledModules: [], name: '', skipName: false, description: '',
-    parentDir: suggestions[0] ?? '',
-  });
-  const [error, setError] = useState<string | null>(null);
-  const [skillGroups, setSkillGroups] = useState<StackSkillGroups[]>([]);
-  const [validation, setValidation] = useState<ValidatePayload | null>(null);
-  const [validating, setValidating] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [presetQuery, setPresetQuery] = useState('');
-  const [job, setJob] = useState<JobProgress | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const { data: presetsData } = useApiGet<{ presets: PresetItem[] }>(['hub-presets'], '/api/hub/presets');
-  const { data: stacksData } = useApiGet<{ stacks: StackItem[] }>(['hub-stacks'], '/api/hub/stacks');
-  const { data: adaptersData } = useApiGet<{ adapters: AdapterItem[] }>(['hub-adapters'], '/api/hub/adapters');
-  const { data: catalogData } = useApiGet<{ skills: SkillEntry[] }>(['hub-skills'], '/api/hub/skills');
-  const { data: modulesData } = useApiGet<ModulesPayload>(['hub-modules'], '/api/hub/modules');
-  // Seed the chips with the profile a hand-typed `cos init` would apply, so the
-  // toggles show the real starting point instead of an all-on fiction. Once the
-  // user touches a chip their choice wins (the create call sends --profile full).
-  const modulesSeeded = useRef(false);
-  useEffect(() => {
-    const seed = modulesData?.default_disabled;
-    if (!seed || modulesSeeded.current) return;
-    modulesSeeded.current = true;
-    setState((s) => (s.disabledModules.length ? s : { ...s, disabledModules: [...seed] }));
-  }, [modulesData]);
-
-  const selectedStacks = useMemo(() => {
-    if (state.mode === 'preset') {
-      return presetsData?.presets.find((p) => p.id === state.preset)?.stacks ?? [];
-    }
-    return state.stacks;
-  }, [state.mode, state.preset, state.stacks, presetsData]);
-  const stacksSig = selectedStacks.join(',');
-
-  const stacksByLanguage = useMemo(() => {
-    const groups = new Map<string, StackItem[]>();
-    for (const s of stacksData?.stacks ?? []) {
-      const lang = s.language || 'other';
-      groups.set(lang, [...(groups.get(lang) ?? []), s]);
-    }
-    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [stacksData]);
-
-  const filteredPresets = useMemo(() => {
-    const q = presetQuery.trim().toLowerCase();
-    const all = presetsData?.presets ?? [];
-    if (!q) return all;
-    return all.filter(
-      (p) => p.label.toLowerCase().includes(q)
-        || p.description.toLowerCase().includes(q)
-        || p.stacks.some((s) => s.toLowerCase().includes(q)),
-    );
-  }, [presetsData, presetQuery]);
-
-  // Skill groups for the selected stacks + auto-seed recommended core skills
-  // into extra_skills (they are NOT auto-installed by the scaffold — only the
-  // stack's own skill dirs are linked, so the curated core companions need to
-  // ride the --skills flag). Re-seeds whenever the stack set changes; user
-  // toggles persist within a stack set.
-  useEffect(() => {
-    if (selectedStacks.length === 0) { setSkillGroups([]); setState((s) => ({ ...s, extraSkills: [] })); return; }
-    let cancelled = false;
-    void Promise.all(
-      selectedStacks.map((id) =>
-        apiGet<StackSkillGroups>(`/api/hub/stacks/${encodeURIComponent(id)}/skills`)
-          .then(([data]) => data)
-          .catch(() => null)),
-    ).then((results) => {
-      if (cancelled) return;
-      const groups = results.filter(Boolean) as StackSkillGroups[];
-      setSkillGroups(groups);
-      const seed = new Set<string>();
-      for (const g of groups) {
-        for (const e of g.groups.recommended) {
-          if (e.provenance === 'core' && e.validated) seed.add(e.name);
-        }
-      }
-      setState((s) => ({ ...s, extraSkills: [...seed] }));
-    });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stacksSig]);
-
-  const runValidate = useCallback(async () => {
-    if (!state.parentDir.trim()) { setValidation(null); return; }
-    setValidating(true);
-    setError(null);
-    try {
-      const [data] = await apiPost<ValidatePayload>('/api/hub/registry/validate-init', {
-        name: state.skipName ? '' : slugifyProjectName(state.name),
-        parent_dir: state.parentDir.trim(),
-        stacks: state.mode === 'custom' ? state.stacks : [],
-        preset: state.mode === 'preset' ? state.preset : '',
-        agents: state.agents,
-        disabled_modules: state.disabledModules,
-      });
-      setValidation(data);
-    } catch (err) {
-      setValidation(null);
-      setError(err instanceof Error ? err.message : 'validation failed');
-    } finally {
-      setValidating(false);
-    }
-  }, [state.parentDir, state.skipName, state.name, state.mode, state.stacks, state.preset, state.agents, state.disabledModules]);
-
-  // Debounced live preview — re-validates whenever a relevant choice changes.
-  useEffect(() => {
-    const t = setTimeout(() => { void runValidate(); }, 350);
-    return () => clearTimeout(t);
-  }, [runValidate]);
-
-  const recommendedChips = useMemo(() => {
-    const seen = new Set<string>();
-    const out: SkillEntry[] = [];
-    for (const g of skillGroups) {
-      for (const e of g.groups.recommended) {
-        if (e.provenance === 'core' && e.validated && !seen.has(e.name)) { seen.add(e.name); out.push(e); }
-      }
-    }
-    return out;
-  }, [skillGroups]);
-
-  const requiredEntries = useMemo(() => {
-    const seen = new Set<string>();
-    const out: SkillEntry[] = [];
-    for (const g of skillGroups) {
-      for (const e of g.groups.required) {
-        if (!seen.has(e.name)) { seen.add(e.name); out.push(e); }
-      }
-    }
-    return out;
-  }, [skillGroups]);
-
-  const optionalSkills = useMemo(() => {
-    const installed = new Set(
-      skillGroups.flatMap((g) => [...g.groups.required, ...g.groups.recommended]).map((e) => e.name),
-    );
-    return (catalogData?.skills ?? []).filter(
-      (s) => s.provenance === 'core' && s.validated && !installed.has(s.name) && !CORE_SKILLS.includes(s.name),
-    );
-  }, [catalogData, skillGroups]);
-
-  const toggle = (list: string[], id: string) =>
-    list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
-
-  const moduleCatalog = modulesData?.modules ?? [];
-  const isModuleOn = (id: string) => !state.disabledModules.includes(id);
-  // Toggle a module, keeping the dependency graph valid (tasks needs docs):
-  // disabling a module also disables its dependents; enabling re-enables deps.
-  const toggleModule = (id: string) => setState((s) => {
-    const disabled = new Set(s.disabledModules);
-    if (disabled.has(id)) {
-      disabled.delete(id);
-      for (const dep of moduleCatalog.find((m) => m.id === id)?.depends_on ?? []) disabled.delete(dep);
-    } else {
-      disabled.add(id);
-      for (const m of moduleCatalog) if (m.depends_on.includes(id)) disabled.add(m.id);
-    }
-    return { ...s, disabledModules: [...disabled] };
-  });
-
-  const slug = slugifyProjectName(state.name);
-  // Empty name is fine — the backend assigns a temp slug (auto_named). Only a
-  // non-empty name has to be a valid slug.
-  const nameOk = state.skipName || slug === '' || NAME_RE.test(slug);
-  const choiceOk = state.mode === 'preset' ? state.preset !== '' : true;
-  const canCreate = Boolean(validation?.valid) && state.parentDir.trim() !== ''
-    && nameOk && choiceOk && state.agents.length > 0 && !busy;
-
-  const create = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const [started] = await apiPost<{ job_id: string; name: string }>('/api/hub/registry/init', {
-        name: state.skipName ? '' : slugifyProjectName(state.name),
-        parent_dir: state.parentDir.trim(),
-        stacks: state.mode === 'custom' ? state.stacks : [],
-        preset: state.mode === 'preset' ? state.preset : '',
-        agents: state.agents,
-        description: state.description,
-        extra_skills: state.extraSkills,
-        disabled_modules: state.disabledModules,
-        background: true,
-      });
-      rememberJob(started.job_id);
-      setJob({ jobId: started.job_id, phase: 'validate', log: [], status: 'running', error: '' });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'create failed');
-      setBusy(false);
-    }
-  }, [state]);
-
-  // A create outlives the tab: the job id is server-side state, so park it in
-  // sessionStorage and re-attach on mount. Without this a reload during a
-  // 30-second scaffold silently orphans the progress view.
-  useEffect(() => {
-    const parked = readParkedJob();
-    if (!parked) return;
-    apiGet<JobSnapshot>(`/api/hub/init-jobs/${encodeURIComponent(parked)}`)
-      .then(([snapshot]) => {
-        // HubHome opens this modal whenever a job is parked, so a finished or
-        // vanished job has to close it again — otherwise the user faces an
-        // empty "Create a new project" dialog they never asked for.
-        if (!snapshot || snapshot.status !== 'running') { forgetJob(); onClose(); return; }
-        setBusy(true);
-        setJob({
-          jobId: parked,
-          phase: snapshot.phase,
-          log: snapshot.log,
-          status: 'running',
-          error: '',
-        });
-      })
-      .catch(() => { forgetJob(); onClose(); });
-  }, []);
-
-  // Job progress stream (TASK-362): replay + follow; reconnects after refresh.
-  useEffect(() => {
-    if (!job || job.status !== 'running') return;
-    const source = new EventSource(`/api/hub/init-jobs/${encodeURIComponent(job.jobId)}/events`);
-    const append = (line: string) =>
-      setJob((j) => (j ? { ...j, log: [...j.log.slice(-199), line] } : j));
-    source.addEventListener('log', (e) => append((JSON.parse((e as MessageEvent).data) as { line: string }).line));
-    source.addEventListener('phase', (e) =>
-      setJob((j) => (j ? { ...j, phase: (JSON.parse((e as MessageEvent).data) as { phase: string }).phase } : j)));
-    const terminal = (status: JobProgress['status']) => (e: Event) => {
-      const payload = JSON.parse((e as MessageEvent).data) as { error?: string; result?: { slug?: string } };
-      source.close();
-      forgetJob();
-      setBusy(false);
-      if (status === 'succeeded') { onCreated(payload.result?.slug ?? ''); return; }
-      setJob((j) => (j ? { ...j, status, error: payload.error ?? '' } : j));
-      if (status === 'failed') setError(payload.error || 'init failed');
-    };
-    source.addEventListener('succeeded', terminal('succeeded'));
-    source.addEventListener('failed', terminal('failed'));
-    source.addEventListener('cancelled', terminal('cancelled'));
-    source.onerror = () => { /* EventSource auto-reconnects; job state is server-side */ };
-    return () => source.close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [job?.jobId, job?.status]);
-
-  const cancelJob = useCallback(async () => {
-    if (!job) return;
-    try {
-      await apiPost(`/api/hub/init-jobs/${encodeURIComponent(job.jobId)}/cancel`, {});
-    } catch {
-      // terminal event (or 404) resolves the UI state either way
-    }
-  }, [job]);
-
+  const {
+    adaptersData,
+    advancedOpen,
+    busy,
+    canCreate,
+    cancelJob,
+    create,
+    error,
+    filteredPresets,
+    isModuleOn,
+    job,
+    moduleCatalog,
+    modulesData,
+    nameOk,
+    optionalSkills,
+    presetQuery,
+    presetsData,
+    recommendedChips,
+    requiredEntries,
+    selectedStacks,
+    setAdvancedOpen,
+    setError,
+    setJob,
+    setPresetQuery,
+    setState,
+    slug,
+    stacksByLanguage,
+    state,
+    toggle,
+    toggleModule,
+    validating,
+    validation,
+  } = useWizardComposer(suggestions, onClose, onCreated);
   // ---- Job progress view -------------------------------------------------
   if (job) {
     const running = job.status === 'running';
@@ -491,7 +113,6 @@ export default function OnboardingWizard({
   const setupSummary = state.mode === 'preset'
     ? (presetsData?.presets.find((p) => p.id === state.preset)?.label ?? '—')
     : (selectedStacks.join(' + ') || 'base only');
-
   return (
     <Modal
       open
