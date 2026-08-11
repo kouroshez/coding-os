@@ -54,5 +54,4 @@ def _python_file_docstring(content: str) -> str | None:
         tree = ast.parse(content)
     except SyntaxError:
         return None
-    doc = ast.get_docstring(tree)
-    return doc.strip() if doc else None
+    return ast.get_docstring(tree)

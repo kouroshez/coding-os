@@ -44,6 +44,18 @@ The consumer script is likewise absent from *this* repo's CI: it would fail on
 every run today. coding-os uses the per-file ratchet until the burndown lands; a
 fresh consumer project starts clean and can gate on the script from day one.
 
+## Split parity — prove the move was a move
+
+`uv run python src/scripts/check_split_parity.py <pre-split-ref> <old-path> <dir>`
+re-parses the pre-split module and every module in the post-split package, and
+reports any function that vanished or whose body is no longer byte-identical.
+Pass the **directory**, not a hand-written file list — naming files by hand
+produces false VANISHED reports for functions that landed somewhere unlisted.
+
+It runs in seconds where the equivalent suite takes minutes, and it catches the
+class of defect a suite cannot: an edit that rides along inside a "move" commit.
+Deliberate edits are reported too, which is the point — land them separately.
+
 ## Why the mypy gate has two tiers
 
 A count ratchet cannot tell a genuine new bug from noise. On 2026-08-10 a module
