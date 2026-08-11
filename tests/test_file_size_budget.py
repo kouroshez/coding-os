@@ -43,7 +43,6 @@ BASELINE: dict[str, int] = {
     "src/core/thinking_os/tests/test_dispatcher.py": 914,
     "src/core/graph_os/extractors/code_generic.py": 914,
     "src/core/thinking_os/tests/test_supervision.py": 868,
-    "src/core/thinking_os/tools/memory.py": 839,
     "tests/test_hooks_phase_f.py": 837,
     "src/core/graph_os/tests/test_i7_extractors.py": 825,
     "src/core/thinking_os/tests/test_seed_simulation.py": 822,
