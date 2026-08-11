@@ -1,4 +1,17 @@
-"""Coding OS — Claude-SDK dispatcher (adapters/claude)."""
+"""Coding OS — Claude-SDK dispatcher (adapters/claude).
+
+Module layout:
+  _claude_sdk_options    tool floors, model aliases, auth env, ClaudeAgentOptions
+  _claude_sdk_telemetry  presence files + cognition-trace events
+  _claude_sdk_result     SDK error string -> capacity/retry taxonomy
+  this module            the dispatch loop and the DispatchResult it returns
+
+Loaded two ways: as `adapters.claude.sdk_dispatcher` when the wheel is on the
+path, and by file path via `spec_from_file_location` by the dispatcher factory
+and the Hub chat route. The second identity has no parent package, so the
+siblings resolve through this directory on `sys.path` rather than a relative
+import.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +20,7 @@ import json
 import logging
 import os
 import re
+import sys
 import time
 import uuid
 from pathlib import Path
@@ -15,372 +29,32 @@ from typing import Any
 from thinking_os.dispatcher import DispatchRequest, DispatchResult
 from thinking_os.dispatcher_helpers import extract_json_block, load_agent_prompt
 
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.append(str(Path(__file__).resolve().parent))
+
+from _claude_sdk_options import (
+    _CHAT_BASE_TOOLS as _CHAT_BASE_TOOLS,
+    _CHAT_PROFILES as _CHAT_PROFILES,
+    _DEFAULT_COS_MCP_ALLOW as _DEFAULT_COS_MCP_ALLOW,
+    _DESTRUCTIVE_BASH_DENY as _DESTRUCTIVE_BASH_DENY,
+    _OTEL_FORWARDED_VARS as _OTEL_FORWARDED_VARS,
+    _XHIGH_EFFORT_MODEL_PREFIXES as _XHIGH_EFFORT_MODEL_PREFIXES,
+    _claude_auth_env as _claude_auth_env,
+    _cos_mcp_servers as _cos_mcp_servers,
+    _hub_settings_path as _hub_settings_path,
+    _resolve_model_alias as _resolve_model_alias,
+    _resolve_output_schema as _resolve_output_schema,
+    claude_agent_options as claude_agent_options,
+    claude_session_options as claude_session_options,
+)
+from _claude_sdk_result import _failure_fields as _failure_fields
+from _claude_sdk_telemetry import (
+    _dispatch_trace_content_enabled as _dispatch_trace_content_enabled,
+    _emit_dispatch_trace as _emit_dispatch_trace,
+    _presence_write as _presence_write,
+)
+
 logger = logging.getLogger("coding_os.dispatcher.claude_sdk")
-
-# High-tier reasoning models (Fable 5, Opus 4.8/4.7) take the "xhigh"
-# effort level — the best setting for coding/agentic work and the Claude
-# Code default. "xhigh" is available in the Py SDK since 0.1.74 (it was
-# TS-only before) and falls back to "high" on models that don't support
-# it. Prefix-matched so dated snapshots (…-20260101) are covered too.
-_XHIGH_EFFORT_MODEL_PREFIXES = (
-    "claude-fable-5",
-    "claude-opus-4-8",
-    "claude-opus-4-7",
-)
-
-# Default MCP allow-list pattern. coding-os exposes ~60 cos_* tools via
-# the central FastMCP server registered at .mcp.json::mcpServers.coding-os.
-# `acceptEdits` and `default` permission modes do NOT auto-approve MCP,
-# so we list them explicitly. Wildcard form per SDK docs §D.2.
-_DEFAULT_COS_MCP_ALLOW = "mcp__coding-os__*"
-
-# Destructive Bash patterns headless dispatch must never run. Hard-deny
-# wins over allow rules even in bypassPermissions (digest §B.4 order),
-# so this is defense-in-depth on top of permission_mode="dontAsk".
-_DESTRUCTIVE_BASH_DENY = (
-    "Bash(rm -rf:*)",
-    "Bash(rm -fr:*)",
-    "Bash(git push --force:*)",
-    "Bash(git push -f:*)",
-    "Bash(git reset --hard:*)",
-    "Bash(git clean -f:*)",
-    "Bash(sudo:*)",
-    "Bash(curl * | bash:*)",
-    "Bash(curl * | sh:*)",
-    "Bash(wget * | bash:*)",
-    "Bash(wget * | sh:*)",
-)
-
-# Base tool allow-list for the interactive Hub-chat surface. The Claude CLI
-# treats --allowedTools as an EXCLUSIVE allow-list under permission_mode=
-# "dontAsk" (verified live: listing only the MCP wildcard denies Read), so
-# the chat profile must enumerate the base tools it keeps. Write/Edit/
-# MultiEdit are intentionally absent — chat is read+research+MCP and must
-# not mutate code (closes the dogfood-corruption gap by construction).
-_CHAT_BASE_TOOLS = (
-    "Read",
-    "Grep",
-    "Glob",
-    "Bash",
-    "WebFetch",
-    "WebSearch",
-    "TodoWrite",
-)
-
-_CHAT_PROFILES = ("chat", "chat_resume")
-
-
-def _failure_fields(status: str, error: str | None) -> dict[str, Any]:
-    if status == "ok":
-        return {}
-    message = (error or "").lower()
-    if status == "timeout":
-        return {"error_category": "timeout", "retryable": True, "outcome": "unknown"}
-    retry_after: int | None = None
-    match = re.search(r"(?:retry after|try again in)\s+(\d+)\s*(?:seconds?|s)?", message)
-    if match:
-        retry_after = int(match.group(1))
-    if any(
-        token in message
-        for token in ("rate limit", "usage limit", "quota", "too many requests", "429", "capacity")
-    ):
-        return {
-            "error_category": "capacity",
-            "retryable": True,
-            "retry_after_s": retry_after,
-            "outcome": "known_failed",
-        }
-    if any(
-        token in message
-        for token in ("unauthorized", "authentication", "not logged in", "401", "403")
-    ):
-        return {"error_category": "auth", "outcome": "known_failed"}
-    # Provider-side overload (529) and internal errors (5xx) are NOT your quota,
-    # so they must not open the capacity breaker — but they are the most
-    # retryable class there is, and reporting them non-retryable is wrong.
-    if any(token in message for token in ("overloaded", "529", "api_error", "500", "502", "503")):
-        return {"error_category": "provider", "retryable": True, "outcome": "unknown"}
-    if any(token in message for token in ("not importable", "not found")):
-        return {"error_category": "unavailable", "outcome": "known_failed"}
-    if any(token in message for token in ("must be absolute", "max_budget_usd", "max_turns")):
-        return {"error_category": "invalid", "outcome": "known_failed"}
-    return {"error_category": "provider", "outcome": "unknown"}
-
-
-def _cos_mcp_servers(cwd: str) -> dict[str, Any]:
-    try:
-        data = json.loads((Path(cwd) / ".mcp.json").read_text(encoding="utf-8"))
-        cos = (data.get("mcpServers") or {}).get("coding-os")
-        return {"coding-os": cos} if cos else {}
-    except (OSError, ValueError) as exc:
-        logger.debug("cos mcp_servers unavailable for %s: %s", cwd, exc)
-        return {}
-
-
-_MODEL_ALIAS_CACHE: dict[str, str] = {}
-
-
-# Map a tier alias (sonnet/opus/haiku) → a concrete adapter.yaml model id before
-# it reaches the SDK: the kernel router speaks in tiers (claude-sdk.md — the
-# adapter owns alias→id), so a routed 'sonnet' must become 'claude-sonnet-4-6'.
-# `claude-*` ids and None pass through; an unknown non-id falls back to the
-# adapter default so the SDK never receives a bare tier (R10/F6).
-def _resolve_model_alias(model: str | None) -> str | None:
-    if not model or model.startswith("claude-"):
-        return model
-    alias = model.strip().lower()
-    if not alias:
-        return model
-    if alias in _MODEL_ALIAS_CACHE:
-        return _MODEL_ALIAS_CACHE[alias]
-    resolved = model
-    try:
-        import yaml
-
-        data = (
-            yaml.safe_load(
-                (Path(__file__).resolve().parent / "adapter.yaml").read_text(encoding="utf-8")
-            )
-            or {}
-        )
-        models = [m for m in (data.get("models") or []) if isinstance(m, dict) and m.get("id")]
-        match = next((str(m["id"]) for m in models if alias in str(m["id"]).lower()), None)
-        if match is None:
-            match = next((str(m["id"]) for m in models if m.get("default")), None)
-            if match:
-                logger.warning("unknown model alias %r → adapter default %s", model, match)
-        if match:
-            resolved = match
-    except Exception as exc:
-        logger.debug("model alias resolution skipped for %r: %s", model, exc)
-    _MODEL_ALIAS_CACHE[alias] = resolved
-    return resolved
-
-
-def _hub_settings_path(cwd: str) -> Path:
-    state_dir = os.environ.get("COS_STATE_DIR")
-    if state_dir:
-        return Path(state_dir) / "hub-settings.json"
-    return Path(cwd or os.getcwd()) / ".coding-os" / "hub-settings.json"
-
-
-# Deterministic auth-mode override (TASK-756): Hub Settings → Claude Auth lets a
-# project pick "subscription" (default — the CLI's own OAuth session, byte-
-# identical to before this existed) or "api_key" (forward the user's key as
-# ANTHROPIC_API_KEY). Per platform.claude.com/docs/en/authentication, an API
-# key set on the subprocess env beats subscription OAuth in non-interactive/SDK
-# mode — so "subscription" mode must EXPLICITLY clear the var (not merely omit
-# it), or a stray ANTHROPIC_API_KEY already in the Hub server's own shell would
-# silently override the user's chosen mode. Always returns an override (never
-# {} = no-op) so this is a real switch, not a best-effort hint.
-def _claude_auth_env(cwd: str) -> dict[str, str]:
-    try:
-        data = json.loads(_hub_settings_path(cwd).read_text(encoding="utf-8"))
-        auth = data.get("claude_auth") if isinstance(data, dict) else None
-        if isinstance(auth, dict) and auth.get("mode") == "api_key":
-            key = auth.get("api_key")
-            if isinstance(key, str) and key:
-                return {"ANTHROPIC_API_KEY": key}
-    except (OSError, ValueError) as exc:
-        logger.debug("claude_auth resolution skipped for cwd=%r: %s", cwd, exc)
-    return {"ANTHROPIC_API_KEY": ""}
-
-
-def claude_session_options(
-    profile: str,
-    *,
-    cwd: str,
-    model: str | None = None,
-    system_prompt: Any = None,
-    resume: str | None = None,
-    fork: bool = False,
-    effort: str | None = None,
-):
-    """Build ClaudeAgentOptions for a profile — the SSOT for Claude SDK sessions (docs/adapters/session-options-builder.md)."""
-    from claude_agent_sdk import ClaudeAgentOptions
-
-    if profile not in _CHAT_PROFILES:
-        raise NotImplementedError(
-            f"claude_session_options: profile {profile!r} not yet migrated (TASK-417 phases)"
-        )
-
-    model = _resolve_model_alias(model)  # tier alias → concrete id (R10/F6)
-    opts: dict[str, Any] = {
-        "cwd": cwd,
-        "model": model,
-        "permission_mode": "dontAsk",
-        # Fast conversational surface: skip the ~40s project SessionStart hook
-        # suite. Capability comes from programmatic mcp_servers below, NOT from
-        # setting_sources, so cos_* works without that latency.
-        "setting_sources": [],
-        "include_partial_messages": True,
-        # P2 capability: register coding-os MCP programmatically — renders
-        # --mcp-config independent of setting_sources (subprocess_cli.py:307).
-        "mcp_servers": _cos_mcp_servers(cwd),
-        # Exclusive allow-list under dontAsk: base tools + the MCP wildcard.
-        "allowed_tools": [*_CHAT_BASE_TOOLS, _DEFAULT_COS_MCP_ALLOW],
-        # P3: destructive-Bash deny floor (rm -rf / force-push / sudo / pipe-to-sh).
-        "disallowed_tools": list(_DESTRUCTIVE_BASH_DENY),
-        # Hub Settings → Claude Auth (TASK-756): subscription OAuth by default,
-        # ANTHROPIC_API_KEY when the project opted into api_key mode.
-        "env": _claude_auth_env(cwd),
-    }
-    if system_prompt is not None:
-        opts["system_prompt"] = system_prompt
-    if effort:
-        opts["effort"] = effort
-    if profile == "chat_resume":
-        if resume:
-            opts["resume"] = resume
-        opts["fork_session"] = fork
-    return ClaudeAgentOptions(**opts)
-
-
-def claude_agent_options(**kwargs: Any):
-    """Generic ClaudeAgentOptions constructor — the adapter seam core routes every
-    non-profile option build through (P8: core never constructs the SDK type itself)."""
-    from claude_agent_sdk import ClaudeAgentOptions
-
-    return ClaudeAgentOptions(**kwargs)
-
-
-# OTEL env vars the dispatcher copies from the parent process so the
-# sub-session emits to the same collector. No collector defaults are
-# bundled (D5) — operator sets exporter / endpoint / headers.
-_OTEL_FORWARDED_VARS = (
-    "OTEL_TRACES_EXPORTER",
-    "OTEL_METRICS_EXPORTER",
-    "OTEL_LOGS_EXPORTER",
-    "OTEL_EXPORTER_OTLP_PROTOCOL",
-    "OTEL_EXPORTER_OTLP_ENDPOINT",
-    "OTEL_EXPORTER_OTLP_HEADERS",
-    "OTEL_RESOURCE_ATTRIBUTES",
-    "OTEL_METRIC_EXPORT_INTERVAL",
-    "OTEL_LOGS_EXPORT_INTERVAL",
-    "OTEL_TRACES_EXPORT_INTERVAL",
-    "OTEL_LOG_USER_PROMPTS",
-    "OTEL_LOG_TOOL_DETAILS",
-    "OTEL_LOG_TOOL_CONTENT",
-    "OTEL_LOG_RAW_API_BODIES",
-    "ENABLE_BETA_TRACING_DETAILED",
-    "BETA_TRACING_ENDPOINT",
-    "CLAUDE_CODE_ENABLE_TELEMETRY",
-    "CLAUDE_CODE_ENHANCED_TELEMETRY_BETA",
-)
-
-
-def _resolve_output_schema(meta: dict[str, Any]) -> dict[str, Any] | None:
-    raw = meta.get("output_schema") if isinstance(meta, dict) else None
-    if not isinstance(raw, str) or not raw.strip():
-        return None
-    cls_name = raw.split(".")[-1].strip()
-    if not cls_name.isidentifier():
-        logger.warning("invalid output_schema reference %r — ignoring", raw)
-        return None
-    try:
-        from thinking_os import cognition_schemas as _schemas
-    except ImportError as exc:
-        logger.warning("cognition_schemas import failed: %s", exc)
-        return None
-    schema_cls = getattr(_schemas, cls_name, None)
-    if schema_cls is None or not hasattr(schema_cls, "model_json_schema"):
-        logger.warning("no Pydantic class %s in cognition_schemas", cls_name)
-        return None
-    try:
-        return schema_cls.model_json_schema()
-    except (TypeError, ValueError) as exc:
-        logger.warning("model_json_schema() failed for %s: %s", cls_name, exc)
-        return None
-
-
-# ---------------------------------------------------------------------------
-# Dispatcher
-# ---------------------------------------------------------------------------
-
-
-def _presence_write(
-    project_root: Path, agent: str, session_id: str, event: str, pid: int | None = None
-) -> None:
-    """Write a single presence event for an SDK-spawned sub-agent."""
-    import json as _json
-    import os as _os
-    import time as _time
-
-    try:
-        d = project_root / ".coding-os" / agent / "sessions"
-        d.mkdir(parents=True, exist_ok=True)
-        path = d / f"{session_id}.json"
-        prev: dict[str, Any] = {}
-        if path.exists():
-            try:
-                prev = _json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, _json.JSONDecodeError):
-                prev = {}
-        now = int(_time.time())
-        # Schema parity with _helpers/presence_write.py (the canonical writer):
-        # preserve model/sdk_uuid/used_tokens/context_updated_at so the Hub
-        # reader resolves them for SDK sub-agents too (P5).
-        new = {
-            "agent": agent,
-            "session_id": session_id,
-            "pid": int(pid) if pid is not None else int(prev.get("pid") or _os.getpid()),
-            "started_at": prev.get("started_at"),
-            "last_prompt_at": prev.get("last_prompt_at"),
-            "last_tool_at": prev.get("last_tool_at"),
-            "last_stop_at": prev.get("last_stop_at"),
-            "ended_at": prev.get("ended_at"),
-            "model": prev.get("model"),
-            "sdk_uuid": prev.get("sdk_uuid"),
-            "used_tokens": prev.get("used_tokens"),
-            "context_updated_at": prev.get("context_updated_at"),
-        }
-        if event == "start":
-            new["started_at"] = now
-            new["ended_at"] = None
-            new["last_stop_at"] = None
-        elif event == "prompt":
-            new["last_prompt_at"] = now
-            new["last_stop_at"] = None
-            new["started_at"] = new["started_at"] or now
-        elif event == "tool":
-            new["last_tool_at"] = now
-            new["started_at"] = new["started_at"] or now
-        elif event == "stop":
-            new["last_stop_at"] = now
-        elif event == "end":
-            new["ended_at"] = now
-        # Keep the .json stem on the temp file (canonical writer uses
-        # f"{path}.tmp.{pid}") so presence_gc reaps crash-orphaned temps (P31).
-        tmp = path.parent / f"{path.name}.tmp.{_os.getpid()}"
-        tmp.write_text(_json.dumps(new, separators=(",", ":")), encoding="utf-8")
-        _os.replace(tmp, path)
-    except OSError as exc:
-        logger.debug("SDK presence write failed for %s: %s", session_id, exc)
-
-
-def _dispatch_trace_content_enabled() -> bool:
-    return os.environ.get("COS_DISPATCH_EVENT_CONTENT", "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
-
-
-def _emit_dispatch_trace(
-    session_id: str, kind: str, formula_id: str | None, data: dict[str, Any] | None = None
-) -> None:
-    # Tee a dispatch lifecycle/turn event to the append-only cognition trace
-    # sink (thinking_os.tracing) so the Hub can tail + replay the run. Fail-open:
-    # a tracing failure must never alter the returned EvidenceBundle or break the
-    # dispatch. Partial-message text rides along only when content is explicitly
-    # enabled (COS_DISPATCH_EVENT_CONTENT), off by default.
-    try:
-        from thinking_os.tracing import emit
-
-        emit(session_id, kind, data or {}, role=formula_id)
-    except Exception as exc:
-        logger.debug("dispatch trace emit skipped (%s): %s", kind, exc)
 
 
 class ClaudeSDKDispatcher:

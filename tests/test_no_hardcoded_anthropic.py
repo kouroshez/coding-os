@@ -22,7 +22,7 @@ SECRET_PATTERN = re.compile(r"sk-ant-[a-zA-Z0-9_-]{8,}")
 # files where the inline reference is required for compatibility gating.
 MODEL_PATTERN = re.compile(r"\bclaude-(?:opus|sonnet|haiku)-[0-9]+(?:-[0-9]+)?\b")
 ALLOWED_MODEL_PATHS: set[str] = {
-    "src/adapters/claude/sdk_dispatcher.py",  # _OPUS_47_MODEL_IDS gate
+    "src/adapters/claude/_claude_sdk_options.py",  # xhigh-effort prefix gate
     "src/adapters/claude/adapter.yaml",  # adapter manifest
     "src/core/thinking_os/dispatcher.py",  # docstring example only
     "src/core/thinking_os/_db_migrations.py",  # migration docstring example
