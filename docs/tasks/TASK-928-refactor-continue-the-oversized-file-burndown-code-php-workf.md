@@ -5,12 +5,12 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [tech-debt, file-size, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-10
 started: 2026-08-10
-completed: null
+completed: 2026-08-11
 agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
@@ -500,3 +500,4 @@ references: []
 - 2026-08-11 [claude]: Edit test_branding.py
 - 2026-08-11 [claude]: Edit test_config_routes.py
 - 2026-08-11 [claude]: Edit test_config_routes.py
+- 2026-08-11 [claude]: Status transitioned to complete via cos task-done.
