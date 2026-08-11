@@ -92,6 +92,23 @@ exception below.
 
 Recorded exceptions:
 
+- 2026-08-10 (TASK-928): the `tools/learning.py` (1,061) entry was deleted rather
+  than lowered — the facade is 136 over four new siblings (`_learning_extract`
+  329, `_learning_validate` 343, `_learning_generalize` 209, `_learning_suggest`
+  169) alongside the four that already existed. The gate here is the tool surface
+  plus behaviour: the live 87-tool MCP registry with every name, description and
+  parameter list is byte-identical, `server.py --test` exits 0, and a functional
+  differential against a `git archive` of the pre-split tree runs extract (three
+  argument sets), suggest (three), generalize, both consolidation passes, the
+  four `learn_validate` outcomes and `validate_surfaced_lessons` over one seeded
+  corpus — 21 of 21 result keys identical, the 22nd being the module's incidental
+  stdlib imports. One monkeypatch trap surfaced: five sites patched
+  `tools.learning._read_session_id_for_validate`, which stops reaching
+  `learn_validate` once that function resolves the name from its own module; they
+  now target `tools._learning_validate`. Silencing the flat-sibling
+  `import-not-found` class at each fallback import took mypy from 4,482 to
+  **4,478** — the split paid for itself rather than costing.
+
 - 2026-08-10 (TASK-928): the `routes/board.py` (1,086) entry was deleted rather
   than lowered — the facade is 89 over five parts (`_board_shared`,
   `_board_presence`, `_board_autospawn`, `_board_git`, `_board_tasks`,

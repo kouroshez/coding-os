@@ -517,7 +517,7 @@ class TestLearnValidate:
         # Two distinct sessions so throttle doesn't block the second call.
         sessions = iter(["ses-temporal-A", "ses-temporal-B"])
         monkeypatch.setattr(
-            "tools.learning._read_session_id_for_validate",
+            "tools._learning_validate._read_session_id_for_validate",
             lambda: next(sessions),
         )
 
@@ -550,7 +550,7 @@ class TestLearnValidateThrottle:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         monkeypatch.setattr(
-            "tools.learning._read_session_id_for_validate",
+            "tools._learning_validate._read_session_id_for_validate",
             lambda: "ses-throttle-X",
         )
         first = learn_validate(seeded_conn, pattern_id=pattern_id, was_helpful=True)
@@ -572,7 +572,7 @@ class TestLearnValidateThrottle:
     ) -> None:
         sessions = iter(["ses-A", "ses-B"])
         monkeypatch.setattr(
-            "tools.learning._read_session_id_for_validate",
+            "tools._learning_validate._read_session_id_for_validate",
             lambda: next(sessions),
         )
         first = learn_validate(seeded_conn, pattern_id=pattern_id, was_helpful=True)
@@ -590,7 +590,7 @@ class TestLearnValidateThrottle:
         """Violations must always be recorded — agent must be able to flag
         bad patterns even mid-session."""
         monkeypatch.setattr(
-            "tools.learning._read_session_id_for_validate",
+            "tools._learning_validate._read_session_id_for_validate",
             lambda: "ses-neg",
         )
         r1 = learn_validate(seeded_conn, pattern_id=pattern_id, was_helpful=False)
@@ -609,7 +609,7 @@ class TestLearnValidateThrottle:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         monkeypatch.setattr(
-            "tools.learning._read_session_id_for_validate",
+            "tools._learning_validate._read_session_id_for_validate",
             lambda: "ses-log-test",
         )
         learn_validate(seeded_conn, pattern_id=pattern_id, was_helpful=True)
