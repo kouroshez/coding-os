@@ -354,6 +354,27 @@ from http import HTTPStatus
 return Response(status=HTTPStatus.UNPROCESSABLE_ENTITY)   # not 422
 ```
 
+### No Hardcoded Environment Values
+
+A magic number hides a literal's **meaning**; a hardcoded environment value hides its **deployment**. It works on the machine that wrote it and silently breaks everywhere else — and the test proves nothing, because the test runs on that same machine. Critical Rules 1 (`.claude/` in `src/core/`) and 11 (stack literals in the CLI) are two specific instances of this one mistake.
+
+Never inline: absolute filesystem paths (`/Users/…`, `/home/…`, `C:\`), hostnames and ports (`localhost`, `127.0.0.1:9188`), service URLs, credentials/tokens/keys of any kind, provider or model identifiers (any vendor's catalog string), a person's username or email, or an agent-runtime directory (`.claude/`, `.codex/`).
+
+Resolve them in this order: **(1)** a value the project's own config/registry already owns · **(2)** an environment variable with a documented default · **(3)** a named module-level constant, only when the value is genuinely invariant across every machine and account.
+
+```python
+# GOOD — resolves per environment, documented default
+state_dir = Path(os.environ.get("COS_STATE_DIR", project_root / ".coding-os"))
+hub_url = f"http://{settings.hub_host}:{settings.hub_port}"
+
+# BAD — right on exactly one laptop
+state_dir = Path("/Users/ciro/Files/Project/coding-os/.coding-os")
+hub_url = "http://127.0.0.1:9188"
+default_model = "<vendor>-<model>-<version>"   # a provider's catalog is not your constant
+```
+
+The check before committing any literal: **would this line still be correct on another machine, another OS, another adapter, another account?** If not, it is configuration wearing a literal's clothes.
+
 ### Boolean Parameters: Named Arguments or Enums
 
 A bare boolean at a call site reads as `???`. `transfer_funds(account, 1000, true, false, true)` forces the reader to open the function to learn what each flag means. Forbid positional booleans on public-ish APIs.
@@ -544,7 +565,7 @@ Budgets for hand-written source (the backstop, not a target to grow into):
 | 401-500 | Growth demands strong cohesion; extract where a natural boundary exists. |
 | >500 | Do not grow. Split along an existing architectural seam first. |
 
-`block-bad-patterns.sh` BLOCKs a `Write` that authors a file over 500 and warns from 400, and `make check-file-size` applies the same two numbers to a whole tree. The merge-time per-file ratchet still runs at 800 while the existing 114 over-500 files burn down — so the budget above binds everything NEW, and legacy files are held shrink-only rather than retro-failed ([ci-gates.md](../../../../docs/engineering/ci-gates.md) § Write-time counterparts). Exempt: generated code, vendored trees, machine-produced schemas/data, and recorded exceptions.
+`block-bad-patterns.sh` BLOCKs a `Write` that authors a file over 500 and warns from 400, `make check-file-size` applies the same two numbers to a whole tree, and the merge-time ratchet (`tests/test_file_size_budget.py`) now enforces 500 as well — the burndown is finished, so write-time and merge-time agree on one number instead of the 800-line grace period that covered the legacy debt ([ci-gates.md](../../../../docs/engineering/ci-gates.md) § File-size ratchet). Exempt: generated code, vendored trees, machine-produced schemas/data, and the three recorded exceptions.
 
 Find the seam by asking what changes together:
 
@@ -683,6 +704,41 @@ In a polyglot project, *where* code lives is a correctness concern, not just tid
 
 Promotion is reuse-first, not speculation — move code to `src/shared/<lang>/` when the second consumer actually appears. The reuse-first nudge surfaces the suggestion when it detects a symbol duplicated across services; it is advice, never a block.
 
+## 8. Algorithmic Efficiency — Runtime Cost Is Correctness
+
+Two implementations of the same requirement pass the same tests; one returns in 900 ms and the other in 20 s. The tests never notice, because they run on 10 rows and production runs on 400,000. **A slow-enough answer fails the user exactly the way a wrong one does** — timeout, retry storm, dropped request — so complexity belongs in the same tier as fail-closed error handling, not in a "polish later" bucket.
+
+The moment to get it right is free: while writing. Afterwards it is an incident plus a refactor across call sites.
+
+**Name `n` before you write the loop.** Every loop, comprehension, recursion, and query has an input size. State its **p99 in production**, not its size in the fixture. If you cannot state `n`, you cannot claim the code is fast enough — only that it passed a small test.
+
+| p99 `n` | Acceptable | Reject on sight |
+|---|---|---|
+| ≤ 100 | anything, including O(n²) | nothing — clarity wins here |
+| 10³ – 10⁴ | O(n), O(n log n) | O(n²) |
+| ≥ 10⁵ | O(n), O(n log n) | O(n²) unconditionally |
+| unbounded / streaming | O(1) memory per item | materializing the whole stream |
+
+The budget cuts both ways: at `n ≤ 100` a nested loop is the *right* answer and a hand-rolled index is over-engineering.
+
+**The five shapes behind almost every real slowdown**, most frequent first:
+
+| # | Shape | The fix |
+|---|---|---|
+| 1 | **I/O inside a loop (N+1)** — a query, HTTP call, file read, or subprocess in a `for` body; costs `n × RTT` no index can remove | batch into one call, or hoist out |
+| 2 | **Membership against a list in a loop** — `x in list` / `array.includes(x)` is a linear scan, so the pair is quadratic | build a `set`/`dict` (`Set`/`Map`) once |
+| 3 | **Recomputing a loop-invariant** — regex compile, sort, config read, dict build per iteration | move it above the loop |
+| 4 | **Unbounded fetch** — `SELECT *`, `.all()`, whole-file `read()` to get a count or a top-10 | push filter/limit/aggregate to the indexed layer |
+| 5 | **Concatenation in a loop** — `result += chunk` copies the accumulator each pass | `"".join(...)` / `extend` / a builder |
+
+**Measure; never claim a speedup you did not time.** "Faster" is a factual claim, and this project does not permit unfactual ones (Critical Rule 26). Report the number — "180 ms → 12 ms on 50k rows" — never the adjective, and measure the delivered path, not an inner micro-benchmark. `python -m cProfile -s cumtime`, `py-spy top`, `time`, `EXPLAIN ANALYZE`.
+
+**Accuracy is part of getting it right.** Fast and wrong is not an improvement: money in `Decimal` or integer minor units (never float), float comparison within a tolerance, an explicit tie-breaker where sort ties are observable, timezone-aware datetimes. An "optimization" that changes results is a behavior change and lands as its own commit with its own test.
+
+**This is not a licence to micro-optimize** — it is the twin of [anti-overengineering.md](../../rules/anti-overengineering.md), not an exception. Rewriting readable code for an unmeasured gain, caching before a measurement justified it, or hand-rolling what the stdlib does in C are all rejected on sight. Pick the right data structure while writing, then stop.
+
+Full reasoning, worked before/after pairs, the profiling recipes, and the precision-trap table: [references/algorithmic-efficiency.md](references/algorithmic-efficiency.md). Measuring *deployed* systems (Web Vitals, P95, mobile FPS) is the separate [performance](../performance/SKILL.md) skill.
+
 ## Post-Code Checklist
 
 After writing code, verify all eight points before committing:
@@ -693,10 +749,12 @@ After writing code, verify all eight points before committing:
 - [ ] **Self-documenting:** Names reveal intent; comments explain why, not what; no task/phase/gate provenance in comments — see §4 "No Provenance in Comments"
 - [ ] **No abbreviations:** No `usr`/`prd`/`qty`/cryptic shortenings; only the allow-list (`id`, `url`, `http`, loop `i`/`j`) and team-domain terms — see §4 "No Abbreviations"
 - [ ] **No magic numbers/strings:** Every business-meaning literal extracted to a named constant or enum — see §4 "No Magic Numbers / Strings"
+- [ ] **No hardcoded environment values:** No absolute paths, hosts/ports, service URLs, credentials, or model/provider IDs inline — resolved from config, env var, or a genuinely invariant constant — see §4 "No Hardcoded Environment Values"
 - [ ] **No bare booleans at call sites:** Keyword-only args, enums, or split functions — never positional `foo(true, false)` — see §4 "Boolean Parameters"
 - [ ] **Nesting depth ≤ 2:** Guard-clause out preconditions; extract the inner block when a third level appears — see §4 "Nesting Depth"
 - [ ] **No TODOs in committed code:** No `TODO`/`FIXME` and no task/phase/gate IDs in comments — file a task instead — see §4 "Don't Commit TODOs"
 - [ ] **Function hygiene:** Functions are ~20 lines, 3-4 params, guard clauses first
 - [ ] **Edge cases:** None, empty, boundary, service-down, and concurrency considered
 - [ ] **Error path tests:** Every except/catch branch has a corresponding test case
+- [ ] **Runtime cost:** `n` named for every loop/query, complexity inside the budget, no I/O or list-membership scan inside a loop; any speedup claim backed by a measured number — see §8 "Algorithmic Efficiency"
 - [ ] **Cross-service placement:** Code reused by a second service is promoted to `src/shared/<lang>/`; cross-language types flow through `src/shared/contracts/` only — see §7 "Cross-Service Code Placement"

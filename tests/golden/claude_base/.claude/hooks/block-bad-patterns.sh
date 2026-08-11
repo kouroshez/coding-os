@@ -73,6 +73,28 @@ case "$FILE_PATH" in
     ;;
 esac
 
+# === RUNTIME COST (warn tier) ===
+# Critical Rule 27. Reports only shapes the AST confirms; warns, never blocks —
+# static complexity detection is heuristic, and a false BLOCK on a legitimate
+# small-n loop trains agents to route around the gate. The grep pre-filter keeps
+# the no-loop case off the python3 spawn, which is most writes.
+case "$FILE_PATH" in
+  *.py)
+    case "$FILE_PATH" in
+      */node_modules/*|*/.venv/*|*/migrations/*|*/scaffold/*|*/golden/*) ;;
+      *)
+        if printf '%s' "$CONTENT" | grep -qE '^[[:space:]]*(for|while|async for) '; then
+          RUNTIME_COST_REPORT="$(printf '%s' "$CONTENT" \
+            | python3 "$(_cos_helpers_dir)/check_runtime_cost.py" 2>/dev/null || true)"
+          if [[ -n "$RUNTIME_COST_REPORT" ]]; then
+            printf '⚠️  %s\n' "$RUNTIME_COST_REPORT" >&2
+          fi
+        fi
+        ;;
+    esac
+    ;;
+esac
+
 # === SHELL HOOK / INSTALLER GUARD (bash 5.3.9 deadlock) ===
 # Homebrew bash 5.3.9 sporadically deadlocks `cmd - <<HEREDOC` patterns
 # in heredoc_write before forking the child. Hot-path hooks accumulate
