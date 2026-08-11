@@ -440,7 +440,7 @@ unfixable = [
 "src/core/web/routes/cognition.py" = ["E402"]
 "src/core/thinking_os/tools/docs.py" = ["PLR0913"]
 "src/core/thinking_os/tools/memory.py" = ["C901"]
-"src/core/web/routes/board.py" = ["PLR0913"]
+"src/core/web/routes/_board_tasks.py" = ["PLR0913"]
 # Relocated verbatim from hub.py by the 2026-08-10 split.
 "src/core/web/routes/_hub_init.py" = ["C901", "PLR0912"]
 "src/core/web/routes/_hub_init_routes.py" = ["PLR0913"]

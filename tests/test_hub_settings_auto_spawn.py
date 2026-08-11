@@ -17,7 +17,7 @@ for _p in (_REPO_ROOT, _REPO_ROOT / "src" / "core"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from core.web.routes import board as board_routes
+from core.web.routes import _board_autospawn as autospawn
 from core.web.server import create_app
 
 
@@ -43,7 +43,7 @@ def test_auto_spawn_patch_round_trips(client):
 def spawn_capture(monkeypatch, tmp_path):
     calls: list[str] = []
     monkeypatch.setattr(
-        board_routes,
+        autospawn,
         "_auto_spawn_run",
         lambda task_id, root, db: calls.append(task_id),
     )
@@ -63,45 +63,45 @@ def _wait_threads():
 
 
 def test_gate_fires_only_for_human_icebox_pull(monkeypatch, spawn_capture):
-    monkeypatch.setattr(board_routes, "_auto_spawn_enabled", lambda: True)
+    monkeypatch.setattr(autospawn, "_auto_spawn_enabled", lambda: True)
 
-    board_routes._auto_spawn_safe("TASK-1", "icebox", "in_progress", None)
+    autospawn._auto_spawn_safe("TASK-1", "icebox", "in_progress", None)
     _wait_threads()
     assert spawn_capture == ["TASK-1"]
 
-    board_routes._auto_spawn_safe("TASK-2", "icebox", "in_progress", "human")
+    autospawn._auto_spawn_safe("TASK-2", "icebox", "in_progress", "human")
     _wait_threads()
     assert "TASK-2" in spawn_capture
 
 
 def test_gate_skips_agent_moves_and_other_transitions(monkeypatch, spawn_capture):
-    monkeypatch.setattr(board_routes, "_auto_spawn_enabled", lambda: True)
+    monkeypatch.setattr(autospawn, "_auto_spawn_enabled", lambda: True)
 
-    board_routes._auto_spawn_safe("TASK-3", "icebox", "in_progress", "ses-claude-123")
-    board_routes._auto_spawn_safe("TASK-4", "in_progress", "testing", None)
-    board_routes._auto_spawn_safe("TASK-5", "blocked", "in_progress", None)
+    autospawn._auto_spawn_safe("TASK-3", "icebox", "in_progress", "ses-claude-123")
+    autospawn._auto_spawn_safe("TASK-4", "in_progress", "testing", None)
+    autospawn._auto_spawn_safe("TASK-5", "blocked", "in_progress", None)
     _wait_threads()
     assert spawn_capture == []
 
 
 def test_gate_skips_when_toggle_off(monkeypatch, spawn_capture):
-    monkeypatch.setattr(board_routes, "_auto_spawn_enabled", lambda: False)
-    board_routes._auto_spawn_safe("TASK-6", "icebox", "in_progress", None)
+    monkeypatch.setattr(autospawn, "_auto_spawn_enabled", lambda: False)
+    autospawn._auto_spawn_safe("TASK-6", "icebox", "in_progress", None)
     _wait_threads()
     assert spawn_capture == []
 
 
 def test_gate_dedups_inflight_spawns(monkeypatch, spawn_capture, tmp_path):
-    monkeypatch.setattr(board_routes, "_auto_spawn_enabled", lambda: True)
-    # The inflight set is keyed by "<project_root>::<task_id>" (board.py) so
+    monkeypatch.setattr(autospawn, "_auto_spawn_enabled", lambda: True)
+    # The inflight set is keyed by "<project_root>::<task_id>" so
     # two projects' identically-numbered cards never collide in one hub.
     inflight_key = f"{tmp_path}::TASK-7"
-    with board_routes._auto_spawn_lock:
-        board_routes._auto_spawn_inflight.add(inflight_key)
+    with autospawn._auto_spawn_lock:
+        autospawn._auto_spawn_inflight.add(inflight_key)
     try:
-        board_routes._auto_spawn_safe("TASK-7", "icebox", "in_progress", None)
+        autospawn._auto_spawn_safe("TASK-7", "icebox", "in_progress", None)
         _wait_threads()
         assert spawn_capture == []
     finally:
-        with board_routes._auto_spawn_lock:
-            board_routes._auto_spawn_inflight.discard(inflight_key)
+        with autospawn._auto_spawn_lock:
+            autospawn._auto_spawn_inflight.discard(inflight_key)

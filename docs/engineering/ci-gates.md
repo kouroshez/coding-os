@@ -92,6 +92,23 @@ exception below.
 
 Recorded exceptions:
 
+- 2026-08-10 (TASK-928): the `routes/board.py` (1,086) entry was deleted rather
+  than lowered — the facade is 89 over five parts (`_board_shared`,
+  `_board_presence`, `_board_autospawn`, `_board_git`, `_board_tasks`,
+  `_board_views`), largest 424. Same `APIRouter`-in-the-leaf shape `hub.py`
+  needed: the router lives in `_board_shared`, no part imports a route module,
+  and all seven import orders register 16 routes under both the `core.web.*` and
+  `web.*` identities. Gated by a differential against a `git archive` of the
+  pre-split tree — 24 live requests through `TestClient` (every route plus the
+  400/404/traversal paths), byte-identical once the per-second
+  `status_dwell_seconds` counter is normalized. One monkeypatch trap surfaced:
+  `tests/test_hub_settings_auto_spawn.py` patched `_auto_spawn_enabled` on the
+  board facade, which stops reaching `_auto_spawn_safe` once that function
+  resolves the name from its own module; the patch now targets
+  `_board_autospawn`, verified by confirming the old target no longer binds. The
+  `PLR0913` per-file ignore moved from `board.py` to `_board_tasks.py` (12-arg
+  `board_create`) rather than being widened, and mypy held at 4,482.
+
 - 2026-08-10 (TASK-928): the `cognition.py` (1,237), `routes/hub.py` (1,217),
   `extractors/contracts.py` (1,196) and `doctor_extras.py` (1,121) entries were
   deleted rather than lowered — the facades are 81, 326, 310 and 85. Each gate
