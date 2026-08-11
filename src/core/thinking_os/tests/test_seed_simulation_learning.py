@@ -13,6 +13,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from tools.learning import learn_extract, learn_suggest, learn_validate
+from tools.memory import memory_details
+from tools.metrics import metric_query, metric_record, metric_trend
+from tools.routing import route_model, route_skill
+
 from thinking_os.tests.seed_corpus import (  # noqa: F401 — pytest resolves fixtures by name
     AGENT_TYPES,
     BACKEND_FILES,
@@ -36,10 +41,6 @@ from thinking_os.tests.seed_corpus import (  # noqa: F401 — pytest resolves fi
     seed_sessions,
     seed_task_outcomes,
 )
-from tools.learning import learn_extract, learn_suggest, learn_validate
-from tools.memory import memory_details
-from tools.metrics import metric_query, metric_record, metric_trend
-from tools.routing import route_model, route_skill
 
 
 class TestLearningCycle:
