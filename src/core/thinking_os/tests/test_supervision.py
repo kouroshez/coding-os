@@ -6,7 +6,7 @@ import sqlite3
 import time
 from pathlib import Path
 
-from thinking_os import dispatcher, supervision
+from thinking_os import _supervision_policy as policy_module, dispatcher, supervision
 from thinking_os.adapter_registry import AdapterRecord, _resolve_adapters_dir, load_adapter_records
 
 
@@ -440,7 +440,7 @@ def test_write_time_validation_rejects_targets_dispatch_could_never_satisfy(
     tmp_path: Path, monkeypatch
 ) -> None:
     (tmp_path / ".coding-os").mkdir()
-    monkeypatch.setattr(supervision, "eligible_records", lambda _root: _catalog_records(tmp_path))
+    monkeypatch.setattr(policy_module, "eligible_records", lambda _root: _catalog_records(tmp_path))
 
     for patch, expected in (
         ({"roles": {"reviewer": {"adapter": "ghost"}}}, "unknown adapter"),
@@ -460,7 +460,7 @@ def test_write_time_validation_accepts_free_form_model_on_an_empty_catalog(
     tmp_path: Path, monkeypatch
 ) -> None:
     (tmp_path / ".coding-os").mkdir()
-    monkeypatch.setattr(supervision, "eligible_records", lambda _root: _catalog_records(tmp_path))
+    monkeypatch.setattr(policy_module, "eligible_records", lambda _root: _catalog_records(tmp_path))
 
     policy = supervision.update_policy(
         tmp_path, {"roles": {"reviewer": {"adapter": "freeform", "model": "anything-goes"}}}
@@ -478,7 +478,7 @@ def test_write_time_validation_only_covers_the_patched_targets(tmp_path: Path, m
         '{"model_routing":{"enabled":true,"roles":{"reviewer":{"adapter":"gone"}}}}',
         encoding="utf-8",
     )
-    monkeypatch.setattr(supervision, "eligible_records", lambda _root: _catalog_records(tmp_path))
+    monkeypatch.setattr(policy_module, "eligible_records", lambda _root: _catalog_records(tmp_path))
 
     policy = supervision.update_policy(tmp_path, {"max_parallel": 5})
 

@@ -606,9 +606,13 @@ module = [
     "board_os.transition_gates_cli",
     "board_os.verify_suites",
     "board_os.workflow",
+    "thinking_os._supervision_policy",
+    "thinking_os.adapter_registry",
     "thinking_os.database",
     "thinking_os.gate_marker",
+    "thinking_os.project_settings",
     "thinking_os.record_outcome",
+    "thinking_os.sanitizer",
     "thinking_os.tools._shared",
     "thinking_os.tools.learning",
 ]
