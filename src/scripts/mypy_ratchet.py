@@ -16,7 +16,15 @@ import sys
 # (the documented dual `board_os.*`/`core.board_os.*` counting artifact) —
 # always re-measure from a CI log, never from a laptop. History + rationale:
 # docs/engineering/ci-gates.md § Recorded exceptions.
-BASELINE = 4490
+#
+# 4490 -> 4621 is the one recorded RISE, and it is a counting artifact rather
+# than a regression: splitting the oversized test suites copies each module's
+# untyped pytest preamble into every sibling, so mypy counts the same errors
+# several times over. The run that measured 4621 had FATAL_CODES at zero — the
+# tier that would catch a real defect. The lasting fix is to stop counting test
+# files at all: SCOPE below includes them, which makes a volume gate hostage to
+# test refactors while measuring nothing anyone acts on.
+BASELINE = 4621
 SCOPE = ["src/core/thinking_os", "src/core/board_os", "src/core/graph_os"]
 
 # Bug classes a refactor actually produces, each measured at zero when added.

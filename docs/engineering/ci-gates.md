@@ -84,6 +84,22 @@ Adding a code to `FATAL_CODES` requires it to be at zero first — fix the
 occurrences, then add it, in that order. Removing one requires a recorded
 exception below.
 
+### The count tier measures test files, and that is a defect (TASK-936)
+
+`SCOPE` is three package directories, and each contains its own `tests/`, so the
+count includes every untyped pytest fixture in the repo. That made the volume
+gate hostage to test refactors: splitting the oversized suites on 2026-08-11
+copied each module's untyped preamble into its siblings, mypy counted the same
+errors several times, and the count rose 4490 → 4621 without a single new type
+defect — the fatal tier measured zero on that same run, which is the tier that
+would have caught one.
+
+The count was raised to the CI-measured 4621 as the one recorded rise (below),
+because the alternative — leaving `main` red over a counting artifact — teaches
+agents that a red gate is normal. The real fix is TASK-936: drop `tests/` from
+the count `SCOPE` while keeping it in `FATAL_SCOPE`, so the volume gate measures
+source and the zero-tolerance gate keeps covering everything.
+
 ## Ratchet protocol (applies to every "may only shrink" baseline)
 
 1. Fix the underlying finding (refactor below threshold, type the module, split the file).
@@ -93,6 +109,16 @@ exception below.
    loud. A deliberate exception needs a task + a line here explaining why.
 
 Recorded exceptions:
+
+- 2026-08-11 (TASK-933 → TASK-936): mypy count `BASELINE` **raised** 4490 →
+  4621, the only rise on record. Cause: splitting the 41 oversized test suites
+  copies each module's untyped pytest preamble into every sibling, so mypy
+  counts the same errors several times. Evidence it is an artifact and not a
+  regression: `FATAL_CODES` measured **zero** on the same CI run, and no source
+  file changed in that commit range. The number is taken from the CI log of run
+  31525204367, never from a local mypy. TASK-936 removes the cause by dropping
+  `tests/` from the count `SCOPE` (it stays in `FATAL_SCOPE`), after which the
+  baseline is re-measured downward from a CI log.
 
 - 2026-08-11 (TASK-928): `src/core/hooks/session-context.sh` (729) **stays whole**.
   Its sibling `cos-env.sh` split cleanly 1301 → 350 because it is 22 order-
