@@ -30,6 +30,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -237,7 +241,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 234
     },
     "claude_angular": {
       "agent": "claude",
@@ -269,6 +273,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -504,7 +512,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 258
+      "count": 262
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -536,6 +544,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -759,7 +771,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 250
     },
     "claude_astro": {
       "agent": "claude",
@@ -791,6 +803,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -1022,7 +1038,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 254
+      "count": 258
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1054,6 +1070,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -1264,7 +1284,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 237
     },
     "claude_django": {
       "agent": "claude",
@@ -1296,6 +1316,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -1526,7 +1550,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 253
+      "count": 257
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1558,6 +1582,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -1780,7 +1808,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 249
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1812,6 +1840,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -2036,7 +2068,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 251
     },
     "claude_go": {
       "agent": "claude",
@@ -2068,6 +2100,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -2291,7 +2327,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 250
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2323,6 +2359,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -2547,7 +2587,7 @@
         "src/backend/go.sum",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 251
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2579,6 +2619,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -2790,7 +2834,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 238
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2822,6 +2866,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -3034,7 +3082,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 239
     },
     "claude_laravel": {
       "agent": "claude",
@@ -3066,6 +3114,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -3290,7 +3342,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 251
     },
     "claude_meta": {
       "agent": "claude",
@@ -3322,6 +3374,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -3567,7 +3623,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 268
+      "count": 272
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3599,6 +3655,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -3829,7 +3889,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 253
+      "count": 257
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -3861,6 +3921,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -4102,7 +4166,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 264
+      "count": 268
     },
     "claude_node-express": {
       "agent": "claude",
@@ -4134,6 +4198,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -4360,7 +4428,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 249
+      "count": 253
     },
     "claude_python": {
       "agent": "claude",
@@ -4392,6 +4460,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -4602,7 +4674,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 237
     },
     "claude_rails": {
       "agent": "claude",
@@ -4634,6 +4706,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -4861,7 +4937,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 250
+      "count": 254
     },
     "claude_react-native": {
       "agent": "claude",
@@ -4893,6 +4969,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -5131,7 +5211,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 261
+      "count": 265
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -5163,6 +5243,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -5374,7 +5458,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 238
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5406,6 +5490,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -5629,7 +5717,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 250
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5661,6 +5749,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -5873,7 +5965,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 239
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -5905,6 +5997,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -6129,7 +6225,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 251
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -6161,6 +6257,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -6394,7 +6494,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 256
+      "count": 260
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6426,6 +6526,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -6639,7 +6743,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 236
+      "count": 240
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6671,6 +6775,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -6896,7 +7004,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 248
+      "count": 252
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -6928,6 +7036,10 @@
         ".claude/commands/role-security_auditor.md",
         ".claude/commands/task.md",
         ".claude/commands/verify.md",
+        ".claude/hooks/_cos_env_io.sh",
+        ".claude/hooks/_cos_env_log.sh",
+        ".claude/hooks/_cos_env_paths.sh",
+        ".claude/hooks/_cos_env_state.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -7156,7 +7268,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 255
     },
     "codex_base": {
       "agent": "codex",
@@ -7188,6 +7300,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -7398,7 +7514,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 239
     },
     "codex_angular": {
       "agent": "codex",
@@ -7432,6 +7548,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -7670,7 +7790,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 263
+      "count": 267
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7704,6 +7824,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -7930,7 +8054,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 255
     },
     "codex_astro": {
       "agent": "codex",
@@ -7964,6 +8088,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -8198,7 +8326,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 259
+      "count": 263
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -8232,6 +8360,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -8445,7 +8577,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 242
     },
     "codex_django": {
       "agent": "codex",
@@ -8479,6 +8611,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -8712,7 +8848,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 258
+      "count": 262
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8746,6 +8882,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -8971,7 +9111,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 250
+      "count": 254
     },
     "codex_flutter": {
       "agent": "codex",
@@ -9005,6 +9145,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -9232,7 +9376,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 252
+      "count": 256
     },
     "codex_go": {
       "agent": "codex",
@@ -9266,6 +9410,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -9492,7 +9640,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 255
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9526,6 +9674,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -9753,7 +9905,7 @@
         "src/backend/go.sum",
         "src/shared/README.md"
       ],
-      "count": 252
+      "count": 256
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -9787,6 +9939,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -10001,7 +10157,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 243
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -10035,6 +10191,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -10250,7 +10410,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 244
     },
     "codex_laravel": {
       "agent": "codex",
@@ -10284,6 +10444,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -10511,7 +10675,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 252
+      "count": 256
     },
     "codex_meta": {
       "agent": "codex",
@@ -10545,6 +10709,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -10793,7 +10961,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 273
+      "count": 277
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -10827,6 +10995,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -11060,7 +11232,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 258
+      "count": 262
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -11094,6 +11266,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -11338,7 +11514,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 269
+      "count": 273
     },
     "codex_node-express": {
       "agent": "codex",
@@ -11372,6 +11548,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -11601,7 +11781,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 254
+      "count": 258
     },
     "codex_python": {
       "agent": "codex",
@@ -11635,6 +11815,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -11848,7 +12032,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 242
     },
     "codex_rails": {
       "agent": "codex",
@@ -11882,6 +12066,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -12112,7 +12300,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 255
+      "count": 259
     },
     "codex_react-native": {
       "agent": "codex",
@@ -12146,6 +12334,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -12387,7 +12579,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 266
+      "count": 270
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -12421,6 +12613,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -12635,7 +12831,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 243
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -12669,6 +12865,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -12895,7 +13095,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 255
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -12929,6 +13129,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -13144,7 +13348,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 244
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -13178,6 +13382,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -13405,7 +13613,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 252
+      "count": 256
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -13439,6 +13647,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -13675,7 +13887,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 261
+      "count": 265
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -13709,6 +13921,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -13925,7 +14141,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 241
+      "count": 245
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -13959,6 +14175,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -14187,7 +14407,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 253
+      "count": 257
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -14221,6 +14441,10 @@
         ".codex/commands/verify.md",
         ".codex/config.toml",
         ".codex/hooks.json",
+        ".codex/hooks/_cos_env_io.sh",
+        ".codex/hooks/_cos_env_log.sh",
+        ".codex/hooks/_cos_env_paths.sh",
+        ".codex/hooks/_cos_env_state.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -14452,7 +14676,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 256
+      "count": 260
     }
   }
 }

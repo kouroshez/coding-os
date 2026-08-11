@@ -287,9 +287,13 @@ class TestCosEnv:
         m = re.search(r"_ROOT_MARKERS\s*=\s*\((.*?)\)", db_src, re.DOTALL)
         assert m, "could not find _ROOT_MARKERS in _db_paths.py"
         db_markers = set(re.findall(r"""["']([^"']+)["']""", m.group(1)))
-        env_src = (HOOKS_DIR / "cos-env.sh").read_text(encoding="utf-8")
+        # The walk lives in the paths leaf that cos-env.sh sources; read both so
+        # the assertion follows the function rather than the filename.
+        env_src = (HOOKS_DIR / "cos-env.sh").read_text(encoding="utf-8") + (
+            HOOKS_DIR / "_cos_env_paths.sh"
+        ).read_text(encoding="utf-8")
         fm = re.search(r"for marker in ([^\n;]+); do", env_src)
-        assert fm, "could not find the marker loop in cos-env.sh"
+        assert fm, "could not find the marker loop in cos-env.sh or _cos_env_paths.sh"
         shell_markers = set(fm.group(1).split())
         assert shell_markers == db_markers, (
             f"marker drift: shell={sorted(shell_markers)} db={sorted(db_markers)}"
