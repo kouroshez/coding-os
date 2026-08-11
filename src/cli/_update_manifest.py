@@ -125,6 +125,22 @@ def _module_disabled_assets(project: Path | None, key: str) -> frozenset[str]:
     )
 
 
+def _disabled_skills(project: Path | None) -> frozenset[str]:
+    """Skill names the project opted out of via `.coding-os.yaml::disabled_skills`.
+
+    install-adapter.sh skips AND unlinks these, for core and stack skills alike.
+    Enumerating them as expected assets made `cos update` report every disabled
+    skill as missing and relink it, silently undoing `cos skill disable`.
+    """
+    if project is None:
+        return frozenset()
+    from cli._skill_project import _safe_project_config
+
+    return frozenset(
+        str(name) for name in (_safe_project_config(project).get("disabled_skills") or [])
+    )
+
+
 def _build_target_assets(
     agent: str, templates: list[str], project: Path | None = None
 ) -> dict[str, list[AssetRef]]:
@@ -178,8 +194,9 @@ def _build_target_assets(
     # Core skills.
     skills_dir_rel = adapter.skills_dir
     if skills_dir_rel:
+        skip_skills = _disabled_skills(project)
         for skill_dir in sorted((CORE_DIR / "skills").iterdir()):
-            if not skill_dir.is_dir():
+            if not skill_dir.is_dir() or skill_dir.name in skip_skills:
                 continue
             skill_md = skill_dir / "SKILL.md"
             if not skill_md.exists():
@@ -197,7 +214,7 @@ def _build_target_assets(
             if not stack_skills.exists():
                 continue
             for skill_dir in sorted(stack_skills.iterdir()):
-                if not skill_dir.is_dir():
+                if not skill_dir.is_dir() or skill_dir.name in skip_skills:
                     continue
                 skill_md = skill_dir / "SKILL.md"
                 if not skill_md.exists():
