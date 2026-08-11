@@ -467,3 +467,28 @@ references: []
 - 2026-08-11 [claude]: Edit ci-gates.md
 - 2026-08-11 [claude]: Edit KNOWN_LIMITATIONS.md
 - 2026-08-11 [claude]: commit b8b30e2930 — docs: record the session-context exception and the real burndown numbers
+- 2026-08-11 [claude]: Edit probe_supervision.py
+- 2026-08-11 [claude]: Edit _supervision_health.py
+- 2026-08-11 [claude]: Edit _supervision_policy.py
+- 2026-08-11 [claude]: Edit supervision.py
+- 2026-08-11 [claude]: Edit pyproject.toml
+- 2026-08-11 [claude]: Edit test_supervision.py
+- 2026-08-11 [claude]: Edit test_supervision.py
+- 2026-08-11 [claude]: Edit test_supervision.py
+- 2026-08-11 [claude]: Edit probe_init.sh
+- 2026-08-11 [claude]: Edit move_indexing.py
+- 2026-08-11 [claude]: commit 45fd7fd439 — refactor(supervision): split the routing policy out of the capacity breaker
+- 2026-08-11 [claude]: Edit _init_phase.py
+- 2026-08-11 [claude]: Edit _init_phase.py
+- 2026-08-11 [claude]: Edit check_fixture_binds.py
+- 2026-08-11 [claude]: Edit probe_graph_routes.py
+- 2026-08-11 [claude]: Edit _graph_shared.py
+- 2026-08-11 [claude]: Edit _graph_export.py
+- 2026-08-11 [claude]: Edit graph.py
+- 2026-08-11 [claude]: Edit normalize.py
+- 2026-08-11 [claude]: Edit smoke_hub_app.py
+- 2026-08-11 [claude]: commit 336b88532c — refactor(cli): move the first doc + graph index runs out of the init phase driver
+- 2026-08-11 [claude]: commit 2da5a2d8e0 — refactor(web): split the cached graph export endpoint off the thin route wrappers
+- 2026-08-11 [claude]: Edit test_hooks.py
+- 2026-08-11 [claude]: Edit test_hooks.py
+- 2026-08-11 [claude]: commit 9e27c13a3d — fix(tests): keep the cos-env marker-parity assertion within its size ratchet
