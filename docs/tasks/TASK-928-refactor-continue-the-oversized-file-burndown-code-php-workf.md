@@ -464,3 +464,6 @@ references: []
 - 2026-08-11 [claude]: Edit split_cos_env.py
 - 2026-08-11 [claude]: Edit test_hooks.py
 - 2026-08-11 [claude]: commit 017772fde9 — refactor(hooks): split cos-env.sh into path, log, io and state function leaves
+- 2026-08-11 [claude]: Edit ci-gates.md
+- 2026-08-11 [claude]: Edit KNOWN_LIMITATIONS.md
+- 2026-08-11 [claude]: commit b8b30e2930 — docs: record the session-context exception and the real burndown numbers
