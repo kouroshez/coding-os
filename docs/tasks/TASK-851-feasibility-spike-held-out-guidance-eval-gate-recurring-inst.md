@@ -37,3 +37,4 @@ Query `task_outcomes` on the dogfood DB and group labeled rows by (domain, compl
 - 2026-08-11 [claude]: Edit 0016-gated-skill-evolution-roadmap-extend-not-build.md
 - 2026-08-11 [claude]: commit b9326b0ee8 — docs(adr-0016): record the held-out eval-gate spike verdict as a measured no-go
 - 2026-08-11 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-11 [claude]: commit 011d778784 — chore(board): close the ten icebox cards worked this session
