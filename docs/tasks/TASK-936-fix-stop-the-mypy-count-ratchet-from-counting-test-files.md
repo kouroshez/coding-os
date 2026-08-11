@@ -28,3 +28,4 @@ references: []
 - 2026-08-11 [claude]: commit 072b0097a2 — fix(ci): repoint the workflow, Makefile and scan-ignore paths at the split test modules
 - 2026-08-11 [claude]: commit 48f23c223c — chore(golden): recapture the fixtures for the Rule 27 hook and skill changes
 - 2026-08-11 [claude]: commit f6427d86f2 — chore(board): park TASK-936 as ready icebox work
+- 2026-08-11 [claude]: commit 8671f57be7 — chore(memory): refresh the lesson index and TASK-936 work log
