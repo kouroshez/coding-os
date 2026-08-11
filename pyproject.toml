@@ -386,7 +386,7 @@ unfixable = [
 "src/cli/_init_boundaries.py" = ["C901"]
 # Relocated verbatim from graph.py by the 2026-08-10 split.
 "src/core/graph_os/tools/_graph_doctor.py" = ["C901", "PLR0912", "PLR0915"]
-"src/core/thinking_os/tools/_cognition_dispatch.py" = ["PLR0913"]
+"src/core/thinking_os/tools/_dispatch_request.py" = ["PLR0913"]
 "src/core/thinking_os/tools/_cognition_supervise.py" = ["PLR0913"]
 "src/core/thinking_os/session_summary.py" = ["E402"]
 "src/scripts/**" = ["E402"]                    # late imports in scripts are OK
@@ -428,6 +428,7 @@ unfixable = [
 "src/core/graph_os/tools/_graph_ranking.py" = ["C901", "PLR0912", "PLR0915"]
 "src/core/graph_os/tools/_graph_lookup.py" = ["C901"]
 "src/core/graph_os/tools/_graph_similar.py" = ["C901", "PLR0912"]
+"src/core/graph_os/tools/_reindex_state.py" = ["PLR0913"]
 "src/core/graph_os/tools/reindex_dispatch.py" = ["C901", "PLR0912", "PLR0913"]
 "src/core/hooks/_helpers/branch_guard_pr.py" = ["C901", "PLR0912"]
 "src/core/hooks/_helpers/doc_sync_check.py" = ["C901", "PLR0912"]
