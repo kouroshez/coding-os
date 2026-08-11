@@ -315,3 +315,4 @@ references: []
 - 2026-08-11 [claude]: Edit pyproject.toml
 - 2026-08-11 [claude]: Edit msg6.txt
 - 2026-08-11 [claude]: commit 384d02bbe9 — refactor(hooks): split the branch guard into shared refs, trunk and pr policy
+- 2026-08-11 [claude]: commit 6f7a65a349 — chore(board): record batch eight on TASK-928
