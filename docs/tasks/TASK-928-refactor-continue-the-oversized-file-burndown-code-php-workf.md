@@ -267,3 +267,7 @@ references: []
 - 2026-08-11 [claude]: commit 5452fba25c — refactor(thinking_os): split memory tools into ranking, semantic and search modules
 - 2026-08-11 [claude]: Batch seven — code_ts 930 + _code_ts_regex 782 → 7 modules (max 413); md_links 890 → 6 modules (max 298, shared…
 - 2026-08-11 [claude]: Verification: check_split_parity OK on all 5 pre-split files; behavioural differentials byte-identical (120 TS files…
+- 2026-08-11 [claude]: commit 74b8d891d0 — chore(board): record the batch-seven splits on TASK-928
+- 2026-08-11 [claude]: commit a1a03642fc — chore(golden): recapture fixtures after the clean-code split-parity section
+- 2026-08-11 [claude]: Edit mypy_ratchet.py
+- 2026-08-11 [claude]: commit 3283e41813 — fix(ci): restore the mypy BASELINE to the CI-measured value
