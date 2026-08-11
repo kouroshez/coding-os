@@ -5,12 +5,12 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-11
 started: 2026-08-11
-completed: null
+completed: 2026-08-11
 agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
@@ -79,3 +79,6 @@ Several of these files are also pinned in the `BASELINE` of `tests/test_file_siz
 - 2026-08-11 [claude]: commit 759362d825 — style(tests): sort the imports the corpus-module qualification unsorted
 - 2026-08-11 [claude]: Edit SKILL.md
 - 2026-08-11 [claude]: Edit SKILL.md
+- 2026-08-11 [claude]: commit 91f1fbeb2c — fix(skills): drop the live model id from the no-hardcoding example
+- 2026-08-11 [claude]: All 41 split; zero Python files over 500 outside 3 recorded exceptions. Full sweep 7202 passed.
+- 2026-08-11 [claude]: Status transitioned to complete via cos task-done.
