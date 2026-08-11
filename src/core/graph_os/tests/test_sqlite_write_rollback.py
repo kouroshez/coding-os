@@ -39,7 +39,10 @@ def _unbindable_node() -> GraphNode:
 
 
 def test_failed_upsert_node_leaves_no_open_transaction(backend, migrated_conn) -> None:
-    with pytest.raises(sqlite3.InterfaceError):
+    # sqlite3.Error, not a leaf class: an unbindable parameter raises
+    # InterfaceError on 3.10 and ProgrammingError on 3.11+. Which one it is has
+    # no bearing on the invariant under test — that the transaction is closed.
+    with pytest.raises(sqlite3.Error):
         backend.upsert_node(_unbindable_node())
 
     assert migrated_conn.in_transaction is False
