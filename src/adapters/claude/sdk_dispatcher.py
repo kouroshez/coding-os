@@ -3,8 +3,8 @@
 Module layout:
   _claude_sdk_options    tool floors, model aliases, auth env, ClaudeAgentOptions
   _claude_sdk_telemetry  presence files + cognition-trace events
-  _claude_sdk_result     SDK error string -> capacity/retry taxonomy
-  this module            the dispatch loop and the DispatchResult it returns
+  _claude_sdk_result     error taxonomy + the terminal DispatchResult mapping
+  this module            the dispatch loop that drives the SDK query stream
 
 Loaded two ways: as `adapters.claude.sdk_dispatcher` when the wheel is on the
 path, and by file path via `spec_from_file_location` by the dispatcher factory
@@ -16,7 +16,6 @@ import.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import os
 import re
@@ -27,7 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from thinking_os.dispatcher import DispatchRequest, DispatchResult
-from thinking_os.dispatcher_helpers import extract_json_block, load_agent_prompt
+from thinking_os.dispatcher_helpers import load_agent_prompt
 
 if str(Path(__file__).resolve().parent) not in sys.path:
     sys.path.append(str(Path(__file__).resolve().parent))
@@ -41,13 +40,20 @@ from _claude_sdk_options import (
     _XHIGH_EFFORT_MODEL_PREFIXES as _XHIGH_EFFORT_MODEL_PREFIXES,
     _claude_auth_env as _claude_auth_env,
     _cos_mcp_servers as _cos_mcp_servers,
+    _dispatch_env as _dispatch_env,
+    _formula_prompts as _formula_prompts,
     _hub_settings_path as _hub_settings_path,
     _resolve_model_alias as _resolve_model_alias,
     _resolve_output_schema as _resolve_output_schema,
+    _structured_output_format as _structured_output_format,
+    _validated_role_skills as _validated_role_skills,
     claude_agent_options as claude_agent_options,
     claude_session_options as claude_session_options,
 )
-from _claude_sdk_result import _failure_fields as _failure_fields
+from _claude_sdk_result import (
+    _failure_fields as _failure_fields,
+    _finalize_dispatch_result as _finalize_dispatch_result,
+)
 from _claude_sdk_telemetry import (
     _dispatch_trace_content_enabled as _dispatch_trace_content_enabled,
     _emit_dispatch_trace as _emit_dispatch_trace,
@@ -125,49 +131,8 @@ class ClaudeSDKDispatcher:
                 **_failure_fields("error", str(exc)),
             )
 
-        # Skill inheritance — formula sub-sessions get a fresh context, so
-        # they don't inherit parent skills. Each role's frontmatter
-        # declares which skills it needs (e.g. implementer → ["clean-code"]).
-        # Other adapters that don't honor this key ignore it (Rule 1).
-        role_skills = agent_meta.get("skills") if isinstance(agent_meta, dict) else None
-        if role_skills is not None and (
-            not isinstance(role_skills, list) or not all(isinstance(s, str) for s in role_skills)
-        ):
-            role_skills = None
-            logger.warning(
-                "agent file %s has invalid `skills` frontmatter — ignoring",
-                request.agent_file,
-            )
-
-        # Append the formula spec to Claude Code's preset prompt. The
-        # preset carries Claude Code's coding/safety baseline; the formula
-        # body adds the role-specific Output contract. Setting
-        # `exclude_dynamic_sections=True` strips per-cwd state (git,
-        # date, OS, memory paths) from the system prompt and emits it as
-        # a first-user-message block instead — this is what makes the
-        # prompt cache reusable across consumer projects.
-        formula_append = (
-            f"{system_prompt_body}\n\n"
-            f"## Dispatch Context\n"
-            f"- Formula: {request.formula_id}\n"
-            f"- Persona: {request.persona_id or 'n/a'}\n"
-            f"- Intensity: {request.intensity}\n\n"
-            f"## Instruction\n"
-            f"Produce the EvidenceBundle slice for this formula as a single "
-            f"```json ... ``` block at the end of your response. Do not wrap "
-            f"it in additional prose."
-        )
-        system_prompt: dict[str, Any] = {
-            "type": "preset",
-            "preset": "claude_code",
-            "append": formula_append,
-            "exclude_dynamic_sections": True,
-        }
-        user_prompt = (
-            f"Input slice (upstream formulas only):\n"
-            f"```json\n{json.dumps(request.input_slice, indent=2, default=str)}\n```\n\n"
-            f"{request.prompt}"
-        )
+        role_skills = _validated_role_skills(agent_meta, request.agent_file)
+        system_prompt, user_prompt = _formula_prompts(request, system_prompt_body)
 
         # Always include the coding-os MCP wildcard alongside any caller-
         # provided allow-list. `acceptEdits` does NOT auto-approve MCP,
@@ -187,39 +152,8 @@ class ClaudeSDKDispatcher:
         if resolved_model and resolved_model.startswith(_XHIGH_EFFORT_MODEL_PREFIXES):
             effort = effort or "xhigh"
 
-        # Structured output (T1) — opt-in per role via
-        # `structured_output: true` frontmatter. SDK enforces the
-        # schema and surfaces failures as
-        # subtype="error_max_structured_output_retries".
-        output_format: dict[str, Any] | None = None
-        wants_structured = bool(
-            isinstance(agent_meta, dict) and agent_meta.get("structured_output")
-        )
-        if wants_structured:
-            schema = _resolve_output_schema(agent_meta)
-            if schema is not None:
-                output_format = {"type": "json_schema", "schema": schema}
-            else:
-                logger.warning(
-                    "role %s requested structured_output but schema could not be "
-                    "resolved — falling back to regex extraction",
-                    request.formula_id,
-                )
-
-        # Forward telemetry env so the sub-session emits to the same
-        # OTEL collector as the parent (D5 leaves the collector to
-        # operators; we just propagate). OTEL_SERVICE_NAME identifies
-        # the dispatcher distinctly from a normal claude-code session.
-        # Hub Settings → Claude Auth (TASK-756) first, so an OTEL var can never
-        # shadow the ANTHROPIC_API_KEY override (disjoint key sets, but explicit
-        # ordering keeps the precedence obvious to a future reader).
-        env: dict[str, str] = _claude_auth_env(request.cwd or os.getcwd())
-        for var in _OTEL_FORWARDED_VARS:
-            value = os.environ.get(var)
-            if value:
-                env[var] = value
-        env.setdefault("OTEL_SERVICE_NAME", "coding-os-claude")
-        env.setdefault("OTEL_METRICS_INCLUDE_SESSION_ID", "true")
+        output_format = _structured_output_format(agent_meta, request.formula_id)
+        env = _dispatch_env(request.cwd or os.getcwd())
 
         # Long-context beta (D6). Caller opts in per request; default
         # short context to keep cache hits high and cost predictable.
@@ -505,82 +439,14 @@ class ClaudeSDKDispatcher:
         if dispatch_outcome is not None:
             return dispatch_outcome
 
-        transcript = "\n".join(transcript_parts)
-        latency_ms = int((time.monotonic() - t0) * 1000)
-
-        # Map SDK error subtypes to dispatcher status. Budget exhaustion
-        # and retry exhaustion are operationally distinct from a generic
-        # "error_during_execution" — keep the original subtype in the
-        # error string so callers can pattern-match.
-        if result_subtype == "error_max_budget_usd":
-            return DispatchResult(
-                formula_id=request.formula_id,
-                status="error",
-                error=(
-                    f"max_budget_usd={request.max_budget_usd} exhausted; "
-                    f"actual_cost_usd={result_meta.get('total_cost_usd')!r}"
-                ),
-                output_json={"_meta": dict(result_meta)},
-                latency_ms=latency_ms,
-                dispatcher_name=self.name,
-                raw_transcript=transcript or None,
-                **_failure_fields("error", f"max_budget_usd={request.max_budget_usd} exhausted"),
-            )
-        if result_subtype == "error_max_turns":
-            return DispatchResult(
-                formula_id=request.formula_id,
-                status="error",
-                error="max_turns exhausted",
-                output_json={"_meta": dict(result_meta)},
-                latency_ms=latency_ms,
-                dispatcher_name=self.name,
-                raw_transcript=transcript or None,
-                **_failure_fields("error", "max_turns exhausted"),
-            )
-        if result_subtype == "error_max_structured_output_retries":
-            # Schema enforcement gave up; fall through to regex extraction
-            # so the dispatcher still surfaces partial work instead of an
-            # opaque error. Caller sees the subtype via raw_transcript +
-            # output_json._meta.subtype.
-            result_meta["structured_output_retry_exhausted"] = True
-
-        # Prefer SDK-enforced structured output. extract_json_block is the
-        # 0.1.x fallback for roles that don't opt into structured output
-        # AND for retry-exhausted runs (logged above).
-        output_json: dict[str, Any]
-        if isinstance(structured_output, dict):
-            output_json = dict(structured_output)
-        else:
-            output_json = extract_json_block(transcript)
-
-        if result_meta:
-            output_json.setdefault("_meta", {}).update(result_meta)
-        if result_subtype:
-            output_json.setdefault("_meta", {})["subtype"] = result_subtype
-
-        ok = bool(output_json) and any(k != "_meta" for k in output_json)
-        # T1.5: surface the retry-exhausted subtype in the error field so callers
-        # can route to a retry-with-relaxed-prompt path. Status stays "ok" when
-        # regex fallback recovered usable JSON — the output bundle is still
-        # populated. Callers that need strict schema compliance should check error.
-        if not ok:
-            error_str = "no usable JSON in dispatch output"
-        elif result_subtype == "error_max_structured_output_retries":
-            error_str = (
-                "error_max_structured_output_retries: schema enforcement exhausted, "
-                "fell back to regex extraction"
-            )
-        else:
-            error_str = None
-        return DispatchResult(
-            formula_id=request.formula_id,
-            status="ok" if ok else "error",
-            output_json=output_json,
-            latency_ms=latency_ms,
+        return _finalize_dispatch_result(
+            request,
             dispatcher_name=self.name,
-            error=error_str,
-            raw_transcript=transcript,
-            **_failure_fields("ok" if ok else "error", error_str),
+            result_subtype=result_subtype,
+            result_meta=result_meta,
+            structured_output=structured_output,
+            transcript="\n".join(transcript_parts),
+            latency_ms=int((time.monotonic() - t0) * 1000),
         )
 
 

@@ -255,3 +255,86 @@ def _resolve_output_schema(meta: dict[str, Any]) -> dict[str, Any] | None:
     except (TypeError, ValueError) as exc:
         logger.warning("model_json_schema() failed for %s: %s", cls_name, exc)
         return None
+
+
+def _validated_role_skills(agent_meta: Any, agent_file: str) -> list[str] | None:
+    # Skill inheritance — formula sub-sessions get a fresh context, so
+    # they don't inherit parent skills. Each role's frontmatter
+    # declares which skills it needs (e.g. implementer → ["clean-code"]).
+    # Other adapters that don't honor this key ignore it (Rule 1).
+    role_skills = agent_meta.get("skills") if isinstance(agent_meta, dict) else None
+    if role_skills is not None and (
+        not isinstance(role_skills, list) or not all(isinstance(s, str) for s in role_skills)
+    ):
+        logger.warning("agent file %s has invalid `skills` frontmatter — ignoring", agent_file)
+        return None
+    return role_skills
+
+
+def _formula_prompts(request: Any, system_prompt_body: str) -> tuple[dict[str, Any], str]:
+    # Append the formula spec to Claude Code's preset prompt. The
+    # preset carries Claude Code's coding/safety baseline; the formula
+    # body adds the role-specific Output contract. Setting
+    # `exclude_dynamic_sections=True` strips per-cwd state (git,
+    # date, OS, memory paths) from the system prompt and emits it as
+    # a first-user-message block instead — this is what makes the
+    # prompt cache reusable across consumer projects.
+    formula_append = (
+        f"{system_prompt_body}\n\n"
+        f"## Dispatch Context\n"
+        f"- Formula: {request.formula_id}\n"
+        f"- Persona: {request.persona_id or 'n/a'}\n"
+        f"- Intensity: {request.intensity}\n\n"
+        f"## Instruction\n"
+        f"Produce the EvidenceBundle slice for this formula as a single "
+        f"```json ... ``` block at the end of your response. Do not wrap "
+        f"it in additional prose."
+    )
+    system_prompt: dict[str, Any] = {
+        "type": "preset",
+        "preset": "claude_code",
+        "append": formula_append,
+        "exclude_dynamic_sections": True,
+    }
+    user_prompt = (
+        f"Input slice (upstream formulas only):\n"
+        f"```json\n{json.dumps(request.input_slice, indent=2, default=str)}\n```\n\n"
+        f"{request.prompt}"
+    )
+    return system_prompt, user_prompt
+
+
+def _structured_output_format(agent_meta: Any, formula_id: str) -> dict[str, Any] | None:
+    # Structured output (T1) — opt-in per role via
+    # `structured_output: true` frontmatter. SDK enforces the
+    # schema and surfaces failures as
+    # subtype="error_max_structured_output_retries".
+    if not (isinstance(agent_meta, dict) and agent_meta.get("structured_output")):
+        return None
+    schema = _resolve_output_schema(agent_meta)
+    if schema is None:
+        logger.warning(
+            "role %s requested structured_output but schema could not be "
+            "resolved — falling back to regex extraction",
+            formula_id,
+        )
+        return None
+    return {"type": "json_schema", "schema": schema}
+
+
+def _dispatch_env(cwd: str) -> dict[str, str]:
+    # Forward telemetry env so the sub-session emits to the same
+    # OTEL collector as the parent (D5 leaves the collector to
+    # operators; we just propagate). OTEL_SERVICE_NAME identifies
+    # the dispatcher distinctly from a normal claude-code session.
+    # Hub Settings → Claude Auth (TASK-756) first, so an OTEL var can never
+    # shadow the ANTHROPIC_API_KEY override (disjoint key sets, but explicit
+    # ordering keeps the precedence obvious to a future reader).
+    env: dict[str, str] = _claude_auth_env(cwd)
+    for var in _OTEL_FORWARDED_VARS:
+        value = os.environ.get(var)
+        if value:
+            env[var] = value
+    env.setdefault("OTEL_SERVICE_NAME", "coding-os-claude")
+    env.setdefault("OTEL_METRICS_INCLUDE_SESSION_ID", "true")
+    return env
