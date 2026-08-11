@@ -213,3 +213,15 @@ references: []
 - 2026-08-10 [claude]: Edit mypy_ratchet.py
 - 2026-08-10 [claude]: Edit mypy_ratchet.py
 - 2026-08-10 [claude]: commit d76583fb3f — fix(cli): restore the dropped return in _normalized_hook_map
+- 2026-08-10 [claude]: commit ac6ec75af3 — chore(board): record the doctor regression and the fatal-code gate on TASK-928
+- 2026-08-10 [claude]: Edit check_split_parity.py
+- 2026-08-10 [claude]: Edit audit_splits.sh
+- 2026-08-10 [claude]: Edit check_split_parity.py
+- 2026-08-10 [claude]: Edit check_split_parity.py
+- 2026-08-10 [claude]: Edit check_split_parity.py
+- 2026-08-11 [claude]: Edit check_split_parity.py
+- 2026-08-11 [claude]: Edit check_split_parity.py
+- 2026-08-11 [claude]: Edit show_diff.py
+- 2026-08-11 [claude]: Edit ci-gates.md
+- 2026-08-11 [claude]: Edit SKILL.md
+- 2026-08-11 [claude]: commit 1b1f50808b — feat(scripts): add a split-parity guard that proves a module move edited nothing
