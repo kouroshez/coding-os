@@ -254,3 +254,16 @@ references: []
 - 2026-08-11 [claude]: Edit _mcp_stranded.py
 - 2026-08-11 [claude]: Edit ci-gates.md
 - 2026-08-11 [claude]: commit 54d08b0ada — refactor(board_os): split reclaim into stranded, pick, report and work-log modules
+- 2026-08-11 [claude]: commit c09660f7bf — chore(board): record the batch-six splits on TASK-928
+- 2026-08-11 [claude]: Edit _ts_uids.py
+- 2026-08-11 [claude]: Edit _ts_nodes.py
+- 2026-08-11 [claude]: Edit pyproject.toml
+- 2026-08-11 [claude]: commit ff6824e758 — refactor(graph_os): split code_ts into a uid leaf, node primitives, symbol walk and regex scanners
+- 2026-08-11 [claude]: Edit _ts_symbols.py
+- 2026-08-11 [claude]: Edit _ts_decls.py
+- 2026-08-11 [claude]: commit b23a6d7677 — refactor(graph_os): decompose the ts symbol walk into a declaration pass and a call pass
+- 2026-08-11 [claude]: commit b4ff3fbdce — refactor(graph_os): split md_links into a shared base leaf, uids, resolve and section modules
+- 2026-08-11 [claude]: commit a1e64889b8 — refactor(thinking_os): split doc_indexer into chunking, sources and store modules
+- 2026-08-11 [claude]: commit 5452fba25c — refactor(thinking_os): split memory tools into ranking, semantic and search modules
+- 2026-08-11 [claude]: Batch seven — code_ts 930 + _code_ts_regex 782 → 7 modules (max 413); md_links 890 → 6 modules (max 298, shared…
+- 2026-08-11 [claude]: Verification: check_split_parity OK on all 5 pre-split files; behavioural differentials byte-identical (120 TS files…
