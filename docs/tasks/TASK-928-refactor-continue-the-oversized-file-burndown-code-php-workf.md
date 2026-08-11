@@ -316,3 +316,5 @@ references: []
 - 2026-08-11 [claude]: Edit msg6.txt
 - 2026-08-11 [claude]: commit 384d02bbe9 — refactor(hooks): split the branch guard into shared refs, trunk and pr policy
 - 2026-08-11 [claude]: commit 6f7a65a349 — chore(board): record batch eight on TASK-928
+- 2026-08-11 [claude]: commit b370e77aa1 — chore(board): record the batch-eight commits on TASK-928
+- 2026-08-11 [claude]: Edit mypy_ratchet.py
