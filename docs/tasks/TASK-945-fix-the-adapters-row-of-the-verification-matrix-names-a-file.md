@@ -5,18 +5,17 @@ swimlane: docs
 kind: bug
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-12
-started: null
-completed: null
-agent_session: null
+started: 2026-08-11
+completed: 2026-08-11
+agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-945: fix: the adapters row of the Verification Matrix names a file that does not exist
 
 **Outcome (one sentence):** The Verification Matrix command for src/adapters/** runs the suites that actually exist, so following the matrix cannot produce a silent no-op instead of a verification.
@@ -33,3 +32,9 @@ AGENTS.md Verification Matrix row `src/adapters/**` prescribes `uv run pytest te
 **Given** the matrix row for src/adapters/** **When** an agent copies the command verbatim **Then** it executes and reports a real pass/fail. **Given** every other matrix row **When** each command is executed **Then** none errors on a missing path.
 
 ## Work Log
+- 2026-08-12 [claude]: Edit AGENTS.md
+- 2026-08-12 [claude]: Edit test_verification_matrix.py
+- 2026-08-12 [claude]: Edit test_verification_matrix.py
+- 2026-08-12 [claude]: commit 80a6293166 — fix(docs): repair three Verification-Matrix rows that resolved to no tests
+- 2026-08-12 [claude]: Found 3 dead rows not 1, plus a bare `python` row. Globs + tests/test_verification_matrix.py (23 tests); proved all 4…
+- 2026-08-12 [claude]: Status transitioned to complete via cos task-done.
