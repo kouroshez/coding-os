@@ -12,6 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.14](https://github.com/kouroshez/coding-os/compare/v0.3.13...v0.3.14) (2026-08-12)
+
+
+### Fixed
+
+* **scripts:** point the session-resolver probe at the helper's real module ([f6105a6](https://github.com/kouroshez/coding-os/commit/f6105a628cc50c21ab4ab8139ba2e11ef14bb617))
+* **tests:** make the script smoke test catch sys.path bootstrap bugs ([4117200](https://github.com/kouroshez/coding-os/commit/4117200bbea1998bd8c06ea17a2127a1268b9312))
+
+
+### Changed
+
+* **scripts:** point the session-resolver probe's docs at the real module ([d9d7b0b](https://github.com/kouroshez/coding-os/commit/d9d7b0b256fe436e0b3e614818f009fc007f6d33))
+
 ## [0.3.13](https://github.com/kouroshez/coding-os/compare/v0.3.12...v0.3.13) (2026-08-12)
 
 
