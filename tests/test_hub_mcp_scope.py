@@ -20,6 +20,12 @@ if str(SRC) not in sys.path:
 from core.web.routes import _config_mcp as mcp
 
 
+@pytest.fixture(autouse=True)
+def _isolate_codex(tmp_path: Path, monkeypatch):
+    """Never let the developer's real ~/.codex/config.toml into an inventory test."""
+    monkeypatch.setattr(mcp, "codex_config_path", lambda: tmp_path / "no-codex" / "config.toml")
+
+
 def _write_config(path: Path, servers: dict, **extra) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"mcpServers": servers, **extra}, indent=2), encoding="utf-8")
@@ -181,6 +187,45 @@ class TestWrites:
         assert json.loads(path.read_text(encoding="utf-8"))["mcpServers"] == {}
 
 
+class TestCodexAdapter:
+    """Codex declares its servers as TOML tables; they belong in the same list."""
+
+    def _with_codex(self, tmp_path: Path, monkeypatch, body: str) -> Path:
+        config = tmp_path / ".codex" / "config.toml"
+        config.parent.mkdir(parents=True, exist_ok=True)
+        config.write_text(body, encoding="utf-8")
+        monkeypatch.setattr(mcp, "codex_config_path", lambda: config)
+        return config
+
+    def test_codex_servers_appear_in_the_inventory_tagged_by_adapter(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        self._with_codex(tmp_path, monkeypatch, '[mcp_servers.firecrawl]\ncommand = "npx"\n')
+        project = tmp_path / "proj"
+        _write_config(project / ".mcp.json", {"supabase": {"type": "http", "url": "https://s"}})
+
+        rows = mcp.inventory(project, global_path=tmp_path / "absent.json")
+
+        assert [(r["name"], r["adapter"]) for r in rows] == [
+            ("supabase", "claude"),
+            ("firecrawl", "codex"),
+        ]
+
+    def test_writes_and_removes_through_the_codex_editor(self, tmp_path: Path, monkeypatch) -> None:
+        config = self._with_codex(tmp_path, monkeypatch, "# keep me\n")
+
+        mcp.write_for_adapter(tmp_path, "codex", "global", "srv", {"command": "npx", "args": []})
+        assert "srv" in mcp.existing_names(tmp_path, "codex", "global")
+        assert "# keep me" in config.read_text(encoding="utf-8")
+
+        assert mcp.remove_for_adapter(tmp_path, "codex", "global", "srv") is True
+        assert mcp.existing_names(tmp_path, "codex", "global") == set()
+
+    def test_claude_writes_still_go_to_the_json_config(self, tmp_path: Path) -> None:
+        mcp.write_for_adapter(tmp_path, "claude", "project", "srv", {"command": "npx"})
+        assert (tmp_path / ".mcp.json").exists()
+
+
 class TestScopeRouting:
     def test_scope_selects_the_config_file(self, tmp_path: Path) -> None:
         global_path = tmp_path / "home" / ".claude.json"
@@ -193,3 +238,15 @@ class TestScopeRouting:
         from core.web.routes._config_mutate import PROJECT_SCOPE_DEFAULT
 
         assert PROJECT_SCOPE_DEFAULT == mcp.PROJECT_SCOPE
+
+
+class TestEffectiveScope:
+    def test_codex_writes_are_always_user_level(self) -> None:
+        # Echoing the requested scope told the caller a Codex server landed in the
+        # project when Codex has no project-level config at all.
+        assert mcp.effective_scope("codex", "project") == mcp.GLOBAL_SCOPE
+        assert mcp.effective_scope("codex", "global") == mcp.GLOBAL_SCOPE
+
+    def test_claude_keeps_the_requested_scope(self) -> None:
+        assert mcp.effective_scope("claude", "project") == mcp.PROJECT_SCOPE
+        assert mcp.effective_scope("claude", "global") == mcp.GLOBAL_SCOPE

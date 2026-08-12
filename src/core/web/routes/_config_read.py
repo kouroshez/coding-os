@@ -190,7 +190,12 @@ def config_skill_toggle(skill_name: str, body: dict = Body(...)) -> JSONResponse
 @router.get("/mcp")
 def config_mcp() -> dict:
     """List every MCP server this machine declares, project and global, by scope."""
-    from core.web.routes._config_mcp import GLOBAL_SCOPE, PROJECT_SCOPE, inventory
+    from core.web.routes._config_mcp import (
+        GLOBAL_SCOPE,
+        MANAGED_ADAPTERS,
+        PROJECT_SCOPE,
+        inventory,
+    )
 
     servers = inventory(_project_root())
     return {
@@ -199,6 +204,10 @@ def config_mcp() -> dict:
         "scopes": {
             PROJECT_SCOPE: sum(1 for s in servers if s["scope"] == PROJECT_SCOPE),
             GLOBAL_SCOPE: sum(1 for s in servers if s["scope"] == GLOBAL_SCOPE),
+        },
+        "adapters": {
+            adapter: sum(1 for s in servers if s["adapter"] == adapter)
+            for adapter in MANAGED_ADAPTERS
         },
     }
 

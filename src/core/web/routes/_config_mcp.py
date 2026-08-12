@@ -18,14 +18,18 @@ logger = logging.getLogger(__name__)
 
 PROJECT_SCOPE = "project"
 GLOBAL_SCOPE = "global"
-# Claude's user-level config. Codex keeps its own servers in ~/.codex/config.toml
-# (TOML, different key shape); it is listed as a known gap rather than guessed at,
-# because writing a format we have not modelled is how a config gets corrupted.
+# Claude's user-level config. Codex keeps its own servers as TOML tables in
+# ~/.codex/config.toml and is edited through _config_codex_toml, which appends and
+# span-deletes rather than round-tripping, so hand-written comments survive.
 GLOBAL_CONFIG_PATH = Path.home() / ".claude.json"
 PROJECT_CONFIG_NAME = ".mcp.json"
 
 STDIO_TRANSPORT = "stdio"
 REMOTE_TRANSPORTS = ("http", "sse")
+
+CLAUDE_ADAPTER = "claude"
+CODEX_ADAPTER = "codex"
+MANAGED_ADAPTERS = (CLAUDE_ADAPTER, CODEX_ADAPTER)
 
 
 def describe_transport(spec: dict) -> str:
@@ -66,19 +70,35 @@ def _as_row(name: str, spec: dict, scope: str) -> dict:
     }
 
 
+def codex_config_path() -> Path:
+    return Path.home() / ".codex" / "config.toml"
+
+
+def _codex_rows() -> list[dict]:
+    from core.web.routes import _config_codex_toml as codex
+
+    rows = []
+    for name, spec in codex.read_servers(codex_config_path()).items():
+        row = _as_row(name, spec, GLOBAL_SCOPE)
+        row["adapter"] = CODEX_ADAPTER
+        rows.append(row)
+    return rows
+
+
 def inventory(project_root: Path, *, global_path: Path | None = None) -> list[dict]:
-    """Every MCP server this machine declares, project first, each labelled by scope."""
+    """Every MCP server this machine declares, labelled by adapter and scope."""
     rows = [
-        _as_row(name, spec, PROJECT_SCOPE)
+        {**_as_row(name, spec, PROJECT_SCOPE), "adapter": CLAUDE_ADAPTER}
         for name, spec in _read_servers(project_root / PROJECT_CONFIG_NAME).items()
     ]
     project_names = {row["name"] for row in rows}
     for name, spec in _read_servers(global_path or GLOBAL_CONFIG_PATH).items():
-        row = _as_row(name, spec, GLOBAL_SCOPE)
+        row = {**_as_row(name, spec, GLOBAL_SCOPE), "adapter": CLAUDE_ADAPTER}
         # A project entry of the same name wins at runtime; saying so beats
         # showing the same server twice with no hint which one is live.
         row["shadowed_by_project"] = name in project_names
         rows.append(row)
+    rows.extend(_codex_rows())
     return rows
 
 
@@ -125,6 +145,37 @@ def config_path_for_scope(
         if scope == GLOBAL_SCOPE
         else project_root / PROJECT_CONFIG_NAME
     )
+
+
+def effective_scope(adapter: str, scope: str) -> str:
+    """The scope a write will actually land in — Codex has no project-level config."""
+    return GLOBAL_SCOPE if adapter == CODEX_ADAPTER else scope
+
+
+def write_for_adapter(project_root: Path, adapter: str, scope: str, name: str, entry: dict) -> None:
+    """Add one server in the format the chosen adapter actually reads."""
+    if adapter == CODEX_ADAPTER:
+        from core.web.routes import _config_codex_toml as codex
+
+        codex.write_server(codex_config_path(), name, entry)
+        return
+    write_server(config_path_for_scope(project_root, scope), name, entry)
+
+
+def remove_for_adapter(project_root: Path, adapter: str, scope: str, name: str) -> bool:
+    if adapter == CODEX_ADAPTER:
+        from core.web.routes import _config_codex_toml as codex
+
+        return codex.remove_server(codex_config_path(), name)
+    return remove_server(config_path_for_scope(project_root, scope), name)
+
+
+def existing_names(project_root: Path, adapter: str, scope: str) -> set[str]:
+    if adapter == CODEX_ADAPTER:
+        from core.web.routes import _config_codex_toml as codex
+
+        return set(codex.read_servers(codex_config_path()))
+    return set(_read_servers(config_path_for_scope(project_root, scope)))
 
 
 def write_server(path: Path, name: str, entry: dict) -> None:
