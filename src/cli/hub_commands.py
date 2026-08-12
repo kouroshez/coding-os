@@ -18,6 +18,7 @@ import signal
 import subprocess
 import sys
 import time
+from collections.abc import MutableMapping
 from pathlib import Path
 
 import click
@@ -39,6 +40,31 @@ from cli._hub_service import (
     service_install as service_install,
     service_uninstall as service_uninstall,
 )
+
+
+def _strip_daemon_scope(env: MutableMapping[str, str]) -> list[str]:
+    from thinking_os.database import (  # type: ignore
+        PROJECT_SCOPED_ENV_VARS,
+        SESSION_SCOPED_ENV_VARS,
+    )
+
+    scoped = tuple(PROJECT_SCOPED_ENV_VARS) + tuple(SESSION_SCOPED_ENV_VARS)
+    # Membership, not pop-with-default: a var set to "" is still inherited
+    # state and must be reported as dropped, not silently skipped.
+    dropped = [name for name in scoped if name in env]
+    for name in dropped:
+        del env[name]
+    return dropped
+
+
+def _warn_dropped_scope(dropped: list[str]) -> None:
+    if not dropped:
+        return
+    click.echo(
+        f"Hub: ignoring inherited {', '.join(dropped)} — the Hub serves every "
+        f"registered project and resolves each one per request.",
+        err=True,
+    )
 
 
 def _pid_file() -> Path:
@@ -186,6 +212,11 @@ def hub_start(port: int, foreground: bool, reload_: bool) -> None:
            running" and immediately exit).
     """
     if foreground:
+        # This process IS the daemon — both the detached spawn below and the
+        # `cos service install` unit re-enter here. Scrub before importing the
+        # server, since route modules read these at import time.
+        _warn_dropped_scope(_strip_daemon_scope(os.environ))
+
         from web.server import run_server  # type: ignore
 
         click.echo(f"Starting Hub on http://{HUB_HOST}:{port} (foreground)")
@@ -241,6 +272,10 @@ def hub_start(port: int, foreground: bool, reload_: bool) -> None:
     # Users can override by exporting COS_GRAPH_BACKEND=kuzu explicitly.
     env = os.environ.copy()
     env.setdefault("COS_GRAPH_BACKEND", "sqlite")
+    # Strip here too, not only in the child: `ps`/the log would otherwise show a
+    # project-pinned env on a server that serves every project, and the operator
+    # gets the warning from the command they actually ran.
+    _warn_dropped_scope(_strip_daemon_scope(env))
 
     # Detach: start_new_session so SIGHUP on terminal close doesn't kill us.
     with open(log, "ab") as logfh:

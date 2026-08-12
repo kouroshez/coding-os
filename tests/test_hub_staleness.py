@@ -9,6 +9,7 @@ doctor, update) and the `hub.code_fresh` doctor check.
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -138,3 +139,69 @@ def test_doctor_pass_when_fresh(monkeypatch):
     doctor._check_hub_code_fresh(report)
     check = next(c for c in report.checks if c.id == "hub.code_fresh")
     assert check.severity == SEV_PASS
+
+
+def test_daemon_scope_covers_project_and_session_groups():
+    from thinking_os.database import PROJECT_SCOPED_ENV_VARS, SESSION_SCOPED_ENV_VARS
+
+    both = set(PROJECT_SCOPED_ENV_VARS) | set(SESSION_SCOPED_ENV_VARS)
+    env = dict.fromkeys(both, "/leak")
+    assert set(hub_commands._strip_daemon_scope(env)) == both
+    assert env == {}
+    # The groups name different axes; an overlap would mean one is mislabelled.
+    assert not set(PROJECT_SCOPED_ENV_VARS) & set(SESSION_SCOPED_ENV_VARS)
+
+
+def test_strip_daemon_scope_drops_a_var_set_to_empty_string():
+    env = {"COS_STATE_DIR": ""}
+    assert hub_commands._strip_daemon_scope(env) == ["COS_STATE_DIR"]
+    assert env == {}
+
+
+def test_strip_daemon_scope_drops_pinning_vars_and_keeps_machine_knobs():
+    env = {
+        "COS_STATE_DIR": "/leak/.coding-os",
+        "COS_DB_PATH": "/leak/.coding-os/coding-os.db",
+        "COS_PROJECT_ROOT": "/leak",
+        "COS_AGENT_DIR": "/leak/.coding-os/claude",
+        "COS_HOOK_LOG": "/leak/hooks.log",
+        "COS_GRAPH_BACKEND": "sqlite",
+        "PATH": "/usr/bin",
+    }
+    dropped = hub_commands._strip_daemon_scope(env)
+    assert set(dropped) == {
+        "COS_STATE_DIR",
+        "COS_DB_PATH",
+        "COS_PROJECT_ROOT",
+        "COS_AGENT_DIR",
+        "COS_HOOK_LOG",
+    }
+    # Machine-wide knobs say *how* the server runs, not *which* project.
+    assert env == {"COS_GRAPH_BACKEND": "sqlite", "PATH": "/usr/bin"}
+
+
+def test_strip_daemon_scope_is_a_noop_on_a_clean_env():
+    env = {"PATH": "/usr/bin"}
+    assert hub_commands._strip_daemon_scope(env) == []
+    assert env == {"PATH": "/usr/bin"}
+
+
+def test_foreground_start_scrubs_process_env_before_serving(monkeypatch):
+    """The --foreground process IS the daemon (service unit + detached path both land here)."""
+    monkeypatch.setenv("COS_STATE_DIR", "/leak/.coding-os")
+    monkeypatch.setenv("COS_PROJECT_ROOT", "/leak")
+    monkeypatch.setenv("COS_GRAPH_BACKEND", "sqlite")
+    seen: dict[str, str | None] = {}
+
+    def _fake_run_server(**kwargs):
+        seen["COS_STATE_DIR"] = os.environ.get("COS_STATE_DIR")
+        seen["COS_PROJECT_ROOT"] = os.environ.get("COS_PROJECT_ROOT")
+        seen["COS_GRAPH_BACKEND"] = os.environ.get("COS_GRAPH_BACKEND")
+
+    monkeypatch.setitem(sys.modules, "web.server", SimpleNamespace(run_server=_fake_run_server))
+    result = CliRunner().invoke(hub_commands.hub_start, ["--foreground", "--port", "9099"])
+
+    assert result.exit_code == 0, result.output
+    assert seen["COS_STATE_DIR"] is None
+    assert seen["COS_PROJECT_ROOT"] is None
+    assert seen["COS_GRAPH_BACKEND"] == "sqlite"

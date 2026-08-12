@@ -25,6 +25,7 @@ for _p in (str(_CORE_PKG), str(_SCHEDULED_DIR)):
 from _state import read_registry, read_state  # type: ignore  # noqa: E402
 
 from scheduled.config import DEFAULTS, load_config, save_config  # type: ignore  # noqa: E402
+from thinking_os.database import PROJECT_SCOPED_ENV_VARS  # type: ignore  # noqa: E402
 
 router = APIRouter(prefix="/api/scheduled", tags=["scheduled"])
 logger = logging.getLogger("codingos.web.scheduled")
@@ -171,15 +172,10 @@ class RunResult(BaseModel):
 # Per-project scoping overrides the Hub sets for its own request handling. The
 # isolated nightly child must NOT inherit them, else its internal legs resolve
 # the Hub launch project's paths instead of the target project's (matches the
-# clean env the standalone launchd cron runs with).
-_SCOPE_ENV_VARS = (
-    "COS_STATE_DIR",
-    "COS_DB_PATH",
-    "COS_PROJECT_ROOT",
-    "COS_LOG_FILE",
-    "COS_AGENT_DIR",
-    "COS_PANEL_DIR",
-)
+# clean env the standalone launchd cron runs with). Same SSOT the Hub daemon
+# strips at startup — docs/engineering/state-files.md § The multi-project
+# exception.
+_SCOPE_ENV_VARS = PROJECT_SCOPED_ENV_VARS
 
 
 def _clean_child_env() -> dict:

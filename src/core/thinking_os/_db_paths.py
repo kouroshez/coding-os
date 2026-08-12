@@ -54,6 +54,34 @@ _ROOT_MARKERS = (
     "AGENTS.md",
 )
 
+# The vars that pin a process to ONE project — they name *which* project, so a
+# process that inherits them never reaches the resolvers above. A server that
+# hosts many projects (the Hub daemon) or runs one *named* project (the nightly
+# child) must start without them, or it silently serves whichever directory its
+# launching shell happened to point at. Machine-wide knobs that say *how* a
+# process runs (COS_GRAPH_BACKEND, COS_LOG_LEVEL, PATH, …) are deliberately
+# absent. Contract: docs/engineering/state-files.md § The multi-project
+# exception.
+PROJECT_SCOPED_ENV_VARS = (
+    "COS_STATE_DIR",
+    "COS_DB_PATH",
+    "COS_PROJECT_ROOT",
+    "COS_LOG_FILE",
+    "COS_AGENT_DIR",
+    "COS_PANEL_DIR",
+)
+
+# The vars that pin a process to ONE agent panel/session. A daemon is not a
+# session: inheriting these makes it read another panel's markers and hook log.
+SESSION_SCOPED_ENV_VARS = (
+    "COS_PANEL_ID",
+    "COS_SESSION_FILE",
+    "COS_SESSION_ID",
+    "COS_AGENT",
+    "COS_HOOK_LOG",
+    "COS_HOOK_BLOCK_LOG",
+)
+
 
 def _find_project_root_from_cwd(start: Path | None = None) -> Path | None:
     """Walk up from cwd to find the enclosing coding-os project root.

@@ -62,6 +62,47 @@ can never silently drift. The Python-side `$HOME` hard-stop and the
 consolidation of the remaining cwd-only Python resolvers onto this one contract
 are tracked in **TASK-498**.
 
+### The multi-project exception — the Hub daemon starts env-clean
+
+Precedence rule 1 (explicit `COS_STATE_DIR` wins) is right for a hook or a CLI
+command: each runs *inside* one project, and an explicit override is the
+operator saying which. It is **wrong for the Hub daemon**, which serves every
+registered project and resolves each one per request from the
+`/api/p/<slug>/` middleware. A single ambient `COS_STATE_DIR` pins that whole
+server to one directory — and the daemon outlives the shell that set it, so the
+pin is invisible from then on.
+
+`cos hub start` therefore **strips** two var groups before the server binds —
+the **project-scoped** ones that name *which* project (`COS_STATE_DIR` ·
+`COS_DB_PATH` · `COS_PROJECT_ROOT` · `COS_LOG_FILE` · `COS_AGENT_DIR` ·
+`COS_PANEL_DIR`) and the **session-scoped** ones that name *which* panel wrote
+them (`COS_PANEL_ID` · `COS_SESSION_FILE` · `COS_SESSION_ID` · `COS_AGENT` ·
+`COS_HOOK_LOG` · `COS_HOOK_BLOCK_LOG`). Machine-wide knobs
+(`COS_GRAPH_BACKEND`, `COS_LOG_LEVEL`, `PATH`, …) pass through untouched — they
+name *how* the server runs, not *which project* it is. Both the detached spawn
+and a direct `--foreground` run scrub, because the `service install` unit and
+the detached path both end at `cos hub start --foreground` — that process *is*
+the daemon.
+
+The two groups are one SSOT tuple pair, `PROJECT_SCOPED_ENV_VARS` /
+`SESSION_SCOPED_ENV_VARS` in
+[`_db_paths.py`](../../src/core/thinking_os/_db_paths.py) (re-exported from
+`thinking_os.database`), beside the project-root resolver they undo. The Hub
+daemon drops both groups; the nightly maintenance child
+(`web/routes/scheduled.py`) drops the project-scoped group for the same reason —
+it runs one *named* project and must not inherit the Hub's launch directory.
+
+The failure this prevents is silent, not loud. A shell that had leaked a pytest
+fixture's `COS_STATE_DIR` started a Hub that served the whole UI from a
+`/private/tmp/pytest-of-*/` directory: adapters read `installed: false` (no
+`.coding-os.yaml` there), Agent Supervision read as off however many times the
+operator enabled it (no `hub-settings.json` there), and the board rendered a
+throwaway test database. Every panel painted successfully — with the wrong
+project's data, and no error anywhere. Env-clean startup is what makes the
+per-request resolution above the *only* way a project is chosen. `SessionStart`
+surfaces `COS_STATE_DIR` on stderr when it is not the resolved project's own, so
+a poisoned *shell* is still visible even though the daemon now ignores it.
+
 ## The split — shared root vs. agent-private subdir vs. panel-private subdir (three-tier scope)
 
 ```
