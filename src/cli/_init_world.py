@@ -16,6 +16,7 @@ from cli._init_registries import (
     ADAPTERS_DIR,
     CONFIG_FILE,
     STATE_DIR,
+    TEMPLATES_DIR,
     VALID_AGENTS,
     _get_adapter_registry,
     _get_base_profile,
@@ -177,6 +178,83 @@ def _prompt_templates() -> tuple[str, ...]:
             seen.add(s)
             result.append(s)
     return tuple(result)
+
+
+def _prompt_setup_mode(
+    *, preset_id: str | None, profile: str | None
+) -> tuple[str | None, str | None]:
+    """Offer recommended defaults or the full set of questions. Returns (preset, profile).
+
+    Quick is the default and prints what it applied — an installer that silently
+    decides for you gives no way to learn what is configurable. Custom asks the
+    two questions the CLI previously accepted only as flags, so the terminal path
+    reaches the same surface the Hub Composer already exposes.
+    """
+    from cli.subsystems import load_profiles
+
+    try:
+        return _ask_setup_mode(preset_id, profile, load_profiles())
+    except (click.exceptions.Abort, click.exceptions.UsageError, EOFError) as exc:
+        # An aborted prompt is a decision, not a failure: fall through to the
+        # flags and registry defaults, but say so rather than looking hung.
+        click.echo(f"  (setup questions skipped: {type(exc).__name__} — using defaults)", err=True)
+        return preset_id, profile
+
+
+def _ask_setup_mode(
+    preset_id: str | None, profile: str | None, loaded_profiles: tuple[dict, str]
+) -> tuple[str | None, str | None]:
+    click.echo("\nSetup:")
+    click.echo("  1. Quick   — recommended defaults, then pick your stacks  (recommended)")
+    click.echo("  2. Custom  — also choose a ready-made preset and a module profile")
+    choice = click.prompt("Select", default="1", show_default=True).strip()
+
+    profiles, default_profile = loaded_profiles
+    if choice != "2":
+        click.echo("\nApplied recommended defaults:")
+        click.echo(f"  Module profile:  {default_profile} (change later: cos module list)")
+        click.echo("  Doc index:       on (embedding model loads once, ~15s)")
+        click.echo("  Git:             init + baseline commit + human git hooks")
+        click.echo("  Run `cos init --help` to set any of these explicitly.")
+        return preset_id, profile
+
+    return _prompt_preset(preset_id), _prompt_profile(profile, profiles, default_profile)
+
+
+def _prompt_preset(preset_id: str | None) -> str | None:
+    from cli.preset_registry import load_preset_registry
+
+    presets = load_preset_registry(TEMPLATES_DIR, known_stacks=set(_get_stack_registry().keys()))
+    names = sorted(presets.keys())
+    if not names:
+        return preset_id
+    click.echo("\nReady-made stack compositions:")
+    for index, name in enumerate(names, start=1):
+        preset = presets[name]
+        click.echo(f"  {index}. {name:18s} — {preset.label} ({', '.join(preset.stacks)})")
+    click.echo("  0. none — pick individual stacks instead")
+    raw = click.prompt("Select a preset", default="0", show_default=False).strip()
+    if raw.isdigit():
+        index = int(raw) - 1
+        return names[index] if 0 <= index < len(names) else None
+    return raw if raw in presets else None
+
+
+def _prompt_profile(profile: str | None, profiles: dict, default_profile: str) -> str | None:
+    names = sorted(profiles)
+    if not names:
+        return profile
+    click.echo("\nModule profile — curates the MCP tool surface the agent sees:")
+    for index, name in enumerate(names, start=1):
+        disabled = profiles[name]
+        detail = f"disables {', '.join(disabled)}" if disabled else "everything on"
+        marker = "  (default)" if name == default_profile else ""
+        click.echo(f"  {index}. {name:14s} — {detail}{marker}")
+    raw = click.prompt("Select a profile", default=default_profile, show_default=True).strip()
+    if raw.isdigit():
+        index = int(raw) - 1
+        return names[index] if 0 <= index < len(names) else default_profile
+    return raw if raw in profiles else default_profile
 
 
 def _parse_agents(raw: str) -> list[str]:

@@ -27,18 +27,19 @@ from cli._init_registries import (
     TEMPLATES_DIR,
     _apply_enable_modules,
     _enable_flag_help,
-    _example_swimlane,
     _get_stack_registry,
     _module_flag_help,
     _profile_flag_help,
     _registered_slug,
     _validated_disabled_modules,
 )
+from cli._init_summary import print_completion_panel, print_git_result
 from cli._init_world import (
     _detect_existing_install,
     _parse_agents,
     _prompt_agents,
     _prompt_name_and_location,
+    _prompt_setup_mode,
     _prompt_templates,
     _sync_missing,
 )
@@ -205,6 +206,12 @@ def init(
     """
     shell_cwd_raw = os.environ.get("PWD") or os.getcwd()
     shell_cwd = Path(shell_cwd_raw).resolve()
+
+    # Runs BEFORE preset/profile resolution below, so a custom answer flows
+    # through exactly the same validation as the flags. Skipped when the caller
+    # already decided (flags, --yes, non-TTY).
+    if not yes and sys.stdin.isatty() and preset_id is None and profile is None and not template:
+        preset_id, profile = _prompt_setup_mode(preset_id=preset_id, profile=profile)
 
     # --preset expands to its stack list before anything else touches
     # `template` (config-composition.md § Presets).
@@ -442,51 +449,11 @@ def init(
         return
 
     # text mode — final summary
-    if git_result.ran:
-        click.echo("  git: initialized")
-        if commit_result.committed:
-            click.echo("  git: baseline commit created")
-        elif commit_result.error:
-            click.echo(f"  git: WARN baseline commit failed — {commit_result.error}")
-        if hooks_result.installed:
-            click.echo(f"  git: hooks installed ({', '.join(hooks_result.installed)})")
-        elif hooks_result.error:
-            click.echo(f"  git: WARN hooks not installed — {hooks_result.error}")
-    elif git_result.skipped_reason:
-        click.echo(f"  git: skipped ({git_result.skipped_reason})")
-    elif git_result.error:
-        click.echo(f"  git: WARN {git_result.error}")
-
-    click.echo("\ncoding-os initialized successfully!")
-    click.echo(f"  Path:     {project}")
-    click.echo(f"  Files:    {files_created}")
-    click.echo(f"  Config:   {CONFIG_FILE}")
-    click.echo(f"  State:    {STATE_DIR}/")
-    click.echo("  Makefile: make help")
-    click.echo("\nQuick start (no Hub required — this all runs from the CLI):")
-    click.echo(f"  cd {project.name} && {agents[0] if agents else '<your agent>'}")
-    if "tasks" in disabled_modules:
-        click.echo("  cos module list        # Subsystems on here (the task board is off)")
-    else:
-        click.echo("  cos daily              # Project status + today's tasks")
-        click.echo(
-            f'  cos task-create --title "First task" --swimlane {_example_swimlane(project)} '
-            '--kind chore --outcome "Walk the CLI loop end to end" --ready'
-        )
-        click.echo("  cos task-start <ID>    # Guide: docs/workflow/workflow-guide.md")
-
-    if not template:
-        available = sorted(_get_stack_registry().keys())
-        click.echo(
-            "\n  WARN: No stack template selected.\n"
-            "  AGENTS.md has placeholder routing — agent works but lacks domain rules,\n"
-            "  verify commands, and engineering guidelines.\n"
-            f"  Add a stack now:  cos add-stack <id>\n"
-            f"  Available stacks: {', '.join(available)}"
-        )
-
-    import platform as _platform
-
-    if _platform.system() == "Darwin":
-        click.echo("\nNightly maintenance (optional):")
-        click.echo("  cos cron install  # launchd job — decay, learn, routing (daily 03:00)")
+    print_git_result(git_result, commit_result, hooks_result)
+    print_completion_panel(
+        project,
+        agents=agents,
+        templates=tuple(template),
+        files_created=files_created,
+        disabled_modules=disabled_modules,
+    )
