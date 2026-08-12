@@ -205,7 +205,9 @@ describe("ConfigPage", () => {
   it("opens the Adapters tab: installed adapter with MCP wiring, then reveals addable ones", () => {
     renderConfig("/p/demo/config?tab=adapters");
     expect(screen.getByText("Anthropic Claude Code")).toBeInTheDocument();
-    expect(screen.getByText("in_process")).toBeInTheDocument();
+    // Capability, not the raw manifest enum a reader has to decode.
+    expect(screen.getByText("live chat")).toBeInTheDocument();
+    expect(screen.queryByText("in_process")).not.toBeInTheDocument();
     expect(screen.getByText(".mcp.json")).toBeInTheDocument();
     expect(screen.getByText(/retry in 42s/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry now" }));

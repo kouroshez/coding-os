@@ -20,9 +20,14 @@ const PAYLOAD = {
       label: 'OpenAI Codex CLI',
       runtime: 'roadmap',
       available: false,
+      chat_available: false,
+      chat_missing: 'an in-process chat runtime',
+      chat_remedy: '',
+      dispatch_available: true,
+      transcript_available: true,
       glyph: 'Cx',
       color: '#0891b2',
-      models: [],
+      models: [{ id: 'gpt-5.6-sol', label: 'gpt-5.6-sol', default: false }],
     },
   ],
   default_model: 'claude-opus-4-8',
@@ -41,14 +46,29 @@ describe('ModelPicker', () => {
     expect(screen.getByRole('button', { name: /Opus 4\.8/ })).toBeInTheDocument();
   });
 
-  it('groups models under their adapter and marks roadmap adapters coming soon', () => {
+  it('groups models under their adapter', () => {
     render(<ModelPicker value="" onChange={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: /Opus 4\.8/ }));
     expect(screen.getByRole('listbox')).toBeInTheDocument();
     expect(screen.getByText('Anthropic Claude Code')).toBeInTheDocument();
     expect(screen.getByText('OpenAI Codex CLI')).toBeInTheDocument();
-    expect(screen.getByText('coming soon')).toBeInTheDocument();
     expect(screen.getByRole('option', { name: /Sonnet 4\.6/ })).toBeInTheDocument();
+  });
+
+  it('tells a chat-incapable adapter where it IS usable instead of promising it later', () => {
+    render(<ModelPicker value="" onChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Opus 4\.8/ }));
+
+    // The regression this guards: a working dispatcher advertised as vapourware.
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+    expect(screen.getByText('no live chat')).toBeInTheDocument();
+    expect(screen.getByText(/Usable for roles and supervision/)).toBeInTheDocument();
+  });
+
+  it('leaves a chat-incapable adapter model unselectable', () => {
+    render(<ModelPicker value="" onChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Opus 4\.8/ }));
+    expect(screen.getByRole('option', { name: /gpt-5\.6-sol/ })).toBeDisabled();
   });
 
   it('selecting a model fires onChange with its id', () => {

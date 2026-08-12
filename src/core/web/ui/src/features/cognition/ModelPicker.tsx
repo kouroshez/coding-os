@@ -3,11 +3,13 @@ import { ChevronDown } from "lucide-react";
 import { useApiGet } from "@/lib/hooks";
 
 /**
- * Adapter-grouped chat model picker. Reads /api/config/adapters (the
- * adapter.yaml::models SSOT) and shows models grouped UNDER their adapter, with
- * the adapter name as the group header. Runtime=roadmap adapters render dimmed
- * + "coming soon" (no model is selectable). Agent-agnostic by construction —
- * adding a model is a yaml edit, never a UI change.
+ * Adapter-grouped chat model picker. Reads /api/config/adapters, which probes
+ * each capability at runtime, and shows models grouped UNDER their adapter.
+ *
+ * An adapter that cannot stream a live turn is NOT "coming soon" — that phrasing
+ * described a working dispatcher as vapourware for as long as a yaml string said
+ * so. It states which capability is missing and where the adapter IS usable
+ * today, so the reader can act instead of wait.
  */
 
 export interface AdapterModel {
@@ -18,11 +20,15 @@ export interface AdapterModel {
 export interface Adapter {
   id: string;
   label: string;
-  runtime: string; // 'in_process' | 'roadmap'
+  runtime: string;
   available: boolean;
   installed?: boolean;
+  chat_available?: boolean;
+  chat_missing?: string;
+  chat_remedy?: string;
   dispatch_available?: boolean;
   dispatch_declared?: boolean;
+  transcript_available?: boolean;
   capabilities?: string[];
   health?: {
     state: string;
@@ -42,6 +48,20 @@ interface AdaptersPayload {
   adapters: Adapter[];
   default_model: string;
   count: number;
+}
+
+// `available` predates the per-capability probe and still means "can chat";
+// read the explicit flag when the server sends it so the two can never disagree.
+export function chatReady(a: Adapter): boolean {
+  return a.chat_available ?? a.available;
+}
+
+/** Where this adapter still earns its place when it cannot stream a live turn. */
+export function elsewhere(a: Adapter): string {
+  const roles: string[] = [];
+  if (a.dispatch_available) roles.push("roles and supervision");
+  if (a.transcript_available) roles.push("reading its past sessions");
+  return roles.join(" and ");
 }
 
 export default function ModelPicker({
@@ -140,15 +160,23 @@ export default function ModelPicker({
                   </span>
                 )}
                 <span className="truncate">{a.label}</span>
-                {a.runtime !== "in_process" && (
+                {!chatReady(a) && (
                   <span className="ml-auto rounded bg-white/[0.06] px-1.5 py-0.5 text-[9px] normal-case text-[var(--cos-faint)]">
-                    coming soon
+                    no live chat
                   </span>
                 )}
               </div>
-              {a.models.length === 0 && a.runtime !== "in_process" && (
-                <p className="px-2 pb-1 text-[10px] text-[var(--cos-faint)]">
-                  Not yet runnable in Hub chat.
+              {!chatReady(a) && (
+                <p className="px-2 pb-1 text-[10px] leading-relaxed text-[var(--cos-faint)]">
+                  {a.chat_remedy
+                    ? `Needs ${a.chat_missing} — ${a.chat_remedy}`
+                    : `Hub chat streams in-process; ${a.label} has no in-process runtime.`}
+                  {elsewhere(a) && (
+                    <>
+                      {" "}
+                      <span className="text-[var(--cos-muted)]">Usable for {elsewhere(a)}.</span>
+                    </>
+                  )}
                 </p>
               )}
               {a.models.map((m) => {
@@ -159,7 +187,7 @@ export default function ModelPicker({
                     type="button"
                     role="option"
                     aria-selected={isSel}
-                    disabled={!a.available}
+                    disabled={!chatReady(a)}
                     onClick={() => pick(m.id)}
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[var(--cos-text)] enabled:hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
                   >

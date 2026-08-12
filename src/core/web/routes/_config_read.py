@@ -216,12 +216,14 @@ def config_mcp() -> dict:
 def config_adapters() -> dict:
     """List agent adapters and the chat models each declares (adapter→models SSOT)."""
     from thinking_os import supervision
-    from thinking_os.adapter_registry import (
-        entrypoint_path,
-        load_adapter_records,
-        load_entrypoint_module,
-    )
+    from thinking_os.adapter_registry import load_adapter_records
     from web._project_context import current_db_path
+    from web.routes._config_adapters import (
+        probe_chat,
+        probe_dispatch,
+        probe_transcript,
+        resolve_models,
+    )
 
     adapters: list[dict] = []
     default_model = ""
@@ -232,20 +234,10 @@ def config_adapters() -> dict:
         for record in load_adapter_records().values():
             data = record.manifest
             runtime = str(data.get("runtime") or "roadmap")
-            models: list[dict] = []
-            for model in record.models:
-                if not model.get("id"):
-                    continue
-                is_default = bool(model.get("default"))
-                models.append(
-                    {
-                        "id": str(model["id"]),
-                        "label": str(model.get("label") or model["id"]),
-                        "default": is_default,
-                    }
-                )
-                if is_default and not default_model:
-                    default_model = str(model["id"])
+            models = resolve_models(record)
+            for model in models:
+                if model["default"] and not default_model:
+                    default_model = model["id"]
             presence = data.get("presence") if isinstance(data.get("presence"), dict) else {}
             cs = data.get("chat_status") if isinstance(data.get("chat_status"), dict) else {}
             tool_labels = cs.get("tool_labels") if isinstance(cs.get("tool_labels"), dict) else {}
@@ -263,21 +255,9 @@ def config_adapters() -> dict:
                         seen_paths.add(path)
                         mcp_config_paths.append(path)
             adapter_id = record.id
-            dispatch_declared = (
-                "dispatch" in record.capabilities
-                and entrypoint_path(record, "dispatch") is not None
-            )
-            dispatch_available = False
-            if dispatch_declared:
-                module = load_entrypoint_module(record, "dispatch")
-                factory = getattr(module, "build_dispatcher", None) if module else None
-                try:
-                    runtime_dispatcher = factory() if callable(factory) else None
-                    dispatch_available = bool(
-                        runtime_dispatcher is not None and runtime_dispatcher.available()
-                    )
-                except Exception as exc:
-                    logger.debug("%s dispatch readiness failed: %s", adapter_id, exc)
+            chat = probe_chat(record)
+            dispatch = probe_dispatch(record)
+            transcript = probe_transcript(record)
             adapter_health = supervision.adapter_health(health, adapter_id) or {
                 "state": "healthy" if routing_enabled else "disabled",
                 "failure_count": 0,
@@ -290,10 +270,22 @@ def config_adapters() -> dict:
                     "id": adapter_id,
                     "label": str(data.get("label") or adapter_id),
                     "runtime": runtime,
-                    "available": runtime == "in_process",
+                    # `available` is the chat verdict the pickers already read;
+                    # it now comes from probing the provider, not from `runtime`.
+                    "available": chat["available"],
+                    "chat_available": chat["available"],
+                    "chat_declared": chat["declared"],
+                    "chat_missing": chat["missing"],
+                    "chat_remedy": chat["remedy"],
                     "installed": adapter_id in installed_agents,
-                    "dispatch_declared": dispatch_declared,
-                    "dispatch_available": dispatch_available,
+                    "dispatch_declared": dispatch["declared"],
+                    "dispatch_available": dispatch["available"],
+                    "dispatch_missing": dispatch["missing"],
+                    "dispatch_remedy": dispatch["remedy"],
+                    "transcript_available": transcript["available"],
+                    "transcript_declared": transcript["declared"],
+                    "transcript_missing": transcript["missing"],
+                    "transcript_remedy": transcript["remedy"],
                     "capabilities": sorted(record.capabilities),
                     "health": adapter_health,
                     "glyph": presence.get("hub_glyph"),
@@ -309,7 +301,8 @@ def config_adapters() -> dict:
         logger.debug("load adapters failed: %s", exc)
 
     # in_process adapters first, then alpha — the runnable one leads the picker.
-    adapters.sort(key=lambda a: (a["runtime"] != "in_process", a["id"]))
+    # Runnable adapters lead the picker; among equals, alphabetical.
+    adapters.sort(key=lambda a: (not (a["chat_available"] or a["dispatch_available"]), a["id"]))
     return {"adapters": adapters, "default_model": default_model, "count": len(adapters)}
 
 

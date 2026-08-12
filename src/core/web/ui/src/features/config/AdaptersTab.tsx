@@ -26,8 +26,10 @@ interface AdapterRow {
   runtime: string;
   available: boolean;
   installed: boolean;
+  chat_available?: boolean;
   dispatch_available: boolean;
   dispatch_declared?: boolean;
+  transcript_available?: boolean;
   capabilities: string[];
   health?: {
     state: string;
@@ -39,6 +41,12 @@ interface AdapterRow {
   glyph?: string | null;
   models: AdapterModel[];
   mcp_config_paths: string[];
+}
+
+// `available` predates the per-capability probe and still means "can chat";
+// prefer the explicit flag so the two can never disagree.
+function chatReady(a: AdapterRow): boolean {
+  return a.chat_available ?? a.available;
 }
 
 export function AdaptersTab() {
@@ -98,9 +106,11 @@ export function AdaptersTab() {
   return (
     <>
       <TabIntro>
-        The agent adapters wired for this project. The runnable one (in_process) drives Hub chat; a
-        roadmap adapter is declared but not yet runnable here. Add another to run more than one
-        agent side by side.
+        The agent adapters wired for this project, and what each one can actually do right now —
+        every capability below is probed at load, not read from a manifest label.{" "}
+        <strong>Live chat</strong> streams a turn in the Hub. <strong>Roles</strong> runs dispatched
+        work and Agent Supervision. <strong>Sessions</strong> reads that agent&apos;s past
+        transcripts. An adapter missing one is still fully useful for the others.
       </TabIntro>
       {mutError && (
         <Banner kind="error" onDismiss={() => setError(null)}>
@@ -135,17 +145,22 @@ export function AdaptersTab() {
                 </span>
               }
               badges={
-                <span className="flex gap-1">
-                  <Pill tone={a.available ? "ok" : "muted"}>{a.runtime}</Pill>
+                <span className="flex flex-wrap gap-1">
+                  <Pill tone={chatReady(a) ? "ok" : "muted"}>
+                    {chatReady(a) ? "live chat" : "no live chat"}
+                  </Pill>
                   {a.dispatch_declared && (
                     <Pill
                       tone={
                         a.dispatch_available && healthOf(a).state === "healthy" ? "ok" : "muted"
                       }
                     >
-                      {a.dispatch_available ? healthOf(a).state : "unavailable"}
+                      {a.dispatch_available
+                        ? `roles · ${healthOf(a).state}`
+                        : "roles unavailable"}
                     </Pill>
                   )}
+                  {a.transcript_available && <Pill tone="ok">sessions</Pill>}
                 </span>
               }
               meta={adapterMeta(a)}
@@ -199,7 +214,11 @@ export function AdaptersTab() {
                   {a.label || a.id}
                 </span>
               }
-              badges={<Pill tone={a.available ? "ok" : "muted"}>{a.runtime}</Pill>}
+              badges={
+                <Pill tone={chatReady(a) ? "ok" : "muted"}>
+                  {chatReady(a) ? "live chat" : "roles only"}
+                </Pill>
+              }
               meta={adapterMeta(a)}
               action={
                 <CfgButton

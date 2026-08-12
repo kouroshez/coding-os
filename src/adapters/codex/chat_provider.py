@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
+import re
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import Any, TypeVar
 
 logger = logging.getLogger("coding_os.chat.codex")
@@ -13,6 +16,9 @@ _CLIENT: Any = None
 _CLIENT_LOCK = asyncio.Lock()
 _T = TypeVar("_T")
 
+_SDK_PACKAGE = "openai-codex"
+_MODEL_RE = re.compile(r'^\s*model\s*=\s*["\']([^"\']+)["\']\s*$')
+
 
 def available() -> bool:
     try:
@@ -20,6 +26,43 @@ def available() -> bool:
     except ImportError:
         return False
     return True
+
+
+def requirement() -> dict[str, str]:
+    """What is missing for this provider to run, and the command that supplies it."""
+    if available():
+        return {}
+    return {
+        "missing": f"the {_SDK_PACKAGE} package",
+        "remedy": f"uv pip install '{_SDK_PACKAGE}>=0.144.4,<0.145.0'",
+    }
+
+
+def _config_path() -> Path:
+    return Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "config.toml"
+
+
+def discovered_models() -> list[dict[str, str]]:
+    """The model Codex is configured to use, read from the user's own config.
+
+    Codex accepts a freeform `-m <MODEL>`; neither the CLI nor the SDK publishes a
+    catalog to enumerate. The one model ID we can state without inventing it is the
+    one the user already wrote down, so an empty config yields an empty list rather
+    than a plausible guess.
+    """
+    path = _config_path()
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    for line in lines:
+        if line.lstrip().startswith("["):
+            break  # past the top-level table; profile models are not the active one
+        match = _MODEL_RE.match(line)
+        if match:
+            model = match.group(1)
+            return [{"id": model, "label": model, "default": True, "source": str(path)}]
+    return []
 
 
 async def _with_client(call: Callable[[Any], Awaitable[_T]]) -> _T:
