@@ -26,10 +26,26 @@ _INHERITED_STATE_ENV = (
 )
 
 
+# Loading by file path rather than as `scripts.<name>` keeps one mechanism for
+# every directory: src/scripts/dev/ has no package marker, and adding one to
+# satisfy a test would put a dev-only tree into the packaging story.
+_LOAD_BY_PATH = (
+    "import importlib.util as u, sys; "
+    "s = u.spec_from_file_location('smoke', sys.argv[1]); "
+    "m = u.module_from_spec(s); "
+    "s.loader.exec_module(m)"
+)
+
+
 def _scripts() -> tuple[Path, ...]:
     # `_`-prefixed modules are helpers imported by an entry script, not
     # entrypoints; each is covered transitively by the script that drives it.
-    return tuple(p for p in sorted(SCRIPT_ROOT.glob("*.py")) if not p.name.startswith("_"))
+    # Recursive: src/scripts/dev/ holds eight more, two of them Makefile targets.
+    return tuple(
+        p
+        for p in sorted(SCRIPT_ROOT.rglob("*.py"))
+        if not p.name.startswith("_") and "__pycache__" not in p.parts
+    )
 
 
 def _command_for(script: Path) -> list[str]:
@@ -38,20 +54,20 @@ def _command_for(script: Path) -> list[str]:
     # route a mutating script to an `--help` it does not implement.
     if "import argparse" in source or "import click" in source:
         return [sys.executable, str(script), "--help"]
-    return [sys.executable, "-c", f"import scripts.{script.stem}"]
+    return [sys.executable, "-c", _LOAD_BY_PATH, str(script)]
 
 
-def _pythonpath_for(command: list[str]) -> str | None:
+def _pythonpath_for(script: Path, command: list[str]) -> str | None:
     # Running a file by path must inherit NOTHING: the script's own sys.path
     # bootstrap is the thing under test, and injecting src/core here would mask
     # a broken bootstrap (a wrong `sys.path.insert` still resolves, so the
     # smoke test greenlights a script that dies under a real invocation).
     if "-c" not in command:
         return None
-    # The module-import form needs the package root, plus the script dir for the
-    # siblings some scripts import unqualified (`from _audit_harness import ...`)
-    # — that resolves when the file is RUN, but not under `import scripts.<name>`.
-    return os.pathsep.join((str(REPO_ROOT / "src"), str(SCRIPT_ROOT)))
+    # The import form needs the package root, plus the script's OWN directory for
+    # the siblings some scripts import unqualified (`from _audit_harness import
+    # ...`) — that resolves when the file is RUN, but not under a bare import.
+    return os.pathsep.join((str(REPO_ROOT / "src"), str(script.parent)))
 
 
 def _failure(
@@ -67,7 +83,11 @@ def _failure(
 def test_the_script_set_is_discovered() -> None:
     # An empty parametrize set is reported as a skip, not a failure, so a moved
     # or renamed script root would hollow this suite out and still exit 0.
-    assert len(_scripts()) >= 20, f"only {len(_scripts())} scripts found under {SCRIPT_ROOT}"
+    found = _scripts()
+    assert len(found) >= 28, f"only {len(found)} scripts found under {SCRIPT_ROOT}"
+    # The dev/ tree is the half that has no package marker, so a regression that
+    # silently drops it would still clear a flat count.
+    assert any(p.parent.name == "dev" for p in found), "src/scripts/dev is not being discovered"
 
 
 @pytest.mark.parametrize("script", _scripts(), ids=lambda path: path.name)
@@ -87,7 +107,7 @@ def test_script_entrypoint_smoke(script: Path, tmp_path: Path) -> None:
     env["COS_DB_PATH"] = str(tmp_path / "coding-os.db")
 
     command = _command_for(script)
-    pythonpath = _pythonpath_for(command)
+    pythonpath = _pythonpath_for(script, command)
     if pythonpath is not None:
         env["PYTHONPATH"] = pythonpath
 

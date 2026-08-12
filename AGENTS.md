@@ -80,6 +80,7 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 | `src/adapters/**` | `uv run pytest tests/test_adapters_*.py tests/test_adapter_parity.py -q` |
 | `src/cli/*.py` | `uv run pytest tests/test_cli.py -q` |
 | `src/templates/**/scaffold/**` | `uv run pytest tests/test_template_scaffold_*.py -q` |
+| `src/scripts/**/*.py` | `uv run pytest tests/test_script_entrypoints.py -q` |
 | `docs/**/*.md` | `make docs-lint` |
 
 > Suite paths are **globs on purpose**: `test_adapters.py`, `test_db.py` and `test_template_scaffold.py` were each split into siblings while the matrix kept naming the old file, so three rows exited "no tests ran" — a silent no-op that reads exactly like a pass. `tests/test_verification_matrix.py` fails if any row stops collecting.
