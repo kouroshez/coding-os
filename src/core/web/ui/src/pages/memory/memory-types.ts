@@ -1,4 +1,8 @@
-// Shapes served by /api/memory/* and the learning tools.
+// Shapes served by /api/patterns/*, /api/scheduled/* and the learning tools.
+// Field names mirror the producers exactly (api-contract-discipline):
+//   patterns  → src/core/web/routes/patterns.py::_COLUMNS + the computed `tier`
+//   roi       → src/core/web/routes/patterns.py::learning_roi
+//   scheduled → src/core/web/routes/scheduled.py (FLAT — no {data, meta} envelope)
 
 import type { paths } from '@/lib/api-client';
 
@@ -38,23 +42,29 @@ export type RunResult =
   paths['/api/scheduled/run/{slug}']['post']['responses']['200']['content']['application/json'];
 
 export interface RunResp extends Omit<RunResult, 'summary'> {
-  summary?: {
-    tasks?: {
-      learn_extract?: { status?: string; extracted?: unknown[]; total_outcomes_analyzed?: number };
-    };
-  } | null;
+  summary?: ScheduledState | null;
 }
 
-// Field names mirror src/core/web/routes/patterns.py::learning_roi exactly.
-export interface RoiSession {
-  session_id: string;
-  friction: number;
-  total: number;
-  rate: number;
-  started: string;
+// GET /api/scheduled/project/<slug> returns the verbatim last_run.json plus the
+// slug — no envelope, no response_model. An unknown slug still answers HTTP 200
+// but with `error` instead of state, which is why `error` is modelled here: the
+// page must show a failure, not a silent "never ran".
+export interface ScheduledTask {
+  status?: string;
+  reason?: string;
 }
+
+export interface ScheduledState {
+  slug?: string;
+  run_at?: string | null;
+  consecutive_failures?: number;
+  last_error?: string | null;
+  tasks?: Record<string, ScheduledTask>;
+  error?: string;
+}
+
 export interface RoiData {
-  sessions: RoiSession[];
+  sessions: { session_id: string; friction: number; total: number; rate: number; started: string }[];
   count: number;
   trend: string;
   delta_pct: number;
