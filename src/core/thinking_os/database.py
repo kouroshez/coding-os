@@ -193,11 +193,11 @@ def record_audit(
 # ---------------------------------------------------------------------------
 
 try:  # package import
-    from ._db_pool import (  # noqa: E402
+    from ._db_pool import (
         # Re-exported under its private name: graph_os's SQLite backend reaches
         # it via getattr(db, "_apply_pragmas", None) and silently skips tuning
         # if the attribute is absent.
-        apply_pragmas as _apply_pragmas,  # noqa: F401
+        apply_pragmas as _apply_pragmas,
         close_pool as close_pool,
         db_connection as db_connection,
         get_connection as get_connection,
@@ -205,7 +205,7 @@ try:  # package import
         pool_stats as pool_stats,
     )
 except ImportError:  # loaded as a top-level module (tests, direct execution)
-    from _db_pool import (  # type: ignore[no-redef]  # noqa: E402
+    from _db_pool import (  # type: ignore[no-redef]
         apply_pragmas as _apply_pragmas,  # noqa: F401
         close_pool as close_pool,
         db_connection as db_connection,
