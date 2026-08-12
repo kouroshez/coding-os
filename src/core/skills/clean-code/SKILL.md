@@ -409,6 +409,18 @@ A file rule alone is gameable — a 280-line file holding one 230-line function 
 
 Splitting is where files silently break: a split changes six resolution mechanisms at once — import binding, monkeypatch target, decorator registration, test fixtures, derived artifacts, statement order — plus literal filenames in CI config, and no linter sees any of them. The seam table, the failure mode of each mechanism, and the byte-identity parity check (`check_split_parity.py`) to prove a move was a move: [references/file-design.md](references/file-design.md). Read it before the first cut.
 
+## 4b. Output Contract — One Vocabulary, and Never Silent
+
+A script's output is its interface with a human under time pressure. Use the marker set `cos doctor` already speaks — **`[OK]` · `[WARN]` · `[FAIL]` · `[SKIP]`** — and nothing else. Measured drift before this rule: seven prefixes across `src/`, with `ERROR:` (45) and `FAIL:` (17) both meaning failure and `OK:` (22) and `PASS:` (1) both meaning success, so "did it work?" needed a different read per script.
+
+Three obligations:
+
+- **One marker set.** No `ERROR:`/`PASS:`/`INFO:`/bare-emoji variants. Severity is the first token on the line, so `grep '\[FAIL\]'` finds every failure in every script we ship.
+- **Never silent while working.** A run that iterates over units emits `[i/N] <unit>`; a step that can exceed ~2s says what it started before it blocks. Silence is indistinguishable from a hang, and an agent that cannot tell them apart kills a healthy run or waits out a dead one.
+- **A failure line is actionable or it is noise.** Name the unit, the expected vs actual, and the command that reproduces it — a summary that says `[FAIL] 3 checks failed` and stops has moved the debugging cost onto the reader.
+
+Format, progress shapes, and the exit-code contract: [references/output-contract.md](references/output-contract.md).
+
 ## 5. Edge Case Awareness
 
 Before writing any function, ask:
