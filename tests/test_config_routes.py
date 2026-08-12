@@ -20,6 +20,16 @@ for _p in (_REPO_ROOT, _REPO_ROOT / "src", _REPO_ROOT / "src" / "core"):
 from core.web.server import create_app
 
 
+@pytest.fixture(autouse=True)
+def _isolate_codex_home(tmp_path, monkeypatch):
+    """Keep model discovery off the developer's own ~/.codex/config.toml.
+
+    Discovery reads whatever model that file names, so without this the suite
+    asserts against one machine's configuration and fails on every other.
+    """
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "codex-home"))
+
+
 @pytest.fixture
 def client():
     with TestClient(create_app()) as c:
@@ -73,10 +83,16 @@ def test_adapters_groups_models_by_adapter(client):
     assert len(claude["models"]) == 4
     assert sum(1 for m in claude["models"] if m["default"]) == 1  # exactly one default
 
-    for rid in ("codex",):  # declared, but no fabricated model IDs (P7)
-        assert adapters[rid]["runtime"] == "roadmap"
-        assert adapters[rid]["available"] is False
-        assert adapters[rid]["models"] == []
+    codex = adapters["codex"]
+    # No in-process runtime, so no live chat — but the dispatcher and the
+    # transcript reader are probed independently and stay usable.
+    assert codex["chat_available"] is False
+    assert codex["available"] is codex["chat_available"]
+    assert codex["chat_missing"]  # never a bare "coming soon"
+    assert codex["dispatch_available"] is True
+    # Models are DISCOVERED from the adapter's own config, never fabricated (P7).
+    # The fixture pins CODEX_HOME at an empty dir, so discovery finds nothing.
+    assert codex["models"] == []
 
     assert body["adapters"][0]["id"] == "claude"  # the runnable adapter leads
     for a in body["adapters"]:
@@ -88,8 +104,11 @@ def test_adapters_groups_models_by_adapter(client):
             "models",
             "mcp_config_paths",
             "installed",
+            "chat_available",
+            "chat_missing",
             "dispatch_available",
             "dispatch_declared",
+            "transcript_available",
             "capabilities",
             "health",
         } <= set(a)
