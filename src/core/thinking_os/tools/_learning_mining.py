@@ -128,11 +128,6 @@ _JARGON_TRANSLATIONS: tuple[tuple[str, str], ...] = (
 )
 
 
-def _is_noise_failure(display: str) -> bool:
-    low = display.lower()
-    return any(marker in low for marker in _NOISE_FAILURE_MARKERS)
-
-
 def _humanize_signature(display: str) -> str:
     out = display
     low = out.lower()
