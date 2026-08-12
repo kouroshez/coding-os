@@ -4,8 +4,8 @@ export const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'health', label: 'Health & charts' },
   { id: 'maintenance', label: 'Maintenance' },
-  { id: 'backend', label: 'Backend' },
-  { id: 'sqlite', label: 'sqlite' },
+  { id: 'backend', label: 'Knowledge graph' },
+  { id: 'sqlite', label: 'SQLite' },
 ];
 
 export const MAX_SAMPLES = 60; // 2 minutes at 2s/poll
@@ -61,9 +61,18 @@ export const ISSUE_LABELS: Record<string, string> = {
   self_loops: 'Self-loops',
   duplicate_edges: 'Duplicate edges',
   stale_paths: 'Stale paths',
+  files_with_parse_errors: 'Files no extractor could read (info)',
+  slowest_extractions: 'Slowest files to index (info)',
 };
+// Anything absent here renders as a real defect, so a category added to the
+// backend without a row below arrives looking like breakage under a raw
+// snake_case key. Both rows here are expected states, not faults: unrendered
+// scaffold templates ({{VAR}} is not valid YAML) and languages with no
+// extractor yet land in parse errors, and slow files are a timing report.
 export const ISSUE_SEVERITY: Record<string, 'real' | 'info'> = {
   orphaned_external_unresolved: 'info',
+  files_with_parse_errors: 'info',
+  slowest_extractions: 'info',
 };
 
 export function doctorDotClass(status: string): string {
