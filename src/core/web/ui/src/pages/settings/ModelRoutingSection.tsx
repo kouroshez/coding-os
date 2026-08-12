@@ -16,10 +16,15 @@ export function ModelRoutingSection({
     ["config-adapters"],
     "/api/config/adapters",
   );
-  const { data: roleData } = useApiGet<{ roles: string[] }>(
-    ["cognition-roles"],
-    "/api/cognition/roles",
-  );
+  // `details` carries each role's human title and chain order; `roles` is the
+  // bare id list kept for older consumers. Fall back to it so the panel still
+  // lists every role when the producer predates the richer shape.
+  const { data: roleData } = useApiGet<{
+    roles: string[];
+    details?: { id: string; title: string; order: number }[];
+  }>(["cognition-roles"], "/api/cognition/roles");
+  const roleRows =
+    roleData?.details ?? (roleData?.roles ?? []).map((id) => ({ id, title: id, order: 0 }));
   const availableAdapters = (data?.adapters ?? []).filter(
     (a) => a.installed && a.dispatch_available,
   );
@@ -66,7 +71,7 @@ export function ModelRoutingSection({
             }
             className={selectClass}
           >
-            <option value="">current adapter</option>
+            <option value="">inherit — whichever agent is running</option>
             {availableAdapters.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.label}
@@ -80,7 +85,7 @@ export function ModelRoutingSection({
             aria-label={`${role ?? "orchestrator"} model`}
             value={target.model}
             onChange={(event) => updateTarget(role, { model: event.target.value })}
-            placeholder="adapter default"
+            placeholder="inherit — the adapter's own default model"
             className={selectClass}
           />
         ) : (
@@ -90,7 +95,7 @@ export function ModelRoutingSection({
             onChange={(event) => updateTarget(role, { model: event.target.value })}
             className={selectClass}
           >
-            <option value="">adapter default</option>
+            <option value="">inherit — the adapter's default model</option>
             {models.map((model) => (
               <option key={model.id} value={model.id}>
                 {model.label}
@@ -108,7 +113,7 @@ export function ModelRoutingSection({
           onChange={(event) => updateTarget(role, { effort: event.target.value })}
           className={selectClass}
         >
-          <option value="">adapter default</option>
+          <option value="">inherit — the adapter's default effort</option>
           {efforts.map((effort) => (
             <option key={effort} value={effort}>
               {effort}
@@ -175,9 +180,11 @@ export function ModelRoutingSection({
                 }
                 className={selectClass}
               >
-                <option value="fail_closed">Fail closed</option>
-                <option value="same_adapter_default">Same adapter default</option>
-                <option value="next_eligible">Next eligible adapter</option>
+                <option value="fail_closed">Fail closed — stop, never re-run elsewhere</option>
+                <option value="same_adapter_default">
+                  Retry on the same adapter&apos;s default model
+                </option>
+                <option value="next_eligible">Hand off to the next healthy adapter</option>
               </select>
             </FieldRow>
             <FieldRow label="Parallel limit">
@@ -222,11 +229,14 @@ export function ModelRoutingSection({
                 </span>
               )}
             </FieldRow>
-            {(roleData?.roles ?? []).map((role) => (
-              <FieldRow key={role} label={role}>
+            {roleRows.map((row) => (
+              <FieldRow
+                key={row.id}
+                label={row.title === row.id ? row.id : `${row.id} — ${row.title}`}
+              >
                 {targetControls(
-                  role,
-                  routing.roles[role] ?? { adapter: "", model: "", effort: "" },
+                  row.id,
+                  routing.roles[row.id] ?? { adapter: "", model: "", effort: "" },
                 )}
               </FieldRow>
             ))}

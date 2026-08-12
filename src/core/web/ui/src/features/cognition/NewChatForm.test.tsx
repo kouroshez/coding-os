@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('./roles', () => ({ useRoles: (): string[] => [] }));
+vi.mock('./roles', () => ({
+  useRoles: (): string[] => [],
+  useRoleDetails: (): { id: string; title: string; order: number }[] => [],
+}));
 // ModelPicker (rendered by the composer) reads useApiGet — stub it so the test
 // needs no QueryClientProvider; an empty adapter list is fine for the handoff test.
 vi.mock('@/lib/hooks', () => ({

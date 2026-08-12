@@ -4,7 +4,7 @@ import { consumeSse, streamDeltaText, streamToolName } from '@/lib/chat-stream';
 import type { ApiPath } from '@/lib/api-client';
 import { reportClientError } from '@/lib/client-logger';
 import { MarkdownBlock } from '@/components/MarkdownBlock';
-import { useRoles } from './roles';
+import { useRoleDetails } from './roles';
 import ModelPicker from './ModelPicker';
 import EffortPicker from './EffortPicker';
 import { useChatStatusLabel } from './chat-status';
@@ -55,7 +55,7 @@ export default function NewChatForm({
   // conversation (user bubble + streaming reply) — so the chat "opens" instantly
   // instead of leaving the user staring at a "thinking…" box in the composer.
   const [sent, setSent] = useState<string | null>(null);
-  const roles = useRoles();
+  const roles = useRoleDetails();
   // Data-driven live label (adapter.yaml::chat_status) — tool verb when a tool
   // is active, else a rotating playful phrase.
   const status = useChatStatusLabel(model, activity, streaming);
@@ -253,10 +253,10 @@ export default function NewChatForm({
                 aria-label="Agent role"
                 className="bg-transparent text-[var(--cos-text)] focus:outline-none"
               >
-                <option value="">none</option>
+                <option value="">none — general assistant</option>
                 {roles.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
+                  <option key={r.id} value={r.id}>
+                    {r.id} — {r.title}
                   </option>
                 ))}
               </select>

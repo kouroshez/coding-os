@@ -58,6 +58,40 @@ def _role_names(agents_dir: Path) -> list[str]:
         return []
 
 
+def _role_meta(agents_dir: Path) -> list[dict]:
+    """Each role with the human title and chain position its definition declares.
+
+    The ids alone rendered as fourteen bare lowercase words in two pickers, which
+    says nothing about what a role does or the order it runs in. Both facts are
+    already authored in the frontmatter, so read them rather than restate them in
+    the UI, where they would drift from the definition.
+    """
+    import re as _re
+
+    title = _re.compile(r'^name:\s*"?([^"\n]+)"?\s*$', _re.M)
+    order = _re.compile(r"^canonical_order:\s*(\d+)\s*$", _re.M)
+    rows: list[dict] = []
+    for name in _role_names(agents_dir):
+        try:
+            head = (agents_dir / f"{name}.md").read_text(encoding="utf-8")[:1200]
+        except OSError as exc:
+            logger.debug("role meta skipped %s: %s", name, exc)
+            head = ""
+        matched_title = title.search(head)
+        matched_order = order.search(head)
+        rows.append(
+            {
+                "id": name,
+                # Fall back to the id so a definition missing the field still
+                # renders something a reader recognises.
+                "title": matched_title.group(1).strip() if matched_title else name,
+                "order": int(matched_order.group(1)) if matched_order else 999,
+            }
+        )
+    rows.sort(key=lambda r: (r["order"], r["id"]))
+    return rows
+
+
 def _prime_with_project_description(system_prompt: dict, cwd: str) -> dict:
     """Append the onboarding intake (docs/_meta/project-description.md) to the
     chat system prompt so the first session knows what the project IS (TASK-364).

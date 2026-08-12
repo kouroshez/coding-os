@@ -33,6 +33,7 @@ from ._cognition_chat_prompts import (
     _CHAT_SYSTEM as _CHAT_SYSTEM,
     _chat_system_prompt as _chat_system_prompt,
     _prime_with_project_description as _prime_with_project_description,
+    _role_meta as _role_meta,
     _role_names as _role_names,
     _role_system_prompt as _role_system_prompt,
 )
@@ -186,12 +187,20 @@ def list_roles(
     _m=Depends(make_metrics_dep("cognition.roles")),
 ):
     """List the semantic roles a chat session can adopt (producer: thinking_os/agents/*.md)."""
-    roles = _role_names(Path(__file__).resolve().parents[2] / "thinking_os" / "agents")
+    agents_dir = Path(__file__).resolve().parents[2] / "thinking_os" / "agents"
+    roles = _role_names(agents_dir)
     return unwrap(
         json.dumps(
             {
                 "ok": True,
-                "data": {"roles": roles, "count": len(roles), "meta": {"layer": "cognition"}},
+                # `roles` stays a plain id list for existing consumers; `details`
+                # carries the title and chain order the pickers render.
+                "data": {
+                    "roles": roles,
+                    "details": _role_meta(agents_dir),
+                    "count": len(roles),
+                    "meta": {"layer": "cognition"},
+                },
             }
         )
     )
