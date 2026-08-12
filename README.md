@@ -97,10 +97,12 @@ clicks. ([ADR-0007](docs/architecture/adr/0007-gui-first-install-path.md))
 ## 60-second quickstart (native `uv`)
 
 ```bash
-# 1. Install the cos CLI globally
-git clone https://github.com/kouroshez/coding-os.git
-cd coding-os
-uv tool install --editable .
+# 1. Install the cos CLI globally, from PyPI
+uv tool install coding-os              # upgrade later: uv tool upgrade coding-os
+
+#    …or from a checkout, if you intend to work ON coding-os itself:
+#    git clone https://github.com/kouroshez/coding-os.git && cd coding-os
+#    uv tool install --editable .      # upgrade later: git pull (editable is live)
 
 # 2. Verify
 cos --version                          # → coding-os, version X.Y.Z

@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from cli.core_version import current_core_version, read_stamped_version
+from cli.core_version import current_core_version, read_stamped_version, upgrade_command
 
 from ._doctor_shared import (  # noqa: F401
     _DOCTOR_CFG,
@@ -213,11 +213,15 @@ def _check_core_version(state: Path, report: DoctorReport) -> None:
             )
         )
     elif stamped != current:
+        # `cos update` re-stamps the project to whatever is installed, so naming
+        # it alone turns a stale install into a silenced warning. The package
+        # upgrade is the step that actually moves the version.
         report.checks.append(
             CheckResult(
                 "core.version_stamp",
                 SEV_WARN,
-                f"core drift — scaffolded by {stamped}, current core {current}; run `cos update`",
+                f"core drift — scaffolded by {stamped}, current core {current}; "
+                f"upgrade the package (`{upgrade_command()}`), then run `cos update`",
                 {"stamped": stamped, "current": current},
             )
         )

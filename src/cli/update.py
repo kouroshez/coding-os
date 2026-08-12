@@ -56,7 +56,13 @@ from cli._update_manifest import (
 )
 from cli.adapter_registry import load_adapter_registry
 from cli.aggregator import aggregate, today_iso
-from cli.core_version import current_core_version, read_stamped_version
+from cli.core_version import (
+    EDITABLE_UPGRADE_COMMAND,
+    current_core_version,
+    latest_published_version,
+    read_stamped_version,
+    upgrade_command,
+)
 from cli.stack_registry import (
     load_base_profile,
     load_stack_registry,
@@ -119,6 +125,21 @@ def _sync_hook_registration(project: Path, agent: str, *, dry_run: bool) -> bool
     return True
 
 
+def _release_notice(installed: str) -> str | None:
+    """One line telling the user a newer coding-os exists and how to get it."""
+    # `cos update` re-links assets from the package already on disk — it can
+    # never change the installed version. Without this line the only signal a
+    # consumer gets is a drift warning whose suggested fix silences it.
+    latest = latest_published_version()
+    if not latest or latest == installed or installed == "unknown":
+        return None
+    return (
+        f"  A newer coding-os is published: {latest} (installed {installed}).\n"
+        f"  Upgrade the package, then re-run this: {upgrade_command()}\n"
+        f"  Installed from a checkout instead? {EDITABLE_UPGRADE_COMMAND}"
+    )
+
+
 def _aggregate_world(agent: str, templates: tuple[str, ...], project: Path):
     """Build an AggregatedWorld for the given agent + stacks.
 
@@ -178,6 +199,11 @@ def update(
             "(release notes: docs/governance/release-process.md)",
             err=True,
         )
+
+    if output_format == "text":
+        notice = _release_notice(installed_version)
+        if notice:
+            click.echo(notice, err=True)
 
     overall_changes = False
     applied_summary: dict[str, dict] = {}
