@@ -43,6 +43,18 @@ _FRICTION_HINTS: dict[str, str] = {
     "error": "fix the failing precondition before retrying",
 }
 
+
+def is_placeholder_lesson(text: str) -> bool:
+    """True when a lesson still carries a generic hint instead of a real remediation."""
+    # A template row is a COUNTER awaiting distillation, not a belief: its
+    # subject is already in the block message the agent just read, and its
+    # remediation is one of the fixed hints above. Confidence scales with
+    # recurrence, so anything ranking on confidence alone floats placeholders
+    # above every distilled lesson unless it asks this question first.
+    stripped = (text or "").rstrip().rstrip(".")
+    return any(stripped.endswith(hint) for hint in _FRICTION_HINTS.values())
+
+
 # Normalisers that turn a volatile failure message into a stable cluster key:
 # absolute paths → basename, TASK ids and long hashes → placeholders.
 _ABS_PATH_RE = re.compile(r"(?:/[^\s'\":,]+)+/([^\s'\":/,]+)")

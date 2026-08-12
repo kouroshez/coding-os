@@ -73,6 +73,74 @@ def test_mirror_rerender_updates_block_only(conn, tmp_path: Path) -> None:
     assert "manual tail" in content
 
 
+def _add_pattern(connection: sqlite3.Connection, text: str, confidence: float, seen: int) -> None:
+    connection.execute(
+        "INSERT INTO learned_patterns "
+        "(pattern, memory_type, source, confidence, times_seen) "
+        "VALUES (?, 'lesson', 'friction', ?, ?)",
+        (text, confidence, seen),
+    )
+    connection.commit()
+
+
+def test_mirror_drops_placeholder_lessons_and_keeps_distilled(conn) -> None:
+    # The placeholder's confidence outranks the distilled lesson (recurrence
+    # lifts it), so ranking alone would render the counter and hide the lesson.
+    _add_pattern(
+        conn,
+        "Recurring block (144 occurrences): block-secrets — no-verify "
+        "→ satisfy the blocked rule before retrying the action",
+        0.85,
+        144,
+    )
+    _add_pattern(
+        conn,
+        "Recurring error (5 occurrences): reading a 400KB file at once "
+        "→ fix the failing precondition before retrying",
+        0.80,
+        5,
+    )
+    _add_pattern(
+        conn,
+        "Passing multi-line scripts to uv run via a bash heredoc deadlocks "
+        "→ write the script to a file and run it",
+        0.50,
+        4,
+    )
+
+    rendered = [row["pattern"] for row in sync._trusted_lessons(conn)]
+
+    assert len(rendered) == 1
+    assert "heredoc" in rendered[0]
+
+
+def test_mirror_caps_the_block_at_the_declared_budget(conn) -> None:
+    for index in range(sync.MIRROR_LESSON_LIMIT + 7):
+        _add_pattern(conn, f"distilled lesson number {index} with a real remediation", 0.5, 3)
+
+    assert len(sync._trusted_lessons(conn)) == sync.MIRROR_LESSON_LIMIT
+
+
+def test_harvest_never_mints_from_the_index_file(conn, tmp_path: Path) -> None:
+    mem = tmp_path / "memory"
+    mem.mkdir()
+    _add_trusted(conn, "a real lesson that the mirror exports into the block")
+    sync.render_mirror(mem, sync._trusted_lessons(conn))
+    # The human index below the generated block: headings, links, no prose.
+    with (mem / "MEMORY.md").open("a", encoding="utf-8") as handle:
+        handle.write(
+            "\n# Memory Index\n"
+            "- [Sample lesson](sample.md) — one line hook for the note\n"
+            "- [Another lesson](another.md) — one line hook for the note\n"
+        )
+
+    assert sync.harvest(mem, conn) == 0
+    assert (
+        conn.execute("SELECT COUNT(*) FROM learned_patterns WHERE source='import'").fetchone()[0]
+        == 0
+    )
+
+
 def test_harvest_mints_once_and_skips_generated_block(conn, tmp_path: Path) -> None:
     mem = tmp_path / "memory"
     mem.mkdir()
