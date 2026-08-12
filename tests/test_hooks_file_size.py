@@ -18,6 +18,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOK = REPO_ROOT / "src" / "core" / "hooks" / "block-bad-patterns.sh"
 CEILING = 500
 WARN_AT = 400
+NOTICE_AT = 300
 
 
 def _invoke(payload: dict, env: dict | None = None) -> subprocess.CompletedProcess:
@@ -82,6 +83,46 @@ class TestWriteCeiling:
     ) -> None:
         payload = _write(str(tmp_path / "fresh.py"), 300)
         assert _invoke(payload, env={"COS_MAX_FILE_LINES": "200"}).returncode == 2
+
+
+class TestPreferredBudgetNotice:
+    """300 is the documented preferred budget; 400/500 were the only tiers the
+    hook implemented, so the number an agent reads was never the number it felt.
+    The notice fires on the CROSSING only — 241 of this repo's 1060 sources are
+    already past 300, and a tier that re-fires forever is one agents scroll past.
+    """
+
+    def test_notices_a_new_file_crossing_the_preferred_budget(self, tmp_path: Path) -> None:
+        result = _invoke(_write(str(tmp_path / "fresh.py"), NOTICE_AT + 20))
+        assert result.returncode == 0
+        assert f"crosses {NOTICE_AT} lines" in result.stderr
+
+    def test_stays_quiet_under_the_preferred_budget(self, tmp_path: Path) -> None:
+        result = _invoke(_write(str(tmp_path / "small.py"), NOTICE_AT - 20))
+        assert result.returncode == 0
+        assert "crosses" not in result.stderr
+
+    def test_does_not_re_notice_a_file_already_over_the_budget(self, tmp_path: Path) -> None:
+        # The no-nag guarantee: the seam question is asked once, when it is cheap.
+        target = tmp_path / "already_big.py"
+        target.write_text(_lines(NOTICE_AT + 50))
+        result = _invoke(_write(str(target), NOTICE_AT + 80))
+        assert result.returncode == 0
+        assert "crosses" not in result.stderr
+
+    def test_the_warn_tier_supersedes_the_notice(self, tmp_path: Path) -> None:
+        result = _invoke(_write(str(tmp_path / "big.py"), WARN_AT + 30))
+        assert result.returncode == 0
+        assert "crosses" not in result.stderr
+        assert "is now" in result.stderr
+
+    def test_the_budget_is_overridable_per_project(self, tmp_path: Path) -> None:
+        result = _invoke(
+            _write(str(tmp_path / "fresh.py"), NOTICE_AT - 20),
+            env={"COS_NOTICE_FILE_LINES": str(NOTICE_AT - 100)},
+        )
+        assert result.returncode == 0
+        assert f"crosses {NOTICE_AT - 100} lines" in result.stderr
 
 
 class TestExemptions:
