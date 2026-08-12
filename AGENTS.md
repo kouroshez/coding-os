@@ -72,15 +72,17 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 
 | Changed | Command |
 |---|---|
-| `src/core/thinking_os/**.py` | `uv run --extra rag pytest src/core/thinking_os/tests/ -q -m 'not slow'` + `python src/core/thinking_os/server.py --test` (pre-merge: `make test-slow`) |
-| `src/core/thinking_os/database.py` | `uv run --extra rag pytest src/core/thinking_os/tests/test_db.py -q` |
+| `src/core/thinking_os/**.py` | `uv run --extra rag pytest src/core/thinking_os/tests/ -q -m 'not slow'` + `uv run python src/core/thinking_os/server.py --test` (pre-merge: `make test-slow`) |
+| `src/core/thinking_os/database.py` | `uv run --extra rag pytest src/core/thinking_os/tests/test_db_*.py -q` |
 | `src/core/graph_os/**` | `uv run --extra graph_os pytest src/core/graph_os/tests/ -q` |
 | `src/core/board_os/**` | `uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q` |
 | `src/core/hooks/*.sh`, `src/core/scripts/*.sh` | `make verify-hooks` |
-| `src/adapters/**` | `uv run pytest tests/test_adapters.py tests/test_adapter_parity.py -q` |
+| `src/adapters/**` | `uv run pytest tests/test_adapters_*.py tests/test_adapter_parity.py -q` |
 | `src/cli/*.py` | `uv run pytest tests/test_cli.py -q` |
-| `src/templates/**/scaffold/**` | `uv run pytest tests/test_template_scaffold.py -q` |
+| `src/templates/**/scaffold/**` | `uv run pytest tests/test_template_scaffold_*.py -q` |
 | `docs/**/*.md` | `make docs-lint` |
+
+> Suite paths are **globs on purpose**: `test_adapters.py`, `test_db.py` and `test_template_scaffold.py` were each split into siblings while the matrix kept naming the old file, so three rows exited "no tests ran" — a silent no-op that reads exactly like a pass. `tests/test_verification_matrix.py` fails if any row stops collecting.
 
 ## Tool Routing
 
