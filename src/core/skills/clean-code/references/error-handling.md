@@ -100,6 +100,54 @@ return Response({"error_code": "NOT_FOUND", "message": "Product not found"}, sta
 The hand-built envelope drifts the moment the shared format changes: the
 handler is updated once, every hand-built copy silently keeps the old shape.
 
+## §1d — Resource Lifetime on the Failing Path
+
+```python
+# GOOD — one invariant for every writer, enforced by the type system's `with`
+@contextlib.contextmanager
+def _write(self) -> Iterator[None]:
+    with self._write_lock:
+        try:
+            yield
+        except BaseException:
+            with contextlib.suppress(Exception):
+                self._conn.rollback()
+            raise
+
+def upsert_node(self, node) -> None:
+    with self._write():
+        self._conn.execute(...)
+
+# BAD — the rollback never runs, and the connection is thread-cached
+def upsert_node(self, node) -> None:
+    self._write_lock.acquire()
+    self._conn.execute(...)          # raises → transaction stays open forever
+    self._conn.commit()
+    self._write_lock.release()       # never reached
+```
+
+The bad shape is not a slow leak: the open transaction blocks *every other
+connection* on "database is locked" until the process dies, with nothing
+logged. Note `except BaseException` — a `KeyboardInterrupt` or `asyncio`
+`CancelledError` mid-write must roll back too, and neither is an `Exception`.
+The inner `suppress` is deliberate: a rollback that itself fails must not
+replace the original error the caller needs to see.
+
+```typescript
+// GOOD — finally runs on throw and on early return
+const client = await pool.connect();
+try {
+  await client.query("BEGIN");
+  await client.query(sql, params);
+  await client.query("COMMIT");
+} catch (error) {
+  await client.query("ROLLBACK").catch(() => {});
+  throw error;
+} finally {
+  client.release();
+}
+```
+
 ## §2 — No Internal Details in Responses
 
 ```python

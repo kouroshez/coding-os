@@ -49,6 +49,14 @@ Never pass PII (email, full name, IP address, phone) to any `logger.*` call. Use
 
 Never construct error response dicts by hand (e.g., `return Response({"error_code": ...})`). Raise a typed exception and let the custom exception handler produce the envelope — a hand-built copy silently keeps the old shape the day the shared format changes. See `docs/api-contracts/error-format.md`.
 
+## 1d. Resource Lifetime — One Owner, One Release Path That Also Runs on Failure
+
+Every acquired resource — connection, **transaction**, file handle, lock, subprocess, socket, cursor — is released by a `with` / `try…finally` / `defer` that runs when the body raises, not only when it returns. Acquire it as late as possible and release it in the same function that acquired it; a resource handed back to a caller to close has no owner.
+
+The failure this prevents is not a leak you notice — it is one you don't. `upsert_node` wrote through a thread-cached SQLite connection with no rollback on the raising path, so a single failed statement left the implicit transaction open forever and **every other connection blocked on "database is locked" until the process was killed**. Nothing logged; the write simply never returned. One `@contextlib.contextmanager` around the write replaced three ad-hoc `try/except` blocks and made the invariant impossible to forget: [src/core/graph_os/backends/_sqlite_write.py](../../graph_os/backends/_sqlite_write.py).
+
+Reject on sight: a bare `open()` / `connect()` / `acquire()` whose close is a plain statement after the work · `finally` that can itself raise and mask the original error · a cleanup guarded by `if success:` · an `except` that returns before the release · a lock released on a different thread than took it. Worked pairs: [references/error-handling.md](references/error-handling.md).
+
 ## 2. No Internal Details in Responses
 
 Never expose implementation details to API consumers. Forbidden in a response body: `str(exc)` from any exception (it may carry SQL, paths, or internal state), database column/table names or query fragments, stack traces and file paths, internal service or infrastructure names.
