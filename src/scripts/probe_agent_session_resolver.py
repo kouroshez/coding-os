@@ -21,10 +21,13 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-SERVER = ROOT / "src" / "core" / "thinking_os" / "server.py"
+# The helper lives in _server_runtime.py; server.py imports it. Extracting from
+# the definition site keeps this probe pointed at the source of truth rather
+# than at whichever module happens to re-export it today.
+SERVER = ROOT / "src" / "core" / "thinking_os" / "_server_runtime.py"
 
 if not SERVER.exists():
-    sys.exit(f"server.py not found at {SERVER}")
+    sys.exit(f"_server_runtime.py not found at {SERVER}")
 
 src = SERVER.read_text(encoding="utf-8")
 match = re.search(
@@ -32,7 +35,7 @@ match = re.search(
     src,
 )
 if not match:
-    raise RuntimeError("helper _detect_agent_session_default not found in server.py")
+    raise RuntimeError(f"helper _detect_agent_session_default not found in {SERVER.name}")
 
 ns: dict = {"_os": os}  # server.py references the stdlib os module as `_os`
 exec(match.group(0), ns)
