@@ -486,3 +486,13 @@ class CodexSDKDispatcher:
 
 def build_dispatcher() -> CodexSDKDispatcher:
     return CodexSDKDispatcher()
+
+
+def requirement() -> dict[str, str]:
+    """What is missing for dispatch to run, and how to supply it."""
+    if CodexSDKDispatcher().available():
+        return {}
+    return {
+        "missing": "the codex CLI on PATH",
+        "remedy": "install the Codex CLI, or set COS_CODEX_BACKEND=python_sdk with the SDK installed",
+    }

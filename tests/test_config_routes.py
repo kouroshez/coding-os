@@ -89,7 +89,14 @@ def test_adapters_groups_models_by_adapter(client):
     assert codex["chat_available"] is False
     assert codex["available"] is codex["chat_available"]
     assert codex["chat_missing"]  # never a bare "coming soon"
-    assert codex["dispatch_available"] is True
+    # Dispatch readiness is PROBED, so its value depends on whether the codex CLI
+    # exists on this machine — CI has no binary, a developer box usually does.
+    # Assert the contract instead of the environment: declared, and when the
+    # probe says unavailable it must say why.
+    assert codex["dispatch_declared"] is True
+    assert isinstance(codex["dispatch_available"], bool)
+    if not codex["dispatch_available"]:
+        assert codex["dispatch_missing"]
     # Models are DISCOVERED from the adapter's own config, never fabricated (P7).
     # The fixture pins CODEX_HOME at an empty dir, so discovery finds nothing.
     assert codex["models"] == []

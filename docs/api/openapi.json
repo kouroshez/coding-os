@@ -4906,7 +4906,7 @@
     },
     "/api/config/mcp": {
       "get": {
-        "description": "List MCP servers configured in the project's .mcp.json.",
+        "description": "List every MCP server this machine declares, project and global, by scope.",
         "operationId": "config_mcp_api_config_mcp_get",
         "responses": {
           "200": {
@@ -4928,7 +4928,7 @@
         ]
       },
       "post": {
-        "description": "Add a first-party allow-listed MCP server to the active project's .mcp.json.",
+        "description": "Add an MCP server — allow-listed or custom, stdio or http/sse — at the chosen scope.",
         "operationId": "config_mcp_add_api_config_mcp_post",
         "requestBody": {
           "content": {
@@ -4992,17 +4992,37 @@
         ]
       }
     },
-    "/api/config/mcp/{name}": {
+    "/api/config/mcp/{server_id}": {
       "delete": {
-        "description": "Remove an MCP server from the active project's .mcp.json (never the managed coding-os one).",
-        "operationId": "config_mcp_remove_api_config_mcp__name__delete",
+        "description": "Remove an MCP server from the given adapter + scope (never the managed coding-os entry).",
+        "operationId": "config_mcp_remove_api_config_mcp__server_id__delete",
         "parameters": [
           {
             "in": "path",
-            "name": "name",
+            "name": "server_id",
             "required": true,
             "schema": {
-              "title": "Name",
+              "title": "Server Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "project",
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "adapter",
+            "required": false,
+            "schema": {
+              "default": "claude",
+              "title": "Adapter",
               "type": "string"
             }
           }
