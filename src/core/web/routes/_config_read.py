@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 
 import yaml
@@ -190,29 +189,18 @@ def config_skill_toggle(skill_name: str, body: dict = Body(...)) -> JSONResponse
 
 @router.get("/mcp")
 def config_mcp() -> dict:
-    """List MCP servers configured in the project's .mcp.json."""
-    root = _project_root()
-    servers: list[dict] = []
-    mcp = root / ".mcp.json"
-    if mcp.exists():
-        try:
-            data = json.loads(mcp.read_text(encoding="utf-8")) or {}
-            raw = data.get("mcpServers") or {}
-            if isinstance(raw, dict):
-                for name, spec in raw.items():
-                    spec = spec if isinstance(spec, dict) else {}
-                    servers.append(
-                        {
-                            "name": name,
-                            "command": spec.get("command"),
-                            "args": spec.get("args") or [],
-                            "managed": name == "coding-os",
-                        }
-                    )
-        except Exception as exc:
-            logger.debug("read .mcp.json failed: %s", exc)
+    """List every MCP server this machine declares, project and global, by scope."""
+    from core.web.routes._config_mcp import GLOBAL_SCOPE, PROJECT_SCOPE, inventory
 
-    return {"servers": servers, "count": len(servers)}
+    servers = inventory(_project_root())
+    return {
+        "servers": servers,
+        "count": len(servers),
+        "scopes": {
+            PROJECT_SCOPE: sum(1 for s in servers if s["scope"] == PROJECT_SCOPE),
+            GLOBAL_SCOPE: sum(1 for s in servers if s["scope"] == GLOBAL_SCOPE),
+        },
+    }
 
 
 @router.get("/adapters")

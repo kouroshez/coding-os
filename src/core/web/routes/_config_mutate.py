@@ -105,6 +105,11 @@ def config_adapter_remove(agent: str) -> JSONResponse:
     )
 
 
+# Query-param default cannot import at call time, so the literal lives here
+# and _config_mcp.PROJECT_SCOPE is asserted equal to it in the tests.
+PROJECT_SCOPE_DEFAULT = "project"
+
+
 @router.get("/mcp/catalog")
 def config_mcp_catalog() -> dict:
     """First-party allow-list of MCP servers installable from the Hub (pre-Extension-Manager)."""
@@ -123,59 +128,87 @@ def config_mcp_catalog() -> dict:
 
 @router.post("/mcp")
 def config_mcp_add(body: dict = Body(...)) -> JSONResponse:
-    """Add a first-party allow-listed MCP server to the active project's .mcp.json."""
-    server_id = str(body.get("id") or "").strip()
-    entry = next((s for s in _MCP_ALLOWLIST if s["id"] == server_id), None)
-    if entry is None:
+    """Add an MCP server — allow-listed or custom, stdio or http/sse — at the chosen scope."""
+    from core.web.routes._config_mcp import (
+        GLOBAL_SCOPE,
+        PROJECT_SCOPE,
+        config_path_for_scope,
+        normalize_server_spec,
+        validate_server_spec,
+        write_server,
+    )
+
+    scope = str(body.get("scope") or PROJECT_SCOPE).strip()
+    if scope not in (PROJECT_SCOPE, GLOBAL_SCOPE):
+        return _fail(400, "validation", f"scope must be '{PROJECT_SCOPE}' or '{GLOBAL_SCOPE}'")
+
+    server_id = str(body.get("id") or body.get("name") or "").strip()
+    if not _safe_id(server_id):
+        return _fail(400, "validation", "invalid server name")
+
+    catalog_entry = next((s for s in _MCP_ALLOWLIST if s["id"] == server_id), None)
+    spec = body.get("server") if isinstance(body.get("server"), dict) else None
+    if spec is None and catalog_entry is None:
         return _fail(
             400,
             "validation",
-            f"'{server_id}' is not on the first-party allow-list — custom / URL / uploaded MCP "
-            f"servers are handled by the Extension Manager (coming soon).",
+            f"'{server_id}' is not in the catalog — pass a `server` object with either "
+            f"command+args (stdio) or type+url (http/sse) to add a custom one.",
         )
+    if spec is None:
+        spec = {"command": catalog_entry["command"], "args": list(catalog_entry["args"])}
+
+    reason = validate_server_spec(server_id, spec)
+    if reason:
+        return _fail(400, "validation", reason)
+
     root = _project_root()
-    mcp = root / ".mcp.json"
+    path = config_path_for_scope(root, scope)
+    from core.web.routes._config_mcp import _read_servers
+
+    if server_id in _read_servers(path):
+        return _fail(409, "conflict", f"MCP server '{server_id}' already exists in {scope} scope")
+
+    entry = normalize_server_spec(spec)
     try:
-        data = json.loads(mcp.read_text(encoding="utf-8")) if mcp.exists() else {}
-    except Exception as exc:
-        return _fail(400, "internal", f"invalid .mcp.json: {exc}")
-    if not isinstance(data, dict):
-        return _fail(400, "internal", ".mcp.json is not an object")
-    servers = data.setdefault("mcpServers", {})
-    if not isinstance(servers, dict):
-        return _fail(400, "internal", ".mcp.json mcpServers is not an object")
-    if server_id in servers:
-        return _fail(409, "conflict", f"MCP server '{server_id}' is already configured")
-    servers[server_id] = {"command": entry["command"], "args": list(entry["args"])}
-    mcp.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-    _audit(root, "mcp.add", server_id, entry["command"])
-    return _ok({"id": server_id, "status": "added"})
+        write_server(path, server_id, entry)
+    except ValueError as exc:
+        return _fail(400, "internal", str(exc))
+    _audit(root, "mcp.add", server_id, f"{scope}:{entry.get('command') or entry.get('url')}")
+    return _ok(
+        {
+            "id": server_id,
+            "scope": scope,
+            "transport": entry.get("type", "stdio"),
+            "status": "added",
+        }
+    )
 
 
-@router.delete("/mcp/{name}")
-def config_mcp_remove(name: str) -> JSONResponse:
-    """Remove an MCP server from the active project's .mcp.json (never the managed coding-os one)."""
-    if name == "coding-os":
+@router.delete("/mcp/{server_id}")
+def config_mcp_remove(server_id: str, scope: str = PROJECT_SCOPE_DEFAULT) -> JSONResponse:
+    """Remove an MCP server from the given scope (never the managed coding-os entry)."""
+    from core.web.routes._config_mcp import (
+        GLOBAL_SCOPE,
+        PROJECT_SCOPE,
+        config_path_for_scope,
+        remove_server,
+    )
+
+    if not _safe_id(server_id):
+        return _fail(400, "validation", "invalid server name")
+    if server_id == "coding-os":
         return _fail(
-            409,
-            "conflict",
-            "the coding-os MCP server is managed by cos and cannot be removed here.",
+            409, "conflict", "'coding-os' is managed by the adapter installer — use cos module"
         )
-    if not _safe_id(name):
-        return _fail(400, "validation", "invalid MCP server id")
+    if scope not in (PROJECT_SCOPE, GLOBAL_SCOPE):
+        return _fail(400, "validation", f"scope must be '{PROJECT_SCOPE}' or '{GLOBAL_SCOPE}'")
     root = _project_root()
-    mcp = root / ".mcp.json"
-    if not mcp.exists():
-        return _fail(404, "not_found", "no .mcp.json in this project")
     try:
-        data = json.loads(mcp.read_text(encoding="utf-8")) or {}
-    except Exception as exc:
-        return _fail(400, "internal", f"invalid .mcp.json: {exc}")
-    servers = data.get("mcpServers") if isinstance(data, dict) else None
-    if not isinstance(servers, dict) or name not in servers:
-        return _fail(404, "not_found", f"MCP server '{name}' is not configured")
-    del servers[name]
-    data["mcpServers"] = servers
-    mcp.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-    _audit(root, "mcp.remove", name)
-    return _ok({"id": name, "status": "removed"})
+        removed = remove_server(config_path_for_scope(root, scope), server_id)
+    except ValueError as exc:
+        return _fail(400, "internal", str(exc))
+    if not removed:
+        return _fail(404, "not_found", f"MCP server '{server_id}' not found in {scope} scope")
+    _audit(root, "mcp.remove", server_id, scope)
+    return _ok({"id": server_id, "scope": scope, "status": "removed"})
