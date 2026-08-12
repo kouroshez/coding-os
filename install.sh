@@ -96,7 +96,7 @@ main() {
   printf '\nOpen http://%s:%s in your browser to reach the onboarding wizard.\n' "${HUB_HOST}" "${HUB_PORT}"
   # This installer clones and installs --editable, so a pull IS the upgrade;
   # `cos update` only re-links a project against the core already on disk.
-  printf 'Upgrade later:  git -C %s pull   (then `cos update` in each project)\n' "${REPO_DIR}"
+  printf 'Upgrade later:  git -C %s pull   (then run cos update in each project)\n' "${REPO_DIR}"
 }
 
 main "$@"

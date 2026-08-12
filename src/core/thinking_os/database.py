@@ -12,8 +12,6 @@ from __future__ import annotations
 import logging
 import os
 import sqlite3
-from collections.abc import Generator
-from contextlib import contextmanager, suppress
 from pathlib import Path
 
 # database.py is imported BOTH flat (`import database`, with this dir on
@@ -190,113 +188,31 @@ def record_audit(
 
 
 # ---------------------------------------------------------------------------
-# Connection helpers
+# Connection construction + the per-thread pool live in _db_pool; re-exported
+# here so every existing `from .database import get_connection` keeps resolving.
 # ---------------------------------------------------------------------------
 
-
-def _apply_pragmas(conn: sqlite3.Connection) -> None:
-    """Apply performance and safety PRAGMAs.
-
-    Tuned for consumer repos up to ~10x meta-repo size (~400K graph nodes,
-    ~600MB DB). Trade-off chosen: durability >= NORMAL (WAL still crash-safe),
-    throughput maximized via mmap + large cache.
-    """
-    conn.execute("PRAGMA journal_mode = WAL")
-    conn.execute("PRAGMA synchronous = NORMAL")  # 3-5x faster writes; WAL still crash-safe
-    conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("PRAGMA temp_store = MEMORY")  # sort/group spill to RAM, not disk
-    conn.execute("PRAGMA cache_size = -65536")  # 64 MB page cache (signed = KB)
-    conn.execute("PRAGMA mmap_size = 268435456")  # 256 MB memory-mapped I/O — skips read() syscalls
-    conn.execute("PRAGMA wal_autocheckpoint = 1000")  # checkpoint every ~4MB of WAL (4KB pages)
-    conn.execute("PRAGMA busy_timeout = 5000")  # 5s wait on locked DB instead of immediate fail
-
-
-def get_connection(db_path: str | Path | None = None) -> sqlite3.Connection:
-    """Open a connection with WAL mode and safety PRAGMAs.
-
-    Args:
-        db_path: Path to the SQLite database file.
-                 Defaults to .coding-os/coding-os.db (via COS_DB_PATH env).
-
-    Returns:
-        A configured sqlite3.Connection.
-    """
-    path = str(db_path or DEFAULT_DB_PATH)
-    # check_same_thread=False: single-writer model enforced by SqliteBackend's
-    # RLock + WAL. Without this, any consumer that shares the connection
-    # across threads (e.g. MCP server, web routes, test harness) hits
-    # sqlite3.ProgrammingError. Matches get_pooled_conn above.
-    conn = sqlite3.connect(path, timeout=10, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    _apply_pragmas(conn)
-    return conn
-
-
-# ---------------------------------------------------------------------------
-# Thread-local connection pool for multi-agent concurrency
-# Spec: docs/phase-n-role-based-routing-plan.md §7a-A
-# One cached connection per thread; WAL lets readers run concurrently;
-# busy_timeout=5000 handles writer contention gracefully.
-# ---------------------------------------------------------------------------
-
-import threading  # noqa: E402
-
-_thread_local = threading.local()
-_pool_lock = threading.Lock()
-_pool_stats = {"hits": 0, "misses": 0, "active": 0}
-
-
-def get_pooled_conn(db_path: str | Path | None = None) -> sqlite3.Connection:
-    path = str(db_path or DEFAULT_DB_PATH)
-    existing = getattr(_thread_local, "conns", {}).get(path)
-    if existing is not None:
-        try:
-            existing.execute("SELECT 1").fetchone()
-            with _pool_lock:
-                _pool_stats["hits"] += 1
-            return existing
-        except sqlite3.Error:
-            pass  # Dead connection, reopen below
-
-    conn = sqlite3.connect(path, timeout=10, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA busy_timeout = 5000")
-    _apply_pragmas(conn)
-    if not hasattr(_thread_local, "conns"):
-        _thread_local.conns = {}
-    _thread_local.conns[path] = conn
-    with _pool_lock:
-        _pool_stats["misses"] += 1
-        _pool_stats["active"] += 1
-    return conn
-
-
-def close_pool() -> None:
-    """Close all pooled connections for the current thread. Safe to call repeatedly."""
-    conns = getattr(_thread_local, "conns", {})
-    for conn in conns.values():
-        with suppress(sqlite3.Error):
-            conn.close()
-    _thread_local.conns = {}
-    with _pool_lock:
-        _pool_stats["active"] = max(0, _pool_stats["active"] - len(conns))
-
-
-def pool_stats() -> dict[str, int]:
-    """Return pool stats snapshot for observability (N.5-B)."""
-    with _pool_lock:
-        return dict(_pool_stats)
-
-
-@contextmanager
-def db_connection(db_path: str | Path | None = None) -> Generator[sqlite3.Connection, None, None]:
-    """Context manager that yields a connection and closes it on exit."""
-    conn = get_connection(db_path)
-    try:
-        yield conn
-    finally:
-        conn.close()
-
+try:  # package import
+    from ._db_pool import (  # noqa: E402
+        # Re-exported under its private name: graph_os's SQLite backend reaches
+        # it via getattr(db, "_apply_pragmas", None) and silently skips tuning
+        # if the attribute is absent.
+        apply_pragmas as _apply_pragmas,  # noqa: F401
+        close_pool as close_pool,
+        db_connection as db_connection,
+        get_connection as get_connection,
+        get_pooled_conn as get_pooled_conn,
+        pool_stats as pool_stats,
+    )
+except ImportError:  # loaded as a top-level module (tests, direct execution)
+    from _db_pool import (  # type: ignore[no-redef]  # noqa: E402
+        apply_pragmas as _apply_pragmas,  # noqa: F401
+        close_pool as close_pool,
+        db_connection as db_connection,
+        get_connection as get_connection,
+        get_pooled_conn as get_pooled_conn,
+        pool_stats as pool_stats,
+    )
 
 # ---------------------------------------------------------------------------
 # Schema versioning & migration
