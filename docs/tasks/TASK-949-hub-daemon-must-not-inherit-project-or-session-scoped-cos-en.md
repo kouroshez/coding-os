@@ -5,12 +5,12 @@ swimlane: cli
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P0
 appetite: 1d
 created: 2026-08-12
 started: 2026-08-12
-completed: null
+completed: 2026-08-12
 agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
@@ -52,3 +52,5 @@ Export COS_STATE_DIR=/tmp/x/.coding-os (as a leaked pytest fixture env does), ru
 - 2026-08-12 [claude]: Edit test_hub_staleness.py
 - 2026-08-12 [claude]: Verified live: hub started from a shell exporting…
 - 2026-08-12 [claude]: Matrix green: tests/test_cli.py 294 passed; src/core/thinking_os/tests/ 1572 passed (not slow); server.py --test ok;…
+- 2026-08-12 [claude]: commit cadaaa2e78 — fix(hub): start the daemon without project- or session-scoped COS_* env
+- 2026-08-12 [claude]: Status transitioned to complete via cos task-done.
