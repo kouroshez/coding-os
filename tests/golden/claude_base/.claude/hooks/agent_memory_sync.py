@@ -21,17 +21,28 @@ GENERATED_BLOCK_RE = re.compile(
 )
 MAX_GENERATED_LINES = 200
 LEDGER_NAME = ".harvested.json"
+# Every line here is re-read into context on every session of every project, so
+# the block is a standing token cost, not a free archive. 25 keeps the strongest
+# lessons well inside a session's attention; the DB stays the full record.
+MIRROR_LESSON_LIMIT = 25
 
 
 def _trusted_lessons(conn) -> list[dict]:
+    from tools._learning_mining import is_placeholder_lesson
+
+    # The floor is the mint default (0.5), not 0.7: a distilled lesson starts
+    # there and only climbs through validation, while an undistilled placeholder
+    # climbs on recurrence alone — so a 0.7 floor selected the counters and hid
+    # every real lesson. `is_placeholder_lesson` is what makes the low floor safe.
     rows = conn.execute(
         "SELECT pattern, times_seen FROM learned_patterns "
-        "WHERE confidence >= 0.7 AND times_seen >= 3 "
+        "WHERE confidence >= 0.5 AND times_seen >= 3 "
         "AND COALESCE(memory_type, '') != 'stat' AND promoted_to IS NULL "
         "ORDER BY confidence * COALESCE(impact_score, 0.5) DESC "
-        "LIMIT 60"
+        "LIMIT 120"
     ).fetchall()
-    return [dict(r) for r in rows]
+    lessons = [dict(r) for r in rows if not is_placeholder_lesson(r["pattern"])]
+    return lessons[:MIRROR_LESSON_LIMIT]
 
 
 def render_mirror(memory_dir: Path, lessons: list[dict]) -> None:
@@ -60,6 +71,12 @@ def render_mirror(memory_dir: Path, lessons: list[dict]) -> None:
 def _foreign_sections(memory_dir: Path) -> list[str]:
     sections: list[str] = []
     for md_file in sorted(memory_dir.glob("*.md")):
+        # MEMORY.md is this script's own output plus the human index of the
+        # notes beside it — never a foreign note. Reading it back minted the
+        # index heading itself as a belief ('Memory Index', reinforced on every
+        # run) and re-imported lessons the mirror had just exported.
+        if md_file.name == "MEMORY.md":
+            continue
         text = md_file.read_text(encoding="utf-8", errors="replace")
         text = GENERATED_BLOCK_RE.sub("", text)
         for chunk in re.split(r"\n(?=## )", text):

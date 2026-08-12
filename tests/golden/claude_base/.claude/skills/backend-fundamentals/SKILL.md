@@ -2,7 +2,7 @@
 name: backend-fundamentals
 tier: layer
 domain: [backend]
-description: Stack-agnostic backend patterns. Use when writing or modifying any server-side code (HTTP handler, DB query, background job, auth/middleware, webhook) regardless of language or framework. Covers services/selectors split, idempotency, error envelopes, migration discipline, N+1 avoidance, scale-aware design, auth guardrails, and logging hygiene.
+description: Stack-agnostic backend patterns. Use when writing or modifying any server-side code (HTTP handler, DB query, background job, auth/middleware, webhook) regardless of language or framework. Covers services/selectors split, idempotency, error envelopes, migration discipline, N+1 avoidance, scale-aware design, auth guardrails, concurrency and race conditions on contended writes, and logging hygiene.
 globs: "backend/**/*"
 paths: ["backend/**/*"]
 context: fork
@@ -14,7 +14,7 @@ allowed-tools:
   - Glob
   - Edit
   - Write
-last_reviewed: "2026-05-11"
+last_reviewed: "2026-08-12"
 
 ---
 
@@ -65,7 +65,7 @@ Every endpoint that mutates state MUST accept (or derive) an idempotency key:
 
 - Webhook → key = `<provider>:<event_id>` (Stripe, Square, GitHub, ...).
 - Internal service call → key = `sha256(normalized_input_json)`.
-- User-initiated → key = `Idempotency-Key` header (RFC 8594-style).
+- User-initiated → key = `Idempotency-Key` header (`draft-ietf-httpapi-idempotency-key-header`).
 
 Persist the key **before** side effects. Three states: `processing`, `processed`, `failed`. If the key already exists as `processing`/`processed`, return the stored response — do NOT re-apply the operation. Multi-table writes MUST run inside a single transaction; on rollback, also roll back the idempotency row.
 
@@ -193,18 +193,65 @@ Validate once, at the HTTP boundary, using the framework's schema system (Pydant
 
 Reject on failure with `VALIDATION_ERROR` + field-level details so the client can show per-field feedback. No generic "invalid input" — list every failing field.
 
-## 15. Rate limiting — for public endpoints
+## 15. Rate limiting — every route, composite key
 
-Any public endpoint (no auth, or user-auth without workspace scope) needs rate limiting. Strategy:
+**Every route resolves a policy.** Declare the budget next to the handler; a route that declares none inherits a restrictive global fallback. Never a hand-maintained list of "the public ones" — the failure mode is a missing line, and missing lines are invisible in a diff. Add a test that walks the router and fails on any route resolving no policy.
 
-- Per-IP for unauthenticated endpoints.
-- Per-user-id for authenticated endpoints.
-- Burst + sustained (e.g., 20 req / 1 min burst, 200 req / 1 hour sustained).
-- Return `429 Too Many Requests` with `Retry-After` header.
+**The key is a tuple, and every applicable policy is evaluated — deny if any one is exhausted.** `key = user_id if authenticated else ip` is the anti-pattern: it lets an attacker with 5,000 free accounts escape the IP limit, and an IP-rotating attacker escape the account limit.
 
-Store counters in Redis or the framework's rate-limit module. Never in application memory (breaks under horizontal scale).
+| Dimension | Source | Note |
+|---|---|---|
+| policy / route | route declaration | namespaces the counter; version it so a retune doesn't inherit old counts |
+| principal | user / org id | survives IP rotation — a proxy pool cannot shed it |
+| api key / client id | credential | the tenant's key, not their end users' |
+| session / device | signed cookie, device id | survives IP churn on mobile |
+| ip prefix | trusted-proxy hop (below) | never the only dimension on a human-reachable route |
 
-## 16. Pre-commit / PR checklist
+- **Resolve the IP from a hop you own.** Configure a trusted-proxy CIDR set or hop count, join *all* `X-Forwarded-For` headers into one list, walk from the **rightmost** entry skipping trusted proxies, take the first untrusted address. `xff.split(',')[0]` lets one attacker mint unlimited distinct keys — the limiter reports healthy while enforcing nothing.
+- **Mask IPv6 to /64** (plus a looser /48 policy), and normalize spelling before hashing. A residential customer is delegated the whole /64, so per-address keying hands them 2^64 free buckets.
+- **CGNAT cuts the other way** — thousands of unrelated users share one IPv4. When only the IP dimension trips, prefer a challenge / step-up over a hard block.
+
+**Algorithm: token bucket (capacity = burst, refill = sustained), GCRA, or sliding window — not fixed-window.** 100 requests at `:59` plus 100 at `:01` is 200 in two seconds, doubling the budget you thought you set.
+
+**One atomic decision per dimension** — a single Lua `EVAL` / `FCALL` returning allow + remaining + reset in one round trip. Read-then-write lets N workers each admit, so the effective limit scales with worker count; computing header values in a second call reports a budget that disagrees with the decision just made. Independent dimensions cannot share a script: they have no common key, and forcing one (by hash-tagging on principal) scopes the IP counter *per principal* and silently deletes the dimension you added it for. Co-locate only same-dimension keys — one counter's burst and sustained windows.
+
+**Store:** a dedicated Redis/Valkey db or instance with `maxmemory-policy noeviction`, keys `rl:<policy>:<version>:<hash>`. Note the angle brackets: `{…}` is literal Redis Cluster hash-tag syntax, and only the text inside the first pair is hashed, so a `{policy}` template pins every counter for that policy to one slot. Never the `allkeys-lru` cache instance — it evicts counters under memory pressure, i.e. exactly during the spike. Never application memory (breaks under horizontal scale).
+
+**Fail-open vs fail-closed is per policy, never global.** Capacity/fairness limiters fail open — a limiter outage must not become an API outage. Login, OTP-send, password-reset, payment, and paid-third-party limiters fail **closed** or degrade to a challenge; a blanket "if Redis is down, allow" is an open credential-stuffing window.
+
+**Charge cost, not requests.** Debit units proportional to the work (page size, export, fan-out, LLM tokens) *before* doing it — a uniform limit prices `?limit=1` and `?limit=10000` identically. Every paid third-party call also gets a hard spend cap.
+
+**Auth endpoints** get a per-account limiter keyed on the submitted identifier, independent of any IP dimension, incremented on **failed** attempts only (counting successes locks a user out of their own account), with `send` throttled separately from `verify`.
+
+**Response contract** — 429 + `Retry-After` no earlier than the window end, `RateLimit-*` on successful responses too: see [api-design](../api-design/SKILL.md). Client-side debounce is UX only and never justifies a weaker server limit. On 429 the client waits the **full** `Retry-After` and adds jitter on top — `sleep = retry_after + random(0, spread)`; a jitter that can resolve to zero retries immediately, hammering the limiter the header just asked it to respect. With no header, fall back to `random(0, min(cap, base * 2^attempt))`.
+
+**Ship a new or retuned limiter in shadow mode** — log-only, behind a kill switch, emitting a decision counter labeled by policy, route, and which dimension tripped. Without that label a wrong budget and a real attack look identical at 3 a.m.
+
+## 16. Concurrency — contended writes
+
+Any read whose result decides a later write is **check-then-act (TOCTOU)** and is a defect unless both happen in one statement or under a lock/constraint held across both. Recognize it by shape: `if available`, `if not exists`, `if balance >=`, `if count() < limit`, any ORM `get()` → mutate → `save()`. No type system, linter, or sequential test marks it — 500 buyers all read `stock=1`, all write `stock=0`, one ticket sells 500 times, nothing is logged.
+
+**Escalate in order; state in the PR why the cheaper rung was insufficient. Never open at rung 5.**
+
+| # | Rung | Use when |
+|---|---|---|
+| 1 | Atomic conditional write — `UPDATE inventory SET stock = stock - 1 WHERE id = $1 AND stock >= 1` | One row, guard expressible as a predicate. **Default.** |
+| 2 | `SELECT … FOR UPDATE` on one row, one short tx | App logic must run between the read and the write |
+| 3 | `UNIQUE` / `EXCLUDE` constraint, insert and catch duplicate-key | "at most one per X" — one redemption per user, no overlapping bookings |
+| 4 | `SERIALIZABLE` + retry | Invariant spans rows a lock can't cover (SUM vs cap, row doesn't exist yet) |
+| 5 | External lock service (Redis / etcd) | The contended resource isn't in the DB at all |
+
+- **Check the affected-row count on every guarded or version-checked write.** 0 rows raises nothing — it is a successful UPDATE that matched nothing. Map 0 → `409 sold_out` / `412 stale_version`; never read "no exception" as success. Skipping it captures the card for stock that was never decremented.
+- **The constraint is the guarantee; the app pre-check is an optimization.** Postgres will not serialize concurrent inserts into a table with no unique index. Insert, catch the violation, return the idempotent success or 409 — a `catch IntegrityError` that 500s is the same bug wearing a different status code.
+- **Rung 4 is write skew:** two transactions each read a set, each verify "still under the cap", each insert a *different* row, both commit. Row locks and `REPEATABLE READ` do not stop it — you cannot `FOR UPDATE` a row that doesn't exist yet. Verify the engine default before assuming (Postgres `READ COMMITTED`, MySQL/InnoDB `REPEATABLE READ`); isolation-level and optimistic-locking SQL lives in [db-design](../db-design/SKILL.md).
+- **Retry the whole transaction, not the statement.** Catch SQLSTATE `40001` (serialization — also InnoDB's deadlock code) and Postgres-only `40P01` (deadlock), re-run from `BEGIN` including every read, cap attempts, back off with jitter (§11). Reusing a value read during the aborted attempt re-introduces the anomaly you paid for.
+- **A row lock may not span an external call (§7) — commit a short reservation instead:** `status='held', expires_at = now() + '10 minutes'`, and sweep expired holds.
+- **A distributed lock without a fencing token is best-effort only.** A lease expires while its holder is GC-paused → two holders believe they hold it. Unless the protected resource stores a monotonic token and rejects older ones, label the lock efficiency-only in code and put the real invariant at rung 1–4.
+- **Client-side guards are UX, not correctness.** The disabled submit button is set after the request is already in flight, and cannot suppress StrictMode double-invoke, mobile retry-on-network-change, or back-then-resubmit. The defense is rung 1–4 or an idempotency key (§3).
+
+**Test it or it isn't done.** Fire N ≥ 5× available units of *real parallel* requests at a *real* DB seeded with exactly one unit; assert `successes == initial_stock`, `final_stock >= 0`, and that the losers got the intended 409 — not a 500. Repeat 20–50× in CI: a single run passes by luck, and a mocked repo passes on broken code by construction. Run the suite under the language race detector (`go test -race`, TSan) wherever the process holds shared mutable state.
+
+## 17. Pre-commit / PR checklist
 
 Before opening a PR touching a backend file:
 
@@ -215,8 +262,11 @@ Before opening a PR touching a backend file:
 - [ ] Transaction wraps multi-table writes
 - [ ] Logs step-numbered, PII redacted, `trace_id` plumbed
 - [ ] External calls have explicit timeouts
+- [ ] Every touched route resolves a rate-limit policy; key is composite, not IP-or-user
 - [ ] Unit tests for service; integration test for the handler happy path + one error path
 - [ ] Migration is append-only and idempotent (if touched)
+- [ ] Contended write uses the lowest sufficient rung; affected-row count checked
+- [ ] Concurrent-invariant test exists for any contended path
 
 ## References
 

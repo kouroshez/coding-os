@@ -27,6 +27,7 @@ CONTENT=$(printf '%s' "$INPUT" | cos_json_field tool_input.new_string tool_input
 # Write that shrinks one is not, so a split is never deadlocked by its own gate.
 MAX_FILE_LINES="${COS_MAX_FILE_LINES:-500}"
 WARN_FILE_LINES="${COS_WARN_FILE_LINES:-400}"
+NOTICE_FILE_LINES="${COS_NOTICE_FILE_LINES:-300}"
 
 case "$FILE_PATH" in
   *.py|*.ts|*.tsx|*.js|*.jsx|*.go|*.rs|*.rb|*.php|*.java|*.cs|*.dart|*.sh)
@@ -40,6 +41,20 @@ case "$FILE_PATH" in
         CURRENT_LINES=0
         if [[ -f "$FILE_PATH" ]]; then
           CURRENT_LINES=$(wc -l < "$FILE_PATH" | tr -d ' ')
+        fi
+
+        # The preferred budget (300) is a NOTICE fired only on the crossing —
+        # when the file was at or under it and this write puts it over. A tier
+        # that re-fires on every edit to an already-large file is noise agents
+        # learn to scroll past, and 241 of this repo's 1060 sources are already
+        # past 300. One notice per file, at the moment the seam is still cheap.
+        if [[ "$TOOL" == "Write" ]] \
+          && [[ "$CURRENT_LINES" -le "$NOTICE_FILE_LINES" ]] \
+          && [[ "$NEW_LINES" -gt "$NOTICE_FILE_LINES" ]] \
+          && [[ "$NEW_LINES" -le "$WARN_FILE_LINES" ]]; then
+          echo "ℹ️  ${FILE_PATH##*/} crosses ${NOTICE_FILE_LINES} lines (now ${NEW_LINES})." >&2
+          echo "    Preferred budget is ${NOTICE_FILE_LINES}: name the second reason this" >&2
+          echo "    file changes, and put it in a sibling — cohesion decides, not the number." >&2
         fi
 
         if [[ "$TOOL" == "Write" ]] && [[ "$NEW_LINES" -ge "$CURRENT_LINES" ]]; then

@@ -18,6 +18,8 @@ A green pytest suite proves the *units* import under the harness — **not** tha
 
 Runtime sibling of [api-contract-discipline.md](api-contract-discipline.md): don't guess a *behaviour* contract — verify by executing.
 
+**And a run you cannot read is a run you cannot trust.** Anything you write that reports status — a verification script, a check, a test harness — speaks one marker set (`[OK]` · `[WARN]` · `[FAIL]` · `[SKIP]`), emits `[i/N]` progress rather than going silent, and puts the reproduction command on the failure line: [clean-code § 4b](../skills/clean-code/SKILL.md) → [output-contract.md](../skills/clean-code/references/output-contract.md). A matrix row that exits "no tests ran" looked exactly like a pass for three rows of this repo's own matrix.
+
 ## Test cadence — the matrix says *which*, this says *when*
 
 1. **During dev → ONE targeted test:** `pytest path/to/test.py::TestClass::test_name -v`; re-run the file only after the named test goes green. Re-running a ledger-green suite "to be sure" is the anti-pattern, not the safe choice.

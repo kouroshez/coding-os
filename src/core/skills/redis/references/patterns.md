@@ -50,9 +50,12 @@ SET lock:resource <token> NX EX 10        # acquire: only if absent, auto-expire
 ```
 
 Always `NX` + a TTL (never a lock without expiry → deadlock on crash) and a unique
-token released via a compare-and-delete Lua script. For correctness-critical locks
-across nodes, Redlock or a real coordinator (etcd/Zookeeper) — a single-instance
-lock is best-effort.
+token released via a compare-and-delete Lua script. Every Redis lock — Redlock
+included — is best-effort, never a correctness guarantee: a lease can expire while
+its holder is GC-paused, leaving two holders. Keep the real invariant in the DB
+([backend-fundamentals](../../backend-fundamentals/SKILL.md) § Concurrency), or use
+a coordinator (etcd/Zookeeper) whose monotonic revision the resource checks as a
+fencing token.
 
 ## Queue / worker
 

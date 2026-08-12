@@ -2,8 +2,8 @@
 name: security-web
 tier: cross-cutting
 domain: [security]
-description: Server-side / API-side security per OWASP Top-10 (2025 release). Use when writing or reviewing backend code (Go+Fiber business core, Python+FastAPI AI adapter, Node) for broken access control, security misconfiguration, supply-chain failures, cryptographic mistakes, injection, insecure design, authentication failures, integrity failures, logging/alerting gaps, mishandling of exceptional conditions, plus SSRF/CSRF/XXE/SSTI/secrets/headers (CSP/HSTS/COOP/COEP) and JWT pitfalls. Pairs with auth-patterns and security-mobile.
-last_reviewed: "2026-05-11"
+description: Server-side / API-side security per OWASP Top-10 (2025 release). Use when writing or reviewing backend code (Go+Fiber business core, Python+FastAPI AI adapter, Node) for broken access control, security misconfiguration, supply-chain failures, cryptographic mistakes, injection, insecure design, authentication failures, integrity failures, logging/alerting gaps, mishandling of exceptional conditions, plus SSRF/CSRF/XXE/SSTI/file uploads/secrets/headers (CSP/HSTS/COOP/COEP) and JWT pitfalls. Pairs with auth-patterns and security-mobile.
+last_reviewed: "2026-08-12"
 
 ---
 
@@ -50,6 +50,56 @@ The full per-category walk-through with concrete defenses + code samples is in [
 - **Mass assignment**: explicit DTOs at the boundary; never `model.update(**body)`.
 - **Path traversal**: `Path.resolve().is_relative_to(base)` check on every user-supplied path.
 - **Open redirect**: allowlist destinations on `?return_to=` and OAuth callback URLs.
+
+## OWASP API Security Top-10 (2023) — What the Web Top-10 Misses
+
+The list above is authored for web apps; these are the API-shaped risks it does not number. Same authorization concern at three granularities: **object** (whose row?), **function** (whose endpoint?), **property** (whose field?).
+
+| ID | Risk | Rule |
+|---|---|---|
+| API1 | **BOLA** — object level | Same control as A01 above: load by owner+ID, never by ID alone. |
+| API3 | **BOPLA** — property level | Mass assignment is the write side; the **read** side is unguarded — build responses from an explicit serializer, never `return model.to_dict()`. A denylist (`exclude=[...]`) exposes the next migration's column by default. |
+| API4 | **Unrestricted resource consumption** | Clamp every client-controlled size server-side: page size, batch/array length, `include` depth, filter fan-out. One request inside the rate limit still materializes the whole table. |
+| API5 | **BFLA** — function level | Deny-by-default router + explicit public-route allowlist; assert per HTTP method. Never infer privilege from the path — `/api/admin/*` is a naming convention, not a control. |
+| API9 | **Improper inventory** | Retire old `/v1`, staging hosts on public DNS, undocumented debug routes. An unowned endpoint skips every control added since it shipped. |
+| API10 | **Unsafe consumption of APIs** | Validate and size-cap a partner response exactly like user input; explicit timeout; never blindly follow redirects — `307`/`308` replay your POST body to whatever host the partner names, and a custom auth header follows it (clients strip only `Authorization` cross-host). |
+
+**BFLA is a routing property, not a decorator property.** Per-handler `@require_admin` fails open the day someone adds a sibling route and forgets it; a router that refuses to boot an unannotated route cannot.
+
+## Cross-Cutting Misses
+
+- **Session fixation**: regenerate the session ID on login *and* on every privilege change (role switch, step-up MFA); invalidate the user's other sessions on password change. Writing new claims into the existing session object is the bug.
+- **Explicit `SameSite`**: set it on every auth cookie — never rely on the browser default. Chromium's implicit `Lax` still sends the cookie on a top-level cross-site POST for the first 2 minutes. On JSON endpoints also reject the CORS "simple" content types (`text/plain`, `application/x-www-form-urlencoded`, `multipart/form-data`) — a lenient body parser makes them form-CSRF-able with no preflight.
+- **Webhook HMAC — three bugs that all pass tests**: verify over the *raw bytes* before any parse (mount the JSON body-parser after the route, not globally), compare constant-time, and reject a signed timestamp outside a ~5 min window (tolerance 0 = infinite replay).
+- **Tenant context at every entry point, not just HTTP**: background jobs, queue consumers, cron, exports, search indexers, and cache/rate-limit keys each carry an explicit tenant ID; a job with no tenant context must fail, not run unscoped. A `TenantContext` populated only by HTTP middleware is empty in every worker.
+- **Postgres RLS only bites if you let it**: connect as a role that neither owns the tables nor holds `BYPASSRLS`, declare `ALTER TABLE … FORCE ROW LEVEL SECURITY` (policies are skipped for the owner), and set the tenant GUC with `SET LOCAL` inside the transaction — a plain `SET` persists on the pooled connection and leaks into the next request.
+
+## File Uploads — Trust the Bytes, Not the Claims
+
+The multipart `Content-Type` and `filename` are attacker-supplied — Burp edits both while keeping the web-shell bytes. Every upload runs this pipeline server-side, in order; the skipped step is the exploit.
+
+| # | Step | Rule |
+|---|---|---|
+| 1 | **Size** | Cap while streaming — at the proxy (`client_max_body_size`) AND in the handler as bytes arrive. A first check on `file.size` runs after the framework already buffered the body. Add a per-user total-storage quota. |
+| 2 | **Type** | Sniff the leading bytes (libmagic / `puremagic` / `file-type` / Tika); accept only if the *detected* type is in a per-context allow-list, fail closed on detection error. Never branch on the part's `Content-Type` or on the extension. |
+| 3 | **Name** | Derive the stored extension from the detected type. If the client's name is read at all: URL-decode + Unicode-normalize, take the last segment splitting on both `/` and `\`, reject NULs, control chars and >1 extension component, case-fold, allow-list only — deny-lists lose to `.phtml`, `.phar`, `x.php.jpg`, `x.pHp`, `x.php.`, `.htaccess`. |
+| 4 | **Decode ceiling** | Set `Image.MAX_IMAGE_PIXELS` and catch `DecompressionBombError`; for archives cap member count and declared size *before* extracting **and** abort on a running byte ceiling *while* decompressing — the central directory's sizes are attacker-forged, so the pre-flight sum alone is bypassable. A 4 KB file that decodes to 40 GB passes every size check. |
+| 5 | **Sanitize** | Re-encode images through an in-process decoder (Pillow / libvips / sharp) and persist only the re-emitted bytes — this strips EXIF and the polyglot tail. `verify()` / `identify()` validates, it does not sanitize: a valid `FF D8 FF` header with `<?php … ?>` appended passes step 2. |
+| 6 | **Store** | Server-generated opaque name (UUID or content hash), outside the webroot, on a mount/prefix with script execution off, private bucket. The user's filename is a display column, never a path. |
+| 7 | **Scan** | Hold in quarantine until AV (ClamAV / GuardDuty Malware Protection for S3) returns clean; fail closed on error or timeout. Never write to the live path and delete on a bad verdict — the file is served during the race. |
+| 8 | **Serve** | Separate registrable domain (`…usercontent.com` — a sibling subdomain still receives the `.app.com` cookies) or a short-expiry signed storage URL, `Content-Disposition: attachment` (RFC 6266 `filename*=UTF-8''…`), server-chosen `Content-Type`, `nosniff` set on the object — the header middleware below covers the API origin only. Never reflect the uploaded type back. |
+
+**Type-specific**
+
+- **SVG / `.svgz` out of image allow-lists by default** — it is executable XML: `<script>`, `onload=`, `xlink:href` become stored XSS in the viewer's session. Product needs it? Rasterize server-side, or sanitize (DOMPurify SVG profile / `svg-sanitize`) and serve as `attachment` from the separate origin — never inline from the app origin.
+- **Every XML-bearing upload** — SVG, `.xml`, and the OOXML zips (`.docx` / `.xlsx` / `.pptx`) — gets the XXE treatment above, with XInclude off too. XXE reaches you through a CV upload with no XML endpoint in the API.
+- **Archives** — never `extractall()`. Apply the path-traversal check above per member, and reject absolute, symlink, hardlink and device entries (Zip Slip). Allow-listing `.docx` / `.xlsx` / `.pptx` opts you into this.
+- **No shell-invoked converters** on untrusted input (`convert`, `ffmpeg`, `soffice`, `gs`) — ImageTragick executes through delegates and ImageMagick guesses format from content, so `identify` is not a type check. Use in-process libs; where ImageMagick is unavoidable, pin a `policy.xml` disabling the EPHEMERAL/URL/HTTPS/MVG/MSL/TEXT/SHOW coders and drop network egress.
+- **Presigned direct-to-storage** — the API never sees the bytes, so steps 2–7 are silently skipped while the code still looks correct. Constrain the policy (`content-length-range`, fixed key prefix, exact content-type), land in a private quarantine prefix, and run the pipeline in a post-upload handler before the object becomes linkable.
+
+**Client-side `accept=`, JS MIME and JS size checks are UX only** — replayed in curl they vanish. Never drop a server-side check because the UI has one.
+
+**Tests** — none of these fail loudly; the upload returns 200 and only a replayed request shows the hole. Assert rejection *and* no persisted artifact for: a web shell renamed `.jpg` with a forged image `Content-Type` · `x.php.jpg` and `x.pHp` · `../` and `..\` names · a valid-header polyglot with a script tail · an SVG containing `<script>` · a `.docx` with an external-entity DTD · a zip-slip archive · a decompression bomb.
 
 ## Security Headers — JSON API Defaults
 
@@ -168,18 +218,18 @@ async def upload(file: UploadFile):
     await db.execute("INSERT INTO files (path) VALUES ($1)", file.filename)
     f.close()
 
-# GOOD — context-managed file, validated path, generic error
+# GOOD — context-managed file, server-generated name, generic error
 @app.post("/upload")
 async def upload(file: UploadFile):
-    safe = safe_upload_path(file.filename)        # raises on traversal
+    dest = UPLOAD_DIR / uuid4().hex               # never the client's name (step 6)
     try:
-        async with aiofiles.open(safe, "wb") as f:
+        async with aiofiles.open(dest, "wb") as f:
             while chunk := await file.read(1 << 16):
                 await f.write(chunk)
-        await db.execute("INSERT INTO files (path) VALUES ($1)", safe.name)
+        await db.execute("INSERT INTO files (path) VALUES ($1)", dest.name)
     except DBError as exc:
-        logger.error("file insert failed", extra={"path_hash": h(safe), "exc": str(exc)})
-        await aiofiles.os.remove(safe)            # rollback the side effect
+        logger.error("file insert failed", extra={"path_hash": h(dest), "exc": str(exc)})
+        await aiofiles.os.remove(dest)            # rollback the side effect
         raise HTTPException(500, detail="upload failed") from exc
 ```
 

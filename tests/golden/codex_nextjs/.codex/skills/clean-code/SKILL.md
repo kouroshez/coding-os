@@ -5,7 +5,7 @@ domain: [universal]
 description: Universal coding principles applied on every code change — fail-closed error handling, self-documenting code, edge-case awareness, and test coverage for error paths. Stack-agnostic; covers Python, TypeScript/JavaScript, Go, and any other language. Triggers on every commit that touches code files.
 globs: "**/*.{py,ts,tsx,js,jsx,go,rs,java,kt,swift,rb}"
 context: fork
-last_reviewed: "2026-05-13"
+last_reviewed: "2026-08-12"
 allowed-tools:
   - Read
   - Grep
@@ -48,6 +48,14 @@ Never pass PII (email, full name, IP address, phone) to any `logger.*` call. Use
 ## 1c. Never Manually Build Error Envelopes
 
 Never construct error response dicts by hand (e.g., `return Response({"error_code": ...})`). Raise a typed exception and let the custom exception handler produce the envelope — a hand-built copy silently keeps the old shape the day the shared format changes. See `docs/api-contracts/error-format.md`.
+
+## 1d. Resource Lifetime — One Owner, One Release Path That Also Runs on Failure
+
+Every acquired resource — connection, **transaction**, file handle, lock, subprocess, socket, cursor — is released by a `with` / `try…finally` / `defer` that runs when the body raises, not only when it returns. Acquire it as late as possible and release it in the same function that acquired it; a resource handed back to a caller to close has no owner.
+
+The failure this prevents is not a leak you notice — it is one you don't. `upsert_node` wrote through a thread-cached SQLite connection with no rollback on the raising path, so a single failed statement left the implicit transaction open forever and **every other connection blocked on "database is locked" until the process was killed**. Nothing logged; the write simply never returned. One `@contextlib.contextmanager` around the write replaced three ad-hoc `try/except` blocks and made the invariant impossible to forget: [src/core/graph_os/backends/_sqlite_write.py](../../graph_os/backends/_sqlite_write.py).
+
+Reject on sight: a bare `open()` / `connect()` / `acquire()` whose close is a plain statement after the work · `finally` that can itself raise and mask the original error · a cleanup guarded by `if success:` · an `except` that returns before the release · a lock released on a different thread than took it. Worked pairs: [references/error-handling.md](references/error-handling.md).
 
 ## 2. No Internal Details in Responses
 
@@ -382,6 +390,32 @@ def process_download(user: User, product_id: str) -> DownloadUrl:
     return generate_signed_download_url(purchase)
 ```
 
+### Command-Query Separation
+
+A function either **changes state** (command — returns nothing, or a bare receipt: id, status, version) or **answers a question** (query — returns data, changes nothing). Never both. Meyer's formulation: *asking a question should not change the answer.*
+
+```python
+# GOOD: the command returns nothing (or the transaction id); the caller re-queries
+def debit(account_id: str, amount: Decimal) -> None: ...
+def get_balance(account_id: str) -> Decimal: ...
+
+# BAD: mutates and returns derived state — a debug log or a copy-pasted call
+# silently double-debits, and the balance is stale the moment it returns
+def debit(account_id: str, amount: Decimal) -> Decimal: ...
+```
+
+**Name the shape.** Commands are imperative verbs (`debit`, `cancel`, `reserve`); queries are noun phrases or `get_*`/`find_*`/`is_*`/`has_*`/`list_*`/`calculate_*`. Reject a `get_*`/`is_*` that writes — `get_or_create_session()`, a `check_quota()` that decrements, a `get_next_id()` that bumps a sequence. A debugger watch, a log line, and a test assertion each evaluate that name once, so the sequence burns three ids and nobody can explain the gaps.
+
+**Why it pays.** A side-effect-free query is safe to cache, retry, reorder, parallelize, and test without a fixture. It is equally safe to call *zero* times, which matters because `assert` is stripped under `python -O` and log lines vanish when the level is raised: a mutation hidden inside one runs in dev and not in prod.
+
+**Judge against *observable* state.** A memo cache or lazy field init is still a query if it cannot change any future return value — provided the key covers every input that can change the result. A cache keyed on `user_id` but not `tenant_id` is not a query; it is a cross-tenant leak.
+
+**Break it deliberately, and say so in the name:** atomic concurrency primitives (`get_and_increment`, `compare_and_set`, `UPDATE … RETURNING`) and destructive-read containers (`pop`, `poll`, `next`). Splitting those into a "clean" pair moves the race into every caller — two threads read 5, both write 6, one increment lost. Fowler: *"I'm prepared to break it to get my pop."* The bug is the *unlabelled* violation (`fetch_item()` that consumes); `pop_next()` is fine.
+
+**The same principle, two layers up.** A `GET`/`HEAD`/`OPTIONS` handler must not mutate: CSRF interceptors skip safe methods by default, and a CDN or prefetcher turns one visit into many GETs — or into none on a cache hit. Reads live in selectors, writes in services ([backend-fundamentals](../backend-fundamentals/SKILL.md) §1); run the read path on a read-only connection so a stray write fails loudly, since nothing static detects this. Wire corollary: a command returns id/status/ETag, never a derived total — an `Idempotency-Key` replay serves the *stored* first response ([api-design](../api-design/SKILL.md)), so a `POST /debit` that returned `balance: 900` replays `900` when the truth is `400`.
+
+**CQS is not CQRS.** CQS is a free, method-level discipline that applies everywhere. CQRS means separate read and write *models* — usually separate stores, projections, and eventual consistency — and needs a named, measured driver (load asymmetry, or a shared model that demonstrably fails the domain), scoped to one bounded context. A read-only use case is plain CQS; calling it "the query side of CQRS" primes the heavy pattern for the light pattern's job.
+
 ### File Design — One File, One Cohesive Responsibility
 
 **Cohesion decides; line count is only a backstop.** Split the moment a new *independently changeable* concern appears — even at 80 lines. And never carve a fragment just to get under a number: an extracted module must own a coherent responsibility and a clear boundary, or you have traded one bad file for three bad ones.
@@ -400,6 +434,42 @@ Budgets for hand-written source (the backstop, not a target to grow into):
 A file rule alone is gameable — a 280-line file holding one 230-line function passes every file check and is still unmaintainable. Four companion budgets carry equal weight, and the *tightest* one that trips is the one to act on: **function length** ~20 lines (50 is the hard smell), **cyclomatic complexity** 10 preferred / 20 hard, **parameters** 3-4, and **module dependencies** — a file importing from >6 siblings is a coordinator that should delegate. Ruff carries a per-file baseline for the first four; it may only shrink.
 
 Splitting is where files silently break: a split changes six resolution mechanisms at once — import binding, monkeypatch target, decorator registration, test fixtures, derived artifacts, statement order — plus literal filenames in CI config, and no linter sees any of them. The seam table, the failure mode of each mechanism, and the byte-identity parity check (`check_split_parity.py`) to prove a move was a move: [references/file-design.md](references/file-design.md). Read it before the first cut.
+
+### Splitting a File — Find the Seam, Name the Move, Prove the Move
+
+Line count says a file is too big; only *"what changes for a different reason?"* says where to cut. Two falsifiable tests, both run **before** the first cut:
+
+1. **Actor test** — label every top-level symbol with the human role that would request a change to it (billing ops · compliance · platform/DBA). Cut only where the label changes. A file whose `calculatePay` answers to the CFO and whose `reportHours` answers to the COO is two files: the CFO's edit breaking the COO's report is the entire reason the rule exists.
+2. **Connected-components test** — nodes = the file's functions, edges = "calls the other" or "touches the same module-level state". **One component ⇒ do not split, at any line count.** Two or more ⇒ those components *are* the cut lines. Skip both tests under ~10 members, and treat "every function uses the one injected collaborator" as unproven, not proven.
+
+Structural questions hit the graph before Read: `cos_graph_context(file, depth=1)` gives the symbols and their edges, `cos_graph_references(uid)` gives fan-in — splitting a high-fan-in module without preserving its importable names is a breaking change, not a refactor. `cos_graph_communities` answers the same question repo-wide at whole-graph cost: for a seam spanning modules, not for placing one cut.
+
+| Do | Don't |
+|---|---|
+| Name the catalog move in the commit title — Extract Module / Move Function / Move Field / Inline Module | `refactor: split large file` over a diff that also renames and fixes a bug |
+| Land it as a pure structural commit — **zero assertion changes**; a monkeypatch target that has to move is fixed at the patch site, proving the old target now fails | "Split it and updated the tests to match" — edited expectations turn the regression detector into a rubber stamp |
+| Split first, verify green, *then* add the feature that needed the room | Carve an unrelated chunk in the same commit to buy line-count headroom |
+| Give each new module a domain name | `utils` / `helpers` / `common` / `misc` — a magnet with no reason to change of its own, so it grows forever |
+| Keep the split module's own importable names — a facade re-exporting its parts, siblings importing leaves and never each other | A *new* aggregator barrel over unrelated modules, or parts importing back through the facade — that cycle raises `ImportError` on a partially-initialised sibling, and only in some import orders |
+| Characterize an untested region with tests *before* moving it | "Suite green" as proof, when the suite never executed the moved lines |
+
+**Then check you did not over-split:** take one realistic upcoming change and count how many of the new modules it edits. Two or more ⇒ the cut axis was wrong; reverse it with Move Function / Inline Module. All-under-budget files that must always change together is Shotgun Surgery — strictly worse than the file you started with, and no line-count gate detects it.
+
+**Budget tripped, but every function is inside its budget and the cohesion graph is one component** — append-only registries, exhaustive dispatch tables, single-switch state machines — do not chop: record the exception the ratchet way, a task plus a line under ci-gates.md § Recorded exceptions.
+
+Encode the companion budgets in the stack's real linter, never in prose alone: ESLint `max-lines` / `max-lines-per-function` / `complexity` / `max-params` · golangci-lint `funlen` / `cyclop` / `gocognit` / `nestif` · Clippy `cognitive_complexity` · PMD, Checkstyle, PHPMD · ruff `PLR0915` / `C901` / `PLR0912` / `PLR0913`. A budget no configured linter enforces is enforced by whoever remembers it, which is nobody by the third sprint.
+
+## 4b. Output Contract — One Vocabulary, and Never Silent
+
+A script's output is its interface with a human under time pressure. Use the marker set `cos doctor` already speaks — **`[OK]` · `[WARN]` · `[FAIL]` · `[SKIP]`** — and nothing else. Measured drift before this rule: seven prefixes across `src/`, with `ERROR:` (45) and `FAIL:` (17) both meaning failure and `OK:` (22) and `PASS:` (1) both meaning success, so "did it work?" needed a different read per script.
+
+Three obligations:
+
+- **One marker set.** No `ERROR:`/`PASS:`/`INFO:`/bare-emoji variants. Severity is the first token on the line, so `grep '\[FAIL\]'` finds every failure in every script we ship.
+- **Never silent while working.** A run that iterates over units emits `[i/N] <unit>`; a step that can exceed ~2s says what it started before it blocks. Silence is indistinguishable from a hang, and an agent that cannot tell them apart kills a healthy run or waits out a dead one.
+- **A failure line is actionable or it is noise.** Name the unit, the expected vs actual, and the command that reproduces it — a summary that says `[FAIL] 3 checks failed` and stops has moved the debugging cost onto the reader.
+
+Format, progress shapes, and the exit-code contract: [references/output-contract.md](references/output-contract.md).
 
 ## 5. Edge Case Awareness
 
@@ -485,6 +555,8 @@ After writing code, verify all eight points before committing:
 - [ ] **Nesting depth ≤ 2:** Guard-clause out preconditions; extract the inner block when a third level appears — see §4 "Nesting Depth"
 - [ ] **No TODOs in committed code:** No `TODO`/`FIXME` and no task/phase/gate IDs in comments — file a task instead — see §4 "Don't Commit TODOs"
 - [ ] **Function hygiene:** Functions are ~20 lines, 3-4 params, guard clauses first
+- [ ] **Command-query separation:** Every function either mutates and returns nothing/a receipt, or returns data and mutates nothing; no `get_*`/`is_*` that writes; deliberate violations named for the mutation — see §4 "Command-Query Separation"
+- [ ] **Split discipline:** Cut line chosen by the actor + connected-components tests, catalog move named in the commit title, zero assertion changes in the split commit — see §4 "Splitting a File"
 - [ ] **Edge cases:** None, empty, boundary, service-down, and concurrency considered
 - [ ] **Error path tests:** Every except/catch branch has a corresponding test case
 - [ ] **Runtime cost:** `n` named for every loop/query, complexity inside the budget, no I/O or list-membership scan inside a loop; any speedup claim backed by a measured number — see §8 "Algorithmic Efficiency"

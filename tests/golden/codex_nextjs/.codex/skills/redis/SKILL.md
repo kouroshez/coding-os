@@ -5,7 +5,7 @@ domain: [backend, data, infra]
 description: Use Redis correctly as a cache, queue, rate limiter, and ephemeral store — pick the right data structure, caching pattern, eviction policy, and atomicity model. Use when adding caching, designing a key schema, choosing cache-aside vs write-through, setting TTLs/eviction, building a rate limiter or queue, debugging low hit-rate or evictions, or deciding Redis-vs-Postgres for a use case. Triggers — "cache", "Redis", "rate limit", "session store", "pub/sub", "cache invalidation", "TTL", "hit rate". Pairs with db-design (durable store — Redis is ephemeral), sql-authoring (the source of truth behind the cache), performance (cache as a latency lever).
 globs: ""
 paths: []
-last_reviewed: "2026-06-04"
+last_reviewed: "2026-08-12"
 versions_ref: versions.json
 ---
 
@@ -65,8 +65,11 @@ r.incr("count")
 ```
 
 For multi-key atomic logic use a Lua script (`EVAL`) or `MULTI/EXEC` — they run
-without interleaving. A rate limiter is `INCR` + `EXPIRE` in one Lua script so the
-window can't leak. `WATCH` gives optimistic locking when you must read-then-write.
+without interleaving; the decision and the counters it reports must come from one
+script. `INCR` + `EXPIRE` is a *fixed* window, which admits double the budget
+across a boundary — use a token bucket or sliding window, and see
+[backend-fundamentals §15](../backend-fundamentals/SKILL.md) for the key design.
+`WATCH` gives optimistic locking when you must read-then-write.
 
 ## Eviction — decide what happens when memory fills
 

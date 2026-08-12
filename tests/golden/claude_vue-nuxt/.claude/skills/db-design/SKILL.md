@@ -3,7 +3,7 @@ name: db-design
 description: Design and evolve PostgreSQL schemas that survive scale and refactors. Use when modeling a new domain, choosing between normalization and denormalization, designing indexes for known query patterns, writing migrations safely, picking ORM-vs-raw-SQL trade-offs, deciding on soft delete vs hard delete, or evaluating NoSQL document/KV/wide-column for a use case. Targets PostgreSQL 16+ as the default; calls out MongoDB / Redis / DynamoDB where they're the better fit.
 tier: cross-cutting
 domain: [data, backend]
-last_reviewed: "2026-05-11"
+last_reviewed: "2026-08-12"
 
 ---
 
@@ -274,7 +274,7 @@ ORDER BY idx_scan ASC;
 
 For the full migration playbook (online additive changes, expand-contract, backfills, NOT NULL adds, FK adds), see [references/migration-discipline.md](references/migration-discipline.md).
 
-For Postgres-specific patterns (advisory locks, LISTEN/NOTIFY, full-text search, pgvector for embeddings, partitioning), see [references/postgres-patterns.md](references/postgres-patterns.md).
+For Postgres-specific patterns (isolation levels, optimistic locking, advisory locks, LISTEN/NOTIFY, full-text search, pgvector for embeddings, partitioning), see [references/postgres-patterns.md](references/postgres-patterns.md).
 
 ## ORM vs Raw SQL Trade-Off
 
