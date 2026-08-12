@@ -78,23 +78,27 @@ it — see [Modular by design](#modular-by-design--take-only-what-you-need).
 Linux: replace `brew install …` with your distro's package manager
 (`apt`, `dnf`, `pacman`). Windows: WSL 2 + the same Linux steps.
 
-## Quickstart — panel first (one command)
+## Install
 
-If you would rather click than type, this is the whole install. It preflights
-prerequisites, installs the `cos` CLI, and boots the Hub:
+Two paths to the same install — pick by preference, not capability. Both end
+with the `cos` CLI on your PATH and the Hub reachable at
+`http://127.0.0.1:9188`.
+
+### Path A — one command, then click
+
+Preflights prerequisites, installs the CLI, and boots the Hub:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kouroshez/coding-os/main/install.sh | bash
 # …or, from a checkout:  bash install.sh
 ```
 
-Open the Hub at `http://127.0.0.1:9188` and press **New project**. The Composer picks a
-preset (or your own stack mix), asks one sentence about the project, and
-scaffolds it — docs, board, knowledge graph, and agent setup included. There is
-no CLI step in between; everything below is the same flow with flags instead of
-clicks. ([ADR-0007](docs/architecture/adr/0007-gui-first-install-path.md))
+Then open the Hub and press **New project**. The Composer picks a preset (or your
+own stack mix), asks one sentence about the project, and scaffolds it — docs,
+board, knowledge graph, and agent setup included.
+([ADR-0007](docs/architecture/adr/0007-gui-first-install-path.md))
 
-## 60-second quickstart (native `uv`)
+### Path B — native `uv`, scripted
 
 ```bash
 # 1. Install the cos CLI globally, from PyPI
@@ -414,10 +418,11 @@ Parity matrix + reasoning: [docs/engineering/adapter-parity.md](./docs/engineeri
 
 ## Agent supervision — pick the model per role (opt-in)
 
-Off by default. Turn it on and each of the 11 semantic roles can run on its own
-adapter, model, and reasoning effort — a cheap model reviewing, an expensive one
-architecting. It works with a **single** adapter too: routing across Claude's own
-model tiers is the common case, not a fallback.
+Off by default. Turn it on and every role — the 11 in the canonical chain plus
+the `distiller`, `onboarder` and `repairer` specialists — can run on its own
+adapter, model, and reasoning effort: a cheap model reviewing, an expensive one
+architecting. It works with a **single** adapter too, since routing across one
+provider's own model tiers is the common case rather than a fallback.
 
 ```bash
 cos supervision enable
@@ -427,8 +432,18 @@ cos supervision set --role architect --role-model claude-opus-4-8  --role-effort
 cos supervision show
 ```
 
-Adapters and their model catalogs are discovered from `adapter.yaml`, so a new
-runtime is configurable the day it is installed.
+With more than one adapter installed, a role can cross runtimes entirely —
+review on Codex while architecture stays on Claude:
+
+```bash
+cos supervision set --role reviewer --role-adapter codex
+```
+
+Eligibility is **probed, not declared**: an adapter is offered for a role when
+its dispatcher resolves at load time, so an adapter whose CLI or SDK is missing
+is never silently routed to. Model catalogs come from `adapter.yaml`, and an
+adapter that publishes none (Codex takes a freeform `-m`) accepts the model you
+type. A new runtime is therefore configurable the day it is installed.
 
 When a provider reports a rate limit, only the **model pool** that hit it goes
 into a persistent cooldown — providers meter each pool separately, so an
