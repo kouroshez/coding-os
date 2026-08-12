@@ -5,18 +5,17 @@ swimlane: cli
 kind: feature
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-12
-started: null
-completed: null
-agent_session: null
+started: 2026-08-12
+completed: 2026-08-12
+agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-943: feat: cos init offers quick and custom setup and closes with a completion panel
 
 **Outcome (one sentence):** An interactive cos init lets the user choose between recommended defaults and answering every question, prints the defaults it applied, and ends with a panel naming where the files went and the commands to run next including how to upgrade.
@@ -31,3 +30,19 @@ references: []
 **Given** an interactive terminal **When** cos init runs with no flags **Then** the user is offered a quick path that applies recommended defaults and prints them, and a custom path that also asks preset, profile and modules. **Given** either path completes **When** the scaffold finishes **Then** a completion panel lists the config, state and docs locations plus the next commands including the upgrade command. **Given** --yes or a non-TTY **When** cos init runs **Then** behaviour is unchanged and nothing is prompted.
 
 ## Work Log
+- 2026-08-12 [claude]: Quick/custom setup mode + completion panel with Version/Upgrade/Health; 315 CLI tests + 11 new green; real cos init…
+- 2026-08-12 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-12 [claude]: Edit _config_mcp.py
+- 2026-08-12 [claude]: Edit _config_read.py
+- 2026-08-12 [claude]: Edit test_hub_mcp_scope.py
+- 2026-08-12 [claude]: Edit _config_codex_toml.py
+- 2026-08-12 [claude]: Edit test_hub_mcp_codex_toml.py
+- 2026-08-12 [claude]: Edit _config_mcp.py
+- 2026-08-12 [claude]: Edit _config_mcp.py
+- 2026-08-12 [claude]: Edit _config_mcp.py
+- 2026-08-12 [claude]: Edit _config_codex_toml.py
+- 2026-08-12 [claude]: Edit _config_read.py
+- 2026-08-12 [claude]: Edit test_hub_mcp_codex_toml.py
+- 2026-08-12 [claude]: Edit test_hub_mcp_codex_toml.py
+- 2026-08-12 [claude]: Edit _config_mcp.py
+- 2026-08-12 [claude]: commit d1bbe5091a — feat(hub): manage MCP servers per adapter, per scope, on both transports
