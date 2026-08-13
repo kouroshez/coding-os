@@ -81,9 +81,12 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 | `src/cli/*.py` | `uv run pytest tests/test_cli.py -q` |
 | `src/templates/**/scaffold/**` | `uv run pytest tests/test_template_scaffold_*.py -q` |
 | `src/scripts/**/*.py` | `uv run pytest tests/test_script_entrypoints.py -q` |
+| `src/core/rules/*.md`, `src/core/skills/**` | `uv run pytest tests/test_golden_parity.py tests/test_rules_fresh.py -q` — drift ⇒ `make golden-capture`, then re-run |
 | `docs/**/*.md` | `make docs-lint` |
 
 > Suite paths are **globs on purpose**: `test_adapters.py`, `test_db.py` and `test_template_scaffold.py` were each split into siblings while the matrix kept naming the old file, so three rows exited "no tests ran" — a silent no-op that reads exactly like a pass. `tests/test_verification_matrix.py` fails if any row stops collecting.
+>
+> The rules/skills row exists because those two trees are **rendered into every scaffold**, so `tests/golden/**` holds a copy of each file. Editing one and running only `make docs-lint` — the row a `.md` path otherwise matches — passes locally and fails CI on 8 golden sections (`.claude/rules/…`, `.codex/rules/…`). That is Rule 10 with a `.md` disguise: the source is hand-edited, the copies are regenerated.
 
 ## Tool Routing
 
