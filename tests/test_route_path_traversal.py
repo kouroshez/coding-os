@@ -18,7 +18,7 @@ for _p in (REPO_ROOT / "src", REPO_ROOT / "src" / "core"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from web.routes._bounded_read import safe_child, safe_segment  # noqa: E402
+from web.routes._bounded_read import safe_child, safe_segment
 
 # Shapes that reach these routes as `agent`, `session_id`, `stack_id` or a
 # skill name. The escapes are the ones that actually work on POSIX + macOS.
@@ -96,7 +96,9 @@ def planted_secret(tmp_path: Path) -> tuple[Path, str]:
     secret_dir.mkdir(parents=True)
     (secret_dir / "ses-1.jsonl").write_text('{"kind": "leaked"}\n', encoding="utf-8")
     (tmp_path / "secret" / "sessions").mkdir()
-    (tmp_path / "secret" / "sessions" / "ses-1.json").write_text('{"leaked": true}', encoding="utf-8")
+    (tmp_path / "secret" / "sessions" / "ses-1.json").write_text(
+        '{"leaked": true}', encoding="utf-8"
+    )
     return state, "../secret"
 
 
