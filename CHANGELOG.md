@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.17](https://github.com/kouroshez/coding-os/compare/v0.3.16...v0.3.17) (2026-08-13)
+
+
+### Documentation
+
+* **agents:** add the Verification-Matrix row for src/core/rules and src/core/skills ([1bd26e7](https://github.com/kouroshez/coding-os/commit/1bd26e78666bb07d66352cf337e47a98d3fcb767))
+* **governance:** gate irreversible publishes behind a human, and say why review cannot be bought here ([7a0d27d](https://github.com/kouroshez/coding-os/commit/7a0d27d36c780cd00da60b4b5b91e72ec78f7170))
+
 ## [0.3.16](https://github.com/kouroshez/coding-os/compare/v0.3.15...v0.3.16) (2026-08-13)
 
 
