@@ -475,6 +475,33 @@ gh api "repos/kouroshez/coding-os/code-scanning/alerts?state=open" --paginate \
   --jq '.[] | select(.rule.id | test("ID$") | not) | [.number, .rule.id] | @tsv'
 ```
 
+### Triaging a CodeQL alert: fix, or dismiss with the evidence
+
+Two things make this repo's alert list misleading if read at face value.
+
+**CodeQL does not model this codebase's barriers.** `cognition.py` validated
+`agent` and `session_id` with `_safe_seg` before joining them into a path, and
+`server.py:220` does the textbook `(root / sub).resolve().relative_to(root.resolve())`
+containment — both were still reported as `py/path-injection`. Likewise
+`usedforsecurity=False` does **not** satisfy `py/weak-sensitive-data-hashing`:
+it classifies the *input* as an id, so the alert simply reopened on the new
+line. Adding a guard is therefore the right engineering move and frequently
+will not clear the alert; the two outcomes are separate jobs.
+
+**Reachability is the question that decides fix-vs-dismiss.** The Hub binds
+`127.0.0.1` and `_CORS_ORIGINS` is a fixed localhost allowlist, so a malicious
+page the developer visits cannot reach these routes: a JSON `PATCH`/`POST`
+triggers a CORS preflight that fails without an `Access-Control-Allow-Origin`.
+That is what makes `/registry/scan` taking an arbitrary local path acceptable —
+pointing coding-os at a directory on your own machine *is* the feature. It is
+also why `COS_WEB_CORS_ALLOW_ALL=1` must stay a debugging flag: setting it
+converts that whole class from "by design" to "remotely exploitable".
+
+So: fix where a guard is genuinely missing (the `--skills` / `extra_skills`
+path was one — it reaches a path segment with no registry check), and dismiss
+the rest **naming the barrier or the design constraint**, never as housekeeping.
+A dismissal with no evidence is indistinguishable from not having looked.
+
 ### Accepting an advisory that has no fix
 
 `src/templates/go-fiber/scaffold/src/backend/osv-scanner.toml` is the worked
