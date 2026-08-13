@@ -28,6 +28,7 @@ from fastapi import APIRouter, Depends, Query
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import unwrap
 from .._project_context import current_project_root
+from ._bounded_read import safe_segment
 
 _CORE_DIR = Path(__file__).resolve().parents[2]
 if str(_CORE_DIR) not in sys.path:
@@ -153,6 +154,10 @@ def _agents_with_traces(state: Path) -> list[str]:
 
 
 def _read_trace_events(state: Path, agent: str, session_id: str) -> list[dict[str, Any]]:
+    # agent + session_id arrive as query params on /roles/*; both become path
+    # segments below, so a '../' in either would read outside the state dir.
+    if not safe_segment(agent) or not safe_segment(session_id):
+        return []
     p = state / agent / "traces" / f"{session_id}.jsonl"
     if not p.exists():
         return []
@@ -169,6 +174,8 @@ def _read_trace_events(state: Path, agent: str, session_id: str) -> list[dict[st
 
 
 def _read_evidence_bundle(state: Path, agent: str, session_id: str) -> dict[str, Any] | None:
+    if not safe_segment(agent) or not safe_segment(session_id):
+        return None
     candidates = [
         state / agent / f"evidence_bundle_{session_id}.json",
         state / f"evidence_bundle_{session_id}.json",
@@ -272,6 +279,8 @@ def resolve_chain(state: Path, agent: str) -> tuple[list[str], str | None]:
     # cross-panel-safe source the EVIDENCE view also reads.
     # Scattered per-panel .roles markers can be stale under concurrent panels.
     chain: list[str] = []
+    if not safe_segment(agent):
+        return [], None
     traces_dir = state / agent / "traces"
     if traces_dir.exists():
         for p in sorted(traces_dir.glob("*.jsonl"), reverse=True):
@@ -338,6 +347,8 @@ def formula_outputs(
     outputs: list[dict[str, Any]] = []
     planned: list[dict[str, Any]] = []
     for ag in agents:
+        if not safe_segment(ag):
+            continue
         traces_dir = state / ag / "traces"
         if not traces_dir.exists():
             continue

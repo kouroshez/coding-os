@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -130,10 +131,17 @@ def _merge_value(
     raise ValueError(f"unknown merge strategy: {strategy!r}")
 
 
+# stack_id becomes a path segment; a traversal here would read a scaffold
+# from outside the templates tree.
+_STACK_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
 def _stack_scaffold_dir(stack_id: str, templates_dir: Path) -> Path:
     """Resolve a stack's scaffold dir — bundled first, then a community overlay
     ($COS_USER_TEMPLATES_DIR, TASK-479). Bundled stacks resolve byte-identically; a
     nonexistent path is returned unchanged so _load() returns None gracefully."""
+    if not _STACK_ID_RE.match(stack_id or ""):
+        return templates_dir / "__invalid__" / "scaffold"
     bundled = templates_dir / stack_id / "scaffold"
     if bundled.is_dir():
         return bundled

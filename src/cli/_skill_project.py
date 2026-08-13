@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import re
 from pathlib import Path
 
 import click
@@ -73,8 +74,16 @@ def _installed_adapter_skills_dirs(project_root: Path) -> list[Path]:
     return dirs
 
 
+_SKILL_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
 def _known_skill_provenance(name: str) -> str | None:
     """'core' | 'stack' | 'community' | None — where this skill name resolves."""
+    # `name` reaches here from `cos init --skills` and from the Hub's
+    # extra_skills body field, which the init validator does NOT check against a
+    # registry — so this is the boundary that has to reject a traversal.
+    if not _SKILL_NAME_RE.match(name or ""):
+        return None
     if (core_dir("skills") / name / "SKILL.md").is_file():
         return "core"
     for stack_dir in templates_dir().iterdir():

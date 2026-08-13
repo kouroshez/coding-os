@@ -29,7 +29,7 @@ from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import unwrap
-from ._bounded_read import DEFAULT_WINDOW, tail_lines
+from ._bounded_read import DEFAULT_WINDOW, safe_segment, tail_lines
 from ._cognition_base import (
     _CORE_DIR as _CORE_DIR,
     _MAX_TRACE_EVENTS,
@@ -147,10 +147,9 @@ def list_traces(
 
 
 def _safe_seg(seg: str | None) -> bool:
-    # A path segment (session_id / agent) is safe iff it is a non-empty run of
-    # [A-Za-z0-9_-] — rejects '/', '..', and any traversal before it reaches a
-    # filesystem join. Session ids are ses-<agent>-<ts>-<pid>; agents are alnum.
-    return bool(seg) and all(c.isalnum() or c in "-_" for c in seg)
+    # Thin alias kept for the call sites below; the rule lives in _bounded_read
+    # so cognition, roles, observability and the config routes cannot drift.
+    return safe_segment(seg or "")
 
 
 def _find_trace_file(
@@ -364,7 +363,8 @@ async def stream_trace(
             raise
         except Exception as exc:
             logger.exception("trace stream failed")
-            yield f"event: error\ndata: {json.dumps({'message': str(exc)})}\n\n".encode()
+            message = safe_error_message(exc, "cognition stream failed", logger)
+            yield f"event: error\ndata: {json.dumps({'message': message})}\n\n".encode()
 
     return StreamingResponse(
         gen(),
@@ -385,6 +385,7 @@ async def stream_trace(
 # Import-for-side-effect: the dispatch-view, chat and onboarding routes decorate
 # the same `router` above, so importing this module still registers every
 # /api/cognition path exactly as it did before the 2026-08-10 split.
+from .._envelope import safe_error_message
 from . import (
     cognition_chat,  # noqa: F401
     cognition_dispatch_views,  # noqa: F401

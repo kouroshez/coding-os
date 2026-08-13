@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import shutil
 import subprocess
 import sys
@@ -17,6 +16,8 @@ from pathlib import Path
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+
+from ._bounded_read import safe_segment
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/config", tags=["config"])
@@ -44,11 +45,9 @@ def _project_config_skill_list(key: str) -> list[str]:
 
 # Ids reach a subprocess argv or a file path, so restrict them to a slug — a
 # leading dash can't then be parsed as a CLI option, nor a slash escape a path.
-_SLUG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
-
-
+# Same rule as every other route module; SSOT in _bounded_read.safe_segment.
 def _safe_id(value: str) -> bool:
-    return bool(_SLUG_RE.match(value or ""))
+    return safe_segment(value)
 
 
 # Curated first-party stdio MCP servers (no secret / extra config needed). The

@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, Query
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import ENVELOPE_ERROR_RESPONSES, unwrap
-from ._bounded_read import newest_files, tail_lines
+from ._bounded_read import newest_files, safe_segment, tail_lines
 
 # Scale guards (TASK-225): never glob every trace file or read a whole log.
 _MAX_TRACE_FILES = 100  # newest-N trace files to scan per directory
@@ -261,9 +261,9 @@ def _read_cognition_events(state: Path, session_id: str | None, limit: int) -> l
         return []
     events: list[dict[str, Any]] = []
     files: list[Path] = []
-    if session_id:
+    if session_id and safe_segment(session_id):
         guess_agent = _session_agent_from_id(session_id)
-        if guess_agent:
+        if guess_agent and safe_segment(guess_agent):
             candidate = state / guess_agent / "traces" / f"{session_id}.jsonl"
             if candidate.exists():
                 files = [candidate]

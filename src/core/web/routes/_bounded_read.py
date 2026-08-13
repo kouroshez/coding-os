@@ -9,10 +9,42 @@ the on-disk corpus grows. TASK-225.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 # Default tail window — mirrors presence.py::_latest_transcript_usage.
 DEFAULT_WINDOW = 256 * 1024  # 256 KB
+
+# A request-supplied identifier that becomes a path segment — agent name,
+# session id, stack id — must not be able to leave its parent directory. One
+# segment with no separator cannot traverse, and requiring a leading
+# alphanumeric rejects both `..` and a `-flag` that a downstream argv would
+# read as an option. SSOT for the shape; _config_shared._safe_id delegates.
+_SEGMENT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
+def safe_segment(value: str) -> bool:
+    """True when `value` is usable as a single path component from a request."""
+    return bool(_SEGMENT_RE.match(value or ""))
+
+
+def safe_child(root: Path, *segments: str) -> Path | None:
+    """`root` joined with `segments`, or None if any segment is unsafe or the
+    result escapes `root`.
+
+    Belt and braces: the segment check alone already blocks traversal, and the
+    resolve-then-compare catches a symlink planted inside `root` that points
+    out of it. Resolve BOTH sides — on macOS /tmp is a symlink to /private/tmp,
+    so comparing a resolved child against an unresolved root never matches.
+    """
+    if not all(safe_segment(segment) for segment in segments):
+        return None
+    candidate = root.joinpath(*segments)
+    try:
+        candidate.resolve().relative_to(root.resolve())
+    except (OSError, ValueError):
+        return None
+    return candidate
 
 
 def tail_text(path: Path, max_bytes: int = DEFAULT_WINDOW) -> str:
