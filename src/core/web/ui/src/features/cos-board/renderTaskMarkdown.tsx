@@ -39,7 +39,11 @@ const ALLOWED_URL_SCHEMES = new Set(['http', 'https', 'mailto']);
 function safeUrl(url: string): string {
   // Browsers strip C0 control characters and spaces before reading the
   // scheme, so `java\tscript:` is live — normalise the same way first.
-  const probe = url.replace(/[\u0000-\u0020]/g, '');
+  // Char-code filter, not a regex: a \u0000-\u0020 class is a no-control-regex
+  // lint error, and spelling the bound out is clearer than escaping around it.
+  const probe = Array.from(url)
+    .filter((ch) => ch.charCodeAt(0) > 0x20)
+    .join('');
   const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(probe);
   if (scheme && !ALLOWED_URL_SCHEMES.has(scheme[1].toLowerCase())) return '';
   return url;
