@@ -61,11 +61,16 @@ plus a per-workflow summary, and a human-readable table on stderr.
 | --- | --- | --- | --- | --- | --- | --- |
 | psf/requests | v2.32.5 | 36 | 2,919 / 5,137 | 94.5% | 88.4% | 94.4% |
 | fastapi/fastapi | 0.116.1 | 1,129 | 43,859 / 58,190 | 99.7% | 98.6% | 99.1% |
+| django/django | 5.2 | 2,818 | 166,803 / 313,782 | 96.4% | 95.9% | 96.5% |
 
-Worst single probe observed: 77.9% (impact on requests — a small repo
-where a full read is already cheap). Savings grow with corpus size, as
-predicted by the graph-first rule. Index cost: 791 ms (requests),
-10.5 s (fastapi), one-off per checkout.
+Worst single probe observed: 53.9% (impact on django). Median savings hold
+above 95% on every repo measured, but Django shows the spread widening rather
+than the median falling — its mean sits 5.5 points under its median, against
+1 point on requests, because a 167k-node graph contains far more genuinely
+hub-like symbols whose impact envelope is legitimately large. The rule still
+holds (savings grow with corpus size: requests 94.5% → fastapi 99.7%); what
+does not hold is reading the median as a floor. Index cost: 791 ms (requests),
+10.5 s (fastapi), 52.2 s (django), one-off per checkout.
 
 (Regenerate with the commands above; update this table + the ref column
 in the same commit as any harness change that shifts the numbers.)
