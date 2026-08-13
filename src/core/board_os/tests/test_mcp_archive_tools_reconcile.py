@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import time
 from pathlib import Path
 
 from core.board_os import mcp_tools
@@ -68,7 +69,7 @@ def test_reconcile_fail_safe_when_git_unverifiable(project, conn, monkeypatch):
     )
 
 
-def test_reconcile_is_read_only(project: Path, conn: sqlite3.Connection):
+def test_reconcile_is_read_only(project: Path, conn: sqlite3.Connection, monkeypatch):
     """Reconcile is review-first: it must NEVER mutate board state, even called twice."""
     mcp_tools.cos_task_create(conn, title="X", swimlane="core", kind="bug", status="icebox")
     _backdate_task(conn, "TASK-001", "testing", 8 * 3600)
@@ -76,6 +77,12 @@ def test_reconcile_is_read_only(project: Path, conn: sqlite3.Connection):
     conn.commit()
     cols = "SELECT task_id, status, started_at, labels_json, work_log_last_5 FROM tasks ORDER BY task_id"
     before = conn.execute(cols).fetchall()
+    # Every card carries status_dwell_seconds off the wall clock, so two calls
+    # that straddle a second tick differ by one and the comparison below fails
+    # on timing rather than on behaviour — it did, on CI run 31660267142.
+    # Freeze the clock only for the compared calls: identical inputs must give
+    # identical output, which is the property this asserts.
+    monkeypatch.setattr(time, "time", lambda: 1_800_000_000.0)
     out1 = mcp_tools.cos_task_reconcile(conn)
     out2 = mcp_tools.cos_task_reconcile(conn)
     after = conn.execute(cols).fetchall()
