@@ -89,6 +89,7 @@ jobs:
       # --- supply-chain evidence (docs/engineering/ci-gates.md) ---------
       # SLSA build provenance for the exact artifacts published to PyPI.
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        id: provenance
         with:
           subject-path: dist/*
       # SPDX SBOM of the built distribution, attached to the GitHub release.
@@ -112,6 +113,16 @@ jobs:
           mkdir -p signatures
           mv dist/*.sigstore.json signatures/
           ls -l dist signatures
+      - name: Stage the provenance attestation as a release asset
+        # attest-build-provenance only pushes to the attestations API; nothing
+        # reaches the release page, so Scorecard's Signed-Releases check caps
+        # at 8/10 ("does not have provenance") until an *.intoto.jsonl asset
+        # exists. The bundle is the Sigstore-wrapped in-toto SLSA v1 statement
+        # that `gh attestation verify` consumes — emit it single-line so the
+        # .jsonl extension is literally true.
+        env:
+          BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+        run: jq -c . "$BUNDLE" > coding-os.intoto.jsonl
       - name: Attach SBOM + signature bundles to the GitHub release
         # The trigger is a push (not a release event), so auto-upload paths
         # in the actions above don't fire — attach the evidence explicitly.
@@ -122,5 +133,6 @@ jobs:
         run: |
           gh release upload "$TAG" coding-os-sbom.spdx.json --clobber
           gh release upload "$TAG" signatures/*.sigstore.json --clobber
+          gh release upload "$TAG" coding-os.intoto.jsonl --clobber
       # ------------------------------------------------------------------
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1

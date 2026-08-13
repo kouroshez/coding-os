@@ -2585,9 +2585,10 @@
         "src/backend/cmd/api/main_test.go",
         "src/backend/go.mod",
         "src/backend/go.sum",
+        "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 252
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -9903,9 +9904,10 @@
         "src/backend/cmd/api/main_test.go",
         "src/backend/go.mod",
         "src/backend/go.sum",
+        "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 256
+      "count": 257
     },
     "codex_go-plain": {
       "agent": "codex",
