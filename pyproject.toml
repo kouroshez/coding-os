@@ -56,7 +56,7 @@ classifiers = [
 # RAG (Retrieval-Augmented Generation) — semantic search via local embeddings.
 # Install with: uv sync --extra rag
 rag = [
-    "sentence-transformers>=2.2.0",
+    "sentence-transformers>=2.7.0",
     "numpy>=1.24.0",
 ]
 
@@ -79,7 +79,7 @@ graph_os = [
     # brute-force scan.
     "usearch>=2.16",
     "sqlite-vec>=0.1.9",
-    "tree-sitter>=0.25.0,<0.26.0",
+    "tree-sitter>=0.25.0,<0.27.0",
     "tree-sitter-python>=0.25.0,<0.26.0",
     "tree-sitter-typescript>=0.23.0,<0.26.0",
     "tree-sitter-bash>=0.25.0,<0.26.0",
@@ -106,7 +106,7 @@ graph_os = [
     "tree-sitter-c>=0.23.0,<0.26.0",
     "tree-sitter-cpp>=0.23.0,<0.26.0",
     "tree-sitter-c-sharp>=0.23.0,<0.26.0",
-    "tree-sitter-scala>=0.23.0,<0.26.0",
+    "tree-sitter-scala>=0.23.0,<0.27.0",
     "tree-sitter-kotlin>=1.0.0",
     "tree-sitter-lua>=0.4.0",
 ]
@@ -162,7 +162,7 @@ dev = [
     # Exact pin: uv.lock is gitignored, so CI resolves this fresh — a floating
     # bound let every new ruff release reformat the world and fail the enforced
     # format gate daily. Bump deliberately together with a format sweep.
-    "ruff==0.16.1",
+    "ruff==0.16.2",
     "mypy>=1.10.0",
     "types-pyyaml>=6.0.0",
     "types-jsonschema>=4.0.0",
