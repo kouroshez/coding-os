@@ -52,6 +52,16 @@ updates:
       # at all.
       eslint:
         patterns: ["eslint", "@eslint/*", "eslint-plugin-*", "typescript-eslint"]
+    ignore:
+      # eslint 10 is blocked upstream, not by anything in this repo: every
+      # published eslint-plugin-react (latest 7.37.5) peer-caps at `^9.7`, so
+      # `npm ci` ERESOLVEs no matter how the group is arranged (#61). Grouping
+      # cannot fix an upstream range. Delete both entries once
+      # eslint-plugin-react declares `^10`; minor/patch keep flowing meanwhile.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
 
   # ---- Docker base images (digest-pinned in Dockerfile) ----
   # Digest pins go stale silently — without this ecosystem the pin becomes a
