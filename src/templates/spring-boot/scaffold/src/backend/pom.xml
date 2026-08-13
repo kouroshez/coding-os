@@ -23,6 +23,11 @@
          @JsonView/case-insensitive deserialization bypasses. Drop this
          override once spring-boot-starter-parent manages >= 2.21.5. -->
     <jackson-bom.version>2.21.5</jackson-bom.version>
+    <!-- Ahead of the parent's managed 2.24.3, which is inside the range of
+         CVE-2026-49844 (GHSA-qv9r-c865-cp47): MapMessage JSON serialization
+         emits non-finite floats unencoded, producing invalid JSON downstream.
+         Drop this override once the parent manages >= 2.25.5. -->
+    <log4j2.version>2.25.5</log4j2.version>
   </properties>
 
   <dependencies>
