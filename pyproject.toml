@@ -352,9 +352,6 @@ ignore = [
     # Burndown (2026-08-07, tracked in the lint-burndown board task):
     # style-only residue accepted to make `ruff check` a hard CI gate.
     # Remove each entry once its count reaches 0 — never add new ones.
-    "SIM105", # try-except-pass vs contextlib.suppress (9 left)
-    "SIM102", # collapsible-if (7 left)
-    "E741",   # ambiguous single-letter names (7 left)
 ]
 unfixable = [
     "F401",   # unused-import — never auto-remove (could hide intent)

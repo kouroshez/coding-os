@@ -381,9 +381,9 @@ def _community_id(members: list[GraphNode]) -> str:
     if not members:
         return "community:empty"
     sorted_uids = sorted(m.uid for m in members)
-    digest = hashlib.sha1(
-        "|".join(sorted_uids).encode("utf-8"), usedforsecurity=False
-    ).hexdigest()[:12]
+    digest = hashlib.sha1("|".join(sorted_uids).encode("utf-8"), usedforsecurity=False).hexdigest()[
+        :12
+    ]
     return f"community:{digest}"
 
 
@@ -398,9 +398,9 @@ def _community_name(anchor: GraphNode) -> str:
 def _community_summary(members: list[GraphNode]) -> str:
     labels = []
     for m in members[:3]:
-        l = (m.label or m.uid.split("::")[-1] or m.uid).strip()
-        if l:
-            labels.append(l)
+        label = (m.label or m.uid.split("::")[-1] or m.uid).strip()
+        if label:
+            labels.append(label)
     return " → ".join(labels) if labels else ""
 
 

@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import logging
 import os
 import re
@@ -343,15 +344,14 @@ def record_outcome(
             else 0
         )
         if previous_outcome != outcome:
-            try:
+            # outcome_history may not exist yet (pre-v4 DB)
+            with contextlib.suppress(Exception):
                 conn.execute(
                     "INSERT INTO outcome_history "
                     "(task_id, outcome, previous_outcome, is_breakthrough, triggered_by) "
                     "VALUES (?, ?, ?, ?, ?)",
                     (task_id, outcome, previous_outcome, is_breakthrough, "record_outcome"),
                 )
-            except Exception:
-                pass  # outcome_history may not exist yet (pre-v4 DB)
 
         conn.commit()
 

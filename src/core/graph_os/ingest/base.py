@@ -240,10 +240,13 @@ def walk_local(
         # Relative-path pruning — drop subtrees whose rel-path contains
         # any configured segment sequence (e.g. tests/golden mirrors). The
         # "/" suffix avoids matching "tests/golden_clone" by accident.
-        if exclude_paths_set and rel_dir:
-            if any(rel_dir == p or rel_dir.startswith(p + "/") for p in exclude_paths_set):
-                dirnames.clear()
-                continue
+        if (
+            exclude_paths_set
+            and rel_dir
+            and any(rel_dir == p or rel_dir.startswith(p + "/") for p in exclude_paths_set)
+        ):
+            dirnames.clear()
+            continue
         for name in filenames:
             if not any(fnmatch.fnmatchcase(name, pat) for pat in include_set):
                 continue

@@ -72,7 +72,7 @@ def task_create_cmd(
             priority=priority,
             appetite=appetite,
             epic=epic,
-            labels=[l.strip() for l in labels.split(",") if l.strip()],
+            labels=[label.strip() for label in labels.split(",") if label.strip()],
             outcome=outcome,
             acceptance=acceptance,
             read_first=[p.strip() for chunk in read_first for p in chunk.split(",") if p.strip()]

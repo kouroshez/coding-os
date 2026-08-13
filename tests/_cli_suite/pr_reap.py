@@ -71,10 +71,8 @@ class TestCosPrReap(PrHarness):
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
         old = time.time() - 3600
         for path in [wt, *wt.rglob("*")]:
-            try:
+            with contextlib.suppress(OSError):
                 os.utime(path, (old, old))  # age the WHOLE tree past the threshold
-            except OSError:
-                pass
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "agents/adhoc/ses-test-abc" not in self._branches(repo)  # stale + no record → reaped
@@ -126,10 +124,8 @@ class TestCosPrReap(PrHarness):
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
         old = time.time() - 3600
         for path in [wt, *wt.rglob("*")]:
-            try:
+            with contextlib.suppress(OSError):
                 os.utime(path, (old, old))  # age the ENTIRE tree (top dir + every file)...
-            except OSError:
-                pass
         nested = wt / "src" / "deep"
         nested.mkdir(parents=True, exist_ok=True)
         (nested / "live.py").write_text(
@@ -166,10 +162,8 @@ class TestCosPrReap(PrHarness):
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
         old = time.time() - 3600
         for path in [wt, *wt.rglob("*")]:
-            try:
+            with contextlib.suppress(OSError):
                 os.utime(path, (old, old))  # whole tree age-stale
-            except OSError:
-                pass
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "agents/adhoc/ses-test-abc" in self._branches(repo)  # live lock-owner → kept

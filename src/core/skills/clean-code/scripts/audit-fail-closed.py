@@ -44,11 +44,16 @@ def _is_log_call(node: ast.AST) -> bool:
     if not isinstance(call, ast.Call):
         return False
     func = call.func
-    if isinstance(func, ast.Attribute):
-        # Match: logger.info / log.warning / logging.error / etc.
-        if func.attr in {"debug", "info", "warning", "warn", "error", "exception", "critical"}:
-            return True
-    return False
+    # Match: logger.info / log.warning / logging.error / etc.
+    return isinstance(func, ast.Attribute) and func.attr in {
+        "debug",
+        "info",
+        "warning",
+        "warn",
+        "error",
+        "exception",
+        "critical",
+    }
 
 
 def _is_silent_return(node: ast.AST) -> bool:
@@ -104,10 +109,9 @@ def audit_file(path: Path) -> list[Finding]:
             continue
 
         # Pattern 2: log-only (allows execution past block, no raise)
-        if all(_is_log_call(stmt) or _is_pass(stmt) for stmt in body):
-            if _exception_is_broad(node):
-                findings.append(Finding(str(path), line, "log_and_allow", snippet))
-                continue
+        if all(_is_log_call(stmt) or _is_pass(stmt) for stmt in body) and _exception_is_broad(node):
+            findings.append(Finding(str(path), line, "log_and_allow", snippet))
+            continue
 
         # Pattern 3: silent return None / {} / []
         for stmt in body:

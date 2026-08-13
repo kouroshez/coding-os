@@ -160,9 +160,14 @@ def _scan_ts_emitter(content: str) -> list[ContractMatch]:
         event_name = match.group("path")
         tail = emitter.split(".")[-1].lower()
         # `addEventListener` always passes through; for `on` we gate on tail.
-        if "addEventListener" not in match.group(0):
-            if tail not in {"bus", "events", "emitter", "pubsub", "channel"}:
-                continue
+        if "addEventListener" not in match.group(0) and tail not in {
+            "bus",
+            "events",
+            "emitter",
+            "pubsub",
+            "channel",
+        }:
+            continue
         hits.append(
             ContractMatch(
                 kind="event",

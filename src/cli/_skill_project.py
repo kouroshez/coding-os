@@ -9,6 +9,7 @@ in cli.skill_commands.
 
 from __future__ import annotations
 
+import contextlib
 import os
 from pathlib import Path
 
@@ -119,10 +120,9 @@ def _relink_core_stack_skill(
             if link_path.is_symlink() or link_path.exists():
                 link_path.unlink()
                 touched += 1
-            try:
+            # dir not empty / absent — leave it
+            with contextlib.suppress(OSError):
                 skill_dir.rmdir()
-            except OSError:
-                pass  # dir not empty / absent — leave it
     return touched
 
 

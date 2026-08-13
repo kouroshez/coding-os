@@ -305,17 +305,16 @@ def init(
     # every missing flag so a bare `cos init` reports the whole gap at once.
     # Sits AFTER existing-install detection so the idempotent sync path keeps
     # working for a bare re-`cos init` inside a project.
-    if not yes and not sys.stdin.isatty():
-        if name is None and project_dir is None and not debug:
-            missing = "--name and/or --project-dir"
-            if agent is None:
-                missing = f"--agent, {missing}"
-            click.echo(
-                f"ERROR: non-interactive shell — pass {missing} "
-                "(or --yes to scaffold into the current directory).",
-                err=True,
-            )
-            sys.exit(2)
+    if not yes and not sys.stdin.isatty() and name is None and project_dir is None and not debug:
+        missing = "--name and/or --project-dir"
+        if agent is None:
+            missing = f"--agent, {missing}"
+        click.echo(
+            f"ERROR: non-interactive shell — pass {missing} "
+            "(or --yes to scaffold into the current directory).",
+            err=True,
+        )
+        sys.exit(2)
 
     # Prompt for missing inputs. --yes disables all prompting. Prompts that
     # hit EOF (closed stdin — CI, scaffold tests) fall back to sensible

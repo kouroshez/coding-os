@@ -173,9 +173,9 @@ def _walk_ts(
                         _emit_log_hook_edge(hook, line, normalised, result, mod_uid)
             elif cmd_name in ("bash", "sh"):
                 # `bash script.sh` invocation pattern.
-                for txt, l in args:
+                for txt, lineno in args:
                     if txt.endswith(".sh"):
-                        _emit_call_edge(txt, l, path, normalised, result, mod_uid)
+                        _emit_call_edge(txt, lineno, path, normalised, result, mod_uid)
                         break
             elif cmd_name.endswith(".sh"):
                 # Direct `./script.sh` or `script.sh` invocation.

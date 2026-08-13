@@ -7,6 +7,7 @@ thresholds, so they live together and nothing else needs to know the schema.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import sqlite3
 
@@ -76,13 +77,11 @@ def recalculate_weights(conn: sqlite3.Connection) -> dict:
 
     # Stamp staleness metadata (migration v26 columns; guard for older DBs)
     total_outcomes = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
-    try:
+    with contextlib.suppress(sqlite3.OperationalError):
         conn.execute(
             "UPDATE routing_weights SET last_recalc_at = CURRENT_TIMESTAMP, outcomes_at_recalc = ?",
             (total_outcomes,),
         )
-    except sqlite3.OperationalError:
-        pass  # migration v26 not yet applied — safe to skip
 
     conn.commit()
     return {"status": "ok", "weights_updated": count, "outcomes_stamped": total_outcomes}

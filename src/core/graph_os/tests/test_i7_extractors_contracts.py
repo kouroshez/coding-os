@@ -378,7 +378,7 @@ func main() {
 }""",
         )
         labels = {n.label for n in r.nodes if n.kind == "cos:route"}
-        assert any("User" in l for l in labels)
+        assert any("User" in label for label in labels)
 
     def test_cobra_command(self):
         r = contracts.extract(

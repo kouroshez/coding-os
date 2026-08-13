@@ -9,6 +9,7 @@ Agent-agnostic: DB path is configurable via COS_DB_PATH env var.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import sqlite3
@@ -252,14 +253,11 @@ def run_migrations(conn: sqlite3.Connection) -> list[int]:
     _ensure_version_table(conn)
     applied: list[int] = []
 
-    try:
+    # Another writer holding the lock is the common case under concurrent
+    # dispatcher workers: fall through, re-read the version below, and return
+    # without doing anything if we are already at the target.
+    with contextlib.suppress(sqlite3.OperationalError):
         conn.execute("BEGIN IMMEDIATE")
-    except sqlite3.OperationalError:
-        # Another writer holds the lock — wait briefly and re-read; if
-        # we're already at the target version, return without doing
-        # anything. This is the common case under concurrent dispatcher
-        # workers.
-        pass
     try:
         current = get_schema_version(conn)
         for version, description, action in MIGRATIONS:

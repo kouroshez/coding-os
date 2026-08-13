@@ -209,14 +209,15 @@ def _check_doc(
         old_count, _old_sig = old_syms[sym]
         if old_count == -1 or new_count == -1:
             continue  # class symbol — skip
-        if old_count != new_count:
-            if re.search(rf"(?<![A-Za-z0-9_]){re.escape(sym)}(?![A-Za-z0-9_])", text):
-                findings.append(
-                    f"`{sym}` signature changed ({old_count}→{new_count} params); "
-                    f"verify doc still describes the right shape"
-                )
-                if len(findings) >= 2:
-                    break
+        if old_count != new_count and re.search(
+            rf"(?<![A-Za-z0-9_]){re.escape(sym)}(?![A-Za-z0-9_])", text
+        ):
+            findings.append(
+                f"`{sym}` signature changed ({old_count}→{new_count} params); "
+                f"verify doc still describes the right shape"
+            )
+            if len(findings) >= 2:
+                break
 
     if findings:
         return "; ".join(findings[:2])
@@ -373,10 +374,6 @@ def main(argv: list[str]) -> int:
             enrichment = f"`{sym}` {hint}"
             break
 
-    try:
-        code_file.resolve().relative_to(project_root.resolve())
-    except ValueError:
-        pass
     for doc, reason in findings[:3]:
         try:
             rel_doc = doc.resolve().relative_to(project_root.resolve())

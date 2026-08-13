@@ -108,13 +108,17 @@ def _merge_substitutions(
     origin: dict[str, str] = dict.fromkeys(base, "base")
     for stack in stacks:
         for key, value in stack.substitutions.items():
-            if key in merged and merged[key] != value and key not in _JOINED_SUBSTITUTION_KEYS:
-                # Only warn on real conflicts, not base-default overrides.
-                if origin.get(key) != "base" or not _is_base_default(merged[key]):
-                    warnings.append(
-                        f"substitution conflict on '{key}': "
-                        f"'{merged[key]}' → '{value}' (stack {stack.id} wins)"
-                    )
+            # Only warn on real conflicts, not base-default overrides.
+            if (
+                key in merged
+                and merged[key] != value
+                and key not in _JOINED_SUBSTITUTION_KEYS
+                and (origin.get(key) != "base" or not _is_base_default(merged[key]))
+            ):
+                warnings.append(
+                    f"substitution conflict on '{key}': "
+                    f"'{merged[key]}' → '{value}' (stack {stack.id} wins)"
+                )
             merged[key] = value
             origin[key] = stack.id
     return merged, warnings

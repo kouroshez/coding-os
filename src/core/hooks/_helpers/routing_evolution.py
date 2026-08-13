@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import sqlite3
 import sys
 
@@ -40,13 +41,12 @@ def _recalculate(conn: sqlite3.Connection) -> int:
         count += 1
 
     total_outcomes = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
-    try:
+    # v26 columns not yet applied; recalc still succeeds without them
+    with contextlib.suppress(sqlite3.OperationalError):
         conn.execute(
             "UPDATE routing_weights SET last_recalc_at = CURRENT_TIMESTAMP, outcomes_at_recalc = ?",
             (total_outcomes,),
         )
-    except sqlite3.OperationalError:
-        pass  # v26 columns not yet applied; recalc still succeeds
 
     conn.commit()
     return count

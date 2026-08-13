@@ -49,11 +49,18 @@ def _messages(args: list[str]) -> list[str]:
             out.append(a[len("--message=") :])
         elif a.startswith("-m") and len(a) > 2 and not a.startswith("--"):
             out.append(a[2:])  # `-mfoo` attached value
-        elif len(a) >= 2 and a[0] == "-" and a[1] != "-" and a[1:].isalpha() and a.endswith("m"):
-            if i + 1 < len(args):  # short cluster ending in m (`-am`, `-sm`)
-                out.append(args[i + 1])
-                i += 2
-                continue
+        # short cluster ending in m (`-am`, `-sm`)
+        elif (
+            len(a) >= 2
+            and a[0] == "-"
+            and a[1] != "-"
+            and a[1:].isalpha()
+            and a.endswith("m")
+            and i + 1 < len(args)
+        ):
+            out.append(args[i + 1])
+            i += 2
+            continue
         i += 1
     if any(_looks_unexpanded(v) for v in out):
         return []  # can't cleanly resolve this invocation — defer, don't mis-validate

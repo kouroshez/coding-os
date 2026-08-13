@@ -43,8 +43,8 @@ AUTO_COMMIT_RE = re.compile(r"^(?:Merge |Revert |fixup! |squash! )")
 def check_message(text: str) -> list[str]:
     errors: list[str] = []
     raw_lines = text.split("\n")
-    lines = [l for l in raw_lines if not l.startswith("#")]
-    title_idx = next((i for i, l in enumerate(lines) if l.strip()), None)
+    lines = [line for line in raw_lines if not line.startswith("#")]
+    title_idx = next((i for i, line in enumerate(lines) if line.strip()), None)
     if title_idx is None:
         return ["commit message is empty"]
     title = lines[title_idx].rstrip()
@@ -60,7 +60,7 @@ def check_message(text: str) -> list[str]:
             f"(type one of: {', '.join(CONVENTIONAL_TYPES)}) — release-please cannot parse it"
         )
 
-    body_nonempty = [l for l in body_lines if l.strip()]
+    body_nonempty = [line for line in body_lines if line.strip()]
     if len(body_nonempty) > MAX_BODY_LINES:
         errors.append(f"body has {len(body_nonempty)} non-empty lines; max {MAX_BODY_LINES}")
 
