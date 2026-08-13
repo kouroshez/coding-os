@@ -1,0 +1,15 @@
+# Vulnerabilities accepted for this module, with the evidence for accepting them.
+# Consumed by osv-scanner and by OpenSSF Scorecard's Vulnerabilities check.
+# https://google.github.io/osv-scanner/configuration/
+
+[[IgnoredVulns]]
+id = "GO-2026-5932"
+ignoreUntil = 2027-02-01
+reason = """
+golang.org/x/crypto is an indirect dependency of gofiber/fiber. The advisory
+covers only the golang.org/x/crypto/openpgp import paths, which this module
+does not reach: `osv-scanner --call-analysis=go` reports called=false and no
+source file imports openpgp. There is no fixed version — the package is
+unmaintained by design, so upgrading cannot clear it. Re-review at the
+ignoreUntil date or whenever this module starts using OpenPGP.
+"""
