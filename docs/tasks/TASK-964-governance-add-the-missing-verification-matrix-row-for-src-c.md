@@ -5,12 +5,12 @@ swimlane: docs
 kind: bug
 epic: null
 labels: [governance, ci, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-13
 started: 2026-08-13
-completed: null
+completed: 2026-08-13
 agent_session: ses-claude-20260812-170221-1654
 depends_on: []
 blocked_by: []
@@ -43,3 +43,5 @@ Observed on PR #68 (release 0.3.17). The Modularity Map already states these pat
 
 ## Work Log
 - 2026-08-13 [claude]: Edit AGENTS.md
+- 2026-08-13 [claude]: commit 1bd26e7866 — docs(agents): add the Verification-Matrix row for src/core/rules and src/core/skills
+- 2026-08-13 [claude]: Status transitioned to complete via cos task-done.
