@@ -19,11 +19,35 @@ import type { ReactNode } from 'react';
  *          ![images](url), TASK-NNN refs, GIVEN/WHEN/THEN callouts.
  */
 
+// Quotes are escaped alongside the angle brackets because the output feeds
+// double-quoted src/href/alt attributes: without them `![a](x" onerror="…)`
+// closes the attribute and lands executable markup in dangerouslySetInnerHTML.
 function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
-function inlineHtml(txt: string): string {
+const ALLOWED_URL_SCHEMES = new Set(['http', 'https', 'mailto']);
+
+// Escaping alone does not stop `[click](javascript:alert(1))` — that payload
+// contains no HTML metacharacters. Anything carrying a scheme we do not trust
+// resolves to an empty attribute; relative links pass through untouched.
+function safeUrl(url: string): string {
+  // Browsers strip C0 control characters and spaces before reading the
+  // scheme, so `java\tscript:` is live — normalise the same way first.
+  const probe = url.replace(/[\u0000-\u0020]/g, '');
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(probe);
+  if (scheme && !ALLOWED_URL_SCHEMES.has(scheme[1].toLowerCase())) return '';
+  return url;
+}
+
+export function inlineHtml(txt: string): string {
+  // Escaped once, up front: every capture below is already attribute-safe,
+  // so re-escaping a URL here would turn `?a=1&b=2` into `&amp;amp;`.
   let safe = escapeHtml(txt);
   // `code` first so subsequent markup doesn't eat backticks.
   safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -32,11 +56,11 @@ function inlineHtml(txt: string): string {
   // Images before links — shared syntax.
   safe = safe.replace(
     /!\[([^\]]*)\]\(([^)]+)\)/g,
-    (_m, alt, url) => `<img class="md-img" alt="${escapeHtml(alt)}" src="${escapeHtml(url)}" />`,
+    (_m, alt, url) => `<img class="md-img" alt="${alt}" src="${safeUrl(url)}" />`,
   );
   safe = safe.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
-    (_m, text, url) => `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(text)}</a>`,
+    (_m, text, url) => `<a href="${safeUrl(url)}" target="_blank" rel="noopener">${text}</a>`,
   );
   safe = safe.replace(
     /\b(TASK-\d{3,4})\b/g,
