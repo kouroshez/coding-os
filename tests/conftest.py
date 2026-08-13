@@ -92,6 +92,21 @@ _LEAKY_SESSION_ENV = (
     "COS_AGENT_SESSION_ID",
 )
 
+# The same leak, one layer down: an ambient COS_STATE_DIR / COS_DB_PATH from
+# the developer's shell reaches every subprocess that spawns with **os.environ
+# (38 sites in tests/), and cos-env.sh derives the rest from it — so a test
+# asserting a *derived* path silently measures the host instead of its own
+# fixture. It fails intermittently and only outside CI, where none of these are
+# set. Scrubbing here fixes the class at its source; a test that needs one of
+# these sets it explicitly, and that still wins because monkeypatch runs after.
+_LEAKY_DERIVED_ENV = (
+    "COS_STATE_DIR",
+    "COS_AGENT_DIR",
+    "COS_PANEL_DIR",
+    "COS_DB_PATH",
+    "COS_AGENT",
+)
+
 
 @pytest.fixture(autouse=True)
 def _isolate_registry(
@@ -106,5 +121,5 @@ def _isolate_registry(
     """
     tmp_reg = tmp_path_factory.mktemp("registry", numbered=True) / "registry.json"
     monkeypatch.setenv("COS_REGISTRY_PATH", str(tmp_reg))
-    for _var in _LEAKY_SESSION_ENV:
+    for _var in (*_LEAKY_SESSION_ENV, *_LEAKY_DERIVED_ENV):
         monkeypatch.delenv(_var, raising=False)

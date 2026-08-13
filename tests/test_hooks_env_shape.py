@@ -85,14 +85,6 @@ def _python_resolve_root(cwd: str) -> str:
     ).stdout.strip()
 
 
-def _cos_clean_env(**overrides: str) -> dict[str, str]:
-    """Inherited env minus every COS_* var — derived-value assertions must not
-    depend on whatever the host shell or a sibling test exported."""
-    env = {k: v for k, v in os.environ.items() if not k.startswith("COS_")}
-    env.update(overrides)
-    return env
-
-
 class TestHookSyntax:
     @pytest.fixture(params=sorted(HOOKS_DIR.glob("*.sh")), ids=lambda p: p.name)
     def hook_file(self, request: pytest.FixtureRequest) -> Path:

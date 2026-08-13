@@ -91,14 +91,6 @@ def _python_resolve_root(cwd: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _cos_clean_env(**overrides: str) -> dict[str, str]:
-    """Inherited env minus every COS_* var — derived-value assertions must not
-    depend on whatever the host shell or a sibling test exported."""
-    env = {k: v for k, v in os.environ.items() if not k.startswith("COS_")}
-    env.update(overrides)
-    return env
-
-
 class TestBlockSecrets:
     def test_blocks_env_file(self) -> None:
         payload = json.dumps(
