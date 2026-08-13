@@ -444,12 +444,12 @@ def _safe_id(uid: str) -> str:
     # F5 / Audit #14: previous impl `re.sub(..., "_", uid)[:60]` made
     # every method of one class collapse to identical mermaid/dot node
     # IDs (uid prefix is the same — class+method suffix got chopped).
-    # Suffix an 8-char sha1 so IDs are collision-proof regardless of uid
+    # Suffix an 8-char digest so IDs are collision-proof regardless of uid
     # length, and keep a readable 40-char prefix for diagram legibility.
     sanitised = re.sub(r"[^A-Za-z0-9_]", "_", uid)
     if len(sanitised) <= 48:
         return sanitised
-    digest = hashlib.sha1(uid.encode("utf-8"), usedforsecurity=False).hexdigest()[:8]
+    digest = hashlib.sha256(uid.encode("utf-8")).hexdigest()[:8]
     return f"{sanitised[:40]}_{digest}"
 
 

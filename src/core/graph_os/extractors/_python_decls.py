@@ -91,7 +91,7 @@ def _module_docstring(content: str) -> str | None:
 
 def _hash_decl(decl: _SymbolDecl) -> str:
     key = f"{decl.kind}|{decl.uid}|{decl.signature}|{decl.decorators}"
-    return hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest()[:12]
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
 
 
 def _class_signature(node: ast.ClassDef) -> str:
