@@ -18,6 +18,18 @@
 - **Self-review before each commit, never self-approve:** re-read the diff + run the Verification-Matrix command for what changed *before* committing; authoritative review is a separate pass (`reviewer` role, `/code-review`, CI).
 - Every commit obeys the Commit Message Contract below.
 
+### The three tiers — reversibility decides who may act
+
+| Tier | Examples | Who decides |
+|---|---|---|
+| **Commit** — local, undone by `git restore` | any self-verified logical unit | agent, unprompted |
+| **Push / merge** — public but revertable | push to `main`, merging a green dependency PR | agent at task close or on ask; `git revert` is the undo |
+| **Publish** — irreversible, leaves the repo | package-registry upload, GitHub Release, deploy, anything mailed or posted outward | **human only** — ask every time |
+
+A published version cannot be replaced: PyPI, npm and crates.io all refuse re-upload of a yanked version, so a bad publish is permanent in a way no git operation is. Approval to publish **one** version is not approval for the next; re-ask.
+
+Back the tier with a machine gate wherever the platform offers one, so the boundary survives a session that forgets it — on GitHub that is a [deployment environment](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments) with `required_reviewers` on the publishing job (leave `prevent_self_review` off for a solo maintainer, or the only approver is locked out). A boundary that lives only in prose holds until the first busy session.
+
 ## Concurrent sessions
 
 **Safe:** parallel sessions on `main` — commits, pushes, and test runs all serialize-and-retry; an abandoned session's committed work is already on `main`. **⚠️ Care:** two sessions editing the same file (last write wins — dirty-tree notice at SessionStart), and mid-editing a `block-*` safety hook (next section).
