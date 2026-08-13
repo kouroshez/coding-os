@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-12
-started: null
-completed: null
-agent_session: null
+started: 2026-08-12
+completed: 2026-08-12
+agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-953: Rebuild the Memory tab around the trust ladder with search, filters and honest health
 
 **Outcome (one sentence):** The Memory tab presents 111 lessons as a searchable, filterable, grouped view that states plainly how many are validated and promoted and what moves a lesson along the trust ladder, replacing the flat list and the unlabelled all-red bar chart.
@@ -49,3 +48,4 @@ references: []
 - 2026-08-12 [claude]: Edit probe_agent_session_resolver.py
 - 2026-08-12 [claude]: commit 4117200bbe — fix(tests): make the script smoke test catch sys.path bootstrap bugs
 - 2026-08-12 [claude]: commit d9d7b0b256 — refactor(scripts): point the session-resolver probe's docs at the real module
+- 2026-08-13 [claude]: Status transitioned to complete via cos task-done.

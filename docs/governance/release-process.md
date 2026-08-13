@@ -53,22 +53,71 @@ result, same as before.
 
 | Actor | Only job | Must NOT |
 |---|---|---|
-| **Agent** | Write a **valid Conventional Commit** message | pick a version · edit CHANGELOG · `git tag` |
-| **Maintainer** | **Merge** the standing release PR when ready to cut | hand-edit version / CHANGELOG / tag |
+| **Agent** | Write a **valid Conventional Commit** message | pick a version · edit CHANGELOG · `git tag` · merge the release PR |
+| **Maintainer** | **Merge** the standing release PR — see the trigger below | hand-edit version / CHANGELOG / tag |
 | **release-please** | Derive semver, write CHANGELOG, open/refresh the PR | — |
 
 Anti-hallucination by construction: the agent never names a version, so
 it cannot name a *wrong* one. The commit log **is** the source of truth.
 
+### When to merge the release PR (the trigger)
+
+> **Merge when the PR contains at least one `feat` or `fix` that changes
+> what `cos` does for someone who already installed it — not how we build
+> it.** Otherwise let it accumulate. Never let real user-visible content
+> sit unreleased longer than ~2 weeks.
+
+Why a trigger has to be written down at all: `merge = publish` here — the
+`publish-pypi` job fires on `releases_created`, so merging the PR ships to
+PyPI in the same breath. And nothing throttles the PR's *existence*:
+release-please's real gate is "does this render a changelog line", so with
+`refactor`/`docs`/`build` visible in our sections, the release PR is open
+almost continuously. Cadence comes from this trigger or from nowhere.
+
+Why *substance* and not a fixed schedule: this repo's traffic is bursty —
+0.3.13 carried 137 changelog bullets, 0.3.11 carried 2. A calendar cadence
+would cut empty releases in the quiet weeks and batch a flood in the loud
+ones. Judge the diff, not the date.
+
+The trigger is a maintainer judgement, deliberately not a hook. What the
+industry does with the same choice:
+
+| Model | Named example | Actual rate |
+|---|---|---|
+| Publish every merge | Renovate (semantic-release) | 6–7 versions/day |
+| Standing PR + judgement | release-please's own repo | ~3–5 commits per release |
+| Published schedule | [Angular](https://angular.dev/reference/releases) | weekly patch, major/12 months |
+
+release-please is built for the middle row — its README frames the
+standing PR as the deliberate alternative to releasing continuously, and
+it has [no auto-merge](https://github.com/googleapis/release-please/issues/2299)
+by design. Jez Humble's continuous-delivery/deployment split lands the
+same way: releasing *every* good build is a business call, and he names
+shipped-to-users software as the case where you would not. Keeping the
+release PR permanently green **is** the continuous-delivery property;
+merging it every time is a separate choice.
+
 ## Conventional Commit → version bump (pre-1.0)
 
-| Prefix | Section | Bump (`bump-minor-pre-major`) |
+Two config flags shift the whole scale down one notch while `0.x`:
+`bump-minor-pre-major` (a break bumps minor, not major) **and**
+`bump-patch-for-minor-pre-major` (a `feat` bumps patch, not minor). Net
+effect — the same scheme [uv](https://docs.astral.sh/uv/reference/policies/versioning/)
+and [Ruff](https://docs.astral.sh/ruff/versioning/) publish: **minor means
+breaking, patch means everything else.**
+
+| Prefix | Section | Bump |
 |---|---|---|
-| `feat:` | Added | minor (0.x.0) |
-| `fix:` / `perf:` | Fixed / Performance | patch (0.0.x) |
-| `feat!:` / `BREAKING CHANGE:` | — | minor pre-1.0 (would be major post-1.0) |
-| `docs:` `build:` | Documentation / Build | patch |
-| `ci:` `test:` `chore:` `style:` `refactor:` | hidden / Changed | no release on its own |
+| `feat!:` / `BREAKING CHANGE:` | — | **minor** (`0.x.0`) — the only thing that bumps minor pre-1.0 |
+| `feat:` | Added | patch |
+| `fix:` / `perf:` | Fixed / Performance | patch |
+| `refactor:` `docs:` `build:` | Changed / Documentation / Build | patch |
+| `ci:` `test:` `chore:` `style:` | hidden | no release on its own |
+
+Verify, don't assume: 0.3.13 carried 11 `feat` commits and still bumped
+patch. `refactor` is **not** hidden here — it renders a *Changed* entry and
+opens a release PR on its own. The hidden set is exactly the four in the
+last row; everything else in `changelog-sections` is releasable.
 
 The commit **title type prefix is validated** by
 [check_commit_message.py](../../src/core/hooks/_helpers/check_commit_message.py)
@@ -82,7 +131,12 @@ malformed type silently dropped a change from the changelog.
    edit collides with the standing PR and rots it. Add a `feat`/`fix`
    commit instead.
 2. **Never `git tag` a release by hand.** Merging the release PR is the
-   only way a tag is created.
+   only way a tag is created. The one arguable exception — *backfilling* a
+   tag onto an already-published release commit, where release-please
+   already chose the version and PyPI already has it — is currently
+   blocked by a repository ruleset, and is left blocked (see Operational
+   notes). Recovering a lost pointer is not naming a version, but it is
+   still a maintainer action, not an agent one.
 3. **Never force-push to rewrite a released tag.** Use `git revert`.
 4. **Breaking change = `!` / `BREAKING CHANGE:`.** A break is anything in
    AGENTS.md § Stop Conditions: `cos init` output shape change, an MCP
@@ -107,6 +161,27 @@ malformed type silently dropped a change from the changelog.
 - `0.x` carries **no stability guarantee** (semver). The 1.0.0 cut
   criteria — frozen `cos init` output + `cos_*` MCP signatures — are
   tracked in TASK-079.
+- **Every published version should be reachable from a tag — three are
+  not.** `0.3.2`, `0.3.3` and `0.3.4` reached PyPI before tagging was
+  reliable and left no tag, so those published artifacts cannot be checked
+  out or rebuilt from source. Their release commits are identified and
+  verified (`747a3a4e`, `a359555c`, `3bdcd867` — each confirmed by reading
+  both `pyproject.toml` and `.release-please-manifest.json` at that
+  commit), but **the backfill is blocked**: pushing a tag is rejected with
+  `GH013 … Cannot create ref due to creations being restricted`, from a
+  ruleset the REST API does not list (`/rulesets` returns `[]` for an
+  admin token with `repo` scope). That restriction is Hard rule 2 enforced
+  at the platform level, so it is left in place rather than loosened.
+  Closing this needs a maintainer to either allow the three creations once
+  in **Settings → Rules**, or accept the gap permanently. Conversely
+  `v0.3.1` is tagged but never reached PyPI (publishing was wired up at
+  0.3.2), and `0.3.0` is a hand-written CHANGELOG baseline, never tagged
+  or published. Check the invariant with:
+
+  ```bash
+  diff <(git ls-remote --tags origin | sed 's|.*refs/tags/v||' | grep -v '\^{}' | sort -V) \
+       <(curl -s https://pypi.org/pypi/coding-os/json | python3 -c "import json,sys; print('\n'.join(json.load(sys.stdin)['releases']))" | sort -V)
+  ```
 
 ## Publishing & package metadata (as-built — TASK-077/219)
 
@@ -161,16 +236,27 @@ the contracts below are frozen — it is a set of gates, not a date. All must ho
 
 | # | Criterion | Signal it's met |
 |---|---|---|
-| 1 | `cos init` scaffold output shape frozen | `tests/golden/**` stable across ≥2 minors; no planned skeleton change |
+| 1 | `cos init` scaffold output shape frozen | `tests/golden/**` unchanged across ≥10 consecutive releases **and** ≥8 weeks; no planned skeleton change |
 | 2 | `cos_*` MCP tool signatures frozen | `cos_graph_contracts` / tool inventory stable; `ok`/`fail` envelope unchanged |
 | 3 | Hook contract frozen | `$COS_*` env + `registry.yaml` shape stable; no consumer-visible hook renames |
 | 4 | Adapter contract frozen | `adapter.yaml` schema stable across claude / codex |
 | 5 | Quality gates promoted to required | ruff / mypy / eslint flipped from advisory to hard-fail in CI; baseline cleared |
 | 6 | Deprecation policy published | post-1.0 breaks follow deprecate → warn → remove over ≥2 minors — [stability-contract.md](stability-contract.md) |
 
+Criterion 1 used to read *"stable across ≥2 minors"*, which was a trap: pre-1.0
+only a **breaking change** bumps minor, so the gate demanded two breaking-change
+cycles as proof that breaking had stopped — unreachable for a project doing the
+right thing. Elapsed releases + wall-clock measure the same stability without
+requiring a break first.
+
 When all six hold, bump to `1.0.0` (a `feat!:` commit, or merge the release PR
 after a manual manifest bump). Until then stay on `0.x` and flag every breaking
 change with `!` so `^0.x` pinners are never surprised.
+
+`0.x` is not an excuse for instability — the standard those criteria are held
+to is uv's: *"uv is widely used in production and is stable software… the care
+we take in backwards-incompatible changes is proportional to the expected
+real-world impact, not a function of arbitrary version numbering policies."*
 
 ## See also
 
