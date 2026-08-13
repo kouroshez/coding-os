@@ -429,20 +429,43 @@ cannot. Per-check impact on the aggregate, measured from the same run:
 | Code-Review (High) | 0 | needs reviewed PRs — see below | +0.77 |
 | Fuzzing (Medium) | 0 | `fast-check` property tests (the check reads Go/Haskell/JS-TS/Erlang/C#, **not** Python) | +0.51 |
 | Pinned-Dependencies (Medium) | 2 | 48 action refs pinned by SHA | +0.41 |
-| Signed-Releases (High) | 8 | 8 is "signed"; 10 needs an `*.intoto.jsonl` provenance **asset** on the release | +0.15 |
+| Signed-Releases (High) | 8 | 8 is "signed"; 10 needs an `*.intoto.jsonl` provenance **asset** on the release — but see the correction below | +0.15, five releases out |
 | CII-Best-Practices (Low) | 0 | self-assessment at bestpractices.dev — passing 5, silver 7, gold 10 | +0.13 … +0.25 |
 | SAST (Medium) | 8 | CodeQL must run on *every* commit, not most | +0.10 |
 | Contributors (Low) | 0 | needs contributors from ≥3 companies — not reachable for a solo project | — |
 
-**Measured outcome (2026-08-13, commit `b6704711`): 5.9 → 7.4.** Vulnerabilities
-0→10, Fuzzing 0→10, Pinned-Dependencies 2→7. Signed-Releases stays at 8 until the
-next release actually publishes the `*.intoto.jsonl` asset — the workflow change
-cannot be observed before a release runs. Pinned-Dependencies stops at 7 rather
+**Measured outcome (2026-08-13, commit `b6704711`): 5.9 → 7.4**, and **7.6** at
+`e7330c39` once SAST reached 10. Vulnerabilities 0→10, Fuzzing 0→10,
+Pinned-Dependencies 2→7. Pinned-Dependencies stops at 7 rather
 than 10 because the remaining warnings are `tests/golden/**` snapshots of the
 template scaffolds, `install.sh`, and the pip/npm commands. The scaffold
 Dockerfiles are left on tags **deliberately**: a consumer who runs `cos init`
 should not inherit a base-image digest that was already stale the day it shipped,
 and they are the ones who pin when they productionise.
+
+### Signed-Releases: shipping provenance once does not move it (measured)
+
+The prediction above — "8 until the next release publishes the asset" — was
+wrong, and the way it was wrong is the useful part. v0.3.15 published a real
+SLSA-v1 `coding-os.intoto.jsonl` whose subject digest matches the wheel on PyPI
+byte for byte, and the check **still reported 8**. Its reason string says why:
+
+> 5 out of the last 5 releases have a total of 6 signed artifacts.
+
+Signed-Releases scores each of the **last five** releases (10 with provenance,
+8 signed-only, 0 unsigned) and averages: `(10+8+8+8+8)/5 = 8.4`, floored to 8.
+So it reaches 10 only after **five consecutive releases** each carry the asset —
+around v0.3.19. Nothing to fix; the workflow is already correct. Verify a
+release actually carried it rather than trusting the workflow's green tick:
+
+```bash
+gh release view v0.3.15 --json assets --jq '[.assets[].name]'
+```
+
+The generalisation: a Scorecard check that averages over a window cannot be
+moved by one commit, and reading a green publish job as "the score will rise"
+is the same mistake as reading a closed alert as "the finding was fixed"
+(§ *Triaging a CodeQL alert*).
 
 ### Branch-Protection must stay unscored while the repo is solo trunk-based
 
