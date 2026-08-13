@@ -12,6 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.16](https://github.com/kouroshez/coding-os/compare/v0.3.15...v0.3.16) (2026-08-13)
+
+
+### Fixed
+
+* **deps:** bump nanoid to 3.3.18 for GHSA-2v37-7h3g-55p8 ([6a4ad9d](https://github.com/kouroshez/coding-os/commit/6a4ad9d0a7bb9a841cb0dcb5d53eb08eca98c2fc))
+
+
+### Documentation
+
+* **ci:** correct the Signed-Releases prediction with the measured result ([f76a359](https://github.com/kouroshez/coding-os/commit/f76a3591085ef103a6873ca9b60127bb0e852cb3))
+
 ## [0.3.15](https://github.com/kouroshez/coding-os/compare/v0.3.14...v0.3.15) (2026-08-13)
 
 
