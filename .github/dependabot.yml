@@ -6,8 +6,12 @@
 # dozen at once and buries everything else.
 version: 2
 updates:
-  # ---- Python (pip ecosystem reads pyproject.toml) ----
-  - package-ecosystem: pip
+  # ---- Python ----
+  # `uv`, not `pip`: the pip ecosystem edits pyproject.toml and leaves uv.lock
+  # untouched, so every PR it opened died on ci.yml's `uv lock --check` (#58,
+  # #59). The uv ecosystem updates both, which is the only shape that can pass
+  # a gate this repo added precisely because release-please had the same gap.
+  - package-ecosystem: uv
     directory: "/"
     schedule:
       interval: weekly
@@ -43,6 +47,11 @@ updates:
       frontend-security:
         applies-to: security-updates
         patterns: ["*"]
+      # eslint and @eslint/js share a peer range: bumping @eslint/js to 10
+      # alone fails `npm ci` with ERESOLVE (#57). They move together or not
+      # at all.
+      eslint:
+        patterns: ["eslint", "@eslint/*", "eslint-plugin-*", "typescript-eslint"]
 
   # ---- Docker base images (digest-pinned in Dockerfile) ----
   # Digest pins go stale silently — without this ecosystem the pin becomes a
@@ -56,6 +65,15 @@ updates:
     labels: ["dependencies", "ci"]
     commit-message:
       prefix: "build(deps)"
+    ignore:
+      # The runtime interpreter must stay on the line CI actually tests
+      # (3.10/3.11/3.12) and that uv.lock is resolved for. Left open, the first
+      # run proposed python 3.12-slim -> 3.14-slim (#55): a green digest bump
+      # that would have shipped an untested interpreter. Patch/minor still flow.
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   # ---- GitHub Actions ----
   - package-ecosystem: github-actions
