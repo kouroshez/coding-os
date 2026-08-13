@@ -1,4 +1,4 @@
-<!-- domain:OPS | layer:engineering | ssot:true | updated:2026-08-08 -->
+<!-- domain:OPS | layer:engineering | ssot:true | updated:2026-08-13 -->
 # CI Quality Gates — SSOT
 
 Every blocking gate in `.github/workflows/ci.yml`, what it enforces, and how its
@@ -410,6 +410,70 @@ is trunk-based — the maintainer pushes straight to `main`:
   scaffold state (issue #39). Until a run is reproducible, `CI Pass` emits a
   warning instead of failing; gating on a flaky suite would just teach everyone
   to ignore a red `main`.
+
+## External posture — the OpenSSF Scorecard (what it does and does not measure)
+
+`scorecard.yml` publishes to `https://api.scorecard.dev/projects/github.com/kouroshez/coding-os`;
+the README badge reads that API. The aggregate is a **risk-weighted mean** —
+Critical checks weigh 10, High 7.5, Medium 5, Low 2.5, and a check scoring `-1`
+(an internal error) is excluded from the mean entirely. Reproduced against the
+2026-08-13 run: weighted sum 575 over weight 97.5 = **5.9**, matching the API.
+
+That arithmetic is the point: it says which fixes move the number and which
+cannot. Per-check impact on the aggregate, measured from the same run:
+
+| Check | Was | Fix | Δ aggregate |
+|---|---|---|---|
+| Vulnerabilities (High) | 0 | 79 → 0 advisories; 72 of them were one stale `spring-boot-starter-parent` in a scaffold | +0.77 |
+| Maintained (High) | 0 | nothing to do — the repo is <90 days old and the check refuses to score it | +0.77, on its own, in time |
+| Code-Review (High) | 0 | needs reviewed PRs — see below | +0.77 |
+| Fuzzing (Medium) | 0 | `fast-check` property tests (the check reads Go/Haskell/JS-TS/Erlang/C#, **not** Python) | +0.51 |
+| Pinned-Dependencies (Medium) | 2 | 48 action refs pinned by SHA | +0.41 |
+| Signed-Releases (High) | 8 | 8 is "signed"; 10 needs an `*.intoto.jsonl` provenance **asset** on the release | +0.15 |
+| CII-Best-Practices (Low) | 0 | self-assessment at bestpractices.dev — passing 5, silver 7, gold 10 | +0.13 … +0.25 |
+| SAST (Medium) | 8 | CodeQL must run on *every* commit, not most | +0.10 |
+| Contributors (Low) | 0 | needs contributors from ≥3 companies — not reachable for a solo project | — |
+
+### Branch-Protection must stay unscored while the repo is solo trunk-based
+
+The check currently errors (`-1`, rendered as `?`) because the default
+`GITHUB_TOKEN` cannot read classic branch-protection rules. The obvious fix —
+hand `scorecard-action` a fine-grained PAT — **lowers the aggregate**. Scoring
+is tiered and a tier must be satisfied in full before the next one counts:
+Tier 1 (no force-push, no deletion) is met and is worth 3/10; Tier 2 requires at
+least one review approval before merge, which trunk-based direct pushes do not
+have. Entering the mean at 3 gives 597.5/105 = **5.69**, i.e. −0.2 for doing the
+"right" thing. Adding the PAT is correct only in the same change that starts
+requiring PR review — and 6/10 is where it merely breaks even.
+
+Code-Review sits on the same fault line: it reads approvals over the last ~30
+changesets, and this repo commits straight to `main` by design ([Rule 23](../governance/critical-rules.md#rule-23--trunk-based-git-workflow)).
+1/30 approved is an accurate description of a one-maintainer trunk repo, not a
+defect to engineer around. Scorecard's own docs say as much. Treat Code-Review,
+Contributors, and Maintained as **facts about the project's shape**; the honest
+ceiling while that shape holds is roughly 8.5, not 10.
+
+### The 134 "code scanning alerts" are two populations
+
+68 of them are the Scorecard SARIF upload re-reported as alerts
+(`PinnedDependenciesID`, `MaintainedID`, `CodeReviewID`, …) — they clear when
+the corresponding check score rises, and 61 were the unpinned actions. Only 66
+were CodeQL findings about this codebase. Filter before triaging:
+
+```bash
+gh api "repos/kouroshez/coding-os/code-scanning/alerts?state=open" --paginate \
+  --jq '.[] | select(.rule.id | test("ID$") | not) | [.number, .rule.id] | @tsv'
+```
+
+### Accepting an advisory that has no fix
+
+`src/templates/go-fiber/scaffold/src/backend/osv-scanner.toml` is the worked
+example: `GO-2026-5932` covers `golang.org/x/crypto/openpgp`, which is
+unmaintained by design and therefore has no fixed version to move to. The
+scaffold does not import it — proven by `osv-scanner --call-analysis=go`
+reporting `called=false`, not by inspection — so the ID is ignored with that
+evidence and an `ignoreUntil` date that forces re-review. An ignore without a
+recorded reason and an expiry is just a suppressed alert.
 
 ## mypy promotion path
 
