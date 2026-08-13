@@ -392,7 +392,7 @@ wheels = [
 
 [[package]]
 name = "coding-os"
-version = "0.3.15"
+version = "0.3.16"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
