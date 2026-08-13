@@ -5,12 +5,12 @@ swimlane: core
 kind: chore
 epic: null
 labels: [codeql, hub, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 2d
 created: 2026-08-13
 started: 2026-08-13
-completed: null
+completed: 2026-08-13
 agent_session: ses-claude-20260812-170221-1654
 depends_on: []
 blocked_by: []
@@ -34,3 +34,4 @@ references: []
 - 2026-08-13 [claude]: commit 22212bed15 — test: prove the path-traversal guards block a real file above the root
 - 2026-08-13 [claude]: All 59 real CodeQL findings resolved: 3 weak-hash to SHA-256 (usedforsecurity=False did NOT satisfy the query - it…
 - 2026-08-13 [claude]: commit c8dec8eff3 — fix(ci): drop the unused noqa that failed the ruff gate
+- 2026-08-13 [claude]: Status transitioned to complete via cos task-done.
