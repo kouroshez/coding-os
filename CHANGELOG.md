@@ -12,6 +12,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.15](https://github.com/kouroshez/coding-os/compare/v0.3.14...v0.3.15) (2026-08-13)
+
+
+### Fixed
+
+* **board_os:** freeze the clock in the reconcile determinism test ([4615982](https://github.com/kouroshez/coding-os/commit/461598285ccdafaff26c069d4950e2013702bd8b))
+* **ci:** drop the unused noqa that failed the ruff gate ([c8dec8e](https://github.com/kouroshez/coding-os/commit/c8dec8eff3449cb63e90b733469e18e720015f81))
+* **ci:** make Dependabot able to satisfy the gates this repo already has ([05c93d3](https://github.com/kouroshez/coding-os/commit/05c93d3b67c6c5c012af17b24bbb6755587c350d))
+* **ci:** set the mypy baseline from the CI count, not the local one ([bbb39fd](https://github.com/kouroshez/coding-os/commit/bbb39fd0031da1c327a910b8d443b215475ed021))
+* **deps:** clear all 79 OSV advisories across scaffolds and locks ([c7cab87](https://github.com/kouroshez/coding-os/commit/c7cab878fe732565f6280a60a0e35750f49872c9))
+* **graph_os:** use SHA-256 for the three derived content digests ([41946cf](https://github.com/kouroshez/coding-os/commit/41946cf92f378b537f5ed46e8d1b8b9d40e5b35b))
+* **release:** bump uv.lock with pyproject.toml and gate the drift in CI ([912f902](https://github.com/kouroshez/coding-os/commit/912f9025d032e9c19606dd9b76f1401fa7cee3d7))
+* **security:** close the weak-hash, ReDoS and URL-substring CodeQL alerts ([ba37021](https://github.com/kouroshez/coding-os/commit/ba37021f9e1063c6acba315d533c65f05a3f03bb))
+* **security:** log exceptions under a correlation id instead of returning str(exc) ([7fbffcb](https://github.com/kouroshez/coding-os/commit/7fbffcb530eafe185b55db2821eb8e1e76d00d55))
+* **security:** one path-segment validator, applied where request data joins a path ([cf343c3](https://github.com/kouroshez/coding-os/commit/cf343c3ec5743fd6b2b63805a8c0594d85507a01))
+* **web:** drop the control-char regex class that broke the ESLint gate ([b670471](https://github.com/kouroshez/coding-os/commit/b67047117b66133302aaad7a4faf553df33ac79e))
+* **web:** escape quotes and gate URL schemes in the task markdown renderer ([c596947](https://github.com/kouroshez/coding-os/commit/c596947b79903ae646e58b7ed1403ac854eba4bd))
+
+
+### Changed
+
+* clear the SIM105, SIM102 and E741 burndown ignores ([#30](https://github.com/kouroshez/coding-os/issues/30), [#31](https://github.com/kouroshez/coding-os/issues/31), [#32](https://github.com/kouroshez/coding-os/issues/32)) ([c2dc381](https://github.com/kouroshez/coding-os/commit/c2dc381ef0798c8776b3eb7180b7514fab8acfc2))
+
+
+### Documentation
+
+* **bench:** publish the Django 5.2 third-party token-cost row ([#37](https://github.com/kouroshez/coding-os/issues/37)) ([c51ecea](https://github.com/kouroshez/coding-os/commit/c51ecea59a9fc9e626e3f0fc51afd682e8e81fc3))
+* **ci-gates:** record the CodeQL fix-vs-dismiss policy and the reachability test ([ad6b4d9](https://github.com/kouroshez/coding-os/commit/ad6b4d9ce42c2c6d6305168b2e543c7dc09b56cd))
+* **ci-gates:** record the measured 5.9 to 7.4 outcome, not the prediction ([7dc5ce4](https://github.com/kouroshez/coding-os/commit/7dc5ce4592ad61287c88b0473e1c6ca91b9c048e))
+* **ci-gates:** record the Scorecard weight model and its honest ceiling ([41288b0](https://github.com/kouroshez/coding-os/commit/41288b0cfa854045d53e5c7cda86803cb55bd16c))
+* **insights:** record that fixing a CodeQL finding and clearing its alert are separate jobs ([9f23636](https://github.com/kouroshez/coding-os/commit/9f236363dcb330c855a3f03ebac45f457998a1c9))
+* **insights:** record why a gate below a self-healing command is a no-op ([6fa4869](https://github.com/kouroshez/coding-os/commit/6fa4869942379a67a87c684f049618cb9811bf04))
+* **release:** define the merge trigger and correct the pre-1.0 bump table ([fb006ca](https://github.com/kouroshez/coding-os/commit/fb006ca477c35ddb0aa7b7366fc5e28711e5462f))
+
+
+### Build
+
+* pin Docker base images by digest and the release build backend ([a63730e](https://github.com/kouroshez/coding-os/commit/a63730e9853a841353cfaf22a4011e57869cb5fa))
+
 ## [0.3.14](https://github.com/kouroshez/coding-os/compare/v0.3.13...v0.3.14) (2026-08-12)
 
 
