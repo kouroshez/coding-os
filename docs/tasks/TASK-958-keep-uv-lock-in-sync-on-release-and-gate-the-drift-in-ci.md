@@ -50,3 +50,4 @@ On main at v0.3.14: pyproject.toml says 0.3.14, uv.lock says 0.3.13. `uv lock --
 - 2026-08-13 [claude]: Edit ci.yml
 - 2026-08-13 [claude]: commit 912f9025d0 — fix(release): bump uv.lock with pyproject.toml and gate the drift in CI
 - 2026-08-13 [claude]: extra-files toml updater + `uv lock --check` above every uv sync; both halves verified locally
+- 2026-08-13 [claude]: commit 912ccd7c3c — chore(board): record TASK-958 for the uv.lock release sync
