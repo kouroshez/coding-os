@@ -27,6 +27,28 @@ commit (Conventional) → push main → release-please reads commits
 - Version cursor: [.release-please-manifest.json](../../.release-please-manifest.json).
 - Workflow: [.github/workflows/release-please.yml](../../.github/workflows/release-please.yml).
 
+### `uv.lock` rides along in the release PR
+
+`release-type: python` bumps `pyproject.toml` but knows nothing about
+`uv.lock`, which carries the project's own version too
+([release-please#2561](https://github.com/googleapis/release-please/issues/2561),
+open). Left alone the two diverge on every release — they did from 0.3.12
+to 0.3.14 — and nobody notices, because a bare `uv sync` **silently
+rewrites a stale lock and exits 0**. The repair is two halves that only
+work together:
+
+- **The bump** — an `extra-files` entry with a `toml` updater
+  (`$.package[?(@.name.value=='coding-os')].version`) so the lock is
+  bumped *inside* the release PR, not by a follow-up bot commit. Verified
+  byte-identical to what `uv lock` writes.
+- **The gate** — `uv lock --check` in the CI Lint job, **positioned above
+  every `uv sync`** for the reason above. A jsonpath that stops matching
+  no-ops with only a log line, so without this step the bump could
+  silently stop working exactly as the original drift did.
+
+Adding a dependency still means running `uv lock` and committing the
+result, same as before.
+
 ## Roles — minimal decision surface
 
 | Actor | Only job | Must NOT |
@@ -65,6 +87,9 @@ malformed type silently dropped a change from the changelog.
 4. **Breaking change = `!` / `BREAKING CHANGE:`.** A break is anything in
    AGENTS.md § Stop Conditions: `cos init` output shape change, an MCP
    tool signature change, or a hook contract change consumers depend on.
+5. **Never hand-bump the version in `uv.lock`.** release-please owns it on
+   a release; a dependency change owns it via `uv lock`. Run `uv lock
+   --check` before pushing if unsure — CI runs the same command.
 
 ## Operational notes
 

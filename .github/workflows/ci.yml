@@ -54,6 +54,12 @@ jobs:
           version: "latest"
           enable-cache: true
           cache-dependency-glob: "uv.lock"
+      - name: uv.lock matches pyproject.toml
+        run: uv lock --check
+        # MUST stay above every `uv sync`: a bare `uv sync` silently rewrites a
+        # stale lock and exits 0, so this same check below it passes on a tree
+        # that is actually divergent. Why it exists:
+        # docs/governance/release-process.md § uv.lock rides along.
       - name: Install Python deps
         run: uv sync --extra rag
       - name: ruff check
