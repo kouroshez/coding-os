@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-13
 started: 2026-08-12
-completed: null
+completed: 2026-08-12
 agent_session: ses-claude-20260807-224955-abc1
 depends_on: []
 blocked_by: []
@@ -51,3 +51,5 @@ On main at v0.3.14: pyproject.toml says 0.3.14, uv.lock says 0.3.13. `uv lock --
 - 2026-08-13 [claude]: commit 912f9025d0 — fix(release): bump uv.lock with pyproject.toml and gate the drift in CI
 - 2026-08-13 [claude]: extra-files toml updater + `uv lock --check` above every uv sync; both halves verified locally
 - 2026-08-13 [claude]: commit 912ccd7c3c — chore(board): record TASK-958 for the uv.lock release sync
+- 2026-08-13 [claude]: commit 6fa4869942 — docs(insights): record why a gate below a self-healing command is a no-op
+- 2026-08-13 [claude]: Status transitioned to complete via cos task-done.
