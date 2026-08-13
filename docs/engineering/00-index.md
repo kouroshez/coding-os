@@ -76,7 +76,7 @@ Read next: any of the entries below.
 - [Hub Web UI — Pre-Release Audit (2026-08-03, TASK-864)](hub-release-audit-2026-08-03.md) — `ssot:false` · updated 2026-08-03
 - [Dispatcher Contract](dispatcher-contract.md) — `ssot:true` · updated 2026-08-03
 - [Agent Supervision](agent-supervision.md) — `ssot:true` · updated 2026-08-07
-- [CI Quality Gates — SSOT](ci-gates.md) — `ssot:true` · updated 2026-08-08
 - [Third-Party Token-Cost Benchmark — graph envelope vs grep + read](third-party-token-bench.md) — `ssot:true` · updated 2026-08-08
+- [CI Quality Gates — SSOT](ci-gates.md) — `ssot:true` · updated 2026-08-13
 
 <!-- END auto-index -->

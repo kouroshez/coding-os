@@ -22,7 +22,7 @@ from fastapi import Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
-from .._envelope import unwrap
+from .._envelope import safe_error_message, unwrap
 from . import cognition as _cog
 from ._cognition_base import router
 from ._cognition_chat_lookup import (
@@ -156,7 +156,7 @@ async def get_chat(
                     "error": {
                         "category": "internal",
                         "retryable": False,
-                        "message": f"get_session_messages failed: {exc}",
+                        "message": safe_error_message(exc, "get_session_messages failed", logger),
                     },
                 }
             )
@@ -309,7 +309,9 @@ async def chat_new(
             raise
         except Exception as exc:
             logger.exception("chat_new stream failed")
-            yield _sse_chunk("error", {"message": str(exc)})
+            yield _sse_chunk(
+                "error", {"message": safe_error_message(exc, "chat stream failed", logger)}
+            )
         if not emitted_session:
             # No event ever carried a session_id — the turn produced no resolvable
             # session. Emitting the minted ses-claude-ui-* id strands the UI on an
@@ -403,7 +405,9 @@ async def chat_send(
             raise
         except Exception as exc:
             logger.exception("chat resume stream failed")
-            yield _sse_chunk("error", {"message": str(exc)})
+            yield _sse_chunk(
+                "error", {"message": safe_error_message(exc, "chat stream failed", logger)}
+            )
         logger.info(
             "chat_send stream done: session=%s emitted=%s",
             session_id,

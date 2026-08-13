@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
-from .._envelope import ENVELOPE_ERROR_RESPONSES, unwrap
+from .._envelope import ENVELOPE_ERROR_RESPONSES, safe_error_message, unwrap
 from ._bounded_read import DEFAULT_WINDOW, tail_lines
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -87,7 +87,7 @@ def list_hooks(
                     "error": {
                         "category": "unavailable",
                         "retryable": False,
-                        "message": f"hook_renderer not importable: {exc}",
+                        "message": safe_error_message(exc, "hook_renderer not importable", logger),
                     },
                 }
             )
@@ -104,7 +104,11 @@ def list_hooks(
             json.dumps(
                 {
                     "ok": False,
-                    "error": {"category": "internal", "retryable": False, "message": str(exc)},
+                    "error": {
+                        "category": "internal",
+                        "retryable": False,
+                        "message": safe_error_message(exc, "hook render failed", logger),
+                    },
                 }
             )
         )
@@ -275,7 +279,8 @@ async def stream_hooks(
             raise
         except Exception as exc:
             logger.exception("hook stream failed")
-            yield f"event: error\ndata: {json.dumps({'message': str(exc)})}\n\n".encode()
+            message = safe_error_message(exc, "hook stream failed", logger)
+            yield f"event: error\ndata: {json.dumps({'message': message})}\n\n".encode()
 
     return StreamingResponse(
         gen(),

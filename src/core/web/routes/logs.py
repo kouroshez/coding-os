@@ -19,7 +19,7 @@ from fastapi import APIRouter, Body, Depends, Query
 from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
-from .._envelope import ENVELOPE_ERROR_RESPONSES, unwrap
+from .._envelope import ENVELOPE_ERROR_RESPONSES, safe_error_message, unwrap
 from ._bounded_read import DEFAULT_WINDOW, tail_lines
 
 logger = logging.getLogger("coding_os.web.logs")
@@ -365,7 +365,8 @@ async def stream_logs(
             raise
         except Exception as exc:
             logger.exception("log stream failed")
-            yield f"event: error\ndata: {json.dumps({'message': str(exc)})}\n\n".encode()
+            message = safe_error_message(exc, "log stream failed", logger)
+            yield f"event: error\ndata: {json.dumps({'message': message})}\n\n".encode()
 
     return StreamingResponse(
         gen(),

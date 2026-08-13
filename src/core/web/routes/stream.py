@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
+from .._envelope import safe_error_message
 from ._stream_snapshots import (
     _snapshot_activity as _snapshot_activity,
     _snapshot_presence as _snapshot_presence,
@@ -452,7 +453,7 @@ def stream_history(
                 "error": {
                     "category": "unavailable",
                     "retryable": False,
-                    "message": f"stream history unavailable: {exc}",
+                    "message": safe_error_message(exc, "stream history unavailable", logger),
                 },
             },
         )

@@ -17,7 +17,7 @@ from fastapi import Body, Depends
 from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
-from .._envelope import unwrap
+from .._envelope import safe_error_message, unwrap
 from . import cognition as _cog, cognition_chat as _chat
 from ._cognition_base import router
 from .cognition_chat import (
@@ -109,7 +109,9 @@ async def author_task(
             raise
         except Exception as exc:
             logger.exception("author_task stream failed")
-            yield _sse_chunk("error", {"message": str(exc)})
+            yield _sse_chunk(
+                "error", {"message": safe_error_message(exc, "onboarding stream failed", logger)}
+            )
         if not emitted_session:
             yield _sse_chunk("session", {"session_id": resolved_id})
         yield _sse_chunk("done", {"session_id": resolved_id})
@@ -251,7 +253,9 @@ def onboarding_dismiss(
                     "error": {
                         "category": "internal",
                         "retryable": False,
-                        "message": f"could not write onboarding marker: {exc}",
+                        "message": safe_error_message(
+                            exc, "could not write onboarding marker", logger
+                        ),
                     },
                 }
             )
@@ -357,7 +361,9 @@ async def onboard(
             raise
         except Exception as exc:
             logger.exception("onboard stream failed")
-            yield _sse_chunk("error", {"message": str(exc)})
+            yield _sse_chunk(
+                "error", {"message": safe_error_message(exc, "onboarding stream failed", logger)}
+            )
         if not emitted_session:
             yield _sse_chunk("session", {"session_id": resolved_id})
         yield _sse_chunk("done", {"session_id": resolved_id})

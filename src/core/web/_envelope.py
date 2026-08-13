@@ -3,10 +3,27 @@
 from __future__ import annotations
 
 import json
+import logging
+import uuid
 from typing import Any
 
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+
+
+def safe_error_message(exc: BaseException, context: str, logger: logging.Logger) -> str:
+    """Log `exc` under a correlation id; return a message safe for a response.
+
+    A bare `str(exc)` in a response body hands the caller absolute paths, SQL
+    text, and library internals — sqlite3 alone leaks the database path in
+    almost every message. The operator still needs that detail, so it goes to
+    the log under an id the user can quote back, and the body carries only the
+    id. Call from inside an `except` block; `logger.exception` needs the
+    active traceback.
+    """
+    error_id = uuid.uuid4().hex[:12]
+    logger.exception("%s [error_id=%s]", context, error_id)
+    return f"{context} (error_id={error_id})"
 
 
 # ----- OpenAPI schemas -------------------------------------------------

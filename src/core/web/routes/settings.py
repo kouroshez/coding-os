@@ -21,6 +21,8 @@ from thinking_os.project_settings import (
 )
 from thinking_os.supervision import DEFAULT_MODEL_ROUTING, ModelRoutingPolicy, normalize_policy
 
+from .._envelope import safe_error_message
+
 logger = logging.getLogger("coding_os.web.settings")
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -165,7 +167,9 @@ def get_modules():
 
         payload = module_state_payload(current_project_root())
     except Exception as exc:
-        return _module_error(503, "unavailable", f"module registry unavailable: {exc}", True)
+        return _module_error(
+            503, "unavailable", safe_error_message(exc, "module registry unavailable", logger), True
+        )
     return {"data": payload, "meta": {"layer": "settings", "source": "settings.modules"}}
 
 
@@ -205,7 +209,9 @@ def get_module_drift():
             if c.severity != SEV_PASS
         ]
     except Exception as exc:
-        return _module_error(503, "unavailable", f"module drift unavailable: {exc}", True)
+        return _module_error(
+            503, "unavailable", safe_error_message(exc, "module drift unavailable", logger), True
+        )
     return {
         "data": {"drift": drift, "ok": not drift},
         "meta": {"layer": "settings", "source": "settings.modules.drift"},
@@ -225,7 +231,9 @@ def get_git_state(integration: str | None = None):
         cap = _preflight(repo, integration or _integration_branch(repo))
         state = _git_state(repo)
     except Exception as exc:
-        return _module_error(503, "unavailable", f"git-state unavailable: {exc}", True)
+        return _module_error(
+            503, "unavailable", safe_error_message(exc, "git-state unavailable", logger), True
+        )
     return {"data": {**cap, **state}, "meta": {"layer": "settings", "source": "settings.git_state"}}
 
 
@@ -241,7 +249,9 @@ def patch_module(module_id: str, body: dict = Body(...)):
 
         result, notes = toggle_and_regen(current_project_root(), module_id, enabled)
     except Exception as exc:
-        return _module_error(503, "unavailable", f"module toggle unavailable: {exc}", True)
+        return _module_error(
+            503, "unavailable", safe_error_message(exc, "module toggle unavailable", logger), True
+        )
     if not result.ok:
         status = 404 if "unknown module" in result.reason else 400
         return _module_error(status, "validation", result.reason, False)

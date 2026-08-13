@@ -10,14 +10,19 @@ per-project coding-os.db rather than the launch-cwd default.
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 
 from fastapi import APIRouter
 
+from .._envelope import safe_error_message
+
 _CORE_DIR = Path(__file__).resolve().parents[3]
 if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
+
+logger = logging.getLogger("coding_os.web.health")
 
 router = APIRouter(tags=["health"])
 
@@ -43,7 +48,7 @@ def _health_payload() -> dict:
     except Exception as exc:
         result["status"] = "degraded"
         result["backend_id"] = "unavailable"
-        result["reason"] = str(exc)
+        result["reason"] = safe_error_message(exc, "graph backend unavailable", logger)
 
     result["file_index_state_rows"] = None
     result["file_index_state_last_indexed_at"] = None
@@ -65,7 +70,9 @@ def _health_payload() -> dict:
         finally:
             conn.close()
     except Exception as exc:
-        result["file_index_state_error"] = str(exc)
+        result["file_index_state_error"] = safe_error_message(
+            exc, "file_index_state unreadable", logger
+        )
 
     return result
 
@@ -126,7 +133,7 @@ def api_health_db():
     try:
         conn = sqlite3.connect(str(db_path))
     except sqlite3.Error as exc:
-        payload["error"] = str(exc)
+        payload["error"] = safe_error_message(exc, "database unreachable", logger)
         return payload
     try:
         # Discover which of our candidate tables actually live in this DB.
@@ -140,7 +147,9 @@ def api_health_db():
                 count = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
                 payload["tables"][table] = int(count or 0)
             except sqlite3.Error as exc:
-                payload["tables"][table] = {"error": str(exc)}
+                payload["tables"][table] = {
+                    "error": safe_error_message(exc, f"table {table} unreadable", logger)
+                }
 
         # Surface the self-diagnosis the counts-only view used to hide: the
         # numbers don't explain WHY a loop is dead.
@@ -201,6 +210,11 @@ def api_health_file_size():
         spec.loader.exec_module(module)
         result = module.scan(repo_root=current_project_root())
     except Exception as exc:
-        return {"ok": True, "available": False, "error": str(exc), "violations": []}
+        return {
+            "ok": True,
+            "available": False,
+            "error": safe_error_message(exc, "check unavailable", logger),
+            "violations": [],
+        }
     result["available"] = True
     return result
