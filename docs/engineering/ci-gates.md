@@ -479,12 +479,73 @@ have. Entering the mean at 3 gives 597.5/105 = **5.69**, i.e. −0.2 for doing t
 "right" thing. Adding the PAT is correct only in the same change that starts
 requiring PR review — and 6/10 is where it merely breaks even.
 
+The tiers, verbatim from [Scorecard's `checks.md`](https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection),
+because the ordering is what makes the trade-off unavoidable:
+
+| Tier | Worth | Requires |
+|---|---|---|
+| 1 | 3/10 | prevent force push · prevent branch deletion |
+| 2 | 6/10 | **≥1 reviewer approval** · PRs required · branch up to date · approval of most recent push |
+| 3 | 8/10 | ≥1 status check before merging |
+| 4 | 9/10 | ≥2 reviewers · CODEOWNERS review |
+| 5 | 10/10 | dismiss stale approvals · include administrators |
+
+`main` already satisfies Tier 1 and Tier 3 (`allow_force_pushes=false`,
+`allow_deletions=false`, `required_linear_history=true`, required check `CI Pass`),
+but Tier 3 pays nothing while Tier 2 is unmet — and Tier 2 opens with a reviewer
+requirement one maintainer cannot supply. Hence 3/10, hence the −0.2.
+
+`enforce_admins` also stays `false`, and not from laziness: with a required
+status check, enabling it blocks *direct pushes to `main`* — a push arrives with
+no check attached and is rejected. Turning it on would not harden trunk-based
+development, it would end it.
+
 Code-Review sits on the same fault line: it reads approvals over the last ~30
 changesets, and this repo commits straight to `main` by design ([Rule 23](../governance/critical-rules.md#rule-23--trunk-based-git-workflow)).
-1/30 approved is an accurate description of a one-maintainer trunk repo, not a
-defect to engineer around. Scorecard's own docs say as much. Treat Code-Review,
-Contributors, and Maintained as **facts about the project's shape**; the honest
-ceiling while that shape holds is roughly 8.5, not 10.
+Two clauses of the official check description settle it:
+
+> If the project has only one contributor, or does not have enough reviewers to
+> practically require that all contributions be reviewed […]
+>
+> Review by bots, including bots powered by artificial intelligence / machine
+> learning (AI/ML), do not count as code review.
+
+The second is the one that matters here. An agent reviewing an agent's diff is
+explicitly *not* review — so no amount of agent diligence moves this check, and
+routing work through self-merged PRs to farm the metric would be scoring theatre.
+The one legitimate lever is Scorecard's own **implicit review** rule (the merger
+being a different person than the committer), which needs a second human.
+
+Treat Code-Review, Contributors, and Maintained as **facts about the project's
+shape**; the honest ceiling while that shape holds is roughly 8.5, not 10.
+
+### What replaces review when review is impossible
+
+A solo trunk repo cannot buy the *second pair of eyes* control, so it buys the
+controls that do not need one — and spends them on the step where a mistake is
+permanent. Reversibility, not blast radius, decides:
+
+| Step | Undo | Gate |
+|---|---|---|
+| commit | `git restore` | none needed |
+| push / merge to `main` | `git revert` | required check `CI Pass` |
+| **publish to PyPI** | **none — a yanked version can never be re-uploaded** | `pypi` environment, `required_reviewers` |
+
+The publish gate is the one that was missing. Until 2026-08-13 the `pypi`
+environment existed for Trusted Publishing but carried `protection_rules: []`,
+so merging a release PR uploaded to PyPI with nothing in between. It now
+requires a human approval:
+
+```bash
+gh api repos/:owner/:repo/environments/pypi \
+  --jq '[.protection_rules[] | {type, reviewers: [.reviewers[]?.reviewer.login]}]'
+# [{"type":"required_reviewers","reviewers":["kouroshez"]},{"type":"branch_policy","reviewers":[]}]
+```
+
+`prevent_self_review` is deliberately **off**: it forbids the person who
+triggered a deployment from approving it, which on a one-maintainer repo means
+nobody can ever approve. The agent-side half of the same boundary is the tier
+table in [git-workflow.md](../../src/core/rules/git-workflow.md#the-three-tiers--reversibility-decides-who-may-act).
 
 ### The 134 "code scanning alerts" are two populations
 
