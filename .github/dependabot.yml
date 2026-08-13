@@ -44,6 +44,19 @@ updates:
         applies-to: security-updates
         patterns: ["*"]
 
+  # ---- Docker base images (digest-pinned in Dockerfile) ----
+  # Digest pins go stale silently — without this ecosystem the pin becomes a
+  # frozen, unpatched base image, which is worse than the floating tag was.
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "build(deps)"
+
   # ---- GitHub Actions ----
   - package-ecosystem: github-actions
     directory: "/"
