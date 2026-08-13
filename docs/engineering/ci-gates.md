@@ -434,6 +434,16 @@ cannot. Per-check impact on the aggregate, measured from the same run:
 | SAST (Medium) | 8 | CodeQL must run on *every* commit, not most | +0.10 |
 | Contributors (Low) | 0 | needs contributors from ≥3 companies — not reachable for a solo project | — |
 
+**Measured outcome (2026-08-13, commit `b6704711`): 5.9 → 7.4.** Vulnerabilities
+0→10, Fuzzing 0→10, Pinned-Dependencies 2→7. Signed-Releases stays at 8 until the
+next release actually publishes the `*.intoto.jsonl` asset — the workflow change
+cannot be observed before a release runs. Pinned-Dependencies stops at 7 rather
+than 10 because the remaining warnings are `tests/golden/**` snapshots of the
+template scaffolds, `install.sh`, and the pip/npm commands. The scaffold
+Dockerfiles are left on tags **deliberately**: a consumer who runs `cos init`
+should not inherit a base-image digest that was already stale the day it shipped,
+and they are the ones who pin when they productionise.
+
 ### Branch-Protection must stay unscored while the repo is solo trunk-based
 
 The check currently errors (`-1`, rendered as `?`) because the default
