@@ -34,7 +34,10 @@ _LEVEL_FLOOR: dict[str, int] = {
     "fatal": 50,
 }
 
-_DURATION_RE = re.compile(r"^\s*(\d+)\s*(ms|s|m|h|d)?\s*$", re.IGNORECASE)
+# Outer padding is stripped by the caller rather than matched here: three \s*
+# groups around one optional token backtrack polynomially on a long run of
+# spaces, and str.strip() does the same job in linear time.
+_DURATION_RE = re.compile(r"^(\d+)\s*(ms|s|m|h|d)?$", re.IGNORECASE)
 
 # Browser-side errors beacon here; the handler appends them to the ACTIVE
 # project's cos.log.jsonl sink so client + server failures share one timeline
@@ -64,7 +67,7 @@ def _jsonl_log_path() -> Path:
 
 
 def _parse_duration_seconds(raw: str) -> float | None:
-    match = _DURATION_RE.match(raw)
+    match = _DURATION_RE.match(raw.strip())
     if not match:
         return None
     value = float(match.group(1))

@@ -449,7 +449,7 @@ def _safe_id(uid: str) -> str:
     sanitised = re.sub(r"[^A-Za-z0-9_]", "_", uid)
     if len(sanitised) <= 48:
         return sanitised
-    digest = hashlib.sha1(uid.encode("utf-8")).hexdigest()[:8]
+    digest = hashlib.sha1(uid.encode("utf-8"), usedforsecurity=False).hexdigest()[:8]
     return f"{sanitised[:40]}_{digest}"
 
 

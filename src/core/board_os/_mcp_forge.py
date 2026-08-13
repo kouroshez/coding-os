@@ -31,13 +31,25 @@ def _detect_forge(project_root: Path) -> str:
         )
     except (OSError, subprocess.SubprocessError):
         return ""
-    if "github.com" in url:
+    host = _remote_host(url)
+    if host == "github.com" or host.endswith(".github.com"):
         return "github"
-    if "gitlab" in url:
+    # Self-hosted GitLab/Bitbucket carry arbitrary hostnames, so the substring
+    # heuristic stays — but scoped to the host, never the whole URL.
+    if "gitlab" in host:
         return "gitlab"
-    if "bitbucket" in url:
+    if "bitbucket" in host:
         return "bitbucket"
     return ""
+
+
+def _remote_host(url: str) -> str:
+    # Both remote spellings reduce to their host segment: matching the full URL
+    # lets a path like https://evil.example/github.com/x impersonate a forge.
+    authority = url.split("://", 1)[-1].split("/", 1)[0]
+    if "@" in authority:
+        authority = authority.split("@", 1)[1]
+    return authority.split(":", 1)[0]
 
 
 def _normalize_external_ref(raw: str, project_root: Path) -> str | None:
