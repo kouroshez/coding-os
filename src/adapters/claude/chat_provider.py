@@ -54,9 +54,7 @@ def get_session_info(session_id: str, *, directory: str) -> Any | None:
     return sdk.get_session_info(session_id, directory=directory)
 
 
-def get_session_messages(
-    session_id: str, *, directory: str, limit: int, offset: int
-) -> list[Any]:
+def get_session_messages(session_id: str, *, directory: str, limit: int, offset: int) -> list[Any]:
     sdk = _sdk()
     if sdk is None:
         return []
