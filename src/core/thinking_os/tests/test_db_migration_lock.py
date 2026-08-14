@@ -19,7 +19,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from database import (  # noqa: E402
+from database import (
     _exec_script_locked,
     _MigrationConnection,
     _split_sql_statements,
@@ -60,7 +60,7 @@ def test_lock_is_held_before_the_first_migration_body_runs(db_path: Path) -> Non
         migration_conn.execute("CREATE TABLE IF NOT EXISTS probe_marker (id INTEGER)")
         migration_conn.commit()  # historical bodies do this — must be inert here
 
-    import database as db_module  # noqa: PLC0415
+    import database as db_module
 
     original = list(db_module.MIGRATIONS)
     db_module.MIGRATIONS[:] = [(1, "probe", probe)]
@@ -97,7 +97,7 @@ def test_loop_never_calls_executescript_on_the_real_connection(db_path: Path) ->
 
     conn = sqlite3.connect(db_path)
     spy = Spy(conn)
-    import database as db_module  # noqa: PLC0415
+    import database as db_module
 
     original = list(db_module.MIGRATIONS)
     db_module.MIGRATIONS[:] = [(1, "script", "CREATE TABLE s1 (x INTEGER);")]
@@ -122,7 +122,7 @@ def test_second_migrator_defers_instead_of_running_unlocked(db_path: Path) -> No
     holder.execute("BEGIN IMMEDIATE")
 
     latecomer = sqlite3.connect(db_path, timeout=0.1)
-    import database as db_module  # noqa: PLC0415
+    import database as db_module
 
     original_timeout = db_module._MIGRATION_LOCK_TIMEOUT_MS
     db_module._MIGRATION_LOCK_TIMEOUT_MS = 100

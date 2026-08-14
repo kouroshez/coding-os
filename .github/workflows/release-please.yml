@@ -84,11 +84,35 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+      # The Hub SPA is a build INPUT of the wheel: `cos hub start` serves it
+      # from <web package>/ui/dist, and dist/ is gitignored, so a wheel built
+      # without this step installs a Hub that answers "SPA not built yet".
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: src/core/web/ui/package-lock.json
+      - name: Build the Hub SPA
+        working-directory: src/core/web/ui
+        run: |
+          npm ci
+          npm run build
+      - name: Fail if the SPA build produced nothing
+        run: test -f src/core/web/ui/dist/index.html
       # Hash-pinned, not just version-pinned: this frontend produces the wheel
       # that is then signed and attested, so it is the build input worth
       # pinning hardest. Bump via the recipe in the requirements file.
       - run: pip install --require-hashes -r .github/requirements-build.txt
       - run: python -m build
+      # Gates the artifact that is about to be signed and uploaded, not a
+      # rebuild of it — a published wheel cannot be replaced (PyPI refuses
+      # re-upload of a yanked version), so this must fail before the upload.
+      - name: Verify the built wheel carries the SPA
+        env:
+          COS_WHEEL_PATH: dist/*.whl
+        run: |
+          pip install pytest
+          python -m pytest tests/test_wheel_contents.py -q -m ''
       # --- supply-chain evidence (docs/engineering/ci-gates.md) ---------
       # SLSA build provenance for the exact artifacts published to PyPI.
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2

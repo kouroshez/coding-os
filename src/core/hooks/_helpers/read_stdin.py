@@ -9,6 +9,7 @@ so a crash here would re-open the fail-open channel this helper exists to close.
 
 from __future__ import annotations
 
+import contextlib
 import signal
 import sys
 
@@ -21,6 +22,15 @@ def _on_alarm(_signum: int, _frame: object) -> None:
     raise _Timeout
 
 
+def _arm_alarm(seconds: int) -> None:
+    # No SIGALRM (non-POSIX, or not the main thread): read unbounded instead —
+    # an agent runtime always closes the pipe, and a hook that reads nothing is
+    # exactly the fail-open this helper exists to prevent.
+    with contextlib.suppress(AttributeError, ValueError):
+        signal.signal(signal.SIGALRM, _on_alarm)
+        signal.alarm(seconds)
+
+
 def main() -> int:
     try:
         seconds = max(1, int(float(sys.argv[1]))) if len(sys.argv) > 1 else 2
@@ -28,22 +38,14 @@ def main() -> int:
         seconds = 2
 
     data = b""
-    try:
-        signal.signal(signal.SIGALRM, _on_alarm)
-        signal.alarm(seconds)
-    except (AttributeError, ValueError):
-        # No SIGALRM (non-POSIX): read unbounded — the runtime always closes stdin.
-        pass
-
+    _arm_alarm(seconds)
     try:
         data = sys.stdin.buffer.read()
     except (_Timeout, OSError, ValueError):
-        pass
+        data = b""
     finally:
-        try:
+        with contextlib.suppress(AttributeError, ValueError):
             signal.alarm(0)
-        except (AttributeError, ValueError):
-            pass
 
     sys.stdout.buffer.write(data)
     return 0

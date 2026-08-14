@@ -141,9 +141,7 @@ def test_harm_gate_same_verdict_when_one_tool_missing(
 
 
 @pytest.mark.parametrize("missing", _DEGRADED)
-def test_harm_gate_still_allows_benign_when_one_tool_missing(
-    missing: str, tmp_path: Path
-) -> None:
+def test_harm_gate_still_allows_benign_when_one_tool_missing(missing: str, tmp_path: Path) -> None:
     sandbox = _sandbox_without(tmp_path, missing)
     assert _run("block-dangerous-commands.sh", _BENIGN, path=sandbox) == 0
     assert _run("block-secrets.sh", _BENIGN, path=sandbox) == 0

@@ -286,9 +286,7 @@ def _check_bootstrap_hook_parsers(report: DoctorReport) -> None:
         extras = [t for t in ("jq", "perl") if t in present]
         detail = f"python3 + {', '.join(extras)}" if extras else "python3 only (fallback path)"
         report.checks.append(
-            CheckResult(
-                "bootstrap.hook_parsers", SEV_PASS, f"hook gates can parse: {detail}"
-            )
+            CheckResult("bootstrap.hook_parsers", SEV_PASS, f"hook gates can parse: {detail}")
         )
         return
     report.checks.append(

@@ -15,17 +15,14 @@ from pathlib import Path
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-_CORE_DIR = Path(__file__).resolve().parents[3]
-_CORE_PKG = _CORE_DIR / "core"
-_SCHEDULED_DIR = _CORE_PKG / "scheduled"
-for _p in (str(_CORE_PKG), str(_SCHEDULED_DIR)):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
-
-from _state import read_registry, read_state  # type: ignore  # noqa: E402
-
-from scheduled.config import DEFAULTS, load_config, save_config  # type: ignore  # noqa: E402
-from thinking_os.database import PROJECT_SCOPED_ENV_VARS  # type: ignore  # noqa: E402
+# Package-qualified, not sys.path + bare `_state`: those inserts were computed
+# from the source-tree depth (parents[3] == src/), which resolves to a garbage
+# directory once installed, so `cos hub start` from a wheel died here. The
+# module object also locates nightly.py without re-deriving a path.
+import scheduled
+from scheduled._state import read_registry, read_state
+from scheduled.config import DEFAULTS, load_config, save_config
+from thinking_os.database import PROJECT_SCOPED_ENV_VARS
 
 router = APIRouter(prefix="/api/scheduled", tags=["scheduled"])
 logger = logging.getLogger("codingos.web.scheduled")
@@ -194,7 +191,7 @@ async def run_scheduled_now(slug: str) -> RunResult:
     # a concurrent unscoped Hub request's project resolution. A child owns its own
     # env, so the live worker is never touched (mirrors nightly's
     # _run_graph_reindex_if_stale subprocess pattern).
-    nightly_py = _SCHEDULED_DIR / "nightly.py"
+    nightly_py = Path(scheduled.__file__).resolve().parent / "nightly.py"
     before_run_at = read_state(root).get("run_at")
     try:
         completed = await asyncio.to_thread(
