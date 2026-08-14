@@ -278,6 +278,45 @@ project via `/api/p/<slug>/*`:
 `cos hub start` boots the hub. `cos hub status` reports health.
 Source: `src/core/web/`. UI: `src/core/web/ui/` (`npm run dev`).
 
+### The board — Scrumban with enforced WIP
+
+Seven columns, each with its own limit. `IN PROGRESS 0/1` and `TESTING 0/3`
+are not decoration: `cos task-move` refuses to overfill them, so the board
+cannot drift from what is actually being worked on. The `live:` row shows
+which agents are attached to this project right now.
+
+![Scrumban board with WIP limits and live agent presence](docs/assets/hub/board-scrumban.png)
+
+The same board groups by swimlane, so "what is Core Kernel carrying?" is one
+click rather than a filter query:
+
+![Board grouped by swimlane](docs/assets/hub/board-swimlanes.png)
+
+### Every task carries its own commits
+
+Opening a card shows the outcome contract, the lifecycle chips, and the full
+history — each commit with its real diff inline. The task is the pointer;
+the code is the evidence.
+
+![Task detail with per-commit diffs](docs/assets/hub/task-detail-history.png)
+
+### The graph — ask the codebase structurally
+
+Sigma.js over the extracted code+doc graph. The left spine is containment,
+the right panel filters by node kind and edge type, and clicking any node
+opens its inspector. This is the surface behind `cos_graph_*` — the reason an
+agent can answer "who calls this?" without grepping the tree.
+
+![Knowledge graph canvas with kind and edge filters](docs/assets/hub/graph-explorer.png)
+
+### Modules — turn subsystems off and the tools go with them
+
+The kernel is always on. Everything else is a switch, and disabling one gates
+its MCP tools and self-skips its hooks. The `Depends on` column is enforced,
+not advisory: `tasks` needs `docs`, so `docs` cannot be disabled first.
+
+![Config Modules tab showing subsystem toggles and dependencies](docs/assets/hub/config-modules.png)
+
 ## Architecture
 
 ```
