@@ -12,6 +12,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.18](https://github.com/kouroshez/coding-os/compare/v0.3.17...v0.3.18) (2026-08-14)
+
+
+### Fixed
+
+* **templates:** pin log4j2 2.25.5 in the spring-boot scaffold for CVE-2026-49844 ([c6be65d](https://github.com/kouroshez/coding-os/commit/c6be65d7750e6005972cb96ec5d5672aa958001b))
+
+
+### Documentation
+
+* **governance:** turn the PyPI approval gate off and record why the reversal is the lesson ([fa3a087](https://github.com/kouroshez/coding-os/commit/fa3a087d23516f3919509239b70a0cad7c4edea1))
+
+
+### Build
+
+* **security:** hash-pin the build frontend and verify the uv installer before running it ([e676d5b](https://github.com/kouroshez/coding-os/commit/e676d5b678ebdbea5a3ba9862ec66d9c1e314bec))
+
 ## [0.3.17](https://github.com/kouroshez/coding-os/compare/v0.3.16...v0.3.17) (2026-08-13)
 
 
