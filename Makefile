@@ -94,8 +94,17 @@ verify-install: ## Sandbox-test every src/adapters/*/install.sh with hard 15s ti
 	  exit 1; \
 	fi
 
+.PHONY: lint
+lint: ## Run the exact ruff + mypy gates CI runs (same paths, same order)
+	@# One target so a local run cannot check a narrower scope than CI. A hand-typed
+	@# `ruff format src/` passed locally while CI checks `src/ tests/`, and an
+	@# unformatted new file reached main.
+	uv run ruff check src/ tests/
+	uv run ruff format --check src/ tests/
+	uv run python src/scripts/mypy_ratchet.py
+
 .PHONY: verify
-verify: verify-hooks verify-install test-mcp ## Run all verification checks
+verify: lint verify-hooks verify-install test-mcp ## Run all verification checks
 	@echo ""
 	@echo "All checks passed."
 

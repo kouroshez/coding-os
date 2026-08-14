@@ -83,6 +83,7 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 | `src/scripts/**/*.py` | `uv run pytest tests/test_script_entrypoints.py -q` |
 | `src/core/rules/*.md`, `src/core/skills/**` | `uv run pytest tests/test_golden_parity.py tests/test_rules_fresh.py -q` — drift ⇒ `make golden-capture`, then re-run |
 | `docs/**/*.md` | `make docs-lint` |
+| **any `.py` you added or edited** | `make lint` — ruff check + `format --check` + the mypy ratchet, on `src/ tests/`, exactly as CI runs them |
 
 > Suite paths are **globs on purpose**: `test_adapters.py`, `test_db.py` and `test_template_scaffold.py` were each split into siblings while the matrix kept naming the old file, so three rows exited "no tests ran" — a silent no-op that reads exactly like a pass. `tests/test_verification_matrix.py` fails if any row stops collecting.
 >
