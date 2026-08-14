@@ -50,16 +50,21 @@ def _run(script: str, payload: dict, path: str | None = None) -> int:
     return proc.returncode
 
 
-def _sandbox_without_parsers(tmp_path: Path) -> str:
-    """A PATH dir with every current-PATH tool EXCEPT python*/jq symlinked in."""
-    bindir = tmp_path / "noparser-bin"
+def _sandbox_without(tmp_path: Path, *hidden: str) -> str:
+    """A PATH dir with every current-PATH tool symlinked in except `hidden`.
+
+    `python` hides every python* interpreter; other names match exactly.
+    """
+    bindir = tmp_path / ("bin-no-" + "-".join(hidden))
     bindir.mkdir()
     seen: set[str] = set()
     for d in os.environ.get("PATH", "").split(":"):
         if not d or not os.path.isdir(d):
             continue
         for name in os.listdir(d):
-            if name in seen or name.startswith("python") or name == "jq":
+            if name in seen:
+                continue
+            if any(name.startswith("python") if h == "python" else name == h for h in hidden):
                 continue
             src = os.path.join(d, name)
             if os.path.isfile(src) and os.access(src, os.X_OK):
@@ -69,6 +74,10 @@ def _sandbox_without_parsers(tmp_path: Path) -> str:
                 except OSError:
                     pass
     return str(bindir)
+
+
+def _sandbox_without_parsers(tmp_path: Path) -> str:
+    return _sandbox_without(tmp_path, "python", "jq")
 
 
 @pytest.mark.parametrize("script,payload", _CASES)
@@ -104,6 +113,55 @@ def test_harm_gate_fails_closed_without_parser(script: str, payload: dict, tmp_p
     # observability-eye I8: no jq AND no python3 → DENY (exit 2), never allow.
     sandbox = _sandbox_without_parsers(tmp_path)
     assert _run(script, payload, path=sandbox) == 2
+
+
+# --- degraded-toolchain matrix: same verdict with a tool missing, not the floor ---
+
+_DEGRADED = [
+    pytest.param("jq", id="no-jq"),
+    pytest.param("perl", id="no-perl"),
+]
+
+
+@pytest.mark.parametrize("missing", _DEGRADED)
+@pytest.mark.parametrize("script,payload", _CASES)
+def test_harm_gate_same_verdict_when_one_tool_missing(
+    script: str, payload: dict, missing: str, tmp_path: Path
+) -> None:
+    """I8: hiding jq or perl must not change a BLOCK into an allow.
+
+    perl is the one that bit us: `cos_read_stdin_bounded` was perl-only and
+    ended in `|| true`, so a perl-less image handed every gate an empty
+    envelope and every gate took its no-op branch.
+    """
+    sandbox = _sandbox_without(tmp_path, missing)
+    assert shutil.which(missing, path=sandbox) is None, f"{missing} leaked into sandbox"
+    assert _run(script, payload, path=sandbox) == 2
+
+
+@pytest.mark.parametrize("missing", _DEGRADED)
+def test_harm_gate_still_allows_benign_when_one_tool_missing(
+    missing: str, tmp_path: Path
+) -> None:
+    sandbox = _sandbox_without(tmp_path, missing)
+    assert _run("block-dangerous-commands.sh", _BENIGN, path=sandbox) == 0
+    assert _run("block-secrets.sh", _BENIGN, path=sandbox) == 0
+
+
+def test_stdin_reader_survives_without_perl(tmp_path: Path) -> None:
+    """The python3 fallback in cos_read_stdin_bounded actually returns the payload."""
+    sandbox = _sandbox_without(tmp_path, "perl")
+    bash = shutil.which("bash") or "/bin/bash"
+    script = f'source "{_HOOKS}/cos-env.sh" >/dev/null 2>&1; cos_read_stdin_bounded 2'
+    proc = subprocess.run(
+        [bash, "-c", script],
+        input='{"tool_name":"Bash"}',
+        capture_output=True,
+        text=True,
+        env={"PATH": sandbox, "HOME": os.environ.get("HOME", "")},
+        timeout=20,
+    )
+    assert '"tool_name"' in proc.stdout, f"empty envelope without perl: {proc.stdout!r}"
 
 
 def _run_with_helper_dropped(hook: str, payload: dict, drop_helper: str, tmp_path: Path) -> int:
