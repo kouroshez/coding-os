@@ -14,6 +14,7 @@ from pathlib import Path
 import click
 
 from cli._resources import overlay_template_dirs
+from cli.stack_maturity import maturity_of, verified_stacks
 from cli.stack_registry import load_stack_registry
 
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -27,16 +28,29 @@ def _render_text(registry, warnings: tuple[str, ...]) -> str:
         col1 = max(len(s.id) for s in registry.values())
         col2 = max(len(s.category) for s in registry.values())
         col3 = max(len(s.primary_skill or "—") for s in registry.values())
-        header = f"{'ID':<{col1}}  {'CATEGORY':<{col2}}  {'PRIMARY SKILL':<{col3}}  LABEL"
+        show_maturity = bool(verified_stacks())
+        col4 = len("experimental")
+        header = f"{'ID':<{col1}}  {'CATEGORY':<{col2}}  {'PRIMARY SKILL':<{col3}}  "
+        if show_maturity:
+            header += f"{'CI':<{col4}}  "
+        header += "LABEL"
         divider = "-" * len(header)
         lines = [header, divider]
         for stack in sorted(registry.values(), key=lambda s: s.id):
-            lines.append(
+            row = (
                 f"{stack.id:<{col1}}  "
                 f"{stack.category:<{col2}}  "
                 f"{(stack.primary_skill or '—'):<{col3}}  "
-                f"{stack.label}"
             )
+            if show_maturity:
+                row += f"{maturity_of(stack.id):<{col4}}  "
+            lines.append(row + stack.label)
+        if show_maturity:
+            lines += [
+                "",
+                "CI: `verified` = a scaffold-verify job really scaffolds, installs, lints",
+                "    and tests this stack. `experimental` = shipped but not yet proven by CI.",
+            ]
         body = "\n".join(lines)
 
     warn_block = ""
@@ -64,6 +78,7 @@ def _render_json(registry, warnings: tuple[str, ...], presets) -> str:
                 "category": s.category,
                 "primary_skill": s.primary_skill,
                 "skills": list(s.skills),
+                "ci_maturity": maturity_of(s.id),
             }
             for s in sorted(registry.values(), key=lambda s: s.id)
         ],

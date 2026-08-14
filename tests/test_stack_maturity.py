@@ -1,111 +1,100 @@
-"""Drift guard for docs/governance/stack-maturity.md.
+"""Advertised must mean CI-proven.
 
-Maturity is *derived* from three objective signals, never hand-declared:
-  - stub   : the stack dir is named ``*-plain`` (language-only skeleton)
-  - stable : a golden fixture exists at ``tests/golden/claude_<stack>``
-  - beta   : a full overlay (has ``stack.yaml``) that is neither stub nor stable
-
-This test re-derives the three sets from the filesystem and asserts the matrix
-doc lists exactly those stacks per tier. Adding / removing / renaming / golden-
-validating a stack without updating the doc fails here — the same anti-drift
-contract the stack-count lint enforces for the "N stacks" literals.
+The stack list read uniformly whether or not a stack had ever been built by CI,
+so 16 of 27 were presented exactly like the 11 the workflow really scaffolds,
+installs, lints and tests. Maturity is derived from scaffold-verify.yml rather
+than recorded per stack, so adding a toolchain job promotes that stack with no
+second fact to update — and no way for the two to disagree.
 """
 
 from __future__ import annotations
 
-import re
+import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
-_REPO = Path(__file__).resolve().parent.parent
-_TEMPLATES = _REPO / "src" / "templates"
-_GOLDEN = _REPO / "tests" / "golden"
-_DOC = _REPO / "docs" / "governance" / "stack-maturity.md"
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "src"))
 
-# Not stacks — shared overlays / this repo's own dogfood stack.
-_INFRA_DIRS = {"_base", "_presets", "meta"}
-
-
-def _candidate_stacks() -> set[str]:
-    return {
-        d.name
-        for d in _TEMPLATES.iterdir()
-        if d.is_dir() and (d / "stack.yaml").is_file() and d.name not in _INFRA_DIRS
-    }
+from cli.stack_maturity import (
+    EXPERIMENTAL,
+    UNKNOWN,
+    VERIFIED,
+    maturity_of,
+    verified_stacks,
+)
 
 
-def _derive() -> dict[str, set[str]]:
-    candidates = _candidate_stacks()
-    stub = {s for s in candidates if s.endswith("-plain")}
-    stable = {s for s in candidates - stub if (_GOLDEN / f"claude_{s}").is_dir()}
-    beta = candidates - stub - stable
-    return {"Stable": stable, "Beta": beta, "Stub": stub}
+def test_verified_set_matches_the_workflow_matrix() -> None:
+    found = verified_stacks()
+    assert found, "no stacks parsed out of scaffold-verify.yml"
+    # Spot-check both shapes the workflow uses: bare `stack: [a, b]` lists and
+    # `include:` dicts carrying a `stack` key.
+    assert "django" in found, "python matrix (bare list) not parsed"
+    assert "nextjs" in found, "node matrix (include dicts) not parsed"
 
 
-def _doc_section(tier: str) -> set[str]:
-    text = _DOC.read_text()
-    # Grab the block from "### <Tier> " up to the next "## " or "### " header.
-    m = re.search(rf"### {tier}\b.*?\n(.*?)(?=\n##|\Z)", text, re.DOTALL)
-    if not m:
-        return set()
-    return set(re.findall(r"`([a-z0-9-]+)`", m.group(1)))
+@pytest.mark.parametrize("stack_id", ["django", "fastapi", "go", "nextjs", "nestjs"])
+def test_stacks_with_a_ci_job_are_verified(stack_id: str) -> None:
+    assert maturity_of(stack_id) == VERIFIED
 
 
-@pytest.mark.parametrize("tier", ["Stable", "Beta", "Stub"])
-def test_matrix_matches_filesystem(tier: str) -> None:
-    derived = _derive()[tier]
-    documented = _doc_section(tier)
-    assert documented == derived, (
-        f"stack-maturity.md '{tier}' tier drift.\n"
-        f"  documented: {sorted(documented)}\n"
-        f"  derived   : {sorted(derived)}\n"
-        f"  missing from doc: {sorted(derived - documented)}\n"
-        f"  stale in doc    : {sorted(documented - derived)}"
+@pytest.mark.parametrize("stack_id", ["rust-axum", "spring-boot", "flutter", "rails"])
+def test_stacks_named_unproven_in_the_workflow_are_experimental(stack_id: str) -> None:
+    """These four are listed in scaffold-verify.yml's own FOLLOW-UP comment."""
+    assert maturity_of(stack_id) == EXPERIMENTAL
+
+
+def test_absent_workflow_reports_unknown_rather_than_claiming_verified(tmp_path: Path) -> None:
+    """An installed wheel ships no .github/ — say nothing, never say 'verified'."""
+    verified_stacks.cache_clear()
+    try:
+        assert maturity_of("django", workflow_dir=tmp_path) == UNKNOWN
+    finally:
+        verified_stacks.cache_clear()
+
+
+def test_list_stacks_json_exposes_maturity() -> None:
+    proc = subprocess.run(
+        [sys.executable, "-m", "cli.main", "list-stacks", "--format", "json"],
+        cwd=REPO / "src",
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert proc.returncode == 0, proc.stderr
+    payload = json.loads(proc.stdout)
+    by_id = {s["id"]: s for s in payload["stacks"]}
+    assert by_id["django"]["ci_maturity"] == VERIFIED
+    assert by_id["rust-axum"]["ci_maturity"] == EXPERIMENTAL
+
+
+def test_readme_counts_match_the_registry_and_the_workflow() -> None:
+    """Hand-written counts in prose are the classic drift; pin them to the source.
+
+    README states a total and a CI-verified count. Both are derivable, so a
+    stack added or a toolchain job landed must not leave the prose behind.
+    """
+    import re
+
+    from cli.stack_registry import load_stack_registry
+
+    readme = (REPO / "README.md").read_text(encoding="utf-8")
+    registry = load_stack_registry(REPO / "src" / "templates")
+    total = len(registry.stacks)
+    verified = len(verified_stacks() & set(registry.keys()))
+
+    claimed_totals = {int(n) for n in re.findall(r"(\d+) stacks", readme)}
+    assert claimed_totals, "README no longer states a stack total — update this test"
+    assert claimed_totals == {total}, (
+        f"README claims {sorted(claimed_totals)} stacks; the registry holds {total}"
     )
 
-
-def test_every_candidate_stack_is_classified() -> None:
-    derived = _derive()
-    classified = derived["Stable"] | derived["Beta"] | derived["Stub"]
-    assert classified == _candidate_stacks()
-
-
-# ---------------------------------------------------------------------------
-# Stack-count drift lint (TASK-461 / audit A1): a hardcoded "N stacks" literal
-# in a governance entry doc rots silently — the "8 stacks" line in AGENTS.md was
-# the canonical example (TASK-459). The count's SSOT is this maturity matrix +
-# its derivation; entry docs must NOT pin a number that ground truth can outrun.
-# ---------------------------------------------------------------------------
-
-# Files scanned for stale counts. The maturity doc is excluded: it is self-
-# guarded by the tier tests above and intentionally quotes the "27" marketing
-# figure as a bad example.
-_COUNT_SCANNED = [
-    _REPO / "AGENTS.md",
-    *sorted((_REPO / "src" / "core" / "rules").glob("*.md")),
-]
-_STACK_COUNT_RE = re.compile(r"\b(\d+)\s+stacks?\b", re.IGNORECASE)
-
-
-def _canonical_counts() -> set[int]:
-    n = len(_candidate_stacks())  # user-facing stacks (excl meta/_base/_presets)
-    return {n, n + 1}  # allow excl-meta (n) or incl-meta (n+1) — both are "true"
-
-
-def test_no_stale_stack_count_in_governance_docs() -> None:
-    allowed = _canonical_counts()
-    violations: list[str] = []
-    for path in _COUNT_SCANNED:
-        if not path.is_file():
-            continue
-        for lineno, line in enumerate(path.read_text().splitlines(), 1):
-            for m in _STACK_COUNT_RE.finditer(line):
-                if int(m.group(1)) not in allowed:
-                    rel = path.relative_to(_REPO)
-                    violations.append(
-                        f"{rel}:{lineno}: '{m.group(0)}' (canonical: {sorted(allowed)})"
-                    )
-    assert not violations, (
-        "stale stack-count literal(s) — update or link stack-maturity.md:\n" + "\n".join(violations)
+    claimed_verified = {int(n) for n in re.findall(r"(\d+) (?:of them |CI-)verified", readme)}
+    assert claimed_verified == {verified}, (
+        f"README claims {sorted(claimed_verified)} CI-verified stacks; "
+        f"scaffold-verify.yml covers {verified}"
     )

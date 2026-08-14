@@ -236,7 +236,7 @@ src/core/  ──►  src/adapters/<agent>/  ──►  src/templates/<stack>/  
 | ---------------- | ------------------------------------------------------------------ |
 | `src/core/`      | MCP server, hooks, rules, skills — **agent-agnostic, stack-agnostic** |
 | `src/adapters/`  | Per-agent translation: `.claude/`, `.codex/` rendering             |
-| `src/templates/` | Per-stack overlays: 27 stacks — Django, Next.js, FastAPI, Laravel, Rails, Flutter, Go, Rust, … (`cos list-stacks`) |
+| `src/templates/` | Per-stack overlays: 27 stacks, 11 CI-verified — `cos list-stacks` marks each `verified` or `experimental` |
 | `src/cli/`       | The `cos` factory CLI that composes the three layers               |
 
 Adding a new stack or a new agent is a pure YAML + Markdown change.
@@ -348,7 +348,7 @@ coding-os/
 │   │   ├── react-native/   # React Native + Expo
 │   │   ├── python/         # Python library / CLI / MCP server
 │   │   ├── meta/           # Meta-stack (for coding-os contributors)
-│   │   └── …               # 27 stacks total — `cos list-stacks`
+│   │   └── …               # 27 stacks (11 CI-verified) — `cos list-stacks`
 │   └── scripts/          # Maintenance + regen tooling
 ├── tests/              # cross-cutting tests
 ├── docs/               # Governance, engineering, playbooks, architecture
