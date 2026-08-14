@@ -34,10 +34,10 @@ def _export_processes(
     if not communities:
         return [], []
 
-    # TASK-407: two-pass fair budget reservation. The old greedy pass
+    # two-pass fair budget reservation. The old greedy pass
     # walked community-by-community and spent the whole budget on the
     # first (biggest) cluster's members, so at max_nodes=500 only the
-    # first ~2 community headers surfaced — the TASK-406 visual rejection.
+    # first ~2 community headers surfaced — the visual rejection.
     # Pass 1 reserves one header node per community (focus+context map
     # needs every group visible). Pass 2 spreads the remaining budget as
     # an EQUAL per-community member quota (top hubs by step_index), so no

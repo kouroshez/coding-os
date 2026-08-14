@@ -112,7 +112,7 @@ class TestRegexFallback:
         assert any(e.edge_type == "imports" for e in r.edges)
 
     def test_dynamic_source_is_not_a_parse_error(self, regex_mode):
-        # TASK-303: a `source "$VAR/x.sh"` is parsed fine but unresolvable —
+        # a `source "$VAR/x.sh"` is parsed fine but unresolvable —
         # it must NOT be recorded as a parse error (was inflating shell counts).
         r = _extract('source "$HOOK_DIR/cos-env.sh"\n')
         assert r.parse_errors == []
@@ -154,7 +154,7 @@ class TestRegexFallback:
         )
 
     def test_dynamic_source_unquoted_var_is_not_a_parse_error(self, regex_mode):
-        # TASK-303: an unresolvable dynamic source is expected, not a parse
+        # an unresolvable dynamic source is expected, not a parse
         # error (was kind="dynamic" in parse_errors, inflating shell counts).
         r = _extract("source $SOME_DIR/x.sh\n")
         assert not any(pe.kind == "dynamic" for pe in r.parse_errors)

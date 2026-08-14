@@ -189,7 +189,7 @@ def task_dependents(conn: sqlite3.Connection, task_id: str) -> list[dict]:
     # Build the JSON-quoted search pattern. dependencies is stored as
     # json.dumps([...]) so individual task IDs appear as "TASK-NNN"
     # (with quotes). Searching for the quoted form eliminates substring
-    # false positives like TASK-19 matching TASK-195.
+    # false positives like matching
     quoted_needle = f'"{task_id}"'
     sql = (
         "SELECT task_id, title, domain, status, file_path, goal_text, dependencies "

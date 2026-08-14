@@ -12,7 +12,7 @@ describe('SupportFooter (TASK-372)', () => {
     expect(screen.getByRole('link', { name: /star/i })).toBeTruthy();
     expect(screen.getByRole('link', { name: /sponsor/i })).toBeTruthy();
     // Payment placeholders (buy-me-a-coffee TODO handle, crypto) were dropped
-    // rather than shipped as 404s — assert they are gone (TASK-836).
+    // rather than shipped as 404s — assert they are gone.
     expect(screen.queryByRole('link', { name: /coffee/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /crypto/i })).toBeNull();
   });

@@ -127,7 +127,7 @@ fi
 # Freeform .md paths (playbooks, engineering rules, ad-hoc notes) are allowed,
 # but a NEW docs/*.md should carry the SSOT front-matter header. WARN (never
 # block) at write time so the author sees the doc-cheat-sheet contract early —
-# the CI `docs-lint --changed` strict step is the hard gate. TASK-127.
+# the CI `docs-lint --changed` strict step is the hard gate.
 case "$FILE_PATH" in
   */docs/tasks/*) ;;  # task files have their own template flow above
   *docs/*.md)

@@ -347,7 +347,7 @@ class TestPipelineInvariants:
 
 
 class TestGovernanceClassificationDeterminism:
-    # TASK-124 (D3-F5): rule/skill paths must classify to a non-doc_file
+    # (D3-F5): rule/skill paths must classify to a non-doc_file
     # governance kind, stably across repeated extraction — guards against the
     # content-hash skip leaving stale doc_file nodes after a re-index.
     def test_rule_path_classified_and_deterministic(self):

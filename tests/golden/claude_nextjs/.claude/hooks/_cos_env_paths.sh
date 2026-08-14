@@ -59,7 +59,7 @@ _cos_find_project_root() {
 # Resolve the MAIN repo root for a command running inside a git worktree, or
 # empty. A linked worktree's --git-common-dir points at <main>/.git, so its
 # parent is the main checkout. Used only when a worktree command lacks the
-# COS_PROJECT_ROOT fast-path (TASK-515 / pr-mode). Always returns 0 — this file
+# COS_PROJECT_ROOT fast-path ( / pr-mode). Always returns 0 — this file
 # is SOURCED under the caller's `set -euo pipefail`, so a non-zero return from a
 # command-substitution assignment would kill the hook (mirrors
 # _cos_find_project_root's echo-empty-and-return-0 contract).
@@ -113,7 +113,7 @@ _cos_helpers_dir() {
 }
 
 # ---------------------------------------------------------------------------
-# pr-mode enablement (TASK-518) — when this project's Hub sets
+# pr-mode enablement — when this project's Hub sets
 # git_settings.enabled=true in hub-settings.json, export COS_GIT_WORKFLOW=pr
 # (+ branch policy) into EVERY hook's process env. That env is the only place
 # branch-guard / block-shared-tree-edit / the cos pr executor can read the mode

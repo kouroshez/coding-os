@@ -108,7 +108,7 @@ cos_log_hook() {
       fi
     fi
 
-    # F8 (TASK-447): make a BLOCK durable in the SQLite log_events store the
+    # F8: make a BLOCK durable in the SQLite log_events store the
     # logging_os sink owns so cos_log_query / error_sweep surface it — not just
     # the text logs above. Reuse the shared shell→DB writer (DB-only here).
     if [[ "$action" == "block" ]] && command -v python3 >/dev/null 2>&1; then
@@ -168,7 +168,7 @@ cos_say() {
     ERROR) floor_value=40 ;;
     FATAL) floor_value=50 ;;
   esac
-  # Per-sink flooring (TASK-473): the console floor (COS_LOG_LEVEL) gates the
+  # Per-sink flooring: the console floor (COS_LOG_LEVEL) gates the
   # human sinks (stderr/text/jsonl); the durable floor (COS_LOG_DB_MIN_LEVEL,
   # re-applied inside cos_say_json.py) gates the log_events row independently.
   # Short-circuit only when the event clears NEITHER floor — flooring at the
@@ -253,7 +253,7 @@ cos_say() {
   esac
 
   # Human sinks respect the console floor; the durable log_events row was already
-  # written above by cos_say_json.py (gated by COS_LOG_DB_MIN_LEVEL) (TASK-473).
+  # written above by cos_say_json.py (gated by COS_LOG_DB_MIN_LEVEL).
   if [[ "$below_console" -eq 0 ]]; then
     printf '%s\n' "$stderr_line" >&2 2>/dev/null || true
   fi

@@ -40,7 +40,7 @@ class TestDispatch:
         assert report["layers"]["graph"]["status"] == "ok"
 
     def test_read_error_on_deleted_file_prunes_graph(self, project, tmp_path):
-        # D7-F1 (TASK-129): reindex on a path whose file was deleted must PRUNE
+        # D7-F1: reindex on a path whose file was deleted must PRUNE
         # its graph nodes, not short-circuit on read_error — else deleted files
         # leave orphan nodes.
         import sqlite3
@@ -180,7 +180,7 @@ class TestDispatch:
         # the doc is in-scope — either is acceptable.
 
     def test_unsupported_suffix_skipped(self, project, tmp_path):
-        # .rs is now routed to code_generic (TASK-296); use a suffix with no
+        # .rs is now routed to code_generic; use a suffix with no
         # _EXT_MAP route to assert the skip path.
         src = _write(project / "core" / "a.xyz", "nonsense")
         from graph_os.tools.reindex_dispatch import dispatch
@@ -189,7 +189,7 @@ class TestDispatch:
         assert report["status"] == "skipped"
 
     def test_render_dir_excluded(self, project, tmp_path):
-        # TASK-410: the per-file path must skip render/dependency dirs the
+        # the per-file path must skip render/dependency dirs the
         # bulk walker already excludes — otherwise it indexes a phenotype
         # COPY of a canonical src/ doc whose relative links mint broken stubs.
         src = _write(
@@ -219,7 +219,7 @@ class TestDispatch:
         assert report["layers"]["graph"]["chain"].startswith("markdown-task")
 
     def test_stale_graph_chain_self_heals(self, project, tmp_path):
-        # TASK-303: when a file's routing changes (task_deps,md_links → md_links),
+        # when a file's routing changes (task_deps,md_links → md_links),
         # recording the new graph chain drops the stale one but keeps docs:md.
         import sqlite3
 
@@ -257,7 +257,7 @@ class TestDispatch:
         assert total_pe == 0  # the stale parse error is gone
 
     def test_rust_routes_to_code_generic(self, project, tmp_path):
-        # TASK-296: a .rs file is dispatched through code_generic and yields
+        # a.rs file is dispatched through code_generic and yields
         # real nodes (proves _EXT_MAP route + extractor_map wiring).
         import pytest
 
@@ -278,7 +278,7 @@ class TestDispatch:
         assert report["duration_ms"] >= 0
 
     def test_missing_file_handled(self, project, tmp_path):
-        # D7-F1 (TASK-129): a path that doesn't exist on disk is a deletion, not
+        # D7-F1: a path that doesn't exist on disk is a deletion, not
         # an error — dispatch prunes (0 nodes for a never-indexed path) rather
         # than returning status=error, so reindexing a since-deleted path is
         # self-healing.

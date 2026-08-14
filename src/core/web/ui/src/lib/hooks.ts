@@ -35,7 +35,7 @@ export interface UseApiGetOptions {
    * Merge the envelope's sibling `meta` block into the returned object
    * (as `data.meta`) — apiGet returns `[data, meta]` and the default
    * path drops meta, which hid the graph export's budget provenance
-   * from the truncation badge (TASK-402). Object payloads only.
+   * from the truncation badge. Object payloads only.
    */
   includeMeta?: boolean;
   /** Override TanStack retry behavior for terminal API failures such as 404. */

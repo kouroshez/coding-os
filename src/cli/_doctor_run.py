@@ -122,7 +122,7 @@ def run_doctor(
     try:
         from cli.doctor_graph import run_graph_checks
 
-        # Module-aware (TASK-439): a project that disabled the graph module must
+        # Module-aware: a project that disabled the graph module must
         # not be nagged to run graph-reindex on an intentionally-empty graph.
         from cli.subsystems import module_state
 

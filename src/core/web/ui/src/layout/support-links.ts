@@ -1,5 +1,5 @@
 // Support / community links — single source of truth for the Hub SupportFooter
-// and (manually mirrored) the README "Support / Community" section (TASK-372).
+// and (manually mirrored) the README "Support / Community" section.
 // Only real, resolving targets belong here: the repo lives at kouroshez/coding-os
 // (verified against the git remote). Payment placeholders were removed rather
 // than shipped as 404s — re-add them here once real handles exist.

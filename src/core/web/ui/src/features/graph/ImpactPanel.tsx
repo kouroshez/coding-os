@@ -40,7 +40,7 @@ const EDGE_FILTERS = ['calls', 'imports', 'inherits_from', 'implements'] as cons
 type EdgeFilter = (typeof EDGE_FILTERS)[number];
 
 /**
- * Inspector "Impact" tab — TASK-074.
+ * Inspector "Impact" tab —
  *
  * Renders Upstream (incoming edges) and Downstream (outgoing edges)
  * sections keyed off the focused node.  The backend already aggregates

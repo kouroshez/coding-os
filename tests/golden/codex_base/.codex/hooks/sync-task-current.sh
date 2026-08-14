@@ -31,7 +31,7 @@ command -v cos_panel_upgrade_from_payload >/dev/null 2>&1 && cos_panel_upgrade_f
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 
 # A task leaving active work (complete/done/archived/blocked) must FREE the
-# marker — otherwise it fossilises (the TASK-052 stale marker) and a later
+# marker — otherwise it fossilises (the stale marker) and a later
 # commit / banner is wrongly attributed to a finished task. testing keeps the
 # marker (still the active task; tests run before done).
 _CLEAR_STATES='complete|done|archived|blocked'

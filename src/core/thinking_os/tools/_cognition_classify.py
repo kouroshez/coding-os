@@ -202,7 +202,7 @@ def register_cos_classify_prompt(mcp, db_path):
                     f'"{complexity} {dimensions}"'
                 )
 
-        # Discoverability nudge (TASK-509): a COMPLICATED+ gate needs the
+        # Discoverability nudge: a COMPLICATED+ gate needs the
         # cognition surface (role composition / formula dispatch, Rule 15), but a
         # lean profile may have disabled it. Surface the one-liner to re-enable
         # rather than letting the agent hit a module_disabled wall mid-plan.

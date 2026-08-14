@@ -55,7 +55,7 @@ def _build_world(
             )
     # Colliding structure.roots are relocated to src/services/<id> BEFORE
     # aggregation so every derived artifact is service-scoped
-    # (project-anatomy.md § Glob/verify propagation, TASK-355).
+    # (project-anatomy.md § Glob/verify propagation).
     stack_profiles = resolve_relocated_profiles(stack_registry, templates)
 
     return aggregate(

@@ -2,8 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * Composer tests — TASK-419 (single-screen new-project flow).
- * Replaces the step-wizard tests (TASK-358); the flow is now one screen
+ * Composer tests — (single-screen new-project flow).
+ * Replaces the step-wizard tests; the flow is now one screen
  * with a live preview + an Advanced section (agents multi-select, skills).
  */
 

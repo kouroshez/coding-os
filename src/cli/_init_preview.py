@@ -71,7 +71,7 @@ def _scaffold_tree_preview(
 
     sources: list[tuple[Path, str | None]] = [(TEMPLATES_DIR / "_base" / "scaffold", None)]
     for name in templates:
-        # Community stacks resolve from source_dir, not the bundled tree (TASK-479).
+        # Community stacks resolve from source_dir, not the bundled tree.
         stack_root = registry[name].source_dir if name in registry else TEMPLATES_DIR / name
         candidate = stack_root / "scaffold"
         if candidate.exists():

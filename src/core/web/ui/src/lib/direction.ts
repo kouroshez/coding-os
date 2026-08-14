@@ -1,4 +1,4 @@
-// App-level text-direction seam (TASK-251). The Hub is LTR by default but
+// App-level text-direction seam. The Hub is LTR by default but
 // RTL-ready: flipping the whole UI is config (VITE_HUB_DIR=rtl), not a rewrite.
 // index.css already ships [dir="rtl"] + the Vazirmatn font; primitives use
 // logical Tailwind utilities that mirror automatically. User/agent prose uses

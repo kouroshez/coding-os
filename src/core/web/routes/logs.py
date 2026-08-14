@@ -42,7 +42,7 @@ _DURATION_RE = re.compile(r"^(\d+)\s*(ms|s|m|h|d)?$", re.IGNORECASE)
 # Browser-side errors beacon here; the handler appends them to the ACTIVE
 # project's cos.log.jsonl sink so client + server failures share one timeline
 # per project (nothing in the SPA fails silently, and a scoped beacon never
-# leaks into the Hub launch project's log — TASK-834).
+# leaks into the Hub launch project's log).
 _CLIENT_LEVEL_LABELS: dict[str, str] = {
     "debug": "DEBUG",
     "info": "INFO",

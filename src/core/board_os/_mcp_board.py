@@ -57,8 +57,8 @@ def _cap_board_to_budget(cards: list[dict], *, budget: int) -> tuple[list[dict],
     # fits `budget` (agent path only — the browser opts out via apply_budget=False).
     # The kept set preserves original display order. `cards` is outside the
     # envelope trim ladder, so without this cap a large board produced an
-    # unshrinkable >32KB envelope (TASK-209). Returns (kept, capped). The board no
-    # longer emits a duplicate `grouped` view (TASK-259) — clients group cards by
+    # unshrinkable >32KB envelope. Returns (kept, capped). The board no
+    # longer emits a duplicate `grouped` view — clients group cards by
     # swimlane×status themselves, halving the payload on both the agent and wire.
     def _fits(subset: list[dict]) -> bool:
         # Mirror ok(): pretty-printed full envelope, measured with the same
@@ -103,7 +103,7 @@ def _cap_board_to_budget(cards: list[dict], *, budget: int) -> tuple[list[dict],
 
 # Columns whose row count grows without bound (finished work accumulates
 # forever). These are keyset-paginated; every other column is "active" and
-# returned in full up to a safety cap. TASK-223.
+# returned in full up to a safety cap.
 _PAGED_STATUSES = ("complete", "archive")
 # Safety cap on each active board read so even a runaway icebox can't OOM the
 # response. Honest truncation is signalled via columns["_active"].
@@ -114,7 +114,7 @@ _PAGE_SIZE_HARD_MAX = 200
 
 # Cursor schema version — bump when the keyset key changes. A versioned
 # cursor from an older schema decodes to None (page 1) instead of silently
-# slicing the wrong key (TASK-399).
+# slicing the wrong key.
 _BOARD_CURSOR_VERSION = "v1"
 
 
@@ -214,7 +214,7 @@ def cos_task_board(
 
     # Split requested columns into ACTIVE (returned in full, capped) and PAGED
     # (complete/archive — keyset-paginated so a 50K-deep column never floods the
-    # payload). Supersedes the interim apply_budget return-all (TASK-220/223).
+    # payload). Supersedes the interim apply_budget return-all.
     paged_set = set(_PAGED_STATUSES)
     if status_filter:
         active_statuses = [s for s in status_filter if s not in paged_set]
@@ -268,7 +268,7 @@ def cos_task_board(
     total_count = len(cards)
     if apply_budget:
         # Account for the columns meta (not in _cap_board_to_budget's probe) so
-        # the 32KB agent-envelope guarantee (TASK-209) holds even with paging.
+        # the 32KB agent-envelope guarantee holds even with paging.
         columns_overhead = len(json.dumps(columns_meta, default=str)) if columns_meta else 0
         cards, board_truncated = _cap_board_to_budget(
             cards, budget=TOKEN_BUDGET_CHARS - _BOARD_BUDGET_HEADROOM - columns_overhead

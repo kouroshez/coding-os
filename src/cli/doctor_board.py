@@ -288,7 +288,7 @@ def _check_git_tracked(report, conn: sqlite3.Connection, project: Path) -> None:
     from board_os.git_coherence import detect_board_git_drift, task_rows_from_db
     from cli.doctor import CheckResult as _CR
 
-    # Detection extracted to core/board_os/git_coherence.py (TASK-436) so the
+    # Detection extracted to core/board_os/git_coherence.py so the
     # nightly cron task-filer + CI gate share ONE detector with this check.
     drift = detect_board_git_drift(project, task_rows_from_db(conn))
     if not drift.is_git_root:

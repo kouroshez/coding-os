@@ -14,7 +14,7 @@ import click
 
 # CODING_OS_ROOT is the source-checkout root — kept for dev-only operations; it
 # is meaningless under a wheel install. The bundled DATA trees resolve via
-# importlib so they are found under both src-layout and wheel installs (TASK-219).
+# importlib so they are found under both src-layout and wheel installs.
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent.parent
 
 

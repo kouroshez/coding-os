@@ -57,7 +57,7 @@ def _git_commits_for_path(rel_path: str, *, limit: int = 50) -> list[dict]:
 def _git_commits_by_task_id(task_id: str, *, exclude: set[str], limit: int = 50) -> list[dict]:
     # Actor-agnostic retroactive link: matches commits by message regardless of
     # source (Hub/terminal/human), without session state or a touch of the .md.
-    # The `([^0-9]|$)` guard stops TASK-5 matching TASK-50.
+    # The `([^0-9]|$)` guard stops matching
     import subprocess
 
     if not task_id:

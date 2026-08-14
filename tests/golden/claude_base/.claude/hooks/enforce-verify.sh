@@ -42,7 +42,7 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || ec
 FIRST_TOKEN_OF_EACH=$(echo "$COMMAND" | tr ';&|()' '\n' | awk '{$1=$1};1' | grep -v '^$' | head -20)
 IS_TASK_DONE=false
 while IFS= read -r segment; do
-  # TASK-335: strip leading VAR=val assignments so an inline override prefix
+  # strip leading VAR=val assignments so an inline override prefix
   # (`COS_VERIFY_OVERRIDE=1 cos task-done …`) is still recognized as task-done
   # and the override gets EVALUATED — not silently skipped past the gate.
   while [[ "$segment" == *" "* ]]; do
@@ -70,7 +70,7 @@ fi
 
 cos_log_hook enforce-verify fire "tool=Bash task_done=true"
 
-# TASK-335: inline override assignments live in the command STRING, never in
+# inline override assignments live in the command STRING, never in
 # this hook's environment — surface them to the CLI so the audited override
 # path actually evaluates instead of blocking a legitimate use.
 if [[ "$COMMAND" == *"COS_VERIFY_OVERRIDE=1"* ]]; then

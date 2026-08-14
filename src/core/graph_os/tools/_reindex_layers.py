@@ -36,7 +36,7 @@ def _reindex_docs(
 
 
 def _prune_graph_for_deleted_file(rel_path: str, *, db_path: str | None, project_root: Path) -> int:
-    # D7-F1 (TASK-129): prune ALL graph nodes for a path that was deleted on
+    # D7-F1: prune ALL graph nodes for a path that was deleted on
     # disk (extractors=None deletes every node for the file, cascading to its
     # edges/evidence). Used by the read_error branch when the file is gone.
     from graph_os.backends.sqlite_backend import SqliteBackend

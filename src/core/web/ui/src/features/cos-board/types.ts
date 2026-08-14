@@ -43,7 +43,7 @@ export interface BoardListPayload {
   truncated?: boolean;
   /** Per-column pagination meta keyed by status; complete/archive carry
    *  next_cursor + total_count for "load more". `_active` carries the
-   *  active-columns truncation flag. TASK-223. */
+   * active-columns truncation flag. */
   columns?: Record<string, BoardColumnMeta>;
   wip?: {
     counts: Record<string, number>;

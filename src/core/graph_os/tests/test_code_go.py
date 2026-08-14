@@ -69,7 +69,7 @@ def test_extract_emits_file_and_module_pair():
 
 
 def test_package_node_emits_canonical_module_kind():
-    # TASK-409: the package grouping node must carry the canonical `module`
+    # the package grouping node must carry the canonical `module`
     # kind (not the orphan `code:package`, which normalize_kind couldn't map
     # and the doctor flagged as a legacy kind).
     from graph_os.types import normalize_kind

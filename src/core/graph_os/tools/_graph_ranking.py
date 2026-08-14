@@ -121,7 +121,7 @@ def cos_graph_ranking(
                 truncated = True
             # Scope the edge scan to the selected node set (chunked, indexed)
             # rather than a blunt unscoped LIMIT that both over-fetched
-            # irrelevant edges and could miss in-set ones past the cap. TASK-228.
+            # irrelevant edges and could miss in-set ones past the cap.
             edge_rows = _edges_among(sqlite_conn, [row[0] for row in uid_rows])
         except Exception as exc:
             logger.debug("ranking SQL suppressed: %s", exc)

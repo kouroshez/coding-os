@@ -83,7 +83,7 @@ def test_reenable_lifts_the_gate(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# TASK-476 — startup surface removal: a disabled module's tools VANISH from
+# — startup surface removal: a disabled module's tools VANISH from
 # list_tools (not merely fail at call), so the agent never sees/hallucinates
 # them. Complements the per-call gate above (defense-in-depth) which the
 # tests above cover.
@@ -152,7 +152,7 @@ def test_surface_removal_fails_open_on_manager_error(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# TASK-477 — the cognition/observability modules were `tools: []` (toggleable
+# — the cognition/observability modules were `tools: []` (toggleable
 # but shed nothing). They now own their reasoning/metrics surface; classify +
 # health stay kernel by design. Reads the real subsystems.yaml via _gated_module.
 # ---------------------------------------------------------------------------

@@ -300,7 +300,7 @@ class TestTaskSearchLikeFallback:
 
     def test_like_respects_status_filter(self, seeded_db: sqlite3.Connection, monkeypatch) -> None:
         monkeypatch.setattr(embeddings, "is_available", lambda: False)
-        # "scaffold" matches TASK-002 which is status=wip
+        # "scaffold" matches which is status=wip
         results = task_search(seeded_db, "Django", status="complete")
         # Django doesn't appear in done tasks
         assert results == []

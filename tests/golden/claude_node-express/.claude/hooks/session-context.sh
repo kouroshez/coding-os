@@ -56,7 +56,7 @@ cos_log_hook session-context fire "source=${SOURCE}"
 # per-agent shared, COS_PANEL_DIR for per-panel private.
 mkdir -p "$COS_STATE_DIR" "$COS_AGENT_DIR" "$COS_PANEL_DIR"
 
-# Loud, debounced collision diagnostic (TASK-288): when the panel id fell back
+# Loud, debounced collision diagnostic: when the panel id fell back
 # to a PPID hash (no runtime session-id var exported), two sibling panels that
 # share a PPID can collide on this one panel dir and clobber each other's
 # task/gate/skill state. Surface it ONCE per session — a silent collision is
@@ -316,7 +316,7 @@ if [[ "$SOURCE" == "startup" || "$SOURCE" == "resume" ]]; then
   # Constitution slice = the values layer the rules derive from (HIDDEN). Same
   # startup/resume gate as the digest (suppressed on compact — the slice is
   # already in working memory). SSOT is docs/governance/constitution.md; we
-  # surface only the delimited slice so the file stays the single source (TASK-491).
+  # surface only the delimited slice so the file stays the single source.
   CONSTITUTION_DOC="${COS_PROJECT_ROOT:-$(pwd)}/docs/governance/constitution.md"
   if [ -f "$CONSTITUTION_DOC" ] && grep -q '<!-- SLICE:START -->' "$CONSTITUTION_DOC" 2>/dev/null && grep -q '<!-- SLICE:END -->' "$CONSTITUTION_DOC" 2>/dev/null; then
     # Both markers required: a missing SLICE:END would make sed dump the rest of
@@ -639,7 +639,7 @@ except OSError:
     WARN=" ⚠️ wip=${WIP_NUM} but task=none — cos task-start <ID>"
   fi
 
-  # State-misroute (TASK-585b): cos-env.sh exports COS_STATE_MISROUTE=1 when a
+  # State-misroute: cos-env.sh exports COS_STATE_MISROUTE=1 when a
   # command inside a worktree cannot resolve its main repo, so cognitive state
   # (board, task, presence, work-log) binds to a quarantine dir invisible to the
   # Hub and to siblings. cos-env warns only ONCE to stderr; surface it on EVERY
@@ -648,13 +648,13 @@ except OSError:
     WARN="${WARN} ⚠️ state misrouted — board/task state is going to a quarantine dir; export COS_PROJECT_ROOT=<main-repo>"
   fi
 
-  # CLEAR-1 self-bypass count (TASK-494): surface how many times this session
+  # CLEAR-1 self-bypass count: surface how many times this session
   # self-exempted from the enforcement gates via a manual "CLEAR 1" gate write,
   # so the cost of bypassing is visible rather than silent. Fail-open.
   BYPASS_LOG="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.clear1-bypass-log"
   if [ -f "$BYPASS_LOG" ]; then
     # Count only THIS session's bypass lines (col 1 = session id); the log stays
-    # append-only across sessions for /retro audit — don't truncate it (TASK-510).
+    # append-only across sessions for /retro audit — don't truncate it.
     _CUR_SID=$(tr -d '\n\r' < "${COS_SESSION_FILE:-/nonexistent}" 2>/dev/null || true)
     if [ -n "$_CUR_SID" ]; then
       BYPASS_N=$(grep -cF "${_CUR_SID}$(printf '\t')" "$BYPASS_LOG" 2>/dev/null || true)
@@ -690,7 +690,7 @@ except OSError:
     USER_BANNER=""
   else
     # pr-mode is the operator-relevant deviation from the trunk default, so surface
-    # it in the banner only when on (TASK-615); trunk stays uncluttered.
+    # it in the banner only when on; trunk stays uncluttered.
     GIT_MODE_SEG=""
     [ "${COS_GIT_WORKFLOW:-trunk}" = "pr" ] && GIT_MODE_SEG=" · git=pr"
     case "$TASK_MODE" in
@@ -706,7 +706,7 @@ except OSError:
     esac
   fi
 
-  # TASK-668: fold the TASK-622 test-cadence policy into the agent-only pulse so
+  # fold the test-cadence policy into the agent-only pulse so
   # it is seen in-band (agents skip test-discipline.md). Formal work only — casual
   # chat never runs suites, so the reminder would be noise. Additive; the visible
   # banner + its extraction marker are untouched (appended AFTER the banner line).

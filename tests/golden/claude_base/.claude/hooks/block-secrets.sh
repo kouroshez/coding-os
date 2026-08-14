@@ -49,7 +49,7 @@ if [[ "$TOOL" == "Bash" ]]; then
   # core.hooksPath / GIT_CONFIG_* injection). Delegated to a shlex-tokenizing
   # helper: the old bash regex ran over a quote-STRIPPED string, so a spliced
   # `--no-ver"i"fy`, a quoted `"-n"`, or a `GIT_CONFIG_*` env prefix vanished
-  # from the scan yet bash still executed it (TASK-567). `_cos_helpers_dir`
+  # from the scan yet bash still executed it. `_cos_helpers_dir`
   # (cos-env.sh) resolves the physical `_helpers/` through the .claude/ symlink.
   BYPASS_HELPER="$(_cos_helpers_dir)/check_git_bypass.py"
   BYPASS_VERDICT=$(printf '%s' "$INPUT" | python3 "$BYPASS_HELPER" 2>/dev/null || echo error)

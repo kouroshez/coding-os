@@ -92,7 +92,7 @@ def _write(project: Path, name: str, content: str) -> Path:
 class TestShimSurface:
     def test_sync_alias_exists_and_is_sync_tasks(self) -> None:
         # background.py calls task_sync.sync(...) — its absence silently
-        # broke the background task-sync loop pre-TASK-398.
+        # broke the background task-sync loop pre.
         assert task_sync.sync is task_sync.sync_tasks
 
     def test_sync_tasks_returns_board_and_legacy_keys(self, conn, project) -> None:

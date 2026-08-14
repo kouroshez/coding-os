@@ -278,7 +278,7 @@ def _branches(repo: str) -> list[str]:
 
 
 def _git_state(repo: str) -> dict:
-    # Real repo state for the Config Git tab (TASK-534) — local git only, so it
+    # Real repo state for the Config Git tab — local git only, so it
     # answers even when gh/remote are down (the capability probe degrades alone).
     return {
         "branches": _branches(repo),
@@ -320,7 +320,7 @@ def _branch_for(task_slug: str, session: str) -> str:
 def _resolve_worktree(repo: str, task_slug: str, session: str) -> tuple[Path, str]:
     # Find the worktree+branch `open` created, even when the session id differs
     # across processes (the pid-<getpid> fallback gives a fresh value per process,
-    # TASK-541). Fast path: the session-derived path exists. Else scan this repo's
+    # Fast path: the session-derived path exists. Else scan this repo's
     # worktree root for the task slug and read the real branch off the single match
     # (the reaper derives it the same way); ambiguous/none falls back to the
     # computed pair so the caller's existence check still surfaces a clear error.
@@ -581,7 +581,7 @@ def pr_submit(
     if not (wt / ".git").exists():
         raise click.ClickException(f"no open worktree at {wt} — run 'cos pr open' first.")
 
-    # `local` rung (TASK-540): commit-only, never push. Short-circuits before the
+    # `local` rung: commit-only, never push. Short-circuits before the
     # capability probe so a repo with no remote is the intended mode, not a degrade.
     autonomy = _autonomy_level(repo)
     if autonomy == "local":
@@ -629,7 +629,7 @@ def pr_submit(
         sys.exit(1)
 
     # Circuit-breaker BEFORE any push — refuse past the per-session open-PR cap
-    # so a red / quota-dead CI (TASK-513) can't grow open PRs without bound, and
+    # so a red / quota-dead CI can't grow open PRs without bound, and
     # a capped submit never orphans a pushed branch with no PR (§8, findings 7/9).
     cap_max = _env_int("COS_PR_MAX_OPEN", 5)
     # Count against the resolved branch's session, not the process session — under
@@ -782,7 +782,7 @@ def pr_submit(
 def _land_verify_ok(repo: str) -> bool:
     # local_autonomous lands only after a GREEN local verify — read the same
     # .last-verify.json freshness marker the DoD gate uses (most-recent PASS within
-    # the window). Absent / only-FAIL / stale → refuse to land (TASK-614).
+    # the window). Absent / only-FAIL / stale → refuse to land.
     path = Path(repo) / ".coding-os" / ".last-verify.json"
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -917,7 +917,7 @@ def pr_land(
 def pr_status(repo_opt: str | None, branch: str | None, as_json: bool) -> None:
     repo = _resolve_repo(repo_opt)
     if branch:
-        # Single-branch CI signal the pr-mode-driver skill branches on (TASK-529).
+        # Single-branch CI signal the pr-mode-driver skill branches on.
         _emit({"branch": branch, "ci_rollup": _pr_ci_rollup(repo, branch)}, as_json)
         return
     wt_root = _worktree_root(repo)
@@ -1133,7 +1133,7 @@ def pr_conflicts(branch: str | None, repo_opt: str | None, as_json: bool) -> Non
 
 def _pr_state(repo: str, branch: str) -> str:
     # "merged" | "closed" | "open" | "none" | "unknown" — drives the cleanup
-    # merge-gate so an open PR's worktree isn't destroyed mid-flight (TASK-530).
+    # merge-gate so an open PR's worktree isn't destroyed mid-flight.
     if not _gh_ready():
         return "unknown"
     listing = _run(
@@ -1320,7 +1320,7 @@ def _pr_review_required(wt: Path, branch: str) -> bool:
 def _branch_recoverable(repo: str, branch: str, integration: str) -> bool:
     # gh-independent cleanup safety net: True when every branch commit is already
     # reachable from an origin ref (or the local integration), so deleting the
-    # local branch loses nothing (TASK-530).
+    # local branch loses nothing.
     if not _git_out(["rev-parse", "--verify", branch], cwd=repo):
         return True
     if _git(["merge-base", "--is-ancestor", branch, integration], cwd=repo).returncode == 0:
@@ -1333,7 +1333,7 @@ def _branch_recoverable(repo: str, branch: str, integration: str) -> bool:
 
 def _preserve_reaped(repo: str, wt: Path, branch: str) -> str | None:
     # gh-independent, offline-safe preservation before a reap destroys anything
-    # (TASK-535). Commit any uncommitted/untracked work onto the (doomed) branch —
+    # . Commit any uncommitted/untracked work onto the (doomed) branch —
     # the worktree + branch are about to be GC'd, so mutating them is free, and
     # `--no-verify` guarantees the capture can't be blocked by a consumer hook
     # (a plain `git stash create` would silently drop untracked files, which is
@@ -1394,14 +1394,14 @@ def pr_cleanup(
     wt, branch = _resolve_worktree(repo, task_slug, session)
     _preserved_bundle: str | None = None  # set when a drifted/peer dirty tree is bundled
 
-    # Merge-gate (TASK-530): only destroy the worktree+branch once work has landed
+    # Merge-gate: only destroy the worktree+branch once work has landed
     # (merged/closed) or is fully on origin; --force is the human override.
     if not force:
         # Ownership gate (review finding 2): under session drift the single-candidate
         # fallback in _resolve_worktree can resolve a live PEER's worktree (same task
         # slug, different session) — destroying it would wipe active peer work. Refuse
         # only when the owner session is provably LIVE; a drifted-gone ("unknown") or
-        # dead ("offline") owner still cleans up, preserving the TASK-541 drift path.
+        # dead ("offline") owner still cleans up, preserving the drift path.
         owner_session = branch.rsplit("/", 1)[-1]
         if owner_session != session and _session_state(owner_session, repo) == "live":
             _emit(
@@ -1441,7 +1441,7 @@ def pr_cleanup(
                 as_json,
             )
             sys.exit(1)
-        # Preserve-before-destroy net (TASK-566 H): for any OTHER state (merged/closed)
+        # Preserve-before-destroy net ( H): for any OTHER state (merged/closed)
         # a branch that is unrecoverable (squash-merge, or extra local commits not on
         # origin) or has a dirty tree must be bundled before `branch -D`. The old code
         # bundled only a DIRTY drifted tree, so a CLEAN-tree merged branch with unpushed
@@ -1482,7 +1482,7 @@ def pr_cleanup(
 
 
 # --------------------------------------------------------------------------- #
-# orphan reaper (TASK-519) — owner-independent GC keyed on presence-offline.
+# orphan reaper — owner-independent GC keyed on presence-offline.
 # A crashed agent never cleans up after itself (the exact Rule-21 failure mode),
 # so an out-of-band sweep does it. SPEC: docs/playbooks/pr-workflow.md § 7.
 # --------------------------------------------------------------------------- #
@@ -1726,7 +1726,7 @@ def _pr_close(repo: str, branch: str) -> bool:
 
 def _reap_one(repo: str, wt: Path, branch: str) -> dict:
     # The worktree is a re-creatable checkout; the branch commits + uncommitted changes
-    # are the WORK and must survive (TASK-535). So: preserve whenever the branch is not
+    # are the WORK and must survive. So: preserve whenever the branch is not
     # already on origin/integration OR the tree is dirty, and GC the worktree + delete
     # the branch ONLY once the work is safe — on a remote ref, or a confirmed bundle.
     # If preservation fails, keep BOTH the worktree and the branch (D2).
@@ -1845,7 +1845,7 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# bounded self-heal + autonomy circuit-breaker (TASK-520) — the autonomous loop
+# bounded self-heal + autonomy circuit-breaker — the autonomous loop
 # can never burn unbounded tokens / CI-quota. SPEC: docs/playbooks/pr-workflow.md § 8.
 # --------------------------------------------------------------------------- #
 def _heal_budget_path(repo: str) -> Path:

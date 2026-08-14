@@ -42,7 +42,7 @@ def _discover_project_root() -> Path | None:
     # Returns None when no marker is found (caller keeps the CWD fallback).
     # Marker set + $HOME hard-stop mirror
     # thinking_os.database._find_project_root_from_cwd (kept aligned by hand so
-    # logging_os stays dependency-free of thinking_os; TASK-498).
+    # logging_os stays dependency-free of thinking_os).
     markers = (".git", ".coding-os.yaml", "pyproject.toml", "package.json", "go.mod", "AGENTS.md")
     try:
         here = Path.cwd().resolve()
@@ -64,7 +64,7 @@ def state_dir() -> Path:
     # Anchor .coding-os to the project root, not the process CWD. Without this a
     # process started from a subdir (e.g. the MCP server under src/core/thinking_os)
     # wrote its logs/DB to a sibling .coding-os/ the Hub (rooted at the repo) never
-    # reads, fragmenting the log feed across CWDs (TASK-263). COS_STATE_DIR still
+    # reads, fragmenting the log feed across CWDs. COS_STATE_DIR still
     # wins; no project marker falls back to the legacy CWD-relative path.
     root = _discover_project_root()
     return (root / STATE_DIR_NAME) if root else Path(STATE_DIR_NAME)

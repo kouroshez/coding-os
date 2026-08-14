@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { apiGet } from '@/lib/api-client';
 import { useApiGet } from '@/lib/hooks';
 
-// Producer shapes verified live against the emit sites (TASK-323):
+// Producer shapes verified live against the emit sites:
 // /api/graph/rename-plan/{uid} ← cos_graph_rename_plan
 // /api/graph/contracts         ← cos_graph_contracts
 interface RenameEdge {

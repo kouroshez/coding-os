@@ -208,7 +208,7 @@ export function useBoardStream(agentIds: readonly string[]): UseBoardStreamRetur
           && data.new_status != null
           && data.source === 'db';
         const hasTransition = data.old_status || data.new_status;
-        // Contract (TASK-399): every task-updated payload carries
+        // Contract: every task-updated payload carries
         // `new_status` — no legacy `status` fallback. A missing field is a
         // backend contract break and should be visible, not papered over.
         const core = isCreate

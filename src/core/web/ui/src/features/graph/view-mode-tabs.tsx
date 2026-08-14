@@ -25,7 +25,7 @@ const TABS: ReadonlyArray<{ value: ViewMode; label: string; hint: string }> = [
 ];
 
 /**
- * Top-of-canvas view-mode selector — TASK-141 P2.
+ * Top-of-canvas view-mode selector — P2.
  *
  * Each tab swaps the `mode` query param sent to /api/graph/export, which
  * the backend uses to compose a different blend of edges (see

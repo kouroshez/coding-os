@@ -16,7 +16,7 @@ def test_state_dir_honors_explicit_env(monkeypatch: pytest.MonkeyPatch, tmp_path
 def test_state_dir_anchors_to_project_root_from_subdir(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    # TASK-263: a process started in a nested subdir must still resolve .coding-os
+    # a process started in a nested subdir must still resolve.coding-os
     # to the PROJECT ROOT (marked by .git), not its CWD — otherwise the log feed
     # fragments across sibling .coding-os/ dirs.
     root = tmp_path / "repo"

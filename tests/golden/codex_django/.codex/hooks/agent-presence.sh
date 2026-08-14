@@ -148,7 +148,7 @@ PRESENCE_HELPER="${COS_HOOK_SRC_DIR}/_helpers/presence_write.py"
 # HOOK_MODEL / HOOK_SDK_UUID / HOOK_TRANSCRIPT were already parsed (with
 # hook_event_name) in the single jq spawn near the top. model = Claude Code 2.x
 # `.model`; sdk_uuid = host runtime `.session_id` (bridge to the chat
-# transcript); transcript = the Stop payload's live transcript path (TASK-255).
+# transcript); transcript = the Stop payload's live transcript path.
 # Empty values fall through — the helper preserves previously-stored fields.
 if [[ -f "$PRESENCE_HELPER" ]]; then
   python3 "$PRESENCE_HELPER" \

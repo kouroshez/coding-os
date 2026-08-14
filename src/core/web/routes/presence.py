@@ -164,7 +164,7 @@ def presence_agents(
             sdk_uuid = sess.get("sdk_uuid") if isinstance(sess, dict) else None
             # Context-window % — Claude-only; honest null for adapters with no
             # usage signal. Primary source: used_tokens stamped on the Stop
-            # path (TASK-255, no opt-in needed). Fallback: the opt-in snapshot
+            # path (no opt-in needed). Fallback: the opt-in snapshot
             # transcript tail (COS_SNAPSHOT_TRANSCRIPT=1).
             context_pct: float | None = None
             sid = snap.get("session_id")

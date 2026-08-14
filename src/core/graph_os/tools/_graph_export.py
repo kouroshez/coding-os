@@ -68,7 +68,7 @@ _AUTO_BLEND_BUCKETS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("contains", ("contains",)),
 )
 
-# W7 / R4-05 fix (TASK-423): the canonical set of edge types the graph CAN
+# W7 / R4-05 fix: the canonical set of edge types the graph CAN
 # contain — the validation oracle for `edge_types` filters. A SUPERSET of every
 # type any extractor emits, PLUS the query-only/view types the tool layer
 # filters on (accesses_field / defines_route / tested_by are referenced by the
@@ -173,7 +173,7 @@ def cos_graph_export(
 
     # G3: normalize edge_types + exclude_kinds (wire trap)
     parsed_edge_types = _normalize_kinds(edge_types) or None
-    # W7 / R4-05 (TASK-423): reject a typo'd edge_type, but validate against
+    # W7 / R4-05: reject a typo'd edge_type, but validate against
     # the canonical schema set (_KNOWN_EDGE_TYPES) — NOT the edge_types PRESENT
     # in the DB. A fresh / sparse / mid-build graph has few or zero distinct
     # edge_types, and the old SELECT-DISTINCT oracle rejected legitimate types
@@ -194,7 +194,7 @@ def cos_graph_export(
         parsed_exclude_kinds = _normalize_kinds(exclude_kinds)
         excluded = frozenset(parsed_exclude_kinds)
     # G35: hard global ceiling on max_nodes. Raised 2000 → 50000
-    # (TASK-402): the Hub sends 10k (rooted depth=all) / 30k (spine
+    #: the Hub sends 10k (rooted depth=all) / 30k (spine
     # sidebar) and the old silent clamp cut both to 2000 — the user-
     # visible "max still shows an incomplete graph". Sigma renders ~40k
     # nodes (enterprise viz audit) and the 5 MB coherent-subgraph
@@ -202,11 +202,11 @@ def cos_graph_export(
     max_nodes_requested = int(max_nodes)
     max_nodes = max(1, min(max_nodes_requested, 50_000))
 
-    # TASK-402: over-fetch when a noise filter applies so the budget is
+    # over-fetch when a noise filter applies so the budget is
     # spent on VISIBLE nodes — the old fetch-then-filter order burned the
     # budget on doc_heading/frontmatter rows that the filter dropped a few
     # lines later (the spine sidebar got 306 of 400 folders at a 30k ask).
-    # TASK-403: only the BLEND path needs the over-fetch — the rooted walk
+    # only the BLEND path needs the over-fetch — the rooted walk
     # filters noise kinds DURING the BFS, so its budget already counts
     # visible nodes and a 4× walk would just quadruple latency.
     fetch_budget = min(max_nodes * 4, 150_000) if excluded else max_nodes
@@ -217,7 +217,7 @@ def cos_graph_export(
         # frontend's depth choice and clamp to a safe ceiling.
         effective_hops = 3 if max_hops is None else max(1, min(int(max_hops), 16))
         if scope == "subtree":
-            # TASK-406: a rooted view means THIS subtree. The old "both"
+            # a rooted view means THIS subtree. The old "both"
             # neighborhood walk climbed one hop to the parent and flooded
             # the whole repo (probe: 26 of 8008 nodes inside the chosen
             # folder). Walk `contains` downward only, then overlay the
@@ -319,7 +319,7 @@ def cos_graph_export(
             "node_count": len(nodes),
             "edge_count": len(edges),
             "include_spine": include_spine,
-            # TASK-402: honest budget provenance — the Hub badge reads
+            # honest budget provenance — the Hub badge reads
             # these instead of guessing from its own request params.
             "max_nodes_requested": max_nodes_requested,
             "max_nodes_effective": max_nodes,
@@ -377,7 +377,7 @@ def _export_blend(
     for e in edges:
         node_uids.add(e.source_uid)
         node_uids.add(e.target_uid)
-    # TASK-403: batched hydration — one get_node per uid was ~30k round
+    # batched hydration — one get_node per uid was ~30k round
     # trips on a spine export.
     nodes = list(_bulk_nodes(be, list(node_uids)).values())
 
@@ -393,7 +393,7 @@ def _export_blend(
     if node_uids and contains_in_scope:
         existing_pairs = {(e.source_uid, e.target_uid, e.edge_type) for e in edges}
         nodes_by_uid = {n.uid: n for n in nodes}
-        # TASK-403: set-wise closure (one query per tree level in the
+        # set-wise closure (one query per tree level in the
         # backend) — the previous per-node `_contains_ancestors` loop was
         # ~30k upward walks and dominated the export latency.
         closure_fn = getattr(be, "contains_ancestors_bulk", None)
@@ -459,7 +459,7 @@ def _escape(text: str) -> str:
     # single-quote (avoids the dot \" / mermaid #quot; divergence), then
     # collapse any newline / control char to a space so the one-line
     # `id["label"]` / `id [label="..."]` syntax never breaks.
-    # SECURITY (TASK-486): deliberately NOT HTML-escaped — `<`, `>`, `&` pass
+    # SECURITY: deliberately NOT HTML-escaped — `<`, `>`, `&` pass
     # through verbatim because HTML-encoding here would corrupt .mmd/.dot/CLI
     # output. HTML-context escaping of a label belongs at the browser
     # DOM/render boundary, never in this syntax-only helper. No HTML sink

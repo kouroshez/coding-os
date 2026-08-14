@@ -130,7 +130,7 @@ for file in "${TARGETS[@]}"; do
       [ "$QUIET" -eq 0 ] && warn "$rel: missing Read-when line in opening block (expected 'Read when:' or '> R:')"
       WARNINGS=$((WARNINGS + 1))
     fi
-    # D1-F4 (TASK-128): nav breadcrumb keeps docs discoverable (`> Nav: ...`).
+    # D1-F4: nav breadcrumb keeps docs discoverable (`> Nav:...`).
     if ! grep -qE "^>[[:space:]]*Nav:" "$file"; then
       [ "$QUIET" -eq 0 ] && warn "$rel: missing '> Nav:' breadcrumb"
       WARNINGS=$((WARNINGS + 1))

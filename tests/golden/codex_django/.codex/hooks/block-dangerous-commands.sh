@@ -46,7 +46,7 @@ fi
 cos_log_hook block-dangerous-commands fire "tool=Bash"
 COMMAND=$(printf '%s' "$INPUT" | cos_json_field tool_input.command)
 
-# Block a Bash write to the git-policy file (TASK-587b): rewriting
+# Block a Bash write to the git-policy file: rewriting
 # .coding-os/hub-settings.json from a shell self-downgrades pr-mode -> trunk,
 # where a non-force push to main is legal. Gated on the basename so non-policy
 # commands skip the python spawn. Defense-in-depth — fails OPEN on helper error;
@@ -62,7 +62,7 @@ case "$COMMAND" in
     ;;
 esac
 
-# Shell-indirection recovery (TASK-587a): un-glue git commands hidden inside
+# Shell-indirection recovery: un-glue git commands hidden inside
 # eval / pipe-into-sh / here-string / xargs so the force-push / reset / clean
 # greps below see them. Gated on an indirection token so the common path spawns
 # no python. branch-guard is the fail-closed twin for the protected ops.
@@ -81,7 +81,7 @@ esac
 # `COS_ALLOW_FORCE_PUSH_MAIN=1 git push …` prefix does NOT work and is rejected
 # by design — the assignment has not executed when this PreToolUse hook reads
 # its own process env, so an agent cannot self-grant the override from the
-# command string (TASK-567 F3). Only a deliberate operator session-export opens it.
+# command string ( F3). Only a deliberate operator session-export opens it.
 _FORCE_PUSH_OPT_IN=0
 if [[ "${COS_ALLOW_FORCE_PUSH_MAIN:-0}" == "1" ]]; then
   _FORCE_PUSH_OPT_IN=1
@@ -89,9 +89,9 @@ fi
 if [[ "$_FORCE_PUSH_OPT_IN" != "1" ]]; then
   # Force-push to main/master. git IGNORES flag position, so detect the push, the
   # force flag, and the main/master target INDEPENDENTLY — the old `--force.*main`
-  # regex missed `git push origin main --force` / `... main -f` (flag AFTER refspec,
-  # TASK-571). `--force-with-lease` is the safe variant (and the pr-mode submit path)
-  # so the boundary `--force([space]|$)` deliberately excludes it.
+  # regex missed `git push origin main --force` / `... main -f` (flag AFTER the
+  # refspec). `--force-with-lease` is the safe variant (and the pr-mode submit
+  # path) so the boundary `--force([space]|$)` deliberately excludes it.
   if echo "$COMMAND_SCAN" | grep -qE '(^|[[:space:];&|])git[[:space:]]+push' \
      && echo "$COMMAND_SCAN" | grep -qE '(--force([[:space:]]|$)|(^|[[:space:]])-f([[:space:]]|$))' \
      && echo "$COMMAND_SCAN" | grep -qE '(^|[[:space:]/+:])(main|master)([[:space:]]|$)'; then

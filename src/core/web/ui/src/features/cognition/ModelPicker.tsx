@@ -75,7 +75,7 @@ export default function ModelPicker({
   onChange: (modelId: string) => void;
 }) {
   const { data } = useApiGet<AdaptersPayload>(["config-adapters"], "/api/config/adapters");
-  // Auto option exists ONLY while settings.model_routing.enabled (TASK-318) —
+  // Auto option exists ONLY while settings.model_routing.enabled —
   // producer: routes/settings.py _DEFAULTS (hub-architecture.md § settings contract).
   const { data: settingsData } = useApiGet<{
     settings: { model_routing?: { enabled: boolean; orchestrator_model: string } };

@@ -25,7 +25,7 @@ from cli.core_version import current_core_version, read_stamped_version
 
 logger = logging.getLogger(__name__)
 
-# Bundled trees resolve via importlib (TASK-219) — survives wheel installs and
+# Bundled trees resolve via importlib — survives wheel installs and
 # meta-repo moves. CODING_OS_ROOT remains for repo-only assets (docs/) that
 # exist solely in a source checkout.
 CODING_OS_ROOT = data_root().parent

@@ -155,7 +155,7 @@ def test_no_path_globs_means_never_matches() -> None:
     assert "always-match" in suites
 
 
-# ── Commit-keyed freshness (TASK-328) ────────────────────────────────
+# ── Commit-keyed freshness ────────────────────────────────
 
 
 def _ledger(tmp_path: Path, entry: dict) -> Path:

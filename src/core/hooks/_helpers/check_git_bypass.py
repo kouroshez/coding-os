@@ -88,7 +88,7 @@ def _env_disables_hooks(env: list[str]) -> bool:
             return True
     # ANY caller-supplied GIT_CONFIG_GLOBAL/SYSTEM on a commit redirects git's config
     # file — not only `/dev/null`: a custom file containing `[core] hooksPath=/dev/null`
-    # disables the verify hooks just as effectively (TASK-571). An agent never sets
+    # disables the verify hooks just as effectively. An agent never sets
     # these on a real commit, so blocking the whole class is safe (no false positive).
     return any(name in keys for name in _HOOKS_ENV_NULL)
 

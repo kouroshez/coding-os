@@ -363,7 +363,7 @@ def _lexical_search(
 # query would miss a harakat-free indexed form. Strip them from the query so
 # the common case (harakat-typed query vs harakat-free index) matches. Full
 # symmetric folding of harakat-bearing INDEXED text needs an FTS-rebuild
-# migration and is deferred until Persian/Arabic is a named market (TASK-485).
+# migration and is deferred until Persian/Arabic is a named market.
 _HARAKAT_STRIP = dict.fromkeys((*range(1611, 1619), 1648))
 
 

@@ -203,11 +203,11 @@ def walk_local(
     collected: list[Path] = []
     # Oversized files are dropped (not read into memory). Track them so the
     # drop is visible — a silently-skipped large source file is a coverage
-    # gap, not a no-op (TASK-293 logging-completeness).
+    # gap, not a no-op ( logging-completeness).
     skipped_oversize: list[str] = []
     # Symlinks (target indexed on its own pass) and unreadable files are also
     # skipped — count them so the summary can surface that they happened
-    # (TASK-302). Counts, not paths: symlinks can be numerous and the count
+    # . Counts, not paths: symlinks can be numerous and the count
     # is the actionable signal.
     skipped_symlink = 0
     skipped_read_error = 0

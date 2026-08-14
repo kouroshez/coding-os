@@ -241,7 +241,7 @@ def init(
     # A --profile expands to a curated disabled-module set (subsystems.yaml::
     # profiles) MERGED with explicit --disable-module flags; omitted → the
     # registry default_profile. Resolved before validation so the union flows
-    # through the same dependency-checked apply path (TASK-509).
+    # through the same dependency-checked apply path.
     from cli.subsystems import load_profiles, resolve_profile
 
     _chosen_profile = profile or load_profiles()[1]
@@ -297,7 +297,7 @@ def init(
         click.echo("Aborted.")
         sys.exit(0)
 
-    # Non-TTY without --yes: refuse to guess the TARGET silently (TASK-359).
+    # Non-TTY without --yes: refuse to guess the TARGET silently.
     # Gated on the target alone — a missing --agent is NOT pre-empted here,
     # because the agent prompt below already exits 2 when no input arrives,
     # while pre-empting would also reject a pipe that IS carrying the answer

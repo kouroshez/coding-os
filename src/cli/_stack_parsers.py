@@ -38,7 +38,7 @@ STACK_MANIFEST_NAME = "stack.yaml"
 BASE_MANIFEST_NAME = "base.yaml"
 SUPPORTED_VERSION = 1
 
-# Resolved via importlib (TASK-219) — survives wheel installs and meta-repo moves.
+# Resolved via importlib — survives wheel installs and meta-repo moves.
 _SCHEMA_DIR = _core_dir("schemas")
 _STACK_SCHEMA_PATH = _SCHEMA_DIR / "stack.schema.json"
 

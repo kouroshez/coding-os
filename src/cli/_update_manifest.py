@@ -24,7 +24,7 @@ from cli.core_version import stamp_core_version
 
 logger = logging.getLogger(__name__)
 
-# Resolved via importlib (TASK-219) so update works under both a src-layout
+# Resolved via importlib so update works under both a src-layout
 # editable install and a built wheel — and keeps working after the meta-repo
 # is moved and reinstalled. CODING_OS_ROOT is informational (installed-manifest).
 CODING_OS_ROOT = data_root().parent

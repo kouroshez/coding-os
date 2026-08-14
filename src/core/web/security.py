@@ -62,7 +62,7 @@ def assert_bind_is_safe(host: str, token: str | None = None) -> None:
     """
     if _is_loopback_bind(host):
         return
-    if (token if token is not None else _hub_token()):
+    if token if token is not None else _hub_token():
         return
     if os.environ.get("COS_HUB_ALLOW_INSECURE_BIND", "").strip() == "1":
         return
@@ -123,12 +123,12 @@ class SecurityGateMiddleware(BaseHTTPMiddleware):
     """Reject cross-origin / DNS-rebinding / CSRF requests on the local hub."""
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        # Optional bearer token (TASK-363): when COS_HUB_TOKEN is set, every
+        # Optional bearer token: when COS_HUB_TOKEN is set, every
         # state-changing API request must carry it — including non-browser
         # clients, and regardless of the CORS dev escape (fail-closed).
         # Default (token unset) keeps open-localhost behavior.
         #
-        # Read-route auth (TASK-487): on a NON-loopback host (reverse-proxy /
+        # Read-route auth: on a NON-loopback host (reverse-proxy /
         # shared box / 0.0.0.0 bind) a read `GET /api/*` exposes the entire
         # code graph, so when the token is set reads require it there too.
         # Loopback (the single-user dev default) keeps reads open and

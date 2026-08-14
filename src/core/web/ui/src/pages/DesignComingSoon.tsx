@@ -2,7 +2,7 @@ import { Palette } from 'lucide-react';
 
 import { EmptyState, PageShell } from '@/layout/HubPrimitives';
 
-// Design module — coming-soon surface (TASK-372). The visual design workspace
+// Design module — coming-soon surface. The visual design workspace
 // (canvas, tokens, component sync) is a roadmap item registered as module id
 // `design` in src/core/subsystems.yaml; see ADR-0008. No behaviour is wired yet.
 export default function DesignComingSoon() {

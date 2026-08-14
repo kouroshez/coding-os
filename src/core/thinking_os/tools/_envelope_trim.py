@@ -62,7 +62,7 @@ _TRIMMABLE_LIST_KEYS: tuple[str, ...] = (
     "symbols",
     "downstream_consumers",
     "downstream_tasks",
-    # S11 (TASK-259): wide-payload tool list keys that were OUTSIDE the ladder,
+    # S11: wide-payload tool list keys that were OUTSIDE the ladder,
     # so an oversized agent call produced envelope_unshrinkable — the same bug
     # class as the board 186KB ERROR, generalized. Adding a new wide tool? Add
     # its list key here (and to test_envelope.py::TestTrimLadderCoverage).

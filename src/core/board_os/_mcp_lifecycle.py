@@ -263,7 +263,7 @@ def cos_task_move(
             file_path = candidate
         elif to == "complete" and not bypass_gates and not force:
             # Fail CLOSED when the file is gone: the DoD gate can't run, and a
-            # silent skip would close an unverifiable task (TASK-532).
+            # silent skip would close an unverifiable task.
             return fail(
                 "validation",
                 f"task file not found — cannot verify DoD: {row[0]}. Re-materialize "

@@ -105,7 +105,7 @@ fi
 # `"jsonrpc"` + `"result"` means the server is live. 6s alarm + one retry:
 # the old 2s single-shot raced the SessionStart burst (hub boot + 20 hooks
 # + uv resolve) and branded a healthy server DOWN for the whole session,
-# pushing the agent off MCP retrieval into raw-read token burn (TASK-344).
+# pushing the agent off MCP retrieval into raw-read token burn.
 HANDSHAKE='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"warn-mcp-down","version":"1"}}}'
 
 for _attempt in 1 2; do

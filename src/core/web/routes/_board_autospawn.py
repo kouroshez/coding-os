@@ -121,7 +121,7 @@ def _auto_spawn_safe(
     from web._project_context import current_db_path, current_project_root
 
     # Key the dedup set by (project_root, task_id): task ids are per-project and
-    # every project numbers from TASK-001, so a bare task_id would collide two
+    # every project numbers, so a bare task_id would collide two
     # projects' cards in this one shared hub process.
     root = str(current_project_root())
     db_path = str(current_db_path())

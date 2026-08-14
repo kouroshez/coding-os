@@ -107,7 +107,7 @@ VALID_TEMPLATES: list[str] = _discover_valid_templates()
 # src/cli/aggregator.py::aggregate() for the data-driven replacement.
 
 
-# Tag-driven docs composition (TASK-360):
+# Tag-driven docs composition:
 #  - file-level: a `module:<id>` token in the first-line header comment skips
 #    the whole doc when that module is disabled;
 #  - block-level: `<!-- if-stack:a,b -->` / `<!-- if-module:docs -->` ...

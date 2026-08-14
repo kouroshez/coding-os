@@ -128,7 +128,7 @@ def _resolve_link(origin_path: str, target: str) -> str:
         # path resolves one level short → code:file:core/hooks/registry.yaml).
         # The .md gate above already drops missing doc links; widen the same
         # existence gate to every extension so no broken code:file stub is
-        # minted (roadmap §6, TASK-410).
+        # minted (roadmap §6).
         return ""
     if suffix in {".md", ".mdx", ""}:
         base = f"doc:file:{normalised}"

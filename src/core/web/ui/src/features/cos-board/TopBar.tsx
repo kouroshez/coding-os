@@ -132,7 +132,7 @@ export function TopBar({
 export function SuggestNextButton({ onOpenTask }: { onOpenTask: (card: BoardListCard) => void }) {
   // Producer: GET /api/board/pick → {candidates: BoardListCard[], count}
   // (board.py::board_pick wrapping cos_task_pick — emergency first, then
-  // ready icebox by priority). Zero UI consumers before TASK-322.
+  // ready icebox by priority). Zero UI consumers before
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

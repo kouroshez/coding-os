@@ -64,7 +64,7 @@ except Exception:
 # extracted to _helpers/work_log_append.py. task_id and summary pass via
 # argv (avoids triple-quote escaping fragility too). Serialization lives
 # INSIDE the helper (fcntl) — the old bash-side `flock -w 2` died silently
-# on macOS, where flock(1) does not exist, dropping every append (TASK-340).
+# on macOS, where flock(1) does not exist, dropping every append.
 _src="${BASH_SOURCE[0]}"
 while [ -L "$_src" ]; do
   _dir="$(cd -P "$(dirname "$_src")" && pwd)"

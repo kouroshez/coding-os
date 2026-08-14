@@ -179,7 +179,7 @@ def _assign_guard(
 def _commits_referencing(task_id: str, project_root: Path) -> int | None:
     # None = unverifiable (no git / error) so callers fail SAFE — treat as "has
     # evidence", never auto-reclaim on a signal we couldn't check. Trailing
-    # non-digit boundary stops TASK-215 also matching TASK-2155.
+    # non-digit boundary stops also matching
     import subprocess
 
     try:
@@ -209,7 +209,7 @@ def _commits_referencing(task_id: str, project_root: Path) -> int | None:
 
 # Cap on how many matching commits git enumerates per scan — bounds the history
 # walk at 1M+ commits. Reconciliation only needs "0 vs >0" evidence, so a count
-# capped at this value is sufficient (and reported as "at least N"). TASK-227.
+# capped at this value is sufficient (and reported as "at least N").
 _COMMIT_SCAN_CAP = 500
 # Cap on a single reclaim/reconcile sweep — the rest drains on the next run.
 _STRANDED_SCAN_LIMIT = 1000

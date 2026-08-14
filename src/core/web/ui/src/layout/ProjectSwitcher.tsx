@@ -46,7 +46,7 @@ const PROJECT_SCOPE_RE = /^\/p\/([^/]+)(\/.*)?$/;
  * after `/p/<slug>`. Capturing the whole tail (not a hardcoded feature name)
  * means switching projects preserves ANY nested route — workspace/chat/:id,
  * diagnostics/logs, config — instead of collapsing to the Board tab when the
- * route is one an old allow-list never knew about (TASK-435).
+ * route is one an old allow-list never knew about.
  */
 function parseCurrentScope(pathname: string): { slug: string | null; tail: string } {
   const scoped = PROJECT_SCOPE_RE.exec(pathname);

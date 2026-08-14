@@ -62,7 +62,7 @@ def board_list(
 
     env = json.loads(result)
     if not env.get("ok"):
-        # Standard error envelope + category-mapped status code (TASK-399) —
+        # Standard error envelope + category-mapped status code —
         # never a 400 wrapping a partially-enriched raw envelope.
         return unwrap(env)
     if env.get("ok"):

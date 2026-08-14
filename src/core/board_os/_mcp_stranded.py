@@ -215,7 +215,7 @@ def cos_task_reclaim(
         (_STRANDED_SCAN_LIMIT,),
     ).fetchall()
     # Batch the per-testing-task git lookup into ONE history walk (was N
-    # subprocesses, each O(history) at 1M commits). TASK-227.
+    # subprocesses, each O(history) at 1M commits).
     from . import mcp_tools as _kernel
 
     commits_by_task = _kernel._commits_referencing_batch(
@@ -342,7 +342,7 @@ def cos_task_reconcile(conn: sqlite3.Connection, *, include_active: bool = False
     ).fetchall()
     # Pre-filter to the rows we'll actually triage (default = stranded only),
     # then batch the git lookup into ONE history walk instead of one subprocess
-    # per row. TASK-227.
+    # per row.
     triaged = [r for r in rows if include_active or not (r[1] and r[1] in active)]
     # Zombies: icebox cards whose work log already claims finished work. The
     # commit-subject count is NOT the signal here — the card-filing commit

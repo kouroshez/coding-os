@@ -131,7 +131,7 @@ def collect_stack_skill_groups(stack_id: str) -> dict:
 
     core_reg = load_skill_registry(CORE_SKILLS_DIR)
     # source_dir resolves the overlay dir for a community stack (== TEMPLATES_DIR/id
-    # for a bundled one), so the preview reads the right skills tree (TASK-478).
+    # for a bundled one), so the preview reads the right skills tree.
     stack_skills_dir = stack.source_dir / "skills"
     stack_reg = load_skill_registry(stack_skills_dir) if stack_skills_dir.is_dir() else None
     warnings = list(core_reg.warnings)

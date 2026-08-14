@@ -89,7 +89,7 @@ def _gated_module(tool_name: str) -> str | None:
     return None
 
 
-# Startup-time surface removal (TASK-476): a disabled module's tools must
+# Startup-time surface removal: a disabled module's tools must
 # VANISH from the served list_tools, not merely fail when called — else the
 # agent still sees them and hallucinates calls to a dead tool. The per-call
 # safe_tool gate stays as defense-in-depth (a client holding a cached

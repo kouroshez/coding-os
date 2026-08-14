@@ -33,14 +33,14 @@ _DEFAULTS: dict = {
     # Board drag auto-spawn — default OFF: a human panel drag icebox→in_progress
     # dispatches an implementer sub-session on the task (board.py::_auto_spawn_safe).
     "auto_spawn": {"enabled": False},
-    # Claude auth mode (TASK-756): "subscription" (default) leaves the CLI's own
+    # Claude auth mode: "subscription" (default) leaves the CLI's own
     # OAuth session in charge — byte-identical to pre-existing behavior. "api_key"
     # forwards api_key as ANTHROPIC_API_KEY into the dispatch subprocess env
     # (sdk_dispatcher.py::_claude_auth_env), which the CLI's own documented
     # precedence puts above subscription OAuth. api_key is masked on every read —
     # see _masked_settings.
     "claude_auth": {"mode": "subscription", "api_key": ""},
-    # pr-mode git workflow (TASK-518) — default OFF = byte-identical to trunk.
+    # pr-mode git workflow — default OFF = byte-identical to trunk.
     # enabled persists COS_GIT_WORKFLOW=pr into the agent env (cos-env.sh § pr-mode
     # enablement); integration_branch + protected_branches feed branch-guard +
     # the cos pr executor. SPEC: docs/playbooks/pr-workflow.md § 1.
@@ -48,7 +48,7 @@ _DEFAULTS: dict = {
         "enabled": False,
         "integration_branch": "main",
         "protected_branches": ["production"],
-        # Trust Spectrum (TASK-533): draft = human merges; auto_merge = arm on
+        # Trust Spectrum: draft = human merges; auto_merge = arm on
         # green required check; autonomous = + driver auto-cleanup. Safe default.
         "autonomy_level": "draft",
         # Worktree bootstrap: gitignored paths to symlink into a fresh worktree +
@@ -279,7 +279,7 @@ class _GitSettingsIn(BaseModel):
     enabled: bool
     integration_branch: str = "main"
     protected_branches: list[str] = ["production"]
-    # Trust Spectrum (TASK-540/614): local = commit-only; local_autonomous = land on
+    # Trust Spectrum: local = commit-only; local_autonomous = land on
     # LOCAL integration after a green verify, zero network; draft/auto_merge/autonomous
     # push. Literal rejects a typo'd rung at the API edge instead of letting it reach
     # cos-env → COS_GIT_AUTONOMY where it would silently behave as draft.

@@ -113,7 +113,7 @@ class TestChainVariesPerTask:
         )
 
     def test_distinct_prompts_yield_distinct_chains(self) -> None:
-        # The whole point of TASK-057: not every task collapses to ['analyst'].
+        # The whole point of not every task collapses to ['analyst'].
         chains = {
             tuple(self._chain(p))
             for p in (

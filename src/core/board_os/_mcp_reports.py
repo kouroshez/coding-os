@@ -91,7 +91,7 @@ def cos_task_daily(
     except Exception as exc:
         logger.debug("daily archive sweep skipped: %s", exc)
 
-    # Bounded standup queries (TASK-227): a 24h window or a runaway icebox must
+    # Bounded standup queries: a 24h window or a runaway icebox must
     # not fetchall unboundedly. Active columns are WIP-small; icebox uses an
     # accurate COUNT + a bounded oldest-first sample for the stale preview.
     # Standup highlights only — most-recent N transitions, not the full window

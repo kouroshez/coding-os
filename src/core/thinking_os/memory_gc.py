@@ -48,7 +48,7 @@ def _sweep_outbox_orphans(conn: sqlite3.Connection, *, dry_run: bool) -> int:
     # itself, so sweeping earlier leaves its own leftovers for the next run.
     # The changelog TTL reaps sources the outbox still queues, and the drain
     # clears only `limit` rows per session — orphans accumulate far faster than
-    # they are consumed and starve the real rows behind them (TASK-937).
+    # they are consumed and starve the real rows behind them.
     if not _table_exists(conn, "embedding_outbox"):
         return 0
     orphaned = 0

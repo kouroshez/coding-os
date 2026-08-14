@@ -55,7 +55,7 @@ def regen_after_toggle(project: Path) -> list[str]:
         notes.append("AGENTS.md regen skipped: no agents in .coding-os.yaml")
         return notes
 
-    # Meta-repo dogfood guard (TASK-439): the coding-os source tree ships a
+    # Meta-repo dogfood guard: the coding-os source tree ships a
     # hand-written AGENTS.md (CLAUDE.md symlinks to it). A module toggle here
     # must still flip state + the runtime allowlist (done above), but must NOT
     # clobber the hand-written AGENTS.md with a generated one.

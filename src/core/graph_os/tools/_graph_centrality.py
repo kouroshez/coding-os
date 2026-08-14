@@ -180,7 +180,7 @@ def cos_graph_centrality(
 
             kind = _normalize_kind_enum(kind).value
         except Exception:
-            # TASK-423: validate against the canonical NodeKind enum, not the
+            # validate against the canonical NodeKind enum, not the
             # kinds PRESENT in the DB. We only reach this branch when
             # normalize_kind rejected the value, i.e. it is a genuine typo; an
             # empty/sparse graph must still accept a VALID kind filter (which
@@ -327,7 +327,7 @@ def cos_graph_centrality(
             # Batch every edge among the capped node set via chunked indexed
             # queries instead of one list_edges per node (was O(n) queries at
             # scale). honour include_structural so path counts skip the
-            # containment skeleton the degree pass excludes. TASK-228.
+            # containment skeleton the degree pass excludes.
             id_ph = ",".join("?" * len(all_uids_list))
             id_rows = sqlite_conn.execute(
                 f"SELECT id, uid FROM graph_nodes WHERE uid IN ({id_ph})",

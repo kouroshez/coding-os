@@ -192,7 +192,7 @@ class TestMigrationV6Tasks:
         missing = expected - cols
         assert not missing, f"tasks table missing columns: {missing}"
         # v41 dropped the v6-era columns nothing read or wrote after the
-        # legacy task_sync retirement (TASK-398).
+        # legacy task_sync retirement.
         dropped = {
             "scope_in",
             "scope_out",

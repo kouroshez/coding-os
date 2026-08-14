@@ -281,7 +281,7 @@ def test_task_edit_title_updates_h1(project: Path, conn: sqlite3.Connection):
     assert "Old title" not in content, "stale title must not linger in the H1"
 
 
-# ---------- F1: board time dimension (status_dwell + stale) — TASK-210 RC5 ----------
+# ---------- F1: board time dimension (status_dwell + stale) — RC5 ----------
 
 
 def test_task_card_exposes_dwell_and_timestamps(project: Path, conn: sqlite3.Connection):
@@ -390,7 +390,7 @@ def test_daily_reports_testing_and_icebox_summary(project: Path, conn: sqlite3.C
     assert "TASK-002" in data["icebox"]["stale_ids"]
 
 
-# ---------- F2a: reclaim widening — TASK-210 RC3/RC4 ----------
+# ---------- F2a: reclaim widening — RC3/RC4 ----------
 
 
 def test_reclaim_returns_stale_testing_to_in_progress(project, conn, monkeypatch):

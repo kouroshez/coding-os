@@ -102,7 +102,7 @@ def _find_project_root_from_cwd(start: Path | None = None) -> Path | None:
     for parent in [cur, *cur.parents]:
         # $HOME hard-stop: never inspect or accept $HOME/.coding-os (the global
         # hub state, not a project root). Mirrors the boundary in
-        # cos-env.sh::_cos_find_project_root (TASK-498).
+        # cos-env.sh::_cos_find_project_root.
         if home is not None and parent == home:
             break
         try:

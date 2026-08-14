@@ -128,7 +128,7 @@ def _hub_settings_path(cwd: str) -> Path:
     return Path(cwd or os.getcwd()) / ".coding-os" / "hub-settings.json"
 
 
-# Deterministic auth-mode override (TASK-756): Hub Settings → Claude Auth lets a
+# Deterministic auth-mode override: Hub Settings → Claude Auth lets a
 # project pick "subscription" (default — the CLI's own OAuth session, byte-
 # identical to before this existed) or "api_key" (forward the user's key as
 # ANTHROPIC_API_KEY). Per platform.claude.com/docs/en/authentication, an API
@@ -185,7 +185,7 @@ def claude_session_options(
         "allowed_tools": [*_CHAT_BASE_TOOLS, _DEFAULT_COS_MCP_ALLOW],
         # P3: destructive-Bash deny floor (rm -rf / force-push / sudo / pipe-to-sh).
         "disallowed_tools": list(_DESTRUCTIVE_BASH_DENY),
-        # Hub Settings → Claude Auth (TASK-756): subscription OAuth by default,
+        # Hub Settings → Claude Auth: subscription OAuth by default,
         # ANTHROPIC_API_KEY when the project opted into api_key mode.
         "env": _claude_auth_env(cwd),
     }
@@ -327,7 +327,7 @@ def _dispatch_env(cwd: str) -> dict[str, str]:
     # OTEL collector as the parent (D5 leaves the collector to
     # operators; we just propagate). OTEL_SERVICE_NAME identifies
     # the dispatcher distinctly from a normal claude-code session.
-    # Hub Settings → Claude Auth (TASK-756) first, so an OTEL var can never
+    # Hub Settings → Claude Auth first, so an OTEL var can never
     # shadow the ANTHROPIC_API_KEY override (disjoint key sets, but explicit
     # ordering keeps the precedence obvious to a future reader).
     env: dict[str, str] = _claude_auth_env(cwd)

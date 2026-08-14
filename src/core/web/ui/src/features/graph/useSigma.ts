@@ -121,7 +121,7 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
       // Tolerate a zero-width host at mount — the Cognition page (and any
       // tab that mounts the canvas inside a not-yet-laid-out flex column)
       // would otherwise throw "Sigma: Container has no width" on first
-      // paint (TASK-409); Sigma re-measures on the next resize/refresh.
+      // paint; Sigma re-measures on the next resize/refresh.
       allowInvalidContainer: true,
       renderLabels: true,
       labelSize: 12,
@@ -226,7 +226,7 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
 
       if (newLOD !== currentLOD) {
         currentLOD = newLOD;
-        // TASK-406: adaptive sizing — past the mid-zoom threshold node
+        // adaptive sizing — past the mid-zoom threshold node
         // sizes follow GRAPH positions (linear ratio) instead of staying
         // fixed-pixel, so zoomed-out circles shrink with the layout and
         // stop piling on top of each other (Sigma's documented remedy;
@@ -356,7 +356,7 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
       if (!live || !sig || !containerRef.current) return;
       live.forEachNode((n: string, d: SigmaNodeAttrs) => {
         // Root anchor keeps its reserved focal color across a theme
-        // toggle — it is NOT a categorical folder (TASK-408).
+        // toggle — it is NOT a categorical folder.
         live.setNodeAttribute(n, 'color', isRootUid(n) ? ROOT_COLOR : kindColor(d.kind, s.theme));
       });
       const cs = getComputedStyle(containerRef.current);

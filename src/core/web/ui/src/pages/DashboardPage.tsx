@@ -32,7 +32,7 @@ import {
 // ─────────────────────────────────────────────────────────────────────────
 
 export function ContextPctBadge({ row }: { row?: ContextAgent }) {
-  // Explicit unknown state — never 0%, never blank (TASK-324 acceptance).
+  // Explicit unknown state — never 0%, never blank ( acceptance).
   if (!row || row.context_pct === null || row.context_pct === undefined) {
     return (
       <span

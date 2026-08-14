@@ -72,7 +72,7 @@ _LEGACY_KIND_MAP: dict[str, str] = {
     "code:import": "import_",
     # Go package-grouping node (one per `package <name>`) — a module-tier
     # namespace, mapped to `module` so it gets a legend slot and
-    # `normalize_kind` never raises on the stored row (TASK-409).
+    # `normalize_kind` never raises on the stored row.
     "code:package": "module",
     # `code:external:*` UIDs are unresolved cross-module references —
     # builtin types, dynamic attribute accesses, third-party imports

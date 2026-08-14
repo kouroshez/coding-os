@@ -71,7 +71,7 @@ def _link_stack_skills(
 
     # Community-overlay stacks live outside the bundled tree the shell linker
     # scans (data_root), so link their skills here from the resolved source_dir
-    # (TASK-479). Only fires for a stack whose source_dir is NOT under TEMPLATES_DIR.
+    # . Only fires for a stack whose source_dir is NOT under TEMPLATES_DIR.
     stack_registry = _get_stack_registry()
     bundled_root = TEMPLATES_DIR.resolve()
     community: list[str] = []
@@ -309,7 +309,7 @@ def _overlay_scaffold(
     """
     # Source roots in overlay order: _base first, then each template overlay.
     # Each entry: (scaffold dir, owning stack id or None for _base). A community
-    # stack's scaffold lives at its resolved source_dir, not the bundled tree (TASK-479).
+    # stack's scaffold lives at its resolved source_dir, not the bundled tree.
     registry = _get_stack_registry()
     sources: list[tuple[Path, str | None]] = [(TEMPLATES_DIR / "_base" / "scaffold", None)]
     for name in templates:

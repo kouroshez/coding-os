@@ -68,7 +68,7 @@ def dispatch(
     # inside a render dir indexed a phenotype COPY of a canonical src/ doc —
     # whose copied-in relative links resolve from the wrong depth and mint
     # broken file stubs (e.g. code:file:core/hooks/registry.yaml). Mirror the
-    # walker's per-segment denylist so both paths agree (TASK-410).
+    # walker's per-segment denylist so both paths agree.
     from graph_os.ingest.base import DEFAULT_EXCLUDE
 
     if any(part in DEFAULT_EXCLUDE for part in Path(rel).parts):
@@ -169,7 +169,7 @@ def dispatch(
         if "graph" in cache_hits:
             result["layers"]["graph"] = cache_hits["graph"]
         elif read_error is not None:
-            # D7-F1 (TASK-129): a read error on a path that no longer exists is
+            # D7-F1: a read error on a path that no longer exists is
             # a DELETION, not a transient failure — still prune the file's graph
             # nodes so a deleted file doesn't leave orphans. A read error on a
             # path that DOES exist is transient (locked/encoding); keep the

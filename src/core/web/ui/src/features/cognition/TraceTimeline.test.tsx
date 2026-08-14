@@ -12,7 +12,7 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('@/lib/hooks', () => ({
   useApiGet: () => ({ data: hoisted.payload, isLoading: false, error: null }),
 }));
-// Trace SSE tail (TASK-667): capture the `trace` listener so a test can push a
+// Trace SSE tail: capture the `trace` listener so a test can push a
 // live event, and keep jsdom (which ships no EventSource) from throwing.
 vi.mock('@/lib/api-client', () => ({ resolveApiUrl: (p: string) => p }));
 vi.mock('@/lib/shared-event-source', () => ({

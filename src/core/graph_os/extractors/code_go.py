@@ -263,7 +263,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         GraphNode(
             # Go package node is a module-tier namespace; emit the canonical
             # `module` kind (uid keeps the `code:package:` namespace so it
-            # never collides with the per-file module node) — TASK-409.
+            # never collides with the per-file module node) —
             uid=pkg_node_uid,
             kind="module",
             label=pkg_name,

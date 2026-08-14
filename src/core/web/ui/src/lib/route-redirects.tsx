@@ -24,7 +24,7 @@ export function RedirectToDiagnostics({ sub }: { sub: string }) {
   return <Navigate to={`${base}${search}`} replace />;
 }
 
-// Settings merged into Config (TASK-864) — old settings deep-links land on the
+// Settings merged into Config — old settings deep-links land on the
 // Config tab; the global scope has no config surface, so it falls back to `/`.
 export function RedirectToConfigSettings() {
   const { slug } = useParams<{ slug?: string }>();

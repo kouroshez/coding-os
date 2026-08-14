@@ -354,7 +354,7 @@ class TestProcessesMode:
         )
 
     def test_at_least_six_community_nodes_surface(self, monkeypatch):
-        # TASK-407 / guards the TASK-406 regression: 8 communities where
+        # / guards the regression: 8 communities where
         # the first holds 400 members. At a 500-node budget the old greedy
         # pass surfaced only ~2 headers; the fair reservation must surface
         # every header.

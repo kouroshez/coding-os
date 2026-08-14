@@ -8,7 +8,7 @@ import { useWizardComposer } from './onboarding/useWizardComposer';
 export { readParkedJob };
 
 /**
- * New-project Composer — TASK-419 (supersedes the 8-step wizard, TASK-358).
+ * New-project Composer — supersedes the 8-step wizard.
  *
  * PURPOSE: One screen. Left = choices (template, name/folder/description,
  *          Advanced: agents + skills). Right = a live "what you'll get"
@@ -18,7 +18,7 @@ export { readParkedJob };
  * INPUT:   GET /api/hub/{presets,stacks,adapters,skills,stacks/{id}/skills};
  *          POST /api/hub/registry/{validate-init,init}.
  * OUTPUT:  A created+registered project; the description seeds
- *          docs/_meta/project-description.md → PRD (TASK-364). A project may
+ * docs/_meta/project-description.md → PRD. A project may
  *          host several adapters (agents is a list — hub.py::_resolve_agents).
  */
 

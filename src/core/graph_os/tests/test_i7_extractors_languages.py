@@ -82,7 +82,7 @@ class TestShellExtractor:
         assert any(e.target_uid == "cos:hook:my-hook" for e in edges)
 
     def test_dynamic_source_not_recorded_as_parse_error(self):
-        # TASK-303: an unresolvable dynamic source is expected and parsed
+        # an unresolvable dynamic source is expected and parsed
         # cleanly — it must not appear as a parse error.
         r = code_shell.extract(
             "core/hooks/x.sh",
@@ -280,7 +280,7 @@ class TestGoExtractor:
         assert "code:file" in kinds
         assert "code:module" in kinds
         # The package grouping node now carries the canonical `module` kind
-        # (TASK-409 — `code:package` was an orphan kind normalize_kind could
+        # ( — `code:package` was an orphan kind normalize_kind could
         # not map); identify it by its stable uid namespace, not the kind.
         pkg_nodes = [n for n in r.nodes if n.uid == "code:package:go:server"]
         assert len(pkg_nodes) == 1

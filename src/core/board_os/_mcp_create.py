@@ -485,5 +485,5 @@ def cos_task_create(
 
 # ---------- cos_task_board ----------
 
-# TASK-209: tiny safety margin below the budget — the probe mirrors the real
+# tiny safety margin below the budget — the probe mirrors the real
 # envelope closely, so only a few bytes of slack are needed.

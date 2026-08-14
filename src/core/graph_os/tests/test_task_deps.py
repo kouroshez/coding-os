@@ -99,9 +99,9 @@ class TestExtract:
 
     def test_emits_task_file_node(self):
         r = self._extract()
-        # task_deps emits the canonical TASK-042 node and md_links'
+        # task_deps emits the canonical node and md_links'
         # _promote_stubs synthesises stubs for any other TASK-XXX uids
-        # the file references (e.g., depends_on TASK-007 / TASK-199).
+        # the file references (e.g., depends_on / TASK-199).
         # We assert the canonical one is present and a singleton among
         # non-stub task_file nodes.
         non_stub = [n for n in r.nodes if n.kind == "task:file" and not n.metadata.get("stub")]

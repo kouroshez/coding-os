@@ -67,7 +67,7 @@ class TestRecallFiresForFormalGates:
     def test_clear_gate_writes_learn_suggestions(self, tmp_path: Path, monkeypatch) -> None:
         # Recall must fire for a CLEAR formal gate, not only COMPLICATED/COMPLEX —
         # otherwise simple tasks never feed .learn-suggestions and the validation
-        # loop's pattern_validations ledger stays empty (TASK-802).
+        # loop's pattern_validations ledger stays empty.
         from database import init_db
 
         db = tmp_path / "cos.db"

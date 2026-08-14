@@ -80,7 +80,7 @@ case "${COS_STATE_DIR}" in
 esac
 
 # ---------------------------------------------------------------------------
-# Worktree state routing + misroute guard (TASK-515 / pr-mode). A command
+# Worktree state routing + misroute guard ( / pr-mode). A command
 # inside a git worktree under ~/.coding-os/worktrees/ must resolve state to the
 # MAIN repo, so every worktree of one repo shares its $COS_STATE_DIR (DB, board,
 # presence, the test-governor .test-run.lock). Runs AFTER the case so it also
@@ -103,7 +103,7 @@ fi
 # so a custom-location worktree misrouted state into itself (stray .coding-os in
 # the agent's PR). Trunk fast-path preserved by a cheap `.git`-FILE pre-check: a
 # linked worktree's root has `.git` as a file (gitdir pointer), a normal repo has
-# it as a directory — only the former forks git below. (pr-workflow.md § 3, TASK-531.)
+# it as a directory — only the former forks git below. (pr-workflow.md § 3.)
 if [[ -z "$_cos_in_wt" && -z "${COS_PROJECT_ROOT:-}" ]] && _cos_has_dotgit_file; then
   _cos_wt_main="$(_cos_main_repo_from_worktree)"
   if [[ -n "$_cos_wt_main" ]]; then
@@ -133,8 +133,8 @@ if [[ -n "$_cos_in_wt" ]]; then
     # main unresolvable: steer to a per-worktree QUARANTINE, never the global hub
     # ($HOME/.coding-os) — binding there made every misrouted worktree share the
     # hub's own state (DB/board/presence/locks) and collide with it and each other
-    # (TASK-582 regression of 1f8869b5). Also never a worktree-relative .coding-os —
-    # that stray gets committed into the agent's PR (TASK-531). The quarantine sits
+    # ( regression of 1f8869b5). Also never a worktree-relative.coding-os —
+    # that stray gets committed into the agent's PR. The quarantine sits
     # OFF the hub root and outside the checkout, keyed per worktree path; the
     # misroute flag still fires so the operator sees the misconfig.
     export COS_STATE_MISROUTE=1
@@ -176,7 +176,7 @@ if [[ -f "${COS_STATE_DIR}/hub-settings.json" ]] \
     # JSON, or neither jq nor python3). The file EXISTS and names git_settings, so
     # the operator opted into pr-mode; a torn write must NOT silently re-enable
     # trunk (where a direct push to main is legal). Fail CLOSED to pr-mode — the
-    # stricter posture — with safe-default policy, and warn once. (TASK-587b)
+    # stricter posture — with safe-default policy, and warn once.
     COS_GIT_INTEGRATION_BRANCH="${COS_GIT_INTEGRATION_BRANCH:-main}"
     COS_GIT_PROTECTED_BRANCHES="${COS_GIT_PROTECTED_BRANCHES:-production}"
     COS_GIT_AUTONOMY="${COS_GIT_AUTONOMY:-draft}"
@@ -205,7 +205,7 @@ COS_HOOK_LOG="${COS_HOOK_LOG:-${COS_STATE_DIR}/.hooks.log}"
 COS_HOOK_BLOCK_LOG="${COS_HOOK_BLOCK_LOG:-${COS_STATE_DIR}/.hook-blocks.log}"
 
 # ---------------------------------------------------------------------------
-# Per-project hook override (TASK-256) — a disabled NON-safety hook self-skips
+# Per-project hook override — a disabled NON-safety hook self-skips
 # for THIS project. `$COS_STATE_DIR/disabled-hook-scripts` (one script basename
 # per line) is the derived allowlist written by cli.project_overrides, which
 # NEVER lists a safety-category hook — so a safety hook can never be disabled.

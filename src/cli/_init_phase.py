@@ -79,7 +79,7 @@ def _run_scaffold_phase(
     state.mkdir(parents=True, exist_ok=True)
     click.echo(f"  Created {STATE_DIR}/")
     stamp_core_version(state)
-    # First-edit grace marker (TASK-372): lets the agent's first legitimate code
+    # First-edit grace marker: lets the agent's first legitimate code
     # edit in a brand-new project skip the doc-anchor BLOCK. enforce-doc-anchor.sh
     # consumes it on that first edit, so the grace is exactly one edit, bounded.
     (state / ".fresh-init").touch()
@@ -128,7 +128,7 @@ def _run_scaffold_phase(
     }
     if active_preset is not None:
         # Provenance + pass-through for later layers: extra-skill linking is
-        # TASK-370, module toggle behavior is TASK-349.
+        # Module toggle behavior is documented with the subsystem registry.
         config["preset"] = active_preset.id
         if active_preset.skills:
             config["extra_skills"] = list(active_preset.skills)
@@ -149,7 +149,7 @@ def _run_scaffold_phase(
         )
     _save_config(project, config)
     # Preset/wizard module toggles land in project state BEFORE the scaffold
-    # copy so tag-driven docs composition sees them (TASK-360). Disable order:
+    # copy so tag-driven docs composition sees them. Disable order:
     # dependents first (the registry refuses chains, e.g. docs before tasks).
     module_toggles = {k: v for k, v in (config.get("modules") or {}).items() if v is False}
     if module_toggles:
@@ -173,7 +173,7 @@ def _run_scaffold_phase(
                 click.echo(f"  WARN: module '{module_id}': {toggle.reason}", err=True)
             else:
                 click.echo(f"  Module disabled per preset: {module_id}")
-        # SI-1 (TASK-439): route init through the SAME runtime-allowlist path
+        # SI-1: route init through the SAME runtime-allowlist path
         # as `cos module disable`. set_module_enabled alone only flips state;
         # without this, .coding-os/disabled-hook-scripts is never written at
         # init time and the disabled modules' hooks keep firing. AGENTS.md is
@@ -184,7 +184,7 @@ def _run_scaffold_phase(
         allowlist = write_runtime_allowlist(project)
         click.echo(f"  Runtime hook allowlist → {allowlist.relative_to(project)}")
     if project_summary and project_summary.strip():
-        # Onboarding intake — consumed by the description→PRD pipeline (TASK-364).
+        # Onboarding intake — consumed by the description→PRD pipeline.
         meta_dir = project / "docs" / "_meta"
         meta_dir.mkdir(parents=True, exist_ok=True)
         (meta_dir / "project-description.md").write_text(
@@ -193,7 +193,7 @@ def _run_scaffold_phase(
         )
         click.echo("  Seeded docs/_meta/project-description.md")
         # Docs-module gate: preset/wizard module toggles are stored in config
-        # (behavior SSOT lands with TASK-349); docs defaults ON.
+        # (behavior SSOT lives in the subsystem registry); docs defaults ON.
         if (config.get("modules") or {}).get("docs", True):
             from cli.setup import seed_prd_from_text
 
@@ -260,7 +260,7 @@ def _run_scaffold_phase(
     substitutions = world.substitutions
     if project_summary and project_summary.strip():
         # The user's own words replace the generic default everywhere the
-        # {{PROJECT_DESCRIPTION}} placeholder appears (TASK-364).
+        # {{PROJECT_DESCRIPTION}} placeholder appears.
         substitutions = {
             **substitutions,
             "PROJECT_DESCRIPTION": " ".join(project_summary.split()),
@@ -369,7 +369,7 @@ def _run_scaffold_phase(
         click.echo("  Skipped initial doc index (--no-index)")
 
     # 11b. Seed the knowledge graph so the Hub Graph tab + cos_graph_* tools work
-    # from the first session with NO manual `cos graph-reindex` (TASK-423). Built
+    # from the first session with NO manual `cos graph-reindex`. Built
     # when --index (the default) OR --graph-index is set — the latter lets a fast
     # --no-index create (the Hub Composer) still get a populated graph (AST walk,
     # no embedding model), while CI/fixture scaffolds that pass only --no-index

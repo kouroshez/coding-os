@@ -139,7 +139,7 @@ def _record_state_safe(
         # routes to plain md_links), the old chain's row lingers with its old
         # parse_errors_count and inflates cos_graph_doctor. On a graph-layer
         # write, drop sibling graph rows for this path (keep the docs:md row,
-        # which legitimately coexists). TASK-303.
+        # which legitimately coexists).
         if chain_key != _DOCS_CHAIN_KEY:
             conn.execute(
                 "DELETE FROM file_index_state WHERE file_path = ? "
@@ -160,7 +160,7 @@ def _open_conn(*, project_root: Path, db_path: str | None):
     # write lock even when a no-op, and dispatch used to open THREE fresh
     # connections per file (cache lookup, graph write, state record). Under
     # `graph-reindex -j N` that thundering herd starves workers past their
-    # busy_timeout and the whole walk grinds (TASK-394/395 stall). One
+    # busy_timeout and the whole walk grinds. One
     # connection per thread per DB removes the churn; callers MUST NOT
     # close what this returns.
     from thinking_os.database import init_db, resolve_db_path  # type: ignore

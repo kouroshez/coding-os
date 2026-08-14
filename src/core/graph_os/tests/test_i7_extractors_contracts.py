@@ -129,7 +129,7 @@ class TestContractsNextjs:
         assert "**" in path or "{" in path
 
     def test_dynamic_fetch_not_a_parse_error(self):
-        # TASK-303: a template-literal fetch route is parsed fine, just not
+        # a template-literal fetch route is parsed fine, just not
         # statically resolvable — it must not be counted as a parse error.
         src = "const r = await fetch(`/api/${id}`);\n"
         r = contracts.extract("frontend/src/client.ts", src)

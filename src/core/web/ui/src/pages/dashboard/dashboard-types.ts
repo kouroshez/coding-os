@@ -24,7 +24,7 @@ export interface PresencePayload {
 }
 
 // Producer: /api/presence/agents (presence.py::presence_agents) — the
-// context-window fill the hub-architecture spec documents (TASK-324).
+// context-window fill the hub-architecture spec documents.
 export interface ContextAgent {
   agent: string;
   session_id?: string | null;
@@ -48,7 +48,7 @@ export interface ActiveSession {
   state: 'active' | 'present' | 'idle' | 'offline' | 'ended';
   is_current?: boolean;
   model?: string | null;
-  // Per-session context fill stamped by /api/sessions/active (TASK-871) —
+  // Per-session context fill stamped by /api/sessions/active —
   // the row's own values beat the per-agent /api/presence/agents lookup,
   // which only covers each agent's current-marker session.
   context_pct?: number | null;

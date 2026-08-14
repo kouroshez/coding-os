@@ -22,7 +22,7 @@ from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import ENVELOPE_ERROR_RESPONSES, unwrap
 from ._bounded_read import newest_files, safe_segment, tail_lines
 
-# Scale guards (TASK-225): never glob every trace file or read a whole log.
+# Scale guards: never glob every trace file or read a whole log.
 _MAX_TRACE_FILES = 100  # newest-N trace files to scan per directory
 
 router = APIRouter(

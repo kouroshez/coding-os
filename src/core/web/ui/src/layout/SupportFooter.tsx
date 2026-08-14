@@ -1,6 +1,6 @@
 import { SUPPORT_LINKS } from '@/layout/support-links';
 
-// Community / support surface for the Hub (TASK-372). Rendered in the AppShell
+// Community / support surface for the Hub. Rendered in the AppShell
 // chrome — deliberately OUTSIDE the onboarding wizard tree so the links never
 // appear during project creation.
 export default function SupportFooter() {

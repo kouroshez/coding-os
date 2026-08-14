@@ -40,7 +40,7 @@ import sqlite3
 import sys
 from typing import Any
 
-# Streaming batch sizes — bound peak memory regardless of table size (TASK-224).
+# Streaming batch sizes — bound peak memory regardless of table size.
 # search streams candidate vectors; reindex streams + batch-embeds source rows.
 _SEARCH_BATCH = 4096
 _REINDEX_BATCH = 64
@@ -659,7 +659,7 @@ def search_similar(
 
     # Stream candidates in batches and keep only a top-`limit` min-heap, so peak
     # memory is one batch of vectors + `limit` results — never the whole table
-    # (1M embeddings fetched at once would be ~1.5 GB of RAM). TASK-224.
+    # (1M embeddings fetched at once would be ~1.5 GB of RAM).
     heap: list[tuple[float, int, dict]] = []
     seq = 0
     while True:
@@ -787,7 +787,7 @@ def reindex_all(conn: sqlite3.Connection) -> dict:
             continue
         # Stream source rows in batches; embed only changed/new rows in one
         # embed_texts() call per batch instead of one model.encode per row.
-        # Peak memory = one batch, not the whole table. TASK-224.
+        # Peak memory = one batch, not the whole table.
         while True:
             src_rows = cursor.fetchmany(_REINDEX_BATCH)
             if not src_rows:

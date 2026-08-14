@@ -10,7 +10,7 @@ export interface PresenceAgent {
   sdk_uuid?: string | null;
   /** Owning project's registry slug — present on /api/presence/agents so
    *  home-level (unscoped) surfaces can build an explicit /p/<slug>/cognition
-   *  link instead of degrading to the unscoped picker route (TASK-435). */
+   * link instead of degrading to the unscoped picker route. */
   slug?: string | null;
   model?: string | null;
   gate?: string | null;
@@ -27,7 +27,7 @@ export interface PresenceAgentsResponse {
 }
 
 /** One registered project's live-agent group from GET /api/hub/agents
- *  (cross-project roster, TASK-437). Each agent already carries its own
+ * (cross-project roster). Each agent already carries its own
  *  `slug`, so the existing card + cognitionHref render per-project links. */
 export interface HubAgentGroup {
   slug: string;
@@ -99,7 +99,7 @@ function titleCase(s: string): string {
 
 /**
  * Project-scoped cognition URL for a live agent — or null when no owning
- * project can be resolved (TASK-435).
+ * project can be resolved.
  *
  * `agentSlug` is the agent's owning-project slug from /api/presence/agents;
  * `urlSlug` is the active project parsed from the current URL (useScopedLink),

@@ -147,7 +147,7 @@ fi
 # can symlink them by hand.
 # ---------------------------------------------------------------------------
 _NON_ACTIVE_RULES="dimension-registry.md skill-enforcement.md"
-# Per-project module gating (TASK-811): a core rule owned ONLY by a disabled
+# Per-project module gating: a core rule owned ONLY by a disabled
 # subsystem module is skipped AND unlinked, mirroring the disabled-skill sweep
 # below. The live toggle is done inline by cli.module_commands.cascade_module_rules;
 # this re-applies it on a fresh install / `cos update`.

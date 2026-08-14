@@ -101,7 +101,7 @@ if cos_one_shot_override doc-anchor 2>/dev/null; then
   exit 0
 fi
 
-# Fresh-project grace (TASK-372): a just-scaffolded project has no anchor and no
+# Fresh-project grace: a just-scaffolded project has no anchor and no
 # task history, so the agent's FIRST legitimate code edit would hit the BLOCK
 # below. `cos init` leaves a one-shot "$COS_STATE_DIR/.fresh-init" marker; allow
 # a single edit and consume the marker, so this can never become a standing
@@ -147,7 +147,7 @@ if [[ ! -f "$ANCHOR_FILE" ]]; then
   exit 2
 fi
 
-# D5-F3 (TASK-128): if the anchor names explicit docs/ path(s), at least one
+# D5-F3: if the anchor names explicit docs/ path(s), at least one
 # must resolve on disk — catches typos + hallucinated anchors. A task-based
 # anchor (task:TASK-NNN, no direct docs/ path) is proven by the task's Read
 # First, so skip the disk check when no docs/ token is present.

@@ -43,7 +43,7 @@ _TMP="${STATE_FILE}.tmp.$$"
 printf '%s %s\n' "$SESSION_ID" "$VALUE" > "$_TMP"
 mv -f "$_TMP" "$STATE_FILE"
 
-# CLEAR-1 self-bypass accountability (TASK-494): setting the gate to "CLEAR 1"
+# CLEAR-1 self-bypass accountability: setting the gate to "CLEAR 1"
 # self-exempts the agent from six enforcement hooks (doc-anchor, skill, task-start,
 # memory-check, zoom, anti-ambiguity). Record each such write as an append-only,
 # per-session line so the bypass is visible (banner bypasses=N) and auditable

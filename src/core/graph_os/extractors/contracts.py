@@ -125,7 +125,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         # A fetch() with a template-literal route is parsed fine — its target
         # is just not statically resolvable. That is NOT a parse error (it was
         # wrongly inflating the count, same class as shell `dynamic`); note it
-        # at debug instead (TASK-303).
+        # at debug instead.
         logger.debug("opaque fetch route (template literal) in %s", normalised)
 
     for hit in matches:

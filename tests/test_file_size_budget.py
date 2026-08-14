@@ -17,6 +17,7 @@ exact replacement line so tightening is mechanical.
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -126,3 +127,42 @@ def test_hook_registry_quotes_the_real_ceiling() -> None:
     assert quoted, "registry no longer describes a line ceiling — update this test with it"
     wrong = [n for n in quoted if int(n) != SOFT_LIMIT]
     assert not wrong, f"registry.yaml advertises {wrong} but the hook enforces {SOFT_LIMIT}"
+
+
+# --- Rule 12: no provenance in comments -------------------------------------
+
+_TASK_REF = re.compile(r"TASK-\d+")
+_COMMENT = re.compile(r"^(\s*)(#|//|\*)")
+
+# The first two document the ID FORMAT they parse or fuzz, so the ids are the
+# subject of the comment rather than provenance about who wrote the line; the
+# third is generated from the OpenAPI snapshot and is not hand-edited.
+_PROVENANCE_EXEMPT = {
+    "src/core/thinking_os/task_parser.py",
+    "src/core/web/ui/src/features/cos-board/renderTaskMarkdown.fuzz.test.ts",
+    "src/core/web/ui/src/lib/api-types.ts",
+}
+
+
+def test_no_task_ids_in_source_comments() -> None:
+    """Rule 12: `git blame` already records who and what; a comment states why.
+
+    The repo carried 346 of these while enforcing the rule on consumers — and
+    because the runtime is told to match surrounding comment density, that
+    legacy taught every agent the opposite of the rule.
+    """
+    root = Path(__file__).resolve().parent.parent
+    offenders: list[str] = []
+    for rel_root in ("src/core", "src/cli", "src/adapters"):
+        for path in (root / rel_root).rglob("*"):
+            if path.suffix not in {".py", ".sh", ".ts", ".tsx"} or not path.is_file():
+                continue
+            rel = str(path.relative_to(root))
+            if rel in _PROVENANCE_EXEMPT or "/tests/" in rel:
+                continue
+            for num, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if _COMMENT.match(line) and _TASK_REF.search(line):
+                    offenders.append(f"{rel}:{num}: {line.strip()[:80]}")
+    assert not offenders, (
+        f"Rule 12 — {len(offenders)} comment(s) carry a task id:\n  " + "\n  ".join(offenders[:20])
+    )

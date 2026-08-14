@@ -303,7 +303,7 @@ def _resolve_symbol(name: str, *, path: str, visitor: _PythonVisitor) -> str:
 
 
 # Dotted-name shape an unresolved-call stub may carry — anything else is an
-# over-captured expression, not an identifier (TASK-405).
+# over-captured expression, not an identifier.
 _IDENTIFIER_EXPR_RE = re.compile(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*")
 
 
@@ -362,7 +362,7 @@ def _resolve_call(
         # An "identifier" stub must be identifier-shaped (dotted names only).
         # Complex receivers (`(a or b / 'x').resolve`) used to mint
         # expression-shaped stubs — 956 junk rows that nothing can ever
-        # link (TASK-405). Skip the edge entirely; the LSP overlay can
+        # link. Skip the edge entirely; the LSP overlay can
         # still resolve such sites later.
         if not _IDENTIFIER_EXPR_RE.fullmatch(call.full_expr or ""):
             return (0.0, tuple(signals), None)

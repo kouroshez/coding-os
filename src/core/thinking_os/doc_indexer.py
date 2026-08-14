@@ -160,7 +160,7 @@ def index_docs(
         # strips it. Written to columns added in migration v22 so
         # cos_doc_search can pre-filter by domain/layer/updated.
         fm = _parse_front_matter(content)
-        # D3-F7 (TASK-124): surface files with a body but no parseable
+        # D3-F7: surface files with a body but no parseable
         # frontmatter — previously a silent logger.debug, invisible in the
         # index summary. A leading `<!--` that simply didn't match is a
         # malformed header, not a missing one; both count as a Stage-1 gap.
@@ -178,7 +178,7 @@ def index_docs(
 
         source_type = source_config.get("type", "doc")
         priority = float(source_config.get("priority", 0.5))
-        # D7-F9 (TASK-138): a doc that declares superseded_by in its header is a
+        # D7-F9: a doc that declares superseded_by in its header is a
         # past era — index it inactive so cos_doc_search hides it by default.
         doc_is_active = 0 if fm.get("superseded_by") else 1
 
@@ -362,7 +362,7 @@ def index_single_file(
     source_type = source_config.get("type", "doc")
     priority = float(source_config.get("priority", 0.5))
     new_chunk_count = 0
-    # D7-F9 (TASK-138): superseded docs index inactive (hidden by default).
+    # D7-F9: superseded docs index inactive (hidden by default).
     doc_is_active = 0 if fm.get("superseded_by") else 1
 
     for chunk in chunks:

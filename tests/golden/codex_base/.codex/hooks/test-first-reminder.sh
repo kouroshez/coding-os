@@ -76,7 +76,7 @@ esac
 # Build a session-cached index of every test file ONCE, then look candidates
 # up by grep. Replaces a full `find` per edited file — at 100K files that walk
 # was the dominant per-edit cost. The cache lives in the panel dir and is
-# cleared each SessionStart with the other markers. TASK-229.
+# cleared each SessionStart with the other markers.
 _TEST_CACHE="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os/claude}}/.test-locations.cache"
 if [[ ! -s "$_TEST_CACHE" ]]; then
   find "$ROOT" -maxdepth 6 -type f \

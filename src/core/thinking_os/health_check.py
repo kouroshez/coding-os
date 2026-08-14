@@ -232,7 +232,7 @@ def check_hooks() -> dict:
         result["hooks"][hook_name] = hook_info
 
     # Functional hook tests now live in the pytest suite (tests/test_hooks_*.py),
-    # not the retired bash test-hooks.sh harness (TASK-460). Probe that instead.
+    # not the retired bash test-hooks.sh harness. Probe that instead.
     hook_tests = list((PROJECT_ROOT / "tests").glob("test_hooks_*.py"))
     result["test_suite_exists"] = bool(hook_tests)
     if not hook_tests:

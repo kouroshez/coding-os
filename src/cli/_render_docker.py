@@ -8,7 +8,7 @@ that composes AGENTS.md. Pure data plus two lookups — no world required.
 from __future__ import annotations
 
 # Per-language multi-stage, non-root, healthchecked Dockerfile skeleton. Keyed by
-# the backend stack's language base image (TASK-610). A skeleton, not a finished
+# the backend stack's language base image. A skeleton, not a finished
 # image: the CMD/healthcheck target is the seam a consumer adjusts to its
 # entrypoint. Only category=backend stacks get one — see materialize_dockerfiles.
 _DOCKERFILE_SKELETONS: dict[str, str] = {

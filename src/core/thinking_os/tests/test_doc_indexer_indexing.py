@@ -159,7 +159,7 @@ class TestIndexDocs:
     def test_counts_missing_frontmatter(
         self, tmp_db: sqlite3.Connection, tmp_project: Path, tmp_config: Path
     ) -> None:
-        # TASK-124 (D3-F7): a body without a parseable <!-- domain --> header is
+        # (D3-F7): a body without a parseable <!-- domain --> header is
         # a Stage-1 metadata gap and must surface in the index summary, not just
         # a silent logger.debug.
         (tmp_project / "docs" / "engineering" / "no-frontmatter.md").write_text(
@@ -172,7 +172,7 @@ class TestIndexDocs:
     def test_superseded_doc_indexed_inactive(
         self, tmp_db: sqlite3.Connection, tmp_project: Path, tmp_config: Path
     ) -> None:
-        # D7-F9 (TASK-138): a doc with superseded_by in its header indexes
+        # D7-F9: a doc with superseded_by in its header indexes
         # is_active=0 so cos_doc_search hides the past era by default; a normal
         # doc stays is_active=1.
         eng = tmp_project / "docs" / "engineering"

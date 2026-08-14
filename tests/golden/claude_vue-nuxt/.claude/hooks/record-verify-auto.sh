@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# record-verify-auto.sh (PostToolUse Bash) — auto-record suite results (TASK-329).
+# record-verify-auto.sh (PostToolUse Bash) — auto-record suite results.
 #
 # When a Bash command that executes a verify suite (data-driven match against
 # verify-suites.yaml via `verify_suites_cli match-command`) completes, record
@@ -35,7 +35,7 @@ case "$COMMAND" in
 esac
 
 EXIT_CODE=$(echo "$INPUT" | jq -r '.tool_response.exit_code // .tool_response.exitCode // 0' 2>/dev/null || echo 0)
-# TASK-335: on PostToolUseFailure the payload may carry no exit_code at all —
+# on PostToolUseFailure the payload may carry no exit_code at all —
 # the event itself IS the failure signal; never let the `// 0` default record
 # a phantom PASS.
 EVENT_NAME=$(echo "$INPUT" | jq -r '.hook_event_name // empty' 2>/dev/null || echo "")

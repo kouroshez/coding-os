@@ -141,7 +141,7 @@ def cos_task_ready(
     rel_path = row[1]
     file_path = project_root / rel_path if rel_path else None
 
-    # DoR surfacing (TASK-258): reuse the icebox→in_progress validator so a
+    # DoR surfacing: reuse the icebox→in_progress validator so a
     # task can't be silently labeled ready while incomplete. Runs BEFORE the
     # label mutation so a strict-mode refusal leaves no half-applied change.
     dor_gaps: list[dict[str, str]] = []

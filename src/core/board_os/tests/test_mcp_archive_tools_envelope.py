@@ -14,7 +14,7 @@ _SL = [{"id": "core", "label": "Core", "color": "#3b82f6"}]
 
 
 def test_board_caps_to_envelope_budget(project: Path, conn: sqlite3.Connection):
-    # TASK-209: a large board must never return an unshrinkable >32KB
+    # a large board must never return an unshrinkable >32KB
     # envelope (the cause of the eye's ERROR flood). The tool caps cards to
     # the budget, signals truncation, and keeps grouped + cards consistent.
     from thinking_os.tools._shared import TOKEN_BUDGET_CHARS

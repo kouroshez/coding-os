@@ -40,7 +40,7 @@ def _session_agent_hints(session_id: str) -> set[str]:
 def _dispatch_transcript_chat(session_id: str) -> dict | None:
     # Fall back to a dispatched sub-session's persisted transcript when the live
     # Claude SDK session no longer exists on disk — resolves the dead sdk_uuid
-    # modal link (TASK-667). Keyed on formula_dispatches.sub_session_id (= the
+    # modal link. Keyed on formula_dispatches.sub_session_id (= the
     # SDK session_id the UI links from). Read-only, fail-open.
     db_path = _cog._db_path()
     if not db_path:

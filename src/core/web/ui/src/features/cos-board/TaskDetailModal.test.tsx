@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 // Stub the API hooks so the modal renders from its `task` prop fallback with no
-// network — these tests assert the a11y + stacking contract (TASK-260 / S12),
+// network — these tests assert the a11y + stacking contract ( / S12),
 // not data fetching.
 vi.mock('@/lib/hooks', () => ({
   useApiGet: () => ({ data: undefined, isLoading: false, error: null }),
@@ -40,7 +40,7 @@ describe('TaskDetailModal — modal hardening (TASK-260 / S12)', () => {
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(dialog).toHaveAttribute('aria-labelledby');
-    // Centered modal (TASK-172), not a right-edge drawer.
+    // Centered modal, not a right-edge drawer.
     expect(dialog.style.transform).toContain('translate(-50%, -50%)');
   });
 

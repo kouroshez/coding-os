@@ -2,7 +2,7 @@
 # link-commit-to-task.sh (PostToolUse Bash) — after a real `git commit`, append
 # the new HEAD sha + subject to the active task's Work Log, so cos_task_history
 # surfaces the CODE commits, not just the commits that touched the task .md
-# (TASK-273). cos_task_history::_git_commits_from_worklog greps the work log for
+#. cos_task_history::_git_commits_from_worklog greps the work log for
 # 7-40 hex SHAs and links them, so recording the sha here is the whole contract.
 #
 # Fire-and-forget: dedups by sha, fail-open (exit 0) on any error, never blocks.
@@ -28,7 +28,7 @@ esac
 # The sha comes from the git output line "[branch abc1234] subject" inside
 # tool_response — never from a bare rev-parse HEAD: under concurrent
 # sessions HEAD is whoever committed last, and the old HEAD read cross-
-# linked sibling sessions' commits (TASK-340 repro, 2026-06-10 15:59).
+# linked sibling sessions' commits ( repro, 2026-06-10 15:59).
 mapfile -t _parsed < <(echo "$payload" | python3 -c '
 import json, re, sys
 try:
@@ -98,7 +98,7 @@ sha="$(git -C "$root" rev-parse --short=10 "$sha" 2>/dev/null || true)"
 subject="$(git -C "$root" log -1 --format=%s "$sha" 2>/dev/null || true)"
 
 # Dedup: skip when this commit is already in the task's Work Log. Match a
-# 7-char prefix so an entry the git post-commit hook (TASK-175) wrote with a
+# 7-char prefix so an entry the git post-commit hook wrote with a
 # shorter `--short` sha is still recognised — avoids a double link.
 task_file="$(ls "$root"/docs/tasks/"${task_id}"-*.md 2>/dev/null | head -1 || true)"
 if [[ -n "$task_file" ]] && grep -q "${sha:0:7}" "$task_file" 2>/dev/null; then
@@ -121,7 +121,7 @@ unset _src _dir
 # (same seam as the git post-commit body, src/scripts/_post_commit_body.sh).
 # SYNCHRONOUS on purpose: a `… &` here can die with the hook process before
 # the append lands — the "linked" log line lied while the Work Log stayed
-# empty (TASK-340). Locking lives inside the helper (fcntl — flock(1) does
+# empty. Locking lives inside the helper (fcntl — flock(1) does
 # not exist on macOS); the append costs ms and commits are infrequent.
 HELPER="${COS_WORKLOG_HELPER:-${HSRC}/_helpers/work_log_append.py}"
 linked="false"

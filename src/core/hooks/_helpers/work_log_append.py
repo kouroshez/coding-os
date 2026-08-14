@@ -18,7 +18,7 @@ from pathlib import Path
 
 # board_os lives at src/core/ — two levels up from _helpers/. Without this
 # bootstrap (every sibling helper has it) the import below fails for any
-# hook-spawned python3 and the append was a silent no-op (TASK-340).
+# hook-spawned python3 and the append was a silent no-op.
 _CORE = Path(__file__).resolve().parents[2]
 if _CORE.is_dir() and str(_CORE) not in sys.path:
     sys.path.insert(0, str(_CORE))

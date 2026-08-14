@@ -62,7 +62,7 @@ function Group({
 }
 
 /**
- * Graph-aware diff triage (TASK-489). Enter a base..head range; the view
+ * Graph-aware diff triage. Enter a base..head range; the view
  * consumes /api/graph/diff (no new kernel) and shows changed symbols,
  * downstream consumers/tasks, and a coarse heuristic risk level. Works on
  * manual range entry today; a PR-ingestion feed can drive it later.

@@ -124,7 +124,7 @@ def test_move_wip_cap_rejection(project: Path, conn: sqlite3.Connection):
 
 
 def test_move_to_complete_blocks_when_file_missing(project: Path, conn: sqlite3.Connection):
-    # TASK-532: a complete-transition must fail CLOSED when the DB names a file
+    # a complete-transition must fail CLOSED when the DB names a file
     # that is absent on disk — otherwise the DoD gate is silently skipped and an
     # unverifiable task closes (the 523/524/525 desync).
     _parse(mcp_tools.cos_task_create(conn, title="ghost", swimlane="core", kind="chore"))

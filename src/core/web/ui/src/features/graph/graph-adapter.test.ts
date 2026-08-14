@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { buildGraph, type ApiGraphPayload } from './graph-adapter';
 
-// TASK-407 — focus+context community-map styling. The no-root home runs
+// — focus+context community-map styling. The no-root home runs
 // the export in `processes` mode: synthetic `community` headers are the
 // focus tier (forced label, hub size) and member nodes are de-emphasised
 // context (no forced label, reduced size).

@@ -37,7 +37,7 @@ import ThemeToggle from '@/layout/ThemeToggle';
  *          doesn't silently drop you back into the unscoped cwd-default.
  */
 
-// Cognition intentionally has no nav entry (TASK-864): its Live view duplicated
+// Cognition intentionally has no nav entry: its Live view duplicated
 // Diagnostics › Observability's hook stream, and Traces/Roles only populate on
 // the SDK dispatch path. The /p/:slug/cognition routes stay reachable via
 // deep-links from HubHome live-agent cards and Diagnostics › Sessions.
@@ -85,7 +85,7 @@ export default function AppShell({
   const inspectorRoute =
     /^\/graph(?:\/|$)/.test(location.pathname) ||
     /^\/p\/[^/]+\/graph(?:\/|$)/.test(location.pathname);
-  // TASK-404: the inspector also collapses on demand so the canvas can
+  // the inspector also collapses on demand so the canvas can
   // take the full width — a slim rail re-opens it.
   const inspectorOpen = useGraphStore((s) => s.inspectorOpen);
   const toggleInspector = useGraphStore((s) => s.toggleInspector);

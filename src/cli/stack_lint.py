@@ -180,7 +180,7 @@ def lint_stack(
         verify_key = _CATEGORY_VERIFY_KEY[profile.category]
         # The verification matrix renders from VERIFY_<CAT>_* substitutions —
         # that's the hard contract. `verify:` rows are the newer per-glob
-        # mechanism (TASK-348 plain stacks); absence is a visible gap only.
+        # mechanism ( plain stacks); absence is a visible gap only.
         if not profile.substitutions.get(f"{verify_key}_GLOB"):
             report.hard.append(f"missing substitution `{verify_key}_GLOB`")
         if not profile.verify:

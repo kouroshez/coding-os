@@ -1,4 +1,4 @@
-// Attention model helpers (TASK-252). Pure where possible so the tab-title and
+// Attention model helpers. Pure where possible so the tab-title and
 // event-summary logic is unit-tested; the favicon dot is a guarded DOM side
 // effect (no-op when canvas is unavailable, e.g. jsdom).
 

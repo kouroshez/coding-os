@@ -24,7 +24,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-# Resolved via importlib (TASK-219) — survives wheel installs and meta-repo moves.
+# Resolved via importlib — survives wheel installs and meta-repo moves.
 CORE_DIR = core_dir()
 ADAPTERS_DIR = adapters_dir()
 

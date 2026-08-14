@@ -7,7 +7,7 @@ import { applyHubDirection } from './lib/direction';
 import { installGlobalErrorReporting } from './lib/client-logger';
 import './index.css';
 
-// App-level dir seam (TASK-251) — LTR default, RTL via VITE_HUB_DIR=rtl.
+// App-level dir seam — LTR default, RTL via VITE_HUB_DIR=rtl.
 applyHubDirection();
 
 // Capture every uncaught error / unhandled rejection → server log sink so

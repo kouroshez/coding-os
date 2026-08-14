@@ -22,7 +22,7 @@ interface FeedItem {
 }
 
 /**
- * Header attention center (TASK-252). Surfaces agent activity when the human is
+ * Header attention center. Surfaces agent activity when the human is
  * not looking: an unread count on the tab title + favicon + (opt-in) the
  * Notification API, plus an in-app activity feed. The count clears on refocus.
  */

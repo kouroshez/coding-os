@@ -29,7 +29,7 @@ def _board_sync_all(conn: sqlite3.Connection, project_root: Path, force: bool) -
     from board_os.sync import sync_all
 
     stats = sync_all(conn, project_root=project_root, force=force)
-    # Legacy stat aliases — pre-TASK-398 consumers (verify_phase_c_e2e.py)
+    # Legacy stat aliases — pre consumers (verify_phase_c_e2e.py)
     # read new/errors/skipped.
     stats.setdefault("new", stats.get("upserted", 0))
     stats.setdefault("errors", stats.get("parse_errors", 0))

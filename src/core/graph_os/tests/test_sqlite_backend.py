@@ -335,7 +335,7 @@ def test_confidence_out_of_range_rejected_at_construction():
 
 
 # ---------------------------------------------------------------------------
-# Hard-delete contract (TASK-295) — the graph mirrors HEAD-of-tree; removed
+# Hard-delete contract — the graph mirrors HEAD-of-tree; removed
 # symbols are deleted, NOT tombstoned. These tests pin the doc to the code.
 # ---------------------------------------------------------------------------
 

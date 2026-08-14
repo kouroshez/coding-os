@@ -78,7 +78,7 @@ _CI_LANGUAGE_SETUP: dict[str, tuple[str, ...]] = {
 }
 
 # Language → per-stack-root dependency install. Mirrors the bootable manifests
-# (TASK-605..608): pyproject `[test]` extras, package.json, go.mod, composer.json.
+# pyproject `[test]` extras, package.json, go.mod, composer.json.
 _CI_LANGUAGE_INSTALL: dict[str, str] = {
     "python": "pip install -e '.[test]'",
     "typescript": "npm install",

@@ -239,7 +239,7 @@ export function GitTab() {
             aria-label="Autonomy level"
           >
             {AUTONOMY_OPTIONS.map((opt) => {
-              // Auto-discovery (TASK-540): a probe with no remote/gh disables the
+              // Auto-discovery: a probe with no remote/gh disables the
               // push/PR rungs — but keep a saved-yet-now-unsupported value
               // selectable so a probe blip never silently rewrites the choice.
               const unavailable = !!state && opt.needsRemote && !state.pr_ok;

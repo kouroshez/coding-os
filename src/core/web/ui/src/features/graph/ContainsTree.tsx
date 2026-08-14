@@ -152,7 +152,7 @@ export default function ContainsTree() {
   // kinds. Symbol-level kinds (class/method/…) used to ride along "for
   // the full chain", but at repo scale they pushed the payload past the
   // 5 MB coherent-trim ceiling and the trim silently dropped ~25% of
-  // FOLDERS (TASK-402). Excluding them keeps the forest complete
+  // FOLDERS. Excluding them keeps the forest complete
   // (~4k nodes); symbol drill-down lives on the canvas via root BFS.
   const { data, isLoading, error } = useApiGet<ApiGraphPayload>(
     ['contains-tree'],

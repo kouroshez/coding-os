@@ -32,7 +32,7 @@ from task_parser import (
     parse_task_file,
 )
 
-# Representative TASK-199 content used as an end-to-end fixture.
+# Representative content used as an end-to-end fixture.
 # Kept as a constant so the test doesn't depend on an external file.
 TASK_199_FIXTURE = """\
 <!-- domain:BACKEND | layer:task | ssot:true | updated:2026-03-29 -->
@@ -254,7 +254,7 @@ class TestContentHash:
 
 
 # ---------------------------------------------------------------------------
-# parse_task_file — end-to-end on the real TASK-199 fixture
+# parse_task_file — end-to-end on the real fixture
 # ---------------------------------------------------------------------------
 
 

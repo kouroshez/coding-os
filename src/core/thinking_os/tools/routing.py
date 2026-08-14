@@ -99,7 +99,7 @@ def route_model(
         }
 
     # Query success rates per model for this complexity. Per-role attribution
-    # (TASK-473 P4-9): credit the model that actually RAN the role
+    # ( P4-9): credit the model that actually RAN the role
     # (formula_dispatches.model, keyed by task_marker), falling back to the
     # orchestrator model (task_outcomes.model) for tasks done with no role
     # dispatch. The DISTINCT subquery collapses multiple same-model dispatches in

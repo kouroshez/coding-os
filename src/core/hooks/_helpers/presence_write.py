@@ -115,7 +115,7 @@ def main(argv: list[str]) -> int:
         # Bridges the coding-os session id (this file's name) to the host SDK
         # transcript uuid so a task can link to the chat that made it.
         "sdk_uuid": (sdk_uuid or prev.get("sdk_uuid") or None),
-        # Aggregate context-window tokens stamped on stop (TASK-255).
+        # Aggregate context-window tokens stamped on stop.
         "used_tokens": prev.get("used_tokens"),
         "context_updated_at": prev.get("context_updated_at"),
     }

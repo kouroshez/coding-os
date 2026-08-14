@@ -76,7 +76,7 @@ def test_c27_warns_when_legacy_kind_present():
 
 
 def test_backend_health_reports_doctor_verdict(monkeypatch):
-    # TASK-405: cos doctor must surface the cos_graph_doctor verdict.
+    # cos doctor must surface the cos_graph_doctor verdict.
     import json as _json
 
     from cli import doctor_graph as dg

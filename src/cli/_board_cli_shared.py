@@ -143,7 +143,7 @@ def _agent_session_id() -> str | None:
     # `.active-session` is refreshed every prompt by session-context.sh,
     # while the flat `session-id` is a legacy fossil frozen at its last
     # SessionStart — trusting it first mis-attributed weeks-old session ids
-    # to fresh CLI mutations (TASK-341).
+    # to fresh CLI mutations.
     runtime_dir = _project_root() / ".coding-os" / runtime
     for _fname in (".active-session", "session-id"):
         raw = _first(runtime_dir / _fname)

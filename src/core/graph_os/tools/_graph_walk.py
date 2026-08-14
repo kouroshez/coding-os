@@ -101,7 +101,7 @@ def _degree_map_for(backend: GraphBackend, uids: Sequence[str]) -> dict[str, int
     try:
         # Split the OR-join into two index-friendly halves (the OR forced a full
         # edge scan, bypassing idx_graph_edges_source/target). UNION ALL + outer
-        # GROUP BY sums in- and out-degree per uid. TASK-228.
+        # GROUP BY sums in- and out-degree per uid.
         rows = sqlite_conn.execute(
             f"""
             SELECT uid, SUM(cnt) FROM (
@@ -231,7 +231,7 @@ def _walk_bfs(
                 node = fetched.get(next_uid)
                 if node is None:
                     continue
-                # TASK-403: skip excluded (noise) kinds DURING the walk so
+                # skip excluded (noise) kinds DURING the walk so
                 # they never consume the visit budget — the export used to
                 # over-fetch 4× to compensate post-hoc, which quadrupled
                 # rooted-walk latency.

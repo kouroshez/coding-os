@@ -138,7 +138,7 @@ _BOARD_SELECT = (
     # history. Correlated subquery keeps the column appended LAST so existing
     # positional readers (retro r[11]/r[12]) are unaffected. Powers the board
     # time dimension (status_dwell_seconds) — RC5 of the 2026-06-05
-    # task-lifecycle review (TASK-210).
+    # task-lifecycle review.
     "       (SELECT MAX(h.transitioned_at) FROM task_status_history h "
     "        WHERE h.task_id = tasks.task_id) AS last_transition_at "
     "FROM tasks"

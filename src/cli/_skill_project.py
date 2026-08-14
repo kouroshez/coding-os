@@ -27,9 +27,9 @@ def user_skills_dir() -> Path:
     return Path.home() / ".coding-os" / "skills"
 
 
-# --- Per-project extra skills (TASK-370) ---------------------------------
+# --- Per-project extra skills ---------------------------------
 # SSOT is `.coding-os.yaml::extra_skills` (written by init/wizard since
-# TASK-356/359) — no second YAML file. enable/disable mutate that list and
+# — no second YAML file. enable/disable mutate that list and
 # (for community skills) maintain symlinks in every installed adapter's
 # skills dir; core/stack skills are already wholesale-linked by the adapter.
 
@@ -241,7 +241,7 @@ def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
     return {"name": name, "provenance": provenance, "changed": True, "links": links_touched}
 
 
-# --- Module→skill cascade (TASK-475) -------------------------------------
+# --- Module→skill cascade -------------------------------------
 # A module owns the skills it declares in subsystems.yaml::modules[].skills.
 # Invariant: an owned skill is LINKED iff (at least one owning module is enabled)
 # AND (the user has not opted it out via .coding-os.yaml::disabled_skills). The
@@ -326,7 +326,7 @@ def cascade_module_skills(
             elif _known_skill_provenance(name) == "stack" and name not in installed_stack_skills:
                 # A meta-stack-owned skill (e.g. graph-os-authoring) that THIS
                 # project never installed — never force-link it (mirrors the
-                # set_project_skill stack guard, TASK-478). Only core skills ship
+                # set_project_skill stack guard). Only core skills ship
                 # on every consumer, so only they cascade unconditionally.
                 kept.append(name)
             elif _toggle_skill_link(project_root, name, link=True):

@@ -117,7 +117,7 @@ def test_self_method_resolves_to_enclosing_class():
 
 
 class TestExpressionStubGate:
-    # TASK-405: an unresolved-call stub must be identifier-shaped — complex
+    # an unresolved-call stub must be identifier-shaped — complex
     # receivers used to mint expression-shaped "identifier" junk.
     def test_expression_receiver_emits_no_stub_edge(self):
         r = _extract(

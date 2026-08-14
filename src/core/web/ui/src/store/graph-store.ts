@@ -37,7 +37,7 @@ interface GraphStoreState {
   visibleKinds: Set<NodeKind>;
   visibleEdgeTypes: Set<string>;
   searchQuery: string;
-  // Panel ergonomics (TASK-404): each chrome panel collapses behind a
+  // Panel ergonomics: each chrome panel collapses behind a
   // toggle so the canvas can use the full viewport. Session-scoped.
   spineOpen: boolean;
   filtersOpen: boolean;

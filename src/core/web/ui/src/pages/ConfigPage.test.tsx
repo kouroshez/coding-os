@@ -272,7 +272,7 @@ describe("GitTab (TASK-552)", () => {
     expect(screen.getByText("Team + GitHub CI")).toBeInTheDocument();
     // ...with one caution that enabling here flips the mother repo off trunk.
     expect(screen.getByText(/viewing coding-os, the meta-repo/)).toBeInTheDocument();
-    // Meta framing now lives ONLY in that amber caution — the intro/tooltip no longer leak it (TASK-560).
+    // Meta framing now lives ONLY in that amber caution — the intro/tooltip no longer leak it.
     expect(screen.queryByText(/coding-os itself/)).toBeNull();
   });
 
@@ -288,7 +288,7 @@ describe("GitTab (TASK-552)", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("PR publish unavailable")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Protect release/*" })).toBeInTheDocument();
-    // A consumer must never see meta-repo framing (TASK-560): no amber caution, no "coding-os itself" leak.
+    // A consumer must never see meta-repo framing: no amber caution, no "coding-os itself" leak.
     expect(screen.queryByText(/viewing coding-os, the meta-repo/)).toBeNull();
     expect(screen.queryByText(/coding-os itself/)).toBeNull();
   });

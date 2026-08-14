@@ -151,7 +151,7 @@ def hub_registry_init(
         return error
     target: Path = info["target"]
     if background:
-        # Job-based create (TASK-362): returns a job_id immediately; phases +
+        # Job-based create: returns a job_id immediately; phases +
         # log stream over GET /api/hub/init-jobs/{id}/events.
         from web import init_jobs  # type: ignore
 

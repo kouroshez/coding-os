@@ -31,7 +31,7 @@ const HERITAGE_GLYPH: Record<string, string> = {
 };
 
 /**
- * Inspector "360°" tab — TASK-076.
+ * Inspector "360°" tab —
  *
  * Single-shot read of `/api/graph/context` then client-side bucketing
  * into the five sections the advanced graph tooling parity matrix calls out:
@@ -39,12 +39,12 @@ const HERITAGE_GLYPH: Record<string, string> = {
  *   2. Incoming calls
  *   3. Incoming imports
  *   4. Outgoing calls
- *   5. Member of processes  — empty/hidden until TASK-075 lands.
+ * 5. Member of processes — empty/hidden until lands.
  *
  * No N+1 fetches: bucketing happens locally, the network is one
  * request.  When the focused node has zero callers we surface a
  * friendly "entry point?" empty state pointing at the entry-point
- * list (TASK-081).
+ * list.
  */
 export default function ContextPanel({ uid }: { uid: string }) {
   const { data, isLoading, error } = useApiGet<ContextPayload>(

@@ -246,7 +246,7 @@ def update(
             click.echo("  Removed legacy .codex/instructions.md (Codex reads AGENTS.md)")
             overall_changes = True
 
-        # Module-registry migration (TASK-357): pre-module consumers gain an
+        # Module-registry migration: pre-module consumers gain an
         # explicit all-on state file. All-on ≡ the lazy default, so rendered
         # artifacts stay byte-identical — the file only makes the project's
         # module posture visible to the Config tab / cos module list.
@@ -274,7 +274,7 @@ def update(
                 if not (project / "AGENTS.md").exists() and ensure_agents_md(project, world):
                     click.echo("  Generated missing AGENTS.md")
                     overall_changes = True
-                # Materialize / refresh stack-contributed make targets (TASK-392)
+                # Materialize / refresh stack-contributed make targets
                 # so the suites named in AGENTS.md stay runnable as stacks are
                 # added/removed. User-authored Makefile targets are untouched.
                 if materialize_makefile_targets(project, project / STATE_DIR, world):

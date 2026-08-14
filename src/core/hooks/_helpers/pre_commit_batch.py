@@ -39,7 +39,7 @@ def _hook_applies(hook: str, file_path: str) -> bool:
 
 
 # Mirror of docs-lint.sh Check 1 — the SSOT front-matter header on line 1.
-# Drives a commit-time WARN on changed docs/*.md (TASK-127); advisory only.
+# Drives a commit-time WARN on changed docs/*.md; advisory only.
 _DOC_HEADER_RE = re.compile(r"^<!-- domain:[A-Z_]+ \| layer:[a-z]+ \| ssot:(true|ref|false)")
 
 
@@ -147,7 +147,7 @@ def main(argv: list[str]) -> int:
                     print(out.strip(), file=sys.stderr)
                     failed = True
 
-        # Doc-header contract (TASK-127): WARN — never block — when a changed
+        # Doc-header contract: WARN — never block — when a changed
         # docs/*.md lacks the SSOT front-matter header. Only staged docs are
         # seen here, so this naturally scopes to new/changed docs; the CI
         # `docs-lint --changed` strict step is the hard gate.

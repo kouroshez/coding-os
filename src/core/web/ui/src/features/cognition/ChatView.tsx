@@ -91,7 +91,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
     // Pause the 2s transcript poll while a reply streams: the SDK persists the
     // just-sent user turn immediately, so a mid-stream refetch rendered it
     // alongside the live pending-user echo → the message showed twice
-    // (TASK-283). The live SSE covers updates; finally{} does one refetch after.
+    //. The live SSE covers updates; finally{} does one refetch after.
     {
       refetchIntervalMs: streaming ? 0 : 2000,
       retry: (failureCount, queryError) => {

@@ -116,7 +116,7 @@ fi
 # Uncommitted-work advisory: surface work the agent may have forgotten to commit
 # at end-of-turn — docs/**/*.md (audit-trail truth) AND non-docs code (src/**,
 # tests/, …). Fire-and-forget — never blocks (exit stays 0 regardless). Two
-# deliberate scope limits (TASK-564):
+# deliberate scope limits:
 #   • no still-open-task nudge here — the sibling warn-abandoned-task.sh Stop hook
 #     already emits it (debounced per session); duplicating it would double-nudge.
 #   • no unpushed-commits nudge — push is deferred to task-close by the trunk
@@ -124,12 +124,12 @@ fi
 if command -v git >/dev/null 2>&1; then
   # Anchor every status query to the repo TOP-LEVEL: a cwd-relative `git status`
   # fired from a SUBDIR only sees that subtree, so root-level changes were missed
-  # entirely (TASK-566 J). Skip the block cleanly when not inside a repo.
+  # entirely ( J). Skip the block cleanly when not inside a repo.
   _top=$(git rev-parse --show-toplevel 2>/dev/null || true)
   if [ -n "$_top" ]; then
     # Audit-trail docs: ANY uncommitted file under docs/ EXCEPT board churn under
     # docs/tasks/. Count non-.md too — a png/json/asset under docs/ is audit trail
-    # and was previously counted by NEITHER advisory (TASK-566 N).
+    # and was previously counted by NEITHER advisory ( N).
     _uncommitted_docs=$(git -C "$_top" status --porcelain -- docs ':(exclude)docs/tasks' 2>/dev/null | grep -cE '.' 2>/dev/null || true)
     if [ "${_uncommitted_docs:-0}" -gt 0 ] 2>/dev/null; then
       echo "advisory: ${_uncommitted_docs} uncommitted doc(s) under docs/ — commit so the audit trail matches the repo (git status -- docs)." >&2

@@ -70,7 +70,7 @@ export type Turn =
 // line) into its transcript, and the model echoes it on resume despite the
 // Hub system prompt asking it not to (the few-shot history outweighs the
 // instruction). Strip a leading banner line from assistant prose so the Hub
-// chat stays clean (TASK-283). Assistant-scoped — human messages are untouched.
+// chat stays clean. Assistant-scoped — human messages are untouched.
 export function stripLeadingBanner(text: string): string {
   return text.replace(/^\s*🔔[^\n]*\n+/, '');
 }
@@ -122,7 +122,7 @@ export function buildTurns(messages: ChatMessage[]): Turn[] {
     }
     // Unknown role with no renderable blocks — system/result transcript
     // entries that would otherwise render as an empty assistant bubble
-    // (TASK-283). Skip them; keep any that DO carry content for visibility.
+    //. Skip them; keep any that DO carry content for visibility.
     if (!m.blocks || m.blocks.length === 0) continue;
     turns.push({
       kind: 'assistant',

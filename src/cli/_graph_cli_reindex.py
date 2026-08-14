@@ -211,7 +211,7 @@ def register_reindex(cli: click.Group) -> None:
         plan = walk_local(target, max_files=max_files)
         click.echo(f"[graph-reindex] walking {target}; {len(plan.files)} files (force={force})")
         # Surface oversized files dropped by the per-file byte cap — a skipped
-        # large source file is a coverage gap, not a no-op (TASK-293).
+        # large source file is a coverage gap, not a no-op.
         _oversize = plan.metadata.get("skipped_oversize") or []
         if _oversize:
             click.echo(
@@ -221,7 +221,7 @@ def register_reindex(cli: click.Group) -> None:
                 err=True,
             )
         # Symlink / unreadable skips — counts only, surfaced so they aren't
-        # silent (TASK-302). A symlink target is indexed on its own pass, so
+        # silent. A symlink target is indexed on its own pass, so
         # a non-zero symlink count is informational, not an error.
         _sym = int(plan.metadata.get("skipped_symlink") or 0)
         _rerr = int(plan.metadata.get("skipped_read_error") or 0)
@@ -237,7 +237,7 @@ def register_reindex(cli: click.Group) -> None:
         # file fail after its bounded busy-wait (~5s × 3 retries). Without
         # this, an 800-file walk grinds silently for an hour — the per-file
         # failure used to land only in layers.graph.status, which this loop
-        # counted as PROCESSED (2026-06-11 stall, TASK-394/395). The streak
+        # counted as PROCESSED (the 2026-06-11 stall). The streak
         # resets on any success so a transient start-of-walk lock storm
         # (workers warming up alongside hub/MCP writers) doesn't abort a
         # run that is actually progressing.
@@ -355,7 +355,7 @@ def register_reindex(cli: click.Group) -> None:
         # over-count. GC them first so the parse-error summary below reads the
         # reconciled (exact) state. ONLY on a full, uncapped repo walk
         # (target == project_root); a --path sub-walk or a max_files-capped walk
-        # would wrongly flag every other file as stale (TASK-302).
+        # would wrongly flag every other file as stale.
         if target == project_root and len(plan.files) < max_files:
             try:
                 from database import init_db, resolve_db_path  # type: ignore
@@ -391,7 +391,7 @@ def register_reindex(cli: click.Group) -> None:
 
         # Surface partial-extraction coverage gaps (some symbols dropped on a
         # parse error) — "errors" only counts hard exceptions, so this was
-        # silent (TASK-293). Read the cumulative truth from file_index_state,
+        # silent. Read the cumulative truth from file_index_state,
         # the same source cos_graph_doctor reports, so the two always agree.
         parse_err_total = parse_err_files = 0
         try:

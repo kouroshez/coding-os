@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# UserPromptSubmit hook — pr-mode directive injector (TASK-615).
+# UserPromptSubmit hook — pr-mode directive injector.
 #
 # Config propagation is reactive: nothing tells the agent the project runs
 # pr-mode — it only finds out when block-shared-tree-edit BLOCKs its first

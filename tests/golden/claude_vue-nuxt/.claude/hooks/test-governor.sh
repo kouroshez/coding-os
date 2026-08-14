@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# test-governor.sh (PreToolUse Bash) — multi-agent test-run governance (TASK-330).
+# test-governor.sh (PreToolUse Bash) — multi-agent test-run governance.
 #
 # Gates pytest invocations three ways (in order):
 #   1. Full sweep (bare pytest / pytest tests/ / >=3 test roots) → BLOCK unless
 #      COS_FULL_SWEEP_OK=1 with COS_OVERRIDE_REASON >=15 chars (Rule 20, audited).
 #   2. Dedup — the suite is already green on THIS tree within TTL (commit-keyed
-#      ledger, TASK-328) → BLOCK with reuse message; COS_TEST_FORCE=1 re-runs.
+#      ledger) → BLOCK with reuse message; COS_TEST_FORCE=1 re-runs.
 #   3. Concurrency — $COS_STATE_DIR/.test-run.lock held by a live run → BLOCK
 #      naming the holder. The lock is a per-repo JSON file (TTL-bounded); the
 #      PostToolUse leg record-verify-auto.sh deletes it when pytest exits, and
@@ -63,7 +63,7 @@ IS_PYTEST="${IS_PYTEST:-false}"
 # Not a pytest run AND not a recognised suite — the command merely MENTIONS the
 # trigger (echo/jq/heredoc payload), or MATCH was unavailable ({}). Bail fail-open.
 # A make-target verify suite (pytest_invocation=false but SUITE set) stays in for
-# dedup below (TASK-669).
+# dedup below.
 if [[ "$IS_PYTEST" != "true" && -z "$SUITE" ]]; then
   exit 0
 fi
@@ -115,7 +115,7 @@ fi
 
 # Make-target verify suites (verify-hooks / docs-lint / ui-test) get dedup above
 # but NOT the pytest run-lock — the lock governs heavy pytest concurrency and
-# re-architecting it is out of scope (TASK-669). A non-pytest suite that survived
+# re-architecting it is out of scope. A non-pytest suite that survived
 # dedup just runs.
 if [[ "$IS_PYTEST" != "true" ]]; then
   exit 0

@@ -243,7 +243,7 @@ export function useWizardComposer(
       .catch(() => { forgetJob(); onClose(); });
   }, []);
 
-  // Job progress stream (TASK-362): replay + follow; reconnects after refresh.
+  // Job progress stream: replay + follow; reconnects after refresh.
   useEffect(() => {
     if (!job || job.status !== 'running') return;
     const source = new EventSource(`/api/hub/init-jobs/${encodeURIComponent(job.jobId)}/events`);

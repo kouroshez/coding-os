@@ -66,7 +66,7 @@ export default function GraphCanvas() {
     exportParams.root_uid = selectedRootUid;
     exportParams.include_spine = true;
     exportParams.max_hops = rootedHopsByDepth[depthKey] ?? 3;
-    // TASK-406: a rooted view means THIS subtree — the old neighborhood
+    // a rooted view means THIS subtree — the old neighborhood
     // walk climbed to the parent and flooded the whole repo.
     exportParams.scope = 'subtree';
   }

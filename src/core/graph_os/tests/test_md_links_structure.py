@@ -122,7 +122,7 @@ class TestResolveLink:
         assert result == "code:file:src/core/real.py"
 
     def test_missing_code_file_target_is_dropped(self):
-        # TASK-410: a link to a NON-existent non-.md target (the render-dir
+        # a link to a NON-existent non-.md target (the render-dir
         # COPY bug — ../../../core/hooks/registry.yaml resolving one level
         # short) must NOT mint a code:file stub. Existence gate now spans
         # every extension, not just .md.

@@ -104,7 +104,7 @@ def thinking_os_health() -> str:
             "reason": f"import_error: {exc}",
         }
 
-    # Constitution slice durability (TASK-497): the values layer is surfaced at
+    # Constitution slice durability: the values layer is surfaced at
     # every SessionStart directly from docs/governance/constitution.md — not from
     # decaying agent memory — so it is non-decaying by construction. A missing file
     # or absent SLICE markers would silently drop the slice; assert it here so
@@ -119,7 +119,7 @@ def thinking_os_health() -> str:
             end = const_text.find("<!-- SLICE:END -->")
             # Require non-empty CONTENT between the markers, not just their
             # presence: an empty slice silently delivers no values while a
-            # markers-only check would report healthy (TASK-510).
+            # markers-only check would report healthy.
             slice_markers_ok = (
                 start != -1
                 and end > start

@@ -77,7 +77,7 @@ def emit_contains_spine(
     # the label is the PROJECT NAME (cwd directory name — extraction runs
     # from the project root by convention) so the spine anchors on
     # something a human recognises ("coding-os"), not the technical
-    # "repo-root" placeholder (TASK-406). uid is the contract, label is
+    # "repo-root" placeholder. uid is the contract, label is
     # presentation.
     try:
         project_label = Path.cwd().name or "repo-root"

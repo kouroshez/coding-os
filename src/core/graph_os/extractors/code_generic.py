@@ -137,7 +137,7 @@ def extract(path: str, content: str) -> ExtractionResult:
     # Per-language relationship edges (calls / imports / inherits) on top of
     # the baseline node walk. func/class indexes let same-file calls resolve
     # to real uids; everything else points at a code:external stub that the
-    # post-walk link pass resolves cross-file (TASK-305).
+    # post-walk link pass resolves cross-file.
     edge_hook = _LANG_EDGES.get(lang)
     if edge_hook is not None:
         func_index = {n.label: n.uid for n in result.nodes if n.kind == "code:function"}

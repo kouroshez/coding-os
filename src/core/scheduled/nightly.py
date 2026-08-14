@@ -251,7 +251,7 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
         errors += 1
 
     # Task 4.6: dep_reconcile — re-block reopened deps + surface unblocked-but-
-    # unauthored and long-blocked tasks across the whole graph (TASK-415).
+    # unauthored and long-blocked tasks across the whole graph.
     try:
         t = _run_dep_reconcile(db_path, project_root, dry_run=dry_run)
         run["tasks"]["dep_reconcile"] = t

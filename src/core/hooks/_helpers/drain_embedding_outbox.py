@@ -35,7 +35,7 @@ def main() -> int:
         rep = embeddings.drain_outbox(conn, limit=64)
         # Report any batch that did work, including one that only dropped
         # source-less rows. Reporting on `drained` alone hid a starving queue
-        # behind a silent success for two months (TASK-937).
+        # behind a silent success for two months.
         if rep.get("drained") or rep.get("dropped") or rep.get("failed"):
             print(
                 f"[outbox] drained {rep.get('drained', 0)}, "

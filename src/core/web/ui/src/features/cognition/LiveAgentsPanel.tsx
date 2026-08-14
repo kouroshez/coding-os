@@ -12,9 +12,9 @@ const QUERY_KEY = ['presence-agents-home'];
 
 /** Live-agents grid for the landing — one card per non-offline agent across
  *  ALL registered projects (GET /api/hub/agents, each card tagged with its
- *  owning project slug — TASK-437). Clicking a card opens a centered detail
+ * owning project slug). Clicking a card opens a centered detail
  *  modal (not a navigate-away); an SSE tick invalidates the query so the grid
- *  stays live between polls (TASK-194 + Hub redesign). */
+ * stays live between polls ( + Hub redesign). */
 export default function LiveAgentsPanel() {
   const qc = useQueryClient();
   const { data } = useApiGet<HubAgentsResponse>(QUERY_KEY, '/api/hub/agents', undefined, {
@@ -26,7 +26,7 @@ export default function LiveAgentsPanel() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Flatten the per-project groups into one grid; each agent keeps its own slug
-  // (TASK-437 cross-project roster). Card key = slug:agent so two projects'
+  // ( cross-project roster). Card key = slug:agent so two projects'
   // same-named agents (both "claude") never collide.
   const agents = (data?.projects ?? [])
     .flatMap((p) => p.agents)

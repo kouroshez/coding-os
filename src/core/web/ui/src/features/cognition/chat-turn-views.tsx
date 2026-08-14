@@ -31,7 +31,7 @@ export function AssistantTurn({
   );
 
   // A coalesced turn with zero renderable blocks (content-less system/result
-  // messages) renders nothing rather than an empty bubble (TASK-283).
+  // messages) renders nothing rather than an empty bubble.
   if (allBlocks.length === 0) return null;
 
   // Pick the most informative header model — usually the last message.

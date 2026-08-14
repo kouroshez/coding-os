@@ -142,7 +142,7 @@ class TestOrphanReconcile:
     def test_sweeps_outbox_rows_whose_source_was_reaped(self, tmp_path: Path) -> None:
         # The changelog TTL reaps observations the outbox still queues. The drain
         # only clears `limit` rows per session, so orphans accumulate faster than
-        # they are consumed and starve the real rows behind them (TASK-937).
+        # they are consumed and starve the real rows behind them.
         db = tmp_path / "outbox.db"
         c = init_db(db)
         c.execute(

@@ -236,7 +236,7 @@ def _pr_check(
             return None, None  # in-progress cleanup, not an advance
         if worktree:
             return None, None
-        # Sanctioned local_autonomous land (TASK-614): `cos pr land` exports COS_PR_LAND
+        # Sanctioned local_autonomous land: `cos pr land` exports COS_PR_LAND
         # into the merge subprocess's ENV, so the guard reads it from os.environ. An
         # agent's inline `COS_PR_LAND=1 git merge …` cannot forge it — resolve_command
         # strips the inline assignment into _env, never os.environ (same protection as

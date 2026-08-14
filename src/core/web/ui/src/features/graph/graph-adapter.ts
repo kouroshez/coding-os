@@ -72,7 +72,7 @@ const CANVAS_NOISE_KINDS: ReadonlySet<string> = new Set([
   'doc_heading',
 ]);
 
-// TASK-407 — focus+context community-map styling (InfraNodus / Bloom
+// — focus+context community-map styling (InfraNodus / Bloom
 // default for the no-root home). In `processes` mode the synthetic
 // `community` nodes are the FOCUS (forced label, full group color, hub
 // size) and their member nodes are CONTEXT (de-emphasised: muted color +
@@ -129,7 +129,7 @@ export function buildGraph(
     .slice(0, TOP_K)
     .map(([uid]) => uid);
   const TOP_DEGREE: Set<string> = new Set(topByDegree);
-  // TASK-407: in the community map the synthetic `community` headers are
+  // in the community map the synthetic `community` headers are
   // the focus tier and their members are de-emphasised context.
   const isCommunityMap = opts.mode === 'processes';
   const sizeFor = (uid: string, kind: string): number => {
@@ -155,7 +155,7 @@ export function buildGraph(
   // when there's room.
   const labelForceFor = (uid: string, kind: string): boolean => {
     if (ROOT_UIDS.has(uid)) return true;
-    // TASK-407: community headers always carry their group label so the
+    // community headers always carry their group label so the
     // map reads as named subsystems; members stay zoom-budget-only.
     if (isCommunityMap) return kind === 'community';
     if (TOP_DEGREE.has(uid)) return true;
@@ -198,7 +198,7 @@ export function buildGraph(
     const root = isRootUid(n.uid);
     const image = root ? ROOT_ICON : ICONS[normalKind];
 
-    // TASK-407: focus tier = community headers (full group color);
+    // focus tier = community headers (full group color);
     // context tier = members (muted) in the community-map home.
     const isMember = isCommunityMap && normalKind !== 'community';
     const baseColor = root ? ROOT_COLOR : kindColor(n.kind);

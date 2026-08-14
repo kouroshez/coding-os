@@ -78,7 +78,7 @@ def _get_stack_registry():
         # Consumer-discovery path: include out-of-tree community stacks
         # ($COS_USER_TEMPLATES_DIR). The meta-repo SSOT regen/lint scripts load
         # the registry bundled-only (no overlay) so a community stack never leaks
-        # into scaffold_manifest.json / dimension-registry.md (TASK-458/471).
+        # into scaffold_manifest.json / dimension-registry.md.
         _stack_cache = load_stack_registry(TEMPLATES_DIR, overlay_dirs=overlay_template_dirs())
     return _stack_cache
 

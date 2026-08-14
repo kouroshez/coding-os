@@ -37,7 +37,7 @@ const TAIL_CAP = 500;
 // Backend stamps log timestamps in UTC (…Z, datetime.now(timezone.utc)). Render
 // in the VIEWER's local timezone via new Date()+toLocaleTimeString — string-slicing
 // the ISO showed the raw UTC time-of-day, so an EDT viewer saw 16:54:16 for a
-// 12:54:16 event (TASK-262). Falls back to the raw slice for malformed input.
+// 12:54:16 event. Falls back to the raw slice for malformed input.
 export function shortTime(iso: string): string {
   if (!iso) return iso;
   const d = new Date(iso);

@@ -144,7 +144,7 @@ def _validate_init_inputs(
         )
     info["agents"] = list(agents)
 
-    # Module toggles (TASK-421): validate against the subsystem registry —
+    # Module toggles: validate against the subsystem registry —
     # kernel is non-disableable, and the set is closed over dependents before
     # it reaches init: the scaffold REFUSES (never cascades) an unclosed one,
     # so an unclosed set would return ok for a project contradicting the request.
@@ -174,7 +174,7 @@ def _validate_init_inputs(
             return _err("unavailable", f"subsystem registry unavailable: {exc}", status=503), {}
     info["disabled_modules"] = disabled_modules
 
-    # Argv allowlist (TASK-363): every value that reaches the subprocess argv
+    # Argv allowlist: every value that reaches the subprocess argv
     # is validated against a registry — skills included.
     if extra_skills:
         try:

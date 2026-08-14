@@ -22,7 +22,7 @@ def _now_iso() -> str:
 def _emit(
     level: Level, scope: str, msg: str, kv: dict[str, Any], exc: BaseException | None = None
 ) -> None:
-    # Per-sink flooring (TASK-473): short-circuit only when the level clears
+    # Per-sink flooring: short-circuit only when the level clears
     # NEITHER floor. The console floor (COS_LOG_LEVEL) gates stderr/text/jsonl in
     # dispatch(); the independent durability floor (COS_LOG_DB_MIN_LEVEL) gates the
     # DB sink. Flooring at the console level alone here dropped a WARN before the

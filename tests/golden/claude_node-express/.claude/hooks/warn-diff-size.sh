@@ -2,7 +2,7 @@
 # warn-diff-size.sh
 # PreToolUse Bash — nudge toward diff-minimal commits: when a `git commit` is
 # about to run, warn (never block) if the staged diff exceeds a line threshold.
-# Fail-open: any uncertainty exits 0. Spec: docs/tasks/TASK-635.
+# Fail-open: any uncertainty exits 0. Spec: docs/tasks/
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true

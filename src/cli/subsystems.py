@@ -284,11 +284,11 @@ def set_module_enabled(
 
     path = _state_path(project_root)
     path.parent.mkdir(parents=True, exist_ok=True)
-    # Concurrency-safe read-modify-write (TASK-474 P4-11): an advisory exclusive
+    # Concurrency-safe read-modify-write ( P4-11): an advisory exclusive
     # lock serializes racing toggles, and the disabled set is RE-READ under the
     # lock so a concurrent writer's change survives (no silent lost-update). The
     # dependency-refusal validation is re-run under the lock against that fresh set
-    # (TASK-478): a concurrent toggle of a DIFFERENT module could otherwise slip an
+    #: a concurrent toggle of a DIFFERENT module could otherwise slip an
     # orphaned-dependency state past a pre-lock snapshot. Per-pid temp = no torn write.
     lock_path = path.with_suffix(".json.lock")
     with open(lock_path, "w", encoding="utf-8") as lock_fd:

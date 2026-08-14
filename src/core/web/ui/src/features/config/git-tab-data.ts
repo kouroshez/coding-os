@@ -8,7 +8,7 @@ export interface GitSettings {
 }
 
 // Ordered low→high trust. `needsRemote` rungs push/PR and are unavailable when
-// the probe reports no remote+gh; `local` always works (TASK-540).
+// the probe reports no remote+gh; `local` always works.
 export const AUTONOMY_OPTIONS: {
   value: AutonomyLevel;
   label: string;
@@ -28,7 +28,7 @@ export interface GitState {
   required_check: boolean;
   pr_ok: boolean;
   missing: string[];
-  // Real repo state (TASK-534) — sourced from local git, present even when gh is down.
+  // Real repo state — sourced from local git, present even when gh is down.
   branches: string[];
   current_branch: string;
   remote_url: string;

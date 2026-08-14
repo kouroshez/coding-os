@@ -3,7 +3,7 @@ import type Graph from 'graphology';
 import type { SigmaEdgeAttrs, SigmaNodeAttrs } from './graph-adapter';
 
 /**
- * Dagre hierarchical layout for the Containment view (TASK-141 P5).
+ * Dagre hierarchical layout for the Containment view ( P5).
  *
  * For folder → file → class → method graphs, ForceAtlas2 produces a
  * hairball — every CONTAINS edge has confidence 1.0 so spring forces
