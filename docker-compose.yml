@@ -12,14 +12,18 @@
 #     NOT manage their lifecycle.
 #
 # Auto-discovery contract:
-#   The host's home directory is bind-mounted read-only inside the
-#   container at the SAME path. The Hub's registry path env var
-#   points at the host's registry file (mounted via the same bind),
-#   so every absolute path inside the registry stays valid inside
-#   the container. `cos registry scan ~` Just Works.
+#   SCAN_ROOT is bind-mounted read-only inside the container at the SAME
+#   path, so every absolute path in the registry stays valid inside the
+#   container. It defaults to the directory you run compose from.
 #
-# Custom scan root (e.g. only mount your projects dir):
-#   SCAN_ROOT=$HOME/projects docker compose up
+# Wider scan root — you are choosing to expose it, read-only, to the container:
+#   SCAN_ROOT=$HOME docker compose up            # everything under home
+#   SCAN_ROOT=$HOME/projects docker compose up   # just your projects
+#   (`cos registry scan ~` needs the first form.)
+#
+# Reachability: the Hub is published to the host's loopback only. To expose it
+# on the LAN, set HUB_PUBLISH=0.0.0.0 *and* COS_HUB_TOKEN=<secret> — the hub is
+# otherwise unauthenticated (docs/engineering/hub-threat-model.md).
 services:
   hub:
     build:
@@ -27,8 +31,17 @@ services:
       dockerfile: Dockerfile
     image: coding-os-hub:latest
     ports:
-      - "9188:9188"
+      # Published to the HOST's loopback only. A bare "9188:9188" listens on
+      # every host interface, which with an unauthenticated hub hands the whole
+      # API and code graph to anyone on the LAN. Set HUB_PUBLISH=0.0.0.0 and a
+      # COS_HUB_TOKEN together if you really want it reachable.
+      - "${HUB_PUBLISH:-127.0.0.1}:9188:9188"
     environment:
+      # 0.0.0.0 INSIDE the container is how Docker port-publishing works — the
+      # container's own interfaces are not the exposure boundary, the `ports`
+      # mapping above is. That is why the off-loopback bind guard is waived
+      # here and nowhere else; if you widen HUB_PUBLISH, set COS_HUB_TOKEN too.
+      COS_HUB_ALLOW_INSECURE_BIND: "1"
       COS_WEB_HOST: 0.0.0.0
       COS_WEB_PORT: "9188"
       # Tell the Hub where the host's registry lives. Defaults to the
@@ -41,17 +54,20 @@ services:
     volumes:
       # Hub's own runtime state (SQLite, traces) — survives down/up.
       - cos-state:/app/.coding-os
-      # Host filesystem mount — read-only. Defaults to $HOME; override
-      # via SCAN_ROOT for a narrower window (e.g. $HOME/projects).
-      # Mounted at /host AND at the same path as on the host (via
-      # the second bind) so absolute paths in the registry resolve.
+      # Host filesystem mount — read-only, and scoped to the directory you ran
+      # compose from. It defaulted to all of $HOME: read-only, but still every
+      # ssh key, browser profile and password store readable by a container
+      # process, to index one project. Opt in explicitly for a wider window:
+      #   SCAN_ROOT=$HOME docker compose up
+      # Mounted at /host AND at the same path as on the host (via the second
+      # bind) so absolute paths in the registry resolve.
       - type: bind
-        source: ${SCAN_ROOT:-${HOME}}
+        source: ${SCAN_ROOT:-${PWD}}
         target: /host
         read_only: true
       - type: bind
-        source: ${SCAN_ROOT:-${HOME}}
-        target: ${SCAN_ROOT:-${HOME}}
+        source: ${SCAN_ROOT:-${PWD}}
+        target: ${SCAN_ROOT:-${PWD}}
         read_only: true
     restart: unless-stopped
     healthcheck:

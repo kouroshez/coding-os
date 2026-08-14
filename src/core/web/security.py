@@ -34,6 +34,48 @@ def _allowed_hosts() -> frozenset[str]:
     return _BASE_ALLOWED_HOSTS | names
 
 
+class InsecureBindError(RuntimeError):
+    """Raised when the hub would listen off-loopback with no credential."""
+
+
+def _is_loopback_bind(host: str) -> bool:
+    import ipaddress
+
+    name = host.strip().lower()
+    if not name or name == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(name).is_loopback
+    except ValueError:
+        # A hostname we cannot classify: treat as exposed. Guessing "probably
+        # local" is the assumption that leaves an API open.
+        return False
+
+
+def assert_bind_is_safe(host: str, token: str | None = None) -> None:
+    """Refuse to serve the whole API, code graph included, to the network unauthenticated.
+
+    The token check was request-scoped and guarded by `if token`, so with
+    COS_HUB_TOKEN unset and COS_WEB_HOST=0.0.0.0 every route answered anyone who
+    could reach the port — and nothing said so at startup. A warning would not
+    help: by the time it scrolls past, the port is already open.
+    """
+    if _is_loopback_bind(host):
+        return
+    if (token if token is not None else _hub_token()):
+        return
+    if os.environ.get("COS_HUB_ALLOW_INSECURE_BIND", "").strip() == "1":
+        return
+    raise InsecureBindError(
+        f"refusing to bind {host!r}: off-loopback with no COS_HUB_TOKEN would expose "
+        "the API and the full code graph to the network unauthenticated.\n"
+        "  Fix: export COS_HUB_TOKEN=<secret>  (clients send Authorization: Bearer <secret>)\n"
+        "  Or:  bind loopback and reverse-proxy with your own auth in front.\n"
+        "  Override (you accept the exposure): COS_HUB_ALLOW_INSECURE_BIND=1\n"
+        "  Threat model: docs/engineering/hub-threat-model.md"
+    )
+
+
 def _hostname_of_authority(authority: str) -> str:
     """Strip the port from a `host[:port]` authority, unwrapping IPv6 [::1]."""
     authority = authority.strip().lower()

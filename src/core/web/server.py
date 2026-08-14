@@ -93,6 +93,15 @@ def create_app() -> FastAPI:
 
     _host_for_servers = os.environ.get("COS_WEB_HOST", "127.0.0.1")
     _port_for_servers = int(os.environ.get("COS_WEB_PORT", "9188"))
+
+    # Fail closed BEFORE the port opens. Placed in the factory rather than in
+    # run_server because uvicorn is also pointed straight at this factory
+    # (`web.server:create_app`), so guarding only the CLI path would leave the
+    # documented deployment route unguarded.
+    from web.security import assert_bind_is_safe
+
+    assert_bind_is_safe(_host_for_servers)
+
     app = FastAPI(
         title="Coding OS Web API",
         description=(
