@@ -68,16 +68,37 @@ def _read_json(p: Path) -> dict[str, Any] | None:
         return None
 
 
-def _latest_claude_chat_uuid(project_root: Path) -> str | None:
-    """Newest Claude SDK transcript file (proxy for currently-active chat)."""
-    try:
-        from claude_agent_sdk import project_key_for_directory  # type: ignore
+def _transcript_dir(project_root: Path) -> Path | None:
+    """Ask the adapter where its transcripts live — never import its SDK here.
 
-        key = project_key_for_directory(project_root)
-    except Exception as exc:
-        logger.debug("project_key_for_directory unavailable: %s", exc)
-        key = "-" + str(project_root).replace("/", "-").lstrip("-")
-    base = Path.home() / ".claude" / "projects" / key
+    This read `from claude_agent_sdk import project_key_for_directory`, an
+    adapter SDK import inside the kernel (P8) that also hardcoded one runtime's
+    on-disk layout. The `presence` entrypoint owns both facts now.
+    """
+    from thinking_os.adapter_registry import (
+        load_adapter_records,
+        load_entrypoint_module,
+    )
+
+    for record in load_adapter_records().values():
+        if "presence" not in record.capabilities:
+            continue
+        module = load_entrypoint_module(record, "presence")
+        resolver = getattr(module, "transcript_dir", None)
+        if not callable(resolver):
+            continue
+        try:
+            return Path(resolver(project_root))
+        except Exception as exc:
+            logger.debug("%s presence provider failed: %s", record.id, exc)
+    return None
+
+
+def _latest_claude_chat_uuid(project_root: Path) -> str | None:
+    """Newest transcript file for this project (proxy for an active chat)."""
+    base = _transcript_dir(project_root)
+    if base is None:
+        return None
     if not base.is_dir():
         return None
     newest: Path | None = None

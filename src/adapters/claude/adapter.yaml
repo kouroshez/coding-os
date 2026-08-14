@@ -7,7 +7,13 @@ label: "Anthropic Claude Code"
 runtime: in_process
 runtime_entrypoints:
   dispatch: sdk_dispatcher.py
-  capabilities: [dispatch, model_selection, effort_selection, structured_output]
+  # `presence` is deliberately narrower than `transcript`: it only resolves
+  # where this runtime stores transcripts, so the Hub can spot an active chat
+  # without core importing the Claude SDK (P8). Claude has no transcript
+  # READER yet, so claiming `transcript` here would advertise a capability
+  # that does not exist.
+  presence: presence_provider.py
+  capabilities: [dispatch, presence, model_selection, effort_selection, structured_output]
 # `bucket` names the provider's rate-limit pool. Anthropic applies limits
 # separately per model, and Opus 4.x share one pool while Opus 5 has its own
 # (docs.claude.com/en/api/rate-limits) — so a limit on one bucket must not
@@ -90,6 +96,10 @@ install_script: install.sh
 # version doctor reports.
 cli_binary: claude
 sdk_package: claude-agent-sdk
+# The pyproject extra that installs sdk_package. Declared so the Hub can render
+# the remedy for a missing SDK from the manifest instead of the kernel carrying
+# "uv sync --extra claude-sdk" as a literal (P8/Rule 11).
+sdk_optional_extra: claude-sdk
 auth_env_vars: [ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN]
 
 # Env vars the Claude Code runtime exports to hook subprocesses / the CLI

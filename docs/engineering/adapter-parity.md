@@ -27,7 +27,14 @@ The implementation may differ. Claude can receive a native `Write` payload while
 - Codex still has no `PostToolUseFailure` equivalent and no native Claude `Skill` tool matcher. These remain honest deficits.
 - Non-managed Codex hooks require hash-based review through `/hooks`; installation cannot safely auto-trust them.
 - Rendered hook commands establish their adapter identity explicitly. Runtime-marker probing and `.coding-os/.agent` are fallback mechanisms, not the multi-adapter identity contract.
-- Formula dispatch is adapter-loaded for both providers. Hub chat is not yet fully hexagonal because its core route imports the Claude SDK directly.
+- Formula dispatch is adapter-loaded for both providers. Hub chat no longer names a
+  provider in the kernel: the runtime module, the dispatch-availability probe and
+  transcript-directory resolution all resolve through the adapter registry
+  (`sdk_package`, `runtime: in_process`, the `presence` entrypoint), enforced by
+  `tests/test_core_has_no_adapter_sdk_imports.py`. It is not yet *fully* hexagonal —
+  callers still use the SDK module's own duck-typed surface (`list_sessions`,
+  `get_session_info`) rather than a declared `InteractiveRuntime` port, so a second
+  in-process runtime would have to match those names to drop in.
 
 ## Runtime Event Matrix
 

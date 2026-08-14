@@ -2,14 +2,21 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://coding-os.dev/schemas/adapter.schema.json",
   "title": "Coding-OS Adapter Manifest",
-  "description": "Schema for src/adapters/<id>/adapter.yaml. Defines an agent adapter — its settings file, hooks directory, path-scoped rules support, and optional default settings deep-merged with aggregated hooks.",
+  "description": "Schema for src/adapters/<id>/adapter.yaml. Defines an agent adapter \u2014 its settings file, hooks directory, path-scoped rules support, and optional default settings deep-merged with aggregated hooks.",
   "type": "object",
-  "required": ["version", "id", "label", "install_script"],
+  "required": [
+    "version",
+    "id",
+    "label",
+    "install_script"
+  ],
   "additionalProperties": false,
   "properties": {
     "version": {
       "type": "integer",
-      "enum": [1]
+      "enum": [
+        1
+      ]
     },
     "id": {
       "type": "string",
@@ -21,34 +28,54 @@
       "minLength": 1
     },
     "settings_file": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Relative path inside the project where settings.json (or hooks.json) is written."
     },
     "hooks_dir": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Relative path inside the project for hook scripts. Null if the adapter has no hooks dir."
     },
     "rules_dir": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Relative path for path-scoped rule files. Null if the adapter doesn't support rules."
     },
     "skills_dir": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Relative path for skill files. Null if the adapter has no skill system."
     },
     "commands_dir": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Relative path for slash-command files (e.g. Claude's .claude/commands). Null for adapters that merge commands into a single instructions file."
     },
     "entrypoint_file": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^[^/\\\\]+$",
-      "description": "Project-root filename this runtime reads as its instruction entrypoint (e.g. \"CLAUDE.md\"). cos init/update create it as a relative symlink to AGENTS.md and cos eject removes it, keeping the CLI free of adapter filename literals (rule #11). Null/absent = the runtime reads AGENTS.md directly. Must be a bare filename — no path separators. Spec: docs/playbooks/adapter-authoring.md § The root entrypoint."
+      "description": "Project-root filename this runtime reads as its instruction entrypoint (e.g. \"CLAUDE.md\"). cos init/update create it as a relative symlink to AGENTS.md and cos eject removes it, keeping the CLI free of adapter filename literals (rule #11). Null/absent = the runtime reads AGENTS.md directly. Must be a bare filename \u2014 no path separators. Spec: docs/playbooks/adapter-authoring.md \u00a7 The root entrypoint."
     },
     "sourced_hooks": {
       "type": "array",
-      "items": {"type": "string"},
-      "description": "Hook filenames that are sourced (not executed) — doctor skips their exec-bit check."
+      "items": {
+        "type": "string"
+      },
+      "description": "Hook filenames that are sourced (not executed) \u2014 doctor skips their exec-bit check."
     },
     "supports_rules": {
       "type": "boolean",
@@ -63,7 +90,10 @@
       "description": "Relative filename of the adapter install script (usually install.sh)."
     },
     "chat_provider": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Optional adapter-local Python module that exposes read-only Hub transcript list/get operations."
     },
     "runtime_entrypoints": {
@@ -72,35 +102,57 @@
       "description": "Provider-neutral adapter-owned runtime modules and capabilities used by supervision. Entrypoints must be bare filenames inside the adapter directory.",
       "properties": {
         "dispatch": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[^/\\\\]+$"
         },
         "transcript": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[^/\\\\]+$"
         },
         "capabilities": {
           "type": "array",
-          "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
           "uniqueItems": true
+        },
+        "presence": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[^/\\\\]+$",
+          "description": "Module resolving where this runtime stores its transcripts. Narrower than `transcript`, which also reads them: the kernel needs the path to detect an active chat, and importing the adapter's SDK to get it violates P8."
         }
       }
     },
     "cli_binary": {
       "type": "string",
-      "description": "Executable name discoverable on PATH for this agent (e.g. \"claude\"). Consumed by src/cli/doctor.py::_probe_agent_sdk so that file stays free of hardcoded adapter literals (rule #11). Optional — defaults to the adapter id when missing."
+      "description": "Executable name discoverable on PATH for this agent (e.g. \"claude\"). Consumed by src/cli/doctor.py::_probe_agent_sdk so that file stays free of hardcoded adapter literals (rule #11). Optional \u2014 defaults to the adapter id when missing."
     },
     "sdk_package": {
       "type": "string",
       "description": "Importable Python package whose installed version doctor reports for this adapter (e.g. \"claude-agent-sdk\"). Empty string = no SDK to probe."
     },
     "sdk_optional_extra": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Optional-dependency group that installs sdk_package. When set, a missing SDK is a warning because the adapter may retain a CLI fallback."
     },
     "auth_env_vars": {
       "type": "array",
-      "items": {"type": "string"},
+      "items": {
+        "type": "string"
+      },
       "description": "Provider authentication environment variables reported by the generic SDK doctor. CLI-managed login may also be valid."
     },
     "default_settings": {
@@ -108,18 +160,23 @@
       "description": "Adapter-owned defaults deep-merged with aggregated world.hooks by render_settings_json()."
     },
     "hook_registry_output": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Relative filename within src/adapters/<id>/ where src/cli/hook_renderer.py writes the rendered template (e.g. settings.template.json for claude, hooks.template.json for codex). Null if this adapter does not consume the hook registry."
     },
     "runtime_env_markers": {
       "type": "array",
-      "items": {"type": "string"},
-      "description": "Environment variables whose presence identifies this adapter's runtime. Consumed by src/cli/board_commands.py::_detect_agent_runtime to attribute task_status_history.agent_session — avoids hardcoded adapter-name literals in CLI code (rule #11)."
+      "items": {
+        "type": "string"
+      },
+      "description": "Environment variables whose presence identifies this adapter's runtime. Consumed by src/cli/board_commands.py::_detect_agent_runtime to attribute task_status_history.agent_session \u2014 avoids hardcoded adapter-name literals in CLI code (rule #11)."
     },
     "runtime_session_marker": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Per-panel session identity contract — declares how src/core/hooks/cos-env.sh::_cos_resolve_panel_id and cos_panel_upgrade_from_payload derive the per-panel id from this agent's runtime. Data-driven (Rule 11); adding a new adapter (e.g. gemini) requires only this block + the adapter dir — zero code change in src/core/. Pairs with docs/engineering/state-files.md § Panel-id resolution.",
+      "description": "Per-panel session identity contract \u2014 declares how src/core/hooks/cos-env.sh::_cos_resolve_panel_id and cos_panel_upgrade_from_payload derive the per-panel id from this agent's runtime. Data-driven (Rule 11); adding a new adapter (e.g. gemini) requires only this block + the adapter dir \u2014 zero code change in src/core/. Pairs with docs/engineering/state-files.md \u00a7 Panel-id resolution.",
       "properties": {
         "stdin_field": {
           "type": "string",
@@ -127,7 +184,9 @@
         },
         "env_vars": {
           "type": "array",
-          "items": {"type": "string"},
+          "items": {
+            "type": "string"
+          },
           "description": "Priority-ordered fallback env vars (probed when stdin is unavailable, e.g. for raw shell tests or hooks that don't slurp stdin). The first non-empty one wins."
         }
       }
@@ -137,12 +196,16 @@
       "description": "Which {event, matcher} pairs this adapter can actually trigger. Drives src/cli/hook_renderer.py when rendering adapter-specific settings from src/core/hooks/registry.yaml. Key = event name (PreToolUse, PostToolUse, Stop, SessionStart, UserPromptSubmit).",
       "additionalProperties": {
         "type": "object",
-        "required": ["matchers"],
+        "required": [
+          "matchers"
+        ],
         "additionalProperties": false,
         "properties": {
           "matchers": {
             "type": "array",
-            "items": {"type": "string"},
+            "items": {
+              "type": "string"
+            },
             "description": "Matcher strings this adapter can dispatch for the event. Empty-string matcher ('') means the event fires without a matcher (e.g. Stop)."
           }
         }
@@ -155,14 +218,21 @@
         "type": "array",
         "items": {
           "type": "object",
-          "required": ["script"],
+          "required": [
+            "script"
+          ],
           "additionalProperties": false,
           "properties": {
             "script": {
               "type": "string",
               "description": "Hook script basename under the adapter hooks dir (same as hook_dispatchers.script)."
             },
-            "timeout": {"type": ["integer", "null"]}
+            "timeout": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
           }
         }
       }
@@ -172,45 +242,87 @@
       "description": "Optional adapter-specific coalescing rules that replace multiple registry-derived hooks for one {event, matcher} pair with a single dispatcher script.",
       "items": {
         "type": "object",
-        "required": ["event", "matcher", "script", "delegates"],
+        "required": [
+          "event",
+          "matcher",
+          "script",
+          "delegates"
+        ],
         "additionalProperties": false,
         "properties": {
-          "event": {"type": "string"},
-          "matcher": {"type": "string"},
-          "script": {"type": "string"},
-          "status_message": {"type": "string"},
-          "timeout": {"type": ["integer", "null"]},
+          "event": {
+            "type": "string"
+          },
+          "matcher": {
+            "type": "string"
+          },
+          "script": {
+            "type": "string"
+          },
+          "status_message": {
+            "type": "string"
+          },
+          "timeout": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "delegates": {
             "type": "array",
-            "items": {"type": "string"}
+            "items": {
+              "type": "string"
+            }
           }
         }
       }
     },
     "mcp_helper": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Optional helper script (relative to src/adapters/<id>/) used by src/cli/main.py when wiring the MCP launch config for this agent. Absent means no helper is needed."
     },
     "mcp_launch": {
       "type": "object",
       "description": "Data-driven metadata for src/cli/doctor.py::_load_coding_os_mcp_launch. Lets the C15 check locate and parse the per-agent MCP config without hardcoded adapter-name literals.",
-      "required": ["loader", "config_paths"],
+      "required": [
+        "loader",
+        "config_paths"
+      ],
       "additionalProperties": false,
       "properties": {
         "loader": {
           "type": "string",
-          "enum": ["claude_json", "codex_toml", "cursor_mcp_json"],
+          "enum": [
+            "claude_json",
+            "codex_toml",
+            "cursor_mcp_json"
+          ],
           "description": "Which parser in src/cli/doctor.py handles this adapter's MCP config format."
         },
         "config_paths": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["scope", "path"],
+            "required": [
+              "scope",
+              "path"
+            ],
             "additionalProperties": false,
             "properties": {
-              "scope": {"type": "string", "enum": ["project", "home"]},
-              "path": {"type": "string", "minLength": 1}
+              "scope": {
+                "type": "string",
+                "enum": [
+                  "project",
+                  "home"
+                ]
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         }
@@ -223,12 +335,16 @@
       "properties": {
         "signal": {
           "type": "string",
-          "enum": ["hook_timestamps"],
+          "enum": [
+            "hook_timestamps"
+          ],
           "description": "Presence JSON under .coding-os/<adapter>/sessions/ is driven by agent-presence.sh on hook lifecycle events."
         },
         "presence_events": {
           "type": "array",
-          "items": {"type": "string"},
+          "items": {
+            "type": "string"
+          },
           "description": "Which events refresh presence for this adapter (documentation only)."
         },
         "hub_glyph": {
@@ -246,47 +362,85 @@
     },
     "runtime": {
       "type": "string",
-      "enum": ["in_process", "roadmap"],
+      "enum": [
+        "in_process",
+        "roadmap"
+      ],
       "description": "Hub chat execution capability: 'in_process' = runnable via the agent's SDK inside Hub chat (Claude today); 'roadmap' = declared but not yet runnable. Consumed by src/core/web/routes/config.py::config_adapters for the adapter-grouped model picker."
     },
     "models": {
       "type": "array",
-      "description": "Model catalog this adapter offers — drives the Hub pickers and supervision write-time validation. Empty means either a roadmap adapter or a runtime that forwards any model string; core never fabricates IDs (P7), so an empty catalog accepts any non-empty string and the Hub renders a free-text field.",
+      "description": "Model catalog this adapter offers \u2014 drives the Hub pickers and supervision write-time validation. Empty means either a roadmap adapter or a runtime that forwards any model string; core never fabricates IDs (P7), so an empty catalog accepts any non-empty string and the Hub renders a free-text field.",
       "items": {
         "type": "object",
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": {"type": "string", "minLength": 1, "description": "Model identifier passed to the agent runtime."},
-          "label": {"type": "string", "description": "Human-facing model name shown in the picker."},
-          "default": {"type": "boolean", "description": "Whether this is the adapter's default model. At most one per adapter."},
-          "bucket": {"type": "string", "minLength": 1, "description": "Provider rate-limit pool this model draws from. Models sharing a pool share one capacity cooldown; models in different pools stay independent when one is limited. Absent = the adapter is treated as a single pool."}
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Model identifier passed to the agent runtime."
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-facing model name shown in the picker."
+          },
+          "default": {
+            "type": "boolean",
+            "description": "Whether this is the adapter's default model. At most one per adapter."
+          },
+          "bucket": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Provider rate-limit pool this model draws from. Models sharing a pool share one capacity cooldown; models in different pools stay independent when one is limited. Absent = the adapter is treated as a single pool."
+          }
         }
       }
     },
     "efforts": {
       "type": "array",
-      "items": {"type": "string", "enum": ["low", "medium", "high", "xhigh", "max"]},
+      "items": {
+        "type": "string",
+        "enum": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
       "description": "Reasoning-effort levels this adapter's SDK accepts (Claude EffortLevel = low|medium|high|xhigh|max), surfaced in the Hub chat composer. Empty/absent = no effort control for this adapter."
     },
     "default_effort": {
       "type": "string",
-      "enum": ["low", "medium", "high", "xhigh", "max"],
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
       "description": "Pre-selected effort level in the Hub chat composer (must be one of `efforts`)."
     },
     "chat_status": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Hub chat live-status vocabulary, read per adapter by the composer (no frontend hardcoding — Codex declares its own). Surfaces a friendly 'working…' label while a turn streams.",
+      "description": "Hub chat live-status vocabulary, read per adapter by the composer (no frontend hardcoding \u2014 Codex declares its own). Surfaces a friendly 'working\u2026' label while a turn streams.",
       "properties": {
         "tool_labels": {
           "type": "object",
-          "additionalProperties": {"type": "string"},
+          "additionalProperties": {
+            "type": "string"
+          },
           "description": "Runtime tool name -> friendly present-participle status verb (e.g. Read -> Reading)."
         },
         "idle_phrases": {
           "type": "array",
-          "items": {"type": "string"},
+          "items": {
+            "type": "string"
+          },
           "description": "Playful phrases rotated while the agent works without a concrete tool active."
         }
       }

@@ -232,17 +232,23 @@ def _role_for_formula(formula_id: str, roles: dict[str, dict]) -> dict:
 
 
 def _dispatch_available() -> bool:
-    # Sub-agent dispatch (Path B: cos_dispatch_formula_run → real Claude
-    # sub-sessions that produce "dispatched"/executed evidence) needs the
-    # Claude Agent SDK extra. Without it roles run in-session only ("composed").
-    # Surfacing this lets the panel show "dispatched: 0" as capability-off,
-    # not a bug.
-    try:
-        import claude_agent_sdk  # type: ignore  # noqa: F401
+    # Sub-agent dispatch (Path B: cos_dispatch_formula_run → real sub-sessions
+    # producing "dispatched"/executed evidence) needs some adapter's SDK on the
+    # path. Without one, roles run in-session only ("composed"), and surfacing
+    # that lets the panel show "dispatched: 0" as capability-off, not a bug.
+    #
+    # Asks the adapter registry rather than importing claude_agent_sdk by name:
+    # the kernel must not know which runtime is installed (P8), and hardcoding
+    # Claude made a Codex-only install report dispatch as unavailable.
+    import importlib.util
 
-        return True
-    except ImportError:
-        return False
+    from thinking_os.adapter_registry import load_adapter_records
+
+    for record in load_adapter_records().values():
+        package = str(record.manifest.get("sdk_package") or "").strip()
+        if package and importlib.util.find_spec(package.replace("-", "_")) is not None:
+            return True
+    return False
 
 
 @router.get("")

@@ -29,7 +29,18 @@ DISPATCH_CAPABILITY = "dispatch"
 # `runtime: in_process` is a manifest's declaration that it can be driven that
 # way; anything else can still be dispatched or read, just not streamed live.
 IN_PROCESS_RUNTIME = "in_process"
-_CHAT_SDK_MODULE = "claude_agent_sdk"
+
+
+def _chat_sdk_module(record: AdapterRecord) -> str:
+    """Importable module name for this adapter's SDK, from its own manifest.
+
+    Was the literal "claude_agent_sdk" in the kernel (P8/Rule 11): a second
+    in-process runtime would have been probed for Claude's package and reported
+    permanently unavailable. `sdk_package` is a distribution name, so the
+    import name is its dashes normalised.
+    """
+    package = str(record.manifest.get("sdk_package") or "").strip()
+    return package.replace("-", "_")
 
 
 def _entrypoint(record: AdapterRecord, capability: str):
@@ -58,12 +69,20 @@ def probe_chat(record: AdapterRecord) -> dict:
             "missing": "an in-process chat runtime",
             "remedy": "",
         }
-    if importlib.util.find_spec(_CHAT_SDK_MODULE) is None:
+    module = _chat_sdk_module(record)
+    if not module:
         return {
             "available": False,
             "declared": True,
-            "missing": f"the {_CHAT_SDK_MODULE.replace('_', '-')} package",
-            "remedy": "uv sync --extra claude-sdk",
+            "missing": "an sdk_package declaration in this adapter's manifest",
+            "remedy": "",
+        }
+    if importlib.util.find_spec(module) is None:
+        return {
+            "available": False,
+            "declared": True,
+            "missing": f"the {module.replace('_', '-')} package",
+            "remedy": f"uv sync --extra {record.manifest.get('sdk_optional_extra') or record.id}",
         }
     return {"available": True, "declared": True, "missing": "", "remedy": ""}
 

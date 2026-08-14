@@ -28,14 +28,32 @@ if str(_CORE_DIR) not in sys.path:
 
 
 def _claude_sdk():
-    """Lazy import the Claude Agent SDK; return None when missing."""
-    try:
-        import claude_agent_sdk  # type: ignore
+    """The in-process chat runtime module, resolved through the adapter registry.
 
-        return claude_agent_sdk
-    except ImportError as exc:
-        logger.debug("claude_agent_sdk unavailable: %s", exc)
-        return None
+    Named for its one current implementation but no longer hardcoding it: the
+    module comes from whichever adapter declares `runtime: in_process` plus an
+    `sdk_package`, so the kernel never spells `claude_agent_sdk` (P8/Rule 11)
+    and a second in-process runtime needs no edit here.
+
+    The duck-typed surface the callers use — list_sessions, get_session_info,
+    and the query entry — is still the SDK module's own; this removes the
+    hardcoded name, it does not yet define an InteractiveRuntime port.
+    """
+    import importlib
+
+    from thinking_os.adapter_registry import load_adapter_records
+
+    for record in load_adapter_records().values():
+        if str(record.manifest.get("runtime") or "") != "in_process":
+            continue
+        package = str(record.manifest.get("sdk_package") or "").strip()
+        if not package:
+            continue
+        try:
+            return importlib.import_module(package.replace("-", "_"))
+        except ImportError as exc:
+            logger.debug("%s sdk (%s) unavailable: %s", record.id, package, exc)
+    return None
 
 
 def _project_cwd() -> str:
