@@ -531,21 +531,33 @@ permanent. Reversibility, not blast radius, decides:
 | push / merge to `main` | `git revert` | required check `CI Pass` |
 | **publish to PyPI** | **none — a yanked version can never be re-uploaded** | `pypi` environment, `required_reviewers` |
 
-The publish gate is the one that was missing. Until 2026-08-13 the `pypi`
-environment existed for Trusted Publishing but carried `protection_rules: []`,
-so merging a release PR uploaded to PyPI with nothing in between. It now
-requires a human approval:
+The publish row is the one worth arguing about, and this repo argued both sides
+in a single day. The `pypi` environment existed for Trusted Publishing but
+carried `protection_rules: []`, so merging a release PR uploaded to PyPI with
+nothing in between. A `required_reviewers` rule was added and **proved by
+execution** — a dispatched publish of v0.3.16 was held at the gate and rejected,
+and the job recorded `steps: []`, so no build, no signing and no upload ran.
+
+It was then **removed the same day, on the maintainer's call**, and that reversal
+is the more useful record. The gate worked exactly as designed; the objection was
+not that it failed but that it charged an approval on *every* release of a
+one-maintainer project to prevent a mistake that had not occurred, while CI
+already gates the merge that mints the tag. Friction an operator has to clear on
+every routine pass is friction that eventually gets routed around — a gate
+disabled in annoyance protects less than a rule followed on purpose.
+
+So the boundary now lives entirely in [git-workflow.md](../../src/core/rules/git-workflow.md#the-three-tiers--reversibility-decides-who-may-act):
+the agent asks before publishing; nothing in the platform stops it. Current state
+is verifiable in one call — expect an empty list here:
 
 ```bash
-gh api repos/:owner/:repo/environments/pypi \
-  --jq '[.protection_rules[] | {type, reviewers: [.reviewers[]?.reviewer.login]}]'
-# [{"type":"required_reviewers","reviewers":["kouroshez"]},{"type":"branch_policy","reviewers":[]}]
+gh api repos/:owner/:repo/environments/pypi --jq '[.protection_rules[].type]'
 ```
 
-`prevent_self_review` is deliberately **off**: it forbids the person who
-triggered a deployment from approving it, which on a one-maintainer repo means
-nobody can ever approve. The agent-side half of the same boundary is the tier
-table in [git-workflow.md](../../src/core/rules/git-workflow.md#the-three-tiers--reversibility-decides-who-may-act).
+If a future maintainer wants it back, the knobs are `required_reviewers` (a
+click per release) or `wait_timer` (ships by itself, leaves a cancel window).
+Keep `prevent_self_review` **off** either way: it forbids whoever triggered a
+deployment from approving it, which on a solo repo means nobody can.
 
 ### The 134 "code scanning alerts" are two populations
 

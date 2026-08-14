@@ -28,7 +28,9 @@
 
 A published version cannot be replaced: PyPI, npm and crates.io all refuse re-upload of a yanked version, so a bad publish is permanent in a way no git operation is. Approval to publish **one** version is not approval for the next; re-ask.
 
-Back the tier with a machine gate wherever the platform offers one, so the boundary survives a session that forgets it — on GitHub that is a [deployment environment](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments) with `required_reviewers` on the publishing job (leave `prevent_self_review` off for a solo maintainer, or the only approver is locked out). A boundary that lives only in prose holds until the first busy session.
+A machine gate can enforce the bottom row where the platform offers one — on GitHub a [deployment environment](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments) with `required_reviewers` on the publishing job (leave `prevent_self_review` off for a solo maintainer, or the only approver is locked out; a `wait_timer` is the softer variant that ships automatically but leaves a cancel window).
+
+**coding-os itself runs with that gate off, deliberately.** It was added and removed the same day: a one-maintainer release train pays the approval cost on *every* version, while the failure it prevents — shipping a version you did not mean to — has not happened, and CI already gates the merge that produces the tag. Automation an operator has to babysit gets routed around, which ends worse than not having it. So the tier above is a **rule the agent follows**, not a wall the platform enforces: ask before publishing, every time. A project with more than one maintainer, or where a bad publish is expensive, should turn the environment gate on — the tier does not change, only who enforces it.
 
 ## Concurrent sessions
 
