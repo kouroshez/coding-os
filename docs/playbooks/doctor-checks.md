@@ -102,6 +102,15 @@ Running interpreter is Python >= 3.10.
 Reports GNU vs BSD sed (adapter installers must work on both).
 **Passes** either way — informational detail for support bundles; **warns** only when `sed` is missing entirely.
 
+### bootstrap.hook_parsers
+Which of `jq` / `perl` / `python3` the hook layer can use to read its stdin
+envelope and extract fields. Both halves degrade (`perl→python3→cat` for the
+read, `jq→python3` for the extraction), so `jq` and `perl` are speed, not
+capability. **Passes** whenever `python3` resolves; **fails** otherwise, because
+with no parser a gate cannot evaluate its input and fails closed on every tool
+call — an unusable install rather than a silently unguarded one
+([observability-eye § 5 I8](../engineering/observability-eye.md)).
+
 ---
 
 ## cognition

@@ -274,6 +274,33 @@ def _check_bootstrap_sed(report: DoctorReport) -> None:
     )
 
 
+def _check_bootstrap_hook_parsers(report: DoctorReport) -> None:
+    from . import doctor as _kernel
+
+    # The hook layer reads its stdin envelope and extracts fields from it; both
+    # halves degrade (perl→python3→cat, jq→python3) but with NO parser at all a
+    # gate cannot evaluate and fails closed on every tool call — an unusable
+    # install, not a silent one. observability-eye § 5 I8.
+    present = [t for t in ("jq", "perl", "python3") if _kernel._capture_tool_version(t)]
+    if "python3" in present:
+        extras = [t for t in ("jq", "perl") if t in present]
+        detail = f"python3 + {', '.join(extras)}" if extras else "python3 only (fallback path)"
+        report.checks.append(
+            CheckResult(
+                "bootstrap.hook_parsers", SEV_PASS, f"hook gates can parse: {detail}"
+            )
+        )
+        return
+    report.checks.append(
+        CheckResult(
+            "bootstrap.hook_parsers",
+            SEV_FAIL,
+            "no python3 on PATH — enforcement hooks cannot read their input and "
+            "fail closed on every tool call. Install python3 (jq optional, faster).",
+        )
+    )
+
+
 def run_bootstrap_doctor() -> DoctorReport:
     """Preflight prerequisite checks — no initialized project required.
 
@@ -286,4 +313,5 @@ def run_bootstrap_doctor() -> DoctorReport:
     _check_bootstrap_git(report)
     _check_bootstrap_uv(report)
     _check_bootstrap_sed(report)
+    _check_bootstrap_hook_parsers(report)
     return report

@@ -74,9 +74,12 @@ it — see [Modular by design](#modular-by-design--take-only-what-you-need).
 | Bash | 4 | Hook scripts use 4.x features (macOS ships 3.2) | `brew install bash` |
 | Node.js | 20 | **Only** if rebuilding the Hub UI under `src/core/web/ui/` | `brew install node@20` |
 | Docker | 24 | **Only** for the Docker quickstart below | `brew install --cask docker` |
+| `jq`, `perl` | any | **Optional** — faster hook path. Both degrade to Python, so an image without them is fully enforced, just slower per tool call. | preinstalled on macOS |
 
 Linux: replace `brew install …` with your distro's package manager
 (`apt`, `dnf`, `pacman`). Windows: WSL 2 + the same Linux steps.
+`cos doctor --bootstrap` checks all of the above, including whether the hook
+layer has a JSON/stdin parser at all — without one every gate fails closed.
 
 ## Install
 
