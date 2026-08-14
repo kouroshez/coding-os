@@ -12,6 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.19](https://github.com/kouroshez/coding-os/compare/v0.3.18...v0.3.19) (2026-08-14)
+
+
+### Fixed
+
+* **hub-ui:** picking a project no longer bounces chat and memory to Hub home ([a3eaa3c](https://github.com/kouroshez/coding-os/commit/a3eaa3c66720c44e7f549218497a8ae5546babd0))
+* **hub:** say codex live chat is unbuilt instead of explaining in-process streaming ([f86e047](https://github.com/kouroshez/coding-os/commit/f86e0471b868c157968a344cf47c865bca28aacc))
+
+
+### Documentation
+
+* **readme:** show the Web Hub with five annotated screenshots ([bd3aa8e](https://github.com/kouroshez/coding-os/commit/bd3aa8e365faa8ba3dc4986bef4e4d9dca0e1475))
+
 ## [0.3.18](https://github.com/kouroshez/coding-os/compare/v0.3.17...v0.3.18) (2026-08-14)
 
 
