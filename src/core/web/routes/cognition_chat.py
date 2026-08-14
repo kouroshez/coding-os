@@ -290,7 +290,7 @@ async def chat_new(
         resolved_id = new_session_id
         emitted_session = False
         try:
-            async for event in sdk.query(prompt=prompt, options=options):
+            async for event in sdk.stream_turn(prompt=prompt, options=options):
                 if not emitted_session:
                     real_id = getattr(event, "session_id", None)
                     if real_id:
@@ -389,7 +389,7 @@ async def chat_send(
         _chat_presence_write(cwd, session_id, "prompt")
         emitted_kinds: list[str] = []
         try:
-            async for event in sdk.query(prompt=prompt, options=options):
+            async for event in sdk.stream_turn(prompt=prompt, options=options):
                 kind = type(event).__name__.lower().replace("message", "")
                 if not kind:
                     kind = "event"

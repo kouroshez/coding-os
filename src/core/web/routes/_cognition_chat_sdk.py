@@ -27,33 +27,49 @@ if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
 
 
-def _claude_sdk():
-    """The in-process chat runtime module, resolved through the adapter registry.
+CHAT_CAPABILITY = "chat"
 
-    Named for its one current implementation but no longer hardcoding it: the
-    module comes from whichever adapter declares `runtime: in_process` plus an
-    `sdk_package`, so the kernel never spells `claude_agent_sdk` (P8/Rule 11)
-    and a second in-process runtime needs no edit here.
+# The port core is allowed to call. Anything outside this set means an adapter's
+# own SDK surface leaked back into the kernel.
+CHAT_PORT = (
+    "list_sessions",
+    "get_session_info",
+    "get_session_messages",
+    "stream_turn",
+    "tool_guard",
+)
 
-    The duck-typed surface the callers use — list_sessions, get_session_info,
-    and the query entry — is still the SDK module's own; this removes the
-    hardcoded name, it does not yet define an InteractiveRuntime port.
+
+def _chat_runtime():
+    """The adapter module implementing the Hub chat port, or None.
+
+    Resolved by CAPABILITY, not by importing a provider package: core previously
+    imported the SDK module and called its own attribute names, so removing the
+    literal `claude_agent_sdk` moved the coupling instead of ending it — a second
+    runtime still had to expose those four names by coincidence. Now an adapter
+    implements CHAT_PORT and declares `chat` in runtime_entrypoints.
     """
-    import importlib
-
-    from thinking_os.adapter_registry import load_adapter_records
+    from thinking_os.adapter_registry import load_adapter_records, load_entrypoint_module
 
     for record in load_adapter_records().values():
-        if str(record.manifest.get("runtime") or "") != "in_process":
+        if CHAT_CAPABILITY not in record.capabilities:
             continue
-        package = str(record.manifest.get("sdk_package") or "").strip()
-        if not package:
+        module = load_entrypoint_module(record, CHAT_CAPABILITY)
+        if module is None:
             continue
-        try:
-            return importlib.import_module(package.replace("-", "_"))
-        except ImportError as exc:
-            logger.debug("%s sdk (%s) unavailable: %s", record.id, package, exc)
+        if not all(callable(getattr(module, name, None)) for name in CHAT_PORT):
+            logger.debug("%s declares chat but does not implement the port", record.id)
+            continue
+        if callable(getattr(module, "available", None)) and not module.available():
+            logger.debug("%s chat runtime present but unavailable", record.id)
+            continue
+        return module
     return None
+
+
+# Historical name kept so the route modules read the same either way; the thing
+# returned is now the port, never a provider SDK.
+_claude_sdk = _chat_runtime
 
 
 def _project_cwd() -> str:

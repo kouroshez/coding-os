@@ -96,7 +96,7 @@ async def author_task(
         resolved_id = sid
         emitted_session = False
         try:
-            async for event in sdk.query(prompt=prompt, options=options):
+            async for event in sdk.stream_turn(prompt=prompt, options=options):
                 if not emitted_session:
                     real_id = getattr(event, "session_id", None)
                     if real_id:
@@ -330,12 +330,12 @@ async def onboard(
         allowed_tools=list(_ONBOARD_ALLOWED_TOOLS),
         disallowed_tools=["Bash"],  # deny wins even over the allow-list
         system_prompt=system_prompt,
-        # HookMatcher is the adapter SDK's type, constructed here because the hook
-        # closure is core-local; ClaudeAgentOptions itself still routes through the
-        # adapter seam. Migrating HookMatcher is tracked separately (out of scope).
+        # The deny closure is core's policy; the matcher type that carries it is
+        # the runtime's, so the adapter builds it. This read `sdk.HookMatcher(…)`
+        # — the last provider type name left in the kernel.
         hooks={
             "PreToolUse": [
-                sdk.HookMatcher(
+                sdk.tool_guard(
                     matcher="Write|Edit|MultiEdit|NotebookEdit", hooks=[_deny_non_docs_write]
                 )
             ]
@@ -348,7 +348,7 @@ async def onboard(
         resolved_id = sid
         emitted_session = False
         try:
-            async for event in sdk.query(prompt=prompt, options=options):
+            async for event in sdk.stream_turn(prompt=prompt, options=options):
                 if not emitted_session:
                     real_id = getattr(event, "session_id", None)
                     if real_id:

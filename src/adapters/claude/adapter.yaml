@@ -13,7 +13,12 @@ runtime_entrypoints:
   # READER yet, so claiming `transcript` here would advertise a capability
   # that does not exist.
   presence: presence_provider.py
-  capabilities: [dispatch, presence, model_selection, effort_selection, structured_output]
+  # The Hub chat port (list_sessions / get_session_info /
+  # get_session_messages / stream_turn). Core called the SDK module's own
+  # attribute names before this existed, so a second runtime had to match
+  # them by coincidence rather than by implementing a contract.
+  chat: chat_provider.py
+  capabilities: [dispatch, presence, chat, model_selection, effort_selection, structured_output]
 # `bucket` names the provider's rate-limit pool. Anthropic applies limits
 # separately per model, and Opus 4.x share one pool while Opus 5 has its own
 # (docs.claude.com/en/api/rate-limits) — so a limit on one bucket must not

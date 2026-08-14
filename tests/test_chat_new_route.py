@@ -124,7 +124,7 @@ def test_chat_new_session_event_uses_sdk_resolved_id(client, monkeypatch):
         def ClaudeAgentOptions(self, **kwargs):
             return kwargs
 
-        async def query(self, prompt, options):
+        async def stream_turn(self, *, prompt, options):
             yield FakeInit("real-sdk-uuid-9999")
 
     fake = FakeSDK()
@@ -168,7 +168,7 @@ def _make_fake_sdk(events, captured_opts=None):
                 captured_opts.update(kwargs)
             return kwargs
 
-        async def query(self, prompt, options):
+        async def stream_turn(self, *, prompt, options):
             if captured_opts is not None:
                 captured_opts["_options"] = options
             for ev in events:

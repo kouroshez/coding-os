@@ -130,6 +130,14 @@
           ],
           "pattern": "^[^/\\\\]+$",
           "description": "Module resolving where this runtime stores its transcripts. Narrower than `transcript`, which also reads them: the kernel needs the path to detect an active chat, and importing the adapter's SDK to get it violates P8."
+        },
+        "chat": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[^/\\\\]+$",
+          "description": "Module implementing the Hub chat port: list_sessions, get_session_info, get_session_messages, stream_turn. Core calls these names, never a provider SDK's own surface."
         }
       }
     },
