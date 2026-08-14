@@ -5,12 +5,12 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [supply-chain, ci, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-14
 started: 2026-08-13
-completed: null
+completed: 2026-08-13
 agent_session: ses-claude-20260812-170221-1654
 depends_on: []
 blocked_by: []
@@ -25,3 +25,5 @@ references: []
 - 2026-08-14 [claude]: Edit release-please.yml
 - 2026-08-14 [claude]: Edit install.sh
 - 2026-08-14 [claude]: Edit install.sh
+- 2026-08-14 [claude]: commit e676d5b678 — build(security): hash-pin the build frontend and verify the uv installer before running it
+- 2026-08-14 [claude]: Status transitioned to complete via cos task-done.
