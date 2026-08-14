@@ -105,6 +105,11 @@ except ImportError:  # flat import
 
 logger = logging.getLogger("coding_os.db")
 
+# How long BEGIN IMMEDIATE waits for a sibling migrator before giving up and
+# deferring to the next open. Generous because the alternative — proceeding
+# without the lock — is what Rule 9's concurrency contract forbids.
+_MIGRATION_LOCK_TIMEOUT_MS = 30_000
+
 # Default DB path — configurable via COS_DB_PATH env var
 # Falls back to .coding-os/coding-os.db in current working directory.
 # Canonical filename, single source of truth for every consumer (MCP server,
@@ -235,40 +240,106 @@ def _ensure_version_table(conn: sqlite3.Connection) -> None:
 def get_schema_version(conn: sqlite3.Connection) -> int:
     """Return the highest applied migration version, or 0 if none."""
     _ensure_version_table(conn)
+    return _read_schema_version(conn)
+
+
+def _read_schema_version(conn: sqlite3.Connection) -> int:
     row = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()
     return row[0] if row[0] is not None else 0
+
+
+def _split_sql_statements(script: str) -> list[str]:
+    statements: list[str] = []
+    buffer = ""
+    for line in script.splitlines(keepends=True):
+        buffer += line
+        if sqlite3.complete_statement(buffer):
+            if buffer.strip():
+                statements.append(buffer)
+            buffer = ""
+    if buffer.strip():
+        statements.append(buffer)
+    return statements
+
+
+def _exec_script_locked(conn: sqlite3.Connection, script: str) -> None:
+    # conn.executescript() would COMMIT the migration transaction before running
+    # (CPython issues an implicit commit when one is pending), silently dropping
+    # the write lock mid-migration. complete_statement() splits the way the
+    # sqlite3 shell does, so CREATE TRIGGER ... BEGIN ... END and semicolons
+    # inside string literals stay intact.
+    for statement in _split_sql_statements(script):
+        conn.execute(statement)
+
+
+class _MigrationConnection:
+    """Connection view that keeps the migration transaction open.
+
+    Historical migration bodies call `commit()` and `executescript()` freely and
+    are append-only (Rule 9 — editing one diverges every consumer schema), so
+    the transaction discipline has to live here rather than in the 200+ call
+    sites. Everything else passes through to the real connection; the single
+    commit happens in run_migrations once every version has applied.
+    """
+
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self._conn = conn
+
+    def commit(self) -> None:
+        return None
+
+    def rollback(self) -> None:
+        return None
+
+    def executescript(self, script: str) -> sqlite3.Cursor:
+        _exec_script_locked(self._conn, script)
+        return self._conn.cursor()
+
+    def __getattr__(self, name: str) -> object:
+        return getattr(self._conn, name)
 
 
 def run_migrations(conn: sqlite3.Connection) -> list[int]:
     """Apply any unapplied migrations in order.
 
-    Concurrency-safe: takes an EXCLUSIVE transaction on the version
-    table so two simultaneously-opening connections don't both try to
-    apply the same migration and trip the UNIQUE constraint. Idempotent
-    via INSERT OR IGNORE on the version row.
+    Concurrency-safe: holds a write transaction for the whole apply loop so
+    two simultaneously-opening connections don't both try to apply the same
+    migration and trip the UNIQUE constraint. Idempotent via INSERT OR IGNORE
+    on the version row.
 
     Returns:
         List of migration versions that were applied.
     """
+    # Outside the lock on purpose: _ensure_version_table commits, and a commit
+    # inside the transaction below would end it (Rule 9 § Concurrency contract).
     _ensure_version_table(conn)
     applied: list[int] = []
 
-    # Another writer holding the lock is the common case under concurrent
-    # dispatcher workers: fall through, re-read the version below, and return
-    # without doing anything if we are already at the target.
+    # busy_timeout makes BEGIN IMMEDIATE *wait* for a sibling migrator instead
+    # of raising instantly; suppressing the raise instead would have let this
+    # process migrate unlocked alongside the holder.
     with contextlib.suppress(sqlite3.OperationalError):
-        conn.execute("BEGIN IMMEDIATE")
+        conn.execute(f"PRAGMA busy_timeout = {_MIGRATION_LOCK_TIMEOUT_MS}")
     try:
-        current = get_schema_version(conn)
+        conn.execute("BEGIN IMMEDIATE")
+    except sqlite3.OperationalError as exc:
+        # Waited out the timeout: a sibling is mid-migration. Re-read rather
+        # than applying anything unserialized — if it finished we are done, and
+        # if it is still going the next open picks up the remainder.
+        logger.debug("migration lock unavailable, deferring: %s", exc)
+        return []
+    guarded = _MigrationConnection(conn)
+    try:
+        current = _read_schema_version(conn)
         for version, description, action in MIGRATIONS:
             if version <= current:
                 continue
             logger.info("Applying migration v%d: %s", version, description)
             try:
                 if callable(action):
-                    action(conn)
+                    action(guarded)
                 else:
-                    conn.executescript(action)
+                    _exec_script_locked(conn, action)
             except sqlite3.OperationalError as exc:
                 # ALTER TABLE under concurrent runners can race past the
                 # column-exists guard — skip when the message explicitly

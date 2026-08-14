@@ -88,6 +88,27 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 - **How:** Hook `block-migration-conflict.sh` rejects duplicate version numbers in `src/core/thinking_os/database.py`.
 - **Where:** `src/core/thinking_os/database.py`
 
+### Concurrency contract
+
+Append-only ordering only helps if exactly one process applies a given version.
+Several agent panels, the Hub, and the MCP server open the same `coding-os.db`
+at once, so `run_migrations` must hold a real write lock:
+
+- **`BEGIN IMMEDIATE` is taken before the version is read, and nothing inside
+  the loop may `commit()`.** Python's `sqlite3` ends the transaction on *any*
+  commit, and `executescript()` issues an implicit `COMMIT` of its own — so a
+  helper that "just makes sure the table exists" silently drops the lock and
+  every later statement autocommits. That failure is invisible: migrations still
+  apply, they just apply unserialized.
+- **A busy lock is waited on, never suppressed.** Swallowing `SQLITE_BUSY` and
+  continuing converts "someone else is migrating" into "two processes migrating
+  at once". Wait via `busy_timeout`, then re-read the version and no-op if a
+  sibling already reached the target.
+- **Verified by execution, not by reading:** `conn.in_transaction` must still be
+  `True` after the version read, and a second connection must fail to acquire
+  `BEGIN IMMEDIATE` while the migration runs
+  (`src/core/thinking_os/tests/test_db_migration_lock.py`).
+
 ## Rule 10 — Regenerate derived artifacts
 
 - **Rule:** Edit source, then run `make regen-rules` + `make manifest-regen` + `make regen-adapter-templates`. Never hand-edit derived files.
