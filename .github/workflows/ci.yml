@@ -178,6 +178,50 @@ jobs:
         run: uv run pytest tests/ -q -m 'not slow'
 
   # ============================================================
+  # macOS smoke — EVERY push, unlike the nightly full run above.
+  # KNOWN_LIMITATIONS calls macOS the primary platform, yet it was only
+  # ever exercised nightly: a macOS-only break (BSD sed, bash 3.2, the
+  # /tmp <-> /private/tmp resolve) could sit on `main` for a day under a
+  # green CI Pass. This covers just the platform-sensitive surfaces, so
+  # it costs minutes rather than the nightly's 25.
+  # ============================================================
+  test-macos-smoke:
+    name: macOS smoke (hooks · paths · CLI)
+    needs: lint
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: Install bash 5 (macOS ships 3.2)
+        run: brew install bash
+      - name: Install deps
+        run: uv sync --extra rag
+      # Hook syntax + shellcheck under BSD userland, where GNU-only flags bite.
+      - name: Hooks — syntax + shellcheck
+        run: make verify-hooks
+      # The fail-closed matrix builds PATH sandboxes; on macOS it also proves
+      # the perl/jq degradation against the system-provided versions.
+      - name: Hooks — fail-closed matrix
+        run: uv run pytest tests/test_hooks_fail_closed.py -q
+      # Rule 5: .resolve() before .relative_to(). macOS is the only runner
+      # where /tmp is a symlink to /private/tmp, so this is the platform that
+      # can fail it.
+      - name: Path resolution + CLI surface
+        run: uv run pytest tests/test_cli.py -q
+      - name: Smoke — cos --help and doctor bootstrap
+        run: |
+          uv run cos --help > /dev/null
+          uv run cos doctor --bootstrap
+
+  # ============================================================
   # Coverage gate — kernel suites under pytest-cov. fail_under lives
   # in pyproject.toml ([tool.coverage.report]); diff-cover addition-
   # ally gates NEW code on PRs at 80% so total coverage can only
@@ -365,6 +409,16 @@ jobs:
       - name: Build
         working-directory: src/core/web/ui
         run: npm run build
+      # The a11y suite existed, was green, and never ran in CI — so an
+      # accessibility regression could merge unnoticed while the repo advertised
+      # the suite. It scans the production build via `vite preview` (webServer in
+      # playwright.config.ts) and fails on serious/critical axe violations only.
+      - name: Install Playwright browser
+        working-directory: src/core/web/ui
+        run: npx playwright install --with-deps chromium
+      - name: Accessibility (axe via Playwright)
+        working-directory: src/core/web/ui
+        run: npm run test:a11y
 
   # ============================================================
   # Docs lint — markdown structure + link integrity.
@@ -439,6 +493,7 @@ jobs:
       [
         lint,
         test-python,
+        test-macos-smoke,
         coverage,
         test-hooks,
         test-frontend,
@@ -454,6 +509,7 @@ jobs:
         run: |
           if [[ "${{ needs.lint.result }}" != "success" ]] \
              || [[ "${{ needs.test-python.result }}" != "success" ]] \
+             || [[ "${{ needs.test-macos-smoke.result }}" != "success" ]] \
              || [[ "${{ needs.coverage.result }}" != "success" ]] \
              || [[ "${{ needs.test-hooks.result }}" != "success" ]] \
              || [[ "${{ needs.test-frontend.result }}" != "success" ]] \
@@ -463,14 +519,15 @@ jobs:
             echo "One or more required jobs failed."
             exit 1
           fi
-          # Nightly slow suite: SURFACED, not yet gating. Run 31246768706 was
-          # red under a green CI Pass, which is why it is reported here at all.
-          # It stays non-blocking until the suite's order-fragility is fixed
-          # (issue #39): two back-to-back local runs on an identical tree
-          # produced different failure sets, so gating on it would make `main`
-          # flaky-red. Promote to `exit 1` once those runs are reproducible.
+          # Nightly slow suite: GATING. It was surfaced-but-advisory while the
+          # suite's order-fragility was open (issue #39, now closed), and an
+          # advisory signal is one nobody acts on — a red nightly under a green
+          # CI Pass is exactly the shape of regression that reaches `main`.
+          # `skipped` stays acceptable: the job is schedule-gated, so ordinary
+          # pushes legitimately do not run it.
           nightly="${{ needs.test-slow-nightly.result }}"
           if [[ "$nightly" != "success" && "$nightly" != "skipped" ]]; then
-            echo "::warning::Nightly slow suite result=$nightly (not gating — see issue #39)."
+            echo "Nightly slow suite result=$nightly — failing the gate."
+            exit 1
           fi
           echo "All required jobs passed."
