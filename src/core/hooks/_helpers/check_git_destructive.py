@@ -7,9 +7,12 @@ short cluster (`clean -d -f`). This tokenizes via the shared parser and matches
 options by SHAPE so every abbreviation/split that git accepts is caught, while a
 non-force `git clean -n` (dry-run) and unrelated flags stay allowed.
 
-stdin: hook JSON envelope. Prints one verdict token: `reset-hard`,
-`clean-force`, or `allow`. Never raises — any parse error prints `allow`
-(branch-guard is the fail-closed twin for the HEAD-moving reset).
+Input: `--command <str>`, or a hook JSON envelope on stdin. The flag form exists
+because the caller used to build that envelope with `jq -n --arg`, which yields
+an empty string on a jq-less image — the helper then saw no command and answered
+`allow`. Prints one verdict token: `reset-hard`, `clean-force`, or `allow`.
+Never raises — any parse error prints `allow` (branch-guard is the fail-closed
+twin for the HEAD-moving reset).
 """
 
 from __future__ import annotations
@@ -59,13 +62,22 @@ def _verdict(command: str) -> str:
     return "allow"
 
 
+def _command_from_argv(argv: list[str]) -> str | None:
+    if "--command" in argv:
+        index = argv.index("--command") + 1
+        return argv[index] if index < len(argv) else ""
+    return None
+
+
 def main() -> int:
-    try:
-        payload = json.load(sys.stdin)
-        command = (payload.get("tool_input", {}) or {}).get("command", "") or ""
-    except (json.JSONDecodeError, ValueError, AttributeError):
-        print("allow")
-        return 0
+    command = _command_from_argv(sys.argv[1:])
+    if command is None:
+        try:
+            payload = json.load(sys.stdin)
+            command = (payload.get("tool_input", {}) or {}).get("command", "") or ""
+        except (json.JSONDecodeError, ValueError, AttributeError):
+            print("allow")
+            return 0
     if not isinstance(command, str) or not command:
         print("allow")
         return 0

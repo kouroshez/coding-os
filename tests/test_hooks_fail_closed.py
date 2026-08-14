@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -146,6 +147,81 @@ def test_harm_gate_still_allows_benign_when_one_tool_missing(
     sandbox = _sandbox_without(tmp_path, missing)
     assert _run("block-dangerous-commands.sh", _BENIGN, path=sandbox) == 0
     assert _run("block-secrets.sh", _BENIGN, path=sandbox) == 0
+
+
+# `_cos_env_io.sh` IS the jq fast path, and `cos-env.sh` reads hub-settings.json
+# behind its own explicit `command -v jq` / python3 branch.
+_JQ_IMPLEMENTORS = {"_cos_env_io.sh", "cos-env.sh"}
+_BLOCKS = re.compile(r"^\s*exit\s+2\b", re.M)
+_RAW_JQ = re.compile(r"(?<![\w-])jq\s+(-[a-zA-Z]+\s+)*['\"]?\.")
+
+
+def _code_lines(text: str) -> list[str]:
+    return [ln for ln in text.splitlines() if not ln.lstrip().startswith("#")]
+
+
+def test_no_blocking_hook_extracts_fields_with_raw_jq() -> None:
+    """A gate that reads its input with bare jq flips its verdict when jq is absent.
+
+    `jq -r … || echo ""` yields empty (gate no-ops, exit 0) and a bare
+    `jq -r … ` yields 127, which is not 2, so the runtime lets the call through.
+    Every gate must extract through cos_json_field, which degrades to python3.
+    """
+    offenders: list[str] = []
+    for path in sorted(_HOOKS.glob("*.sh")):
+        if path.name in _JQ_IMPLEMENTORS:
+            continue
+        body = path.read_text()
+        if not _BLOCKS.search(body):
+            continue
+        for line in _code_lines(body):
+            if _RAW_JQ.search(line):
+                offenders.append(f"{path.name}: {line.strip()[:90]}")
+    assert not offenders, "blocking hooks still parsing with raw jq:\n  " + "\n  ".join(offenders)
+
+
+_ENVELOPE = json.dumps(
+    {
+        "tool_name": "MultiEdit",
+        "tool_input": {
+            "file_path": "docs/x.md",
+            "edits": [{"old_string": "ALPHA"}, {"old_string": "BETA"}],
+        },
+    }
+)
+
+_FIELD_CASES = [
+    ("tool_name", "MultiEdit"),
+    ("tool_input.file_path", "docs/x.md"),
+    ("tool_input.edits.0.old_string", "ALPHA"),
+    ("tool_input.old_string tool_input.edits.0.old_string", "ALPHA"),
+    ("absent.key", ""),
+]
+
+
+def _json_field(args: str, path: str | None = None) -> str:
+    bash = shutil.which("bash") or "/bin/bash"
+    proc = subprocess.run(
+        [bash, "-c", f'source "{_HOOKS}/cos-env.sh" >/dev/null 2>&1; cos_json_field {args}'],
+        input=_ENVELOPE,
+        capture_output=True,
+        text=True,
+        env={"PATH": path or os.environ.get("PATH", ""), "HOME": os.environ.get("HOME", "")},
+        timeout=20,
+    )
+    return proc.stdout.strip()
+
+
+@pytest.mark.parametrize("args,expected", _FIELD_CASES)
+def test_json_field_jq_and_python_agree(args: str, expected: str, tmp_path: Path) -> None:
+    """The jq fast path and the python3 fallback must be interchangeable.
+
+    They drifted once: the jq branch builds a filter string, so array indices
+    need `[0]` while the python branch walks segments — a path that worked
+    under python silently returned the wrong subtree under jq.
+    """
+    assert _json_field(args) == expected
+    assert _json_field(args, path=_sandbox_without(tmp_path, "jq")) == expected
 
 
 def test_stdin_reader_survives_without_perl(tmp_path: Path) -> None:

@@ -46,13 +46,14 @@ if [[ -z "$VERDICT" ]]; then
   exit 0
 fi
 
-FLAGGED="$(printf '%s' "$VERDICT" | jq -r '.flagged // false' 2>/dev/null || echo false)"
+FLAGGED="$(printf '%s' "$VERDICT" | cos_json_field flagged)"
+FLAGGED="${FLAGGED:-false}"
 if [[ "$FLAGGED" != "true" ]]; then
   cos_log_hook warn-destructive-edit ok || true
   exit 0
 fi
 
-MSG="$(printf '%s' "$VERDICT" | jq -r '.message // empty' 2>/dev/null || true)"
+MSG="$(printf '%s' "$VERDICT" | cos_json_field message)"
 if [[ "$MODE" == "strict" ]]; then
   printf 'BLOCKED: %s\n' "$MSG" >&2
   printf '  to proceed: split the deletion into a separate reviewed change, or set COS_DESTRUCTIVE_GUARD=warn.\n' >&2

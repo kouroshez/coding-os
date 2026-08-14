@@ -156,14 +156,23 @@ cos_require_parser() {
 # USAGE
 #   TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 #   CONTENT=$(printf '%s' "$INPUT" | cos_json_field tool_input.new_string tool_input.content)
+#   FIRST=$(printf '%s' "$INPUT" | cos_json_field tool_input.edits.0.old_string)
+#
+# A numeric path segment is an array index: `edits.0.x` → jq `.edits[0].x`.
 # ---------------------------------------------------------------------------
 cos_json_field() {
-  local input filter="" p
+  local input filter="" p seg expr
+  local -a segs
   input="$(cat)"
   if command -v jq >/dev/null 2>&1; then
     for p in "$@"; do
       [[ -n "$filter" ]] && filter+=" // "
-      filter+=".${p}"
+      expr=""
+      IFS='.' read -r -a segs <<< "$p"
+      for seg in "${segs[@]}"; do
+        if [[ "$seg" =~ ^[0-9]+$ ]]; then expr+="[${seg}]"; else expr+=".${seg}"; fi
+      done
+      filter+="$expr"
     done
     filter+=" // empty"
     printf '%s' "$input" | jq -r "$filter" 2>/dev/null || true

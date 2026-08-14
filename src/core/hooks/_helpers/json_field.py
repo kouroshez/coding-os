@@ -19,6 +19,8 @@ def _dig(obj: object, dotted: str) -> object | None:
     for part in dotted.split("."):
         if isinstance(cur, dict) and part in cur:
             cur = cur[part]
+        elif isinstance(cur, list) and part.isdigit() and int(part) < len(cur):
+            cur = cur[int(part)]
         else:
             return None
     return cur
