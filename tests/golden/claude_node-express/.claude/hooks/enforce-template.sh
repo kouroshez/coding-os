@@ -17,14 +17,14 @@ set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 
 # Only enforce on Write (true creation). Edit implies the file exists.
 if [[ "$TOOL" != "Write" ]]; then
   exit 0
 fi
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
+FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
 [[ -z "$FILE_PATH" ]] && exit 0
 
 # Not a markdown file → nothing to enforce here.
@@ -131,7 +131,7 @@ fi
 case "$FILE_PATH" in
   */docs/tasks/*) ;;  # task files have their own template flow above
   *docs/*.md)
-    CONTENT=$(echo "$INPUT" | jq -r '.tool_input.content // empty' 2>/dev/null || echo "")
+    CONTENT=$(printf '%s' "$INPUT" | cos_json_field tool_input.content)
     FIRST_LINE=$(printf '%s\n' "$CONTENT" | head -1)
     if ! printf '%s' "$FIRST_LINE" | grep -qE '^<!-- domain:[A-Z_]+ \| layer:[a-z]+ \| ssot:(true|ref|false)'; then
       echo "warning: new doc $FILE_PATH is missing the SSOT front-matter header" >&2

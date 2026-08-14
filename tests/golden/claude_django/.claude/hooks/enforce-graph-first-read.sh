@@ -27,12 +27,12 @@ if [[ "$MODE" == "off" || "$MODE" == "0" ]]; then
 fi
 
 PAYLOAD="$(cat 2>/dev/null || true)"
-TOOL=$(printf '%s' "$PAYLOAD" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+TOOL=$(printf '%s' "$PAYLOAD" | cos_json_field tool_name)
 if [[ "$TOOL" != "Read" ]]; then
   exit 0
 fi
 
-FILE_PATH=$(printf '%s' "$PAYLOAD" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
+FILE_PATH=$(printf '%s' "$PAYLOAD" | cos_json_field tool_input.file_path)
 if [[ -z "$FILE_PATH" ]]; then
   exit 0
 fi

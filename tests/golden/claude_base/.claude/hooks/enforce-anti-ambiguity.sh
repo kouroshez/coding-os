@@ -21,12 +21,12 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 cos_log_hook "enforce-anti-ambiguity" "entry"
 
 INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
   exit 0
 fi
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
+FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
 [[ -z "$FILE_PATH" ]] && exit 0
 
 # Only enforce on code files

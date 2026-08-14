@@ -98,3 +98,31 @@ def test_baseline_has_no_stale_entries() -> None:
         "Delete these BASELINE entries — the ratchet only tightens when paid-off "
         "debt leaves the list:\n" + "\n".join(stale)
     )
+
+
+def test_hook_registry_quotes_the_real_ceiling() -> None:
+    """The registry description is what an agent reads; it must not invent a number.
+
+    It advertised an "800-line ceiling" while the hook enforced 500 and this
+    file's SOFT_LIMIT was 500 — so the one place designed to explain the rule
+    was the one place stating it wrongly.
+    """
+    import re
+
+    registry = (
+        Path(__file__).resolve().parent.parent / "src" / "core" / "hooks" / "registry.yaml"
+    ).read_text()
+    hook = (
+        Path(__file__).resolve().parent.parent / "src" / "core" / "hooks" / "block-bad-patterns.sh"
+    ).read_text()
+
+    enforced = re.search(r'MAX_FILE_LINES="\$\{COS_MAX_FILE_LINES:-(\d+)\}"', hook)
+    assert enforced, "could not read MAX_FILE_LINES from block-bad-patterns.sh"
+    assert int(enforced.group(1)) == SOFT_LIMIT, (
+        f"hook enforces {enforced.group(1)} but this suite gates on {SOFT_LIMIT}"
+    )
+
+    quoted = re.findall(r"(\d+)-line (?:ceiling|backstop)", registry)
+    assert quoted, "registry no longer describes a line ceiling — update this test with it"
+    wrong = [n for n in quoted if int(n) != SOFT_LIMIT]
+    assert not wrong, f"registry.yaml advertises {wrong} but the hook enforces {SOFT_LIMIT}"

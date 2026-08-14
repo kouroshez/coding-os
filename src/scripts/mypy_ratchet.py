@@ -89,9 +89,14 @@ def main() -> int:
             print(f"  {n:>5}  {path}")
         return 1
     if count < BASELINE:
+        # Never "lower BASELINE to <local count>": a laptop reports ~16 fewer
+        # than CI (the dual board_os.*/core.board_os.* counting artifact), so
+        # taking a local number reds CI on the very next push.
         print(
-            f"mypy-ratchet: PASS — {count} errors < baseline {BASELINE}; "
-            f"lower BASELINE to {count} in src/scripts/mypy_ratchet.py"
+            f"mypy-ratchet: PASS — {count} errors < baseline {BASELINE}. "
+            "To ratchet, read the count from a CI run of this script and lower "
+            "BASELINE to THAT number — a local count reads ~16 low "
+            "(docs/engineering/ci-gates.md § Recorded exceptions)."
         )
     else:
         print(f"mypy-ratchet: PASS — {count} errors == baseline {BASELINE}")

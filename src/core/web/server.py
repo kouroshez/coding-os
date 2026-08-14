@@ -101,6 +101,11 @@ def create_app() -> FastAPI:
             "`{error: {category, message, retryable}}` on 4xx/5xx. "
             "See `docs/engineering/mcp-error-envelope.md`."
         ),
+        # API CONTRACT version, deliberately NOT the package version: it lands
+        # in docs/api/openapi.json, which `dump_openapi.py --check` diffs on
+        # every PR, so tying it to the release train would churn that snapshot
+        # on each version bump and drown the breaking-change signal. Bump only
+        # when the HTTP surface itself changes shape.
         version="0.4.0",
         openapi_tags=TAGS_METADATA,
         servers=[

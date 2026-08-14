@@ -20,10 +20,10 @@ case "$INPUT" in
   *) exit 0 ;;
 esac
 
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 [[ "$TOOL" != "Bash" ]] && exit 0
 
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
+COMMAND=$(printf '%s' "$INPUT" | cos_json_field tool_input.command)
 echo "$COMMAND" | grep -qE 'git[[:space:]]+commit\b' || exit 0
 
 # Resolve _helpers/ through the hook's PHYSICAL location so it works through the

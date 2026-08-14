@@ -163,9 +163,12 @@ fi
 # recovered-indirection git op is scanned too. Fails OPEN on helper error;
 # branch-guard is the fail-closed twin for the HEAD-moving reset.
 if echo "$COMMAND_SCAN" | grep -qE 'git[[:space:]]+(reset|clean)'; then
+  # The envelope is built by the helper itself (--command) rather than by
+  # `jq -n --arg`: a jq-less image made this substitution empty, the helper saw
+  # no command and answered "allow", and `git reset --hard` walked through.
   DESTRUCTIVE_VERDICT=$(
-    jq -n --arg c "$COMMAND_SCAN" '{tool_name:"Bash",tool_input:{command:$c}}' \
-      | python3 "$(_resolve_helper check_git_destructive.py)" 2>/dev/null || echo allow
+    python3 "$(_resolve_helper check_git_destructive.py)" --command "$COMMAND_SCAN" \
+      2>/dev/null || echo allow
   )
   if [ "$DESTRUCTIVE_VERDICT" = "reset-hard" ]; then
     cos_log_hook block-dangerous-commands block "rule=reset-hard"

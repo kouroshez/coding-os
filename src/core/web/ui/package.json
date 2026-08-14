@@ -1,7 +1,7 @@
 {
   "name": "coding-os-web-ui",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.0.0",
   "type": "module",
   "description": "Unified React SPA for coding-os: graph + board + cognition + search.",
   "scripts": {

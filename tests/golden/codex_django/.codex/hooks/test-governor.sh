@@ -30,7 +30,7 @@ case "$INPUT" in
   *) exit 0 ;;
 esac
 
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
+COMMAND=$(printf '%s' "$INPUT" | cos_json_field tool_input.command)
 [[ -n "$COMMAND" ]] || exit 0
 
 # Match `make ` only at a command-word boundary (start, or after a shell
@@ -52,10 +52,13 @@ else
 fi
 MATCH=$(cd "$PROJECT_ROOT" && "${PYRUN[@]}" -m core.board_os.verify_suites_cli match-command --command "$COMMAND" 2>/dev/null) || MATCH='{}'
 
-FULL_SWEEP=$(echo "$MATCH" | jq -r '.full_sweep // false' 2>/dev/null || echo false)
-SUITE=$(echo "$MATCH" | jq -r '.suite // empty' 2>/dev/null || echo "")
-FRESH=$(echo "$MATCH" | jq -r '.fresh // false' 2>/dev/null || echo false)
-IS_PYTEST=$(echo "$MATCH" | jq -r '.pytest_invocation // false' 2>/dev/null || echo false)
+FULL_SWEEP=$(printf '%s' "$MATCH" | cos_json_field full_sweep)
+FULL_SWEEP="${FULL_SWEEP:-false}"
+SUITE=$(printf '%s' "$MATCH" | cos_json_field suite)
+FRESH=$(printf '%s' "$MATCH" | cos_json_field fresh)
+FRESH="${FRESH:-false}"
+IS_PYTEST=$(printf '%s' "$MATCH" | cos_json_field pytest_invocation)
+IS_PYTEST="${IS_PYTEST:-false}"
 
 # Not a pytest run AND not a recognised suite — the command merely MENTIONS the
 # trigger (echo/jq/heredoc payload), or MATCH was unavailable ({}). Bail fail-open.
@@ -96,9 +99,11 @@ fi
 
 # ── 2. Dedup — suite already green on this exact tree ────────────────
 if [[ -n "$SUITE" && "$FRESH" == "true" && "${COS_TEST_FORCE:-}" != "1" ]] && ! $INLINE_FORCE; then
-  BY=$(echo "$MATCH" | jq -r '.recorded_by // "unknown"' 2>/dev/null || echo unknown)
-  TAIL=$(echo "$MATCH" | jq -r '.session_tail // ""' 2>/dev/null || echo "")
-  AGE=$(echo "$MATCH" | jq -r '.age_min // 0' 2>/dev/null || echo 0)
+  BY=$(printf '%s' "$MATCH" | cos_json_field recorded_by)
+  BY="${BY:-unknown}"
+  TAIL=$(printf '%s' "$MATCH" | cos_json_field session_tail)
+  AGE=$(printf '%s' "$MATCH" | cos_json_field age_min)
+  AGE="${AGE:-0}"
   cos_log_hook test-governor block "dedup suite=$SUITE by=$BY" 2>/dev/null || true
   {
     echo "BLOCKED: $SUITE is already green on this exact tree — passed ${AGE}min ago by ${BY}${TAIL:+ (ses=$TAIL)}."
@@ -121,9 +126,11 @@ LOCK_FILE="${COS_STATE_DIR}/.test-run.lock"
 LOCK_TTL=1800
 NOW=$(date +%s)
 if [[ -f "$LOCK_FILE" ]]; then
-  STARTED=$(jq -r '.started_ts // 0' "$LOCK_FILE" 2>/dev/null || echo 0)
-  H_TAIL=$(jq -r '.session_tail // ""' "$LOCK_FILE" 2>/dev/null || echo "")
-  H_AGENT_PID=$(jq -r '.agent_pid // 0' "$LOCK_FILE" 2>/dev/null || echo 0)
+  STARTED=$(cos_json_field started_ts < "$LOCK_FILE")
+  STARTED="${STARTED:-0}"
+  H_TAIL=$(cos_json_field session_tail < "$LOCK_FILE")
+  H_AGENT_PID=$(cos_json_field agent_pid < "$LOCK_FILE")
+  H_AGENT_PID="${H_AGENT_PID:-0}"
   OUR_TAIL="${COS_PANEL_ID:-}"
   OUR_TAIL="${OUR_TAIL: -8}"
   AGE=$(( NOW - STARTED ))
@@ -150,8 +157,10 @@ if [[ -f "$LOCK_FILE" ]]; then
     HELD=false
   fi
   if $HELD; then
-    H_AGENT=$(jq -r '.agent // "unknown"' "$LOCK_FILE" 2>/dev/null || echo unknown)
-    H_SUITE=$(jq -r '.suite // "a test run"' "$LOCK_FILE" 2>/dev/null || echo "a test run")
+    H_AGENT=$(cos_json_field agent < "$LOCK_FILE")
+    H_AGENT="${H_AGENT:-unknown}"
+    H_SUITE=$(cos_json_field suite < "$LOCK_FILE")
+    H_SUITE="${H_SUITE:-a test run}"
     cos_log_hook test-governor block "lock-held by=$H_AGENT" 2>/dev/null || true
     {
       echo "BLOCKED: $H_AGENT${H_TAIL:+ (ses=$H_TAIL)} is running $H_SUITE on this machine (started ${AGE}s ago)."

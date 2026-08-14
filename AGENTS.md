@@ -76,7 +76,7 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 | `src/core/thinking_os/database.py` | `uv run --extra rag pytest src/core/thinking_os/tests/test_db_*.py -q` |
 | `src/core/graph_os/**` | `uv run --extra graph_os pytest src/core/graph_os/tests/ -q` |
 | `src/core/board_os/**` | `uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q` |
-| `src/core/hooks/*.sh`, `src/core/scripts/*.sh` | `make verify-hooks` |
+| `src/core/hooks/*.sh`, `src/core/hooks/registry.yaml`, `src/core/scripts/*.sh` | `make verify-hooks` + `uv run pytest tests/test_hooks_fail_closed.py tests/test_golden_parity.py -q` — drift ⇒ `make golden-capture`, then re-run |
 | `src/adapters/**` | `uv run pytest tests/test_adapters_*.py tests/test_adapter_parity.py -q` |
 | `src/cli/*.py` | `uv run pytest tests/test_cli.py -q` |
 | `src/templates/**/scaffold/**` | `uv run pytest tests/test_template_scaffold_*.py -q` |
@@ -87,6 +87,8 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 > Suite paths are **globs on purpose**: `test_adapters.py`, `test_db.py` and `test_template_scaffold.py` were each split into siblings while the matrix kept naming the old file, so three rows exited "no tests ran" — a silent no-op that reads exactly like a pass. `tests/test_verification_matrix.py` fails if any row stops collecting.
 >
 > The rules/skills row exists because those two trees are **rendered into every scaffold**, so `tests/golden/**` holds a copy of each file. Editing one and running only `make docs-lint` — the row a `.md` path otherwise matches — passes locally and fails CI on 8 golden sections (`.claude/rules/…`, `.codex/rules/…`). That is Rule 10 with a `.md` disguise: the source is hand-edited, the copies are regenerated.
+>
+> **The hooks row carries the same trap**, which is why it names golden too: `.claude/hooks/*` and `.codex/hooks/*` are also captured per scaffold. `make verify-hooks` checks syntax and shellcheck and passes happily on a tree whose 18 edited hooks have left every golden section stale — a green local run, 8 red sections in CI.
 
 ## Tool Routing
 

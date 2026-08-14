@@ -45,7 +45,11 @@ keywords = ["ai", "coding-agent", "mcp", "llm", "cli", "hexagonal", "claude", "c
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "Operating System :: OS Independent",
+    # Enumerated, not "OS Independent": the hook layer is bash + POSIX paths and
+    # native Windows is unsupported (KNOWN_LIMITATIONS.md). "OS Independent"
+    # told pip users the opposite of what the project's own limitations page says.
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",

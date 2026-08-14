@@ -60,8 +60,8 @@ if [[ ! -t 0 ]]; then
   INPUT=$(cat 2>/dev/null || true)
 fi
 
-TOOL=$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)
-FILE_PATH=$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || true)
+TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
+FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
 
 case "$TOOL" in
   Write|Edit|MultiEdit) ;;
@@ -81,10 +81,7 @@ HELPER="$COS_HOOK_SRC_DIR/_helpers/doc_sync_check.py"
 # Try to recover the pre-edit content for diff signals. Edit carries
 # old_string for one chunk; MultiEdit carries an `edits` array (we use
 # the first old_string — enough to feed the symbol extractor).
-OLD_TEXT=$(printf '%s' "$INPUT" | jq -r '
-  .tool_input.old_string //
-  (.tool_input.edits[0].old_string // empty)
-' 2>/dev/null || true)
+OLD_TEXT=$(printf '%s' "$INPUT" | cos_json_field tool_input.old_string tool_input.edits.0.old_string)
 
 HELPER_OUT=$(
   if [[ -n "$OLD_TEXT" ]]; then

@@ -35,9 +35,19 @@ cos_resolve_python() {
 # USAGE
 #   INPUT="$(cos_read_stdin_bounded 2)"      # 2-second ceiling
 #
+# DEGRADATION (observability-eye I8)
+#   perl → python3 → cat. perl stays the fast path (~5 ms vs python3's ~50 ms
+#   startup, on a helper that runs 39× per file edit), but it is NOT a coding-os
+#   dependency and slim/Alpine images ship without it. The old perl-only body
+#   ended in `|| true`, so "no perl" produced an empty envelope — and an empty
+#   envelope makes every gate take its no-op branch and exit 0, silently
+#   disabling the whole enforcement layer, block-secrets included. The `cat`
+#   floor is safe: the tty case already returned above, and an agent runtime
+#   always closes the pipe.
+#
 # CONTRACT
 #   - Returns whatever bytes arrived on stdin (possibly empty).
-#   - On timeout: prints nothing, returns 0 (fail-open).
+#   - On timeout: prints what was read so far, returns 0.
 #   - When stdin is a tty: returns immediately with empty output.
 # ---------------------------------------------------------------------------
 cos_read_stdin_bounded() {
@@ -45,18 +55,26 @@ cos_read_stdin_bounded() {
   if [[ -t 0 ]]; then
     return 0
   fi
-  perl -e '
-    my $timeout = shift // 2;
-    eval {
-      local $SIG{ALRM} = sub { die "cos_stdin_timeout\n" };
-      alarm $timeout;
-      local $/;
-      my $data = <STDIN>;
-      alarm 0;
-      print $data if defined $data;
-    };
-    exit 0;
-  ' "$timeout_s" 2>/dev/null || true
+  if command -v perl >/dev/null 2>&1; then
+    perl -e '
+      my $timeout = shift // 2;
+      eval {
+        local $SIG{ALRM} = sub { die "cos_stdin_timeout\n" };
+        alarm $timeout;
+        local $/;
+        my $data = <STDIN>;
+        alarm 0;
+        print $data if defined $data;
+      };
+      exit 0;
+    ' "$timeout_s" 2>/dev/null || true
+    return 0
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    python3 "$(_cos_helpers_dir)/read_stdin.py" "$timeout_s" 2>/dev/null || true
+    return 0
+  fi
+  cat 2>/dev/null || true
 }
 
 # ---------------------------------------------------------------------------
@@ -138,14 +156,23 @@ cos_require_parser() {
 # USAGE
 #   TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 #   CONTENT=$(printf '%s' "$INPUT" | cos_json_field tool_input.new_string tool_input.content)
+#   FIRST=$(printf '%s' "$INPUT" | cos_json_field tool_input.edits.0.old_string)
+#
+# A numeric path segment is an array index: `edits.0.x` → jq `.edits[0].x`.
 # ---------------------------------------------------------------------------
 cos_json_field() {
-  local input filter="" p
+  local input filter="" p seg expr
+  local -a segs
   input="$(cat)"
   if command -v jq >/dev/null 2>&1; then
     for p in "$@"; do
       [[ -n "$filter" ]] && filter+=" // "
-      filter+=".${p}"
+      expr=""
+      IFS='.' read -r -a segs <<< "$p"
+      for seg in "${segs[@]}"; do
+        if [[ "$seg" =~ ^[0-9]+$ ]]; then expr+="[${seg}]"; else expr+=".${seg}"; fi
+      done
+      filter+="$expr"
     done
     filter+=" // empty"
     printf '%s' "$input" | jq -r "$filter" 2>/dev/null || true

@@ -98,15 +98,22 @@ if [[ "$HELPER_RC" -ne 0 || -z "$VERDICT_JSON" ]]; then
   exit 2
 fi
 
-VERDICT=$(echo "$VERDICT_JSON" | jq -r '.verdict // "block"' 2>/dev/null || echo "block")
+# Read the verdict through cos_json_field (jq → python3), never raw jq: a bare
+# `jq -r … || echo block` exits 127 when jq is absent, and 127 is not 2, so the
+# runtime treats it as a hook error and lets the git command through — the same
+# fail-open class this guard already closes for a crashed helper. Absent or
+# unreadable verdict stays "block" (observability-eye I8).
+VERDICT=$(printf '%s' "$VERDICT_JSON" | cos_json_field verdict)
+VERDICT="${VERDICT:-block}"
 
 if [[ "$VERDICT" != "block" ]]; then
   cos_log_hook branch-guard ok || true
   exit 0
 fi
 
-REASON=$(echo "$VERDICT_JSON" | jq -r '.reason // "branch-guard-block"' 2>/dev/null)
-MESSAGE=$(echo "$VERDICT_JSON" | jq -r '.message // ""' 2>/dev/null)
+REASON=$(printf '%s' "$VERDICT_JSON" | cos_json_field reason)
+REASON="${REASON:-branch-guard-block}"
+MESSAGE=$(printf '%s' "$VERDICT_JSON" | cos_json_field message)
 
 cos_log_hook branch-guard block "rule=${REASON}"
 bash "$(dirname "$0")/../scripts/log-write.sh" \

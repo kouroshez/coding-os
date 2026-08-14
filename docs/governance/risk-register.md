@@ -17,7 +17,18 @@ Read next: Relevant ADR in `../architecture/adr/` or the domain architecture doc
      - `RISK-001` Backup automation needs an owner before production. owner: ops · review-by: 2026-09-01 · tracking: TASK-123
 -->
 
-(empty — populate as risks are identified)
+- `RISK-001` Bus factor 1 — 2,655 of 2,690 commits are from one maintainer, who also holds the only PyPI publish path. owner: maintainer · review-by: 2026-11-01 · tracking: #41
+- `RISK-002` No external production validation; every effectiveness claim is self-measured. owner: maintainer · review-by: 2026-11-01 · tracking: #41
+- `RISK-003` 16 of 27 advertised stacks have no real toolchain CI (scaffold-verify covers node/python/go only), so "advertised" is not "proven". owner: maintainer · review-by: 2026-10-01 · tracking: TASK-975
+- `RISK-004` Nightly slow suite is non-gating pending order-independence; a regression it catches can still reach `main`. owner: maintainer · review-by: 2026-10-01 · tracking: TASK-974
+- `RISK-005` Hub binds loopback without authentication by default and does not refuse a non-loopback bind when `COS_HUB_TOKEN` is unset. owner: maintainer · review-by: 2026-10-01 · tracking: TASK-977
+
+> **Risk vs Known Limitation.** A *limitation* is a bounded property we accept
+> and document ([KNOWN_LIMITATIONS.md](../../KNOWN_LIMITATIONS.md)); a *risk* is
+> a limitation whose blast radius is not yet bounded and which therefore needs
+> an owner and a review date. Coverage at 63% is a limitation. "A defect class
+> can reach `main` because the suite that would catch it does not gate" is a
+> risk. When a risk is bounded, move it to KNOWN_LIMITATIONS and drop it here.
 
 ## Usage Rules
 

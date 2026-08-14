@@ -25,7 +25,7 @@ fi
 
 # Accept stdin JSON from Claude / Codex dispatchers. jq (the house pattern)
 # is ~30ms cheaper than a python3 spawn — material on the Write|Edit hot path.
-FILE_PATH="$(cos_read_stdin_bounded 2 | jq -r '.tool_input.file_path // empty' 2>/dev/null || true)"
+FILE_PATH="$(cos_read_stdin_bounded 2 | cos_json_field tool_input.file_path)"
 
 if [[ -z "$FILE_PATH" ]]; then
   cos_log_hook enforce-graph-context no-file || true
