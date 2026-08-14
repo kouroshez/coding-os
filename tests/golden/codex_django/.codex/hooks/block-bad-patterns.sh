@@ -223,31 +223,44 @@ if [[ "$FILE_PATH" == *.py ]]; then
     fi
   fi
 
-  # Block .save()/.delete() in views (views should be thin, use services)
-  # Source: backend-rules.md § Core Rules
-  if [[ "$FILE_PATH" == *views* ]] || [[ "$FILE_PATH" == *viewsets* ]]; then
-    if echo "$CONTENT" | grep -qE '\.(save|delete)\(\)'; then
-      echo "BLOCKED: Views must be thin — do not call .save() or .delete() in views. Move business logic to a service function. See docs/engineering/backend-rules.md § Core Rules." >&2
-      exit 2
-    fi
-  fi
+  # --- Layered-backend rules (thin views, selectors, typed domain errors) ---
+  #
+  # These are an architectural OPINION belonging to the Django/DRF overlay that
+  # ships `views.py`/`selectors.py`/`services.py`, not universal safety like the
+  # except-pass rule above — yet they lived unconditionally in the kernel, so a
+  # Go or Rust project got told to "use a selector function from selectors.py".
+  # Gated on the project actually installing a stack that owns the convention
+  # (P2: the kernel stays stack-agnostic). No stack declared → skip, so a
+  # config-less checkout is never blocked by a rule it cannot satisfy.
+  if cos_project_uses_layered_backend; then
 
-  # Block ORM queries in views (use selectors instead)
-  # Source: backend-rules.md § Core Rules
-  if [[ "$FILE_PATH" == *views* ]] || [[ "$FILE_PATH" == *viewsets* ]]; then
-    if echo "$CONTENT" | grep -qE '\.objects\.(filter|get|exclude|annotate|aggregate|create|update|bulk)'; then
-      echo "BLOCKED: Do not query ORM directly in views. Use a selector function from selectors.py. See docs/engineering/backend-rules.md § Core Rules." >&2
-      exit 2
+    # Block .save()/.delete() in views (views should be thin, use services)
+    # Source: backend-rules.md § Core Rules
+    if [[ "$FILE_PATH" == *views* ]] || [[ "$FILE_PATH" == *viewsets* ]]; then
+      if echo "$CONTENT" | grep -qE '\.(save|delete)\(\)'; then
+        echo "BLOCKED: Views must be thin — do not call .save() or .delete() in views. Move business logic to a service function. See docs/engineering/backend-rules.md § Core Rules." >&2
+        exit 2
+      fi
     fi
-  fi
 
-  # Block bare raise ValueError/Exception in service layer (use typed domain exceptions)
-  # Source: backend-rules.md § Error Handling Policy
-  if [[ "$FILE_PATH" == *services* ]]; then
-    if echo "$CONTENT" | grep -qE 'raise\s+(ValueError|Exception|RuntimeError)\('; then
-      echo "BLOCKED: Do not raise bare ValueError/Exception in services. Define a typed exception in apps/<domain>/exceptions.py inheriting APIException. See docs/engineering/backend-rules.md § Error Handling Policy." >&2
-      exit 2
+    # Block ORM queries in views (use selectors instead)
+    # Source: backend-rules.md § Core Rules
+    if [[ "$FILE_PATH" == *views* ]] || [[ "$FILE_PATH" == *viewsets* ]]; then
+      if echo "$CONTENT" | grep -qE '\.objects\.(filter|get|exclude|annotate|aggregate|create|update|bulk)'; then
+        echo "BLOCKED: Do not query ORM directly in views. Use a selector function from selectors.py. See docs/engineering/backend-rules.md § Core Rules." >&2
+        exit 2
+      fi
     fi
+
+    # Block bare raise ValueError/Exception in service layer (use typed domain exceptions)
+    # Source: backend-rules.md § Error Handling Policy
+    if [[ "$FILE_PATH" == *services* ]]; then
+      if echo "$CONTENT" | grep -qE 'raise\s+(ValueError|Exception|RuntimeError)\('; then
+        echo "BLOCKED: Do not raise bare ValueError/Exception in services. Define a typed exception in apps/<domain>/exceptions.py inheriting APIException. See docs/engineering/backend-rules.md § Error Handling Policy." >&2
+        exit 2
+      fi
+    fi
+
   fi
 
 fi

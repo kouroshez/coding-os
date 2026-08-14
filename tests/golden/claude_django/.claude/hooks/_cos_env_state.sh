@@ -351,3 +351,39 @@ cos_task_bound_in_live_sibling() {
   done
   return 1
 }
+
+# ---------------------------------------------------------------------------
+# cos_project_uses_layered_backend — does this project install a stack whose
+# convention is views/selectors/services + typed domain exceptions?
+#
+# WHY
+#   The kernel is stack-agnostic (P2). Rules that encode ONE stack's layering
+#   opinion must ask whether the project opted into that stack, or a Go/Rust
+#   repo gets told to "use a selector function from selectors.py". Reads the
+#   `templates:` list `cos init` writes to .coding-os.yaml.
+#
+# CONTRACT
+#   0 when a layered-backend stack is installed, 1 otherwise — including when
+#   the config is missing or unreadable, so a rule nobody opted into never
+#   blocks. The safety rules above this call are unconditional by design; only
+#   the architectural opinions are gated.
+# ---------------------------------------------------------------------------
+COS_LAYERED_BACKEND_STACKS="${COS_LAYERED_BACKEND_STACKS:-django fastapi}"
+
+cos_project_uses_layered_backend() {
+  local root cfg stack
+  root="${COS_PROJECT_ROOT:-}"
+  if [[ -z "$root" && -n "${COS_STATE_DIR:-}" ]]; then
+    root="$(dirname "$COS_STATE_DIR")"
+  fi
+  cfg="${root:-.}/.coding-os.yaml"
+  [[ -f "$cfg" ]] || return 1
+  for stack in $COS_LAYERED_BACKEND_STACKS; do
+    # `templates:` is a YAML block list; match "  - <stack>" exactly so
+    # "django-rest" or a comment mentioning django does not count.
+    if grep -qE "^[[:space:]]*-[[:space:]]+${stack}[[:space:]]*$" "$cfg"; then
+      return 0
+    fi
+  done
+  return 1
+}
