@@ -24,8 +24,21 @@ REPO_URL="${COS_REPO_URL:-https://github.com/kouroshez/coding-os.git}"
 HUB_PORT="${COS_HUB_PORT:-9188}"
 HUB_HOST="127.0.0.1"
 
+# Bump together, and only after re-computing the digest against the new URL:
+#   curl -fsSL https://astral.sh/uv/<version>/install.sh | shasum -a 256
+UV_INSTALLER_VERSION="0.9.10"
+UV_INSTALLER_SHA256="578d164a618b6b2825017d6dab73b00925e3895b47f22b25434b3fee2ec9f849"
+
 log() { printf '  %s\n' "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
+# macOS ships shasum, most Linux images ship sha256sum; support both.
+_sha256() {
+  if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1" | awk '{print $1}'
+  elif command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | awk '{print $1}'
+  else return 1
+  fi
+}
 
 # --- Preflight: mirror cos doctor --bootstrap (no project required) ---
 preflight() {
@@ -37,8 +50,20 @@ preflight() {
   command -v git >/dev/null 2>&1 || die "git not found on PATH — install git first."
 
   if ! command -v uv >/dev/null 2>&1; then
-    log "uv not found — installing via https://astral.sh/uv ..."
-    curl -fsSL https://astral.sh/uv/install.sh | sh
+    log "uv not found — installing uv ${UV_INSTALLER_VERSION} ..."
+    # Download-verify-run, never `curl | sh`: piping means the bytes that get
+    # executed are never the bytes anyone checked. The URL is version-pinned
+    # (immutable) and the digest is verified before a single line runs, so a
+    # compromised CDN response fails closed instead of executing as root-ish.
+    _uv_installer="$(mktemp)"
+    trap 'rm -f "$_uv_installer"' RETURN
+    curl -fsSL "https://astral.sh/uv/${UV_INSTALLER_VERSION}/install.sh" -o "$_uv_installer" \
+      || die "could not download the uv installer — check network access to astral.sh"
+    _uv_actual="$(_sha256 "$_uv_installer")" \
+      || die "no sha256 tool found (need shasum or sha256sum) — install uv manually: https://astral.sh/uv"
+    [ "$_uv_actual" = "$UV_INSTALLER_SHA256" ] \
+      || die "uv installer digest mismatch — expected $UV_INSTALLER_SHA256, got $_uv_actual. Refusing to run it."
+    sh "$_uv_installer"
     # uv installs to ~/.local/bin or ~/.cargo/bin; surface it for this run.
     export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
     command -v uv >/dev/null 2>&1 || die "uv install failed — install manually: https://astral.sh/uv"
