@@ -8,8 +8,10 @@ import { useApiGet } from "@/lib/hooks";
  *
  * An adapter that cannot stream a live turn is NOT "coming soon" — that phrasing
  * described a working dispatcher as vapourware for as long as a yaml string said
- * so. It states which capability is missing and where the adapter IS usable
- * today, so the reader can act instead of wait.
+ * so. The copy states what the reader can do — install the named dependency, or
+ * use the adapter where it already works — and never explains the Hub's own
+ * streaming mechanism, which reads as a deficit some setting should be able to
+ * fix and sends the reader hunting a Config toggle that does not exist.
  */
 
 export interface AdapterModel {
@@ -170,7 +172,7 @@ export default function ModelPicker({
                 <p className="px-2 pb-1 text-[10px] leading-relaxed text-[var(--cos-faint)]">
                   {a.chat_remedy
                     ? `Needs ${a.chat_missing} — ${a.chat_remedy}`
-                    : `Hub chat streams in-process; ${a.label} has no in-process runtime.`}
+                    : `Live chat with ${a.label} is not built — no setting or install enables it.`}
                   {elsewhere(a) && (
                     <>
                       {" "}

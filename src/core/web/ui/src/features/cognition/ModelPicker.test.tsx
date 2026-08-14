@@ -65,6 +65,20 @@ describe('ModelPicker', () => {
     expect(screen.getByText(/Usable for roles and supervision/)).toBeInTheDocument();
   });
 
+  it('states that live chat is unbuilt rather than describing the Hub streaming mechanism', () => {
+    render(<ModelPicker value="" onChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Opus 4\.8/ }));
+
+    // The regression this guards: copy about how the Hub streams reads as a
+    // missing dependency or setting, so the reader hunts a Config toggle that
+    // does not exist. An adapter with no remedy has nothing for them to do.
+    expect(screen.queryByText(/in-process/i)).not.toBeInTheDocument();
+    // No remedy means nothing to install, so it must not read as "Needs …".
+    expect(screen.queryByText(/Needs /)).not.toBeInTheDocument();
+    expect(screen.getByText(/Live chat with OpenAI Codex CLI is not built/)).toBeInTheDocument();
+    expect(screen.getByText(/no setting or install enables it/)).toBeInTheDocument();
+  });
+
   it('leaves a chat-incapable adapter model unselectable', () => {
     render(<ModelPicker value="" onChange={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: /Opus 4\.8/ }));
