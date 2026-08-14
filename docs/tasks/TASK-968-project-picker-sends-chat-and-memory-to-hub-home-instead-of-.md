@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [hub-ui, routing, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-14
 started: 2026-08-14
-completed: null
+completed: 2026-08-14
 agent_session: ses-claude-20260812-170221-1654
 depends_on: []
 blocked_by: []
@@ -41,3 +41,5 @@ Open http://127.0.0.1:9188/workspace/chat with no project selected. The NeedProj
 - 2026-08-14 [claude]: Edit App.tsx
 - 2026-08-14 [claude]: Edit App.tsx
 - 2026-08-14 [claude]: Edit NeedProjectPage.routing.test.tsx
+- 2026-08-14 [claude]: commit f717e2d928 — fix(hub-ui): picking a project no longer bounces chat and memory to Hub home
+- 2026-08-14 [claude]: Status transitioned to complete via cos task-done.
