@@ -5,12 +5,12 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [governance, ci, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-14
 started: 2026-08-13
-completed: null
+completed: 2026-08-13
 agent_session: ses-claude-20260812-170221-1654
 depends_on: []
 blocked_by: []
@@ -23,3 +23,5 @@ references: []
 ## Work Log
 - 2026-08-14 [claude]: Edit git-workflow.md
 - 2026-08-14 [claude]: Edit ci-gates.md
+- 2026-08-14 [claude]: commit fa3a087d23 — docs(governance): turn the PyPI approval gate off and record why the reversal is the lesson
+- 2026-08-14 [claude]: Status transitioned to complete via cos task-done.
