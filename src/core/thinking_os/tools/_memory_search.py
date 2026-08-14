@@ -265,10 +265,11 @@ def memory_search(
     for r in results:
         r.setdefault("re_verify_recommended", False)
 
-    # Read-only contract: raw search does NOT bump access_count or confidence —
-    # reinforcement happens only on the cos_details drill-in. Bumping confidence
-    # here inflated every matched pattern +0.02 per call, polluting both the
-    # min_confidence gate and the confidence-weighted ranking.
+    # Read-only contract: raw search does NOT bump access_count. cos_details
+    # bumps access_count alone — no path from retrieval to confidence, which
+    # only cos_learn_validate moves. Bumping confidence here inflated every
+    # matched pattern +0.02 per call, polluting both the min_confidence gate
+    # and the confidence-weighted ranking.
 
     # --- Remove internal-only fields from output ---
     for r in results:

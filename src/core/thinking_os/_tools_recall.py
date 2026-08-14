@@ -61,8 +61,8 @@ def thinking_os_search(
     """Search observations and learned patterns with 5-signal ranking.
 
     Use during Orient step to find relevant past experience. Read-only over
-    memory rows (writes retrieval telemetry only; reinforcement happens on
-    cos_details, not here — TASK-109).
+    memory rows: retrieval telemetry only. Neither this tool nor cos_details
+    moves confidence — only cos_learn_validate does.
 
     Stage-1 metadata pre-filter:
       - `min_confidence` drops decayed/low-trust patterns BEFORE ranking.

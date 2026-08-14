@@ -85,11 +85,16 @@ def _compute_score(
 
 def _boost_access(conn: sqlite3.Connection, table: str, row_id: int) -> None:
     if table == "learned_patterns":
+        # access_count only — reading a pattern is not evidence that it is true.
+        # This also did `confidence = MIN(0.95, confidence + 0.02)`, so ~23
+        # detail views pinned any belief to the ceiling with nothing confirming
+        # it, contradicting memory.md ("confidence moves by LTP/LTD only when
+        # you call cos_learn_validate"). Frequency still reaches ranking through
+        # _access_score; it just no longer masquerades as truth.
         conn.execute(
             "UPDATE learned_patterns SET "
             "access_count = access_count + 1, "
-            "last_accessed_at = CURRENT_TIMESTAMP, "
-            "confidence = MIN(0.95, confidence + 0.02) "
+            "last_accessed_at = CURRENT_TIMESTAMP "
             "WHERE id = ?",
             (row_id,),
         )

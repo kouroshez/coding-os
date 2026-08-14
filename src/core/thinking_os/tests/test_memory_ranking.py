@@ -311,3 +311,64 @@ class TestRankFusionDiversity:
         ids = [c["id"] for c in picked]
         assert ids[0] == 1
         assert ids[1] == 2  # the relevant near-dup beats the irrelevant distinct row
+
+
+# ---------------------------------------------------------------------------
+# Retrieval must not move confidence (memory.md § Memory hygiene rules)
+# ---------------------------------------------------------------------------
+
+
+class TestReadingIsNotEvidence:
+    """cos_details records that a pattern was read, never that it is truer.
+
+    _boost_access used to also run `confidence = MIN(0.95, confidence + 0.02)`,
+    so ~23 detail views drove any belief to the ceiling without one confirming
+    observation — while memory.md promised confidence moves only via
+    cos_learn_validate. The two contracts disagreed and the code won.
+    """
+
+    def _confidence(self, conn: sqlite3.Connection, pattern_id: int) -> float:
+        row = conn.execute(
+            "SELECT confidence FROM learned_patterns WHERE id = ?", (pattern_id,)
+        ).fetchone()
+        return float(row[0])
+
+    def test_repeated_details_leaves_confidence_untouched(
+        self, seeded_conn: sqlite3.Connection
+    ) -> None:
+        from tools._memory_ranking import _boost_access
+
+        before = self._confidence(seeded_conn, 1)
+        for _ in range(40):
+            _boost_access(seeded_conn, "learned_patterns", 1)
+        seeded_conn.commit()
+
+        assert self._confidence(seeded_conn, 1) == pytest.approx(before)
+
+    def test_details_still_records_access(self, seeded_conn: sqlite3.Connection) -> None:
+        from tools._memory_ranking import _boost_access
+
+        row = seeded_conn.execute(
+            "SELECT access_count FROM learned_patterns WHERE id = 1"
+        ).fetchone()
+        before = int(row[0] or 0)
+
+        _boost_access(seeded_conn, "learned_patterns", 1)
+        seeded_conn.commit()
+
+        row = seeded_conn.execute(
+            "SELECT access_count, last_accessed_at FROM learned_patterns WHERE id = 1"
+        ).fetchone()
+        assert int(row[0]) == before + 1
+        assert row[1] is not None
+
+    def test_access_still_reaches_ranking(self) -> None:
+        # Frequency keeps its influence — through the access signal, not through
+        # the confidence term it used to inflate.
+        read_often = _compute_score(
+            relevance=0.5, confidence=0.5, recency_days=1.0, impact=0.5, access_count=10
+        )
+        read_once = _compute_score(
+            relevance=0.5, confidence=0.5, recency_days=1.0, impact=0.5, access_count=0
+        )
+        assert read_often > read_once
