@@ -14,6 +14,7 @@ import logging
 import os
 import sqlite3
 from pathlib import Path
+from typing import cast
 
 # database.py is imported BOTH flat (`import database`, with this dir on
 # sys.path — the MCP server + hooks) and as a package member
@@ -337,7 +338,11 @@ def run_migrations(conn: sqlite3.Connection) -> list[int]:
             logger.info("Applying migration v%d: %s", version, description)
             try:
                 if callable(action):
-                    action(guarded)
+                    # The proxy satisfies the sqlite3.Connection surface a
+                    # migration body uses; it is not a subclass because the
+                    # point is to intercept commit/executescript, not inherit
+                    # them (Rule 9 § Concurrency contract).
+                    action(cast("sqlite3.Connection", guarded))
                 else:
                     _exec_script_locked(conn, action)
             except sqlite3.OperationalError as exc:
