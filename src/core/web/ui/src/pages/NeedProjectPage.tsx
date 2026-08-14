@@ -1,5 +1,6 @@
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
+import { projectFeaturePath } from '@/lib/use-scoped-link';
 
 interface HubProject {
   slug: string;
@@ -36,7 +37,7 @@ export default function NeedProjectPage({ feature }: { feature: string }) {
 
   const choose = (slug: string) => {
     const sub = subId ? `/${encodeURIComponent(subId)}` : '';
-    navigate(`/p/${encodeURIComponent(slug)}/${feature}${sub}${search}`, { replace: true });
+    navigate(`${projectFeaturePath(feature, slug)}${sub}${search}`, { replace: true });
   };
 
   return (

@@ -1,4 +1,4 @@
-import { Route, Routes, Navigate, useParams } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import { BoardThemeProvider } from '@/features/cos-board/BoardThemeProvider';
 import AppShell from '@/layout/AppShell';
 import { ErrorBoundary } from '@/layout/ErrorBoundary';
@@ -20,24 +20,11 @@ import NeedProjectPage from './pages/NeedProjectPage';
 import WorkspacePage from './pages/WorkspacePage';
 import DesignComingSoon from './pages/DesignComingSoon';
 import DiagnosticsPage from './pages/DiagnosticsPage';
-
-// Redirect helpers to transition old deep-links smoothly to nested hub routes
-function RedirectToWorkspace({ sub }: { sub: string }) {
-  const { slug } = useParams<{ slug?: string }>();
-  return <Navigate to={slug ? `/p/${encodeURIComponent(slug)}/workspace/${sub}` : `/workspace/${sub}`} replace />;
-}
-
-function RedirectToDiagnostics({ sub }: { sub: string }) {
-  const { slug } = useParams<{ slug?: string }>();
-  return <Navigate to={slug ? `/p/${encodeURIComponent(slug)}/diagnostics/${sub}` : `/diagnostics/${sub}`} replace />;
-}
-
-// Settings merged into Config (TASK-864) — old settings deep-links land on the
-// Config tab; the global scope has no config surface, so it falls back to `/`.
-function RedirectToConfigSettings() {
-  const { slug } = useParams<{ slug?: string }>();
-  return <Navigate to={slug ? `/p/${encodeURIComponent(slug)}/config?tab=settings` : '/config'} replace />;
-}
+import {
+  RedirectToConfigSettings,
+  RedirectToDiagnostics,
+  RedirectToWorkspace,
+} from '@/lib/route-redirects';
 
 export default function App() {
   return (
@@ -123,6 +110,14 @@ export default function App() {
           <Route path="/p/:slug/dashboard" element={<RedirectToWorkspace sub="overview" />} />
           <Route path="/p/:slug/board" element={<RedirectToWorkspace sub="board" />} />
           <Route path="/p/:slug/search" element={<RedirectToWorkspace sub="search" />} />
+          {/* chat/memory/overview/design were missing here, so a flat link to
+              them matched nothing and the `*` catch-all bounced the user to Hub
+              home. Every WORKSPACE_TABS entry needs a flat form. */}
+          <Route path="/p/:slug/chat" element={<RedirectToWorkspace sub="chat" />} />
+          <Route path="/p/:slug/chat/:sessionId" element={<RedirectToWorkspace sub="chat" />} />
+          <Route path="/p/:slug/memory" element={<RedirectToWorkspace sub="memory" />} />
+          <Route path="/p/:slug/overview" element={<RedirectToWorkspace sub="overview" />} />
+          <Route path="/p/:slug/design" element={<RedirectToWorkspace sub="design" />} />
           <Route path="/p/:slug/doctor" element={<RedirectToDiagnostics sub="doctor" />} />
           <Route path="/p/:slug/logs" element={<RedirectToDiagnostics sub="logs" />} />
           <Route path="/p/:slug/observability" element={<RedirectToDiagnostics sub="observability" />} />

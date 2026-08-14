@@ -4,6 +4,24 @@ import { useLocation } from 'react-router-dom';
 const PROJECT_SCOPE_RE = /^\/p\/([^/]+)(?:\/|$)/;
 
 /**
+ * Features that live as tabs *inside* the Workspace shell. Their scoped route
+ * is `/p/<slug>/workspace/<tab>`, not `/p/<slug>/<tab>` — the distinction the
+ * project picker got wrong, sending `chat` and `memory` to a path matching no
+ * route, which fell through the `*` catch-all back to Hub home.
+ */
+export const WORKSPACE_TABS = new Set(['overview', 'chat', 'board', 'search', 'memory', 'design']);
+
+/**
+ * The project-scoped URL for a feature. The only place that decides whether a
+ * feature nests under /workspace, so the pickers and App.tsx cannot drift.
+ */
+export function projectFeaturePath(feature: string, slug: string): string {
+  const clean = feature.replace(/^\/+/, '');
+  const prefix = `/p/${encodeURIComponent(slug)}`;
+  return WORKSPACE_TABS.has(clean) ? `${prefix}/workspace/${clean}` : `${prefix}/${clean}`;
+}
+
+/**
  * useScopedLink — single source of truth for "where does this nav link
  * point under the current project scope?".
  *
