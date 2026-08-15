@@ -20,6 +20,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CAPTURE_HOOK = REPO_ROOT / "src" / "core" / "hooks" / "capture-observation.sh"
 PRUNE_SCRIPT = REPO_ROOT / "src" / "scripts" / "prune_deleted_path.py"
 
+# A hang detector, not a performance budget. The hook runs in ~0.1s locally; at 5s
+# this was close enough to a cold, contended macOS runner's worst case to redden
+# main on a nightly (run 31871857926) for a hook that had not changed. Matches
+# SMOKE_TIMEOUT_S in tests/test_script_entrypoints.py — if a hook ever takes 30s,
+# something is genuinely stuck and the test should say so.
+SUBPROCESS_TIMEOUT_S = 30
+
 
 # ---------------------------------------------------------------------------
 # capture-observation shell filter MUST accept MultiEdit
@@ -46,7 +53,7 @@ class TestCaptureObservationMultiEdit:
             input=json.dumps(payload),
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=SUBPROCESS_TIMEOUT_S,
             env=env,
         )
 
@@ -182,7 +189,7 @@ class TestPruneDeletedPathPragma:
             ],
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=SUBPROCESS_TIMEOUT_S,
         )
         assert result.returncode == 0, result.stderr
 
