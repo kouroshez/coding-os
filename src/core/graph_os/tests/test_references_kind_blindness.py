@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 
 import pytest
+
 from graph_os.tools import graph
 from graph_os.types import GraphEdge, GraphNode
 
