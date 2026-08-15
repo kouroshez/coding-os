@@ -12,6 +12,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.20](https://github.com/kouroshez/coding-os/compare/v0.3.19...v0.3.20) (2026-08-15)
+
+
+### Added
+
+* **adapters:** give Hub chat a real port instead of a duck-typed SDK module ([6dc3fc1](https://github.com/kouroshez/coding-os/commit/6dc3fc18434b4f763c1952ab72c645e981598d4a))
+* **bench:** measure the always-on context cost per project profile ([c6c6015](https://github.com/kouroshez/coding-os/commit/c6c6015735f11cc051b0a97ee96b0b55c8c4f8f1))
+* **bench:** rank always-on rules by measured blocks per token ([f7394e1](https://github.com/kouroshez/coding-os/commit/f7394e19729c72cae28944e8fbc442577d06e237))
+* **doctor:** report whether the hook layer has a JSON/stdin parser at all ([91e13cf](https://github.com/kouroshez/coding-os/commit/91e13cf62185c71a2975e63ae3dd524dcd272363))
+* **eval:** pre-register the ablation and mine its candidate task set ([fb3370c](https://github.com/kouroshez/coding-os/commit/fb3370c30c35248c28924519ae8d5f7c5bce540c))
+* **stacks:** mark which stacks CI actually builds, derived from the matrix ([fb96358](https://github.com/kouroshez/coding-os/commit/fb9635817517ae0c465f524d57f6dad5e28b8ec3))
+
+
+### Fixed
+
+* **adapters:** tool_guard raises instead of silently dropping the write policy ([da5041b](https://github.com/kouroshez/coding-os/commit/da5041b68ac873d8ee03637219fac7617c29708d))
+* **bench:** never score an envelope the harness could not read ([91d5b2d](https://github.com/kouroshez/coding-os/commit/91d5b2dc5b859a6c5128f99d9e498079d4a3dc94))
+* **bench:** score against a realistic baseline and never score a truncated envelope ([5dbaf84](https://github.com/kouroshez/coding-os/commit/5dbaf8487f9fdb008b9a64c1f703f7e474caf6ce))
+* **core:** resolve the agent runtime through the adapter registry, not by SDK name ([ccf55f8](https://github.com/kouroshez/coding-os/commit/ccf55f8ff101858d229c1311a880b83a200f8037))
+* **db:** hold the migration write lock for the whole apply loop ([43dfb2a](https://github.com/kouroshez/coding-os/commit/43dfb2ade4356f20ba436c846ba68ebc277ebfce))
+* **db:** type the migration proxy at its call site ([07e6940](https://github.com/kouroshez/coding-os/commit/07e6940d4da5ae5017dae2a496f1f7b08fb54dc1))
+* **docs:** replace the hand-computed meta-repo budget with a profiler run ([c255ebc](https://github.com/kouroshez/coding-os/commit/c255ebc96779db12901890d0cc8eba711b04e1ae))
+* **doctor:** report stack rules that have drifted from their template ([4c22078](https://github.com/kouroshez/coding-os/commit/4c220788a7de8d45691dad7e32876663b5b11fe7))
+* **graph:** revive two enforcement globs that matched no file ([d47e838](https://github.com/kouroshez/coding-os/commit/d47e838ccaca5dc64749034117469b00641cd108))
+* **graph:** stop reporting zero references for structural node kinds ([0f64cf9](https://github.com/kouroshez/coding-os/commit/0f64cf9f9afc7ad40d82097d4b431d6916685532))
+* **hooks:** degrade stdin read perl -&gt; python3 -&gt; cat so gates never fail open ([0731594](https://github.com/kouroshez/coding-os/commit/07315947236d5e959b3a5103e1cdee5ccb96b3cc))
+* **hooks:** read the governance keyword from the task, not the marker string ([42c4fc0](https://github.com/kouroshez/coding-os/commit/42c4fc0b082e39418deffd0e821b2a1bce20f808))
+* **hooks:** scope the layered-backend rules to stacks that opted into them ([c5c8c49](https://github.com/kouroshez/coding-os/commit/c5c8c490c957365729ac79d26d4586a3e88ea2f3))
+* **hooks:** stop every blocking gate from flipping its verdict when jq is absent ([7c55a56](https://github.com/kouroshez/coding-os/commit/7c55a561f5c574176478250cf7be5eda8414e129))
+* **hub:** refuse an off-loopback bind with no token, stop mounting all of $HOME ([001be95](https://github.com/kouroshez/coding-os/commit/001be9559499eef8d85dfa8e46766f0fbef2dafe))
+* **memory:** reading a pattern no longer raises its confidence ([4a6f057](https://github.com/kouroshez/coding-os/commit/4a6f057a4e4759e6820079230535e92d7044844c))
+* **packaging:** make a wheel install actually serve the Hub ([c6d3a16](https://github.com/kouroshez/coding-os/commit/c6d3a169c77e26e476aef36421bee66832d9de93))
+* **ssot:** reconcile five facts the repo stated in two places ([f56c0db](https://github.com/kouroshez/coding-os/commit/f56c0dbf9177135905e0805f6e0530846345caef))
+* **test:** size the hook subprocess timeout as a hang detector, not a budget ([1f9d4bb](https://github.com/kouroshez/coding-os/commit/1f9d4bb40c47250ca46e08e521b0f2f4467e9748))
+
+
+### Changed
+
+* **comments:** strip TASK-NNN provenance and gate it shut ([67dd8dd](https://github.com/kouroshez/coding-os/commit/67dd8ddb572453d0cdf32fb8a2c4053d87fc2a6e))
+
+
+### Documentation
+
+* **agents:** add the file-size gate to the matrix row for edited Python ([f6fd39b](https://github.com/kouroshez/coding-os/commit/f6fd39bd9823804ac5b19746b0b73425c7a0fa1a))
+* **bench:** replace the strawman savings claims with measured, baselined numbers ([0d319d0](https://github.com/kouroshez/coding-os/commit/0d319d0cc259c5e5a7fd1b241cffc6d1f4c21ca5))
+* **eval:** move the ablation onto SWE-bench Verified and name the run environment ([f8393e5](https://github.com/kouroshez/coding-os/commit/f8393e58169eec50c38cb3dfa6a768ba25c5e5fc))
+* **graph:** a zero from references is a coverage signal, not just truncation ([9877aa4](https://github.com/kouroshez/coding-os/commit/9877aa447c118df17ea08eddcb0dc3912c8963c3))
+* **readme:** publish what one project actually receives, per stack and per profile ([56c6d7a](https://github.com/kouroshez/coding-os/commit/56c6d7ad3fdc4db3ec160023144d108abcfbca22))
+* **readme:** quote the exact preset figure rather than a rounded group ([45f15bc](https://github.com/kouroshez/coding-os/commit/45f15bca53241a1a64e986610711e772d65f91de))
+
+
+### Build
+
+* add `make lint` so a local check cannot be narrower than CI ([c23c277](https://github.com/kouroshez/coding-os/commit/c23c2777169d3134d733812dd20bb8827ebd45df))
+
 ## [0.3.19](https://github.com/kouroshez/coding-os/compare/v0.3.18...v0.3.19) (2026-08-14)
 
 
