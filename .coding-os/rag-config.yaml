@@ -74,7 +74,7 @@ graph:
   enforce_context_on:
     # MCP server + tool surface — every cos_* tool consumer depends on this.
     - "*core/thinking_os/server.py"
-    - "*core/thinking_os/db.py"
+    - "*core/thinking_os/database.py"
     - "*core/thinking_os/dispatcher.py"
     - "*core/thinking_os/tools/*.py"
     - "*core/thinking_os/cognition.py"
@@ -86,7 +86,7 @@ graph:
     - "*core/graph_os/tools/graph.py"
     - "*core/graph_os/extractors/*.py"
     - "*core/graph_os/ingest/*.py"
-    - "*core/graph_os/reindex_dispatch.py"
+    - "*core/graph_os/tools/reindex_dispatch.py"
 
     # Board-os core.
     - "*core/board_os/parser.py"
