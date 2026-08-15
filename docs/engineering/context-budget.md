@@ -136,10 +136,51 @@ only 68% adherence at 500 concurrent instructions, with reasoning models showing
 "threshold decay": near-perfect until a critical density, then a steeper slope) and
 [ManyIFEval](https://openreview.net/forum?id=R6q67CDBCH).
 
-This project has **not** measured its own position on that curve. Until
-[TASK-985](../tasks/) reports which rules actually fire, "28 critical rules is
-fine" is an assumption, not a finding. Treat the rule count as a budget to defend,
-not a feature to grow.
+This project has not measured its own position on that curve — model adherence
+under its own instruction density is still an open question. What it *has*
+measured is which rules do any mechanical work:
+
+```bash
+uv run python src/scripts/rule_audit.py
+```
+
+Every hook BLOCK lands in an agent transcript naming the hook script, so the
+count is durable and re-derivable. Over 672 sessions in the last 180 days of this
+repo, 855 attributed blocks:
+
+| Rule | Tokens | Blocks | Per 1k tokens | Verdict |
+|---|---:|---:|---:|---|
+| `test-discipline.md` | 1,113 | 340 | 305.5 | enforced |
+| `memory.md` | 1,244 | 144 | 115.8 | enforced |
+| `thinking_os.md` | 1,141 | 79 | 69.2 | enforced |
+| `git-workflow.md` | 2,097 | 119 | 56.7 | enforced |
+| `anti-overengineering.md` | 1,731 | 75 | 43.3 | enforced |
+| `skill-enforcement.md` | 2,448 | 97 | 39.6 | enforced |
+| `meta-graph-first.md` | 548 | 1 | 1.8 | enforced *(warn-mode)* |
+| `api-contract-discipline.md` | 905 | 0 | 0.0 | convention |
+| `dimension-registry.md` | 2,042 | 0 | 0.0 | convention |
+| `transparency-banner.md` | 1,035 | 0 | 0.0 | convention |
+| `meta-hook-author.md` | 411 | 0 | 0.0 | convention |
+| `meta-meta-engineering.md` | 418 | 0 | 0.0 | convention |
+| `meta-mcp-tool-author.md` | 396 | 0 | 0.0 | convention |
+| `model-routing.md` | 513 | 0 | 0.0 | dormant |
+| **Total** | **16,042** | **855** | | |
+
+**A convention is not waste** — `transparency-banner.md` and
+`api-contract-discipline.md` govern behaviour no hook can observe, and dropping
+them would remove the guidance without replacing it. But **5,207 tokens, 32% of
+the rules layer, is carried entirely by the model's attention**, which is the
+budget instruction density spends first. Two of those are named candidates rather
+than implicit ones:
+
+- **`dimension-registry.md` (2,042 tokens)** is a generated lookup table consulted
+  during Classify, not a rule. It is the single largest unenforced block in the
+  layer and the obvious first candidate for lazy loading.
+- **`model-routing.md` (513 tokens)** is inert unless `model_routing.enabled` is
+  set, yet it ships resident either way. It should follow its own setting.
+
+Neither is changed here: naming them is this document's job, and removing a rule
+is a decision with its own blast radius.
 
 ## Rules for anyone adding to the always-on layer
 

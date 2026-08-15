@@ -5,7 +5,7 @@ swimlane: infra
 kind: feature
 epic: honest-benchmarks
 labels: [ready]
-status: icebox
+status: in_progress
 priority: P2
 appetite: 1d
 created: 2026-08-15
@@ -32,3 +32,4 @@ references: []
 - **Given** the report, **When** it is published, **Then** it states the total always-on budget and how far it sits from the stated target.
 
 ## Work Log
+- 2026-08-15 [claude]: Built src/scripts/rule_audit.py. Block counts come from the agent transcripts, not `cos hooks-log` — that log is…
