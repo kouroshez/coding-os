@@ -121,8 +121,25 @@ if [[ "$matched_adapter_path" -eq 1 ]] || \
         exit 0
         ;;
     esac
+    # `cos task-start` writes the bare id, so the keyword this message asks for
+    # lives in the task's own title and labels — not in the marker string. Read
+    # it there, or the only way past a gate that says "open a governance task"
+    # is hand-writing the marker that Rule 25 forbids hand-writing.
+    TASK_ID=$(printf '%s' "$TASK_NAME" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || true)
+    if [ -n "$TASK_ID" ]; then
+      for _root in "${COS_PROJECT_ROOT:-}" "${CLAUDE_PROJECT_DIR:-}" "."; do
+        [ -n "$_root" ] || continue
+        _doc=$(ls "${_root}/docs/tasks/${TASK_ID}-"*.md 2>/dev/null | head -1 || true)
+        [ -n "$_doc" ] || continue
+        if grep -E '^(title|labels):' "$_doc" 2>/dev/null \
+          | grep -qiE 'docs-update|docs-sync|governance|claude-md-update|agents-md-update'; then
+          exit 0
+        fi
+        break
+      done
+    fi
   fi
-  echo "BLOCKED: Governance/workflow file detected. Do not edit agent config dirs, src/core/skills/ or src/core/rules/ sources, CLAUDE.md, AGENTS.md, or infrastructure/scripts/ as a side-effect of another task. Create a dedicated task whose title includes governance or docs-update, e.g. write-state.sh ${COS_PANEL_DIR:-$AGENT_DIR}/.task-current 'docs-update-...'" >&2
+  echo "BLOCKED: Governance/workflow file detected. Do not edit agent config dirs, src/core/skills/ or src/core/rules/ sources, CLAUDE.md, AGENTS.md, or infrastructure/scripts/ as a side-effect of another task. Open a task whose title or labels name the work — cos task-create --title 'governance: ...' then cos task-start <ID>." >&2
   exit 2
 fi
 

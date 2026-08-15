@@ -279,6 +279,57 @@ class TestBlockProtectedFilesGovernanceEscape:
         result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
         assert result.returncode == 2
 
+    def _with_task_doc(self, tmp_path: Path, task_id: str, title: str) -> dict[str, str]:
+        """`cos task-start` writes the bare id, so the keyword the block message
+        asks for is only ever in the task's own front-matter."""
+        env = self._make_task_state(tmp_path, task_id)
+        tasks_dir = tmp_path / "docs" / "tasks"
+        tasks_dir.mkdir(parents=True, exist_ok=True)
+        (tasks_dir / f"{task_id}-probe.md").write_text(
+            f'---\nid: {task_id}\ntitle: "{title}"\nlabels: [ready]\n---\n', encoding="utf-8"
+        )
+        env["COS_PROJECT_ROOT"] = str(tmp_path)
+        return env
+
+    @staticmethod
+    def _edit_payload(file_path: str) -> str:
+        return json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {"file_path": file_path, "old_string": "x", "new_string": "y"},
+            }
+        )
+
+    def test_bare_task_id_allows_when_the_task_title_names_governance(
+        self, tmp_path: Path
+    ) -> None:
+        env = self._with_task_doc(tmp_path, "TASK-777", "governance: retire a rule")
+        result = run_hook(
+            "block-protected-files.sh",
+            stdin=self._edit_payload("/repo/CLAUDE.md"),
+            env_overrides=env,
+        )
+        assert result.returncode == 0
+
+    def test_bare_task_id_still_blocks_an_unrelated_task(self, tmp_path: Path) -> None:
+        env = self._with_task_doc(tmp_path, "TASK-778", "feat: add a checkout button")
+        result = run_hook(
+            "block-protected-files.sh",
+            stdin=self._edit_payload("/repo/CLAUDE.md"),
+            env_overrides=env,
+        )
+        assert result.returncode == 2
+
+    def test_unresolvable_task_id_fails_closed(self, tmp_path: Path) -> None:
+        env = self._make_task_state(tmp_path, "TASK-999999")
+        env["COS_PROJECT_ROOT"] = str(tmp_path)
+        result = run_hook(
+            "block-protected-files.sh",
+            stdin=self._edit_payload("/repo/CLAUDE.md"),
+            env_overrides=env,
+        )
+        assert result.returncode == 2
+
     def test_allows_normal_file_edit_regardless_of_task(self, tmp_path: Path) -> None:
         """Non-governance files are always allowed — the task-name filter
         only gates governance files."""
