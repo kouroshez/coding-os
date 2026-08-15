@@ -59,6 +59,22 @@ rules table maps file globs to skills, and the matching skill loads only
 when you are about to write a file it governs. Editing a React component
 loads `nextjs-react`; nothing else comes with it.
 
+Three real installs, each from a `cos init` run, showing what the declared
+stacks actually add on top of the seven stack-agnostic rules everyone gets:
+
+| Preset | Always-on rules | The stack-specific ones | Stack skills on disk |
+|---|---:|---|---|
+| `wordpress-cms` | 8 | `wordpress-backend` | `wordpress` |
+| `mern` | 9 | `nextjs-frontend`, `node-express-backend` | `nextjs-react`, `node-express` |
+| `hexagonal-product` | 11 | `fastapi-backend`, `go-backend`, `go-fiber-backend`, `react-native-mobile` | `go-fiber`, `go-patterns`, `python-fastapi`, `react-native-mobile`, `react-native-patterns` |
+
+In the WordPress install, **zero files under `.claude/` mention `go-fiber`,
+`rails` or `spring-boot`**, and the polyglot install has zero mentioning
+WordPress anywhere. (Two governance contract docs do name other stacks — as
+examples of the naming convention, not as instructions.) That is the difference
+between a scoped install and a prompt directory that grows with every stack the
+tool has ever supported.
+
 **What that actually costs — measured, not asserted.** A scaffold writes 395–461
 files; **9 to 12 of them ever enter the prompt**. Running the real `cos init`
 for all 21 shipped presets and summing only what is resident:
@@ -80,9 +96,11 @@ overlays are only 199–1,171 each. Skills, slash commands, hooks and MCP tool
 schemas are **not** in that number — they load on demand.
 
 Two things this figure is not: it is not free (7% of the window is 7% of the
-window), and it is not the ~20k this meta-repo itself carries, which includes
-generated registries no consumer receives. The full accounting, the cache
-economics, and what is still *unmeasured* about instruction density are in
+window), and it is not the **15,634 tokens (7.8%)** this meta-repo itself carries
+— it pays for four kernel-only `meta-*` rules a consumer never receives
+(`uv run python src/scripts/context_budget.py --project .` reproduces it). The
+full accounting, the cache economics, and what is still *unmeasured* about
+instruction density are in
 [context-budget.md](docs/engineering/context-budget.md).
 
 Disable a module and its rules, tools and slash commands leave with it — see
@@ -183,7 +201,27 @@ cos init --agent claude --name my-app --profile lite --enable-module graph --yes
 
 `lite` is kernel-only; `core` adds docs, tasks, graph and the Hub hooks;
 `standard` *(the recommended default)* adds memory + observability; `full` is
-everything. Start lean and change your mind later — from the project root,
+everything. What each one actually delivers, from four `cos init` runs:
+
+| Profile | Modules off | Always-on rules | Skills on disk | Hooks that self-skip |
+|---|---:|---:|---:|---:|
+| `lite` | 8 | 7 | 43 | 52 |
+| `core` | 4 | 7 | 45 | 26 |
+| `standard` | 2 | 8 | 46 | 12 |
+| `full` | 0 | 9 | 46 | 0 |
+
+The gate is a derived allowlist (`.coding-os/disabled-hook-scripts`) that a
+disabled hook reads when it sources `cos-env.sh` — so a module you turned off
+costs nothing at runtime. **The 14 safety-category hooks are never on that list,
+at any profile** — secret-blocking, destructive-command and branch guards cannot
+be switched off by choosing a leaner install. Verify on your own project:
+
+```bash
+cos module list                       # what you ended up with
+wc -l .coding-os/disabled-hook-scripts   # what stopped firing
+```
+
+Start lean and change your mind later — from the project root,
 `cos module enable memory`. `--profile` and `--disable-module` are **unioned**:
 they can only remove. `--enable-module` is the escape that keeps one on and
 pulls its dependencies with it — passing the same id to both flags is an error,
