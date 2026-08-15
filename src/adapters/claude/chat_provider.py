@@ -20,6 +20,10 @@ from typing import Any
 _SDK_PACKAGE = "claude-agent-sdk"
 
 
+class GuardUnavailableError(RuntimeError):
+    """This runtime cannot carry the kernel's pre-tool-use policy."""
+
+
 def _sdk() -> Any | None:
     try:
         import claude_agent_sdk
@@ -76,10 +80,18 @@ def tool_guard(*, matcher: str, hooks: list[Any]) -> Any:
     """Wrap core-local hook callables in this runtime's pre-tool-use matcher type.
 
     Core supplies the closure (its policy); the SDK type that carries it is the
-    adapter's business. This was `sdk.HookMatcher(...)` inside a route — the last
-    provider type name in the kernel.
+    adapter's business.
+
+    Raises rather than returning None when the runtime is absent. Core drops the
+    result straight into a session running `permission_mode="dontAsk"`, where the
+    wrapped closure is the only thing scoping writes — a None there would remove
+    the policy silently, and an unattended session would run unguarded.
     """
     sdk = _sdk()
     if sdk is None:
-        return None
+        raise GuardUnavailableError(
+            f"{_SDK_PACKAGE} is not installed, so this adapter cannot carry a "
+            f"pre-tool-use guard for {matcher!r}. Refuse the session rather than "
+            f"starting it without the policy."
+        )
     return sdk.HookMatcher(matcher=matcher, hooks=hooks)

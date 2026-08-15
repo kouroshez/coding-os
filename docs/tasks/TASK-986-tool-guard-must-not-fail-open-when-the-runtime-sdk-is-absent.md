@@ -5,18 +5,17 @@ swimlane: adapters
 kind: bug
 epic: honest-benchmarks
 labels: [ready]
-status: icebox
+status: in_progress
 priority: P1
 appetite: 1d
 created: 2026-08-15
-started: null
+started: 2026-08-15
 completed: null
-agent_session: null
+agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-986: tool_guard must not fail open when the runtime SDK is absent
 
 **Outcome (one sentence):** An adapter that cannot carry the kernel's pre-tool-use policy says so loudly instead of returning None, so a write-scoping guard can never be silently dropped from an unattended session.
@@ -36,3 +35,8 @@ src/adapters/claude/chat_provider.py tool_guard() returns None when the SDK impo
 - **Given** a regression test, **When** it simulates the absent runtime, **Then** it fails against the current code and passes after the fix.
 
 ## Work Log
+- 2026-08-15 [claude]: Edit chat_provider.py
+- 2026-08-15 [claude]: Edit chat_provider.py
+- 2026-08-15 [claude]: Edit cognition_onboarding.py
+- 2026-08-15 [claude]: Edit test_chat_port.py
+- 2026-08-15 [claude]: tool_guard now raises GuardUnavailableError instead of returning None when the runtime SDK is absent, and the…

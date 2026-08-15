@@ -73,6 +73,26 @@ def test_resolved_runtime_exposes_every_port_function() -> None:
     )
 
 
+def test_tool_guard_refuses_rather_than_returning_none() -> None:
+    """A guard that cannot be built must raise.
+
+    Core drops the result into `hooks={"PreToolUse": [...]}` for a session running
+    `permission_mode="dontAsk"`, where the wrapped closure is the only thing
+    scoping writes to docs/. Returning None there removes the policy silently and
+    the session runs unguarded.
+    """
+    sys.path.insert(0, str(REPO / "src" / "adapters" / "claude"))
+    import chat_provider
+
+    original = chat_provider._sdk
+    chat_provider._sdk = lambda: None
+    try:
+        with pytest.raises(chat_provider.GuardUnavailableError):
+            chat_provider.tool_guard(matcher="Write|Edit", hooks=[lambda *_: {}])
+    finally:
+        chat_provider._sdk = original
+
+
 def test_incomplete_implementation_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
     """A module that declares chat but misses a function must not be handed to the routes.
 

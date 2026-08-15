@@ -320,6 +320,18 @@ async def onboard(
             logger.debug("onboard PreToolUse gate error: %s", exc)
         return {}
 
+    # The deny closure is core's policy; the matcher type that carries it is the
+    # runtime's, so the adapter builds it. Under `dontAsk` this guard is the only
+    # thing scoping writes, so a runtime that cannot build one must stop the
+    # session rather than start it unguarded.
+    try:
+        write_guard = sdk.tool_guard(
+            matcher="Write|Edit|MultiEdit|NotebookEdit", hooks=[_deny_non_docs_write]
+        )
+    except Exception as exc:
+        logger.warning("onboard refused: runtime cannot carry the write guard: %s", exc)
+        return unwrap(_cog._unavailable(f"runtime cannot carry the write guard: {exc}"))
+
     options = _build_agent_options(
         cwd=cwd,
         model=model,
@@ -330,16 +342,7 @@ async def onboard(
         allowed_tools=list(_ONBOARD_ALLOWED_TOOLS),
         disallowed_tools=["Bash"],  # deny wins even over the allow-list
         system_prompt=system_prompt,
-        # The deny closure is core's policy; the matcher type that carries it is
-        # the runtime's, so the adapter builds it. This read `sdk.HookMatcher(…)`
-        # — the last provider type name left in the kernel.
-        hooks={
-            "PreToolUse": [
-                sdk.tool_guard(
-                    matcher="Write|Edit|MultiEdit|NotebookEdit", hooks=[_deny_non_docs_write]
-                )
-            ]
-        },
+        hooks={"PreToolUse": [write_guard]},
         max_turns=40,
     )
 
