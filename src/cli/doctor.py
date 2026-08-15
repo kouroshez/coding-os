@@ -165,6 +165,7 @@ from .doctor_checks_registry import (  # noqa: E402
     _check_mcp_actually_launches,
     _check_mcp_portable,
     _check_stack_registry_consistency,
+    _check_stack_rules_fresh,
     _check_stack_skills_linked,
     _load_coding_os_mcp_launch,
 )
@@ -384,6 +385,7 @@ __all__ = [
     "_check_scaffold_roots",
     "_check_scheduled",
     "_check_stack_registry_consistency",
+    "_check_stack_rules_fresh",
     "_check_stack_skills_linked",
     "_check_state_dir",
     "_check_structure",

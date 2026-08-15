@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 2h
 created: 2026-08-15
 started: 2026-08-15
-completed: null
+completed: 2026-08-15
 agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
@@ -67,3 +67,5 @@ Actual: an unmeasurable probe is scored as a near-100% saving; the miner samples
 - 2026-08-15 [claude]: Edit eval_taskset.py
 - 2026-08-15 [claude]: Edit ablation-protocol.md
 - 2026-08-15 [claude]: Coverage gate now marks a fail()/unparseable envelope unreadable so it is never scored (was a ~100% saving from an…
+- 2026-08-15 [claude]: commit 91d5b2dc5b — fix(bench): never score an envelope the harness could not read
+- 2026-08-15 [claude]: Status transitioned to complete via cos task-done.

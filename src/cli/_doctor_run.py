@@ -37,6 +37,7 @@ from .doctor_checks_registry import (
     _check_mcp_actually_launches,
     _check_mcp_portable,
     _check_stack_registry_consistency,
+    _check_stack_rules_fresh,
     _check_stack_skills_linked,
 )
 from .doctor_checks_runtime import (
@@ -100,6 +101,7 @@ def run_doctor(
     _check_category_balance(report)
     _tick("stack skills linkage")
     _check_stack_skills_linked(project, report)
+    _check_stack_rules_fresh(project, report)
     _tick("MCP portability")
     _check_mcp_portable(project, report)
     _tick("MCP launch handshake (up to 20s)")

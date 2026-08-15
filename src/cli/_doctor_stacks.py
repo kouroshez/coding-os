@@ -206,3 +206,65 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
                 f"all {len(expected)} stack skill(s) linked",
             )
         )
+
+
+def _installed_rules_dir(project: Path, report: DoctorReport) -> Path | None:
+    if not report.agent:
+        return None
+    try:
+        from cli.adapter_registry import load_adapter_registry
+
+        profile = load_adapter_registry(adapters_dir()).get(report.agent)
+    except Exception:
+        return None
+    return project / profile.rules_dir if profile and profile.rules_dir else None
+
+
+def _check_stack_rules_fresh(project: Path, report: DoctorReport) -> None:
+    """stack.rules_fresh — installed stack rules still match the template they came from.
+
+    Core rules are symlinks, so an edit reaches every project immediately. Stack
+    rules are *copies*, deliberately, so the user can tailor them — but nothing
+    refreshes them and nothing reported the divergence, so an edit to
+    src/templates/<stack>/rules/ could look propagated while reaching no install
+    at all. This does not overwrite anything; ownership stays with the user.
+    """
+    rules_dir = _installed_rules_dir(project, report)
+    if not report.templates or rules_dir is None:
+        report.checks.append(
+            CheckResult("stack.rules_fresh", SEV_PASS, "no stacks or no rules dir — skipped")
+        )
+        return
+
+    drifted: list[str] = []
+    checked = 0
+    for stack in report.templates:
+        source_dir = templates_dir(stack, "rules")
+        if not source_dir.exists():
+            continue
+        for source in sorted(source_dir.glob("*.md")):
+            installed = rules_dir / f"{stack}-{source.name}"
+            if not installed.exists():
+                continue
+            checked += 1
+            try:
+                if installed.read_text(encoding="utf-8") != source.read_text(encoding="utf-8"):
+                    drifted.append(installed.name)
+            except OSError as exc:
+                drifted.append(f"{installed.name} (unreadable: {exc})")
+
+    if drifted:
+        report.checks.append(
+            CheckResult(
+                "stack.rules_fresh",
+                SEV_WARN,
+                f"{len(drifted)} stack rule(s) differ from their template: "
+                f"{', '.join(drifted)} — intentional edits are fine; otherwise re-copy from "
+                f"src/templates/<stack>/rules/",
+                {"drifted": drifted},
+            )
+        )
+    else:
+        report.checks.append(
+            CheckResult("stack.rules_fresh", SEV_PASS, f"{checked} stack rule(s) match template")
+        )

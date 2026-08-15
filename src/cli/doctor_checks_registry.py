@@ -39,6 +39,7 @@ from ._doctor_shared import (  # noqa: F401
 from ._doctor_stacks import (
     _check_category_balance as _check_category_balance,
     _check_stack_registry_consistency as _check_stack_registry_consistency,
+    _check_stack_rules_fresh as _check_stack_rules_fresh,
     _check_stack_skills_linked as _check_stack_skills_linked,
 )
 
