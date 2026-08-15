@@ -1,0 +1,69 @@
+# Ablation candidates — mined, NOT yet validated.
+# Spec: docs/engineering/ablation-protocol.md
+# Mined from 150 closed tasks; 9 carry a runnable acceptance.
+# Every entry needs a human to flip `validated` after confirming the command
+# fails at starting_commit. An unvalidated set scores work that was already done.
+candidates:
+  - task_id: TASK-843
+    prompt: "A full uncapped `cos graph-reindex` self-heals ALL graph residue — folder-spine nodes and zero-edge phantoms left by bulk directory moves/deletes (git mv / rm -rf), not just the file nodes tracked in file_index_state — so graph health stays green without a manual `cos_graph_doctor --fix`."
+    acceptance_command: "cos graph-reindex"
+    starting_commit: 6c31bdbd7762
+    closing_commit: 025c2a4f9c14
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-848
+    prompt: "cos doctor goes from 4 FAIL / 4 WARN to 0 FAIL / 3 legitimate WARN — the declared memory hooks resolve via adapter_scope, non-exec hooks are executable, placeholder false-positives skipped, dead hub entries + stray root templates/ leftover + stale backup removed."
+    acceptance_command: "cos doctor"
+    starting_commit: 03e8ca5eefe3
+    closing_commit: f9cb137f6894
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-856
+    prompt: "Every module/profile choice the kernel supports is discoverable and identical from `cos init`, `cos adopt`, and the agent recipe."
+    acceptance_command: "cos init --help"
+    starting_commit: 49234af42d8c
+    closing_commit: c7568f1e9612
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-892
+    prompt: "Every consumer project gets the entrypoint file its agent runtime actually reads, created from a declaration in the adapter's own yaml rather than a literal in CLI code."
+    acceptance_command: "cos init"
+    starting_commit: 9eda7997b540
+    closing_commit: 74fab39e9bc7
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-899
+    prompt: "CI enforces coverage fail_under=60 and >=80% patch coverage on PRs"
+    acceptance_command: "make coverage"
+    starting_commit: a214c9c933f7
+    closing_commit: 95744c4d03fd
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-910
+    prompt: "make coverage runs src suites + tests/ deterministically under pytest-cov and fail_under ratchets from the src/core baseline toward 80"
+    acceptance_command: "make coverage"
+    starting_commit: ecdd03896a2d
+    closing_commit: b0b592c70cac
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-924
+    prompt: "src/cli/main.py drops under the 500-line backstop by moving each independently changeable concern — the scaffold phase engine, the overlay/boundary machinery, the dry-run previews, the interactive world builder, and the standalone commands — into siblings, with the cos CLI surface (every command, flag and help string) unchanged."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: 3f1cabc17512
+    closing_commit: 26e85acbe7f5
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-939
+    prompt: "A consumer running an older coding-os learns from `cos update` and `cos doctor` that a newer release exists and is given the exact package-upgrade command, instead of being told to run a command that cannot change the installed version."
+    acceptance_command: "cos update"
+    starting_commit: 80a629316645
+    closing_commit: 1ab7f1b9b8f6
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-969
+    prompt: "Every enforcement hook reaches the same verdict whether or not `jq`/`perl` are on PATH, so a missing parser can never turn a BLOCK into a silent allow."
+    acceptance_command: "cos doctor --bootstrap"
+    starting_commit: c6d3a169c77e
+    closing_commit: b4193aebadca
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
