@@ -5,12 +5,12 @@ swimlane: cli
 kind: bug
 epic: honest-benchmarks
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-15
 started: 2026-08-15
-completed: null
+completed: 2026-08-15
 agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
@@ -40,3 +40,5 @@ Verified by executing: replaced `.claude/rules/meta-graph-first.md` with a stale
 - 2026-08-15 [claude]: Edit test_doctor_stack_rules_fresh.py
 - 2026-08-15 [claude]: Edit test_doctor_stack_rules_fresh.py
 - 2026-08-15 [claude]: Added the stack.rules_fresh doctor check comparing each installed per-stack rule against its template source. It…
+- 2026-08-15 [claude]: commit 4c220788a7 — fix(doctor): report stack rules that have drifted from their template
+- 2026-08-15 [claude]: Status transitioned to complete via cos task-done.
