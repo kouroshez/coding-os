@@ -108,7 +108,62 @@ _REFERENCE_KINDS_BY_NODE_KIND: dict[str, tuple[str, ...]] = {
         "declares",
         "references_doc",
     ),
+    # Structural/config kinds. Every one of these fell through to the code
+    # default and reported 0 inbound edges while holding some — 1,538 edges
+    # across the eight, not one of them a `calls` or an `imports`.
+    "rule": (
+        "contains",
+        "links_to",
+        "references_doc",
+    ),
+    "skill": (
+        "contains",
+        "links_to",
+        "references_doc",
+    ),
+    "task": (
+        "contains",
+        "depends_on",
+        "blocks",
+        "references_doc",
+    ),
+    "route": (
+        "handles_route",
+        "handles_event",
+        "contains",
+        "references_doc",
+    ),
+    "tool": (
+        "contains",
+        "declares",
+        "references_doc",
+    ),
+    "event": (
+        "declares",
+        "handles_event",
+        "references_doc",
+    ),
+    "dependency": (
+        "declares",
+        "references_doc",
+    ),
+    "contract": (
+        "declares",
+        "references_doc",
+    ),
 }
+
+# Rows scanned when a kinds-filtered query comes back empty, only to name the
+# edge types that DO point at the node.
+_ZERO_PROBE_LIMIT = 200
+
+
+def _inbound_edge_types(backend: Any, target_uid: str) -> list[str]:
+    try:
+        edges = backend.list_edges(target_uid=target_uid, limit=_ZERO_PROBE_LIMIT)
+    except Exception:
+        return []
+    return sorted({edge.edge_type for edge in edges})
 
 
 def _default_reference_kinds_for(node_kind: str | None) -> tuple[str, ...]:
@@ -188,6 +243,14 @@ def cos_graph_references(
         "default_kinds_picked": defaults_were_picked,
         "node_kind": node.kind,
     }
+    # An empty result reads as "nothing points here", which is wrong whenever the
+    # node's real edges simply fall outside the kinds filter. `result_truncated`
+    # cannot express that — it is False on a complete query of the wrong edges.
+    if total == 0:
+        present = _inbound_edge_types(be, canonical_uid)
+        if present:
+            references_meta["zero_from_kind_filter"] = True
+            references_meta["edge_types_present"] = present
     fresh = _file_freshness(be, node.file_path)
     if fresh is not None:
         references_meta["stale"] = fresh["stale"]
