@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: honest-benchmarks
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-15
 started: 2026-08-15
-completed: null
+completed: 2026-08-15
 agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
@@ -37,3 +37,4 @@ Nightly CI run 31871857926 on c23c2777: `tests/test_capture_and_prune_regression
 ## Work Log
 - 2026-08-15 [claude]: Edit test_capture_and_prune_regressions.py
 - 2026-08-15 [claude]: Named the constant SUBPROCESS_TIMEOUT_S = 30 (matching SMOKE_TIMEOUT_S in test_script_entrypoints.py) and replaced…
+- 2026-08-15 [claude]: Status transitioned to complete via cos task-done.
