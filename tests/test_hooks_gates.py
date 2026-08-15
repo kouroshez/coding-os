@@ -300,9 +300,7 @@ class TestBlockProtectedFilesGovernanceEscape:
             }
         )
 
-    def test_bare_task_id_allows_when_the_task_title_names_governance(
-        self, tmp_path: Path
-    ) -> None:
+    def test_bare_task_id_allows_when_the_task_title_names_governance(self, tmp_path: Path) -> None:
         env = self._with_task_doc(tmp_path, "TASK-777", "governance: retire a rule")
         result = run_hook(
             "block-protected-files.sh",
