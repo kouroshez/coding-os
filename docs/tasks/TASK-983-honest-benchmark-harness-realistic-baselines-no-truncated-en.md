@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: honest-benchmarks
 labels: [ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-15
 started: 2026-08-15
-completed: null
+completed: 2026-08-15
 agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
@@ -39,3 +39,5 @@ references: []
 - 2026-08-15 [claude]: Edit _coverage.py
 - 2026-08-15 [claude]: Edit _coverage.py
 - 2026-08-15 [claude]: Split the harness into two guards. _baselines.py models three graph-less agents (grep-only floor / grep-windows…
+- 2026-08-15 [claude]: commit 5dbaf8487f — fix(bench): score against a realistic baseline and never score a truncated envelope
+- 2026-08-15 [claude]: Status transitioned to complete via cos task-done.

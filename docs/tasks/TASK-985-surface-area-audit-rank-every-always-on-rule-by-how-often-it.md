@@ -9,14 +9,13 @@ status: icebox
 priority: P2
 appetite: 1d
 created: 2026-08-15
-started: null
+started: 2026-08-15
 completed: null
-agent_session: null
+agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-985: Surface-area audit — rank every always-on rule by how often it actually fires
 
 **Outcome (one sentence):** Instruction density stops being defended by assertion — every always-on rule is ranked by measured blocks and citations against the tokens it occupies, so pruning becomes a data decision.

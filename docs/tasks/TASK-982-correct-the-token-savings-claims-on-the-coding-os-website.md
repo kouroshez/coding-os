@@ -5,18 +5,17 @@ swimlane: docs
 kind: bug
 epic: honest-benchmarks
 labels: [ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-15
-started: null
-completed: null
-agent_session: null
+started: 2026-08-15
+completed: 2026-08-15
+agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-982: Correct the token-savings claims on the coding-os website
 
 **Outcome (one sentence):** The public landing page and the synced docs on coding-os.dev carry the same corrected, reproducible numbers as the repo, so a visitor cannot find a claim the repo has already retracted.
@@ -37,3 +36,5 @@ cos-website/src/frontend/app/(marketing)/landing-sections.tsx lines 99 and 196 h
 - **Given** the site build, **When** it runs after the edits, **Then** it passes lint, typecheck and unit tests.
 
 ## Work Log
+- 2026-08-15 [claude]: Landing page now quotes ~78% against the grep-windows baseline instead of 98% against read-everything, and the…
+- 2026-08-15 [claude]: Status transitioned to complete via cos task-done.

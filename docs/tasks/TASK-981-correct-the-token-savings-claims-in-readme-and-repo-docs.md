@@ -5,18 +5,17 @@ swimlane: docs
 kind: bug
 epic: honest-benchmarks
 labels: [ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-15
-started: null
-completed: null
-agent_session: null
+started: 2026-08-15
+completed: 2026-08-15
+agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-981: Correct the token-savings claims in README and repo docs
 
 **Outcome (one sentence):** Every published savings number is reproducible, is measured against a baseline a competent agent would actually run, and is stated net of the always-on context cost.
@@ -39,3 +38,4 @@ README.md:421 publishes "cos_graph_impact — 508 impacted … 7,962 tok … 98.
 
 ## Work Log
 - 2026-08-15 [claude]: Rewrote the README benchmark section against the grep-windows baseline on four public repos, publishing the two rows…
+- 2026-08-15 [claude]: Status transitioned to complete via cos task-done.

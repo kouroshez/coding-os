@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: honest-benchmarks
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-15
 started: 2026-08-15
-completed: null
+completed: 2026-08-15
 agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
@@ -37,3 +37,23 @@ references: []
 - 2026-08-15 [claude]: Edit context_budget.py
 - 2026-08-15 [claude]: Edit context-budget.md
 - 2026-08-15 [claude]: Built src/scripts/context_budget.py — scaffolds each preset with the real `cos init --no-register --no-index` into a…
+- 2026-08-15 [claude]: commit c6c6015735 — feat(bench): measure the always-on context cost per project profile
+- 2026-08-15 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-15 [claude]: Edit _baselines.py
+- 2026-08-15 [claude]: Edit _coverage.py
+- 2026-08-15 [claude]: Edit third_party.py
+- 2026-08-15 [claude]: Edit third_party.py
+- 2026-08-15 [claude]: Edit _coverage.py
+- 2026-08-15 [claude]: Edit third_party.py
+- 2026-08-15 [claude]: Edit third_party.py
+- 2026-08-15 [claude]: Edit third_party.py
+- 2026-08-15 [claude]: Edit test_bench_honesty.py
+- 2026-08-15 [claude]: Edit third-party-token-bench.md
+- 2026-08-15 [claude]: Edit README.md
+- 2026-08-15 [claude]: Edit README.md
+- 2026-08-15 [claude]: Edit graph-first.md
+- 2026-08-15 [claude]: Edit token-bars.tsx
+- 2026-08-15 [claude]: Edit landing-sections.tsx
+- 2026-08-15 [claude]: Edit landing-sections.tsx
+- 2026-08-15 [claude]: Edit build-checklist.md
+- 2026-08-15 [claude]: Edit 99-misc.md
