@@ -92,18 +92,32 @@ context**. A scaffold writes 395 files for `t3-style` and 461 for
 
 ### This repo, for contrast
 
-| Profile | Root | Core rules | Stack rules | **Always-on total** | Share of 200k |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| `coding-os` (meta) | 3,934 | 14,270 | 1,773 | **19,977** | 10.0% |
+```bash
+uv run python src/scripts/context_budget.py --project .
+```
+
+| Profile | Stacks | Root | Core rules | Stack rules | **Always-on total** | Share of 200k |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `coding-os` | meta | 3,986 | 9,779 | 1,868 | **15,634** | 7.8% |
 
 ## Why the meta-repo is not a consumer number
 
-This repo (`coding-os` itself) carries two rules files no consumer receives:
-`dimension-registry.md` and `skill-enforcement.md` are generated from **every**
-installed stack, and the meta-repo installs all of them. It also carries four
-`meta-*` rules that only apply to work on the kernel. Measuring this repo and
-publishing the result as the consumer cost overstates it by roughly a factor of
-two. Any figure quoted publicly must come from the profiler's preset runs.
+The meta-repo pays for four `meta-*` stack rules that only apply to work on the
+kernel (1,868 tokens), a root instruction file ~800 tokens longer than a
+consumer's, and `model-routing.md`, which ships here because the `cognition`
+module is enabled and is unlinked under the default `standard` profile. Net: about
+2,900 tokens a consumer never sees. Any figure quoted publicly must come from the
+profiler's preset runs.
+
+**An earlier revision of this table published 19,977 tokens (10.0%) for this
+repo, and it was wrong.** It counted `dimension-registry.md` (2,042) and
+`skill-enforcement.md` (2,448) as resident. They are not, in any install:
+[install-adapter.sh](../../src/core/scripts/install-adapter.sh) holds both in
+`_NON_ACTIVE_RULES` and never symlinks them, because they are generated from
+every installed stack and SessionStart's `skill_primer` card already injects the
+installed-stack-only view. That row was the one figure in this document not
+produced by executing the profiler — which is why `--project` now exists, and why
+no hand-computed number belongs here.
 
 ## Empirical cross-check
 
@@ -147,42 +161,45 @@ uv run python src/scripts/rule_audit.py
 ```
 
 Every hook BLOCK lands in an agent transcript naming the hook script, so the
-count is durable and re-derivable. Over 672 sessions in the last 180 days of this
-repo, 855 attributed blocks:
+count is durable and re-derivable. The script reads the **resident** rules —
+`.claude/rules/`, not the `src/core/rules/` source tree — so a rule that ships to
+nobody cannot appear. Over 673 sessions in the last 180 days of this repo, 786
+attributed blocks (a rolling window: the counts move, the ranking does not):
 
 | Rule | Tokens | Blocks | Per 1k tokens | Verdict |
 |---|---:|---:|---:|---|
-| `test-discipline.md` | 1,113 | 340 | 305.5 | enforced |
-| `memory.md` | 1,244 | 144 | 115.8 | enforced |
-| `thinking_os.md` | 1,141 | 79 | 69.2 | enforced |
-| `git-workflow.md` | 2,097 | 119 | 56.7 | enforced |
-| `anti-overengineering.md` | 1,731 | 75 | 43.3 | enforced |
-| `skill-enforcement.md` | 2,448 | 97 | 39.6 | enforced |
-| `meta-graph-first.md` | 548 | 1 | 1.8 | enforced *(warn-mode)* |
+| `test-discipline.md` | 1,113 | 344 | 309.1 | enforced |
+| `memory.md` | 1,244 | 148 | 119.0 | enforced |
+| `thinking_os.md` | 1,141 | 83 | 72.7 | enforced |
+| `git-workflow.md` | 2,097 | 129 | 61.5 | enforced |
+| `anti-overengineering.md` | 1,731 | 79 | 45.6 | enforced |
+| `meta-graph-first.md` | 643 | 3 | 4.7 | enforced *(warn-mode)* |
 | `api-contract-discipline.md` | 905 | 0 | 0.0 | convention |
-| `dimension-registry.md` | 2,042 | 0 | 0.0 | convention |
 | `transparency-banner.md` | 1,035 | 0 | 0.0 | convention |
-| `meta-hook-author.md` | 411 | 0 | 0.0 | convention |
 | `meta-meta-engineering.md` | 418 | 0 | 0.0 | convention |
+| `meta-hook-author.md` | 411 | 0 | 0.0 | convention |
 | `meta-mcp-tool-author.md` | 396 | 0 | 0.0 | convention |
 | `model-routing.md` | 513 | 0 | 0.0 | dormant |
-| **Total** | **16,042** | **855** | | |
+| **Total** | **11,647** | **786** | | |
 
 **A convention is not waste** — `transparency-banner.md` and
 `api-contract-discipline.md` govern behaviour no hook can observe, and dropping
-them would remove the guidance without replacing it. But **5,207 tokens, 32% of
-the rules layer, is carried entirely by the model's attention**, which is the
-budget instruction density spends first. Two of those are named candidates rather
-than implicit ones:
+them would remove the guidance without replacing it. But **3,678 tokens, 32% of
+this repo's rules layer, is carried entirely by the model's attention**, which is
+the budget instruction density spends first.
 
-- **`dimension-registry.md` (2,042 tokens)** is a generated lookup table consulted
-  during Classify, not a rule. It is the single largest unenforced block in the
-  layer and the obvious first candidate for lazy loading.
-- **`model-routing.md` (513 tokens)** is inert unless `model_routing.enabled` is
-  set, yet it ships resident either way. It should follow its own setting.
+**A consumer's split is better than this repo's**, and it is the one that should
+be quoted: of the 9,265 tokens of core rules a preset install receives, 7,325
+(**79%**) are enforced by a hook that fires, and the 1,940 that are not are
+exactly the two rules above. Four of the five unenforced files in the table —
+every `meta-*` — reach no consumer at all.
 
-Neither is changed here: naming them is this document's job, and removing a rule
-is a decision with its own blast radius.
+An earlier revision of this section named two pruning candidates,
+`dimension-registry.md` and `model-routing.md`. Both were already resolved before
+it was written: the first is in `_NON_ACTIVE_RULES` and reaches no install, the
+second is owned by the `cognition` module and is unlinked under the default
+`standard` profile. Verify a rule is resident — `ls .claude/rules/` in a real
+`cos init` — before proposing to remove it.
 
 ## Rules for anyone adding to the always-on layer
 

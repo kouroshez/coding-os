@@ -2,9 +2,10 @@
 
 There is no single "coding-os costs N tokens" number, and publishing one would be
 wrong in both directions: a WordPress consumer installs one stack rule, a polyglot
-consumer installs several, and this meta-repo carries two generated registries no
-consumer ever sees. So the profiler scaffolds real presets with the real `cos init`
-and measures what the scaffold actually put in front of the model.
+consumer installs several, and this meta-repo additionally carries four meta-only
+stack rules. So the profiler scaffolds real presets with the real `cos init` and
+measures what the scaffold actually put in front of the model. `--project` does the
+same for an install already on disk, so no published figure has to be hand-derived.
 
 Always-on means loaded on every turn regardless of what the agent does: the root
 instruction file plus the rules directory. Skills, commands and MCP tool schemas are
@@ -172,6 +173,32 @@ def profile_budget(preset: str) -> ProfileBudget:
         return measure(project, profile=preset, stacks=preset_stacks(preset))
 
 
+def installed_stacks(project: Path) -> list[str]:
+    config = project / ".coding-os.yaml"
+    if not config.is_file():
+        raise ScaffoldError(f"no .coding-os.yaml in {project} — not a coding-os install")
+    declared: list[str] = []
+    in_block = False
+    for line in config.read_text(encoding="utf-8").splitlines():
+        if line.startswith("templates:"):
+            in_block = True
+            continue
+        if in_block:
+            if line.startswith(("  - ", "- ")):
+                declared.append(line.split("- ", 1)[1].strip().strip("\"'"))
+            elif line.strip() and not line.startswith(" "):
+                break
+    return declared
+
+
+def installed_budget(project: Path) -> ProfileBudget:
+    """Measure a project already on disk — the only honest way to publish a
+    figure for an install nobody can reproduce with `cos init`, this repo
+    included."""
+    resolved = project.resolve()
+    return measure(resolved, profile=resolved.name, stacks=installed_stacks(resolved))
+
+
 def format_table(budgets: list[ProfileBudget]) -> str:
     header = (
         f"{'profile':<20} {'stacks':<24} {'root':>7} {'core':>7} {'stack':>7} "
@@ -252,7 +279,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true", help="emit JSON instead of a table")
     parser.add_argument("--markdown", action="store_true", help="emit a markdown table")
     parser.add_argument("--out", type=Path, default=None, help="also write JSON to this path")
+    parser.add_argument(
+        "--project", type=Path, default=None, help="measure an existing install instead"
+    )
     args = parser.parse_args(argv)
+
+    if args.project is not None:
+        try:
+            budget = installed_budget(args.project)
+        except ScaffoldError as exc:
+            print(f"[FAIL] {args.project}: {exc}", file=sys.stderr)
+            return 1
+        _render([budget], args)
+        print(f"[OK] measured {args.project}", file=sys.stderr)
+        return 0
 
     presets = _resolve_presets(args)
     known = set(available_presets())
