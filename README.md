@@ -67,7 +67,7 @@ for all 21 shipped presets and summing only what is resident:
 |---|---:|---:|
 | `t3-style` (Next.js) — the leanest | 12,704 | 6.4% |
 | `wordpress-cms` | 12,738 | 6.4% |
-| `mern`, `pern`, `go-react` (two stacks) | ~13,158 | 6.6% |
+| `mern` / `pern` (Express + Next.js) | 13,158 | 6.6% |
 | `hexagonal-product` (Go + Fiber + FastAPI + React Native) | 13,972 | 7.0% |
 
 ```bash
