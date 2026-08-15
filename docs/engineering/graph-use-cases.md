@@ -294,19 +294,29 @@ for this query."
 
 ---
 
-## K. Token economics — concrete savings table
+## K. Token economics — what an envelope actually costs
 
-| Workflow | Without graph | With graph | Saving |
-|---|---|---|---|
-| "Where is `safe_tool` called?" | 6 grep variants + Read 4 hits = ~3920 tok | `cos_graph_references` ~280 tok | **93%** |
-| Plan rename `foo` → `bar` | iterative grep + edit + re-grep × 3 cycles ≈ ~6000 tok | `cos_graph_rename_plan` ~450 tok | **92%** |
-| Audit MCP API surface | Read 12 register files × 1500 tok = ~18000 tok | `cos_graph_contracts(kinds=["mcp"])` ~700 tok | **96%** |
-| Onboard / find subsystems | Read 50 README+entry files = ~120K tok | `cos_graph_communities` + `cos_graph_export` ~3K tok | **97%** |
-| Pre-commit blast-radius | git diff + manual chase ~5–10K tok | `cos_graph_detect_changes` ~600 tok | **>90%** |
-| Find similar helper before writing | grep half a dozen candidates + read each = ~10K tok | `cos_graph_similar` ~400 tok | **96%** |
+Savings percentages live in one place, measured against three named baselines
+on public repos: [third-party-token-bench.md](third-party-token-bench.md). What
+this section adds is the **absolute** cost of each envelope, so you can budget a
+turn. Measured on this repo (149,482 nodes / 260,241 edges), probing
+`safe_tool`:
 
-Cumulative on one COMPLICATED task: **15K–50K tok saved** — often
-the difference between fitting in context and forcing a compact.
+| Call | Envelope tokens | Complete? |
+|---|---:|---|
+| `cos_graph_similar(uid)` | 126 | yes |
+| `cos_graph_references(uid, limit=20)` | 2,045 | ranked sample |
+| `cos_graph_communities()` | 4,382 | yes |
+| `cos_graph_rename_plan(uid, new)` | 7,429 | count + sample |
+| `cos_graph_references(uid)` widened | 7,926 | count + sample |
+| `cos_graph_contracts(kinds=["mcp"])` | 7,963 | count + sample |
+| `cos_graph_export()` whole graph | 41,314 | **truncated even so** |
+
+Two things to take from it. A targeted query is **2k–8k tokens**, which is one
+to four file Reads — cheap enough to ask freely, not so cheap that ten of them
+are free. And `cos_graph_export()` is not an onboarding tool: at 41k tokens it
+is a fifth of a 200k window and *still* comes back truncated. Use
+`cos_graph_communities()` for the subsystem map and drill in from there.
 
 ---
 

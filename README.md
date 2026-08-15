@@ -59,9 +59,34 @@ rules table maps file globs to skills, and the matching skill loads only
 when you are about to write a file it governs. Editing a React component
 loads `nextjs-react`; nothing else comes with it.
 
-What you pay per session is `AGENTS.md` plus the rules of the modules you
-enabled. Disable a module and its rules, tools and slash commands leave with
-it — see [Modular by design](#modular-by-design--take-only-what-you-need).
+**What that actually costs — measured, not asserted.** A scaffold writes ~370
+files; **8 to 12 of them ever enter the prompt**. Running the real `cos init`
+for all 21 shipped presets and summing only what is resident:
+
+| Project shape | Always-on tokens | Share of a 200k window |
+|---|---:|---:|
+| `t3-style` (Next.js) — the leanest | 12,704 | 6.4% |
+| `wordpress-cms` | 12,738 | 6.4% |
+| `mern`, `pern`, `go-react` (two stacks) | ~13,158 | 6.6% |
+| `hexagonal-product` (Go + Fiber + FastAPI + React Native) | 13,972 | 7.0% |
+
+```bash
+uv run python src/scripts/context_budget.py --all-presets
+```
+
+The spread across every profile is **12.7k–14.0k tokens**, because 9,266 of
+those tokens are the stack-agnostic rules everyone gets and the per-stack
+overlays are only 199–1,171 each. Skills, slash commands, hooks and MCP tool
+schemas are **not** in that number — they load on demand.
+
+Two things this figure is not: it is not free (7% of the window is 7% of the
+window), and it is not the ~20k this meta-repo itself carries, which includes
+generated registries no consumer receives. The full accounting, the cache
+economics, and what is still *unmeasured* about instruction density are in
+[context-budget.md](docs/engineering/context-budget.md).
+
+Disable a module and its rules, tools and slash commands leave with it — see
+[Modular by design](#modular-by-design--take-only-what-you-need).
 
 ---
 
@@ -409,29 +434,53 @@ types (`contains`, `calls`, `imports`, `inherits_from`,
 `cos_graph_impact`, `cos_graph_rename_plan` — and gets a small,
 high-confidence JSON envelope back.
 
-### Benchmark — graph vs read-the-file (live repo · 33,548 nodes · 72,797 edges)
+### Benchmark — graph envelope vs a competent agent, on public repos
 
-"What breaks if I change X?" answered two ways — read **every caller
-file** to be *sure* you caught them all (the safe manual path), vs one
-`cos_graph_*` envelope. Token counts are **measured** on this codebase
-(file bytes ÷ 4; tool `tokens_estimated` from the live envelope):
+The number to beat is **not** "read every matching file" — no sensible agent
+does that. It is what a good agent actually does: grep, then open a bounded
+window around the matches in the few highest-hit files. That is the default
+baseline, and every figure below is measured against it on public checkouts you
+can reproduce.
 
-| Question | Graph tool (result) | Manual: read all callers | Graph envelope | **Savings** |
-|---|---|---:|---:|---:|
-| What breaks if `init_db` changes? | `cos_graph_impact` — 508 impacted | 100 files ≈ 456,000 tok | **7,962 tok** | **98.3%** |
-| Who must a `GraphNode` rename touch? | `cos_graph_rename_plan` — 118 sites, risk=high | 26 files ≈ 170,000 tok | **7,519 tok** | **95.6%** |
-| Who sources `cos-env.sh`? | `cos_graph_references` — 79 refs | grep + open each hook | **579 tok** | ~99% |
+```bash
+uv run --extra graph_os python src/core/graph_os/bench/third_party.py \
+    --repo https://github.com/django/django --ref 5.2 --queries 10
+```
 
-The exact numbers shift per machine and per tokenizer — the **ratio**
-(roughly 20–100× less context) is what holds. The leanest queries
-(`cos_graph_references(limit=20)`) answer in 140–600 tokens vs 2K–24K
-for even a *single* file Read. Every envelope carries `total_count` +
-`truncated`, so the agent knows when it has the whole answer — no silent
-truncation.
+Median savings over the 10 highest-degree symbols per repo (`min` in brackets —
+the honest worst case):
 
-The savings compound: an agent asking 50 structural questions over a
-feature spends ~50–400 KB of context, not the multiple MB an exhaustive
-file sweep would cost — leaving the budget for actual reasoning.
+| Repo | `.py` files | `references` | `impact` (3 hops) | `rename_plan` |
+|---|---:|---:|---:|---:|
+| psf/requests @ v2.32.5 | 36 | **77.7%** (41.9) | 24.2% (−53.8) | **74.8%** (43.7) |
+| fastapi/fastapi @ 0.116.1 | 1,129 | **79.5%** (−3.4) | **−6.8%** (−85.6) | **82.4%** (11.0) |
+| django/django @ 5.2 | 2,818 | **76.8%** (50.3) | 70.8% (18.5) | **77.1%** (51.1) |
+| this repo | 3,317 | **79.7%** (65.9) | 74.0% (64.7) | **79.7%** (65.7) |
+
+Read it as three findings, including the one that does not flatter us:
+
+1. **"Who calls this?" and "what does a rename touch?" are a consistent ~75–82%
+   cheaper**, across repos spanning two orders of magnitude in size. This is the
+   robust win and the reason the graph-first rule exists.
+2. **A 3-hop blast radius is size-dependent, and on mid-size repos it can cost
+   *more* than reading.** `impact` is +71–74% on django and this repo, +24% on
+   requests, and **−7% on fastapi**. A wide transitive envelope is not free;
+   reach for `depth=3` when the codebase is large enough to make reading worse.
+3. **Against bare `grep` output alone on a small repo, the graph loses badly**
+   (−169% on requests). If match lines answer the question, they are the right
+   tool. The graph earns its keep when you need the *complete* set.
+
+That completeness is the part a token count cannot show. Every envelope carries
+`total_count` and its own truncation flags, so the agent knows whether it has
+the whole answer — grep never tells you what it missed. The harness enforces the
+same discipline on itself: an envelope whose traversal was capped is reported as
+incomplete and **never scored as a saving**. (The previous version of this table
+did exactly that — it published "508 impacted, 98.3% saved" from a
+`walk_truncated` envelope whose real count, at a sufficient budget, is 1,494.)
+
+Method, the other two baselines, and the limits — including that
+highest-degree probe selection favours the graph — are in
+[third-party-token-bench.md](docs/engineering/third-party-token-bench.md).
 
 ### Coverage, budgets, health — the anti-hallucination contract
 

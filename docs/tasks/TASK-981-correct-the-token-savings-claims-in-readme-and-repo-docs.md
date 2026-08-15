@@ -38,3 +38,4 @@ README.md:421 publishes "cos_graph_impact — 508 impacted … 7,962 tok … 98.
 - **Given** every remaining "97%"-style claim in docs/engineering, **When** the sweep is done, **Then** each is either re-measured or removed.
 
 ## Work Log
+- 2026-08-15 [claude]: Rewrote the README benchmark section against the grep-windows baseline on four public repos, publishing the two rows…

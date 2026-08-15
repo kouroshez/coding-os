@@ -95,18 +95,20 @@ Use file Read **only** for the 1–3 files the graph tells you matter.
 
 ## Token economics (concrete numbers)
 
-| Workflow | Without graph | With graph | Saving |
-|---|---|---|---|
-| "Where is `safe_tool` called?" | 6 grep variants × ~120 tok output + Read 4 hits @ 800 tok = **~3920 tok** | `cos_graph_references` envelope ~280 tok | **93%** |
-| "Plan rename `foo` → `bar`" | Iterative: grep, edit, find missed test, grep again × 3 cycles ≈ **~6000 tok** | `cos_graph_rename_plan` returns full set in one envelope ~450 tok | **92%** |
-| "Audit MCP API surface" | Read 12 register files @ 1500 tok = **~18000 tok** | `cos_graph_contracts(kinds=["mcp"])` ~700 tok | **96%** |
-| "Onboard to repo / find subsystems" | Read 50 README+entry files = **~120K tok** | `cos_graph_communities` + `cos_graph_export` = ~3K tok | **97%** |
-| "Pre-commit blast-radius" | git diff + manual chase = **~5–10K tok** | `cos_graph_detect_changes(files=changed_paths)` ~600 tok | **>90%** |
+Savings are measured against three named baselines on public repos, and both the
+tables and the cases where the graph *loses* live in one place:
+[third-party-token-bench.md](third-party-token-bench.md). The short version:
 
-The five workflows above are the highest-frequency moves in any
-non-trivial repo. Cumulative saving across one COMPLICATED task: **15K–
-50K tok**, often the difference between fitting in context and being
-forced to compact.
+- `references` and `rename_plan` run **75–82% cheaper** than a competent
+  grep-then-read across four repos from 36 to 3,317 files.
+- `impact(depth=3)` is size-dependent and can cost more than reading on a
+  mid-size repo (**−6.8%** on fastapi).
+- Against bare `grep` output on a small repo, the graph loses outright.
+
+Per-call absolute costs, for budgeting a turn, are in
+[graph-use-cases.md § K](graph-use-cases.md). What the tokens buy that grep
+cannot sell you is the subject of this document: a `total_count` and typed
+edges, so the agent knows whether it has the whole answer.
 
 ## Anti-patterns (do not)
 

@@ -6,7 +6,9 @@ alwaysApply: false
 
 # Graph-First Rule (Meta-Stack)
 
-> **Inviolable**: when the question is *structural* — who calls, what breaks, what connects, rename, trace — call the graph **before** Read or grep. A targeted envelope (references/impact/rename of one symbol) costs a few hundred to a few thousand tokens (heuristic chars/4; measured by `make bench` → `token_cost`) and replaces grepping + reading every matching file — the saving scales with codebase size. Whole-graph dumps (`export`/`communities`) cost far more (tens of thousands of tokens); reach for them deliberately, not for a quick lookup.
+> **Inviolable**: when the question is *structural* — who calls, what breaks, what connects, rename, trace — call the graph **before** Read or grep. `references` and `rename_plan` measure **~75–82% cheaper** than a competent grep-then-read across four repos from 36 to 3,317 files ([bench](../../../docs/engineering/third-party-token-bench.md)), and they return a `total_count` grep cannot give you.
+>
+> **Two measured exceptions — know them before you burn budget.** `impact(depth=3)` is size-dependent: +71–74% on large repos, but **−7% on fastapi** — a wide transitive envelope can cost more than reading, so reach for depth 3 when the codebase is big enough to make reading worse. And against bare `grep` output on a *small* repo the graph loses outright (−169% on requests); if match lines answer it, they are the right tool. Whole-graph dumps (`export`/`communities`) cost tens of thousands of tokens — deliberate use only.
 
 | Intent | Tool |
 |---|---|
