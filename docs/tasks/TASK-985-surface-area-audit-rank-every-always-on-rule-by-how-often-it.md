@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: honest-benchmarks
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-15
 started: 2026-08-15
-completed: null
+completed: 2026-08-15
 agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
@@ -33,3 +33,4 @@ references: []
 
 ## Work Log
 - 2026-08-15 [claude]: Built src/scripts/rule_audit.py. Block counts come from the agent transcripts, not `cos hooks-log` — that log is…
+- 2026-08-15 [claude]: Status transitioned to complete via cos task-done.

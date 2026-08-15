@@ -5,12 +5,12 @@ swimlane: adapters
 kind: bug
 epic: honest-benchmarks
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-15
 started: 2026-08-15
-completed: null
+completed: 2026-08-15
 agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
@@ -40,3 +40,4 @@ src/adapters/claude/chat_provider.py tool_guard() returns None when the SDK impo
 - 2026-08-15 [claude]: Edit cognition_onboarding.py
 - 2026-08-15 [claude]: Edit test_chat_port.py
 - 2026-08-15 [claude]: tool_guard now raises GuardUnavailableError instead of returning None when the runtime SDK is absent, and the…
+- 2026-08-15 [claude]: Status transitioned to complete via cos task-done.

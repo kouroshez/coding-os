@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: honest-benchmarks
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-15
 started: 2026-08-15
-completed: null
+completed: 2026-08-15
 agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
@@ -42,3 +42,4 @@ references: []
 - 2026-08-15 [claude]: Edit eval_taskset.py
 - 2026-08-15 [claude]: Edit ablation-protocol.md
 - 2026-08-15 [claude]: Pre-registered the ablation in docs/engineering/ablation-protocol.md — four arms differing only in the…
+- 2026-08-15 [claude]: Status transitioned to complete via cos task-done.

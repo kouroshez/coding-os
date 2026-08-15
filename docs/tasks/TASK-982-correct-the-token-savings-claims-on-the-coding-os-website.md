@@ -38,3 +38,8 @@ cos-website/src/frontend/app/(marketing)/landing-sections.tsx lines 99 and 196 h
 ## Work Log
 - 2026-08-15 [claude]: Landing page now quotes ~78% against the grep-windows baseline instead of 98% against read-everything, and the…
 - 2026-08-15 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-15 [claude]: commit 34ce2f1f41 — chore(tasks): close TASK-981 and TASK-982 (honest claims, repo and website)
+- 2026-08-15 [claude]: Edit rule_audit.py
+- 2026-08-15 [claude]: Edit rule_audit.py
+- 2026-08-15 [claude]: Edit context-budget.md
+- 2026-08-15 [claude]: commit f7394e1972 — feat(bench): rank always-on rules by measured blocks per token
