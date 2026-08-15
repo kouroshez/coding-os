@@ -71,7 +71,7 @@ exposes it; the rule below is mandatory before you act on a result.
 
 | Tool | `data.total_count` | Coverage signal in meta | `data.meta.<budget>` |
 |---|---|---|---|
-| `cos_graph_references` | ✓ | `result_truncated` (limit hit or token-trim) | `limit` |
+| `cos_graph_references` | ✓ | `result_truncated` (limit hit or token-trim) · `zero_from_kind_filter` (0 rows, wrong edge kinds) | `limit` · `kinds` |
 | `cos_graph_impact` | – | `walk_truncated` (BFS cap hit) | `visit_limit` · `depth` |
 | `cos_graph_context` | – | `walk_truncated` (BFS cap hit) | `visit_limit` · `depth` |
 | `cos_graph_path` | – | `walk_truncated` (hop saturation) | `hop_limit` |
@@ -89,6 +89,16 @@ trimmer can silently shorten a `contracts` / `references` payload, and
 the coverage check must catch that too. Net: **`result_truncated == true`
 means this list is incomplete for ANY reason — re-query**; `meta.truncated`
 additionally tells you the cause was the token budget.
+
+**Truncation is not the only way to be wrong — a *zero* can be too.** With no
+`kinds` argument, `references` picks defaults per node kind; ask about a kind
+whose real edges are structural (`rule`, `task`, `route`, …) with the code
+defaults and you get a complete query of the wrong edge types: `total_count: 0`,
+`result_truncated: false`, and nothing pointing at the mistake. So the rule has a
+second half: **`total_count == 0` with `meta.zero_from_kind_filter == true` ⇒ the
+node HAS inbound edges and you queried past them.** `meta.edge_types_present`
+names them — re-query with `kinds=` set to those. Only a zero *without* that flag
+is the authoritative "nothing points here" the dead-code check depends on.
 
 ### The mandatory 2-step probe → widen workflow
 
