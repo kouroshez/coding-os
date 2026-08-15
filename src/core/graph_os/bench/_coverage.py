@@ -15,6 +15,11 @@ opposite directions:
     "incomplete" throws away perfectly good answers — a `references` call that
     reports 96 total and returns 75 rows knows exactly how many exist.
 
+A third case is not incompleteness at all but the absence of an answer: a `fail()`
+envelope has no ``data``, so every field below reads as zero and it would settle
+instantly as a complete, one-token answer — a ~100% saving from a call that
+errored. Those are marked unreadable and never scored.
+
 So completeness is decided **empirically**, not from a flag: widen the budget and
 watch the totals. A count that stops growing is a real count. A row list shorter
 than that count is a ranked sample, which is a legitimate answer — "1,494 impacted,
@@ -50,6 +55,7 @@ class Reading:
     rows_shown: int
     walk_truncated: bool
     budget: int
+    unreadable: bool
 
 
 @dataclass(frozen=True)
@@ -67,7 +73,10 @@ class Envelope:
 
 def _as_dict(raw: object) -> dict[str, Any]:
     if isinstance(raw, str):
-        parsed: object = json.loads(raw)
+        try:
+            parsed: object = json.loads(raw)
+        except ValueError:
+            return {}
         return parsed if isinstance(parsed, dict) else {}
     return raw if isinstance(raw, dict) else {}
 
@@ -103,19 +112,25 @@ def _rows_in(data: dict[str, Any]) -> int:
 
 
 def read(raw: object, *, budget: int) -> Reading:
-    data = _nested(_as_dict(raw), "data")
+    envelope = _as_dict(raw)
+    data = _nested(envelope, "data")
     meta = _nested(data, "meta")
+    # A `fail()` envelope carries no `data`, so every field below reads as zero:
+    # 0 rows of 0 total, not truncated, 1 token. That settles on the first widen
+    # and scores as a ~100% saving — the exact dishonesty this module prevents.
+    unreadable = not envelope.get("ok") or "tokens_estimated" not in meta
     return Reading(
         tokens=max(1, int(meta.get("tokens_estimated") or 0)),
         total_count=_total_in(data),
         rows_shown=_rows_in(data),
         walk_truncated=bool(meta.get("walk_truncated")),
         budget=budget,
+        unreadable=unreadable,
     )
 
 
 def _classify(reading: Reading, *, totals_settled: bool) -> str:
-    if reading.walk_truncated or not totals_settled:
+    if reading.unreadable or reading.walk_truncated or not totals_settled:
         return INCOMPLETE
     return COMPLETE if reading.rows_shown >= reading.total_count else COUNT_PLUS_SAMPLE
 
@@ -129,8 +144,10 @@ def resolve_complete(call: Callable[[int], object], *, widens: bool = True) -> E
     ladder = BUDGET_LADDER if widens else BUDGET_LADDER[:1]
     reading = read(call(ladder[0]), budget=ladder[0])
     settled = not widens
+    # No point widening a budget for a call that did not answer at all.
+    remaining: tuple[int, ...] = () if reading.unreadable else ladder[1:]
 
-    for budget in ladder[1:]:
+    for budget in remaining:
         wider = read(call(budget), budget=budget)
         settled = wider.total_count <= reading.total_count and not wider.walk_truncated
         reading = wider

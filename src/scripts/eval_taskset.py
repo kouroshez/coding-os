@@ -21,6 +21,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -39,6 +40,10 @@ _RUNNABLE = re.compile(
 _OUTCOME = re.compile(r"^\*\*Outcome \(one sentence\):\*\*\s*(.+)$", re.MULTILINE)
 _ACCEPTANCE_BLOCK = re.compile(r"^## Acceptance.*?$(.*?)^## ", re.MULTILINE | re.DOTALL)
 _TASK_ID = re.compile(r"^(TASK-\d+)")
+# `complete` is the terminal state on the board; `archive` is where a completed
+# task goes when it leaves the active board. Both carry a `completed:` date and
+# both are closed work — filtering on `complete` alone reads 15% of the corpus.
+_CLOSED = re.compile(r"^status:\s*(complete|archive)\s*$", re.MULTILINE)
 
 # Commands that pass everywhere and would score a task the agent never touched.
 _TOO_WEAK = ("make docs-lint", "make help")
@@ -57,12 +62,14 @@ class Candidate:
     starting_commit: str
 
     def to_yaml_block(self) -> str:
-        prompt = self.prompt.replace('"', "'")
+        # json.dumps, not a quote swap: an Outcome line can carry a backslash or a
+        # control character, and a hand-quoted scalar makes the file unparseable.
+        # A JSON string is a valid YAML double-quoted scalar.
         return "\n".join(
             [
                 f"- task_id: {self.task_id}",
-                f'  prompt: "{prompt}"',
-                f'  acceptance_command: "{self.acceptance_command}"',
+                f"  prompt: {json.dumps(self.prompt)}",
+                f"  acceptance_command: {json.dumps(self.acceptance_command)}",
                 f"  starting_commit: {self.starting_commit}",
                 f"  closing_commit: {self.closing_commit}",
                 "  validated: false  # true only once the command is confirmed to",
@@ -82,8 +89,12 @@ def _git(*args: str) -> str:
 
 
 def closing_commit(task_id: str) -> str:
-    """The last commit whose message names this task — the state after the work."""
-    return _git("log", "--format=%H", "-1", f"--grep={task_id}", "--all")
+    """The last commit whose message names this task — the state after the work.
+
+    The id must not match a longer one: an unanchored `--grep=TASK-100` also hits
+    every `TASK-1000` message, and `-1` would hand back that other task's commit.
+    """
+    return _git("log", "--format=%H", "-1", "-E", f"--grep={task_id}([^0-9]|$)", "--all")
 
 
 def _known_make_targets() -> frozenset[str]:
@@ -135,7 +146,7 @@ def acceptance_command(
     for found in _RUNNABLE.findall(block):
         # A backticked command is followed by prose ("`cos doctor` runs clean") —
         # the backtick is where the command stops.
-        command = found.split("`", 1)[0].strip().rstrip(".")
+        command = str(found).split("`", 1)[0].strip().rstrip(".")
         if any(command.startswith(weak) for weak in _TOO_WEAK):
             continue
         if any(marker in command for marker in _PROSE_MARKERS):
@@ -222,7 +233,7 @@ def main(argv: list[str] | None = None) -> int:
         except OSError as exc:
             print(f"[FAIL] cannot read {path}: {exc}", file=sys.stderr)
             return 1
-        if "status: complete" not in body:
+        if not _CLOSED.search(body):
             continue
         closed += 1
         found = mine(path, body, make_targets=make_targets, cos_commands=cos_commands)

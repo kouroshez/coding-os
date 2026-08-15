@@ -96,22 +96,28 @@ uv run python src/scripts/eval_taskset.py --out docs/_meta/eval-candidates.yaml
 
 ### What the miner actually found — and why that is its own finding
 
-Run on 2026-08-15: **9 candidates out of 150 closed tasks.** Every rejection was
-for the same reason — the acceptance criterion is prose. This repo's G/W/T
-discipline produces a *Then* clause a human can judge and a script cannot, 94% of
-the time.
+Run on 2026-08-15: **148 candidates out of 978 closed tasks** — where "closed"
+means `status: complete` *or* `status: archive`, the state a completed task lands
+in when it leaves the active board. (An earlier run of this miner read only
+`complete` and reported 9 out of 150; it was sampling 15% of the corpus, and the
+conclusion it supported was an artifact of that filter.) The 830 rejections are
+tasks whose acceptance criterion is prose, plus a few with no traceable commit:
+this repo's G/W/T discipline produces a *Then* clause a human can judge and a
+script cannot roughly 85% of the time.
 
 Two consequences, both worth stating plainly rather than working around:
 
-1. **The mined set is far too small to power an ablation.** Nine tasks, several of
-   which (`cos doctor`, `cos init --help`) will pass at the starting commit and be
-   rejected in validation. A real run needs hand-written eval tasks, and the
-   miner's job is to seed that work, not complete it.
+1. **148 mined is not 148 usable.** Every entry still needs the validation step,
+   and the commands that recur most (`cos doctor`, `cos init --help`, `make
+   docs-lint`-adjacent checks) are exactly the ones that already pass at the
+   starting commit and will be rejected. The honest expectation is that the
+   validated set is a fraction of the mined one, and the number that survives is
+   itself a result worth reporting.
 2. **The template is the fixable half.** A *Then* that names a command is strictly
    more useful than one that describes a feeling of doneness — it is the same
    "verify by executing" rule the kernel enforces on agents, applied to the task
-   template itself. Tightening it will not retroactively fix 150 closed tasks, but
-   it makes the next 150 minable.
+   template itself. Tightening it will not retroactively fix 978 closed tasks, but
+   it makes the next 978 minable.
 
 ## Threats to validity, stated up front
 

@@ -1,18 +1,991 @@
 # Ablation candidates — mined, NOT yet validated.
 # Spec: docs/engineering/ablation-protocol.md
-# Mined from 150 closed tasks; 9 carry a runnable acceptance.
+# Mined from 978 closed tasks; 148 carry a runnable acceptance.
 # Every entry needs a human to flip `validated` after confirming the command
 # fails at starting_commit. An unvalidated set scores work that was already done.
 candidates:
+  - task_id: TASK-001
+    prompt: "`cos doctor` output has unique check IDs, never crashes on broken hook symlinks, and surfaces 4 previously invisible health signals (agent identity, adapter dir symlinks, consumer project hooks, Rule-3 compliance)."
+    acceptance_command: "cos doctor"
+    starting_commit: 1dcadf113763
+    closing_commit: df11cdfdbbe6
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-002
+    prompt: "All `cos doctor` output and install scripts use \u2705/\u26a0\ufe0f/\u274c emoji badges; C48 WARNs on the two stub hooks are cleared; Makefile override noise is suppressed; C32 message shows the correct fix command."
+    acceptance_command: "cos doctor"
+    starting_commit: 73ce7abb96f3
+    closing_commit: 2e8a25bee3c9
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-003
+    prompt: "Ship `src/core/logging_os/` Python module plus `cos_say` shell helper that emit a single structured log schema rendered three ways (pretty for human TTY, short for agent/pipe, json for hub UI) with automatic context detection and zero new dependencies."
+    acceptance_command: "uv run pytest"
+    starting_commit: 2e8a25bee3c9
+    closing_commit: 0da5158096af
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-017
+    prompt: "Deleting a file no longer leaks orphan `graph_edges_v12` rows \u2014 the prune helper enables FK enforcement so `ON DELETE CASCADE` actually fires, draining the 20.5 k `dangling_source` issue at its source."
+    acceptance_command: "uv run --extra graph_os pytest src/core/graph_os/tests/ -q"
+    starting_commit: 41e95539cade
+    closing_commit: 7fae295f3677
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-031
+    prompt: "When the project starts implementing the Codex adapter, fold in these deferred items: add enforce-commit-message.sh to src/adapters/codex/hooks.template.json, refresh tests/golden/codex_* snapshots, verify role-*.md dual-mode renders correctly under Codex CLI matcher rules. Do NOT pick up now \u2014 only when adapter work resumes."
+    acceptance_command: "uv run pytest tests/test_adapter_parity.py tests/test_golden_parity.py -q"
+    starting_commit: 84d6f6b0494c
+    closing_commit: 281dd8e01fe7
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-035
+    prompt: "Two panels of the SAME agent on the SAME project never trample each other's cognitive state (task-current, thinking_os-gate, active-skill, doc-anchor, memory-check, zoom-checkpoint, active-formula, learn-suggestions). Multi-adapter ready (claude/codex/cursor/gemini) via data-driven adapter.yaml::runtime_session_marker. Files for hot state, DB rollup on session end. Worktree workaround removed from docs."
+    acceptance_command: "make verify"
+    starting_commit: ecb6db22fd74
+    closing_commit: 533cf3d35574
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-049
+    prompt: "Every Python and JS dependency upgraded to its 2026-05 latest \u2014 including runtime majors (React 19, Vite 8, react-router 7, claude-agent-sdk 0.2, tree-sitter 0.25, torch/transformers) \u2014 with each tier verified green before the next."
+    acceptance_command: "pytest tests/ -q"
+    starting_commit: f58053b593ed
+    closing_commit: 9c1a64d87027
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-059
+    prompt: "Agents can no longer bypass the cos_* surface for task/audit lifecycle or discovery. Hand-Edit of task/audit status is blocked (hook); the completion guardian cross-checks evidence against formula_dispatches (not the editable checkbox); agents are steered to cos task-show/cos_task_search and to semantic state ops instead of raw write-state.sh; dead/duplicate surface removed. All backward-compatible, all verified."
+    acceptance_command: "cos task-done"
+    starting_commit: a5052d56323d
+    closing_commit: ac45e14042b2
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-067
+    prompt: "Go/TS/Shell extractors + contracts (fiber,gin,echo,nextjs,react) reach Python-gold parity on knowledge+accuracy. Real gaps closed (not feature-theater): Go AST same-file call edges; TS type-edge resolution to local/imported symbols + awaits + enum/namespace nodes; Shell regex-fallback local-call parity; contracts fiber/gin group-prefix per-variable correctness fix + route to handler edge; next.js pages-router API + page.tsx route detection; react function-component metadata. Each group adversarial-tested + graph_os matrix verified."
+    acceptance_command: "uv run --extra graph_os pytest src/core/graph_os/tests/ -q"
+    starting_commit: 87fdd35363e6
+    closing_commit: d7dcd87b3ff0
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-068
+    prompt: "cos graph-reindex shows a click.progressbar advancing per file (both the sequential and ProcessPoolExecutor parallel paths), auto-hidden on non-TTY (CI/pipes) so summary-only output is unchanged there. Replaces the per-file cache-hit echo spam; errors + final summary still print."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: 7776cf0f5501
+    closing_commit: 3f7fd37f51ff
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-069
+    prompt: "PHP reaches Python-gold parity in the graph: new code_php extractor (tree-sitter-php primary + regex fallback) emitting namespace/class/interface/trait/method/function/property/const nodes + use-imports + extends/implements/use-trait + typed param/return/property edges + PHP-8 attributes + same-file resolved calls/constructs. Plus contracts scanners for Laravel (Route facade incl resource/groups/middleware + controller handler edges + models/commands), WordPress (add_action/add_filter/do_action/apply_filters + shortcode + register_post_type + register_rest_route + wp_ajax), and WHMCS (add_hook + module-function convention + module-type classification). Each group adversarial-tested + graph_os matrix verified + force-reindex smoke errors=0."
+    acceptance_command: "uv run --extra graph_os pytest src/core/graph_os/tests/ -q"
+    starting_commit: de97dffcd7d4
+    closing_commit: c70c293d782d
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-070
+    prompt: "cos_doc_search surfaces always-active rules + routing playbooks (new low-priority source-types) so an agent discovers a related rule even with no explicit link \u2014 closing failure F1 \u2014 without changing their always-active/skill loading."
+    acceptance_command: "cos docs-index --force"
+    starting_commit: 29cfb417dc7d
+    closing_commit: d57a51770d18
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-071
+    prompt: "Close the two documented PHP limitations from TASK-069: (1) Laravel routes inside Route::prefix()->group() / Route::group(['prefix'=>..]) closures get their group prefix joined (brace-matched scoping, nesting-aware); (2) cross-file controller handlers ([Ctrl::class,'m'] / 'Ctrl@m') resolve to the real code:method node via a new backend link_php_handlers post-pass. Validate end-to-end on real WordPress code downloaded into a cos-init project in /tmp (hooks/shortcodes/REST routes extracted correctly). Align docs."
+    acceptance_command: "cos init"
+    starting_commit: 2cbaf72481c8
+    closing_commit: c3655e8a3a19
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-072
+    prompt: "make docs-index-regen and the auto-regen-doc-index hook invoke regen_doc_index.py under bare python3 without src/core/thinking_os on PYTHONPATH, so it dies with ModuleNotFoundError: tools.docs \u2014 every docs/<dir>/00-index.md silently stops regenerating. Fix the script's sys.path bootstrap so it self-resolves the package under bare python3 (works today only with PYTHONPATH=src/core/thinking_os)."
+    acceptance_command: "make docs-index-regen"
+    starting_commit: 29cfb417dc7d
+    closing_commit: d57a51770d18
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-099
+    prompt: "Every coding-os skill is rich (SKILL.md + scripts/ + references/ + assets/), data-driven, token-efficient, version-pinned to 2026. Canonical rich-skill standard exists as SSOT. A refresh script keeps reference versions current. Missing global skills (shell-scripting, technical-writing, sql-authoring, linux-sysadmin) and stack skills added."
+    acceptance_command: "cos doctor"
+    starting_commit: 4871a0c6d961
+    closing_commit: 237c817bdbfe
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-103
+    prompt: "A new append-only migration v32 adds log_events (durable WARN+ error rows, indexed for query) + log_fingerprints (permanent rollup + idempotency anchor) to coding-os.db, so errors survive jsonl-tail truncation and process restart. user_version advances 31\u219232; no past migration edited (Rule 9)."
+    acceptance_command: "uv run --extra rag pytest src/core/thinking_os/tests/test_db.py -q"
+    starting_commit: 9c27bb0eb814
+    closing_commit: 950b618596f2
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-118
+    prompt: "Every cos init creates a .gitignore (excludes .coding-os/*.db, traces/, panels/, *.db-wal/shm) AND an initial 'chore: scaffold coding-os project' commit, so docs are tracked from line one and the binary runtime DB + agent-memory PII never enter git history. Skips both when nested in an existing repo."
+    acceptance_command: "cos init"
+    starting_commit: 74128005b17a
+    closing_commit: ecb6db22fd74
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-119
+    prompt: "auto-regen-doc-index.sh resolves its generator inside a consumer project (preferably by calling a shipped CLI surface e.g. cos docs-index --regen-nav <dir> rather than scaffolding a loose script), so docs/<dir>/00-index.md freshness works in every organism, not just the meta-repo dogfood path. Also fixes the relative-path exit-127 invocation breakage and the omitted Nav line."
+    acceptance_command: "cos docs-index --regen-nav"
+    starting_commit: 2cdbb412a8fc
+    closing_commit: 899cddf75ab3
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-141
+    prompt: "cos errors (and cos logs) print recent durable log_events rows filtered by level/scope/since/search/limit, reusing thinking_os.tools.logs.log_query and logging_os render (rows to stdout, summary to stderr) \u2014 so a human or a CLI-driven agent can see what is broken without the MCP layer."
+    acceptance_command: "cos errors"
+    starting_commit: d6a86c2882e3
+    closing_commit: dabc9be64495
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-147
+    prompt: "/api/logs/summary returns counts-by-level + error/fatal counts + top error scopes from the live log feed, and HealthAlarmBar consumes it to surface \"N errors / FATAL\" (red on FATAL) so the Hub answers \"what is broken now\" at a glance."
+    acceptance_command: "make ui-build"
+    starting_commit: 92da42174ca3
+    closing_commit: b6a7439f6092
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-150
+    prompt: "Rewrite cos-board-tokens.css + index.css into a clean 3-layer token system: PRIMITIVES (Graphite neutral scale + Iris brand scale + status hues, OKLCH-derived) \u2192 SEMANTIC keys (surface/canvas|panel|raised|overlay|inset, border/subtle|default|strong, text/primary|secondary|muted|disabled, brand/solid|hover|text|tint|on-solid, focus/ring, status fg+tint) \u2192 both light AND dark value sets keyed identically. Default theme = dark (ThemeProvider). All --cos-* semantic aliases preserved/extended so existing Tailwind components follow automatically with zero component rewrites. AA contrast on every text/surface pair. make ui-build compiles clean."
+    acceptance_command: "make ui-build"
+    starting_commit: de72d9996e96
+    closing_commit: ba538be03df8
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-152
+    prompt: "Rewrite NODE_COLORS (node-colors.ts) so every graph node-kind sits at equal OKLCH lightness (~0.72) and chroma (~0.14) \u2014 only hue distinguishes a category (structure=steel, code-defs=Iris, api=azure, docs=teal, governance=gold/magenta, analysis=violet). Kills the legacy chaos where near-black brown sat beside hot orange. Retune KIND_COLORS chips (kindColors.ts) so the chip label reads on the new dark task-kind tints (AA). make ui-build green."
+    acceptance_command: "make ui-build"
+    starting_commit: a46bd79ea2f2
+    closing_commit: 3a248c09c04f
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-162
+    prompt: "Replace NODE_COLORS (node-colors.ts) with a maximally-distinguishable categorical palette for the graph: 7 family hue-anchors spread across the wheel (structure=amber, code-defs=indigo/violet, code-refs=neutral gray, api=cyan, docs=green, governance=magenta/pink, analysis=orange) with BOLD lightness steps WITHIN each family (\u2265~12 L apart) instead of the subtle hue-only variation of v1 that made class/method/function (and route/tool/event) near-indistinguishable as small dots. Verify programmatically with a pairwise CIE Lab \u0394E check \u2014 no two kinds (especially common ones) below the distinguishability threshold. Tuned for the dark canvas. make ui-build green."
+    acceptance_command: "make ui-build"
+    starting_commit: 3d02b0608445
+    closing_commit: 1d65597ef610
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-163
+    prompt: "Adopt the 3 genuinely-better token ideas from the external review into the base palette: --live (Pulse Cyan, for SSE/agent-live) distinct from info, --signature (Ember orange, reserved for logo/brand mark), and a --focus-ring (violet) distinct from the brand so focus stands out on brand-colored elements; wire *:focus-visible to it and expose --cos-live/--cos-signature/--cos-focus aliases. Then fix the Roles page (RolesPage.tsx): replace every hardcoded emerald/amber/rose Tailwind class with the new --cos-ok/warn/err status tokens, and rebuild the flat formula-id \"Composed Chain\" list into a real visual numbered pipeline (connector line + step number + prettified role name + active-step highlight). Harmonize TraceTimeline event colors + agent live presence onto the new tokens. make ui-build green."
+    acceptance_command: "make ui-build"
+    starting_commit: 42d7b7751162
+    closing_commit: 538a40be7292
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-164
+    prompt: "Fix the broken dark mode surfaced by the board screenshot: every TaskCard color was hardcoded for the legacy light pastel sticky note (title #141210 \u2192 invisible on dark, id #3a3530, meta #4a4540, label #6b665e, priority outline #c0392b/#ea580c garish, chip bg rgba(0,0,0,.06) wrong on dark, kind badge #fff-on-solid fails on amber/lime). Replace ALL with themed --cos-* tokens (title\u2192cos-text, id/meta\u2192cos-muted, label\u2192cos-faint), convert the kind badge to a tinted pill (chip-color text on a faint color-mix tint) and priorityStyle to a single themed thin outline (P0 cos-err, P1 cos-warn, P2/P3 none) so cards are calm not garish. Verify every text/background pair with a programmatic WCAG contrast check (\u22654.5 normal / \u22653 large) in BOTH themes. Add a global dark/light toggle to the AppShell header via a zustand theme-store (persisted, applies data-theme) and init DesignThemeProvider from it. Sweep other pages for hardcoded dark text. make ui-build green."
+    acceptance_command: "make ui-build"
+    starting_commit: 490d0c0589e8
+    closing_commit: f1935d94e38e
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-165
+    prompt: "Exhaustive sweep: NO UI color is hardcoded anywhere \u2014 every Tailwind named-color utility (237: rose/red\u2192cos-err, emerald/green\u2192cos-ok, amber/orange\u2192cos-warn, sky/blue\u2192cos-info, violet/fuchsia/indigo/purple\u2192cos-brand, cyan/teal\u2192cos-live, zinc/gray/slate\u2192cos surface/text/border by shade) and every mappable inline component hex (69, excluding canonical canvas maps) is replaced with a --cos-* token so the whole palette is changeable from one place (cos-board-tokens.css). Done via a documented, repeatable codemod (the mapping IS the enterprise rule), then build + grep verified to 0 violations across all *.tsx, with the canonical canvas/Sigma color maps (node-colors.ts, graph-adapter.ts, useSigma.ts, agentPresenceVisuals.ts) explicitly exempted (WebGL cannot read CSS vars; they are already centralized single-source maps). make ui-build green."
+    acceptance_command: "make ui-build"
+    starting_commit: 383111b1a281
+    closing_commit: 13c39954b422
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-172
+    prompt: "Clicking a board card opens a CENTERED modal (dim backdrop, ~960px max-width, ~90vh max-height, rounded, fade/scale-in) instead of a right-edge drawer, closable via Esc and overlay click, with all existing sub-panels (markdown body, history, transcript, inline edit) intact."
+    acceptance_command: "make ui-build"
+    starting_commit: 823d73afe0d9
+    closing_commit: 9d5f77f3dea3
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-173
+    prompt: "Tasks distinguish the human initiator (who triggered) from the agent executor (session/adapter/model); a manual web create is attributed to the human, and the detail modal surfaces created-by + last-edited-by + contributors from the append-only history."
+    acceptance_command: "make ui-build"
+    starting_commit: 854f342d1110
+    closing_commit: 739002acb7f5
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-174
+    prompt: "From a task's commit list, a user can expand a commit to its changed files and click any file to see its git before/after unified diff in a popup, served by new sandboxed read-only endpoints."
+    acceptance_command: "make ui-build"
+    starting_commit: 802924bab35d
+    closing_commit: 00aac87a3678
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-180
+    prompt: "The graph node palette is theme-aware + vivid: a LIGHT palette (deep, saturated \u2014 pops on the white canvas) and a DARK palette (bright, saturated \u2014 pops on near-black), warmer structure so the canvas reads alive (not the washed mid-grey v2 that looked lifeless in light mode). kindColor(kind, theme) picks the palette (defaults to the live theme-store theme so DOM legends/panels follow); buildGraph bakes the current theme; useSigma re-colors nodes in place on theme toggle (positions preserved); the KINDS legend (filter-bar) + color-legend re-render on toggle. Both palettes \u0394E-verified (every common-kind pair distinct). node-colors.test.ts still passes; make ui-build green."
+    acceptance_command: "make ui-build"
+    starting_commit: d87df1a3e503
+    closing_commit: 86ad9d10a14d
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-185
+    prompt: "A task's detail surfaces a link to the chat session that created it \u2014 resolving agent_session to the live SDK uuid (presence) for the cognition chat view, with the in-tree transcript snapshot already shown as the ended-session fallback."
+    acceptance_command: "make ui-build"
+    starting_commit: fa1ebbbfba57
+    closing_commit: f9b9f6ebbedc
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-186
+    prompt: "A new chat/session can be started from the UI (optional role + prompt + model): POST /api/cognition/chat runs a fresh headless Claude SDK query (no resume), SSE-streams it, captures the minted session_id, and the existing chat browser/send takes over. Claude-only."
+    acceptance_command: "make ui-build"
+    starting_commit: 34743b85bff8
+    closing_commit: 81e497145b95
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-187
+    prompt: "From the create-task modal (agent mode), a prompt + model launches a headless Claude session restricted to cos_* tools (cos_graph_*/cos_doc_search/cos_task_create) with a research+author system prompt; it researches and writes one well-formed task, attributed to that executor session."
+    acceptance_command: "make ui-build"
+    starting_commit: 81e497145b95
+    closing_commit: 41d42f7d7493
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-191
+    prompt: "One GET /api/presence/agents returns, per agent, model+gate+task+skill+role+chain+lifecycle (+sdk_uuid) in a single call by reusing the existing readers; the Live HUD makes each agent clickable to a live detail popup."
+    acceptance_command: "make ui-build"
+    starting_commit: c4c3bc25ef95
+    closing_commit: 57d369abffcf
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-193
+    prompt: "The Traces view defaults to a plain-language \"what the agent did\" summary (human labels for cognition event kinds, showing ts/label/role/phase) and hides the raw jsonl events behind a developer toggle."
+    acceptance_command: "make ui-build"
+    starting_commit: 8f2a123804df
+    closing_commit: d7c5abda7a71
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-194
+    prompt: "The home page surfaces a live-agents panel inline (not only the AppShell popover), using the unified /api/presence/agents endpoint, with each agent showing model/gate/role/state/context and a click-through to its cognition detail."
+    acceptance_command: "make ui-build"
+    starting_commit: d7c5abda7a71
+    closing_commit: c9c588359e9f
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-196
+    prompt: "Every enforcement/safety hook fails CLOSED on helper crash / missing critical dep, guarded by a regression test; cos_log_hook captures per-invocation duration so the hook layer has a real latency SLI; a CI guard caps PreToolUse fan-out width to prevent death-by-a-thousand-hooks; the hook activity panel defaults to decision-states. All changes verified green via the hook + thinking_os matrix commands."
+    acceptance_command: "cos hooks-log"
+    starting_commit: 7b3aec719d1f
+    closing_commit: b0cedc9d5476
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-197
+    prompt: "A `GET /api/cognition/roles` endpoint lists the real semantic roles from `src/core/thinking_os/agents/*.md` (the same producer `_role_system_prompt` loads from), and the chat role picker (NewChatForm) consumes it instead of a hardcoded list that can silently drift when a role is added or removed. (AgentTaskModal is model-only \u2014 no role picker \u2014 so it is unaffected.)"
+    acceptance_command: "make ui-build"
+    starting_commit: d74375b77bf2
+    closing_commit: 632d413e544c
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-198
+    prompt: "Fix the Mission Control RECENT HOOKS status badges (DashboardPage ActionBadge): the codemod mapped cyan\u2192--cos-live with no tint, so 'dispatched' got bg=text=--cos-live (a solid block with invisible text); add a --cos-live-tint token (both themes) and use bg=live-tint/text=live. Give neutral statuses (skip/non-rename/session-end/skip-not-replace) a visible bg (was --cos-panel = invisible on the panel). Kill the slice(0,9) truncation that clipped 'DISPATCHE'/'NON-RENAM' \u2014 render a short per-action label, auto-width, no clip. Programmatically verify EVERY badge fg/bg pair (info/err/warn/ok/brand/live/neutral) meets AA in BOTH light and dark. make ui-build green."
+    acceptance_command: "make ui-build"
+    starting_commit: 0ddca4917e08
+    closing_commit: d74375b77bf2
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-200
+    prompt: "Use the user's brand logo (a line-art brain + terminal >_ prompt in iris, transparent PNG at src/core/web/ui/src/assets/logo.png, currently 1024x1536 with heavy transparent padding). Trim the transparent padding to the content bbox, pad to a square with a small even margin, optimize the PNG (cap ~512px) \u2014 preserving the transparent background exactly. Render it as the logomark in the AppShell header next to a now-MONOCHROME 'Coding OS' wordmark (logomark carries the iris brand, wordmark text uses --cos-text \u2014 the enterprise pattern). Wire it as the favicon. make ui-build green."
+    acceptance_command: "make ui-build"
+    starting_commit: 01c67a3a8cac
+    closing_commit: 4d4139f82685
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-207
+    prompt: "The Hub new-task flow becomes customer-grade \u2014 clicking create first offers a clear agent-vs-manual choice (each with a one-line description); the agent-draft stream actually renders (fix the `content`-vs-`blocks` + missing-`type` SSE contract drift); modals are fluid (clamp/rem) so they fill a 4K screen and scale with Ctrl+zoom; the manual form is de-jargoned, grouped, and validated; and modals get dialog a11y (role/ESC/focus/aria-live) + human empty/loading copy."
+    acceptance_command: "make ui-build"
+    starting_commit: 4287796a8d1d
+    closing_commit: bd5905152a48
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-208
+    prompt: "cos doctor graph.uid_consistency returns PASS: the stale empty root scripts/ leftover (from the src/ migration) is removed and its folder:scripts graph node deleted, so the legacy-prefix check finds 0 stale nodes. Reindex no longer recreates it."
+    acceptance_command: "cos doctor"
+    starting_commit: 533cf3d35574
+    closing_commit: 84d6f6b0494c
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-210
+    prompt: "Agents can no longer silently abandon tasks. Every started task reaches a terminal state or is auto-reclaimed; zombie in_progress AND testing are detected and surfaced as real pressure (not a one-shot warning scoped to the live session); inherited zombies from dead sessions get an action path, not just a banner; the Stop guardian covers ordinary task closure (not only exhaustive-intent audits); icebox accumulation gets a hygiene/triage loop. Enterprise-grade, Claude-adapter-first, propagates cleanly to consumers via core symlinks."
+    acceptance_command: "cos daily"
+    starting_commit: 391a0e0ae890
+    closing_commit: e12f72de11d0
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-212
+    prompt: "A fail-open PreToolUse hook (`inject-mcp-caller-session.sh`) injects the calling panel's coding-os session-id (read from `$COS_SESSION_FILE`) into the args of attribution-critical MCP task tools (cos_task_move, cos_task_create, cos_work_log_append) via `hookSpecificOutput.updatedInput`, so the long-lived **panel-blind** MCP server attributes each write to the REAL calling panel instead of the last-writer-wins `.active-session` pointer \u2014 closing the ROOT-1 cluster (mis-attribution, false WIP-cap block, reclaim owner-mismatch, banner\u2260DB) for the Claude path and completing the half of F2 that `state-files.md` and `agent-hub-orchestration.md` documented as deferred. No Python signature change is needed \u2014 the `agent_session` params already exist (F2)."
+    acceptance_command: "make regen-adapter-templates"
+    starting_commit: 7f3552a58951
+    closing_commit: 02248f01f82d
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-214
+    prompt: "The cos_task_create MCP server wrapper (src/core/thinking_os/server.py) declares an `agent_session: str = \"\"` parameter and threads `agent_session or _detect_agent_session_default()` into `_board_mcp.cos_task_create(...)`, mirroring cos_task_move \u2014 so the inject-mcp-caller-session hook's injected `agent_session` is honored for the create path instead of being silently dropped by FastMCP (which discards undeclared kwargs). Completes the create third of TASK-212's attribution claim; the board layer (board_os/mcp_tools.py::cos_task_create) already accepts and stamps agent_session."
+    acceptance_command: "uv run --extra rag pytest src/core/thinking_os/tests/ -q"
+    starting_commit: b92db1109e94
+    closing_commit: 391a0e0ae890
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-215
+    prompt: "Stranded/forgotten tasks are intelligently triaged, not mechanically recycled. The system computes completion evidence per stranded task (git commits referencing the TASK-ID + work-log + whether it reached testing), classifies likely-complete vs likely-abandoned vs needs-review, and surfaces them so an agent REVIEWS and moves the already-done ones to complete (no blind auto-complete \u2014 a wrong \"done\" is worse than an open task). The auto-reclaim sweep no longer blindly recycles a likely-complete testing task back to in_progress \u2014 it leaves it for review. Completed tasks get periodic archive (complete\u2192archive). Enterprise, world-class, not superficial."
+    acceptance_command: "cos task-reconcile"
+    starting_commit: d62f5804c3a3
+    closing_commit: 64d5aaa73ab2
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-293
+    prompt: "file_index_state.parse_errors_count is collected but invisible (CLI reports \"0 errors\" = 0 exceptions, hiding ~44 symbol-level parse errors across ~34 files). Surface it in cos_graph_doctor (new files_with_parse_errors category) and the reindex summary so silent-incomplete-coverage stops being silent."
+    acceptance_command: "uv run --extra graph_os pytest src/core/graph_os/tests/ -q"
+    starting_commit: f862239ff06e
+    closing_commit: 39b0899b3063
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-296
+    prompt: "DEFAULT_INCLUDE covers only shipped stacks, so an enterprise polyglot repo (Java/Rust/Ruby/C#/SQL) gets zero code graph; add a generic tree-sitter extractor that pulls functions/classes/calls from ANY installed grammar at a baseline and expand DEFAULT_INCLUDE so the long tail is bounded by one extractor rather than N hand-written ones."
+    acceptance_command: "uv run --extra graph_os pytest src/core/graph_os/tests/ -q"
+    starting_commit: 41e5ac297462
+    closing_commit: 17e638f52e70
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-302
+    prompt: "cos_graph_doctor over-counts (stale file_index_state rows for now-gitignored/deleted files) and symlink/read-error skips are silent; reconcile file_index_state + graph_nodes to the current full walk so the doctor is exact, surface symlink/read-error skip counts like oversize, and add a grammar-drift test guarding code_generic._LANG_SPEC node types."
+    acceptance_command: "cos graph-reindex"
+    starting_commit: df90c47e29fc
+    closing_commit: 0e599bbb6993
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-331
+    prompt: "thinking_os suite wall-clock >=30% below P0 baseline via autouse embedding stub (COS_TEST_REAL_EMBEDDINGS=1 escape hatch, unify the 7 existing mock sites) + slow markers on scaffold/install.sh/uv-run-spawning tests; matrix commands exclude slow; make test-slow covers the rest; NO pytest-xdist."
+    acceptance_command: "make test-slow"
+    starting_commit: 77564c764a33
+    closing_commit: 2b7aad541f51
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-346
+    prompt: "cos survives meta-repo relocation (resilient root resolution + auto `sync-doctor --repair` path), `cos update` warns on core-version skew, and every install/init failure path (missing extras, registry write, doc-index) prints an actionable recovery hint."
+    acceptance_command: "cos init"
+    starting_commit: 140ea73a0ce5
+    closing_commit: ca46857c4780
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-347
+    prompt: "`cos doctor --bootstrap` validates python>=3.10, bash>=4, git, uv presence and BSD/GNU sed compatibility with per-check pass/fail + fix hints; README quickstart and `cos init` reference it; non-TTY safe."
+    acceptance_command: "cos doctor --bootstrap"
+    starting_commit: ca46857c4780
+    closing_commit: 2a90a2bd6746
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-348
+    prompt: "stack.schema.json gains `language` + `extends` composition; CLI/GUI discovery groups stacks by language (pick language OR framework); go-plain and typescript-plain stacks exist; python stack filled to baseline (skills + minimal docs)."
+    acceptance_command: "cos init"
+    starting_commit: 08fc73b23d3d
+    closing_commit: 038fe5b0dc8f
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-349
+    prompt: "Data-driven src/core/subsystems.yaml declares toggleable modules (docs, tasks/board, graph, memory, hub-extras) with dependency declarations; loader API + per-project toggle state in $COS_STATE_DIR; safety hooks and kernel non-disableable by construction (extends TASK-256 override layer)."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: adeb89b12b58
+    closing_commit: d0c1375949ed
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-350
+    prompt: "security-review + research-validation playbooks move to _base with per-stack overlays (django's copies deleted, not duplicated); fastapi/go/go-fiber/react-native/python scaffold docs reach the django baseline (>=1 playbook + engineering rules each); docs-lint green."
+    acceptance_command: "make manifest-regen"
+    starting_commit: 038fe5b0dc8f
+    closing_commit: c7f9dac783dc
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-351
+    prompt: "Every stack.yaml declares a canonical `structure:` tree (Go internal/-centric hexagonal, FastAPI routers/schemas/services, Next.js app/, RN screens/); a top-level anatomy contract defines src/{backend|services/&lt;name&gt;|frontend|mobile|shared(+contracts)} so multi-backend stacks coexist; django/fastapi and go/go-fiber glob collisions resolved."
+    acceptance_command: "uv run pytest tests/test_template_scaffold.py -q"
+    starting_commit: 686d7b33ae41
+    closing_commit: f2b916fba2e5
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-352
+    prompt: "Skill registry (existing skill_registry.py + skill.schema.json) exposes required/recommended/optional tiers per stack; GET /api/hub/skills and GET /api/hub/stacks/{id}/skills serve the onboarding preview; CLI skill listing consumes the same SSOT."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: 3e5d9c5204b9
+    closing_commit: 3502a7465323
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-353
+    prompt: "agents_md_sections entries gain requires:[module]; renderer/aggregator filter AGENTS.md sections and rule concatenation by active modules; hook template render + runtime allowlist derive from module state (extends hook-overrides mechanism)."
+    acceptance_command: "uv run pytest tests/test_cli.py tests/test_adapters.py -q"
+    starting_commit: d0c1375949ed
+    closing_commit: 4dcc3c5b0d78
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-355
+    prompt: "Stack glob sources support service-scoped parameterization (src/services/&lt;name&gt;/**) and propagate through `make regen-rules` (skill-enforcement.md, dimension-registry.md), enforce-skill.sh, enforce-scaffold-boundary.sh, adapter template regen and golden tests \u2014 no hand-edited derived artifact."
+    acceptance_command: "uv run pytest tests/test_template_scaffold.py -q"
+    starting_commit: 12d521ffe62e
+    closing_commit: 5aff69e97675
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-356
+    prompt: "preset.yaml schema (stacks[] + modules[] + skills[] + infra options) with `cos init --preset`; multi-stack init produces a union-merged scrumban/rag/domain config (replacing silent last-one-wins) and the merged result is surfaced for preview."
+    acceptance_command: "cos init --dry-config"
+    starting_commit: 12d521ffe62e
+    closing_commit: 5aff69e97675
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-357
+    prompt: "Disabling a module mid-project gates its tools/hooks but preserves all data (docs/tasks/graph index); re-enable restores cleanly; `cos update` migrates existing consumer projects to the module registry with default-all-on and zero behavior change."
+    acceptance_command: "cos update"
+    starting_commit: 54fa5fcf21f6
+    closing_commit: c1b04e97eb24
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-358
+    prompt: "Clicking \"New project\" opens a step-wise onboarding flow: preset-or-custom, agent picker (removes hardcoded claude at hub.py:350), language/stack, live skill preview, extra skills, swimlane preview, optional project name (\"don't know yet\" temp slug + later rename), 1-2 paragraph description, review step; backed by POST /api/hub/registry/validate-init dry-run."
+    acceptance_command: "make ui-build"
+    starting_commit: 3502a7465323
+    closing_commit: 569a7f2f61bd
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-359
+    prompt: "`cos init` gains --preset/--skills/--summary/--swimlanes flags mirroring every wizard option; non-TTY runs fail fast with explicit errors instead of returning None; an official agent recipe (command/skill) documents the one-shot non-interactive init form."
+    acceptance_command: "cos init"
+    starting_commit: 569a7f2f61bd
+    closing_commit: 73a7a8e5fe4e
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-360
+    prompt: "Scaffold docs carry tags (module/stack/option); init copies only docs whose tags match active modules+stacks+options; conditional sections replace raw string-replace so stack-specific guidance renders only when relevant."
+    acceptance_command: "uv run pytest tests/test_template_scaffold.py -q"
+    starting_commit: c1b04e97eb24
+    closing_commit: 6a0370b5ac1c
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-361
+    prompt: "A documented + lint-enforced definition of a complete stack bundle (stack.yaml w/ language+structure, stack skill, scrumban-config, >=1 playbook, engineering-rules, verify-matrix row, adapter-parity coverage, golden test) so every future stack is a mechanical 1-task job."
+    acceptance_command: "uv run pytest tests/test_template_scaffold.py -q"
+    starting_commit: 6a0370b5ac1c
+    closing_commit: 0ad24c7caf04
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-364
+    prompt: "The onboarding description feeds PROJECT_DESCRIPTION substitution and (when docs module is on) auto-seeds docs/prd via the cos setup pipeline with a no-LLM degrade path; after create, the user lands in workspace chat with the agent primed with the project description."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: 839af5f1864a
+    closing_commit: adeb89b12b58
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-365
+    prompt: "`cos preset create/export` lets a user save a custom composition; the flagship hexagonal-product preset (Go business core + go-fiber API + FastAPI AI adapter + React Native app under src/services anatomy) scaffolds green end-to-end via both wizard and CLI \u2014 first real multi-service dogfood."
+    acceptance_command: "uv run pytest tests/test_cli.py tests/test_template_scaffold.py -q"
+    starting_commit: 0ad24c7caf04
+    closing_commit: f2b507911e45
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-367
+    prompt: "A complete node-express stack (language=typescript, extends typescript-plain) passes the bundle lint: stack skill (express patterns, reuses core node-backend), structure spec, scrumban swimlanes, backend-api playbook + engineering rules, verify-matrix row, golden scaffold test \u2014 proving the factory on the world's most-used backend."
+    acceptance_command: "make regen-rules"
+    starting_commit: f2b507911e45
+    closing_commit: 51303d9b03b7
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-368
+    prompt: "A complete vue-nuxt stack (language=typescript) passes the bundle lint with a new vue-nuxt skill, structure spec (app/ pages/ components/ composables/), frontend swimlanes, frontend-ui playbook + engineering rules, verify row and golden test \u2014 proving the factory on a frontend stack."
+    acceptance_command: "make regen-rules"
+    starting_commit: 08b659c67dc1
+    closing_commit: 73ae3f51c2c8
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-369
+    prompt: "Public skill authoring spec + template + `cos skill new`/`cos skill lint` (built on existing skill.schema.json); `cos skill add &lt;path|git-url&gt;` imports third-party skills through a gate: schema normalize (auto-fill tier/domain/globs), security scan (exfil/URL patterns in SKILL.md, static check on scripts/), license check, provenance record, scripts-execution consent for untrusted tier."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: bf7760ba68ca
+    closing_commit: b2fc10711781
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-370
+    prompt: ".coding-os/extra-skills.yaml lets a consumer add skills beyond the stack list; `cos skill add/remove/list` manages it and re-renders adapter skill links; the existing Hub Config tab lists and manages extra skills (no new UI section)."
+    acceptance_command: "cos update"
+    starting_commit: b2fc10711781
+    closing_commit: 397135cd2bde
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-371
+    prompt: "Five curated preset.yaml files composed only from installed stacks (AI-SaaS = fastapi+nextjs, T3-style = nextjs+typescript, PERN = node-express+react, Django+Next, RN+fastapi backend) each scaffold green via wizard and CLI and appear in the onboarding preset step with descriptions."
+    acceptance_command: "uv run pytest tests/test_cli.py tests/test_template_scaffold.py -q"
+    starting_commit: 73ae3f51c2c8
+    closing_commit: bf7760ba68ca
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-372
+    prompt: "A fresh project's first agent session hits no doc-anchor wall (starter anchors seeded); workspace gains a Design tab with a polished coming-soon screen + ADR for the future design module; Hub About/footer carries GitHub repo link, star/follow CTA and GitHub Sponsors/BMC/crypto support links (also in README) \u2014 outside the onboarding path."
+    acceptance_command: "make ui-build"
+    starting_commit: a0beacddac01
+    closing_commit: 2e71089a02ae
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-373
+    prompt: "Complete nestjs stack bundle (stack.yaml language=typescript, nestjs skill, structure, scrumban, playbook, rules, verify row, golden test) passing the factory lint."
+    acceptance_command: "make regen-rules"
+    starting_commit: 161d265c62a8
+    closing_commit: 9dc43601b263
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-374
+    prompt: "Complete laravel stack bundle (language=php, laravel skill reusing core php skill, structure, scrumban, playbook, rules, verify, golden) passing the factory lint."
+    acceptance_command: "make regen-rules"
+    starting_commit: c215b5b2cf9c
+    closing_commit: e9be9895a703
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-375
+    prompt: "Complete spring-boot stack bundle including a new java/spring-boot skill (language=java, java-plain stack included) passing the factory lint \u2014 first enterprise-JVM coverage."
+    acceptance_command: "uv run pytest tests/test_template_scaffold.py tests/test_anatomy_contract.py -q"
+    starting_commit: a912cad5c611
+    closing_commit: c215b5b2cf9c
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-383
+    prompt: "Complete wordpress stack bundle (language=php, reuses existing wordpress + php core skills) passing the factory lint."
+    acceptance_command: "make regen-rules"
+    starting_commit: c215b5b2cf9c
+    closing_commit: e9be9895a703
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-386
+    prompt: "Remaining world presets composed from the grown stack catalog (MERN/MEAN need their stacks first); each scaffolds green and appears in onboarding with descriptions."
+    acceptance_command: "uv run pytest tests/test_cli.py::TestPresets -q"
+    starting_commit: e9be9895a703
+    closing_commit: a81abec15b91
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-388
+    prompt: "`cos eject` cleanly detaches a consumer project: removes symlinks/state/adapter wiring, keeps user code and docs, prints a summary of what was removed and kept."
+    acceptance_command: "cos eject --yes"
+    starting_commit: 622651cdde3d
+    closing_commit: 34748b5162f1
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-390
+    prompt: "A user with no cos CLI can boot the Hub via a single installer/Docker command and reach the onboarding wizard; ADR records the trust/path trade-offs."
+    acceptance_command: "cos doctor --bootstrap"
+    starting_commit: c7f9dac783dc
+    closing_commit: dcc69f661d1f
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-392
+    prompt: "cos init/update writes stack-contributed make targets (e.g. lint-backend, test-backend-fastapi) into a generated include (e.g. .coding-os/Makefile.stacks) wired into the project Makefile, so the suites named in AGENTS.md actually exist as runnable targets."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: 1418353563d5
+    closing_commit: 5eaa63dec1cd
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-393
+    prompt: "cos_graph_doctor reports healthy=true (only info-severity categories remain): task_deps no longer mints doc:file stubs from bare names/URLs/junk, md_links drops nonexistent .md targets, incremental reindex prunes nodes for symbols removed from a file, and the 33 legacy orphans (golden leftovers, deleted TSX symbols, stale headings, phantom modules, CLAUDE.md symlink) are purged without re-minting on the next reindex."
+    acceptance_command: "uv run --extra graph_os pytest src/core/graph_os/tests/ -q"
+    starting_commit: 7184196783c6
+    closing_commit: b17fb1667735
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-404
+    prompt: "Graph tab panels get out of the way: the Contains-spine sidebar, the Search/Kinds/Edges filter panel, and the app-shell Inspector each collapse behind a toggle so the canvas can use the full viewport; selecting a root from the tree updates the URL (/graph/:rootUid) so refresh/share keeps the selection, honoring the SPA's URL-source-of-truth rule."
+    acceptance_command: "make ui-build"
+    starting_commit: a90298216b9a
+    closing_commit: dfbea83f579a
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-405
+    prompt: "`cos doctor` is whole-system: a new graph.backend_health check surfaces the cos_graph_doctor verdict (healthy flag, real issue categories+counts, fix hint) so Backend-tab problems can never hide from the system doctor; and code_python stops minting identifier stubs whose label is an expression rather than an identifier (spaces/quotes \u2014 956 rows today), with the existing dead-stub GC clearing the legacy rows."
+    acceptance_command: "cos doctor"
+    starting_commit: dfbea83f579a
+    closing_commit: 2497eda97aa9
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-408
+    prompt: "The repo-root anchor node on the Hub Graph canvas is visually unmistakable as \"the project itself\", not just another amber folder. It wears a RESERVED focal style outside the categorical kind palette \u2014 the brand-logomark iris weight (#4F46E5, the same indigo the Coding OS wordmark uses), a dedicated home+halo glyph (not the generic folder icon), the existing dominant size and always-on caption \u2014 and the Legend documents it as a distinct \"project root\" entry. Theme toggle preserves the reserved color (does not recolor it as a folder)."
+    acceptance_command: "make ui-build"
+    starting_commit: 016ccc550156
+    closing_commit: 4ed9551d6ec0
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-409
+    prompt: "cos doctor is clean of the agent-fixable findings \u2014 broken README link (FAIL), legacy Go `code:package` kind, hook.coverage zero-adapter for sync-task-current, the recurring Sigma zero-width client error, and the oversized WAL \u2014 while transient/environmental WARNs (embedding migration, DB size, optional extra, aging 24h errors) are reported with the exact clearing action rather than papered over."
+    acceptance_command: "cos graph-reindex --rebuild-kinds"
+    starting_commit: 90bcaecd679b
+    closing_commit: a3bd242904b9
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-411
+    prompt: "The Hub board AGENT STREAM panel shows one row per real status transition; a work-log append (or any non-status edit) to a task .md produces zero phantom transition rows, and identical consecutive live task-updated events are collapsed instead of stacking."
+    acceptance_command: "uv run pytest tests/ -k stream"
+    starting_commit: 7c3edea1793b
+    closing_commit: a2399108490b
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-417
+    prompt: "All Claude SDK sessions construct ClaudeAgentOptions via ONE claude_session_options() builder in src/adapters/claude/, loaded by core via the existing dynamic adapter-load seam (also fixing P4 layering); Hub chat registers cos_* via programmatic mcp_servers (read from .mcp.json) and applies the destructive-Bash deny floor \u2014 closing the capability gap (P2) and the security blocker (P3). Works in peace with concurrent TASK-416: only clean files are touched (cognition.py, sdk_dispatcher.py, new builder); its dirty set (adapter.yaml, update_mcp_json.py, presence_write.py, claude-sdk.md, presence.py) is left untouched."
+    acceptance_command: "uv run pytest tests/test_chat_new_route.py tests/test_claude_dispatcher_options.py -q"
+    starting_commit: 4db4906596d2
+    closing_commit: 7a328ba2705a
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-419
+    prompt: "Replace the 8-step OnboardingWizard with a single-screen \"Composer\" (choices on the left, a live \"what you'll get\" preview on the right, an Advanced section collapsed by default) so the dominant \"preset + name + Create\" path finishes in about 3 interactions instead of 8 screens, reusing existing primitives (Modal full-screen, ActionPill/Banner, --cos-* tokens) rather than reinventing them, and bundling the audited backend fixes (live-cwd, multi-agent init, module toggles, skills depth). Audit evidence: workflow wf_337e7824-63a (7 agents) plus this session's analysis."
+    acceptance_command: "uv run pytest tests/test_hub_projects.py tests/test_cli.py -q"
+    starting_commit: de9c4cb70ddc
+    closing_commit: 2c049c4740a3
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-421
+    prompt: "Let a user enable/disable subsystem modules (docs, tasks, graph, memory, design; kernel locked, tasks->docs dependency respected) at project-creation time from the Composer's Advanced section, instead of only post-create in Config. Split out of TASK-419, which shipped the Composer but deferred module-at-create because it needs a new surface: a `cos init` module flag + scaffold wiring + a Hub module-catalog endpoint."
+    acceptance_command: "cos init"
+    starting_commit: c535bb87b785
+    closing_commit: dfff7cfcf2ab
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-423
+    prompt: "A freshly-created or unindexed project's graph view returns a graceful empty result (or the graph is auto-built) instead of erroring \"unknown edge_type(s) ['contains']; known: []\". Edge_type/kind validation uses a canonical static set / NodeKind enum (not present DB rows), restoring the documented \"empty result is valid\" graph contract. cos init auto-builds the graph when the graph module is enabled, with an opt-out \u2014 no manual reindex needed."
+    acceptance_command: "cos init"
+    starting_commit: dfff7cfcf2ab
+    closing_commit: 4c66a19d61e6
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-428
+    prompt: "Consumers never face a graph (or other in-process core) error from a long-running Hub serving pre-fix code. The Hub imports graph_os/web/thinking_os/board_os in-process and Python never reloads a live module, so a core fix only reaches projects on restart. Add a shared staleness signal (newest core *.py mtime > hub.pid mtime) surfaced in `cos hub status` and a new `hub.code_fresh` doctor check (WARN), and auto-restart a stale running Hub at the end of a non-dry-run `cos update`."
+    acceptance_command: "cos doctor"
+    starting_commit: c9374969e2a9
+    closing_commit: f56103427ce3
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-433
+    prompt: "regen_doc_index.py is idempotent: re-running with unchanged frontmatter yields byte-identical output (zero git diff). The 'generated by ... on <date>' stamp is removed from the generator body so the rendered 00-index is a pure function of frontmatter; a regression test pins the determinism (the static scaffold-template + golden cleanup is decoupled to TASK-434)."
+    acceptance_command: "make docs-index-regen"
+    starting_commit: b1373597dc3b
+    closing_commit: 8e47879b0f0c
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-435
+    prompt: "The Hub home page (/) is a coherent project launcher AND every live-agent \"Open chat\" opens the agent's real project-scoped transcript instead of dead-ending at the project picker. Root cause: the /api/presence/agents payload carries no owning-project slug, so useScopedLink degrades to an unscoped /cognition link \u2192 NeedProjectPage (violates TASK-194 DoD + agent-hub-orchestration.md T14/T17). Fix = stamp slug onto presence + build explicit scoped links; plus repair two sibling scope-loss bugs (ProjectSwitcher reset-to-Board, NeedProjectPage drops sessionId); plus redesign HubHome into a clean launcher reusing HubPrimitives."
+    acceptance_command: "make ui-build"
+    starting_commit: 0e78b4c8b2ea
+    closing_commit: d410396afc63
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-438
+    prompt: "The modularity verification layer actually runs in CI \u2014 a botched re-render, an empty required substitution, a dangling skill-name reference, or a logging_os/scheduled regression is caught by a PR gate instead of shipping silently to every consumer. Closes audit R1+R5+R9+R15 (problem-tree Branch C)."
+    acceptance_command: "cos init"
+    starting_commit: 1b625b10a02d
+    closing_commit: c9374969e2a9
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-439
+    prompt: "init and runtime share ONE module-toggle apply-path, so a module disabled at init is fully disabled (tools AND hooks), doctor can prove the disabled-hook-scripts allowlist matches subsystems-state.json, and running cos module inside the meta-repo never clobbers the hand-written AGENTS.md. Closes audit R2+R3+R4 (problem-tree Branch A + Branch D)."
+    acceptance_command: "cos doctor"
+    starting_commit: e985dcd86f0b
+    closing_commit: 2ccaaac48675
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-443
+    prompt: "The context-budget marker becomes an informational, non-blocking user reminder at a 200K threshold; the agent never halts autonomous multi-task work because of it. /compact is the in-task tool; /clear is the user's choice between unrelated tasks."
+    acceptance_command: "pytest tests/test_cli.py"
+    starting_commit: 8e47879b0f0c
+    closing_commit: e985dcd86f0b
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-458
+    prompt: "Address the CONFIRMED findings from the max-effort review of the pass-3 diff: (1) B-7 overlay default-resolve leaked community stacks/adapters into checked-in SSOT (generate_manifest/regen_rules/init-validation/tests) \u2014 revert overlay_dirs default to () opt-in, keep the tested machinery, defer consumer-discovery wiring. (2) B-4 _read_gate_file never reaches the panel subdir and only strips known id prefixes \u2014 add panels-glob + robust level-based prefix skip so MCP-path complexity capture works. (3) adapter/stack overlay fail-soft caught only ManifestError not OSError \u2014 catch OSError too. (4) cos init --dry-run returned before --disable-module validation \u2014 hoist validation + scope the preview honestly. (5) _envelope declares no 403 though module_disabled/permission return 403."
+    acceptance_command: "make manifest-regen"
+    starting_commit: d550aa88b788
+    closing_commit: 31fc4ba015fa
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-471
+    prompt: "A community stack/adapter dropped in $COS_USER_TEMPLATES_DIR / $COS_USER_ADAPTERS_DIR is actually discovered + usable end-to-end. The overlay resolvers (overlay_template_dirs()/overlay_adapter_dirs(), one currently dead code) are threaded into the consumer-discovery call sites ONLY \u2014 regen/lint/scaffold-SSOT paths stay bundled-only (the TASK-458 leak fix must not regress)."
+    acceptance_command: "cos list-stacks"
+    starting_commit: 3c35e24804a3
+    closing_commit: f48a3dc27ec2
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-474
+    prompt: "Module-state writes are concurrency-safe (per-pid temp + advisory flock over the RMW), the enforce-skill graph-explorer guard no longer leaks the meta-repo-only block onto consumers (meta-scope gate) and self-skips when the graph module is disabled, and a corrupt subsystems-state.json surfaces a doctor WARN instead of silently failing open to all-enabled."
+    acceptance_command: "cos doctor"
+    starting_commit: 19f92e611ddf
+    closing_commit: eb9d4327c158
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-476
+    prompt: "A disabled module's MCP tools DISAPPEAR from the agent's live tool list at server startup via FastMCP `mcp.remove_tool(name)`, so the agent never sees or hallucinates them \u2014 converting today's call-time `fail('module_disabled')` gate (tool still advertised, errors when called) into true surface removal (\"as if the module never existed\"). The per-call `safe_tool` gate stays as defense-in-depth for clients with a cached tool list or a mid-session toggle. Per-project (server reads $COS_STATE_DIR/subsystems-state.json), fail-open. On the existing map this immediately sheds 55/90 tools (graph 22, tasks 21, memory 9, docs 3) when those modules are off."
+    acceptance_command: "cos server-start"
+    starting_commit: ad2cb46ddf1d
+    closing_commit: c63759572233
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-481
+    prompt: "subsystems.yaml gains a per-module `commands:` field; enabling/disabling a module links/unlinks its owned slash-commands in the consumer commands dir at BOTH init and runtime (mirroring the skills cascade); `cos doctor` gains a warn-only `modules.command_drift` check; a disabled module is truly \"as if it never existed\" across the command surface. Closes audit D1-1 (the one cascade axis the owner explicitly requires but pass-4 deferred). Completes the registry's \"owns everything a module owns\" contract (parity with the F9 hooks-must-have-owner invariant).</outcome>"
+    acceptance_command: "cos doctor"
+    starting_commit: 4ec144518861
+    closing_commit: 3c35e24804a3
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-493
+    prompt: "The 11 role personas (src/core/thinking_os/agents/*.md) are pure job-descriptions + a few MUST-NOTs \u2014 no character. Per persona-selection, alignment lives at the character layer and behaviors are downstream; a persona defined only by tasks+prohibitions generalizes like a rule list, so a composed sub-session hitting an uncovered situation has no values to reason from. Add a short '## Character' block (<=4 lines) to each agent.md stating the value the role embodies and why it serves the user (implementer: \"smallest correct change, because every line is a liability future maintainers carry\"; reviewer: \"independent verification, because authors cannot see their own blind spots\"; security_auditor: \"assume breach, value the user's trust over shipping speed\"). Each line derives from constitution.md (one source -> P1). Prose-only via the existing load_agent_prompt path \u2014 no schema/yaml-key change, hard 4-line cap to protect the token budget."
+    acceptance_command: "uv run --extra rag pytest src/core/thinking_os/tests/ -q -m 'not slow'"
+    starting_commit: 35087723806f
+    closing_commit: 394249affe57
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-497
+    prompt: "Guidance that lives only in a doc the agent might read is the \"merely imposed\" value the article calls brittle. coding-os's killer feature is cross-session persistence (digest re-inheritance, decaying memory) \u2014 but values are NOT currently guaranteed to re-inherit, and memory DECAYS low-confidence items (correct for patterns, catastrophic for character). Pin the compressed constitution slice into the GUARANTEED SessionStart inheritance and mark it non-decaying / not eligible for memory GC, so it re-inherits identically every startup/resume (the \"character does not decay\" invariant \u2014 the runtime analogue of the article's \"alignment persists through RL\"). Add one assertion to the existing cos_health (or startup self-check) that the slice is present; treat absence like a dangling-symlink repair. Reuse the digest-suppression-on-compact logic; inject only the compressed slice (avoid the multi-thousand-token compaction wall). No new persistence subsystem."
+    acceptance_command: "uv run --extra rag pytest src/core/thinking_os/tests/ -q -m 'not slow'"
+    starting_commit: 80e3f14b1e4b
+    closing_commit: 4fa4e74e70f6
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-498
+    prompt: "The ~9 cwd-only Python project-root resolvers (board_commands._project_root, board_os/mcp_tools._project_root, thinking_os/background._project_root, web/_project_context.current_project_root, hooks/_helpers/{task_sync,validate_task_frontmatter,work_log_append,wip_limit_check}._project_root) and logging_os/config._discover_project_root all delegate to the single canonical resolver thinking_os.database._find_project_root_from_cwd / resolve_db_path; that canonical resolver gains the same explicit $HOME / global-hub hard-stop the shell got in TASK-490. Result: ONE root-resolution contract across the whole codebase, no divergent walks, the global-hub escape closed on the Python side too."
+    acceptance_command: "uv run --extra rag pytest src/core/thinking_os/tests/ -q -m 'not slow'"
+    starting_commit: bf68010b0196
+    closing_commit: 7d965c3a67d0
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-508
+    prompt: "test_golden_parity passes again by recapturing the 8 stack goldens so they reflect the codex adapter's role-* commands + hooks that were added after the last capture, with no unintended content drift."
+    acceptance_command: "uv run pytest tests/test_golden_parity.py -q"
+    starting_commit: fd191b1b551f
+    closing_commit: f9db6803a8a9
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-523
+    prompt: "The `cos pr` executor is hardened against the `/code-review ultra` findings \u2014 the reaper reaps only on positive offline evidence (no live-worktree data-loss) and is flock-serialized, the per-session open-PR cap is checked before any push, the heal budget resets on cleanup/reap, every gh/git subprocess call is timeout-bounded, and `_agent_session` is unique-per-process (no shared \"nosession\" collision)."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: dc3a8c8214c4
+    closing_commit: 334bcade785c
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-526
+    prompt: "The owner-independent reaper never force-removes a worktree whose owning agent is still alive \u2014 session_presence 'offline' (a 30-min UI idle pill) is no longer treated as proof of death; reap requires ended_at set OR pid_alive(pid)==False; the dba50360 age-fallback no longer keys on top-level dir mtime (blind to src/** edits) but on a real-activity signal (git index mtime / recursive max-mtime) or is dropped for PID-liveness."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: 4a8e3124e7f7
+    closing_commit: 765e36d32f03
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-529
+    prompt: "The 'if CI red, diagnose+fix+retry' loop the spec promises becomes real and runnable by a non-expert consumer: cos pr status returns the PR state + statusCheckRollup/mergeStateStatus (merged|red|pending) as a single signal, and a shipped pr-mode driver skill/command encodes the poll\u2192branch(merged\u2192cleanup | red\u2192heal+fix+repush | pending\u2192wait) decision so the agent is told how to drive the loop instead of having to remember to call the blind cos pr heal counter."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: 8f1c5ee21032
+    closing_commit: ffb6cdbec294
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-531
+    prompt: "Worktree detection + state routing is git-native (compare git rev-parse --git-common-dir parent vs --show-toplevel) so it works regardless of where the worktree lives, including a custom COS_WORKTREE_ROOT that fresh hook subprocesses never inherit; on an unresolvable/degraded route cos-env never falls back to a RELATIVE .coding-os and never writes a heartbeat under the worktree cwd (no stray .coding-os polluting the agent's own PR); the pr-workflow.md COS_PROJECT_ROOT 'export' wording is corrected to describe the git-native mechanism."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: 16718a7408de
+    closing_commit: 62b28f0394bd
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-533
+    prompt: "git_settings gains an autonomy_level enum (draft = agent opens PR, human merges; auto_merge = agent arms gh pr merge --auto on green; autonomous = full lifecycle incl. cleanup) that subsumes the user's 'does the agent push/merge itself' ask in the industry-standard Trust Spectrum framing (DeployHQ); cos pr submit honors it (draft never arms auto-merge), one Hub Config\u2192Git control sets it with exclude_unset persistence, and the default is the safe 'draft'."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: f0a7515b81f6
+    closing_commit: 6cd0012d14de
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-535
+    prompt: "_reap_one never destroys work that is not already on origin or captured in a durable recovery bundle; the worktree (a disposable checkout) is still GC'd. Closes the #1 confirmed data-loss risk that TASK-526/530 hardened the reap TRIGGER for but left the DESTROY unsafe."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: 0f536a10a1a9
+    closing_commit: 31ea1aaf41cc
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-536
+    prompt: "No git form lets an agent write/push a protected or integration branch in pr-mode: heads/ refspec shorthand is normalized, bare/HEAD push is only allowed worktree-scoped (or with an explicit agents/* refspec), -c push.default=matching is refused, and checkout -B / switch -C / worktree add onto a blocked branch is blocked. Worktree pushes stay safe because a worktree can no longer be created on a blocked branch."
+    acceptance_command: "uv run pytest tests/test_branch_guard.py -q"
+    starting_commit: 024fba146696
+    closing_commit: 46026dc81c62
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-560
+    prompt: "The Config\u2192Git tab shows no coding-os meta-repo framing on consumer projects \u2014 the intro clause \"(consumer-only; coding-os itself stays trunk)\" and the FIELD_TIPS.enabled sentence \"coding-os itself always stays trunk.\" are removed from the UNCONDITIONAL copy so the slug-gated isMetaRepo amber caution is the sole place that framing renders; and the raw NUL bytes used as the sameSet() join separator on line 686 become the '\u0000' escape so the .tsx is plain text and grep/hooks stop silently skipping it."
+    acceptance_command: "make ui-build"
+    starting_commit: aa3c8b51c14d
+    closing_commit: 7caf588ba636
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-582
+    prompt: "main is green again: a worktree whose main repo is unresolvable routes its COS_STATE_DIR to a per-worktree quarantine that is neither the global hub (no cross-project state collision) nor inside the worktree checkout (no stray .coding-os committed into the PR); and docs-lint has zero BROKEN-FILE findings."
+    acceptance_command: "uv run pytest tests/test_panel_isolation.py -q (green) + make verify-hooks + make docs-lint (no BROKEN-FILE)"
+    starting_commit: 6cfccbaf9fc7
+    closing_commit: 4a5feadba108
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-590
+    prompt: "Split out of TASK-585. test-governor.sh decides lock-held via host-global `pgrep -f pytest` (test-governor.sh:118): cross-repo phantom-hold (repo A blocked by repo B's pytest) + false-clear (a `uv run pytest` wrapper / pytest-xdist worker whose argv differs reads as no-pytest \u2192 sibling double-runs). The red-team's proposed PID-of-agent fix is ALSO wrong: in Claude Code each panel is a long-lived process, so gating HELD on the agent PID being alive holds the lock for the whole session and blocks every sibling until TTL. The correct fix is a PostToolUse-release leg (PreToolUse acquires the lock, a PostToolUse hook on the pytest Bash command clears it when pytest exits; grace+TTL still bound a crashed session) OR a repo-scoped liveness probe \u2014 not a host-global pgrep and not agent-PID. Current behavior errs SAFE (over-holds), so this is correctness/throughput, not a security hole."
+    acceptance_command: "uv run --extra rag pytest"
+    starting_commit: b5b9883b4509
+    closing_commit: 3048f456ee20
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-597
+    prompt: "Four confirmed shipped breakages fixed so every stack's declared refs/commands resolve on a fresh consumer. All verified directly in source this session."
+    acceptance_command: "make regen-rules"
+    starting_commit: 5491a31e2cd9
+    closing_commit: 3fed8b4dfd43
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-598
+    prompt: "The 12-row TASK-361 factory contract gains rows for runtime-manifest/lint-config/sample-test/reference-integrity/CI/container, and `stack_lint.py` reports them as SOFT GAPs (exit 0) so the standard itself is complete and every real gap is auditable. SSOT-first fix that stops the gap recurring per-stack and defines the bar that T4-T12 fill."
+    acceptance_command: "cos stack-lint"
+    starting_commit: f4516395033b
+    closing_commit: dbefb154246a
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-600
+    prompt: "Nested-root stack collisions \u2014 shipped today as the t3-style preset (typescript-plain root `src` contains nextjs root `src/frontend`, both owning src/frontend/**/*.ts) \u2014 are detected and relocated/rejected, and owner resolution becomes specificity-deterministic instead of stack-list-order-arbitrary."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: f4516395033b
+    closing_commit: dbefb154246a
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-604
+    prompt: "A test runs boundary aggregation across every _presets/*.yaml stack-list and asserts zero overlapping roots + zero ambiguous owner, so a bad preset can never ship green; and the t3-style preset's nested-root is resolved per the T13 (TASK-600) containment primitive."
+    acceptance_command: "uv run pytest tests/test_cli.py -q"
+    starting_commit: 7c9f9daab53e
+    closing_commit: a5bc967d9fc1
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-609
+    prompt: "One generator emits a single .github/workflows/ci.yml at cos init whose body delegates to `make verify` \u2014 the structural twin of render_makefile_targets (renderer.py:194). Because it delegates it never rots with framework versions; because it reads AggregatedWorld, adding a stack/target auto-includes it. init-strip (consumer-owned), gated behind modules.cicd, macOS off the per-push path."
+    acceptance_command: "cos init"
+    starting_commit: bed9659a3731
+    closing_commit: 52ba3eb8e744
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-610
+    prompt: "One generator emits a multi-stage, non-root, healthcheck Dockerfile skeleton ONLY for category=backend stacks (~11), keyed by language base image; frontend stacks get a static-build CI job, mobile (flutter/react-native) get build-only and NO Dockerfile (respecting flutter's NA). The CI carries a commented `# security-scan:` job stub as the documented seam \u2014 the scanner itself stays an agent skill (Rule 22, no speculative machinery)."
+    acceptance_command: "cos init"
+    starting_commit: 0dfbc500558e
+    closing_commit: 56a6b5163e40
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-612
+    prompt: "git resolves ANY unambiguous long-option prefix (--har\u2192--hard, --no-veri\u2192--no-verify, --for\u2192--force), so three client-side L2 guards are bypassable by abbreviation; rewrite each to parse options by SHAPE/prefix (not a hardcoded literal set) \u2014 branch-guard `_check_reset` strips all leading option tokens incl. mode abbreviations and treats path-mode markers (`--`, `-p`, `--pathspec-from-file`) as safe; block-secrets `check_git_bypass` matches any prefix \u2265 the `--no-verify` disambiguation point; block-dangerous-commands detects forced `git clean` via any `--f..` prefix / split clusters \u2014 closing the bypass class WITHOUT false-blocking ambiguous-too-short (`--no-ver`) or unrelated flags (`--no-verbose`, `reset -p -- path`)."
+    acceptance_command: "uv run pytest tests/test_branch_guard.py tests/test_block_secrets.py -q"
+    starting_commit: c3fc90663137
+    closing_commit: be9f28f7b86f
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-613
+    prompt: "The rollup has no DISTINCT `queued` state \u2014 `_pr_ci_rollup` already folds GitHub's `QUEUED` status into a `waiting` set that returns `pending` (pr_commands.py ~line 906/914), so the driver cannot tell \"in the merge queue, just wait\" from \"checks pending\" and cannot detect a queue-EJECTION (a PR kicked out because it broke combined-with-main); add a distinct `queued` ci_rollup + an ejected/red distinction and make the pr-mode-driver wait (not re-submit/re-poll) on `queued`, so a stacked-PR cascade is isolated by the queue instead of blocking followers."
+    acceptance_command: "uv run pytest tests/test_cli.py::TestCosPr -q"
+    starting_commit: 5804f16bdd02
+    closing_commit: 6961df8788c5
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-614
+    prompt: "Add a `local_autonomous` autonomy rung so a no-GitHub solo dev gets a hands-off loop (agent's branch lands on LOCAL integration after the agent's own verify passes, then worktree+branch are cleaned \u2014 zero push/PR/CI), implemented via a SANCTIONED `cos pr` land path with an explicit, narrowly-scoped branch-guard carve, because landing onto the shared integration checkout is a HEAD-move that branch-guard correctly blocks today."
+    acceptance_command: "cos pr"
+    starting_commit: 9813db5e4a1d
+    closing_commit: dc73694b4847
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-615
+    prompt: "Config propagation is REACTIVE: nothing tells the agent pr-mode is on \u2014 it only discovers it when block-shared-tree-edit BLOCKs its first shared-tree edit, and a mid-session toggle flip changes the rails under a running agent with no warning. Add a `nudge-git-mode.sh` UserPromptSubmit hook (mirroring nudge-model-routing.sh) that, once per session when COS_GIT_WORKFLOW=pr, injects a directive (\"this project is pr-mode \u2014 start with `cos pr open`, edit only inside the worktree\"); add a git-mode field to USER_BANNER (session-context.sh) so the operator sees the mode each turn; and document the inherited-COS_GIT_WORKFLOW-wins caveat + the recommend-set-before-start guidance."
+    acceptance_command: "make regen-adapter-templates"
+    starting_commit: f76483fdc4ea
+    closing_commit: ff34f0fca50d
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-617
+    prompt: "pr_reap calls _lock_owner_alive (\u2192 `git worktree list --porcelain`, a FULL-list subprocess) once PER unknown+stale candidate, plus a `rev-parse` per worktree \u2014 O(K\u00b7N) forks per sweep on a path backgrounded on every SessionStart. Hoist a single porcelain dump before the loop (the block already carries branch + locked reason) so the sweep is O(N); and add the missing cross-host liveness simulation test (a presence/lock-reason owner on a FOREIGN host) asserting a foreign-host pid is never treated as locally-alive proof and the worktree is reaped (work preserved first) \u2014 the reaper currently has no cross-host coverage."
+    acceptance_command: "uv run pytest tests/test_cli.py::TestCosPr -q"
+    starting_commit: 6da9fa93685d
+    closing_commit: 0e1e92e181d5
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-618
+    prompt: "In draft, a human away all day returns to N open agent PRs and must review them one-by-one with no prioritization \u2014 the owner's explicit fear. Add `cos pr triage`: a single digest of all open agents/* PRs with ci_rollup + review state + conflict risk (cos pr conflicts) + age, RANKED so the human reviews highest-value / lowest-risk / unblock-the-most first; and document the auto_merge-with-strong-CI path that removes the human from the hot path entirely. Honest scope: draft inherently keeps the human as the gate \u2014 this makes the gate FAST and informed, it does not eliminate it."
+    acceptance_command: "uv run pytest tests/test_cli.py::TestCosPr -q"
+    starting_commit: ff34f0fca50d
+    closing_commit: 3978672008ee
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-620
+    prompt: "Raise the test floor that lets recurring bug classes ship: add a multi-project isolation fixture (\u22652 project roots, each its OWN `.coding-os/`, driven via per-project `COS_PROJECT_ROOT`) that proves settings/state never clobber across projects (the C1/C2 Config\u2192Git drift classes), a bounded concurrency stress test, and tamper-resistance for the DoD verify gate \u2014 keyed to honest, code-verified scope (the gate reads `.last-verify.json` BY DESIGN, so \"close mock-satisfiable\" means make a forged record not satisfy it, or explicitly accept the design)."
+    acceptance_command: "uv run pytest tests/test_cli.py tests/test_hub_settings_git.py -q"
+    starting_commit: 2bbe5a675fc1
+    closing_commit: 023816e21360
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-621
+    prompt: "The 13 stack skills that now ship references/anatomy.md (TASK-599) also get a scaffolding generator script + a versions.json with ACCURATE current pins, reaching full go-fiber parity (the last two completeness-bar artifacts)."
+    acceptance_command: "make skills-check-versions"
+    starting_commit: 631b4ebcc4b2
+    closing_commit: 40586a8c6070
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-625
+    prompt: "The ultra-review's confirmed findings on the stack-factory-v2 CLI diff are fixed \u2014 materialize_ci_workflow/dockerfiles never clobber consumer edits (write-once, the `ensure_*` idiom), materialize_dockerfiles is world-driven (overlay + relocation aware via `world.anatomy` + `world.verify_rows`, so bare/exempt backends like go-plain get none), `_CI_LANGUAGE_INSTALL` covers ruby/rust/java/csharp/dart, the glob-root split is guarded, and the promoted stack-lint repo-root check no longer hard-fails under a non-editable install."
+    acceptance_command: "cos update"
+    starting_commit: 0bdfac64b5dc
+    closing_commit: 48ce2a405828
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-630
+    prompt: "An edit under src/core/web/ui/** maps to a verify-suite (vitest) so the agent is gated/told to run UI tests at task-done, closing the F-TST-1 coverage hole where UI edits record no matrix verify. Done WITHOUT creating an unsatisfiable gate."
+    acceptance_command: "make ui-test"
+    starting_commit: 5d97005eaf43
+    closing_commit: c41cceffb676
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-644
+    prompt: "A fresh `cos init --template aspnet-core` produces a tree where `cd src/backend && dotnet test` discovers a dedicated xUnit test project with \u22651 passing test and exits 0 \u2014 so `make verify` is green on day one instead of failing red on an empty Web-SDK project."
+    acceptance_command: "uv run cos stack-lint aspnet-core"
+    starting_commit: 6c6d4b5f913a
+    closing_commit: dd635a6729fc
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-647
+    prompt: "A fresh angular project ships docs/engineering/accessibility-web.md, so the angular playbook's Accessibility link and the REF:A11Y ref-code resolve to a real WCAG 2.2 AA Angular-specific checklist instead of a dead link."
+    acceptance_command: "uv run pytest tests/test_template_scaffold.py -q"
+    starting_commit: dd635a6729fc
+    closing_commit: 38157833ab87
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-648
+    prompt: "The fastapi scaffold declares pytest-asyncio (asyncio_mode=auto) and ships an async-first sample endpoint + test, matching the python-fastapi SKILL's documented async-first architecture, so the shipped sample no longer teaches a pattern the docs forbid and async tests actually run green."
+    acceptance_command: "pytest -q"
+    starting_commit: cad80622002e
+    closing_commit: 5aee5609a2c3
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-651
+    prompt: "angular (Karma), laravel (bootable app skeleton ~8 files), and wordpress (PHPUnit) scaffolds each ship a verified runnable sample test, then stack_lint's sample-test check is promoted from soft GAP to HARD with all 30 stacks green."
+    acceptance_command: "cos stack-lint"
+    starting_commit: 5aaecf15da3d
+    closing_commit: 8adb49c1ef22
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-660
+    prompt: "Recurring board\u2194git drift stops piling up uncommitted \u2014 the nightly `board_coherence` cron, when autonomy permits, commits ONLY `docs/tasks/*.md` in one idempotent tasks-only commit (the `_post_commit_body.sh` hook no-ops on a tasks-only commit, so it converges in one pass with zero re-dirty); when autonomy is off it still files exactly ONE `auto-git-drift` board task \u2014 and the silent filing bug (`filed:true` but `task_id:null`) is fixed so the nagger actually nags."
+    acceptance_command: "uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests -q"
+    starting_commit: e406e98f43a5
+    closing_commit: 44bd780c6571
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-755
+    prompt: "Hub chat model picker shows every currently-GA Claude model (Fable 5, Opus 4.8, Sonnet 5, Haiku 4.5) and formula/chat dispatch can actually reach Sonnet 5, with every hardcoded model-id reference in the adapter, its skill docs, and its stale-id scanner brought back into sync with the single adapter.yaml SSOT."
+    acceptance_command: "uv run python -c \"import claude_agent_sdk"
+    starting_commit: 1cfad5bc23da
+    closing_commit: 2a3897ba6cf2
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
+  - task_id: TASK-811
+    prompt: "A disabled module's owned rule files leave the consumer's .claude/rules/ (physical unlink, ref-counted like skills/commands) AND self-guard as inert while present (defense-in-depth), so a lean profile neither ships nor is commanded by dead-tool instructions."
+    acceptance_command: "make regen-rules"
+    starting_commit: 8fe1831b7138
+    closing_commit: 3bdec6c430ae
+    validated: false  # true only once the command is confirmed to
+                      # fail at starting_commit and pass after
   - task_id: TASK-843
-    prompt: "A full uncapped `cos graph-reindex` self-heals ALL graph residue — folder-spine nodes and zero-edge phantoms left by bulk directory moves/deletes (git mv / rm -rf), not just the file nodes tracked in file_index_state — so graph health stays green without a manual `cos_graph_doctor --fix`."
+    prompt: "A full uncapped `cos graph-reindex` self-heals ALL graph residue \u2014 folder-spine nodes and zero-edge phantoms left by bulk directory moves/deletes (git mv / rm -rf), not just the file nodes tracked in file_index_state \u2014 so graph health stays green without a manual `cos_graph_doctor --fix`."
     acceptance_command: "cos graph-reindex"
     starting_commit: 6c31bdbd7762
     closing_commit: 025c2a4f9c14
     validated: false  # true only once the command is confirmed to
                       # fail at starting_commit and pass after
   - task_id: TASK-848
-    prompt: "cos doctor goes from 4 FAIL / 4 WARN to 0 FAIL / 3 legitimate WARN — the declared memory hooks resolve via adapter_scope, non-exec hooks are executable, placeholder false-positives skipped, dead hub entries + stray root templates/ leftover + stale backup removed."
+    prompt: "cos doctor goes from 4 FAIL / 4 WARN to 0 FAIL / 3 legitimate WARN \u2014 the declared memory hooks resolve via adapter_scope, non-exec hooks are executable, placeholder false-positives skipped, dead hub entries + stray root templates/ leftover + stale backup removed."
     acceptance_command: "cos doctor"
     starting_commit: 03e8ca5eefe3
     closing_commit: f9cb137f6894
@@ -47,7 +1020,7 @@ candidates:
     validated: false  # true only once the command is confirmed to
                       # fail at starting_commit and pass after
   - task_id: TASK-924
-    prompt: "src/cli/main.py drops under the 500-line backstop by moving each independently changeable concern — the scaffold phase engine, the overlay/boundary machinery, the dry-run previews, the interactive world builder, and the standalone commands — into siblings, with the cos CLI surface (every command, flag and help string) unchanged."
+    prompt: "src/cli/main.py drops under the 500-line backstop by moving each independently changeable concern \u2014 the scaffold phase engine, the overlay/boundary machinery, the dry-run previews, the interactive world builder, and the standalone commands \u2014 into siblings, with the cos CLI surface (every command, flag and help string) unchanged."
     acceptance_command: "uv run pytest tests/test_cli.py -q"
     starting_commit: 3f1cabc17512
     closing_commit: 26e85acbe7f5

@@ -33,7 +33,7 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-RULES_DIR = REPO_ROOT / ".claude" / "rules"
+RULES_SUBDIR = Path(".claude") / "rules"
 CHARS_PER_TOKEN = 4
 DEFAULT_WINDOW_DAYS = 180
 SECONDS_PER_DAY = 86_400
@@ -140,9 +140,11 @@ def _verdict(hooks: tuple[str, ...], blocks: int) -> str:
     return ENFORCED if blocks else DORMANT
 
 
-def audit_rules(stats: dict[str, BlockStats], *, now: float) -> list[RuleRow]:
+def audit_rules(stats: dict[str, BlockStats], *, now: float, rules_dir: Path) -> list[RuleRow]:
+    if not rules_dir.is_dir():
+        raise AuditError(f"no rules directory at {rules_dir}")
     rows = []
-    for path in sorted(RULES_DIR.glob("*.md")):
+    for path in sorted(rules_dir.glob("*.md")):
         if path.name not in ENFORCED_BY:
             raise AuditError(
                 f"{path.name} has no entry in ENFORCED_BY — name the hook that enforces it, "
@@ -150,7 +152,8 @@ def audit_rules(stats: dict[str, BlockStats], *, now: float) -> list[RuleRow]:
             )
         hooks = ENFORCED_BY[path.name]
         blocks = sum(stats[h].count for h in hooks if h in stats)
-        last = [stats[h].last_seen_epoch for h in hooks if h in stats and stats[h].last_seen_epoch]
+        seen = [stats[h].last_seen_epoch for h in hooks if h in stats]
+        last = [epoch for epoch in seen if epoch]
         rows.append(
             RuleRow(
                 rule=path.name,
@@ -220,7 +223,7 @@ def main(argv: list[str] | None = None) -> int:
         stats, sessions = scan_blocks(
             transcript_dir(args.project), since_epoch=now - args.days * SECONDS_PER_DAY
         )
-        rows = audit_rules(stats, now=now)
+        rows = audit_rules(stats, now=now, rules_dir=args.project / RULES_SUBDIR)
     except AuditError as exc:
         print(f"[FAIL] {exc}", file=sys.stderr)
         return 1

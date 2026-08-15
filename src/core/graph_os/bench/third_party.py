@@ -108,6 +108,9 @@ def _top_degree_symbols(backend: SqliteBackend, count: int) -> list[Any]:
     (the baseline greps the name), so keeping both would double-weight one symbol
     in the median.
     """
+    if count <= 0:
+        return []
+
     scored = []
     for kind in ("function", "class"):
         for node in backend.sample_nodes(kind, limit=_PROBE_SAMPLE_LIMIT):
@@ -149,7 +152,12 @@ def _probe_rows(
 ) -> list[ProbeRow]:
     rows: list[ProbeRow] = []
     for node in probes:
-        baseline_tokens = max(1, baseline_characters(corpus, node.label, baseline) // 4)
+        baseline_tokens = baseline_characters(corpus, node.label, baseline) // 4
+        if baseline_tokens < 1:
+            # No corpus hit means the baseline is unknown, not free. Flooring it at
+            # one token would score the probe near -80,000% and drag the median.
+            print(f"[SKIP] {node.label}: symbol not found in the corpus", file=sys.stderr)
+            continue
         envelopes = _envelopes_for(graph_tools, node.uid, node.label)
         for workflow in WORKFLOWS:
             envelope = envelopes[workflow]
@@ -251,14 +259,17 @@ def _print_summary(report: dict[str, Any]) -> None:
     print(f"[OK] baseline={report['baseline']} — {report['baseline_note']}", file=sys.stderr)
     for workflow, stats in report["summary"].items():
         if not stats.get("probes"):
-            print(f"[SKIP] {workflow}: every probe returned a truncated walk", file=sys.stderr)
+            print(f"[SKIP] {workflow}: no probe produced a scorable answer", file=sys.stderr)
             continue
         marker = "[WARN]" if stats["skipped_incomplete"] else "[OK]"
+        # None means the median probe cost more than the baseline — it never breaks even.
+        break_even = stats["break_even_queries"]
+        break_even_note = f"break-even {break_even} queries" if break_even else "never breaks even"
         print(
             f"{marker} {workflow:12s} median {stats['median_savings_pct']}% "
             f"mean {stats['mean_savings_pct']}% min {stats['min_savings_pct']}% "
             f"({stats['probes']} probes, {stats['skipped_incomplete']} skipped incomplete) "
-            f"break-even {stats['break_even_queries']} queries",
+            f"{break_even_note}",
             file=sys.stderr,
         )
 

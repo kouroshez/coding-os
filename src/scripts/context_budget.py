@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -170,10 +169,7 @@ def measure(project: Path, *, profile: str, stacks: list[str]) -> ProfileBudget:
 def profile_budget(preset: str) -> ProfileBudget:
     with tempfile.TemporaryDirectory(prefix="cos-budget-") as parent:
         project = scaffold(preset, Path(parent))
-        try:
-            return measure(project, profile=preset, stacks=preset_stacks(preset))
-        finally:
-            shutil.rmtree(project, ignore_errors=True)
+        return measure(project, profile=preset, stacks=preset_stacks(preset))
 
 
 def format_table(budgets: list[ProfileBudget]) -> str:

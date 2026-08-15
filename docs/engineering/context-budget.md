@@ -31,8 +31,9 @@ Loaded on every turn regardless of what the agent does:
 | `.claude/hooks/**` | no | separate processes; never enter the model's context |
 
 Counting the skills or hooks directory toward context cost inflates the number by
-an order of magnitude. A scaffold writes ~370 files; **8 to 12 of them are ever in
-context.**
+an order of magnitude. A scaffold writes 395–461 files depending on preset;
+**9 to 12 of them are ever in context** (one root file, seven core rules, one per
+stack).
 
 ## Measured budgets
 
@@ -85,7 +86,8 @@ every profile**. If the always-on budget is ever to come down meaningfully, that
 is the only place with enough mass to matter — not the stack overlays.
 
 Note the last column: 46 to 50 skills sit on disk and **none of them are in
-context**. A scaffold writes ~370 files; 8 to 12 enter the prompt.
+context**. A scaffold writes 395 files for `t3-style` and 461 for
+`hexagonal-product`; 9 to 12 enter the prompt.
 <!-- END context-budget-table -->
 
 ### This repo, for contrast

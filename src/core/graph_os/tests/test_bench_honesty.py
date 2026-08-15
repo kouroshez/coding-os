@@ -73,6 +73,20 @@ class TestCoverageGate:
         envelope = resolve_complete(lambda _budget: _envelope(total=12, rows=12))
         assert envelope.answer_shape == COMPLETE
 
+    def test_failed_call_is_never_scored_as_a_saving(self) -> None:
+        # A fail() envelope has no `data`: 0 rows of 0 total, not truncated, and
+        # the token floor of 1. That settles instantly and would publish ~100%.
+        failure = json.dumps(
+            {"ok": False, "error": {"category": "not_found", "message": "no such uid"}}
+        )
+        envelope = resolve_complete(lambda _budget: failure)
+        assert envelope.answer_shape == INCOMPLETE
+        assert not envelope.scorable
+
+    def test_unparseable_response_is_never_scored(self) -> None:
+        envelope = resolve_complete(lambda _budget: "not json at all")
+        assert envelope.answer_shape == INCOMPLETE
+
     def test_budgetless_tool_is_called_once(self) -> None:
         calls: list[int] = []
 

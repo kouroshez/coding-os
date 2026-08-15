@@ -59,8 +59,8 @@ rules table maps file globs to skills, and the matching skill loads only
 when you are about to write a file it governs. Editing a React component
 loads `nextjs-react`; nothing else comes with it.
 
-**What that actually costs — measured, not asserted.** A scaffold writes ~370
-files; **8 to 12 of them ever enter the prompt**. Running the real `cos init`
+**What that actually costs — measured, not asserted.** A scaffold writes 395–461
+files; **9 to 12 of them ever enter the prompt**. Running the real `cos init`
 for all 21 shipped presets and summing only what is resident:
 
 | Project shape | Always-on tokens | Share of a 200k window |
@@ -447,8 +447,8 @@ uv run --extra graph_os python src/core/graph_os/bench/third_party.py \
     --repo https://github.com/django/django --ref 5.2 --queries 10
 ```
 
-Median savings over the 10 highest-degree symbols per repo (`min` in brackets —
-the honest worst case):
+Median savings over the highest-degree symbols per repo — `--queries 10` on the
+public checkouts, 8 on this one (`min` in brackets — the honest worst case):
 
 | Repo | `.py` files | `references` | `impact` (3 hops) | `rename_plan` |
 |---|---:|---:|---:|---:|
