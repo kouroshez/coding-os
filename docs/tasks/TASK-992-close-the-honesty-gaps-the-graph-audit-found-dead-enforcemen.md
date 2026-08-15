@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [docs-update, governance, honest-benchmark, ready]
-status: "in_progress"
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-15
 started: 2026-08-15
-completed: null
+completed: 2026-08-15
 agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-992: governance: close the honesty gaps the graph audit found — dead enforcement globs, doc-node reference blindness, wrong published budget, unexecutable ablation
 
 ## Outcome
@@ -69,3 +68,8 @@ references: []
 - 2026-08-15 [claude]: Edit SKILL.md
 - 2026-08-15 [claude]: commit 9877aa447c — docs(graph): a zero from references is a coverage signal, not just truncation
 - 2026-08-15 [claude]: commit f8393e5816 — docs(eval): move the ablation onto SWE-bench Verified and name the run environment
+- 2026-08-15 [claude]: Audited this session's own graph usage from the transcript: 8 cos_graph_* calls of 2,085 tool calls (0.4%); of 29…
+- 2026-08-15 [claude]: Chose to fix cos_graph_references two ways rather than one: the per-kind default map now covers the eight structural…
+- 2026-08-15 [claude]: context-budget.md published 19,977 tokens (10.0%) for this repo; the real figure is 15,634 (7.8%). The 4,343 gap was…
+- 2026-08-15 [claude]: Ablation moved onto SWE-bench Verified. The mined set was measured unusable: 148 candidates carry 58 distinct…
+- 2026-08-15 [claude]: Status transitioned to complete via cos task-done.
