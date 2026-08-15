@@ -5,18 +5,17 @@ swimlane: infra
 kind: feature
 epic: honest-benchmarks
 labels: [ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 1d
 created: 2026-08-15
-started: null
+started: 2026-08-15
 completed: null
-agent_session: null
+agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-983: Honest benchmark harness — realistic baselines, no truncated envelopes, net of context tax
 
 **Outcome (one sentence):** The published harness can no longer produce a flattering number by accident: it defaults to the baseline a competent agent actually runs, refuses to score a truncated envelope, and reports the break-even query count that includes the always-on context cost.
@@ -34,3 +33,9 @@ references: []
 - **Given** the published methodology doc, **When** the harness changes, **Then** the doc and its results table are regenerated in the same commit.
 
 ## Work Log
+- 2026-08-15 [claude]: Edit third-party-token-bench.md
+- 2026-08-15 [claude]: Edit _baselines.py
+- 2026-08-15 [claude]: Edit third_party.py
+- 2026-08-15 [claude]: Edit _coverage.py
+- 2026-08-15 [claude]: Edit _coverage.py
+- 2026-08-15 [claude]: Split the harness into two guards. _baselines.py models three graph-less agents (grep-only floor / grep-windows…

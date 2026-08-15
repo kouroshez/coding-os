@@ -31,6 +31,7 @@ import tempfile
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PRESETS_DIR = REPO_ROOT / "src" / "templates" / "_presets"
@@ -90,7 +91,7 @@ class ProfileBudget:
     def window_share_percent(self) -> float:
         return self.total_tokens / REFERENCE_CONTEXT_WINDOW_TOKENS * 100
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         for key in ("root_instructions", "core_rules", "stack_rules"):
             payload[key]["tokens"] = getattr(self, key).tokens
