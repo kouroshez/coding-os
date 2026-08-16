@@ -234,10 +234,14 @@ def refresh_stack_rules(
         mirror = mirror_dir / source.name
         if not installed.is_file():
             continue
+        # Already current: nothing to refresh, and nothing to warn about either.
+        # This test comes first because the mirror can be older than both — an
+        # install predating the mirror being kept in step would otherwise have
+        # every untouched rule reported back to its owner as "you edited this".
+        if filecmp.cmp(installed, source, shallow=False):
+            continue
         if not mirror.is_file() or not filecmp.cmp(installed, mirror, shallow=False):
             kept.append(installed.name)
-            continue
-        if filecmp.cmp(installed, source, shallow=False):
             continue
         if not dry_run:
             shutil.copy2(source, installed)

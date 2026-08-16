@@ -118,6 +118,17 @@ def test_unchanged_template_is_a_no_op(installed: dict[str, Path]) -> None:
     assert (refreshed, kept) == ([], [])
 
 
+def test_stale_mirror_does_not_accuse_an_untouched_rule(installed: dict[str, Path]) -> None:
+    """Installs predating the mirror being kept in step are common — this repo's
+    own mirror is months behind. A rule already equal to its template needs no
+    refresh and is nobody's edit, so it must produce no line at all."""
+    installed["mirror"].write_text("what the template said months ago\n", encoding="utf-8")
+
+    refreshed, kept = refresh_stack_rules(STACK, installed["project"], AGENT)
+
+    assert (refreshed, kept) == ([], [])
+
+
 def test_uninstalled_rule_is_never_created(installed: dict[str, Path]) -> None:
     """Refresh updates what a project has; it does not hand it new rules."""
     installed["installed"].unlink()
