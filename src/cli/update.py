@@ -158,6 +158,41 @@ def _aggregate_world(agent: str, templates: tuple[str, ...], project: Path):
     return aggregate(base, stacks, adapter_registry[agent], project.name, today=today_iso())
 
 
+def _refresh_stack_rules(
+    project: Path,
+    templates: list[str],
+    agent: str,
+    *,
+    dry_run: bool,
+    report: bool,
+) -> bool:
+    """Carry a stack-rule correction into an install; returns whether any moved.
+
+    Stack rules are copies rather than symlinks, so `_apply_diff` never sees them
+    and a fixed template used to stop at the repo. A copy still equal to the
+    install-time mirror is untouched and safe to overwrite; anything else is the
+    project's own and only `cos doctor` may speak about it.
+    """
+    from cli._init_scaffold import refresh_stack_rules
+
+    refreshed: list[str] = []
+    kept: list[str] = []
+    for template_name in templates:
+        stack_refreshed, stack_kept = refresh_stack_rules(
+            template_name, project, agent, dry_run=dry_run
+        )
+        refreshed.extend(stack_refreshed)
+        kept.extend(stack_kept)
+
+    if report:
+        verb = "Would refresh" if dry_run else "Refreshed"
+        for name in refreshed:
+            click.echo(f"  {verb} stack rule {name} from its template")
+        for name in kept:
+            click.echo(f"  Kept your edited stack rule {name} — `cos doctor` shows the drift")
+    return bool(refreshed) and not dry_run
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -225,6 +260,11 @@ def update(
             overall_changes = True
             if not dry_run:
                 _apply_diff(project, diff, agent)
+
+        if _refresh_stack_rules(
+            project, templates, agent, dry_run=dry_run, report=output_format == "text"
+        ):
+            overall_changes = True
 
         if _sync_hook_registration(project, agent, dry_run=dry_run):
             overall_changes = True

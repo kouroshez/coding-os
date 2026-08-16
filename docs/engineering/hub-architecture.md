@@ -713,6 +713,29 @@ Every consumer project's `.claude/hooks/*.sh` /
 `.codex/hooks/*.sh` is a symlink to `src/core/hooks/*.sh` in this meta repo.
 Edits here reach every project **instantly** — no `cos update` needed.
 
+**Stack rules are the exception, and they are copies on purpose.**
+`src/templates/<stack>/rules/*.md` lands in the agent's rules dir as
+`<stack>-<file>.md` so a project can tailor it; symlinking would make that
+impossible, and `_apply_diff` unlinks whatever occupies a managed path, so the
+first `cos update` would delete the tailoring outright. The cost of that choice
+was that a corrected template reached **no existing install at all** — `cos update`
+enumerated only `src/core/rules/` and never saw stack rules.
+
+`cos update` now refreshes them, using the baseline `cos init` already writes:
+the byte-exact mirror under `.coding-os/src/templates/<stack>/rules/`. Installed
+copy equal to its mirror means nobody touched it, so the current template is
+written to both; different means it is the project's own and only
+`cos doctor`'s `stack.rules_fresh` check speaks. `--dry-run` reports both lists
+and writes nothing. A missing mirror is treated as user-owned — without a
+baseline there is no evidence the file is untouched, and guessing would eat
+an edit.
+
+Deliberately **not** covered: a stack rule the project does not have is never
+created. Core rules are re-linked on sight because nobody owns them, but a
+missing stack rule is indistinguishable from one the project deleted on purpose,
+and re-creating it would be the same harm as overwriting an edit. Adding a rule
+to an existing install stays a human decision.
+
 If the meta repo is moved, those symlinks become dangling. Detect and
 repair:
 

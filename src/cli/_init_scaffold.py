@@ -7,6 +7,7 @@ _init_registries, so the phase driver and the preview can both build on it.
 
 from __future__ import annotations
 
+import filecmp
 import re
 import shutil
 import subprocess
@@ -191,6 +192,58 @@ def _apply_template(
                 )
 
     click.echo(f"  Template '{template_name}' applied.")
+
+
+def refresh_stack_rules(
+    template_name: str,
+    project_dir: Path,
+    agent: str | None,
+    *,
+    dry_run: bool = False,
+) -> tuple[list[str], list[str]]:
+    """Re-copy stack rules the user never touched; return (refreshed, kept).
+
+    Core rules are symlinks and reach every project the moment they change; stack
+    rules are copies, so a correction to `src/templates/<stack>/rules/` reached no
+    existing install at all. The install-time mirror under `.coding-os/src/templates/`
+    is a byte-exact snapshot of what was copied, which is the baseline that tells
+    an untouched file from an edited one without inventing a hash sidecar: equal to
+    the mirror means the user never touched it, so the new template is safe to
+    write; different means it is theirs and only the doctor check may speak.
+    """
+    stack_registry = _get_stack_registry()
+    if template_name not in stack_registry or agent is None:
+        return [], []
+    adapters = _get_adapter_registry()
+    adapter_profile = adapters.get(agent)
+    if adapter_profile is None or not adapter_profile.supports_rules:
+        return [], []
+    if not adapter_profile.rules_dir:
+        return [], []
+
+    source_dir = stack_registry[template_name].source_dir / "rules"
+    mirror_dir = project_dir / STATE_DIR / "src" / "templates" / template_name / "rules"
+    rules_dir = project_dir / adapter_profile.rules_dir
+    if not source_dir.is_dir():
+        return [], []
+
+    refreshed: list[str] = []
+    kept: list[str] = []
+    for source in sorted(source_dir.glob("*.md")):
+        installed = rules_dir / f"{template_name}-{source.name}"
+        mirror = mirror_dir / source.name
+        if not installed.is_file():
+            continue
+        if not mirror.is_file() or not filecmp.cmp(installed, mirror, shallow=False):
+            kept.append(installed.name)
+            continue
+        if filecmp.cmp(installed, source, shallow=False):
+            continue
+        if not dry_run:
+            shutil.copy2(source, installed)
+            shutil.copy2(source, mirror)
+        refreshed.append(installed.name)
+    return refreshed, kept
 
 
 def _resolve_placeholders(text: str, substitutions: dict[str, str]) -> str:
