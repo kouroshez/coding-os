@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-16
 started: 2026-08-16
-completed: null
+completed: 2026-08-16
 agent_session: ses-claude-20260814-120316-413b
 depends_on: []
 blocked_by: []
@@ -38,3 +38,7 @@ In this repo `cos update --dry-run` prints "Kept your edited stack rule meta-gra
 - 2026-08-16 [claude]: commit 1e3f105c1a — fix(cli): stop reporting an up-to-date stack rule as a user edit
 - 2026-08-16 [claude]: Found by running cos update --dry-run in this repo rather than trusting the unit tests: all four meta-* rules were…
 - 2026-08-16 [claude]: Found by running cos update --dry-run in this repo rather than trusting the unit tests: all four meta-* rules were…
+- 2026-08-16 [claude]: Edit dry-run-in-repo-before-trusting-units.md
+- 2026-08-16 [claude]: Edit probe.py
+- 2026-08-16 [claude]: Edit MEMORY.md
+- 2026-08-16 [claude]: Status transitioned to complete via cos task-done.
