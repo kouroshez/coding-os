@@ -64,9 +64,53 @@ run in one window, with its spread.** "coding-os scores X%" is not a claim this
 protocol can support and must not be made from its output. "With model M on date
 D, `full` resolved N more instances than `raw`, 95% CI [a, b]" is.
 
+## Cost probe before pilot
+
+**The pilot is not funded on an estimate.** A guessed price here is the same defect
+as a guessed savings percentage — the thing this whole line of work exists to stop.
+
+**Pricing it takes one run, not ten.** A single `raw`-arm run emits real
+input / cache-write / cache-read / output counts and real wall-clock in its
+trajectory; ×300 is the pilot figure. Two things make the extra nine runs waste:
+
+- **Skip the grader.** The tokens are in the trajectory whether or not the patch
+  is correct, so evaluation buys container time and zero cost information. It
+  answers completion rate, which is a *pilot* metric, not a probe metric.
+- **Pick an instance with a native image for your architecture.** On arm64,
+  `swebench/sweb.eval.arm64.*` runs natively; an amd64-only instance is QEMU
+  emulated and its wall-clock measures the emulator, not the agent.
+
+Run `src/scripts/ablation_probe.py --preflight` first — it exits non-zero and
+names every missing prerequisite rather than half-starting.
+
+### Measured cost
+
+*Not yet measured — the probe has never run.* Preflight on the maintainer's
+machine, 2026-08-16:
+
+| Prerequisite | State |
+|---|---|
+| container runtime | Docker 29.5.2, 4.8 GiB — present |
+| dataset | 500 instances, reachable anonymously over the datasets-server API |
+| control agent | **missing** — `uvx mini-swe-agent` clears it |
+| model credential | **missing** — the hard one |
+
+The credential is the blocker no local command fixes. `mini-swe-agent` routes
+every model call through litellm, which reads a provider key from the
+environment; a Claude Code session's own OAuth cannot be lent to it. So the probe
+needs a key exported deliberately, for a model *both arms share*.
+
+One further constraint measured on the same machine: the Docker VM held 4.8 GiB
+total with ~3.5 GiB already taken by unrelated stacks, leaving roughly 1.3 GiB.
+A SWE-bench image unpacks to about 1 GB and then runs a test suite inside itself,
+so the probe needs those stacks stopped or the VM enlarged. `--preflight` checks
+the VM total against a 2 GiB floor; that floor is an assumption, and the first
+real run replaces it with an observation.
+
 ## Pilot before fleet
 
-Run **50 instances × 2 arms (`raw`, `full`) × 3 repetitions = 300 runs** first.
+Run **50 instances × 2 arms (`raw`, `full`) × 3 repetitions = 300 runs** after the
+probe has priced it.
 The middle arms only earn their cost if the endpoints separate: if `full` − `raw`
 sits inside the noise at n=50, decomposing that null into `graph` and `rules` will
 not find a signal either, and the null is the result. Publish it either way — a
@@ -77,8 +121,10 @@ pre-registration.
 
 Primary:
 
-1. **Completion rate** — the task's own acceptance command exits 0, run in a
-   clean environment the agent never saw.
+1. **Completion rate** — the instance's `FAIL_TO_PASS` tests pass and its
+   `PASS_TO_PASS` tests still pass, evaluated by the SWE-bench harness in a
+   container the agent never saw. Both halves are required: a patch that fixes
+   the issue by breaking something else is a failure, not a partial credit.
 2. **Weighted cost per task** — `input + 1.25×cache_write + 0.1×cache_read +
    5×output`, the same weighting `cos doctor --tokens` uses. Read from the
    transcript, not estimated.
@@ -97,8 +143,10 @@ Rules that bind the run:
   run of a stochastic agent is an anecdote.
 - **No metric may be added after the first arm executes.** Adding one is a new
   pre-registration and a new run.
-- **The acceptance command is the scorer.** No model-judged quality score, because
-  a model judging an agent's output is a second uncontrolled variable.
+- **The upstream test set is the scorer.** No model-judged quality score, because
+  a model judging an agent's output is a second uncontrolled variable — and no
+  scorer written by this project, because a scorer written by the thing under
+  test is the strawman baseline wearing a different hat.
 - **Failures count.** A task the agent abandons is a completion-rate 0, not an
   excluded outlier.
 
