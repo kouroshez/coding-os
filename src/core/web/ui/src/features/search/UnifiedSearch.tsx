@@ -91,6 +91,17 @@ export default function UnifiedSearch() {
     graph: graph.data?.results?.length ?? 0,
   };
   const totalCount = totals.memory + totals.docs + totals.tasks + totals.graph;
+  // A layer that has not answered yet has an UNKNOWN count, not a zero one.
+  // `data` is undefined while a query is in flight, so every `?? 0` above reads
+  // as "searched, found nothing" — which is how the summary came to print
+  // "16 results · Memory 0 · Docs 0" above three sections still saying loading….
+  const pending: Record<string, boolean> = {
+    Memory: memory.isLoading,
+    Docs: docs.isLoading,
+    Tasks: tasks.isLoading,
+    Graph: graph.isLoading,
+  };
+  const stillCounting = Object.values(pending).some(Boolean);
 
   const toggle = (key: string) => setExpanded((cur) => (cur === key ? null : key));
 
@@ -187,8 +198,9 @@ export default function UnifiedSearch() {
         </form>
         {submitted && (
           <div className="mx-auto mt-3 flex w-full max-w-3xl flex-wrap items-center gap-2 text-xs text-[var(--cos-muted)]">
-            <span>
-              <span className="font-semibold text-[var(--cos-text)]">{totalCount}</span> results for{' '}
+            <span title={stillCounting ? 'one or more layers are still answering' : undefined}>
+              <span className="font-semibold text-[var(--cos-text)]">{totalCount}</span>
+              {stillCounting ? '+ so far' : ''} results for{' '}
               <span className="font-medium text-[var(--cos-text)]">“{submitted}”</span>
             </span>
             <span aria-hidden>·</span>
@@ -209,7 +221,7 @@ export default function UnifiedSearch() {
                     : 'border-[var(--cos-border)] text-[var(--cos-faint)]',
                 ].join(' ')}
               >
-                {name} {n}
+                {name} {pending[name] ? '…' : n}
               </span>
             ))}
           </div>
