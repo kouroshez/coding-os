@@ -16,9 +16,7 @@
 >
 > Website: <https://coding-os.dev> · Community: <https://community.coding-os.dev>
 
-[![The Coding OS Hub: four registered projects and the agents live in each](docs/assets/hub/hub-home.webp)](#the-web-hub-http1270019188)
-
-<sub>The Hub at `127.0.0.1:9188` — every registered project, and every agent attached to one right now, with the model it is running, the complexity gate it recorded, and the role it holds. [See the rest of it](#the-web-hub-http1270019188).</sub>
+![Coding OS — three concentric kernel layers](docs/assets/hero.webp)
 
 <table>
 <tr>
@@ -341,9 +339,20 @@ one surface where the board, the knowledge graph, agent memory, live agent
 presence and the hook stream are the *same* state the agent reads, not a
 dashboard rendered beside it.
 
-The Hub home — the screenshot at the top of this file — is the entry point:
-register an existing `.coding-os/` folder, scan a directory for them, or scaffold
-a new project from a preset.
+![Hub home listing four registered projects and the agents live in each](docs/assets/hub/hub-home.webp)
+
+Hub home is the entry point: register an existing `.coding-os/` folder, scan a
+directory for them, or scaffold a new project from a preset. Each project card
+carries the agents attached to it right now — the model each is running, the
+complexity gate it recorded, and the role it holds in the current chain.
+
+### Overview — what the agent is doing, in one screen
+
+Agents live, spend against budget, WIP against cap, and the hook stream as it
+fires. `block-dangerous-commands 15s ago` is not a log line scraped after the
+fact — it is the same enforcement record the gate wrote when it ran.
+
+![Workspace Overview with live agent, cost, WIP counters and the recent hook stream](docs/assets/hub/workspace-overview.webp)
 
 ### The board — Scrumban with enforced WIP
 
@@ -370,6 +379,15 @@ changes*.
 
 ![Chat landing with model, effort and role pickers above six quick actions](docs/assets/hub/chat-streamos.webp)
 
+### Search — one query, four retrieval layers
+
+Memory, docs, tasks and the graph answer the same query in parallel, each in its
+own section with its own count. A layer still in flight shows `…`, never a zero —
+an unanswered layer and an empty one are different facts, and a summary that
+conflates them is worse than one that waits.
+
+![Unified search returning 24 results for one query across docs, tasks and the graph](docs/assets/hub/search-query.webp)
+
 ### The graph — ask the codebase structurally
 
 Sigma.js over the extracted code + doc graph. The left spine is containment, the
@@ -392,6 +410,14 @@ and run the distillation loop on demand instead of waiting for the nightly one.
 
 ![Agent Memory tab showing 102 lessons, the validation rule, and type and source filters](docs/assets/hub/memory.webp)
 
+### Diagnostics — every hook that fired, and why
+
+The log tail is structured, not a text blob: filter by level floor, scope glob,
+message substring or a relative window, and follow it live. Alongside it sit the
+doctor probes, observability charts, and per-session cognition traces.
+
+![Diagnostics Logs tab with level, scope, substring and window filters over a structured event table](docs/assets/hub/diag-logs.webp)
+
 ### Modules — turn subsystems off and the tools go with them
 
 The kernel is always on. Everything else is a switch, and disabling one gates
@@ -402,11 +428,9 @@ the reason attached rather than failing after the click.
 
 ![Config Modules tab showing subsystem toggles, owned artifacts and dependency direction](docs/assets/hub/config-modules.webp)
 
-Also in the Hub: unified **Search** across all four retrieval layers,
-**Diagnostics** (doctor probes, the live hook log, observability charts, session
-traces), per-project **Git** and supervision settings, and a **Marketplace** for
-community skills and stacks (rolling out). Source: `src/core/web/`; UI:
-`src/core/web/ui/` (`make ui-dev` for HMR).
+Also in the Hub: per-project **Git** and supervision settings, and a
+**Marketplace** for community skills and stacks (rolling out).
+Source: `src/core/web/`; UI: `src/core/web/ui/` (`make ui-dev` for HMR).
 
 ## Architecture
 
