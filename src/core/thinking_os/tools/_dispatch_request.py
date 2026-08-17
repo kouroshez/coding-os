@@ -111,6 +111,20 @@ def _resolve_dispatch_model(
     return resolved
 
 
+def _turn_budget(meta: dict, intensity: str) -> int | None:
+    # A role already declares how much work it intends to do; the adapter was
+    # guessing a constant instead of reading it, and any constant small enough to
+    # be a real guard is small enough to fail a role that reads a file first.
+    # Two turns per declared step (tool call + its result) plus one to answer.
+    declared = meta.get("max_turns")
+    if isinstance(declared, int) and declared > 0:
+        return declared
+    steps = (meta.get("intensity_steps") or {}).get(intensity)
+    if not isinstance(steps, list) or not steps:
+        return None
+    return len(steps) * 2 + 1
+
+
 def _build_dispatch_request(
     formula_id: str,
     session_id: str,
@@ -159,4 +173,5 @@ def _build_dispatch_request(
         adapter=adapter.strip() or supervised.get("adapter") or None,
         effort=effort.strip() or supervised.get("effort") or None,
         complexity=complexity.strip(),
+        max_turns=_turn_budget(meta, intensity),
     )

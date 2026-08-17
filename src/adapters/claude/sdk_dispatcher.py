@@ -62,6 +62,10 @@ from _claude_sdk_telemetry import (
 
 logger = logging.getLogger("coding_os.dispatcher.claude_sdk")
 
+# Tool call + tool result + closing assistant message. A role that reads one file
+# before answering needs all three, whether or not it returns a typed payload.
+_DEFAULT_MAX_TURNS = 3
+
 
 class ClaudeSDKDispatcher:
     name = "claude-sdk"
@@ -244,11 +248,16 @@ class ClaudeSDKDispatcher:
         # model decides to acknowledge before stopping. Even then the
         # post-stream handler treats a populated `structured_output`
         # as success regardless of subtype.
-        max_turns = (
-            request.max_turns
-            if request.max_turns is not None
-            else (3 if output_format is not None else 1)
-        )
+        #
+        # The free-text branch used to get 1, which is not a budget — it is a
+        # guaranteed failure. A role with a tools_budget spends its first turn
+        # calling a tool and has nothing left for the answer, so all ten roles
+        # that do not declare `structured_output` returned
+        # `error_max_turns` on every dispatch. Both branches now get the same
+        # floor: the reasoning written above for the structured path (tool call,
+        # tool result, closing message) applies verbatim to a role that reads a
+        # file before answering.
+        max_turns = request.max_turns if request.max_turns is not None else _DEFAULT_MAX_TURNS
         opts_kwargs: dict[str, Any] = {
             "system_prompt": system_prompt,
             "max_turns": max_turns,

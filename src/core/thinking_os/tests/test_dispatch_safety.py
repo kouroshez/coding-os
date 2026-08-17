@@ -19,6 +19,7 @@ from dispatcher import DispatchRequest
 from tools import cognition
 from tools._cognition_dispatch import _resolved_route, _run_async_blocking
 from tools._dispatch_persistence import _persist_dispatch_output
+from tools._dispatch_request import _turn_budget
 
 
 def _dispatch(conn: sqlite3.Connection, task_marker: str, cost: float) -> None:
@@ -289,6 +290,38 @@ class TestDispatchRequestMaxTurns:
         assert r.max_turns is None
         r2 = DispatchRequest(formula_id="implementer", agent_file="/x.md", prompt="p", max_turns=7)
         assert r2.max_turns == 7
+
+
+class TestTurnBudget:
+    """A turn cap a normal role always trips is a guaranteed failure, not a guard."""
+
+    def test_explicit_frontmatter_wins(self) -> None:
+        assert (
+            _turn_budget({"max_turns": 9, "intensity_steps": {"standard": [1, 2]}}, "standard") == 9
+        )
+
+    def test_derives_from_the_declared_step_count(self) -> None:
+        # Two turns per step (tool call + its result) plus one to answer, so a
+        # role that declares 12 steps is not capped at 3 and killed mid-analysis.
+        meta = {"intensity_steps": {"light": [1, 2, 3], "standard": list(range(1, 13))}}
+        assert _turn_budget(meta, "standard") == 25
+        assert _turn_budget(meta, "light") == 7
+
+    def test_no_declaration_defers_to_the_adapter_default(self) -> None:
+        assert _turn_budget({}, "standard") is None
+        assert _turn_budget({"intensity_steps": {"standard": []}}, "standard") is None
+
+    def test_unknown_intensity_defers_rather_than_guessing(self) -> None:
+        assert _turn_budget({"intensity_steps": {"standard": [1, 2]}}, "full") is None
+
+    def test_real_analyst_role_gets_room_to_use_its_tools(self) -> None:
+        # The observed failure: analyst declares 7 tools and 12 standard steps but
+        # every dispatch died with `error_max_turns` at the adapter's default of 1.
+        from tools._cognition_shared import _cog
+
+        meta = _cog().load_agent_registry().get("analyst") or {}
+        budget = _turn_budget(meta, "standard")
+        assert budget is not None and budget > 3, f"analyst turn budget is {budget}"
 
 
 class TestEvidenceBundleFlock:
