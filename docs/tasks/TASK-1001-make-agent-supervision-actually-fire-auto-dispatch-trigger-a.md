@@ -102,3 +102,32 @@ references: []
 - 2026-08-17 [claude]: Edit session-context.sh
 - 2026-08-17 [claude]: Edit session-context.sh
 - 2026-08-17 [claude]: Edit session-context.sh
+- 2026-08-17 [claude]: Edit codex-userpromptsubmit-dispatch.sh
+- 2026-08-17 [claude]: Edit test_supervision_trigger.py
+- 2026-08-17 [claude]: Edit test_supervision_trigger.py
+- 2026-08-17 [claude]: Edit test_supervision_trigger.py
+- 2026-08-17 [claude]: Edit test_supervision_trigger.py
+- 2026-08-17 [claude]: Edit test_supervision_trigger.py
+- 2026-08-17 [claude]: Edit test_supervision_trigger.py
+- 2026-08-17 [claude]: commit 68c188a29b — feat(hooks): resolve the supervision route per prompt and always show a banner
+- 2026-08-17 [claude]: Edit _doctor_supervision.py
+- 2026-08-17 [claude]: Edit doctor_checks_runtime.py
+- 2026-08-17 [claude]: Edit test_doctor_supervision.py
+- 2026-08-17 [claude]: Edit resolve_supervise_route.py
+- 2026-08-17 [claude]: Edit resolve_supervise_route.py
+- 2026-08-17 [claude]: Edit doctor_checks_runtime.py
+- 2026-08-17 [claude]: Edit doctor_checks_runtime.py
+- 2026-08-17 [claude]: Edit subsystems.yaml
+- 2026-08-17 [claude]: commit cdf1d62d58 — feat(cli): report supervision health in cos doctor
+- 2026-08-17 [claude]: Edit live_dispatch_test.py
+- 2026-08-17 [claude]: Edit sdk_dispatcher.py
+- 2026-08-17 [claude]: Edit sdk_dispatcher.py
+- 2026-08-17 [claude]: Edit _dispatch_request.py
+- 2026-08-17 [claude]: Edit _dispatch_request.py
+- 2026-08-17 [claude]: Edit test_dispatch_safety.py
+- 2026-08-17 [claude]: Edit test_dispatch_safety.py
+- 2026-08-17 [claude]: Two more dead triggers found the same way: auto-compose-roles.sh produced no chain because formula_composer needs…
+- 2026-08-17 [claude]: Live dispatch verified end to end: cos_dispatch_formula_run now returns status=ok with adapter=claude…
+- 2026-08-17 [claude]: commit 843b6e8a59 — fix(dispatch): derive the turn budget from the role instead of capping it at one
+- 2026-08-17 [claude]: Edit fail-open-hooks-hide-dead-triggers.md
+- 2026-08-17 [claude]: Edit MEMORY.md
