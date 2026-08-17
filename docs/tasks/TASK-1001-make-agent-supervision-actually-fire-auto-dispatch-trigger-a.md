@@ -5,7 +5,7 @@ swimlane: core
 kind: bug
 epic: null
 labels: [governance, docs-update, supervision, hooks, ready]
-status: in_progress
+status: testing
 priority: P1
 appetite: 2d
 created: 2026-08-17
@@ -131,3 +131,4 @@ references: []
 - 2026-08-17 [claude]: commit 843b6e8a59 — fix(dispatch): derive the turn budget from the role instead of capping it at one
 - 2026-08-17 [claude]: Edit fail-open-hooks-hide-dead-triggers.md
 - 2026-08-17 [claude]: Edit MEMORY.md
+- 2026-08-17 [claude]: Matrix green: thinking_os 1592 passed + server --test, adapters 52, cli 328, hooks/golden 32+15, docs-lint OK, make…
