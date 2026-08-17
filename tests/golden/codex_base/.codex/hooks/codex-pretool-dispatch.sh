@@ -61,6 +61,7 @@ for delegate in \
   enforce-commit-message.sh \
   block-uv-heredoc.sh \
   enforce-verify.sh \
+  enforce-task-readiness.sh \
   test-governor.sh \
   search-enforce-inventory.sh \
   nudge-task-discovery.sh \

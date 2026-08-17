@@ -36,6 +36,12 @@
           },
           {
             "type": "command",
+            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/enforce-task-readiness.sh\"",
+            "statusMessage": "🎯 Checking the new card declares a pull-state...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/enforce-verify.sh\"",
             "statusMessage": "✅ Verifying suites before task-done...",
             "timeout": 10
@@ -192,23 +198,29 @@
         ]
       },
       {
+        "matcher": "mcp__coding-os__cos_task_create",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/enforce-task-readiness.sh\"",
+            "statusMessage": "🎯 Checking the new card declares a pull-state...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/inject-mcp-caller-session.sh\"",
+            "statusMessage": "🪪 Attributing task create to this panel...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "mcp__coding-os__cos_task_move",
         "hooks": [
           {
             "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/inject-mcp-caller-session.sh\"",
             "statusMessage": "🪪 Attributing task move to this panel...",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "mcp__coding-os__cos_task_create",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/inject-mcp-caller-session.sh\"",
-            "statusMessage": "🪪 Attributing task create to this panel...",
             "timeout": 5
           }
         ]

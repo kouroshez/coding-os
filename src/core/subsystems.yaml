@@ -110,7 +110,7 @@ modules:
     label: "Task system — Scrumban board, lifecycle, work logs"
     hint: "Enable for the Scrumban board, task lifecycle gates, and work logs (cos_task_*)."
     kernel: false
-    hooks: [enforce-task-start, enforce-task-body, nudge-task-discovery, warn-abandoned-task, nudge-reentry, remind-daily, auto-task-sync, sync-task-current, link-commit-to-task, reclaim-sweep, capture-work-log]
+    hooks: [enforce-task-start, enforce-task-body, enforce-task-readiness, nudge-task-discovery, warn-abandoned-task, nudge-reentry, remind-daily, auto-task-sync, sync-task-current, link-commit-to-task, reclaim-sweep, capture-work-log]
     tools: ["cos_task_*", cos_work_log_append]
     skills: [task-driver]
     commands: [board, daily, retro, task]

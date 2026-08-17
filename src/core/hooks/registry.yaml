@@ -80,6 +80,30 @@ hooks:
         matcher: Bash
         status_message: "📝 Validating commit message contract..."
 
+  - id: enforce-task-readiness
+    script: enforce-task-readiness.sh
+    description: |
+      PreToolUse gate — a created card must declare its pull-state. BLOCKs a
+      cos_task_create (MCP) or `cos task-create` (Bash) that would land an
+      icebox card carrying none of `ready` (queue it), `parked` (deliberate
+      backlog), or `keep` (reference only), because such a card is invisible to
+      cos_task_pick / cos_task_claim_next and nothing will ever pull it. A
+      non-icebox status passes untouched. Resolves DC-2: warn-abandoned-task
+      reported the same condition, but only at Stop — after the agent had
+      already told the operator the work was filed. Fail-open on helper failure
+      (the Stop hook remains the backstop), logged never silent. Contract:
+      docs/governance/task-lifecycle.md § Execution Rules.
+    category: enforcement
+    phase: E
+    timeout: 10
+    events:
+      - event: PreToolUse
+        matcher: mcp__coding-os__cos_task_create
+        status_message: "🎯 Checking the new card declares a pull-state..."
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "🎯 Checking the new card declares a pull-state..."
+
   - id: inject-mcp-caller-session
     script: inject-mcp-caller-session.sh
     description: Injects the calling panel's coding-os session as `agent_session` into MCP task-tool args so the panel-blind MCP server attributes writes to the real caller, not the last-writer-wins .active-session pointer. Fail-open; completes F2.

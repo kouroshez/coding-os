@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 2c2873ee-e381-4ed3-8e7a-f733bf41ed74
-  modified: 2026-08-02T22:27:34.315Z
+  modified: 2026-08-17T08:15:50.071Z
 ---
 
 Operator's standing complaint (2026-07-17): agents create tasks, leave them parked in `icebox` as defer/not-now/future/backlog, and under autonomous (no-human) operation nothing picks them back up, so the backlog rots and development stalls.
@@ -23,7 +23,9 @@ Operator's standing complaint (2026-07-17): agents create tasks, leave them park
 
 **Progress:** QW-3-as-a-column was **rejected on evidence** — `cos_task_create` ALREADY writes a `task_status_history` row (`old_status=''`, `reason='created'`) carrying the creating session for EVERY status incl icebox (verified live, 4/4 parked cards recoverable), so a `created_by_session` column would duplicate an existing fact (P1 SSOT violation). Do NOT add that column. The value QW-3 was meant to unlock is **shipped** (TASK-847, commit 74c684ef): `warn-abandoned-task.sh` now flags icebox cards the session created and left un-ready, sourced from that history row; `ready`/`parked`/`keep` labels exempt. Documented in task-lifecycle.md Execution Rules.
 
-**Still open (bigger, governance-shifting — surface to operator, don't silently build):** **DC-1** an opt-in autonomous backlog-drain loop (tension with value-7 autonomous-but-reversible); **DC-2** promote the anti-park norm into a real `tasks`-module rule with an enforceable "fix-now vs file-a-card" boundary; **DC-5** a backlog-health metric (`cos_metric_trend` has none). Full report artifact below.
+**DC-2 CLOSED 2026-08-17 (operator chose the create-time gate).** `enforce-task-readiness.sh` is a PreToolUse gate on BOTH surfaces — `mcp__coding-os__cos_task_create` and `Bash` (`cos task-create`) — that exits 2 unless the create declares one of `ready` / `parked` / `keep`; a non-`icebox` status passes untouched. Fail-open on helper failure with a logged breadcrumb, because `warn-abandoned-task` stays the Stop-time backstop. Owned by the `tasks` module in `subsystems.yaml`; contract in task-lifecycle.md § Execution Rules; 16 tests in `tests/test_hooks_task_readiness.py`. **Do not re-litigate this as detection** — the trigger for closing it was that four *detection* fixes had already shipped and the failure still recurred (three un-ready cards in one session, 2026-08-17), because every one of them reported after the agent had already told the operator the work was filed. Timing was the hole, not detection.
+
+**Still open (bigger, governance-shifting — surface to operator, don't silently build):** **DC-1** an opt-in autonomous backlog-drain loop (tension with value-7 autonomous-but-reversible); **DC-5** a backlog-health metric (`cos_metric_trend` has none). Full report artifact below.
 
 **Update 2026-08-02 (operator-directed drain + root-cause session):** the detection gap is now closed from three more sides — `cos_task_reconcile` flags `zombie_icebox` (icebox cards whose work log carries commit/implemented-verified evidence), the board stale-flags them on every render, and `classify-task-mode.sh` gained Persian verb sets (English-only verbs silently ran every Persian session in adhoc mode, which `enforce-task-start` exempts — THE entry door for work-without-task on this operator's machine). The manual `.task-current` bypass is no longer advertised in the block message, and hub `/move`+`/reposition` now attribute unowned panel drags to the human actor instead of the latest agent session. The 7-card icebox was drained to zero non-deliberate cards; `retroactive work protocol` is documented in task-lifecycle.md § Execution Rules.
 
