@@ -285,6 +285,12 @@ def run_server(
         "reload": reload,
         "log_level": log_level,
         "factory": True,
+        # `cos hub start` appends stdout+stderr to ~/.coding-os/hub.log for the
+        # life of a singleton daemon, so a per-request line is an unbounded disk
+        # sink — the UI's 2.6s presence poll alone wrote 65 MB of "200 OK".
+        # Startup, bind failures and tracebacks come from the error logger and
+        # are unaffected; request-level detail belongs in logging_os.
+        "access_log": False,
     }
     if reload:
         # Scope the watcher to core (the in-process served code) so a docs/test

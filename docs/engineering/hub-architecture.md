@@ -296,6 +296,36 @@ JSON file directly per call, so a settings change needs no server restart.
 single-homed. No conflict between the two — they serve different
 purposes and you rarely run both at once.
 
+## `hub.log` retention — the access log is off on purpose
+
+`cos hub start` redirects the daemon's stdout+stderr into
+`~/.coding-os/hub.log` (`open(log, "ab")`), and the hub is a singleton that
+runs for weeks. That combination makes any per-request logging an unbounded
+disk sink, so **`run_server` passes `access_log=False` to uvicorn.**
+
+This is not lost signal. The Hub UI polls presence on a ~2.6 s tick, so the
+access log was ~99% `GET /api/presence/now 200 OK` — a 65 MB file whose top
+three lines by frequency were all health/presence polls, with no diagnostic
+value in any of them. What an operator actually reads `hub.log` for — the
+startup banner, bind failures, import errors, and handler tracebacks — comes
+from uvicorn's *error* logger and Python's unhandled-exception path, both of
+which are untouched by `access_log`. Per-request timing belongs in
+`logging_os` (structured, queryable, already line-capped), not in a raw
+append-only text file nobody rotates.
+
+**A cap backstops it.** A crash-looping handler can still spew tracebacks
+between restarts, so `cos hub start` truncates `hub.log` to its tail when it
+exceeds `HUB_LOG_MAX_BYTES` before handing the file to the child, and tells
+the operator how much it reclaimed. Truncation keeps the *tail*: the newest
+lines are the ones that explain why the hub is unhappy right now.
+
+Sibling policies — every other coding-os sink is already bounded, and this
+section exists because `hub.log` was the last one that was not:
+`.graph-telemetry.jsonl` rotates at 2 MB, `logging_os` truncates by line cap,
+`traces/` and `panels/` are GC'd by `auto-brain-decay.sh`, and the SQLite WAL
+is capped by `journal_size_limit` plus the SessionStart WAL guard
+([state-files.md](state-files.md)).
+
 ## Concurrency model — never block the loop, never exhaust the pool
 
 The hub is ONE uvicorn process with ONE asyncio event loop, serving every
