@@ -98,6 +98,36 @@ to an effort on an adapter without `effort_selection` is rejected at write time
 with the reason. This is deliberate — a policy the dispatcher can never satisfy
 is a silent outage discovered at the worst moment.
 
+## What consults the policy, and when
+
+A policy nothing reads per-prompt is indistinguishable from a policy that is
+switched off. `nudge-model-routing.sh` states that supervision is enabled;
+`resolve-supervise-route.sh` (UserPromptSubmit) is what makes it *apply*: for a
+formal gate with a composed role chain it resolves the active role through the
+same precedence the dispatcher uses, writes the result to the panel's
+`.supervise-route`, and surfaces the resolved `adapter/model/effort` to the agent
+and to the transparency banner.
+
+Resolution is deterministic and read-only. The hook spends no provider tokens
+and spawns no child: it answers "if this role dispatched right now, where would
+it go", which is the fact an operator needs to see and the agent needs in order
+to pass `adapter=`/`model=` when it does dispatch. Execution stays an explicit
+act — `cos_dispatch_formula_run` costs a real sub-session, so auto-spawning one
+per prompt would be a token incident wearing a feature's clothes.
+
+The mode still decides what the resolution means:
+
+| Mode | `.supervise-route` | Agent directive |
+|---|---|---|
+| `explicit` | resolved route | dispatch on this route when you dispatch |
+| `adaptive` | resolved route only at/above `complexity_threshold` | below the gate: session default, no route written |
+| `suggest` | resolved route, marked `proposed` | report the route; do not dispatch on it |
+
+Freshness and ownership follow the gate contract: the hook reads the panel's
+`.thinking_os-gate` and `.roles`, is debounced once per (session, role), and
+fails open. A stale or absent route is reported as absent — never as the
+last session's answer.
+
 ## Raptor shape
 
 The feature adds one cohesive registry and one health state machine. It reuses:
@@ -389,13 +419,45 @@ The parent receives an `EvidenceBundle` or an explicit failure. Raw child
 transcripts remain adapter-owned and are linked by native identity rather than
 copied into parent context.
 
+### Who writes the route, and why it is the kernel
+
+`adapter` and `effort` are **resolved by core and stamped by core** onto the
+`formula_dispatches` row, from the `DispatchRequest` it already built and the
+`DispatchResult` the adapter returned. An adapter-supplied `_meta` value still
+wins when present, because only the runtime knows whether it honoured the
+requested model; but the resolved route is never left NULL merely because the
+adapter did not echo it back.
+
+This is deliberate and it is the P8-correct split. The kernel is the component
+that *chose* the adapter — asking every present and future runtime to report a
+fact core already holds makes each new adapter a chance to silently break the
+evidence trail, which is exactly what happened: the columns existed, the
+persistence layer read them out of `_meta`, no adapter ever stamped them, and so
+every row carried a NULL route while looking structurally complete. The same
+applies to `error_category` and `retry_after_s`, which the normalized
+`DispatchResult` already carries.
+
+A row whose `status` is terminal therefore always names the adapter that ran it.
+A NULL `adapter` now means "this row predates the columns", not "we lost track".
+
 **Not yet built:** the standard also expresses a child's native session as
 `gen_ai.conversation.id`, and parent/child as span parenting rather than a
 bespoke column. Neither is emitted today, so a fan-out has no tree and Hub
-cannot open a child's native transcript. The `formula_dispatches` columns added
-for this (`adapter`, `effort`, `error_category`, `retry_after_s`,
-`health_state`, `health_probe`) are currently written by nothing — adding more
-columns before these have a writer would be dead weight.
+cannot open a child's native transcript.
+
+### Nested event loops are the normal case, not the exception
+
+Every MCP-initiated dispatch already runs inside a live asyncio loop, because
+the FastMCP server owns one. A dispatch entrypoint therefore **must not** call
+`asyncio.run` and then hope to recover from the resulting `RuntimeError` by
+matching its message: the wording is a CPython implementation detail, and a
+guard written against the wrong wording turns the single most important path in
+this feature into a hard failure that no test notices, because unit tests call
+the tool from a thread with no running loop.
+
+Entrypoints ask `asyncio.get_running_loop()` whether a loop is already running
+and route to a dedicated thread with its own loop when one is. The check is a
+property of the environment, not of an error string.
 
 ## Hub behavior
 

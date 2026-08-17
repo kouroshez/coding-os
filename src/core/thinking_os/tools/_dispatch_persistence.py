@@ -30,6 +30,7 @@ def _persist_dispatch_output(
     latency_ms: int,
     db_path: str,
     raw_transcript: str | None = None,
+    resolved_route: dict[str, Any] | None = None,
 ) -> int:
     bundle = _load_bundle(session_id, task_marker, persona_id)
     # Data-driven role → bundle field + Pydantic class resolution.
@@ -88,6 +89,16 @@ def _persist_dispatch_output(
         except (TypeError, ValueError):
             return None
 
+    # The adapter's own report wins — only the runtime knows whether it honoured
+    # the requested model. But core resolved the route, so a runtime that does
+    # not echo it back can no longer leave the row's provenance NULL: that is
+    # how every historical row ended up structurally complete and route-blind.
+    route = resolved_route or {}
+
+    def _from_route(key: str) -> Any:
+        reported = meta.get(key)
+        return reported if reported not in (None, "") else route.get(key)
+
     try:
         with sqlite3.connect(db_path) as conn:
             conn.execute(
@@ -116,16 +127,16 @@ def _persist_dispatch_output(
                     _jsonb(meta.get("tool_calls")),
                     _jsonb(meta.get("tool_failures")),
                     meta.get("session_id"),
-                    meta.get("model"),
+                    _from_route("model"),
                     _jsonb(meta.get("checkpoints")),
                     str(meta.get("error"))[:1000] if meta.get("error") else None,
                     raw_transcript[:50000] if raw_transcript else None,
-                    meta.get("adapter"),
-                    meta.get("effort"),
-                    meta.get("error_category"),
-                    meta.get("retry_after_s"),
-                    meta.get("health_state"),
-                    1 if meta.get("health_probe") else 0,
+                    _from_route("adapter"),
+                    _from_route("effort"),
+                    _from_route("error_category"),
+                    _from_route("retry_after_s"),
+                    _from_route("health_state"),
+                    1 if _from_route("health_probe") else 0,
                 ),
             )
     except Exception as exc:
@@ -141,6 +152,7 @@ def _emit_dispatch_metrics_safe(
     status: str,
     latency_ms: int,
     output_json: dict,
+    resolved_route: dict[str, Any] | None = None,
 ) -> None:
     import sqlite3 as _sqlite3
 
@@ -156,7 +168,10 @@ def _emit_dispatch_metrics_safe(
         outcome = _outcome_map.get(status, "partial")
         meta = output_json.get("_meta") if isinstance(output_json, dict) else {}
         meta = meta if isinstance(meta, dict) else {}
-        model_used = meta.get("model") or None
+        # A NULL model here is not cosmetic: this row is the empirical history
+        # that routing precedence step 6 consults, so an unnamed model means
+        # routing can never learn from the run it just paid for.
+        model_used = meta.get("model") or (resolved_route or {}).get("model") or None
         with _sqlite3.connect(db_path) as conn:
             metric_record(
                 conn,

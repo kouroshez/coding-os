@@ -7,8 +7,12 @@ with the reasoning protocol. Neither should drag the other into review.
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import threading
+from collections.abc import Callable, Coroutine
 from pathlib import Path
+from typing import Any
 
 from tools._shared import fail, ok, safe_tool
 
@@ -25,6 +29,54 @@ from ._dispatch_request import (
 )
 
 logger = logging.getLogger("thinking_os.cognition")
+
+
+def _run_async_blocking(
+    make_coroutine: Callable[[], Coroutine[Any, Any, Any]],
+    timeout_s: float,
+) -> Any:
+    # Ask the environment, never an error message. Under FastMCP a loop always
+    # owns this thread, so asyncio.run raises — and the wording it raises with
+    # is a CPython detail that a string guard gets wrong exactly once: in
+    # production, on the only path that matters, invisibly to unit tests that
+    # call the tool from a thread with no loop of its own.
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(make_coroutine())
+
+    box: dict[str, Any] = {}
+
+    def _runner() -> None:
+        loop = asyncio.new_event_loop()
+        try:
+            box["result"] = loop.run_until_complete(make_coroutine())
+        except BaseException as exc:
+            box["error"] = exc
+        finally:
+            loop.close()
+
+    thread = threading.Thread(target=_runner, daemon=True)
+    thread.start()
+    thread.join(timeout=timeout_s)
+    if "error" in box:
+        raise box["error"]
+    if "result" not in box:
+        raise TimeoutError(f"dispatcher thread did not return within {timeout_s:.0f}s")
+    return box["result"]
+
+
+def _resolved_route(req: Any, result: Any) -> dict[str, Any]:
+    # What core decided, for the columns an adapter is not obliged to echo.
+    # `dispatcher_name` is the last resort because it names the dispatcher
+    # implementation ("claude-sdk"), not the adapter id the policy selected.
+    return {
+        "adapter": req.adapter or result.dispatcher_name or None,
+        "model": req.model or None,
+        "effort": req.effort or None,
+        "error_category": result.error_category,
+        "retry_after_s": result.retry_after_s,
+    }
 
 
 def register_cos_dispatch_formula(mcp, db_path):
@@ -102,8 +154,6 @@ def register_cos_dispatch_formula_run(mcp, db_path):
         adapter: str = "",
         effort: str = "",
     ) -> str:
-        import asyncio as _asyncio
-
         from thinking_os import budget as _budget, dispatcher as _disp
 
         gate = _budget.check(db_path)
@@ -152,32 +202,16 @@ def register_cos_dispatch_formula_run(mcp, db_path):
             logger.debug("dispatch_started trace emit failed: %s", exc)
 
         try:
-            result = _asyncio.run(_disp.dispatch_request(req, db_path))
-        except RuntimeError as exc:
-            # Nested loop — fall back to a fresh thread-owned loop
-            if "already running" in str(exc):
-                import threading
+            result = _run_async_blocking(
+                lambda: _disp.dispatch_request(req, db_path),
+                req.timeout_s + 10,
+            )
+        except TimeoutError as exc:
+            return fail("unavailable", str(exc))
+        except Exception as exc:
+            return fail("internal", f"dispatch failed: {type(exc).__name__}: {exc}")
 
-                box: dict = {}
-
-                def _runner():
-                    loop = _asyncio.new_event_loop()
-                    try:
-                        box["result"] = loop.run_until_complete(
-                            _disp.dispatch_request(req, db_path)
-                        )
-                    finally:
-                        loop.close()
-
-                t = threading.Thread(target=_runner, daemon=True)
-                t.start()
-                t.join(timeout=req.timeout_s + 10)
-                if "result" not in box:
-                    return fail("transient", "dispatcher thread did not return")
-                result = box["result"]
-            else:
-                return fail("internal", f"asyncio.run failed: {exc}")
-
+        route = _resolved_route(req, result)
         filled = 0
         if result.status in ("ok", "timeout") and result.output_json:
             filled = _persist_dispatch_output(
@@ -190,6 +224,7 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                 latency_ms=result.latency_ms,
                 db_path=db_path,
                 raw_transcript=result.raw_transcript,
+                resolved_route=route,
             )
 
         # T2.5 + T8.4: emit dispatch cost and duration as coding-os metrics
@@ -200,6 +235,7 @@ def register_cos_dispatch_formula_run(mcp, db_path):
             status=result.status,
             latency_ms=result.latency_ms,
             output_json=result.output_json,
+            resolved_route=route,
         )
 
         # Trace event — pairs with dispatch_started above so the cognition
@@ -219,12 +255,12 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                     "latency_ms": result.latency_ms,
                     "cost_usd": _meta.get("total_cost_usd"),
                     "sub_session_id": _meta.get("session_id"),
-                    "model": _meta.get("model"),
+                    "model": _meta.get("model") or route.get("model"),
                     "bundle_fields_filled": filled,
                     "error": result.error,
                     "error_category": result.error_category,
                     "retry_after_s": result.retry_after_s,
-                    "adapter": _meta.get("adapter"),
+                    "adapter": _meta.get("adapter") or route.get("adapter"),
                 },
                 role=formula_id,
                 phase="EXECUTE",
@@ -237,6 +273,8 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                 "status": result.status,
                 "formula_id": result.formula_id,
                 "dispatcher_name": result.dispatcher_name,
+                "adapter": route.get("adapter"),
+                "model": route.get("model"),
                 "latency_ms": result.latency_ms,
                 "output_json": result.output_json,
                 "error": result.error,
@@ -275,8 +313,6 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
         adapter: str = "",
         effort: str = "",
     ) -> str:
-        import asyncio as _asyncio
-
         from thinking_os import budget as _budget, dispatcher as _disp
 
         if not formula_ids:
@@ -317,13 +353,13 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
         parallel_limit = int(_supervision.load_policy().get("max_parallel") or 3)
 
         async def _gather_all():
-            semaphore = _asyncio.Semaphore(max(1, parallel_limit))
+            semaphore = asyncio.Semaphore(max(1, parallel_limit))
 
             async def _limited(req):
                 async with semaphore:
                     return await _disp.dispatch_request(req, db_path)
 
-            return await _asyncio.gather(
+            return await asyncio.gather(
                 *(_limited(req) for req in requests),
                 return_exceptions=True,
             )
@@ -331,26 +367,13 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
         import time as _time
 
         t0 = _time.monotonic()
+        deadline = max(req.timeout_s for req in requests) + 10
         try:
-            gathered = _asyncio.run(_gather_all())
-        except RuntimeError:
-            # Nested-loop fallback: run in a dedicated thread with fresh loop
-            import threading
-
-            box: dict = {}
-
-            def _runner():
-                loop = _asyncio.new_event_loop()
-                try:
-                    box["result"] = loop.run_until_complete(_gather_all())
-                finally:
-                    loop.close()
-
-            t = threading.Thread(target=_runner, daemon=True)
-            t.start()
-            deadline = max(req.timeout_s for req in requests) + 10
-            t.join(timeout=deadline)
-            gathered = box.get("result", [])
+            gathered = _run_async_blocking(_gather_all, deadline)
+        except TimeoutError as exc:
+            return fail("unavailable", str(exc))
+        except Exception as exc:
+            return fail("internal", f"parallel dispatch failed: {type(exc).__name__}: {exc}")
         wall_ms = int((_time.monotonic() - t0) * 1000)
 
         results = []
@@ -363,6 +386,8 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
                         "formula_id": req.formula_id,
                         "error": f"{type(outcome).__name__}: {outcome}",
                         "dispatcher_name": "supervisor",
+                        "adapter": req.adapter or None,
+                        "model": req.model or None,
                         "latency_ms": 0,
                         "output_json": {},
                         "error_category": "provider",
@@ -373,6 +398,7 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
                     }
                 )
                 continue
+            route = _resolved_route(req, outcome)
             filled = 0
             if outcome.status == "ok" and outcome.output_json:
                 filled = _persist_dispatch_output(
@@ -385,6 +411,7 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
                     latency_ms=outcome.latency_ms,
                     db_path=db_path,
                     raw_transcript=outcome.raw_transcript,
+                    resolved_route=route,
                 )
                 ok_count += 1
             results.append(
@@ -392,6 +419,8 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
                     "status": outcome.status,
                     "formula_id": outcome.formula_id,
                     "dispatcher_name": outcome.dispatcher_name,
+                    "adapter": route.get("adapter"),
+                    "model": route.get("model"),
                     "latency_ms": outcome.latency_ms,
                     "output_json": outcome.output_json,
                     "error": outcome.error,

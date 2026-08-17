@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import sqlite3
 import sys
@@ -16,6 +17,8 @@ import budget
 from database import init_db
 from dispatcher import DispatchRequest
 from tools import cognition
+from tools._cognition_dispatch import _resolved_route, _run_async_blocking
+from tools._dispatch_persistence import _persist_dispatch_output
 
 
 def _dispatch(conn: sqlite3.Connection, task_marker: str, cost: float) -> None:
@@ -130,6 +133,154 @@ class TestParallelFanOutBudget:
         monkeypatch.setenv("COS_DAILY_BUDGET_USD", "1.0")
         assert budget.estimate_dispatch_cost(path, 3) == 0.0
         assert budget.check(path, additional_estimate_usd=0.0).allowed
+
+
+async def _echo(value: int) -> int:
+    return value
+
+
+async def _raise_boom() -> None:
+    raise ValueError("boom")
+
+
+class TestRunAsyncBlocking:
+    """FastMCP always owns a loop, so a nested-loop path is the normal case."""
+
+    def test_runs_when_no_loop_owns_the_thread(self) -> None:
+        assert _run_async_blocking(lambda: _echo(7), 5) == 7
+
+    def test_runs_when_a_loop_already_owns_the_thread(self) -> None:
+        # The regression: the old guard matched `"already running"`, which
+        # CPython never emits for asyncio.run() — it says "cannot be called
+        # from a running event loop" — so every MCP-served dispatch failed.
+        async def outer() -> int:
+            return _run_async_blocking(lambda: _echo(9), 5)
+
+        assert asyncio.run(outer()) == 9
+
+    def test_propagates_the_error_instead_of_reporting_success(self) -> None:
+        # The parallel path used to swallow a thread exception into `[]`, which
+        # reads downstream as "zero roles dispatched", not "the run crashed".
+        async def outer() -> None:
+            with pytest.raises(ValueError, match="boom"):
+                _run_async_blocking(_raise_boom, 5)
+
+        asyncio.run(outer())
+
+
+class TestDispatchSurvivesNestedLoop:
+    @staticmethod
+    def _tools(db_path: Path) -> _FakeMcp:
+        fake = _FakeMcp()
+        cognition.register_all(fake, str(db_path))
+        return fake
+
+    @pytest.mark.parametrize(
+        ("tool_name", "extra"),
+        [
+            ("cos_dispatch_formula_run", {"formula_id": "analyst"}),
+            ("cos_dispatch_parallel_run", {"formula_ids": ["analyst"]}),
+        ],
+    )
+    def test_dispatch_entrypoint_does_not_die_on_the_loop(
+        self, db, tool_name: str, extra: dict
+    ) -> None:
+        path, _ = db
+        tools = self._tools(path)
+
+        async def from_inside_a_loop() -> dict:
+            return tools.call(
+                tool_name,
+                session_id="ses-loop",
+                task_marker="TASK-loop",
+                persona_id="p",
+                timeout_s=5,
+                **extra,
+            )
+
+        result = asyncio.run(from_inside_a_loop())
+        # Whatever the dispatcher decides about availability, the loop itself
+        # must never be the reason the call fails.
+        assert "running event loop" not in json.dumps(result)
+        if result["ok"] is False:
+            assert result["error"]["category"] != "internal", result["error"]["message"]
+
+
+class TestResolvedRoutePersistence:
+    """The kernel picked the adapter, so a silent adapter cannot blank the row."""
+
+    @staticmethod
+    def _row(conn: sqlite3.Connection) -> tuple:
+        # init_db installs sqlite3.Row, which never compares equal to a tuple.
+        return tuple(
+            conn.execute(
+                "SELECT adapter, model, effort FROM formula_dispatches ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        )
+
+    @staticmethod
+    def _persist(path: Path, meta: dict, route: dict) -> None:
+        _persist_dispatch_output(
+            session_id="ses-route",
+            task_marker="TASK-route",
+            persona_id="p",
+            formula_id="unmapped_role_without_schema",
+            output_json={"summary": "x", "_meta": meta},
+            status="ok",
+            latency_ms=12,
+            db_path=str(path),
+            resolved_route=route,
+        )
+
+    @pytest.fixture(autouse=True)
+    def _isolate_bundle(self, tmp_path, monkeypatch):
+        from tools import _cognition_shared
+
+        monkeypatch.setattr(
+            _cognition_shared, "_bundle_path", lambda sid: tmp_path / f"b_{sid}.json"
+        )
+
+    def test_route_fills_columns_the_adapter_never_echoed(self, db) -> None:
+        path, conn = db
+        self._persist(path, {}, {"adapter": "codex", "model": "gpt-x", "effort": "high"})
+        assert self._row(conn) == ("codex", "gpt-x", "high")
+
+    def test_adapter_report_outranks_the_resolved_route(self, db) -> None:
+        path, conn = db
+        # Only the runtime knows which model actually served the request.
+        self._persist(
+            path,
+            {"adapter": "claude", "model": "claude-haiku-4-5"},
+            {"adapter": "codex", "model": "gpt-x", "effort": "high"},
+        )
+        assert self._row(conn) == ("claude", "claude-haiku-4-5", "high")
+
+    def test_no_route_and_no_report_stays_null(self, db) -> None:
+        path, conn = db
+        self._persist(path, {}, {})
+        assert self._row(conn) == (None, None, None)
+
+
+class TestResolvedRouteShape:
+    def test_prefers_the_policy_adapter_over_the_dispatcher_name(self) -> None:
+        req = DispatchRequest(
+            formula_id="reviewer", agent_file="/x.md", prompt="p", adapter="codex", effort="low"
+        )
+        result = type(
+            "R",
+            (),
+            {"dispatcher_name": "claude-sdk", "error_category": None, "retry_after_s": None},
+        )()
+        assert _resolved_route(req, result)["adapter"] == "codex"
+
+    def test_falls_back_to_the_dispatcher_name_when_unpinned(self) -> None:
+        req = DispatchRequest(formula_id="reviewer", agent_file="/x.md", prompt="p")
+        result = type(
+            "R",
+            (),
+            {"dispatcher_name": "claude-sdk", "error_category": None, "retry_after_s": None},
+        )()
+        assert _resolved_route(req, result)["adapter"] == "claude-sdk"
 
 
 class TestDispatchRequestMaxTurns:
