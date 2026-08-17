@@ -295,7 +295,15 @@ export default function LogsPage() {
                       </td>
                       <td className="break-words px-3 py-2 text-[var(--cos-text)]">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium">{group.event.msg}</span>
+                          {/* One serialized-stats line can be 20 rows tall and
+                              push every other event off screen. Clamp it and let
+                              the row itself be the disclosure. */}
+                          <span
+                            className="max-h-24 overflow-y-auto font-medium cos-scroll"
+                            title={group.event.msg}
+                          >
+                            {group.event.msg}
+                          </span>
                           {group.count > 1 && (
                             <button
                               type="button"
