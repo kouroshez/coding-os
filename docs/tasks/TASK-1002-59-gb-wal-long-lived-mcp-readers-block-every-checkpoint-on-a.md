@@ -4,7 +4,7 @@ title: "59 GB WAL \u2014 long-lived MCP readers block every checkpoint on a 92%-
 swimlane: core
 kind: bug
 epic: null
-labels: [infra, database, reliability]
+labels: [infra, database, reliability, ready]
 status: icebox
 priority: P1
 appetite: 1d

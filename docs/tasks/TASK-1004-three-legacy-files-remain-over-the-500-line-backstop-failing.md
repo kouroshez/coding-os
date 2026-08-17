@@ -4,7 +4,7 @@ title: "Three legacy files remain over the 500-line backstop, failing cos doctor
 swimlane: core
 kind: chore
 epic: null
-labels: [quality, file-size]
+labels: [quality, file-size, ready]
 status: icebox
 priority: P3
 appetite: 2d

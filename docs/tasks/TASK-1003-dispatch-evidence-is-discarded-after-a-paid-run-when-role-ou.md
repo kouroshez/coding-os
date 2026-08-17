@@ -4,7 +4,7 @@ title: "Dispatch evidence is discarded after a paid run when role output misses 
 swimlane: "thinking_os"
 kind: bug
 epic: null
-labels: [cognition, dispatch, schema]
+labels: [cognition, dispatch, schema, ready]
 status: icebox
 priority: P2
 appetite: 1d
