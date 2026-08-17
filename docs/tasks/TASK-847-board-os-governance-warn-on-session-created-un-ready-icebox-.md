@@ -5,13 +5,13 @@ swimlane: "board_os"
 kind: feature
 epic: null
 labels: []
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-07-18
 started: 2026-07-18
 completed: 2026-07-17
-agent_session: ses-claude-20260717-131858-7098
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

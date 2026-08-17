@@ -42,3 +42,4 @@ Actual: every one of them is DoR-blocked on a field the CLI cannot set.
 - 2026-08-17 [claude]: Edit _board_cli_lifecycle.py
 - 2026-08-17 [claude]: Status transitioned to complete via cos task-done.
 - 2026-08-17 [claude]: commit 217b334e08 — feat(cli): let task-create set Repro Steps
+- 2026-08-17 [claude]: commit 58851a75fe — chore(tasks): record the closing commit on TASK-999
