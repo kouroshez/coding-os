@@ -1,8 +1,8 @@
 <!-- cos:generated:start — do not edit or re-import; source: coding-os DB -->
 ## Trusted lessons (auto-generated)
 
-- Recurring backtrack root cause 'tool_failure' (40 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 46×)_
-- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (9 occurrences) _(seen 111×)_
+- Recurring backtrack root cause 'tool_failure' (40 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 47×)_
+- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (9 occurrences) _(seen 112×)_
 - At session end, a task remains in 'in_progress' status without explicit terminal state or intentional pause marking → Before session end, resolve the task: `cos task-done TASK-N` to complete, `cos task-move TASK-N --to blocked` to park, or create `.leave-open` to mark intentional work-in-progress — Unresolved in_progress state ambiguates the next session about whether work was abandoned, risking lost context and silent work loss _(seen 100×)_
 - Attempting to write or edit Python/TypeScript code without first recording a Complexity Gate classification → Call `cos_classify_prompt` before code Write/Edit to record the gate, or use `write-state.sh .thinking_os-gate` — The gate separates problem analysis from implementation; skipping it causes solutions to misalign with the actual problem _(seen 22×)_
 - A formula dispatch specifies predicates (e.g., `predicates=['coverage_100']`) without a matching EvidenceBundle proving the predicate is satisfied → Produce the required EvidenceBundle using StructuredOutput before dispatch — include it in the formula dispatcher call with the predicate keys — Predicates are soft gates that require proof; the dispatcher rejects any dispatch without an EvidenceBundle, causing predicate-failure errors _(seen 29×)_
