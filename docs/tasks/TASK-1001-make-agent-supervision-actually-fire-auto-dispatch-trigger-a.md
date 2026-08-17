@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [governance, docs-update, supervision, hooks, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-08-17
 started: 2026-08-17
-completed: null
+completed: 2026-08-17
 agent_session: ses-claude-20260816-230826-9ffd
 depends_on: []
 blocked_by: []
@@ -132,3 +132,4 @@ references: []
 - 2026-08-17 [claude]: Edit fail-open-hooks-hide-dead-triggers.md
 - 2026-08-17 [claude]: Edit MEMORY.md
 - 2026-08-17 [claude]: Matrix green: thinking_os 1592 passed + server --test, adapters 52, cli 328, hooks/golden 32+15, docs-lint OK, make…
+- 2026-08-17 [claude]: Status transitioned to complete via cos task-done.
