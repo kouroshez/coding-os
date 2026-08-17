@@ -78,7 +78,7 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 | `src/core/board_os/**` | `uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q` |
 | `src/core/hooks/*.sh`, `src/core/hooks/registry.yaml`, `src/core/scripts/*.sh` | `make verify-hooks` + `uv run pytest tests/test_hooks_fail_closed.py tests/test_golden_parity.py -q` — drift ⇒ `make golden-capture`, then re-run |
 | `src/adapters/**` | `uv run pytest tests/test_adapters_*.py tests/test_adapter_parity.py -q` |
-| `src/cli/*.py` | `uv run pytest tests/test_cli.py -q` |
+| `src/cli/*.py` | `uv run pytest tests/test_cli.py tests/test_stack_rule_refresh.py -q` |
 | `src/templates/**/scaffold/**` | `uv run pytest tests/test_template_scaffold_*.py -q` |
 | `src/scripts/**/*.py` | `uv run pytest tests/test_script_entrypoints.py -q` |
 | `src/core/rules/*.md`, `src/core/skills/**` | `uv run pytest tests/test_golden_parity.py tests/test_rules_fresh.py -q` — drift ⇒ `make golden-capture`, then re-run |

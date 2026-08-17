@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 import click
@@ -197,7 +198,7 @@ def _apply_template(
 def refresh_stack_rules(
     template_name: str,
     project_dir: Path,
-    agent: str | None,
+    agents: Sequence[str | None],
     *,
     dry_run: bool = False,
 ) -> tuple[list[str], list[str]]:
@@ -206,48 +207,64 @@ def refresh_stack_rules(
     Core rules are symlinks and reach every project the moment they change; stack
     rules are copies, so a correction to `src/templates/<stack>/rules/` reached no
     existing install at all. The install-time mirror under `.coding-os/src/templates/`
-    is a byte-exact snapshot of what was copied, which is the baseline that tells
-    an untouched file from an edited one without inventing a hash sidecar: equal to
-    the mirror means the user never touched it, so the new template is safe to
-    write; different means it is theirs and only the doctor check may speak.
+    is a byte-exact snapshot of what was copied — the baseline that separates an
+    untouched file from an edited one without inventing a hash sidecar.
+
+    Every adapter is decided against the SAME mirror and the mirror moves once, at
+    the end: advancing it inside a per-adapter pass refreshed the first adapter and
+    left every later one reading its own untouched copy as a user edit, forever.
     """
     stack_registry = _get_stack_registry()
-    if template_name not in stack_registry or agent is None:
+    if template_name not in stack_registry:
         return [], []
-    adapters = _get_adapter_registry()
-    adapter_profile = adapters.get(agent)
-    if adapter_profile is None or not adapter_profile.supports_rules:
-        return [], []
-    if not adapter_profile.rules_dir:
-        return [], []
-
     source_dir = stack_registry[template_name].source_dir / "rules"
-    mirror_dir = project_dir / STATE_DIR / "src" / "templates" / template_name / "rules"
-    rules_dir = project_dir / adapter_profile.rules_dir
     if not source_dir.is_dir():
         return [], []
+    mirror_dir = project_dir / STATE_DIR / "src" / "templates" / template_name / "rules"
 
     refreshed: list[str] = []
     kept: list[str] = []
-    for source in sorted(source_dir.glob("*.md")):
-        installed = rules_dir / f"{template_name}-{source.name}"
-        mirror = mirror_dir / source.name
-        if not installed.is_file():
-            continue
-        # Already current: nothing to refresh, and nothing to warn about either.
-        # This test comes first because the mirror can be older than both — an
-        # install predating the mirror being kept in step would otherwise have
-        # every untouched rule reported back to its owner as "you edited this".
-        if filecmp.cmp(installed, source, shallow=False):
-            continue
-        if not mirror.is_file() or not filecmp.cmp(installed, mirror, shallow=False):
-            kept.append(installed.name)
-            continue
-        if not dry_run:
-            shutil.copy2(source, installed)
-            shutil.copy2(source, mirror)
-        refreshed.append(installed.name)
+    advanced: set[Path] = set()
+    for rules_dir in _rules_dirs_for(project_dir, agents):
+        for source in sorted(source_dir.glob("*.md")):
+            installed = rules_dir / f"{template_name}-{source.name}"
+            mirror = mirror_dir / source.name
+            if not installed.is_file():
+                continue
+            # Already current: nothing to refresh and nobody to warn. This test
+            # comes first because the mirror can be older than both, and an
+            # install predating it would otherwise have every untouched rule
+            # reported back to its owner as "you edited this".
+            if filecmp.cmp(installed, source, shallow=False):
+                continue
+            if not mirror.is_file():
+                kept.append(f"{installed.name} (no baseline to compare against)")
+                continue
+            if not filecmp.cmp(installed, mirror, shallow=False):
+                kept.append(installed.name)
+                continue
+            if not dry_run:
+                shutil.copy2(source, installed)
+            advanced.add(mirror)
+            refreshed.append(installed.name)
+
+    if not dry_run:
+        for mirror in advanced:
+            shutil.copy2(source_dir / mirror.name, mirror)
     return refreshed, kept
+
+
+def _rules_dirs_for(project_dir: Path, agents: Sequence[str | None]) -> list[Path]:
+    adapters = _get_adapter_registry()
+    dirs: list[Path] = []
+    for agent in agents:
+        if agent is None:
+            continue
+        profile = adapters.get(agent)
+        if profile is None or not profile.supports_rules or not profile.rules_dir:
+            continue
+        dirs.append(project_dir / profile.rules_dir)
+    return dirs
 
 
 def _resolve_placeholders(text: str, substitutions: dict[str, str]) -> str:

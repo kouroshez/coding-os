@@ -161,7 +161,7 @@ def _aggregate_world(agent: str, templates: tuple[str, ...], project: Path):
 def _refresh_stack_rules(
     project: Path,
     templates: list[str],
-    agent: str,
+    agents: list[str],
     *,
     dry_run: bool,
     report: bool,
@@ -171,7 +171,8 @@ def _refresh_stack_rules(
     Stack rules are copies rather than symlinks, so `_apply_diff` never sees them
     and a fixed template used to stop at the repo. A copy still equal to the
     install-time mirror is untouched and safe to overwrite; anything else is the
-    project's own and only `cos doctor` may speak about it.
+    project's own and only `cos doctor` may speak about it. Every adapter is passed
+    in one call so the shared mirror is decided once rather than per adapter.
     """
     from cli._init_scaffold import refresh_stack_rules
 
@@ -179,7 +180,7 @@ def _refresh_stack_rules(
     kept: list[str] = []
     for template_name in templates:
         stack_refreshed, stack_kept = refresh_stack_rules(
-            template_name, project, agent, dry_run=dry_run
+            template_name, project, agents, dry_run=dry_run
         )
         refreshed.extend(stack_refreshed)
         kept.extend(stack_kept)
@@ -189,8 +190,10 @@ def _refresh_stack_rules(
         for name in refreshed:
             click.echo(f"  {verb} stack rule {name} from its template")
         for name in kept:
-            click.echo(f"  Kept your edited stack rule {name} — `cos doctor` shows the drift")
-    return bool(refreshed) and not dry_run
+            click.echo(f"  Kept stack rule {name} — it differs from what was installed")
+    # Pending work is a change whether or not this run wrote it; reporting false
+    # under --dry-run would make `--format json` claim there is nothing to do.
+    return bool(refreshed)
 
 
 # ---------------------------------------------------------------------------
@@ -261,11 +264,6 @@ def update(
             if not dry_run:
                 _apply_diff(project, diff, agent)
 
-        if _refresh_stack_rules(
-            project, templates, agent, dry_run=dry_run, report=output_format == "text"
-        ):
-            overall_changes = True
-
         if _sync_hook_registration(project, agent, dry_run=dry_run):
             overall_changes = True
             if output_format == "text":
@@ -278,6 +276,13 @@ def update(
 
         if not dry_run:
             _write_installed_manifest(project, agent, templates, target)
+
+    # Outside the per-agent loop on purpose: the stack-rule baseline mirror is
+    # one file shared by every adapter, so it must be decided once for all of them.
+    if _refresh_stack_rules(
+        project, templates, list(agents), dry_run=dry_run, report=output_format == "text"
+    ):
+        overall_changes = True
 
     if not dry_run:
         # Remove legacy .codex/instructions.md (pre-2026 adapter wrote it,

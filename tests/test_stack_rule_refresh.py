@@ -64,7 +64,7 @@ def installed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Path
 def test_untouched_rule_is_refreshed(installed: dict[str, Path]) -> None:
     installed["template"].write_text("corrected template\n", encoding="utf-8")
 
-    refreshed, kept = refresh_stack_rules(STACK, installed["project"], AGENT)
+    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT])
 
     assert refreshed == [f"{STACK}-{RULE}"]
     assert kept == []
@@ -75,7 +75,7 @@ def test_mirror_advances_with_the_rule(installed: dict[str, Path]) -> None:
     """A stale mirror would make the next refresh read the file as user-edited."""
     installed["template"].write_text("corrected template\n", encoding="utf-8")
 
-    refresh_stack_rules(STACK, installed["project"], AGENT)
+    refresh_stack_rules(STACK, installed["project"], [AGENT])
 
     assert installed["mirror"].read_text(encoding="utf-8") == "corrected template\n"
 
@@ -84,7 +84,7 @@ def test_user_edited_rule_is_kept(installed: dict[str, Path]) -> None:
     installed["installed"].write_text("my own version\n", encoding="utf-8")
     installed["template"].write_text("corrected template\n", encoding="utf-8")
 
-    refreshed, kept = refresh_stack_rules(STACK, installed["project"], AGENT)
+    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT])
 
     assert refreshed == []
     assert kept == [f"{STACK}-{RULE}"]
@@ -95,25 +95,57 @@ def test_dry_run_writes_nothing(installed: dict[str, Path]) -> None:
     installed["template"].write_text("corrected template\n", encoding="utf-8")
     before = installed["installed"].read_text(encoding="utf-8")
 
-    refreshed, _ = refresh_stack_rules(STACK, installed["project"], AGENT, dry_run=True)
+    refreshed, _ = refresh_stack_rules(STACK, installed["project"], [AGENT], dry_run=True)
 
     assert refreshed == [f"{STACK}-{RULE}"], "dry run still reports what it would do"
     assert installed["installed"].read_text(encoding="utf-8") == before
 
 
-def test_missing_mirror_is_treated_as_user_owned(installed: dict[str, Path]) -> None:
-    """Without a baseline there is no evidence the file is untouched — do not write."""
+def test_missing_mirror_says_so_instead_of_accusing_the_user(installed: dict[str, Path]) -> None:
+    """Without a baseline there is no evidence either way — decline to write, and
+    say the baseline is missing rather than assert an edit that may not exist."""
     installed["mirror"].unlink()
     installed["template"].write_text("corrected template\n", encoding="utf-8")
 
-    refreshed, kept = refresh_stack_rules(STACK, installed["project"], AGENT)
+    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT])
 
     assert refreshed == []
-    assert kept == [f"{STACK}-{RULE}"]
+    assert kept == [f"{STACK}-{RULE} (no baseline to compare against)"]
+    assert installed["installed"].read_text(encoding="utf-8") != "corrected template\n"
+
+
+def test_every_adapter_is_decided_against_the_same_mirror(
+    installed: dict[str, Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Advancing the mirror per adapter refreshed the first and froze the rest."""
+
+    class _Codex:
+        supports_rules = True
+        rules_dir = ".codex/rules"
+
+    class _Claude:
+        supports_rules = True
+        rules_dir = ".claude/rules"
+
+    monkeypatch.setattr(
+        "cli._init_scaffold._get_adapter_registry",
+        lambda: {AGENT: _Claude(), "codex": _Codex()},
+    )
+    codex_rule = installed["project"] / ".codex" / "rules" / f"{STACK}-{RULE}"
+    codex_rule.parent.mkdir(parents=True)
+    codex_rule.write_text(installed["installed"].read_text(encoding="utf-8"), encoding="utf-8")
+    installed["template"].write_text("corrected template\n", encoding="utf-8")
+
+    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT, "codex"])
+
+    assert kept == [], "no adapter may be reported as edited by another adapter's refresh"
+    assert len(refreshed) == 2
+    assert codex_rule.read_text(encoding="utf-8") == "corrected template\n"
+    assert installed["installed"].read_text(encoding="utf-8") == "corrected template\n"
 
 
 def test_unchanged_template_is_a_no_op(installed: dict[str, Path]) -> None:
-    refreshed, kept = refresh_stack_rules(STACK, installed["project"], AGENT)
+    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT])
 
     assert (refreshed, kept) == ([], [])
 
@@ -124,7 +156,7 @@ def test_stale_mirror_does_not_accuse_an_untouched_rule(installed: dict[str, Pat
     refresh and is nobody's edit, so it must produce no line at all."""
     installed["mirror"].write_text("what the template said months ago\n", encoding="utf-8")
 
-    refreshed, kept = refresh_stack_rules(STACK, installed["project"], AGENT)
+    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT])
 
     assert (refreshed, kept) == ([], [])
 
@@ -134,11 +166,11 @@ def test_uninstalled_rule_is_never_created(installed: dict[str, Path]) -> None:
     installed["installed"].unlink()
     installed["template"].write_text("corrected template\n", encoding="utf-8")
 
-    refreshed, kept = refresh_stack_rules(STACK, installed["project"], AGENT)
+    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT])
 
     assert (refreshed, kept) == ([], [])
     assert not installed["installed"].exists()
 
 
 def test_no_agent_is_a_no_op(installed: dict[str, Path]) -> None:
-    assert refresh_stack_rules(STACK, installed["project"], None) == ([], [])
+    assert refresh_stack_rules(STACK, installed["project"], [None]) == ([], [])
