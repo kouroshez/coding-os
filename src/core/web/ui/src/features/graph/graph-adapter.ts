@@ -52,7 +52,9 @@ export function nodeCountLabel(
   fetched: number,
   total: number | null | undefined,
 ): string {
-  const count = (value: number) => value.toLocaleString();
+  // Pinned locale: the rest of the canvas chrome is ASCII, and a browser set to
+  // a non-Latin numeral locale would render this one badge in another script.
+  const count = (value: number) => value.toLocaleString('en-US');
   if (total == null) {
     return shown === fetched
       ? `${count(shown)} nodes`
