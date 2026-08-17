@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildGraph, type ApiGraphPayload } from './graph-adapter';
+import { buildGraph, nodeCountLabel, type ApiGraphPayload } from './graph-adapter';
 
 // — focus+context community-map styling. The no-root home runs
 // the export in `processes` mode: synthetic `community` headers are the
@@ -27,6 +27,21 @@ const communityPayload: ApiGraphPayload = {
     },
   ],
 };
+
+describe('nodeCountLabel', () => {
+  it('names the whole-graph total rather than comparing the sample to itself', () => {
+    expect(nodeCountLabel(3000, 3000, 78121)).toBe('3,000 of 78,121 nodes');
+  });
+
+  it('keeps shown, fetched, and total distinct when the client pruned', () => {
+    expect(nodeCountLabel(120, 3000, 78121)).toBe('120 shown · 3,000 fetched · 78,121 in graph');
+  });
+
+  it('falls back to the sample when an older Hub sends no total', () => {
+    expect(nodeCountLabel(3000, 3000, null)).toBe('3,000 nodes');
+    expect(nodeCountLabel(120, 3000, undefined)).toBe('120 of 3,000 nodes');
+  });
+});
 
 describe('buildGraph — community-map (processes) mode', () => {
   it('forces labels on community nodes but not on member nodes', () => {

@@ -25,6 +25,7 @@ from .graph import (
     _normalize_kinds,
     _ok,
     _walk_bfs,
+    logger,
 )
 
 _CONTAINS_EDGES: tuple[str, ...] = ("contains",)
@@ -318,6 +319,10 @@ def cos_graph_export(
             "backend": be.backend_id,
             "node_count": len(nodes),
             "edge_count": len(edges),
+            # Denominator for "how much of the graph is this?". Without it a
+            # consumer can only compare the sample against itself, which reads
+            # as full coverage at every budget.
+            "graph_node_total": _graph_node_total(be),
             "include_spine": include_spine,
             # honest budget provenance — the Hub badge reads
             # these instead of guessing from its own request params.
@@ -331,6 +336,14 @@ def cos_graph_export(
             "result_truncated": len(nodes) >= max_nodes or max_nodes < max_nodes_requested,
         },
     )
+
+
+def _graph_node_total(be: GraphBackend) -> int | None:
+    try:
+        return int(be.count_nodes())
+    except Exception as exc:
+        logger.debug("graph_node_total unavailable: %s", exc)
+        return None
 
 
 def _export_blend(

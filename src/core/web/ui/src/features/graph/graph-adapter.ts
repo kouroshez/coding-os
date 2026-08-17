@@ -29,6 +29,9 @@ export interface ApiGraphMeta {
   max_nodes_effective?: number;
   max_hops_effective?: number | null;
   result_truncated?: boolean;
+  // Nodes in the whole graph, independent of this request's budget — the
+  // denominator the node-count badge needs to say what fraction is on screen.
+  graph_node_total?: number | null;
 }
 
 export interface ApiGraphPayload {
@@ -36,6 +39,27 @@ export interface ApiGraphPayload {
   nodes?: ApiNode[];
   edges?: ApiEdge[];
   meta?: ApiGraphMeta;
+}
+
+/**
+ * Coverage line for the canvas badge. A sample compared against itself always
+ * reads as full coverage — "3000 / 3000 nodes" next to a truncation warning is
+ * the counter contradicting itself — so the whole-graph total from
+ * `meta.graph_node_total` is the denominator whenever the server sends one.
+ */
+export function nodeCountLabel(
+  shown: number,
+  fetched: number,
+  total: number | null | undefined,
+): string {
+  const count = (value: number) => value.toLocaleString();
+  if (total == null) {
+    return shown === fetched
+      ? `${count(shown)} nodes`
+      : `${count(shown)} of ${count(fetched)} nodes`;
+  }
+  if (shown === fetched) return `${count(shown)} of ${count(total)} nodes`;
+  return `${count(shown)} shown · ${count(fetched)} fetched · ${count(total)} in graph`;
 }
 
 export interface SigmaNodeAttrs {

@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useGraphStore } from '@/store/graph-store';
 import { useApiGet } from '@/lib/hooks';
 import { useSigma } from './useSigma';
-import { buildGraph, bfsSubgraph, type ApiGraphPayload } from './graph-adapter';
+import { buildGraph, bfsSubgraph, nodeCountLabel, type ApiGraphPayload } from './graph-adapter';
 
 // Sigma host. Renders the smart-blend overview by default
 // or a depth-bounded BFS subgraph when a root is pinned.  Noise nodes
@@ -158,11 +158,11 @@ export default function GraphCanvas() {
             : 'no nodes reachable at this depth'}
         </div>
       )}
-      {/* TASK-023/TASK-402: honest truncation badge. Reads the server's
-          budget provenance (meta) instead of guessing from request params —
-          the old `fetched >= requestedMax` heuristic went silent whenever
-          the server clamped below the request. Bottom-LEFT so the Legend
-          widget (bottom-right) never covers it. */}
+      {/* Honest coverage badge. Reads the server's budget provenance (meta)
+          instead of guessing from request params — a client-side
+          `fetched >= requestedMax` heuristic goes silent whenever the server
+          clamps below the request. Bottom-LEFT so the Legend widget
+          (bottom-right) never covers it. */}
       {!isLoading && !error && pruned && (pruned.nodes?.length ?? 0) > 0 && (
         <div
           role="status"
@@ -173,16 +173,12 @@ export default function GraphCanvas() {
             const shown = pruned.nodes?.length ?? 0;
             const fetched = data?.nodes?.length ?? shown;
             const meta = data?.meta;
-            const truncated = Boolean(
-              meta?.result_truncated ||
-                fetched >= (meta?.max_nodes_effective ?? requestedMax),
-            );
+            const truncated = meta?.result_truncated ?? fetched >= requestedMax;
             return (
               <>
-                <span className="text-[var(--cos-text)]">{shown}</span>
-                <span> / </span>
-                <span>{fetched}</span>
-                <span> nodes</span>
+                <span className="text-[var(--cos-text)]">
+                  {nodeCountLabel(shown, fetched, meta?.graph_node_total)}
+                </span>
                 {!selectedRootUid && (
                   <span className="ml-1">
                     · overview sample — pick a root in Contains spine for the exact tree

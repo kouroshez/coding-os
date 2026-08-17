@@ -220,6 +220,17 @@ class TestExport:
     def test_unknown_format(self, seeded_backend):
         _assert_fail(graph.cos_graph_export(format="svg"), "validation")
 
+    def test_meta_carries_whole_graph_node_total(self, seeded_backend):
+        """Without a denominator the Hub badge can only compare the sample to
+        itself, which reads as full coverage at every budget."""
+        capped = _assert_ok(graph.cos_graph_export(format="json", max_nodes=2))
+        total = capped["meta"]["graph_node_total"]
+        assert isinstance(total, int)
+        assert total >= capped["meta"]["node_count"]
+
+        full = _assert_ok(graph.cos_graph_export(format="json"))
+        assert full["meta"]["graph_node_total"] == total
+
     def test_centrality_default_excludes_external(self, seeded_backend):
         """F6 / Audit #10: default `include_external=False` must drop
         `code:external:*` nodes from the centrality top — otherwise
