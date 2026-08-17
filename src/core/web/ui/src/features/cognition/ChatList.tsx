@@ -22,6 +22,16 @@ interface ChatsPayload {
   cwd: string;
 }
 
+// Transcript byte size is a storage detail, not a property of the conversation.
+// It stays reachable on hover instead of competing with the title in the row.
+function transcriptTooltip(session: ChatSession): string {
+  const parts = [session.session_id];
+  if (session.file_size != null) {
+    parts.push(`transcript ${(session.file_size / 1024).toFixed(1)} kb`);
+  }
+  return parts.join(' · ');
+}
+
 function formatRelative(ms: number | null | undefined): string | null {
   if (!ms) return null;
   const diff = Date.now() - ms;
@@ -30,13 +40,6 @@ function formatRelative(ms: number | null | undefined): string | null {
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
   if (diff < 30 * 86_400_000) return `${Math.floor(diff / 86_400_000)}d ago`;
   return new Date(ms).toLocaleDateString();
-}
-
-function formatSize(bytes: number | null | undefined): string {
-  if (bytes == null) return '';
-  if (bytes < 1024) return `${bytes}b`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}kb`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)}mb`;
 }
 
 export default function ChatList({
@@ -150,6 +153,7 @@ export default function ChatList({
                   type="button"
                   onClick={() => onSelect(s.session_id)}
                   aria-pressed={active}
+                  title={transcriptTooltip(s)}
                   className={[
                     'block w-full px-4 py-3 text-left text-xs transition-all duration-200 border-l-2',
                     active
@@ -171,9 +175,8 @@ export default function ChatList({
                     {ago && <span className="ml-auto text-[9px] text-[var(--cos-muted)] font-mono">{ago}</span>}
                   </div>
                   <div className="mt-1.5 line-clamp-2 font-semibold text-[13px] leading-snug" dir="auto">{title}</div>
-                  <div className="mt-1 flex items-center justify-between text-[10px] text-[var(--cos-muted)] font-mono">
-                    <span className="truncate">{s.session_id.slice(0, 8)}…</span>
-                    <span>{formatSize(s.file_size)}</span>
+                  <div className="mt-1 truncate text-[10px] text-[var(--cos-muted)] font-mono">
+                    {s.session_id.slice(0, 8)}…
                   </div>
                 </button>
               </li>

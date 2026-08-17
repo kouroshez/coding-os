@@ -361,12 +361,6 @@ export default function DashboardPage() {
                           <span>{c.git_branch}</span>
                         </>
                       )}
-                      {c.file_size != null && (
-                        <>
-                          <span aria-hidden>·</span>
-                          <span>{(c.file_size / (1024 * 1024)).toFixed(1)}mb</span>
-                        </>
-                      )}
                       <span className="ml-auto">{rel(c.last_modified)}</span>
                     </div>
                   </Link>
