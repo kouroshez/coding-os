@@ -5,18 +5,17 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [incident, disk, state-files, ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-17
-started: null
-completed: null
-agent_session: null
+started: 2026-08-17
+completed: 2026-08-17
+agent_session: ses-claude-20260817-154319-10c2
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1010: Stop graph telemetry from minting phantom .coding-os state dirs at cwd
 
 **Outcome (one sentence):** A `cos_graph_*` call from a subdirectory writes telemetry into the real project state dir instead of creating a phantom one that permanently hijacks state resolution for that subtree.
@@ -46,3 +45,6 @@ Once minted the dir poisons resolution permanently: `source cos-env.sh` from `sr
 - 2026-08-17 [claude]: Edit test_telemetry_path_resolution.py
 - 2026-08-17 [claude]: Edit test_telemetry_path_resolution.py
 - 2026-08-17 [claude]: commit 1bc01fcb96 — fix(hub): stop hub.log growing without bound
+- 2026-08-17 [claude]: commit fbd499e70c — fix(graph_os): resolve telemetry state dir by walk, never mint one at cwd
+- 2026-08-17 [claude]: _telemetry_path now resolves via _find_project_root_from_cwd and degrades to None; mkdir dropped parents=True so it…
+- 2026-08-17 [claude]: Status transitioned to complete via cos task-done.

@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [incident, disk, hub, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-17
 started: 2026-08-17
-completed: null
+completed: 2026-08-17
 agent_session: ses-claude-20260817-154319-10c2
 depends_on: []
 blocked_by: []
@@ -41,3 +41,5 @@ references: []
 - 2026-08-17 [claude]: Edit hub_commands.py
 - 2026-08-17 [claude]: Edit hub_commands.py
 - 2026-08-17 [claude]: Edit test_hub_log_retention.py
+- 2026-08-17 [claude]: access_log=False in run_server + _truncate_hub_log tail-trim on start. Verified by execution: `cos hub restart`…
+- 2026-08-17 [claude]: Status transitioned to complete via cos task-done.
