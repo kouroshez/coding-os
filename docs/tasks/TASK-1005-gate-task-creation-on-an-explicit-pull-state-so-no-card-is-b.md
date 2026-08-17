@@ -5,12 +5,12 @@ swimlane: "board_os"
 kind: feature
 epic: null
 labels: [governance, docs-update, board, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-17
 started: 2026-08-17
-completed: null
+completed: 2026-08-17
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -64,3 +64,4 @@ references: []
 - 2026-08-17 [claude]: Edit test_hooks_task_readiness.py
 - 2026-08-17 [claude]: commit d3422c743d — feat(board): block creating a card with no declared pull-state
 - 2026-08-17 [claude]: Dogfood caught a false positive within minutes: the gate blocked its own commit because the Bash matcher…
+- 2026-08-17 [claude]: Status transitioned to complete via cos task-done.
