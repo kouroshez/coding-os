@@ -14,7 +14,7 @@ Spec: docs/engineering/ablation-protocol.md
 
 Usage:
     uv run python src/scripts/ablation_probe.py --preflight
-    uv run python src/scripts/ablation_probe.py --preflight --json
+
 """
 
 from __future__ import annotations
@@ -40,9 +40,24 @@ DATASET_SIZE_ENDPOINT = f"https://datasets-server.huggingface.co/size?dataset={D
 # it. Two gibibytes is a floor, not a measured requirement — the first real run
 # replaces it with an observation.
 MINIMUM_CONTAINER_MEMORY_BYTES = 2 * 1024**3
+_MEMORY_UNITS = {
+    "B": 1,
+    "KB": 1000,
+    "MB": 1000**2,
+    "GB": 1000**3,
+    "TB": 1000**4,
+    "KiB": 1024,
+    "MiB": 1024**2,
+    "GiB": 1024**3,
+    "TiB": 1024**4,
+}
 RERUN = "uv run python src/scripts/ablation_probe.py --preflight"
-_KEY_PATTERN = re.compile(r"^[A-Z0-9_]*(API_KEY|AUTH_TOKEN|ANTHROPIC|OPENAI)[A-Z0-9_]*$")
-_ANALYTICS_KEY_MARKERS = ("POSTHOG",)
+# Provider prefix AND credential suffix, never a substring: ANTHROPIC_BASE_URL
+# and OPENAI_MODEL are routine non-secret config, and matching them reports a
+# credential present on a machine that has none — a false green on the one
+# blocker that actually stops the probe.
+_KEY_PATTERN = re.compile(r"^[A-Z0-9]+(_[A-Z0-9]+)*_(API_KEY|AUTH_TOKEN)$")
+_PROVIDER_PREFIXES = ("ANTHROPIC_", "OPENAI_", "GEMINI_", "AZURE_", "GROQ_", "MISTRAL_")
 
 
 @dataclass(frozen=True)
@@ -65,17 +80,6 @@ class Preflight:
     def blockers(self) -> list[Check]:
         return [check for check in self.checks if not check.passed]
 
-    def to_dict(self) -> dict:
-        return {
-            "runs_required_to_price_the_pilot": 1,
-            "pilot_runs": PILOT_RUNS,
-            "ready": not self.blockers,
-            "checks": [
-                {"name": c.name, "passed": c.passed, "detail": c.detail, "fix": c.fix}
-                for c in self.checks
-            ],
-        }
-
 
 def _run(command: list[str]) -> tuple[int, str]:
     try:
@@ -89,6 +93,27 @@ def _run(command: list[str]) -> tuple[int, str]:
 
 def _gibibytes(value: int) -> str:
     return f"{value / 1024**3:.1f} GiB"
+
+
+def _committed_container_memory() -> int | None:
+    """Bytes already held by running containers, or None when unreadable.
+
+    The VM's MemTotal is not headroom: a machine can report 4.8 GiB total while
+    unrelated stacks hold 3.5 GiB of it, which is exactly the state that made an
+    earlier revision of this check print [OK] on a machine that could not run the
+    probe. None (rather than 0) keeps an unreadable usage honest in the label.
+    """
+    code, output = _run(["docker", "stats", "--no-stream", "--format", "{{.MemUsage}}"])
+    if code != 0 or not output:
+        return None
+    total = 0
+    for line in output.splitlines():
+        used = line.split("/")[0].strip()
+        match = re.match(r"^([0-9.]+)\s*([KMGT]?i?B)$", used)
+        if match is None:
+            return None
+        total += int(float(match.group(1)) * _MEMORY_UNITS[match.group(2)])
+    return total
 
 
 def check_container_runtime() -> Check:
@@ -118,15 +143,20 @@ def check_container_runtime() -> Check:
             f"daemon {version} answered but reported no usable MemTotal ({memory!r})",
             "upgrade or restart the runtime — memory headroom cannot be judged blind",
         )
-    if total < MINIMUM_CONTAINER_MEMORY_BYTES:
+    committed = _committed_container_memory()
+    free = total - committed if committed is not None else None
+    headroom = free if free is not None else total
+    label = "free" if free is not None else "total (usage unreadable)"
+    if headroom < MINIMUM_CONTAINER_MEMORY_BYTES:
         return Check(
             "container runtime",
             False,
-            f"daemon {version} has {_gibibytes(total)} total, below the "
+            f"daemon {version} has {_gibibytes(headroom)} {label} of "
+            f"{_gibibytes(total)}, below the "
             f"{_gibibytes(MINIMUM_CONTAINER_MEMORY_BYTES)} floor",
-            "raise the VM memory limit; also `docker stats` — other stacks may hold most of it",
+            "stop the containers holding it (`docker stats`) or raise the VM memory limit",
         )
-    return Check("container runtime", True, f"daemon {version}, {_gibibytes(total)} total")
+    return Check("container runtime", True, f"daemon {version}, {_gibibytes(headroom)} {label}")
 
 
 def check_dataset_reachable() -> Check:
@@ -161,7 +191,10 @@ def check_control_agent() -> Check:
         "control agent",
         False,
         f"{CONTROL_AGENT} not importable in this interpreter",
-        f"uvx {CONTROL_AGENT}  # the raw arm IS this agent, unmodified",
+        # Not `uvx`: that runs the package in a throwaway environment and installs
+        # nothing into the interpreter this check imports from, so it would leave
+        # the check failing and the reader hunting a phantom.
+        f"uv pip install {CONTROL_AGENT}  # the raw arm IS this agent, unmodified",
     )
 
 
@@ -171,7 +204,7 @@ def check_model_credential() -> Check:
         for name in os.environ
         if _KEY_PATTERN.match(name)
         and os.environ[name]
-        and not any(marker in name for marker in _ANALYTICS_KEY_MARKERS)
+        and any(name.startswith(prefix) for prefix in _PROVIDER_PREFIXES)
     )
     if names:
         return Check("model credential", True, f"present: {', '.join(names)}")
@@ -201,7 +234,7 @@ def preflight() -> Preflight:
 
 
 def render(report: Preflight) -> str:
-    lines = ["Ablation cost probe — 1 run prices the 300-run pilot", ""]
+    lines = [f"Ablation cost probe — 1 run prices the {PILOT_RUNS}-run pilot", ""]
     for check in report.checks:
         lines.append(f"{check.marker:<7}{check.name}: {check.detail}")
         if not check.passed and check.fix:
@@ -228,7 +261,6 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--preflight", action="store_true", help="report which prerequisites are missing"
     )
-    parser.add_argument("--json", action="store_true", help="emit JSON instead of a table")
     args = parser.parse_args(argv)
 
     if not args.preflight:
@@ -236,7 +268,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     report = preflight()
-    print(json.dumps(report.to_dict(), indent=2) if args.json else render(report))
+    print(render(report))
     return 1 if report.blockers else 0
 
 

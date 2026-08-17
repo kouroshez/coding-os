@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-08-15 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-08-16 -->
 # Ablation Protocol — does the kernel improve output, or only token count?
 
 Purpose: Pre-register the experiment that answers the one question the token
@@ -90,22 +90,26 @@ machine, 2026-08-16:
 
 | Prerequisite | State |
 |---|---|
-| container runtime | Docker 29.5.2, 4.8 GiB — present |
+| container runtime | **blocked** — Docker 29.5.2 has 1.5 GiB free of 4.8 GiB |
 | dataset | 500 instances, reachable anonymously over the datasets-server API |
-| control agent | **missing** — `uvx mini-swe-agent` clears it |
+| control agent | **missing** — `uv pip install mini-swe-agent` clears it |
 | model credential | **missing** — the hard one |
+
+(Not `uvx`: it runs the package in a throwaway environment and installs nothing
+into the interpreter the check imports from, so the check would still fail.)
 
 The credential is the blocker no local command fixes. `mini-swe-agent` routes
 every model call through litellm, which reads a provider key from the
 environment; a Claude Code session's own OAuth cannot be lent to it. So the probe
 needs a key exported deliberately, for a model *both arms share*.
 
-One further constraint measured on the same machine: the Docker VM held 4.8 GiB
-total with ~3.5 GiB already taken by unrelated stacks, leaving roughly 1.3 GiB.
-A SWE-bench image unpacks to about 1 GB and then runs a test suite inside itself,
-so the probe needs those stacks stopped or the VM enlarged. `--preflight` checks
-the VM total against a 2 GiB floor; that floor is an assumption, and the first
-real run replaces it with an observation.
+The memory line is **free**, not total: the VM is 4.8 GiB but unrelated stacks
+hold ~3.3 GiB of it, and a SWE-bench image unpacks to about 1 GB and then runs a
+test suite inside itself. An earlier revision of the check read `MemTotal` and
+printed `[OK] 4.8 GiB` on this machine — a green on a box that cannot run the
+probe. It now subtracts what `docker stats` reports as committed and compares the
+remainder against a 2 GiB floor. That floor is an assumption; the first real run
+replaces it with an observation.
 
 ## Pilot before fleet
 

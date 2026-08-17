@@ -78,7 +78,7 @@ Read next: any of the entries below.
 - [Agent Supervision](agent-supervision.md) — `ssot:true` · updated 2026-08-07
 - [CI Quality Gates — SSOT](ci-gates.md) — `ssot:true` · updated 2026-08-13
 - [Third-Party Token-Cost Benchmark — graph envelope vs a graph-less agent](third-party-token-bench.md) — `ssot:true` · updated 2026-08-15
-- [Ablation Protocol — does the kernel improve output, or only token count?](ablation-protocol.md) — `ssot:true` · updated 2026-08-15
 - [Context Budget — what coding-os costs before it saves anything](context-budget.md) — `ssot:true` · updated 2026-08-15
+- [Ablation Protocol — does the kernel improve output, or only token count?](ablation-protocol.md) — `ssot:true` · updated 2026-08-16
 
 <!-- END auto-index -->
