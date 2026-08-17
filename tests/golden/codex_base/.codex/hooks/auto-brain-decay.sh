@@ -143,6 +143,39 @@ if [ ! -f "$COS_DB_PATH" ]; then
   exit 0
 fi
 
+# ---------------------------------------------------------------------------
+# WAL guard.
+#
+# WHY
+#   `journal_size_limit` (thinking_os/_db_pool.py) caps the -wal at each WAL
+#   restart, which is the real fix. It cannot help when the checkpoint that
+#   precedes that restart is blocked by a long-lived reader holding a
+#   snapshot — the shape that grew the -wal to 59 GB beside a 342 MB database
+#   and took the boot volume to 92% full. This forces TRUNCATE and, when a
+#   reader blocks it, names the PIDs so the operator can clear the blocker.
+#
+# POLICY
+#   - Runs BEFORE the 24 h decay debounce: a runaway WAL is a disk-space
+#     emergency and must not wait a day for the next decay window.
+#   - The helper stats the -wal first and returns without opening the DB
+#     when it is under COS_WAL_GUARD_MB (default 50 — the same number
+#     `cos doctor` warns at), so the healthy path costs one stat call.
+#   - Fail-open: hygiene sweep, never a correctness gate.
+# ---------------------------------------------------------------------------
+COS_WAL_GUARD_MB="${COS_WAL_GUARD_MB:-50}"
+if command -v _cos_helpers_dir >/dev/null 2>&1; then
+  WAL_GUARD_HELPER="$(_cos_helpers_dir)/wal_guard.py"
+  if [ -f "$WAL_GUARD_HELPER" ]; then
+    # stdout is the machine summary; stderr is left alone so the operator
+    # report reaches the session-start stderr channel unfiltered.
+    WAL_GUARD_SUMMARY=$(python3 "$WAL_GUARD_HELPER" \
+      "$COS_DB_PATH" "$((COS_WAL_GUARD_MB * 1024 * 1024))") || WAL_GUARD_SUMMARY=""
+    if [ -n "$WAL_GUARD_SUMMARY" ]; then
+      cos_log_hook auto-brain-decay wal-guard "$WAL_GUARD_SUMMARY"
+    fi
+  fi
+fi
+
 if [ -f "$LAST_RUN_FILE" ]; then
   LAST_TS=$(cat "$LAST_RUN_FILE" 2>/dev/null | tr -d '[:space:]')
   if [ -n "$LAST_TS" ] && [ "$LAST_TS" -gt 0 ] 2>/dev/null; then

@@ -23,6 +23,23 @@ _thread_local = threading.local()
 _pool_lock = threading.Lock()
 _pool_stats = {"hits": 0, "misses": 0, "active": 0}
 
+# Ceiling the -wal file is truncated back to. SQLite's default (-1) never gives
+# space back, so the file keeps its high-water mark forever — that is how a
+# 342 MB database ended up beside a 59 GB WAL holding 531 live frames.
+#
+# Measured on SQLite 3.50.4: the limit is applied when the WAL *restarts*
+# (wraps to frame 0), which is the first write after a completed checkpoint —
+# NOT at checkpoint completion. A checkpoint alone leaves the file at its
+# high-water size, so probing right after one looks like the pragma is
+# ignored. It isn't; the next write does the truncation. An idle-but-pinned
+# database never restarts its WAL, which is why the SessionStart guard in
+# auto-brain-decay.sh exists as the complement to this cap.
+#
+# Sits above the ~4 MB wal_autocheckpoint target so normal operation never pays
+# for a truncate, and below the 50 MB WAL budget `cos doctor` warns at so a
+# healthy WAL never trips that check.
+WAL_SIZE_LIMIT_BYTES = 32 * 1024 * 1024
+
 
 def _default_db_path() -> str:
     # Resolved per call, not bound at import: the path depends on the project
@@ -49,6 +66,7 @@ def apply_pragmas(conn: sqlite3.Connection) -> None:
     conn.execute("PRAGMA cache_size = -65536")  # 64 MB page cache (signed = KB)
     conn.execute("PRAGMA mmap_size = 268435456")  # 256 MB memory-mapped I/O — skips read() syscalls
     conn.execute("PRAGMA wal_autocheckpoint = 1000")  # checkpoint every ~4MB of WAL (4KB pages)
+    conn.execute(f"PRAGMA journal_size_limit = {WAL_SIZE_LIMIT_BYTES}")  # see the constant
     conn.execute("PRAGMA busy_timeout = 5000")  # 5s wait on locked DB instead of immediate fail
 
 

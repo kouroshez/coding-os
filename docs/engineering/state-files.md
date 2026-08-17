@@ -372,6 +372,62 @@ Explicitly shared things:
 - `.agent` — identity marker (written by install.sh, not mutated per session)
 - `domain-config.json`, `rag-config.yaml` — one project config
 
+### WAL size discipline — the cap and the guard
+
+Sharing one DB across long-lived MCP servers, Hub, and every hook subprocess
+makes `coding-os.db-wal` the one state file that can grow without bound. It did:
+**59.29 GB of WAL against a 342 MB database**, taking the boot volume to 92%
+full, while `PRAGMA wal_checkpoint(PASSIVE)` reported only 531 live frames. The
+WAL was not full of data — it was a never-truncated high-water mark, because
+SQLite's default `journal_size_limit = -1` means "after a checkpoint, keep the
+file at whatever size it once reached". Three stale server processes (up 11d,
+5d, and 4d) had each pinned a read snapshot long enough to block checkpointing;
+once the file had grown, nothing ever gave the space back.
+
+Two mechanisms, deliberately at different layers:
+
+| Layer | Mechanism | Fires |
+|---|---|---|
+| Connection | `PRAGMA journal_size_limit` in [`apply_pragmas`](../../src/core/thinking_os/_db_pool.py) | at every WAL restart, on every connection opened through the pragma SSOT |
+| Session | WAL guard in [`auto-brain-decay.sh`](../../src/core/hooks/auto-brain-decay.sh) → [`wal_guard.py`](../../src/core/hooks/_helpers/wal_guard.py) | SessionStart, only when the `-wal` is over threshold |
+
+The cap is the fix; the guard is the safety net for the case the cap cannot
+reach — a checkpoint blocked by a reader holding a snapshot. The cap
+(**32 MB**) sits above the `wal_autocheckpoint = 1000` target (~4 MB of 4 KB
+pages), so normal operation never pays for a truncate, and below the 50 MB
+`state.size_within_budget` budget `cos doctor` warns at, so a healthy WAL never
+trips that check.
+
+**The cap applies at the WAL *restart*, not at the checkpoint** — measured on
+SQLite 3.50.4, an over-cap WAL is still at its high-water size the instant
+`wal_checkpoint(RESTART)` returns, and shrinks to the cap on the *next write*,
+when the log wraps back to frame 0. Probing straight after a checkpoint
+therefore makes the pragma look ignored; it is not. Two consequences worth
+holding onto: a continuously-written database (this one — every hook fire and
+observation writes) stays bounded on its own, and an idle-but-pinned database
+never restarts its WAL at all, which is precisely the gap the SessionStart
+guard covers.
+
+The guard stats the `-wal` first and returns without opening the database when
+it is under threshold (`COS_WAL_GUARD_MB`, default 50 — the same number
+`cos doctor` warns at, so "over budget" means one thing). Over threshold it
+forces `PRAGMA wal_checkpoint(TRUNCATE)` and reports the reclaimed bytes on
+stderr, the operator-visible channel.
+
+**When TRUNCATE returns `busy=1`, a reader is the blocker and no amount of
+retrying will help** — so the guard names the PIDs holding the `-wal` open
+(`lsof`, with command and elapsed time) instead of reporting a generic failure.
+That line is the whole diagnostic: the 59 GB incident cost hours precisely
+because "checkpoint didn't work" did not say *who* was preventing it. Kill the
+named stale process and the next SessionStart reclaims the space.
+
+Manual recovery, when a session start is not imminent:
+
+```bash
+sqlite3 .coding-os/coding-os.db 'PRAGMA wal_checkpoint(TRUNCATE);'   # → (busy, log, checkpointed)
+lsof -- .coding-os/coding-os.db-wal                                  # busy=1 → who is holding it
+```
+
 ## Migration behavior
 
 For existing projects:
