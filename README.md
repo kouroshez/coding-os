@@ -341,16 +341,18 @@ one surface where the board, the knowledge graph, agent memory, live agent
 presence and the hook stream are the *same* state the agent reads, not a
 dashboard rendered beside it.
 
-The Hub home above is the entry point: register an existing `.coding-os/` folder,
-scan a directory for them, or scaffold a new project from a preset.
+The Hub home — the screenshot at the top of this file — is the entry point:
+register an existing `.coding-os/` folder, scan a directory for them, or scaffold
+a new project from a preset.
 
 ### The board — Scrumban with enforced WIP
 
-Seven columns, each with its own limit. `1 / 1 WIP` is not decoration:
-`cos task-move` refuses to overfill a column, so the board cannot drift from
-what is actually being worked on. Columns holding nothing collapse to a labelled
-rail and hand their width to the columns holding work — then expand back into
-full drop zones the moment you start dragging a card.
+Seven columns; the three that gate flow carry a cap — in progress, testing,
+emergency. `1 / 1 WIP` is not decoration: `cos task-move` refuses to overfill a
+capped column, so the board cannot drift from what is actually being worked on.
+Columns holding nothing collapse to a labelled rail and hand their width to the
+columns holding work — then expand back into full drop zones the moment you
+start dragging a card.
 
 ![Scrumban board with three empty columns collapsed to rails and WIP counters on the rest](docs/assets/hub/board-flat.webp)
 
