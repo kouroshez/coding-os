@@ -100,7 +100,7 @@ def _persist_dispatch_output(
         return reported if reported not in (None, "") else route.get(key)
 
     try:
-        with sqlite3.connect(db_path) as conn:
+        with sqlite3.connect(db_path, timeout=10) as conn:
             conn.execute(
                 "INSERT INTO formula_dispatches "
                 "(session_id, task_marker, persona_id, formula_id, input_hash, "
@@ -172,7 +172,7 @@ def _emit_dispatch_metrics_safe(
         # that routing precedence step 6 consults, so an unnamed model means
         # routing can never learn from the run it just paid for.
         model_used = meta.get("model") or (resolved_route or {}).get("model") or None
-        with _sqlite3.connect(db_path) as conn:
+        with _sqlite3.connect(db_path, timeout=10) as conn:
             metric_record(
                 conn,
                 agent_type="dispatch",

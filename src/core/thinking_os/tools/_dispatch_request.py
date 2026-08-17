@@ -21,7 +21,7 @@ def _preset_role_hint(session_id: str, formula_id: str, db_path) -> dict:
     try:
         import sqlite3 as _sqlite3
 
-        conn = _sqlite3.connect(db_path)
+        conn = _sqlite3.connect(db_path, timeout=10)
         try:
             row = conn.execute(
                 "SELECT task_marker FROM persona_selections WHERE session_id = ? "
@@ -55,7 +55,7 @@ def _empirical_model(complexity: str, db_path) -> str:
 
         from tools.routing import route_model_bandit
 
-        conn = _sqlite3.connect(db_path)
+        conn = _sqlite3.connect(db_path, timeout=10)
         try:
             result = route_model_bandit(conn, complexity=complexity.strip().upper())
         finally:

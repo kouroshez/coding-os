@@ -45,6 +45,7 @@ from .doctor_checks_runtime import (
     _check_hook_coverage,
     _check_presence_zombies,
     _check_scheduled,
+    _check_supervision_policy,
 )
 from .doctor_checks_scaffold import (
     _check_adapter,
@@ -111,6 +112,7 @@ def run_doctor(
     _check_cognition_registries(project, report)
     _tick("hook coverage")
     _check_hook_coverage(project, report)
+    _check_supervision_policy(project, state, report)
     _check_module_consistency(project, report)
     _check_module_skill_drift(project, report)
     _check_module_command_drift(project, report)

@@ -34,6 +34,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -105,6 +106,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -241,7 +243,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 236
     },
     "claude_angular": {
       "agent": "claude",
@@ -277,6 +279,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -348,6 +351,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -512,7 +516,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 262
+      "count": 264
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -548,6 +552,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -619,6 +624,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -771,7 +777,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 250
+      "count": 252
     },
     "claude_astro": {
       "agent": "claude",
@@ -807,6 +813,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -878,6 +885,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -1038,7 +1046,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 258
+      "count": 260
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1074,6 +1082,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -1145,6 +1154,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -1284,7 +1294,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 239
     },
     "claude_django": {
       "agent": "claude",
@@ -1320,6 +1330,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -1391,6 +1402,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -1550,7 +1562,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 259
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1586,6 +1598,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -1657,6 +1670,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -1808,7 +1822,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 249
+      "count": 251
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1844,6 +1858,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -1915,6 +1930,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -2068,7 +2084,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 253
     },
     "claude_go": {
       "agent": "claude",
@@ -2104,6 +2120,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -2175,6 +2192,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -2327,7 +2345,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 250
+      "count": 252
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2363,6 +2381,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -2434,6 +2453,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -2588,7 +2608,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 252
+      "count": 254
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2624,6 +2644,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -2695,6 +2716,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -2835,7 +2857,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2871,6 +2893,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -2942,6 +2965,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -3083,7 +3107,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 241
     },
     "claude_laravel": {
       "agent": "claude",
@@ -3119,6 +3143,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -3190,6 +3215,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -3343,7 +3369,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 253
     },
     "claude_meta": {
       "agent": "claude",
@@ -3379,6 +3405,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -3450,6 +3477,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -3624,7 +3652,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 272
+      "count": 274
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3660,6 +3688,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -3731,6 +3760,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -3890,7 +3920,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 257
+      "count": 259
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -3926,6 +3956,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -3997,6 +4028,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -4167,7 +4199,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 268
+      "count": 270
     },
     "claude_node-express": {
       "agent": "claude",
@@ -4203,6 +4235,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -4274,6 +4307,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -4429,7 +4463,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 253
+      "count": 255
     },
     "claude_python": {
       "agent": "claude",
@@ -4465,6 +4499,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -4536,6 +4571,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -4675,7 +4711,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 239
     },
     "claude_rails": {
       "agent": "claude",
@@ -4711,6 +4747,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -4782,6 +4819,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -4938,7 +4976,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 254
+      "count": 256
     },
     "claude_react-native": {
       "agent": "claude",
@@ -4974,6 +5012,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -5045,6 +5084,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -5212,7 +5252,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 265
+      "count": 267
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -5248,6 +5288,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -5319,6 +5360,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -5459,7 +5501,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 240
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5495,6 +5537,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -5566,6 +5609,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -5718,7 +5762,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 250
+      "count": 252
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5754,6 +5798,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -5825,6 +5870,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -5966,7 +6012,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 241
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -6002,6 +6048,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -6073,6 +6120,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -6226,7 +6274,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 253
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -6262,6 +6310,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -6333,6 +6382,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -6495,7 +6545,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 260
+      "count": 262
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6531,6 +6581,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -6602,6 +6653,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -6744,7 +6796,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 240
+      "count": 242
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6780,6 +6832,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -6851,6 +6904,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -7005,7 +7059,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 252
+      "count": 254
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -7041,6 +7095,7 @@
         ".claude/hooks/_cos_env_log.sh",
         ".claude/hooks/_cos_env_paths.sh",
         ".claude/hooks/_cos_env_state.sh",
+        ".claude/hooks/_session_pulse.sh",
         ".claude/hooks/advance-role.sh",
         ".claude/hooks/agent-presence.sh",
         ".claude/hooks/agent_memory_sync.py",
@@ -7112,6 +7167,7 @@
         ".claude/hooks/remind-daily.sh",
         ".claude/hooks/remind-dogfood.sh",
         ".claude/hooks/remind-learn-validate.sh",
+        ".claude/hooks/resolve-supervise-route.sh",
         ".claude/hooks/rules-primer.sh",
         ".claude/hooks/search-enforce-inventory.sh",
         ".claude/hooks/search-verify-remaining.sh",
@@ -7269,7 +7325,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 255
+      "count": 257
     },
     "codex_base": {
       "agent": "codex",
@@ -7305,6 +7361,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -7384,6 +7441,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -7515,7 +7573,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 241
     },
     "codex_angular": {
       "agent": "codex",
@@ -7553,6 +7611,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -7632,6 +7691,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -7791,7 +7851,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 267
+      "count": 269
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7829,6 +7889,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -7908,6 +7969,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -8055,7 +8117,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 255
+      "count": 257
     },
     "codex_astro": {
       "agent": "codex",
@@ -8093,6 +8155,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -8172,6 +8235,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -8327,7 +8391,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 263
+      "count": 265
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -8365,6 +8429,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -8444,6 +8509,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -8578,7 +8644,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 244
     },
     "codex_django": {
       "agent": "codex",
@@ -8616,6 +8682,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -8695,6 +8762,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -8849,7 +8917,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 262
+      "count": 264
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8887,6 +8955,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -8966,6 +9035,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -9112,7 +9182,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 254
+      "count": 256
     },
     "codex_flutter": {
       "agent": "codex",
@@ -9150,6 +9220,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -9229,6 +9300,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -9377,7 +9449,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 256
+      "count": 258
     },
     "codex_go": {
       "agent": "codex",
@@ -9415,6 +9487,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -9494,6 +9567,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -9641,7 +9715,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 255
+      "count": 257
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9679,6 +9753,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -9758,6 +9833,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -9907,7 +9983,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 259
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -9945,6 +10021,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -10024,6 +10101,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -10159,7 +10237,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 245
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -10197,6 +10275,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -10276,6 +10355,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -10412,7 +10492,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 246
     },
     "codex_laravel": {
       "agent": "codex",
@@ -10450,6 +10530,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -10529,6 +10610,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -10677,7 +10759,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 256
+      "count": 258
     },
     "codex_meta": {
       "agent": "codex",
@@ -10715,6 +10797,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -10794,6 +10877,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -10963,7 +11047,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 277
+      "count": 279
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -11001,6 +11085,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -11080,6 +11165,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -11234,7 +11320,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 262
+      "count": 264
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -11272,6 +11358,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -11351,6 +11438,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -11516,7 +11604,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 273
+      "count": 275
     },
     "codex_node-express": {
       "agent": "codex",
@@ -11554,6 +11642,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -11633,6 +11722,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -11783,7 +11873,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 258
+      "count": 260
     },
     "codex_python": {
       "agent": "codex",
@@ -11821,6 +11911,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -11900,6 +11991,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -12034,7 +12126,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 244
     },
     "codex_rails": {
       "agent": "codex",
@@ -12072,6 +12164,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -12151,6 +12244,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -12302,7 +12396,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 259
+      "count": 261
     },
     "codex_react-native": {
       "agent": "codex",
@@ -12340,6 +12434,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -12419,6 +12514,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -12581,7 +12677,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 270
+      "count": 272
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -12619,6 +12715,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -12698,6 +12795,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -12833,7 +12931,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 245
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -12871,6 +12969,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -12950,6 +13049,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -13097,7 +13197,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 255
+      "count": 257
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -13135,6 +13235,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -13214,6 +13315,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -13350,7 +13452,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 246
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -13388,6 +13490,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -13467,6 +13570,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -13615,7 +13719,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 256
+      "count": 258
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -13653,6 +13757,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -13732,6 +13837,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -13889,7 +13995,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 265
+      "count": 267
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -13927,6 +14033,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -14006,6 +14113,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -14143,7 +14251,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 245
+      "count": 247
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -14181,6 +14289,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -14260,6 +14369,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -14409,7 +14519,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 257
+      "count": 259
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -14447,6 +14557,7 @@
         ".codex/hooks/_cos_env_log.sh",
         ".codex/hooks/_cos_env_paths.sh",
         ".codex/hooks/_cos_env_state.sh",
+        ".codex/hooks/_session_pulse.sh",
         ".codex/hooks/advance-role.sh",
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
@@ -14526,6 +14637,7 @@
         ".codex/hooks/remind-daily.sh",
         ".codex/hooks/remind-dogfood.sh",
         ".codex/hooks/remind-learn-validate.sh",
+        ".codex/hooks/resolve-supervise-route.sh",
         ".codex/hooks/rules-primer.sh",
         ".codex/hooks/search-enforce-inventory.sh",
         ".codex/hooks/search-verify-remaining.sh",
@@ -14678,7 +14790,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 260
+      "count": 262
     }
   }
 }

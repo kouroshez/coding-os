@@ -32,3 +32,4 @@ from ._doctor_shared import (  # noqa: F401
     _scan_project_files,
     _tick,
 )
+from ._doctor_supervision import _check_supervision_policy as _check_supervision_policy

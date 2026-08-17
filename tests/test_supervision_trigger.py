@@ -56,9 +56,7 @@ def _pulse(tmp_path: Path, mode: str, *, session_id: str = "ses-smoke") -> str:
     assert panel.is_dir()
     proc = subprocess.run(
         ["bash", str(SESSION_CONTEXT)],
-        input=json.dumps(
-            {"session_id": session_id or _UNSEEDED, "prompt": "x"}
-        ).encode(),
+        input=json.dumps({"session_id": session_id or _UNSEEDED, "prompt": "x"}).encode(),
         capture_output=True,
         timeout=30,
         env=_env(tmp_path),
@@ -124,9 +122,7 @@ class TestBannerRoutingField:
     def test_sup_rides_casual_modes_too(self, tmp_path: Path) -> None:
         # Which model answers is a cost fact the operator is owed on a one-liner.
         panel = _panel(tmp_path)
-        (panel / ".supervise-route").write_text(
-            json.dumps({"adapter": "claude"}), encoding="utf-8"
-        )
+        (panel / ".supervise-route").write_text(json.dumps({"adapter": "claude"}), encoding="utf-8")
         assert "sup=claude" in _banner(_pulse(tmp_path, "query"))
 
     def test_suggest_mode_marks_the_route_as_a_proposal(self, tmp_path: Path) -> None:
@@ -177,9 +173,7 @@ class TestRouteResolution:
     @staticmethod
     def _primed_panel(tmp_path: Path, role: str) -> Path:
         panel = _panel(tmp_path)
-        (panel / ".thinking_os-gate").write_text(
-            "ses-smoke COMPLICATED 3", encoding="utf-8"
-        )
+        (panel / ".thinking_os-gate").write_text("ses-smoke COMPLICATED 3", encoding="utf-8")
         (panel / ".role").write_text(role, encoding="utf-8")
         (panel / ".roles").write_text(json.dumps([role]), encoding="utf-8")
         return panel

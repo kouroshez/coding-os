@@ -188,7 +188,7 @@ def register_cos_supervise_record_output(mcp, db_path):
         input_hash = hashlib.sha256(f"{session_id}:{formula_id}".encode()).hexdigest()[:16]
 
         try:
-            with sqlite3.connect(db_path) as conn:
+            with sqlite3.connect(db_path, timeout=10) as conn:
                 conn.execute(
                     "INSERT INTO formula_dispatches "
                     "(session_id, task_marker, persona_id, formula_id, input_hash, "

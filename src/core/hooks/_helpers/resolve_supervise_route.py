@@ -20,6 +20,7 @@ USAGE
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -71,10 +72,8 @@ def _write_route(panel_dir: Path, route: dict[str, str]) -> None:
 
 
 def _clear_route(panel_dir: Path) -> None:
-    try:
+    with contextlib.suppress(OSError):
         (panel_dir / ".supervise-route").unlink()
-    except OSError:
-        pass
 
 
 def main(argv: list[str]) -> int:
@@ -109,7 +108,9 @@ def main(argv: list[str]) -> int:
     # reporting a route there would claim a policy that will not apply.
     if not policy_applies(policy, gate_class):
         _clear_route(panel_dir)
-        print(f"[supervise] mode={mode} — gate {gate_class or 'unset'} is below threshold, unrouted")
+        print(
+            f"[supervise] mode={mode} — gate {gate_class or 'unset'} is below threshold, unrouted"
+        )
         return 0
 
     role = _active_role(panel_dir)
