@@ -77,3 +77,13 @@ references: []
 - 2026-08-17 [claude]: commit a7c7cae519 — fix(hub): move the raw transcript byte size out of the chat row
 - 2026-08-17 [claude]: commit 1cbe8e87eb — fix(hub): widen the Config tables to the Hub page width
 - 2026-08-17 [claude]: Four Hub fixes landed (3f7f8532, 4c924c72, a7c7cae5, 1cbe8e87): empty board columns collapse to a 44px rail…
+- 2026-08-17 [claude]: commit 1d12f21673 — docs(tasks): record TASK-1006 read-first, acceptance, and the four landed fixes
+- 2026-08-17 [claude]: Edit graph-adapter.ts
+- 2026-08-17 [claude]: Edit shoot.mjs
+- 2026-08-17 [claude]: Edit shoot.mjs
+- 2026-08-17 [claude]: Edit jobs1.json
+- 2026-08-17 [claude]: Edit graph-store.ts
+- 2026-08-17 [claude]: Edit shared.tsx
+- 2026-08-17 [claude]: Edit jobs2.json
+- 2026-08-17 [claude]: Edit jobs3.json
+- 2026-08-17 [claude]: Shipped five Hub fixes and reshot the README. Empty board columns now collapse to a labelled rail (expanding back…
