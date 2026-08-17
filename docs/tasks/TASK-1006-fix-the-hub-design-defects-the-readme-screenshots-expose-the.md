@@ -63,3 +63,17 @@ references: []
 - 2026-08-17 [claude]: Edit BoardGrid.tsx
 - 2026-08-17 [claude]: Edit BoardGrid.tsx
 - 2026-08-17 [claude]: Edit BoardGrid.tsx
+- 2026-08-17 [claude]: Edit probe_export_meta.py
+- 2026-08-17 [claude]: Edit test_mcp_tools_export.py
+- 2026-08-17 [claude]: Edit GraphCanvas.tsx
+- 2026-08-17 [claude]: Edit GraphCanvas.tsx
+- 2026-08-17 [claude]: Edit graph-adapter.ts
+- 2026-08-17 [claude]: Edit graph-adapter.test.ts
+- 2026-08-17 [claude]: Edit graph-adapter.test.ts
+- 2026-08-17 [claude]: Edit _graph_export.py
+- 2026-08-17 [claude]: Edit _graph_export.py
+- 2026-08-17 [claude]: commit 3f7f8532e1 — feat(graph): report the whole-graph node total in export meta
+- 2026-08-17 [claude]: commit 4c924c7259 — fix(hub): collapse empty board columns to a rail
+- 2026-08-17 [claude]: commit a7c7cae519 — fix(hub): move the raw transcript byte size out of the chat row
+- 2026-08-17 [claude]: commit 1cbe8e87eb — fix(hub): widen the Config tables to the Hub page width
+- 2026-08-17 [claude]: Four Hub fixes landed (3f7f8532, 4c924c72, a7c7cae5, 1cbe8e87): empty board columns collapse to a 44px rail…
