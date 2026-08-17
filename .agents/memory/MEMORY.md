@@ -37,3 +37,5 @@
 - [Measure per profile, never summed](measure-per-profile-never-summed.md) — publish cost/benefit per project profile with a named baseline, and state where the tool loses
 - [Dry-run in the repo before trusting units](dry-run-in-repo-before-trusting-units.md) — fixtures are born consistent; run a changed `cos` command in coding-os itself and read every printed line as a claim
 - [Fail-open hooks hide dead triggers](fail-open-hooks-hide-dead-triggers.md) — bare `python3` can't import the project's deps; capture the helper's rc and stamp the debounce marker only after rc==0
+- [Codex as eyes when Read breaks](codex-as-eyes-when-read-breaks.md) — a saturated extension host kills Read/Edit; `codex exec -i` inspects images, each failed Read costs 20 min.
+- [Generated hero banners miss the README bar](generated-hero-banners-miss-the-readme-bar.md) — 4/4 gpt-image-2 banners rejected; ship a real product screenshot as the hero.
