@@ -65,7 +65,11 @@ export const useGraphStore = create<GraphStoreState>((set) => ({
   visibleEdgeTypes: new Set<string>(DEFAULT_EDGE_TYPES),
   searchQuery: '',
   spineOpen: true,
-  filtersOpen: true,
+  // Closed on arrival. The filter card is the largest overlay on the canvas
+  // (256px wide, most of the viewport tall) and it is opaque, so every node
+  // behind it is both invisible and unclickable — an overlay that hides the
+  // content it filters. The sliders button in its place opens it on demand.
+  filtersOpen: false,
   inspectorOpen: true,
 
   // when a root is picked, mirror it into selectedNodeUid
