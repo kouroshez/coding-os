@@ -16,6 +16,10 @@
 >
 > Website: <https://coding-os.dev> · Community: <https://community.coding-os.dev>
 
+[![The Coding OS Hub: four registered projects and the agents live in each](docs/assets/hub/hub-home.webp)](#the-web-hub-http1270019188)
+
+<sub>The Hub at `127.0.0.1:9188` — every registered project, and every agent attached to one right now, with the model it is running, the complexity gate it recorded, and the role it holds. [See the rest of it](#the-web-hub-http1270019188).</sub>
+
 <table>
 <tr>
 <td align="center" width="34%">
@@ -328,60 +332,79 @@ No Python edits required.
 7. **Upgrade path** — `cos update` keeps every consumer project in
    sync with `coding-os` without touching user content.
 
-## Web Hub (`http://127.0.0.1:9188`)
+## The Web Hub (`http://127.0.0.1:9188`)
 
-A singleton FastAPI + Vite/React SPA that serves every registered
-project via `/api/p/<slug>/*`:
+One FastAPI + Vite/React singleton serves **every** registered project through
+`/api/p/<slug>/*` — `cos hub start` boots it, `cos hub status` reports health.
+It is genuinely optional: the CLI loop is complete without it. What it adds is
+one surface where the board, the knowledge graph, agent memory, live agent
+presence and the hook stream are the *same* state the agent reads, not a
+dashboard rendered beside it.
 
-- **Workspace** — project overview, Scrumban board (kind × swimlane ×
-  epic, WIP enforcement), memory, cognition traces, unified search.
-- **Graph** — Sigma.js canvas with deliberate view modes + smart
-  export + dagre layout.
-- **Config** — modules, git settings, hub settings, per-project chips.
-- **Marketplace** — community skills/stacks (rolling out).
-- **Diagnostics** — health, hooks log, token-burn audit.
-
-`cos hub start` boots the hub. `cos hub status` reports health.
-Source: `src/core/web/`. UI: `src/core/web/ui/` (`npm run dev`).
+The Hub home above is the entry point: register an existing `.coding-os/` folder,
+scan a directory for them, or scaffold a new project from a preset.
 
 ### The board — Scrumban with enforced WIP
 
-Seven columns, each with its own limit. `IN PROGRESS 0/1` and `TESTING 0/3`
-are not decoration: `cos task-move` refuses to overfill them, so the board
-cannot drift from what is actually being worked on. The `live:` row shows
-which agents are attached to this project right now.
+Seven columns, each with its own limit. `1 / 1 WIP` is not decoration:
+`cos task-move` refuses to overfill a column, so the board cannot drift from
+what is actually being worked on. Columns holding nothing collapse to a labelled
+rail and hand their width to the columns holding work — then expand back into
+full drop zones the moment you start dragging a card.
 
-![Scrumban board with WIP limits and live agent presence](docs/assets/hub/board-scrumban.png)
+![Scrumban board with three empty columns collapsed to rails and WIP counters on the rest](docs/assets/hub/board-flat.webp)
 
-The same board groups by swimlane, so "what is Core Kernel carrying?" is one
-click rather than a filter query:
+Group by swimlane instead of flat, and open any card for its outcome contract,
+its lifecycle chips, and every commit that touched it with the real diff inline.
+The task is the pointer; the code is the evidence.
 
-![Board grouped by swimlane](docs/assets/hub/board-swimlanes.png)
+### Chat — the agent, with the project already loaded
 
-### Every task carries its own commits
+A session started here inherits the project's MCP server, hooks, rules and
+board. Pick the model, the reasoning effort, and which semantic role should
+answer; the quick actions under the composer are the openings that actually pay
+off — *resume where we left off*, *map the subsystems*, *review my current
+changes*.
 
-Opening a card shows the outcome contract, the lifecycle chips, and the full
-history — each commit with its real diff inline. The task is the pointer;
-the code is the evidence.
-
-![Task detail with per-commit diffs](docs/assets/hub/task-detail-history.png)
+![Chat landing with model, effort and role pickers above six quick actions](docs/assets/hub/chat-streamos.webp)
 
 ### The graph — ask the codebase structurally
 
-Sigma.js over the extracted code+doc graph. The left spine is containment,
-the right panel filters by node kind and edge type, and clicking any node
-opens its inspector. This is the surface behind `cos_graph_*` — the reason an
-agent can answer "who calls this?" without grepping the tree.
+Sigma.js over the extracted code + doc graph. The left spine is containment, the
+tabs switch between the blended overview, pure containment, dependencies and
+detected communities, and the budget control decides how much of the graph to
+draw. The badge is honest about coverage: it names the sample **and** the
+whole-graph total, so a capped view can never read as a complete one. This is
+the surface behind `cos_graph_*` — the reason an agent answers "who calls this?"
+without grepping the tree.
 
-![Knowledge graph canvas with kind and edge filters](docs/assets/hub/graph-explorer.png)
+![Knowledge graph canvas showing 800 of 78,128 nodes with view-mode tabs and a depth budget](docs/assets/hub/graph-explorer.webp)
+
+### Memory — the lessons, and how far each one has travelled
+
+Agent memory is not a log. Every lesson carries a confidence and a tier, and it
+only becomes durable once separate sessions confirm it — so the page states the
+exact rule it enforces (≥70% confidence *and* three confirmations) and how many
+lessons have actually cleared it. Filter by type, source or confidence floor,
+and run the distillation loop on demand instead of waiting for the nightly one.
+
+![Agent Memory tab showing 102 lessons, the validation rule, and type and source filters](docs/assets/hub/memory.webp)
 
 ### Modules — turn subsystems off and the tools go with them
 
 The kernel is always on. Everything else is a switch, and disabling one gates
-its MCP tools and self-skips its hooks. The `Depends on` column is enforced,
-not advisory: `tasks` needs `docs`, so `docs` cannot be disabled first.
+its MCP tools and self-skips its hooks. `Owns` is the blast radius of that
+switch. `Depends on` is enforced, not advisory — `tasks` needs `docs`, so `docs`
+cannot be disabled first, and the button that would break it is disabled with
+the reason attached rather than failing after the click.
 
-![Config Modules tab showing subsystem toggles and dependencies](docs/assets/hub/config-modules.png)
+![Config Modules tab showing subsystem toggles, owned artifacts and dependency direction](docs/assets/hub/config-modules.webp)
+
+Also in the Hub: unified **Search** across all four retrieval layers,
+**Diagnostics** (doctor probes, the live hook log, observability charts, session
+traces), per-project **Git** and supervision settings, and a **Marketplace** for
+community skills and stacks (rolling out). Source: `src/core/web/`; UI:
+`src/core/web/ui/` (`make ui-dev` for HMR).
 
 ## Architecture
 
