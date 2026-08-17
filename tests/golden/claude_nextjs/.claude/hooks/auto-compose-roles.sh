@@ -68,14 +68,37 @@ HELPER="${HSRC}/_helpers/auto_compose.py"
 # Panel-first target so .roles/.role land where the banner + Hub read them
 # (same per-panel scope as every other cognitive marker).
 TARGET_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-claude}}}"
-OUT=$(printf '%s' "$PROMPT" | python3 "$HELPER" "$GATE_CLASS" "${GATE_DIMS:-1}" "$TARGET_DIR" 2>/dev/null || true)
+
+# formula_composer imports pydantic, which bare python3 does not have: the
+# compose half of this hook returned '' on every run while the recall half
+# worked, and the debounce marker below then made the miss look like a hit.
+# Nothing surfaced it because both failure and no-op print nothing.
+COS_PY="$(cos_resolve_python 2>/dev/null || echo python3)"
+[[ -x "$COS_PY" ]] || COS_PY=python3
+
+set +e
+OUT=$(printf '%s' "$PROMPT" | "$COS_PY" "$HELPER" "$GATE_CLASS" "${GATE_DIMS:-1}" "$TARGET_DIR" 2>/dev/null)
+HELPER_RC=$?
+set -e
+
+if [[ "$HELPER_RC" -ne 0 ]]; then
+  cos_log_hook auto-compose-roles warn \
+    "helper rc=${HELPER_RC} py=${COS_PY##*/} class=${GATE_CLASS} — not debounced" || true
+  exit 0
+fi
 
 mkdir -p "$(dirname "$MARKER")" 2>/dev/null || true
 printf '%s' "$GATE_CLASS" > "$MARKER" 2>/dev/null || true
 
 if [[ -n "$OUT" ]]; then
-  cos_log_hook auto-compose-roles ok "class=${GATE_CLASS}" || true
-  printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$OUT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
+  # Name whether the chain actually landed: 'composed=none' previously covered
+  # both "CLEAR gate, by design" and "the composer could not even import".
+  if [[ -f "${TARGET_DIR}/.roles" ]]; then
+    cos_log_hook auto-compose-roles ok "class=${GATE_CLASS} roles=stamped" || true
+  else
+    cos_log_hook auto-compose-roles ok "class=${GATE_CLASS} recall-only" || true
+  fi
+  printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$OUT" | "$COS_PY" -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
 else
   cos_log_hook auto-compose-roles ok "class=${GATE_CLASS} composed=none" || true
 fi

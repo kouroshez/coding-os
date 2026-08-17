@@ -1114,6 +1114,27 @@ hooks:
       - event: UserPromptSubmit
         matcher: ""
 
+  - id: resolve-supervise-route
+    script: resolve-supervise-route.sh
+    description: |
+      UserPromptSubmit auto-trigger — resolves the ACTIVE role through the
+      dispatcher's own precedence (role policy -> orchestrator default ->
+      current runtime) and stamps .supervise-route, so the transparency banner
+      can name the adapter/model and the agent can pass them to
+      cos_dispatch_formula_run. Closes the dead-policy gap where
+      nudge-model-routing announced supervision while nothing applied it, so
+      every formula_dispatches row carried a NULL route. Read-only: no child
+      process, no provider token, no capacity probe. Debounced per
+      (gate-class, active role) via .supervise-route-resolved, and NOT
+      debounced when the helper fails. Contract:
+      docs/engineering/agent-supervision.md § What consults the policy.
+    category: cognition
+    phase: I
+    timeout: 10
+    events:
+      - event: UserPromptSubmit
+        matcher: ""
+
   - id: nudge-git-mode
     script: nudge-git-mode.sh
     description: |

@@ -247,15 +247,23 @@ hook_dispatchers:
   - event: UserPromptSubmit
     matcher: ""
     script: codex-userpromptsubmit-dispatch.sh
+    # Order mirrors what hook_renderer.py emits for a capability-complete
+    # adapter: category precedence (cognition 20 before observability 40), ties
+    # by registry index. It is not cosmetic — session-context.sh BUILDS the
+    # transparency banner from .task-mode / .roles / .supervise-route, so a
+    # dispatcher that ran it first showed every cognitive field one turn stale
+    # on Codex while Claude showed it live.
+    # Contract: docs/engineering/adapter-parity.md § Execution order within a group.
     delegates:
-      - session-context.sh
-      - classify-task-mode.sh
       - nudge-thinking-os.sh
+      - auto-compose-roles.sh
+      - classify-task-mode.sh
       - nudge-graph-os.sh
       - nudge-model-routing.sh
+      - resolve-supervise-route.sh
       - nudge-git-mode.sh
-      - nudge-reentry.sh
       - nudge-task-discovery.sh
       - nudge-docs-first.sh
-      - auto-compose-roles.sh
+      - session-context.sh
+      - nudge-reentry.sh
       - agent-presence.sh

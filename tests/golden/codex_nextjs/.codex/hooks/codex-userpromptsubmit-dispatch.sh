@@ -46,17 +46,24 @@ run_delegate() {
   return 0
 }
 
+# Order mirrors hook_renderer.py's contract for a capability-complete adapter:
+# category precedence (cognition before observability), ties by registry index.
+# session-context.sh BUILDS the banner from .task-mode / .roles /
+# .supervise-route, so running it first — as this list used to — showed every
+# cognitive field one turn stale on Codex while Claude showed it live.
+# Keep in lockstep with adapter.yaml::hook_dispatchers.
 for delegate in \
-  session-context.sh \
-  classify-task-mode.sh \
   nudge-thinking-os.sh \
+  auto-compose-roles.sh \
+  classify-task-mode.sh \
   nudge-graph-os.sh \
   nudge-model-routing.sh \
+  resolve-supervise-route.sh \
   nudge-git-mode.sh \
-  nudge-reentry.sh \
   nudge-task-discovery.sh \
   nudge-docs-first.sh \
-  auto-compose-roles.sh \
+  session-context.sh \
+  nudge-reentry.sh \
   agent-presence.sh; do
   run_delegate "$delegate"
 done

@@ -689,6 +689,11 @@
           },
           {
             "type": "command",
+            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/resolve-supervise-route.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/nudge-git-mode.sh\"",
             "timeout": 10
           },
