@@ -5,18 +5,17 @@ swimlane: core
 kind: chore
 epic: null
 labels: [ui, design, docs-update, readme, ready]
-status: "in_progress"
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-17
 started: 2026-08-17
-completed: null
+completed: 2026-08-17
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1006: Fix the Hub design defects the README screenshots expose, then reshoot every tab
 
 **Outcome (one sentence):** README shows the Hub honestly and well: empty board columns stop eating most of the width, the graph counter stops contradicting itself, chat rows stop printing raw byte sizes, and every tab is captured, compressed under 1 MB total, and documented.
@@ -87,3 +86,5 @@ references: []
 - 2026-08-17 [claude]: Edit jobs2.json
 - 2026-08-17 [claude]: Edit jobs3.json
 - 2026-08-17 [claude]: Shipped five Hub fixes and reshot the README. Empty board columns now collapse to a labelled rail (expanding back…
+- 2026-08-17 [claude]: Verification: tsc rc=0, docs-lint OK (link audit hard-gated), make lint PASS (ruff + format + mypy ratchet…
+- 2026-08-17 [claude]: Status transitioned to complete via cos task-done.
