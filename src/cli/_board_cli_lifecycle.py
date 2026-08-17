@@ -44,6 +44,12 @@ from cli._board_cli_shared import (
     help="Doc path(s) for the Read First section — repeatable and/or comma-separated. "
     "(Was a single comma-only flag; repeating it silently kept only the last value.)",
 )
+@click.option(
+    "--repro",
+    default=None,
+    help="Repro Steps markdown. Required to start a bug task — without it the "
+    "section keeps its template placeholder and `cos task-start` fails DoR.",
+)
 @click.option("--depends-on", default="", help="Comma-separated TASK-IDs")
 @click.option("--ready", is_flag=True, default=False, help="Mark the task pullable in one shot.")
 def task_create_cmd(
@@ -57,6 +63,7 @@ def task_create_cmd(
     outcome,
     acceptance,
     read_first,
+    repro,
     depends_on,
     ready,
 ):
@@ -77,6 +84,7 @@ def task_create_cmd(
             acceptance=acceptance,
             read_first=[p.strip() for chunk in read_first for p in chunk.split(",") if p.strip()]
             or None,
+            repro=repro,
             depends_on=[d.strip() for d in depends_on.split(",") if d.strip()],
             ready=ready,
             agent_session=_agent_session_id(),
