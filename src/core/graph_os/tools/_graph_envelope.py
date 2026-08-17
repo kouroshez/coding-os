@@ -177,20 +177,37 @@ _TELEMETRY_MAX_BYTES = 2 * 1024 * 1024  # 2 MB
 _TELEMETRY_PATH_CACHE: list[str] = []
 
 
+def _project_state_dir() -> str | None:
+    # The previous fallback was `Path.cwd() / ".coding-os"` + mkdir, which minted
+    # a state dir wherever the process happened to be. A minted dir is itself a
+    # root marker, so it then captured every later resolution in that subtree —
+    # src/core/web/ui/ ran on its own phantom DB for two months. Walk instead,
+    # and degrade to None rather than invent a root (state-files.md).
+    state_dir = os.environ.get("COS_STATE_DIR")
+    if state_dir:
+        return state_dir
+    try:
+        from thinking_os._db_paths import _find_project_root_from_cwd
+    except ImportError as exc:
+        logger.debug("telemetry root walk unavailable: %s", exc)
+        return None
+    root = _find_project_root_from_cwd()
+    return str(root / ".coding-os") if root is not None else None
+
+
 def _telemetry_path() -> str | None:
     if _TELEMETRY_PATH_CACHE:
         return _TELEMETRY_PATH_CACHE[0]
-    state_dir = os.environ.get("COS_STATE_DIR")
+    state_dir = _project_state_dir()
     if not state_dir:
-        # Fall back to repo-rooted .coding-os when env unset.
-        from pathlib import Path as _Path
-
-        state_dir = str(_Path.cwd() / ".coding-os")
+        return None
     try:
         from pathlib import Path as _Path
 
         path = _Path(state_dir)
-        path.mkdir(parents=True, exist_ok=True)
+        # exist_ok + no parents: the walk already proved this root exists, so
+        # this creates at most the state dir itself, never a tree at cwd.
+        path.mkdir(exist_ok=True)
         full = str(path / ".graph-telemetry.jsonl")
         _TELEMETRY_PATH_CACHE.append(full)
         return full

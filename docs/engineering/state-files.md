@@ -59,8 +59,26 @@ defeat it (Critical Rule 5).
 contract. `tests/test_hooks.py` asserts (a) their marker lists are identical and
 (b) they resolve the same root for a battery of fixture trees — so the mirror
 can never silently drift. The Python-side `$HOME` hard-stop and the
-consolidation of the remaining cwd-only Python resolvers onto this one contract
-are tracked in **TASK-498**.
+consolidation of the cwd-only Python resolvers onto this one contract shipped in
+**TASK-498**.
+
+**A fallback may guess a path; it may never *create* one.** This is the rule the
+walk exists to protect, and the one way to defeat it is a resolver that does
+`Path.cwd() / ".coding-os"` followed by `mkdir(parents=True)`. That does not
+merely write to the wrong place once — the minted directory becomes a **root
+marker itself**, so step 4 above stops there for every future process launched
+anywhere in that subtree. One stray write permanently forks the project's state.
+That is how `src/core/web/ui/.coding-os` came to hold its own `coding-os.db`,
+`-wal`, `-shm` and `.cos.log` for two months while the real DB sat at the repo
+root; `_graph_envelope._telemetry_path` was the last resolver still doing it
+(TASK-1010 — the site TASK-498's sweep missed).
+
+So any Python code needing the state dir resolves it with
+`_find_project_root_from_cwd()` and, when that returns `None`, **degrades**
+— skips the write, returns `None`, raises — rather than inventing a root.
+`resolve_db_path`'s docstring states the same rule for the DB path: *"Do NOT
+weaken this to a cwd fallback."* Creating state is how a guess becomes
+permanent.
 
 ### The multi-project exception — the Hub daemon starts env-clean
 
