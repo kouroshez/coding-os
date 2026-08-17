@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ui, design, search, readme, docs-update, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 4h
 created: 2026-08-17
 started: 2026-08-17
-completed: null
+completed: 2026-08-17
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -38,3 +38,5 @@ Open http://127.0.0.1:9188/p/coding-os/workspace/search, type "wip limit", press
 - 2026-08-17 [claude]: Edit LogsPage.tsx
 - 2026-08-17 [claude]: Edit shoot.mjs
 - 2026-08-17 [claude]: Edit jobs4.json
+- 2026-08-17 [claude]: Search summary no longer reads an in-flight layer as zero — verified by execution, not inference: held…
+- 2026-08-17 [claude]: Status transitioned to complete via cos task-done.
