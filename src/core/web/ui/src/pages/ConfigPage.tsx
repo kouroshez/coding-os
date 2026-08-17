@@ -71,7 +71,7 @@ export default function ConfigPage() {
           id="cfg-tabpanel"
           aria-labelledby={`cfgtab-${tab}`}
           tabIndex={0}
-          className="mx-auto w-full max-w-5xl px-6 py-6"
+          className="mx-auto w-full max-w-7xl px-6 py-6 sm:px-10"
         >
           {tab === 'stacks' && <StacksTab />}
           {tab === 'skills' && <SkillsTab />}
