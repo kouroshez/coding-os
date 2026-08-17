@@ -1,4 +1,5 @@
 import { TaskStickyCard } from './TaskStickyCard';
+import { COLUMN_RAIL_WIDTH } from './board-shared';
 import type { Highlight } from './board-shared';
 import type { BoardDnD } from './useBoardDnD';
 import type { BoardListCard, BoardTweaks } from './types';
@@ -8,6 +9,7 @@ interface BoardCellProps {
   laneId: string;
   colId: string;
   wipCap: number | null;
+  rail: boolean;
   tweaks: BoardTweaks;
   highlight: Highlight | null;
   dnd: BoardDnD;
@@ -21,6 +23,7 @@ export function BoardCell({
   laneId,
   colId,
   wipCap,
+  rail,
   tweaks,
   highlight,
   dnd,
@@ -29,6 +32,22 @@ export function BoardCell({
 }: BoardCellProps) {
   const isTarget = dnd.dragTarget === `${laneId}:${colId}`;
   const violated = wipCap != null && cards.length > wipCap;
+  // A rail carries no drop handlers on purpose: BoardGrid clears every rail the
+  // moment a drag starts, so by the time a card is looking for a target this
+  // column is already a full-width drop zone.
+  if (rail) {
+    return (
+      <div
+        aria-hidden
+        style={{
+          width: COLUMN_RAIL_WIDTH,
+          minWidth: COLUMN_RAIL_WIDTH,
+          flexShrink: 0,
+          borderRight: '1px dashed var(--col-border)',
+        }}
+      />
+    );
+  }
   return (
     <div
       onDragOver={(e) => dnd.onDragOver(e, laneId, colId)}

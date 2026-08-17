@@ -51,6 +51,10 @@ export const COLUMN_META: Record<string, { label: string; sub: string; wip: numb
   archive: { label: 'ARCHIVE', sub: 'frozen cold store', wip: null, tint: '#9aa0a6' },
 };
 
+// Width of a column collapsed to a rail — enough for the rotated status label
+// and nothing more. Populated columns share every pixel this frees.
+export const COLUMN_RAIL_WIDTH = 44;
+
 // Fallback when GET /api/board/list has no `agent_manifest` (older Hub).
 // `system` = unattended kernel maintenance — an actor for attribution, not a
 // presence-bearing agent, so pill rows filter it out (isPresenceAgent).

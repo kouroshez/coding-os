@@ -1,5 +1,5 @@
 import { type CSSProperties } from 'react';
-import { alpha, columnWipCap, lanePalette } from './board-shared';
+import { COLUMN_RAIL_WIDTH, alpha, columnWipCap, lanePalette } from './board-shared';
 import type { Highlight } from './board-shared';
 import { SwimlaneLabel } from './TaskStickyCard';
 import { ZoomControls } from './ZoomControls';
@@ -21,6 +21,10 @@ interface BoardGridProps {
 }
 
 const NEUTRAL_PALETTE = { color: 'var(--ink-soft)', accent: 'var(--ink-soft)' };
+
+const NO_RAILS: ReadonlySet<string> = new Set();
+const LANE_LABEL_WIDTH = 130;
+const COLUMN_WIDTH = 200;
 
 function CollapsedLane({
   lane,
@@ -75,8 +79,20 @@ function CollapsedLane({
 
 /** The scrollable board canvas: column headers, lane rows (or flat columns), zoom. */
 export function BoardGrid({ data, tweaks, view, dnd, highlight, streamOpen, onOpenTask }: BoardGridProps) {
-  const { cards, cellMap, cfg, columns, filtered, swimlanes } = data;
-  const totalWidth = Math.max(400, columns.length * 200 + 130);
+  const { cards, cellMap, cfg, columns, emptyColumnIds, filtered, swimlanes } = data;
+  // Every empty column expands back to a full drop zone for the duration of a
+  // drag — a 44px rail is where cards can't be dropped, and an empty column is
+  // exactly where they need to go. Expanding at drag-start reflows before the
+  // user has aimed at anything, which is the cheapest moment to do it.
+  const railColumns = dnd.dragging ? NO_RAILS : emptyColumnIds;
+  const totalWidth = Math.max(
+    400,
+    LANE_LABEL_WIDTH +
+      columns.reduce(
+        (width, col) => width + (railColumns.has(col.id) ? COLUMN_RAIL_WIDTH : COLUMN_WIDTH),
+        0,
+      ),
+  );
 
   return (
     <div
@@ -99,6 +115,7 @@ export function BoardGrid({ data, tweaks, view, dnd, highlight, streamOpen, onOp
       >
         <BoardColumnHeaders
           data={data}
+          railColumns={railColumns}
           showWipViolation={tweaks.showWipViolation}
           flashWip={dnd.flashWip}
         />
@@ -139,6 +156,7 @@ export function BoardGrid({ data, tweaks, view, dnd, highlight, streamOpen, onOp
                   laneId={lane.id}
                   colId={col.id}
                   wipCap={columnWipCap(col.id, cfg?.wip_limits)}
+                  rail={railColumns.has(col.id)}
                   tweaks={tweaks}
                   highlight={highlight}
                   dnd={dnd}
@@ -154,8 +172,8 @@ export function BoardGrid({ data, tweaks, view, dnd, highlight, streamOpen, onOp
           <div style={{ display: 'flex', borderBottom: '1px solid var(--col-border)', minHeight: 200 }}>
             <div
               style={{
-                width: 130,
-                minWidth: 130,
+                width: LANE_LABEL_WIDTH,
+                minWidth: LANE_LABEL_WIDTH,
                 flexShrink: 0,
                 borderRight: '2px solid var(--line)',
                 position: 'sticky',
@@ -171,6 +189,7 @@ export function BoardGrid({ data, tweaks, view, dnd, highlight, streamOpen, onOp
                 laneId={dnd.dragging?.swimlane ?? '__flat__'}
                 colId={col.id}
                 wipCap={columnWipCap(col.id, cfg?.wip_limits)}
+                rail={railColumns.has(col.id)}
                 tweaks={tweaks}
                 highlight={highlight}
                 dnd={dnd}

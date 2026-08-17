@@ -1,15 +1,21 @@
-import { COLUMN_META, columnWipCap } from './board-shared';
+import { COLUMN_META, COLUMN_RAIL_WIDTH, columnWipCap } from './board-shared';
 import type { BoardData } from './useBoardData';
 
 interface BoardColumnHeadersProps {
   data: BoardData;
+  railColumns: ReadonlySet<string>;
   showWipViolation: boolean;
   flashWip: string | null;
 }
 
 /** Sticky column header row: label, WIP counter, and keyset "load more". */
-export function BoardColumnHeaders({ data, showWipViolation, flashWip }: BoardColumnHeadersProps) {
-  const { columns, filtered, cfg, list, extra, loadingMore, loadMore } = data;
+export function BoardColumnHeaders({
+  data,
+  railColumns,
+  showWipViolation,
+  flashWip,
+}: BoardColumnHeadersProps) {
+  const { columns, columnCounts, cfg, list, extra, loadingMore, loadMore } = data;
   return (
     <div
       style={{
@@ -34,8 +40,42 @@ export function BoardColumnHeaders({ data, showWipViolation, flashWip }: BoardCo
         }}
       />
       {columns.map((col) => {
-        const count = filtered.filter((t) => t.status === col.id).length;
+        const count = columnCounts[col.id] ?? 0;
         const meta = COLUMN_META[col.id] ?? { label: col.label, sub: '', wip: null, tint: 'var(--ink-faint)' };
+        if (railColumns.has(col.id)) {
+          return (
+            <div
+              key={col.id}
+              title={`${meta.label} — no tasks (${meta.sub})`}
+              style={{
+                width: COLUMN_RAIL_WIDTH,
+                minWidth: COLUMN_RAIL_WIDTH,
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '10px 0 8px',
+                borderTop: `3px solid ${meta.tint}`,
+                borderRight: '1px dashed var(--col-border)',
+              }}
+            >
+              <span
+                style={{
+                  writingMode: 'vertical-rl',
+                  transform: 'rotate(180deg)',
+                  fontFamily: 'inherit',
+                  fontSize: 13,
+                  letterSpacing: '.08em',
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                  color: 'var(--ink-faint)',
+                }}
+              >
+                {meta.label}
+              </span>
+            </div>
+          );
+        }
         const cap = columnWipCap(col.id, cfg?.wip_limits);
         const violated = showWipViolation && cap != null && count > cap;
         const colMeta = list?.columns?.[col.id];

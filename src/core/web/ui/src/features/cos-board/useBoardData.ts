@@ -141,6 +141,27 @@ export function useBoardData(tweaks: BoardTweaks) {
     [cards, tweaks.filterKind, tweaks.filterEpic, tweaks.filterSwim],
   );
 
+  // One pass over the cards instead of one `filtered.filter()` per column: the
+  // header, the grid width, and the rail decision all ask "how many are in this
+  // column?" on the same render, and they have to agree.
+  const columnCounts = useMemo<Record<string, number>>(() => {
+    const counts: Record<string, number> = {};
+    for (const c of columns) counts[c.id] = 0;
+    for (const t of filtered) {
+      if (t.status in counts) counts[t.status] += 1;
+    }
+    return counts;
+  }, [columns, filtered]);
+
+  // A column holding nothing has no claim on an equal share of the width — with
+  // two of seven statuses in use the cards get 28% of the board and five
+  // "— empty —" placeholders get the rest. Exception: an entirely empty board
+  // collapses nothing, because a row of rails shows less than a row of columns.
+  const emptyColumnIds = useMemo<ReadonlySet<string>>(() => {
+    const empty = columns.filter((c) => columnCounts[c.id] === 0);
+    return new Set(empty.length === columns.length ? [] : empty.map((c) => c.id));
+  }, [columns, columnCounts]);
+
   const cellMap = useMemo<Record<string, Record<string, BoardListCard[]>>>(() => {
     const m: Record<string, Record<string, BoardListCard[]>> = {};
     for (const sl of swimlanes) {
@@ -195,6 +216,8 @@ export function useBoardData(tweaks: BoardTweaks) {
     swimlanes,
     columns,
     filtered,
+    columnCounts,
+    emptyColumnIds,
     cellMap,
     taskCounts,
     kindOptions,
