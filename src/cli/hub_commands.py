@@ -24,12 +24,15 @@ from pathlib import Path
 import click
 
 from cli._hub_paths import (
+    _HUB_LOG_KEEP_BYTES as _HUB_LOG_KEEP_BYTES,
     DEFAULT_HUB_PORT as DEFAULT_HUB_PORT,
     HUB_HOST as HUB_HOST,
+    HUB_LOG_MAX_BYTES as HUB_LOG_MAX_BYTES,
     SERVICE_NAME as SERVICE_NAME,
     _hub_dir as _hub_dir,
     _log_file as _log_file,
     _resolve_cos_bin as _resolve_cos_bin,
+    _truncate_hub_log as _truncate_hub_log,
 )
 from cli._hub_service import (
     _launchd_plist_path as _launchd_plist_path,
@@ -40,38 +43,6 @@ from cli._hub_service import (
     service_install as service_install,
     service_uninstall as service_uninstall,
 )
-
-# The hub daemon appends stdout+stderr here for weeks at a time. uvicorn's
-# access log is off (see web/server.run_server), so steady-state growth is
-# ~zero — this cap only backstops a crash-looping handler spewing tracebacks
-# between restarts. Truncation keeps the TAIL: the newest lines explain why
-# the hub is unhappy now.
-HUB_LOG_MAX_BYTES = 8 * 1024 * 1024
-_HUB_LOG_KEEP_BYTES = HUB_LOG_MAX_BYTES // 2
-
-
-def _truncate_hub_log(log: Path) -> int:
-    try:
-        size = log.stat().st_size
-    except OSError:
-        return 0
-    if size <= HUB_LOG_MAX_BYTES:
-        return 0
-    try:
-        with log.open("rb") as handle:
-            handle.seek(-_HUB_LOG_KEEP_BYTES, os.SEEK_END)
-            tail = handle.read()
-        # Drop the partial line the seek landed inside — but only when there
-        # IS a later newline. A single traceback line longer than the keep
-        # window would otherwise truncate the file to nothing.
-        newline = tail.find(b"\n")
-        if newline != -1:
-            tail = tail[newline + 1 :]
-        with log.open("wb") as handle:
-            handle.write(tail)
-    except OSError:
-        return 0
-    return size - len(tail)
 
 
 def _strip_daemon_scope(env: MutableMapping[str, str]) -> list[str]:
