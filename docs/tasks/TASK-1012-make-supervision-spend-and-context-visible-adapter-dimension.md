@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: feature
 epic: null
 labels: [supervision, observability, hub, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-18
 started: 2026-08-18
-completed: null
+completed: 2026-08-18
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -52,3 +52,4 @@ references: []
 - 2026-08-18 [claude]: Three gaps closed plus one blocker found by dogfooding. (1) /api/cognition/cost now groups by adapter+model with a…
 - 2026-08-18 [claude]: Blocker found by running a real dispatch, not by reading: cos_dispatch_formula_run(reviewer) failed with "model…
 - 2026-08-18 [claude]: commit 3e6b029383 — fix(supervision): resolve tier aliases before validation so dispatch can run
+- 2026-08-18 [claude]: Status transitioned to complete via cos task-done.
