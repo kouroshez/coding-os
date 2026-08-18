@@ -88,3 +88,64 @@ class TestBothAdaptersCarryIt:
         block = render_shared_context(_CONTEXT)
         assert block in _dispatch_context(req)
         assert block in _formula_prompts(req, "body")[1]
+
+
+class TestShardedContextQuery:
+    """_shared_context against a real tasks table — the renderer tests above
+    never exercised the query that feeds it."""
+
+    def _db(self, tmp_path, rows):
+        import sqlite3
+
+        db = tmp_path / "coding-os.db"
+        with sqlite3.connect(db) as conn:
+            conn.execute(
+                "CREATE TABLE tasks (task_id TEXT, title TEXT, status TEXT, "
+                "agent_session TEXT, updated_at TEXT, work_log_last_5 TEXT)"
+            )
+            conn.executemany("INSERT INTO tasks VALUES (?,?,?,?,?,?)", rows)
+        return db
+
+    def test_picks_the_in_progress_task(self, tmp_path) -> None:
+        from thinking_os.tools._dispatch_request import _shared_context
+
+        db = self._db(
+            tmp_path,
+            [("TASK-9", "Ship it", "in_progress", "ses-a", "2026-08-18", '["did a thing"]')],
+        )
+        ctx = _shared_context("ses-a", db)
+        assert ctx["task_id"] == "TASK-9"
+        assert ctx["title"] == "Ship it"
+        assert ctx["recent_work_log"] == ["did a thing"]
+
+    def test_prefers_this_sessions_task_over_another(self, tmp_path) -> None:
+        from thinking_os.tools._dispatch_request import _shared_context
+
+        db = self._db(
+            tmp_path,
+            [
+                ("TASK-OTHER", "Theirs", "in_progress", "ses-b", "2026-08-18", "[]"),
+                ("TASK-MINE", "Mine", "in_progress", "ses-a", "2026-08-01", "[]"),
+            ],
+        )
+        # Newer row belongs to another session; ours must still win.
+        assert _shared_context("ses-a", db)["task_id"] == "TASK-MINE"
+
+    def test_empty_when_nothing_is_active(self, tmp_path) -> None:
+        from thinking_os.tools._dispatch_request import _shared_context
+
+        db = self._db(tmp_path, [("TASK-1", "Done", "complete", "ses-a", "2026-08-18", "[]")])
+        assert _shared_context("ses-a", db) == {}
+
+    def test_survives_a_missing_database(self, tmp_path) -> None:
+        from thinking_os.tools._dispatch_request import _shared_context
+
+        assert _shared_context("ses-a", tmp_path / "nope.db") == {}
+
+    def test_survives_malformed_work_log_json(self, tmp_path) -> None:
+        from thinking_os.tools._dispatch_request import _shared_context
+
+        db = self._db(
+            tmp_path, [("TASK-9", "T", "testing", "ses-a", "2026-08-18", "{not json")]
+        )
+        assert _shared_context("ses-a", db)["recent_work_log"] == []
