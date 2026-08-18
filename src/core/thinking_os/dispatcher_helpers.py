@@ -46,3 +46,45 @@ def extract_json_block(transcript: str) -> dict[str, Any]:
     except json.JSONDecodeError as exc:
         logger.debug("dispatcher JSON parse failed: %s", exc)
         return {}
+
+
+def render_shared_context(shared_context: dict[str, Any] | None) -> str:
+    """Render DispatchRequest.shared_context as a prompt block, or '' when empty."""
+    if not shared_context:
+        return ""
+    lines = [
+        "## Work Context (the task this dispatch serves)",
+        f"- Task: {shared_context.get('task_id') or 'none'}"
+        f" — {shared_context.get('title') or 'untitled'}"
+        f" [{shared_context.get('status') or 'unknown'}]",
+    ]
+    work_log = shared_context.get("recent_work_log") or []
+    if isinstance(work_log, list) and work_log:
+        lines.append("- Recent work log (newest first):")
+        lines.extend(f"  - {entry}" for entry in work_log[:5])
+    lines.append(
+        "\nYou inherit no prior conversation. If this context does not cover what "
+        "you need, say so in your output rather than assuming."
+    )
+    return "\n".join(lines)
+
+
+def resolve_model_alias(
+    model: str | None, model_ids: list[str], default_id: str | None
+) -> str | None:
+    """Resolve a tier alias ('sonnet') to a concrete model id declared by an adapter.
+
+    The kernel router and role `model_pref` blocks speak in tiers while adapter
+    descriptors declare concrete ids, so validating a routed tier against the id
+    list rejects it as undeclared. Descriptor-driven, so core stays adapter-
+    agnostic (P8): the caller supplies the ids it already holds.
+    """
+    if not model:
+        return model
+    alias = model.strip().lower()
+    if not alias:
+        return model
+    if model in model_ids:
+        return model
+    match = next((mid for mid in model_ids if alias in mid.lower()), None)
+    return match or default_id or model

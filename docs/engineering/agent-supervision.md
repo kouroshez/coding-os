@@ -419,6 +419,32 @@ The parent receives an `EvidenceBundle` or an explicit failure. Raw child
 transcripts remain adapter-owned and are linked by native identity rather than
 copied into parent context.
 
+### Spend is reported per adapter, never as one number
+
+`formula_dispatches` carries `adapter`, `model`, `effort` and `cost_usd` on every
+row, so the read path MUST preserve that dimension: `/api/cognition/cost` returns
+a `by_adapter` rollup alongside the formula×day rows, and the Hub renders the
+split. A single blended total is not an acceptable answer to "what did each
+runtime cost" — the entire reason to route work across providers is to compare
+them, and an aggregate that erases the provider hides both the saving and the
+overrun. Rows whose `adapter` is NULL are pre-attribution history and report as
+`unattributed` rather than being silently folded into one of the real adapters.
+
+### What a dispatched child is told
+
+A child is spawned cold: it inherits no parent conversation. It receives its role
+prompt, the upstream formulas' output (`input_slice`), the task prompt, and
+`shared_context` — the active task's id, outcome and recent work log.
+
+`shared_context` exists because the alternative is worse than ignorance. A role
+that does not know which task it is serving still answers confidently, and a
+confident answer built on no context is indistinguishable, to the parent, from a
+grounded one. That is a hallucination the envelope cannot detect. Adapters that
+can reach shared state through MCP may also query it live; adapters running
+sandboxed — Codex dispatch runs `--sandbox read-only` with `mcp_servers={}` and
+hooks disabled, deliberately, for reproducibility — have `shared_context` as their
+only channel, so it is carried in the prompt rather than left to tool access.
+
 ### Who writes the route, and why it is the kernel
 
 `adapter` and `effort` are **resolved by core and stamped by core** onto the

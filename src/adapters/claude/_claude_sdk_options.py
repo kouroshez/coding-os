@@ -107,12 +107,18 @@ def _resolve_model_alias(model: str | None) -> str | None:
             )
             or {}
         )
+        from thinking_os.dispatcher_helpers import resolve_model_alias
+
         models = [m for m in (data.get("models") or []) if isinstance(m, dict) and m.get("id")]
-        match = next((str(m["id"]) for m in models if alias in str(m["id"]).lower()), None)
-        if match is None:
-            match = next((str(m["id"]) for m in models if m.get("default")), None)
-            if match:
-                logger.warning("unknown model alias %r → adapter default %s", model, match)
+        model_ids = [str(m["id"]) for m in models]
+        default_id = next((str(m["id"]) for m in models if m.get("default")), None)
+        # One rule, in core: the supervisor validates with the same resolution, so
+        # a second copy here would let the two disagree about what 'sonnet' means.
+        match = resolve_model_alias(model, model_ids, default_id)
+        if match and match not in model_ids:
+            match = None
+        if match and not any(alias in mid.lower() for mid in [match.lower()]):
+            logger.warning("unknown model alias %r → adapter default %s", model, match)
         if match:
             resolved = match
     except Exception as exc:
@@ -296,7 +302,10 @@ def _formula_prompts(request: Any, system_prompt_body: str) -> tuple[dict[str, A
         "append": formula_append,
         "exclude_dynamic_sections": True,
     }
-    user_prompt = (
+    from thinking_os.dispatcher_helpers import render_shared_context
+
+    work_context = render_shared_context(getattr(request, "shared_context", None))
+    user_prompt = (f"{work_context}\n\n" if work_context else "") + (
         f"Input slice (upstream formulas only):\n"
         f"```json\n{json.dumps(request.input_slice, indent=2, default=str)}\n```\n\n"
         f"{request.prompt}"

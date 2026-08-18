@@ -174,6 +174,7 @@ from .doctor_checks_runtime import (  # noqa: E402
     _check_hook_coverage,
     _check_presence_zombies,
     _check_scheduled,
+    _check_supervision_exercised,
     _check_supervision_policy,
 )
 from .doctor_checks_scaffold import (  # noqa: E402
@@ -391,6 +392,7 @@ __all__ = [
     "_check_state_dir",
     "_check_structure",
     "_check_subsystems_state_integrity",
+    "_check_supervision_exercised",
     "_check_supervision_policy",
     "_declared_src_segments",
     "_derive_expected_schema_version",

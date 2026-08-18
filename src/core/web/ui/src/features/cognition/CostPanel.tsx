@@ -3,6 +3,15 @@ import { useApiGet } from '@/lib/hooks';
 interface CostRow {
   formula_id: string;
   day: string;
+  adapter: string;
+  model: string;
+  total_cost_usd: number;
+  count: number;
+  avg_latency_ms: number | null;
+}
+
+interface AdapterRow {
+  adapter: string;
   total_cost_usd: number;
   count: number;
   avg_latency_ms: number | null;
@@ -10,6 +19,7 @@ interface CostRow {
 
 interface CostPayload {
   rows: CostRow[];
+  by_adapter: AdapterRow[];
   total_usd: number;
   count: number;
 }
@@ -43,6 +53,7 @@ export default function CostPanel({ onPick }: { onPick: (sessionId: string) => v
   const todayKey = new Date().toISOString().slice(0, 10);
   const today = (cost.data?.rows ?? []).filter((r) => r.day === todayKey);
   const todayTotal = today.reduce((acc, r) => acc + (r.total_cost_usd || 0), 0);
+  const byAdapter = cost.data?.by_adapter ?? [];
 
   return (
     <section aria-label="Dispatch cost" className="flex h-full min-h-0 flex-col">
@@ -60,20 +71,51 @@ export default function CostPanel({ onPick }: { onPick: (sessionId: string) => v
         {!cost.isLoading && !cost.error && (cost.data?.rows.length ?? 0) === 0 && (
           <p className="text-[var(--cos-muted)]">no dispatch cost recorded yet.</p>
         )}
+        {byAdapter.length > 0 && (
+          <div className="mb-4">
+            <h3 className="mb-1 text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
+              by adapter
+            </h3>
+            <ul className="space-y-1">
+              {byAdapter.map((a) => (
+                <li
+                  key={a.adapter}
+                  className="flex items-center gap-2 rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] px-2 py-1"
+                >
+                  <span className="rounded bg-[var(--cos-accent)]/10 px-1 text-[10px] text-[var(--cos-accent)]">
+                    {a.adapter}
+                  </span>
+                  <span className="ml-auto font-mono">{(a.total_cost_usd || 0).toFixed(4)}$</span>
+                  <span className="text-[10px] text-[var(--cos-muted)]">{a.count}×</span>
+                  {a.avg_latency_ms != null && (
+                    <span className="text-[10px] text-[var(--cos-muted)]">
+                      {Math.round(a.avg_latency_ms)}ms
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {(cost.data?.rows.length ?? 0) > 0 && (
           <div className="mb-4">
             <h3 className="mb-1 text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
-              by day · formula
+              by day · formula · adapter
             </h3>
             <ul className="space-y-1">
               {(cost.data?.rows ?? []).map((r) => (
                 <li
-                  key={`${r.day}-${r.formula_id}`}
+                  key={`${r.day}-${r.formula_id}-${r.adapter}-${r.model}`}
                   className="flex items-center gap-2 rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] px-2 py-1"
                 >
                   <span className="font-mono text-[10px] text-[var(--cos-muted)]">{r.day}</span>
                   <span className="rounded bg-[var(--cos-accent)]/10 px-1 text-[10px] text-[var(--cos-accent)]">
                     {r.formula_id}
+                  </span>
+                  <span className="text-[10px] text-[var(--cos-muted)]">
+                    {r.adapter}
+                    {r.model ? `/${r.model}` : ''}
                   </span>
                   <span className="ml-auto font-mono">{(r.total_cost_usd || 0).toFixed(4)}$</span>
                   <span className="text-[10px] text-[var(--cos-muted)]">{r.count}×</span>

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from pathlib import Path
@@ -125,6 +126,48 @@ def _turn_budget(meta: dict, intensity: str) -> int | None:
     return len(steps) * 2 + 1
 
 
+def _shared_context(session_id: str, db_path=None) -> dict:
+    """Active task id/title/work-log for the child, which inherits no conversation."""
+    import sqlite3
+
+    from thinking_os.database import resolve_db_path
+
+    try:
+        db = Path(db_path) if db_path else resolve_db_path()
+    except Exception as exc:
+        logger.debug("shared_context db unresolved: %s", exc)
+        return {}
+    if not Path(db).is_file():
+        return {}
+
+    # Bounded by the WIP cap (1-3 rows), on an indexed status column.
+    try:
+        with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT task_id, title, status, work_log_last_5 FROM tasks "
+                "WHERE status IN ('in_progress','testing') "
+                "ORDER BY CASE WHEN agent_session = ? THEN 0 ELSE 1 END, updated_at DESC LIMIT 1",
+                (session_id,),
+            ).fetchone()
+    except sqlite3.Error as exc:
+        logger.debug("shared_context query failed: %s", exc)
+        return {}
+    if row is None:
+        return {}
+
+    try:
+        work_log = json.loads(row["work_log_last_5"] or "[]")
+    except (TypeError, ValueError):
+        work_log = []
+    return {
+        "task_id": row["task_id"],
+        "title": row["title"],
+        "status": row["status"],
+        "recent_work_log": work_log if isinstance(work_log, list) else [],
+    }
+
+
 def _build_dispatch_request(
     formula_id: str,
     session_id: str,
@@ -174,4 +217,5 @@ def _build_dispatch_request(
         effort=effort.strip() or supervised.get("effort") or None,
         complexity=complexity.strip(),
         max_turns=_turn_budget(meta, intensity),
+        shared_context=_shared_context(session_id, db_path),
     )

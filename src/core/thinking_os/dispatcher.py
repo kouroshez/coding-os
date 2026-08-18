@@ -56,6 +56,13 @@ class DispatchRequest(BaseModel):
     # delegation. None = the adapter default (Claude: 3 with an output schema,
     # else 1); an explicit value wins over that default.
     max_turns: int | None = None
+    # The work the child is serving: active task id, title and recent work log.
+    # A child inherits no parent conversation, and a role that does not know
+    # which task it is on still answers confidently — a confident answer built
+    # on no context is indistinguishable from a grounded one at the envelope.
+    # Adapters with MCP access can also query live; a sandboxed adapter (Codex
+    # dispatch runs read-only with mcp_servers={}) has only this channel.
+    shared_context: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("formula_id")
     @classmethod
@@ -263,6 +270,18 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
             )
             continue
         model_ids = {str(model.get("id")) for model in record.models if model.get("id")}
+        # Resolve a tier alias against the descriptor BEFORE validating: roles
+        # declare `model_pref: {complicated: sonnet}` while descriptors declare
+        # concrete ids, so validating first rejected every routed tier as
+        # undeclared and no supervised dispatch could ever run.
+        if selected.model and model_ids:
+            from thinking_os.dispatcher_helpers import resolve_model_alias
+
+            resolved_id = resolve_model_alias(
+                selected.model, sorted(model_ids), _default_model(record)
+            )
+            if resolved_id != selected.model:
+                selected = selected.model_copy(update={"model": resolved_id})
         if selected.model and model_ids and selected.model not in model_ids:
             if adapter_id != target or policy.get("fallback_policy") == "same_adapter_default":
                 selected = selected.model_copy(update={"model": _default_model(record)})

@@ -28,7 +28,7 @@ def dispatcher_cost_summary(
     _rl=Depends(make_rate_limit_dep("cognition.cost")),
     _m=Depends(make_metrics_dep("cognition.cost")),
 ):
-    """Aggregate dispatch cost rolled up by formula and day (T2.4)."""
+    """Aggregate dispatch cost by formula and day, plus a per-adapter rollup."""
     db = _db_path()
     if db is None:
         return unwrap(
@@ -37,6 +37,7 @@ def dispatcher_cost_summary(
                     "ok": True,
                     "data": {
                         "rows": [],
+                        "by_adapter": [],
                         "total_usd": 0.0,
                         "count": 0,
                         "meta": {"layer": "cognition"},
@@ -51,20 +52,34 @@ def dispatcher_cost_summary(
         if formula_id:
             where += " AND formula_id = ?"
             params.append(formula_id)
+        # COALESCE, not a filter: rows predating adapter attribution must report as
+        # `unattributed` rather than being folded into a real adapter's total —
+        # the whole point of the split is that it can be trusted.
         query_sql = (
             f"SELECT formula_id, date(ts) as day, "
+            f"COALESCE(NULLIF(adapter,''), 'unattributed') as adapter, "
+            f"COALESCE(NULLIF(model,''), '') as model, "
             f"SUM(cost_usd) as total_cost_usd, COUNT(*) as count, "
             f"AVG(latency_ms) as avg_latency_ms "
             f"FROM formula_dispatches {where} "
-            f"GROUP BY formula_id, day "
+            f"GROUP BY formula_id, day, adapter, model "
             f"ORDER BY day DESC, total_cost_usd DESC "
             f"LIMIT ?"
         )
-        params.append(limit)
+        adapter_sql = (
+            f"SELECT COALESCE(NULLIF(adapter,''), 'unattributed') as adapter, "
+            f"SUM(cost_usd) as total_cost_usd, COUNT(*) as count, "
+            f"AVG(latency_ms) as avg_latency_ms "
+            f"FROM formula_dispatches {where} "
+            f"GROUP BY adapter ORDER BY total_cost_usd DESC"
+        )
         with sqlite3.connect(db) as conn:
             conn.row_factory = sqlite3.Row
-            rows = [dict(r) for r in conn.execute(query_sql, params).fetchall()]
-            total_usd = sum(r["total_cost_usd"] or 0 for r in rows)
+            rows = [dict(r) for r in conn.execute(query_sql, [*params, limit]).fetchall()]
+            by_adapter = [dict(r) for r in conn.execute(adapter_sql, params).fetchall()]
+            # Total comes from the adapter rollup, which is unlimited; summing the
+            # LIMITed rows would silently under-report once history outgrows it.
+            total_usd = sum(r["total_cost_usd"] or 0 for r in by_adapter)
     except Exception as exc:
         return unwrap(
             json.dumps(
@@ -81,6 +96,7 @@ def dispatcher_cost_summary(
                 "ok": True,
                 "data": {
                     "rows": rows,
+                    "by_adapter": by_adapter,
                     "total_usd": round(total_usd, 6),
                     "count": len(rows),
                     "meta": {"layer": "cognition"},
