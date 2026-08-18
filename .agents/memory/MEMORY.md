@@ -39,3 +39,5 @@
 - [Fail-open hooks hide dead triggers](fail-open-hooks-hide-dead-triggers.md) — bare `python3` can't import the project's deps; capture the helper's rc and stamp the debounce marker only after rc==0
 - [Codex as eyes when Read breaks](codex-as-eyes-when-read-breaks.md) — a saturated extension host kills Read/Edit; `codex exec -i` inspects images, each failed Read costs 20 min.
 - [Generated hero banners miss the README bar](generated-hero-banners-miss-the-readme-bar.md) — 4/4 gpt-image-2 banners rejected; ship a real product screenshot as the hero.
+- [Run the size gate after formatting](run-size-gate-after-formatting.md) — `ruff format` adds lines; a budget test run before it gives a false green that CI catches.
+- [Run the feature, not just its tests](run-the-feature-not-just-its-tests.md) — 1599 green tests hid three defects that made dispatch unable to run at all.
