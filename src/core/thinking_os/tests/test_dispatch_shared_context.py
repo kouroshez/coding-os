@@ -145,7 +145,5 @@ class TestShardedContextQuery:
     def test_survives_malformed_work_log_json(self, tmp_path) -> None:
         from thinking_os.tools._dispatch_request import _shared_context
 
-        db = self._db(
-            tmp_path, [("TASK-9", "T", "testing", "ses-a", "2026-08-18", "{not json")]
-        )
+        db = self._db(tmp_path, [("TASK-9", "T", "testing", "ses-a", "2026-08-18", "{not json")])
         assert _shared_context("ses-a", db)["recent_work_log"] == []
