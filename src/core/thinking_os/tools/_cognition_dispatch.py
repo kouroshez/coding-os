@@ -75,6 +75,7 @@ def _resolved_route(req: Any, result: Any) -> dict[str, Any]:
         "model": req.model or None,
         "effort": req.effort or None,
         "error_category": result.error_category,
+        "error": result.error,
         "retry_after_s": result.retry_after_s,
     }
 
@@ -213,7 +214,11 @@ def register_cos_dispatch_formula_run(mcp, db_path):
 
         route = _resolved_route(req, result)
         filled = 0
-        if result.status in ("ok", "timeout") and result.output_json:
+        # Every terminal outcome, not just the happy ones: a run that exhausted
+        # its turn budget or hit a provider error still spent wall-clock and
+        # tokens, and recording only successes makes a chronically broken route
+        # indistinguishable from an idle one — both report zero.
+        if result.status in ("ok", "timeout", "error") and result.output_json:
             filled = _persist_dispatch_output(
                 session_id=session_id,
                 task_marker=task_marker,

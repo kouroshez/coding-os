@@ -94,6 +94,11 @@ def _persist_dispatch_output(
     # not echo it back can no longer leave the row's provenance NULL: that is
     # how every historical row ended up structurally complete and route-blind.
     route = resolved_route or {}
+    # The adapter's own message wins, but the dispatcher's result.error is the
+    # fallback: an `error` row whose message is NULL records that something
+    # failed while discarding the only field that says what.
+    _reported_error = meta.get("error") or route.get("error")
+    _error_text = str(_reported_error)[:1000] if _reported_error else None
 
     def _from_route(key: str) -> Any:
         reported = meta.get(key)
@@ -129,7 +134,7 @@ def _persist_dispatch_output(
                     meta.get("session_id"),
                     _from_route("model"),
                     _jsonb(meta.get("checkpoints")),
-                    str(meta.get("error"))[:1000] if meta.get("error") else None,
+                    _error_text,
                     raw_transcript[:50000] if raw_transcript else None,
                     _from_route("adapter"),
                     _from_route("effort"),

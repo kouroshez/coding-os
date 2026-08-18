@@ -270,16 +270,34 @@ class TestResolvedRouteShape:
         result = type(
             "R",
             (),
-            {"dispatcher_name": "claude-sdk", "error_category": None, "retry_after_s": None},
+            {"dispatcher_name": "claude-sdk", "error_category": None, "error": None, "retry_after_s": None},
         )()
         assert _resolved_route(req, result)["adapter"] == "codex"
+
+    def test_carries_the_error_message_for_persistence(self) -> None:
+        # An `error` row whose message is NULL records that something failed
+        # while discarding the only field that says what.
+        req = DispatchRequest(formula_id="reviewer", agent_file="/x.md", prompt="p")
+        result = type(
+            "R",
+            (),
+            {
+                "dispatcher_name": "claude-sdk",
+                "error_category": "provider",
+                "error": "Reached maximum number of turns (11)",
+                "retry_after_s": None,
+            },
+        )()
+        route = _resolved_route(req, result)
+        assert route["error"] == "Reached maximum number of turns (11)"
+        assert route["error_category"] == "provider"
 
     def test_falls_back_to_the_dispatcher_name_when_unpinned(self) -> None:
         req = DispatchRequest(formula_id="reviewer", agent_file="/x.md", prompt="p")
         result = type(
             "R",
             (),
-            {"dispatcher_name": "claude-sdk", "error_category": None, "retry_after_s": None},
+            {"dispatcher_name": "claude-sdk", "error_category": None, "error": None, "retry_after_s": None},
         )()
         assert _resolved_route(req, result)["adapter"] == "claude-sdk"
 

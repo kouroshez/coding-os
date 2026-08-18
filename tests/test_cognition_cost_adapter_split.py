@@ -79,3 +79,26 @@ class TestAdapterRollup:
     def test_empty_database_still_returns_the_key(self, tmp_path, monkeypatch) -> None:
         monkeypatch.setattr(views, "_db_path", lambda: None)
         assert _payload()["by_adapter"] == []
+
+
+class TestFailedDispatchesAreVisible:
+    """A run that failed still spent tokens; recording only successes makes a
+    chronically broken route and an idle one both report zero."""
+
+    def test_error_rows_appear_in_the_rollup(self, tmp_path, monkeypatch) -> None:
+        path = tmp_path / "coding-os.db"
+        with sqlite3.connect(path) as conn:
+            conn.executescript(_SCHEMA)
+            conn.executemany(
+                "INSERT INTO formula_dispatches "
+                "(session_id, formula_id, ts, status, cost_usd, latency_ms, adapter, model) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                [
+                    ("s1", "reviewer", "2026-08-18T10:00:00", "error", 0.30, 271128, "claude", "m"),
+                    ("s2", "analyst", "2026-08-18T11:00:00", "ok", 0.57, 44092, "claude", "m"),
+                ],
+            )
+        monkeypatch.setattr(views, "_db_path", lambda: path)
+        by_adapter = {r["adapter"]: r for r in _payload()["by_adapter"]}
+        assert by_adapter["claude"]["count"] == 2
+        assert by_adapter["claude"]["total_cost_usd"] == pytest.approx(0.87)

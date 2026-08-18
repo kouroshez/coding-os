@@ -430,6 +430,14 @@ them, and an aggregate that erases the provider hides both the saving and the
 overrun. Rows whose `adapter` is NULL are pre-attribution history and report as
 `unattributed` rather than being silently folded into one of the real adapters.
 
+**A failed dispatch is recorded too.** Persistence covers every *terminal*
+outcome — `ok`, `timeout` and `error` alike — because a run that exhausted its
+turn budget or hit a provider error still consumed wall-clock and tokens. Writing
+only successes makes failed spend invisible and, worse, makes a chronically
+broken route look like an idle one: both report zero. The only case that is
+deliberately not written is a schema-validation failure, where the row would
+carry an `output_hash` over untrusted output.
+
 ### What a dispatched child is told
 
 A child is spawned cold: it inherits no parent conversation. It receives its role
