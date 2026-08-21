@@ -41,3 +41,6 @@
 - [Generated hero banners miss the README bar](generated-hero-banners-miss-the-readme-bar.md) — 4/4 gpt-image-2 banners rejected; ship a real product screenshot as the hero.
 - [Run the size gate after formatting](run-size-gate-after-formatting.md) — `ruff format` adds lines; a budget test run before it gives a false green that CI catches.
 - [Run the feature, not just its tests](run-the-feature-not-just-its-tests.md) — 1599 green tests hid three defects that made dispatch unable to run at all.
+- [Browser file upload is blocked via CDP](browser-file-upload-blocked-via-cdp.md) — `setFileInputFiles: Not allowed` on a real Chrome profile; hand the step back on the first failure.
+- [Headless Chrome beats the Playwright extension](headless-chrome-beats-the-playwright-extension.md) — the MCP relay drops mid-task and screenshots the connect page; render via the CLI.
+- [Verify generated images by reading them back](verify-generated-images-by-reading-them-back.md) — `sips -c` crops instead of scaling; open every image before sending it.

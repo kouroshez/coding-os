@@ -35,3 +35,7 @@ The README carries one hero image, the brand card. The three-concentric-layers d
 
 ## Work Log
 - 2026-08-21 [claude]: Status transitioned to complete via cos task-done.
+- 2026-08-21 [claude]: commit 22d83e0d9c — chore(memory): refresh auto-generated trusted-lessons counters
+- 2026-08-21 [claude]: Edit browser-file-upload-blocked-via-cdp.md
+- 2026-08-21 [claude]: Edit headless-chrome-beats-the-playwright-extension.md
+- 2026-08-21 [claude]: Edit verify-generated-images-by-reading-them-back.md
