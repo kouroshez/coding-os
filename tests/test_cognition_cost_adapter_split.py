@@ -134,13 +134,16 @@ class TestAuthModeFraming:
     price of the tokens, not a charge. The same number means two different things
     and the reader cannot tell which from the number alone."""
 
-    def _with_auth(self, tmp_path, monkeypatch, auth: dict | None):
+    def _with_auth(self, tmp_path, monkeypatch, auth: dict | None, probed: dict | None = None):
         path = tmp_path / "coding-os.db"
         with sqlite3.connect(path) as conn:
             conn.executescript(_SCHEMA)
         if auth is not None:
             (tmp_path / "hub-settings.json").write_text(json.dumps({"claude_auth": auth}))
         monkeypatch.setattr(views, "_db_path", lambda: path)
+        # Pinned, because the probe otherwise reads THIS machine's real login and
+        # the assertion below would pass or fail by whoever is running it.
+        monkeypatch.setattr(views, "_probed_auth_modes", lambda: probed or {})
         return _payload()
 
     def test_subscription_is_reported(self, tmp_path, monkeypatch) -> None:
@@ -154,6 +157,46 @@ class TestAuthModeFraming:
     def test_missing_settings_is_unknown_not_assumed_billed(self, tmp_path, monkeypatch) -> None:
         # Guessing "api_key" would frame quota usage as money.
         assert self._with_auth(tmp_path, monkeypatch, None)["auth_mode"] == "unknown"
+
+    def test_the_adapters_own_login_outranks_the_hub_setting(self, tmp_path, monkeypatch) -> None:
+        # The setting is a declaration made once that drifts silently; the probe
+        # reads what the runtime will actually bill (api-contract-discipline).
+        payload = self._with_auth(
+            tmp_path, monkeypatch, {"mode": "api_key"}, {"claude": "subscription"}
+        )
+        assert payload["auth_mode"] == "subscription"
+
+    def test_each_adapter_carries_its_own_mode(self, tmp_path, monkeypatch) -> None:
+        # One project can meter an API key on one provider and a flat plan on
+        # another; a single global flag would label one of the two wrongly.
+        path = tmp_path / "coding-os.db"
+        with sqlite3.connect(path) as conn:
+            conn.executescript(_SCHEMA)
+            for adapter in ("claude", "codex"):
+                conn.execute(
+                    "INSERT INTO formula_dispatches "
+                    "(session_id, formula_id, ts, status, cost_usd, latency_ms, adapter, model) "
+                    f"VALUES ('s','analyst','2026-08-21T10:00:00','ok',0.5,100,'{adapter}','m')"
+                )
+        monkeypatch.setattr(views, "_db_path", lambda: path)
+        monkeypatch.setattr(
+            views, "_probed_auth_modes", lambda: {"claude": "subscription", "codex": "api_key"}
+        )
+        modes = {r["adapter"]: r["auth_mode"] for r in _payload()["by_adapter"]}
+        assert modes == {"claude": "subscription", "codex": "api_key"}
+
+    def test_an_adapter_no_probe_answered_for_is_unknown(self, tmp_path, monkeypatch) -> None:
+        path = tmp_path / "coding-os.db"
+        with sqlite3.connect(path) as conn:
+            conn.executescript(_SCHEMA)
+            conn.execute(
+                "INSERT INTO formula_dispatches "
+                "(session_id, formula_id, ts, status, cost_usd, latency_ms, adapter, model) "
+                "VALUES ('s','analyst','2026-08-21T10:00:00','ok',0.5,100,'codex','m')"
+            )
+        monkeypatch.setattr(views, "_db_path", lambda: path)
+        monkeypatch.setattr(views, "_probed_auth_modes", lambda: {})
+        assert _payload()["by_adapter"][0]["auth_mode"] == "unknown"
 
     def test_the_stored_figure_is_unchanged_by_framing(self, tmp_path, monkeypatch) -> None:
         # Only the label changes; a subscription must not zero out the number,
@@ -170,6 +213,7 @@ class TestAuthModeFraming:
             json.dumps({"claude_auth": {"mode": "subscription"}})
         )
         monkeypatch.setattr(views, "_db_path", lambda: path)
+        monkeypatch.setattr(views, "_probed_auth_modes", lambda: {})
         payload = _payload()
         assert payload["total_usd"] == pytest.approx(0.55)
         assert payload["auth_mode"] == "subscription"

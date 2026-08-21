@@ -5,16 +5,20 @@ interface CostRow {
   day: string;
   adapter: string;
   model: string;
-  total_cost_usd: number;
+  // NULL when every run in the group predates a price table for its model.
+  total_cost_usd: number | null;
   count: number;
   avg_latency_ms: number | null;
 }
 
 interface AdapterRow {
   adapter: string;
-  total_cost_usd: number;
+  total_cost_usd: number | null;
   count: number;
   avg_latency_ms: number | null;
+  // Producer: cognition_dispatch_views._probed_auth_modes, per adapter — one
+  // project can meter an API key on one provider and a flat plan on another.
+  auth_mode: string;
 }
 
 interface CostPayload {
@@ -39,6 +43,13 @@ interface DispatchRow {
 interface DispatchersPayload {
   dispatches: DispatchRow[];
   count: number;
+}
+
+// An unpriced run is unknown, not free. Rendering NULL as $0.0000 told the
+// operator that 13 codex dispatches cost nothing, which is the exact reading
+// the per-adapter split exists to prevent.
+function renderCost(value: number | null): string {
+  return value == null ? 'unpriced' : `${value.toFixed(4)}$`;
 }
 
 export default function CostPanel({ onPick }: { onPick: (sessionId: string) => void }) {
@@ -92,7 +103,7 @@ export default function CostPanel({ onPick }: { onPick: (sessionId: string) => v
                   <span className="rounded bg-[var(--cos-accent)]/10 px-1 text-[10px] text-[var(--cos-accent)]">
                     {a.adapter}
                   </span>
-                  <span className="ml-auto font-mono">{(a.total_cost_usd || 0).toFixed(4)}$</span>
+                  <span className="ml-auto font-mono">{renderCost(a.total_cost_usd)}</span>
                   <span className="text-[10px] text-[var(--cos-muted)]">{a.count}×</span>
                   {a.avg_latency_ms != null && (
                     <span className="text-[10px] text-[var(--cos-muted)]">
@@ -124,7 +135,7 @@ export default function CostPanel({ onPick }: { onPick: (sessionId: string) => v
                     {r.adapter}
                     {r.model ? `/${r.model}` : ''}
                   </span>
-                  <span className="ml-auto font-mono">{(r.total_cost_usd || 0).toFixed(4)}$</span>
+                  <span className="ml-auto font-mono">{renderCost(r.total_cost_usd)}</span>
                   <span className="text-[10px] text-[var(--cos-muted)]">{r.count}×</span>
                   {r.avg_latency_ms != null && (
                     <span className="text-[10px] text-[var(--cos-muted)]">

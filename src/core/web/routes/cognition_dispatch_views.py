@@ -22,13 +22,7 @@ from ._cognition_base import _cognition_module, _db_path, _unavailable, router
 logger = logging.getLogger(__name__)
 
 
-def _auth_mode() -> str:
-    """Whether reported cost is real spend (`api_key`) or notional (`subscription`).
-
-    Under a subscription the SDK still emits total_cost_usd — the API-equivalent
-    price of the tokens, not a charge — so the same number means two different
-    things and the reader cannot tell which from the number alone.
-    """
+def _declared_auth_mode() -> str:
     db = _db_path()
     if db is None:
         return "unknown"
@@ -40,6 +34,37 @@ def _auth_mode() -> str:
     auth = raw.get("claude_auth")
     mode = auth.get("mode") if isinstance(auth, dict) else None
     return str(mode) if mode else "unknown"
+
+
+def _probed_auth_modes() -> dict[str, str]:
+    try:
+        from thinking_os.account_status import collect_account_status
+        from web._project_context import current_project_root
+
+        reports = collect_account_status(current_project_root())
+    except Exception as exc:
+        logger.debug("auth-mode probe unavailable: %s", exc)
+        return {}
+    return {
+        str(entry.get("adapter")): str(entry.get("auth_mode") or "unknown")
+        for entry in reports
+        if entry.get("auth_mode") and entry.get("auth_mode") != "unknown"
+    }
+
+
+def _auth_mode() -> str:
+    """Whether reported cost is real spend (`api_key`) or notional (`subscription`).
+
+    Under a subscription the SDK still emits total_cost_usd — the API-equivalent
+    price of the tokens, not a charge — so the same number means two different
+    things and the reader cannot tell which from the number alone.
+
+    The adapter's own login state wins over the Hub setting: the setting is a
+    declaration made once that drifts silently, while the probe reads what the
+    runtime will actually bill. The setting still answers when no probe can
+    (api-contract-discipline — prefer the producer, keep the fallback).
+    """
+    return _probed_auth_modes().get("claude") or _declared_auth_mode()
 
 
 @router.get("/cost")
@@ -104,6 +129,12 @@ def dispatcher_cost_summary(
             conn.row_factory = sqlite3.Row
             rows = [dict(r) for r in conn.execute(query_sql, [*params, limit]).fetchall()]
             by_adapter = [dict(r) for r in conn.execute(adapter_sql, params).fetchall()]
+            # Per row, because one project can run a metered API key on one
+            # provider and a flat subscription on another; a single global flag
+            # would label one of the two wrongly.
+            probed = _probed_auth_modes()
+            for row in by_adapter:
+                row["auth_mode"] = probed.get(str(row.get("adapter")), "unknown")
             # Total comes from the adapter rollup, which is unlimited; summing the
             # LIMITed rows would silently under-report once history outgrows it.
             total_usd = sum(r["total_cost_usd"] or 0 for r in by_adapter)
