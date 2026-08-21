@@ -14,6 +14,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from adapters.codex._codex_pricing import cost_usd
 from adapters.codex._codex_prompt import (
     _cli_prompt as _cli_prompt,
     _dispatch_context as _dispatch_context,
@@ -181,11 +182,15 @@ class CodexSDKDispatcher:
         if usage:
             # Stamped by the adapter because only the runtime knows its own
             # accounting; core merges identity into the same _meta afterwards and
-            # persistence writes it to usage_jsonb. Codex reports tokens but no
-            # USD figure, so cost_usd stays NULL rather than being invented.
+            # persistence writes it to usage_jsonb. The CLI reports no USD figure,
+            # so the cost is priced from the descriptor's published table — and
+            # stays absent when no table covers the model rather than reading 0.
             output_json.setdefault("_meta", {})
             if isinstance(output_json["_meta"], dict):
                 output_json["_meta"]["usage"] = usage
+                priced = cost_usd(usage, request.model)
+                if priced is not None:
+                    output_json["_meta"]["total_cost_usd"] = priced
         return self._result(
             request,
             started_at,

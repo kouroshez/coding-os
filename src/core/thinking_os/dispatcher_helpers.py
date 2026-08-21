@@ -88,3 +88,42 @@ def resolve_model_alias(
         return model
     match = next((mid for mid in model_ids if alias in mid.lower()), None)
     return match or default_id or model
+
+
+_INPUT_BUCKETS = ("input", "cached_input", "cache_write")
+
+
+def price_tokens(buckets: dict[str, Any], pricing: dict[str, Any] | None) -> float | None:
+    """Convert token buckets to USD with an adapter's declared per-Mtok table.
+
+    Buckets are keyed by rate name (`input` = uncached, `cached_input`,
+    `cache_write`, `output`) so the arithmetic stays provider-neutral: mapping a
+    runtime's own field names onto them is the adapter's job, and the tier is
+    chosen from the input total because that is what the published tables meter.
+    Returns None when no table is declared — a missing price is reported as
+    unknown, never as zero, which would read as "this adapter is free".
+    """
+    if not isinstance(pricing, dict) or str(pricing.get("unit") or "") != "usd_per_mtok":
+        return None
+    rates = pricing.get("rates")
+    if not isinstance(rates, dict):
+        return None
+    counts = {
+        key: float(value)
+        for key, value in buckets.items()
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0
+    }
+    threshold = pricing.get("long_context_input_tokens")
+    total_input = sum(counts.get(key, 0.0) for key in _INPUT_BUCKETS)
+    tier = "short"
+    if isinstance(threshold, (int, float)) and total_input > threshold and "long" in rates:
+        tier = "long"
+    table = rates.get(tier) or rates.get("short")
+    if not isinstance(table, dict):
+        return None
+    total = sum(
+        count * float(table[key])
+        for key, count in counts.items()
+        if isinstance(table.get(key), (int, float))
+    )
+    return round(total / 1_000_000, 6)
