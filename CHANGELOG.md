@@ -12,6 +12,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.21](https://github.com/kouroshez/coding-os/compare/v0.3.20...v0.3.21) (2026-08-21)
+
+
+### Added
+
+* **board:** block creating a card with no declared pull-state ([d3422c7](https://github.com/kouroshez/coding-os/commit/d3422c743d63001201e71707620a862ba792f858))
+* **cli:** let task-create set Repro Steps ([217b334](https://github.com/kouroshez/coding-os/commit/217b334e0854a249b2011a8e9afd4ea17fee13ce))
+* **cli:** report supervision health in cos doctor ([cdf1d62](https://github.com/kouroshez/coding-os/commit/cdf1d62d58b471011ddb62e082171cffb653d168))
+* **codex:** price dispatches from the published OpenAI rate table ([a9f2ad5](https://github.com/kouroshez/coding-os/commit/a9f2ad52ada1f1a57d0de8730e4de3a1d5382dcd))
+* **eval:** preflight the ablation cost probe instead of guessing its price ([a3b3bbe](https://github.com/kouroshez/coding-os/commit/a3b3bbeedbc45951051c9715fa5d5a6d5af7fd39))
+* **graph:** report the whole-graph node total in export meta ([3f7f853](https://github.com/kouroshez/coding-os/commit/3f7f8532e15d0dcb25bd6b4f087505528d06261d))
+* **hooks:** resolve the supervision route per prompt and always show a banner ([68c188a](https://github.com/kouroshez/coding-os/commit/68c188a29b694b4dd245ec492d5ec10544808848))
+* **supervision:** auto-dispatch roles pinned to another provider ([ed46245](https://github.com/kouroshez/coding-os/commit/ed462458d22370caecddfab59f6ef1a7842a729e))
+* **supervision:** report each provider's plan quota from its own on-disk state ([876494c](https://github.com/kouroshez/coding-os/commit/876494cee1b625214f5deb6cf81fba44a2af3e15))
+
+
+### Fixed
+
+* **cli:** carry stack-rule corrections into installed projects on update ([3bd702f](https://github.com/kouroshez/coding-os/commit/3bd702fb84d3709d481ca049f21fd5b5a8218da1))
+* **cli:** decide every adapter against one stack-rule baseline ([16fb232](https://github.com/kouroshez/coding-os/commit/16fb232e37ccd77bb0da610a829eb8092b1483b1))
+* **cli:** stop reporting an up-to-date stack rule as a user edit ([3d9ec54](https://github.com/kouroshez/coding-os/commit/3d9ec54ef114f505b59a98e6758e6e0a8ec8d9e8))
+* **cognition:** make formula dispatch survive the MCP event loop ([de6fe88](https://github.com/kouroshez/coding-os/commit/de6fe88a12c5645c7ab6b16512587917ae76c040))
+* **db:** cap WAL growth with journal_size_limit and a SessionStart WAL guard ([1e52086](https://github.com/kouroshez/coding-os/commit/1e520862115ae800ab1852ebe9dbc88018233993))
+* **dispatch:** derive the turn budget from the role instead of capping it at one ([843b6e8](https://github.com/kouroshez/coding-os/commit/843b6e8a59b2aa21ecdab275d69eb7a931ae16a3))
+* **eval:** stop the preflight greening on config vars and VM total ([094d34a](https://github.com/kouroshez/coding-os/commit/094d34ace46137e2ae19f1049312c0e99a23829a))
+* **graph_os:** resolve telemetry state dir by walk, never mint one at cwd ([fbd499e](https://github.com/kouroshez/coding-os/commit/fbd499e70c1fc2bd28d97943a3baf192be89730d))
+* **hooks:** mark the sourced pulse module executable ([3f6fb85](https://github.com/kouroshez/coding-os/commit/3f6fb85f638e324a806dbd9d6bf9c2eef32628ce))
+* **hub:** clamp a long log message so one stats line cannot fill the table ([26a81c0](https://github.com/kouroshez/coding-os/commit/26a81c07e349686e0e287b064164ebf9531fe2a7))
+* **hub:** collapse empty board columns to a rail ([4c924c7](https://github.com/kouroshez/coding-os/commit/4c924c725991e39170fc0434c0a87e306fb8e7b6))
+* **hub:** count unpriced dispatches so codex runs appear in the rollup ([36a5783](https://github.com/kouroshez/coding-os/commit/36a57832d4b6761495bd7192353362dffc442a12))
+* **hub:** label dispatch cost notional under a subscription login ([3163468](https://github.com/kouroshez/coding-os/commit/31634688f94c5ce581452db120df0765b8fb73bc))
+* **hub:** move the raw transcript byte size out of the chat row ([a7c7cae](https://github.com/kouroshez/coding-os/commit/a7c7cae5197a7af02931f686ad32e14757d672d5))
+* **hub:** open the graph with its filter card closed ([fbf537d](https://github.com/kouroshez/coding-os/commit/fbf537d1701108d18eb2b6dd41ec3f9129ac6d81))
+* **hub:** pin the node-count locale and stop config table headers wrapping ([9802f76](https://github.com/kouroshez/coding-os/commit/9802f76311f7d3d9f41ff8e20ea2a0dcd56fa475))
+* **hub:** show an unpriced adapter as unknown rather than as zero spend ([7767d24](https://github.com/kouroshez/coding-os/commit/7767d245146d88890cf1f644f27109e282a39662))
+* **hub:** stop hub.log growing without bound ([1bc01fc](https://github.com/kouroshez/coding-os/commit/1bc01fcb96926a0bb0209b26f03058681c93a2ec))
+* **hub:** stop the search summary counting an unanswered layer as zero ([00dc849](https://github.com/kouroshez/coding-os/commit/00dc849942f1ca26e45288249b810764e0832b3a))
+* **hub:** widen the Config tables to the Hub page width ([1cbe8e8](https://github.com/kouroshez/coding-os/commit/1cbe8e87eb109918c4ccd282c02cfbf7479205ed))
+* **supervision:** record failed dispatches and their error text ([ac73de2](https://github.com/kouroshez/coding-os/commit/ac73de2c9ce290194060dd9084cdd9143600b275))
+* **supervision:** record failed dispatches inside a parallel fan-out ([6d85151](https://github.com/kouroshez/coding-os/commit/6d85151eda343b22d960234fb9e7607bd5d11677))
+* **supervision:** resolve tier aliases before validation so dispatch can run ([3e6b029](https://github.com/kouroshez/coding-os/commit/3e6b029383086eee5a80414f6162e2d85d82f998))
+
+
+### Changed
+
+* **cli:** move the hub.log cap into _hub_paths ([d7f7f5c](https://github.com/kouroshez/coding-os/commit/d7f7f5ccfa8ebd19eb7f022a5cab6b51a6fb396a))
+
+
+### Documentation
+
+* **readme:** add a hero banner and the four remaining Hub tabs ([6a14b80](https://github.com/kouroshez/coding-os/commit/6a14b8016335bffa0ec5c3b6ee836542fd5b5784))
+* **readme:** drop the three-layer hero diagram ([0bbf0f7](https://github.com/kouroshez/coding-os/commit/0bbf0f74b4c3062cfb5b71a2ea1c8849ca6ddf3e))
+* **readme:** lead with a brand card showing the knowledge graph ([627c251](https://github.com/kouroshez/coding-os/commit/627c25136a425c4dc67617f69aec3e0ad5e1389a))
+* **readme:** lead with the Hub and reshoot every screenshot as webp ([b856317](https://github.com/kouroshez/coding-os/commit/b8563174f960777381b672e68ff7b42d577e9f62))
+* **readme:** name the three capped columns instead of claiming all seven ([1e2bf98](https://github.com/kouroshez/coding-os/commit/1e2bf98289c12997bb52a63114414b64563f67db))
+* **readme:** rebuild the brand card inside GitHub's 40pt safe zone ([0fb121f](https://github.com/kouroshez/coding-os/commit/0fb121f4a40e1db69ed76662938d5ddab1c47505))
+* **tasks:** record TASK-1006 read-first, acceptance, and the four landed fixes ([1d12f21](https://github.com/kouroshez/coding-os/commit/1d12f216731ea4440a1b45824d65f8712b22e77a))
+
 ## [0.3.20](https://github.com/kouroshez/coding-os/compare/v0.3.19...v0.3.20) (2026-08-15)
 
 
