@@ -5,13 +5,13 @@ swimlane: "thinking_os"
 kind: feature
 epic: null
 labels: [supervision, routing, hub, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-21
 started: 2026-08-20
-completed: null
-agent_session: ses-claude-20260527-151803-0b9f
+completed: 2026-08-20
+agent_session: ses-claude-20260820-192311-0ff4
 depends_on: []
 blocked_by: []
 references: []
@@ -50,3 +50,5 @@ references: []
 
 ## Work Log
 - 2026-08-21 [claude]: Trigger built and proven live: auto-dispatch-crossprovider (PostToolUse on cos_task_move -> testing) fires detached…
+- 2026-08-21 [claude]: commit c25f958b2c — chore(tasks): record the cross-provider dispatch build
+- 2026-08-21 [claude]: Status transitioned to complete via cos task-done.
