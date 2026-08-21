@@ -202,11 +202,13 @@ existing Hub-chat `runtime` flag:
 runtime_entrypoints:
   dispatch: "sdk_dispatcher.py"
   transcript: "chat_provider.py"
+  account: "account_probe.py"
   capabilities:
     - dispatch
     - model_selection
     - effort_selection
     - structured_output
+    - account
 models: []
 efforts: []
 ```
@@ -215,6 +217,89 @@ The adapter owns SDK imports and converts native errors into the normalized
 dispatch result. Core discovers directory ids rather than enumerating provider
 names. Missing runtime fields mean unsupported capability, not a degraded
 success.
+
+### Published prices belong to the adapter that needs them
+
+A model entry may carry a `pricing` block. Only an adapter whose runtime does
+not report a cost figure declares one: the Claude SDK returns `total_cost_usd`
+itself, so the claude descriptor has no table, while the Codex CLI reports
+tokens and no money, so without a table every codex dispatch lands as a
+priceless row and the per-adapter rollup reads as if codex were free.
+
+```yaml
+models:
+  - id: gpt-5.6-sol
+    pricing:
+      unit: usd_per_mtok
+      source: https://platform.openai.com/docs/pricing
+      retrieved: "2026-08-21"
+      long_context_input_tokens: 272000
+      rates:
+        short: { input: 5.00, cached_input: 0.50, cache_write: 6.25, output: 30.00 }
+        long: { input: 10.00, cached_input: 1.00, cache_write: 12.50, output: 45.00 }
+```
+
+`source` and `retrieved` are required, because a price table is the one kind of
+constant that goes wrong silently — the numbers stay plausible while the vendor
+changes them, and a reader with no provenance cannot tell a current figure from
+a two-year-old one.
+
+The tier is metered on **input** tokens, cached and written ones included: above
+`long_context_input_tokens` the whole call bills at the `long` rates. A long
+answer to a short prompt is not a long-context request. Cached reads and cache
+writes each bill at their own rate, so an adapter that omits them understates
+every cached run. Core does the arithmetic
+(`dispatcher_helpers.price_tokens`); the adapter maps its runtime's own usage
+field names onto the rate buckets.
+
+A model named in a request but absent from the catalog is priced at **nothing**,
+not at a neighbour's rates. An empty cell is honest; a confident wrong number
+is not.
+
+## Account state — what a plan has left
+
+A dollar figure answers "what did that cost". On a subscription it does not
+answer the question the operator actually has, which is *how much of the plan is
+left* — the money was already spent at the start of the billing period, and the
+budget being consumed is a quota.
+
+Both runtimes already write their rate-limit state to disk, so no credential and
+no network call is involved:
+
+| Adapter | Source | Freshness |
+|---|---|---|
+| `claude` | `~/.claude.json` → `cachedUsageUtilization` | written by Claude Code, typically when `/usage` runs |
+| `codex` | newest `~/.codex/sessions/**/*.jsonl` → `token_count.rate_limits` | written on every Codex turn, so supervised dispatches keep it current |
+
+`account_probe.py` in each adapter reads its own file; `thinking_os/account_status.py`
+normalizes, sorts and ages the result; `/api/cognition/quota` serves it. Three
+rules make the panel trustworthy:
+
+1. **Every window the provider reports is shown, not just the headline pair.**
+   On a real account the two headline windows read 0% and 49% while the binding
+   limit was a per-model weekly cap at 78% — the one about to bite was the one a
+   two-window view would have hidden.
+2. **A reading always carries its age.** Both sources are caches; the Claude one
+   was observed 9.7 hours stale in normal use. A percentage with no timestamp
+   invites the reader to assume it is live, so the age renders whether or not it
+   is old, and past 15 minutes it is marked stale.
+3. **Absence is reported as absence.** A provider with no state file yields
+   `status: unavailable` and a reason. Never `0%`, which reads as "plenty left".
+
+### A reported cost is not always money
+
+`auth_mode` accompanies both the quota and the cost payloads, and comes from the
+adapter's own login state rather than a Hub setting: the setting is a
+declaration made once that drifts silently, while the probe reads what the
+runtime will actually bill. The setting remains the fallback when no probe can
+answer. It is reported per adapter, because one project can meter an API key on
+one provider and run a flat subscription on another — a single global flag
+labels one of the two wrongly.
+
+Under `subscription` the figure is the API-equivalent price of the tokens, and
+the Hub labels it *notional (subscription — not billed)*. The stored number is
+never altered by that framing: an operator on `api_key` reads the same row and
+needs it to be real.
 
 ## Routing policy
 

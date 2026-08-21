@@ -123,6 +123,14 @@
           },
           "uniqueItems": true
         },
+        "account": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[^/\\\\]+$",
+          "description": "Module reporting this provider's own account state \u2014 auth mode, plan, and the rate-limit windows the runtime already writes to disk. Adapter-owned because only the adapter knows where its runtime keeps that file; the kernel reads the normalized result and never a provider path (P8). Must expose probe_account() -> dict."
+        },
         "presence": {
           "type": [
             "string",
@@ -403,6 +411,55 @@
             "type": "string",
             "minLength": 1,
             "description": "Provider rate-limit pool this model draws from. Models sharing a pool share one capacity cooldown; models in different pools stay independent when one is limited. Absent = the adapter is treated as a single pool."
+          },
+          "pricing": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "unit",
+              "source",
+              "retrieved",
+              "rates"
+            ],
+            "description": "Published per-token list price, declared only when the provider's own runtime does not report a cost figure. The Claude SDK returns total_cost_usd, so the claude adapter carries no table; the Codex CLI reports tokens only, so without this its dispatches are priceless rows. Never a guess \u2014 `source` and `retrieved` record where each number came from and when, because a stale table reports a wrong number as confidently as a right one.",
+            "properties": {
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "usd_per_mtok"
+                ],
+                "description": "US dollars per 1,000,000 tokens \u2014 the unit every published table uses."
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "description": "URL of the published price table these numbers were read from."
+              },
+              "retrieved": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Date the numbers were read (YYYY-MM-DD). Prices change; this is what lets a reader judge the figure."
+              },
+              "long_context_input_tokens": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Input-token count above which the `long` rate set applies. Omit when the provider bills one flat rate."
+              },
+              "rates": {
+                "type": "object",
+                "additionalProperties": false,
+                "minProperties": 1,
+                "description": "One entry per pricing tier. `short` is the base tier; `long` applies above long_context_input_tokens.",
+                "properties": {
+                  "short": {
+                    "$ref": "#/$defs/tokenRates"
+                  },
+                  "long": {
+                    "$ref": "#/$defs/tokenRates"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -457,6 +514,39 @@
       "type": "number",
       "exclusiveMinimum": 0,
       "description": "Wall-clock budget in seconds for one dispatch to this adapter. Omit to use the role/agent default, which is calibrated on the fastest runtime. Declare it when the runtime is materially slower: a successful codex review measured 123s against a 120s agent default and timed out at the finish line."
+    }
+  },
+  "$defs": {
+    "tokenRates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input",
+        "output"
+      ],
+      "description": "Per-Mtok rates for one tier. Cached reads and cache writes are billed at their own rates, so a model that charges for them must declare them or its cost is understated.",
+      "properties": {
+        "input": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Uncached input tokens."
+        },
+        "cached_input": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Input tokens served from cache."
+        },
+        "cache_write": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Input tokens written to cache."
+        },
+        "output": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Output tokens, reasoning tokens included."
+        }
+      }
     }
   }
 }

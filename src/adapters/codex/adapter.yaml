@@ -30,12 +30,39 @@ runtime: roadmap
 runtime_entrypoints:
   dispatch: sdk_dispatcher.py
   transcript: chat_provider.py
-  capabilities: [dispatch, transcript, model_selection, structured_output]
+  account: account_probe.py
+  capabilities: [dispatch, transcript, model_selection, structured_output, account]
 models:
   - id: gpt-5.6-sol
     label: "GPT-5.6 Sol"
     bucket: gpt-5x
     default: true
+    # Standard-tier list price, read from the source below on the date below.
+    # It exists because the Codex CLI reports tokens and no dollar figure, so
+    # without a table every codex dispatch lands as a priceless row and the
+    # per-adapter cost rollup silently reads as "codex is free". Claude needs no
+    # equivalent: its SDK returns total_cost_usd itself.
+    #
+    # Batch / Flex / Fast-mode tiers are NOT declared. Dispatch goes through
+    # `codex exec`, which is standard tier; declaring rates nothing here can
+    # select would invite a caller to pick one and be quietly wrong.
+    #
+    # Cache writes are 1.25x the uncached input rate by OpenAI's own statement
+    # ("OpenAI bills cache writes at 1.25x the uncached input rate"), which is
+    # exactly 5.00 -> 6.25 and 10.00 -> 12.50 below: the two numbers were read
+    # independently and agree, which is the only reason to trust either.
+    pricing:
+      unit: usd_per_mtok
+      source: https://platform.openai.com/docs/pricing
+      retrieved: "2026-08-21"
+      # Above this many INPUT tokens the long tier applies to the whole call:
+      # "Requests that exceed the standard 272K context window count against
+      # usage limits at 2x the normal rate" (openai.com/index/introducing-gpt-5-4).
+      # Measured on input alone, not input+output.
+      long_context_input_tokens: 272000
+      rates:
+        short: { input: 5.00, cached_input: 0.50, cache_write: 6.25, output: 30.00 }
+        long: { input: 10.00, cached_input: 1.00, cache_write: 12.50, output: 45.00 }
 
 presence:
   signal: hook_timestamps

@@ -4,6 +4,7 @@ import { Activity, Brain, Layers } from 'lucide-react';
 import TraceList from '@/features/cognition/TraceList';
 import TraceTimeline from '@/features/cognition/TraceTimeline';
 import CostPanel from '@/features/cognition/CostPanel';
+import QuotaPanel from '@/features/cognition/QuotaPanel';
 import ChainPanel from '@/features/cognition/ChainPanel';
 import HookStream from '@/features/observability/HookStream';
 import RolesPage from '@/pages/RolesPage';
@@ -69,6 +70,7 @@ export default function CognitionPage() {
           </section>
           <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[var(--cos-border)] bg-[var(--cos-panel)]">
             <ChainPanel agent={agent} />
+            <QuotaPanel />
             <div className="flex-1 overflow-hidden">
               <CostPanel onPick={(sid) => setSession(sid)} />
             </div>

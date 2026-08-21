@@ -3,6 +3,7 @@
 Module layout:
   _cognition_base           the shared APIRouter + state/db/module accessors
   cognition_dispatch_views  cost, dispatcher roster, tool calls, analyze
+  cognition_account_views   provider plan, auth mode and rate-limit windows
   cognition_chat            the Claude Agent SDK transcript browser + resume
   cognition_onboarding      the docs-scoped onboarding session
   this module               the trace list, fetch and SSE stream
@@ -387,6 +388,7 @@ async def stream_trace(
 # /api/cognition path exactly as it did before the 2026-08-10 split.
 from .._envelope import safe_error_message
 from . import (
+    cognition_account_views,  # noqa: F401
     cognition_chat,  # noqa: F401
     cognition_dispatch_views,  # noqa: F401
     cognition_onboarding,  # noqa: F401
@@ -395,6 +397,7 @@ from . import (
 # Re-exported so `from core.web.routes.cognition import _safe_serialize` keeps
 # resolving — the split moved the bodies, not the public reach.
 from ._cognition_serialize import _sse_chunk
+from .cognition_account_views import provider_quota as provider_quota
 from .cognition_chat import (
     _dispatch_transcript_chat,
     _prime_with_project_description,

@@ -18,7 +18,11 @@ runtime_entrypoints:
   # attribute names before this existed, so a second runtime had to match
   # them by coincidence rather than by implementing a contract.
   chat: chat_provider.py
-  capabilities: [dispatch, presence, chat, model_selection, effort_selection, structured_output]
+  # Reports the plan's rate-limit windows from the state Claude Code already
+  # caches. Adapter-owned for the same reason as `presence`: the kernel wants
+  # the numbers, not the knowledge of which file a vendor keeps them in (P8).
+  account: account_probe.py
+  capabilities: [dispatch, presence, chat, model_selection, effort_selection, structured_output, account]
 # `bucket` names the provider's rate-limit pool. Anthropic applies limits
 # separately per model, and Opus 4.x share one pool while Opus 5 has its own
 # (docs.claude.com/en/api/rate-limits) — so a limit on one bucket must not
