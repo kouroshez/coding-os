@@ -39,3 +39,4 @@ The README carries one hero image, the brand card. The three-concentric-layers d
 - 2026-08-21 [claude]: Edit browser-file-upload-blocked-via-cdp.md
 - 2026-08-21 [claude]: Edit headless-chrome-beats-the-playwright-extension.md
 - 2026-08-21 [claude]: Edit verify-generated-images-by-reading-them-back.md
+- 2026-08-21 [claude]: commit 0fb121f4a4 — docs(readme): rebuild the brand card inside GitHub's 40pt safe zone
