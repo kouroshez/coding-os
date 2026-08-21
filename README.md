@@ -18,8 +18,6 @@
 
 ![Coding OS — knowledge graph, Scrumban board, and an enforced engineering loop for AI coding agents](docs/assets/hero-card.webp)
 
-![Coding OS — three concentric kernel layers](docs/assets/hero.webp)
-
 <table>
 <tr>
 <td align="center" width="34%">
