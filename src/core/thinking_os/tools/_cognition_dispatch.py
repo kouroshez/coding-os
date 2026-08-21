@@ -126,6 +126,11 @@ def register_cos_dispatch_formula(mcp, db_path):
     return cos_dispatch_formula
 
 
+# Every terminal outcome, not only the happy one: a run that timed out or hit
+# a provider error still spent wall-clock and tokens.
+_PERSISTED_STATUSES = ("ok", "timeout", "error")
+
+
 def register_cos_dispatch_formula_run(mcp, db_path):
     @mcp.tool(
         name="cos_dispatch_formula_run",
@@ -218,7 +223,7 @@ def register_cos_dispatch_formula_run(mcp, db_path):
         # its turn budget or hit a provider error still spent wall-clock and
         # tokens, and recording only successes makes a chronically broken route
         # indistinguishable from an idle one — both report zero.
-        if result.status in ("ok", "timeout", "error") and result.output_json:
+        if result.status in _PERSISTED_STATUSES and result.output_json:
             filled = _persist_dispatch_output(
                 session_id=session_id,
                 task_marker=task_marker,
@@ -405,7 +410,11 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
                 continue
             route = _resolved_route(req, outcome)
             filled = 0
-            if outcome.status == "ok" and outcome.output_json:
+            # Same terminal-status set as the single-dispatch path above. A
+            # fan-out where four of five roles fail must leave four rows, not
+            # one: a chronically broken route in a parallel layer is otherwise
+            # indistinguishable from a layer nobody ran.
+            if outcome.status in _PERSISTED_STATUSES and outcome.output_json:
                 filled = _persist_dispatch_output(
                     session_id=session_id,
                     task_marker=task_marker,
@@ -418,6 +427,7 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
                     raw_transcript=outcome.raw_transcript,
                     resolved_route=route,
                 )
+            if outcome.status == "ok":
                 ok_count += 1
             results.append(
                 {

@@ -6,6 +6,7 @@ import json
 import sqlite3
 import sys
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
@@ -260,3 +261,89 @@ class TestSupervisionConfig:
         assert result["ok"] is False
         assert result["error"]["category"] == "validation"
         assert "maximum_seconds must be greater" in result["error"]["message"]
+
+
+class TestParallelDispatchRecordsFailures:
+    """A fan-out where four of five roles fail must leave four rows.
+
+    The single-dispatch path was widened to record timeouts and provider errors;
+    the parallel path kept the narrower ok-only guard, so a chronically broken
+    route inside a parallel layer stayed indistinguishable from a layer nobody
+    ran — both reported zero. Two hand-maintained copies of the same status set
+    is what produced the drift, so the set is now one constant.
+    """
+
+    # Schema-valid per role: an ok leg whose payload fails validation is
+    # deliberately NOT persisted (T1.6), so an invalid fixture would hide the
+    # very row this class is about.
+    _VALID: ClassVar[dict[str, dict[str, str]]] = {
+        "analyst": {"problem_statement": "p"},
+        "researcher": {"summary": "s"},
+    }
+
+    def _run(self, mcp_tools, db_path, monkeypatch, outcomes):
+        from thinking_os import dispatcher as _disp
+
+        calls = iter(outcomes)
+
+        async def _fake_dispatch(request, _db_path):
+            status, error = next(calls)
+            payload = dict(self._VALID.get(request.formula_id, {}))
+            payload["_meta"] = {"usage": {"input_tokens": 1}}
+            return _disp.DispatchResult(
+                formula_id=request.formula_id,
+                status=status,
+                dispatcher_name="fake",
+                output_json=payload,
+                raw_transcript="",
+                latency_ms=7,
+                error=error,
+                error_category=None if status == "ok" else "provider",
+            )
+
+        monkeypatch.setattr(_disp, "dispatch_request", _fake_dispatch)
+        return mcp_tools.call(
+            "cos_dispatch_parallel_run",
+            formula_ids=["analyst", "researcher"],
+            session_id="sess-parallel-fail",
+            task_marker="TASK-1018",
+            persona_id="p1",
+            timeout_s=5,
+        )
+
+    def test_a_failed_leg_is_recorded_not_dropped(self, mcp_tools, db_path, monkeypatch):
+        result = self._run(
+            mcp_tools, db_path, monkeypatch, [("ok", None), ("error", "provider exploded")]
+        )
+        assert result["ok"] is True
+        with sqlite3.connect(db_path) as conn:
+            statuses = sorted(
+                row[0]
+                for row in conn.execute(
+                    "SELECT status FROM formula_dispatches WHERE session_id = ?",
+                    ("sess-parallel-fail",),
+                )
+            )
+        assert statuses == ["error", "ok"]
+
+    def test_ok_count_still_counts_only_successes(self, mcp_tools, db_path, monkeypatch):
+        # The persistence widening must not inflate the number the supervisor
+        # reads to decide whether the layer succeeded.
+        result = self._run(mcp_tools, db_path, monkeypatch, [("ok", None), ("timeout", "deadline")])
+        assert result["data"]["ok_count"] == 1
+        assert result["data"]["total"] == 2
+
+    def test_the_error_text_survives_to_the_row(self, mcp_tools, db_path, monkeypatch):
+        # Recording *that* something failed while discarding *what* leaves the
+        # operator with a red row and no lead.
+        self._run(mcp_tools, db_path, monkeypatch, [("ok", None), ("error", "provider exploded")])
+        with sqlite3.connect(db_path) as conn:
+            errors = [
+                row[0]
+                for row in conn.execute(
+                    "SELECT error FROM formula_dispatches "
+                    "WHERE session_id = ? AND status = 'error'",
+                    ("sess-parallel-fail",),
+                )
+            ]
+        assert errors == ["provider exploded"]
