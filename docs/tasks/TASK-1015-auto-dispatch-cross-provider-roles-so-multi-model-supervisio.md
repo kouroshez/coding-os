@@ -5,13 +5,13 @@ swimlane: "thinking_os"
 kind: feature
 epic: null
 labels: [supervision, routing, hub, ready]
-status: icebox
+status: in_progress
 priority: P1
 appetite: 1d
 created: 2026-08-21
 started: 2026-08-20
 completed: null
-agent_session: ses-claude-20260820-192311-0ff4
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
@@ -49,3 +49,4 @@ references: []
 **Then** the operator can see which adapter and model ran the role, without querying the database by hand.
 
 ## Work Log
+- 2026-08-21 [claude]: Trigger built and proven live: auto-dispatch-crossprovider (PostToolUse on cos_task_move -> testing) fires detached…
