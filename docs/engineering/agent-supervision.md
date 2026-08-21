@@ -430,6 +430,15 @@ them, and an aggregate that erases the provider hides both the saving and the
 overrun. Rows whose `adapter` is NULL are pre-attribution history and report as
 `unattributed` rather than being silently folded into one of the real adapters.
 
+**A reported cost is not always money.** Under a subscription login the SDK
+still emits `total_cost_usd` — the API-equivalent price of the tokens, not a
+charge. Presenting it as spend tells a subscription operator they paid for work
+that came out of quota. The rollup therefore reports the project's `claude_auth`
+mode alongside the figures, so a consumer labels `subscription` numbers notional
+and `api_key` numbers real. The stored value stays identical either way; only
+the framing changes, because the same number means two different things and the
+reader cannot tell which from the number alone.
+
 **A failed dispatch is recorded too.** Persistence covers every *terminal*
 outcome — `ok`, `timeout` and `error` alike — because a run that exhausted its
 turn budget or hit a provider error still consumed wall-clock and tokens. Writing

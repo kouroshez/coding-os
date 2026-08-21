@@ -127,3 +127,49 @@ class TestUnpricedRunsStillCount:
         # Unknown, not zero — a fabricated 0 would read as "codex was free".
         assert by_adapter["codex"]["total_cost_usd"] is None
         assert by_adapter["claude"]["total_cost_usd"] == pytest.approx(0.55)
+
+
+class TestAuthModeFraming:
+    """Under a subscription the SDK still emits total_cost_usd — the API-equivalent
+    price of the tokens, not a charge. The same number means two different things
+    and the reader cannot tell which from the number alone."""
+
+    def _with_auth(self, tmp_path, monkeypatch, auth: dict | None):
+        path = tmp_path / "coding-os.db"
+        with sqlite3.connect(path) as conn:
+            conn.executescript(_SCHEMA)
+        if auth is not None:
+            (tmp_path / "hub-settings.json").write_text(json.dumps({"claude_auth": auth}))
+        monkeypatch.setattr(views, "_db_path", lambda: path)
+        return _payload()
+
+    def test_subscription_is_reported(self, tmp_path, monkeypatch) -> None:
+        payload = self._with_auth(tmp_path, monkeypatch, {"mode": "subscription"})
+        assert payload["auth_mode"] == "subscription"
+
+    def test_api_key_is_reported(self, tmp_path, monkeypatch) -> None:
+        payload = self._with_auth(tmp_path, monkeypatch, {"mode": "api_key", "api_key": "sk-x"})
+        assert payload["auth_mode"] == "api_key"
+
+    def test_missing_settings_is_unknown_not_assumed_billed(self, tmp_path, monkeypatch) -> None:
+        # Guessing "api_key" would frame quota usage as money.
+        assert self._with_auth(tmp_path, monkeypatch, None)["auth_mode"] == "unknown"
+
+    def test_the_stored_figure_is_unchanged_by_framing(self, tmp_path, monkeypatch) -> None:
+        # Only the label changes; a subscription must not zero out the number,
+        # because an API user reading the same row needs the real figure.
+        path = tmp_path / "coding-os.db"
+        with sqlite3.connect(path) as conn:
+            conn.executescript(_SCHEMA)
+            conn.execute(
+                "INSERT INTO formula_dispatches "
+                "(session_id, formula_id, ts, status, cost_usd, latency_ms, adapter, model) "
+                "VALUES ('s','analyst','2026-08-21T10:00:00','ok',0.55,100,'claude','m')"
+            )
+        (tmp_path / "hub-settings.json").write_text(
+            json.dumps({"claude_auth": {"mode": "subscription"}})
+        )
+        monkeypatch.setattr(views, "_db_path", lambda: path)
+        payload = _payload()
+        assert payload["total_usd"] == pytest.approx(0.55)
+        assert payload["auth_mode"] == "subscription"

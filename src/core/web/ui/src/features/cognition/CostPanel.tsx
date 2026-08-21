@@ -20,6 +20,8 @@ interface AdapterRow {
 interface CostPayload {
   rows: CostRow[];
   by_adapter: AdapterRow[];
+  // Producer: cognition_dispatch_views._auth_mode — 'subscription' | 'api_key' | 'unknown'
+  auth_mode: string;
   total_usd: number;
   count: number;
 }
@@ -54,6 +56,10 @@ export default function CostPanel({ onPick }: { onPick: (sessionId: string) => v
   const today = (cost.data?.rows ?? []).filter((r) => r.day === todayKey);
   const todayTotal = today.reduce((acc, r) => acc + (r.total_cost_usd || 0), 0);
   const byAdapter = cost.data?.by_adapter ?? [];
+  // Under a subscription the SDK still reports a USD figure — the API-equivalent
+  // price of the tokens, not a charge. Calling that "spend" tells the operator
+  // they paid for work that came out of quota.
+  const notional = cost.data?.auth_mode === 'subscription';
 
   return (
     <section aria-label="Dispatch cost" className="flex h-full min-h-0 flex-col">
@@ -63,6 +69,7 @@ export default function CostPanel({ onPick }: { onPick: (sessionId: string) => v
         </h2>
         <p className="mt-1 text-[10px] text-[var(--cos-muted)]">
           today ${todayTotal.toFixed(4)} · all-time ${(cost.data?.total_usd ?? 0).toFixed(4)}
+          {notional && ' · notional (subscription — not billed)'}
         </p>
       </header>
       <div className="flex-1 overflow-auto cos-scroll p-3 text-xs">

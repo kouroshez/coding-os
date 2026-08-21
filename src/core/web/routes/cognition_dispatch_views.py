@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from pathlib import Path
 
 from fastapi import Depends, HTTPException, Query
 
@@ -19,6 +20,26 @@ from .._envelope import unwrap
 from ._cognition_base import _cognition_module, _db_path, _unavailable, router
 
 logger = logging.getLogger(__name__)
+
+
+def _auth_mode() -> str:
+    """Whether reported cost is real spend (`api_key`) or notional (`subscription`).
+
+    Under a subscription the SDK still emits total_cost_usd — the API-equivalent
+    price of the tokens, not a charge — so the same number means two different
+    things and the reader cannot tell which from the number alone.
+    """
+    db = _db_path()
+    if db is None:
+        return "unknown"
+    settings = Path(db).parent / "hub-settings.json"
+    try:
+        raw = json.loads(settings.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "unknown"
+    auth = raw.get("claude_auth")
+    mode = auth.get("mode") if isinstance(auth, dict) else None
+    return str(mode) if mode else "unknown"
 
 
 @router.get("/cost")
@@ -38,6 +59,7 @@ def dispatcher_cost_summary(
                     "data": {
                         "rows": [],
                         "by_adapter": [],
+                        "auth_mode": _auth_mode(),
                         "total_usd": 0.0,
                         "count": 0,
                         "meta": {"layer": "cognition"},
@@ -102,6 +124,7 @@ def dispatcher_cost_summary(
                 "data": {
                     "rows": rows,
                     "by_adapter": by_adapter,
+                    "auth_mode": _auth_mode(),
                     "total_usd": round(total_usd, 6),
                     "count": len(rows),
                     "meta": {"layer": "cognition"},
