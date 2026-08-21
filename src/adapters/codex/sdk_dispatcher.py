@@ -90,9 +90,10 @@ def _event_error(value: Any) -> str:
     return str(value or "Codex turn failed")
 
 
-def _parse_cli_output(stdout: str) -> tuple[str, str | None]:
+def _parse_cli_output(stdout: str) -> tuple[str, str | None, dict | None]:
     final_response = ""
     failure: str | None = None
+    usage: dict | None = None
     event_count = 0
     for line in stdout.splitlines():
         try:
@@ -109,13 +110,19 @@ def _parse_cli_output(stdout: str) -> tuple[str, str | None]:
                 final_response = str(item.get("text") or "")
             elif isinstance(item, dict) and item.get("type") == "error":
                 logger.warning("codex item error: %s", _event_error(item.get("message")))
+        elif event_type == "turn.completed":
+            # Codex reports token counts but no USD figure; recording the tokens
+            # is what makes "how much did Codex get used" answerable at all.
+            reported = event.get("usage")
+            if isinstance(reported, dict):
+                usage = reported
         elif event_type == "turn.failed":
             failure = _event_error(event.get("error"))
         elif event_type == "error":
             failure = _event_error(event.get("message"))
     if event_count == 0:
         final_response = stdout
-    return final_response, failure
+    return final_response, failure, usage
 
 
 class CodexSDKDispatcher:
@@ -160,6 +167,7 @@ class CodexSDKDispatcher:
         started_at: float,
         final_response: str,
         raw_transcript: str,
+        usage: dict | None = None,
     ) -> DispatchResult:
         output_json = extract_json_block(final_response)
         if not output_json:
@@ -170,6 +178,14 @@ class CodexSDKDispatcher:
                 error="codex returned no usable EvidenceBundle JSON",
                 raw_transcript=raw_transcript,
             )
+        if usage:
+            # Stamped by the adapter because only the runtime knows its own
+            # accounting; core merges identity into the same _meta afterwards and
+            # persistence writes it to usage_jsonb. Codex reports tokens but no
+            # USD figure, so cost_usd stays NULL rather than being invented.
+            output_json.setdefault("_meta", {})
+            if isinstance(output_json["_meta"], dict):
+                output_json["_meta"]["usage"] = usage
         return self._result(
             request,
             started_at,
@@ -299,7 +315,7 @@ class CodexSDKDispatcher:
 
         stdout = result.stdout or ""
         stderr = result.stderr or ""
-        final_response, failure = _parse_cli_output(stdout)
+        final_response, failure, usage = _parse_cli_output(stdout)
         if result.returncode != 0:
             logger.warning(
                 "codex exited %d for formula=%s: %s",
@@ -323,7 +339,7 @@ class CodexSDKDispatcher:
                 error=failure,
                 raw_transcript=stdout,
             )
-        return self._completed(request, started_at, final_response, stdout)
+        return self._completed(request, started_at, final_response, stdout, usage)
 
     async def _dispatch_python_sdk(
         self,

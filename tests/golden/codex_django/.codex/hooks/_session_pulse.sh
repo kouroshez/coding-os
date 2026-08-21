@@ -164,6 +164,17 @@ print("/".join(parts) + suffix)
 ' "$_SUP_FILE" 2>/dev/null | head -c 48 || true)
   fi
 
+  # Completed cross-provider dispatches, read-once. The dispatcher runs detached,
+  # so its result cannot come back inline; cleared after reading so a finished run
+  # is announced once rather than every turn.
+  DISPATCH_DONE=""
+  _DISPATCH_FILE="${COS_PANEL_DIR}/.dispatch-results"
+  if [[ -s "$_DISPATCH_FILE" ]]; then
+    DISPATCH_DONE=$(python3 "${_COS_HOOKS_PHYS}/_helpers/dispatch_summary.py" \
+      "$_DISPATCH_FILE" 2>/dev/null | head -c 220 || true)
+    : > "$_DISPATCH_FILE" 2>/dev/null || true
+  fi
+
   # Task mode (classify-task-mode.sh writes this on every UserPromptSubmit
   # via a separate hook). NOT session-prefixed — it's a single token per
   # the writer's contract. Values: formal | query | adhoc | chore |
@@ -239,6 +250,7 @@ except OSError:
   [[ -n "$SKILL_CUR" ]] && PARTS="${PARTS} skill=${SKILL_CUR}"
   [[ -n "$ROLES_LEAD" ]] && PARTS="${PARTS} roles=${ROLES_LEAD}"
   [[ -n "$SUP_ROUTE" ]] && PARTS="${PARTS} sup=${SUP_ROUTE}"
+  [[ -n "$DISPATCH_DONE" ]] && PARTS="${PARTS} dispatched=${DISPATCH_DONE}"
   [[ -n "$BLK_RECENT" ]] && PARTS="${PARTS} blocks=${BLK_RECENT}"
 
   # verify-state: the most-recently-recorded matrix suite + result from the

@@ -438,6 +438,34 @@ broken route look like an idle one: both report zero. The only case that is
 deliberately not written is a schema-validation failure, where the row would
 carry an `output_hash` over untrusted output.
 
+### When dispatch fires by itself
+
+Dispatch is agent-initiated by default, and for six days that meant it never
+fired: the policy validated, the banner named a route, and nothing ran. The
+automatic trigger closes that, but deliberately narrowly.
+
+**Only roles pinned to an adapter other than the running session's are
+dispatched.** A same-provider role runs inline instead, because a child rebuilds
+context from scratch — measured at ~$0.56 and ~50s per role, with 76k
+cache-creation tokens — so delegating work the session could do itself is both
+slower and dearer for identical capability. Spawning a sibling of yourself buys
+nothing; spawning a different provider buys an independent blind spot, which is
+the only thing that survives the cost. That is why `reviewer` and
+`security_auditor` are the roles worth pinning across providers: both exist to
+disagree with the author, and a reviewer from the author's own family mostly
+agrees with itself.
+
+The trigger fires on the `in_progress → testing` transition — the first moment
+there is finished work to review, and once per task rather than per prompt. It
+runs **detached**: a codex dispatch measured 123s, and a PostToolUse hook holding
+the tool call open that long would be worse than no trigger at all. Results land
+in `formula_dispatches` and in `$COS_PANEL_DIR/.dispatch-results`, which the next
+prompt surfaces so the operator sees which adapter and model ran without querying
+the database.
+
+Debounce is keyed on `(task_id, role)`, so re-entering `testing` after a fix does
+not re-spawn a review that already ran.
+
 ### What a dispatched child is told
 
 A child is spawned cold: it inherits no parent conversation. It receives its role

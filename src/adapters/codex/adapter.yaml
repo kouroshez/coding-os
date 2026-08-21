@@ -4,13 +4,38 @@ label: "OpenAI Codex CLI"
 
 # Hub chat model picker — adapter→models SSOT (served by /api/config/adapters).
 # runtime: roadmap ⇒ declared but not yet runnable inside Hub chat (Claude SDK
-# only today). Models intentionally empty — no fabricated IDs (P7 no-guessing).
+# only today).
+#
+# Only IDs actually executed through this adapter's own dispatch flags are listed
+# (P7 no-guessing): the entry below was verified with `codex exec
+# --ignore-user-config --disable hooks --config mcp_servers={} --ephemeral
+# --sandbox read-only --model <id>`. `gpt-5-codex`, `gpt-5` and `gpt-5.6` were
+# probed the same way and every one returns 400 on a ChatGPT-account login, so a
+# single entry is the honest catalog rather than an artificially narrow one.
+#
+# An empty catalog was NOT restrictive — `_accepts_model` reads
+# `not declared or model in declared`, so it forwarded any string. What it broke
+# was defaulting: `_default_model()` returned None and dispatcher.py skips
+# `resolve_model_alias` when the id set is empty, so a role tier like `sonnet`
+# reached the CLI verbatim and died at the provider. Declaring the catalog is
+# what gives aliases something to resolve against.
+#
+# `efforts` stays undeclared because the CLI neither enumerates nor rejects
+# `model_reasoning_effort`, so there is no producer to read the enum from. Note
+# this is NOT a soft skip: `_accepts_effort` returns False at the
+# `effort_selection` capability gate below, so an effort pinned to a codex role
+# is a hard dispatch error. Keep `effort: ""` on codex roles until the capability
+# is declared.
 runtime: roadmap
 runtime_entrypoints:
   dispatch: sdk_dispatcher.py
   transcript: chat_provider.py
   capabilities: [dispatch, transcript, model_selection, structured_output]
-models: []
+models:
+  - id: gpt-5.6-sol
+    label: "GPT-5.6 Sol"
+    bucket: gpt-5x
+    default: true
 
 presence:
   signal: hook_timestamps
@@ -37,6 +62,12 @@ sourced_hooks: [cos-env.sh]
 supports_rules: true
 supports_settings_json: true
 install_script: install.sh
+
+# Dispatch wall-clock budget. Role/agent timeouts are calibrated on Claude
+# (44-53s measured); codex is materially slower — a successful review measured
+# 123s, and the 120s agent default timed it out at the finish line. Declared
+# here rather than branched on in code so the kernel stays adapter-agnostic.
+dispatch_timeout_s: 420
 
 cli_binary: codex
 sdk_package: openai-codex

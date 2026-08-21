@@ -270,7 +270,12 @@ class TestResolvedRouteShape:
         result = type(
             "R",
             (),
-            {"dispatcher_name": "claude-sdk", "error_category": None, "error": None, "retry_after_s": None},
+            {
+                "dispatcher_name": "claude-sdk",
+                "error_category": None,
+                "error": None,
+                "retry_after_s": None,
+            },
         )()
         assert _resolved_route(req, result)["adapter"] == "codex"
 
@@ -297,7 +302,12 @@ class TestResolvedRouteShape:
         result = type(
             "R",
             (),
-            {"dispatcher_name": "claude-sdk", "error_category": None, "error": None, "retry_after_s": None},
+            {
+                "dispatcher_name": "claude-sdk",
+                "error_category": None,
+                "error": None,
+                "retry_after_s": None,
+            },
         )()
         assert _resolved_route(req, result)["adapter"] == "claude-sdk"
 

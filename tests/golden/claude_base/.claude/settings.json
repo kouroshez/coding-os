@@ -463,6 +463,12 @@
             "command": "env COS_AGENT=claude \".claude/hooks/sync-task-current.sh\"",
             "statusMessage": "📌 Syncing .task-current...",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \".claude/hooks/auto-dispatch-crossprovider.sh\"",
+            "statusMessage": "🛰️  Dispatching cross-provider roles...",
+            "timeout": 10
           }
         ]
       },

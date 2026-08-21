@@ -103,6 +103,12 @@
             "command": "env COS_AGENT=codex \"{{HOOKS_DIR}}/sync-task-current.sh\"",
             "statusMessage": "📌 Syncing .task-current...",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=codex \"{{HOOKS_DIR}}/auto-dispatch-crossprovider.sh\"",
+            "statusMessage": "🛰️  Dispatching cross-provider roles...",
+            "timeout": 10
           }
         ]
       },

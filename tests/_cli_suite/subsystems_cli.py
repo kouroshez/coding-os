@@ -66,10 +66,11 @@ class TestSupervisionCli:
                 "reviewer",
                 "--role-adapter",
                 "codex",
-                # codex declares model_selection with an empty catalog, so any
-                # non-empty string is accepted; effort would be rejected.
+                # codex declares a model catalog, so the id must be one it
+                # published; it declares no effort_selection, so an effort here
+                # would be rejected outright.
                 "--role-model",
-                "gpt-5-codex",
+                "gpt-5.6-sol",
             ],
         )
         disabled = runner.invoke(cli, ["supervision", "disable", "-d", str(project)])

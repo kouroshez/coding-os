@@ -1068,6 +1068,26 @@ hooks:
       - event: UserPromptSubmit
         matcher: ""
 
+  - id: auto-dispatch-crossprovider
+    script: auto-dispatch-crossprovider.sh
+    description: |
+      PostToolUse — fires the roles pinned to an adapter other than this
+      session's when a task reaches `testing`, the first moment finished work
+      exists to review. Closes the trigger gap that left supervision enabled but
+      inert for six days. Same-provider roles are deliberately skipped: a child
+      rebuilds context (~$0.56 / ~50s measured), so delegating to a sibling of
+      yourself costs more for identical capability, while a different provider
+      buys an independent blind spot. Runs detached (a codex dispatch measured
+      123s) and fails open — a dispatch that cannot start must never break the
+      task move. Contract: docs/engineering/agent-supervision.md.
+    category: observability
+    phase: "0"
+    timeout: 10
+    events:
+      - event: PostToolUse
+        matcher: mcp__coding-os__cos_task_move
+        status_message: "🛰️  Dispatching cross-provider roles..."
+
   - id: auto-compose-roles
     script: auto-compose-roles.sh
     description: |

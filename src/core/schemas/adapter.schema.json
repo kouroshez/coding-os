@@ -452,6 +452,11 @@
           "description": "Playful phrases rotated while the agent works without a concrete tool active."
         }
       }
+    },
+    "dispatch_timeout_s": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Wall-clock budget in seconds for one dispatch to this adapter. Omit to use the role/agent default, which is calibrated on the fastest runtime. Declare it when the runtime is materially slower: a successful codex review measured 123s against a 120s agent default and timed out at the finish line."
     }
   }
 }

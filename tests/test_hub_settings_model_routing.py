@@ -75,9 +75,9 @@ def test_model_routing_policy_round_trips(client):
             "mode": "adaptive",
             "fallback_policy": "next_eligible",
             "max_parallel": 5,
-            # codex declares model_selection with an empty catalog (free-form
-            # string) and no effort_selection; claude declares both.
-            "orchestrator": {"adapter": "codex", "model": "gpt-5", "effort": ""},
+            # codex declares a model catalog but no effort_selection, so its
+            # effort must stay empty; claude declares both.
+            "orchestrator": {"adapter": "codex", "model": "gpt-5.6-sol", "effort": ""},
             "roles": {
                 "reviewer": {"adapter": "claude", "model": "claude-sonnet-5", "effort": "high"}
             },
@@ -90,7 +90,7 @@ def test_model_routing_policy_round_trips(client):
     assert response.status_code == 200
     routing = response.json()["data"]["settings"]["model_routing"]
     assert routing["mode"] == "adaptive"
-    assert routing["orchestrator_model"] == "gpt-5"
+    assert routing["orchestrator_model"] == "gpt-5.6-sol"
     assert routing["roles"]["reviewer"]["adapter"] == "claude"
     assert routing["cooldown"]["maximum_seconds"] == 900
 

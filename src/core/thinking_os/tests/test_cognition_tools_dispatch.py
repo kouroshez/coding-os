@@ -192,9 +192,9 @@ class TestSupervisionConfig:
             mode="adaptive",
             role="reviewer",
             role_adapter="codex",
-            # codex declares model_selection with an empty catalog (any string
-            # forwards); it declares no effort_selection, so effort is rejected.
-            role_model="gpt-5-codex",
+            # codex declares a model catalog; it declares no effort_selection,
+            # so an effort pinned here is rejected outright, not skipped.
+            role_model="gpt-5.6-sol",
         )
 
         assert enabled["data"]["policy"]["enabled"] is True
