@@ -48,7 +48,12 @@ def dispatcher_cost_summary(
 
     try:
         params: list = []
-        where = "WHERE cost_usd IS NOT NULL"
+        # Every dispatch, not only the priced ones. Codex reports token counts
+        # and no USD figure, so filtering on cost_usd hid 13 real codex runs
+        # from the very rollup that exists to answer "how much did each runtime
+        # get used". A NULL cost means unknown, not zero and not excluded:
+        # `count` covers every run, `total_cost_usd` sums only what is known.
+        where = "WHERE 1=1"
         if formula_id:
             where += " AND formula_id = ?"
             params.append(formula_id)

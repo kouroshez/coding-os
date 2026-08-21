@@ -102,3 +102,28 @@ class TestFailedDispatchesAreVisible:
         by_adapter = {r["adapter"]: r for r in _payload()["by_adapter"]}
         assert by_adapter["claude"]["count"] == 2
         assert by_adapter["claude"]["total_cost_usd"] == pytest.approx(0.87)
+
+
+class TestUnpricedRunsStillCount:
+    """Codex reports tokens, not dollars. Filtering on cost hid 13 real runs from
+    the rollup that exists to answer "how much did each runtime get used"."""
+
+    def test_a_null_cost_run_is_counted_not_dropped(self, tmp_path, monkeypatch) -> None:
+        path = tmp_path / "coding-os.db"
+        with sqlite3.connect(path) as conn:
+            conn.executescript(_SCHEMA)
+            conn.executemany(
+                "INSERT INTO formula_dispatches "
+                "(session_id, formula_id, ts, status, cost_usd, latency_ms, adapter, model) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                [
+                    ("s1", "reviewer", "2026-08-21T10:00:00", "ok", None, 142226, "codex", "g"),
+                    ("s2", "analyst", "2026-08-21T11:00:00", "ok", 0.55, 44092, "claude", "m"),
+                ],
+            )
+        monkeypatch.setattr(views, "_db_path", lambda: path)
+        by_adapter = {r["adapter"]: r for r in _payload()["by_adapter"]}
+        assert by_adapter["codex"]["count"] == 1
+        # Unknown, not zero — a fabricated 0 would read as "codex was free".
+        assert by_adapter["codex"]["total_cost_usd"] is None
+        assert by_adapter["claude"]["total_cost_usd"] == pytest.approx(0.55)
