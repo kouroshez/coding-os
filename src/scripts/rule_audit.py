@@ -52,6 +52,7 @@ ENFORCED_BY: dict[str, tuple[str, ...]] = {
     "model-routing.md": ("nudge-model-routing",),
     "skill-enforcement.md": ("enforce-skill",),
     "test-discipline.md": ("enforce-verify", "test-governor"),
+    "timestamp-discipline.md": ("block-bad-patterns",),
     "thinking_os.md": ("thinking_os-gate", "enforce-zoom"),
     "transparency-banner.md": (),
     "meta-graph-first.md": ("enforce-graph-context", "enforce-rename-plan"),

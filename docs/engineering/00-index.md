@@ -31,7 +31,7 @@ Read next: any of the entries below.
 
 - [Naming Contract](naming-contract.md) — `ssot:true` · updated 2026-04-26
 
-### Engineering (47)
+### Engineering (48)
 
 - [Template Location — In-Repo Files vs In-CLI vs Hybrid](templates-location-analysis.md) — `ssot:true` · updated 2026-04-18
 - [Rules Loading — How `src/core/rules/*.md` Actually Become Active](rules-loading.md) — `ssot:true` · updated 2026-04-18
@@ -80,5 +80,6 @@ Read next: any of the entries below.
 - [Third-Party Token-Cost Benchmark — graph envelope vs a graph-less agent](third-party-token-bench.md) — `ssot:true` · updated 2026-08-15
 - [Context Budget — what coding-os costs before it saves anything](context-budget.md) — `ssot:true` · updated 2026-08-15
 - [Ablation Protocol — does the kernel improve output, or only token count?](ablation-protocol.md) — `ssot:true` · updated 2026-08-16
+- [Timestamp Contract — One Representation Per Storage Class](timestamp-contract.md) — `ssot:true` · updated 2026-08-23
 
 <!-- END auto-index -->
