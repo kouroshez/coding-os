@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -29,7 +29,7 @@ from thinking_os.account_status import (
     window_label,
 )
 
-NOW = datetime(2026, 8, 21, 12, 0, tzinfo=UTC)
+NOW = datetime(2026, 8, 21, 12, 0, tzinfo=timezone.utc)
 
 
 class TestWindowLabel:

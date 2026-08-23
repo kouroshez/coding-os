@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -85,8 +85,8 @@ def age_of(observed_at: str | None, now: datetime | None = None) -> int | None:
     except ValueError:
         return None
     if stamp.tzinfo is None:
-        stamp = stamp.replace(tzinfo=UTC)
-    clock = now or datetime.now(UTC)
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    clock = now or datetime.now(timezone.utc)
     return max(0, int((clock - stamp).total_seconds()))
 
 

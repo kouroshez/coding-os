@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -141,7 +141,7 @@ def probe_account() -> dict[str, Any]:
     fetched_ms = cached.get("fetchedAtMs")
     observed_at = None
     if isinstance(fetched_ms, (int, float)) and fetched_ms > 0:
-        observed_at = datetime.fromtimestamp(fetched_ms / 1000, tz=UTC).isoformat()
+        observed_at = datetime.fromtimestamp(fetched_ms / 1000, tz=timezone.utc).isoformat()
 
     return {
         "status": "ok" if windows else "unavailable",

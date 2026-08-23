@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -97,7 +97,7 @@ def _window(raw: Any) -> dict[str, Any] | None:
         return None
     resets_at = raw.get("resets_at")
     if isinstance(resets_at, (int, float)) and resets_at > 0:
-        resets_at = datetime.fromtimestamp(float(resets_at), tz=UTC).isoformat()
+        resets_at = datetime.fromtimestamp(float(resets_at), tz=timezone.utc).isoformat()
     else:
         resets_at = None
     minutes = raw.get("window_minutes")

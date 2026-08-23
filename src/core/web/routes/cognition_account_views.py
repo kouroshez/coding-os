@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from fastapi import Depends
 
@@ -59,7 +59,7 @@ def provider_quota(
                     "tightest": (
                         {**tightest[0], "adapter": tightest[1]["adapter"]} if tightest else None
                     ),
-                    "checked_at": datetime.now(UTC).isoformat(),
+                    "checked_at": datetime.now(timezone.utc).isoformat(),
                 },
                 "meta": {"layer": "routing"},
             }
