@@ -100,6 +100,15 @@ def _scan_python_calls(path: Path, allowed_lines: set[int]) -> list[str]:
 
     found = []
     for node in ast.walk(tree):
+        # `datetime.UTC` landed in 3.11; pyproject declares requires-python
+        # >=3.10, so this import is a collection-time ImportError there.
+        if isinstance(node, ast.ImportFrom) and node.module == "datetime":
+            if any(a.name == "UTC" for a in node.names) and node.lineno not in allowed_lines:
+                found.append(
+                    f"{rel}:{node.lineno} — `from datetime import UTC` needs Python 3.11+, "
+                    "but requires-python is >=3.10\n    use: from datetime import timezone"
+                )
+            continue
         if not isinstance(node, ast.Call) or node.lineno in allowed_lines:
             continue
         name = _attr_name(node.func)

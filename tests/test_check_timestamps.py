@@ -89,3 +89,11 @@ def test_shell_utc_day_is_clean() -> None:
 
 def test_shell_comment_is_not_flagged() -> None:
     assert ct.collect_shell_warnings("# never use date +%Y-%m-%d here\n") == []
+
+
+def test_py311_only_utc_import_flagged() -> None:
+    assert "3.11+" in _one("from datetime import UTC\n")
+
+
+def test_timezone_import_is_clean() -> None:
+    assert ct.collect_python_warnings("from datetime import datetime, timezone\n") == []

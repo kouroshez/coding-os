@@ -46,6 +46,15 @@ def collect_python_warnings(source: str) -> list[str]:
     allowed = _allowed_lines(source)
     warnings = set()
     for node in ast.walk(tree):
+        # `datetime.UTC` landed in 3.11; the project floor is 3.10, so this
+        # import is an ImportError on the oldest supported interpreter.
+        if isinstance(node, ast.ImportFrom) and node.module == "datetime":
+            if any(a.name == "UTC" for a in node.names) and node.lineno not in allowed:
+                warnings.add(
+                    f"  line {node.lineno}: `from datetime import UTC` needs Python 3.11+, "
+                    "but this project declares requires-python >=3.10. Use `timezone.utc`."
+                )
+            continue
         if not isinstance(node, ast.Call) or node.lineno in allowed:
             continue
         name = _attr_name(node.func)
