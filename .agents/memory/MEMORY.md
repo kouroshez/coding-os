@@ -47,3 +47,5 @@
 - [Fix the twin of every guard you fix](fix-the-twin-of-every-guard-you-fix.md) — a widened guard left its hand-copied sibling narrow; grep the condition, not the function.
 - [Reddit per-sub karma gates](reddit-per-sub-karma-gates.md) — global karma is worthless; large subs gate on karma earned inside that sub, and only automod names the number.
 - [Git path ops ignore untracked](git-path-ops-ignore-untracked.md) — `git ls-files`/`git commit <dir>` skip new files; a scan-based test goes green on a blind spot.
+- [A red CI gate hides a backlog](red-ci-gate-hides-a-backlog.md) — a failing gate job skips the rest; check how long CI has been red before blaming your change.
+- [Verification matrix must match CI](verification-matrix-must-match-ci.md) — two subsystems CI tested had no matrix row; grep the workflow, not just the file you touched.
