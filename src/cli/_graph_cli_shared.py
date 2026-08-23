@@ -52,7 +52,7 @@ def _open_backend():
 
 def _graph_reindex_print_status() -> None:
     """V1 ``--status``: print top 50 most-recently-indexed file_index_state rows."""
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     _bootstrap_paths()
     try:
@@ -81,7 +81,7 @@ def _graph_reindex_print_status() -> None:
     click.echo(f"{'file_path':<60}  {'hash':<12}  {'indexed_at':<20}  status")
     click.echo("-" * 110)
     for file_path, chash, chain, ts, err in rows:
-        when = datetime.fromtimestamp(int(ts)).isoformat(timespec="seconds")
+        when = datetime.fromtimestamp(int(ts), tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         status = "error" if err else "ok"
         chain_hint = chain[:20] + ("…" if len(chain) > 20 else "")
         display = f"{file_path} [{chain_hint}]"

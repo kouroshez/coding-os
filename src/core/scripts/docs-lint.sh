@@ -178,7 +178,7 @@ fi
 # offending risk is reported in one pass. Empty register passes.
 RISK_REGISTER="$DOCS_DIR/governance/risk-register.md"
 if [ -f "$RISK_REGISTER" ]; then
-  today=$(date +%Y-%m-%d)
+  today=$(date -u +%Y-%m-%d)
   while IFS= read -r line; do
     rid=$(echo "$line" | grep -oE 'RISK-[0-9]+' | head -1)
     if ! echo "$line" | grep -qE 'review-by:[[:space:]]*[0-9]{4}-[0-9]{2}-[0-9]{2}'; then

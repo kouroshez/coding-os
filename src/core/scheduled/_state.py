@@ -58,7 +58,7 @@ def write_state(project_root: Path, state: dict) -> None:
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def days_since_marker(marker_path: Path) -> float | None:

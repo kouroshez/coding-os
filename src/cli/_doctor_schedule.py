@@ -114,7 +114,9 @@ def _check_scheduled(project: Path, report: DoctorReport) -> None:
     run_at = (data.get("run_at") or "")[:19]
     if run_at:
         try:
-            run_dt = _datetime.datetime.fromisoformat(run_at).replace(tzinfo=_datetime.timezone.utc)
+            run_dt = _datetime.datetime.fromisoformat(run_at)
+            if run_dt.tzinfo is None:
+                run_dt = run_dt.replace(tzinfo=_datetime.timezone.utc)
             now = _datetime.datetime.now(_datetime.timezone.utc)
             age_days = (now - run_dt).total_seconds() / 86400
             if age_days > 2:

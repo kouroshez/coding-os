@@ -31,7 +31,7 @@ def _schemas():
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _resolve_role_persistence(role_id: str) -> tuple[str | None, Any]:

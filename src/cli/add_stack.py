@@ -97,7 +97,7 @@ def _backup_agents_md(project: Path) -> Path:
     """
     agents_md = project / "AGENTS.md"
     assert agents_md.exists(), "AGENTS.md must exist before backup"
-    ts = _dt.datetime.now().strftime("%Y%m%dT%H%M%S")
+    ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     backup_dir = project / STATE_DIR / "backups"
     backup_dir.mkdir(parents=True, exist_ok=True)
     backup_path = backup_dir / f"AGENTS.md.{ts}.bak"
@@ -113,7 +113,7 @@ def _append_stack_history(config: dict, stack_id: str) -> None:
     history.append(
         {
             "stack_id": stack_id,
-            "added_at": _dt.datetime.now().isoformat(timespec="seconds"),
+            "added_at": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
     )
 

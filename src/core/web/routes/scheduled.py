@@ -74,7 +74,7 @@ def _plist_hour(default: int = 3) -> int:
 def _next_run_at() -> str | None:
     try:
         hour = _plist_hour()
-        now = datetime.now()
+        now = datetime.now()  # ts-allow: launchd Hour is local; converted to UTC below
         next_run = now.replace(hour=hour, minute=0, second=0, microsecond=0)
         if now.hour >= hour:
             next_run = next_run + timedelta(days=1)

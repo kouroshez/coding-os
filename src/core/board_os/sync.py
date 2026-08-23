@@ -165,7 +165,10 @@ def _iso_to_epoch(iso: str | None) -> int | None:
     if not iso:
         return None
     try:
-        return int(datetime.fromisoformat(iso).replace(tzinfo=timezone.utc).timestamp())
+        parsed = datetime.fromisoformat(iso)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return int(parsed.timestamp())
     except Exception:
         return None
 

@@ -18,7 +18,7 @@ import shutil
 import tarfile
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from board_os.parser import ParsedTask, is_lean_format, parse_task
@@ -40,7 +40,7 @@ class MigrationReport:
 
 def _render_lean_from_legacy(legacy: ParsedTask, domain_map: dict | None) -> str:
     """Convert a legacy ParsedTask into a lean MD file string."""
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     swimlane = legacy.swimlane or "core"
     kind = "chore"  # safe default; user tunes after migration
     priority = "P2"

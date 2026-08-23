@@ -12,7 +12,7 @@ import json
 import random
 import sqlite3
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -150,7 +150,7 @@ PERSONAS = [
 def _random_date(start_days_ago: int = 180, end_days_ago: int = 0) -> str:
     """Random ISO datetime within range."""
     delta = random.randint(end_days_ago, start_days_ago)
-    dt = datetime.now() - timedelta(
+    dt = datetime.now(timezone.utc) - timedelta(
         days=delta, hours=random.randint(0, 23), minutes=random.randint(0, 59)
     )
     return dt.strftime("%Y-%m-%d %H:%M:%S")

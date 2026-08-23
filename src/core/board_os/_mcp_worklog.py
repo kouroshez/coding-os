@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 
 from board_os.sync import sync_one  # type: ignore[import-not-found]
 from thinking_os.tools._shared import fail, ok, safe_tool  # type: ignore[import-not-found]
@@ -101,7 +101,7 @@ def cos_work_log_append(
     if not file_path.exists():
         return fail("not_found", f"file missing: {file_path}")
 
-    date = datetime.utcnow().strftime("%Y-%m-%d")
+    date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     agent_label = _agent_label(agent_session)
     summary_trunc = _truncate_summary(summary)
     line = f"- {date} [{agent_label}]: {summary_trunc}"

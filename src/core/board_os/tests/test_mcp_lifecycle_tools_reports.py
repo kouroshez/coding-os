@@ -44,9 +44,11 @@ def test_retro_shape(project: Path, conn: sqlite3.Connection):
 
 def _insert_hook_block(conn, hook: str, session: str, days_ago: float) -> None:
     import time as _time
-    from datetime import datetime as _dt
+    from datetime import datetime as _dt, timezone as _timezone
 
-    at = _dt.utcfromtimestamp(_time.time() - days_ago * 86400).strftime("%Y-%m-%dT%H:%M:%SZ")
+    at = _dt.fromtimestamp(_time.time() - days_ago * 86400, tz=_timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
     conn.execute(
         "INSERT INTO log_events (ts, lvl, scope, msg, kv, session_id, fingerprint, created_at) "
         "VALUES (?, 'ERROR', ?, 'blocked', ?, ?, 'test-fp', ?)",

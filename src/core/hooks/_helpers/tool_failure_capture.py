@@ -27,7 +27,7 @@ _SKIP_TOOLS = frozenset({"Bash"})  # Bash failures are too noisy — skip by def
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:

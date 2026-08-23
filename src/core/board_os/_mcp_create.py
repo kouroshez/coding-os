@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 
 from board_os.config import (
     APPETITE_RE,
@@ -343,7 +343,7 @@ def cos_task_create(
     if file_path.exists():
         return fail("validation", f"file already exists: {file_path.name}")
 
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     fm = {
         "id": task_id,
         "title": title,

@@ -175,7 +175,11 @@ def _extract_ts(text: str) -> str:
         return ""
     if raw.replace(".", "", 1).isdigit():
         try:
-            return _dt.datetime.fromtimestamp(float(raw)).strftime("%Y-%m-%d %H:%M:%S")
+            return (
+                _dt.datetime.fromtimestamp(float(raw), tz=_dt.timezone.utc)
+                .astimezone()
+                .strftime("%Y-%m-%d %H:%M:%S")
+            )
         except (ValueError, OSError):
             return ""
     return _try_parse_iso(raw[:25])

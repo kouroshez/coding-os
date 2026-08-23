@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import os
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Literal
 
@@ -112,7 +112,7 @@ def _suggest_filters_from_query(query: str) -> dict[str, Any]:
     else:
         for rx, days in _RECENCY_HINTS:
             if rx.search(query):
-                cutoff = datetime.utcnow().date() - timedelta(days=days)
+                cutoff = datetime.now(timezone.utc).date() - timedelta(days=days)
                 out["suggested_since_iso"] = cutoff.isoformat()
                 break
         # Bare 4-digit year — only if no recency phrasing already won.

@@ -34,7 +34,7 @@ _NEXT_STEP_HINTS: dict[str, str] = {
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:

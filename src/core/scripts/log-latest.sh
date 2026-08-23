@@ -39,7 +39,7 @@ fi
 
 if [ "$N" = "all" ]; then
   # Show all entries from today's date
-  TODAY=$(date +%Y-%m-%d)
+  TODAY=$(date -u +%Y-%m-%d)
   HEADER="## $TODAY"
   if ! grep -q "$HEADER" "$LOG_FILE"; then
     info "No entries for today ($TODAY)."

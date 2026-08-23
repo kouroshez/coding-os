@@ -68,7 +68,7 @@ def _backup_file(project: Path, relative: Path) -> Path:
     """Copy a project file into `.coding-os/backups/<name>.<ts>.bak`, return path."""
     src = project / relative
     assert src.exists(), f"{relative} must exist before backup"
-    ts = _dt.datetime.now().strftime("%Y%m%dT%H%M%S")
+    ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     backup_dir = project / STATE_DIR / "backups"
     backup_dir.mkdir(parents=True, exist_ok=True)
     backup_path = backup_dir / f"{src.name}.{ts}.bak"
@@ -120,7 +120,7 @@ def _append_stack_history_block(raw: str, stack_id: str) -> str:
     lines after the last list item); otherwise opens a fresh block at EOF. Never
     touches unrelated lines, so comments are preserved.
     """
-    removed_at = _dt.datetime.now().isoformat(timespec="seconds")
+    removed_at = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     entry_lines = [
         f"- stack_id: {stack_id}\n",
         f"  removed_at: '{removed_at}'\n",

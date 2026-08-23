@@ -73,12 +73,12 @@ echo "=== log-write ==="
 
 python3 - "$RAW_TASK" "$TYPE" "$MSG" "$WHAT" "$FILES" <<'PY'
 from pathlib import Path
-from datetime import date
+from datetime import datetime, timezone
 import re
 import sys
 
 raw_task, entry_type, msg, what, files = sys.argv[1:6]
-today = date.today().isoformat()
+today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 # Resolve task ID if provided
 task_id = ""

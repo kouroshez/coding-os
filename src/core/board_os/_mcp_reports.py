@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 from board_os.workflow import (  # type: ignore[import-not-found]
     check_wip,
@@ -174,7 +174,7 @@ def _hook_block_trend(conn: sqlite3.Connection, threshold: int, hours: float) ->
         return None
 
     def iso_utc(epoch: int) -> str:
-        return datetime.utcfromtimestamp(epoch).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def window(start: int, end: int) -> tuple[int, int, dict[str, int]]:
         rows = conn.execute(

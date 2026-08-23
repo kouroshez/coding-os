@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import traceback
-from datetime import datetime, timezone
 from typing import Any
 
+from .clock import now_iso
 from .config import Level, current_level, db_min_level, normalize_scope, session_id, trace_id
 from .redact import redact_kv, redact_text
 from .sinks import dispatch
@@ -16,7 +16,7 @@ class CosFatalError(RuntimeError):
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return now_iso()
 
 
 def _emit(
