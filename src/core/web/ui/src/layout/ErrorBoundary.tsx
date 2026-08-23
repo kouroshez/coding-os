@@ -29,7 +29,6 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({ info });
     // Surface to dev console; in prod this is also where you'd send to
     // Sentry/Bugsnag.
-    // eslint-disable-next-line no-console
     console.error('[ErrorBoundary] caught render error', error, info.componentStack);
   }
 

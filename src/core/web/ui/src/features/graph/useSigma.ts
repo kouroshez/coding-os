@@ -112,7 +112,6 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
 
     // Cast graph for Sigma's less-permissive generic bounds.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sigma = new Sigma(graph as any, containerRef.current, {
       nodeProgramClasses: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
