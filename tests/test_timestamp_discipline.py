@@ -188,7 +188,9 @@ def _scan_now_iso_bodies() -> list[tuple[str, str]]:
         text = path.read_text(encoding="utf-8", errors="ignore")
         for match in re.finditer(r"def _?now_iso\(\)[^\n]*:\n((?:\s+[^\n]*\n){1,4})", text):
             body = match.group(1).strip()
-            if "return now_iso()" in body:  # delegates to the canonical producer
+            # Conforming: delegates to the canonical producer, or names the
+            # shared constant (clock.py itself, which DEFINES the format).
+            if "return now_iso()" in body or "ISO_FORMAT" in body:
                 continue
             found.append((str(path.relative_to(REPO_ROOT)), body))
     return found
