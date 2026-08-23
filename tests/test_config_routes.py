@@ -98,8 +98,17 @@ def test_adapters_groups_models_by_adapter(client):
     if not codex["dispatch_available"]:
         assert codex["dispatch_missing"]
     # Models are DISCOVERED from the adapter's own config, never fabricated (P7).
-    # The fixture pins CODEX_HOME at an empty dir, so discovery finds nothing.
-    assert codex["models"] == []
+    # The fixture pins CODEX_HOME at an empty dir, so nothing comes from the
+    # developer's machine — what remains must match adapter.yaml exactly.
+    import yaml
+
+    declared = yaml.safe_load(
+        (_REPO_ROOT / "src" / "adapters" / "codex" / "adapter.yaml").read_text()
+    )
+    declared_ids = [m["id"] for m in (declared.get("models") or [])]
+    assert [m["id"] for m in codex["models"]] == declared_ids
+    if codex["models"]:
+        assert sum(1 for m in codex["models"] if m["default"]) == 1
 
     assert body["adapters"][0]["id"] == "claude"  # the runnable adapter leads
     for a in body["adapters"]:

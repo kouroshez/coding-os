@@ -30,6 +30,7 @@ ALLOWED_MODEL_PATHS: set[str] = {
     "src/core/thinking_os/compress.py",  # COS_COMPRESS_MODEL env default
     "src/core/thinking_os/tests/test_compress.py",  # asserts _stamp_provenance echoes the model id
     "src/core/thinking_os/tests/test_record_outcome.py",  # writes .model fixture + asserts resolution
+    "src/core/thinking_os/tests/test_dispatch_safety.py",  # asserts the dispatch row echoes the requested model
     "src/core/thinking_os/agents/researcher.md",  # role frontmatter
     "src/core/thinking_os/agents/implementer.md",
     "src/core/thinking_os/agents/reviewer.md",
