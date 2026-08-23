@@ -40,6 +40,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -77,6 +78,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -136,6 +138,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -243,7 +246,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 239
     },
     "claude_angular": {
       "agent": "claude",
@@ -285,6 +288,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -322,6 +326,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -382,6 +387,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -516,7 +522,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 264
+      "count": 267
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -558,6 +564,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -595,6 +602,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -655,6 +663,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -777,7 +786,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 252
+      "count": 255
     },
     "claude_astro": {
       "agent": "claude",
@@ -819,6 +828,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -856,6 +866,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -916,6 +927,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -1046,7 +1058,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 260
+      "count": 263
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1088,6 +1100,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -1125,6 +1138,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -1184,6 +1198,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -1294,7 +1309,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 242
     },
     "claude_django": {
       "agent": "claude",
@@ -1336,6 +1351,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -1373,6 +1389,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -1433,6 +1450,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -1562,7 +1580,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 259
+      "count": 262
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1604,6 +1622,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -1641,6 +1660,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -1701,6 +1721,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -1822,7 +1843,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 254
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1864,6 +1885,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -1901,6 +1923,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -1961,6 +1984,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -2084,7 +2108,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 253
+      "count": 256
     },
     "claude_go": {
       "agent": "claude",
@@ -2126,6 +2150,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -2163,6 +2188,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -2223,6 +2249,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -2345,7 +2372,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 252
+      "count": 255
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2387,6 +2414,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -2424,6 +2452,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -2484,6 +2513,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -2608,7 +2638,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 254
+      "count": 257
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2650,6 +2680,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -2687,6 +2718,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -2746,6 +2778,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -2857,7 +2890,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 243
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2899,6 +2932,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -2936,6 +2970,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -2995,6 +3030,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -3107,7 +3143,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 244
     },
     "claude_laravel": {
       "agent": "claude",
@@ -3149,6 +3185,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -3186,6 +3223,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -3246,6 +3284,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -3369,7 +3408,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 253
+      "count": 256
     },
     "claude_meta": {
       "agent": "claude",
@@ -3411,6 +3450,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -3448,6 +3488,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -3511,6 +3552,7 @@
         ".claude/rules/meta-meta-engineering.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -3652,7 +3694,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 274
+      "count": 277
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3694,6 +3736,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -3731,6 +3774,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -3791,6 +3835,7 @@
         ".claude/rules/nestjs-backend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -3920,7 +3965,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 259
+      "count": 262
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -3962,6 +4007,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -3999,6 +4045,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -4059,6 +4106,7 @@
         ".claude/rules/nextjs-frontend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -4199,7 +4247,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 270
+      "count": 273
     },
     "claude_node-express": {
       "agent": "claude",
@@ -4241,6 +4289,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -4278,6 +4327,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -4338,6 +4388,7 @@
         ".claude/rules/node-express-backend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -4463,7 +4514,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 255
+      "count": 258
     },
     "claude_python": {
       "agent": "claude",
@@ -4505,6 +4556,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -4542,6 +4594,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -4601,6 +4654,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -4711,7 +4765,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 242
     },
     "claude_rails": {
       "agent": "claude",
@@ -4753,6 +4807,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -4790,6 +4845,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -4850,6 +4906,7 @@
         ".claude/rules/rails-backend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -4976,7 +5033,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 256
+      "count": 259
     },
     "claude_react-native": {
       "agent": "claude",
@@ -5018,6 +5075,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -5055,6 +5113,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -5115,6 +5174,7 @@
         ".claude/rules/react-native-mobile.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -5252,7 +5312,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 267
+      "count": 270
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -5294,6 +5354,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -5331,6 +5392,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -5390,6 +5452,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -5501,7 +5564,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 243
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5543,6 +5606,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -5580,6 +5644,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -5640,6 +5705,7 @@
         ".claude/rules/rust-axum-backend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -5762,7 +5828,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 252
+      "count": 255
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5804,6 +5870,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -5841,6 +5908,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -5900,6 +5968,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -6012,7 +6081,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 244
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -6054,6 +6123,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -6091,6 +6161,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -6151,6 +6222,7 @@
         ".claude/rules/spring-boot-backend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -6274,7 +6346,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 253
+      "count": 256
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -6316,6 +6388,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -6353,6 +6426,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -6413,6 +6487,7 @@
         ".claude/rules/svelte-sveltekit-frontend.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -6545,7 +6620,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 262
+      "count": 265
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6587,6 +6662,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -6624,6 +6700,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -6683,6 +6760,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
@@ -6796,7 +6874,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 242
+      "count": 245
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6838,6 +6916,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -6875,6 +6954,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -6934,6 +7014,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/rules/vue-nuxt-frontend.md",
         ".claude/settings.json",
@@ -7059,7 +7140,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 254
+      "count": 257
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -7101,6 +7182,7 @@
         ".claude/hooks/agent_memory_sync.py",
         ".claude/hooks/auto-brain-decay.sh",
         ".claude/hooks/auto-compose-roles.sh",
+        ".claude/hooks/auto-dispatch-crossprovider.sh",
         ".claude/hooks/auto-graph-reconcile-shell.sh",
         ".claude/hooks/auto-regen-doc-index.sh",
         ".claude/hooks/auto-reindex-docs.sh",
@@ -7138,6 +7220,7 @@
         ".claude/hooks/enforce-scaffold-boundary.sh",
         ".claude/hooks/enforce-skill.sh",
         ".claude/hooks/enforce-task-body.sh",
+        ".claude/hooks/enforce-task-readiness.sh",
         ".claude/hooks/enforce-task-start.sh",
         ".claude/hooks/enforce-task-transition.sh",
         ".claude/hooks/enforce-template.sh",
@@ -7197,6 +7280,7 @@
         ".claude/rules/memory.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/timestamp-discipline.md",
         ".claude/rules/transparency-banner.md",
         ".claude/rules/wordpress-backend.md",
         ".claude/settings.json",
@@ -7325,7 +7409,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 260
     },
     "codex_base": {
       "agent": "codex",
@@ -7366,6 +7450,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -7413,6 +7498,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -7470,6 +7556,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -7573,7 +7660,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 244
     },
     "codex_angular": {
       "agent": "codex",
@@ -7616,6 +7703,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -7663,6 +7751,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -7721,6 +7810,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -7851,7 +7941,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 269
+      "count": 272
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7894,6 +7984,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -7941,6 +8032,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -7999,6 +8091,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -8117,7 +8210,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 260
     },
     "codex_astro": {
       "agent": "codex",
@@ -8160,6 +8253,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -8207,6 +8301,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -8265,6 +8360,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -8391,7 +8487,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 265
+      "count": 268
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -8434,6 +8530,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -8481,6 +8578,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -8538,6 +8636,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -8644,7 +8743,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 247
     },
     "codex_django": {
       "agent": "codex",
@@ -8687,6 +8786,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -8734,6 +8834,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -8792,6 +8893,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -8917,7 +9019,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 264
+      "count": 267
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8960,6 +9062,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -9007,6 +9110,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -9065,6 +9169,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -9182,7 +9287,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 256
+      "count": 259
     },
     "codex_flutter": {
       "agent": "codex",
@@ -9225,6 +9330,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -9272,6 +9378,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -9330,6 +9437,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -9449,7 +9557,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 258
+      "count": 261
     },
     "codex_go": {
       "agent": "codex",
@@ -9492,6 +9600,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -9539,6 +9648,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -9597,6 +9707,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -9715,7 +9826,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 260
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9758,6 +9869,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -9805,6 +9917,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -9863,6 +9976,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -9983,7 +10097,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 259
+      "count": 262
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -10026,6 +10140,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -10073,6 +10188,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -10130,6 +10246,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -10237,7 +10354,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 248
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -10280,6 +10397,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -10327,6 +10445,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -10384,6 +10503,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -10492,7 +10612,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 249
     },
     "codex_laravel": {
       "agent": "codex",
@@ -10535,6 +10655,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -10582,6 +10703,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -10640,6 +10762,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -10759,7 +10882,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 258
+      "count": 261
     },
     "codex_meta": {
       "agent": "codex",
@@ -10802,6 +10925,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -10849,6 +10973,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -10910,6 +11035,7 @@
         ".codex/rules/meta-meta-engineering.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -11047,7 +11173,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 279
+      "count": 282
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -11090,6 +11216,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -11137,6 +11264,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -11195,6 +11323,7 @@
         ".codex/rules/nestjs-backend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -11320,7 +11449,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 264
+      "count": 267
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -11363,6 +11492,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -11410,6 +11540,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -11468,6 +11599,7 @@
         ".codex/rules/nextjs-frontend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -11604,7 +11736,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 275
+      "count": 278
     },
     "codex_node-express": {
       "agent": "codex",
@@ -11647,6 +11779,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -11694,6 +11827,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -11752,6 +11886,7 @@
         ".codex/rules/node-express-backend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -11873,7 +12008,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 260
+      "count": 263
     },
     "codex_python": {
       "agent": "codex",
@@ -11916,6 +12051,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -11963,6 +12099,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -12020,6 +12157,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -12126,7 +12264,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 247
     },
     "codex_rails": {
       "agent": "codex",
@@ -12169,6 +12307,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -12216,6 +12355,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -12274,6 +12414,7 @@
         ".codex/rules/rails-backend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -12396,7 +12537,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 261
+      "count": 264
     },
     "codex_react-native": {
       "agent": "codex",
@@ -12439,6 +12580,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -12486,6 +12628,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -12544,6 +12687,7 @@
         ".codex/rules/react-native-mobile.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -12677,7 +12821,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 272
+      "count": 275
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -12720,6 +12864,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -12767,6 +12912,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -12824,6 +12970,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -12931,7 +13078,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 248
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -12974,6 +13121,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -13021,6 +13169,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -13079,6 +13228,7 @@
         ".codex/rules/rust-axum-backend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -13197,7 +13347,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 260
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -13240,6 +13390,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -13287,6 +13438,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -13344,6 +13496,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -13452,7 +13605,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 249
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -13495,6 +13648,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -13542,6 +13696,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -13600,6 +13755,7 @@
         ".codex/rules/spring-boot-backend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -13719,7 +13875,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 258
+      "count": 261
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -13762,6 +13918,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -13809,6 +13966,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -13867,6 +14025,7 @@
         ".codex/rules/svelte-sveltekit-frontend.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -13995,7 +14154,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 267
+      "count": 270
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -14038,6 +14197,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -14085,6 +14245,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -14142,6 +14303,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
@@ -14251,7 +14413,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 247
+      "count": 250
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -14294,6 +14456,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -14341,6 +14504,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -14398,6 +14562,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/rules/vue-nuxt-frontend.md",
         ".codex/skills/a11y/SKILL.md",
@@ -14519,7 +14684,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 259
+      "count": 262
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -14562,6 +14727,7 @@
         ".codex/hooks/agent-presence.sh",
         ".codex/hooks/auto-brain-decay.sh",
         ".codex/hooks/auto-compose-roles.sh",
+        ".codex/hooks/auto-dispatch-crossprovider.sh",
         ".codex/hooks/auto-graph-reconcile-shell.sh",
         ".codex/hooks/auto-regen-doc-index.sh",
         ".codex/hooks/auto-reindex-docs.sh",
@@ -14609,6 +14775,7 @@
         ".codex/hooks/enforce-scaffold-boundary.sh",
         ".codex/hooks/enforce-skill.sh",
         ".codex/hooks/enforce-task-body.sh",
+        ".codex/hooks/enforce-task-readiness.sh",
         ".codex/hooks/enforce-task-start.sh",
         ".codex/hooks/enforce-task-transition.sh",
         ".codex/hooks/enforce-template.sh",
@@ -14666,6 +14833,7 @@
         ".codex/rules/memory.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/timestamp-discipline.md",
         ".codex/rules/transparency-banner.md",
         ".codex/rules/wordpress-backend.md",
         ".codex/skills/a11y/SKILL.md",
@@ -14790,7 +14958,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 262
+      "count": 265
     }
   }
 }

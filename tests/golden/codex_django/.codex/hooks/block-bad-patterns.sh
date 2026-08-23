@@ -110,6 +110,32 @@ case "$FILE_PATH" in
     ;;
 esac
 
+# === TIMESTAMP CONTRACT (warn tier) ===
+# Critical Rule 28. These forms raise nothing: they parse, insert and render,
+# then drop records from a filter or show a view hours behind (`time.mktime`
+# baked the server offset into a UTC epoch -- "3-4h drift on the Hub UI", still
+# documented at _parse_iso_ts in src/core/web/routes/observability.py). Warns
+# rather than blocks: local time IS correct at a render edge, and a false BLOCK
+# there trains agents around the gate. The grep pre-filter keeps the no-time
+# case off the python3 spawn, which is most writes.
+case "$FILE_PATH" in
+  */node_modules/*|*/.venv/*|*/scaffold/*|*/golden/*) ;;
+  *.py)
+    if printf '%s' "$CONTENT" | grep -qE 'utcnow|utcfromtimestamp|fromtimestamp|mktime|tzinfo=|\.now\('; then
+      TS_REPORT="$(printf '%s' "$CONTENT" \
+        | python3 "$(_cos_helpers_dir)/check_timestamps.py" 2>/dev/null || true)"
+      [[ -n "$TS_REPORT" ]] && printf '⚠️  %s\n' "$TS_REPORT" >&2
+    fi
+    ;;
+  *.sh)
+    if printf '%s' "$CONTENT" | grep -qE 'date \+%Y-%m-%d'; then
+      TS_REPORT="$(printf '%s' "$CONTENT" \
+        | python3 "$(_cos_helpers_dir)/check_timestamps.py" --shell 2>/dev/null || true)"
+      [[ -n "$TS_REPORT" ]] && printf '⚠️  %s\n' "$TS_REPORT" >&2
+    fi
+    ;;
+esac
+
 # === SHELL HOOK / INSTALLER GUARD (bash 5.3.9 deadlock) ===
 # Homebrew bash 5.3.9 sporadically deadlocks `cmd - <<HEREDOC` patterns
 # in heredoc_write before forking the child. Hot-path hooks accumulate

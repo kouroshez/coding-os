@@ -483,8 +483,31 @@ Before writing any function, ask:
 | What if the external service is down? | Stripe timeout, S3 unreachable |
 | What if there is concurrent access? | Two users buy the last item simultaneously |
 | What if the data is stale? | Cached price after a price change |
+| What zone is that timestamp in? | A naive `datetime` read on a server outside UTC |
 
 Address these explicitly — with guard clauses, validation, or documented assumptions, so each branch is a decision the reader can audit. Worked example: [references/error-handling.md](references/error-handling.md).
+
+## 5b. Timestamps — One Contract, UTC At Rest
+
+A wrong timestamp is the edge case that never raises. It parses, inserts and
+renders, and shows up weeks later as a view hours behind or a filter that
+silently drops records. Pick the storage class, then use its one form:
+
+| The value is… | Form | Producer |
+|---|---|---|
+| compared / sorted / aged | epoch `INTEGER` seconds UTC | `now_epoch()` · `date +%s` |
+| read by a human or crossing a process boundary | `YYYY-MM-DDTHH:MM:SSZ` | `now_iso()` · `date -u +"%Y-%m-%dT%H:%M:%SZ"` |
+| a calendar bucket | `YYYY-MM-DD` **UTC** | `now_day()` · `date -u +%Y-%m-%d` |
+
+Never: `utcnow()` (naive despite the name, deprecated in 3.12) · a `datetime.now()`
+with no `tz` that gets stored or compared · `fromtimestamp()` without `tz=` ·
+`mktime(strptime(...))` · an unguarded `.replace(tzinfo=…)`, which *overwrites* a
+real offset instead of converting it · `date +%Y-%m-%d` in shell for a stored day.
+Local time is a **rendering**, produced at the edge and never stored.
+
+`Z`, not `+00:00`: it is the only shape both `strptime` and `fromisoformat`
+accept. Full contract, the measured parser matrix, and the per-table legacy
+column types: [timestamp-discipline rule](../../rules/timestamp-discipline.md).
 
 ## 6. Test Error Paths
 
