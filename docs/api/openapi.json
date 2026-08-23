@@ -3653,7 +3653,7 @@
     },
     "/api/cognition/cost": {
       "get": {
-        "description": "Aggregate dispatch cost rolled up by formula and day (T2.4).",
+        "description": "Aggregate dispatch cost by formula and day, plus a per-adapter rollup.",
         "operationId": "dispatcher_cost_summary_api_cognition_cost_get",
         "parameters": [
           {
@@ -4331,6 +4331,86 @@
           }
         },
         "summary": "Onboarding Dismiss",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/cognition/quota": {
+      "get": {
+        "description": "Report each configured provider's plan, auth mode and rate-limit windows.",
+        "operationId": "provider_quota_api_cognition_quota_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized (COS_HUB_TOKEN required)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden (permission / disabled module)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Provider Quota",
         "tags": [
           "cognition"
         ]
