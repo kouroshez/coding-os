@@ -1926,6 +1926,45 @@ CREATE INDEX IF NOT EXISTS idx_adapter_health_state_cooldown
     logger.info("Migration v53 applied: adapter capacity health and dispatch identity")
 
 
+_NAIVE_TS_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("formula_dispatches", "ts"),
+    ("persona_selections", "ts"),
+    ("ambiguity_violations", "ts"),
+    ("backtrack_events", "ts"),
+    ("routing_weights", "last_updated"),
+    ("routing_weights", "last_recalc_at"),
+)
+
+
+def _migrate_v54_normalize_text_timestamps(conn: sqlite3.Connection) -> None:
+    # These columns accumulated three shapes in the same field: SQLite's naive
+    # `datetime('now')` default ("2026-05-25 03:03:22"), Python `.isoformat()`
+    # ("...+00:00"), and ISO-Z. Readers sort them with `ORDER BY ts DESC`, which
+    # is a byte compare -- " " (0x20) sorts before "T" (0x54), so a naive row is
+    # permanently "older" than every offset row whatever the real instant. The
+    # observed spread was 18 naive + 41 offset in formula_dispatches alone.
+    # Critical Rule 28: one representation per column, ISO-Z at rest.
+    total = 0
+    for table, column in _NAIVE_TS_COLUMNS:
+        if not _column_exists_table(conn, table, column):
+            continue
+        try:
+            cur = conn.execute(
+                # table/column names come from the fixed literal tuple above.
+                f"UPDATE {table} SET {column} = "
+                f"  strftime('%Y-%m-%dT%H:%M:%SZ', {column}) "
+                f"WHERE {column} IS NOT NULL "
+                f"  AND {column} NOT LIKE '____-__-__T__:__:__Z' "
+                f"  AND strftime('%Y-%m-%dT%H:%M:%SZ', {column}) IS NOT NULL"
+            )
+        except sqlite3.OperationalError as exc:
+            logger.debug("v54 skipped %s.%s: %s", table, column, exc)
+            continue
+        total += cur.rowcount
+    conn.commit()
+    logger.info("Migration v54 applied: normalized %d TEXT timestamp(s) to ISO-Z", total)
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2312,5 +2351,10 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         53,
         "adapter capacity health with persistent cooldown and half-open probe leases",
         _migrate_v53_adapter_health,
+    ),
+    (
+        54,
+        "Normalize TEXT timestamp columns to ISO-Z — one representation per column so ORDER BY stops byte-sorting a naive row ahead of every offset row (Critical Rule 28)",
+        _migrate_v54_normalize_text_timestamps,
     ),
 ]

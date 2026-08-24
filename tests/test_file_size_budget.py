@@ -25,7 +25,7 @@ SOFT_LIMIT = 500
 
 BASELINE: dict[str, int] = {
     # Append-only schema ledger — recorded exception, see ci-gates.md.
-    "src/core/thinking_os/_db_migrations.py": 2316,
+    "src/core/thinking_os/_db_migrations.py": 2360,
     "src/cli/pr_commands.py": 2024,
     "src/core/thinking_os/embeddings.py": 943,
 }
