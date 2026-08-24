@@ -133,7 +133,7 @@ export function HealthTab() {
             onChange={(e) => setIncludeSelfPolling(e.target.checked)}
             className="h-3 w-3 accent-[var(--cos-accent)]"
           />
-          <span>include the Hub UI's own background polling</span>
+          <span>include the Hub UI&apos;s own background polling</span>
         </label>
         {state.err && <span className="text-[var(--cos-err)]">{state.err}</span>}
       </header>

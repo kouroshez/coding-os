@@ -95,7 +95,7 @@ export function ModelRoutingSection({
             onChange={(event) => updateTarget(role, { model: event.target.value })}
             className={selectClass}
           >
-            <option value="">inherit — the adapter's default model</option>
+            <option value="">inherit — the adapter&apos;s default model</option>
             {models.map((model) => (
               <option key={model.id} value={model.id}>
                 {model.label}
@@ -113,7 +113,7 @@ export function ModelRoutingSection({
           onChange={(event) => updateTarget(role, { effort: event.target.value })}
           className={selectClass}
         >
-          <option value="">inherit — the adapter's default effort</option>
+          <option value="">inherit — the adapter&apos;s default effort</option>
           {efforts.map((effort) => (
             <option key={effort} value={effort}>
               {effort}

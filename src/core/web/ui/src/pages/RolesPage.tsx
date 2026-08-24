@@ -228,7 +228,7 @@ export default function RolesPage() {
               <code className="mx-1 rounded bg-[var(--cos-bg)] px-1 py-0.5 font-mono text-[11px] text-[var(--cos-accent)]">cos_compose_chain</code>).
               Each chain member then shows here as
               <span className="mx-1 text-[var(--cos-warn)]">composed</span> — in single-agent mode the
-              agent plays the role in-session, so "composed" is the expected state, not a gap. A
+              agent plays the role in-session, so &quot;composed&quot; is the expected state, not a gap. A
               <span className="mx-1 text-[var(--cos-ok)]">dispatched</span> row with recorded evidence
               appears only when a role runs as a separate sub-agent via
               <code className="mx-1 rounded bg-[var(--cos-bg)] px-1 py-0.5 font-mono text-[11px] text-[var(--cos-accent)]">cos_supervise_record_output</code>

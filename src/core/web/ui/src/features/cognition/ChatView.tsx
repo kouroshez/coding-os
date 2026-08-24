@@ -361,7 +361,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
         <div className="mt-2.5 flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-1.5 text-[10px] text-[var(--cos-muted)] select-none cursor-pointer">
             <input type="checkbox" checked={fork} onChange={(e) => setFork(e.target.checked)} className="rounded border-[var(--cos-border)]/60 bg-[var(--cos-bg)] text-[var(--cos-accent)] focus:ring-0" />
-            fork (don't mutate this session)
+            fork (don&apos;t mutate this session)
           </label>
           <span className="text-[10px] text-[var(--cos-muted)] font-mono">
             spawns Claude CLI · resume={sessionId.slice(0, 8)}…
