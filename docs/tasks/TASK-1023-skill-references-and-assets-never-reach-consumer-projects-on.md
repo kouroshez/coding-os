@@ -5,18 +5,17 @@ swimlane: cli
 kind: bug
 epic: null
 labels: [skills, cli, governance]
-status: "in_progress"
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-24
 started: 2026-08-24
-completed: null
+completed: 2026-08-24
 agent_session: ses-claude-20260820-192937-ef87
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1023: Skill references/ and assets/ never reach consumer projects — only SKILL.md is symlinked
 
 **Outcome (one sentence):** A consumer project receives the whole skill, so a SKILL.md that links references/ or assets/ resolves instead of dangling.
@@ -45,3 +44,5 @@ Run cos init for any preset, then list .claude/skills/clean-code/ or .claude/ski
 - 2026-08-24 [claude]: Edit SKILL.md
 - 2026-08-24 [claude]: Edit install_commands.py
 - 2026-08-24 [claude]: Edit install_commands.py
+- 2026-08-24 [claude]: commit fa659f53e5 — fix(cli): ship skill references/ and assets/ to consumer projects
+- 2026-08-24 [claude]: Status transitioned to complete via cos task-done.
