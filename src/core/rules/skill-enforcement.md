@@ -5,6 +5,7 @@ invoke the matching skill via the `Skill` tool.
 
 | Globs | Primary Skill | Secondary Skills | Stack |
 | --- | --- | --- | --- |
+| `README.md`, `docs/blog/**/*.md` | `humanizer` | technical-writing | base |
 | `src/frontend/**/*.ts` | `angular` | clean-code, frontend-fundamentals, a11y, state-management, testing-strategy, performance | angular |
 | `src/frontend/**/*.component.ts` | `angular` | clean-code, frontend-fundamentals, a11y | angular |
 | `src/frontend/**/*.service.ts` | `angular` | state-management, clean-code, frontend-fundamentals | angular |

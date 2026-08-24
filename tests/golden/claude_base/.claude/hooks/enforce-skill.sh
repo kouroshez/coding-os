@@ -13,14 +13,29 @@ fi
 
 FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
 
-# Only enforce for code files
-if [[ "$FILE_PATH" != *.py ]] && [[ "$FILE_PATH" != *.ts ]] && [[ "$FILE_PATH" != *.tsx ]]; then
+# Vendored, generated and agent-runtime trees are never gated, whatever they hold.
+if [[ "$FILE_PATH" == *node_modules* ]] || [[ "$FILE_PATH" == *__pycache__* ]] || [[ "$FILE_PATH" == *.claude/* ]] || [[ "$FILE_PATH" == *.codex/* ]] || [[ "$FILE_PATH" == *.coding-os/* ]]; then
   exit 0
 fi
 
-# Skip test files, migrations, generated files, config files, hook scripts
-if [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *spec* ]] || [[ "$FILE_PATH" == *migrations* ]] || [[ "$FILE_PATH" == *node_modules* ]] || [[ "$FILE_PATH" == *__pycache__* ]] || [[ "$FILE_PATH" == *.claude/* ]] || [[ "$FILE_PATH" == *.codex/* ]] || [[ "$FILE_PATH" == *.coding-os/* ]]; then
-  exit 0
+# Two gated shapes. Code is matched by extension; prose a stranger reads
+# outside the repo is matched by path, because the extension says nothing —
+# a README is published prose, an ADR beside it is not. The test/spec skips
+# stay off the prose leg deliberately: `*test*` also matches "latest", which
+# would silently drop half a blog directory.
+IS_PROSE=false
+if [[ "$FILE_PATH" == README.md ]] || [[ "$FILE_PATH" == */README.md ]] || [[ "$FILE_PATH" == *docs/blog/*.md ]]; then
+  IS_PROSE=true
+fi
+
+if [[ "$IS_PROSE" != "true" ]]; then
+  if [[ "$FILE_PATH" != *.py ]] && [[ "$FILE_PATH" != *.ts ]] && [[ "$FILE_PATH" != *.tsx ]]; then
+    exit 0
+  fi
+  # Skip test files, migrations, generated files
+  if [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *spec* ]] || [[ "$FILE_PATH" == *migrations* ]]; then
+    exit 0
+  fi
 fi
 
 # Persona-aware skip — see classify-task-mode.sh + docs/engineering/task-mode-matrix.md
@@ -69,6 +84,7 @@ if [[ "$STATE_VALID" != "true" ]]; then
   echo '  Backend .py  → Skill skill: "python-django"' >&2
   echo '  Frontend .tsx → Skill skill: "nextjs-react"' >&2
   echo '  Any code     → Skill skill: "clean-code"' >&2
+  echo '  README / blog → Skill skill: "humanizer"' >&2
   cos_log_hook enforce-skill block "rule=no-domain-skill" || true
   exit 2
 fi
@@ -103,6 +119,15 @@ if ! echo "$ALL_SKILLS" | grep -qiE "graph-explorer"; then
       cos_log_hook enforce-skill block "rule=graph-explorer-required" || true
       exit 2
     fi
+  fi
+fi
+
+if [[ "$IS_PROSE" == "true" ]]; then
+  if ! echo "$ALL_SKILLS" | grep -qiE "humanizer"; then
+    echo "BLOCKED: $FILE_PATH is prose a stranger reads outside the repo, and no skill invoked this session carries that judgment — text that trips AI tells costs the credibility of every claim it carries." >&2
+    echo '  Fix: Skill skill: "humanizer"  (run technical-writing first when the deliverable is a document)' >&2
+    cos_log_hook enforce-skill block "rule=humanizer-required" || true
+    exit 2
   fi
 fi
 

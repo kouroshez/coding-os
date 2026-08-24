@@ -1142,6 +1142,24 @@ hooks:
       - event: UserPromptSubmit
         matcher: ""
 
+  - id: nudge-humanizer
+    script: nudge-humanizer.sh
+    description: |
+      UserPromptSubmit nudge — surfaces the humanizer skill when the turn
+      will produce prose a human reads outside the repo (community post,
+      announcement, blog, release notes, README, PR body), or when the user
+      reports that text reads machine-written. Bilingual (EN + Persian).
+      Complements the skill-enforcement globs, which only gate prose that
+      lands in a file: a forum post drafted in the reply never touches
+      Write/Edit and passes every PreToolUse gate. Debounced per session per
+      intent class via .humanizer-nudge/<class>.
+    category: cognition
+    phase: I
+    timeout: 10
+    events:
+      - event: UserPromptSubmit
+        matcher: ""
+
   - id: nudge-model-routing
     script: nudge-model-routing.sh
     description: |

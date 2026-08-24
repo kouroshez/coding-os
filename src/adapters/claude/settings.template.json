@@ -702,6 +702,11 @@
           },
           {
             "type": "command",
+            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/nudge-humanizer.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/nudge-model-routing.sh\"",
             "timeout": 10
           },

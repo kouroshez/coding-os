@@ -35,7 +35,13 @@ substitutions:
   QUICK_ROUTING: "- See `docs/governance/agent-workflow.md` for routing without playbooks"
   STACK_REF_CODES: ""
 
-skills: [thinking_os, clean-code, codebase-explorer, graph-explorer, search, task-driver, testing-strategy, observability, incident-response]
+skills: [thinking_os, clean-code, codebase-explorer, graph-explorer, search, task-driver, testing-strategy, observability, incident-response, technical-writing, humanizer]
+
+# Universal enforcement — prose a stranger reads outside the repo. Every
+# project has a README; a blog directory appears the moment one is written.
+# Stack manifests add their own code globs on top of this.
+skill_enforcement:
+  - {globs: ["README.md", "docs/blog/**/*.md"], primary: humanizer, secondary: [technical-writing]}
 
 # AGENTS.md section registry — order determines rendered position.
 # Each entry references a fragment file relative to `src/templates/_base/`.

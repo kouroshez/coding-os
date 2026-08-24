@@ -1,0 +1,88 @@
+---
+name: humanizer
+tier: quality
+domain: [universal]
+description: Strip AI writing tells from prose a human will read outside the repo — README, release notes, launch announcements, blog posts, community and forum posts, PR bodies, landing copy. Use before publishing any text to an audience that did not ask for a document. Catches inflated claims, sales language, forced triads, stock vocabulary, performed candor, defending against objections nobody raised, em dashes, decorative bold, and chatbot residue — without changing a single claim. Triggers — "write a post", "blog", "announcement", "release notes", "README", "reply to", "landing page", "make this sound human", "this reads like AI". Pairs with technical-writing (structure and accuracy) and clean-code (comments).
+globs: ""
+paths: []
+last_reviewed: "2026-08-24"
+---
+
+# Humanizer
+
+Rewrite AI-sounding prose so it reads like the writer, without changing what it says.
+
+The failure this prevents is not embarrassment. It is that a reader who smells generated text stops evaluating the argument and starts evaluating the author — so a correct, well-evidenced claim gets discarded on style. Published prose that trips those signals costs the credibility of everything it carries.
+
+## The seam — this skill vs technical-writing
+
+They run in sequence and must not fight:
+
+| | `technical-writing` | `humanizer` |
+|---|---|---|
+| Owns | structure, altitude, accuracy, the doc-header contract | sentence-level texture and rhetoric |
+| Asks | is it correct, findable, and at the right altitude? | does it read like a person wrote it? |
+| Runs | while drafting | on the finished draft, before it ships |
+
+Run `technical-writing` first. A humanized draft that is structurally wrong is still wrong.
+
+## Non-negotiables
+
+1. **Keep every claim.** Shorten dull parts, expand useful ones, merge or split paragraphs — but do not lose information. The exception is a pattern below that *requires* removal (unsupported importance, vague sources, invented context, unraised objections, fake alternatives, generic endings). Removing under one of those is correct, not a lost claim.
+2. **Invent nothing.** No fact, name, number, date, quote, or citation that the source or the user did not supply. If a sentence needs a missing detail, ask for it or write a simpler sentence.
+3. **Never manufacture humanity.** Do not add fake opinions, staged reactions, invented anecdotes, or fabricated specificity to make prose feel personal. That produces a different lie, not a human voice. Real voice comes from the writer's own material.
+4. **Never claim to detect AI.** In a review, report the specific patterns you found with file and line. Do not assign an "AI score" or assert that a model wrote something — you cannot know, and the claim is unfalsifiable.
+5. **Match the writer's voice over these rules.** If the user supplies a writing sample, read it first: sentence length, word choice, paragraph openings, punctuation, repeated phrases. Match those habits. A sample that uses em dashes keeps them; §14 is then not a ban.
+6. **Leave good prose alone.** Minimum effective edit. Normalizing already-clear writing is a diff-discipline failure (Rule 22).
+
+## The patterns
+
+Full catalogue with before/after for every entry → [references/patterns.md](references/patterns.md). Grouped index:
+
+- **Content (1-6)** — inflated importance · name-dropping · shallow `-ing` analysis · sales language · vague sources · formulaic challenges-and-outlook sections.
+- **Language (7-13)** — stock AI vocabulary · avoiding *is*/*are* · "not X but Y" · forced groups of three · synonym cycling and repeated sentence openings · false "from X to Y" ranges · passive voice with a missing subject.
+- **Style (14-19)** — em and en dashes · decorative bold · lists of bold mini-headings · Title Case headings · emoji · curly quotes.
+- **Chatbot residue (20-22)** — greetings and offers left in the text · knowledge-cutoff disclaimers and plausible guesses · praising the user before answering.
+- **Filler and rhetoric (23-35)** — filler phrases · stacked qualifiers · generic positive endings · hyphen pairs · fake depth ("at its core") · announcing the next point · a heading restated in its first sentence · describing the previous version · forced punchlines and manufactured gravity · formulaic sayings · fake-candid openings ("Honestly?", "Look") · answering objections nobody raised · rejecting alternatives nobody proposed.
+- **Rhythm (36)** — uniform sentence and paragraph length. Patterns 1-35 work at word and phrase level; prose can pass all of them and still read generated because the sentences sit in one narrow length band.
+
+What **not** to flag, and the human details worth protecting → [references/false-positives.md](references/false-positives.md). Read it before any review pass. One em dash proves nothing; several stock patterns in one passage is the signal.
+
+## Where this applies in coding-os
+
+**Apply to:** `README.md` and every doc a non-contributor reads · release notes and `CHANGELOG` prose (not the generated entries) · launch announcements, blog and forum posts · PR bodies · Hub UI copy · issue replies.
+
+**Do not apply to:** task files under `docs/tasks/**` (their contract is G/W/T, not prose) · work-log lines · commit messages (Rule 24 owns those: ≤100-char title, ≤3 body lines) · code comments (Rule 12 owns those) · generated artifacts under `tests/golden/**` and `src/core/rules/{dimension-registry,skill-enforcement}.md`.
+
+**Never touch inside a rewrite:** code blocks, inline code spans, YAML frontmatter, link targets, command strings, schema field names, and any watched phrase appearing inside a quotation or as the subject of discussion rather than in use.
+
+## Community posts — the failure modes that actually cost us
+
+Measured, not hypothetical: four posts published from this repo in August 2026. One scored 1.0 upvote ratio; one scored **0.13** and drew *"please go back to linkedin"* and *"this is ai, JUST WRITE LIKE A PERSON"*. The two comments written the same day, in the same voice, scored +4 and +2. Format and framing carried the difference, not vocabulary.
+
+- **Thought-leader titles.** `I stopped doing X and started doing Y` and `here is what actually stuck` are LinkedIn templates. A flat, boring title outperforms: name the artifact and the number.
+- **A formula repeated across posts.** `Honest state:` opened all four. One reader quoted it back mockingly. Any phrase reused verbatim across posts becomes the tell, however good it was once.
+- **Performed humility.** "I put the number that hurts me in the README because leaving it out would have been dishonest" reads as marketing. State the number. Drop the commentary about your own integrity.
+- **Essay architecture in a community post.** Setup → what survived → what I got wrong → honest state is a content-marketing skeleton. A post to a forum is a message, not an article.
+- **Length.** 500 words about your own project reads as an ad; 150 words answering someone's question reads as help.
+
+The correction is not better disguise. Shorter, flatter, and answering a real question beats a polished essay.
+
+## Return modes
+
+**Pasted text** (default): the draft, a short list of remaining patterns, then the final rewrite.
+**File** (user names a path): run the full process, write only the final text, then summarize. Prose only — code, frontmatter, data, and link targets unchanged.
+**Embedded** (another task calls this skill for a PR body, commit, or doc): return the final text only.
+
+## Process
+
+1. Read the source and mark each pattern.
+2. Draft. Read it aloud. Check rhythm, concrete detail, plain verbs (*is*, *has*), and formality level.
+3. Ask two questions and treat either answer as an error: *what still sounds generated?* and *did the rewrite add or lose a claim that no pattern above required removing?*
+4. Write the final version. State each point naturally rather than patching one flagged phrase at a time. If a sentence stays awkward, rewrite the paragraph around its point. Apply the dash rule last, as a search.
+
+## Source
+
+Adapted from [blader/humanizer](https://github.com/blader/humanizer) (MIT, © 2025 Siqi Chen), whose patterns derive from Wikipedia's [Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) maintained by WikiProject AI Cleanup. Attribution and license text: [NOTICE](NOTICE). Prose-quality guardrails on manufactured humanity and AI-detection claims adapted from [vercel/eve](https://github.com/vercel/eve) (Apache-2.0).
+
+Wikipedia's underlying point: a language model "guesses what should come next," so it converges on "the most statistically likely result that applies to the widest variety of cases." Every pattern below is a shape of that average.

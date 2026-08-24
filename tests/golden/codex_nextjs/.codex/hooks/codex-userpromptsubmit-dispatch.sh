@@ -57,6 +57,7 @@ for delegate in \
   auto-compose-roles.sh \
   classify-task-mode.sh \
   nudge-graph-os.sh \
+  nudge-humanizer.sh \
   nudge-model-routing.sh \
   resolve-supervise-route.sh \
   nudge-git-mode.sh \

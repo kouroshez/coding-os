@@ -94,6 +94,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -159,6 +160,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -246,7 +248,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 241
     },
     "claude_angular": {
       "agent": "claude",
@@ -342,6 +344,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -409,6 +412,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -522,7 +526,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 267
+      "count": 269
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -618,6 +622,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -685,6 +690,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -786,7 +792,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 255
+      "count": 257
     },
     "claude_astro": {
       "agent": "claude",
@@ -882,6 +888,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -949,6 +956,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -1058,7 +1066,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 263
+      "count": 265
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1154,6 +1162,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -1219,6 +1228,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -1309,7 +1319,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 244
     },
     "claude_django": {
       "agent": "claude",
@@ -1405,6 +1415,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -1471,6 +1482,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -1580,7 +1592,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 262
+      "count": 264
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1676,6 +1688,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -1742,6 +1755,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -1843,7 +1857,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 254
+      "count": 256
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1939,6 +1953,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -2006,6 +2021,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -2108,7 +2124,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 256
+      "count": 258
     },
     "claude_go": {
       "agent": "claude",
@@ -2204,6 +2220,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -2271,6 +2288,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -2372,7 +2390,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 255
+      "count": 257
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2468,6 +2486,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -2535,6 +2554,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -2638,7 +2658,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 259
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2734,6 +2754,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -2799,6 +2820,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -2890,7 +2912,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 245
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2986,6 +3008,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -3051,6 +3074,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -3143,7 +3167,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 246
     },
     "claude_laravel": {
       "agent": "claude",
@@ -3239,6 +3263,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -3305,6 +3330,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/laravel/SKILL.md",
@@ -3408,7 +3434,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 256
+      "count": 258
     },
     "claude_meta": {
       "agent": "claude",
@@ -3504,6 +3530,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -3576,6 +3603,7 @@
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
         ".claude/skills/hook-authoring/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -3694,7 +3722,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 277
+      "count": 279
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3790,6 +3818,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -3856,6 +3885,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -3965,7 +3995,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 262
+      "count": 264
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -4061,6 +4091,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -4127,6 +4158,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -4247,7 +4279,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 273
+      "count": 275
     },
     "claude_node-express": {
       "agent": "claude",
@@ -4343,6 +4375,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -4409,6 +4442,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -4514,7 +4548,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 258
+      "count": 260
     },
     "claude_python": {
       "agent": "claude",
@@ -4610,6 +4644,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -4675,6 +4710,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -4765,7 +4801,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 244
     },
     "claude_rails": {
       "agent": "claude",
@@ -4861,6 +4897,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -4927,6 +4964,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -5033,7 +5071,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 259
+      "count": 261
     },
     "claude_react-native": {
       "agent": "claude",
@@ -5129,6 +5167,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -5195,6 +5234,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -5312,7 +5352,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 270
+      "count": 272
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -5408,6 +5448,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -5473,6 +5514,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -5564,7 +5606,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 245
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5660,6 +5702,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -5726,6 +5769,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -5828,7 +5872,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 255
+      "count": 257
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5924,6 +5968,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -5989,6 +6034,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -6081,7 +6127,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 246
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -6177,6 +6223,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -6243,6 +6290,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -6346,7 +6394,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 256
+      "count": 258
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -6442,6 +6490,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -6508,6 +6557,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -6620,7 +6670,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 265
+      "count": 267
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6716,6 +6766,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -6781,6 +6832,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -6874,7 +6926,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 245
+      "count": 247
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6970,6 +7022,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -7036,6 +7089,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -7140,7 +7194,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 257
+      "count": 259
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -7236,6 +7290,7 @@
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-humanizer.sh",
         ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-model-routing.sh",
         ".claude/hooks/nudge-reentry.sh",
@@ -7302,6 +7357,7 @@
         ".claude/skills/graphql/SKILL.md",
         ".claude/skills/grpc-microservices/SKILL.md",
         ".claude/skills/hexagonal-architecture/SKILL.md",
+        ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/i18n/SKILL.md",
         ".claude/skills/incident-response/SKILL.md",
         ".claude/skills/linux-sysadmin/SKILL.md",
@@ -7409,7 +7465,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 260
+      "count": 262
     },
     "codex_base": {
       "agent": "codex",
@@ -7513,6 +7569,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -7575,6 +7632,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -7660,7 +7718,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 246
     },
     "codex_angular": {
       "agent": "codex",
@@ -7766,6 +7824,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -7830,6 +7889,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -7941,7 +8001,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 272
+      "count": 274
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -8047,6 +8107,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -8111,6 +8172,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -8210,7 +8272,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 260
+      "count": 262
     },
     "codex_astro": {
       "agent": "codex",
@@ -8316,6 +8378,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -8380,6 +8443,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -8487,7 +8551,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 268
+      "count": 270
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -8593,6 +8657,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -8655,6 +8720,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -8743,7 +8809,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 249
     },
     "codex_django": {
       "agent": "codex",
@@ -8849,6 +8915,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -8912,6 +8979,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -9019,7 +9087,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 267
+      "count": 269
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -9125,6 +9193,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -9188,6 +9257,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -9287,7 +9357,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 259
+      "count": 261
     },
     "codex_flutter": {
       "agent": "codex",
@@ -9393,6 +9463,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -9457,6 +9528,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -9557,7 +9629,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 261
+      "count": 263
     },
     "codex_go": {
       "agent": "codex",
@@ -9663,6 +9735,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -9727,6 +9800,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -9826,7 +9900,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 260
+      "count": 262
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9932,6 +10006,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -9996,6 +10071,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -10097,7 +10173,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 262
+      "count": 264
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -10203,6 +10279,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -10265,6 +10342,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -10354,7 +10432,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 248
+      "count": 250
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -10460,6 +10538,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -10522,6 +10601,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -10612,7 +10692,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 249
+      "count": 251
     },
     "codex_laravel": {
       "agent": "codex",
@@ -10718,6 +10798,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -10781,6 +10862,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/laravel/SKILL.md",
@@ -10882,7 +10964,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 261
+      "count": 263
     },
     "codex_meta": {
       "agent": "codex",
@@ -10988,6 +11070,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -11057,6 +11140,7 @@
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
         ".codex/skills/hook-authoring/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -11173,7 +11257,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 282
+      "count": 284
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -11279,6 +11363,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -11342,6 +11427,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -11449,7 +11535,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 267
+      "count": 269
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -11555,6 +11641,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -11618,6 +11705,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -11736,7 +11824,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 278
+      "count": 280
     },
     "codex_node-express": {
       "agent": "codex",
@@ -11842,6 +11930,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -11905,6 +11994,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -12008,7 +12098,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 263
+      "count": 265
     },
     "codex_python": {
       "agent": "codex",
@@ -12114,6 +12204,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -12176,6 +12267,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -12264,7 +12356,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 249
     },
     "codex_rails": {
       "agent": "codex",
@@ -12370,6 +12462,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -12433,6 +12526,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -12537,7 +12631,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 264
+      "count": 266
     },
     "codex_react-native": {
       "agent": "codex",
@@ -12643,6 +12737,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -12706,6 +12801,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -12821,7 +12917,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 275
+      "count": 277
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -12927,6 +13023,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -12989,6 +13086,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -13078,7 +13176,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 248
+      "count": 250
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -13184,6 +13282,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -13247,6 +13346,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -13347,7 +13447,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 260
+      "count": 262
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -13453,6 +13553,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -13515,6 +13616,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -13605,7 +13707,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 249
+      "count": 251
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -13711,6 +13813,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -13774,6 +13877,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -13875,7 +13979,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 261
+      "count": 263
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -13981,6 +14085,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -14044,6 +14149,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -14154,7 +14260,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 270
+      "count": 272
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -14260,6 +14366,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -14322,6 +14429,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -14413,7 +14521,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 250
+      "count": 252
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -14519,6 +14627,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -14582,6 +14691,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -14684,7 +14794,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 262
+      "count": 264
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -14790,6 +14900,7 @@
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-git-mode.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-humanizer.sh",
         ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-model-routing.sh",
         ".codex/hooks/nudge-reentry.sh",
@@ -14853,6 +14964,7 @@
         ".codex/skills/graphql/SKILL.md",
         ".codex/skills/grpc-microservices/SKILL.md",
         ".codex/skills/hexagonal-architecture/SKILL.md",
+        ".codex/skills/humanizer/SKILL.md",
         ".codex/skills/i18n/SKILL.md",
         ".codex/skills/incident-response/SKILL.md",
         ".codex/skills/linux-sysadmin/SKILL.md",
@@ -14958,7 +15070,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 265
+      "count": 267
     }
   }
 }

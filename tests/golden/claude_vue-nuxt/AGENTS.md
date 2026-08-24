@@ -127,7 +127,7 @@ Order of preference when two layers look equally plausible: **Memory â†’ Docs â†
 
 ## Skills
 
-`thinking_os`, `clean-code`, `codebase-explorer`, `graph-explorer`, `search`, `task-driver`, `testing-strategy`, `observability`, `incident-response`, `vue-nuxt`. Config: `$COS_STATE_DIR/settings.json`.
+`thinking_os`, `clean-code`, `codebase-explorer`, `graph-explorer`, `search`, `task-driver`, `testing-strategy`, `observability`, `incident-response`, `technical-writing`, `humanizer`, `vue-nuxt`. Config: `$COS_STATE_DIR/settings.json`.
 
 ## Context Discipline
 
