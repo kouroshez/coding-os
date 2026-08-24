@@ -5,12 +5,12 @@ swimlane: core
 kind: chore
 epic: null
 labels: [governance, skills, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-24
 started: 2026-08-24
-completed: null
+completed: 2026-08-24
 agent_session: ses-claude-20260820-192937-ef87
 depends_on: []
 blocked_by: []
@@ -22,3 +22,5 @@ references: []
 
 ## Work Log
 - 2026-08-24 [claude]: Edit SKILL.md
+- 2026-08-24 [claude]: commit f7ae3e7b45 — chore(skills): carry the MIT permission notice inside humanizer SKILL.md
+- 2026-08-24 [claude]: Status transitioned to complete via cos task-done.

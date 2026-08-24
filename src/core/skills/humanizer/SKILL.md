@@ -76,10 +76,40 @@ The correction is not better disguise. Shorter, flatter, and answering a real qu
 
 ## Process
 
+**Two passes, and the second one is not optional.** Reading this skill before drafting does not produce clean prose; it produces a draft that is wrong in fewer places. Treat the first draft as suspect by default and audit it against the pattern list as a separate act.
+
+### Pass 1 — draft
+
 1. Read the source and mark each pattern.
 2. Draft. Read it aloud. Check rhythm, concrete detail, plain verbs (*is*, *has*), and formality level.
-3. Ask two questions and treat either answer as an error: *what still sounds generated?* and *did the rewrite add or lose a claim that no pattern above required removing?*
-4. Write the final version. State each point naturally rather than patching one flagged phrase at a time. If a sentence stays awkward, rewrite the paragraph around its point. Apply the dash rule last, as a search.
+3. State each point naturally rather than patching one flagged phrase at a time. If a sentence stays awkward, rewrite the paragraph around its point.
+
+### Pass 2 — audit the draft you just wrote
+
+Re-read the finished text against [references/patterns.md](references/patterns.md) as if someone else wrote it. Name every hit by number. At minimum check:
+
+- §9 "not X, it's Y" and clipped negative tails
+- §10 forced groups of three
+- §14 em and en dashes — **search for the characters**, do not eyeball it
+- §31 forced punchlines and manufactured gravity
+- §33 fake-candid openings
+- §34 answering objections nobody raised
+- §36 uniform sentence and paragraph length
+
+Then two checks the pattern list cannot make for you:
+
+- **Cross-draft formula.** Any construction reused from another draft in this session is a tell even when each instance is fine. One session shipped `Honest state:` in four posts and a reader quoted it back mockingly.
+- **Unsourced facts.** Every number, name, and claim must trace to something in this session. "I have seen setups north of 30k" is invention, not voice.
+
+Fix what you found, then record the receipt:
+
+```bash
+bash ".$COS_AGENT/hooks/write-state.sh" .humanizer-audit "reviewed:<count>"
+```
+
+`enforce-humanizer-audit.sh` blocks the end of any turn that drafted prose without that receipt. Report the findings to the user in the reply; `reviewed:0` is a claim you are making to them, not a formality.
+
+**Why the gate exists.** During the session that produced this skill, the agent loaded it, drafted three posts, and shipped text carrying §9 in all three, an em dash, an invented statistic, and a fix it claimed to have applied but had not. Every one of those survived because "skill loaded" was mistaken for "skill applied" — the same shape as a test command that runs nothing and exits 0.
 
 ## Source
 

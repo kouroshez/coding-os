@@ -262,6 +262,7 @@ hook_dispatchers:
     status_message: "📝 Finalizing session recap + memory enrichment..."
     timeout: 5000
     delegates:
+      - enforce-humanizer-audit.sh
       - session-end.sh
       - warn-abandoned-task.sh
       - nudge-learn-narrative.sh

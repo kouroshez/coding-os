@@ -1142,6 +1142,25 @@ hooks:
       - event: UserPromptSubmit
         matcher: ""
 
+  - id: enforce-humanizer-audit
+    script: enforce-humanizer-audit.sh
+    description: |
+      Stop hook — refuses to end a turn that drafted prose without a second
+      pass over it. nudge-humanizer fires on intent and asks the agent to
+      load the skill; loading is not applying, and a first draft still
+      carrying the skill's own patterns is the normal case. This gate reads
+      the .humanizer-nudge markers and demands a .humanizer-audit receipt
+      naming the findings count before the turn may end. Honours
+      stop_hook_active so a failed audit can never trap a session, and fails
+      open when the panel dir or check-state.sh is unavailable.
+    category: enforcement
+    phase: I
+    timeout: 10
+    blocking: true
+    events:
+      - event: Stop
+        matcher: ""
+
   - id: nudge-humanizer
     script: nudge-humanizer.sh
     description: |

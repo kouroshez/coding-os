@@ -755,6 +755,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "env COS_AGENT=claude \".claude/hooks/enforce-humanizer-audit.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "env COS_AGENT=claude \".claude/hooks/drain-embedding-outbox.sh\"",
             "statusMessage": "🧮 Draining deferred embeddings...",
             "timeout": 60
