@@ -189,10 +189,17 @@ _skill_disabled() {
   [[ " ${DISABLED_SKILLS} " == *" $1 "* ]]
 }
 DISABLED_COUNT=0
+# A SKILL.md links its companion dirs by relative path, so they are projected
+# alongside it — otherwise the consumer gets a skill whose references dangle.
+# Kept in sync with link-stack-skills.sh and cli/_skill_project.py.
+SKILL_COMPANION_DIRS=(references assets scripts)
 for skill_dir in "${CODING_OS_ROOT}/core/skills/"*/; do
   name=$(basename "$skill_dir")
   if _skill_disabled "$name"; then
     rm -f "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}/SKILL.md" 2>/dev/null || true
+    for sub in "${SKILL_COMPANION_DIRS[@]}"; do
+      rm -f "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}/${sub}" 2>/dev/null || true
+    done
     rmdir "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}" 2>/dev/null || true
     DISABLED_COUNT=$((DISABLED_COUNT + 1))
     continue
@@ -201,6 +208,11 @@ for skill_dir in "${CODING_OS_ROOT}/core/skills/"*/; do
   if [[ -f "${skill_dir}SKILL.md" ]]; then
     ln -sf "${skill_dir}SKILL.md" "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}/SKILL.md"
   fi
+  for sub in "${SKILL_COMPANION_DIRS[@]}"; do
+    if [[ -d "${skill_dir}${sub}" ]]; then
+      ln -sfn "${skill_dir}${sub}" "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}/${sub}"
+    fi
+  done
 done
 
 # 6b. Re-link stack-specific skills declared in installed-manifest.json.

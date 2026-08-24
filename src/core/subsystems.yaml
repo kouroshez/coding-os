@@ -148,7 +148,7 @@ modules:
     # The optional reasoning-assist surface: session primers, role chain
     # composition, and soft nudges. Toggle off to cut the per-session token
     # cost of the cognitive scaffolding (hard gates stay in kernel).
-    hooks: [advance-role, auto-compose-roles, auto-dispatch-crossprovider, enforce-anti-ambiguity, nudge-humanizer, nudge-model-routing, resolve-supervise-route, nudge-thinking-os, rules-primer, session-skill-primer, track-backtrack, track-discovery, nudge-reuse-first, regen-reminder, test-first-reminder]
+    hooks: [advance-role, auto-compose-roles, auto-dispatch-crossprovider, enforce-anti-ambiguity, enforce-humanizer-audit, nudge-humanizer, nudge-model-routing, resolve-supervise-route, nudge-thinking-os, rules-primer, session-skill-primer, track-backtrack, track-discovery, nudge-reuse-first, regen-reminder, test-first-reminder]
     # The reasoning-assist tool surface: role composition, formula dispatch,
     # supervision, model/skill routing, situation detect. cos_classify_prompt
     # (Record Gate, core loop) + cos_health (diagnostic) stay KERNEL by design.

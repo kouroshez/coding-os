@@ -87,3 +87,47 @@ def test_no_phantom_skill_refs() -> None:
             for slug, lines in sorted(phantoms.items())
         )
     )
+
+
+# --- Companion-dir projection (TASK-1023) ----------------------------------
+# A SKILL.md links references/, assets/ and scripts/ by relative path. Three
+# independent sites project a skill into a consumer project, and for months all
+# three linked SKILL.md alone, so every one of those links dangled in a consumer
+# while resolving fine in this repo. Golden fixtures cannot catch it: rglob does
+# not descend a symlinked directory, so the fixture looks identical either way.
+
+_PROJECTION_SITES = (
+    ("src/cli/_skill_project.py", "SKILL_COMPANION_DIRS"),
+    ("src/core/scripts/install-adapter.sh", "SKILL_COMPANION_DIRS"),
+    ("src/core/scripts/link-stack-skills.sh", "for sub in references assets scripts"),
+)
+
+
+def test_every_projection_site_links_companion_dirs() -> None:
+    """All three producers must project the same companion directories."""
+    missing = [
+        path
+        for path, marker in _PROJECTION_SITES
+        if marker not in (REPO / path).read_text(encoding="utf-8")
+    ]
+    assert not missing, "skill projection sites that no longer link companion dirs: " + ", ".join(
+        missing
+    )
+
+
+def test_skill_relative_links_resolve_at_source() -> None:
+    """Every relative link in a SKILL.md resolves inside its own skill dir."""
+    import re
+
+    broken: list[str] = []
+    link_re = re.compile(r"\[[^\]]*\]\((?!https?://|#|mailto:)([^)#]+)")
+    fence_re = re.compile(r"```.*?```", re.DOTALL)
+    for skill_md in sorted(REPO.glob("src/core/skills/*/SKILL.md")):
+        # Fenced blocks carry illustrative markup, not live links.
+        body = fence_re.sub("", skill_md.read_text(encoding="utf-8"))
+        for target in link_re.findall(body):
+            if target.startswith("../") or target.split("/")[0] in {"src", "docs", "tests"}:
+                continue  # outside the skill dir; docs-lint owns those
+            if not (skill_md.parent / target).exists():
+                broken.append(f"{skill_md.parent.name}/SKILL.md -> {target}")
+    assert not broken, "unresolvable relative links in SKILL.md:\n  " + "\n  ".join(broken)

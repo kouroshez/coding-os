@@ -46,7 +46,7 @@ Pick **GraphQL** when:
 
 **For this project**: REST is the right default for both backends. RN is the only consumer; the cost of GraphQL machinery does not pay off yet.
 
-For the patterns and pitfalls of each, see [references/rest-contracts.md](references/rest-contracts.md) and [references/graphql-contracts.md](references/graphql-contracts.md).
+For the patterns and pitfalls of each, see [references/rest-contracts.md](references/rest-contracts.md); everything GraphQL-internal after the protocol choice lives in `Skill graphql`.
 
 ## Contract-First Workflow
 

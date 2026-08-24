@@ -212,8 +212,13 @@ def materialize(project_dir: str) -> None:
     """Convert coding-os symlinks to real files (self-contained project)."""
     project = _resolve_project_dir(project_dir)
     materialized = 0
+    dir_links: list[Path] = []
 
-    for root, _dirs, files in os.walk(project):
+    for root, dirs, files in os.walk(project):
+        # os.walk never descends a symlinked directory, so a skill's
+        # references/ link survives a files-only pass. Collect them and replace
+        # them after the walk rather than mutating the tree mid-iteration.
+        dir_links += [p for d in dirs if (p := Path(root) / d).is_symlink()]
         for name in files:
             filepath = Path(root) / name
             if filepath.is_symlink():
@@ -224,6 +229,13 @@ def materialize(project_dir: str) -> None:
                     materialized += 1
                     if materialized % 50 == 0:
                         click.echo(f"  … materialized {materialized} symlinks so far", err=True)
+
+    for dirpath in dir_links:
+        target = dirpath.resolve()
+        if target.is_dir():
+            dirpath.unlink()
+            shutil.copytree(target, dirpath, symlinks=False)
+            materialized += 1
 
     click.echo(f"Materialized {materialized} symlinks to real files.")
     click.echo("Project is now self-contained.")
@@ -259,9 +271,11 @@ def eject(project_dir: str, yes: bool) -> None:
     project = _resolve_project_dir(project_dir)
     state_dir = project / STATE_DIR
     config = project / CONFIG_FILE
+    # Directories are walked too: a skill's references/ is a symlink to a dir,
+    # and a files-only sweep leaves it pointing into the meta-repo after eject.
     coding_os_links = [
         p
-        for p in (Path(root) / n for root, _d, fs in os.walk(project) for n in fs)
+        for p in (Path(root) / n for root, ds, fs in os.walk(project) for n in (*ds, *fs))
         if p.is_symlink() and _is_coding_os_symlink(p)
     ]
     # An adapter's root entrypoint is a generated symlink to AGENTS.md; it

@@ -44,6 +44,13 @@ for stack in "$@"; do
     link_parent="${AGENT_SKILLS_DIR}/${skill_name}"
     mkdir -p "$link_parent"
     ln -sf "$target_skill_md" "${link_parent}/SKILL.md"
+    # Companion dirs ride along, or every relative link in SKILL.md dangles.
+    # Kept in sync with install-adapter.sh and cli/_skill_project.py.
+    for sub in references assets scripts; do
+      if [ -d "${skill_dir}${sub}" ]; then
+        ln -sfn "${skill_dir}${sub}" "${link_parent}/${sub}"
+      fi
+    done
     echo "  linked ${stack}/${skill_name}" >&2
     linked=$((linked + 1))
   done

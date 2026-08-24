@@ -76,6 +76,10 @@ def _installed_adapter_skills_dirs(project_root: Path) -> list[Path]:
 
 _SKILL_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
+# Subdirectories a SKILL.md may link by relative path. Kept in sync with
+# install-adapter.sh and link-stack-skills.sh, which project the same set.
+SKILL_COMPANION_DIRS = ("references", "assets", "scripts")
+
 
 def _known_skill_provenance(name: str) -> str | None:
     """'core' | 'stack' | 'community' | None — where this skill name resolves."""
@@ -111,24 +115,32 @@ def _skill_source_skill_md(name: str, provenance: str) -> Path | None:
 def _relink_core_stack_skill(
     project_root: Path, name: str, source_skill_md: Path, *, link: bool
 ) -> int:
-    """Re-link (or unlink) a core/stack skill's SKILL.md in every installed
-    adapter skills dir. Returns links touched. Linked as
-    `<skills_dir>/<name>/SKILL.md` (parity with install-adapter.sh step 6)."""
+    """Re-link (or unlink) a core/stack skill in every installed adapter skills
+    dir. Returns links touched. Linked as `<skills_dir>/<name>/SKILL.md` plus one
+    symlink per companion dir (parity with install-adapter.sh step 6)."""
     touched = 0
+    source_dir = source_skill_md.parent
     for skills_root in _installed_adapter_skills_dirs(project_root):
         skill_dir = skills_root / name
-        link_path = skill_dir / "SKILL.md"
-        if link:
-            skill_dir.mkdir(parents=True, exist_ok=True)
-            if link_path.is_symlink() and not link_path.exists():
-                link_path.unlink()  # dangling link (target moved) — clear before relink
-            if not link_path.exists():
-                link_path.symlink_to(source_skill_md)
-                touched += 1
-        else:
-            if link_path.is_symlink() or link_path.exists():
+        # A SKILL.md links its companion dirs by relative path. Without them the
+        # consumer gets a skill whose every reference dangles.
+        targets = [(skill_dir / "SKILL.md", source_skill_md)] + [
+            (skill_dir / sub, source_dir / sub)
+            for sub in SKILL_COMPANION_DIRS
+            if (source_dir / sub).is_dir()
+        ]
+        for link_path, source in targets:
+            if link:
+                skill_dir.mkdir(parents=True, exist_ok=True)
+                if link_path.is_symlink() and not link_path.exists():
+                    link_path.unlink()  # dangling link (target moved) — clear before relink
+                if not link_path.exists():
+                    link_path.symlink_to(source)
+                    touched += 1
+            elif link_path.is_symlink() or link_path.exists():
                 link_path.unlink()
                 touched += 1
+        if not link:
             # dir not empty / absent — leave it
             with contextlib.suppress(OSError):
                 skill_dir.rmdir()
