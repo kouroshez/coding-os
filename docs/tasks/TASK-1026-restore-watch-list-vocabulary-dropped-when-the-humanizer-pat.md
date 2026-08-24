@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [governance, skills, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-24
 started: 2026-08-24
-completed: null
+completed: 2026-08-24
 agent_session: ses-claude-20260820-192937-ef87
 depends_on: []
 blocked_by: []
@@ -37,3 +37,4 @@ Run scratchpad/audit_humanizer.py against the upstream SKILL.md: 26 of 130 watch
 
 ## Work Log
 - 2026-08-24 [claude]: Edit patterns.md
+- 2026-08-24 [claude]: Status transitioned to complete via cos task-done.
