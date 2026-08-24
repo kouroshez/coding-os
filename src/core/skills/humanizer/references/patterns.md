@@ -14,14 +14,14 @@ One pattern alone proves nothing. Several in one passage is the signal. Check [f
 
 ### 1. Inflated claims about importance and legacy
 
-**Watch:** stands/serves as, is a testament/reminder, a vital/crucial/pivotal/key role, underscores its importance, reflects broader, symbolizing its enduring, setting the stage for, marks a shift, key turning point, evolving landscape, indelible mark, deeply rooted
+**Watch:** stands/serves as, is a testament/reminder, a vital/significant/crucial/pivotal/key role/moment, underscores/highlights its importance/significance, reflects broader, symbolizing its ongoing/enduring/lasting, contributing to the, setting the stage for, marking/shaping the, represents/marks a shift, key turning point, evolving landscape, focal point, indelible mark, deeply rooted
 **Problem:** an ordinary detail is presented as a major change, a legacy, or a broad trend.
 **Before:** The Statistical Institute of Catalonia was officially established in 1989, marking a pivotal moment in the evolution of regional statistics in Spain. This initiative was part of a broader movement across Spain to decentralize administrative functions.
 **After:** The Statistical Institute of Catalonia was established in 1989, part of a wider decentralization of administrative functions in Spain.
 
 ### 2. Name-dropping to prove importance
 
-**Watch:** independent coverage, national media outlets, written by a leading expert, active social media presence
+**Watch:** independent coverage, local/regional/national media outlets, written by a leading expert, active social media presence
 **Problem:** a list of well-known publications or follower counts stands in for context.
 **Before:** Her views have been cited in The New York Times, BBC, Financial Times, and The Hindu. She maintains an active social media presence with over 500,000 followers.
 **After:** Her views have been cited in The New York Times and the BBC.
@@ -30,21 +30,21 @@ Keep a citation that says what the person said and where. Do not invent context 
 
 ### 3. Shallow analysis with -ing phrases
 
-**Watch:** highlighting/underscoring/emphasizing…, ensuring…, reflecting/symbolizing…, contributing to…, fostering…, showcasing…
+**Watch:** highlighting/underscoring/emphasizing…, ensuring…, reflecting/symbolizing…, contributing to…, cultivating/fostering…, encompassing…, showcasing…
 **Problem:** a trailing `-ing` clause makes a plain fact sound deeper than it is.
 **Before:** The temple's palette of blue, green, and gold resonates with the region's natural beauty, symbolizing Texas bluebonnets and the Gulf of Mexico, reflecting the community's deep connection to the land.
 **After:** The temple is painted blue, green, and gold, colors meant to evoke Texas bluebonnets and the Gulf of Mexico.
 
 ### 4. Sales language
 
-**Watch:** boasts a, vibrant, rich (figurative), profound, enhancing its, showcasing, exemplifies, commitment to, nestled, in the heart of, groundbreaking, renowned, breathtaking, must-visit, stunning, seamless, robust, powerful
+**Watch:** boasts a, vibrant, rich (figurative), profound, enhancing its, showcasing, exemplifies, commitment to, nestled, in the heart of, groundbreaking (figurative), renowned, breathtaking, must-visit, stunning, seamless, robust, powerful
 **Problem:** the prose reads as an advertisement, especially for places, products, and organizations.
 **Before:** Nestled within the breathtaking region of Gonder in Ethiopia, Alamata Raya Kobo stands as a vibrant town with a rich cultural heritage and stunning natural beauty.
 **After:** Alamata Raya Kobo is a town in the Gonder region of Ethiopia.
 
 ### 5. Vague sources
 
-**Watch:** Industry reports, Observers have cited, Experts argue, Some critics argue, studies show, several publications
+**Watch:** Industry reports, Observers have cited, Experts argue, Some critics argue, studies show, several sources/publications (when few cited)
 **Problem:** a claim is assigned to unnamed experts, critics, reports, or observers.
 **Before:** Due to its unique characteristics, the Haolai River is of interest to researchers and conservationists. Experts believe it plays a crucial role in the regional ecosystem.
 **After:** Researchers and conservationists study the Haolai River for its unusual characteristics.
@@ -159,13 +159,13 @@ Keep bold for an interface label or one genuinely critical fact.
 
 ### 20. Assistant text left in the answer
 
-**Watch:** I hope this helps, Of course!, Certainly!, You're absolutely right, Would you like…, Want me to…, Should I continue, let me know, here is a…
+**Watch:** I hope this helps, Of course!, Certainly!, You're absolutely right, Would you like…, Want me to…, Want me to give examples?, Should I continue, let me know, here is a…
 **Before:** Here is an overview of the French Revolution. I hope this helps! Let me know if you'd like me to expand on any section.
 **After:** The French Revolution began in 1789 when financial crisis and food shortages led to widespread unrest.
 
 ### 21. Knowledge-limit disclaimers and plausible guesses
 
-**Watch:** as of [date], up to my last training update, while specific details are limited, based on available information, maintains a low profile, prefers to stay out of the spotlight, likely [grew up/studied], it is believed that
+**Watch:** as of [date], up to my last training update, while specific details are limited/scarce, based on available information, not publicly available, maintains a low profile, keeps personal details private, prefers to stay out of the spotlight, likely [grew up/studied/began], it is believed that
 **Problem:** the model notes that it could not find a source, then fills the gap with something plausible.
 **Before:** Information about her early life is not publicly available, suggesting she maintains a low profile. She likely grew up in a middle-class household, which shaped her later interest in education reform.
 **After:** Her early life is not documented in the available sources. (Or cut the section.)
@@ -190,7 +190,7 @@ State what the source does not show. Never present a guess as a fact.
 
 ### 24. Stacked qualifiers
 
-**Watch:** to be fair, it's also possible, could potentially, might arguably, in some cases it may
+**Watch:** to be fair, it's also possible, could potentially, might arguably, in some cases it may, this is an inference
 **Problem:** successive edits pile on hedges until every claim sounds uncertain. Remove caveats that only repair an earlier overstatement.
 **Before:** It could potentially possibly be argued that the policy might have some effect on outcomes.
 **After:** The policy may affect outcomes.
@@ -213,7 +213,7 @@ State what the source does not show. Never present a guess as a fact.
 
 ### 28. Announcing the next point
 
-**Watch:** let's dive in, let's explore, let's break this down, here's what you need to know, now let's look at, without further ado, quick note, heads up
+**Watch:** let's dive in, let's explore, let's break this down, here's what you need to know, now let's look at, without further ado, quick note, heads up, before I forget
 **Problem:** the text announces what it is about to say instead of saying it. Recasting the announcement into a casual register does not fix it — the announcement itself has to go.
 **Before:** Let's dive into how caching works in Next.js. Here's what you need to know.
 **After:** Next.js caches data at multiple layers, including request memoization, the data cache, and the router cache.
@@ -221,6 +221,8 @@ State what the source does not show. Never present a guess as a fact.
 **After:** The webpack dev server doesn't send the CORS header by default.
 
 ### 29. A heading restated in its first sentence
+
+**Signs to watch:** a heading followed by a one-line paragraph that simply restates it before the real content begins.
 
 **Before:** `## Performance` followed by "Speed matters." then the real content.
 **After:** `## Performance` followed directly by "When users hit a slow page, they leave."
@@ -254,7 +256,7 @@ State what the source does not show. Never present a guess as a fact.
 
 ### 34. Answering objections nobody raised
 
-**Watch:** This isn't (mainly/really) about, I'm not saying/arguing, To be clear, Don't get me wrong, This is not to say, You could argue… but, Some might say… but
+**Watch:** This isn't (mainly/really) about, I'm not saying/arguing/trying to, To be clear, Don't get me wrong, This is not to say, You could argue/frame this differently but, Some might say… but
 **Problem:** the text defends against an objection that appears nowhere in it — usually residue from the drafting conversation.
 **Before:** This isn't mainly about prompt length, and I'm not arguing that documentation doesn't matter. You could categorize the problem another way, but the issue is whether the agent can use the instruction when it acts.
 **After:** The issue is whether the agent can use the instruction when it acts.
@@ -263,7 +265,7 @@ Remove only the undefended defense. A named, answered objection stays. A direct 
 
 ### 35. Rejecting alternatives nobody proposed
 
-**Watch:** a tempting approach would be, one might be tempted to, an obvious approach would be, you might think… but, it would be easy to just
+**Watch:** a tempting option/approach would be, one might be tempted to, an obvious approach would be, you might think… but, it would be easy to just, Some would suggest
 **Problem:** an option no reader would consider is raised, dismissed in a clause, and never mentioned again.
 **Before:** Session tokens are rotated every 24 hours. A tempting approach would be to rotate them by restarting the auth service on a cron job, but that would drop every active session. Rotation happens in place, and clients refresh transparently.
 **After:** Session tokens are rotated every 24 hours, in place, and clients refresh transparently.
