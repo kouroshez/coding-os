@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [skills, governance, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-24
 started: 2026-08-24
-completed: null
+completed: 2026-08-24
 agent_session: ses-claude-20260820-192937-ef87
 depends_on: []
 blocked_by: []
@@ -58,3 +58,5 @@ references: []
 - 2026-08-24 [claude]: Edit subsystems.yaml
 - 2026-08-24 [claude]: Wired the last two acceptance legs: _base.yaml ships humanizer + technical-writing to consumers; enforce-skill.sh…
 - 2026-08-24 [claude]: Verified by execution, not reading: 10/10 hook smoke assertions (nudge fires per intent class, debounces, stays…
+- 2026-08-24 [claude]: commit 35aa49c475 — feat(skills): vendor the humanizer skill and gate published prose on it
+- 2026-08-24 [claude]: Status transitioned to complete via cos task-done.
