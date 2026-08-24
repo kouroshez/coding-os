@@ -101,6 +101,25 @@ class TestProjectExtraSkills:
         assert "redis" not in (config.get("disabled_skills") or [])
         assert link.exists()  # relinked inline
 
+    def test_toggle_preserves_config_comments(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The toggle splices one line; a yaml.dump round-trip would
+        reserialize the file and delete every comment the operator wrote."""
+        project = self._make_project(runner, tmp_path)
+        monkeypatch.chdir(project)
+        config_path = project / ".coding-os.yaml"
+        annotated = "# why this project exists\n" + config_path.read_text(encoding="utf-8")
+        config_path.write_text(annotated, encoding="utf-8")
+
+        assert runner.invoke(cli, ["skill", "disable", "redis"]).exit_code == 0
+        after_disable = config_path.read_text(encoding="utf-8")
+        assert "# why this project exists" in after_disable
+        assert after_disable == annotated.rstrip("\n") + "\ndisabled_skills:\n  - redis\n"
+
+        assert runner.invoke(cli, ["skill", "enable", "redis"]).exit_code == 0
+        assert config_path.read_text(encoding="utf-8") == annotated
+
     def test_unknown_skill_and_idempotent_disable(
         self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

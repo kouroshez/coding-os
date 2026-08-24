@@ -151,6 +151,14 @@ with provenance. The Hub Config → Skills tab toggles the same list via
 a symlinked skill dir: it's an enable-managed link, and descending through it
 would delete the user's source files.
 
+The toggle writes `.coding-os.yaml` as a **targeted line edit**, never a
+`yaml.dump` round-trip: it splices the one list item that changed into the
+`extra_skills` / `disabled_skills` block and leaves every other byte alone.
+A round-trip reserializes the whole document and deletes the comments the
+operator wrote — 17 of 43 lines on this repo's own config. Same reasoning, and
+the same shape, as `cos remove-stack`'s `_update_config_file`. Helpers:
+[`src/cli/_yaml_edit.py`](../../src/cli/_yaml_edit.py).
+
 ## Per-stack skill groups — onboarding SSOT (TASK-352)
 
 The onboarding wizard ("which skills will this stack install?") and the Config

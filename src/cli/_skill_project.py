@@ -17,6 +17,7 @@ from pathlib import Path
 import click
 
 from cli._resources import core_dir, templates_dir
+from cli._yaml_edit import add_list_item, remove_list_item
 
 
 def user_skills_dir() -> Path:
@@ -50,14 +51,6 @@ def _load_project_config(project_root: Path) -> dict:
     import yaml
 
     return yaml.safe_load(_project_config_path(project_root).read_text(encoding="utf-8")) or {}
-
-
-def _save_project_config(project_root: Path, config: dict) -> None:
-    import yaml
-
-    _project_config_path(project_root).write_text(
-        yaml.dump(config, sort_keys=False, allow_unicode=True), encoding="utf-8"
-    )
 
 
 def _installed_adapter_skills_dirs(project_root: Path) -> list[Path]:
@@ -195,36 +188,29 @@ def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
     config = _load_project_config(project_root)
     extras = list(config.get("extra_skills") or [])
     disabled = list(config.get("disabled_skills") or [])
-    stack_skills = _installed_stack_skills(config)
     source = _skill_source_skill_md(name, provenance)
 
     # Community skills are opt-IN via extras; core/stack ship by default and are
     # opt-OUT via the disabled list. The two lists are mutually exclusive per id.
     if provenance == "community":
-        if enabled:
-            if name in extras:
-                return {
-                    "name": name,
-                    "provenance": provenance,
-                    "changed": False,
-                    "note": "already enabled",
-                }
-            extras.append(name)
-        else:
-            if name not in extras:
-                raise click.ClickException(f"'{name}' is not an extra skill of this project")
-            extras.remove(name)
+        if enabled and name in extras:
+            return {
+                "name": name,
+                "provenance": provenance,
+                "changed": False,
+                "note": "already enabled",
+            }
+        if not enabled and name not in extras:
+            raise click.ClickException(f"'{name}' is not an extra skill of this project")
     else:  # core | stack
-        if enabled:
-            if name not in disabled:
-                return {
-                    "name": name,
-                    "provenance": provenance,
-                    "changed": False,
-                    "note": "already enabled (core/stack skills ship by default)",
-                }
-            disabled.remove(name)
-        else:
+        if enabled and name not in disabled:
+            return {
+                "name": name,
+                "provenance": provenance,
+                "changed": False,
+                "note": "already enabled (core/stack skills ship by default)",
+            }
+        if not enabled:
             if name in disabled:
                 return {
                     "name": name,
@@ -233,15 +219,20 @@ def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
                     "note": "already disabled",
                 }
             # A stack skill not installed by any current stack cannot be disabled.
-            if provenance == "stack" and name not in stack_skills:
+            if provenance == "stack" and name not in _installed_stack_skills(config):
                 raise click.ClickException(
                     f"'{name}' is a stack skill but no installed stack provides it"
                 )
-            disabled.append(name)
 
-    config["extra_skills"] = extras
-    config["disabled_skills"] = sorted(disabled)
-    _save_project_config(project_root, config)
+    # Splice the one changed item rather than dumping the parsed config back:
+    # a round-trip drops every comment the operator wrote.
+    list_key = "extra_skills" if provenance == "community" else "disabled_skills"
+    is_append = enabled if provenance == "community" else not enabled
+    splice = add_list_item if is_append else remove_list_item
+    config_path = _project_config_path(project_root)
+    config_path.write_text(
+        splice(config_path.read_text(encoding="utf-8"), list_key, name), encoding="utf-8"
+    )
 
     if provenance == "community":
         links_touched = _relink_community_skill(project_root, name, link=enabled)

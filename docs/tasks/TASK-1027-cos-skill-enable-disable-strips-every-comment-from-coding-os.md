@@ -5,18 +5,17 @@ swimlane: cli
 kind: bug
 epic: null
 labels: [cli, ready]
-status: icebox
+status: in_progress
 priority: P2
 appetite: 1d
 created: 2026-08-24
-started: null
+started: 2026-08-24
 completed: null
-agent_session: null
+agent_session: ses-claude-20260820-192937-ef87
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1027: cos skill enable/disable strips every comment from .coding-os.yaml
 
 **Outcome (one sentence):** A consumer's annotated .coding-os.yaml survives a skill toggle, so the file stays the documented config the operator wrote.
@@ -38,3 +37,9 @@ In this repo run `cos skill disable a11y` then `cos skill enable a11y`, then `gi
   **Then** it uses a comment-preserving round-trip (ruamel round-trip loader or a targeted line edit), not yaml.safe_dump.
 
 ## Work Log
+- 2026-08-24 [claude]: Edit _yaml_edit.py
+- 2026-08-24 [claude]: Edit _skill_project.py
+- 2026-08-24 [claude]: Edit _skill_project.py
+- 2026-08-24 [claude]: Edit _yaml_edit.py
+- 2026-08-24 [claude]: Replaced the yaml.dump round-trip in set_project_skill with a targeted line splice (new src/cli/_yaml_edit.py:…
+- 2026-08-24 [claude]: Verified on the real deliverable in this repo: `cos skill disable redis` adds exactly 2 lines, `cos skill enable…
