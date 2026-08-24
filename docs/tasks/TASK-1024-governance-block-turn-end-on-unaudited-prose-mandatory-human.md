@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [governance, skills, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-24
 started: 2026-08-24
-completed: null
+completed: 2026-08-24
 agent_session: ses-claude-20260820-192937-ef87
 depends_on: []
 blocked_by: []
@@ -47,3 +47,5 @@ references: []
 - 2026-08-24 [claude]: Edit SKILL.md
 - 2026-08-24 [claude]: Edit codex-stop-dispatch.sh
 - 2026-08-24 [claude]: Edit enforce-humanizer-audit.sh
+- 2026-08-24 [claude]: commit b1a6c5ae8c — feat(hooks): block turn-end on prose drafted without a humanizer audit pass
+- 2026-08-24 [claude]: Status transitioned to complete via cos task-done.
