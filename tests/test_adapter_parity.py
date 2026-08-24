@@ -194,3 +194,36 @@ def test_codex_dispatcher_loops_match_adapter_yaml() -> None:
             f"{script}: for-loop {sorted(loop)} != adapter.yaml delegates "
             f"{sorted(delegates)} — sync the dispatcher and adapter.yaml"
         )
+
+
+def _ordered_forloop_delegates(dispatch_sh: Path) -> list[str]:
+    text = dispatch_sh.read_text(encoding="utf-8")
+    match = re.search(r"for\s+delegate\s+in\b(.*?)\bdo\b", text, re.DOTALL)
+    return re.findall(r"[\w.-]+\.sh", match.group(1)) if match else []
+
+
+def _claude_userpromptsubmit_order() -> list[str]:
+    data = json.loads(CLAUDE_TEMPLATE.read_text("utf-8"))
+    return [
+        hook["command"].rstrip('"').split("/")[-1]
+        for entry in data.get("hooks", {}).get("UserPromptSubmit", [])
+        for hook in entry.get("hooks", [])
+    ]
+
+
+def test_codex_userprompt_dispatch_order_matches_claude() -> None:
+    """Codex must run the UserPromptSubmit chain in Claude's rendered order.
+
+    session-context.sh BUILDS the transparency banner from state that
+    classify-task-mode / auto-compose-roles / resolve-supervise-route write in
+    the same turn, so a reordering that moves it earlier renders every
+    cognitive field one turn stale on Codex only — a silent per-adapter
+    divergence no set-equality check can see.
+    """
+    claude_order = _claude_userpromptsubmit_order()
+    codex_order = _ordered_forloop_delegates(CODEX_HOOKS_DIR / "codex-userpromptsubmit-dispatch.sh")
+    assert claude_order, "claude settings.template.json declares no UserPromptSubmit hooks"
+    assert codex_order == claude_order, (
+        f"codex-userpromptsubmit-dispatch.sh runs {codex_order} but claude renders "
+        f"{claude_order} — reorder the dispatcher loop to match"
+    )
