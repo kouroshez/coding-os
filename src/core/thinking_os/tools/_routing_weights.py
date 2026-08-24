@@ -59,9 +59,9 @@ def recalculate_weights(conn: sqlite3.Connection) -> dict:
         rate = d["successes"] / d["total"] if d["total"] > 0 else 0
         conn.execute(
             "INSERT INTO routing_weights (domain, complexity, model, skill, success_rate, sample_count, last_updated) "
-            "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) "
+            "VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) "
             "ON CONFLICT(domain, complexity, model, skill) DO UPDATE SET "
-            "success_rate = ?, sample_count = ?, last_updated = CURRENT_TIMESTAMP",
+            "success_rate = ?, sample_count = ?, last_updated = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')",
             (
                 d["domain"],
                 d["complexity"],
@@ -79,7 +79,7 @@ def recalculate_weights(conn: sqlite3.Connection) -> dict:
     total_outcomes = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
     with contextlib.suppress(sqlite3.OperationalError):
         conn.execute(
-            "UPDATE routing_weights SET last_recalc_at = CURRENT_TIMESTAMP, outcomes_at_recalc = ?",
+            "UPDATE routing_weights SET last_recalc_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now'), outcomes_at_recalc = ?",
             (total_outcomes,),
         )
 

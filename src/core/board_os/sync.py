@@ -71,7 +71,7 @@ def _upsert_task(
     deps_json = json.dumps(list(parsed.depends_on))
     blocked_by_json = json.dumps(list(parsed.blocked_by))
     references_json = json.dumps(list(parsed.references))
-    created_at = parsed.created or datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    created_at = parsed.created or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     conn.execute(
         """
         INSERT INTO tasks (
@@ -102,7 +102,7 @@ def _upsert_task(
             references_json = excluded.references_json,
             external_ref    = excluded.external_ref,
             created_at      = COALESCE(tasks.created_at, excluded.created_at),
-            updated_at      = CURRENT_TIMESTAMP
+            updated_at      = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
         """,
         (
             parsed.task_id,

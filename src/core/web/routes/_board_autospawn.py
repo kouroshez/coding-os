@@ -96,8 +96,7 @@ def _auto_spawn_run(task_id: str, project_root: str, db_path: str) -> None:
                     "",
                     latency_ms,
                     status,
-                    # Match the column default datetime('now'): UTC, space separator.
-                    _time.strftime("%Y-%m-%d %H:%M:%S", _time.gmtime()),
+                    _time.strftime("%Y-%m-%dT%H:%M:%SZ", _time.gmtime()),
                     error,
                 ),
             )

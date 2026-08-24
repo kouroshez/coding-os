@@ -33,9 +33,9 @@ def _recalculate(conn: sqlite3.Connection) -> int:
         conn.execute(
             "INSERT INTO routing_weights "
             "(domain, complexity, model, skill, success_rate, sample_count, last_updated) "
-            "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) "
+            "VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) "
             "ON CONFLICT(domain, complexity, model, skill) DO UPDATE SET "
-            "success_rate = ?, sample_count = ?, last_updated = CURRENT_TIMESTAMP",
+            "success_rate = ?, sample_count = ?, last_updated = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')",
             (row[0], row[1], row[2], row[3], round(rate, 4), row[5], round(rate, 4), row[5]),
         )
         count += 1
@@ -44,7 +44,7 @@ def _recalculate(conn: sqlite3.Connection) -> int:
     # v26 columns not yet applied; recalc still succeeds without them
     with contextlib.suppress(sqlite3.OperationalError):
         conn.execute(
-            "UPDATE routing_weights SET last_recalc_at = CURRENT_TIMESTAMP, outcomes_at_recalc = ?",
+            "UPDATE routing_weights SET last_recalc_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now'), outcomes_at_recalc = ?",
             (total_outcomes,),
         )
 

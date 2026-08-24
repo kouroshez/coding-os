@@ -171,8 +171,8 @@ def register_cos_compose_chain(mcp, db_path):
                 intensity = "default"
                 _conn.execute(
                     "INSERT INTO persona_selections "
-                    "(session_id, task_marker, persona_id, confidence, reason, intensity) "
-                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    "(session_id, task_marker, persona_id, confidence, reason, intensity, ts) "
+                    "VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))",
                     (sid, chain.preset_id or "", lead_persona, conf, chain.source, intensity),
                 )
                 _conn.commit()
