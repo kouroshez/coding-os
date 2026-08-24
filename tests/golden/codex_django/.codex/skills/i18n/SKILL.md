@@ -78,6 +78,60 @@ new Intl.ListFormat(locale, { type: "conjunction" }).format(items);     // "A, B
 - **Unicode discipline**: normalize to NFC on input; a "character" the user sees may be multiple code points (combining marks, emoji ZWJ sequences) — count grapheme clusters, not code units, for length limits. Compare strings with locale-aware collation (`Intl.Collator`), not raw byte order, for sorting.
 - **Text expands.** German runs ~30% longer than English; CJK is shorter but taller. Design flexible layouts; never size a button to the English string.
 
+## Text Normalization — UTC-at-rest, For Strings
+
+The same failure shape as a wrong timestamp: nothing raises, the value stores
+and renders fine, and weeks later a login fails or a search returns nothing.
+Two strings that **look identical** are unequal because they are different code
+points. Arabic-script languages (Persian, Arabic, Urdu) carry three distinct
+confusable classes:
+
+| Class | Confusables | Where it bites |
+|---|---|---|
+| **Digits** | `۱۲۳` (Persian) · `١٢٣` (Arabic-Indic) · `123` (ASCII) | a phone number or amount typed on a Persian keyboard; `int()` raises or the lookup misses |
+| **Letters** | `ی` U+06CC vs `ي` U+064A · `ک` U+06A9 vs `ك` U+0643 | text pasted from Arabic sources — searching `علی` misses a row stored as `علي` |
+| **Invisible** | ZWNJ U+200C (`می‌رود`) · bidi marks (U+200E/F, U+202A-E) | copy-paste drags them in; the string is 1-3 code points longer than it looks |
+
+Plus the generic NFC/NFD split: macOS returns filenames decomposed (NFD), Linux
+stores composed (NFC), so a Persian filename created on a Mac is a different
+string on the server.
+
+**The contract — identical in shape to UTC-at-rest:**
+
+1. **Normalize at the boundary** (form handler, API deserializer, file walker).
+2. **Store the normalized form**; that is what indexes, uniqueness constraints
+   and comparisons see.
+3. **Keep the raw input in a separate field** only when you must echo it back
+   verbatim — never compare against it.
+4. **Normalize the query too.** Normalizing only on write leaves every search
+   broken in the other direction.
+
+```python
+import re, unicodedata
+
+_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+_LETTERS = str.maketrans({"ي": "ی", "ك": "ک", "ة": "ه", "ۀ": "ه"})
+_INVISIBLE = re.compile("[\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
+
+def normalize_fa(text: str, *, keep_zwnj: bool = True) -> str:
+    text = unicodedata.normalize("NFC", text)
+    text = _INVISIBLE.sub("", text)
+    if not keep_zwnj:                      # drop for keys/slugs, keep for display
+        text = text.replace("\u200c", "")
+    return text.translate(_LETTERS).translate(_DIGITS).strip()
+```
+
+`keep_zwnj` is the one real judgment call: ZWNJ is **semantic** in Persian
+(`می‌رود` is not `میرود`), so strip it for a comparison key and keep it in the
+stored display text. In TypeScript the same shape is
+`s.normalize('NFC').replace(...)`; `Intl.Collator('fa', {sensitivity:'base'})`
+handles locale-aware *sorting*, which normalization does not replace.
+
+**Do not case-fold with a locale.** Turkish maps `I` to `ı`, so a locale-aware
+`toLowerCase` on a username comparison is a security bug. Use Python
+`str.casefold()` / JS `toLowerCase()` without a locale argument for identity
+comparisons.
+
 ## The Locale Resolution Chain & Pipeline
 
 - **Resolve locale** in a defined precedence: explicit user setting → URL/path (`/de/...`, best for SEO) → `Accept-Language` header → cookie → default. Pick one order, document it, fall back gracefully to a default locale on any miss.
