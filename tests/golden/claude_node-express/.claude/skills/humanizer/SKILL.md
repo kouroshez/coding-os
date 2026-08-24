@@ -83,6 +83,10 @@ The correction is not better disguise. Shorter, flatter, and answering a real qu
 
 ## Source
 
-Adapted from [blader/humanizer](https://github.com/blader/humanizer) (MIT, © 2025 Siqi Chen), whose patterns derive from Wikipedia's [Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) maintained by WikiProject AI Cleanup. Attribution and license text: [NOTICE](NOTICE). Prose-quality guardrails on manufactured humanity and AI-detection claims adapted from [vercel/eve](https://github.com/vercel/eve) (Apache-2.0).
+Adapted from [blader/humanizer](https://github.com/blader/humanizer), whose patterns derive from Wikipedia's [Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) maintained by WikiProject AI Cleanup. Guardrails against manufactured personality and against asserting that a text was model-written are adapted from [vercel/eve](https://github.com/vercel/eve) (Apache-2.0). Full provenance and the changes made when vendoring: [NOTICE](NOTICE).
+
+> Copyright (c) 2025 Siqi Chen. Licensed under the MIT License. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files to deal in it without restriction, subject to including the above copyright notice and this permission notice in all copies or substantial portions. The software is provided "as is", without warranty of any kind.
+
+That notice is inline rather than linked because a consumer project receives `SKILL.md` on its own: the `references/` directory and `NOTICE` stay in the kernel.
 
 Wikipedia's underlying point: a language model "guesses what should come next," so it converges on "the most statistically likely result that applies to the widest variety of cases." Every pattern below is a shape of that average.
