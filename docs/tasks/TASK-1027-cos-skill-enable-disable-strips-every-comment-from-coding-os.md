@@ -5,12 +5,12 @@ swimlane: cli
 kind: bug
 epic: null
 labels: [cli, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-24
 started: 2026-08-24
-completed: null
+completed: 2026-08-24
 agent_session: ses-claude-20260820-192937-ef87
 depends_on: []
 blocked_by: []
@@ -43,3 +43,5 @@ In this repo run `cos skill disable a11y` then `cos skill enable a11y`, then `gi
 - 2026-08-24 [claude]: Edit _yaml_edit.py
 - 2026-08-24 [claude]: Replaced the yaml.dump round-trip in set_project_skill with a targeted line splice (new src/cli/_yaml_edit.py:…
 - 2026-08-24 [claude]: Verified on the real deliverable in this repo: `cos skill disable redis` adds exactly 2 lines, `cos skill enable…
+- 2026-08-24 [claude]: commit ba8a59b2ea — fix(cli): keep .coding-os.yaml comments when toggling a skill
+- 2026-08-24 [claude]: Status transitioned to complete via cos task-done.
