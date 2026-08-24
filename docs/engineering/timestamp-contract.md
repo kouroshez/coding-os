@@ -125,6 +125,37 @@ than checking it.
 three more.** Before you read, write, or compare one of these, confirm the type
 at the `CREATE TABLE` — the name tells you nothing.
 
+## The naive-TEXT split, and why only half of it was migrated
+
+Migration **v54** normalized five columns to ISO-Z — `formula_dispatches.ts`,
+`persona_selections.ts`, `backtrack_events.ts`, `ambiguity_violations.ts`, and
+both `routing_weights` stamps (202 rows). Those were migrated because they were
+genuinely **mixed**: `formula_dispatches.ts` alone held 18 naive
+`"2026-05-25 03:03:22"` rows beside 41 `"...+00:00"` rows, because the column
+default wrote one shape while Python writers wrote another. Readers order that
+column with `ORDER BY ts DESC`, which is a byte compare — `" "` (0x20) sorts
+before `"T"` (0x54) — so a naive row is permanently "older" than every offset
+row regardless of the real instant. The bug had not yet surfaced only because
+every naive row happened to predate every offset row; the next naive write would
+have landed at the bottom of the Hub's dispatch view forever.
+
+**The learning / memory / graph tables were deliberately left alone.**
+`learned_patterns`, `observations`, `concept_graph`, `retrievals` and their
+siblings use SQLite's naive space-separated form **consistently on both sides** —
+`capture.py` even documents it (*"UTC, space-separated to match the DB's
+CURRENT_TIMESTAMP string comparison"*), and `graph.py` / `memory_gc.py` compare
+against `datetime('now', '-30 days')`, which is naive too. Those columns are
+internally coherent, so nothing is currently wrong with them. Converting one
+side alone actively breaks them: writing ISO-Z into `concept_graph.updated_at`
+would make every row sort *newer* than any naive threshold, and garbage
+collection would silently stop collecting. Converting them therefore means
+writer, reader, and stored data in one atomic change — its own task, not a
+drive-by.
+
+The rule for new work is unchanged: ISO-Z. The rule when touching one of the
+legacy naive tables is to **match the column you are writing into** and convert
+the whole table or none of it.
+
 ## Where local time is correct
 
 Two narrow cases, both **rendering or scheduling**, never storage:
