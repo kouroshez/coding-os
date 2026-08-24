@@ -5,13 +5,13 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [hub, frontend, audit, backlog, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-07-17
 started: 2026-07-24
 completed: 2026-07-25
-agent_session: ses-claude-20260723-213518-14b3
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
