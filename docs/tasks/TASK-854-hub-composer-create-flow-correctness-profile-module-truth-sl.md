@@ -5,13 +5,13 @@ swimlane: core
 kind: bug
 epic: null
 labels: [hub, onboarding, composer, modules, ready]
-status: complete
+status: archive
 priority: P0
 appetite: 1d
 created: 2026-07-28
 started: 2026-07-28
 completed: 2026-07-28
-agent_session: ses-claude-20260728-161456-dace
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
