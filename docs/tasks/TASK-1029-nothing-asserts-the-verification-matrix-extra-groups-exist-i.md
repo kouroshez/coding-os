@@ -5,12 +5,12 @@ swimlane: cli
 kind: test
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-31
 started: 2026-08-31
-completed: null
+completed: 2026-08-31
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -52,3 +52,4 @@ parses every matrix command for the existing zero-collection guard).
 
 ## Work Log
 - 2026-08-31 [claude]: Added _declared_extras() + test_every_extra_group_in_the_matrix_is_declared to tests/test_verification_matrix.py,…
+- 2026-08-31 [claude]: Status transitioned to complete via cos task-done.

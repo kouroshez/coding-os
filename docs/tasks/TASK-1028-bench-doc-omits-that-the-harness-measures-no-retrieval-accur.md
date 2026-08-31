@@ -5,12 +5,12 @@ swimlane: docs
 kind: docs
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-31
 started: 2026-08-31
-completed: null
+completed: 2026-08-31
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -45,3 +45,5 @@ much larger task; this one closes the honesty gap in what is already published.
 ## Work Log
 - 2026-08-31 [claude]: Added the missing limit to the bench doc (cost is the only measured axis; named the three ProbeRow fields and the…
 - 2026-08-31 [claude]: commit 0bd390aca5 — test(matrix): assert every --extra group in the matrix exists in pyproject
+- 2026-08-31 [claude]: commit 8cc3c1c5e8 — docs(bench): state that the token benchmark measures no retrieval accuracy
+- 2026-08-31 [claude]: Status transitioned to complete via cos task-done.
