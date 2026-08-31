@@ -136,7 +136,7 @@ web = []
 claude-sdk = []
 
 codex-sdk = [
-    "openai-codex>=0.144.4,<0.145.0",
+    "openai-codex>=0.144.4,<0.148.0",
 ]
 
 [project.scripts]
@@ -166,7 +166,7 @@ dev = [
     # Exact pin: uv.lock is gitignored, so CI resolves this fresh — a floating
     # bound let every new ruff release reformat the world and fail the enforced
     # format gate daily. Bump deliberately together with a format sweep.
-    "ruff==0.16.2",
+    "ruff==0.16.5",
     "mypy>=1.10.0",
     "types-pyyaml>=6.0.0",
     "types-jsonschema>=4.0.0",
