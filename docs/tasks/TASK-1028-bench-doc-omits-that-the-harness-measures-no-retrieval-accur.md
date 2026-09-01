@@ -48,3 +48,4 @@ much larger task; this one closes the honesty gap in what is already published.
 - 2026-08-31 [claude]: commit 8cc3c1c5e8 — docs(bench): state that the token benchmark measures no retrieval accuracy
 - 2026-08-31 [claude]: Status transitioned to complete via cos task-done.
 - 2026-08-31 [claude]: commit 89bcf4376a — chore(tasks): close TASK-1028 and TASK-1029
+- 2026-08-31 [claude]: commit 2aa6759fae — chore(tasks): file three supervision defects found auditing dispatch routing
