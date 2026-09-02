@@ -5,13 +5,13 @@ swimlane: core
 kind: spike
 epic: null
 labels: [context-economy, regen-pipeline, ready]
-status: complete
+status: archive
 priority: P3
 appetite: 1d
 created: 2026-07-16
 started: 2026-08-02
 completed: 2026-08-02
-agent_session: ses-claude-20260527-151803-0b9f
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

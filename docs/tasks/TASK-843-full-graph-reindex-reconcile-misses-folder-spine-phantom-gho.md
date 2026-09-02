@@ -5,13 +5,13 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [graph, reindex, reconcile, self-healing, ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-07-17
 started: 2026-08-02
 completed: 2026-08-02
-agent_session: ses-claude-20260527-151803-0b9f
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
