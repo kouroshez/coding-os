@@ -5,18 +5,17 @@ swimlane: core
 kind: spike
 epic: null
 labels: [orchestration, adapters, research, codex, claude, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-08-04
 started: 2026-08-03
 completed: 2026-08-03
-agent_session: ses-codex-019fc9ac-216e-7211-a224-dad139ff5712
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-878: Research multi-adapter agent supervisor architectures
 
 **Outcome (one sentence):** Produce an evidence-backed architecture recommendation for a provider-neutral Coding OS supervisor that can coordinate Claude, Codex, and future adapters without coupling core to provider SDKs.
