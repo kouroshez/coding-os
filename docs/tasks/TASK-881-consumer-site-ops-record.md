@@ -5,18 +5,17 @@ swimlane: docs
 kind: chore
 epic: null
 labels: [ready]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-08-04
 started: 2026-08-04
 completed: 2026-08-04
-agent_session: ses-claude-20260527-151803-0b9f
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-881: consumer-site ops record (moved to private repo)
 
 ## Outcome
