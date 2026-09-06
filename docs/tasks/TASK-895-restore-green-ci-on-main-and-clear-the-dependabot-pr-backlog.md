@@ -5,13 +5,13 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [ci, release, dependencies]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-08-06
 started: 2026-08-06
 completed: 2026-08-06
-agent_session: ses-claude-20260803-180632-5fca
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
