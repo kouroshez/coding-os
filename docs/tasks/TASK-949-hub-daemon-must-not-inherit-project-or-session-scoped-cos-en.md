@@ -5,13 +5,13 @@ swimlane: cli
 kind: bug
 epic: null
 labels: [ready]
-status: complete
+status: archive
 priority: P0
 appetite: 1d
 created: 2026-08-12
 started: 2026-08-12
 completed: 2026-08-12
-agent_session: ses-claude-20260807-224955-abc1
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
