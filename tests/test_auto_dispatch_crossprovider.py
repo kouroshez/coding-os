@@ -184,7 +184,10 @@ class TestFindingsReachTheParent:
                         "status": "ok",
                         "cost_usd": 0.5612,
                         "passed": False,
-                        "findings": ["high: auth check runs after the write", "no test for the 429 path"],
+                        "findings": [
+                            "high: auth check runs after the write",
+                            "no test for the 429 path",
+                        ],
                     }
                 )
             ]
