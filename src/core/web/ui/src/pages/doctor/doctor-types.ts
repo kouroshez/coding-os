@@ -47,6 +47,16 @@ export interface GraphStats {
   orphaned_external_unresolved?: number;
   issue_count?: number;
   fixed_edge_count?: number;
+  // Verified against the live /api/graph/doctor payload, not inferred:
+  // `issue_count` counts only blocking categories, so a graph with six
+  // informational parse errors reports issue_count 0 and issue_count_total 1.
+  // Reading the first as "no issues" is how the page and the app header ended
+  // up contradicting each other on the same screen.
+  issue_count_total?: number;
+  parse_error_total?: number;
+  files_with_parse_errors?: number;
+  orphaned_phantom?: number;
+  slowest_extraction_ms?: number;
 }
 export interface GraphDoctorData {
   healthy?: boolean;

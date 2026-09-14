@@ -187,7 +187,14 @@ class TestSessionOwnership:
         db = self._db(
             tmp_path,
             [
-                ("TASK-900", "someone else's work", "in_progress", "ses-claude-old-0b9f", "[]", 300),
+                (
+                    "TASK-900",
+                    "someone else's work",
+                    "in_progress",
+                    "ses-claude-old-0b9f",
+                    "[]",
+                    300,
+                ),
                 ("TASK-901", "mine", "testing", "ses-claude-fresh-abcd", "[]", 100),
             ],
         )
