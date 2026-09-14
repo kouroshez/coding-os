@@ -119,11 +119,13 @@ if [[ "$SOURCE" == "startup" ]]; then
   fi
 
   # Session-id is agent-prefixed so logs and state files are self-describing.
-  # Format: ses-<agent>-YYYYMMDD-HHMMSS-xxxx. Two agents (Claude+Codex) on
-  # the same repo get distinct ids; two PANELS of the same agent get
-  # distinct ids too because each panel writes to its own $COS_SESSION_FILE
-  # (which now lives in $COS_PANEL_DIR, not $COS_AGENT_DIR).
-  SESSION_ID="ses-${COS_AGENT}-$(date +%Y%m%d-%H%M%S)-$(head -c 4 /dev/urandom | xxd -p | head -c 4)"
+  # Format: ses-<agent>-YYYYMMDD-HHMMSS-xxxx, minted by cos_mint_session_id
+  # (cos-env.sh) so this writer and the panel-seeding one in _cos_env_state.sh
+  # cannot drift into two shapes. Two agents (Claude+Codex) on the same repo
+  # get distinct ids; two PANELS of the same agent get distinct ids too,
+  # because each panel writes its own $COS_SESSION_FILE and neither writer
+  # ever copies the agent-level fossil.
+  SESSION_ID="$(cos_mint_session_id)"
   echo "$SESSION_ID" > "$COS_SESSION_FILE"
   # Seed the agent-level active-session pointer for the MCP server (see
   # the non-startup refresh above for rationale).
