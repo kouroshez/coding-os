@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ui, design, diagnostics, readme, ready]
-status: icebox
+status: testing
 priority: P3
 appetite: 1d
 created: 2026-08-17
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1007: Doctor Overview reads as a broken page: 60% dead space, sample counts that look like totals
 
 **Outcome (one sentence):** The Diagnostics → Doctor Overview tab is worth screenshotting: no half-empty viewport, no stat that reads as a total when it is a probe sample, no two panels restating the same three numbers, and no page-level OK pill sitting under a header warning.
