@@ -16,7 +16,7 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 | Tests + coverage | `make coverage` | `fail_under` in `pyproject.toml` (62; measured 63) | ratchet toward 70 → 80 |
 | Slow suite (nightly) | `make test-slow` + the graph phantom gate, on the `schedule` trigger only | 0 failures; phantom count ≤ baseline | **surfaced, not gating** — `CI Pass` emits a warning; see the order-fragility note below |
 | diff-cover (PRs only) | `diff-cover coverage.xml --fail-under 80` | 80% on changed lines | fixed — see the scope note below |
-| File-size ratchet | `tests/test_file_size_budget.py` | `SOFT_LIMIT = 500` with three recorded `BASELINE` exceptions (2026-08-11) | each entry may only fall; a file outside `BASELINE` may never cross `SOFT_LIMIT` |
+| File-size ratchet | `tests/test_file_size_budget.py` | `SOFT_LIMIT = 500` with three recorded exceptions (2026-08-11), both gates reading `file-size-baseline.json` | each entry may only fall; a file outside the ledger may never cross `SOFT_LIMIT` |
 | shellcheck | `shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh` | 0 warnings | fixed |
 | docs-lint | `make docs-lint` | 0 findings | fixed |
 | CodeQL / dependency-review | GitHub-native | high severity | fixed |
@@ -31,6 +31,16 @@ round trip:
 |---|---|---|
 | File-size budget (500 backstop, 400 warn) | `block-bad-patterns.sh` — BLOCKs a `Write` that authors a file over 500, warns from 400 and on an `Edit` that grows one | `tests/test_file_size_budget.py` per-file ratchet |
 | Whole-tree budget (consumers) | — | `make check-file-size` → `src/core/scripts/check_file_size.py` |
+
+**One ledger, two gates.** `file-size-baseline.json` at the repo root is the
+single definition of the recorded exceptions; the ratchet suite and the
+whole-tree backstop both read it, and a consumer project without the file
+simply has no exceptions. They used to carry separate lists, and the backstop
+knew of none — so `cos doctor` reported `quality.file_size` FAIL on all three
+recorded entries, every run, for as long as the entries existed. A red check
+that no action can turn green is indistinguishable from a broken one, and it
+taught every reader to skip the line. A recorded file is exempt only while it
+shrinks: growing past its recorded size is reported as an error again.
 
 **All three halves now run at 500.** They were deliberately split for a
 while — write-time and the consumer script read `COS_MAX_FILE_LINES` (default

@@ -17,18 +17,21 @@ exact replacement line so tightening is mechanical.
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 from pathlib import Path
 
-SOFT_LIMIT = 500
-
-BASELINE: dict[str, int] = {
-    # Append-only schema ledger — recorded exception, see ci-gates.md.
-    "src/core/thinking_os/_db_migrations.py": 2360,
-    "src/cli/pr_commands.py": 2024,
-    "src/core/thinking_os/embeddings.py": 943,
-}
+# Both file-size gates read one ledger. They used to carry separate lists —
+# this suite knew the three recorded exceptions and the whole-tree backstop
+# `cos doctor` runs did not, so doctor reported quality.file_size FAIL forever
+# on files the project had deliberately exempted, and a permanently red check
+# is one nobody reads.
+_LEDGER = json.loads(
+    (Path(__file__).resolve().parents[1] / "file-size-baseline.json").read_text(encoding="utf-8")
+)
+SOFT_LIMIT: int = _LEDGER["soft_limit"]
+BASELINE: dict[str, int] = _LEDGER["baseline"]
 
 EXCLUDED_PREFIXES = (
     "src/templates/",  # consumer-shipped scaffold; downstream owns style
@@ -166,3 +169,49 @@ def test_no_task_ids_in_source_comments() -> None:
     assert not offenders, (
         f"Rule 12 — {len(offenders)} comment(s) carry a task id:\n  " + "\n  ".join(offenders[:20])
     )
+
+
+# --- One ledger, two gates ---------------------------------------------------
+
+
+def test_the_backstop_reads_the_same_recorded_exceptions(tmp_path: Path) -> None:
+    """`cos doctor` and this ratchet must agree on what is exempt.
+
+    They did not: the backstop had no notion of a recorded exception, so it
+    reported quality.file_size FAIL on the three entries this suite records —
+    permanently, no matter what anyone did. A check that cannot go green is a
+    check nobody reads.
+    """
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT / "src" / "core" / "scripts"))
+    from check_file_size import recorded_exceptions
+
+    assert recorded_exceptions(REPO_ROOT) == BASELINE
+    assert recorded_exceptions(tmp_path) == {}, "a tree with no ledger has no exceptions"
+
+
+def test_a_recorded_file_that_grows_is_reported_again(tmp_path: Path) -> None:
+    import json as _json
+    import subprocess as _sp
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT / "src" / "core" / "scripts"))
+    from check_file_size import scan
+
+    _sp.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    grown = tmp_path / "legacy.py"
+    grown.write_text("x = 1\n" * 700, encoding="utf-8")
+    _sp.run(["git", "add", "legacy.py"], cwd=tmp_path, check=True)
+    (tmp_path / "file-size-baseline.json").write_text(
+        _json.dumps({"soft_limit": 500, "baseline": {"legacy.py": 600}}), encoding="utf-8"
+    )
+
+    result = scan(repo_root=tmp_path)
+    offence = next(v for v in result["violations"] if v["file"] == "legacy.py")
+    assert offence["tier"] == "error"
+    assert offence["recorded"] == 600
+    assert result["ok"] is False
+
+    grown.write_text("x = 1\n" * 550, encoding="utf-8")
+    assert scan(repo_root=tmp_path)["ok"] is True, "a shrinking recorded file is exempt"

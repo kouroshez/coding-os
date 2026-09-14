@@ -1,0 +1,9 @@
+{
+  "_comment": "Recorded file-size exceptions (docs/engineering/ci-gates.md § File-size ratchet). SSOT for BOTH gates: tests/test_file_size_budget.py (the shrink-only ratchet) and src/core/scripts/check_file_size.py (the whole-tree backstop cos doctor runs). Each number may only fall; delete the entry once the file is under SOFT_LIMIT. Adding a key is a review-rejected change.",
+  "soft_limit": 500,
+  "baseline": {
+    "src/core/thinking_os/_db_migrations.py": 2360,
+    "src/cli/pr_commands.py": 2024,
+    "src/core/thinking_os/embeddings.py": 878
+  }
+}
