@@ -212,3 +212,34 @@ def test_resolve_model_alias_never_forwards_a_bare_tier() -> None:
     assert r(None) is None
     fallback = r("totally-unknown")
     assert fallback is not None and fallback.startswith("claude-")  # never a bare tier
+
+
+def _structured_format(meta: dict) -> dict | None:
+    from adapters.claude._claude_sdk_options import _structured_output_format
+
+    return _structured_output_format(meta, "role-under-test")
+
+
+def test_declared_schema_alone_turns_on_sdk_enforcement() -> None:
+    """A schema the role declares is enforced without a second opt-in flag.
+
+    Ten of fifteen roles declared `output_schema` with no `structured_output`,
+    so the SDK enforced nothing and the mismatch only surfaced at persistence —
+    after the dispatch was billed (TASK-1003).
+    """
+    fmt = _structured_format({"output_schema": "cognition.AnalystOutput"})
+    assert fmt is not None
+    assert fmt["type"] == "json_schema"
+    assert fmt["schema"]["type"] == "object"
+
+
+def test_structured_output_false_is_an_explicit_opt_out() -> None:
+    assert (
+        _structured_format({"output_schema": "cognition.AnalystOutput", "structured_output": False})
+        is None
+    )
+
+
+def test_no_schema_means_no_enforcement() -> None:
+    assert _structured_format({"structured_output": True}) is None
+    assert _structured_format({}) is None

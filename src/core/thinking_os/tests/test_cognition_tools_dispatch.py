@@ -97,7 +97,14 @@ class TestDispatchPersistenceDegradedPath:
         )
         assert isinstance(filled, int)  # returned cleanly — no NameError
 
-    def test_validation_failure_skips_dispatch_row(self, db_path):
+    def test_validation_failure_still_persists_a_degraded_row(self, db_path):
+        """A paid run that misses its schema leaves evidence, not a hole.
+
+        The row used to be dropped so an unvalidated payload could not pass as
+        clean. But the dispatch was already billed, and this row is the only
+        record of which adapter and model spent the tokens — routing reads that
+        history. So it is written marked, not discarded (TASK-1003).
+        """
         from tools.cognition import _persist_dispatch_output
 
         _persist_dispatch_output(
@@ -109,13 +116,21 @@ class TestDispatchPersistenceDegradedPath:
             status="ok",
             latency_ms=5,
             db_path=db_path,
+            resolved_route={"adapter": "claude", "model": "claude-haiku-4-5"},
         )
         with sqlite3.connect(db_path) as conn:
-            rows = conn.execute(
-                "SELECT COUNT(*) FROM formula_dispatches WHERE session_id = ?",
+            row = conn.execute(
+                "SELECT status, error_category, error, adapter, model "
+                "FROM formula_dispatches WHERE session_id = ?",
                 ("sess-pass4-8b",),
-            ).fetchone()[0]
-        assert rows == 0  # invalid output is never persisted (T1.6)
+            ).fetchone()
+        assert row is not None, "the billed run left no evidence row"
+        status, category, error, adapter, model = row
+        assert status == "fail"
+        assert category == "schema_validation"
+        assert "validation failed" in (error or "")
+        assert adapter == "claude"
+        assert model == "claude-haiku-4-5"
 
 
 class TestDispatchTranscriptPersistence:

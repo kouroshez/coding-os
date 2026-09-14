@@ -84,6 +84,15 @@ class AgentDispatcher(Protocol):
 | `error`   | SDK failure, parse failure, missing agent file, subprocess rc≠0 | Surface as internal; do **not** silently downgrade     |
 | `skipped` | Dispatcher cannot spawn (no SDK, no binary, stub adapter)       | Main agent inlines the formula and records output |
 
+**A schema miss never erases the run.** When a role declares an `output_schema`
+and the returned payload fails to validate, the row is still written — with
+`status="fail"`, `error_category="schema_validation"`, and the validator's own
+message in `error`. The tokens were already spent, and the resolved adapter /
+model / effort on that row is the only record of where they went; dropping it
+leaves routing unable to learn from a run the project paid for. The bundle
+still carries the `degraded_formulas` marker, so a supervisor reading the
+bundle sees the same degradation it always did.
+
 ## Architecture
 
 ```
