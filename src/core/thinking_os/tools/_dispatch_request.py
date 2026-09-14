@@ -141,13 +141,19 @@ def _shared_context(session_id: str, db_path=None) -> dict:
         return {}
 
     # Bounded by the WIP cap (1-3 rows), on an indexed status column.
+    # agent_session FILTERS, it does not merely sort. It used to be an ORDER BY
+    # CASE, which ranks this session's task first but still returns somebody
+    # else's when this session owns none — so a freshly started panel handed
+    # its child a task from a conversation months old and told it that was the
+    # work. A child that inherits no task is correct; a child that inherits the
+    # wrong one reasons confidently about the wrong thing.
     try:
         with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute(
                 "SELECT task_id, title, status, work_log_last_5 FROM tasks "
-                "WHERE status IN ('in_progress','testing') "
-                "ORDER BY CASE WHEN agent_session = ? THEN 0 ELSE 1 END, updated_at DESC LIMIT 1",
+                "WHERE status IN ('in_progress','testing') AND agent_session = ? "
+                "ORDER BY updated_at DESC LIMIT 1",
                 (session_id,),
             ).fetchone()
     except sqlite3.Error as exc:
