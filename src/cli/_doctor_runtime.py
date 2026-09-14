@@ -81,6 +81,34 @@ DATABASE_SIZE_BUDGET_MEGABYTES = 200
 WRITE_AHEAD_LOG_BUDGET_MEGABYTES = 50
 
 
+def _wal_recovery_step(write_ahead_log_path: Path, write_ahead_log_bytes: int) -> str:
+    # A WAL only ever grows past its budget because something is blocking the
+    # checkpoint, and that is exactly when the volume is least likely to have
+    # room: the 59 GB WAL that motivated this check sat on a volume with less
+    # free space than the WAL itself. TRUNCATE folds every frame into the main
+    # DB in one pass, so recommending it blind is how a recovery step turns a
+    # full disk into a failed write. Measure first, then name a step that fits.
+    try:
+        free_bytes = shutil.disk_usage(write_ahead_log_path.parent).free
+    except OSError as exc:
+        logger.debug("disk_usage failed for %s: %s", write_ahead_log_path.parent, exc)
+        return "checkpoint: sqlite3 coding-os.db 'PRAGMA wal_checkpoint(TRUNCATE)'"
+
+    if free_bytes > write_ahead_log_bytes:
+        return "checkpoint: sqlite3 coding-os.db 'PRAGMA wal_checkpoint(TRUNCATE)'"
+
+    free_megabytes = free_bytes / (1024 * 1024)
+    wal_megabytes = write_ahead_log_bytes / (1024 * 1024)
+    return (
+        f"do NOT run wal_checkpoint(TRUNCATE): {free_megabytes:.0f} MB free is less "
+        f"than the {wal_megabytes:.0f} MB WAL, so folding it into the DB can fail "
+        "mid-write. Drain incrementally instead — repeat "
+        "\"sqlite3 coding-os.db 'PRAGMA wal_checkpoint(PASSIVE)'\" until it reports "
+        "0 pages, closing long-lived readers (cos hub stop, MCP clients) between "
+        "passes; then free space and TRUNCATE."
+    )
+
+
 def _check_runtime_state_within_budget(project: Path, report: DoctorReport) -> None:
     """state.size_within_budget — coding-os.db and its WAL stay within size budgets."""
     database_path = project / DATABASE_FILE_RELATIVE_PATH
@@ -100,14 +128,15 @@ def _check_runtime_state_within_budget(project: Path, report: DoctorReport) -> N
             )
 
     if write_ahead_log_path.exists():
-        write_ahead_log_megabytes = write_ahead_log_path.stat().st_size / (1024 * 1024)
+        write_ahead_log_bytes = write_ahead_log_path.stat().st_size
+        write_ahead_log_megabytes = write_ahead_log_bytes / (1024 * 1024)
         if write_ahead_log_megabytes > WRITE_AHEAD_LOG_BUDGET_MEGABYTES:
             findings.append(
                 {
                     "file": WRITE_AHEAD_LOG_RELATIVE_PATH,
                     "actual_megabytes": round(write_ahead_log_megabytes, 1),
                     "budget_megabytes": WRITE_AHEAD_LOG_BUDGET_MEGABYTES,
-                    "fix": "checkpoint: sqlite3 coding-os.db 'PRAGMA wal_checkpoint(TRUNCATE)'",
+                    "fix": _wal_recovery_step(write_ahead_log_path, write_ahead_log_bytes),
                 }
             )
 
