@@ -73,6 +73,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -248,7 +249,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 242
     },
     "claude_angular": {
       "agent": "claude",
@@ -323,6 +324,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -526,7 +528,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 269
+      "count": 270
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -601,6 +603,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -792,7 +795,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 258
     },
     "claude_astro": {
       "agent": "claude",
@@ -867,6 +870,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -1066,7 +1070,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 265
+      "count": 266
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1141,6 +1145,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -1319,7 +1324,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 245
     },
     "claude_django": {
       "agent": "claude",
@@ -1394,6 +1399,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -1592,7 +1598,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 264
+      "count": 265
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1667,6 +1673,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -1857,7 +1864,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 256
+      "count": 257
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1932,6 +1939,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -2124,7 +2132,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 258
+      "count": 259
     },
     "claude_go": {
       "agent": "claude",
@@ -2199,6 +2207,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -2390,7 +2399,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 258
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2465,6 +2474,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -2658,7 +2668,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 259
+      "count": 260
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2733,6 +2743,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -2912,7 +2923,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 246
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2987,6 +2998,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -3167,7 +3179,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 247
     },
     "claude_laravel": {
       "agent": "claude",
@@ -3242,6 +3254,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -3434,7 +3447,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 258
+      "count": 259
     },
     "claude_meta": {
       "agent": "claude",
@@ -3509,6 +3522,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -3722,7 +3736,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 279
+      "count": 280
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3797,6 +3811,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -3995,7 +4010,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 264
+      "count": 265
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -4070,6 +4085,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -4279,7 +4295,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 275
+      "count": 276
     },
     "claude_node-express": {
       "agent": "claude",
@@ -4354,6 +4370,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -4548,7 +4565,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 260
+      "count": 261
     },
     "claude_python": {
       "agent": "claude",
@@ -4623,6 +4640,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -4801,7 +4819,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 245
     },
     "claude_rails": {
       "agent": "claude",
@@ -4876,6 +4894,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -5071,7 +5090,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 261
+      "count": 262
     },
     "claude_react-native": {
       "agent": "claude",
@@ -5146,6 +5165,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -5352,7 +5372,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 272
+      "count": 273
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -5427,6 +5447,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -5606,7 +5627,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 245
+      "count": 246
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5681,6 +5702,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -5872,7 +5894,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 258
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5947,6 +5969,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -6127,7 +6150,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 247
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -6202,6 +6225,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -6394,7 +6418,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 258
+      "count": 259
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -6469,6 +6493,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -6670,7 +6695,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 267
+      "count": 268
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6745,6 +6770,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -6926,7 +6952,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 247
+      "count": 248
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -7001,6 +7027,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -7194,7 +7221,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 259
+      "count": 260
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -7269,6 +7296,7 @@
         ".claude/hooks/enforce-doc-sync.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-graph-first-read.sh",
+        ".claude/hooks/enforce-humanizer-audit.sh",
         ".claude/hooks/enforce-memory-check.sh",
         ".claude/hooks/enforce-rename-plan.sh",
         ".claude/hooks/enforce-scaffold-boundary.sh",
@@ -7465,7 +7493,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 262
+      "count": 263
     },
     "codex_base": {
       "agent": "codex",
@@ -7549,6 +7577,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -7718,7 +7747,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 246
+      "count": 247
     },
     "codex_angular": {
       "agent": "codex",
@@ -7804,6 +7833,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -8001,7 +8031,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 274
+      "count": 275
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -8087,6 +8117,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -8272,7 +8303,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 262
+      "count": 263
     },
     "codex_astro": {
       "agent": "codex",
@@ -8358,6 +8389,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -8551,7 +8583,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 270
+      "count": 271
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -8637,6 +8669,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -8809,7 +8842,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 249
+      "count": 250
     },
     "codex_django": {
       "agent": "codex",
@@ -8895,6 +8928,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -9087,7 +9121,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 269
+      "count": 270
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -9173,6 +9207,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -9357,7 +9392,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 261
+      "count": 262
     },
     "codex_flutter": {
       "agent": "codex",
@@ -9443,6 +9478,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -9629,7 +9665,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 263
+      "count": 264
     },
     "codex_go": {
       "agent": "codex",
@@ -9715,6 +9751,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -9900,7 +9937,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 262
+      "count": 263
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9986,6 +10023,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -10173,7 +10211,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 264
+      "count": 265
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -10259,6 +10297,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -10432,7 +10471,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 250
+      "count": 251
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -10518,6 +10557,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -10692,7 +10732,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 252
     },
     "codex_laravel": {
       "agent": "codex",
@@ -10778,6 +10818,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -10964,7 +11005,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 263
+      "count": 264
     },
     "codex_meta": {
       "agent": "codex",
@@ -11050,6 +11091,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -11257,7 +11299,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 284
+      "count": 285
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -11343,6 +11385,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -11535,7 +11578,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 269
+      "count": 270
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -11621,6 +11664,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -11824,7 +11868,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 280
+      "count": 281
     },
     "codex_node-express": {
       "agent": "codex",
@@ -11910,6 +11954,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -12098,7 +12143,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 265
+      "count": 266
     },
     "codex_python": {
       "agent": "codex",
@@ -12184,6 +12229,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -12356,7 +12402,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 249
+      "count": 250
     },
     "codex_rails": {
       "agent": "codex",
@@ -12442,6 +12488,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -12631,7 +12678,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 266
+      "count": 267
     },
     "codex_react-native": {
       "agent": "codex",
@@ -12717,6 +12764,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -12917,7 +12965,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 277
+      "count": 278
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -13003,6 +13051,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -13176,7 +13225,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 250
+      "count": 251
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -13262,6 +13311,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -13447,7 +13497,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 262
+      "count": 263
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -13533,6 +13583,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -13707,7 +13758,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 252
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -13793,6 +13844,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -13979,7 +14031,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 263
+      "count": 264
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -14065,6 +14117,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -14260,7 +14313,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 272
+      "count": 273
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -14346,6 +14399,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -14521,7 +14575,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 252
+      "count": 253
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -14607,6 +14661,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -14794,7 +14849,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 264
+      "count": 265
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -14880,6 +14935,7 @@
         ".codex/hooks/enforce-doc-sync.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-graph-first-read.sh",
+        ".codex/hooks/enforce-humanizer-audit.sh",
         ".codex/hooks/enforce-memory-check.sh",
         ".codex/hooks/enforce-rename-plan.sh",
         ".codex/hooks/enforce-scaffold-boundary.sh",
@@ -15070,7 +15126,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 267
+      "count": 268
     }
   }
 }
