@@ -12,6 +12,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.22](https://github.com/kouroshez/coding-os/compare/v0.3.21...v0.3.22) (2026-09-14)
+
+
+### Added
+
+* **db:** migration v54 normalizes mixed TEXT timestamp columns to ISO-Z ([42c865f](https://github.com/kouroshez/coding-os/commit/42c865f928779f079e482519d2edcd4f015415bc))
+* **hooks:** block turn-end on prose drafted without a humanizer audit pass ([b1a6c5a](https://github.com/kouroshez/coding-os/commit/b1a6c5ae8ce324bd06673a9f0f224ad3e1621dba))
+* **skills:** add Persian/Arabic text normalization to the i18n skill ([d98ddec](https://github.com/kouroshez/coding-os/commit/d98ddec7548380502458f7f62398dd5b4b4d1cc5))
+* **skills:** vendor the humanizer skill and gate published prose on it ([35aa49c](https://github.com/kouroshez/coding-os/commit/35aa49c47566502371b11a90d82f0bd22bae34eb))
+
+
+### Fixed
+
+* **cli:** keep .coding-os.yaml comments when toggling a skill ([ba8a59b](https://github.com/kouroshez/coding-os/commit/ba8a59b2eaa72a5bbdcc0b9bae4df1e5dd2a85e5))
+* **cli:** ship skill references/ and assets/ to consumer projects ([fa659f5](https://github.com/kouroshez/coding-os/commit/fa659f53e5d7444ebe929de1767a1afdaa0c4cea))
+* **cognition:** carry the review verdict back to the parent, not just its price ([6886213](https://github.com/kouroshez/coding-os/commit/6886213ce2c205d5706dd9d6cb6c9b22ce2a8a16))
+* **cognition:** hand the dispatched child this session's task, or none ([732eb27](https://github.com/kouroshez/coding-os/commit/732eb27b413048219569a5a3179120f6739d0c70))
+* **cognition:** keep the evidence row when role output misses its schema ([34f5581](https://github.com/kouroshez/coding-os/commit/34f5581adf2510ebe54910420efaf3cab2a4564b))
+* **core:** stop five writers emitting naive timestamps into migrated columns ([d06da10](https://github.com/kouroshez/coding-os/commit/d06da10a3b3eb24cec93be6c59f14ca8315d9f3e))
+* **doctor:** let both file-size gates read one recorded-exception ledger ([b20e37f](https://github.com/kouroshez/coding-os/commit/b20e37f6322ac1db64963796847286a5aa1a4d4a))
+* **doctor:** measure free space before recommending a WAL truncate ([0943bcd](https://github.com/kouroshez/coding-os/commit/0943bcd27941a79064612a1cb75addf4db36b668))
+* **hooks:** mint a panel session id instead of mirroring the agent-level one ([caf1368](https://github.com/kouroshez/coding-os/commit/caf136854bd32096c52e4bbe3f19332707cb9270))
+* **hooks:** route .humanizer-audit to the panel dir so the Stop gate can be cleared ([0ea6946](https://github.com/kouroshez/coding-os/commit/0ea6946149c438847cda6465e55ea51e15e63dd0))
+* **hooks:** stop recording a verify PASS the runtime never reported ([236a951](https://github.com/kouroshez/coding-os/commit/236a95189dafa1bd5a0c410f12175675538426a4))
+* **hub:** make Doctor Overview report the graph, not a probe sample ([1c65dca](https://github.com/kouroshez/coding-os/commit/1c65dca221376ddfcb1e96abaaf8d507f043bcae))
+* **skills:** restore humanizer watch-list vocabulary dropped when compressing patterns ([bd3d069](https://github.com/kouroshez/coding-os/commit/bd3d0697f41a70824c7acaf4b201a2ddb2a6c069))
+* **ui:** escape six JSX entities to give the eslint ratchet headroom ([59946e2](https://github.com/kouroshez/coding-os/commit/59946e2c46cc05c4a3a0a6a0f2a02fc1b6aa6881))
+
+
+### Documentation
+
+* **bench:** state that the token benchmark measures no retrieval accuracy ([8cc3c1c](https://github.com/kouroshez/coding-os/commit/8cc3c1c5e81bd80e7268d5a33927c91052e3e4b1))
+* **engineering:** record why only half the naive-TEXT columns were migrated ([7ea7e73](https://github.com/kouroshez/coding-os/commit/7ea7e7352e6f0c80479228c7d30f279b778f5c1a))
+
 ## [0.3.21](https://github.com/kouroshez/coding-os/compare/v0.3.20...v0.3.21) (2026-08-23)
 
 
