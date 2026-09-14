@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-09-14
 started: null
-completed: null
-agent_session: null
+completed: 2026-09-13
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1034: record-verify-auto defaults a missing exit_code to 0 and records PASS
 
 **Outcome (one sentence):** A suite whose exit code the runtime never reported is recorded as nothing at all, so the verify ledger can no longer hand `cos task-done` a green light it never earned.
@@ -74,3 +73,4 @@ reason so the silence is explainable.
 **Then** FAIL is recorded, because the event itself is the outcome.
 
 ## Work Log
+- 2026-09-14 [claude]: Status transitioned to complete via cos task-done.

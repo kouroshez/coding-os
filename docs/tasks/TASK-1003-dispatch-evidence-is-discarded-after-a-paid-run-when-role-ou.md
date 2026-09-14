@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [cognition, dispatch, schema, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-17
 started: 2026-09-13
-completed: null
+completed: 2026-09-13
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -53,3 +53,8 @@ references: []
 - 2026-09-14 [claude]: commit ad5282b852 — ci: install npm 11 before the scaffold node gates
 - 2026-09-14 [claude]: commit 1c65dca221 — fix(hub): make Doctor Overview report the graph, not a probe sample
 - 2026-09-14 [claude]: A validation miss now persists a marked row (status=fail, error_category=schema_validation, validator message in…
+- 2026-09-14 [claude]: commit 236a95189d — fix(hooks): stop recording a verify PASS the runtime never reported
+- 2026-09-14 [claude]: commit fa77289366 — test: use a placeholder model id in the dispatch evidence test
+- 2026-09-14 [claude]: Edit capture-the-payload-never-assume-it.md
+- 2026-09-14 [claude]: Edit check-the-card-premise-before-fixing-it.md
+- 2026-09-14 [claude]: Status transitioned to complete via cos task-done.

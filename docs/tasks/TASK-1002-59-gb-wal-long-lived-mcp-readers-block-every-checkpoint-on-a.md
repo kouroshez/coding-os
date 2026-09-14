@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [infra, database, reliability, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-17
 started: null
-completed: null
+completed: 2026-09-13
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -42,3 +42,4 @@ references: []
 
 ## Work Log
 - 2026-09-14 [claude]: Re-checked the premise by running it: an idle pooled reader does NOT block checkpointing (busy=0, WAL truncated to…
+- 2026-09-14 [claude]: Status transitioned to complete via cos task-done.

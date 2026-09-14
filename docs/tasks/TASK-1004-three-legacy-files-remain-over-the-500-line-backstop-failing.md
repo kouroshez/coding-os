@@ -5,12 +5,12 @@ swimlane: core
 kind: chore
 epic: null
 labels: [quality, file-size, ready]
-status: testing
+status: complete
 priority: P3
 appetite: 2d
 created: 2026-08-17
 started: null
-completed: null
+completed: 2026-09-13
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -22,3 +22,4 @@ references: []
 
 ## Work Log
 - 2026-09-14 [claude]: Root cause was two file-size gates carrying two exemption lists, despite check_file_size.py's own docstring claiming…
+- 2026-09-14 [claude]: Status transitioned to complete via cos task-done.

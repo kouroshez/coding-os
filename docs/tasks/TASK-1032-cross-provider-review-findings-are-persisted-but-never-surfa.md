@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-31
 started: null
-completed: null
+completed: 2026-09-13
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -54,3 +54,4 @@ result was dropped.
 
 ## Work Log
 - 2026-09-14 [claude]: The pulse carried route and price only, so a reviewer that found three problems rendered identically to a clean one.…
+- 2026-09-14 [claude]: Status transitioned to complete via cos task-done.

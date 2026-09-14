@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-31
 started: null
-completed: null
+completed: 2026-09-13
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -51,3 +51,4 @@ the child has no other channel to check it against (Codex dispatch runs
 
 ## Work Log
 - 2026-09-14 [claude]: Measured against the live board DB: a session id owning no task was still handed TASK-1003 because agent_session sat…
+- 2026-09-14 [claude]: Status transitioned to complete via cos task-done.

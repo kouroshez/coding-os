@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ui, design, diagnostics, readme, ready]
-status: testing
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-08-17
 started: null
-completed: null
+completed: 2026-09-13
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -37,3 +37,4 @@ Open http://127.0.0.1:9188/p/coding-os/diagnostics/doctor at 1600x1000. Content 
 
 ## Work Log
 - 2026-09-14 [claude]: Overview now reports the real graph (79,873 nodes / 159,101 edges) instead of a 101-node probe sample, drops the…
+- 2026-09-14 [claude]: Status transitioned to complete via cos task-done.

@@ -5,7 +5,7 @@ swimlane: core
 kind: chore
 epic: null
 labels: [ready]
-status: in_progress
+status: testing
 priority: P1
 appetite: 1d
 created: 2026-09-14

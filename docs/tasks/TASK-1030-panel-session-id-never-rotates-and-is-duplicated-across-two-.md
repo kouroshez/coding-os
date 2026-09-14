@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-31
 started: null
-completed: null
+completed: 2026-09-13
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -58,3 +58,4 @@ so a reader parsing the tail never meets a second shape.
 
 ## Work Log
 - 2026-09-14 [claude]: Reproduced live: panels 5ac9fe2e and 8ee96650 both read ses-claude-20260527-151803-0b9f, an id minted 3.5 months…
+- 2026-09-14 [claude]: Status transitioned to complete via cos task-done.
