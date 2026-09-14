@@ -59,3 +59,4 @@ references: []
 - 2026-09-14 [claude]: Edit check-the-card-premise-before-fixing-it.md
 - 2026-09-14 [claude]: Status transitioned to complete via cos task-done.
 - 2026-09-14 [claude]: commit eee11c8287 — chore(tasks): close the eight icebox cards drained this session
+- 2026-09-14 [claude]: commit 1645d96e64 — chore(tasks): close the trunk-green umbrella after v0.3.22 shipped
