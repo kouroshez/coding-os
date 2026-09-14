@@ -34,13 +34,32 @@ case "$COMMAND" in
   *--collect-only*|*" --co"*) exit 0 ;;
 esac
 
-EXIT_CODE=$(echo "$INPUT" | jq -r '.tool_response.exit_code // .tool_response.exitCode // 0' 2>/dev/null || echo 0)
-# on PostToolUseFailure the payload may carry no exit_code at all —
-# the event itself IS the failure signal; never let the `// 0` default record
-# a phantom PASS.
+# `unknown`, never 0. An absent exit_code means the runtime did not say how the
+# suite ended, and the ledger this writes is what `enforce-verify.sh` reads to
+# let `cos task-done` through — so a defaulted 0 turns "no information" into a
+# green light. Measured before this: a payload whose stdout read "1 failed,
+# 2 passed" and carried no exit_code was ledgered PASS, byte-identical to a
+# real pass.
+EXIT_CODE=$(echo "$INPUT" | jq -r '.tool_response.exit_code // .tool_response.exitCode // "unknown"' 2>/dev/null || echo unknown)
 EVENT_NAME=$(echo "$INPUT" | jq -r '.hook_event_name // empty' 2>/dev/null || echo "")
+
+# Captured from a live Claude Code run, because this contract is not documented
+# anywhere and guessing it is what produced the phantom PASS:
+#   success -> PostToolUse,        tool_response = {stdout, stderr, interrupted,
+#                                   isImage, noOutputExpected}   (no exit_code)
+#   failure -> PostToolUseFailure, tool_response absent, top-level `error` set
+# So the EVENT is the outcome here, and a PostToolUse carrying a tool_response
+# object is a genuine success signal rather than a missing one. A runtime that
+# sends neither an exit_code nor a failure event still falls through to
+# `unknown` below and records nothing.
 if [[ "$EVENT_NAME" == "PostToolUseFailure" ]]; then
   EXIT_CODE=1
+elif [[ "$EXIT_CODE" == "unknown" && "$EVENT_NAME" == "PostToolUse" ]]; then
+  HAS_RESPONSE=$(echo "$INPUT" | jq -r 'if (.tool_response | type) == "object" then "yes" else "no" end' 2>/dev/null || echo no)
+  HAS_ERROR=$(echo "$INPUT" | jq -r 'if (.error // null) == null then "no" else "yes" end' 2>/dev/null || echo no)
+  if [[ "$HAS_RESPONSE" == "yes" && "$HAS_ERROR" == "no" ]]; then
+    EXIT_CODE=0
+  fi
 fi
 
 PROJECT_ROOT="${COS_PROJECT_ROOT:-$(pwd)}"
@@ -61,6 +80,13 @@ if [[ "$IS_PYTEST" == "true" ]]; then
 fi
 
 [[ -n "$SUITE" ]] || exit 0
+
+# Record nothing rather than a guess. Skipping costs one re-run; a phantom PASS
+# costs a suite nobody notices was red.
+if [[ "$EXIT_CODE" == "unknown" ]]; then
+  cos_log_hook record-verify-auto skipped "suite=$SUITE reason=no-exit-code-in-payload" 2>/dev/null || true
+  exit 0
+fi
 
 STATUS="PASS"
 [[ "$EXIT_CODE" == "0" ]] || STATUS="FAIL"

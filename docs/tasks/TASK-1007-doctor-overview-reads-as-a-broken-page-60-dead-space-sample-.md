@@ -36,3 +36,4 @@ Open http://127.0.0.1:9188/p/coding-os/diagnostics/doctor at 1600x1000. Content 
 4. **Given** the header reports a graph issue **When** the page pill renders **Then** the two do not contradict each other on the same screen.
 
 ## Work Log
+- 2026-09-14 [claude]: Overview now reports the real graph (79,873 nodes / 159,101 edges) instead of a 101-node probe sample, drops the…

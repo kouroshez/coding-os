@@ -50,3 +50,4 @@ the child has no other channel to check it against (Codex dispatch runs
 **Then** the child receives this session's task, not the newer foreign one.
 
 ## Work Log
+- 2026-09-14 [claude]: Measured against the live board DB: a session id owning no task was still handed TASK-1003 because agent_session sat…

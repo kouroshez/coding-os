@@ -21,3 +21,4 @@ references: []
 **Outcome (one sentence):** quality.file_size passes: the three remaining over-budget files are split along real cohesion seams, so cos doctor exits 0 and the backstop stops being permanently red.
 
 ## Work Log
+- 2026-09-14 [claude]: Root cause was two file-size gates carrying two exemption lists, despite check_file_size.py's own docstring claiming…

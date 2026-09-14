@@ -41,3 +41,4 @@ references: []
 **Then** it drains safely on a volume with less free space than the WAL, or the step explicitly refuses and says why.
 
 ## Work Log
+- 2026-09-14 [claude]: Re-checked the premise by running it: an idle pooled reader does NOT block checkpointing (busy=0, WAL truncated to…

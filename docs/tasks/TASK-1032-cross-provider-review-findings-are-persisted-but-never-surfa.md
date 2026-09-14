@@ -53,3 +53,4 @@ result was dropped.
 **Then** it adds nothing, because an invented verdict is worse than none.
 
 ## Work Log
+- 2026-09-14 [claude]: The pulse carried route and price only, so a reviewer that found three problems rendered identically to a clean one.…

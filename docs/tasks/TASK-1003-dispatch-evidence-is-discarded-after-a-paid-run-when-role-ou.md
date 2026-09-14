@@ -52,3 +52,4 @@ references: []
 - 2026-09-14 [claude]: commit b20e37f632 — fix(doctor): let both file-size gates read one recorded-exception ledger
 - 2026-09-14 [claude]: commit ad5282b852 — ci: install npm 11 before the scaffold node gates
 - 2026-09-14 [claude]: commit 1c65dca221 — fix(hub): make Doctor Overview report the graph, not a probe sample
+- 2026-09-14 [claude]: A validation miss now persists a marked row (status=fail, error_category=schema_validation, validator message in…

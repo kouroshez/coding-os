@@ -57,3 +57,4 @@ to a conversation 3.5 months old.
 so a reader parsing the tail never meets a second shape.
 
 ## Work Log
+- 2026-09-14 [claude]: Reproduced live: panels 5ac9fe2e and 8ee96650 both read ses-claude-20260527-151803-0b9f, an id minted 3.5 months…
