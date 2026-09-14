@@ -116,7 +116,7 @@ class TestDispatchPersistenceDegradedPath:
             status="ok",
             latency_ms=5,
             db_path=db_path,
-            resolved_route={"adapter": "claude", "model": "claude-haiku-4-5"},
+            resolved_route={"adapter": "claude", "model": "model-under-test"},
         )
         with sqlite3.connect(db_path) as conn:
             row = conn.execute(
@@ -130,7 +130,7 @@ class TestDispatchPersistenceDegradedPath:
         assert category == "schema_validation"
         assert "validation failed" in (error or "")
         assert adapter == "claude"
-        assert model == "claude-haiku-4-5"
+        assert model == "model-under-test"
 
 
 class TestDispatchTranscriptPersistence:
