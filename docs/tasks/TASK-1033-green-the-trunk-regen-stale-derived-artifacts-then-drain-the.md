@@ -5,12 +5,12 @@ swimlane: core
 kind: chore
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-09-14
 started: 2026-09-13
-completed: null
+completed: 2026-09-13
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -22,3 +22,5 @@ references: []
 
 ## Work Log
 - 2026-09-14 [claude]: commit 540b3279b1 — chore: regen scaffold manifest and doctor schema to unblock red CI
+- 2026-09-14 [claude]: CI green on main across all 16 checks; scaffold-verify green across all 11 jobs (astro and svelte-sveltekit had been…
+- 2026-09-14 [claude]: Status transitioned to complete via cos task-done.
