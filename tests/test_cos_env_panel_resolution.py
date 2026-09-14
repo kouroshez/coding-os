@@ -279,3 +279,55 @@ def test_sibling_fossil_rejected_on_session_mismatch(tmp_path: Path) -> None:
     )
     assert "VALID=false" in proc.stdout, f"sibling fossil must be rejected; out={proc.stdout!r}"
     assert "mismatch" in proc.stdout.lower()
+
+
+# ---------------------------------------------------------------------------
+# TASK-1030: the panel session-id seed must be minted, never mirrored.
+# $COS_AGENT_DIR/session-id is agent-level — it holds whichever panel wrote
+# last and nothing rotates it — so seeding from it handed every panel that
+# started without a SessionStart:startup the same id. Two live panels were
+# observed sharing ses-claude-20260527-151803-0b9f, minted 3.5 months earlier.
+# ---------------------------------------------------------------------------
+
+
+def _seed_panel_session_id(tmp_path: Path, panel: str, agent_level: str | None) -> str:
+    agent_dir = tmp_path / "claude"
+    (agent_dir / "panels" / panel).mkdir(parents=True, exist_ok=True)
+    if agent_level is not None:
+        (agent_dir / "session-id").write_text(agent_level + "\n", encoding="utf-8")
+    script = f"""
+        source '{COS_ENV}' 2>/dev/null
+        cos_panel_upgrade_from_payload '{{"session_id":"{panel}"}}'
+        cat "$COS_SESSION_FILE"
+    """
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if not k.startswith("COS_") and "SESSION_ID" not in k and "TRACE_ID" not in k
+    }
+    env.update({"COS_STATE_DIR": str(tmp_path), "COS_AGENT": "claude"})
+    proc = subprocess.run(
+        ["bash", "-c", script], env=env, capture_output=True, text=True, check=True
+    )
+    return proc.stdout.strip().splitlines()[-1]
+
+
+def test_panel_seed_ignores_the_agent_level_fossil(tmp_path: Path) -> None:
+    fossil = "ses-claude-20260527-151803-0b9f"
+    seeded = _seed_panel_session_id(tmp_path, "panel-one", agent_level=fossil)
+    assert seeded != fossil, "the panel inherited the agent-level fossil id"
+    assert seeded.startswith("ses-claude-")
+
+
+def test_two_panels_seeded_from_one_fossil_still_differ(tmp_path: Path) -> None:
+    fossil = "ses-claude-20260527-151803-0b9f"
+    first = _seed_panel_session_id(tmp_path, "panel-a", agent_level=fossil)
+    second = _seed_panel_session_id(tmp_path, "panel-b", agent_level=None)
+    assert first != second, "two panels share a session id — `ses=` tails collide"
+
+
+def test_seeded_id_matches_the_startup_minted_shape(tmp_path: Path) -> None:
+    import re
+
+    seeded = _seed_panel_session_id(tmp_path, "panel-shape", agent_level=None)
+    assert re.fullmatch(r"ses-claude-\d{8}-\d{6}-[0-9a-f]{4}", seeded), seeded
