@@ -5,16 +5,21 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
-import shutil
 import statistics
-import subprocess
 import sys
 from dataclasses import asdict, dataclass
 from itertools import pairwise
 from pathlib import Path
 
-PROFILE_SIZE = 64
+from ffmpeg_io import (
+    EngineError,
+    delta_series,
+    extract_indices,
+    probe,
+    require_binaries,
+    sample_rgb,
+)
+
 MOVE_FLOOR = 0.35
 MOVE_MEDIAN_MULT = 3.0
 MERGE_SETTLED_SECONDS = 0.12
@@ -28,14 +33,6 @@ TRANSITION_WIDTH = 320
 DRIFT_MULTIPLE = 8.0
 CONTINUOUS_MOTION_RATIO = 0.60
 FALLBACK_FPS = 2.0
-
-_META = re.compile(r"^frame:(\d+)\s+pts:\S+\s+pts_time:([0-9.]+)")
-_STAT = re.compile(r"lavfi\.signalstats\.([YUV]AVG)=([0-9.]+)")
-CHROMA_WEIGHT = 0.5
-
-
-class EngineError(RuntimeError):
-    pass
 
 
 @dataclass
@@ -60,125 +57,6 @@ class Pick:
     offset_ms: int
     width: int
     label: str = ""
-
-
-def _run(cmd: list[str], *, capture_stdout: bool = False) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        cmd,
-        stdout=subprocess.PIPE if capture_stdout else subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-
-
-def _require_binaries() -> None:
-    missing = [name for name in ("ffmpeg", "ffprobe") if shutil.which(name) is None]
-    if missing:
-        raise EngineError(
-            f"missing required binary: {', '.join(missing)}. "
-            "Install ffmpeg (macOS: brew install ffmpeg) and re-run."
-        )
-
-
-def probe(video: Path) -> dict:
-    result = _run(
-        [
-            "ffprobe",
-            "-v",
-            "error",
-            "-select_streams",
-            "v:0",
-            "-show_entries",
-            "stream=width,height,r_frame_rate,avg_frame_rate,nb_read_frames",
-            "-show_entries",
-            "format=duration",
-            "-count_frames",
-            "-of",
-            "json",
-            str(video),
-        ],
-        capture_stdout=True,
-    )
-    if result.returncode != 0:
-        raise EngineError(f"ffprobe could not read {video}: {result.stderr.decode()[:200]}")
-    payload = json.loads(result.stdout or b"{}")
-    streams = payload.get("streams") or []
-    if not streams:
-        raise EngineError(f"{video} carries no video stream")
-    stream = streams[0]
-    return {
-        "width": int(stream.get("width") or 0),
-        "height": int(stream.get("height") or 0),
-        "frames": int(stream.get("nb_read_frames") or 0),
-        "duration": float((payload.get("format") or {}).get("duration") or 0.0),
-        "r_frame_rate": stream.get("r_frame_rate", ""),
-        "avg_frame_rate": stream.get("avg_frame_rate", ""),
-    }
-
-
-def delta_series(video: Path) -> list[tuple[int, float, float]]:
-    """Per-frame change, computed inside ffmpeg so the cost stays in C."""
-    chain = (
-        f"scale={PROFILE_SIZE}:{PROFILE_SIZE}:flags=area,format=yuv444p,"
-        "tblend=all_mode=difference,signalstats,metadata=print:file=-"
-    )
-    # passthrough is load-bearing: the default resamples a variable-rate recording
-    # to a constant rate, so the series would describe frames that never existed.
-    result = _run(
-        [
-            "ffmpeg",
-            "-v",
-            "error",
-            "-i",
-            str(video),
-            "-an",
-            "-vf",
-            chain,
-            "-fps_mode",
-            "passthrough",
-            "-f",
-            "null",
-            "-",
-        ],
-        capture_stdout=True,
-    )
-    if result.returncode != 0:
-        raise EngineError(f"ffmpeg could not profile {video}: {result.stderr.decode()[:200]}")
-
-    series: list[tuple[int, float, float]] = []
-    pending: float | None = None
-    stats: dict[str, float] = {}
-
-    def flush() -> None:
-        if pending is not None and "YAVG" in stats:
-            # A luminance-matched colour change — an enabled control against its
-            # greyed-out twin — moves only chroma, so luma alone would score it 0.
-            magnitude = stats["YAVG"] + CHROMA_WEIGHT * (
-                stats.get("UAVG", 0.0) + stats.get("VAVG", 0.0)
-            )
-            # tblend emits one frame per input frame after the first, so the
-            # nth delta describes the change INTO source frame n+1.
-            series.append((len(series) + 1, pending, magnitude))
-
-    for line in (result.stdout or b"").decode(errors="replace").splitlines():
-        meta = _META.match(line)
-        if meta:
-            flush()
-            pending = float(meta.group(2))
-            stats = {}
-            continue
-        stat = _STAT.search(line)
-        if stat:
-            stats[stat.group(1)] = float(stat.group(2))
-    flush()
-
-    if not series:
-        raise EngineError(
-            f"{video} produced no frame-to-frame deltas — it is a single still frame. "
-            "Screen recorders emit frames only when the picture changes, so this "
-            "usually means the UI was never driven while recording."
-        )
-    return series
 
 
 def move_threshold(series: list[tuple[int, float, float]]) -> float:
@@ -324,42 +202,13 @@ def _dedupe_indices(picks: list[Pick]) -> list[Pick]:
     return sorted(unique, key=lambda p: p.index)
 
 
-def _raw_frames(video: Path, indices: list[int], size: int) -> list[bytes]:
-    if not indices:
-        return []
-    selector = "+".join(rf"eq(n\,{index})" for index in indices)
-    result = _run(
-        [
-            "ffmpeg",
-            "-v",
-            "error",
-            "-i",
-            str(video),
-            "-an",
-            "-vf",
-            f"select='{selector}',scale={size}:{size},format=rgb24,setpts=N/TB",
-            "-fps_mode",
-            "passthrough",
-            "-f",
-            "rawvideo",
-            "-",
-        ],
-        capture_stdout=True,
-    )
-    if result.returncode != 0:
-        raise EngineError(f"ffmpeg could not sample frames: {result.stderr.decode()[:200]}")
-    stride = size * size * 3
-    blob = result.stdout or b""
-    return [blob[i : i + stride] for i in range(0, len(blob) - stride + 1, stride)]
-
-
 def dedupe_settled(video: Path, picks: list[Pick]) -> tuple[list[Pick], int]:
     settled = [p for p in picks if p.role == "settled"]
     if len(settled) < 2:
         return picks, 0
     # Colour, never luminance: an enabled control and its greyed-out twin can be
     # luminance-identical, so a grey or perceptual-hash compare deletes the pair.
-    samples = _raw_frames(video, [p.index for p in settled], DEDUP_SIZE)
+    samples = sample_rgb(video, [p.index for p in settled], DEDUP_SIZE)
     if len(samples) != len(settled):
         return picks, 0
 
@@ -380,28 +229,7 @@ def extract(video: Path, picks: list[Pick], out_dir: Path) -> list[Path]:
     written: list[Path] = []
     for width in sorted({p.width for p in picks}):
         group = [p for p in picks if p.width == width]
-        selector = "+".join(rf"eq(n\,{p.index})" for p in group)
-        pattern = out_dir / f"w{width}_%03d.jpg"
-        result = _run(
-            [
-                "ffmpeg",
-                "-v",
-                "error",
-                "-y",
-                "-i",
-                str(video),
-                "-an",
-                "-vf",
-                f"select='{selector}',scale={width}:-2,setpts=N/TB",
-                "-fps_mode",
-                "passthrough",
-                "-q:v",
-                "4",
-                str(pattern),
-            ],
-        )
-        if result.returncode != 0:
-            raise EngineError(f"ffmpeg could not extract frames: {result.stderr.decode()[:200]}")
+        extract_indices(video, [p.index for p in group], width, out_dir / f"w{width}_%03d.jpg")
         produced = sorted(out_dir.glob(f"w{width}_*.jpg"))
         if len(produced) != len(group):
             raise EngineError(
@@ -454,7 +282,7 @@ def _fallback_picks(meta: dict) -> list[Pick]:
 
 
 def review(video: Path, out_dir: Path) -> dict:
-    _require_binaries()
+    require_binaries()
     meta = probe(video)
     series = delta_series(video)
     threshold = move_threshold(series)
