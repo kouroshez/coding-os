@@ -5,7 +5,7 @@ swimlane: core
 kind: feature
 epic: null
 labels: [skills, video, visual-verification, user-scope, ready]
-status: in_progress
+status: testing
 priority: P1
 appetite: 1d
 created: 2026-09-15
@@ -33,3 +33,4 @@ references: []
 - **Given** make lint, the golden-parity suite and the file-size budget, **When** they run, **Then** all pass.
 
 ## Work Log
+- 2026-09-15 [claude]: Verified by execution: engine run on a real 243-frame capture, static-recording failure path, colour-only state…
