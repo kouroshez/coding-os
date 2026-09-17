@@ -5,13 +5,13 @@ swimlane: "thinking_os"
 kind: feature
 epic: null
 labels: [supervision, observability, hub, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-08-18
 started: 2026-08-18
 completed: 2026-08-18
-agent_session: ses-claude-20260527-151803-0b9f
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

@@ -5,13 +5,13 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [incident, disk, state-files, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-08-17
 started: 2026-08-17
 completed: 2026-08-17
-agent_session: ses-claude-20260817-154319-10c2
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []
