@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-09-18
 started: null
-completed: null
+completed: 2026-09-18
 agent_session: ses-claude-20260918-164827-6f4a
 depends_on: []
 blocked_by: []
@@ -84,3 +84,4 @@ separately, rather than sending the reader to `cos errors`.
 **Then** the command exists.
 
 ## Work Log
+- 2026-09-18 [claude]: Status transitioned to complete via cos task-done.
