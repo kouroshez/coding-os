@@ -11,15 +11,33 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 | ruff lint | `uv run ruff check .` | 0 findings; burndown ignores in `pyproject.toml` (`SIM105`, `SIM102`, `E741`) | ignore list may only shrink |
 | ruff format | `uv run ruff format --check .` | exact | — |
 | Complexity | part of `ruff check` — `C901` (mccabe ≤20), `PLR0912` (branches ≤24), `PLR0913` (args ≤10), `PLR0915` (statements ≤100) | per-file baseline in `pyproject.toml` `per-file-ignores` (101 violations / 40 files, 2026-08-08) | baseline may only shrink; never add a file |
-| mypy ratchet | `uv run python src/scripts/mypy_ratchet.py` | error count ≤ `BASELINE` in the script (1100, 2026-08-11 — kernel source only, `/tests/` excluded) | count may only fall; lower `BASELINE` when you fix errors |
+| mypy ratchet | `uv run python src/scripts/mypy_ratchet.py` | error count ≤ `BASELINE` in the script (1078 — kernel source only, `/tests/` excluded) | count may only fall; lower `BASELINE` when you fix errors |
 | mypy fatal codes | same command | `FATAL_CODES` in the script — **0 occurrences**, over a wider scope than the count baseline | zero-tolerance; a code leaves the set only with a recorded exception |
 | Tests + coverage | `make coverage` | `fail_under` in `pyproject.toml` (62; measured 63) | ratchet toward 70 → 80 |
-| Slow suite (nightly) | `make test-slow` + the graph phantom gate, on the `schedule` trigger only | 0 failures; phantom count ≤ baseline | **surfaced, not gating** — `CI Pass` emits a warning; see the order-fragility note below |
+| Slow suite (nightly) | `make test-slow` + the graph phantom gate, on the `schedule` trigger only | 0 failures; phantom count ≤ baseline | **gating** since `313b4ee5` (2026-08-14) — `CI Pass` fails on any result but `success` or `skipped`; `skipped` stays valid because the job is schedule-only |
 | diff-cover (PRs only) | `diff-cover coverage.xml --fail-under 80` | 80% on changed lines | fixed — see the scope note below |
 | File-size ratchet | `tests/test_file_size_budget.py` | `SOFT_LIMIT = 500` with three recorded exceptions (2026-08-11), both gates reading `file-size-baseline.json` | each entry may only fall; a file outside the ledger may never cross `SOFT_LIMIT` |
 | shellcheck | `shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh` | 0 warnings | fixed |
 | docs-lint | `make docs-lint` | 0 findings | fixed |
 | CodeQL / dependency-review | GitHub-native | high severity | fixed |
+
+## Advisory, not blocking — and who is supposed to read it
+
+Branch protection on `main` requires exactly one context: **`CI Pass`**. Every
+gate in the table above reaches it through that job's `needs:` list. Anything
+outside that list does not block a merge, whatever colour it shows.
+
+| Workflow | Status | Why | Who reads it |
+|---|---|---|---|
+| `scaffold-verify` | **advisory** | A separate workflow whose jobs are path-filtered to `src/templates/**` / `src/cli/**`. A required check that does not run on a given PR leaves it permanently "expected — waiting for status", so requiring this one would wedge every PR touching neither path. | Whoever merges a PR touching templates or the CLI — the red shows on that PR. |
+| `scorecard`, `codeql`, `dependency-review` | GitHub-native | Reported on the PR and in the Security tab; `dependency-review` does block on high severity. | Security tab. |
+
+**An advisory gate only works while somebody is looking**, and this one proved
+it the hard way: `scaffold-verify` sat red on `main` for 27 days
+(2026-08-18 → 2026-09-14) over an npm 10 arborist crash, because the PRs
+carrying it were dependabot PRs nobody merged. The fix was not to make it
+required — it cannot be, for the reason above. An unattended dependency queue
+turns every advisory signal into noise; drain the queue and the signal works.
 
 ## Write-time counterparts (the same standards, earlier)
 
