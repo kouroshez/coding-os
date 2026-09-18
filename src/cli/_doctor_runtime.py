@@ -123,7 +123,12 @@ def _check_runtime_state_within_budget(project: Path, report: DoctorReport) -> N
                     "file": DATABASE_FILE_RELATIVE_PATH,
                     "actual_megabytes": round(database_megabytes, 1),
                     "budget_megabytes": DATABASE_SIZE_BUDGET_MEGABYTES,
-                    "fix": "review brain memory growth — `cos brain stats`",
+                    # Measured on this repo at 326 MB: graph_edges_v12 holds
+                    # 159,712 rows and graph_nodes 80,211 — the knowledge graph
+                    # IS the database. The old advice pointed at agent memory
+                    # (0.2% of it) through `cos brain stats`, which is not a
+                    # command that exists.
+                    "fix": "`cos db-stats` for the row breakdown; the graph dominates — `cos graph-reindex` after pruning, `cos brain-gc` only for memory rows",
                 }
             )
 

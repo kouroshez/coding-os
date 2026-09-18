@@ -360,38 +360,74 @@ class TestNightlyEntrypointSmoke:
 
 
 class TestGraphReindexIfStale:
-    """Probe-driven nightly reindex covers the gap when no edits fired the
-    PostToolUse auto-reindex hook for >24h."""
+    """Nightly reindex covers the gap when no edit fired the PostToolUse hook.
 
-    def _write_probe(self, project_root: Path, last_ok_at: int) -> Path:
+    Staleness is the age of the newest indexed NODE — the same number
+    `cos doctor` grades `graph.freshness` on. It used to read
+    `.graph-backend.json::last_ok_at`, a backend liveness probe refreshed on
+    every query, so on any project in use this leg never fired. Observed
+    2026-09-15: nightly logged `skipped, fresh (38050s)` while doctor called
+    the index stale at 121176s six hours later.
+    """
+
+    def _write_index(self, project_root: Path, updated_at: int) -> Path:
+        """Seed one graph node so the leg has an index age to read."""
+        import sqlite3
+
         state = project_root / ".coding-os"
         state.mkdir(parents=True, exist_ok=True)
-        probe = state / ".graph-backend.json"
-        probe.write_text(json.dumps({"backend": "sqlite", "last_ok_at": last_ok_at}))
-        return probe
+        db = state / "coding-os.db"
+        with sqlite3.connect(db) as conn:
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS graph_nodes (uid TEXT PRIMARY KEY, updated_at INTEGER)"
+            )
+            conn.execute(
+                "INSERT OR REPLACE INTO graph_nodes (uid, updated_at) VALUES (?, ?)",
+                ("code:file:sample.py", updated_at),
+            )
+        return db
 
-    def test_skips_when_probe_missing(self, tmp_path: Path) -> None:
+    def test_skips_when_no_index_yet(self, tmp_path: Path) -> None:
         import nightly
 
         result = nightly._run_graph_reindex_if_stale(tmp_path, dry_run=False)
-        assert result == {"status": "skipped", "reason": "no_probe_yet"}
+        assert result == {"status": "skipped", "reason": "no_graph_index_yet"}
 
-    def test_skips_when_probe_fresh(self, tmp_path: Path) -> None:
+    def test_skips_when_index_is_fresh(self, tmp_path: Path) -> None:
         import time as _t
 
         import nightly
 
-        self._write_probe(tmp_path, int(_t.time()) - 60)  # 60s old
+        self._write_index(tmp_path, int(_t.time()) - 60)  # 60s old
         result = nightly._run_graph_reindex_if_stale(tmp_path, dry_run=False)
         assert result["status"] == "skipped"
         assert "fresh" in result["reason"]
 
-    def test_dry_run_when_probe_stale(self, tmp_path: Path) -> None:
+    def test_a_live_backend_does_not_mask_a_stale_index(self, tmp_path: Path) -> None:
+        """The regression itself: a fresh liveness probe beside an old index.
+
+        Under the old reading this returned `skipped, fresh` — the exact case
+        the leg exists to repair.
+        """
         import time as _t
 
         import nightly
 
-        self._write_probe(tmp_path, int(_t.time()) - 200_000)  # >24h
+        now = int(_t.time())
+        self._write_index(tmp_path, now - 200_000)  # index >24h old
+        probe = tmp_path / ".coding-os" / ".graph-backend.json"
+        probe.write_text(json.dumps({"backend": "sqlite", "last_ok_at": now}))
+
+        result = nightly._run_graph_reindex_if_stale(tmp_path, dry_run=True)
+        assert result["status"] == "dry_run", "a live backend masked a stale index"
+        assert result["would_reindex"] is True
+
+    def test_dry_run_when_index_is_stale(self, tmp_path: Path) -> None:
+        import time as _t
+
+        import nightly
+
+        self._write_index(tmp_path, int(_t.time()) - 200_000)  # >24h
         result = nightly._run_graph_reindex_if_stale(tmp_path, dry_run=True)
         assert result["status"] == "dry_run"
         assert result["would_reindex"] is True
@@ -404,7 +440,7 @@ class TestGraphReindexIfStale:
 
         import nightly
 
-        self._write_probe(tmp_path, int(_t.time()) - 200_000)
+        self._write_index(tmp_path, int(_t.time()) - 200_000)
 
         captured: dict = {}
 
