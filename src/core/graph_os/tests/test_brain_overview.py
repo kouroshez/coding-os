@@ -21,9 +21,12 @@ import pytest
 from graph_os.tools import graph as graph_tools
 from graph_os.types import GraphEdge, GraphNode
 
+# Deferred, not forgotten: TASK-1042 carries the decision. The skip named
+# TASK-141a, a card that does not exist, and stayed silent for four months —
+# which is how 11 tests can sit in the suite count without ever running.
 pytestmark = pytest.mark.skipif(
     not hasattr(graph_tools, "cos_graph_overview"),
-    reason="cos_graph_overview not yet implemented (TASK-141a placeholder).",
+    reason="cos_graph_overview not implemented — parked on TASK-1042, not abandoned.",
 )
 
 

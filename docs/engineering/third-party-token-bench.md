@@ -138,6 +138,16 @@ callers; it is a much cheaper way to get **all** of them.*
 
 ## Honest limits
 
+- **Cost is the only axis measured. Answer quality is not.** `ProbeRow` emits
+  `graph_tokens`, `baseline_tokens` and `savings_pct`; the harness has no
+  accuracy, recall or precision field, and it has never been run against a
+  code-retrieval benchmark such as CodeRAG-Bench, CoIR-Retrieval, ContextBench or
+  SWE-Explore-Bench. So every number here answers *what does the envelope cost*
+  and none of them answers *is the answer better*. A retrieval that is 80%
+  cheaper and wrong is worse than grep, and these tables cannot tell the two
+  apart. The one quality-shaped guard is structural rather than measured: an
+  envelope whose coverage walk came back truncated is never scored as a saving,
+  which rules out answering from a partial result and rules out nothing else.
 - chars/4 is a heuristic, not a tokenizer. Both sides use the same estimator, so the
   *ratio* is meaningful even where absolutes drift.
 - **Probe selection favours the graph.** The highest-degree symbols are exactly the

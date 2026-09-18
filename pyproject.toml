@@ -1,6 +1,6 @@
 [project]
 name = "coding-os"
-version = "0.3.21"
+version = "0.3.22"
 description = "The cognitive operating system that gives AI agents memory, structure, and discipline"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -136,7 +136,7 @@ web = []
 claude-sdk = []
 
 codex-sdk = [
-    "openai-codex>=0.144.4,<0.145.0",
+    "openai-codex>=0.144.4,<0.155.0",
 ]
 
 [project.scripts]
@@ -166,7 +166,7 @@ dev = [
     # Exact pin: uv.lock is gitignored, so CI resolves this fresh — a floating
     # bound let every new ruff release reformat the world and fail the enforced
     # format gate daily. Bump deliberately together with a format sweep.
-    "ruff==0.16.2",
+    "ruff==0.16.7",
     "mypy>=1.10.0",
     "types-pyyaml>=6.0.0",
     "types-jsonschema>=4.0.0",
@@ -309,7 +309,7 @@ testpaths = ["src/core/thinking_os/tests", "src/core/graph_os/tests", "src/core/
 markers = [
     "slow: tests that scaffold sandboxes or regenerate the manifest (~30s+)",
     "real_embeddings: tests that need the real SentenceTransformer model (exempt from the conftest stub)",
-    "sdk_e2e: real claude-agent-sdk dispatch tests — require ANTHROPIC_API_KEY (nightly only)",
+    "sdk_e2e: real claude-agent-sdk dispatch tests — require ANTHROPIC_API_KEY, billed per run. MANUAL ONLY: no workflow passes --run-sdk-e2e and the repo holds no API-key secret, so these have never run in CI. Do not write 'nightly' here again without a job that actually runs them.",
     "bench: pytest-benchmark micro-benchmarks (run via `make bench`, excluded from normal sweeps)",
 ]
 # Useful defaults; override with -p no:cacheprovider etc on CI if needed.

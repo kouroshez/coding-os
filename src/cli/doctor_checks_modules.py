@@ -64,8 +64,17 @@ def _check_runtime_errors(state: Path, report: DoctorReport) -> None:
             from tools.logs import log_query
         except ImportError:
             from core.thinking_os.tools.logs import log_query
-        n_err = log_query(conn, level="error", since=since, limit=1)["total"]
-        n_fatal = log_query(conn, level="fatal", since=since, limit=1)["total"]
+        # Count FAULTS, not every ERROR row. A guardrail doing its job writes
+        # an ERROR-level row — `rm-rf-critical`, `force-push-main`,
+        # `block-secrets env-file` — and migration v46 added event_class so
+        # those stop reading as bugs. Measured on this repo: 19 of the last 20
+        # ERROR rows in 24h were policy, which flipped this check to WARN and
+        # sent the operator to `cos errors` to find nothing wrong.
+        n_err = log_query(conn, level="error", since=since, event_class="fault", limit=1)["total"]
+        n_fatal = log_query(conn, level="fatal", since=since, event_class="fault", limit=1)["total"]
+        n_policy = log_query(conn, level="error", since=since, event_class="policy", limit=1)[
+            "total"
+        ]
         conn.close()
     except Exception as exc:
         report.checks.append(
@@ -73,7 +82,12 @@ def _check_runtime_errors(state: Path, report: DoctorReport) -> None:
         )
         return
     threshold = int(os.environ.get("COS_DOCTOR_ERROR_THRESHOLD", "1"))
-    detail = {"errors": n_err, "fatal": n_fatal, "window_hours": window_h}
+    detail = {
+        "errors": n_err,
+        "fatal": n_fatal,
+        "policy_blocks": n_policy,
+        "window_hours": window_h,
+    }
     if n_fatal > 0:
         report.checks.append(
             CheckResult(

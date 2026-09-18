@@ -544,6 +544,11 @@ public checkouts, 8 on this one (`min` in brackets — the honest worst case):
 | django/django @ 5.2 | 2,818 | **76.8%** (50.3) | 70.8% (18.5) | **77.1%** (51.1) |
 | this repo | 3,317 | **79.7%** (65.9) | 74.0% (64.7) | **79.7%** (65.7) |
 
+Every number below is a **token cost**. The harness measures what each approach
+spends, not whether its answer is better; it emits no accuracy metric and has not
+been run against a code-retrieval benchmark. Read the tables as a cost result and
+nothing more ([limits](docs/engineering/third-party-token-bench.md#honest-limits)).
+
 Read it as three findings, including the one that does not flatter us:
 
 1. **"Who calls this?" and "what does a rename touch?" are a consistent ~75–82%

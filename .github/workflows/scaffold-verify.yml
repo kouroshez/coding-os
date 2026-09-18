@@ -59,6 +59,12 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
+      # Node 22 ships npm 10, whose arborist dies with "Cannot read properties
+      # of null (reading 'edgesOut')" on the astro and svelte-sveltekit trees —
+      # reproduced locally on the same package.json that npm 11 installs
+      # cleanly. The fault is in the resolver, not the runtime or the scaffold,
+      # so pin the resolver and leave node where the scaffolds declare it.
+      - run: npm install -g npm@11
       - run: uv sync --extra rag
       - name: Scaffold
         run: uv run python -m cli.main init --agent claude --project-dir "$SV_DIR" --name app --template ${{ matrix.stack }} --no-git --force --no-register --no-index

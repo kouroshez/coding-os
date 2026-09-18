@@ -5,13 +5,13 @@ swimlane: templates
 kind: bug
 epic: null
 labels: [supply-chain, scaffold, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 1d
 created: 2026-08-13
 started: 2026-08-13
 completed: 2026-08-13
-agent_session: ses-claude-20260812-170221-1654
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

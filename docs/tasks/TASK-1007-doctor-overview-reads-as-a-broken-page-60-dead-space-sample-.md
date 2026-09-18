@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ui, design, diagnostics, readme, ready]
-status: icebox
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-08-17
 started: null
-completed: null
-agent_session: null
+completed: 2026-09-13
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1007: Doctor Overview reads as a broken page: 60% dead space, sample counts that look like totals
 
 **Outcome (one sentence):** The Diagnostics → Doctor Overview tab is worth screenshotting: no half-empty viewport, no stat that reads as a total when it is a probe sample, no two panels restating the same three numbers, and no page-level OK pill sitting under a header warning.
@@ -37,3 +36,5 @@ Open http://127.0.0.1:9188/p/coding-os/diagnostics/doctor at 1600x1000. Content 
 4. **Given** the header reports a graph issue **When** the page pill renders **Then** the two do not contradict each other on the same screen.
 
 ## Work Log
+- 2026-09-14 [claude]: Overview now reports the real graph (79,873 nodes / 159,101 edges) instead of a 101-node probe sample, drops the…
+- 2026-09-14 [claude]: Status transitioned to complete via cos task-done.

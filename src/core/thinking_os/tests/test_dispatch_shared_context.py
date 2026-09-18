@@ -147,3 +147,57 @@ class TestShardedContextQuery:
 
         db = self._db(tmp_path, [("TASK-9", "T", "testing", "ses-a", "2026-08-18", "{not json")])
         assert _shared_context("ses-a", db)["recent_work_log"] == []
+
+
+class TestSessionOwnership:
+    """The task handed to the child is this session's, or none (TASK-1031).
+
+    `agent_session` used to only rank the ORDER BY, so a session that owned no
+    in_progress task still got the newest one belonging to somebody else — and
+    the child was told, in the one channel it has, that this was its work.
+    """
+
+    @staticmethod
+    def _db(tmp_path, rows):
+        import sqlite3
+
+        db = tmp_path / "coding-os.db"
+        conn = sqlite3.connect(db)
+        conn.execute(
+            "CREATE TABLE tasks (task_id TEXT, title TEXT, status TEXT, "
+            "agent_session TEXT, work_log_last_5 TEXT, updated_at INTEGER)"
+        )
+        conn.executemany("INSERT INTO tasks VALUES (?,?,?,?,?,?)", rows)
+        conn.commit()
+        conn.close()
+        return db
+
+    def test_a_session_owning_nothing_inherits_nothing(self, tmp_path) -> None:
+        from thinking_os.tools._dispatch_request import _shared_context
+
+        db = self._db(
+            tmp_path,
+            [("TASK-900", "someone else's work", "in_progress", "ses-claude-old-0b9f", "[]", 200)],
+        )
+        assert _shared_context("ses-claude-fresh-abcd", db_path=db) == {}
+
+    def test_a_session_gets_its_own_task(self, tmp_path) -> None:
+        from thinking_os.tools._dispatch_request import _shared_context
+
+        db = self._db(
+            tmp_path,
+            [
+                (
+                    "TASK-900",
+                    "someone else's work",
+                    "in_progress",
+                    "ses-claude-old-0b9f",
+                    "[]",
+                    300,
+                ),
+                ("TASK-901", "mine", "testing", "ses-claude-fresh-abcd", "[]", 100),
+            ],
+        )
+        context = _shared_context("ses-claude-fresh-abcd", db_path=db)
+        assert context["task_id"] == "TASK-901"
+        assert context["status"] == "testing"

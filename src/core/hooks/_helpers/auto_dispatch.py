@@ -161,6 +161,7 @@ def _dispatch_one(target: dict, task_id: str, session_id: str, db_path: str) -> 
         )
     meta = result.output_json.get("_meta") if isinstance(result.output_json, dict) else {}
     meta = meta if isinstance(meta, dict) else {}
+    verdict, findings = _verdict(result.output_json)
     return {
         "role": role,
         "adapter": meta.get("adapter") or target["adapter"],
@@ -169,7 +170,44 @@ def _dispatch_one(target: dict, task_id: str, session_id: str, db_path: str) -> 
         "cost_usd": meta.get("total_cost_usd"),
         "latency_ms": result.latency_ms,
         "error": (result.error or "")[:200] or None,
+        "passed": verdict,
+        "findings": findings,
     }
+
+
+_FINDING_KEYS = ("review_findings", "findings", "dependency_risks")
+_TEXT_KEYS = ("description", "finding", "issue", "summary", "title", "message")
+
+
+def _verdict(output_json: object) -> tuple[bool | None, list[str]]:
+    # A review that ran and found nothing reads identically to a review whose
+    # findings were dropped, unless the verdict travels with the route. The
+    # route and the price used to be the whole message the parent got back.
+    if not isinstance(output_json, dict):
+        return None, []
+    passed = output_json.get("passed")
+    passed = passed if isinstance(passed, bool) else None
+
+    findings: list[str] = []
+    for key in _FINDING_KEYS:
+        for item in output_json.get(key) or []:
+            text = _finding_text(item)
+            if text:
+                findings.append(text)
+    return passed, findings[:3]
+
+
+def _finding_text(item: object) -> str:
+    if isinstance(item, str):
+        return item[:120]
+    if not isinstance(item, dict):
+        return ""
+    body = next((str(item[k]) for k in _TEXT_KEYS if item.get(k)), "")
+    if not body:
+        return ""
+    severity = item.get("severity")
+    prefix = f"{severity}: " if isinstance(severity, str) and severity else ""
+    return (prefix + body)[:120]
 
 
 def main(argv: list[str]) -> int:

@@ -128,6 +128,29 @@ def _is_source(path: Path) -> bool:
     return not _is_generated(path)
 
 
+BASELINE_LEDGER_NAME = "file-size-baseline.json"
+
+
+def recorded_exceptions(repo_root: Path) -> dict[str, int]:
+    # The project's own ledger of debt that predates the gate, shared with
+    # tests/test_file_size_budget.py so the two halves cannot disagree. They
+    # did: this backstop knew nothing of the three entries the ratchet
+    # recorded, so `cos doctor` reported quality.file_size FAIL forever on
+    # files the project had already decided to keep — and a check that is red
+    # no matter what you do stops carrying information.
+    #
+    # Absent file (every consumer project) means no exceptions, which is the
+    # correct default: a fresh tree has no legacy debt to record.
+    try:
+        ledger = json.loads((repo_root / BASELINE_LEDGER_NAME).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    entries = ledger.get("baseline")
+    if not isinstance(entries, dict):
+        return {}
+    return {str(k): int(v) for k, v in entries.items() if isinstance(v, int)}
+
+
 def _line_count(path: Path) -> int | None:
     try:
         with path.open("rb") as handle:
@@ -148,6 +171,7 @@ def scan(
     warn_at = env_warn if warn_at is None else warn_at
     root = (repo_root or Path.cwd()).resolve()
 
+    recorded = recorded_exceptions(root)
     violations: list[dict] = []
     for path in _candidates(roots or ["."], root):
         if not _is_source(path) or not path.is_file():
@@ -155,16 +179,30 @@ def scan(
         lines = _line_count(path)
         if lines is None:
             continue
+        try:
+            name = str(path.relative_to(root))
+        except ValueError:
+            name = str(path)
+        # A recorded exception is exempt only while it shrinks. Growing past
+        # its recorded size is a new offence, and it is reported as one.
+        allowance = recorded.get(name)
+        if allowance is not None:
+            if lines > allowance:
+                violations.append(
+                    {
+                        "file": name,
+                        "lines": lines,
+                        "tier": "error",
+                        "recorded": allowance,
+                    }
+                )
+            continue
         if lines > ceiling:
             tier = "error"
         elif lines > warn_at:
             tier = "warn"
         else:
             continue
-        try:
-            name = str(path.relative_to(root))
-        except ValueError:
-            name = str(path)
         violations.append({"file": name, "lines": lines, "tier": tier})
 
     violations.sort(key=lambda item: -item["lines"])

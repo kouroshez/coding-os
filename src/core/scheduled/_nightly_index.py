@@ -7,7 +7,6 @@ graph that silently drifts past its freshness window.
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import sys
@@ -37,28 +36,43 @@ def _run_doc_reconcile(db_path: Path, project_root: Path, *, dry_run: bool) -> d
     }
 
 
+def _graph_index_age_seconds(db_path: Path) -> int | None:
+    # The same number cos doctor grades graph.freshness on
+    # (_doctor_graph_pipeline._graph_last_index_seconds): how old the newest
+    # indexed NODE is. Not .graph-backend.json::last_ok_at — that is a backend
+    # liveness probe, refreshed every time the backend answers a query, so on
+    # any project someone is working in it is never 24h old and this leg never
+    # fired. Observed 2026-09-15: nightly recorded
+    # `skipped, fresh (38050s < 86400s)` while cos doctor reported the index
+    # stale at 121176s six hours later. The self-healing leg could not fire in
+    # exactly the case it exists for.
+    import time as _t
+
+    if not db_path.exists():
+        return None
+    try:
+        with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=10) as conn:
+            row = conn.execute("SELECT MAX(updated_at) FROM graph_nodes").fetchone()
+    except sqlite3.Error as exc:
+        logger.debug("graph index age unavailable: %s", exc)
+        return None
+    if row is None or row[0] is None:
+        return None
+    return int(_t.time()) - int(row[0])
+
+
 def _run_graph_reindex_if_stale(project_root: Path, *, dry_run: bool) -> dict:
-    """Trigger a full graph reindex when the backend probe is older than 24h.
+    """Trigger a full graph reindex when the INDEX is older than 24h.
 
     The PostToolUse auto-reindex hook keeps the graph fresh on every Edit /
     Write, but a project that hasn't been touched for >24h drifts out of
     freshness silently. Nightly fills that gap so `cos doctor` keeps
     `graph.freshness` PASS without manual intervention.
     """
-    import time as _t
-
-    probe = project_root / ".coding-os" / ".graph-backend.json"
-    if not probe.exists():
-        return {"status": "skipped", "reason": "no_probe_yet"}
-    try:
-        data = json.loads(probe.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        return {"status": "skipped", "reason": f"probe_unreadable: {exc}"}
-
-    last_ok = data.get("last_ok_at")
-    if not isinstance(last_ok, int):
-        return {"status": "skipped", "reason": "probe_missing_last_ok_at"}
-    age = int(_t.time()) - last_ok
+    db_path = project_root / ".coding-os" / "coding-os.db"
+    age = _graph_index_age_seconds(db_path)
+    if age is None:
+        return {"status": "skipped", "reason": "no_graph_index_yet"}
     if age < _GRAPH_REINDEX_THRESHOLD_S:
         return {
             "status": "skipped",

@@ -5,13 +5,13 @@ swimlane: core
 kind: feature
 epic: null
 labels: [orchestration, adapters, model-routing, hub, docs-update, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 3d
 created: 2026-08-04
 started: 2026-08-06
 completed: 2026-08-07
-agent_session: ses-claude-20260806-204356-2f94
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

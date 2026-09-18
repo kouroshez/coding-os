@@ -308,22 +308,46 @@ cos_panel_upgrade_from_payload() {
   # reader that goes through $COS_SESSION_FILE (the SSOT for "who am I")
   # sees an empty value, and the per-session ownership check rejects every
   # state file as un-owned — the cascade that surfaces as banner ses=? ·
-  # task=none · gate=unset on hooks that only have agent-level legacy
-  # state. SessionStart:startup writes a `ses-<agent>-<ts>-<rand>` id; for
-  # resume/compact/user-prompt-submit (where startup never fires for this
-  # panel), we mirror the agent-level session-id when present, else seed
-  # with the panel id (stable across the conversation).
+  # task=none · gate=unset on hooks that only have agent-level legacy state.
+  #
+  # The seed is always NEW. This used to mirror $COS_AGENT_DIR/session-id when
+  # that file existed, on the theory that a resumed conversation should keep
+  # its id. But that file is agent-level: it holds whichever panel wrote last
+  # and nothing ever rotates it, so every panel that starts without a startup
+  # event copied the same value. Observed in the wild: two live panels both
+  # stamped ses-claude-20260527-151803-0b9f, an id minted three and a half
+  # months earlier — colliding `ses=` tails in the banner, and session-keyed
+  # state reaching back to a conversation nobody remembers. A panel with no id
+  # of its own IS a new panel; _session_pulse.sh already refuses that fossil
+  # ("NEVER fall back to $COS_AGENT_DIR/session-id"), and this is its twin.
   if [[ ! -s "$COS_SESSION_FILE" ]]; then
-    local seed=""
-    if [[ -s "${COS_AGENT_DIR}/session-id" ]]; then
-      seed="$(tr -d '\n\r' < "${COS_AGENT_DIR}/session-id" 2>/dev/null || true)"
-    fi
-    [[ -z "$seed" ]] && seed="ses-${COS_AGENT}-${COS_PANEL_ID}"
+    local seed
+    seed="$(cos_mint_session_id)"
     local _tmp="${COS_SESSION_FILE}.tmp.$$"
     printf '%s\n' "$seed" > "$_tmp" 2>/dev/null \
       && mv -f "$_tmp" "$COS_SESSION_FILE" 2>/dev/null \
       || rm -f "$_tmp" 2>/dev/null
   fi
+}
+
+# ---------------------------------------------------------------------------
+# cos_mint_session_id
+#
+# The one place the `ses-<agent>-YYYYMMDD-HHMMSS-xxxx` shape is written.
+# session-context.sh mints one on SessionStart:startup and this helper mints
+# one for a panel that first appears on resume/compact — two writers, one
+# format, so a reader parsing the tail never meets a second shape. Falls back
+# to the panel id (already unique per conversation) when /dev/urandom or xxd
+# is unavailable.
+# ---------------------------------------------------------------------------
+cos_mint_session_id() {
+  local rand
+  rand="$(head -c 4 /dev/urandom 2>/dev/null | xxd -p 2>/dev/null | head -c 4 || true)"
+  if [[ -z "$rand" ]]; then
+    printf 'ses-%s-%s' "${COS_AGENT}" "${COS_PANEL_ID}"
+    return 0
+  fi
+  printf 'ses-%s-%s-%s' "${COS_AGENT}" "$(date +%Y%m%d-%H%M%S)" "$rand"
 }
 
 # ---------------------------------------------------------------------------

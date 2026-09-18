@@ -5,13 +5,13 @@ swimlane: core
 kind: chore
 epic: null
 labels: [ready, docs-update, governance, launch]
-status: complete
+status: archive
 priority: P2
 appetite: 1d
 created: 2026-08-04
 started: 2026-08-04
 completed: 2026-08-04
-agent_session: ses-claude-20260803-180632-5fca
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

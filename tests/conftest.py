@@ -61,7 +61,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--run-sdk-e2e",
         action="store_true",
         default=False,
-        help="Run sdk_e2e-marked tests (require ANTHROPIC_API_KEY, nightly only)",
+        help="Run sdk_e2e-marked tests (require ANTHROPIC_API_KEY; manual, billed — no CI job passes this)",
     )
 
 
@@ -123,3 +123,14 @@ def _isolate_registry(
     monkeypatch.setenv("COS_REGISTRY_PATH", str(tmp_reg))
     for _var in (*_LEAKY_SESSION_ENV, *_LEAKY_DERIVED_ENV):
         monkeypatch.delenv(_var, raising=False)
+
+    # Unsetting COS_STATE_DIR is not isolation — cos-env.sh then DERIVES it
+    # from the repo root, so every hook a test spawns logs into the live
+    # .coding-os/. Measured: 3,095 pr-mode rule blocks in log_events for a
+    # repo whose git_settings.enabled is false, 102 of them in one 3-second
+    # burst that was a test run. Those rows reached `cos doctor`
+    # (runtime.recent_errors), the pattern miner, and the digest injected into
+    # every session as "In pr-mode projects, …" guidance for a project that
+    # has never run pr-mode. Point it somewhere disposable instead; a test
+    # that needs a real one still sets it, and monkeypatch order keeps that.
+    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path_factory.mktemp("state", numbered=True)))

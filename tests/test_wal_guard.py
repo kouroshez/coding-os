@@ -15,6 +15,7 @@ import sys
 import textwrap
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -184,3 +185,55 @@ def test_guard_tolerates_bad_arguments(tmp_path: Path) -> None:
         timeout=30,
     )
     assert bad.returncode == 0
+
+
+def _recovery_step(tmp_path: Path, wal_bytes: int, free_bytes: int, monkeypatch) -> str:
+    sys.path.insert(0, str(_ROOT / "src"))
+    from cli import _doctor_runtime
+
+    wal = tmp_path / "coding-os.db-wal"
+    wal.write_bytes(b"")
+    monkeypatch.setattr(
+        _doctor_runtime.shutil,
+        "disk_usage",
+        lambda _p: SimpleNamespace(free=free_bytes),
+    )
+    return _doctor_runtime._wal_recovery_step(wal, wal_bytes)
+
+
+def test_recovery_step_recommends_truncate_when_the_volume_has_room(tmp_path, monkeypatch) -> None:
+    step = _recovery_step(
+        tmp_path, wal_bytes=60 * 1024**3, free_bytes=200 * 1024**3, monkeypatch=monkeypatch
+    )
+    assert "wal_checkpoint(TRUNCATE)" in step
+    assert "do NOT" not in step
+
+
+def test_recovery_step_refuses_truncate_when_free_space_is_under_the_wal(
+    tmp_path, monkeypatch
+) -> None:
+    """The incident volume had 32 GB free beside a 59 GB WAL.
+
+    A recovery step that folds the whole WAL into the DB in one pass is the
+    wrong advice there, and 'it failed halfway' is the worst way to learn it.
+    """
+    step = _recovery_step(
+        tmp_path, wal_bytes=59 * 1024**3, free_bytes=32 * 1024**3, monkeypatch=monkeypatch
+    )
+    assert "do NOT run wal_checkpoint(TRUNCATE)" in step
+    assert "PASSIVE" in step
+    assert "32768 MB free" in step or "32768 MB" in step
+
+
+def test_recovery_step_falls_back_to_truncate_when_free_space_is_unreadable(
+    tmp_path, monkeypatch
+) -> None:
+    sys.path.insert(0, str(_ROOT / "src"))
+    from cli import _doctor_runtime
+
+    def _boom(_p):
+        raise OSError("statvfs unavailable")
+
+    monkeypatch.setattr(_doctor_runtime.shutil, "disk_usage", _boom)
+    step = _doctor_runtime._wal_recovery_step(tmp_path / "coding-os.db-wal", 1024)
+    assert "wal_checkpoint(TRUNCATE)" in step

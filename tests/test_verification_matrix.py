@@ -44,6 +44,40 @@ def test_the_matrix_section_is_parseable() -> None:
     assert len(_matrix_commands()) >= 9
 
 
+_EXTRA_RE = re.compile(r"--extra\s+([A-Za-z0-9_.-]+)")
+# Text-parsed, not tomllib: the project floor is py3.10 where it is absent
+# (same reason as tests/test_wheel_packaging.py).
+_OPTIONAL_DEPS_RE = re.compile(
+    r"^\[project\.optional-dependencies\]\s*$(.*?)(?=^\[|\Z)", re.M | re.S
+)
+_GROUP_RE = re.compile(r"^([A-Za-z0-9_.-]+)\s*=", re.M)
+
+
+def _declared_extras() -> set[str]:
+    section = _OPTIONAL_DEPS_RE.search((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert section, "pyproject.toml has no [project.optional-dependencies] section"
+    return set(_GROUP_RE.findall(section.group(1)))
+
+
+def test_pyproject_declares_extras() -> None:
+    assert _declared_extras(), "parsed zero extras groups — the section regex has drifted"
+
+
+@pytest.mark.parametrize("changed,command", _matrix_commands())
+def test_every_extra_group_in_the_matrix_is_declared(changed: str, command: str) -> None:
+    """A matrix row's `--extra <group>` is a second copy of a name pyproject owns.
+
+    Renaming the group there leaves every row naming it installing nothing, which
+    surfaces as a confusing runtime failure far from the edit rather than here.
+    """
+    declared = _declared_extras()
+    for group in _EXTRA_RE.findall(command):
+        assert group in declared, (
+            f"matrix row for {changed} runs `--extra {group}`, which is not in "
+            f"pyproject.toml::[project.optional-dependencies] {sorted(declared)}"
+        )
+
+
 @pytest.mark.parametrize("changed,command", _matrix_commands())
 def test_every_pytest_target_in_the_matrix_resolves(changed: str, command: str) -> None:
     if "pytest" not in command:

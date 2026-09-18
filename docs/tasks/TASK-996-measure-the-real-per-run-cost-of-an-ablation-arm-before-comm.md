@@ -5,18 +5,17 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [ready]
-status: icebox
+status: blocked
 priority: P2
 appetite: 1d
 created: 2026-08-16
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-996: Measure the real per-run cost of an ablation arm before committing to a pilot
 
 **Outcome (one sentence):** The ablation protocol carries a measured cost per run taken from real executions, so the decision to fund or drop the 300-run pilot rests on a number rather than a guess.

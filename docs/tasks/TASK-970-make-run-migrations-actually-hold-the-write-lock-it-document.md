@@ -5,13 +5,13 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [database, concurrency, P0, ready]
-status: complete
+status: archive
 priority: P0
 appetite: 1d
 created: 2026-08-14
 started: 2026-08-14
 completed: 2026-08-14
-agent_session: ses-claude-20260814-120316-413b
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

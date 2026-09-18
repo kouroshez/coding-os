@@ -172,6 +172,12 @@ class TestServerStart:
             raise SystemExit(0)
 
         monkeypatch.setattr(os, "execvpe", fake_execvpe)
+        # This asserts the DERIVATION fallback, so the var has to be absent.
+        # conftest's _isolate_registry now points COS_STATE_DIR at a temp dir
+        # (an unset one made every hook a test spawned log into the live
+        # .coding-os/), and server-start correctly honours an explicit value
+        # over the cwd — which is the behaviour this test is not measuring.
+        monkeypatch.delenv("COS_STATE_DIR", raising=False)
         monkeypatch.chdir(tmp_path)
 
         result = runner.invoke(cli, ["server-start"])

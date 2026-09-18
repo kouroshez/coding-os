@@ -5,13 +5,13 @@ swimlane: core
 kind: security
 epic: null
 labels: [ci, supply-chain, ready]
-status: complete
+status: archive
 priority: P1
 appetite: 2h
 created: 2026-08-08
 started: 2026-08-07
 completed: 2026-08-08
-agent_session: ses-claude-20260807-224955-abc1
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

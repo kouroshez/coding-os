@@ -163,3 +163,56 @@ class TestCodexUsageIsCaptured:
             [{"type": "item.completed", "item": {"type": "agent_message", "text": "done"}}]
         )
         assert response == "done" and failure is None
+
+
+class TestFindingsReachTheParent:
+    """The verdict travels with the route, or the review buys false confidence.
+
+    A reviewer that ran on another provider and found three problems reached the
+    parent as `reviewer@codex/gpt-5.6-sol=ok$0.5612` — indistinguishable from a
+    clean review, while the findings sat in the evidence bundle (TASK-1032).
+    """
+
+    def test_findings_are_named_not_just_counted(self) -> None:
+        line = summarise(
+            [
+                json.dumps(
+                    {
+                        "role": "reviewer",
+                        "adapter": "codex",
+                        "model": "gpt-5.6-sol",
+                        "status": "ok",
+                        "cost_usd": 0.5612,
+                        "passed": False,
+                        "findings": [
+                            "high: auth check runs after the write",
+                            "no test for the 429 path",
+                        ],
+                    }
+                )
+            ]
+        )
+        assert "✗2" in line
+        assert "auth check runs after the write" in line
+
+    def test_a_clean_review_says_so(self) -> None:
+        line = summarise(
+            [json.dumps({"role": "reviewer", "adapter": "codex", "status": "ok", "passed": True})]
+        )
+        assert "✓clean" in line
+
+    def test_an_unknown_verdict_adds_nothing(self) -> None:
+        line = summarise([json.dumps({"role": "observer", "adapter": "codex", "status": "ok"})])
+        assert "✗" not in line and "✓" not in line
+
+    def test_extracts_findings_from_each_role_shape(self) -> None:
+        from auto_dispatch import _verdict
+
+        reviewer = {"passed": False, "review_findings": [{"description": "drifted field name"}]}
+        auditor = {
+            "passed": False,
+            "findings": [{"severity": "critical", "description": "secret in the log line"}],
+        }
+        assert _verdict(reviewer) == (False, ["drifted field name"])
+        assert _verdict(auditor) == (False, ["critical: secret in the log line"])
+        assert _verdict("not a dict") == (None, [])

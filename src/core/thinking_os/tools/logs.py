@@ -28,6 +28,7 @@ def log_query(
     session_id: str | None = None,
     trace_id: str | None = None,
     fingerprint: str | None = None,
+    event_class: str | None = None,
     limit: int = DEFAULT_LIMIT,
 ) -> dict:
     limit = max(1, min(MAX_LIMIT, int(limit)))
@@ -59,6 +60,13 @@ def log_query(
     if fingerprint:
         where.append("fingerprint = ?")
         params.append(fingerprint)
+    if event_class:
+        # Migration v46 split fault / policy / audit so a guardrail BLOCK stops
+        # being counted as a bug. The column is NOT NULL DEFAULT 'fault' and
+        # v46 backfilled every pre-existing row, so a plain equality is exact —
+        # no NULL branch is needed, and one would be dead code.
+        where.append("event_class = ?")
+        params.append(event_class)
 
     where_sql = " AND ".join(where) if where else "1=1"
 

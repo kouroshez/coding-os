@@ -5,18 +5,17 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [cognition, dispatch, schema, ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-08-17
-started: null
-completed: null
-agent_session: null
+started: 2026-09-13
+completed: 2026-09-13
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1003: Dispatch evidence is discarded after a paid run when role output misses its schema
 
 **Outcome (one sentence):** A successful dispatch always leaves an evidence row: either the SDK enforces the role's declared schema at generation time (structured_output on), or a near-miss payload is persisted with a degraded marker instead of being dropped after the tokens were already spent.
@@ -44,3 +43,21 @@ references: []
 **Then** `adapter` and `model` are non-NULL.
 
 ## Work Log
+- 2026-09-14 [claude]: commit 34f5581adf — fix(cognition): keep the evidence row when role output misses its schema
+- 2026-09-14 [claude]: commit 0943bcd279 — fix(doctor): measure free space before recommending a WAL truncate
+- 2026-09-14 [claude]: commit caf136854b — fix(hooks): mint a panel session id instead of mirroring the agent-level one
+- 2026-09-14 [claude]: commit 732eb27b41 — fix(cognition): hand the dispatched child this session's task, or none
+- 2026-09-14 [claude]: commit 6886213ce2 — fix(cognition): carry the review verdict back to the parent, not just its price
+- 2026-09-14 [claude]: commit 87ed84014f — style: apply ruff format to the dispatch summary changes
+- 2026-09-14 [claude]: commit b20e37f632 — fix(doctor): let both file-size gates read one recorded-exception ledger
+- 2026-09-14 [claude]: commit ad5282b852 — ci: install npm 11 before the scaffold node gates
+- 2026-09-14 [claude]: commit 1c65dca221 — fix(hub): make Doctor Overview report the graph, not a probe sample
+- 2026-09-14 [claude]: A validation miss now persists a marked row (status=fail, error_category=schema_validation, validator message in…
+- 2026-09-14 [claude]: commit 236a95189d — fix(hooks): stop recording a verify PASS the runtime never reported
+- 2026-09-14 [claude]: commit fa77289366 — test: use a placeholder model id in the dispatch evidence test
+- 2026-09-14 [claude]: Edit capture-the-payload-never-assume-it.md
+- 2026-09-14 [claude]: Edit check-the-card-premise-before-fixing-it.md
+- 2026-09-14 [claude]: Status transitioned to complete via cos task-done.
+- 2026-09-14 [claude]: commit eee11c8287 — chore(tasks): close the eight icebox cards drained this session
+- 2026-09-14 [claude]: commit 1645d96e64 — chore(tasks): close the trunk-green umbrella after v0.3.22 shipped
+- 2026-09-14 [claude]: commit 2891c1d278 — chore(memory): record the two lessons from draining the icebox

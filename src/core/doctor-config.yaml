@@ -22,7 +22,7 @@ placeholder_scan:
   - docs/_meta
   - docs/tasks
 schema:
-  expected_version: 53
+  expected_version: 54
   expected_tables:
   - adapter_health
   - agent_metrics

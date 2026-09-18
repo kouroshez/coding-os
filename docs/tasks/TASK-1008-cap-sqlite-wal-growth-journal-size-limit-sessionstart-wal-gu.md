@@ -5,13 +5,13 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [incident, sqlite, disk, ready]
-status: complete
+status: archive
 priority: P0
 appetite: 1d
 created: 2026-08-17
 started: 2026-08-17
 completed: 2026-08-17
-agent_session: ses-claude-20260817-154319-10c2
+agent_session: ses-system-auto-archive
 depends_on: []
 blocked_by: []
 references: []

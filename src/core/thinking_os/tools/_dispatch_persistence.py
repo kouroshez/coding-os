@@ -37,17 +37,18 @@ def _persist_dispatch_output(
     # Role frontmatter declares `output_schema: cognition.<X>Output`;
     # `bundle_field` defaults to role id but can be overridden in frontmatter.
     field, cls = _resolve_role_persistence(formula_id)
-    validation_failed = False
+    validation_error: str | None = None
     if field and cls and status == "ok":
         try:
             parsed = cls.model_validate(output_json)
             setattr(bundle, field, parsed)
         except Exception as exc:
-            # T1.6 — Pydantic validation runs BEFORE persistence.
-            # On failure: mark degraded, skip the formula_dispatches INSERT
-            # entirely (row would carry untrusted output_hash). Bundle still
-            # saved with degraded_formulas marker so the supervisor can
-            # backtrack.
+            # The row is still written. Skipping the INSERT used to look like
+            # hygiene — an unvalidated payload should not masquerade as a clean
+            # result — but the tokens were already spent, and this row is the
+            # only record of which adapter/model spent them. Persist it marked:
+            # status fail, category schema_validation, validator message in
+            # error. The bundle keeps its degraded_formulas marker either way.
             logger.warning(
                 "Failed to validate %s output against schema: %s",
                 formula_id,
@@ -55,16 +56,11 @@ def _persist_dispatch_output(
             )
             bundle.degraded_formulas.append(formula_id)
             status = "fail"
-            validation_failed = True
+            validation_error = f"{cls.__name__} validation failed: {exc}"[:1000]
     elif status == "timeout":
         bundle.degraded_formulas.append(formula_id)
 
     _save_bundle(session_id, bundle)
-
-    # T1.6: skip the dispatch row INSERT when schema validation failed.
-    # Returning the bundle field count keeps the caller signature stable.
-    if validation_failed:
-        return sum(1 for f in _all_bundle_fields() if getattr(bundle, f, None) is not None)
 
     raw = json.dumps(output_json, sort_keys=True, default=str).encode()
     output_hash = hashlib.sha256(raw).hexdigest()[:16]
@@ -97,12 +93,16 @@ def _persist_dispatch_output(
     # The adapter's own message wins, but the dispatcher's result.error is the
     # fallback: an `error` row whose message is NULL records that something
     # failed while discarding the only field that says what.
-    _reported_error = meta.get("error") or route.get("error")
+    _reported_error = meta.get("error") or route.get("error") or validation_error
     _error_text = str(_reported_error)[:1000] if _reported_error else None
 
     def _from_route(key: str) -> Any:
         reported = meta.get(key)
         return reported if reported not in (None, "") else route.get(key)
+
+    _error_category = _from_route("error_category") or (
+        "schema_validation" if validation_error else None
+    )
 
     try:
         with sqlite3.connect(db_path, timeout=10) as conn:
@@ -138,7 +138,7 @@ def _persist_dispatch_output(
                     raw_transcript[:50000] if raw_transcript else None,
                     _from_route("adapter"),
                     _from_route("effort"),
-                    _from_route("error_category"),
+                    _error_category,
                     _from_route("retry_after_s"),
                     _from_route("health_state"),
                     1 if _from_route("health_probe") else 0,

@@ -314,19 +314,25 @@ def _formula_prompts(request: Any, system_prompt_body: str) -> tuple[dict[str, A
 
 
 def _structured_output_format(agent_meta: Any, formula_id: str) -> dict[str, Any] | None:
-    # Structured output (T1) — opt-in per role via
-    # `structured_output: true` frontmatter. SDK enforces the
-    # schema and surfaces failures as
-    # subtype="error_max_structured_output_retries".
-    if not (isinstance(agent_meta, dict) and agent_meta.get("structured_output")):
+    # The declared `output_schema` is the opt-in. It used to take a second
+    # `structured_output: true` flag as well, and ten of the fifteen roles
+    # declared a schema without it — so the SDK never enforced anything and the
+    # mismatch surfaced at persistence time, after the run was billed. A role
+    # that declares a schema means it; `structured_output: false` is the
+    # explicit opt-out for one that wants free-form generation anyway.
+    # Enforcement failures arrive as subtype="error_max_structured_output_retries".
+    if not isinstance(agent_meta, dict):
+        return None
+    if agent_meta.get("structured_output") is False:
         return None
     schema = _resolve_output_schema(agent_meta)
     if schema is None:
-        logger.warning(
-            "role %s requested structured_output but schema could not be "
-            "resolved — falling back to regex extraction",
-            formula_id,
-        )
+        if agent_meta.get("structured_output"):
+            logger.warning(
+                "role %s requested structured_output but schema could not be "
+                "resolved — falling back to regex extraction",
+                formula_id,
+            )
         return None
     return {"type": "json_schema", "schema": schema}
 

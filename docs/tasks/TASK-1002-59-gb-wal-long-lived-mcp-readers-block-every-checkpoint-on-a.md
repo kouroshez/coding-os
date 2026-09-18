@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [infra, database, reliability, ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-08-17
 started: null
-completed: null
-agent_session: null
+completed: 2026-09-13
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1002: 59 GB WAL — long-lived MCP readers block every checkpoint on a 92%-full disk
 
 **Outcome (one sentence):** The WAL stays bounded during normal operation: long-lived MCP/Hub connections no longer pin a read snapshot indefinitely, so wal_autocheckpoint can actually drain, and a locked-DB write waits instead of raising OperationalError.
@@ -42,3 +41,5 @@ references: []
 **Then** it drains safely on a volume with less free space than the WAL, or the step explicitly refuses and says why.
 
 ## Work Log
+- 2026-09-14 [claude]: Re-checked the premise by running it: an idle pooled reader does NOT block checkpointing (busy=0, WAL truncated to…
+- 2026-09-14 [claude]: Status transitioned to complete via cos task-done.
