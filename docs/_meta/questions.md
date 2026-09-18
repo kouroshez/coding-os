@@ -8,9 +8,17 @@ Read next: The blocked task file referenced in each question.
 
 > Nav: [Docs Index](../00-index.md)
 
-<!-- Blocker questions are logged here automatically by `cos task-block`.
-     Format: each question is `Q-NNN: <question>` followed by context lines.
-     Resolve a question by removing it and adding the answer to the related task or ADR. -->
+<!-- APPEND BY HAND. This file once claimed `cos task-block` populated it
+     automatically; it never has — that command takes `--reason` and moves the
+     card, and no code in the tree writes here (grep: only prose, lint scripts
+     that skip the file, and template copies). A promise of automation nobody
+     implemented is worse than no promise: it reads as "the log is complete"
+     while every unlogged blocker stays invisible.
+
+     Format: `Q-<SLUG>: <question>` followed by context lines. When you block a
+     task on an unknown (P7), run `cos task-block <ID> --reason '...'` AND add
+     the question here in the same turn. Resolve by removing the entry and
+     putting the answer in the related task or ADR. -->
 
 ## Open
 
