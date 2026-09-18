@@ -61,7 +61,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--run-sdk-e2e",
         action="store_true",
         default=False,
-        help="Run sdk_e2e-marked tests (require ANTHROPIC_API_KEY, nightly only)",
+        help="Run sdk_e2e-marked tests (require ANTHROPIC_API_KEY; manual, billed — no CI job passes this)",
     )
 
 
