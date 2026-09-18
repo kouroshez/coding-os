@@ -115,7 +115,7 @@ def _reclaimable_megabytes(database_path: Path) -> float | None:
     # (memory_gc.py, `cos brain-gc --vacuum`) but no scheduled leg calls it, so
     # the file only grows. Measured here at 326 MB: 2,137 free pages, ~9 MB.
     # Naming that number is the difference between "run one command" and "go
-    # prune the graph" (TASK-1045).
+    # prune the graph".
     import sqlite3
 
     try:
