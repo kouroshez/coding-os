@@ -5,12 +5,12 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-09-18
 started: 2026-09-18
-completed: null
+completed: 2026-09-18
 agent_session: ses-claude-20260918-164827-6f4a
 depends_on: []
 blocked_by: []
@@ -22,3 +22,5 @@ references: []
 
 ## Work Log
 - 2026-09-18 [claude]: Edit patch_reclaimable.py
+- 2026-09-18 [claude]: commit 8b49b61baf — feat(doctor): report how much of an over-budget DB a VACUUM would return
+- 2026-09-18 [claude]: Status transitioned to complete via cos task-done.
