@@ -100,9 +100,7 @@ class TestCosEnv:
         # the live .coding-os/, and an inherited value would make cos-env echo
         # that instead of deriving the default.
         base_env = {
-            k: v
-            for k, v in os.environ.items()
-            if k not in ("CLAUDE_PROJECT_DIR", "COS_STATE_DIR")
+            k: v for k, v in os.environ.items() if k not in ("CLAUDE_PROJECT_DIR", "COS_STATE_DIR")
         }
         result = subprocess.run(
             ["bash", "-c", script],
