@@ -80,3 +80,11 @@ says who reads it.
 - 2026-09-18 [claude]: Edit patch_ratchet.py
 - 2026-09-18 [claude]: commit 7c0a5d8389 — fix(gates): widen the file-size ratchet past Python and correct ci-gates.md
 - 2026-09-18 [claude]: Edit patch_ci.py
+- 2026-09-18 [claude]: Edit retire_pr_patterns.py
+- 2026-09-18 [claude]: Edit patch_eventclass.py
+- 2026-09-18 [claude]: Edit patch_nightly.py
+- 2026-09-18 [claude]: Edit patch_nightly_tests.py
+- 2026-09-18 [claude]: commit a6ef364865 — fix(diagnostics): stop tests polluting the live log, and grade the right signal
+- 2026-09-18 [claude]: Edit dead_ignores.py
+- 2026-09-18 [claude]: Edit prune_ignores.py
+- 2026-09-18 [claude]: All six blind gates closed. docs-staleness-check read server.py/database.py after both moved, reporting 1 tool /…
