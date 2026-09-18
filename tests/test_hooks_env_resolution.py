@@ -95,7 +95,15 @@ class TestCosEnv:
     def test_default_state_dir(self, tmp_path: Path) -> None:
         """Without COS_STATE_DIR, defaults to .coding-os."""
         script = 'source "{}"; echo "$COS_STATE_DIR"'.format(HOOKS_DIR / "cos-env.sh")
-        base_env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_PROJECT_DIR",)}
+        # COS_STATE_DIR must be ABSENT — that is the whole subject. conftest
+        # now sets it to a temp dir so a test-spawned hook stops logging into
+        # the live .coding-os/, and an inherited value would make cos-env echo
+        # that instead of deriving the default.
+        base_env = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in ("CLAUDE_PROJECT_DIR", "COS_STATE_DIR")
+        }
         result = subprocess.run(
             ["bash", "-c", script],
             capture_output=True,

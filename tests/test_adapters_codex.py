@@ -252,6 +252,11 @@ class TestCodexAdapter:
         blocked = {
             "COS_AGENT",
             "COS_AGENT_DIR",
+            # The hook must resolve state from the project it installs into;
+            # conftest sets COS_STATE_DIR to a temp dir (so a test-spawned hook
+            # stops logging into the live .coding-os/) and an inherited value
+            # sends the session file there instead of under `project`.
+            "COS_STATE_DIR",
             "CODEX_SESSION_ID",
             "CODEX_AGENT_DIR",
             "CODEX_HOME",
