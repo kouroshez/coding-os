@@ -28,6 +28,12 @@ def _isolate_codex_home(tmp_path, monkeypatch):
     asserts against one machine's configuration and fails on every other.
     """
     monkeypatch.setenv("CODEX_HOME", str(tmp_path / "codex-home"))
+    # These routes DELIBERATELY read the meta-repo's own .coding-os/ — the
+    # dogfood assertions below check that both adapters are installed here.
+    # conftest points COS_STATE_DIR at a temp dir so a test-spawned hook stops
+    # logging into the live project; that isolation is right for hooks and
+    # wrong for this suite, so drop it and let the routes resolve the repo.
+    monkeypatch.delenv("COS_STATE_DIR", raising=False)
 
 
 @pytest.fixture

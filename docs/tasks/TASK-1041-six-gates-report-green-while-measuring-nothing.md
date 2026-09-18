@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-09-18
 started: 2026-09-18
-completed: null
+completed: 2026-09-18
 agent_session: ses-claude-20260918-164827-6f4a
 depends_on: []
 blocked_by: []
@@ -80,3 +80,13 @@ says who reads it.
 - 2026-09-18 [claude]: Edit patch_ratchet.py
 - 2026-09-18 [claude]: commit 7c0a5d8389 — fix(gates): widen the file-size ratchet past Python and correct ci-gates.md
 - 2026-09-18 [claude]: Edit patch_ci.py
+- 2026-09-18 [claude]: Edit retire_pr_patterns.py
+- 2026-09-18 [claude]: Edit patch_eventclass.py
+- 2026-09-18 [claude]: Edit patch_nightly.py
+- 2026-09-18 [claude]: Edit patch_nightly_tests.py
+- 2026-09-18 [claude]: commit a6ef364865 — fix(diagnostics): stop tests polluting the live log, and grade the right signal
+- 2026-09-18 [claude]: Edit dead_ignores.py
+- 2026-09-18 [claude]: Edit prune_ignores.py
+- 2026-09-18 [claude]: All six blind gates closed. docs-staleness-check read server.py/database.py after both moved, reporting 1 tool /…
+- 2026-09-18 [claude]: commit 3dd8804ce6 — chore(doctor): name the remedy, and tighten the complexity ledger
+- 2026-09-18 [claude]: Status transitioned to complete via cos task-done.
