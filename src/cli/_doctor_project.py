@@ -307,7 +307,9 @@ def _check_board_config_yamls_valid(project: Path, report: DoctorReport) -> None
 # ---------------------------------------------------------------------------
 # hub.project_paths_exist — registered_project_paths_exist
 # Hub registry stale entries (deleted dirs) bloat sync-doctor output and
-# block clean automation. This check just flags them.
+# block clean automation. `cos registry gc` prunes them; the message names
+# it, because a warning whose remedy the reader has to go find is one they
+# learn to scroll past (sync-doctor --repair only fixes symlinks, not this).
 # ---------------------------------------------------------------------------
 
 
@@ -344,8 +346,9 @@ def _check_registered_project_paths_exist(project: Path, report: DoctorReport) -
             CheckResult(
                 "hub.project_paths_exist",
                 SEV_WARN,
-                f"{len(missing_paths)} registered project path(s) missing on disk",
-                {"missing": missing_paths},
+                f"{len(missing_paths)} registered project path(s) missing on disk "
+                "— prune with `cos registry gc`",
+                {"missing": missing_paths, "fix": "cos registry gc"},
             )
         )
     else:

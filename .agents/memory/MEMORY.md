@@ -31,3 +31,4 @@
 - [Loading a skill is not applying it](loading-a-skill-is-not-applying-it.md) — pass 1 is suspect by default; only a receipted second pass over the finished text counts.
 - [Capture the payload, never assume it](capture-the-payload-never-assume-it.md) — Claude Code sends no exit_code for Bash; the event name is the outcome.
 - [Check the card premise before fixing it](check-the-card-premise-before-fixing-it.md) — an old card's root cause is a hypothesis; re-measure before building its fix.
+- [Rules edits need golden capture](rules-edits-need-golden-capture.md) — src/core/rules|hooks|skills render into tests/golden; docs-lint will not tell you.

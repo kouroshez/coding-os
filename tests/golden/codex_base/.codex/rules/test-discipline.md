@@ -1,6 +1,6 @@
 # Test Discipline (Always Active)
 
-> **Hard rule:** Run only the Verification-Matrix command for what changed (SSOT: **AGENTS.md § Verification Matrix** — deliberately not duplicated here). Never `pytest tests/` mid-task — the `test-governor` hook BLOCKs it without an audited override. The suite is ~4,850 tests / ~28 min wall-clock; a full sweep melts a laptop running concurrent sessions. Measurements + spec: [test-governance.md](../../docs/engineering/test-governance.md). If one file matches two matrix rows, run both — still cheaper than a sweep.
+> **Hard rule:** Run only the Verification-Matrix command for what changed (SSOT: **AGENTS.md § Verification Matrix** — deliberately not duplicated here). Never `pytest tests/` mid-task — the `test-governor` hook BLOCKs it without an audited override. The suite is ~8,510 tests / ~28 min wall-clock; a full sweep melts a laptop running concurrent sessions. Measurements + spec: [test-governance.md](../../docs/engineering/test-governance.md). If one file matches two matrix rows, run both — still cheaper than a sweep.
 
 ## Enforcement + the verify ledger
 
