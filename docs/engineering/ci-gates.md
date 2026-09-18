@@ -17,6 +17,7 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 | Slow suite (nightly) | `make test-slow` + the graph phantom gate, on the `schedule` trigger only | 0 failures; phantom count ≤ baseline | **gating** since `313b4ee5` (2026-08-14) — `CI Pass` fails on any result but `success` or `skipped`; `skipped` stays valid because the job is schedule-only |
 | diff-cover (PRs only) | `diff-cover coverage.xml --fail-under 80` | 80% on changed lines | fixed — see the scope note below |
 | File-size ratchet | `tests/test_file_size_budget.py` | `SOFT_LIMIT = 500` with three recorded exceptions (2026-08-11), both gates reading `file-size-baseline.json` | each entry may only fall; a file outside the ledger may never cross `SOFT_LIMIT` |
+| eslint (Hub SPA) | `npm run lint` in `src/core/web/ui` | `--max-warnings=24`, the measured count (17 `react-refresh/only-export-components`, 7 `react-hooks/exhaustive-deps`) | may only fall; fix a warning, lower the number — never raise it |
 | shellcheck | `shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh` | 0 warnings | fixed |
 | docs-lint | `make docs-lint` | 0 findings | fixed |
 | CodeQL / dependency-review | GitHub-native | high severity | fixed |
