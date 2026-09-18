@@ -237,3 +237,41 @@ def test_recovery_step_falls_back_to_truncate_when_free_space_is_unreadable(
     monkeypatch.setattr(_doctor_runtime.shutil, "disk_usage", _boom)
     step = _doctor_runtime._wal_recovery_step(tmp_path / "coding-os.db-wal", 1024)
     assert "wal_checkpoint(TRUNCATE)" in step
+
+
+def test_db_finding_reports_what_a_vacuum_would_return(tmp_path, monkeypatch) -> None:
+    """An over-budget DB is not necessarily a full one.
+
+    Free pages are space SQLite reuses but never hands back, and nothing in
+    the product returns them — VACUUM exists but no scheduled leg calls it
+    (TASK-1045). Measured here at 326 MB: 2,137 free pages, ~9 MB. Reporting
+    that separates "run one command" from "go prune the graph".
+    """
+    import sqlite3
+    import sys
+
+    sys.path.insert(0, str(_ROOT / "src"))
+    from cli import _doctor_runtime
+
+    db = tmp_path / "coding-os.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE blob_rows (id INTEGER PRIMARY KEY, payload BLOB)")
+    conn.executemany(
+        "INSERT INTO blob_rows (payload) VALUES (?)", [(os.urandom(4096),) for _ in range(400)]
+    )
+    conn.commit()
+    conn.execute("DELETE FROM blob_rows")
+    conn.commit()
+    conn.close()
+
+    reclaimable = _doctor_runtime._reclaimable_megabytes(db)
+    assert reclaimable is not None and reclaimable > 0, "deleted rows left no free pages to report"
+
+
+def test_reclaimable_is_none_when_the_db_cannot_be_read(tmp_path) -> None:
+    import sys
+
+    sys.path.insert(0, str(_ROOT / "src"))
+    from cli import _doctor_runtime
+
+    assert _doctor_runtime._reclaimable_megabytes(tmp_path / "absent.db") is None

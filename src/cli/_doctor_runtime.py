@@ -109,6 +109,25 @@ def _wal_recovery_step(write_ahead_log_path: Path, write_ahead_log_bytes: int) -
     )
 
 
+def _reclaimable_megabytes(database_path: Path) -> float | None:
+    # Free pages are space SQLite reuses but never hands back to the
+    # filesystem, and nothing in the product returns them: VACUUM exists
+    # (memory_gc.py, `cos brain-gc --vacuum`) but no scheduled leg calls it, so
+    # the file only grows. Measured here at 326 MB: 2,137 free pages, ~9 MB.
+    # Naming that number is the difference between "run one command" and "go
+    # prune the graph" (TASK-1045).
+    import sqlite3
+
+    try:
+        with sqlite3.connect(f"file:{database_path}?mode=ro", uri=True, timeout=5) as conn:
+            free_pages = conn.execute("PRAGMA freelist_count").fetchone()[0]
+            page_size = conn.execute("PRAGMA page_size").fetchone()[0]
+    except sqlite3.Error as exc:
+        logger.debug("freelist unavailable for %s: %s", database_path, exc)
+        return None
+    return round(free_pages * page_size / (1024 * 1024), 1)
+
+
 def _check_runtime_state_within_budget(project: Path, report: DoctorReport) -> None:
     """state.size_within_budget — coding-os.db and its WAL stay within size budgets."""
     database_path = project / DATABASE_FILE_RELATIVE_PATH
@@ -123,12 +142,18 @@ def _check_runtime_state_within_budget(project: Path, report: DoctorReport) -> N
                     "file": DATABASE_FILE_RELATIVE_PATH,
                     "actual_megabytes": round(database_megabytes, 1),
                     "budget_megabytes": DATABASE_SIZE_BUDGET_MEGABYTES,
+                    "reclaimable_megabytes": _reclaimable_megabytes(database_path),
                     # Measured on this repo at 326 MB: graph_edges_v12 holds
                     # 159,712 rows and graph_nodes 80,211 — the knowledge graph
                     # IS the database. The old advice pointed at agent memory
                     # (0.2% of it) through `cos brain stats`, which is not a
                     # command that exists.
-                    "fix": "`cos db-stats` for the row breakdown; the graph dominates — `cos graph-reindex` after pruning, `cos brain-gc` only for memory rows",
+                    "fix": (
+                        "`cos db-stats` for the row breakdown; the graph dominates — "
+                        "`cos brain-gc --vacuum` returns dead pages (see "
+                        "reclaimable_megabytes), `cos brain-gc` alone only prunes "
+                        "memory rows"
+                    ),
                 }
             )
 
