@@ -12,6 +12,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.23](https://github.com/kouroshez/coding-os/compare/v0.3.22...v0.3.23) (2026-09-19)
+
+
+### Added
+
+* **doctor:** report how much of an over-budget DB a VACUUM would return ([8b49b61](https://github.com/kouroshez/coding-os/commit/8b49b61bafd011c7d3c2017e80a928eb5f4948d8))
+* **skills:** motion-review — settled-state frame selection for screen recordings ([fc0c623](https://github.com/kouroshez/coding-os/commit/fc0c62347ad7a177fc875de86fcdd8949ee57b0b))
+
+
+### Fixed
+
+* **ci:** pin the SPA lint budget to its measured count and record it ([9d942f5](https://github.com/kouroshez/coding-os/commit/9d942f5ce2bec7cebedadf9d3ed37524d5518806))
+* **ci:** run the Codex chat-provider suite and stop claiming a nightly that never runs ([dde6e06](https://github.com/kouroshez/coding-os/commit/dde6e06afe016ec140916761d0fbc40193d57b5c))
+* **diagnostics:** stop tests polluting the live log, and grade the right signal ([a6ef364](https://github.com/kouroshez/coding-os/commit/a6ef364865bb9ef6b06cf733447f8f79349d6e00))
+* drop the task id from a code comment (Rule 12) ([445f16c](https://github.com/kouroshez/coding-os/commit/445f16c22dcdde793aa45b27f6fb82349df683ac))
+* **gates:** widen the file-size ratchet past Python and correct ci-gates.md ([7c0a5d8](https://github.com/kouroshez/coding-os/commit/7c0a5d838950d82008117cf02b29c08529fe5248))
+* **scripts:** docs-staleness-check reads live sources and enforces sanity floors ([a94301e](https://github.com/kouroshez/coding-os/commit/a94301e60b0716b141476bb3ddedb01aaddb4791))
+* **tests:** let the four derivation tests drop the state dir conftest now sets ([9c4aa3f](https://github.com/kouroshez/coding-os/commit/9c4aa3fbab72c3d5eb184de3a2bedd7abcee873d))
+
+
+### Changed
+
+* **skills:** split motion-review engine at the ffmpeg seam ([356aece](https://github.com/kouroshez/coding-os/commit/356aece9e46293309df23ca5345e8ea604c1ebd9))
+
+
+### Documentation
+
+* **meta:** questions.md is appended by hand, not by cos task-block ([33d1e97](https://github.com/kouroshez/coding-os/commit/33d1e970f65a5ace12594b0f817365135d19dfd2))
+* **tasks:** TASK-1040 work log + testing status ([15f1bd0](https://github.com/kouroshez/coding-os/commit/15f1bd04f43b11945c98e37d0f555e593ae71726))
+
+
+### Build
+
+* **deps:** bump node from `d649c27` to `83f487e` ([#79](https://github.com/kouroshez/coding-os/issues/79)) ([cc93ca3](https://github.com/kouroshez/coding-os/commit/cc93ca3ea7a5cfa3fd6fa2fce5911fcb1a13983c))
+
 ## [0.3.22](https://github.com/kouroshez/coding-os/compare/v0.3.21...v0.3.22) (2026-09-14)
 
 
