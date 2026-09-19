@@ -24,3 +24,4 @@ references: []
 - 2026-09-18 [claude]: Edit patch_reclaimable.py
 - 2026-09-18 [claude]: commit 8b49b61baf — feat(doctor): report how much of an over-budget DB a VACUUM would return
 - 2026-09-18 [claude]: Status transitioned to complete via cos task-done.
+- 2026-09-19 [claude]: Closed all three strands. Docs: mypy 1100→1078, nightly recorded as gating since 313b4ee5, suite size 4,850→8,510,…
