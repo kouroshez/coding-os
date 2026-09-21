@@ -1,4 +1,12 @@
 import '@testing-library/jest-dom/vitest';
+import { configure } from '@testing-library/react';
+
+// findBy*/waitFor default to a 1s budget, which is a machine-speed assertion
+// nobody wrote on purpose. Observed once across ten full-suite runs:
+// NeedProjectPage.routing timed out waiting for a button behind a resolved
+// fetch, while passing 8/8 in isolation. These tests assert behaviour, not
+// latency; 5s costs a passing run nothing and only delays a real failure.
+configure({ asyncUtilTimeout: 5000 });
 
 // jsdom in this vitest config ships without localStorage — provide an
 // in-memory shim so storage-backed stores (theme-store) load + assert.

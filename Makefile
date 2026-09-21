@@ -429,8 +429,8 @@ ui-build: ## Production rebuild of the SPA — hub at :9188 serves the new bundl
 	@echo "  SPA rebuilt → src/core/web/ui/dist/  (hub picks up automatically; hard-refresh browser)"
 
 .PHONY: ui-test
-ui-test: ## Hub SPA unit tests (vitest) — the test-web-ui verify-suite command
-	@cd src/core/web/ui && npm test
+ui-test: ## Hub SPA unit tests + coverage thresholds (vitest) — the test-web-ui verify-suite command
+	@cd src/core/web/ui && npm run test:coverage
 
 .PHONY: migrate-embeddings
 migrate-embeddings: ## Cutover embeddings to BGE-M3 (vendor model + re-embed corpus + flip active marker)

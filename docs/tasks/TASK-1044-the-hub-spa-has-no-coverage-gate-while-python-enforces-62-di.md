@@ -4,19 +4,18 @@ title: "The Hub SPA has no coverage gate while Python enforces 62% + diff-cover 
 swimlane: core
 kind: test
 epic: null
-labels: [parked]
-status: icebox
+labels: [parked, ready]
+status: testing
 priority: P3
 appetite: 1d
 created: 2026-09-18
-started: null
+started: 2026-09-20
 completed: null
-agent_session: null
+agent_session: ses-claude-20260920-211122-bc06
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1044: The Hub SPA has no coverage gate while Python enforces 62% + diff-cover 80%
 
 **Outcome (one sentence):** The Hub SPA carries a coverage floor CI enforces, set from a measured baseline rather than a guessed one — or the asymmetry with the Python side is recorded as deliberate.
@@ -40,3 +39,5 @@ references: []
 **Then** ci-gates.md records why the SPA is exempt, so the next reader does not re-file this.
 
 ## Work Log
+- 2026-09-21 [claude]: Attempted the measurement the card calls for and it is blocked by tooling, not by effort. Adding @vitest/coverage-v8…
+- 2026-09-21 [claude]: Measured, then gated. @vitest/coverage-v8@4.1.11 installs fine on a clean tree — the earlier arborist crash was a…

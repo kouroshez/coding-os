@@ -18,6 +18,7 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 | diff-cover (PRs only) | `diff-cover coverage.xml --fail-under 80` | 80% on changed lines | fixed — see the scope note below |
 | File-size ratchet | `tests/test_file_size_budget.py` | `SOFT_LIMIT = 500` with three recorded exceptions (2026-08-11), both gates reading `file-size-baseline.json` | each entry may only fall; a file outside the ledger may never cross `SOFT_LIMIT` |
 | eslint (Hub SPA) | `npm run lint` in `src/core/web/ui` | `--max-warnings=24`, the measured count (17 `react-refresh/only-export-components`, 7 `react-hooks/exhaustive-deps`) | may only fall; fix a warning, lower the number — never raise it |
+| vitest coverage (Hub SPA) | `npm run test:coverage` in `src/core/web/ui` | `coverage.thresholds` in `vitest.config.ts` — lines 32, statements 30, functions 27, branches 25 | may only rise; see the note below |
 | shellcheck | `shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh` | 0 warnings | fixed |
 | docs-lint | `make docs-lint` | 0 findings | fixed |
 | CodeQL / dependency-review | GitHub-native | high severity | fixed |
@@ -86,6 +87,24 @@ produces false VANISHED reports for functions that landed somewhere unlisted.
 It runs in seconds where the equivalent suite takes minutes, and it catches the
 class of defect a suite cannot: an edit that rides along inside a "move" commit.
 Deliberate edits are reported too, which is the point — land them separately.
+
+## Why the SPA floor is 32% and not the Python 62%
+
+Measured 2026-09-20, the first time the number was ever measured: the 292-test
+suite covers **33.05% of lines** (31.79% statements, 28.61% functions, 26.51%
+branches). Copying Python's 62% across would have failed CI on the first run,
+which is how a gate gets disabled rather than met.
+
+So the floor is the measurement, minus one point per metric. The margin is not
+slack for regressions — it absorbs the runtime gap, since v8 attributes a few
+lines differently between the Node the maintainer runs locally (26) and the
+Node CI pins (22), and a gate that red-lights on an unchanged tree teaches
+people to re-run until green. One point is the whole allowance; anything larger
+would let a real regression hide inside it.
+
+Raise the floor when the number rises — same ratchet protocol as every other
+baseline here. The asymmetry with Python is a statement about where the tests
+are today, not a decision that the SPA deserves less.
 
 ## Why the mypy gate has two tiers
 
@@ -431,6 +450,10 @@ is trunk-based — the maintainer pushes straight to `main`:
   must be fixed forward, not prevented.
 - **`make docs-lint`** hard-gates the link audit; its front-matter and staleness
   half is advisory locally and only strict-gated on *changed* docs in CI.
+- **The Hub SPA floor is global only.** There is no `diff-cover` counterpart on
+  the TypeScript side, so a PR may add wholly untested SPA code and still pass
+  as long as the whole-project percentage holds. The gate stops the number
+  *falling*; it does not assert that new code is tested.
 - **The nightly slow suite is order-fragile**, so it reports rather than gates.
   Measured 2026-08-09: two back-to-back `make test-slow` runs on an identical
   tree failed on *different* sets — the second run cleared five fixed failures
@@ -649,3 +672,8 @@ zero-error gate when `BASELINE` reaches 0.
 
 `pre-commit` runs ruff, ruff-format, and shellcheck on staged files — the fast
 subset. mypy, coverage, and the ratchets run in CI and via their commands above.
+
+`make ui-test` runs the SPA's *gated* command, `npm run test:coverage`, not a
+bare `vitest run`. A local mirror that skips the gate is worse than no mirror:
+it reports green on a tree CI will reject, and the agent who trusted it learns
+to distrust the whole matrix.

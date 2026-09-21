@@ -408,9 +408,12 @@ jobs:
       - name: Install
         working-directory: src/core/web/ui
         run: npm ci
-      - name: Test
+      # Coverage, not bare `vitest run`: the thresholds in vitest.config.ts are
+      # the SPA's only coverage gate, and they enforce nothing unless the
+      # provider actually runs here.
+      - name: Test (coverage thresholds enforced)
         working-directory: src/core/web/ui
-        run: npm test -- --run
+        run: npm run test:coverage
       - name: Build
         working-directory: src/core/web/ui
         run: npm run build
