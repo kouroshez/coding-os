@@ -20,7 +20,17 @@ from graph_os.bench._coverage import (
     COMPLETE,
     COUNT_PLUS_SAMPLE,
     INCOMPLETE,
+    read,
     resolve_complete,
+)
+from graph_os.bench._oracle import (
+    BUCKET_NO_ORACLE,
+    BUCKET_RESOLVABLE,
+    MAX_ADJUDICATED_SITES,
+    MAX_ORACLE_FILES,
+    OracleResult,
+    grade,
+    score,
 )
 
 
@@ -128,3 +138,117 @@ class TestBaselines:
     def test_absent_symbol_costs_nothing(self, tmp_path: Path) -> None:
         corpus = _corpus(tmp_path)
         assert baseline_characters(corpus, "no_such_symbol", Baseline.READ_ALL) == 0
+
+
+class TestSiteExtraction:
+    def test_source_span_becomes_a_comparable_location(self) -> None:
+        envelope = json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "total_count": 2,
+                    "references": [
+                        {"source_span": "pkg/mod.py:12"},
+                        {"source_span": "pkg/other.py:3"},
+                    ],
+                    "meta": {"tokens_estimated": 10},
+                },
+            }
+        )
+        assert read(envelope, budget=500).sites == {("pkg/mod.py", 12), ("pkg/other.py", 3)}
+
+    def test_a_span_without_a_line_is_dropped_not_guessed(self) -> None:
+        envelope = json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "total_count": 2,
+                    "references": [{"source_span": "pkg/mod.py"}, {"source_span": "x:notaline"}],
+                    "meta": {"tokens_estimated": 10},
+                },
+            }
+        )
+        assert read(envelope, budget=500).sites == frozenset()
+
+    def test_a_windows_style_path_keeps_its_drive_letter(self) -> None:
+        envelope = json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "total_count": 1,
+                    "references": [{"source_span": "C:/pkg/mod.py:7"}],
+                    "meta": {"tokens_estimated": 10},
+                },
+            }
+        )
+        assert read(envelope, budget=500).sites == {("C:/pkg/mod.py", 7)}
+
+    def test_sites_survive_the_widening_ladder(self) -> None:
+        envelope = json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "total_count": 1,
+                    "references": [{"source_span": "pkg/mod.py:5"}],
+                    "meta": {"tokens_estimated": 10},
+                },
+            }
+        )
+        assert resolve_complete(lambda _b: envelope).sites == {("pkg/mod.py", 5)}
+
+
+class TestOracleScoring:
+    def test_an_unavailable_oracle_scores_nothing_rather_than_zero(self) -> None:
+        graph = frozenset({("a.py", 1), ("b.py", 2)})
+        result = score(graph, OracleResult(note="jedi not installed"))
+        assert result["bucket"] == BUCKET_NO_ORACLE
+        assert result["recall"] is None
+        assert result["precision"] is None
+        # The graph's own count is still reported — it is knowable without jedi.
+        assert result["graph_sites"] == 2
+
+    def test_truth_unions_what_either_side_found(self) -> None:
+        oracle = OracleResult(
+            enumerated=frozenset({("a.py", 1)}),
+            confirmed=frozenset({("b.py", 2)}),
+            bucket=BUCKET_RESOLVABLE,
+        )
+        assert oracle.truth == {("a.py", 1), ("b.py", 2)}
+
+    def test_recall_counts_a_site_jedi_enumerated_and_the_graph_missed(self) -> None:
+        graph = frozenset({("b.py", 2)})
+        oracle = OracleResult(
+            enumerated=frozenset({("a.py", 1), ("b.py", 2)}),
+            confirmed=frozenset({("b.py", 2)}),
+            bucket=BUCKET_RESOLVABLE,
+        )
+        result = score(graph, oracle)
+        assert result["oracle_sites"] == 2
+        assert result["matched_sites"] == 1
+        assert result["recall"] == 0.5
+        assert result["precision"] == 1.0
+
+    def test_a_refuted_claim_lowers_precision_without_touching_recall(self) -> None:
+        graph = frozenset({("a.py", 1), ("ghost.py", 9)})
+        oracle = OracleResult(
+            enumerated=frozenset({("a.py", 1)}),
+            confirmed=frozenset({("a.py", 1)}),
+            refuted=frozenset({("ghost.py", 9)}),
+            bucket=BUCKET_RESOLVABLE,
+        )
+        result = score(graph, oracle)
+        assert result["precision"] == 0.5
+        assert result["recall"] == 1.0
+
+    def test_a_hub_past_the_adjudication_cap_declines_instead_of_sampling(self) -> None:
+        sites = frozenset((f"f{i}.py", i) for i in range(MAX_ADJUDICATED_SITES + 1))
+        result = grade(Path("/nonexistent"), "x.py", 1, "X", sites, file_count=10)
+        assert result.bucket == BUCKET_NO_ORACLE
+        assert "cap" in result.note
+
+    def test_a_repo_past_the_file_cap_declines(self) -> None:
+        result = grade(
+            Path("/nonexistent"), "x.py", 1, "X", frozenset(), file_count=MAX_ORACLE_FILES + 1
+        )
+        assert result.bucket == BUCKET_NO_ORACLE
+        assert "files" in result.note

@@ -5,18 +5,17 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [ready]
-status: icebox
+status: testing
 priority: P2
 appetite: 1d
 created: 2026-09-15
-started: null
+started: 2026-09-20
 completed: null
-agent_session: null
+agent_session: ses-claude-20260920-211122-bc06
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1037: Graph benchmark has no accuracy oracle; LSP call hierarchy can supply one
 
 **Outcome (one sentence):** The published graph benchmark reports a recall number beside savings_pct from the same run, so a cheaper retrieval can no longer be mistaken for a better one.
@@ -67,3 +66,9 @@ different corpus, so the scoring half has a shape to copy rather than invent.
   **Then** it records "no oracle" rather than a recall of zero or a silent omission.
 
 ## Work Log
+- 2026-09-21 [claude]: Edit _oracle.py
+- 2026-09-21 [claude]: Edit _oracle.py
+- 2026-09-21 [claude]: Edit third_party.py
+- 2026-09-21 [claude]: Edit test_bench_honesty.py
+- 2026-09-21 [claude]: commit 0d8748b784 — test(scheduled): split the nightly tests at the maintenance seam
+- 2026-09-21 [claude]: Built the oracle, and the build corrected the design twice. jedi over pyright/LSP as planned, but not as an…

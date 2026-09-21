@@ -56,6 +56,7 @@ class Reading:
     walk_truncated: bool
     budget: int
     unreadable: bool
+    sites: frozenset[tuple[str, int]] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -65,6 +66,7 @@ class Envelope:
     rows_shown: int
     budget_used: int
     answer_shape: str
+    sites: frozenset[tuple[str, int]] = frozenset()
 
     @property
     def scorable(self) -> bool:
@@ -100,6 +102,34 @@ def _total_in(data: dict[str, Any]) -> int:
     return _rows_in(data)
 
 
+def _row_dicts(data: dict[str, Any]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    tiers = data.get("tiers")
+    if isinstance(tiers, dict):
+        for rows in tiers.values():
+            if isinstance(rows, list):
+                out += [r for r in rows if isinstance(r, dict)]
+    for key in _ROW_KEYS:
+        rows = data.get(key)
+        if isinstance(rows, list):
+            out += [r for r in rows if isinstance(r, dict)]
+    return out
+
+
+def _sites_in(data: dict[str, Any]) -> frozenset[tuple[str, int]]:
+    """Call-site locations, the one unit an external oracle also expresses."""
+    sites: set[tuple[str, int]] = set()
+    for row in _row_dicts(data):
+        span = row.get("source_span")
+        if not isinstance(span, str):
+            continue
+        path, _, line = span.rpartition(":")
+        if not path or not line.isdigit():
+            continue
+        sites.add((path, int(line)))
+    return frozenset(sites)
+
+
 def _rows_in(data: dict[str, Any]) -> int:
     tiers = data.get("tiers")
     if isinstance(tiers, dict):
@@ -126,6 +156,7 @@ def read(raw: object, *, budget: int) -> Reading:
         walk_truncated=bool(meta.get("walk_truncated")),
         budget=budget,
         unreadable=unreadable,
+        sites=_sites_in(data),
     )
 
 
@@ -160,6 +191,7 @@ def resolve_complete(call: Callable[[int], object], *, widens: bool = True) -> E
         rows_shown=reading.rows_shown,
         budget_used=reading.budget,
         answer_shape=_classify(reading, totals_settled=settled),
+        sites=reading.sites,
     )
 
 

@@ -43,6 +43,14 @@ from graph_os.bench._baselines import (  # noqa: E402
     baseline_note,
 )
 from graph_os.bench._coverage import INCOMPLETE, Envelope, resolve_complete  # noqa: E402
+from graph_os.bench._oracle import (  # noqa: E402
+    BUCKET_NO_ORACLE,
+    BUCKET_RESOLVABLE,
+    OracleResult,
+    grade,
+    oracle_available,
+    score,
+)
 from graph_os.bench.harness import run_benchmark  # noqa: E402
 from graph_os.bench.token_cost import _fresh_conn  # noqa: E402
 
@@ -71,6 +79,8 @@ _MAX_FILE_BYTES = 2 * 1024 * 1024
 _CLONE_TIMEOUT_SECONDS = 300
 _PROBE_SAMPLE_LIMIT = 400
 _PROBE_EDGE_SCAN_LIMIT = 500
+# Grading reads every known reference, not a page of them.
+_FULL_SITE_SCAN_LIMIT = 10_000
 
 # Median always-on cost of a real consumer profile, measured by
 # src/scripts/context_budget.py across all 21 presets (range 12,704-13,972).
@@ -89,6 +99,12 @@ class ProbeRow:
     total_count: int | None
     rows_shown: int
     budget_used: int
+    bucket: str
+    oracle_sites: int | None
+    graph_sites: int | None
+    matched_sites: int | None
+    recall: float | None
+    precision: float | None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -163,8 +179,75 @@ def _envelopes_for(graph_tools: Any, uid: str, label: str) -> dict[str, Envelope
     }
 
 
+def _relative_sites(sites: frozenset[tuple[str, int]], root: Path) -> frozenset[tuple[str, int]]:
+    """Both sides must speak repo-relative paths or every comparison misses."""
+    prefix = f"{root.resolve()}/"
+    out = set()
+    for path, line in sites:
+        out.add((path[len(prefix) :] if path.startswith(prefix) else path, line))
+    return frozenset(out)
+
+
+def _claimed_sites(backend: Any, node: Any, root: Path) -> frozenset[tuple[str, int]]:
+    """Every reference location the graph knows, under the tool's own kind defaults.
+
+    Deliberately not `envelope.sites`. The envelope is trimmed to a token
+    budget — 60 rows of a known 185 for `GraphNode` — so grading it would score
+    the page size rather than the extractor, and a tighter budget would read as
+    a worse graph.
+    """
+    from graph_os.tools._graph_references import _default_reference_kinds_for
+
+    kinds = _default_reference_kinds_for(node.kind)
+    edges = backend.list_edges(target_uid=node.uid, edge_types=kinds, limit=_FULL_SITE_SCAN_LIMIT)
+    sites: set[tuple[str, int]] = set()
+    for edge in edges:
+        span = getattr(edge, "source_span", None)
+        if not isinstance(span, str):
+            continue
+        path, _, line = span.rpartition(":")
+        if path and line.isdigit():
+            sites.add((path, int(line)))
+    return _relative_sites(frozenset(sites), root)
+
+
+def _oracle_scores(
+    node: Any, backend: Any, root: Path, file_count: int
+) -> dict[str, dict[str, Any]]:
+    """Recall/precision per workflow.
+
+    Only `references` is graded. `impact` walks transitively and `rename_plan`
+    includes docs and string literals, so neither answers the same question the
+    oracle answers; scoring them against it would manufacture a low recall out
+    of a definitional mismatch rather than an error.
+    """
+    file_path = getattr(node, "file_path", "") or ""
+    start_line = getattr(node, "start_line", None)
+    blank = score(frozenset(), OracleResult(frozenset(), BUCKET_NO_ORACLE))
+    if not file_path or not isinstance(start_line, int):
+        return {w: dict(blank) for w in WORKFLOWS}
+
+    relative = (
+        file_path[len(f"{root.resolve()}/") :]
+        if file_path.startswith(f"{root.resolve()}/")
+        else file_path
+    )
+    graph_sites = _claimed_sites(backend, node, root)
+    result = grade(root, relative, start_line, node.label, graph_sites, file_count=file_count)
+    scores: dict[str, dict[str, Any]] = {}
+    for workflow in WORKFLOWS:
+        scores[workflow] = score(graph_sites, result) if workflow == "references" else dict(blank)
+    return scores
+
+
 def _probe_rows(
-    graph_tools: Any, probes: list[Any], corpus: Corpus, baseline: Baseline
+    graph_tools: Any,
+    probes: list[Any],
+    corpus: Corpus,
+    baseline: Baseline,
+    root: Path,
+    file_count: int,
+    backend: Any,
 ) -> list[ProbeRow]:
     rows: list[ProbeRow] = []
     for node in probes:
@@ -175,6 +258,7 @@ def _probe_rows(
             print(f"[SKIP] {node.label}: symbol not found in the corpus", file=sys.stderr)
             continue
         envelopes = _envelopes_for(graph_tools, node.uid, node.label)
+        scores = _oracle_scores(node, backend, root, file_count)
         for workflow in WORKFLOWS:
             envelope = envelopes[workflow]
             rows.append(
@@ -189,9 +273,35 @@ def _probe_rows(
                     total_count=envelope.total_count,
                     rows_shown=envelope.rows_shown,
                     budget_used=envelope.budget_used,
+                    **scores[workflow],
                 )
             )
     return rows
+
+
+def _accuracy(scored: list[ProbeRow]) -> dict[str, Any]:
+    """Recall over the graded bucket only.
+
+    A probe the oracle could not resolve is counted, never scored: folding it in
+    as a zero would report the oracle's blind spot as the graph's error, which is
+    the confusion this whole measurement exists to remove.
+    """
+    graded = [r for r in scored if r.bucket == BUCKET_RESOLVABLE and r.recall is not None]
+    ungraded = len(scored) - len(graded)
+    if not graded:
+        return {"graded_probes": 0, "no_oracle_probes": ungraded}
+    recalls = [r.recall for r in graded if r.recall is not None]
+    precisions = [r.precision for r in graded if r.precision is not None]
+    return {
+        "graded_probes": len(graded),
+        "no_oracle_probes": ungraded,
+        "median_recall": round(statistics.median(recalls), 3),
+        "mean_recall": round(statistics.fmean(recalls), 3),
+        "min_recall": min(recalls),
+        "median_precision": round(statistics.median(precisions), 3) if precisions else None,
+        "oracle_sites_total": sum(r.oracle_sites or 0 for r in graded),
+        "matched_sites_total": sum(r.matched_sites or 0 for r in graded),
+    }
 
 
 def _summarize(rows: list[ProbeRow], context_budget_tokens: int) -> dict[str, Any]:
@@ -206,6 +316,7 @@ def _summarize(rows: list[ProbeRow], context_budget_tokens: int) -> dict[str, An
         savings = [r.savings_pct for r in scored]
         per_query_saving = statistics.median(r.baseline_tokens - r.graph_tokens for r in scored)
         summary[workflow] = {
+            "accuracy": _accuracy(scored),
             "median_savings_pct": round(statistics.median(savings), 1),
             "mean_savings_pct": round(statistics.fmean(savings), 1),
             "min_savings_pct": min(savings),
@@ -249,7 +360,9 @@ def measure_repo(
             graph_tools._BACKEND_SINGLETON = backend
             try:
                 probes = _top_degree_symbols(backend, queries)
-                rows = _probe_rows(graph_tools, probes, corpus, baseline)
+                rows = _probe_rows(
+                    graph_tools, probes, corpus, baseline, repo_root, len(files), backend
+                )
             finally:
                 graph_tools._BACKEND_SINGLETON = previous_singleton
         finally:
@@ -263,6 +376,7 @@ def measure_repo(
         "edges": bench.edges_written,
         "index_ms": bench.index_duration_ms,
         "token_estimator": "chars/4 heuristic (production envelope estimator)",
+        "oracle_available": oracle_available(),
         "baseline": baseline.value,
         "baseline_note": baseline_note(baseline),
         "context_budget_tokens": context_budget_tokens,
@@ -273,6 +387,8 @@ def measure_repo(
 
 def _print_summary(report: dict[str, Any]) -> None:
     print(f"[OK] baseline={report['baseline']} — {report['baseline_note']}", file=sys.stderr)
+    oracle = "jedi" if report.get("oracle_available") else "none (install jedi to grade recall)"
+    print(f"[i] oracle={oracle}", file=sys.stderr)
     for workflow, stats in report["summary"].items():
         if not stats.get("probes"):
             print(f"[SKIP] {workflow}: no probe produced a scorable answer", file=sys.stderr)
@@ -288,6 +404,21 @@ def _print_summary(report: dict[str, Any]) -> None:
             f"{break_even_note}",
             file=sys.stderr,
         )
+        accuracy = stats.get("accuracy") or {}
+        if accuracy.get("graded_probes"):
+            print(
+                f"[OK] {workflow:12s} recall median {accuracy['median_recall']} "
+                f"min {accuracy['min_recall']} precision {accuracy['median_precision']} "
+                f"({accuracy['graded_probes']} graded, "
+                f"{accuracy['no_oracle_probes']} no oracle)",
+                file=sys.stderr,
+            )
+        elif accuracy:
+            print(
+                f"[SKIP] {workflow:12s} recall: no probe had an oracle "
+                f"({accuracy['no_oracle_probes']} ungraded)",
+                file=sys.stderr,
+            )
 
 
 def main(argv: list[str] | None = None) -> int:

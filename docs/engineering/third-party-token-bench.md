@@ -20,6 +20,9 @@ uv run --extra graph_os python src/core/graph_os/bench/third_party.py \
 # any local checkout, and any of the three baselines:
 uv run --extra graph_os python src/core/graph_os/bench/third_party.py \
     --repo ~/src/fastapi --baseline read-all
+# add jedi and the same run also grades accuracy (see below):
+uv run --extra graph_os --with jedi python src/core/graph_os/bench/third_party.py \
+    --repo ~/src/fastapi --queries 6
 ```
 
 Output: a JSON report (`--out FILE` or stdout) with raw per-probe numbers plus a
@@ -94,6 +97,78 @@ against the pre-fix single-call code.
    deliberately harsh test: it charges the graph for the entire rules layer, most
    of which does other things.
 
+## Accuracy — precision is sound, recall is a lower bound
+
+A cheaper retrieval is only better if it is still right, and until 2026-09-20 the
+harness could not tell the difference. It now grades the `references` workflow
+against [jedi](https://github.com/davidhalter/jedi), which infers types rather
+than walking syntax, so it is not blind in the same places the extractor is.
+Grading a syntax walk against a second syntax walk would have measured agreement
+and called it accuracy.
+
+The unit is a **reference location**, `(repo-relative path, line)` — the only
+unit both sides express. Wherever the two name the same file their line numbers
+agree exactly, measured, so a miss is a real miss and not an off-by-one.
+
+### jedi adjudicates; it does not enumerate
+
+`get_references(scope="project")` is **not symmetric**, measured on this repo:
+asked from the definition of `GraphNode` it returned 155 references across 31
+files and omitted `extractors/_php_symbols.py` entirely; asked from line 79 of
+that omitted file it returned 163 across 32 files, the definition included. An
+enumerator that misses locations it can itself resolve is not ground truth, and
+scoring against it directly bills jedi's blind spots to the graph.
+
+So each location the graph claims is resolved individually with
+`goto(follow_imports=True)` and checked against the probe's definition — a
+per-site decision with no enumeration in it, at roughly 32 ms per site.
+
+- **Precision is sound.** Every claimed site is adjudicated one at a time.
+- **Recall is a lower bound.** Its denominator is jedi's definition-seeded
+  enumeration unioned with the graph's confirmed sites, and that enumeration is
+  known to be incomplete. A location neither side names is counted by neither,
+  so true recall can only be higher than the figure reported.
+
+### Grade the graph's knowledge, not the token trimmer's page
+
+The first version of this measurement reported a median recall of 0.297. It was
+wrong, and wrong in the direction that matters: the envelope had returned 60 of
+a known 185 references for `GraphNode` because the token-budget trimmer cut the
+row list, so the number described the page size rather than the extractor — and
+a *tighter* budget would have read as a worse graph, which is the exact
+"cheaper looks better" confusion this section exists to remove. Grading now
+reads every edge the graph holds under the tool's own kind defaults. The token
+columns still come from the trimmed envelope, because that is what an agent
+actually pays.
+
+### Measured 2026-09-20 — coding-os, 6 probes, 2,483 files
+
+| Figure | Value |
+|---|---|
+| precision | **1.00** — every location the graph claimed resolved to the probe's definition |
+| recall (median) | 0.50 |
+| recall (min) | 0.04 — `DoctorReport`, where the graph holds 5 of 121 known locations |
+
+The 474 locations the graph missed across those six probes break down as 215
+type annotations (45%), 139 imports (29%), 93 calls or constructions (20%) and
+27 other. Annotations are a class the extractor does not model at all; the
+imports and calls are a genuine gap and the reason the min column is worth
+reading before the median.
+
+Precision at 1.00 says the graph invents nothing. Recall at 0.50 says it sees
+about half of what a type-inferring tool sees. Both belong next to a savings
+figure, because only the pair of them answers whether a cheaper answer was also
+a correct one.
+
+There is deliberately **no dynamic-dispatch bucket**, though the design called
+for one on the theory that dispatch defeats the oracle as well as the graph. Two
+measurements sent it back: the probe selector samples module-level functions and
+classes, never methods, so no probe in a run is dispatch-bound to begin with; and
+the gap that does exist is annotations, imports and direct calls, none of which
+dispatch explains. The confound worth bucketing turned out to be jedi's own
+enumeration asymmetry, which `no_oracle` and the adjudication step already
+handle. Add the bucket if methods ever enter probe selection — not before.
+
 ## Published runs
 
 <!-- BEGIN bench-results -->
@@ -157,16 +232,15 @@ callers; it is a much cheaper way to get **all** of them.*
 
 ## Honest limits
 
-- **Cost is the only axis measured. Answer quality is not.** `ProbeRow` emits
-  `graph_tokens`, `baseline_tokens` and `savings_pct`; the harness has no
-  accuracy, recall or precision field, and it has never been run against a
-  code-retrieval benchmark such as CodeRAG-Bench, CoIR-Retrieval, ContextBench or
-  SWE-Explore-Bench. So every number here answers *what does the envelope cost*
-  and none of them answers *is the answer better*. A retrieval that is 80%
-  cheaper and wrong is worse than grep, and these tables cannot tell the two
-  apart. The one quality-shaped guard is structural rather than measured: an
-  envelope whose coverage walk came back truncated is never scored as a saving,
-  which rules out answering from a partial result and rules out nothing else.
+- **Accuracy is measured for `references` only, and only with jedi installed.**
+  `impact` and `rename_plan` carry no accuracy figure at all: one walks
+  transitively and the other includes docs and string literals, so neither
+  answers the question the oracle answers, and grading them against it would
+  manufacture a low recall out of a definitional mismatch. The savings tables
+  for those two workflows still answer only *what does the envelope cost*.
+  The harness has never been run against CodeRAG-Bench, CoIR-Retrieval,
+  ContextBench or SWE-Explore-Bench — all four score a chunk, and a caller is a
+  node, so none of them answers this question either.
 - chars/4 is a heuristic, not a tokenizer. Both sides use the same estimator, so the
   *ratio* is meaningful even where absolutes drift.
 - **Probe selection favours the graph.** The highest-degree symbols are exactly the
