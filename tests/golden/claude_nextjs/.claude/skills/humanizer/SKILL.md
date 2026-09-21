@@ -66,6 +66,10 @@ Measured, not hypothetical: four posts published from this repo in August 2026. 
 - **Essay architecture in a community post.** Setup → what survived → what I got wrong → honest state is a content-marketing skeleton. A post to a forum is a message, not an article.
 - **Length.** 500 words about your own project reads as an ad; 150 words answering someone's question reads as help.
 
+**September 2026, a second sample measured differently.** Two threads went up on 2026-09-14, one on r/LLMDevs and one on r/ChatGPTCoding. Neither has a recorded score: Reddit returns 403 to this network and the repo holds no OAuth credentials, so the upvote ratios that anchor the August entry above were never read. Git records the outcome instead. Four cards were filed from reader critique, three of them in `60d13900` the following day. On r/LLMDevs, four readers worked through the graph benchmark's missing accuracy oracle inside the thread and ruled out four candidate benchmarks by name, which became TASK-1037; a staleness gap raised in the same thread became TASK-1038. r/ChatGPTCoding produced TASK-1039, the check that rejects a dispatched review citing no file it was sent to read. TASK-1038 and TASK-1039 have shipped.
+
+That is not proof the August lessons worked. Different subreddits, different posts, no score on either side of the comparison, and nobody ran the experiment that would separate format from audience. It does settle which measure this repo can keep without an API key: cards filed, and whether they shipped.
+
 The correction is not better disguise. Shorter, flatter, and answering a real question beats a polished essay.
 
 ## Return modes
