@@ -12,6 +12,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.24](https://github.com/kouroshez/coding-os/compare/v0.3.23...v0.3.24) (2026-09-21)
+
+
+### Added
+
+* **bench:** grade reference accuracy with a jedi oracle beside the savings figure ([a3f5460](https://github.com/kouroshez/coding-os/commit/a3f54608bf20cb149904fd1f1315fa431975c557))
+* **cognition:** reject a dispatched review that cited nothing in its scope ([483d382](https://github.com/kouroshez/coding-os/commit/483d3829da77a7f2a0b5fbd3211be585e0e5b0a3))
+* **graph:** cos_graph_overview — the architecture map its 296-line spec described ([9ae422c](https://github.com/kouroshez/coding-os/commit/9ae422c3eeac76ab7ebef2ad54011282d8dde9a1))
+* **graph:** cos_graph_stale_files — indexed files with a newer commit ([045641e](https://github.com/kouroshez/coding-os/commit/045641e92fd7cea6efe5602c9ebd774b46644217))
+* **scheduled:** reclaim dead database pages on the nightly run ([e66f35e](https://github.com/kouroshez/coding-os/commit/e66f35e76e92a28326e6b9f94981d5d9788f0b81))
+
+
+### Fixed
+
+* **bench:** stop indexing 938 gitignored copies of this repos own source ([dc2d329](https://github.com/kouroshez/coding-os/commit/dc2d329900fb496dfc9a20cd8d085e318e457c7e))
+* **cli:** mirror cos_graph_stale_files as a cos graph-* command ([93bd690](https://github.com/kouroshez/coding-os/commit/93bd690dc3590682f7fe9fee53412b1e2bf0b52f))
+* **hub:** point the git-state route at the module that owns the pr helpers ([61a913b](https://github.com/kouroshez/coding-os/commit/61a913bd00a5ee79db39b1c4ba8bee8d5f5f147b))
+* **types:** bring the mypy ratchet back under baseline after the splits ([e2db688](https://github.com/kouroshez/coding-os/commit/e2db688a95e5fd85faf630ddd464d7ef77474b08))
+
+
+### Changed
+
+* **cli:** give the pr helpers one patch point, not one per module ([b5187ad](https://github.com/kouroshez/coding-os/commit/b5187ad87757276fc6d0362263af700b3f719331))
+* **cli:** split pr_commands.py along the pr lifecycle ([c0bb0d9](https://github.com/kouroshez/coding-os/commit/c0bb0d9230a15adb8a4326d72666c52c75b54968))
+* **thinking_os:** split embeddings.py into registry, encoder and store ([cdba49e](https://github.com/kouroshez/coding-os/commit/cdba49e8c94ca8d89d6c890a918094bc73f69901))
+
+
+### Documentation
+
+* **skills:** add the September sample to the humanizer community-post section ([b66c742](https://github.com/kouroshez/coding-os/commit/b66c742582e6f91613629dbc15cbe9b1fe39f1fb))
+
 ## [0.3.23](https://github.com/kouroshez/coding-os/compare/v0.3.22...v0.3.23) (2026-09-19)
 
 
