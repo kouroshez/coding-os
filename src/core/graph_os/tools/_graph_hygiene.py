@@ -7,6 +7,7 @@ never directly (the kernel imports this file at its bottom).
 from __future__ import annotations
 
 import time as _time
+from pathlib import Path
 from typing import Any
 
 from ..backend import BackendUnavailable
@@ -258,7 +259,7 @@ def cos_graph_dead_code(
     )
 
 
-def _git_files_since(root, epoch: int) -> tuple[set[str], str | None]:
+def _git_files_since(root: Path, epoch: int) -> tuple[set[str], str | None]:
     # Returns (paths, error). An error means "cannot answer" — the caller must
     # say so rather than return an empty list, because an empty list is the
     # shape of "nothing is stale" and would read as reassurance.

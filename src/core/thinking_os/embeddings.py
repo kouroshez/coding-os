@@ -84,7 +84,7 @@ try:
         upsert_embedding,
     )
 except ImportError:  # pragma: no cover
-    from _embeddings_model import (  # type: ignore[no-redef,import-not-found]  # noqa: F401
+    from _embeddings_model import (  # type: ignore[no-redef]  # noqa: F401
         _MODEL_OVERRIDES,
         _get_model,
         _get_model_by_name,
@@ -93,7 +93,7 @@ except ImportError:  # pragma: no cover
         embed_texts,
         is_available,
     )
-    from _embeddings_registry import (  # type: ignore[no-redef,import-not-found]  # noqa: F401
+    from _embeddings_registry import (  # type: ignore[no-redef]  # noqa: F401
         _DOC_FLOORS,
         _MEMORY_FLOORS,
         _PERSISTED_FLOORS,
@@ -114,7 +114,7 @@ except ImportError:  # pragma: no cover
         persisted_similarity_floor,
         set_active_model,
     )
-    from _embeddings_store import (  # type: ignore[no-redef,import-not-found]  # noqa: F401
+    from _embeddings_store import (  # type: ignore[no-redef]  # noqa: F401
         _compute_text_hash,
         _has_embedding_dim_column,
         _persist_embedding,

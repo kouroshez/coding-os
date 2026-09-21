@@ -17,7 +17,7 @@ try:
         logger,
     )
 except ImportError:  # pragma: no cover
-    from _embeddings_registry import (  # type: ignore[no-redef,import-not-found]
+    from _embeddings_registry import (  # type: ignore[no-redef]
         active_model_name,
         logger,
     )

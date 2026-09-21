@@ -19,11 +19,11 @@ try:
         model_dim,
     )
 except ImportError:  # pragma: no cover
-    from _embeddings_model import (  # type: ignore[no-redef,import-not-found]
+    from _embeddings_model import (  # type: ignore[no-redef]
         embed_text,
         is_available,
     )
-    from _embeddings_registry import (  # type: ignore[no-redef,import-not-found]
+    from _embeddings_registry import (  # type: ignore[no-redef]
         EMBEDDING_DIM,
         active_model_name,
         bytes_to_dim,

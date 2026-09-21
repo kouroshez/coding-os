@@ -44,6 +44,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 # A project-wide enumeration is the slow half of a probe. Past this many files
 # jedi's own indexing dominates the benchmark it is meant to grade, so the
@@ -81,7 +82,7 @@ class OracleResult:
 
 def oracle_available() -> bool:
     try:
-        import jedi  # noqa: F401
+        import jedi  # type: ignore[import-not-found]  # noqa: F401
     except ImportError:
         return False
     return True
@@ -106,7 +107,7 @@ def _column_of(source: str, line: int, symbol: str) -> int | None:
     return found if found >= 0 else None
 
 
-def _script(root: Path, path: Path, source: str):
+def _script(root: Path, path: Path, source: str) -> Any:
     import jedi
 
     return jedi.Script(code=source, path=str(path), project=jedi.Project(str(root)))

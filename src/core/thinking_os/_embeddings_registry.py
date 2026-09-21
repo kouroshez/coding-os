@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 import os
 import sqlite3
+from pathlib import Path
 
 # Streaming batch sizes — bound peak memory regardless of table size.
 # search streams candidate vectors; reindex streams + batch-embeds source rows.
@@ -68,7 +69,7 @@ GRAPH_EMBED_KINDS: tuple[str, ...] = (
 )
 
 
-def _active_model_marker_path():
+def _active_model_marker_path() -> Path:
     from pathlib import Path
 
     state = os.environ.get("COS_STATE_DIR") or str(
