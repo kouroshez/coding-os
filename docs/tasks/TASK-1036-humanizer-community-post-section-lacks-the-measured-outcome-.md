@@ -5,12 +5,12 @@ swimlane: docs
 kind: docs
 epic: null
 labels: [ready, docs-update]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-09-14
 started: 2026-09-20
-completed: null
+completed: 2026-09-20
 agent_session: ses-claude-20260920-211122-bc06
 depends_on: []
 blocked_by: []
@@ -36,3 +36,5 @@ references: []
 
 ## Work Log
 - 2026-09-21 [claude]: Reddit is unreachable, so the card's premise had to change rather than wait: get_me fails outright and…
+- 2026-09-21 [claude]: commit b66c742582 — docs(skills): add the September sample to the humanizer community-post section
+- 2026-09-21 [claude]: Status transitioned to complete via cos task-done.
