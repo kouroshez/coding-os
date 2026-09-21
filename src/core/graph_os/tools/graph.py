@@ -313,6 +313,7 @@ __all__ = [
     "cos_graph_rename_plan",
     "cos_graph_resolve",
     "cos_graph_similar",
+    "cos_graph_stale_files",
     "cos_graph_trace",
     "reset_backend",
 ]
@@ -349,6 +350,7 @@ from ._graph_export import (  # noqa: E402, F401
 from ._graph_hygiene import (  # noqa: E402, F401
     cos_graph_dead_code,
     cos_graph_test_gap,
+    cos_graph_stale_files,
 )
 from ._graph_insights import (  # noqa: E402, F401
     cos_graph_communities,

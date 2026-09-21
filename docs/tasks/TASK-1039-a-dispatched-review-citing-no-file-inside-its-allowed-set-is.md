@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-09-15
 started: 2026-09-20
-completed: null
+completed: 2026-09-20
 agent_session: ses-claude-20260920-211122-bc06
 depends_on: []
 blocked_by: []
@@ -64,3 +64,5 @@ Actual: ...
 - 2026-09-21 [claude]: Edit patch_scope.py
 - 2026-09-21 [claude]: Confirmed row 63 by reading it: security_auditor on TASK-1029, status=ok, $1.352399, 40 cited paths across…
 - 2026-09-21 [claude]: Honest limit, measured not assumed: of 26 distinct task_markers ever dispatched, 0 have a file set recorded in…
+- 2026-09-21 [claude]: commit 483d3829da — feat(cognition): reject a dispatched review that cited nothing in its scope
+- 2026-09-21 [claude]: Status transitioned to complete via cos task-done.

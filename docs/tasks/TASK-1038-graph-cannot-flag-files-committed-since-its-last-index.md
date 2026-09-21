@@ -5,18 +5,17 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [ready]
-status: icebox
+status: in_progress
 priority: P2
 appetite: 1d
 created: 2026-09-15
-started: null
+started: 2026-09-20
 completed: null
-agent_session: null
+agent_session: ses-claude-20260920-211122-bc06
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1038: Graph cannot flag files committed since its last index
 
 **Outcome (one sentence):** An agent can ask which indexed files have changed in git since the graph last read them, so a confidently complete answer built on a stale index is detectable before it is acted on.
@@ -51,3 +50,8 @@ spots, and two runs of the same extractor agree everywhere it is wrong.
   **Then** it reports that it cannot answer rather than returning an empty list.
 
 ## Work Log
+- 2026-09-21 [claude]: Edit patch_stale_doc.py
+- 2026-09-21 [claude]: Edit patch_stale_tool.py
+- 2026-09-21 [claude]: Edit patch_stale_mcp.py
+- 2026-09-21 [claude]: Built cos_graph_stale_files: reads file_index_state for indexed paths and their last_indexed_at, asks git which of…
+- 2026-09-21 [claude]: Edit patch_bench_doc.py

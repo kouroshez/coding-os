@@ -304,6 +304,35 @@ if _GRAPH_TOOLS_AVAILABLE:
         return _graph_tools.cos_graph_test_gap(kind=kind or "", top=int(top))
 
     @mcp.tool(
+        name="cos_graph_stale_files",
+        annotations={
+            "title": "Graph Staleness (indexed files with newer commits)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_stale_files_tool(top: int = 100) -> str:
+        """List indexed files with a git commit newer than the index pass that read them.
+
+        Truncation carries a flag because the harness knows it truncated.
+        Staleness carries none: the graph is complete against its own model
+        while the model is behind the tree, so the envelope looks clean either
+        way. Ask this before acting on a confidently complete answer.
+
+        Args:
+            top: Max paths returned (default 100, max 5000).
+
+        Returns:
+            JSON envelope with `stale` (list), stale_count, indexed_files and
+            index_age_seconds. Fails with `unavailable` when git history cannot
+            be read — an empty list would read as "nothing is stale".
+        """
+        return _graph_tools.cos_graph_stale_files(top=int(top))
+
+    @mcp.tool(
         name="cos_graph_diff",
         annotations={
             "title": "Graph Diff (git revision blast-radius)",
@@ -379,6 +408,7 @@ else:
             "cos_graph_cycles",
             "cos_graph_dead_code",
             "cos_graph_test_gap",
+            "cos_graph_stale_files",
             "cos_graph_diff",
             "cos_graph_doctor",
         )

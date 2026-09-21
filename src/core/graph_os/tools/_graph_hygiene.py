@@ -6,6 +6,7 @@ never directly (the kernel imports this file at its bottom).
 
 from __future__ import annotations
 
+import time as _time
 from typing import Any
 
 from ..backend import BackendUnavailable
@@ -253,5 +254,90 @@ def cos_graph_dead_code(
             "kind": kind or "function,method,class",
             "include_tests": include_tests,
             "result_truncated": total > top,
+        },
+    )
+
+
+def _git_files_since(root, epoch: int) -> tuple[set[str], str | None]:
+    # Returns (paths, error). An error means "cannot answer" — the caller must
+    # say so rather than return an empty list, because an empty list is the
+    # shape of "nothing is stale" and would read as reassurance.
+    import subprocess
+
+    try:
+        out = subprocess.run(
+            ["git", "log", f"--since=@{epoch}", "--name-only", "--format=", "--", "."],
+            cwd=str(root),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return set(), f"git unavailable: {exc}"
+    if out.returncode != 0:
+        return set(), (out.stderr or "git log failed").strip()[:200]
+    return {line for line in out.stdout.splitlines() if line.strip()}, None
+
+
+def cos_graph_stale_files(
+    *,
+    top: int = 100,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """List indexed files with a git commit newer than the index pass that read them."""
+    # Truncation has a flag because the harness knows it truncated. Staleness
+    # has none: the graph is complete against its own model while the model is
+    # behind the tree, so every envelope looks clean. Comparing indexed files
+    # against files committed after the last index pass turns "possibly stale"
+    # into a list, without a second analyzer that would share the extractor's
+    # blind spots.
+    top, _ = _clamp_int(top, min_v=1, max_v=5000)
+    try:
+        be = _kernel._backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+
+    # Same access path cos_graph_doctor uses for raw tables the typed backend
+    # surface does not expose.
+    conn = getattr(be, "_conn", None)
+    if conn is None:
+        return _fail("unavailable", "backend exposes no sqlite connection", retryable=True)
+    try:
+        rows = conn.execute(
+            "SELECT file_path, last_indexed_at FROM file_index_state "
+            "WHERE last_indexed_at IS NOT NULL"
+        ).fetchall()
+    except Exception as exc:
+        return _fail("unavailable", f"file_index_state unreadable: {exc}", retryable=True)
+
+    if not rows:
+        return _ok(
+            {"stale": [], "stale_count": 0, "indexed_files": 0, "index_age_seconds": None},
+            meta={"source": "graph_os.stale_files", "reason": "nothing indexed yet"},
+        )
+
+    indexed = {str(r[0]): int(r[1]) for r in rows}
+    newest = max(indexed.values())
+    root = _kernel._repo_root_for_paths()
+    committed, git_error = _git_files_since(root, min(indexed.values()))
+
+    if git_error is not None:
+        # No history to compare against is not "nothing is stale".
+        return _fail("unavailable", f"cannot answer: {git_error}", retryable=False)
+
+    stale = sorted(path for path in committed if path in indexed)
+    now = int(_time.time())
+    return _ok(
+        {
+            "stale": stale[:top],
+            "stale_count": len(stale),
+            "indexed_files": len(indexed),
+            "index_age_seconds": now - newest,
+            "newest_index_at": newest,
+        },
+        meta={
+            "source": "graph_os.stale_files",
+            "result_truncated": len(stale) > top,
+            "total_count": len(stale),
         },
     )

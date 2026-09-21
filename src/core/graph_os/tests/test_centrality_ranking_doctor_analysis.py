@@ -350,3 +350,61 @@ class TestPhantomOrphan:
         assert not graph._is_phantom_orphan(
             "function", "src/x.py", "code:function:src/x.py::f", "{not json"
         )
+
+
+class TestStaleFiles:
+    """Staleness has no truncation flag — the graph is complete against a model
+    that is behind the tree, so every envelope looks clean. The only signal is
+    comparing indexed files against files committed after the index read them.
+    """
+
+    @staticmethod
+    def _index(conn, rows):
+        # The migrated schema already owns this table and marks content_hash
+        # NOT NULL, so supply it rather than re-declaring a looser shape.
+        conn.executemany(
+            "INSERT OR REPLACE INTO file_index_state "
+            "(file_path, content_hash, extractor_chain, nodes_written, edges_written, "
+            "last_indexed_at) VALUES (?,?,?,?,?,?)",
+            [(path, f"hash-{path}", "test", 0, 0, ts) for path, ts in rows],
+        )
+        conn.commit()
+
+    def test_lists_files_committed_after_their_index_pass(
+        self, migrated_conn, monkeypatch, tmp_path
+    ) -> None:
+        import subprocess
+
+        repo = tmp_path / "repo"
+        (repo / "src").mkdir(parents=True)
+        subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+        subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
+        subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
+        (repo / "src" / "moved.py").write_text("x = 1\n")
+        (repo / "src" / "quiet.py").write_text("y = 1\n")
+        subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+        subprocess.run(["git", "commit", "-qm", "seed"], cwd=repo, check=True)
+
+        # Index read both a long time ago; only moved.py has been committed since.
+        self._index(migrated_conn, [("src/moved.py", 1), ("src/quiet.py", 1)])
+        _seed(migrated_conn, monkeypatch, [], [])
+        monkeypatch.setattr(graph, "_repo_root_for_paths", lambda: repo)
+
+        data = _ok(graph.cos_graph_stale_files())
+        assert "src/moved.py" in data["stale"]
+        assert data["indexed_files"] == 2
+        assert data["index_age_seconds"] is not None
+
+    def test_cannot_answer_without_git_history(self, migrated_conn, monkeypatch, tmp_path) -> None:
+        """An empty list is the shape of "nothing is stale" — never return it
+        when the question could not be asked."""
+        plain = tmp_path / "nogit"
+        plain.mkdir()
+        self._index(migrated_conn, [("src/a.py", 1)])
+        _seed(migrated_conn, monkeypatch, [], [])
+        monkeypatch.setattr(graph, "_repo_root_for_paths", lambda: plain)
+
+        env = graph.cos_graph_stale_files()
+        payload = json.loads(env) if isinstance(env, str) else env
+        assert payload["ok"] is False
+        assert "cannot answer" in payload["error"]["message"]
