@@ -31,11 +31,7 @@ CLI entry point:
 
 from __future__ import annotations
 
-import functools
-import hashlib
 import heapq
-import logging
-import os
 import sqlite3
 import sys
 from typing import Any
@@ -45,328 +41,86 @@ from typing import Any
 _SEARCH_BATCH = 4096
 _REINDEX_BATCH = 64
 
-logger = logging.getLogger("coding_os.embeddings")
-
-# Enterprise: never make unauthenticated HuggingFace Hub requests at runtime.
-# Default to offline (use the locally-cached model only). A first-time vendoring
-# download is explicit opt-in via COS_ALLOW_MODEL_DOWNLOAD=1, so the agent
-# runtime never phones home without consent. setdefault respects an operator's
-# own HF_HUB_OFFLINE choice.
-if os.environ.get("COS_ALLOW_MODEL_DOWNLOAD") != "1":
-    os.environ.setdefault("HF_HUB_OFFLINE", "1")
-    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
-
-# Default model for FRESH projects — BAAI/bge-m3: 1024-dim, multilingual,
-# ~4.3GB first-time download (vendored explicitly via COS_ALLOW_MODEL_DOWNLOAD=1).
-# Per-project opt-back to MiniLM via COS_EMBEDDING_MODEL. The model a running
-# process actually encodes with is active_model_name(), NOT this constant.
-DEFAULT_MODEL_NAME = "BAAI/bge-m3"
-EMBEDDING_DIM = 384  # Legacy MiniLM dim — last-resort fallback; per-model dims live in MODEL_DIMS
-EMBEDDING_BYTES = EMBEDDING_DIM * 4  # float32 → 4 bytes per dimension
-
-# Dual-model support during the MiniLM → BGE-M3 migration.
-# Each entry: output dim per model. Callers can opt into BGE-M3 via the
-# COS_EMBEDDING_MODEL env var or an explicit model_name kwarg. The DB
-# remembers the model_name + embedding_dim per row so mixed populations
-# are queryable through dim-aware cosine_similarity.
-MODEL_DIMS: dict[str, int] = {
-    "all-MiniLM-L6-v2": 384,
-    "BAAI/bge-m3": 1024,
-}
-
-# Source tables that support embedded retrieval. New tables can be added
-# without code changes — just call upsert_embedding with the new table name.
-DEFAULT_SOURCE_TABLES = (
-    "observations",
-    "learned_patterns",
-    "outcome_history",
-    "document_chunks",
-    "tasks",
-)
-
-# graph_node kinds worth embedding for semantic code search. Identifiers,
-# imports, and external stubs are excluded — they are similarity noise (G21)
-# and carry no meaningful label+signature+docstring text. Stored kinds are
-# the canonical short forms (migration v16); see graph_os.types.NodeKind.
-GRAPH_EMBED_KINDS: tuple[str, ...] = (
-    "function",
-    "method",
-    "class",
-    "route",
-    "mcp_tool",
-    "doc_heading",
-)
-
-
-def _active_model_marker_path():
-    from pathlib import Path
-
-    state = os.environ.get("COS_STATE_DIR") or str(
-        Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())) / ".coding-os"
+# The three private siblings this module was split into. Names are re-exported
+# so `embeddings.<name>` keeps resolving for every caller and every test patch.
+# Loaded flat as `embeddings` by thinking_os and as `thinking_os.embeddings`
+# by graph_os; the relative form has no parent package under the first.
+try:
+    from ._embeddings_model import (
+        _MODEL_OVERRIDES,
+        _get_model,
+        _get_model_by_name,
+        _override_model,
+        embed_text,
+        embed_texts,
+        is_available,
     )
-    return Path(state) / ".embedding-model"
-
-
-def active_model_name() -> str:
-    """Return the model the current process encodes with.
-
-    SSOT order (M5): COS_EMBEDDING_MODEL env > persisted cutover marker
-    (.coding-os/.embedding-model) > DEFAULT_MODEL_NAME. The marker lets the
-    cutover flip every process to the new model at once after the corpus is
-    fully re-embedded, instead of each process guessing from its own env.
-    """
-    env = os.environ.get("COS_EMBEDDING_MODEL", "").strip()
-    if env:
-        return env
-    try:
-        marker = _active_model_marker_path()
-        if marker.exists():
-            name = marker.read_text(encoding="utf-8").strip()
-            if name in MODEL_DIMS:
-                return name
-    except OSError as exc:
-        logger.debug("active-model marker read skipped: %s", exc)
-    return DEFAULT_MODEL_NAME
-
-
-def set_active_model(name: str) -> None:
-    """Persist the active-model cutover marker (atomic tmp+replace)."""
-    if name not in MODEL_DIMS:
-        raise ValueError(f"unknown model {name!r}; known: {sorted(MODEL_DIMS)}")
-    marker = _active_model_marker_path()
-    marker.parent.mkdir(parents=True, exist_ok=True)
-    tmp = marker.with_suffix(".tmp")
-    tmp.write_text(name, encoding="utf-8")
-    tmp.replace(marker)
-
-
-# Calibrated similarity floors per model (measured 2026-06: BGE-M3 separates
-# related code-symbol cosine ~0.84 from unrelated ~0.55; MiniLM barely
-# separates 0.39 vs 0.35). The persisted-vector similar path caps its floor at
-# this value so a legacy confidence_min default cannot suppress the fast path.
-_PERSISTED_FLOORS: dict[str, float] = {
-    "all-MiniLM-L6-v2": 0.25,
-    "BAAI/bge-m3": 0.60,
-}
-
-
-def persisted_similarity_floor(model_name: str | None = None) -> float:
-    """Calibrated cosine floor for the persisted-embedding similar path."""
-    return _PERSISTED_FLOORS.get(model_name or active_model_name(), 0.25)
-
-
-# Calibrated cosine floors for DOC-CHUNK semantic search (cos_doc_search).
-# Distinct from _PERSISTED_FLOORS: query-vs-doc-chunk cosines sit lower than
-# code-symbol-vs-symbol ones, so the node floor (0.60) would discard genuine
-# hits. Measured 2026-06 on the dogfood corpus: BGE-M3 related ~0.54-0.68 vs
-# noise ~0.31-0.49 → 0.50 is the clean split. MiniLM keeps its legacy 0.05
-# (it barely separates, so an aggressive floor just costs recall).
-_DOC_FLOORS: dict[str, float] = {
-    "all-MiniLM-L6-v2": 0.05,
-    "BAAI/bge-m3": 0.50,
-}
-
-
-def doc_similarity_floor(model_name: str | None = None) -> float:
-    """Calibrated cosine floor for cos_doc_search semantic ranking."""
-    return _DOC_FLOORS.get(model_name or active_model_name(), 0.05)
-
-
-# Calibrated cosine floor for AGENT-MEMORY semantic search (cos_search over
-# observations + learned_patterns) and short task records. Measured 2026-07 on
-# the dogfood corpus: genuine synonym matches on short memory text land ~0.50-0.62
-# (a marketplace task at 0.51, a Celery obs at 0.50) while unrelated rows sit
-# <=0.40 — so 0.45 clears real signal with margin below the lowest genuine hit
-# and above the noise cluster. This floor is LOWER than doc chunks (0.50) and
-# code symbols (0.60): short natural-language memory rows separate at lower
-# cosines than either, so borrowing the code-symbol 0.55 (the prior value) just
-# filtered genuine recall. MiniLM keeps its legacy 0.05 (it barely separates, so
-# a hard floor only costs recall).
-_MEMORY_FLOORS: dict[str, float] = {
-    "all-MiniLM-L6-v2": 0.05,
-    "BAAI/bge-m3": 0.45,
-}
-
-
-def memory_similarity_floor(model_name: str | None = None) -> float:
-    """Calibrated cosine floor for agent-memory + task semantic search."""
-    return _MEMORY_FLOORS.get(model_name or active_model_name(), 0.05)
-
-
-def migration_status(conn: sqlite3.Connection, target_model: str | None = None) -> dict:
-    """Report re-embedding progress toward target_model (cutover-gate input)."""
-    target = target_model or active_model_name()
-    try:
-        total = conn.execute("SELECT COUNT(*) FROM embeddings").fetchone()[0]
-        remaining = conn.execute(
-            "SELECT COUNT(*) FROM embeddings WHERE model_name IS NULL OR model_name != ?",
-            (target,),
-        ).fetchone()[0]
-    except sqlite3.OperationalError:
-        return {"target": target, "total": 0, "remaining": 0, "complete": False}
-    return {
-        "target": target,
-        "total": int(total),
-        "remaining": int(remaining),
-        "complete": total > 0 and remaining == 0,
-    }
-
-
-def model_dim(model_name: str) -> int | None:
-    """Return the expected vector dim for a known model, else None."""
-    return MODEL_DIMS.get(model_name)
-
-
-def bytes_to_dim(payload: bytes | None) -> int | None:
-    """Return dim inferred from a raw float32 blob (len / 4)."""
-    if not payload:
-        return None
-    if len(payload) % 4 != 0:
-        return None
-    return len(payload) // 4
-
-
-# ---------------------------------------------------------------------------
-# Availability detection — graceful degradation entry point
-# ---------------------------------------------------------------------------
-
-
-@functools.lru_cache(maxsize=1)
-def is_available() -> bool:
-    """Return True iff sentence-transformers and numpy are importable.
-
-    Result is cached for the process lifetime — checking is cheap after the
-    first call.
-
-    Returns:
-        True if both `sentence_transformers` and `numpy` import successfully.
-        False otherwise — callers must handle this and fall back.
-    """
-    try:
-        import numpy  # noqa: F401
-        import sentence_transformers  # noqa: F401
-
-        return True
-    except ImportError:
-        return False
-
-
-@functools.lru_cache(maxsize=4)
-def _get_model_by_name(name: str) -> Any:
-    """Load and cache an embedding model by name."""
-    if not is_available():
-        return None
-    override = _MODEL_OVERRIDES.get(name)
-    if override is not None:
-        return override
-    try:
-        from sentence_transformers import SentenceTransformer
-
-        logger.info("Loading embedding model: %s", name)
-        return SentenceTransformer(name)
-    except Exception as exc:
-        if os.environ.get("COS_ALLOW_MODEL_DOWNLOAD") != "1":
-            logger.warning(
-                "Embedding model %s not in local cache; runtime downloads are "
-                "disabled — set COS_ALLOW_MODEL_DOWNLOAD=1 once to vendor it. "
-                "Falling back to lexical search. (%s)",
-                name,
-                exc,
-            )
-        else:
-            logger.warning("Failed to load embedding model %s: %s", name, exc)
-        return None
-
-
-# Test hook: a mapping of model_name → pre-built encoder (duck-typed to
-# expose .encode(...) with the sentence-transformers signature). Lets the
-# test suite exercise dual-model behaviour without downloading BGE-M3.
-_MODEL_OVERRIDES: dict[str, Any] = {}
-
-
-def _override_model(name: str, encoder: Any) -> None:
-    """Test-only: install a fake encoder for the given model name."""
-    if encoder is None:
-        _MODEL_OVERRIDES.pop(name, None)
-    else:
-        _MODEL_OVERRIDES[name] = encoder
-    _get_model_by_name.cache_clear()
-    _get_model.cache_clear()
-
-
-@functools.lru_cache(maxsize=1)
-def _get_model() -> Any:
-    """Legacy shim — returns the active-model encoder.
-
-    Kept as an lru_cache'd function so existing tests that call
-    `_get_model.cache_clear()` continue to work after the
-    refactor. Defers to the multi-model loader.
-    """
-    return _get_model_by_name(active_model_name())
-
-
-# ---------------------------------------------------------------------------
-# Embedding generation
-# ---------------------------------------------------------------------------
-
-
-def embed_text(text: str, model_name: str | None = None) -> bytes | None:
-    """Embed a single text string with the active (or explicit) model."""
-    if not text or not text.strip():
-        return None
-    # When the caller doesn't pick a model, route through the legacy
-    # _get_model() so existing tests that patch it keep working.
-    if model_name is None:
-        model = _get_model()
-        name = active_model_name()
-    else:
-        name = model_name
-        model = _get_model_by_name(name)
-    if model is None:
-        return None
-    try:
-        import numpy as np
-
-        vector = model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
-        return np.asarray(vector, dtype=np.float32).tobytes()
-    except Exception as exc:
-        logger.warning("embed_text(%s) failed: %s", name, exc)
-        return None
-
-
-def embed_texts(texts: list[str], model_name: str | None = None) -> list[bytes | None]:
-    """Batch-embed with the active (or explicit) model."""
-    if not texts:
-        return []
-    if model_name is None:
-        model = _get_model()
-        name = active_model_name()
-    else:
-        name = model_name
-        model = _get_model_by_name(name)
-    if model is None:
-        return [None] * len(texts)
-    try:
-        import numpy as np
-
-        indices = [i for i, t in enumerate(texts) if t and t.strip()]
-        valid_texts = [texts[i] for i in indices]
-        if not valid_texts:
-            return [None] * len(texts)
-        vectors = model.encode(
-            valid_texts,
-            convert_to_numpy=True,
-            normalize_embeddings=True,
-            batch_size=32,
-        )
-        results: list[bytes | None] = [None] * len(texts)
-        for idx, vec in zip(indices, vectors, strict=False):
-            results[idx] = np.asarray(vec, dtype=np.float32).tobytes()
-        return results
-    except Exception as exc:
-        logger.warning("embed_texts(%s) failed: %s", name, exc)
-        return [None] * len(texts)
-
+    from ._embeddings_registry import (
+        _DOC_FLOORS,
+        _MEMORY_FLOORS,
+        _PERSISTED_FLOORS,
+        DEFAULT_MODEL_NAME,
+        DEFAULT_SOURCE_TABLES,
+        EMBEDDING_BYTES,
+        EMBEDDING_DIM,
+        GRAPH_EMBED_KINDS,
+        MODEL_DIMS,
+        _active_model_marker_path,
+        active_model_name,
+        bytes_to_dim,
+        doc_similarity_floor,
+        logger,
+        memory_similarity_floor,
+        migration_status,
+        model_dim,
+        persisted_similarity_floor,
+        set_active_model,
+    )
+    from ._embeddings_store import (
+        _compute_text_hash,
+        _has_embedding_dim_column,
+        _persist_embedding,
+        has_embeddings_data,
+        upsert_embedding,
+    )
+except ImportError:  # pragma: no cover
+    from _embeddings_model import (  # type: ignore[no-redef,import-not-found]  # noqa: F401
+        _MODEL_OVERRIDES,
+        _get_model,
+        _get_model_by_name,
+        _override_model,
+        embed_text,
+        embed_texts,
+        is_available,
+    )
+    from _embeddings_registry import (  # type: ignore[no-redef,import-not-found]  # noqa: F401
+        _DOC_FLOORS,
+        _MEMORY_FLOORS,
+        _PERSISTED_FLOORS,
+        DEFAULT_MODEL_NAME,
+        DEFAULT_SOURCE_TABLES,
+        EMBEDDING_BYTES,
+        EMBEDDING_DIM,
+        GRAPH_EMBED_KINDS,
+        MODEL_DIMS,
+        _active_model_marker_path,
+        active_model_name,
+        bytes_to_dim,
+        doc_similarity_floor,
+        logger,
+        memory_similarity_floor,
+        migration_status,
+        model_dim,
+        persisted_similarity_floor,
+        set_active_model,
+    )
+    from _embeddings_store import (  # type: ignore[no-redef,import-not-found]  # noqa: F401
+        _compute_text_hash,
+        _has_embedding_dim_column,
+        _persist_embedding,
+        has_embeddings_data,
+        upsert_embedding,
+    )
 
 # ---------------------------------------------------------------------------
 # Similarity computation (numpy cosine on normalized vectors → just dot product)
@@ -443,144 +197,6 @@ def cosine_similarity_with_meta(
     except Exception as exc:
         logger.warning("cosine_similarity_with_meta failed: %s", exc)
         return default
-
-
-# ---------------------------------------------------------------------------
-# Text hashing — staleness detection
-# ---------------------------------------------------------------------------
-
-
-def _compute_text_hash(text: str) -> str:
-    """Return the first 16 hex chars of SHA256(text).
-
-    Matches the pattern used by capture._compute_content_hash so the codebase
-    has one consistent hashing convention.
-    """
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
-
-
-# ---------------------------------------------------------------------------
-# DB helpers
-# ---------------------------------------------------------------------------
-
-
-def has_embeddings_data(conn: sqlite3.Connection) -> bool:
-    """Return True if the embeddings table exists and contains at least one row."""
-    try:
-        row = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='embeddings'"
-        ).fetchone()
-        if row is None:
-            return False
-        count = conn.execute("SELECT COUNT(*) FROM embeddings").fetchone()
-        return bool(count and count[0] > 0)
-    except sqlite3.OperationalError:
-        return False
-
-
-def upsert_embedding(
-    conn: sqlite3.Connection,
-    source_table: str,
-    source_id: int,
-    text: str,
-    *,
-    model_name: str | None = None,
-) -> dict:
-    """Insert or refresh an embedding row with the active model."""
-    if not is_available():
-        return {"status": "skipped", "reason": "unavailable"}
-    if not text or not text.strip():
-        return {"status": "skipped", "reason": "empty_text"}
-
-    name = model_name or active_model_name()
-    text_hash = _compute_text_hash(text)
-    try:
-        existing = conn.execute(
-            "SELECT id, text_hash, model_name FROM embeddings "
-            "WHERE source_table = ? AND source_id = ?",
-            (source_table, source_id),
-        ).fetchone()
-    except sqlite3.OperationalError as exc:
-        return {"status": "skipped", "reason": f"table_missing: {exc}"}
-
-    if existing and existing[1] == text_hash and existing[2] == name:
-        return {"status": "unchanged", "id": existing[0]}
-
-    vector = embed_text(text, model_name=name)
-    if vector is None:
-        return {"status": "skipped", "reason": "embed_failed"}
-
-    try:
-        status, row_id, dim = _persist_embedding(
-            conn,
-            source_table,
-            source_id,
-            text_hash,
-            vector,
-            name,
-            existing[0] if existing else None,
-            _has_embedding_dim_column(conn),
-        )
-        conn.commit()
-        return {"status": status, "id": row_id, "dim": dim, "model_name": name}
-    except sqlite3.OperationalError as exc:
-        return {"status": "error", "reason": str(exc)}
-
-
-def _persist_embedding(
-    conn: sqlite3.Connection,
-    source_table: str,
-    source_id: int,
-    text_hash: str,
-    vector: bytes,
-    name: str,
-    existing_id: int | None,
-    has_dim_col: bool,
-) -> tuple[str, int, int]:
-    """Write one embedding row (INSERT or UPDATE). Caller commits.
-
-    Shared by upsert_embedding (single) and reindex_all (batched). Returns
-    (status, row_id, dim). `has_dim_col` tolerates pre-v12 DBs missing the
-    embedding_dim column.
-    """
-    dim = bytes_to_dim(vector) or model_dim(name) or EMBEDDING_DIM
-    if existing_id is not None:
-        if has_dim_col:
-            conn.execute(
-                "UPDATE embeddings SET text_hash = ?, embedding = ?, model_name = ?, "
-                "embedding_dim = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?",
-                (text_hash, vector, name, dim, existing_id),
-            )
-        else:
-            conn.execute(
-                "UPDATE embeddings SET text_hash = ?, embedding = ?, model_name = ?, "
-                "created_at = CURRENT_TIMESTAMP WHERE id = ?",
-                (text_hash, vector, name, existing_id),
-            )
-        return "updated", existing_id, dim
-
-    if has_dim_col:
-        cursor = conn.execute(
-            "INSERT INTO embeddings (source_table, source_id, text_hash, "
-            "embedding, model_name, embedding_dim) VALUES (?, ?, ?, ?, ?, ?)",
-            (source_table, source_id, text_hash, vector, name, dim),
-        )
-    else:
-        cursor = conn.execute(
-            "INSERT INTO embeddings (source_table, source_id, text_hash, "
-            "embedding, model_name) VALUES (?, ?, ?, ?, ?)",
-            (source_table, source_id, text_hash, vector, name),
-        )
-    return "inserted", int(cursor.lastrowid), dim
-
-
-def _has_embedding_dim_column(conn: sqlite3.Connection) -> bool:
-    """Tolerate pre-v12 DBs that lack the embedding_dim column."""
-    try:
-        rows = conn.execute("PRAGMA table_info(embeddings)").fetchall()
-    except sqlite3.OperationalError:
-        return False
-    return any(r[1] == "embedding_dim" for r in rows)
 
 
 # ---------------------------------------------------------------------------

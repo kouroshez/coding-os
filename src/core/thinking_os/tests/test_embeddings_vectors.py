@@ -28,6 +28,7 @@ import pytest
 # Make `embeddings` and `db` importable from the package root
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import _embeddings_model
 import embeddings
 from database import init_db
 
@@ -113,7 +114,8 @@ class TestEmbedText:
     def test_embed_text_graceful_when_unavailable(self) -> None:
         """When the model fails to load, embed_text returns None safely."""
         embeddings._get_model.cache_clear()
-        with patch.object(embeddings, "_get_model", return_value=None):
+        # embed_text resolves _get_model from its own module, not the facade.
+        with patch.object(_embeddings_model, "_get_model", return_value=None):
             assert embeddings.embed_text("anything") is None
 
 
@@ -138,7 +140,7 @@ class TestEmbedTexts:
 
     def test_embed_texts_graceful_when_unavailable(self) -> None:
         embeddings._get_model.cache_clear()
-        with patch.object(embeddings, "_get_model", return_value=None):
+        with patch.object(_embeddings_model, "_get_model", return_value=None):
             results = embeddings.embed_texts(["a", "b", "c"])
             assert results == [None, None, None]
 

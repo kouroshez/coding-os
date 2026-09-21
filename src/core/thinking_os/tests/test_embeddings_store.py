@@ -28,6 +28,8 @@ import pytest
 # Make `embeddings` and `db` importable from the package root
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import _embeddings_model
+import _embeddings_store
 import embeddings
 from database import init_db
 
@@ -105,9 +107,10 @@ class TestUpsertEmbedding:
     def test_unavailable_skipped(self, tmp_db: sqlite3.Connection) -> None:
         embeddings.is_available.cache_clear()
         with (
-            patch.object(embeddings, "is_available", return_value=True),
-            patch.object(embeddings, "_get_model", return_value=None),
-            patch.object(embeddings, "embed_text", return_value=None),
+            # upsert_embedding reads both names from _embeddings_store's globals.
+            patch.object(_embeddings_store, "is_available", return_value=True),
+            patch.object(_embeddings_model, "_get_model", return_value=None),
+            patch.object(_embeddings_store, "embed_text", return_value=None),
         ):
             result = embeddings.upsert_embedding(tmp_db, "observations", 1, "text")
             assert result["status"] in ("skipped",)
