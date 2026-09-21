@@ -67,9 +67,19 @@ against the pre-fix single-call code.
 
 ## Methodology
 
-1. **Corpus** — the target repo's tracked `*.py` files (skipping `.git`,
-   virtualenvs, `node_modules`), read once into memory. Indexed with the same
-   extractors and SQLite backend every consumer uses.
+1. **Corpus** — every `*.py` file under the repo root except a denylist of
+   directory names (`.git`, `.hg`, virtualenvs, `node_modules`, `__pycache__`,
+   `.tox`, `.mypy_cache`, `build`, `dist`), read once into memory. Indexed with
+   the same extractors and SQLite backend every consumer uses.
+
+   This is a **denylist walk, not `git ls-files`** — the distinction matters
+   and this doc used to get it wrong. A gitignored directory the denylist does
+   not name is indexed: this repo carries 938 build artefacts under
+   `build/lib/` that are byte-copies of its own source, and until `build` was
+   added they were 27% of the corpus. A class defined twice splits its own
+   degree, so the highest-degree probes — the ones §2 selects — resolved into
+   the copy. Any repo you point this at should be checked for the same shape
+   before its numbers are published.
 2. **Probes** — the `--queries N` highest-degree function/class symbols,
    deduplicated by label so one symbol cannot be double-weighted in the median.
    Selection is deterministic for a given repo state.
@@ -98,7 +108,16 @@ symbols, with the **worst single probe** in brackets. Public repos ran
 | psf/requests @ v2.32.5 | 36 | 77.7% (42) | 24.2% (−54) | 74.8% (44) |
 | fastapi/fastapi @ 0.116.1 | 1,129 | 79.5% (−3) | **−6.8%** (−86) | 82.4% (11) |
 | django/django @ 5.2 | 2,818 | 76.8% (50) | 70.8% (18) | 77.1% (51) |
-| coding-os (this repo) | 3,317 | 79.7% (66) | 74.0% (65) | 79.7% (66) |
+| coding-os (this repo) ⚠️ | 3,317 | 79.7% (66) | 74.0% (65) | 79.7% (66) |
+
+> ⚠️ **The coding-os row is measured on a contaminated corpus and has not been
+> re-run.** Its 3,317 files included ~940 gitignored copies of the repo's own
+> source under `build/lib/`, so its probes were selected from a tree that was
+> partly a duplicate of itself. `build`/`dist` are now excluded (the same walk
+> counts 2,483 files today), which changes both the probe selection and the
+> grep baseline — so the row cannot simply be scaled. Re-run all three
+> baselines for this repo before quoting it. The three third-party rows are
+> unaffected: none of them ships a `build/` tree.
 
 ### `read-all` — the ceiling, published so nobody has to guess what we cherry-picked
 

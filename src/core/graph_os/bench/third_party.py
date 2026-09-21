@@ -48,8 +48,24 @@ from graph_os.bench.token_cost import _fresh_conn  # noqa: E402
 
 WORKFLOWS = ("references", "impact", "rename_plan")
 
+# "build" and "dist" are here because this repo ships 938 gitignored copies of
+# its own source under build/lib/ — 27% of the .py files this walk would
+# otherwise index. A class defined twice splits its own degree, so the
+# highest-degree probes resolve into the copy and every number measured
+# against them describes a tree that is a duplicate of itself.
 _SKIP_DIR_NAMES = frozenset(
-    {".git", ".hg", ".venv", "venv", "node_modules", "__pycache__", ".tox", ".mypy_cache"}
+    {
+        ".git",
+        ".hg",
+        ".venv",
+        "venv",
+        "node_modules",
+        "__pycache__",
+        ".tox",
+        ".mypy_cache",
+        "build",
+        "dist",
+    }
 )
 _MAX_FILE_BYTES = 2 * 1024 * 1024
 _CLONE_TIMEOUT_SECONDS = 300
