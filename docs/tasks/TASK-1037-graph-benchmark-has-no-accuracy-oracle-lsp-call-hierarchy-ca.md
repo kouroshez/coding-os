@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-09-15
 started: 2026-09-20
-completed: null
+completed: 2026-09-20
 agent_session: ses-claude-20260920-211122-bc06
 depends_on: []
 blocked_by: []
@@ -72,3 +72,5 @@ different corpus, so the scoring half has a shape to copy rather than invent.
 - 2026-09-21 [claude]: Edit test_bench_honesty.py
 - 2026-09-21 [claude]: commit 0d8748b784 — test(scheduled): split the nightly tests at the maintenance seam
 - 2026-09-21 [claude]: Built the oracle, and the build corrected the design twice. jedi over pyright/LSP as planned, but not as an…
+- 2026-09-21 [claude]: commit a3f54608bf — feat(bench): grade reference accuracy with a jedi oracle beside the savings figure
+- 2026-09-21 [claude]: Status transitioned to complete via cos task-done.
