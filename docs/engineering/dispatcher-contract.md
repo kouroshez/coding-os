@@ -93,6 +93,29 @@ leaves routing unable to learn from a run the project paid for. The bundle
 still carries the `degraded_formulas` marker, so a supervisor reading the
 bundle sees the same degradation it always did.
 
+**A review that never touched the work is not a review.** A role dispatched for
+a task is dispatched for that task's files. When its output cites file paths and
+none of them intersect the set the task actually changed, the run is recorded
+with `status="fail"` and `error_category="out_of_scope"`, naming both sets in
+`error`. Observed: dispatch row 63, `security_auditor` on TASK-1029 — a card
+whose only changed files were two `docs/tasks/` entries — returned 40 cited
+paths across `graph_os`, `docs/` and the ingest layer, and landed `status=ok` at
+$1.35. Nothing recorded that the cited paths and the dispatched scope never met.
+
+Two deliberate non-verdicts, because a guard that fires on absence of evidence
+teaches people to route around it:
+
+- **Cites no path at all** -> recorded normally. Plenty of honest role output
+  (a routing decision, a "no findings") names no file, and failing those would
+  make the check noise.
+- **The task's changed-file set is unknown** -> recorded normally. With nothing
+  to intersect against there is no claim to test, and inventing one from an
+  empty set would fail every dispatch on a fresh card.
+
+This checks the *result*, not the input. The input side was fixed separately --
+a child inheriting another session's task -- but a scope check that reads what
+the reviewer actually cited catches drift no input-side guard can see.
+
 ## Architecture
 
 ```

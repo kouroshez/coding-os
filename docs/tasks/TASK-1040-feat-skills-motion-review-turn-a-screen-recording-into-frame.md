@@ -5,13 +5,13 @@ swimlane: core
 kind: feature
 epic: null
 labels: [skills, video, visual-verification, user-scope, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-09-15
 started: 2026-09-15
-completed: null
-agent_session: ses-claude-20260527-151803-0b9f
+completed: 2026-09-20
+agent_session: ses-claude-20260920-211122-bc06
 depends_on: []
 blocked_by: []
 references: []
@@ -34,3 +34,5 @@ references: []
 
 ## Work Log
 - 2026-09-15 [claude]: Verified by execution: engine run on a real 243-frame capture, static-recording failure path, colour-only state…
+- 2026-09-21 [claude]: Close verification re-run 2026-09-20 on the committed tree: golden parity + rules freshness + file-size budget all…
+- 2026-09-21 [claude]: Status transitioned to complete via cos task-done.

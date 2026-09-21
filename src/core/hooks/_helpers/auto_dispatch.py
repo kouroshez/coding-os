@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -117,6 +119,60 @@ def _append(results_file: Path, payload: dict) -> None:
         pass
 
 
+_PATH_RE = re.compile(r"\b(?:src|tests|docs|scripts)/[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,5}\b")
+
+
+def _task_files(task_id: str, db_path: str) -> set[str]:
+    # What the task actually changed, from the observation rows the capture
+    # hook writes per edit. An empty set means "unknown" — the caller treats
+    # unknown as no claim to test, never as a failed scope.
+    if not task_id:
+        return set()
+    try:
+        with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5) as conn:
+            rows = conn.execute(
+                "SELECT files_modified FROM observations "
+                "WHERE task_id = ? AND files_modified IS NOT NULL AND files_modified != ''",
+                (task_id,),
+            ).fetchall()
+    except sqlite3.Error:
+        return set()
+
+    files: set[str] = set()
+    for (raw,) in rows:
+        for chunk in str(raw).replace(",", "\n").split("\n"):
+            cleaned = chunk.strip().strip("\"'[] ")
+            if cleaned:
+                files.add(cleaned)
+    return files
+
+
+def _cited_paths(output_json: object, raw_transcript: str | None) -> set[str]:
+    # The reviewer's own words are the evidence. Scan the transcript as well as
+    # the structured output: a role that names files only in prose still told
+    # us where it looked.
+    haystack = json.dumps(output_json, default=str) if output_json else ""
+    if raw_transcript:
+        haystack = f"{haystack}\n{raw_transcript}"
+    return set(_PATH_RE.findall(haystack))
+
+
+def _scope_verdict(cited: set[str], allowed: set[str]) -> str | None:
+    # None means "no verdict" — recorded normally. A guard that fires on the
+    # absence of evidence gets routed around, so both unknowns stay silent: a
+    # role that cites nothing may legitimately have no file to name, and an
+    # empty allowed set is a claim we cannot test rather than one that failed.
+    if not cited or not allowed:
+        return None
+    if cited & allowed:
+        return None
+    return (
+        f"out of scope: cited {len(cited)} path(s), none inside the "
+        f"{len(allowed)} the task changed. cited={sorted(cited)[:5]} "
+        f"allowed={sorted(allowed)[:5]}"
+    )
+
+
 def _dispatch_one(target: dict, task_id: str, session_id: str, db_path: str) -> dict:
     import asyncio
 
@@ -146,6 +202,22 @@ def _dispatch_one(target: dict, task_id: str, session_id: str, db_path: str) -> 
         "error_category": result.error_category,
         "error": result.error,
     }
+
+    # A review that cited nothing inside the task's own files did not review
+    # what it was dispatched for, whatever produced the mismatch. Observed:
+    # row 63, security_auditor on a docs-only card, 40 cited paths across
+    # graph_os and the ingest layer, recorded status=ok at $1.35.
+    out_of_scope = None
+    if result.status == "ok":
+        out_of_scope = _scope_verdict(
+            _cited_paths(result.output_json, result.raw_transcript),
+            _task_files(task_id, db_path),
+        )
+    if out_of_scope:
+        route["error_category"] = "out_of_scope"
+        route["error"] = out_of_scope
+        result.status = "fail"
+
     if result.output_json:
         _persist_dispatch_output(
             session_id=session_id,
@@ -169,9 +241,10 @@ def _dispatch_one(target: dict, task_id: str, session_id: str, db_path: str) -> 
         "status": result.status,
         "cost_usd": meta.get("total_cost_usd"),
         "latency_ms": result.latency_ms,
-        "error": (result.error or "")[:200] or None,
-        "passed": verdict,
+        "error": (out_of_scope or result.error or "")[:200] or None,
+        "passed": False if out_of_scope else verdict,
         "findings": findings,
+        "out_of_scope": bool(out_of_scope),
     }
 
 

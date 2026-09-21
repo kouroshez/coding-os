@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ready]
-status: icebox
+status: in_progress
 priority: P2
 appetite: 1d
 created: 2026-09-15
-started: null
+started: 2026-09-20
 completed: null
-agent_session: null
+agent_session: ses-claude-20260920-211122-bc06
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1039: A dispatched review citing no file inside its allowed set is accepted
 
 **Outcome (one sentence):** A cross-provider review that never touched the files it was dispatched for is rejected instead of recorded as a completed review.
@@ -60,3 +59,8 @@ Actual: ...
   **Then** it is marked invalid for the same reason rather than passing by vacuous truth.
 
 ## Work Log
+- 2026-09-21 [claude]: Edit patch_scope_doc.py
+- 2026-09-21 [claude]: Edit patch_scope.py
+- 2026-09-21 [claude]: Edit patch_scope.py
+- 2026-09-21 [claude]: Confirmed row 63 by reading it: security_auditor on TASK-1029, status=ok, $1.352399, 40 cited paths across…
+- 2026-09-21 [claude]: Honest limit, measured not assumed: of 26 distinct task_markers ever dispatched, 0 have a file set recorded in…

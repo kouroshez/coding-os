@@ -216,3 +216,66 @@ class TestFindingsReachTheParent:
         assert _verdict(reviewer) == (False, ["drifted field name"])
         assert _verdict(auditor) == (False, ["critical: secret in the log line"])
         assert _verdict("not a dict") == (None, [])
+
+
+class TestScopeVerdict:
+    """A review that never touched the task's files is not a review.
+
+    Observed: dispatch row 63, security_auditor on a docs-only card, cited 40
+    paths across graph_os and the ingest layer, recorded status=ok at $1.35.
+    Nothing recorded that the cited paths and the dispatched scope never met.
+    """
+
+    @staticmethod
+    def _db(tmp_path, rows):
+        import sqlite3
+
+        db = tmp_path / "obs.db"
+        conn = sqlite3.connect(db)
+        conn.execute("CREATE TABLE observations (task_id TEXT, files_modified TEXT)")
+        conn.executemany("INSERT INTO observations VALUES (?,?)", rows)
+        conn.commit()
+        conn.close()
+        return str(db)
+
+    def test_a_review_citing_nothing_in_scope_is_rejected(self, tmp_path) -> None:
+        from auto_dispatch import _cited_paths, _scope_verdict, _task_files
+
+        db = self._db(tmp_path, [("TASK-900", "src/core/web/routes/logs.py")])
+        cited = _cited_paths(None, "I audited src/core/graph_os/ingest/github.py throughout.")
+        verdict = _scope_verdict(cited, _task_files("TASK-900", db))
+        assert verdict is not None
+        assert "out of scope" in verdict
+        assert "github.py" in verdict
+
+    def test_one_cited_path_inside_the_set_is_enough(self, tmp_path) -> None:
+        from auto_dispatch import _cited_paths, _scope_verdict, _task_files
+
+        db = self._db(tmp_path, [("TASK-900", "src/core/web/routes/logs.py")])
+        cited = _cited_paths(None, "Read src/core/web/routes/logs.py plus docs/governance/x.md.")
+        assert _scope_verdict(cited, _task_files("TASK-900", db)) is None
+
+    def test_citing_no_path_at_all_is_not_a_failure(self, tmp_path) -> None:
+        """Honest role output often names no file — failing it would make noise."""
+        from auto_dispatch import _scope_verdict, _task_files
+
+        db = self._db(tmp_path, [("TASK-900", "src/core/web/routes/logs.py")])
+        assert _scope_verdict(set(), _task_files("TASK-900", db)) is None
+
+    def test_an_unknown_file_set_is_not_a_failure(self, tmp_path) -> None:
+        """With nothing to intersect there is no claim to test.
+
+        Row 63's own card recorded no changed files, so this branch is the
+        common one on older cards — and inventing a verdict from an empty set
+        would fail every dispatch on a fresh task.
+        """
+        from auto_dispatch import _scope_verdict, _task_files
+
+        db = self._db(tmp_path, [])
+        assert _task_files("TASK-900", db) == set()
+        assert _scope_verdict({"src/anything.py"}, set()) is None
+
+    def test_a_missing_database_reports_unknown_not_empty_scope(self, tmp_path) -> None:
+        from auto_dispatch import _task_files
+
+        assert _task_files("TASK-900", str(tmp_path / "absent.db")) == set()
