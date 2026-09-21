@@ -51,6 +51,7 @@ from scheduled._nightly_memory import (  # noqa: E402
     _run_learn_extract,
     _run_memory_gc,
     _run_routing_recalc,
+    _run_vacuum_if_bloated,
 )
 from scheduled._state import (  # noqa: E402
     now_iso,
@@ -305,6 +306,13 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
         run["tasks"]["memory_gc"] = t
         logger.info("[%s] memory_gc → %s", slug, t.get("status"))
         if t.get("status") == "error":
+            errors += 1
+        # Straight after the GC, while the rows it deleted are still free
+        # pages nothing has reused.
+        v = _run_vacuum_if_bloated(db_path, dry_run=dry_run)
+        run["tasks"]["vacuum"] = v
+        logger.info("[%s] vacuum → %s", slug, v.get("status"))
+        if v.get("status") == "error":
             errors += 1
     except Exception as exc:
         run["tasks"]["memory_gc"] = {"status": "error", "error": str(exc)}

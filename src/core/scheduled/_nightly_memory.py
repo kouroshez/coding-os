@@ -249,6 +249,62 @@ def _run_error_sweep(
     return {"status": "ok", **result}
 
 
+# Reclaim only when there is something worth an exclusive lock. Measured on
+# this repo: 2,137 free pages / ~9 MB against a 326 MB file, and VACUUM took it
+# to 307 MB. Below the floor the lock costs more than the bytes are worth.
+_VACUUM_FREE_PAGE_FLOOR = 2_000
+
+
+def _run_vacuum_if_bloated(db_path: Path, *, dry_run: bool) -> dict:
+    """vacuum — return dead pages to the filesystem.
+
+    SQLite reuses free pages but never hands them back, and nothing else in
+    the product calls VACUUM: it exists as `cos brain-gc --vacuum` and no
+    scheduled leg invoked it, so the file only ever grew — and every consumer
+    project inherits that.
+    """
+    import sqlite3
+
+    if not db_path.exists():
+        return {"status": "skipped", "reason": "no_db"}
+    try:
+        with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5) as conn:
+            free_pages = conn.execute("PRAGMA freelist_count").fetchone()[0]
+            page_size = conn.execute("PRAGMA page_size").fetchone()[0]
+    except sqlite3.Error as exc:
+        return {"status": "skipped", "reason": f"unreadable: {exc}"}
+
+    reclaimable = free_pages * page_size
+    if free_pages < _VACUUM_FREE_PAGE_FLOOR:
+        return {
+            "status": "skipped",
+            "reason": f"only {free_pages} free page(s) < floor {_VACUUM_FREE_PAGE_FLOOR}",
+            "free_pages": free_pages,
+        }
+    if dry_run:
+        return {"status": "dry_run", "would_reclaim_bytes": reclaimable, "free_pages": free_pages}
+
+    from thinking_os.memory_gc import vacuum_db
+
+    try:
+        stats = vacuum_db(db_path)
+    except sqlite3.OperationalError as exc:
+        # VACUUM needs an exclusive lock. A live Hub or MCP reader holding the
+        # DB must never be broken by a maintenance leg — decline and say so;
+        # the next run will find the same free pages waiting.
+        return {"status": "skipped", "reason": f"database busy: {exc}", "free_pages": free_pages}
+
+    before = stats.get("size_before") or 0
+    after = stats.get("size_after") or 0
+    return {
+        "status": stats.get("status", "ok"),
+        "reclaimed_bytes": max(0, before - after),
+        "size_before": before,
+        "size_after": after,
+        "free_pages": free_pages,
+    }
+
+
 def _run_memory_gc(db_path: Path, *, dry_run: bool) -> dict:
     """memory_gc — reclaim orphan embeddings + concept-graph edges + trash
     observations (no FK/trigger covers embeddings when a source row is deleted)."""

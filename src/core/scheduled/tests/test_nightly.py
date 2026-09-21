@@ -466,3 +466,68 @@ class TestGraphReindexIfStale:
         assert captured["cmd"][0] == sys.executable
         assert captured["cmd"][1:4] == ["-m", "cli.main", "graph-reindex"]
         assert captured["cwd"] == str(tmp_path)
+
+
+class TestVacuumIfBloated:
+    """SQLite reuses free pages but never hands them back, and nothing called
+    VACUUM: it existed as `cos brain-gc --vacuum` and no scheduled leg invoked
+    it, so the file only ever grew — and every consumer inherits that.
+    """
+
+    @staticmethod
+    def _bloated(tmp_path, rows=3000):
+        import os
+        import sqlite3
+
+        db = tmp_path / "bloat.db"
+        conn = sqlite3.connect(db)
+        conn.execute("CREATE TABLE t (id INTEGER PRIMARY KEY, blob BLOB)")
+        conn.executemany(
+            "INSERT INTO t (blob) VALUES (?)", [(os.urandom(4096),) for _ in range(rows)]
+        )
+        conn.commit()
+        conn.execute("DELETE FROM t")
+        conn.commit()
+        conn.close()
+        return db
+
+    def test_reclaims_bytes_from_a_bloated_database(self, tmp_path: Path) -> None:
+        import nightly
+
+        db = self._bloated(tmp_path)
+        before = db.stat().st_size
+        result = nightly._run_vacuum_if_bloated(db, dry_run=False)
+        assert result["status"] == "ok"
+        assert result["reclaimed_bytes"] > 0
+        assert db.stat().st_size < before
+
+    def test_dry_run_reports_without_touching_the_file(self, tmp_path: Path) -> None:
+        import nightly
+
+        db = self._bloated(tmp_path)
+        before = db.stat().st_size
+        result = nightly._run_vacuum_if_bloated(db, dry_run=True)
+        assert result["status"] == "dry_run"
+        assert result["would_reclaim_bytes"] > 0
+        assert db.stat().st_size == before
+
+    def test_a_tidy_database_is_left_alone(self, tmp_path: Path) -> None:
+        """VACUUM takes an exclusive lock; below the floor it costs more than
+        the bytes are worth."""
+        import sqlite3
+
+        import nightly
+
+        db = tmp_path / "tidy.db"
+        sqlite3.connect(db).close()
+        result = nightly._run_vacuum_if_bloated(db, dry_run=False)
+        assert result["status"] == "skipped"
+        assert "free page" in result["reason"]
+
+    def test_a_missing_database_is_skipped_not_an_error(self, tmp_path: Path) -> None:
+        import nightly
+
+        assert nightly._run_vacuum_if_bloated(tmp_path / "absent.db", dry_run=False) == {
+            "status": "skipped",
+            "reason": "no_db",
+        }
