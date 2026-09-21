@@ -304,6 +304,37 @@ if _GRAPH_TOOLS_AVAILABLE:
         return _graph_tools.cos_graph_test_gap(kind=kind or "", top=int(top))
 
     @mcp.tool(
+        name="cos_graph_overview",
+        annotations={
+            "title": "Graph Overview (module architecture map)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_overview_tool(max_modules: int = 40, min_edge_weight: int = 1) -> str:
+        """Aggregate files into module nodes with weighted cross-module edges (architecture map).
+
+        One whole-repo shape in a single call: directories become nodes
+        weighted by member count, and cross-module imports/calls/inheritance
+        aggregate into weighted edges. Same-module edges are dropped, and
+        tests, build output and worktrees are excluded so the map is the
+        architecture rather than a mirror of it.
+
+        Args:
+            max_modules: Heaviest modules kept (default 40, max 100).
+            min_edge_weight: Prune edges lighter than this (default 1).
+
+        Returns:
+            JSON envelope with ,  and module_count.
+        """
+        return _graph_tools.cos_graph_overview(
+            max_modules=int(max_modules), min_edge_weight=int(min_edge_weight)
+        )
+
+    @mcp.tool(
         name="cos_graph_stale_files",
         annotations={
             "title": "Graph Staleness (indexed files with newer commits)",
@@ -408,6 +439,7 @@ else:
             "cos_graph_cycles",
             "cos_graph_dead_code",
             "cos_graph_test_gap",
+            "cos_graph_overview",
             "cos_graph_stale_files",
             "cos_graph_diff",
             "cos_graph_doctor",

@@ -253,6 +253,18 @@ def register_query(cli: click.Group) -> None:
         _, tools = _open_backend()
         _json_echo(tools.cos_graph_test_gap(kind=kind, top=top), pretty=pretty)
 
+    @cli.command(name="graph-overview")
+    @click.option("--max-modules", default=40, type=int)
+    @click.option("--min-edge-weight", default=1, type=int)
+    @click.option("--pretty", is_flag=True)
+    def graph_overview(max_modules, min_edge_weight, pretty):
+        """Module-level architecture map — directories as weighted nodes."""
+        _, tools = _open_backend()
+        _json_echo(
+            tools.cos_graph_overview(max_modules=max_modules, min_edge_weight=min_edge_weight),
+            pretty=pretty,
+        )
+
     @cli.command(name="graph-stale-files")
     @click.option("--top", default=100, type=int)
     @click.option("--pretty", is_flag=True)

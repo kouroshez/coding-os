@@ -306,6 +306,7 @@ __all__ = [
     "cos_graph_entrypoints",
     "cos_graph_export",
     "cos_graph_impact",
+    "cos_graph_overview",
     "cos_graph_path",
     "cos_graph_query",
     "cos_graph_ranking",
@@ -349,14 +350,15 @@ from ._graph_export import (  # noqa: E402, F401
 )
 from ._graph_hygiene import (  # noqa: E402, F401
     cos_graph_dead_code,
-    cos_graph_test_gap,
     cos_graph_stale_files,
+    cos_graph_test_gap,
 )
 from ._graph_insights import (  # noqa: E402, F401
     cos_graph_communities,
     cos_graph_cycles,
     cos_graph_entrypoints,
 )
+from ._graph_overview import cos_graph_overview  # noqa: E402
 from ._graph_paths import (  # noqa: E402
     cos_graph_path,
     cos_graph_trace,
