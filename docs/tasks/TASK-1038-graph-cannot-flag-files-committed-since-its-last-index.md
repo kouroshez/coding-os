@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-09-15
 started: 2026-09-20
-completed: null
+completed: 2026-09-20
 agent_session: ses-claude-20260920-211122-bc06
 depends_on: []
 blocked_by: []
@@ -55,3 +55,6 @@ spots, and two runs of the same extractor agree everywhere it is wrong.
 - 2026-09-21 [claude]: Edit patch_stale_mcp.py
 - 2026-09-21 [claude]: Built cos_graph_stale_files: reads file_index_state for indexed paths and their last_indexed_at, asks git which of…
 - 2026-09-21 [claude]: Edit patch_bench_doc.py
+- 2026-09-21 [claude]: commit 045641e92f — feat(graph): cos_graph_stale_files — indexed files with a newer commit
+- 2026-09-21 [claude]: commit dc2d329900 — fix(bench): stop indexing 938 gitignored copies of this repos own source
+- 2026-09-21 [claude]: Status transitioned to complete via cos task-done.

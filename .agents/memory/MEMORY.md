@@ -33,3 +33,4 @@
 - [Check the card premise before fixing it](check-the-card-premise-before-fixing-it.md) — an old card's root cause is a hypothesis; re-measure before building its fix.
 - [Rules edits need golden capture](rules-edits-need-golden-capture.md) — src/core/rules|hooks|skills render into tests/golden; docs-lint will not tell you.
 - [Test isolation that deletes is not isolation](test-isolation-that-deletes-is-not-isolation.md) — unsetting a derived env var routes tests at the live project.
+- [New graph tool needs a CLI twin](new-graph-tool-needs-a-cli-twin.md) — four registrations, and the graph_os matrix row checks none of the fourth.
