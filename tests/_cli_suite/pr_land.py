@@ -116,19 +116,19 @@ class TestCosPrLand(PrHarness):
     # --- TASK-586: Layer-0 legibility (unprotected-integration warning) -------
 
     def test_unprotected_warning_helper_unit(self) -> None:
-        import cli.pr_commands as prc
+        import cli._pr_shared as prshar
 
-        msg = prc._unprotected_warning("main")
+        msg = prshar._unprotected_warning("main")
         assert "main" in msg and "branch-guard" in msg and "GitHub ruleset" in msg
 
     def test_preflight_warns_on_unprotected_integration(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
         self._add_bare_remote(repo, tmp_path)
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
-        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: False)
         res = runner.invoke(cli, ["pr", "preflight", "--repo", str(repo)])
         assert res.exit_code == 0, res.output  # pr_ok (remote+gh) — warning never hard-fails
         assert "unprotected_integration: True" in res.output
@@ -137,11 +137,11 @@ class TestCosPrLand(PrHarness):
     def test_preflight_no_warning_with_required_check(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
         self._add_bare_remote(repo, tmp_path)
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
-        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: True)
         res = runner.invoke(cli, ["pr", "preflight", "--repo", str(repo)])
         assert "unprotected_integration: False" in res.output
         assert "warning:" not in res.output
@@ -154,13 +154,15 @@ class TestCosPrLand(PrHarness):
     def test_submit_warns_on_unprotected_integration(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        import cli._pr_publish as prp
+        import cli._pr_shared as prs
         import cli.pr_commands as prc
 
         self._add_bare_remote(repo, tmp_path)
         monkeypatch.delenv("COS_GIT_AUTONOMY", raising=False)  # draft
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
-        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
-        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: False)
+        monkeypatch.setattr(prp, "_open_pr_count", lambda r, s: 0)
         self._fake_gh(prc, monkeypatch)
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))

@@ -15,20 +15,8 @@ except ImportError:  # non-POSIX (Windows) — the reaper lock degrades to a no-
 
 import click
 
+from cli import _pr_shared as _shared
 from cli._pr_shared import (
-    _agent_session,
-    _branch_recoverable,
-    _emit,
-    _gh_ready,
-    _git,
-    _heal_budget_clear,
-    _integration_branch,
-    _preserve_reaped,
-    _resolve_repo,
-    _resolve_worktree,
-    _run,
-    _sanitize,
-    _session_state,
     pr_group,
 )
 
@@ -36,9 +24,9 @@ from cli._pr_shared import (
 def _pr_state(repo: str, branch: str) -> str:
     # "merged" | "closed" | "open" | "none" | "unknown" — drives the cleanup
     # merge-gate so an open PR's worktree isn't destroyed mid-flight.
-    if not _gh_ready():
+    if not _shared._gh_ready():
         return "unknown"
-    listing = _run(
+    listing = _shared._run(
         ["gh", "pr", "list", "--head", branch, "--state", "all", "--json", "state,mergedAt"],
         cwd=repo,
     )
@@ -71,12 +59,12 @@ def _pr_state(repo: str, branch: str) -> str:
 def pr_cleanup(
     task_id: str | None, adhoc: bool, repo_opt: str | None, force: bool, as_json: bool
 ) -> None:
-    repo = _resolve_repo(repo_opt)
-    session = _agent_session()
-    task_slug = "adhoc" if adhoc else _sanitize(task_id) if task_id else None
+    repo = _shared._resolve_repo(repo_opt)
+    session = _shared._agent_session()
+    task_slug = "adhoc" if adhoc else _shared._sanitize(task_id) if task_id else None
     if task_slug is None:
         raise click.ClickException("cos pr cleanup needs --task <id> or --adhoc.")
-    wt, branch = _resolve_worktree(repo, task_slug, session)
+    wt, branch = _shared._resolve_worktree(repo, task_slug, session)
     _preserved_bundle: str | None = None  # set when a drifted/peer dirty tree is bundled
 
     # Merge-gate: only destroy the worktree+branch once work has landed
@@ -88,8 +76,8 @@ def pr_cleanup(
         # only when the owner session is provably LIVE; a drifted-gone ("unknown") or
         # dead ("offline") owner still cleans up, preserving the drift path.
         owner_session = branch.rsplit("/", 1)[-1]
-        if owner_session != session and _session_state(owner_session, repo) == "live":
-            _emit(
+        if owner_session != session and _shared._session_state(owner_session, repo) == "live":
+            _shared._emit(
                 {
                     "removed": False,
                     "branch": branch,
@@ -101,7 +89,7 @@ def pr_cleanup(
             sys.exit(1)
         state = _pr_state(repo, branch)
         if state == "open":
-            _emit(
+            _shared._emit(
                 {
                     "removed": False,
                     "branch": branch,
@@ -111,12 +99,12 @@ def pr_cleanup(
                 as_json,
             )
             sys.exit(1)
-        recoverable = _branch_recoverable(repo, branch, _integration_branch(repo))
+        recoverable = _shared._branch_recoverable(repo, branch, _shared._integration_branch(repo))
         # Unpushed work with no landing PR: refuse and tell the user to submit, keeping
         # the branch intact — friendlier than bundle+delete for an interactive cleanup,
         # and the reaper is the GC path for a genuinely dead owner.
         if state in {"none", "unknown"} and not recoverable:
-            _emit(
+            _shared._emit(
                 {
                     "removed": False,
                     "branch": branch,
@@ -133,12 +121,12 @@ def pr_cleanup(
         # commits was discarded with NO bundle. A FAILED status reads as "maybe dirty"
         # so a transient git error can't pass as clean and wipe work (review finding F).
         # Mirrors _reap_one's safety arm — cleanup and reap no longer diverge.
-        _status = _git(["status", "--porcelain"], cwd=wt)
+        _status = _shared._git(["status", "--porcelain"], cwd=wt)
         dirty = _status.returncode != 0 or bool(_status.stdout.strip())
         if not recoverable or dirty:
-            _preserved_bundle = _preserve_reaped(repo, wt, branch)
+            _preserved_bundle = _shared._preserve_reaped(repo, wt, branch)
             if _preserved_bundle is None:
-                _emit(
+                _shared._emit(
                     {
                         "removed": False,
                         "branch": branch,
@@ -149,12 +137,12 @@ def pr_cleanup(
                 )
                 sys.exit(1)
 
-    _git(["worktree", "unlock", str(wt)], cwd=repo)  # release the pr-mode live-lock
-    removed_wt = _git(["worktree", "remove", "--force", str(wt)], cwd=repo).returncode == 0
-    deleted_branch = _git(["branch", "-D", branch], cwd=repo).returncode == 0
-    _git(["worktree", "prune"], cwd=repo)
-    _heal_budget_clear(repo, branch)  # branch is done — drop its heal budget (finding 8)
-    _emit(
+    _shared._git(["worktree", "unlock", str(wt)], cwd=repo)  # release the pr-mode live-lock
+    removed_wt = _shared._git(["worktree", "remove", "--force", str(wt)], cwd=repo).returncode == 0
+    deleted_branch = _shared._git(["branch", "-D", branch], cwd=repo).returncode == 0
+    _shared._git(["worktree", "prune"], cwd=repo)
+    _shared._heal_budget_clear(repo, branch)  # branch is done — drop its heal budget (finding 8)
+    _shared._emit(
         {
             "worktree_removed": removed_wt,
             "branch_deleted": deleted_branch,

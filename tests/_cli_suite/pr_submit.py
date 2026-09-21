@@ -22,15 +22,17 @@ class TestCosPrSubmit(PrHarness):
     def test_submit_emits_degraded_status_without_required_check(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        import cli._pr_publish as prp
+        import cli._pr_shared as prs
         import cli.pr_commands as prc
 
         self._add_bare_remote(repo, tmp_path)
         monkeypatch.setenv(
             "COS_GIT_AUTONOMY", "auto_merge"
         )  # past draft → exercises the CI-gate path
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
-        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
-        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: False)
+        monkeypatch.setattr(prp, "_open_pr_count", lambda r, s: 0)
         self._fake_gh(prc, monkeypatch)  # gh pr merge => AssertionError if called
 
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
@@ -50,30 +52,32 @@ class TestCosPrSubmit(PrHarness):
     ) -> None:
         # M2: a typo'd rung written outside the Hub API (CLI/hand-edit) must not
         # silently behave as draft while masquerading as the typo — fall back to draft.
-        import cli.pr_commands as prc
+        import cli._pr_publish as prpubl
 
         monkeypatch.setenv("COS_GIT_AUTONOMY", "auto-merge")  # hyphen typo
-        assert prc._autonomy_level() == "draft"
+        assert prpubl._autonomy_level() == "draft"
         monkeypatch.setenv("COS_GIT_AUTONOMY", "autonomous")  # valid rung survives
-        assert prc._autonomy_level() == "autonomous"
+        assert prpubl._autonomy_level() == "autonomous"
         monkeypatch.setenv("COS_GIT_AUTONOMY", "local")
-        assert prc._autonomy_level() == "local"
+        assert prpubl._autonomy_level() == "local"
 
     def test_submit_degraded_with_task_escalates_to_blocked(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         # H3: auto_merge + no required check is a silent deadlock — with a real task
         # it must escalate the board task to blocked, not just emit a stderr line.
+        import cli._pr_publish as prp
+        import cli._pr_shared as prs
         import cli.pr_commands as prc
 
         self._add_bare_remote(repo, tmp_path)
         monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
-        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
-        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: False)
+        monkeypatch.setattr(prp, "_open_pr_count", lambda r, s: 0)
         self._fake_gh(prc, monkeypatch)  # gh pr merge => AssertionError if armed
         calls: list = []
-        monkeypatch.setattr(prc, "_escalate_blocked", lambda *a, **k: calls.append(a) or True)
+        monkeypatch.setattr(prs, "_escalate_blocked", lambda *a, **k: calls.append(a) or True)
 
         runner.invoke(cli, ["pr", "open", "--task", "TASK-999", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("TASK-999-ses-test-abc"))
@@ -90,13 +94,15 @@ class TestCosPrSubmit(PrHarness):
     def test_submit_arms_auto_merge_once_with_required_check(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        import cli._pr_publish as prp
+        import cli._pr_shared as prs
         import cli.pr_commands as prc
 
         self._add_bare_remote(repo, tmp_path)
         monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")  # draft never arms (TASK-533)
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
-        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
-        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: True)
+        monkeypatch.setattr(prp, "_open_pr_count", lambda r, s: 0)
         merge_calls: list = []
         self._fake_gh(prc, monkeypatch, merge_calls=merge_calls)
 
@@ -120,16 +126,17 @@ class TestCosPrSubmit(PrHarness):
         # open → submit (push + create + arm) → status pending → passing → merged →
         # cleanup. A stateful mock-gh advances the PR each rollup poll the way GitHub
         # would: checks go green, the armed auto-merge then lands it, the branch is gone.
-        import cli.pr_commands as prc
+        import cli._pr_publish as prp
+        import cli._pr_shared as prs
 
         self._add_bare_remote(repo, tmp_path)
         monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
-        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
-        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: True)
+        monkeypatch.setattr(prp, "_open_pr_count", lambda r, s: 0)
 
         st = {"created": False, "armed": False, "merged": False, "polls": 0}
-        real_run = prc._run
+        real_run = prs._run
 
         def view(payload: object) -> subprocess.CompletedProcess:
             return subprocess.CompletedProcess([], 0, stdout=json.dumps(payload), stderr="")
@@ -177,7 +184,7 @@ class TestCosPrSubmit(PrHarness):
                 return view([{"state": "OPEN"}] if st["created"] else [])
             return real_run(args, **kw)
 
-        monkeypatch.setattr(prc, "_run", fake_run)
+        monkeypatch.setattr(prs, "_run", fake_run)
 
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
@@ -208,13 +215,15 @@ class TestCosPrSubmit(PrHarness):
     ) -> None:
         # TASK-533: default 'draft' opens the PR but never arms auto-merge,
         # even when a required check exists — a human merges.
+        import cli._pr_publish as prp
+        import cli._pr_shared as prs
         import cli.pr_commands as prc
 
         self._add_bare_remote(repo, tmp_path)
         monkeypatch.delenv("COS_GIT_AUTONOMY", raising=False)  # default = draft
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
-        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
-        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: True)
+        monkeypatch.setattr(prp, "_open_pr_count", lambda r, s: 0)
         self._fake_gh(prc, monkeypatch)  # gh pr merge => AssertionError if armed
 
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
@@ -231,6 +240,6 @@ class TestCosPrSubmit(PrHarness):
     def test_autonomy_levels_include_local_autonomous(self) -> None:
         # TASK-614: the rung must exist in BOTH the consumer-side tuple and the Hub
         # settings Literal (settings.py is exercised by test_hub_settings_git).
-        import cli.pr_commands as prc
+        import cli._pr_shared as prshar
 
-        assert "local_autonomous" in prc._AUTONOMY_LEVELS
+        assert "local_autonomous" in prshar._AUTONOMY_LEVELS

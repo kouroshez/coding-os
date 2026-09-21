@@ -24,12 +24,13 @@ class TestCosPrBootstrap(PrHarness):
         """isolate → work → rebase+push → cleanup on a real fixture repo + bare
         remote, with coding-os itself never flipping to pr-mode. The PR/auto-merge
         steps degrade gracefully (no GitHub behind the bare remote)."""
-        import cli.pr_commands as prc
+        import cli._pr_publish as prp
+        import cli._pr_shared as prs
 
         self._add_bare_remote(repo, tmp_path)
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)  # reach the push path
-        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
-        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)  # reach the push path
+        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: False)
+        monkeypatch.setattr(prp, "_open_pr_count", lambda r, s: 0)
 
         # isolate
         opened = runner.invoke(cli, ["pr", "open", "--task", "TASK-DOG", "--repo", str(repo)])
@@ -136,7 +137,7 @@ class TestCosPrBootstrap(PrHarness):
     # --- TASK-592: review-required is a distinct signal, not silent auto-merge ---
 
     def test_rollup_state_review_required_overrides_passing(self) -> None:
-        import cli.pr_commands as prc
+        import cli._pr_inspect as prinsp
 
         green = [{"conclusion": "SUCCESS", "status": "COMPLETED"}]
         armed = {
@@ -146,27 +147,31 @@ class TestCosPrBootstrap(PrHarness):
         }
         # Green + auto-merge armed, but the review gate is still open → review-required.
         assert (
-            prc._rollup_state({**armed, "reviewDecision": "REVIEW_REQUIRED"}) == "review-required"
+            prinsp._rollup_state({**armed, "reviewDecision": "REVIEW_REQUIRED"})
+            == "review-required"
         )
         assert (
-            prc._rollup_state({**armed, "reviewDecision": "CHANGES_REQUESTED"}) == "review-required"
+            prinsp._rollup_state({**armed, "reviewDecision": "CHANGES_REQUESTED"})
+            == "review-required"
         )
         # No review gate (approved / not required) → unchanged passing signal.
-        assert prc._rollup_state({**armed, "reviewDecision": "APPROVED"}) == "passing"
-        assert prc._rollup_state({**armed, "reviewDecision": None}) == "passing"
+        assert prinsp._rollup_state({**armed, "reviewDecision": "APPROVED"}) == "passing"
+        assert prinsp._rollup_state({**armed, "reviewDecision": None}) == "passing"
 
     def test_submit_auto_merge_armed_awaiting_review(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         # auto_merge + required check + a required REVIEW: arming is correct (it lands
         # once approved) but submit must surface the human-approval gate, not "will merge".
+        import cli._pr_publish as prp
+        import cli._pr_shared as prs
         import cli.pr_commands as prc
 
         self._add_bare_remote(repo, tmp_path)
         monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
-        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
-        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: True)
+        monkeypatch.setattr(prp, "_open_pr_count", lambda r, s: 0)
         merge_calls: list = []
         self._fake_gh(prc, monkeypatch, merge_calls=merge_calls, review_decision="REVIEW_REQUIRED")
 
@@ -186,13 +191,15 @@ class TestCosPrBootstrap(PrHarness):
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         # Regression: with NO review gate the normal armed path is byte-for-byte intact.
+        import cli._pr_publish as prp
+        import cli._pr_shared as prs
         import cli.pr_commands as prc
 
         self._add_bare_remote(repo, tmp_path)
         monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
-        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
-        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: True)
+        monkeypatch.setattr(prp, "_open_pr_count", lambda r, s: 0)
         merge_calls: list = []
         self._fake_gh(prc, monkeypatch, merge_calls=merge_calls, review_decision=None)
 

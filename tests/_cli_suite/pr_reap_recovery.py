@@ -26,19 +26,20 @@ class TestCosPrReapRecovery(PrHarness):
         # TASK-594: `git worktree lock` no-ops on an already-locked tree, so an
         # idempotent re-open must unlock+relock to refresh the owner=<pid> stamp to
         # the (possibly restarted) session's current pid.
-        import cli.pr_commands as prc
+        import cli._pr_reap as prreap
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         sess_dir = repo / ".coding-os" / "claude" / "sessions"
         sess_dir.mkdir(parents=True, exist_ok=True)
         rec = sess_dir / "ses-test-abc.json"
         rec.write_text(json.dumps({"session_id": "ses-test-abc", "pid": 11111}), encoding="utf-8")
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        assert "owner=11111" in prc._worktree_lock_reason(str(repo), wt)
+        assert "owner=11111" in prreap._worktree_lock_reason(str(repo), wt)
         rec.write_text(json.dumps({"session_id": "ses-test-abc", "pid": 22222}), encoding="utf-8")
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])  # idempotent re-open
-        assert "owner=22222" in prc._worktree_lock_reason(str(repo), wt)  # stamp refreshed
+        assert "owner=22222" in prreap._worktree_lock_reason(str(repo), wt)  # stamp refreshed
 
     def test_reap_removes_dead_pid_session(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
@@ -47,9 +48,9 @@ class TestCosPrReapRecovery(PrHarness):
         # evidence → reaped (even with no ended_at).
         import time
 
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         sess_dir = repo / ".coding-os" / "claude" / "sessions"
         sess_dir.mkdir(parents=True, exist_ok=True)
@@ -74,9 +75,9 @@ class TestCosPrReapRecovery(PrHarness):
         # uncommitted untracked file must be PRESERVED — bundled to the quarantine dir
         # — before the worktree+branch are GC'd. The old `_reap_one` destroyed both
         # unconditionally (the #1 data-loss risk); preservation is the safety net.
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)  # no remote/gh in the test
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)  # no remote/gh in the test
         reaped_root = tmp_path / "reaped"
         monkeypatch.setenv("COS_REAPED_ROOT", str(reaped_root))
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
@@ -128,11 +129,11 @@ class TestCosPrReapRecovery(PrHarness):
         # D4: the gh api call must run with cwd=repo so {owner}/{repo} resolves from
         # THIS repo's remote — a submit from another checkout would else probe the
         # wrong repo's branch protection.
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
         monkeypatch.setattr(
-            prc,
+            prs,
             "_git_out",
             lambda args, **kw: "https://github.com/o/r.git" if "config" in args else "",
         )
@@ -144,8 +145,8 @@ class TestCosPrReapRecovery(PrHarness):
                 return subprocess.CompletedProcess(args, 0, "{}", "")
             return subprocess.CompletedProcess(args, 0, "", "")
 
-        monkeypatch.setattr(prc, "_run", fake_run)
-        assert prc._has_required_check(str(repo), "main") is True
+        monkeypatch.setattr(prs, "_run", fake_run)
+        assert prs._has_required_check(str(repo), "main") is True
         assert captured["cwd"] == str(repo)
 
     def test_preserve_reaped_returns_none_on_commit_failure(
@@ -154,28 +155,28 @@ class TestCosPrReapRecovery(PrHarness):
         # D2: if the capture commit fails, the dirty work never reaches the branch —
         # _preserve_reaped must return None (so the caller keeps the worktree) instead
         # of bundling only the old tip and reporting success.
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
         monkeypatch.setattr(
-            prc, "_git_out", lambda args, **kw: "?? new.py" if args[:1] == ["status"] else ""
+            prs, "_git_out", lambda args, **kw: "?? new.py" if args[:1] == ["status"] else ""
         )
 
         def fake_git(args, **kw):
             rc = 1 if "commit" in args else 0
             return subprocess.CompletedProcess(["git", *args], rc, "", "")
 
-        monkeypatch.setattr(prc, "_git", fake_git)
-        assert prc._preserve_reaped(str(repo), repo, "agents/x/y") is None
+        monkeypatch.setattr(prs, "_git", fake_git)
+        assert prs._preserve_reaped(str(repo), repo, "agents/x/y") is None
 
     def test_reap_keeps_worktree_when_preservation_fails(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         # D2: when preservation fails on a dead orphan with dirty work, the worktree may
         # hold the ONLY copy — it must be KEPT (not force-removed), flagged needs_attention.
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
-        monkeypatch.setattr(prc, "_preserve_reaped", lambda r, w, b: None)  # simulate failure
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_preserve_reaped", lambda r, w, b: None)  # simulate failure
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
         (wt / "dirty.txt").write_text(
@@ -199,24 +200,25 @@ class TestCosPrReapRecovery(PrHarness):
         # review finding 1: a failed `gh pr list` (timeout rc!=0, empty stdout) must
         # NOT be read as "no open PR" — _pr_close returns False so the ledger entry
         # is kept for a later retry instead of silently dropped (PR leak).
-        import cli.pr_commands as prc
+        import cli._pr_reap as prreap
+        import cli._pr_shared as prs
 
         def fake_run(args, **kw):
             if args[:3] == ["gh", "pr", "list"]:
                 return subprocess.CompletedProcess(args, 124, "", "timed out")
             return subprocess.CompletedProcess(args, 0, "", "")
 
-        monkeypatch.setattr(prc, "_run", fake_run)
-        assert prc._pr_close(str(repo), "agents/x/y") is False
+        monkeypatch.setattr(prs, "_run", fake_run)
+        assert prreap._pr_close(str(repo), "agents/x/y") is False
 
     def test_reap_keeps_live_session_worktree(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         import time
 
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         sess_dir = repo / ".coding-os" / "claude" / "sessions"
         sess_dir.mkdir(parents=True, exist_ok=True)
@@ -232,9 +234,9 @@ class TestCosPrReapRecovery(PrHarness):
     def test_reap_drains_cleanup_ledger(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         ledger = repo / ".coding-os" / ".pr-cleanup-ledger.json"
         ledger.parent.mkdir(parents=True, exist_ok=True)
         ledger.write_text(

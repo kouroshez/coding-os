@@ -66,12 +66,13 @@ class PrHarness:
     def test_submit_circuit_breaker_caps_open_prs(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import cli.pr_commands as prc
+        import cli._pr_publish as prp
+        import cli._pr_shared as prs
 
         self._add_bare_remote(repo, tmp_path)
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)  # pretend gh is ready
-        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: False)
-        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 5)  # already at the cap
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)  # pretend gh is ready
+        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: False)
+        monkeypatch.setattr(prp, "_open_pr_count", lambda r, s: 5)  # already at the cap
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
         subprocess.run(
@@ -87,7 +88,9 @@ class PrHarness:
     @staticmethod
     def _fake_gh(prc, monkeypatch, *, merge_calls: list | None = None, review_decision=None):
         """Route `gh pr create`/`merge`/`view` to fakes, real subprocess for git."""
-        real_run = prc._run
+        import cli._pr_shared as prs
+
+        real_run = prs._run
 
         def fake_run(args, **kw):
             if args[:3] == ["gh", "pr", "create"]:
@@ -102,7 +105,7 @@ class PrHarness:
                 return subprocess.CompletedProcess(args, 0, stdout=body, stderr="")
             return real_run(args, **kw)
 
-        monkeypatch.setattr(prc, "_run", fake_run)
+        monkeypatch.setattr(prs, "_run", fake_run)
 
     @staticmethod
     def _write_git_settings(repo: Path, **git_settings: object) -> None:

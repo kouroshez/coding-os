@@ -18,20 +18,8 @@ except ImportError:  # non-POSIX (Windows) — the reaper lock degrades to a no-
 
 import click
 
+from cli import _pr_shared as _shared
 from cli._pr_shared import (
-    _agent_session,
-    _branch_for,
-    _emit,
-    _git,
-    _git_settings,
-    _integration_branch,
-    _main_repo_root,
-    _preflight,
-    _resolve_repo,
-    _run,
-    _sanitize,
-    _unprotected_warning,
-    _worktree_root,
     pr_group,
 )
 
@@ -52,7 +40,7 @@ def _claim_task() -> str | None:
 
 
 def _worktree_exclude(wt: Path) -> Path | None:
-    proc = _run(["git", "rev-parse", "--git-path", "info/exclude"], cwd=str(wt))
+    proc = _shared._run(["git", "rev-parse", "--git-path", "info/exclude"], cwd=str(wt))
     out = proc.stdout.strip()
     if proc.returncode != 0 or not out:
         return None
@@ -85,7 +73,7 @@ def _run_setup(wt: Path, cmd: str) -> str:
         timeout = max(1, int(os.environ.get("COS_PR_SETUP_TIMEOUT", "600")))
     except ValueError:
         timeout = 600
-    proc = _run(["bash", "-lc", cmd], cwd=str(wt), timeout=timeout)
+    proc = _shared._run(["bash", "-lc", cmd], cwd=str(wt), timeout=timeout)
     if proc.returncode != 0:
         click.echo(
             f"cos pr: worktree setup '{cmd}' failed (exit {proc.returncode}) — "
@@ -102,12 +90,12 @@ def _bootstrap_worktree(repo: str, wt: Path) -> dict:
     # command fails. Opt-in per project (git_settings): symlink the declared
     # gitignored paths in from the main checkout and run a one-time setup command.
     # No config → no-op, byte-identical to no bootstrap.
-    settings = _git_settings(repo)
+    settings = _shared._git_settings(repo)
     includes = settings.get("worktree_include")
     setup_cmd = settings.get("worktree_setup_cmd")
     linked: list[str] = []
     if isinstance(includes, list) and includes:
-        main_root = Path(_main_repo_root(repo))
+        main_root = Path(_shared._main_repo_root(repo))
         exclude = _worktree_exclude(wt)
         for raw in includes:
             if not isinstance(raw, str) or not raw.strip():
@@ -155,13 +143,13 @@ def _bootstrap_summary(bootstrap: dict) -> str:
 )
 @click.option("--json", "as_json", is_flag=True, help="Emit JSON.")
 def pr_preflight(repo_opt: str | None, integration: str | None, as_json: bool) -> None:
-    repo = _resolve_repo(repo_opt)
-    integration = integration or _integration_branch(repo)
-    cap = _preflight(repo, integration)
+    repo = _shared._resolve_repo(repo_opt)
+    integration = integration or _shared._integration_branch(repo)
+    cap = _shared._preflight(repo, integration)
     payload = {**cap, "mode": "pr" if cap["pr_ok"] else "degraded-trunk"}
     if cap["unprotected_integration"]:
-        payload["warning"] = _unprotected_warning(integration)
-    _emit(payload, as_json)
+        payload["warning"] = _shared._unprotected_warning(integration)
+    _shared._emit(payload, as_json)
     sys.exit(0 if cap["pr_ok"] else 1)
 
 
@@ -176,57 +164,59 @@ def pr_preflight(repo_opt: str | None, integration: str | None, as_json: bool) -
 def pr_open(
     task_id: str | None, adhoc: bool, repo_opt: str | None, integration: str | None, as_json: bool
 ) -> None:
-    repo = _resolve_repo(repo_opt)
-    integration = integration or _integration_branch(repo)
-    session = _agent_session()
+    repo = _shared._resolve_repo(repo_opt)
+    integration = integration or _shared._integration_branch(repo)
+    session = _shared._agent_session()
 
     if adhoc:
         task_slug, task_id = "adhoc", None
     elif task_id:
-        task_slug = _sanitize(task_id)
+        task_slug = _shared._sanitize(task_id)
     else:
         task_id = _claim_task()
         if not task_id:
             raise click.ClickException(
                 "no runnable task to claim — pass --task <id>, or --adhoc for no-task work."
             )
-        task_slug = _sanitize(task_id)
+        task_slug = _shared._sanitize(task_id)
 
-    branch = _branch_for(task_slug, session)
-    wt = _worktree_root(repo) / f"{task_slug}-{session}"
-    cap = _preflight(repo, integration)
+    branch = _shared._branch_for(task_slug, session)
+    wt = _shared._worktree_root(repo) / f"{task_slug}-{session}"
+    cap = _shared._preflight(repo, integration)
 
     if cap["remote"]:
-        _git(["fetch", "origin", integration], cwd=repo)
+        _shared._git(["fetch", "origin", integration], cwd=repo)
 
     already = wt.exists() and (wt / ".git").exists()
     if not already:
         wt.parent.mkdir(parents=True, exist_ok=True)
         base = f"origin/{integration}" if cap["remote"] else integration
-        add = _git(["worktree", "add", "-b", branch, str(wt), base], cwd=repo)
+        add = _shared._git(["worktree", "add", "-b", branch, str(wt), base], cwd=repo)
         if add.returncode != 0:
             # Branch already exists (idempotent re-open) — attach it instead.
-            attach = _git(["worktree", "add", str(wt), branch], cwd=repo)
+            attach = _shared._git(["worktree", "add", str(wt), branch], cwd=repo)
             if attach.returncode != 0:
                 raise click.ClickException(
                     f"worktree add failed:\n{add.stderr.strip()}\n{attach.stderr.strip()}"
                 )
     # Shared objects/refs/packed-refs across worktrees → background gc during a
     # peer's rebase is unsafe. Pin it off per worktree.
-    _git(["config", "gc.auto", "0"], cwd=wt)
+    _shared._git(["config", "gc.auto", "0"], cwd=wt)
     # Lock the worktree so a peer's `git worktree prune` cannot remove a live
     # session's checkout. On an idempotent re-open the tree is already locked and
     # `git worktree lock` would no-op, stranding a previous (possibly dead) owner
     # pid in the reason — unlock first so the stamp refreshes to THIS session's live
     # pid (a peer reaper keeps a presence-live worktree regardless of the reason).
     if already:
-        _git(["worktree", "unlock", str(wt)], cwd=repo)
-    _git(["worktree", "lock", str(wt), "--reason", _live_lock_reason(repo, session)], cwd=repo)
+        _shared._git(["worktree", "unlock", str(wt)], cwd=repo)
+    _shared._git(
+        ["worktree", "lock", str(wt), "--reason", _live_lock_reason(repo, session)], cwd=repo
+    )
 
     # Bootstrap deps/secrets only on a freshly created checkout.
     bootstrap = _bootstrap_worktree(repo, wt) if not already else {"linked": [], "setup": None}
 
-    _emit(
+    _shared._emit(
         {
             "worktree": str(wt),
             "branch": branch,

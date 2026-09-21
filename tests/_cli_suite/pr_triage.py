@@ -25,9 +25,9 @@ class TestCosPrTriage(PrHarness):
         # TASK-618: cos pr triage emits ONE digest of open agents/* PRs ranked to
         # minimise the human's time-to-unblock — quick-merge (green+clean+no review)
         # first, then needs-review, conflict, red, waiting; non-agent PRs excluded.
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
         green = [{"status": "COMPLETED", "conclusion": "SUCCESS"}]
         running = [{"status": "IN_PROGRESS"}]
         failing = [{"conclusion": "FAILURE"}]
@@ -83,14 +83,14 @@ class TestCosPrTriage(PrHarness):
                 "createdAt": "2026-01-01T00:00:00Z",
             },
         ]
-        real_run = prc._run
+        real_run = prs._run
 
         def fake_run(args, **kw):
             if args[:3] == ["gh", "pr", "list"]:
                 return subprocess.CompletedProcess(args, 0, stdout=json.dumps(rows), stderr="")
             return real_run(args, **kw)
 
-        monkeypatch.setattr(prc, "_run", fake_run)
+        monkeypatch.setattr(prs, "_run", fake_run)
         res = runner.invoke(cli, ["pr", "triage", "--repo", str(repo), "--json"])
         assert res.exit_code == 0, res.output
         data = json.loads(res.output)
@@ -108,17 +108,17 @@ class TestCosPrTriage(PrHarness):
     def test_pr_triage_empty_report(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
-        real_run = prc._run
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
+        real_run = prs._run
 
         def fake_run(args, **kw):
             if args[:3] == ["gh", "pr", "list"]:
                 return subprocess.CompletedProcess(args, 0, stdout="[]", stderr="")
             return real_run(args, **kw)
 
-        monkeypatch.setattr(prc, "_run", fake_run)
+        monkeypatch.setattr(prs, "_run", fake_run)
         res = runner.invoke(cli, ["pr", "triage", "--repo", str(repo), "--json"])
         assert res.exit_code == 0, res.output
         data = json.loads(res.output)
@@ -129,11 +129,11 @@ class TestCosPrTriage(PrHarness):
     ) -> None:
         # The STOP-on-green decision needs isDraft + autoMergeRequest in the gh query;
         # drop them and every green PR misreads as passing-unarmed → never lands (D5).
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
         captured: dict[str, list[str]] = {}
-        real_run = prc._run
+        real_run = prs._run
 
         def fake_run(args, **kw):
             if args[:3] == ["gh", "pr", "view"]:
@@ -149,7 +149,7 @@ class TestCosPrTriage(PrHarness):
                 return subprocess.CompletedProcess(args, 0, stdout=payload, stderr="")
             return real_run(args, **kw)
 
-        monkeypatch.setattr(prc, "_run", fake_run)
+        monkeypatch.setattr(prs, "_run", fake_run)
         res = runner.invoke(cli, ["pr", "status", "--branch", "agents/x/1", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert "ci_rollup: passing" in res.output and "passing-unarmed" not in res.output

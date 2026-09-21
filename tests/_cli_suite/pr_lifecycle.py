@@ -57,9 +57,9 @@ class TestCosPrLifecycle(PrHarness):
     def test_cleanup_refuses_open_pr_without_force(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import cli.pr_commands as prc
+        import cli._pr_cleanup as prcl
 
-        monkeypatch.setattr(prc, "_pr_state", lambda r, b: "open")
+        monkeypatch.setattr(prcl, "_pr_state", lambda r, b: "open")
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         res = runner.invoke(cli, ["pr", "cleanup", "--adhoc", "--repo", str(repo)])
         assert res.exit_code == 1, res.output
@@ -69,9 +69,9 @@ class TestCosPrLifecycle(PrHarness):
     def test_cleanup_force_removes_open_pr(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import cli.pr_commands as prc
+        import cli._pr_cleanup as prcl
 
-        monkeypatch.setattr(prc, "_pr_state", lambda r, b: "open")
+        monkeypatch.setattr(prcl, "_pr_state", lambda r, b: "open")
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         res = runner.invoke(cli, ["pr", "cleanup", "--adhoc", "--force", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
@@ -80,9 +80,9 @@ class TestCosPrLifecycle(PrHarness):
     def test_cleanup_removes_merged_pr(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import cli.pr_commands as prc
+        import cli._pr_cleanup as prcl
 
-        monkeypatch.setattr(prc, "_pr_state", lambda r, b: "merged")
+        monkeypatch.setattr(prcl, "_pr_state", lambda r, b: "merged")
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         res = runner.invoke(cli, ["pr", "cleanup", "--adhoc", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
@@ -91,9 +91,9 @@ class TestCosPrLifecycle(PrHarness):
     def test_cleanup_refuses_unpushed_branch_with_no_pr(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)  # no gh => _pr_state "unknown"
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)  # no gh => _pr_state "unknown"
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
         # a local-only commit, never submitted/pushed — must be protected
@@ -111,9 +111,9 @@ class TestCosPrLifecycle(PrHarness):
         # TASK-566 H: a merged/closed branch with a CLEAN tree but unpushed local
         # commits used to skip BOTH gates (state not in none/unknown; tree not dirty)
         # and `branch -D` discarded the commits with no bundle. It must now bundle first.
-        import cli.pr_commands as prc
+        import cli._pr_cleanup as prcl
 
-        monkeypatch.setattr(prc, "_pr_state", lambda *a, **k: "merged")
+        monkeypatch.setattr(prcl, "_pr_state", lambda *a, **k: "merged")
         monkeypatch.setenv("COS_REAPED_ROOT", str(tmp_path / "reaped"))
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))

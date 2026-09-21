@@ -18,23 +18,9 @@ except ImportError:  # non-POSIX (Windows) — the reaper lock degrades to a no-
 
 import click
 
+from cli import _pr_shared as _shared
 from cli._pr_shared import (
     _AUTONOMY_LEVELS,
-    _agent_session,
-    _emit,
-    _env_int,
-    _escalate_blocked,
-    _gh_ready,
-    _git,
-    _git_out,
-    _git_settings,
-    _integration_branch,
-    _preflight,
-    _resolve_repo,
-    _resolve_worktree,
-    _run,
-    _sanitize,
-    _unprotected_warning,
     pr_group,
 )
 
@@ -42,7 +28,7 @@ from cli._pr_shared import (
 def _commit_count(cwd: str | Path, rev_range: str) -> int:
     # 0 on any error (unresolved range) so the local-rung report fails toward
     # "nothing to integrate" rather than a crash.
-    out = _git_out(["rev-list", "--count", rev_range], cwd=cwd)
+    out = _shared._git_out(["rev-list", "--count", rev_range], cwd=cwd)
     try:
         return int(out)
     except ValueError:
@@ -61,7 +47,7 @@ def _autonomy_level(repo: str | None = None) -> str:
     if env and env.strip():
         raw = env.strip()
     elif repo is not None:
-        level = _git_settings(repo).get("autonomy_level")
+        level = _shared._git_settings(repo).get("autonomy_level")
         if isinstance(level, str) and level.strip():
             raw = level.strip()
     if not raw:
@@ -95,13 +81,13 @@ def pr_submit(
     body: str,
     as_json: bool,
 ) -> None:
-    repo = _resolve_repo(repo_opt)
-    integration = integration or _integration_branch(repo)
-    session = _agent_session()
-    task_slug = "adhoc" if adhoc else _sanitize(task_id) if task_id else None
+    repo = _shared._resolve_repo(repo_opt)
+    integration = integration or _shared._integration_branch(repo)
+    session = _shared._agent_session()
+    task_slug = "adhoc" if adhoc else _shared._sanitize(task_id) if task_id else None
     if task_slug is None:
         raise click.ClickException("cos pr submit needs --task <id> or --adhoc.")
-    wt, branch = _resolve_worktree(repo, task_slug, session)
+    wt, branch = _shared._resolve_worktree(repo, task_slug, session)
     if not (wt / ".git").exists():
         raise click.ClickException(f"no open worktree at {wt} — run 'cos pr open' first.")
 
@@ -125,7 +111,7 @@ def pr_submit(
                 f"OUTSIDE the agent (the agent is branch-guard-blocked from merging the shared "
                 f"checkout): 'git switch {integration} && git merge --no-ff {branch}'.{stale}"
             )
-        _emit(
+        _shared._emit(
             {
                 "branch": branch,
                 "pushed": False,
@@ -140,9 +126,9 @@ def pr_submit(
         )
         return
 
-    cap = _preflight(repo, integration)
+    cap = _shared._preflight(repo, integration)
     if not cap["pr_ok"]:
-        _emit(
+        _shared._emit(
             {
                 "mode": "degraded-trunk",
                 "missing": ",".join(cap["missing"]),
@@ -155,7 +141,7 @@ def pr_submit(
     # Circuit-breaker BEFORE any push — refuse past the per-session open-PR cap
     # so a red / quota-dead CI can't grow open PRs without bound, and
     # a capped submit never orphans a pushed branch with no PR (§8, findings 7/9).
-    cap_max = _env_int("COS_PR_MAX_OPEN", 5)
+    cap_max = _shared._env_int("COS_PR_MAX_OPEN", 5)
     # Count against the resolved branch's session, not the process session — under
     # session-id drift (_resolve_worktree) `branch` carries the original session
     # while `session` is a fresh pid-<getpid>; counting the latter reads 0 and
@@ -165,7 +151,7 @@ def pr_submit(
     # refuse the push rather than count it as "0 open PRs" (M1).
     unknown = open_prs < 0
     if unknown or open_prs >= cap_max:
-        _emit(
+        _shared._emit(
             {
                 "branch": branch,
                 "pushed": False,
@@ -184,10 +170,10 @@ def pr_submit(
 
     # Rebase onto the PINNED fetched ref (FETCH_HEAD), never the shared moving
     # branch — branch-guard permits this because the op is worktree-scoped (§5).
-    _git(["fetch", "origin", integration], cwd=wt)
-    rebase = _git(["rebase", "FETCH_HEAD"], cwd=wt)
+    _shared._git(["fetch", "origin", integration], cwd=wt)
+    rebase = _shared._git(["rebase", "FETCH_HEAD"], cwd=wt)
     if rebase.returncode != 0:
-        _git(["rebase", "--abort"], cwd=wt)
+        _shared._git(["rebase", "--abort"], cwd=wt)
         raise click.ClickException(
             f"rebase onto origin/{integration} conflicted — resolve in the worktree, then retry."
         )
@@ -195,18 +181,18 @@ def pr_submit(
     # sha-pinned lease: refresh origin/<branch> first so the lease pins to its
     # TRUE current remote sha (no-op on a first push); empty lease for a first
     # push. With --force-if-includes this never clobbers a concurrent push.
-    _git(["fetch", "origin", branch], cwd=wt)
-    remote_sha = _git_out(["rev-parse", f"origin/{branch}"], cwd=wt)
+    _shared._git(["fetch", "origin", branch], cwd=wt)
+    remote_sha = _shared._git_out(["rev-parse", f"origin/{branch}"], cwd=wt)
     lease = (
         f"--force-with-lease={branch}:{remote_sha}"
         if remote_sha
         else f"--force-with-lease={branch}"
     )
-    push = _git(["push", lease, "--force-if-includes", "-u", "origin", branch], cwd=wt)
+    push = _shared._git(["push", lease, "--force-if-includes", "-u", "origin", branch], cwd=wt)
     if push.returncode != 0:
         raise click.ClickException(f"push rejected (lease/connectivity):\n{push.stderr.strip()}")
 
-    pr = _run(
+    pr = _shared._run(
         [
             "gh",
             "pr",
@@ -228,7 +214,7 @@ def pr_submit(
     if pr_ok and arm_allowed and cap["required_check"]:
         # Auto-merge ONLY when a required check exists, else the PR merges with
         # no CI gate. Stays armed; merges itself once the check is green.
-        armed = _run(["gh", "pr", "merge", "--auto", "--squash"], cwd=wt).returncode == 0
+        armed = _shared._run(["gh", "pr", "merge", "--auto", "--squash"], cwd=wt).returncode == 0
 
     # auto_merge + a required REVIEW (CODEOWNERS / ruleset) = armed but unmergeable
     # until a human approves — surface it so submit never reports "will merge" while
@@ -275,7 +261,7 @@ def pr_submit(
     # check, instead of leaving an open PR with only a non-fatal stderr line.
     board_blocked = False
     if merge_status == "degraded-no-required-check" and task_id:
-        board_blocked = _escalate_blocked(
+        board_blocked = _shared._escalate_blocked(
             repo,
             task_id,
             f"pr-mode auto-merge deadlock: autonomy={autonomy} but '{integration}' has no "
@@ -299,8 +285,8 @@ def pr_submit(
         "action": action,
     }
     if cap["unprotected_integration"]:
-        payload["warning"] = _unprotected_warning(integration)
-    _emit(payload, as_json)
+        payload["warning"] = _shared._unprotected_warning(integration)
+    _shared._emit(payload, as_json)
 
 
 def _land_verify_ok(repo: str) -> bool:
@@ -314,7 +300,7 @@ def _land_verify_ok(repo: str) -> bool:
         return False
     if not isinstance(data, dict):
         return False
-    ttl = _env_int("COS_PR_LAND_VERIFY_TTL", 1800)
+    ttl = _shared._env_int("COS_PR_LAND_VERIFY_TTL", 1800)
     now = int(time.time())
     for suite in data.values():
         if isinstance(suite, dict) and suite.get("status") == "PASS":
@@ -348,19 +334,19 @@ def pr_land(
     no_ff: bool,
     as_json: bool,
 ) -> None:
-    repo = _resolve_repo(repo_opt)
-    integration = integration or _integration_branch(repo)
-    session = _agent_session()
-    task_slug = "adhoc" if adhoc else _sanitize(task_id) if task_id else None
+    repo = _shared._resolve_repo(repo_opt)
+    integration = integration or _shared._integration_branch(repo)
+    session = _shared._agent_session()
+    task_slug = "adhoc" if adhoc else _shared._sanitize(task_id) if task_id else None
     if task_slug is None:
         raise click.ClickException("cos pr land needs --task <id> or --adhoc.")
-    wt, branch = _resolve_worktree(repo, task_slug, session)
+    wt, branch = _shared._resolve_worktree(repo, task_slug, session)
     if not (wt / ".git").exists():
         raise click.ClickException(f"no open worktree at {wt} — run 'cos pr open' first.")
 
     # A RED/absent local verify must NOT land — the rung's whole premise is "green first".
     if not _land_verify_ok(repo):
-        _emit(
+        _shared._emit(
             {
                 "branch": branch,
                 "landed": False,
@@ -373,7 +359,7 @@ def pr_land(
 
     ahead = _commit_count(wt, f"{integration}..{branch}")
     if ahead == 0:
-        _emit(
+        _shared._emit(
             {
                 "branch": branch,
                 "landed": False,
@@ -394,10 +380,10 @@ def pr_land(
     )
     os.environ["COS_PR_LAND"] = "1"
     try:
-        merged = _git(merge_args, cwd=repo)
+        merged = _shared._git(merge_args, cwd=repo)
         if merged.returncode != 0:
-            _git(["merge", "--abort"], cwd=repo)
-            _emit(
+            _shared._git(["merge", "--abort"], cwd=repo)
+            _shared._emit(
                 {
                     "branch": branch,
                     "landed": False,
@@ -411,14 +397,14 @@ def pr_land(
         # Landed: the work is on integration, so the worktree+branch are safe to GC (no
         # orphan). Unlock first — `pr open` locks the worktree with the owner stamp, and
         # `worktree remove` refuses a locked tree (same as the reaper's _reap_one).
-        _git(["worktree", "unlock", str(wt)], cwd=repo)
-        _git(["worktree", "remove", "--force", str(wt)], cwd=repo)
-        _git(["branch", "-D", branch], cwd=repo)
-        _git(["worktree", "prune"], cwd=repo)
+        _shared._git(["worktree", "unlock", str(wt)], cwd=repo)
+        _shared._git(["worktree", "remove", "--force", str(wt)], cwd=repo)
+        _shared._git(["branch", "-D", branch], cwd=repo)
+        _shared._git(["worktree", "prune"], cwd=repo)
     finally:
         os.environ.pop("COS_PR_LAND", None)
 
-    _emit(
+    _shared._emit(
         {
             "branch": branch,
             "landed": True,
@@ -434,7 +420,7 @@ def _pr_review_required(wt: Path, branch: str) -> bool:
     # Does THIS PR's review gate (branch protection / ruleset / CODEOWNERS) still
     # block merge? Read the PR's own reviewDecision — authoritative where a probe of
     # required_pull_request_reviews would miss ruleset- and CODEOWNERS-driven reviews.
-    out = _run(["gh", "pr", "view", branch, "--json", "reviewDecision"], cwd=wt)
+    out = _shared._run(["gh", "pr", "view", branch, "--json", "reviewDecision"], cwd=wt)
     if out.returncode != 0:
         return False
     try:
@@ -453,9 +439,9 @@ def _open_pr_count(repo: str, session: str) -> int:
     # so the submit caller must treat -1 as cap-reached and fail SAFE — counting it
     # as 0 would let the unbounded push through (M1). A genuinely remote-less repo
     # uses the `local` rung and never reaches this.
-    if not _gh_ready():
+    if not _shared._gh_ready():
         return -1
-    proc = _run(
+    proc = _shared._run(
         [
             "gh",
             "pr",

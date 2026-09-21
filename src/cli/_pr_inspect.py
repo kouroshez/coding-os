@@ -15,15 +15,8 @@ except ImportError:  # non-POSIX (Windows) — the reaper lock degrades to a no-
 
 import click
 
+from cli import _pr_shared as _shared
 from cli._pr_shared import (
-    _emit,
-    _gh_ready,
-    _git_out,
-    _integration_branch,
-    _resolve_repo,
-    _run,
-    _unqualify_head,
-    _worktree_root,
     pr_group,
 )
 
@@ -37,23 +30,23 @@ from cli._pr_shared import (
 )
 @click.option("--json", "as_json", is_flag=True)
 def pr_status(repo_opt: str | None, branch: str | None, as_json: bool) -> None:
-    repo = _resolve_repo(repo_opt)
+    repo = _shared._resolve_repo(repo_opt)
     if branch:
         # Single-branch CI signal the pr-mode-driver skill branches on.
-        _emit({"branch": branch, "ci_rollup": _pr_ci_rollup(repo, branch)}, as_json)
+        _shared._emit({"branch": branch, "ci_rollup": _pr_ci_rollup(repo, branch)}, as_json)
         return
-    wt_root = _worktree_root(repo)
+    wt_root = _shared._worktree_root(repo)
     worktrees = []
     if wt_root.is_dir():
         worktrees = sorted(p.name for p in wt_root.iterdir() if p.is_dir())
     branches = [
         b.strip().lstrip("* ").strip()
-        for b in _git_out(["branch", "--list", "agents/*"], cwd=repo).splitlines()
+        for b in _shared._git_out(["branch", "--list", "agents/*"], cwd=repo).splitlines()
         if b.strip()
     ]
     pr_rows: list[dict] = []
-    if _gh_ready():
-        out = _run(
+    if _shared._gh_ready():
+        out = _shared._run(
             [
                 "gh",
                 "pr",
@@ -72,7 +65,7 @@ def pr_status(repo_opt: str | None, branch: str | None, as_json: bool) -> None:
                 pr_rows = []
     open_prs = ",".join(f"#{r.get('number')}:{r.get('headRefName')}" for r in pr_rows)
     ci_rollup = ",".join(f"{r.get('headRefName')}={_rollup_state(r)}" for r in pr_rows)
-    _emit(
+    _shared._emit(
         {
             "worktree_root": str(wt_root),
             "worktrees": ",".join(worktrees) or "(none)",
@@ -90,11 +83,11 @@ def _agent_worktrees(repo: str) -> dict[str, Path]:
     # currently-checked-out (i.e. concurrently-active) agents.
     result: dict[str, Path] = {}
     cur: str | None = None
-    for line in _git_out(["worktree", "list", "--porcelain"], cwd=repo).splitlines():
+    for line in _shared._git_out(["worktree", "list", "--porcelain"], cwd=repo).splitlines():
         if line.startswith("worktree "):
             cur = line[len("worktree ") :].strip()
         elif line.startswith("branch ") and cur:
-            name = _unqualify_head(line[len("branch ") :].strip())
+            name = _shared._unqualify_head(line[len("branch ") :].strip())
             if name.startswith("agents/"):
                 result[name] = Path(cur)
     return result
@@ -105,12 +98,14 @@ def _changed_files(repo: str, branch: str, integration: str, wt: Path | None) ->
     # line (merge-base, so a moving integration head doesn't distort it) UNION the
     # worktree's still-uncommitted paths (earliest possible pre-detection signal).
     files: set[str] = set()
-    base = _git_out(["merge-base", integration, branch], cwd=repo) or integration
-    for line in _git_out(["diff", "--name-only", f"{base}..{branch}"], cwd=repo).splitlines():
+    base = _shared._git_out(["merge-base", integration, branch], cwd=repo) or integration
+    for line in _shared._git_out(
+        ["diff", "--name-only", f"{base}..{branch}"], cwd=repo
+    ).splitlines():
         if line.strip():
             files.add(line.strip())
     if wt is not None and (wt / ".git").exists():
-        for line in _git_out(["status", "--porcelain"], cwd=wt).splitlines():
+        for line in _shared._git_out(["status", "--porcelain"], cwd=wt).splitlines():
             path = line[3:].strip()
             if " -> " in path:  # rename entry: 'old -> new' — the new path is what's edited
                 path = path.split(" -> ", 1)[1].strip()
@@ -127,9 +122,9 @@ def _changed_files(repo: str, branch: str, integration: str, wt: Path | None) ->
 @click.option("--repo", "repo_opt", default=None)
 @click.option("--json", "as_json", is_flag=True)
 def pr_triage(repo_opt: str | None, as_json: bool) -> None:
-    repo = _resolve_repo(repo_opt)
-    if not _gh_ready():
-        _emit(
+    repo = _shared._resolve_repo(repo_opt)
+    if not _shared._gh_ready():
+        _shared._emit(
             {
                 "open": 0,
                 "quick_merge": 0,
@@ -139,7 +134,7 @@ def pr_triage(repo_opt: str | None, as_json: bool) -> None:
             as_json,
         )
         return
-    out = _run(
+    out = _shared._run(
         [
             "gh",
             "pr",
@@ -168,7 +163,7 @@ def pr_triage(repo_opt: str | None, as_json: bool) -> None:
     )
     quick = sum(1 for e in entries if e["category"] == "quick-merge")
     if not entries:
-        _emit(
+        _shared._emit(
             {
                 "open": 0,
                 "quick_merge": 0,
@@ -179,7 +174,7 @@ def pr_triage(repo_opt: str | None, as_json: bool) -> None:
         )
         return
     if as_json:
-        _emit(
+        _shared._emit(
             {
                 "open": len(entries),
                 "quick_merge": quick,
@@ -213,10 +208,10 @@ def pr_triage(repo_opt: str | None, as_json: bool) -> None:
 @click.option("--repo", "repo_opt", default=None)
 @click.option("--json", "as_json", is_flag=True)
 def pr_conflicts(branch: str | None, repo_opt: str | None, as_json: bool) -> None:
-    repo = _resolve_repo(repo_opt)
-    integration = _integration_branch(repo)
+    repo = _shared._resolve_repo(repo_opt)
+    integration = _shared._integration_branch(repo)
     worktrees = _agent_worktrees(repo)
-    target = branch or _git_out(["rev-parse", "--abbrev-ref", "HEAD"], cwd=repo)
+    target = branch or _shared._git_out(["rev-parse", "--abbrev-ref", "HEAD"], cwd=repo)
     if not target.startswith("agents/"):
         raise click.ClickException(
             "not on an agents/* branch — pass --branch <agents/...> or run from inside an agent worktree."
@@ -232,7 +227,7 @@ def pr_conflicts(branch: str | None, repo_opt: str | None, as_json: bool) -> Non
     # Advisory ONLY — overlap is a heads-up, never a block: two agents may legitimately
     # touch one file in different places; the rebase-at-submit + merge queue catch a
     # real conflict at land. Always exit 0.
-    _emit(
+    _shared._emit(
         {
             "branch": target,
             "changed_files": len(target_files),
@@ -297,9 +292,9 @@ def _rollup_state(pr: dict) -> str:
 
 
 def _pr_ci_rollup(repo: str, branch: str) -> str:
-    if not _gh_ready():
+    if not _shared._gh_ready():
         return "unknown"
-    out = _run(
+    out = _shared._run(
         [
             "gh",
             "pr",
@@ -335,9 +330,9 @@ def _merge_queue_entry(repo: str, number: int | None) -> dict:
     # gh pr view --json has no mergeQueueEntry field (gh 2.95), so read it via GraphQL —
     # gh resolves {owner}/{repo} from the repo's remote. Returns {} (not queued / no queue
     # configured / gh error) so _rollup_state stays byte-unchanged where no queue exists.
-    if not number or not _gh_ready():
+    if not number or not _shared._gh_ready():
         return {}
-    out = _run(
+    out = _shared._run(
         [
             "gh",
             "api",

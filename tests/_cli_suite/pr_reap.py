@@ -24,9 +24,9 @@ class TestCosPrReap(PrHarness):
     def test_reap_removes_offline_session_worktree(
         self, runner: CliRunner, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)  # no network in the test
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)  # no network in the test
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         assert "agents/adhoc/ses-test-abc" in self._branches(repo)
         # A presence record that positively says offline (ended) => reaped.
@@ -45,9 +45,9 @@ class TestCosPrReap(PrHarness):
     ) -> None:
         # Fail-safe (finding 1): a FRESH worktree with no matching presence record
         # must NOT be reaped — absence of a record is not proof of death.
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
@@ -63,9 +63,9 @@ class TestCosPrReap(PrHarness):
         # the top-level dir, which is blind to nested edits).
         import time
 
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")  # 1s staleness threshold
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
@@ -85,9 +85,9 @@ class TestCosPrReap(PrHarness):
         # must KEEP it. Reaping on the idle pill destroys live uncommitted work.
         import time
 
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         sess_dir = repo / ".coding-os" / "claude" / "sessions"
         sess_dir.mkdir(parents=True, exist_ok=True)
@@ -116,9 +116,9 @@ class TestCosPrReap(PrHarness):
         # no-record orphan with a fresh nested file is a live agent → KEEP it.
         import time
 
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
@@ -144,9 +144,9 @@ class TestCosPrReap(PrHarness):
         import socket
         import time
 
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
         sess_dir = repo / ".coding-os" / "claude" / "sessions"
         sess_dir.mkdir(parents=True, exist_ok=True)
@@ -176,9 +176,9 @@ class TestCosPrReap(PrHarness):
         import socket
         import time
 
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
         sess_dir = repo / ".coding-os" / "claude" / "sessions"
         sess_dir.mkdir(parents=True, exist_ok=True)
@@ -208,9 +208,9 @@ class TestCosPrReap(PrHarness):
         # quoted host) to still recognise the live owner and keep the worktree.
         import time
 
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
@@ -244,9 +244,9 @@ class TestCosPrReap(PrHarness):
         # worktree → O(K·N) on a path pr-reap.sh backgrounds at every SessionStart.
         import time
 
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
         for sid in ("ses-test-1", "ses-test-2", "ses-test-3"):
             monkeypatch.setenv("COS_AGENT_SESSION_ID", sid)
@@ -257,14 +257,14 @@ class TestCosPrReap(PrHarness):
                 with contextlib.suppress(OSError):
                     os.utime(path, (old, old))
         counts = {"wl": 0}
-        real_git_out = prc._git_out
+        real_git_out = prs._git_out
 
         def counting(args, **kw):
             if args[:2] == ["worktree", "list"]:
                 counts["wl"] += 1
             return real_git_out(args, **kw)
 
-        monkeypatch.setattr(prc, "_git_out", counting)
+        monkeypatch.setattr(prs, "_git_out", counting)
         res = runner.invoke(cli, ["pr", "reap", "--repo", str(repo)])
         assert res.exit_code == 0, res.output
         assert counts["wl"] == 1, (
@@ -279,9 +279,9 @@ class TestCosPrReap(PrHarness):
         # is alive on THIS host (os.getpid()) — so the stale orphan is still reaped.
         import time
 
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
         runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
         wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
@@ -316,12 +316,13 @@ class TestCosPrReap(PrHarness):
         import threading
         import time
 
-        import cli.pr_commands as prc
+        import cli._pr_reap as prreap
+        import cli._pr_shared as prs
 
-        monkeypatch.setattr(prc, "_gh_ready", lambda: False)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: False)
         monkeypatch.setenv("COS_PR_ORPHAN_MAX_AGE", "1")
         monkeypatch.setenv("COS_REAPED_ROOT", str(tmp_path / "reaped"))
-        monkeypatch.setattr(prc, "_emit", lambda *a, **k: None)  # silence stdout across threads
+        monkeypatch.setattr(prs, "_emit", lambda *a, **k: None)  # silence stdout across threads
 
         sessions = ["ses-s1", "ses-s2", "ses-s3"]
         for sid in sessions:  # set up 3 offline orphan worktrees, distinct sessions
@@ -343,7 +344,7 @@ class TestCosPrReap(PrHarness):
         def worker(idx: int) -> None:
             time.sleep(0.001 * (idx % 3))  # fixed, deterministic stagger
             try:
-                prc.pr_reap.callback(str(repo), False, False)  # raw fn, not the Click wrapper
+                prreap.pr_reap.callback(str(repo), False, False)  # raw fn, not the Click wrapper
             except Exception as exc:
                 errors.append(repr(exc))
 
@@ -361,6 +362,6 @@ class TestCosPrReap(PrHarness):
         bundles = list((tmp_path / "reaped").rglob("*ses-s1*.bundle"))
         assert bundles, "ses-s1's unpushed commit was not preserved"
         # ledger holds no duplicate (branch) entry — no double-reap bookkeeping
-        ledger = prc._ledger_load(str(repo))
+        ledger = prreap._ledger_load(str(repo))
         branches = [e.get("branch") for e in ledger]
         assert len(branches) == len(set(branches)), ledger

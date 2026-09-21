@@ -20,29 +20,8 @@ except ImportError:  # non-POSIX (Windows) — the reaper lock degrades to a no-
 
 import click
 
+from cli import _pr_shared as _shared
 from cli._pr_shared import (
-    _agent_session,
-    _branch_for,
-    _branch_recoverable,
-    _emit,
-    _env_int,
-    _escalate_blocked,
-    _gh_ready,
-    _git,
-    _git_out,
-    _has_remote,
-    _heal_budget,
-    _heal_budget_clear,
-    _heal_budget_save,
-    _heal_lock,
-    _integration_branch,
-    _preserve_reaped,
-    _resolve_repo,
-    _run,
-    _sanitize,
-    _session_state,
-    _unqualify_head,
-    _worktree_root,
     pr_group,
 )
 
@@ -54,7 +33,7 @@ def _worktree_stale(wt: Path) -> bool:
     # never moves when a live agent edits nested files like src/** (finding 2), so
     # using it would reap a long-running agent's worktree mid-edit. Stops early on
     # the first fresh file, so a live worktree costs only a shallow walk.
-    max_age = _env_int("COS_PR_ORPHAN_MAX_AGE", 86400)
+    max_age = _shared._env_int("COS_PR_ORPHAN_MAX_AGE", 86400)
     cutoff = time.time() - max_age
     try:
         newest = wt.stat().st_mtime
@@ -82,7 +61,7 @@ def _worktree_stale(wt: Path) -> bool:
 def _worktree_lock_reason(repo: str, wt: Path) -> str:
     # `git worktree list --porcelain` emits `locked <reason>` verbatim for a locked
     # worktree; return the reason of the block whose path resolves to wt.
-    out = _git_out(["worktree", "list", "--porcelain"], cwd=repo)
+    out = _shared._git_out(["worktree", "list", "--porcelain"], cwd=repo)
     target = wt.resolve()
     current: Path | None = None
     for line in out.splitlines():
@@ -103,7 +82,7 @@ def _worktree_index(repo: str) -> dict[Path, dict]:
     # path pr-reap.sh backgrounds at every SessionStart.
     index: dict[Path, dict] = {}
     cur: Path | None = None
-    for line in _git_out(["worktree", "list", "--porcelain"], cwd=repo).splitlines():
+    for line in _shared._git_out(["worktree", "list", "--porcelain"], cwd=repo).splitlines():
         if line.startswith("worktree "):
             try:
                 cur = Path(line[len("worktree ") :].strip()).resolve()
@@ -113,7 +92,7 @@ def _worktree_index(repo: str) -> dict[Path, dict]:
                 index[cur] = {"branch": "", "locked": ""}
         elif cur is not None and cur in index:
             if line.startswith("branch "):
-                index[cur]["branch"] = _unqualify_head(line[len("branch ") :].strip())
+                index[cur]["branch"] = _shared._unqualify_head(line[len("branch ") :].strip())
             elif line.startswith("locked"):
                 index[cur]["locked"] = line[len("locked") :].strip()
     return index
@@ -188,9 +167,11 @@ def _drain_ledger(repo: str) -> list[str]:
             continue  # malformed/legacy entry — skip rather than abort the drain
         remote_pending = entry.get("remote_pending", False)
         pr_pending = entry.get("pr_pending", False)
-        if remote_pending and _has_remote(repo):
-            remote_pending = _git(["push", "origin", "--delete", branch], cwd=repo).returncode != 0
-        if pr_pending and _gh_ready():
+        if remote_pending and _shared._has_remote(repo):
+            remote_pending = (
+                _shared._git(["push", "origin", "--delete", branch], cwd=repo).returncode != 0
+            )
+        if pr_pending and _shared._gh_ready():
             pr_pending = not _pr_close(repo, branch)
         if not remote_pending and not pr_pending:
             drained.append(branch)
@@ -205,7 +186,7 @@ def _drain_ledger(repo: str) -> list[str]:
 def _pr_close(repo: str, branch: str) -> bool:
     # True when the branch has no open PR (already drained) or the close succeeds
     # — so a branch that never had a PR can't churn the ledger forever (finding 11).
-    listing = _run(
+    listing = _shared._run(
         ["gh", "pr", "list", "--head", branch, "--state", "open", "--json", "number"], cwd=repo
     )
     if listing.returncode != 0:
@@ -216,7 +197,7 @@ def _pr_close(repo: str, branch: str) -> bool:
         has_open = True  # unparseable listing → assume a PR may exist and try to close
     if not has_open:
         return True
-    return _run(["gh", "pr", "close", branch], cwd=repo).returncode == 0
+    return _shared._run(["gh", "pr", "close", branch], cwd=repo).returncode == 0
 
 
 def _reap_one(repo: str, wt: Path, branch: str) -> dict:
@@ -225,29 +206,31 @@ def _reap_one(repo: str, wt: Path, branch: str) -> dict:
     # already on origin/integration OR the tree is dirty, and GC the worktree + delete
     # the branch ONLY once the work is safe — on a remote ref, or a confirmed bundle.
     # If preservation fails, keep BOTH the worktree and the branch (D2).
-    integration = _integration_branch(repo)
-    recoverable = _branch_recoverable(repo, branch, integration)
-    dirty = bool(_git_out(["status", "--porcelain"], cwd=wt))
-    preserved = _preserve_reaped(repo, wt, branch) if (not recoverable or dirty) else None
+    integration = _shared._integration_branch(repo)
+    recoverable = _shared._branch_recoverable(repo, branch, integration)
+    dirty = bool(_shared._git_out(["status", "--porcelain"], cwd=wt))
+    preserved = _shared._preserve_reaped(repo, wt, branch) if (not recoverable or dirty) else None
     # Dirty uncommitted work is safe only if preservation captured it (it commits the
     # dirty tree onto the branch, then bundles) — `recoverable` alone covers only the
     # COMMITTED branch, so recoverable+dirty+preserve-failed must NOT count as safe (D2).
     work_safe = (recoverable and not dirty) or preserved is not None
 
-    _git(["worktree", "unlock", str(wt)], cwd=repo)  # offline worktrees may be locked
+    _shared._git(["worktree", "unlock", str(wt)], cwd=repo)  # offline worktrees may be locked
     # Destroy the worktree ONLY once the work is safe (on a remote/integration ref or
     # bundled). When preservation failed, the worktree may hold the only copy of the
     # reaped work — keep it AND the branch for manual recovery, flagged needs_attention
     # (D2). A later sweep retries preservation and removes it once it succeeds.
     local = remote_pending = pr_pending = removed = False
     if work_safe:
-        removed = _git(["worktree", "remove", "--force", str(wt)], cwd=repo).returncode == 0
-        local = _git(["branch", "-D", branch], cwd=repo).returncode == 0
-        if _has_remote(repo):
-            remote_pending = _git(["push", "origin", "--delete", branch], cwd=repo).returncode != 0
-        pr_pending = _gh_ready() and not _pr_close(repo, branch)
-    _git(["worktree", "prune"], cwd=repo)
-    _heal_budget_clear(repo, branch)  # owner is gone — drop its heal budget (finding 8)
+        removed = _shared._git(["worktree", "remove", "--force", str(wt)], cwd=repo).returncode == 0
+        local = _shared._git(["branch", "-D", branch], cwd=repo).returncode == 0
+        if _shared._has_remote(repo):
+            remote_pending = (
+                _shared._git(["push", "origin", "--delete", branch], cwd=repo).returncode != 0
+            )
+        pr_pending = _shared._gh_ready() and not _pr_close(repo, branch)
+    _shared._git(["worktree", "prune"], cwd=repo)
+    _shared._heal_budget_clear(repo, branch)  # owner is gone — drop its heal budget (finding 8)
     if remote_pending or pr_pending:
         _ledger_record(repo, branch, remote_pending, pr_pending)  # drains on next online sweep
     return {
@@ -270,7 +253,7 @@ def _reap_one(repo: str, wt: Path, branch: str) -> dict:
 @click.option("--dry-run", is_flag=True, help="Report what would be reaped; change nothing.")
 @click.option("--json", "as_json", is_flag=True)
 def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
-    repo = _resolve_repo(repo_opt)
+    repo = _shared._resolve_repo(repo_opt)
     # One reaper per repo at a time — pr-reap.sh backgrounds this on EVERY
     # SessionStart, so N concurrent sessions would otherwise double-GC the same
     # orphan and clobber each other's ledger writes (finding 2). A peer holding
@@ -283,7 +266,7 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
             try:
                 fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except OSError:
-                _emit(
+                _shared._emit(
                     {
                         "reaped": 0,
                         "kept_live": 0,
@@ -292,7 +275,7 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
                     as_json,
                 )
                 return
-        wt_root = _worktree_root(repo)
+        wt_root = _shared._worktree_root(repo)
         drained = [] if dry_run else _drain_ledger(repo)
         reaped: list[dict] = []
         kept: list[dict] = []
@@ -300,13 +283,13 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
         if wt_root.is_dir():
             for wt in sorted(p for p in wt_root.iterdir() if p.is_dir()):
                 entry = wt_index.get(wt.resolve(), {})
-                branch = entry.get("branch") or _git_out(
+                branch = entry.get("branch") or _shared._git_out(
                     ["rev-parse", "--abbrev-ref", "HEAD"], cwd=wt
                 )
                 if not branch.startswith("agents/"):
                     continue
                 session = branch.rsplit("/", 1)[-1]
-                state = _session_state(session, repo)
+                state = _shared._session_state(session, repo)
                 reapable = state == "offline" or (
                     state == "unknown"
                     and _worktree_stale(wt)
@@ -323,12 +306,12 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
                         # Re-assert the lock so a peer's prune can't drop a live checkout (§2).
                         # A no-op when already locked (the common case), so it preserves the
                         # owner=pid@host stamp the open wrote — that is what a later sweep reads.
-                        _git(
+                        _shared._git(
                             ["worktree", "lock", str(wt), "--reason", "pr-mode live session"],
                             cwd=repo,
                         )
                     kept.append({"worktree": str(wt), "branch": branch, "live": True})
-        _emit(
+        _shared._emit(
             {
                 "reaped": len(reaped),
                 "kept_live": len(kept),
@@ -351,29 +334,29 @@ def pr_reap(repo_opt: str | None, dry_run: bool, as_json: bool) -> None:
 def pr_heal(
     task_id: str | None, adhoc: bool, repo_opt: str | None, reason: str, as_json: bool
 ) -> None:
-    repo = _resolve_repo(repo_opt)
-    session = _agent_session()
-    task_slug = "adhoc" if adhoc else _sanitize(task_id) if task_id else None
+    repo = _shared._resolve_repo(repo_opt)
+    session = _shared._agent_session()
+    task_slug = "adhoc" if adhoc else _shared._sanitize(task_id) if task_id else None
     if task_slug is None:
         raise click.ClickException("cos pr heal needs --task <id> or --adhoc.")
-    branch = _branch_for(task_slug, session)
+    branch = _shared._branch_for(task_slug, session)
     # Read-modify-write under the dedicated heal flock so concurrent agents can't
     # clobber the count (L4).
-    with _heal_lock(repo):
-        budget = _heal_budget(repo)
+    with _shared._heal_lock(repo):
+        budget = _shared._heal_budget(repo)
         count = int(budget.get(branch, 0)) + 1
         budget[branch] = count
-        _heal_budget_save(repo, budget)
-    max_n = _env_int("COS_PR_HEAL_MAX", 3)
+        _shared._heal_budget_save(repo, budget)
+    max_n = _shared._env_int("COS_PR_HEAL_MAX", 3)
 
     if count > max_n:
-        blocked = _escalate_blocked(
+        blocked = _shared._escalate_blocked(
             repo,
             task_id,
             f"pr-mode self-heal budget exhausted after {count} attempts: {reason}",
             f"pr-mode heal budget exhausted ({reason})",
         )
-        _emit(
+        _shared._emit(
             {
                 "branch": branch,
                 "attempt": count,
@@ -385,7 +368,7 @@ def pr_heal(
             as_json,
         )
         sys.exit(2)
-    _emit(
+    _shared._emit(
         {
             "branch": branch,
             "attempt": count,

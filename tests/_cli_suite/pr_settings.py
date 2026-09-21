@@ -45,14 +45,16 @@ class TestCosPrSettings(PrHarness):
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         # Explicit env var wins over the file: file=local but env=auto_merge → not local.
+        import cli._pr_publish as prp
+        import cli._pr_shared as prs
         import cli.pr_commands as prc
 
         self._add_bare_remote(repo, tmp_path)
         self._write_git_settings(repo, enabled=True, autonomy_level="local")
         monkeypatch.setenv("COS_GIT_AUTONOMY", "auto_merge")
-        monkeypatch.setattr(prc, "_gh_ready", lambda: True)
-        monkeypatch.setattr(prc, "_has_required_check", lambda r, b: True)
-        monkeypatch.setattr(prc, "_open_pr_count", lambda r, s: 0)
+        monkeypatch.setattr(prs, "_gh_ready", lambda: True)
+        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: True)
+        monkeypatch.setattr(prp, "_open_pr_count", lambda r, s: 0)
         merge_calls: list = []
         self._fake_gh(prc, monkeypatch, merge_calls=merge_calls)
 
@@ -84,7 +86,8 @@ class TestCosPrSettings(PrHarness):
     ) -> None:
         # Run the helper with cwd INSIDE a linked worktree (repo arg = the worktree
         # path): --git-common-dir must resolve back to the MAIN repo's settings file.
-        import cli.pr_commands as prc
+        import cli._pr_publish as prpubl
+        import cli._pr_shared as prshar
 
         monkeypatch.delenv("COS_GIT_AUTONOMY", raising=False)
         self._write_git_settings(repo, enabled=True, autonomy_level="autonomous")
@@ -95,8 +98,8 @@ class TestCosPrSettings(PrHarness):
         )
         # repo arg is the worktree, but the settings live only in the MAIN repo
         assert not (wt / ".coding-os").exists()
-        assert prc._autonomy_level(str(wt)) == "autonomous"
-        assert Path(prc._main_repo_root(str(wt))).resolve() == repo.resolve()
+        assert prpubl._autonomy_level(str(wt)) == "autonomous"
+        assert Path(prshar._main_repo_root(str(wt))).resolve() == repo.resolve()
 
     def test_cleanup_resolves_worktree_when_session_differs(
         self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -179,10 +182,10 @@ class TestCosPrSettings(PrHarness):
     ) -> None:
         # TASK-561 / D2: if preservation fails on a drifted dirty worktree, cleanup must
         # KEEP the worktree (the only copy) and refuse — never destroy unpreserved work.
-        import cli.pr_commands as prc
+        import cli._pr_shared as prs
 
         monkeypatch.setattr(
-            prc, "_preserve_reaped", lambda r, w, b: None
+            prs, "_preserve_reaped", lambda r, w, b: None
         )  # simulate bundle failure
         monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-AAA")
         runner.invoke(cli, ["pr", "open", "--task", "TASK-666", "--repo", str(repo)])
