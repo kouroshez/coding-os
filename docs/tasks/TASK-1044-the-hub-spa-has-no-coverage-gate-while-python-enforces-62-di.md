@@ -5,12 +5,12 @@ swimlane: core
 kind: test
 epic: null
 labels: [parked, ready]
-status: testing
+status: complete
 priority: P3
 appetite: 1d
 created: 2026-09-18
 started: 2026-09-20
-completed: null
+completed: 2026-09-20
 agent_session: ses-claude-20260920-211122-bc06
 depends_on: []
 blocked_by: []
@@ -41,3 +41,5 @@ references: []
 ## Work Log
 - 2026-09-21 [claude]: Attempted the measurement the card calls for and it is blocked by tooling, not by effort. Adding @vitest/coverage-v8…
 - 2026-09-21 [claude]: Measured, then gated. @vitest/coverage-v8@4.1.11 installs fine on a clean tree — the earlier arborist crash was a…
+- 2026-09-21 [claude]: commit 26617ee4be — ci(web): gate the Hub SPA on measured vitest coverage thresholds
+- 2026-09-21 [claude]: Status transitioned to complete via cos task-done.
