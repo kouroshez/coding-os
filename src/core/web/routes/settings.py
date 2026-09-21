@@ -222,7 +222,7 @@ def get_module_drift():
 def get_git_state(integration: str | None = None):
     """Read-only pr-mode capability + real repo git-state (branches/current/remote) for the Config Git tab."""
     try:
-        from cli.pr_commands import _git_state, _integration_branch, _preflight
+        from cli._pr_shared import _git_state, _integration_branch, _preflight
         from web._project_context import current_project_root
 
         repo = str(current_project_root())

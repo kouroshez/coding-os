@@ -145,7 +145,7 @@ def test_git_state_probes_query_param_branch(client, monkeypatch):
     # TASK-549/M2: ?integration=<x> must reach _preflight so the capability pills
     # reflect the branch the user is editing, not the saved one. Stub _preflight +
     # _git_state so the probe runs without a real repo/gh and capture the branch.
-    import cli.pr_commands as pr
+    import cli._pr_shared as pr
 
     seen: dict = {}
 
