@@ -253,6 +253,14 @@ def register_query(cli: click.Group) -> None:
         _, tools = _open_backend()
         _json_echo(tools.cos_graph_test_gap(kind=kind, top=top), pretty=pretty)
 
+    @cli.command(name="graph-stale-files")
+    @click.option("--top", default=100, type=int)
+    @click.option("--pretty", is_flag=True)
+    def graph_stale_files(top, pretty):
+        """Indexed files carrying a git commit newer than the index pass."""
+        _, tools = _open_backend()
+        _json_echo(tools.cos_graph_stale_files(top=top), pretty=pretty)
+
     @cli.command(name="graph-dead-code")
     @click.option("--kind", default="")
     @click.option("--top", default=50, type=int)
