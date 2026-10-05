@@ -116,34 +116,49 @@ def _ts_enclosing_class_uid(node: Any, path: str) -> str | None:
     return None
 
 
-def _ts_enclosing_scope(node: Any, path: str) -> str | None:
+_CLASSES = ("class_declaration", "abstract_class_declaration", "class")
+_NAMED_FUNCTIONS = ("function_declaration", "generator_function_declaration")
+_FUNCTION_VALUES = ("arrow_function", "function", "function_expression")
+
+
+def ts_scope_chain(node: Any) -> list[tuple[str, str]]:
+    # `(kind, name)` of the named functions around `node`, outermost first: a
+    # function nested in a component is `Card.onPress`, not a file-level
+    # `onPress` sharing one uid with every other component's handler.
+    chain: list[tuple[str, str]] = []
     cur = node.parent
     while cur is not None:
-        t = cur.type
-        if t in ("function_declaration", "generator_function_declaration"):
-            nm = _ts_name(cur)
-            if nm:
-                return function_uid(path, nm)
-        elif t == "method_definition":
-            mn = _ts_name(cur)
-            cls = cur.parent
-            while cls is not None and cls.type not in (
-                "class_declaration",
-                "abstract_class_declaration",
-                "class",
-            ):
-                cls = cls.parent
-            cn = _ts_name(cls) if cls is not None else ""
-            if mn and cn:
-                return _ts_method_uid(path, cn, mn)
-        elif t in ("arrow_function", "function", "function_expression"):
-            p = cur.parent
-            if p is not None and p.type == "variable_declarator":
-                nm = _ts_name(p)
-                if nm:
-                    return function_uid(path, nm)
+        name = ""
+        kind = "function"
+        if cur.type in _NAMED_FUNCTIONS:
+            name = _ts_name(cur)
+        elif cur.type in _FUNCTION_VALUES and cur.parent is not None:
+            declared = cur.parent.child_by_field_name("name")
+            if cur.parent.type == "variable_declarator" and declared is not None:
+                name = _ts_name(cur.parent) if declared.type == "identifier" else ""
+        elif cur.type == "method_definition":
+            owner = cur.parent
+            while owner is not None and owner.type not in _CLASSES:
+                owner = owner.parent
+            class_name = _ts_name(owner) if owner is not None else ""
+            if class_name and _ts_name(cur):
+                name, kind = f"{class_name}.{_ts_name(cur)}", "method"
+        if name:
+            chain.append((kind, name))
+            if kind == "method":
+                break
         cur = cur.parent
-    return None
+    return list(reversed(chain))
+
+
+def _ts_enclosing_scope(node: Any, path: str) -> str | None:
+    chain = ts_scope_chain(node)
+    if not chain:
+        return None
+    if len(chain) == 1 and chain[0][0] == "method":
+        class_name, _, method = chain[0][1].partition(".")
+        return _ts_method_uid(path, class_name, method)
+    return function_uid(path, ".".join(name for _, name in chain))
 
 
 def _ts_emit_type_edges(

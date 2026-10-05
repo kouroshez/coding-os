@@ -232,9 +232,10 @@ partial · **LOW** — noise.
   native modules, `require('./logo.png')` assets), and `const x = require(…)`,
   `const { a, b: c } = require(…)` and `import x = require(…)` bind names like an
   import clause, so calls through them link.
-- [ ] **TS-04 [MEDIUM] JSX usage is sourced at the module, not the component**, and JSX
-  in `.js` files is parsed with the non-JSX grammar. The grammar half is fixed —
-  JS-family files parse with the tsx grammar and run the JSX passes.
+- [x] **TS-04 [MEDIUM] JSX usage is sourced at the module, not the component**, and JSX
+  in `.js` files is parsed with the non-JSX grammar. Fix: JS-family files parse
+  with the tsx grammar and run the JSX passes, and a JSX element's edge starts at
+  the component that renders it (benchmark: 3,392 from components).
 - [x] **TS-05 [LOW] 17% of import nodes carry the wrong line** (`^\s*import` swallows
   blank lines). Fix: the import and export scanners anchor on horizontal space
   only, so a statement's line is its own.
@@ -265,9 +266,14 @@ partial · **LOW** — noise.
   and `references` returns `source_files` — distinct importing files, the Q5
   answer. Benchmark: react 344 files (was 207), react-native 279,
   @tanstack/react-query 126. Test: `test_library_fan_in.py`.
-- [ ] **TS-10 [LOW] Tree-sitter ERROR nodes are never reported** (27 benchmark files);
+- [x] **TS-10 [LOW] Tree-sitter ERROR nodes are never reported** (27 benchmark files);
   nested closures become file-level functions; `Number(x)` counts as construction;
-  tsconfig `extends` paths are not normalised and arrays are ignored.
+  tsconfig `extends` paths are not normalised and arrays are ignored. Fix: syntax
+  errors are parse errors (benchmark files with one 47 → 74); a nested function
+  is `Outer.inner` with `contains` from its enclosing function, and calls resolve
+  from the innermost scope outward (247 nested functions no longer share uids);
+  `Number`, `String`, `Boolean` and the other conversions are calls;
+  `extends` arrays and paths were fixed with TS-01.
 
 ### Go and Fiber
 

@@ -15,9 +15,25 @@ from ._ts_nodes import (
     _ts_enclosing_class_uid,
     _ts_enclosing_scope,
     _ts_line,
+    ts_scope_chain,
 )
 from ._ts_uids import _TS_KEYWORDS, EXTRACTOR_ID_TS, JSX_LANGS
 from .md_links import ExtractionResult
+
+# Called without `new` these convert, they do not construct.
+_CONVERSIONS = frozenset(
+    {"Number", "String", "Boolean", "Symbol", "BigInt", "Object", "Array", "Date", "RegExp"}
+)
+
+
+def _scoped(node: Any, name: str, local_names: dict[str, str]) -> str | None:
+    # A nested function is visible from its own scope inward, innermost first.
+    chain = [scope for _, scope in ts_scope_chain(node)]
+    for depth in range(len(chain), 0, -1):
+        key = ".".join([*chain[:depth], name])
+        if key in local_names:
+            return local_names[key]
+    return None
 
 
 def _walk_ts_calls(
@@ -45,7 +61,8 @@ def _walk_ts_calls(
         if not target or not re.match(r"^[\w$.]+$", target) or head in _TS_KEYWORDS:
             continue
         is_new = call.type == "new_expression"
-        is_ctor = is_new or (target.split(".")[-1][:1].isupper())
+        last = target.split(".")[-1]
+        is_ctor = is_new or (last[:1].isupper() and target not in _CONVERSIONS)
         is_await = call.parent is not None and call.parent.type == "await_expression"
         src = _ts_enclosing_scope(call, path) or module_uid_
         if head == "this" and "." in target:
@@ -61,6 +78,8 @@ def _walk_ts_calls(
                     0.3,
                     EvidenceSignal("unresolved_call", 0.3),
                 )
+        elif (scoped := _scoped(call, target, local_names)) is not None:
+            resolved, conf, sig = scoped, 0.9, EvidenceSignal("same_scope", 0.9)
         elif target in local_names:
             resolved, conf, sig = local_names[target], 0.9, EvidenceSignal("same_scope", 0.9)
         elif head in local_names and "." not in target:
@@ -97,7 +116,10 @@ def _walk_ts_calls(
             if not comp or not comp[:1].isupper():
                 continue  # lowercase = host element (div / View) — skip
             head = comp.split(".")[0]
-            if comp in local_names:
+            scoped = _scoped(el, comp, local_names)
+            if scoped is not None:
+                resolved, conf = scoped, 0.8
+            elif comp in local_names:
                 resolved, conf = local_names[comp], 0.8
             elif head in imported_names:
                 resolved, conf = f"code:external:{imported_names[head]}:{comp}", 0.7
@@ -105,7 +127,8 @@ def _walk_ts_calls(
                 resolved, conf = f"code:external:unresolved:{comp}", 0.3
             result.edges.append(
                 GraphEdge(
-                    source_uid=module_uid_,
+                    # The component that renders the element, not its module.
+                    source_uid=_ts_enclosing_scope(el, path) or module_uid_,
                     target_uid=resolved,
                     edge_type="constructs",
                     extractor=EXTRACTOR_ID_TS,

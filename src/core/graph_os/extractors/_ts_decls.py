@@ -15,9 +15,11 @@ from ._ts_nodes import (
     _ts_component_meta,
     _ts_decorator_name,
     _ts_emit_type_edges,
+    _ts_enclosing_scope,
     _ts_line,
     _ts_name,
     _ts_resolve_type,
+    ts_scope_chain,
 )
 from ._ts_uids import (
     EXTRACTOR_ID_TS,
@@ -169,6 +171,10 @@ def _emit_ts_class(
             _ts_emit_type_edges(m, owner_uid=muid, path=path, pending=pending_types)
 
 
+def _qualified(declaration: Any, name: str) -> str:
+    return ".".join([*(scope for _, scope in ts_scope_chain(declaration)), name])
+
+
 def _walk_ts_declarations(
     root: Any,
     *,
@@ -194,7 +200,8 @@ def _walk_ts_declarations(
         name = _ts_name(fn)
         if not name:
             continue
-        uid = function_uid(path, name)
+        qualified = _qualified(fn, name)
+        uid = function_uid(path, qualified)
         result.nodes.append(
             GraphNode(
                 uid=uid,
@@ -205,13 +212,13 @@ def _walk_ts_declarations(
                 **body_fields(fn),
                 signature=f"function {name}(…)",
                 lang=lang,
-                metadata=_ts_component_meta(name, fn, lang),
+                metadata={**_ts_component_meta(name, fn, lang), "qualname": qualified},
             )
         )
-        local_names[name] = uid
+        local_names[qualified] = uid
         result.edges.append(
             GraphEdge(
-                source_uid=module_uid_,
+                source_uid=_ts_enclosing_scope(fn, path) or module_uid_,
                 target_uid=uid,
                 edge_type="contains",
                 extractor=EXTRACTOR_ID_TS,
@@ -224,12 +231,15 @@ def _walk_ts_declarations(
         val = vd.child_by_field_name("value")
         if val is None or val.type not in ("arrow_function", "function", "function_expression"):
             continue
-        name = _ts_name(vd)
-        if not name or name in local_names:
+        declared = vd.child_by_field_name("name")
+        name = _ts_name(vd) if declared is not None and declared.type == "identifier" else ""
+        qualified = _qualified(vd, name)
+        if not name or qualified in local_names:
             continue
-        uid = function_uid(path, name)
+        uid = function_uid(path, qualified)
         _arrow_meta = _ts_component_meta(name, val, lang)
         _arrow_meta["arrow"] = True
+        _arrow_meta["qualname"] = qualified
         result.nodes.append(
             GraphNode(
                 uid=uid,
@@ -243,10 +253,10 @@ def _walk_ts_declarations(
                 metadata=_arrow_meta,
             )
         )
-        local_names[name] = uid
+        local_names[qualified] = uid
         result.edges.append(
             GraphEdge(
-                source_uid=module_uid_,
+                source_uid=_ts_enclosing_scope(vd, path) or module_uid_,
                 target_uid=uid,
                 edge_type="contains",
                 extractor=EXTRACTOR_ID_TS,

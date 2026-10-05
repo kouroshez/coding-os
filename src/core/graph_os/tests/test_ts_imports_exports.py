@@ -102,14 +102,13 @@ def test_default_renamed_value_and_barrel_imports_bind_by_the_exported_name(grap
 
 def test_calls_and_components_follow_the_import_to_the_exported_symbol(graph):
     targets = _calls_from(graph, "code:function:app/Screen.tsx::Screen")
-    module_targets = _calls_from(graph, "code:module:app/Screen.tsx")
 
-    assert "code:function:ui/Card.tsx::useCard" in targets
-    assert "code:function:ui/theme.ts::helper" in targets
     assert {
+        "code:function:ui/Card.tsx::useCard",
+        "code:function:ui/theme.ts::helper",
         "code:function:ui/Card.tsx::Card",
         "code:variable:ui/theme.ts::Button",
-    } <= module_targets
+    } <= targets
 
 
 def test_an_import_of_a_name_its_module_does_not_define_is_reported(graph):
@@ -191,3 +190,28 @@ def test_import_lines_skip_blank_lines_and_type_position_imports_are_type_only()
         "d.ts": "imports_type",
         "e.ts": "imports",
     }
+
+
+def test_nested_handlers_are_scoped_and_jsx_belongs_to_its_component():
+    from graph_os.extractors import code_ts
+
+    source = (
+        "export function Card() {\n"
+        "  const onPress = () => track(Number('1'));\n"
+        "  function track(v: number) { return v; }\n"
+        "  return <View onPress={onPress} />;\n}\n"
+        "export function List() {\n  const onPress = () => 2;\n  return <Card />;\n}\n"
+    )
+    result = code_ts.extract("ui/Card.tsx", source)
+    functions = {n.uid.rpartition("::")[2] for n in result.nodes if n.kind == "code:function"}
+    edges = {
+        (e.source_uid.rpartition("::")[2], e.edge_type, e.target_uid.rpartition("::")[2])
+        for e in result.edges
+        if e.edge_type in ("calls", "constructs")
+    }
+
+    assert functions == {"Card", "Card.onPress", "Card.track", "List", "List.onPress"}
+    assert ("Card.onPress", "calls", "Card.track") in edges
+    assert ("List", "constructs", "Card") in edges
+    assert not any(target.endswith("Number") and kind == "constructs" for _, kind, target in edges)
+    assert code_ts.extract("bad.ts", "const x = {;\n").parse_errors

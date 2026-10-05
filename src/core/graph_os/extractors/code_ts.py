@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from pathlib import PurePosixPath
+from typing import Any
 
 from ..types import GraphEdge, GraphNode
 from ._astro_split import mask_astro
@@ -62,6 +63,18 @@ from .md_links import (
 )
 
 logger = logging.getLogger("graph_os.extractors.code_ts")
+
+
+def _count_syntax_errors(root: Any) -> int:
+    if not root.has_error:
+        return 0
+    count = 0
+    stack = [root]
+    while stack:
+        node = stack.pop()
+        count += node.type == "ERROR" or node.is_missing
+        stack.extend(node.children)
+    return count
 
 
 def extract(path: str, content: str) -> ExtractionResult:
@@ -113,6 +126,15 @@ def extract(path: str, content: str) -> ExtractionResult:
     if _ts_overlay is not None:
         overlay_meta["ts_ast_nodes"] = _count_ts_nodes(_ts_overlay.root)
         overlay_meta["ts_language"] = _ts_overlay.language_id
+        errors = _count_syntax_errors(_ts_overlay.root)
+        if errors:
+            # Symbols past a syntax error may be missing; say so, as Go does.
+            result.parse_errors.append(
+                ParseError(
+                    kind="tree_sitter_error",
+                    detail=f"tree-sitter recorded {errors} ERROR node(s)",
+                )
+            )
         # Ambient declarations (`.d.ts`) only describe names defined elsewhere.
         if not normalised.endswith(".d.ts"):
             overlay_meta["undefined"] = script_undefined(_ts_overlay.root)
