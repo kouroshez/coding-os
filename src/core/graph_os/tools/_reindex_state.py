@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from graph_os.tools._reindex_routing import _DOCS_CHAIN_KEY
+from graph_os.tools._reindex_routing import _DOCS_CHAIN_KEY, versioned_chain_key
 
 logger = logging.getLogger("graph_os.reindex_dispatch")
 
@@ -40,7 +40,7 @@ def _lookup_cache(
             return hits
         # Graph chain lookup — chain join must match exactly.
         if graph_chain_list:
-            chain_key = ",".join(graph_chain_list)
+            chain_key = versioned_chain_key(graph_chain_list)
             row = conn.execute(
                 "SELECT content_hash, nodes_written, edges_written, "
                 "parse_errors_count, last_indexed_at, last_error "

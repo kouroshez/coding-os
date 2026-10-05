@@ -23,6 +23,7 @@ from graph_os.tools._reindex_routing import (
     _EXT_MAP,
     _is_retryable_lock_error as _is_retryable_lock_error,
     _is_task_path,
+    versioned_chain_key,
 )
 from graph_os.tools._reindex_state import (
     _has_state_table as _has_state_table,
@@ -245,7 +246,7 @@ def dispatch(
                     _record_state_safe(
                         rel,
                         content_hash=content_hash,
-                        chain_key=",".join(graph_chain[1]),
+                        chain_key=versioned_chain_key(graph_chain[1]),
                         nodes_written=int(graph_result.get("nodes_written") or 0),
                         edges_written=int(graph_result.get("edges_written") or 0),
                         parse_errors_count=len(graph_result.get("parse_errors") or []),
@@ -260,7 +261,7 @@ def dispatch(
                 _record_state_safe(
                     rel,
                     content_hash=content_hash,
-                    chain_key=",".join(graph_chain[1]),
+                    chain_key=versioned_chain_key(graph_chain[1]),
                     nodes_written=0,
                     edges_written=0,
                     parse_errors_count=0,

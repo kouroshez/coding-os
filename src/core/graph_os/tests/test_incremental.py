@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+from graph_os.tools._reindex_routing import versioned_chain_key
+
 
 def _write(p: Path, text: str) -> Path:
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -68,7 +70,7 @@ class TestIncrementalCache:
         row = rows[0]
         assert row["file_path"] == "core/foo.py"
         assert row["content_hash"] and len(row["content_hash"]) == 64
-        assert row["extractor_chain"] == "code_python,contracts"
+        assert row["extractor_chain"] == versioned_chain_key(["code_python", "contracts"])
         assert row["nodes_written"] >= 1
         assert row["last_error"] is None
 
@@ -219,3 +221,22 @@ class TestStaleSymbolPrune:
         assert "code:function:core/b.ts::fooRenamed" in _uids(db, "core/b.ts")
         assert "code:function:core/a.ts::local" not in _uids(db, "core/a.ts")
         assert _callees(db, "code:function:core/a.ts::useIt") == set()
+
+
+def test_an_extractor_upgrade_reindexes_an_unchanged_file(project, tmp_path):
+    src = _write(project / "core" / "foo.py", "def hello(x):\n    return x\n")
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    db = tmp_path / "test.db"
+    dispatch(src, project_root=project, db_path=str(db))
+    conn = sqlite3.connect(str(db))
+    conn.execute("UPDATE file_index_state SET extractor_chain = 'code_python,contracts'")
+    conn.commit()
+    conn.close()
+
+    again = dispatch(src, project_root=project, db_path=str(db))
+
+    assert again["layers"]["graph"]["status"] == "ok"
+    assert {row["extractor_chain"] for row in _state_rows(db)} == {
+        versioned_chain_key(["code_python", "contracts"])
+    }

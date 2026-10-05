@@ -136,6 +136,8 @@ async def dispatch(file_path: str) -> ReindexResult:
 
 `file_index_state` is the bookkeeping table mapping path → content-hash → last-indexed-at. Without it, every PostToolUse hook re-extracts unchanged files.
 
+The same short-circuit hides an extractor upgrade: a file nobody edits keeps its old extraction forever. The cache key therefore carries `GRAPH_EXTRACTION_VERSION` (`tools/_reindex_routing.py`) — **bump it in any change that alters extractor output for unchanged input**, and the next `cos graph-reindex` re-reads every file once.
+
 ## Extractor — the Decision Tree
 
 When adding a new extractor:

@@ -171,6 +171,13 @@ partial · **LOW** — noise.
   every suffix added since (`.astro`, `.mdx`, `.php`, the generic languages). Fix:
   the list now covers every routed suffix plus extensionless files, and
   `test_reindex_hook_suffixes.py` fails the moment `_EXT_MAP` gains one it lacks.
+- [x] **CC-15 [HIGH] An extractor upgrade never reaches an existing graph.** The
+  per-file cache matched only the content hash and the chain name, so after an
+  upgrade every unedited file kept its old extraction until `--force` — none of
+  the fixes in this register reached a graph built before them. Fix: the cache
+  key carries `GRAPH_EXTRACTION_VERSION` (now 2; bump it with any change to
+  extraction output), so the next `cos graph-reindex` re-reads each file once.
+  Test: `test_an_extractor_upgrade_reindexes_an_unchanged_file`.
 - [ ] **CC-13 [MEDIUM] Edit-time reindex depends on the docs module and an unset
   `COS_PYTHON`.** Under a system Python without tree-sitter the regex fallback
   re-indexes a Go file without its type edges. The interpreter half is fixed: the

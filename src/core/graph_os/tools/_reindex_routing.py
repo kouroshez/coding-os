@@ -55,6 +55,15 @@ _EXT_MAP = {
 # chain name.
 _DOCS_CHAIN_KEY = "docs:md"
 
+# The per-file cache matches content hash and chain key, so an extractor upgrade
+# never reaches a file nobody edited: bump this whenever extraction output
+# changes for unchanged input, and the next reindex re-reads every file once.
+GRAPH_EXTRACTION_VERSION = 2
+
+
+def versioned_chain_key(chain: list[str]) -> str:
+    return f"{','.join(chain)}#{GRAPH_EXTRACTION_VERSION}"
+
 
 def _is_retryable_lock_error(exc: BaseException) -> bool:
     msg = str(exc).lower()
