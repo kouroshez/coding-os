@@ -387,7 +387,10 @@ partial · **LOW** — noise.
 - [x] **PY-11 [MEDIUM] `import a.b.c` chains split wrongly** (`os.path:path.join`). Fix:
   the longest imported module the expression starts with is the module.
 - [ ] **PY-12 [MEDIUM] Call chains collapse into attribute paths** (`hashlib:sha256.hexdigest`).
-- [ ] **PY-13 [MEDIUM] Module-level variables (`app`, `router`, `mcp`) are not nodes.**
+- [x] **PY-13 [MEDIUM] Module-level variables (`app`, `router`, `mcp`) are not nodes.** Fix:
+  every name assigned at module scope (tuple targets and `if` / `try` blocks
+  included, function and class bodies not) is a `variable` node, so `from .main
+  import app` binds and the value carries a body fingerprint.
 - [x] **PY-14 [MEDIUM] Submodule imports do not roll up to the package** for fan-in.
   Fix: `references(code:module:fastapi)` merges `fastapi.*` stubs (13 files on
   the benchmark, `fastapi.testclient` included).

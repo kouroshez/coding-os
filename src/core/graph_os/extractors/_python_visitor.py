@@ -98,6 +98,41 @@ class _PythonVisitor(ast.NodeVisitor):
             self.imports.append(decl)
             self.imported_local_names[decl.local_name] = decl
 
+    # -- module-level names --------------------------------------------------
+
+    # Only module scope reaches these: function bodies and class bodies are
+    # walked for calls, never visited. `app = FastAPI()`, `router`, constants —
+    # what other modules import by name.
+    def visit_Assign(self, node: ast.Assign) -> None:
+        for target in node.targets:
+            for name in _target_names(target):
+                self._module_variable(name, node)
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        for name in _target_names(node.target):
+            self._module_variable(name, node)
+        self.generic_visit(node)
+
+    def _module_variable(self, name: str, node: ast.AST) -> None:
+        uid = f"code:variable:{self.path}::{name}"
+        if name in self.symbols_by_name or any(decl.uid == uid for decl in self.decls):
+            return
+        self.decls.append(
+            _SymbolDecl(
+                uid=uid,
+                kind="code:variable",
+                name=name,
+                qualname=name,
+                line=node.lineno,  # type: ignore[attr-defined]
+                end_line=getattr(node, "end_lineno", None),
+                signature="",
+                docstring=None,
+                decorators=(),
+                parent_uid=None,
+            )
+        )
+
     # -- class / function / method ----------------------------------------
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
@@ -311,6 +346,14 @@ class _PythonVisitor(ast.NodeVisitor):
 
     def _pop_qual(self) -> None:
         self._qualname_stack.pop()
+
+
+def _target_names(target: ast.expr) -> list[str]:
+    if isinstance(target, ast.Name):
+        return [target.id]
+    if isinstance(target, (ast.Tuple, ast.List)):
+        return [name for element in target.elts for name in _target_names(element)]
+    return []
 
 
 def _resolve_symbol(name: str, *, path: str, visitor: _PythonVisitor) -> str:

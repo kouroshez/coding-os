@@ -59,6 +59,7 @@ def test_a_relative_import_inside_a_package_init_stays_in_the_package():
 FILES = {
     "app/__init__.py": "",
     "app/types.py": "X = 1\n",
+    "app/settings.py": "LIMIT = 10\nlogger = None\n",
     "app/sibling.py": "def go():\n    return 1\n",
     "app/pkg/__init__.py": "from .impl import f\nfrom .facade import compute\n",
     "app/pkg/impl.py": "def f():\n    return 2\n",
@@ -70,6 +71,7 @@ FILES = {
         "from . import sibling\n"
         "from .pkg.mod import thing\n"
         "from .pkg import compute\n"
+        "from .settings import LIMIT\n"
         "\n\n"
         "def run():\n"
         "    thing()\n"
@@ -138,3 +140,9 @@ def test_an_import_through_a_facade_reaches_the_function_that_defines_it(graph):
 
     assert ("imports", "code:function:app/pkg/core.py::compute") in edges
     assert ("calls", "code:function:app/pkg/core.py::compute") in edges
+
+
+def test_a_module_level_name_is_a_node_its_importers_bind_to(graph):
+    edges = _edges_from(graph, "app/main.py")
+
+    assert ("imports", "code:variable:app/settings.py::LIMIT") in edges
