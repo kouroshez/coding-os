@@ -295,13 +295,15 @@ if _GRAPH_TOOLS_AVAILABLE:
         Args:
             uid: Fully-qualified node uid. Scheme: ``code:file:<path>`` |
                 ``code:function:<path>::<name>`` | ``code:class:<path>::<name>`` |
-                ``code:module:<dotted>`` | ``doc:file:<path>`` | ``folder:<path>``.
+                ``code:module:<dotted or path>`` | ``doc:file:<path>`` | ``folder:<path>``.
                 Raw repo paths are auto-resolved.
             kinds: Comma-separated edge types. Empty string (default)
                 picks edge types automatically per node-kind — class
                 nodes get ``constructs+has_param_type+is_decorated_by+inherits_from``,
                 function/method get ``calls+accesses_field+imports``, files
-                get ``imports+links_to+references_doc+contains``. R4-02.
+                get ``imports+imports_type+re_exports+calls+links_to+references_doc``
+                merged across the file's module and Go package (where importers
+                point). R4-02.
             limit: Max edges returned (default 100).
         """
         parsed = tuple(_csv(kinds) or ())

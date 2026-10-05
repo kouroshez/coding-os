@@ -42,8 +42,9 @@ def _file_contained_symbols(backend: GraphBackend, file_uid: str, *, limit: int 
     out: list[str] = []
     for e in edges:
         tgt = e.target_uid
-        # Only symbol uids carry behavioural inbound edges.
-        if tgt.startswith(("code:class:", "code:function:", "code:method:")):
+        # Symbols carry the behavioural inbound edges; the module carries the
+        # importers (TS and Python point `imports` at it, not at the file).
+        if tgt.startswith(("code:class:", "code:function:", "code:method:", "code:module:")):
             out.append(tgt)
     return out
 

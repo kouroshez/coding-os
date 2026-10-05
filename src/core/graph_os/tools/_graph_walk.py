@@ -25,6 +25,13 @@ _BEHAVIOURAL_EDGE_TYPES: frozenset[str] = frozenset(
     {
         "calls",
         "imports",
+        # A type-only import, a re-export and a field's type are dependencies
+        # too: without them impact filed barrel and type importers as context
+        # and rename plans skipped them.
+        "imports_type",
+        "re_exports",
+        "field_of_type",
+        "extends",
         "constructs",
         "accesses_field",
         "has_param_type",

@@ -75,11 +75,15 @@ _REFERENCE_KINDS_BY_NODE_KIND: dict[str, tuple[str, ...]] = {
         "calls",
         "references_doc",
     ),
+    # A folder containing the file is not a dependent; its `contains` edge used
+    # to make an unimported file answer "1 reference".
     "file": (
         "imports",
+        "imports_type",
+        "re_exports",
+        "calls",
         "links_to",
         "references_doc",
-        "contains",
     ),
     "doc_file": (
         "links_to",
@@ -166,6 +170,19 @@ def _inbound_edge_types(backend: Any, target_uid: str) -> list[str]:
     return sorted({edge.edge_type for edge in edges})
 
 
+def _stand_in_targets(backend: Any, file_uid: str) -> list[str]:
+    """The nodes other files depend on in place of this file: its modules and a Go package."""
+    contained = backend.list_edges(source_uid=file_uid, edge_types=("contains",), limit=50)
+    modules = [edge.target_uid for edge in contained if edge.target_uid.startswith("code:module:")]
+    packages = [
+        edge.source_uid
+        for module in modules
+        for edge in backend.list_edges(target_uid=module, edge_types=("contains",), limit=10)
+        if edge.source_uid.startswith("code:package:")
+    ]
+    return modules + packages
+
+
 def _default_reference_kinds_for(node_kind: str | None) -> tuple[str, ...]:
     """Pick default inbound edge-types based on node kind (R4-02)."""
     if not node_kind:
@@ -225,12 +242,21 @@ def cos_graph_references(
         defaults_were_picked = True
 
     canonical_uid = node.uid
-    edges = be.list_edges(target_uid=canonical_uid, edge_types=parsed_kinds, limit=limit)
-
-    # True total — separate count query so the caller knows if `edges`
-    # is a complete picture or a slice. Uses the same kinds filter
-    # because the backend's list_edges does the same filtering.
-    total = _count_edges_for(be, target_uid=canonical_uid, edge_types=parsed_kinds)
+    # Importers point at a file's module (TS, Python) or its package (Go), not
+    # at the file node, so `references(code:file:…)` answered 0 for files
+    # imported by hundreds. A file's dependents are the union.
+    targets = [canonical_uid]
+    if node.kind == "file" and defaults_were_picked:
+        targets += _stand_in_targets(be, canonical_uid)
+    edges = []
+    total = 0
+    for target in targets:
+        edges += be.list_edges(target_uid=target, edge_types=parsed_kinds, limit=limit)
+        # True total — separate count query so the caller knows if `edges`
+        # is a complete picture or a slice. Uses the same kinds filter
+        # because the backend's list_edges does the same filtering.
+        total += _count_edges_for(be, target_uid=target, edge_types=parsed_kinds)
+    edges = edges[:limit]
     truncated = total > len(edges)
 
     references_meta: dict[str, Any] = {
@@ -243,6 +269,8 @@ def cos_graph_references(
         "default_kinds_picked": defaults_were_picked,
         "node_kind": node.kind,
     }
+    if len(targets) > 1:
+        references_meta["merged_targets"] = targets[1:]
     # An empty result reads as "nothing points here", which is wrong whenever the
     # node's real edges simply fall outside the kinds filter. `result_truncated`
     # cannot express that — it is False on a complete query of the wrong edges.

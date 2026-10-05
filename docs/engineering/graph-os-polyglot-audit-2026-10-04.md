@@ -122,9 +122,13 @@ partial · **LOW** — noise.
   and extensionless shebang scripts.** Three hand-kept extension lists (walk
   include, `_EXT_MAP`, the auto-reindex hook) drift apart. Fix: all are walked
   and routed (shebang scripts by their `#!` line); the hook list is CC-14.
-- [ ] **CC-04 [HIGH] `references(code:file:X)` silently answers 0 for TS, Go and Python.**
+- [x] **CC-04 [HIGH] `references(code:file:X)` silently answers 0 for TS, Go and Python.**
   Importers point at the module (or Go import-path) node; the folder `contains`
-  edge keeps the zero-from-kind-filter warning from firing.
+  edge keeps the zero-from-kind-filter warning from firing. Fix: a file's
+  references merge its module's and Go package's inbound edges
+  (`meta.merged_targets`), `contains` is no longer a file default, and file impact
+  expands to the module as well as its symbols. `imports_type`, `re_exports`,
+  `field_of_type` and `extends` now count as behavioural for impact and rename.
 - [ ] **CC-05 [HIGH] No duplicate / clone signal (Q2).** `ast_hash` exists for Python
   only and hashes the uid, so two files can never match; Go, TS and shell set none.
 - [ ] **CC-06 [HIGH] No unbound-name signal (Q6).** `code:external:unresolved:*` is 98–99.9%
@@ -139,7 +143,8 @@ partial · **LOW** — noise.
 - [ ] **CC-09 [MEDIUM] Token-budget trimming has no offset.** A hub module's importers
   cannot be listed past the first ~90.
 - [ ] **CC-10 [LOW] Default edge kinds omit `imports_type`, `re_exports`, `constructs`,
-  `awaits` and `dispatches`.**
+  `awaits` and `dispatches`.** Files and impact are fixed (CC-04); module, function
+  and method defaults remain.
 - [x] **CC-11 [LOW] Single-file reindex indexes `.gitignore`d files** the full walk skips.
   Fix: dispatch applies the walk's lockfile, path and `.gitignore` rules.
 - [ ] **CC-12 [LOW] Every extractor's stubs are stamped `md_links@v1`**, and a stub

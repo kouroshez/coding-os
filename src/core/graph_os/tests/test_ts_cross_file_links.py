@@ -105,3 +105,36 @@ def test_global_link_binds_stubs_minted_before_their_target_was_indexed(project,
     SqliteBackend(conn=init_db(db)).link_cross_file()
 
     assert ("calls", "code:function:packages/kit/src/date.ts::formatDay") in _edges_from_home(db)
+
+
+def _tool(monkeypatch, db: str):
+    import json as json_module
+
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools import graph
+
+    test_backend = SqliteBackend(conn=init_db(db))
+    monkeypatch.setattr(graph, "_backend", lambda *, backend=None: test_backend)
+
+    def call(name: str, **kwargs):
+        envelope = getattr(graph, name)(**kwargs)
+        return json_module.loads(envelope) if isinstance(envelope, str) else envelope
+
+    return call
+
+
+def test_file_references_and_impact_include_the_files_importers(project, tmp_path, monkeypatch):
+    db = str(tmp_path / "graph.db")
+    _dispatch_all(project, db, home_last=True)
+    call = _tool(monkeypatch, db)
+
+    references = call("cos_graph_references", uid="code:file:apps/console/src/Card.tsx")
+    impact = call("cos_graph_impact", uid="code:file:apps/console/src/Card.tsx", depth=1)
+
+    sources = {ref["source_uid"] for ref in references["data"]["references"]}
+    assert "code:module:apps/console/src/pages/Home.tsx" in sources
+    assert references["data"]["meta"]["merged_targets"] == ["code:module:apps/console/src/Card.tsx"]
+    impacted = {edge["source_uid"] for tier in impact["data"]["tiers"].values() for edge in tier}
+    assert any("pages/Home.tsx" in uid for uid in impacted)
