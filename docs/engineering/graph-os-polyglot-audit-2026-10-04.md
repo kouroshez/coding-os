@@ -236,14 +236,21 @@ partial · **LOW** — noise.
 
 ### Python and FastAPI
 
-- [ ] **PY-02 [CRITICAL] Module import edges almost never reach the module node** (7% in
+- [x] **PY-02 [CRITICAL] Module import edges almost never reach the module node** (7% in
   this repo, 0% on the benchmark): relative sources stay `code:module:.x`, the
-  module name strips only one `src`/`core` segment, and no pass links modules.
-- [ ] **PY-03 [CRITICAL] An attribute call binds by its last segment** — `requests.get()`
-  became a call to an unrelated same-file `Repo.get` at confidence 1.0.
-- [ ] **PY-04 [CRITICAL] `pydantic.BaseModel` resolved to `pydantic:pydantic`** — 2,299
+  module name strips only one `src`/`core` segment, and no pass links modules. Fix:
+  relative sources are made absolute, the active toolchain names modules by their
+  package roots, and `link_python_modules` binds a `code:module:<dotted>` stub to the
+  one repo file whose path ends in that dotted name (stdlib names never bind). Here:
+  7% → 31% of module imports reach a module node (the rest are stdlib and
+  third-party); relative phantom modules 222 → 0.
+- [x] **PY-03 [CRITICAL] An attribute call binds by its last segment** — `requests.get()`
+  became a call to an unrelated same-file `Repo.get` at confidence 1.0. Fix: only a
+  bare name resolves by name; `Cls.m()` resolves through the class's own methods.
+- [x] **PY-04 [CRITICAL] `pydantic.BaseModel` resolved to `pydantic:pydantic`** — 2,299
   type, decorator and base-class edges in this repo point at the module, not the
-  attribute.
+  attribute. Fix: one `_import_target` serves calls, bases, decorators and
+  annotations; such edges here 2,299 → 0.
 - [ ] **PY-05 [HIGH] FastAPI paths are never composed** from `APIRouter(prefix=)` and
   `include_router(prefix=)`; 101 of 126 Hub routes lack their prefix, and equal
   suffixes merge distinct endpoints.
@@ -251,12 +258,15 @@ partial · **LOW** — noise.
   `add_api_route`, and matches example code in docstrings.**
 - [ ] **PY-07 [HIGH] Facade / `__init__.py` re-exports are never followed** (2,127 call
   edges unlinked here); relative imports inside `__init__.py` resolve one level high.
-- [ ] **PY-08 [HIGH] Relative `from .x import y` never binds to `y`** (0 of 2,388).
+  The `__init__.py` half is fixed; following facade re-exports is still open.
+- [x] **PY-08 [HIGH] Relative `from .x import y` never binds to `y`** (0 of 2,388). Fix:
+  the import node records `resolved_module`, which the binding pass matches.
 - [ ] **PY-09 [HIGH] `Depends(...)`, parameter defaults, decorator arguments and class
   bodies are never walked** (816 call sites).
 - [ ] **PY-10 [HIGH] Unbound-name signal** — see CC-06; a `symtable` pass measured 0 false
   positives on 963 files and caught 40 of 40 seeded deleted imports.
-- [ ] **PY-11 [MEDIUM] `import a.b.c` chains split wrongly** (`os.path:path.join`).
+- [x] **PY-11 [MEDIUM] `import a.b.c` chains split wrongly** (`os.path:path.join`). Fix:
+  the longest imported module the expression starts with is the module.
 - [ ] **PY-12 [MEDIUM] Call chains collapse into attribute paths** (`hashlib:sha256.hexdigest`).
 - [ ] **PY-13 [MEDIUM] Module-level variables (`app`, `router`, `mcp`) are not nodes.**
 - [ ] **PY-14 [MEDIUM] Submodule imports do not roll up to the package** for fan-in.

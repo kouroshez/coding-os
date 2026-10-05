@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 import time
 from typing import Any
 
@@ -25,6 +26,7 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
         counts = {
             "python_stubs": self.link_external_stubs(file_path=file_path),
             "python_imports": self.link_import_bindings(file_path=file_path),
+            "python_modules": self.link_python_modules(file_path=file_path),
             "ts_symbols": self.link_ts_symbols(file_path=file_path),  # type: ignore[attr-defined]
             "go_symbols": self.link_go_symbols(file_path=file_path),  # type: ignore[attr-defined]
             "shell_functions": self.link_shell_functions(file_path=file_path),  # type: ignore[attr-defined]
@@ -166,7 +168,8 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
             scope = " AND file_path = ?" if file_path else ""
             params: tuple[Any, ...] = (file_path,) if file_path else ()
             rows = self._conn.execute(
-                f"SELECT id, metadata_json FROM graph_nodes WHERE kind = 'import_'{scope}",
+                "SELECT id, metadata_json FROM graph_nodes "
+                f"WHERE kind = 'import_' AND COALESCE(lang, 'py') = 'py'{scope}",
                 params,
             ).fetchall()
             wanted: dict[str, list[tuple[int, str]]] = {}
@@ -176,7 +179,9 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                 except ValueError:
                     continue
                 name = metadata.get("imported")
-                module = metadata.get("source_module")
+                # Absolute even for `from .x import y` — the raw relative
+                # source (`..x` → `//x`) could never match a file.
+                module = metadata.get("resolved_module") or metadata.get("source_module")
                 if not name or not module or metadata.get("wildcard"):
                     continue
                 wanted.setdefault(str(name), []).append((int(node_id), str(module)))
@@ -227,6 +232,53 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                     linked += int(cursor.rowcount or 0)
             self._conn.commit()
             return linked
+
+    def link_python_modules(self, *, file_path: str | None = None) -> int:
+        """Point Python `imports` edges at the module file they name, by dotted-path suffix."""
+        with self._write_lock:
+            scope = " AND src.file_path = ?" if file_path else ""
+            params: tuple[Any, ...] = (file_path,) if file_path else ()
+            stubs = self._conn.execute(
+                "SELECT DISTINCT stub.id, stub.uid FROM graph_edges_v12 e "
+                "JOIN graph_nodes stub ON stub.id = e.target_id "
+                "JOIN graph_nodes src ON src.id = e.source_id "
+                "WHERE e.edge_type IN ('imports', 're_exports') AND src.lang = 'py' "
+                f"AND stub.uid LIKE 'code:module:%' AND stub.file_path IS NULL{scope}",
+                params,
+            ).fetchall()
+            if not stubs:
+                return 0
+            by_dotted = self._python_modules_by_dotted_suffix()
+            linked = 0
+            for stub_id, uid in stubs:
+                dotted = str(uid)[len("code:module:") :]
+                # `import types` must stay the stdlib, never a repo `types.py`.
+                if dotted.split(".")[0] in sys.stdlib_module_names:
+                    continue
+                candidates = by_dotted.get(dotted, [])
+                if len(candidates) != 1:
+                    continue
+                self._conn.execute(
+                    "UPDATE OR IGNORE graph_edges_v12 SET target_id = ? WHERE target_id = ?",
+                    (candidates[0], int(stub_id)),
+                )
+                linked += 1
+            self._conn.commit()
+            return linked
+
+    def _python_modules_by_dotted_suffix(self) -> dict[str, list[int]]:
+        index: dict[str, list[int]] = {}
+        rows = self._conn.execute(
+            "SELECT id, file_path FROM graph_nodes "
+            "WHERE kind = 'module' AND lang = 'py' AND file_path LIKE '%.py'"
+        ).fetchall()
+        for node_id, file_path in rows:
+            parts = str(file_path)[: -len(".py")].split("/")
+            if parts[-1] == "__init__":
+                parts.pop()
+            for start in range(len(parts)):
+                index.setdefault(".".join(parts[start:]), []).append(int(node_id))
+        return index
 
     def link_php_handlers(self) -> int:
         """Resolve Laravel controller-handler stubs to real method nodes.

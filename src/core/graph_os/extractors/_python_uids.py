@@ -106,7 +106,10 @@ def _absolute_module_for(source_module: str | None, *, path: str) -> str:
     file_parts = file_module.split(".") if file_module != "__root__" else []
     leading = len(source_module) - len(source_module.lstrip("."))
     tail = source_module.lstrip(".")
-    base = file_parts[:-leading] if leading <= len(file_parts) else []
+    # An `__init__.py` module name already IS its package, so one dot there
+    # stays in the package rather than climbing out of it.
+    drop = leading - 1 if path.endswith("__init__.py") else leading
+    base = file_parts[: len(file_parts) - drop] if drop <= len(file_parts) else []
     if tail:
         base = base + tail.split(".")
     return ".".join(base)

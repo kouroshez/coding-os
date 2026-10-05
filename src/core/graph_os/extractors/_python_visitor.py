@@ -297,9 +297,32 @@ def _resolve_symbol(name: str, *, path: str, visitor: _PythonVisitor) -> str:
         return visitor.symbols_by_name[root]
     imp = visitor.imported_local_names.get(root)
     if imp is not None:
-        target_mod = _absolute_module_for(imp.source_module, path=path) or imp.imported
-        return f"code:external:{target_mod}:{imp.imported}"
+        return _import_target(name, imp, path=path)
     return f"code:external:unresolved:{name}"
+
+
+def _import_target(expression: str, imp: _ImportDecl, *, path: str) -> str:
+    """Stub for a name reached through an import: `code:external:<module>:<attribute>`.
+
+    `pydantic.BaseModel` under `import pydantic` is `pydantic:BaseModel` — it
+    used to collapse to `pydantic:pydantic`, dropping the attribute — and
+    `os.path.join` under `import os.path` is `os.path:join`, the longest
+    imported module the expression starts with.
+    """
+    parts = expression.split(".")
+    source = _absolute_module_for(imp.source_module, path=path)
+    if source:
+        if len(parts) == 1:
+            return f"code:external:{source}:{imp.imported}"
+        return f"code:external:{source}.{imp.imported}:{'.'.join(parts[1:])}"
+    module_parts = imp.imported.split(".")
+    if parts[0] != module_parts[0]:
+        module, rest = imp.imported, parts[1:]
+    else:
+        depth = len(module_parts) if parts[: len(module_parts)] == module_parts else 1
+        module, rest = ".".join(parts[:depth]), parts[depth:]
+    attribute = ".".join(rest) or module.split(".")[-1]
+    return f"code:external:{module}:{attribute}"
 
 
 # Dotted-name shape an unresolved-call stub may carry — anything else is an
@@ -334,30 +357,31 @@ def _resolve_call(
         if call.callee_name in own_methods:
             return (0.95, (EvidenceSignal("self_method", 0.95),), own_methods[call.callee_name])
 
-    if call.callee_name in visitor.symbols_by_name:
+    # Only a bare name may resolve by its name: `requests.get()` used to bind,
+    # at confidence 1.0, to whatever `get` this file defined.
+    bare = call.full_expr == call.callee_name
+    root = call.full_expr.split(".")[0]
+    class_methods = visitor.methods_by_class.get(visitor.symbols_by_name.get(root, ""), {})
+    if bare and call.callee_name in visitor.symbols_by_name:
         signals.append(EvidenceSignal("same_scope", 1.0))
         confidence = 1.0
         resolved = visitor.symbols_by_name[call.callee_name]
-    elif call.callee_name in visitor.imported_local_names:
+    elif bare and call.callee_name in visitor.imported_local_names:
         imp = visitor.imported_local_names[call.callee_name]
         signals.append(EvidenceSignal("explicit_import", 0.9, note=imp.source_module))
         confidence = 0.9
-        target_mod = _absolute_module_for(imp.source_module, path=path) or imp.imported
-        resolved = f"code:external:{target_mod}:{imp.imported}"
-    elif "." in call.full_expr and call.full_expr.split(".")[0] in visitor.imported_local_names:
-        root = call.full_expr.split(".")[0]
+        resolved = _import_target(call.full_expr, imp, path=path)
+    elif not bare and call.full_expr.count(".") == 1 and call.callee_name in class_methods:
+        signals.append(EvidenceSignal("class_method", 0.95))
+        confidence = 0.95
+        resolved = class_methods[call.callee_name]
+    elif not bare and root in visitor.imported_local_names and root not in visitor.symbols_by_name:
         imp = visitor.imported_local_names[root]
         signals.append(EvidenceSignal("explicit_import", 0.9, note=imp.source_module))
         confidence = 0.9
-        tail = ".".join(call.full_expr.split(".")[1:])
-        # The alias is a MODULE: `from pkg import mod as g` → module pkg.mod;
-        # `import pkg.mod as g` → module imp.imported. Resolving the attribute
-        # (`g.func`) to <module>:func lets link_external_stubs bind it to the
-        # real function instead of dropping the call on the bare package —
-        # this is what made rename/references miss `g.func()` sites.
-        abs_source = _absolute_module_for(imp.source_module, path=path)
-        root_module = f"{abs_source}.{imp.imported}" if abs_source else imp.imported
-        resolved = f"code:external:{root_module}:{tail}"
+        # The alias may be a module (`import pkg.mod as g`, `from pkg import
+        # mod`): `g.func` resolves to <module>:func so the linker can bind it.
+        resolved = _import_target(call.full_expr, imp, path=path)
     else:
         # An "identifier" stub must be identifier-shaped (dotted names only).
         # Complex receivers (`(a or b / 'x').resolve`) used to mint

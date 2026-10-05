@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from ..types import EvidenceSignal, GraphEdge, GraphNode
 from ._python_decls import _hash_decl
-from ._python_uids import EXTRACTOR_ID, EXTRACTOR_ID_TS_IMPORTS, module_uid
+from ._python_uids import EXTRACTOR_ID, EXTRACTOR_ID_TS_IMPORTS, _absolute_module_for, module_uid
 from ._python_visitor import (
     _annotation_confidence,
     _decorator_confidence,
@@ -171,6 +171,9 @@ def _emit_imports(
 ) -> None:
     # Imports.
     for imp in visitor.imports:
+        # Relative sources (`from .pkg import x`) are made absolute: the raw
+        # `.pkg` was the edge target, a phantom node no real module ever matched.
+        target_mod = _absolute_module_for(imp.source_module, path=normalised) or imp.imported
         # E2 fix: drop {imp.line} from UID so blank-line insertion above
         # an import doesn't spawn a duplicate node. Line is still carried
         # in start_line.
@@ -185,6 +188,7 @@ def _emit_imports(
                 lang="py",
                 metadata={
                     "source_module": imp.source_module,
+                    "resolved_module": target_mod,
                     "imported": imp.imported,
                     "wildcard": imp.is_wildcard,
                     "extractor": import_extractor_id,
@@ -200,7 +204,6 @@ def _emit_imports(
                 confidence=1.0,
             )
         )
-        target_mod = imp.source_module or imp.imported
         signal_name = (
             "tree_sitter_import" if import_extractor_id == EXTRACTOR_ID_TS_IMPORTS else "ast_import"
         )
