@@ -8,7 +8,13 @@ _EXT_MAP = {
     ".py": ("python", ["code_python", "contracts"]),
     ".ts": ("ts", ["code_ts", "contracts"]),
     ".tsx": ("tsx", ["code_ts", "contracts"]),
+    ".mts": ("ts", ["code_ts", "contracts"]),
+    ".cts": ("ts", ["code_ts", "contracts"]),
+    # Astro: code_ts reads a same-length mask of the frontmatter and scripts.
+    ".astro": ("astro", ["code_ts", "contracts"]),
     ".sh": ("shell", ["code_shell"]),
+    ".bash": ("shell", ["code_shell"]),
+    ".zsh": ("shell", ["code_shell"]),
     ".yaml": ("yaml", ["code_yaml"]),
     ".yml": ("yaml", ["code_yaml"]),
     ".go": ("go", ["code_go", "contracts"]),

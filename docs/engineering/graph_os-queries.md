@@ -102,8 +102,12 @@ The file walk (`src/core/graph_os/ingest/base.py::walk_local`) decides
 which files reach the extractors:
 
 - **Include** — `DEFAULT_INCLUDE` extensions only. First-class
-  hand-written extractors: `.py .ts .tsx .js .jsx .mjs .cjs .go .php
-  .sh .yaml .yml .json .toml .md`. Polyglot baseline via the
+  hand-written extractors: `.py .ts .tsx .mts .cts .js .jsx .mjs .cjs
+  .astro .go .php .sh .bash .zsh .yaml .yml .json .toml .md .mdx`, plus
+  extensionless files whose `#!` line names a shell (git hooks, `bin/`
+  tools). `.astro` goes through `code_ts` on a same-length mask that keeps
+  the frontmatter and processable `<script>` bodies, so lines stay the
+  component's own; `.mdx` goes through the markdown graph extractor. Polyglot baseline via the
   table-driven `code_generic` extractor: `.rs .rb .java .c .h .cc .cpp
   .cxx .hpp .hh .cs .scala .kt .kts .lua` — functions/classes +
   `contains`, extracted when that language's tree-sitter grammar is

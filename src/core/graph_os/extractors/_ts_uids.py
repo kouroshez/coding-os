@@ -7,7 +7,36 @@ the old bottom-of-file import in code_ts.py.
 
 from __future__ import annotations
 
+from pathlib import PurePosixPath
+
 from .md_links import _normalize_path
+
+_LANG_BY_SUFFIX = {
+    ".ts": "ts",
+    ".mts": "ts",
+    ".cts": "ts",
+    ".tsx": "tsx",
+    ".js": "js",
+    ".mjs": "js",
+    ".cjs": "js",
+    ".jsx": "jsx",
+    ".astro": "astro",
+}
+# Plain JavaScript may hold JSX (React Native keeps components in `.js`), and
+# the tsx grammar is a superset of JS + JSX; the typescript grammar errors on
+# JSX. `.ts` stays on typescript, where `<T>expr` casts would break tsx.
+JSX_LANGS = frozenset({"tsx", "jsx", "js"})
+
+
+def lang_for(path: str) -> str:
+    """The `lang` a TS/JS-family file is recorded with."""
+    return _LANG_BY_SUFFIX.get(PurePosixPath(path).suffix.lower(), "ts")
+
+
+def grammar_for(path: str) -> str:
+    """The tree-sitter grammar that parses this file."""
+    return "tsx" if lang_for(path) in JSX_LANGS else "typescript"
+
 
 EXTRACTOR_ID = "code_ts@v1"
 # tree-sitter primary path for TS/TSX. Activated by

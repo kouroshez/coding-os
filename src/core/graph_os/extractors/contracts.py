@@ -50,6 +50,7 @@ from ._contracts_shared import (
     ContractMatch as ContractMatch,
     _python_file_docstring,
 )
+from ._ts_uids import lang_for
 from .md_links import (
     ExtractionResult,
     ParseError,
@@ -98,7 +99,7 @@ def extract(path: str, content: str) -> ExtractionResult:
             # R4: pub/sub + SSE patterns broaden handles_event surface.
             matches.extend(_scan_pubsub(content, framework_label="python"))
             matches.extend(_scan_sse(content))
-        elif normalised.endswith(".ts") or normalised.endswith(".tsx"):
+        elif PurePosixPath(normalised).suffix.lower() in _SCRIPT_SUFFIXES:
             matches.extend(_scan_nextjs(content, path=normalised))
             matches.extend(_scan_nest(content))
             # R4: TS-side event listeners.
@@ -295,16 +296,16 @@ def _node_kind(match: ContractMatch) -> str:
     }.get(match.kind, "cos:route")
 
 
-def _lang_for(path: str) -> str:
-    if path.endswith(".py"):
-        return "py"
-    if path.endswith(".ts"):
-        return "ts"
-    if path.endswith(".tsx"):
-        return "tsx"
-    if path.endswith(".go"):
-        return "go"
-    return "txt"
+def _lang_for(path: str) -> str | None:
+    # None leaves the code extractor's value alone; the old "txt" fallback ran
+    # second in the chain and relabelled every .js / .mjs / .php file.
+    suffix = PurePosixPath(path).suffix.lower()
+    if suffix in _SCRIPT_SUFFIXES:
+        return lang_for(path)
+    return {".py": "py", ".go": "go", ".php": "php"}.get(suffix)
+
+
+_SCRIPT_SUFFIXES = frozenset({".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"})
 
 
 __all__ = ["EXTRACTOR_ID", "ContractMatch", "extract"]

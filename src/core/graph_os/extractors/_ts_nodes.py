@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ._ts_uids import EXTRACTOR_ID_TS, _ts_method_uid, class_uid, function_uid
+from ._ts_uids import EXTRACTOR_ID_TS, JSX_LANGS, _ts_method_uid, class_uid, function_uid
 
 
 def _ts_name(node: Any) -> str:
@@ -101,7 +101,7 @@ def _ts_component_meta(name: str, body_node: Any, lang: str) -> dict[str, Any]:
     node kind (Rule 22 — reuse the existing code:function node).
     """
     meta: dict[str, Any] = {"extractor": EXTRACTOR_ID_TS}
-    if lang == "tsx" and name[:1].isupper() and _ts_has_jsx(body_node):
+    if lang in JSX_LANGS and name[:1].isupper() and _ts_has_jsx(body_node):
         meta["component"] = True
     return meta
 

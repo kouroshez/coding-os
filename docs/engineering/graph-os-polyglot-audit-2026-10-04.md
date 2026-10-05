@@ -118,9 +118,10 @@ partial · **LOW** — noise.
   lockfile keys before the npm module. Fix: `LOCKFILE_NAMES` are skipped by name,
   and `COS_GRAPH_EXCLUDE_PATHS` now works for directories and single files (the
   place to drop a generated OpenAPI spec). Test: `test_walk_exclusions.py`.
-- [ ] **CC-03 [HIGH] The walk drops `.astro`, `.mdx`, `.mts`, `.cts`, `.bash`, `.zsh`
+- [x] **CC-03 [HIGH] The walk drops `.astro`, `.mdx`, `.mts`, `.cts`, `.bash`, `.zsh`
   and extensionless shebang scripts.** Three hand-kept extension lists (walk
-  include, `_EXT_MAP`, the auto-reindex hook) drift apart.
+  include, `_EXT_MAP`, the auto-reindex hook) drift apart. Fix: all are walked
+  and routed (shebang scripts by their `#!` line); the hook list is CC-14.
 - [ ] **CC-04 [HIGH] `references(code:file:X)` silently answers 0 for TS, Go and Python.**
   Importers point at the module (or Go import-path) node; the folder `contains`
   edge keeps the zero-from-kind-filter warning from firing.
@@ -128,8 +129,10 @@ partial · **LOW** — noise.
   only and hashes the uid, so two files can never match; Go, TS and shell set none.
 - [ ] **CC-06 [HIGH] No unbound-name signal (Q6).** `code:external:unresolved:*` is 98–99.9%
   builtins, members and locals; Go emits nothing for an unknown call.
-- [ ] **CC-07 [MEDIUM] JS / PHP file nodes end up `lang='txt'`.** `contracts._lang_for`
-  knows four suffixes and overwrites the code extractor's value.
+- [x] **CC-07 [MEDIUM] JS / PHP file nodes end up `lang='txt'`.** `contracts._lang_for`
+  knows four suffixes and overwrites the code extractor's value. Fix: it returns the
+  script family's own language (`js`, `jsx`, `ts`, …) or nothing, and the JS/TS
+  contract scanners now also run on `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts`, `.cts`.
 - [ ] **CC-08 [MEDIUM] Route uids are global.** `cos:route:GET:/health` from a Go service
   and a Python service merge into one node; the test-source filter misses
   `_test.go`, `.test.ts`, `.spec.ts`.
@@ -144,6 +147,8 @@ partial · **LOW** — noise.
   `doc_external`). The overwrite is fixed — `upsert_node` keeps the owner's kind
   and label (`test_a_stub_upsert_keeps_the_real_nodes_kind_and_label`); the stamp
   remains.
+- [ ] **CC-14 [MEDIUM] The auto-reindex hook keeps its own extension list** and misses
+  every suffix added since (`.astro`, `.mdx`, `.php`, the generic languages).
 - [ ] **CC-13 [MEDIUM] Edit-time reindex depends on the docs module and an unset
   `COS_PYTHON`.** Under a system Python without tree-sitter the regex fallback
   re-indexes a Go file without its type edges.
@@ -167,7 +172,8 @@ partial · **LOW** — noise.
   loses the exported name.
 - [ ] **TS-03 [HIGH] CommonJS `require()` is a call to `require`, not an import.**
 - [ ] **TS-04 [MEDIUM] JSX usage is sourced at the module, not the component**, and JSX
-  in `.js` files is parsed with the non-JSX grammar.
+  in `.js` files is parsed with the non-JSX grammar. The grammar half is fixed —
+  JS-family files parse with the tsx grammar and run the JSX passes.
 - [ ] **TS-05 [LOW] 17% of import nodes carry the wrong line** (`^\s*import` swallows
   blank lines).
 - [ ] **TS-06 [MEDIUM] `typeof import('x')` in a type position counts as a runtime import.**
@@ -274,9 +280,13 @@ partial · **LOW** — noise.
 
 ### Astro
 
-- [ ] **AS-01 [CRITICAL] `.astro` files are never indexed** — 87% of the site's import
-  edges start in them; a util imported only by pages looks dead.
-- [ ] **AS-02 [HIGH] `.mdx` content is never indexed.**
+- [x] **AS-01 [CRITICAL] `.astro` files are never indexed** — 87% of the site's import
+  edges start in them; a util imported only by pages looks dead. Fix:
+  `_astro_split.mask_astro` hands `code_ts` a same-length view of the frontmatter
+  and processable scripts (`lang='astro'`, hash of the real file); imports resolve
+  through `resolve_ts` like any TS file. Test: `test_extension_coverage.py`.
+- [x] **AS-02 [HIGH] `.mdx` content is never indexed.** Fix: routed to the markdown
+  graph extractor (the docs RAG layer stays `.md`-only).
 - [ ] **AS-03 [MEDIUM] Pages are not routes;** `export const GET: APIRoute`, `ALL` and
   `.js` endpoints are missed, and `framework` says `nextjs`.
 - [ ] **AS-04 [MEDIUM] Endpoint handlers and `getStaticPaths` look dead.**

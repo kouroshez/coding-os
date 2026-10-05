@@ -16,7 +16,7 @@ from ._ts_nodes import (
     _ts_enclosing_scope,
     _ts_line,
 )
-from ._ts_uids import _TS_KEYWORDS, EXTRACTOR_ID_TS
+from ._ts_uids import _TS_KEYWORDS, EXTRACTOR_ID_TS, JSX_LANGS
 from .md_links import ExtractionResult
 
 
@@ -90,7 +90,7 @@ def _walk_ts_calls(
         )
 
     # ---- Pass C: JSX component usage (tsx) ----
-    if lang == "tsx":
+    if lang in JSX_LANGS:
         for el in iter_nodes(root, {"jsx_opening_element", "jsx_self_closing_element"}):
             nm = el.child_by_field_name("name")
             comp = nm.text.decode("utf-8", "replace") if nm is not None else ""

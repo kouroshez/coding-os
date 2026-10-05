@@ -71,7 +71,7 @@ def dispatch(
     # walker's per-segment denylist so both paths agree.
     # Lockfiles, COS_GRAPH_EXCLUDE_PATHS and .gitignore get the same treatment:
     # a file the full walk never indexes must not enter through an edit either.
-    from graph_os.ingest.base import is_excluded, is_gitignored
+    from graph_os.ingest.base import is_excluded, is_gitignored, is_shell_script
 
     rel_posix = Path(rel).as_posix()
     if is_excluded(rel_posix) or is_gitignored(project_root, rel_posix):
@@ -96,7 +96,9 @@ def dispatch(
     graph_chain: tuple[str, list[str]] | None = None
     if suffix in _EXT_MAP:
         graph_chain = _EXT_MAP[suffix]
-    elif suffix == ".md":
+    elif not suffix and is_shell_script(file_path):
+        graph_chain = ("shell", ["code_shell"])
+    elif suffix in (".md", ".mdx"):
         graph_chain = ("markdown", ["md_links"])
         if _is_task_path(rel):
             graph_chain = ("markdown-task", ["task_deps", "md_links"])

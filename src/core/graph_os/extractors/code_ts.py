@@ -19,6 +19,7 @@ import logging
 from pathlib import PurePosixPath
 
 from ..types import GraphEdge, GraphNode
+from ._astro_split import mask_astro
 from ._ts_nodes import _count_ts_nodes
 from ._ts_regex_calls import _extract_calls, _extract_jsx_components
 from ._ts_regex_decls import (
@@ -39,12 +40,15 @@ from ._ts_uids import (
     _TS_KEYWORDS as _TS_KEYWORDS,
     EXTRACTOR_ID,
     EXTRACTOR_ID_TS,
+    JSX_LANGS,
     _tree_sitter_ts_active,
     _ts_method_uid as _ts_method_uid,
     class_uid as class_uid,
     file_uid,
     function_uid as function_uid,
+    grammar_for,
     interface_uid as interface_uid,
+    lang_for,
     module_uid,
 )
 from .md_links import (
@@ -60,20 +64,23 @@ logger = logging.getLogger("graph_os.extractors.code_ts")
 
 def extract(path: str, content: str) -> ExtractionResult:
     """Parse a TS / TSX file → nodes + edges."""
+    # Hashed before masking: freshness compares this against the file on disk.
+    content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+    if path.endswith(".astro"):
+        content = mask_astro(content)
+    lang_id = grammar_for(path)
     # Tree-sitter overlay pass (I.6b) — runs first to enrich AST-level
     # metadata. Regex scan below continues unchanged so results stay
     # backwards-compatible when the grammar is absent.
     try:
         from ..tree_sitter_overlay import parse as _ts_parse
 
-        lang_id = "tsx" if path.endswith((".tsx", ".jsx")) else "typescript"
         _ts_overlay = _ts_parse(lang_id, content)
     except ImportError:
         _ts_overlay = None
     result = ExtractionResult()
     normalised = _normalize_path(path)
-    lang = "tsx" if normalised.endswith((".tsx", ".jsx")) else "ts"
-    content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+    lang = lang_for(normalised)
 
     file_node = GraphNode(
         uid=file_uid(path),
@@ -195,7 +202,7 @@ def extract(path: str, content: str) -> ExtractionResult:
             local_names=local_names,
             result=result,
         )
-        if lang == "tsx":
+        if lang in JSX_LANGS:
             _extract_jsx_components(
                 path=normalised,
                 content=decl_scan,

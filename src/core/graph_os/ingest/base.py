@@ -5,6 +5,7 @@ from __future__ import annotations
 import fnmatch
 import logging
 import os
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -44,8 +45,14 @@ DEFAULT_INCLUDE = (
     "*.py",
     "*.ts",
     "*.tsx",
+    "*.mts",
+    "*.cts",
+    "*.astro",
     "*.md",
+    "*.mdx",
     "*.sh",
+    "*.bash",
+    "*.zsh",
     "*.php",
     "*.yaml",
     "*.yml",
@@ -152,6 +159,18 @@ def is_excluded(rel_posix: str, exclude_paths: Iterable[str] = DEFAULT_EXCLUDE_P
         return True
     paths = {*(path.strip("/") for path in exclude_paths if path), *extra_exclude_paths()}
     return any(rel_posix == path or rel_posix.startswith(f"{path}/") for path in paths)
+
+
+_SHELL_SHEBANG_RE = re.compile(rb"^#!\s*\S*?/(?:env\s+)?(?:ba|z|da|k)?sh\b")
+
+
+def is_shell_script(path: Path) -> bool:
+    """Whether an extensionless file is a shell script by its `#!` line."""
+    try:
+        with path.open("rb") as handle:
+            return bool(_SHELL_SHEBANG_RE.match(handle.readline(256)))
+    except OSError:
+        return False
 
 
 def is_gitignored(root: Path, rel_posix: str) -> bool:
@@ -311,7 +330,9 @@ def walk_local(
         for name in filenames:
             if name in LOCKFILE_NAMES:
                 continue
-            if not any(fnmatch.fnmatchcase(name, pat) for pat in include_set):
+            included = any(fnmatch.fnmatchcase(name, pat) for pat in include_set)
+            # Git hooks and `bin/` tools carry a shebang instead of a suffix.
+            if not included and not ("." in name or is_shell_script(Path(dirpath) / name)):
                 continue
             rel_name = f"{rel_dir}/{name}" if rel_dir else name
             if any(rel_name == p or rel_name.startswith(p + "/") for p in exclude_paths_set):
@@ -375,5 +396,6 @@ __all__ = [
     "extra_exclude_paths",
     "is_excluded",
     "is_gitignored",
+    "is_shell_script",
     "walk_local",
 ]
