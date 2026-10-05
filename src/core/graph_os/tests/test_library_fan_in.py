@@ -23,8 +23,7 @@ FILES = {
         "func New() *fiber.App {\n\tapp := fiber.New()\n\tapp.Use(cors.New())\n\treturn app\n}\n"
     ),
     "svc/routes.go": (
-        'package svc\n\nimport "github.com/gofiber/fiber/v2"\n\n'
-        "func Mount(app *fiber.App) {}\n"
+        'package svc\n\nimport "github.com/gofiber/fiber/v2"\n\nfunc Mount(app *fiber.App) {}\n'
     ),
 }
 
