@@ -145,10 +145,12 @@ def _walk_function_decl(
         result=result,
     )
     if test_kind:
+        # The test function itself: a name stub was shared by every package
+        # with a `TestRun`.
         result.edges.append(
             GraphEdge(
                 source_uid=module_uid_str,
-                target_uid=f"code:external:test:{name}",
+                target_uid=uid,
                 edge_type="handles_test",
                 extractor=EXTRACTOR_ID,
                 confidence=1.0,

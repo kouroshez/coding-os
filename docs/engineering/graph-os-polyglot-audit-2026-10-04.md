@@ -107,10 +107,11 @@ partial · **LOW** — noise.
 
 ### Cross-cutting
 
-- [ ] **CC-01 [CRITICAL] Cross-file link passes only know Python.** `link_external_stubs`
+- [x] **CC-01 [CRITICAL] Cross-file link passes only know Python.** `link_external_stubs`
   and `link_import_bindings` match `<module>.py` / `__init__.py` only, so Go, TS and
   shell stubs never reach a real symbol: 0 cross-file call edges for Go and TS on
-  the benchmark. Fixed per language below (TS-01, GO-01/02, SH-01).
+  the benchmark. Fixed per language below (TS-01, GO-01/02, SH-01): `link_cross_file`
+  now runs Python, TS/JS, Go, shell, PHP and FastAPI-route passes.
 - [x] **CC-02 [HIGH] Lockfiles and generated specs were 36% of all nodes.**
   `pnpm-lock.yaml` / `package-lock.json` pass the `*.yaml` / `*.json` include, the
   rule that says lock files are graph-excluded was untrue, and
@@ -339,9 +340,10 @@ partial · **LOW** — noise.
   and false "undefined" names for Q6. Fix: type parameters (and a generic
   receiver's `[Item]`) are bound names for calls, and their type edges are
   dropped; the edge rewrites moved to `extractors/_go_edges.py`.
-- [ ] **GO-12 [LOW] `handles_test` points at a shared name stub**; Go symbols carry no
-  `end_line` or signature. The second half is fixed with CC-05: functions and
-  methods carry `end_line` and their `func …` signature.
+- [x] **GO-12 [LOW] `handles_test` points at a shared name stub**; Go symbols carry no
+  `end_line` or signature. Fix: `handles_test` points at the test function itself,
+  and (with CC-05) functions and methods carry `end_line` and their `func …`
+  signature.
 
 ### Python and FastAPI
 

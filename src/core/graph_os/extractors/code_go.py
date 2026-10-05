@@ -26,7 +26,7 @@ Coverage targets Python parity for the Go ecosystem:
                              `code:external:gopkg:<dir>:<name>` stub the linker
                              binds (other file of the package / in-repo import),
                              or `code:external:<import path>:<name>` (library)
-    - handles_test           module → code:external:test:<func-name>
+    - handles_test           module → the TestXxx / BenchmarkXxx function it declares
 
   Go specifics handled
     - generics: `func F[T any](…)` and `type Container[T any] struct{}` ;
