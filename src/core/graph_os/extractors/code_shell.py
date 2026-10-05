@@ -17,8 +17,9 @@ import hashlib
 import logging
 import re
 import subprocess
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
+from ..toolchain import get_active
 from ..types import EvidenceSignal, GraphEdge, GraphNode
 from ._code_shell_emit import (
     EXTRACTOR_ID as EXTRACTOR_ID,
@@ -30,6 +31,8 @@ from ._code_shell_emit import (
     file_uid as file_uid,
     module_uid as module_uid,
 )
+from ._shell_commands import ShellFile, collect_directives, handle_command
+from ._shell_paths import ShellScope
 from .md_links import (
     ExtractionResult,
     ParseError,
@@ -116,94 +119,114 @@ def _walk_ts(
 ) -> int:
     """Walk the tree-sitter-bash AST. Returns ERROR-node count."""
     assert _ts_overlay is not None  # _TS_AVAILABLE gate guards caller
-    # Pass 1: collect locally-defined function names so intra-script calls
-    # resolve (a command matching a same-file function = a real call edge).
-    local_funcs: dict[str, str] = {}
-    pre = [root]
-    while pre:
-        n = pre.pop()
-        if n.type == "function_definition":
-            for ch in n.children:
-                if ch.type in ("word", "concatenation"):
-                    nm = _ts_overlay.node_text(ch, content_bytes).strip()
-                    if nm:
-                        local_funcs[nm] = f"code:function:{_normalize_path(path)}::{nm}"
-                    break
-        pre.extend(n.children)
-    seen_calls: set[tuple[str, str]] = set()
+
+    def text_of(node) -> str:
+        return _ts_overlay.node_text(node, content_bytes)
+
+    nodes = _all_nodes(root)
+    shims = {id(node) for node in nodes if _is_fallback_shim(node, text_of)}
+    scope = ShellScope()
+    loops: dict[tuple[int, int], tuple[str, list[str]]] = {}
+    local_functions: dict[str, str] = {}
+    for node in sorted(nodes, key=lambda candidate: candidate.start_byte):
+        if node.type == "variable_assignment":
+            name_node, value_node = (
+                node.child_by_field_name("name"),
+                node.child_by_field_name("value"),
+            )
+            if name_node is not None and value_node is not None:
+                scope.assign(text_of(name_node), text_of(value_node))
+        elif node.type == "for_statement":
+            loop = _literal_loop(node, text_of)
+            if loop is not None:
+                loops[(node.start_byte, node.end_byte)] = loop
+        elif node.type == "function_definition" and id(node) not in shims:
+            name = _function_name(node, text_of)
+            if name:
+                local_functions[name] = f"code:function:{_normalize_path(path)}::{name}"
+    shell_file = ShellFile(
+        path=normalised,
+        module_uid=mod_uid,
+        root=_active_root(),
+        scope=scope,
+        local_functions=local_functions,
+        loops=loops,
+        directives=collect_directives(root, text_of),
+        result=result,
+    )
     err_count = 0
-    stack = [root]
+    for node in nodes:
+        if node.type == "ERROR":
+            err_count += 1
+        elif node.type == "function_definition":
+            name = _function_name(node, text_of)
+            if name:
+                _emit_function(
+                    name,
+                    node.start_point[0] + 1,
+                    path,
+                    normalised,
+                    result,
+                    mod_uid,
+                    end_line=node.end_point[0] + 1,
+                    fallback_shim=id(node) in shims,
+                )
+        elif node.type == "command":
+            caller = _enclosing_function_uid(node, content_bytes, path) or mod_uid
+            handle_command(node, text_of, caller, shell_file)
+    return err_count
+
+
+def _all_nodes(root) -> list:
+    nodes, stack = [], [root]
     while stack:
         node = stack.pop()
-        ntype = node.type
-        if ntype == "ERROR":
-            err_count += 1
-            stack.extend(reversed(list(node.children)))
-            continue
-        if ntype == "function_definition":
-            # First named child is the function name (word/concatenation).
-            name = ""
-            for child in node.children:
-                if child.type in ("word", "concatenation"):
-                    name = _ts_overlay.node_text(child, content_bytes).strip()
-                    break
-            if name:
-                line = node.start_point[0] + 1
-                _emit_function(name, line, path, normalised, result, mod_uid)
-            stack.extend(reversed(list(node.children)))
-            continue
-        if ntype == "command":
-            # Children: command_name then optional args.
-            cmd_name = ""
-            args: list[tuple[str, int]] = []
-            for i, child in enumerate(node.children):
-                txt = _ts_overlay.node_text(child, content_bytes)
-                if i == 0 and child.type == "command_name":
-                    cmd_name = txt.strip()
-                else:
-                    args.append((txt.strip(), child.start_point[0] + 1))
-            line = node.start_point[0] + 1
-            if cmd_name in ("source", "."):
-                if args:
-                    _emit_source_edge(args[0][0], line, path, normalised, result, mod_uid)
-            elif cmd_name == "cos_log_hook":
-                if args:
-                    hook = args[0][0]
-                    if re.fullmatch(r"[A-Za-z0-9_-]+", hook):
-                        _emit_log_hook_edge(hook, line, normalised, result, mod_uid)
-            elif cmd_name in ("bash", "sh"):
-                # `bash script.sh` invocation pattern.
-                for txt, lineno in args:
-                    if txt.endswith(".sh"):
-                        _emit_call_edge(txt, lineno, path, normalised, result, mod_uid)
-                        break
-            elif cmd_name.endswith(".sh"):
-                # Direct `./script.sh` or `script.sh` invocation.
-                _emit_call_edge(cmd_name, line, path, normalised, result, mod_uid)
-            elif cmd_name in local_funcs:
-                # GD: invocation of a function defined in THIS file — a real
-                # intra-script call. Source = enclosing function (tree scope)
-                # or the module when called at top level.
-                tgt = local_funcs[cmd_name]
-                src = _enclosing_function_uid(node, content_bytes, path) or mod_uid
-                key = (src, tgt)
-                if src != tgt and key not in seen_calls:
-                    seen_calls.add(key)
-                    result.edges.append(
-                        GraphEdge(
-                            source_uid=src,
-                            target_uid=tgt,
-                            edge_type="calls",
-                            extractor=EXTRACTOR_ID,
-                            confidence=0.9,
-                            source_span=f"{normalised}:{line}",
-                            evidence=(EvidenceSignal("shell_local_call", 0.9),),
-                        )
-                    )
-            stack.extend(reversed(list(node.children)))
-            continue
+        nodes.append(node)
         stack.extend(reversed(list(node.children)))
-    return err_count
+    return nodes
+
+
+def _function_name(node, text_of) -> str:
+    for child in node.children:
+        if child.type in ("word", "concatenation"):
+            return text_of(child).strip()
+    return ""
+
+
+def _literal_loop(node, text_of) -> tuple[str, list[str]] | None:
+    variable = node.child_by_field_name("variable")
+    words = node.children_by_field_name("value")
+    if variable is None or not words or any(word.type != "word" for word in words):
+        return None
+    return text_of(variable), [text_of(word) for word in words]
+
+
+def _is_fallback_shim(node, text_of) -> bool:
+    # `if ! command -v log_it >/dev/null; then log_it() { :; }; fi` defines a
+    # no-op only when the real function was not sourced; counting it as the
+    # definition hid the real one (86 such shims for one helper).
+    if node.type != "function_definition":
+        return False
+    name = _function_name(node, text_of)
+    current, hops = node.parent, 0
+    while current is not None and hops < SHIM_SEARCH_DEPTH:
+        if current.type in ("if_statement", "list") and _probes_for(text_of(current), name):
+            return True
+        current, hops = current.parent, hops + 1
+    return False
+
+
+def _probes_for(text: str, name: str) -> bool:
+    probe = re.escape(name)
+    return bool(re.search(rf"(?:command\s+-v|declare\s+-F|type(?:\s+-t)?)\s+{probe}\b", text))
+
+
+def _active_root() -> Path | None:
+    context = get_active()
+    return Path(context.repo_root) if context is not None and context.repo_root else None
+
+
+SHIM_SEARCH_DEPTH = 4
 
 
 # ---------------------------------------------------------------------------

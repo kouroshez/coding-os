@@ -265,18 +265,31 @@ partial · **LOW** — noise.
 
 ### Shell
 
-- [ ] **SH-01 [CRITICAL] Calls to functions from `source`d libraries never link** — 510
-  call sites in 98 hooks, 0 edges.
-- [ ] **SH-02 [CRITICAL] Script → Python / Node invocations emit nothing** — 63 hook →
-  helper dependencies, 0 edges.
-- [ ] **SH-03 [HIGH] Script-directory variables, `# shellcheck source=` and literal loops
+- [x] **SH-01 [CRITICAL] Calls to functions from `source`d libraries never link** — 510
+  call sites in 98 hooks, 0 edges. Fix: a command the file does not define becomes a
+  `code:external:shfn:<name>` stub; `link_shell_functions` binds it to the one real
+  definition (fallback shims excluded, SH-06). This repo's hooks: 0 → 286 edges;
+  `cos_log_hook` now shows 83 calling files. External tools keep their stub (Q5).
+- [x] **SH-02 [CRITICAL] Script → Python / Node invocations emit nothing** — 63 hook →
+  helper dependencies, 0 edges. Fix: `python*`, `$PY`-style variables, `uv run …
+  python`, `node`/`tsx`/`bun`, `npx`/`pnpm exec`, `bash`/`sh` and wrappers
+  (`exec`, `nice`, `timeout`, `env`) emit `calls` to the file they run (`-m` to the
+  module); 0 → 34 of the 63 here — the rest go through a helper-dir function.
+- [x] **SH-03 [HIGH] Script-directory variables, `# shellcheck source=` and literal loops
   are not followed** — 26 of 137 `source` lines unresolved; four core libraries
-  showed 0 dependents.
-- [ ] **SH-04 [HIGH] Repo-root-relative paths are joined to the script folder** and minted
-  as phantom files (`scripts/x/scripts/x/y.sh`).
-- [ ] **SH-05 [MEDIUM] Quoted literals are dropped** (`bash "x.sh"`), and a later argument
-  can be taken as the script.
-- [ ] **SH-06 [MEDIUM] 86 no-op fallback definitions of `cos_log_hook` hide the real one.**
+  showed 0 dependents. Fix: `_shell_paths.ShellScope` expands the script-dir idioms and
+  variables built on them, literal `for` loops unroll, and a directive on the line
+  above a dynamic `source` names its file.
+- [x] **SH-04 [HIGH] Repo-root-relative paths are joined to the script folder** and minted
+  as phantom files (`scripts/x/scripts/x/y.sh`). Fix: a bare path tries the script
+  folder then the repo root and keeps the one that exists; absolute, `~` and missing
+  paths mint nothing.
+- [x] **SH-05 [MEDIUM] Quoted literals are dropped** (`bash "x.sh"`), and a later argument
+  can be taken as the script. Fix: quotes are stripped from words and only the first
+  positional argument is the script.
+- [x] **SH-06 [MEDIUM] 86 no-op fallback definitions of `cos_log_hook` hide the real one.**
+  Fix: a definition guarded by `command -v` / `declare -F` / `type` is tagged
+  `fallback_shim` and left out of same-file and cross-file binding.
 - [ ] **SH-07 [MEDIUM] `.agents/` is excluded wholesale**, though consumer repos keep
   tracked scripts there.
 - [ ] **SH-08 [LOW] Shell functions have no `end_line` or body hash; confidences are

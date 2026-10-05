@@ -55,9 +55,20 @@ def _resolve_script_target(origin: str, target: str) -> str:
 
 
 def _emit_function(
-    name: str, line: int, path: str, normalised: str, result: ExtractionResult, mod_uid: str
+    name: str,
+    line: int,
+    path: str,
+    normalised: str,
+    result: ExtractionResult,
+    mod_uid: str,
+    *,
+    end_line: int | None = None,
+    fallback_shim: bool = False,
 ) -> None:
     fn_uid = f"code:function:{_normalize_path(path)}::{name}"
+    metadata: dict[str, object] = {"extractor": EXTRACTOR_ID}
+    if fallback_shim:
+        metadata["fallback_shim"] = True
     result.nodes.append(
         GraphNode(
             uid=fn_uid,
@@ -65,9 +76,10 @@ def _emit_function(
             label=name,
             file_path=normalised,
             start_line=line,
+            end_line=end_line,
             signature=f"{name}() {{ ... }}",
             lang="sh",
-            metadata={"extractor": EXTRACTOR_ID},
+            metadata=metadata,
         )
     )
     result.edges.append(

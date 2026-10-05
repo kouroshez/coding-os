@@ -435,7 +435,8 @@ def register_reindex(cli: click.Group) -> None:
                 f"[graph-reindex] cross-file link: {linked['python_stubs']} stub(s) resolved, "
                 f"{linked['python_imports']} import binding(s), "
                 f"{linked['ts_symbols']} ts/js binding(s), "
-                f"{linked['go_symbols']} go binding(s)"
+                f"{linked['go_symbols']} go binding(s), "
+                f"{linked['shell_functions']} shell binding(s)"
                 + (
                     f" (+{linked['php_handlers']} php handler(s))"
                     if linked.get("php_handlers")
