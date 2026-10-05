@@ -34,6 +34,9 @@ from graph_os.tools._reindex_state import (
 
 logger = logging.getLogger("graph_os.reindex_dispatch")
 
+# The doc indexer's statuses that leave its chunks matching the file on disk.
+_DOCS_IN_SYNC = frozenset({"reindexed", "unchanged", "unscoped"})
+
 
 def dispatch(
     file_path: str | Path,
@@ -147,11 +150,11 @@ def dispatch(
                         edges_written=0,
                         parse_errors_count=0,
                         last_error=None
-                        if docs_layer.get("status") in {"ok", "unscoped"}
+                        if docs_layer.get("status") in _DOCS_IN_SYNC
                         else str(docs_layer.get("reason") or docs_layer.get("status")),
                         project_root=project_root,
                         db_path=db_path,
-                        advance_hash=docs_layer.get("status") in {"ok", "unscoped"},
+                        advance_hash=docs_layer.get("status") in _DOCS_IN_SYNC,
                     )
             except Exception as exc:
                 logger.debug("docs reindex failed for %s: %s", rel, exc)

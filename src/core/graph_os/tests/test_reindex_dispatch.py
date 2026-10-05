@@ -31,10 +31,13 @@ def _edge_types_between(db: str, source_file: str, target_uid: str) -> set[str]:
 
 
 @pytest.fixture()
-def project(tmp_path):
+def project(tmp_path, monkeypatch):
+    from thinking_os import doc_indexer  # type: ignore
+
+    monkeypatch.setattr(doc_indexer, "_embed_chunk_safe", lambda *args, **kwargs: None)
     (tmp_path / ".coding-os").mkdir()
     (tmp_path / ".coding-os" / "rag-config.yaml").write_text(
-        "sources:\n  docs:\n    - glob: 'docs/**/*.md'\n      category: docs\n",
+        "sources:\n  - path: docs/\n    type: docs\n",
         encoding="utf-8",
     )
     (tmp_path / "docs").mkdir()
@@ -241,8 +244,27 @@ class TestDispatch:
 
         report = dispatch(src, project_root=project, db_path=str(tmp_path / "t.db"))
         assert "graph" in report["layers"]
-        # docs layer may be `unscoped` when no chunks match, or `ok` when
-        # the doc is in-scope — either is acceptable.
+        assert report["layers"]["docs"]["status"] == "reindexed"
+
+    def test_an_indexed_doc_is_cached_not_recorded_as_an_error(self, project, tmp_path):
+        import sqlite3
+
+        src = _write(project / "docs" / "a.md", "# hello\n\nbody\n")
+        from graph_os.tools.reindex_dispatch import dispatch
+
+        db = str(tmp_path / "t.db")
+        dispatch(src, project_root=project, db_path=db)
+        again = dispatch(src, project_root=project, db_path=db)
+
+        assert again["layers"]["docs"]["cache"] == "hit"
+        conn = sqlite3.connect(db)
+        try:
+            errors = conn.execute(
+                "SELECT last_error FROM file_index_state WHERE extractor_chain = 'docs:md'"
+            ).fetchall()
+        finally:
+            conn.close()
+        assert errors == [(None,)]
 
     def test_unsupported_suffix_skipped(self, project, tmp_path):
         # .rs is now routed to code_generic; use a suffix with no

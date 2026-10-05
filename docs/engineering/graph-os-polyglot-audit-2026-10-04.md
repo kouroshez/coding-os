@@ -201,6 +201,13 @@ partial · **LOW** — noise.
   key carries `GRAPH_EXTRACTION_VERSION` (bump it with any change to
   extraction output), so the next `cos graph-reindex` re-reads each file once.
   Test: `test_an_extractor_upgrade_reindexes_an_unchanged_file`.
+- [x] **CC-16 [MEDIUM] Every doc reindex was recorded as a failure.** The dispatcher
+  took `ok` for success, a status the doc indexer never returns (`reindexed`,
+  `unchanged`, `unscoped`), so each indexed doc stored `last_error='reindexed'`
+  and the docs cache never hit (132 such rows in this repo). The test fixture
+  hid it: its rag-config was a shape the loader rejects. Fix: one named set of
+  in-sync statuses, and a fixture the loader accepts. Test:
+  `test_an_indexed_doc_is_cached_not_recorded_as_an_error`.
 - [ ] **CC-13 [MEDIUM] Edit-time reindex depends on the docs module and an unset
   `COS_PYTHON`.** Under a system Python without tree-sitter the regex fallback
   re-indexes a Go file without its type edges. The interpreter half is fixed: the
