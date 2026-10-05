@@ -326,11 +326,22 @@ partial · **LOW** — noise.
   type, decorator and base-class edges in this repo point at the module, not the
   attribute. Fix: one `_import_target` serves calls, bases, decorators and
   annotations; such edges here 2,299 → 0.
-- [ ] **PY-05 [HIGH] FastAPI paths are never composed** from `APIRouter(prefix=)` and
+- [x] **PY-05 [HIGH] FastAPI paths are never composed** from `APIRouter(prefix=)` and
   `include_router(prefix=)`; 101 of 126 Hub routes lack their prefix, and equal
-  suffixes merge distinct endpoints.
-- [ ] **PY-06 [HIGH] The route regex misses `""`, `api_route`, `websocket`, `path=` and
-  `add_api_route`, and matches example code in docstrings.**
+  suffixes merge distinct endpoints. Fix: contracts records each file's routers
+  and mounts; `link_fastapi_routes` follows the Python imports to the router a
+  name means (a shared `router` module, `users.router`) and renames each route to
+  its composed path, recomputing all routes on every link so a prefix edited in
+  one file moves routes in others. Until composed, a route a mount may still
+  prefix keeps a file-scoped uid (`…@<file>`), so two routers' `/items` never
+  merge; a route on a `FastAPI()` app is final at once. This repo's Hub: 126 of
+  126 OpenAPI operations exact (was 25). Test: `test_fastapi_routes.py`.
+- [x] **PY-06 [HIGH] The route regex misses `""`, `api_route`, `websocket`, `path=` and
+  `add_api_route`, and matches example code in docstrings.** Fix:
+  `_contracts_fastapi.py` reads the syntax tree — every form above, `{x:path}`
+  normalised to OpenAPI's `{x}`, docstrings ignored. The `/foo`-style noise list
+  now applies only to regex scanners, and its skipped matches no longer mint a
+  phantom stub through the file's `contains` edge.
 - [ ] **PY-07 [HIGH] Facade / `__init__.py` re-exports are never followed** (2,127 call
   edges unlinked here); relative imports inside `__init__.py` resolve one level high.
   The `__init__.py` half is fixed; following facade re-exports is still open.

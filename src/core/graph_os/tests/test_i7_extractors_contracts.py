@@ -62,8 +62,12 @@ class TestContractsFastAPI:
             """
         )
         r = contracts.extract("backend/app.py", src)
-        mounts = [n for n in r.nodes if n.metadata.get("derivation") == "fastapi_include_router"]
-        assert mounts
+        route = next(n for n in r.nodes if n.kind == "cos:route")
+        file_node = next(n for n in r.nodes if n.uid == "code:file:backend/app.py")
+        assert route.metadata["path"] == "/v2/items"
+        assert [mount[:3] for mount in file_node.metadata["fastapi_mounts"]] == [
+            ["app", "router", "/v2"]
+        ]
 
 
 class TestContractsFlask:

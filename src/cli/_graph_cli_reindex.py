@@ -437,7 +437,8 @@ def register_reindex(cli: click.Group) -> None:
                 f"{linked['python_modules']} python module(s), "
                 f"{linked['ts_symbols']} ts/js binding(s), "
                 f"{linked['go_symbols']} go binding(s), "
-                f"{linked['shell_functions']} shell binding(s)"
+                f"{linked['shell_functions']} shell binding(s), "
+                f"{linked['fastapi_routes']} fastapi route(s) composed"
                 + (
                     f" (+{linked['php_handlers']} php handler(s))"
                     if linked.get("php_handlers")

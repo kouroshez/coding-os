@@ -24,6 +24,7 @@ from ._contracts_events import (
     _scan_sse,
     _scan_websocket,
 )
+from ._contracts_fastapi import FastApiScan, scan_fastapi
 from ._contracts_go import (
     _scan_chi,
     _scan_cobra,
@@ -44,7 +45,6 @@ from ._contracts_php import (
 from ._contracts_python import (
     _scan_django_urlpatterns,
     _scan_drf,
-    _scan_fastapi,
     _scan_flask,
 )
 from ._contracts_shared import (
@@ -73,7 +73,13 @@ def extract(path: str, content: str) -> ExtractionResult:
     normalised = _normalize_path(path)
     content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
     file_doc_blob = _python_file_docstring(content) if normalised.endswith(".py") else None
+    fastapi = scan_fastapi(content) if normalised.endswith(".py") else FastApiScan()
 
+    file_metadata: dict[str, object] = {"extractor": EXTRACTOR_ID}
+    if fastapi.routers:
+        file_metadata["fastapi_routers"] = fastapi.routers
+    if fastapi.mounts:
+        file_metadata["fastapi_mounts"] = fastapi.mounts
     file_node = GraphNode(
         uid=f"code:file:{normalised}",
         kind="code:file",
@@ -82,14 +88,14 @@ def extract(path: str, content: str) -> ExtractionResult:
         lang=_lang_for(normalised),
         doc_blob=file_doc_blob,
         content_hash=content_hash,
-        metadata={"extractor": EXTRACTOR_ID},
+        metadata=file_metadata,
     )
     result.nodes.append(file_node)
 
     matches: list[ContractMatch] = []
     try:
         if normalised.endswith(".py"):
-            matches.extend(_scan_fastapi(content))
+            matches.extend(fastapi.routes)
             matches.extend(_scan_flask(content))
             matches.extend(_scan_drf(content))
             matches.extend(_scan_django_urlpatterns(content))
@@ -147,7 +153,9 @@ def extract(path: str, content: str) -> ExtractionResult:
         extractor_id=EXTRACTOR_ID,
     )
     for hit in matches:
-        contract_uid = _contract_uid(hit)
+        if _looks_like_noise(hit):
+            continue
+        contract_uid = _contract_uid(hit, normalised)
         result.edges.append(
             GraphEdge(
                 source_uid=file_node.uid,
@@ -171,7 +179,8 @@ _HTTP_NOISE_PATHS = {"/x", "/y", "/z", "/foo", "/bar", "/test", "/path"}
 
 
 def _looks_like_noise(match: ContractMatch) -> bool:
-    if match.kind == "http":
+    # A regex can match an example in a docstring; a syntax tree cannot.
+    if match.kind == "http" and not dict(match.extra).get("syntax_tree"):
         return match.path in _HTTP_NOISE_PATHS
     return False
 
@@ -185,7 +194,7 @@ def _emit(
 ) -> None:
     if _looks_like_noise(match):
         return
-    target_uid = _contract_uid(match)
+    target_uid = _contract_uid(match, normalised)
     label = _contract_label(match)
     metadata = {
         "kind": match.kind,
@@ -199,6 +208,7 @@ def _emit(
         metadata["derivation"] = match.derivation
     if match.note:
         metadata["note"] = match.note
+    metadata.update(match.extra)
     result.nodes.append(
         GraphNode(
             uid=target_uid,
@@ -264,7 +274,14 @@ def _emit(
         )
 
 
-def _contract_uid(match: ContractMatch) -> str:
+def _contract_uid(match: ContractMatch, normalised: str) -> str:
+    uid = _base_contract_uid(match)
+    # A route its router's mount may still prefix gets a file-scoped uid until
+    # the linker composes the full path (link_fastapi_routes).
+    return f"{uid}@{normalised}" if dict(match.extra).get("provisional") else uid
+
+
+def _base_contract_uid(match: ContractMatch) -> str:
     if match.kind == "http":
         return f"cos:route:{match.method.upper()}:{match.path}"
     if match.kind == "mcp":

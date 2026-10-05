@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import re
 from dataclasses import dataclass
+from typing import Any
 
 _STRING_CAPTURE = r"""['"](?P<path>[^'"]+)['"]"""
 
@@ -20,6 +21,7 @@ class ContractMatch:
     note: str | None = None
     confidence: float = 0.9
     derivation: str | None = None  # e.g. "drf_router_register"
+    extra: tuple[tuple[str, Any], ...] = ()
 
 
 def _line_of(content: str, idx: int) -> int:

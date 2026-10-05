@@ -1,4 +1,4 @@
-"""Python web-framework contract scanners — FastAPI, Flask, DRF, Django URLs.
+"""Python web-framework contract scanners — Flask, DRF, Django URLs (FastAPI: _contracts_fastapi).
 
 One ecosystem per module: a new FastAPI decorator shape should never put the Go
 or TypeScript scanners in the diff.
@@ -14,18 +14,6 @@ from ._contracts_shared import (
     _line_of,
     _next_def_name,
     _parse_method_list,
-)
-
-# FastAPI: @app.get("/x"), @router.post("/x"), app.include_router(..., prefix="/v2")
-_FASTAPI_ROUTE_RE = re.compile(
-    rf"""@(?P<app>[A-Za-z_][\w.]*)\.(?P<method>get|post|put|patch|delete|head|options|trace)
-        \s*\(\s*{_STRING_CAPTURE}
-    """,
-    re.VERBOSE,
-)
-_FASTAPI_INCLUDE_RE = re.compile(
-    rf"""(?P<app>[A-Za-z_][\w.]*)\.include_router\s*\([^)]*?prefix\s*=\s*{_STRING_CAPTURE}""",
-    re.VERBOSE,
 )
 
 # Flask: @app.route("/x", methods=["POST"]) | @blueprint.route(...)
@@ -56,35 +44,6 @@ _DJANGO_URL_RE = re.compile(
     """,
     re.VERBOSE,
 )
-
-
-def _scan_fastapi(content: str) -> list[ContractMatch]:
-    hits: list[ContractMatch] = []
-    for match in _FASTAPI_ROUTE_RE.finditer(content):
-        hits.append(
-            ContractMatch(
-                kind="http",
-                framework="fastapi",
-                method=match.group("method").lower(),
-                path=match.group("path"),
-                handler=_next_def_name(content, match.end()),
-                line=_line_of(content, match.start()),
-            )
-        )
-    for match in _FASTAPI_INCLUDE_RE.finditer(content):
-        hits.append(
-            ContractMatch(
-                kind="http",
-                framework="fastapi",
-                method="mount",
-                path=match.group("path"),
-                handler=None,
-                line=_line_of(content, match.start()),
-                confidence=0.75,
-                derivation="fastapi_include_router",
-            )
-        )
-    return hits
 
 
 def _scan_flask(content: str) -> list[ContractMatch]:
