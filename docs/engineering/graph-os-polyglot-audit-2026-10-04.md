@@ -235,9 +235,12 @@ partial · **LOW** — noise.
 - [ ] **TS-04 [MEDIUM] JSX usage is sourced at the module, not the component**, and JSX
   in `.js` files is parsed with the non-JSX grammar. The grammar half is fixed —
   JS-family files parse with the tsx grammar and run the JSX passes.
-- [ ] **TS-05 [LOW] 17% of import nodes carry the wrong line** (`^\s*import` swallows
-  blank lines).
-- [ ] **TS-06 [MEDIUM] `typeof import('x')` in a type position counts as a runtime import.**
+- [x] **TS-05 [LOW] 17% of import nodes carry the wrong line** (`^\s*import` swallows
+  blank lines). Fix: the import and export scanners anchor on horizontal space
+  only, so a statement's line is its own.
+- [x] **TS-06 [MEDIUM] `typeof import('x')` in a type position counts as a runtime import.**
+  Fix: `typeof import(…)` and `import(…).Name` are `imports_type`;
+  `import(…).then(…)` stays a runtime import.
 - [x] **TS-07 [HIGH] Expo Router screens and `+api` routes, and TanStack file routes,
   produce no contracts;** any `pages/` folder yields phantom Next.js routes, and
   there is no Express / Fastify / Hono scanner although the roadmap says so. Fix:

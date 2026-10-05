@@ -163,3 +163,31 @@ def test_commonjs_require_imports_and_binds_like_an_import(tmp_path: Path):
     assert ("imports", "code:function:lib/price.ts::roundPrice") in edges
     assert ("calls", "code:function:lib/price.ts::roundPrice") in edges
     assert not any("require" in target for _, target in edges)
+
+
+def test_import_lines_skip_blank_lines_and_type_position_imports_are_type_only():
+    from graph_os.extractors import code_ts
+
+    source = (
+        "// header\n\nimport { a } from './a';\n\n\nimport b from './b';\n"
+        "type Mod = typeof import('./c');\ntype P = import('./d').Props;\n"
+        "const lazy = () => import('./e').then((m) => m.default);\n"
+    )
+    result = code_ts.extract("x.ts", source)
+
+    assert {(n.label, n.start_line) for n in result.nodes if n.kind.endswith("import")} == {
+        ("import a", 3),
+        ("import b", 6),
+    }
+    kinds = {
+        e.target_uid.rpartition(":")[2]: e.edge_type
+        for e in result.edges
+        if e.edge_type in ("imports", "imports_type")
+    }
+    assert kinds == {
+        "a.ts": "imports",
+        "b.ts": "imports",
+        "c.ts": "imports_type",
+        "d.ts": "imports_type",
+        "e.ts": "imports",
+    }

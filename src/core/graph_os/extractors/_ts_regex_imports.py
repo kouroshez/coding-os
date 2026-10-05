@@ -25,7 +25,7 @@ _STRING_RE = re.compile(r"""(?P<q>['"`])(?:\\.|(?!(?P=q)).)*(?P=q)""")
 
 # Declarations.
 _IMPORT_RE = re.compile(
-    r"""^\s*
+    r"""^[ \t]*
     import
     \s+
     (?P<type_only>type\s+)?                       # `import type` (captured to flag type-only)
@@ -39,7 +39,7 @@ _IMPORT_RE = re.compile(
     """,
     re.VERBOSE | re.MULTILINE,
 )
-_SIDE_EFFECT_IMPORT_RE = re.compile(r"""^\s*import\s+['"](?P<module>[^'"]+)['"]""", re.MULTILINE)
+_SIDE_EFFECT_IMPORT_RE = re.compile(r"""^[ \t]*import\s+['"](?P<module>[^'"]+)['"]""", re.MULTILINE)
 # E7: dynamic import — `import('./mod')` and `await import('./mod')`.
 # Used heavily for code-splitting / lazy routes; previously invisible.
 _DYNAMIC_IMPORT_RE = re.compile(
@@ -47,7 +47,7 @@ _DYNAMIC_IMPORT_RE = re.compile(
     re.MULTILINE,
 )
 _EXPORT_FROM_RE = re.compile(
-    r"""^\s*export\s+(?:type\s+)?(?:\*(?:\s+as\s+[\w$]+)?|\{[^{}]*\})\s+from\s+['"](?P<module>[^'"]+)['"]""",
+    r"""^[ \t]*export\s+(?:type\s+)?(?:\*(?:\s+as\s+[\w$]+)?|\{[^{}]*\})\s+from\s+['"](?P<module>[^'"]+)['"]""",
     re.MULTILINE,
 )
 # CommonJS: `require('./x')` is an import, and `const { a, b: c } = require(...)`
@@ -59,7 +59,7 @@ _REQUIRE_BINDING_RE = re.compile(
 )
 # `import { X } from './a'; export { X }` re-exports './a' as surely as `from` does.
 _EXPORT_CLAUSE_RE = re.compile(
-    r"""^\s*export\s+(?:type\s+)?\{(?P<names>[^{}]*)\}\s*(?:;|$)""", re.MULTILINE
+    r"""^[ \t]*export\s+(?:type\s+)?\{(?P<names>[^{}]*)\}\s*(?:;|$)""", re.MULTILINE
 )
 
 
@@ -271,15 +271,21 @@ def _extract_imports(
         module = match.group("module")
         line = content[: match.start()].count("\n") + 1
         target_mod_uid = _resolve_module_uid(path, module)
+        in_type = _in_type_position(content, match)
         result.edges.append(
             GraphEdge(
                 source_uid=module_uid_,
                 target_uid=target_mod_uid,
-                edge_type="imports",
+                edge_type="imports_type" if in_type else "imports",
                 extractor=eid,
-                confidence=0.7,
+                confidence=0.5 if in_type else 0.7,
                 source_span=f"{path}:{line}",
-                evidence=(EvidenceSignal("ts_dynamic_import", 0.7),),
+                evidence=(
+                    EvidenceSignal(
+                        "ts_type_import" if in_type else "ts_dynamic_import",
+                        0.5 if in_type else 0.7,
+                    ),
+                ),
             )
         )
 
@@ -318,6 +324,20 @@ def _extract_imports(
             )
 
     return imported_names
+
+
+_TYPEOF_RE = re.compile(r"typeof\s*$")
+_MEMBER_AFTER_RE = re.compile(r"\s*\.\s*([A-Za-z_$][\w$]*)")
+_PROMISE_MEMBERS = frozenset({"then", "catch", "finally"})
+
+
+def _in_type_position(content: str, match: re.Match[str]) -> bool:
+    # `typeof import('./x')` and `import('./x').Props` name a type and are
+    # erased; `import('./x').then(...)` loads the module at runtime.
+    if _TYPEOF_RE.search(content, max(0, match.start() - 16), match.start()):
+        return True
+    member = _MEMBER_AFTER_RE.match(content, match.end())
+    return member is not None and member.group(1) not in _PROMISE_MEMBERS
 
 
 def _require_bindings(binding: str) -> list[tuple[str, str]]:
