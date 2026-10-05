@@ -111,11 +111,13 @@ partial · **LOW** — noise.
   and `link_import_bindings` match `<module>.py` / `__init__.py` only, so Go, TS and
   shell stubs never reach a real symbol: 0 cross-file call edges for Go and TS on
   the benchmark. Fixed per language below (TS-01, GO-01/02, SH-01).
-- [ ] **CC-02 [HIGH] Lockfiles and generated specs were 36% of all nodes.**
+- [x] **CC-02 [HIGH] Lockfiles and generated specs were 36% of all nodes.**
   `pnpm-lock.yaml` / `package-lock.json` pass the `*.yaml` / `*.json` include, the
   rule that says lock files are graph-excluded was untrue, and
   `COS_GRAPH_EXCLUDE_PATHS` is read by no code. `query("react")` returned 10
-  lockfile keys before the npm module.
+  lockfile keys before the npm module. Fix: `LOCKFILE_NAMES` are skipped by name,
+  and `COS_GRAPH_EXCLUDE_PATHS` now works for directories and single files (the
+  place to drop a generated OpenAPI spec). Test: `test_walk_exclusions.py`.
 - [ ] **CC-03 [HIGH] The walk drops `.astro`, `.mdx`, `.mts`, `.cts`, `.bash`, `.zsh`
   and extensionless shebang scripts.** Three hand-kept extension lists (walk
   include, `_EXT_MAP`, the auto-reindex hook) drift apart.
@@ -135,7 +137,8 @@ partial · **LOW** — noise.
   cannot be listed past the first ~90.
 - [ ] **CC-10 [LOW] Default edge kinds omit `imports_type`, `re_exports`, `constructs`,
   `awaits` and `dispatches`.**
-- [ ] **CC-11 [LOW] Single-file reindex indexes `.gitignore`d files** the full walk skips.
+- [x] **CC-11 [LOW] Single-file reindex indexes `.gitignore`d files** the full walk skips.
+  Fix: dispatch applies the walk's lockfile, path and `.gitignore` rules.
 - [ ] **CC-12 [LOW] Every extractor's stubs are stamped `md_links@v1`**, and a stub
   upsert over a real node overwrote its kind and label (workspace packages turned
   `doc_external`). The overwrite is fixed — `upsert_node` keeps the owner's kind

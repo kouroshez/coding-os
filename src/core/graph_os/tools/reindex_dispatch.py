@@ -69,9 +69,12 @@ def dispatch(
     # whose copied-in relative links resolve from the wrong depth and mint
     # broken file stubs (e.g. code:file:core/hooks/registry.yaml). Mirror the
     # walker's per-segment denylist so both paths agree.
-    from graph_os.ingest.base import DEFAULT_EXCLUDE
+    # Lockfiles, COS_GRAPH_EXCLUDE_PATHS and .gitignore get the same treatment:
+    # a file the full walk never indexes must not enter through an edit either.
+    from graph_os.ingest.base import is_excluded, is_gitignored
 
-    if any(part in DEFAULT_EXCLUDE for part in Path(rel).parts):
+    rel_posix = Path(rel).as_posix()
+    if is_excluded(rel_posix) or is_gitignored(project_root, rel_posix):
         return {
             "status": "skipped",
             "path": rel,

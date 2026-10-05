@@ -114,12 +114,18 @@ which files reach the extractors:
   model). Rust and Ruby also get calls/imports/inherits edges (per-language
   hooks in code_generic); the other generic languages stay node+contains
   until a hook is added for them.
-- **Exclude** — the union of two layers: the static `DEFAULT_EXCLUDE`
-  denylist (`node_modules`, `.venv`, `dist`, `build`, …) **and** the
-  repo's `.gitignore` (root + nested + `.git/info/exclude`), parsed via
-  `pathspec`. The walk therefore drops exactly what `git status`
-  ignores. If `pathspec` is unavailable the `.gitignore` layer is
-  skipped and the denylist remains the backstop (fail-open).
+- **Exclude** — the union of four layers: the static `DEFAULT_EXCLUDE`
+  denylist (`node_modules`, `.venv`, `dist`, `build`, …), dependency
+  lockfiles by name (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`,
+  `go.sum`, `uv.lock`, … — `LOCKFILE_NAMES`), the repo-relative dirs or
+  files listed in `COS_GRAPH_EXCLUDE_PATHS` (comma separated — use it for
+  generated specs or vendored code), **and** the repo's `.gitignore`
+  (root + nested + `.git/info/exclude`), parsed via `pathspec`. The walk
+  therefore drops exactly what `git status` ignores. If `pathspec` is
+  unavailable the `.gitignore` layer is skipped and the denylists remain
+  the backstop (fail-open). The single-file reindex an edit triggers
+  applies the same four layers, so an edit never indexes a file the full
+  walk would skip.
 - **Skipped** — symlinks (target indexed on its own pass) and files
   over `COS_GRAPH_MAX_FILE_BYTES` (default 2 MB).
 

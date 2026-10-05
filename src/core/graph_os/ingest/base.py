@@ -116,6 +116,66 @@ DEFAULT_EXCLUDE = (
 # entries in the Hub UI.
 DEFAULT_EXCLUDE_PATHS = ("tests/golden",)
 
+# Machine-written dependency pins: every key path became a node — one
+# pnpm-lock.yaml was 22% of a 2k-file monorepo's graph — and none of it is source.
+LOCKFILE_NAMES = frozenset(
+    {
+        "pnpm-lock.yaml",
+        "package-lock.json",
+        "npm-shrinkwrap.json",
+        "yarn.lock",
+        "bun.lock",
+        "composer.lock",
+        "Gemfile.lock",
+        "Cargo.lock",
+        "poetry.lock",
+        "uv.lock",
+        "Pipfile.lock",
+        "go.sum",
+        "pubspec.lock",
+        "Podfile.lock",
+        "packages.lock.json",
+    }
+)
+
+
+def extra_exclude_paths() -> tuple[str, ...]:
+    """Project-specific paths from `COS_GRAPH_EXCLUDE_PATHS` (comma separated)."""
+    raw = os.environ.get("COS_GRAPH_EXCLUDE_PATHS", "")
+    return tuple(part.strip().strip("/") for part in raw.split(",") if part.strip().strip("/"))
+
+
+def is_excluded(rel_posix: str, exclude_paths: Iterable[str] = DEFAULT_EXCLUDE_PATHS) -> bool:
+    """Whether the walk skips this repo-relative path, before any `.gitignore` rule."""
+    parts = rel_posix.split("/")
+    if any(part in DEFAULT_EXCLUDE for part in parts[:-1]) or parts[-1] in LOCKFILE_NAMES:
+        return True
+    paths = {*(path.strip("/") for path in exclude_paths if path), *extra_exclude_paths()}
+    return any(rel_posix == path or rel_posix.startswith(f"{path}/") for path in paths)
+
+
+def is_gitignored(root: Path, rel_posix: str) -> bool:
+    """Whether the repo's `.gitignore` files (root, nested, info/exclude) ignore the path."""
+    if _pathspec is None:
+        return False
+    parts = rel_posix.split("/")
+    sources = [("", root / ".git" / "info" / "exclude")]
+    sources += [
+        ("/".join(parts[:depth]), root.joinpath(*parts[:depth], ".gitignore"))
+        for depth in range(len(parts))
+    ]
+    specs = [
+        (base, _pathspec.GitIgnoreSpec.from_lines(lines))
+        for base, path in sources
+        if path.is_file() and (lines := _gitignore_lines(path))
+    ]
+    if not specs:
+        return False
+    ancestors = ("/".join(parts[:depth]) for depth in range(1, len(parts)))
+    if any(_path_gitignored(directory, specs, is_dir=True) for directory in ancestors):
+        return True
+    return _path_gitignored(rel_posix, specs, is_dir=False)
+
 
 def _gitignore_lines(path: Path) -> list[str]:
     try:
@@ -183,6 +243,7 @@ def walk_local(
     # so an env-var override like COS_GRAPH_EXCLUDE_PATHS="" deactivates
     # the feature cleanly.
     exclude_paths_set = {p.strip("/").replace(os.sep, "/") for p in exclude_paths if p}
+    exclude_paths_set.update(extra_exclude_paths())
 
     # .gitignore-aware exclusion, additive over the static denylist. When
     # pathspec is unavailable the feature is skipped and the denylist remains
@@ -248,7 +309,12 @@ def walk_local(
             dirnames.clear()
             continue
         for name in filenames:
+            if name in LOCKFILE_NAMES:
+                continue
             if not any(fnmatch.fnmatchcase(name, pat) for pat in include_set):
+                continue
+            rel_name = f"{rel_dir}/{name}" if rel_dir else name
+            if any(rel_name == p or rel_name.startswith(p + "/") for p in exclude_paths_set):
                 continue
             if gitignore_specs and _path_gitignored(
                 f"{rel_dir}/{name}" if rel_dir else name, gitignore_specs, is_dir=False
@@ -303,7 +369,11 @@ __all__ = [
     "DEFAULT_EXCLUDE",
     "DEFAULT_EXCLUDE_PATHS",
     "DEFAULT_INCLUDE",
+    "LOCKFILE_NAMES",
     "IngestError",
     "IngestPlan",
+    "extra_exclude_paths",
+    "is_excluded",
+    "is_gitignored",
     "walk_local",
 ]
