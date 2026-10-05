@@ -15,10 +15,10 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import re
 from pathlib import PurePosixPath
 from typing import Any
 
+from ..toolchain import strip_json_comments
 from ..types import EvidenceSignal, GraphEdge, GraphNode
 from .md_links import (
     ExtractionResult,
@@ -31,11 +31,6 @@ from .md_links import (
 logger = logging.getLogger("graph_os.extractors.code_json")
 EXTRACTOR_ID = "code_json@v1"
 
-# Strip // and /* */ comments so tsconfig.json (de-facto JSON5) parses cleanly.
-_LINE_COMMENT_RE = re.compile(r"//[^\n]*")
-_BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
-_TRAILING_COMMA_RE = re.compile(r",(\s*[\]\}])")
-
 
 def file_uid(path: str) -> str:
     return f"code:file:{_normalize_path(path)}"
@@ -45,21 +40,13 @@ def _config_uid(path: str, pointer: str) -> str:
     return f"config:json:{_normalize_path(path)}#{pointer}"
 
 
-def _strip_jsonc(content: str) -> str:
-    """Strip // line comments + /* */ block comments + trailing commas."""
-    out = _BLOCK_COMMENT_RE.sub("", content)
-    out = _LINE_COMMENT_RE.sub("", out)
-    out = _TRAILING_COMMA_RE.sub(r"\1", out)
-    return out
-
-
 def _parse_lenient(content: str) -> tuple[Any | None, str | None]:
     """Parse JSON, falling back to JSON5-like stripping on failure."""
     try:
         return json.loads(content), None
     except json.JSONDecodeError:
         try:
-            return json.loads(_strip_jsonc(content)), None
+            return json.loads(strip_json_comments(content)), None
         except json.JSONDecodeError as exc2:
             return None, f"{exc2.msg} at line {exc2.lineno}, col {exc2.colno}"
 

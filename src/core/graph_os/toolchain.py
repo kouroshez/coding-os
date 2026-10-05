@@ -192,13 +192,17 @@ def get_active() -> ToolchainContext | None:
 # ---------------------------------------------------------------------------
 
 
-def _strip_jsonc(raw: str) -> str:
-    """Best-effort JSONC -> JSON: strip // line comments, /* ... */ blocks,
-    and trailing commas before } or ].  tsconfig is JSONC in the wild."""
-    no_block = re.sub(r"/\*.*?\*/", "", raw, flags=re.DOTALL)
-    no_line = re.sub(r"//[^\n]*", "", no_block)
-    no_trailing = re.sub(r",(\s*[}\]])", r"\1", no_line)
-    return no_trailing
+# A string literal is matched before a comment can start inside it, so the
+# `//` in `"$schema": "https://…"` survives — a blind `//[^\n]*` strip cut
+# that value in half and the whole tsconfig failed to parse.
+_JSONC_TOKEN_RE = re.compile(r'"(?:\\.|[^"\\])*"|//[^\n]*|/\*.*?\*/', re.DOTALL)
+_TRAILING_COMMA_RE = re.compile(r",(\s*[}\]])")
+
+
+def strip_json_comments(raw: str) -> str:
+    """JSONC → JSON: drop comments and trailing commas, leaving strings intact."""
+    kept = _JSONC_TOKEN_RE.sub(lambda m: m.group(0) if m.group(0)[0] == '"' else "", raw)
+    return _TRAILING_COMMA_RE.sub(r"\1", kept)
 
 
 def _read_tsconfig(root: Path) -> dict[str, Any]:
@@ -211,7 +215,7 @@ def _read_tsconfig(root: Path) -> dict[str, Any]:
         logger.warning("tsconfig read failed: %s", exc)
         return {}
     try:
-        data = json.loads(_strip_jsonc(raw))
+        data = json.loads(strip_json_comments(raw))
     except json.JSONDecodeError as exc:
         logger.warning("tsconfig parse failed: %s", exc)
         return {}
@@ -390,4 +394,5 @@ __all__ = [
     "load_toolchain",
     "reset_cache",
     "set_active",
+    "strip_json_comments",
 ]

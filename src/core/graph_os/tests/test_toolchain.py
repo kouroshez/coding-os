@@ -87,6 +87,15 @@ class TestTsconfig:
         ctx = load_toolchain(tmp_path)
         assert "@shared/*" in ctx.ts_paths
 
+    def test_schema_url_survives_comment_stripping(self, tmp_path: Path):
+        # `//` inside "https://…" is not a comment; stripping it broke the JSON
+        # and silently dropped every alias in the file.
+        (tmp_path / "tsconfig.json").write_text(
+            '{\n  "$schema": "https://json.schemastore.org/tsconfig", // note\n'
+            '  "compilerOptions": {"paths": {"@x/*": ["lib/*"]}},\n}\n'
+        )
+        assert load_toolchain(tmp_path).ts_paths == {"@x/*": ("lib/*",)}
+
     def test_malformed_tsconfig_returns_empty(self, tmp_path: Path):
         (tmp_path / "tsconfig.json").write_text("{ this is not json")
         ctx = load_toolchain(tmp_path)

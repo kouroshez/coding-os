@@ -75,3 +75,10 @@ partial · **LOW** — noise.
   (sub-extractors and older versions) from the provenance registry. Test:
   `test_ts_rename_and_removed_call_leave_no_zombies`. Reported by the
   completeness auditor.
+- [x] **F-05 [MEDIUM] A `$schema` URL silently voided a whole tsconfig.** Both
+  JSONC strippers (`toolchain`, `code_json`) deleted `//[^\n]*` without knowing
+  about strings, so `"$schema": "https://json.schemastore.org/tsconfig"` was cut at
+  `https:` and the file stopped parsing — every alias in it was dropped, and
+  `code_json` lost the file's keys whenever it also had a comment. Fix: one
+  string-aware `toolchain.strip_json_comments`, used by both. Test:
+  `test_schema_url_survives_comment_stripping`.
