@@ -50,8 +50,8 @@ class ShellScope:
     def expand(self, text: str, extra: dict[str, str] | None = None) -> str | None:
         """`text` with every variable and directory idiom expanded, or None if dynamic."""
         known = {**self.variables, **(extra or {})}
-        text = _expand_directory_idiom(text, known)
-        if text is None:
+        idiom_free = _expand_directory_idiom(text, known)
+        if idiom_free is None:
             return None
         unresolved = False
 
@@ -65,7 +65,7 @@ class ShellScope:
             unresolved = True
             return ""
 
-        expanded = _REFERENCE_RE.sub(_substitute, text)
+        expanded = _REFERENCE_RE.sub(_substitute, idiom_free)
         return None if unresolved or "$(" in expanded or "`" in expanded else expanded
 
 

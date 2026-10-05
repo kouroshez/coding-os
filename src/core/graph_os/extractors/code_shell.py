@@ -17,7 +17,9 @@ import hashlib
 import logging
 import re
 import subprocess
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
+from typing import Any
 
 from ..toolchain import get_active
 from ..types import EvidenceSignal, GraphEdge, GraphNode
@@ -120,8 +122,8 @@ def _walk_ts(
     """Walk the tree-sitter-bash AST. Returns ERROR-node count."""
     assert _ts_overlay is not None  # _TS_AVAILABLE gate guards caller
 
-    def text_of(node) -> str:
-        return _ts_overlay.node_text(node, content_bytes)
+    def text_of(node: Any) -> str:
+        return str(_ts_overlay.node_text(node, content_bytes))
 
     nodes = _all_nodes(root)
     shims = {id(node) for node in nodes if _is_fallback_shim(node, text_of)}
@@ -177,8 +179,9 @@ def _walk_ts(
     return err_count
 
 
-def _all_nodes(root) -> list:
-    nodes, stack = [], [root]
+def _all_nodes(root: Any) -> list[Any]:
+    nodes: list[Any] = []
+    stack = [root]
     while stack:
         node = stack.pop()
         nodes.append(node)
@@ -186,14 +189,14 @@ def _all_nodes(root) -> list:
     return nodes
 
 
-def _function_name(node, text_of) -> str:
+def _function_name(node: Any, text_of: Callable[[Any], str]) -> str:
     for child in node.children:
         if child.type in ("word", "concatenation"):
             return text_of(child).strip()
     return ""
 
 
-def _literal_loop(node, text_of) -> tuple[str, list[str]] | None:
+def _literal_loop(node: Any, text_of: Callable[[Any], str]) -> tuple[str, list[str]] | None:
     variable = node.child_by_field_name("variable")
     words = node.children_by_field_name("value")
     if variable is None or not words or any(word.type != "word" for word in words):
@@ -201,7 +204,7 @@ def _literal_loop(node, text_of) -> tuple[str, list[str]] | None:
     return text_of(variable), [text_of(word) for word in words]
 
 
-def _is_fallback_shim(node, text_of) -> bool:
+def _is_fallback_shim(node: Any, text_of: Callable[[Any], str]) -> bool:
     # `if ! command -v log_it >/dev/null; then log_it() { :; }; fi` defines a
     # no-op only when the real function was not sourced; counting it as the
     # definition hid the real one (86 such shims for one helper).
